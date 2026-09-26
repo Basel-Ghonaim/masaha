@@ -24,6 +24,8 @@ A behaviour is proven in the lane of the **single unit that decides it**. **One 
 | **E2E smoke** (end of project) | Playwright | 2–3 critical flows: search a space; owner checks a member in and the directory's available seats change; admin links an owner | Covering what lower lanes already prove |
 | **Manual** | Browser | Visual review in RTL/LTR, light/dark, phone/desktop (Definition of Done) | Being the only proof of a behaviour |
 
+A test file's suffix names its lane, and each lane's script runs only its own files: `*.unit.test.ts` (`test:unit`, Node), `*.component.test.tsx` (`test:component`, jsdom), and `*.api.test.ts` (`test:api`) once the API exists.
+
 ## 3. Rules that bind every test
 
 1. Deleting the test tooling leaves production complete.
