@@ -138,7 +138,7 @@
   --chart-5: var(--neutral-500);
 
   /* Dark cards have no shadow; --card-border carries the edge instead. */
-  --elevation-raised: none;
+  --elevation-raised: var(--shadow-scale-none);
   --elevation-floating: var(--shadow-scale-floating-dark);
   --elevation-overlay: var(--shadow-scale-overlay-dark);
 

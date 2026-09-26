@@ -89,7 +89,11 @@
   --radius-scale-xl: 12px;
   --radius-scale-full: 999px;
 
-  /* Dark surfaces have no raised shadow, so there is no dark raised value. */
+  /*
+   * No shadow is a shadow that draws nothing, not `none`: Tailwind lists a shadow together with
+   * the ring shadows in one box-shadow, and a `none` inside that list would drop the focus ring too.
+   */
+  --shadow-scale-none: 0 0 #0000;
   --shadow-scale-raised: 0 1px 2px rgb(15 30 40 / 0.06), 0 2px 6px rgb(15 30 40 / 0.06);
   --shadow-scale-floating: 0 8px 24px rgb(15 30 40 / 0.1);
   --shadow-scale-overlay: 0 16px 48px rgb(15 30 40 / 0.16);
