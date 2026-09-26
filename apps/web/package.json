@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "test:unit": "vitest run --project unit",
-    "test:component": "vitest run --project component"
+    "test:component": "vitest run --project component",
+    "check:classes": "node scripts/checkClasses.ts"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",
