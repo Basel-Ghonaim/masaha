@@ -43,6 +43,7 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
 - [workflow.md](development/workflow.md) — how work is executed.
 - [engineering-principles.md](development/engineering-principles.md) — code-design rules.
 - [testing.md](development/testing.md) — where each behaviour is proven.
+- [setup.md](development/setup.md) — install, run, check and test locally; what CI runs.
 
 ### Deferred documents
 
@@ -51,11 +52,9 @@ These documents are **committed but not yet written**, because what they describ
 | Document | Written when | Holds until then |
 |---|---|---|
 | `architecture/system-overview.md` | the first request works end to end (web → API → database) | [ADR 0001](architecture/decisions/0001-monorepo-and-stack.md) (stack) |
-| `development/setup.md` | the repository is scaffolded | — |
 | *Entities* in [data-model.md](architecture/data-model.md) | the Prisma schema is written | [plan: planned data model](plans/v1-mvp.md#planned-data-model) |
 | *Endpoints* in [api-contract.md](api/api-contract.md) | each endpoint is built | [plan: planned API surface](plans/v1-mvp.md#planned-api-surface) |
 | *Mechanism* in [localisation.md](frontend/localisation.md) | the catalogue mechanism is lifted from Quick Tweets | [ADR 0006](architecture/decisions/0006-localisation-approach.md) |
-| *Commands* in `CLAUDE.md` | the repository is scaffolded | — |
 
 ### `plans/`
 - [v1-mvp.md](plans/v1-mvp.md) — the active plan: phases, sequence, risks. Plans move to `plans/historical/` when finished.

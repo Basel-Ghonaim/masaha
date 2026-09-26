@@ -67,7 +67,7 @@ WI-5 to WI-8 each depend only on WI-4. They are done in order, but none blocks a
 
 **Scope**
 - Root `package.json` with npm workspaces: `apps/web`, `apps/api` (empty placeholder with a README only), `packages/shared` (empty package, builds).
-- Node 22 pinned (`.nvmrc`, `engines`); `.editorconfig`, `.gitignore`.
+- Node 24 pinned strictly (`.nvmrc`, `engines`, `engine-strict`); `.editorconfig`, `.gitignore`.
 - Shared `tsconfig.base.json` (strict); ESLint flat config; Prettier.
 - `apps/web`: Vite + React 19 + TypeScript, rendering one placeholder element with no visible text.
 - Vitest configured for the unit and component lanes (jsdom for component).
