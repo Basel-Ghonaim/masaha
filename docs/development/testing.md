@@ -42,4 +42,4 @@ A test file's suffix names its lane, and each lane's script runs only its own fi
 
 ## 5. CI gate
 
-GitHub Actions on every PR: `lint` · `typecheck` · `test:unit` · `test:component` · `test:api` (with a PostgreSQL service). E2E runs locally before a release; the PR states whether it was run.
+GitHub Actions on every PR: `lint` · `typecheck` · `check:classes` · `test:unit` · `test:component` · `test:api` (with a PostgreSQL service). E2E runs locally before a release; the PR states whether it was run.

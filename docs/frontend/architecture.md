@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; not yet implemented · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint, the rest is not yet implemented · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the capability layout, routing and role guards. Data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones

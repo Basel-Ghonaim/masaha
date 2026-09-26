@@ -30,13 +30,14 @@ All commands run from the repository root.
 | `npm run typecheck` | TypeScript in every workspace |
 | `npm run test:unit` | The unit lane (`*.unit.test.ts`, Node) |
 | `npm run test:component` | The component lane (`*.component.test.tsx`, jsdom) |
+| `npm run check:classes` | Fails on physical direction classes (`ml-`, `left-`, `text-left` …) anywhere in `apps/web/src`; use the logical form ([foundation §8](../frontend/design-system/foundation.md#8-direction-rtl--ltr)) |
 | `npm run format` | Prettier over the repository (Markdown is excluded) |
 
 A single workspace can be targeted with `-w`, for example `npm run test:unit -w @masaha/web`.
 
 ## CI
 
-GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) runs `lint`, `typecheck`, `test:unit` and `test:component` as separate checks on every pull request and on `main`, using the Node version from `.nvmrc`.
+GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) runs `lint`, `typecheck`, `test:unit`, `test:component` and `check:classes` as separate checks on every pull request and on `main`, using the Node version from `.nvmrc`.
 
 ## Line endings
 

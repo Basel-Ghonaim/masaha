@@ -69,7 +69,7 @@ Node 24 (`.nvmrc`, enforced by `engine-strict`). Run from the root; details in `
 
 - `npm ci` — install every workspace
 - `npm run dev` — web dev server
-- `npm run build` · `npm run lint` · `npm run typecheck`
+- `npm run build` · `npm run lint` · `npm run typecheck` · `npm run check:classes` (no physical direction classes)
 - `npm run test:unit` · `npm run test:component` — test lanes, chosen by file suffix (`*.unit.test.ts`, `*.component.test.tsx`)
 - `npm run format` — Prettier (Markdown excluded)
 
