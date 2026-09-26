@@ -1,0 +1,72 @@
+/*
+ * Typography (docs/frontend/design-system/foundation.md §7): one self-hosted family for both
+ * scripts, a font stack per language, and eight composite text styles — size, line height and
+ * weight as one unit, never a raw size ramp. Each weight file ships per-subset woff2 with a
+ * unicode-range and font-display: swap, so a page downloads only the scripts it shows.
+ */
+@import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/500.css';
+@import '@fontsource/ibm-plex-sans-arabic/600.css';
+
+:root {
+  --font-ar: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-en: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+
+  /*
+   * Line heights are tuned for Arabic. English keeps them until the English screens confirm a
+   * tighter set (foundation §7). display and heading-1 start at their phone sizes.
+   */
+  --type-display-size: 30px;
+  --type-display-line-height: 1.4;
+  --type-display-weight: 600;
+
+  --type-heading-1-size: 24px;
+  --type-heading-1-line-height: 1.5;
+  --type-heading-1-weight: 600;
+
+  --type-heading-2-size: 22px;
+  --type-heading-2-line-height: 1.55;
+  --type-heading-2-weight: 600;
+
+  --type-heading-3-size: 17px;
+  --type-heading-3-line-height: 1.6;
+  --type-heading-3-weight: 600;
+
+  --type-body-size: 15px;
+  --type-body-line-height: 1.8;
+  --type-body-weight: 400;
+
+  --type-body-sm-size: 13px;
+  --type-body-sm-line-height: 1.7;
+  --type-body-sm-weight: 400;
+
+  --type-label-size: 14px;
+  --type-label-line-height: 1.5;
+  --type-label-weight: 500;
+
+  --type-caption-size: 12px;
+  --type-caption-line-height: 1.6;
+  --type-caption-weight: 400;
+}
+
+/* Phones end where Tailwind's md breakpoint begins, so the two never disagree. */
+@media (width >= theme(--breakpoint-md)) {
+  :root {
+    --type-display-size: 44px;
+    --type-heading-1-size: 30px;
+  }
+}
+
+/*
+ * Set on each element that declares a language and inherited from there, so an English phrase
+ * marked lang="en" inside Arabic text takes the English stack.
+ */
+@layer base {
+  [lang]:lang(ar) {
+    font-family: var(--font-ar);
+  }
+
+  [lang]:lang(en) {
+    font-family: var(--font-en);
+  }
+}
