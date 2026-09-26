@@ -1,0 +1,6 @@
+# Documentation is hand-formatted
+*.md
+
+package-lock.json
+dist/
+coverage/
