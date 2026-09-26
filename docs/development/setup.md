@@ -18,6 +18,8 @@ npm ci
 
 One lockfile at the root installs every workspace: `apps/web` and `packages/shared`. `apps/api` is a placeholder and becomes a workspace when it gets its `package.json`.
 
+**Windows:** `npm ci` deletes `node_modules` first. It fails with `EPERM` on `resolver.win32-x64-msvc.node` while an editor's ESLint server has that native module loaded (it comes with the TypeScript import resolver that the zone boundaries use). Close VS Code, or disable its ESLint extension, before running `npm ci`. `npm install` with an unchanged lockfile is not affected.
+
 ## Commands
 
 All commands run from the repository root.
