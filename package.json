@@ -16,11 +16,14 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test:unit": "npm run test:unit --workspaces --if-present",
     "test:component": "npm run test:component --workspaces --if-present",
+    "check:classes": "npm run check:classes -w @masaha/web",
     "format": "prettier --write ."
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.11.0",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-boundaries": "^7.2.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.9.9",
     "typescript": "~6.0.3",

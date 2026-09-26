@@ -3,6 +3,8 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
+  // The zone aliases (@app, @pages, @features, @shared) are defined once, in tsconfig.app.json.
+  resolve: { tsconfigPaths: true },
   test: {
     // One project per test lane (docs/development/testing.md); the file suffix picks the lane.
     projects: [
@@ -11,7 +13,7 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['src/**/*.unit.test.ts'],
+          include: ['src/**/*.unit.test.ts', 'scripts/**/*.unit.test.ts'],
         },
       },
       {

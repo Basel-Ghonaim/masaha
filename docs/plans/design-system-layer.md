@@ -122,6 +122,7 @@ Builds [foundation §3–§7](../frontend/design-system/foundation.md) exactly a
   - an `@theme` mapping that exposes the semantic roles, text styles, radii and shadows as utilities;
   - the Tailwind default palette disabled, so `bg-blue-500` does not exist;
   - the `dark` variant redefined to `[data-theme="dark"]`.
+- `check:classes` extended to fail on arbitrary-value classes (e.g. `text-[13px]`, `bg-[#fff]`) outside `shared/design-system/`.
 - **Pre-paint script** in `index.html`:
   - sets `data-theme` (stored choice → system preference);
   - sets `lang` and `dir` (stored choice → browser language → `ar`), per [localisation.md](../frontend/localisation.md#languages-and-resolution).
@@ -152,6 +153,7 @@ Builds [foundation §3–§7](../frontend/design-system/foundation.md) exactly a
 - The Radix `DirectionProvider`, exported by the layer and mounted in `app/`.
 - `components.json` for the shadcn CLI, pointing into `shared/design-system/components/`.
 - The layer's `index.ts` public surface.
+- A lint rule forbidding imports of `@radix-ui/*`, `lucide-react` and `class-variance-authority` outside `shared/design-system/`.
 - **Showcase**, a development-only route (`/__showcase`) in a `pages/showcase/` group:
   - excluded from production builds;
   - toolbar to switch theme, direction and width (360 / 768 / 1280);
