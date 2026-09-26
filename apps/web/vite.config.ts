@@ -15,6 +15,9 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           include: ['src/**/*.unit.test.ts', 'scripts/**/*.unit.test.ts'],
+          // Vitest empties every CSS import, ?raw included, unless the file is listed here. The
+          // token tests read the token files as text.
+          css: { include: [/\/design-system\/tokens\/[^/?]+\.css\b/] },
         },
       },
       {
