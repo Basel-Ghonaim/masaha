@@ -1,0 +1,119 @@
+/*
+ * Primitive tokens: raw scales with no meaning (docs/frontend/design-system/foundation.md §4–§5).
+ * This is the only file where raw palette, radius, shadow, motion and layer values exist. Only
+ * semantic.css binds a primitive; components and pages bind the semantic roles.
+ */
+:root {
+  /* Palette (Sea). brand-600 is the brand colour; the neutrals carry a slight teal cast. */
+  --brand-50: #eafbfc;
+  --brand-100: #d5f4f5;
+  --brand-200: #b3e6e8;
+  --brand-300: #85d0d4;
+  --brand-400: #50b3b8;
+  --brand-500: #15959b;
+  --brand-600: #02787d;
+  --brand-700: #096165;
+  --brand-800: #05494c;
+  --brand-900: #023235;
+  --brand-950: #001d1f;
+
+  --neutral-50: #f4fcfe;
+  --neutral-100: #eaf5f7;
+  --neutral-200: #dbe6e9;
+  --neutral-300: #c7d1d4;
+  --neutral-400: #9da7a9;
+  --neutral-500: #747e80;
+  --neutral-600: #5c6567;
+  --neutral-700: #464f51;
+  --neutral-800: #2a3234;
+  --neutral-900: #182022;
+  --neutral-950: #0c1315;
+
+  --green-50: #ecfcef;
+  --green-100: #d9f5df;
+  --green-200: #bae8c5;
+  --green-300: #90d3a2;
+  --green-400: #63b77c;
+  --green-500: #39995b;
+  --green-600: #137d41;
+  --green-700: #026732;
+  --green-800: #034d25;
+  --green-900: #013517;
+  --green-950: #001f0a;
+
+  --amber-50: #fff5ea;
+  --amber-100: #ffe9cf;
+  --amber-200: #fbd3a2;
+  --amber-300: #eeb56c;
+  --amber-400: #d6912b;
+  --amber-500: #b27406;
+  --amber-600: #905c01;
+  --amber-700: #754b04;
+  --amber-800: #593700;
+  --amber-900: #3e2500;
+  --amber-950: #261400;
+
+  --red-50: #fef4f3;
+  --red-100: #fde7e4;
+  --red-200: #ffcdc8;
+  --red-300: #fea69e;
+  --red-400: #fc6e68;
+  --red-500: #de4544;
+  --red-600: #be222a;
+  --red-700: #a20419;
+  --red-800: #7c0110;
+  --red-900: #580007;
+  --red-950: #370003;
+
+  --blue-50: #f1f8fe;
+  --blue-100: #e0efff;
+  --blue-200: #c0deff;
+  --blue-300: #90c6fe;
+  --blue-400: #64a6e9;
+  --blue-500: #3e87ce;
+  --blue-600: #1f6cb0;
+  --blue-700: #075796;
+  --blue-800: #004174;
+  --blue-900: #002c52;
+  --blue-950: #001934;
+
+  --white: #ffffff;
+
+  /*
+   * Radius, shadow and text tokens never share a name with a Tailwind theme variable (tailwind.css
+   * maps --radius-md onto --radius-scale-md): a shared name would make the mapping reference itself.
+   */
+  --radius-scale-sm: 4px;
+  --radius-scale-md: 6px;
+  --radius-scale-lg: 8px;
+  --radius-scale-xl: 12px;
+  --radius-scale-full: 999px;
+
+  /* Dark surfaces have no raised shadow, so there is no dark raised value. */
+  --shadow-scale-raised: 0 1px 2px rgb(15 30 40 / 0.06), 0 2px 6px rgb(15 30 40 / 0.06);
+  --shadow-scale-floating: 0 8px 24px rgb(15 30 40 / 0.1);
+  --shadow-scale-overlay: 0 16px 48px rgb(15 30 40 / 0.16);
+  --shadow-scale-floating-dark: 0 8px 24px rgb(0 0 0 / 0.4);
+  --shadow-scale-overlay-dark: 0 16px 48px rgb(0 0 0 / 0.4);
+
+  --duration-short: 150ms;
+  --duration-medium: 250ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /*
+   * Dropdown sits above modal: menus, selects and tooltips are portalled to <body>, and one opened
+   * from inside a dialog must appear over it.
+   */
+  --z-sticky: 100;
+  --z-overlay: 200;
+  --z-modal: 300;
+  --z-dropdown: 400;
+  --z-toast: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-short: 0ms;
+    --duration-medium: 0ms;
+  }
+}
