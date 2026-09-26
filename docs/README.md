@@ -59,3 +59,4 @@ These documents are **committed but not yet written**, because what they describ
 
 ### `plans/`
 - [v1-mvp.md](plans/v1-mvp.md) — the active plan: phases, sequence, risks. Plans move to `plans/historical/` when finished.
+- [design-system-layer.md](plans/design-system-layer.md) — phases 2–3: repository scaffold and the design-system layer, as nine Work Items.
