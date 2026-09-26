@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Not yet built in code.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens built (`tokens/`, §3); components not yet built.
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-26
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -66,6 +66,7 @@ apps/web/src/shared/design-system/
 - **shadcn/ui** is configured (`components.json` aliases) to copy components into `components/`. Once copied, a component is ours and follows this contract (§11).
 - **Radix primitives, the icon library and variant utilities** (`class-variance-authority`) are imported **only** inside the layer.
 - **No CSS files outside the layer.** Pages and features use Tailwind for layout only (grid, flex, gap, spacing, sizing).
+- **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
 
 **Enforcement:** lint rules forbid (a) imports into the layer's internals, (b) importing Radix, the icon library or `cva` outside the layer, and (c) raw palette or arbitrary-value classes outside the layer. A test checks theme key parity (§6).
 
@@ -194,7 +195,7 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 | Radius | Primitive scale + one semantic `radius` base | `--radius` 8px → `sm` 4 · `md` 6 · `lg` 8 · `xl` 12 · `full` 999 |
 | Shadow | Primitive scale | **raised** `0 1px 2px rgb(15 30 40 / .06), 0 2px 6px rgb(15 30 40 / .06)` · **floating** `0 8px 24px rgb(15 30 40 / .10)` · **overlay** `0 16px 48px rgb(15 30 40 / .16)`. Dark: raised `none`, floating and overlay use `rgb(0 0 0 / .4)` |
 | Spacing | Tailwind's 4px scale | Layout binds the scale; control padding is owned by components (§4 component tokens) |
-| Z-index | Named layers | `dropdown`, `sticky`, `overlay`, `modal`, `toast` |
+| Z-index | Named layers | `sticky` 100 · `overlay` 200 · `modal` 300 · `dropdown` 400 · `toast` 500. Dropdown sits above modal: floating content is portalled to `<body>`, and one opened from a dialog must appear over it |
 | Motion | 2 durations + 1 easing | 150ms · 250ms · `cubic-bezier(.2, 0, 0, 1)`; off under `prefers-reduced-motion` |
 
 ---
