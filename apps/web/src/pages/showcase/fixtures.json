@@ -219,6 +219,37 @@
         "otherLanguage": "English version",
         "toDark": "الانتقال إلى الوضع الداكن للواجهة",
         "toLight": "الانتقال إلى الوضع الفاتح للواجهة"
+      },
+      "badge": {
+        "title": "الشارات",
+        "caption": "الأنواع: محايدة، أساسية، نجاح، تنبيه، معلومة، خطر",
+        "variants": {
+          "neutral": "مرفوض",
+          "primary": "مالك",
+          "success": "نشط",
+          "warning": "ينتهي خلال 3 أيام",
+          "info": "جديد",
+          "destructive": "منتهية"
+        }
+      },
+      "card": {
+        "title": "البطاقات",
+        "caption": "عنوان ووصف وإجراء ومحتوى وتذييل",
+        "cardTitle": "ساعات العمل",
+        "description": "تظهر في صفحة المساحة العامة",
+        "action": "تعديل",
+        "content": "من السبت إلى الخميس، من 08:00 حتى 20:00. الجمعة مغلق.",
+        "footer": "آخر تحديث قبل يومين",
+        "plainCaption": "بطاقة بمحتوى فقط",
+        "plain": "مساحة هادئة قرب الجامعة، بإنترنت مستقر وكهرباء طوال اليوم."
+      },
+      "separator": {
+        "title": "الفواصل",
+        "horizontalCaption": "أفقي بين كتلتين",
+        "above": "بيانات المساحة",
+        "below": "بيانات التواصل",
+        "verticalCaption": "رأسي بين عناصر في صف",
+        "items": ["الملف الشخصي", "المفضلة", "بلاغاتي"]
       }
     },
     "en": {
@@ -424,6 +455,37 @@
         "otherLanguage": "النسخة العربية",
         "toDark": "Switch the interface to the dark theme",
         "toLight": "Switch the interface to the light theme"
+      },
+      "badge": {
+        "title": "Badges",
+        "caption": "Neutral, primary, success, warning, info and destructive",
+        "variants": {
+          "neutral": "Rejected",
+          "primary": "Space owner",
+          "success": "Active member",
+          "warning": "Ends in 3 days",
+          "info": "New report",
+          "destructive": "Expired"
+        }
+      },
+      "card": {
+        "title": "Cards",
+        "caption": "Title, description, action, content and footer",
+        "cardTitle": "Opening hours",
+        "description": "Shown on the space's public page",
+        "action": "Edit hours",
+        "content": "Saturday to Thursday, 08:00 to 20:00. Closed on Friday.",
+        "footer": "Last updated two days ago",
+        "plainCaption": "A card with content only",
+        "plain": "A quiet space near the university, with steady internet and power all day."
+      },
+      "separator": {
+        "title": "Separators",
+        "horizontalCaption": "Horizontal, between two blocks",
+        "above": "Space details",
+        "below": "Contact details",
+        "verticalCaption": "Vertical, between items in a row",
+        "items": ["My profile", "Favourites", "My reports"]
       }
     }
   }
