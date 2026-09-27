@@ -21,6 +21,9 @@
     "check:build": "npm run check:build -w @masaha/web",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w @masaha/api",
+    "db:reset": "npm run db:reset -w @masaha/api",
+    "db:studio": "npm run db:studio -w @masaha/api",
     "format": "prettier --write ."
   },
   "devDependencies": {

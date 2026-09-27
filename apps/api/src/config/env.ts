@@ -5,6 +5,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   // The one web origin allowed to call the API with credentials (docs/backend/security.md).
   CORS_ORIGIN: z.url(),
+  // PostgreSQL connection string (docs/development/setup.md#database).
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

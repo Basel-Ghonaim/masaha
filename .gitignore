@@ -6,6 +6,9 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# Generated Prisma client (npm install runs prisma generate)
+apps/api/src/generated/
+
 # Environment
 .env
 .env.*

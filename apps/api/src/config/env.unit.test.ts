@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { EnvError, loadEnv } from './env.ts';
 
-const valid = { CORS_ORIGIN: 'http://localhost:5173' };
+const valid = {
+  CORS_ORIGIN: 'http://localhost:5173',
+  DATABASE_URL: 'postgresql://masaha:masaha@localhost:5433/masaha_dev',
+};
 
 describe('loadEnv', () => {
   it('applies the defaults', () => {
@@ -10,6 +13,7 @@ describe('loadEnv', () => {
       NODE_ENV: 'development',
       PORT: 3000,
       CORS_ORIGIN: 'http://localhost:5173',
+      DATABASE_URL: 'postgresql://masaha:masaha@localhost:5433/masaha_dev',
       LOG_LEVEL: 'info',
     });
   });
@@ -21,6 +25,13 @@ describe('loadEnv', () => {
   it('names a missing variable', () => {
     expect(() => loadEnv({})).toThrow(EnvError);
     expect(() => loadEnv({})).toThrow(/CORS_ORIGIN/);
+    expect(() => loadEnv({})).toThrow(/DATABASE_URL/);
+  });
+
+  it('refuses a database URL that is not PostgreSQL', () => {
+    expect(() => loadEnv({ ...valid, DATABASE_URL: 'mysql://localhost:3306/masaha' })).toThrow(
+      /DATABASE_URL/,
+    );
   });
 
   it('names every invalid variable at once', () => {

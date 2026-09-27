@@ -58,6 +58,14 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
 |---|---|
 | `npm run db:up` | Starts PostgreSQL and waits until it is healthy |
 | `npm run db:down` | Stops it; the data stays in the volume. `docker compose down -v` also deletes the data |
+| `npm run db:migrate` | `prisma migrate dev` on `masaha_dev`: applies pending migrations and creates one from any schema change |
+| `npm run db:reset` | `prisma migrate reset`: drops `masaha_dev` and re-applies every migration |
+| `npm run db:studio` | Opens Prisma Studio on `masaha_dev` |
+
+**Prisma** (7) lives in `apps/api`:
+- The schema is in `prisma/schema.prisma`. It has no models yet.
+- The connection comes from `DATABASE_URL` through `prisma.config.ts`, which loads `apps/api/.env` the same way the API does.
+- The client is generated into `apps/api/src/generated/prisma/`. That folder is not committed. `npm install` and `npm ci` regenerate it (the API's `postinstall`). After a schema change, `npm exec -w @masaha/api -- prisma generate` regenerates it by hand.
 
 ## The API
 
