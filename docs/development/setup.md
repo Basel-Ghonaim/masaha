@@ -1,6 +1,6 @@
 # Setup
 
-> **Status:** Active · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-27 · **Owner:** Basel Ghoneim
 > **Authority:** How to install, run, check and test the repository locally, and what CI runs. Which lane proves a behaviour is owned by [testing.md](testing.md); how work is executed by [workflow.md](workflow.md).
 
 ## Prerequisites
@@ -40,6 +40,13 @@ A single workspace can be targeted with `-w`, for example `npm run test:unit -w 
 ## CI
 
 GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) runs `lint`, `typecheck`, `test:unit`, `test:component` and `check:classes` as separate checks on every pull request and on `main`, using the Node version from `.nvmrc`.
+
+## Editor
+
+The repository shares two VS Code files; the rest of `.vscode/` stays ignored.
+
+- `.vscode/extensions.json` recommends **Tailwind CSS IntelliSense**.
+- `.vscode/settings.json` opens `*.css` files in Tailwind CSS mode, so VS Code does not flag `@theme`, `@custom-variant` or `source()`. It also sets the spell checker (Code Spell Checker) to British English, the spelling the documents use.
 
 ## Line endings
 
