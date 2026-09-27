@@ -216,7 +216,7 @@ Each item also meets the same bar:
 ### WI-7 — Overlays and navigation · `feat/ds-navigation` · L
 
 - **Components:** Dialog · AlertDialog · Sheet · DropdownMenu · Tabs · Breadcrumb · Pagination · Sidebar.
-- **Sheet:** opens from the logical end on navigation, and from the bottom for filters.
+- **Sheet:** opens from the logical start on navigation (where the sidebar sits), and from the bottom for filters.
 - **Pagination:** takes its words as props, and its chevrons mirror.
 - **Sidebar:**
   - expanded on desktop;

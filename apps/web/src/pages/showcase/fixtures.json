@@ -387,6 +387,32 @@
         "description": "لن يتمكن المشترك من تسجيل الحضور. يمكنك إعادة تفعيل العضوية لاحقاً.",
         "cancel": "إبقاء العضوية فعّالة",
         "action": "إيقاف العضوية"
+      },
+      "sheet": {
+        "title": "الألواح الجانبية",
+        "caption": "التنقل من جهة البداية، ولوح من جهة النهاية، والفلاتر من الأسفل",
+        "navigation": {
+          "trigger": "فتح درج التنقل",
+          "title": "لوحة المالك",
+          "items": ["صفحة النظرة العامة", "صفحة المشتركين", "صفحة الإعلانات"],
+          "closeLabel": "إغلاق درج التنقل"
+        },
+        "details": {
+          "trigger": "فتح لوح التفاصيل",
+          "title": "تفاصيل البلاغ",
+          "description": "أرسله رامي خليل عن سعر اليوم الكامل.",
+          "closeLabel": "إغلاق لوح التفاصيل"
+        },
+        "filters": {
+          "trigger": "فتح لوح الفلاتر",
+          "title": "فلاتر البلاغات",
+          "clear": "مسح كل الفلاتر",
+          "status": "حالة البلاغ",
+          "statuses": ["البلاغات الجديدة", "البلاغات قيد المراجعة", "البلاغات المصححة"],
+          "area": "منطقة المساحة",
+          "areas": ["كل المناطق", "الرمال", "تل الهوا"],
+          "apply": "عرض 20 بلاغاً مطابقاً"
+        }
       }
     },
     "en": {
@@ -760,6 +786,32 @@
         "description": "The member can no longer check in. You can reactivate the membership later.",
         "cancel": "Keep the membership active",
         "action": "Deactivate the membership"
+      },
+      "sheet": {
+        "title": "Sheets",
+        "caption": "Navigation from the start side, a panel from the end, filters from the bottom",
+        "navigation": {
+          "trigger": "Open the navigation drawer",
+          "title": "Owner dashboard",
+          "items": ["Overview page", "Members page", "Announcements page"],
+          "closeLabel": "Close the navigation drawer"
+        },
+        "details": {
+          "trigger": "Open the details panel",
+          "title": "Report details",
+          "description": "Sent by Rami Khalil about the full-day price.",
+          "closeLabel": "Close the details panel"
+        },
+        "filters": {
+          "trigger": "Open the filter panel",
+          "title": "Report filters",
+          "clear": "Clear every filter",
+          "status": "Report status",
+          "statuses": ["New reports", "Reports in review", "Corrected reports"],
+          "area": "Space area",
+          "areas": ["Every area", "Rimal", "Tal al-Hawa"],
+          "apply": "Show 20 matching reports"
+        }
       }
     }
   }

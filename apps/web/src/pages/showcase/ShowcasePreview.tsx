@@ -18,6 +18,7 @@ import {
   RadioGroupSection,
   SelectSection,
   SeparatorSection,
+  SheetSection,
   SkeletonSection,
   SpinnerSection,
   StatCardSection,
@@ -73,6 +74,7 @@ export function ShowcasePreview() {
         <StatCardSection samples={samples.statCard} />
         <DialogSection samples={samples.dialog} />
         <AlertDialogSection samples={samples.alertDialog} />
+        <SheetSection samples={samples.sheet} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

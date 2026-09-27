@@ -64,6 +64,18 @@ export {
   SelectValue,
 } from './components/Select';
 export { Separator, type SeparatorProps } from './components/Separator';
+export {
+  Sheet,
+  SheetBody,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  type SheetContentProps,
+} from './components/Sheet';
 export { Skeleton } from './components/Skeleton';
 export { Spinner, type SpinnerProps } from './components/Spinner';
 export { StatCard, type StatCardProps } from './components/StatCard';
