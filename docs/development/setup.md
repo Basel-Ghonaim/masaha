@@ -33,7 +33,7 @@ All commands run from the repository root.
 | `npm run typecheck` | TypeScript in every workspace |
 | `npm run test:unit` | The unit lane (`*.unit.test.ts`, Node) |
 | `npm run test:component` | The component lane (`*.component.test.tsx`, jsdom) |
-| `npm run test:api` | The API integration lane (`*.api.test.ts`, Supertest against the Express app) |
+| `npm run test:api` | The API integration lane (`*.api.test.ts`, Supertest against the Express app and the test database; needs `npm run db:up`, see [The API test lane](#the-api-test-lane)) |
 | `npm run check:classes` | Fails on physical direction classes (`ml-`, `left-`, `text-left` …) anywhere in `apps/web/src`; use the logical form ([foundation §8](../frontend/design-system/foundation.md#8-direction-rtl--ltr)). Also fails on arbitrary-value classes (`text-[13px]`, `bg-[#fff]`, `bg-(--token)` …) outside `shared/design-system/`; use a token utility ([foundation §2](../frontend/design-system/foundation.md#2-principles)) |
 | `npm run check:build` | Run after `npm run build`: fails if `apps/web/dist` contains the development-only design-system showcase (its route path or any of its fixture strings) |
 | `npm run format` | Prettier over the repository (Markdown is excluded) |
@@ -81,9 +81,21 @@ The API reads its settings from `apps/api/.env`, loaded by Node's `--env-file`. 
 
 In development, tests and typechecking, the API reads `@masaha/shared` from its source through the package's `@masaha/source` export condition, so the shared package does not need building first. Only `build` and `start` use its `dist`.
 
+## The API test lane
+
+`npm run test:api` runs against `masaha_test`, never `masaha_dev`. It reads the database from `TEST_DATABASE_URL` in `apps/api/.env`.
+
+- **Once, before the lane:** it checks that the database is reachable and applies every migration (`prisma migrate deploy`).
+- **Before each test file:** it empties every table except Prisma's migration history and restarts the ID sequences. So files run one at a time.
+- **Refuses the wrong database:** both steps abort, naming the database, unless its name ends in `_test`. A misconfigured `TEST_DATABASE_URL` cannot wipe `masaha_dev`.
+
+The tooling lives in `apps/api/test/`, outside `src`, so the build never contains it.
+
 ## CI
 
 GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) runs `lint`, `typecheck`, `test:unit`, `test:component`, `test:api`, `check:classes` and `build` as separate checks on every pull request and on `main`, using the Node version from `.nvmrc`. The `build` check then runs `check:build` on its output.
+
+`test:api` is its own job: it runs next to a `postgres:18-alpine` service container whose database is `masaha_test`, and sets `TEST_DATABASE_URL` to it.
 
 ## Editor
 

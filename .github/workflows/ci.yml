@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        task: [lint, typecheck, 'test:unit', 'test:component', 'test:api', 'check:classes', build]
+        task: [lint, typecheck, 'test:unit', 'test:component', 'check:classes', build]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -31,3 +31,32 @@ jobs:
       # The design-system showcase is development-only; the build must not contain it.
       - if: matrix.task == 'build'
         run: npm run check:build
+
+  # The API integration lane runs against a real PostgreSQL (docs/development/testing.md).
+  test-api:
+    name: 'test:api'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: masaha
+          POSTGRES_PASSWORD: masaha
+          POSTGRES_DB: masaha_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U masaha -d masaha_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      TEST_DATABASE_URL: postgresql://masaha:masaha@localhost:5432/masaha_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run test:api
