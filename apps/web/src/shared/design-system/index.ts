@@ -1,14 +1,49 @@
 // The design-system layer's only public surface: consumers import from @shared/design-system,
 // never from inside it (docs/frontend/design-system/foundation.md §3).
+export { Button, type ButtonProps } from './components/Button';
+export { Checkbox, type CheckboxProps } from './components/Checkbox';
 export { DirectionProvider } from './components/DirectionProvider';
+export { Field, type FieldProps } from './components/Field';
+export { Input, InputAction, type InputActionProps, type InputProps } from './components/Input';
+export { LanguageToggle, type LanguageToggleProps } from './components/LanguageToggle';
+export {
+  RadioGroup,
+  RadioGroupItem,
+  type RadioGroupItemProps,
+  type RadioGroupProps,
+} from './components/RadioGroup';
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from './components/Select';
+export { Switch, type SwitchProps } from './components/Switch';
+export { Textarea, type TextareaProps } from './components/Textarea';
+export { ThemeToggle, type ThemeToggleProps } from './components/ThemeToggle';
 export {
   ArrowEndIcon,
   ArrowStartIcon,
+  CheckIcon,
+  ChevronDownIcon,
   ChevronEndIcon,
   ChevronStartIcon,
+  ChevronUpIcon,
+  CircleAlertIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LanguagesIcon,
+  LoaderIcon,
   LogInIcon,
   LogOutIcon,
+  MoonIcon,
   SearchIcon,
+  SunIcon,
+  XIcon,
   type IconProps,
 } from './icons';
 export { cn } from './lib/cn';

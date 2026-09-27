@@ -1,11 +1,22 @@
 import {
   ArrowLeft,
   ArrowRight,
+  Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  CircleAlert,
+  Eye,
+  EyeOff,
+  Languages,
+  LoaderCircle,
   LogIn,
   LogOut,
+  Moon,
   Search,
+  Sun,
+  X,
 } from 'lucide-react';
 import { Icon, type IconProps } from './Icon';
 
@@ -37,6 +48,50 @@ export function LogOutIcon(props: IconProps) {
   return <Icon glyph={LogOut} mirror {...props} />;
 }
 
+export function CircleAlertIcon(props: IconProps) {
+  return <Icon glyph={CircleAlert} {...props} />;
+}
+
+export function EyeIcon(props: IconProps) {
+  return <Icon glyph={Eye} {...props} />;
+}
+
+export function EyeOffIcon(props: IconProps) {
+  return <Icon glyph={EyeOff} {...props} />;
+}
+
+export function XIcon(props: IconProps) {
+  return <Icon glyph={X} {...props} />;
+}
+
 export function SearchIcon(props: IconProps) {
   return <Icon glyph={Search} {...props} />;
+}
+
+export function LoaderIcon(props: IconProps) {
+  return <Icon glyph={LoaderCircle} {...props} />;
+}
+
+export function CheckIcon(props: IconProps) {
+  return <Icon glyph={Check} {...props} />;
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return <Icon glyph={ChevronDown} {...props} />;
+}
+
+export function ChevronUpIcon(props: IconProps) {
+  return <Icon glyph={ChevronUp} {...props} />;
+}
+
+export function SunIcon(props: IconProps) {
+  return <Icon glyph={Sun} {...props} />;
+}
+
+export function MoonIcon(props: IconProps) {
+  return <Icon glyph={Moon} {...props} />;
+}
+
+export function LanguagesIcon(props: IconProps) {
+  return <Icon glyph={Languages} {...props} />;
 }

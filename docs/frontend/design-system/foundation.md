@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3); the §12 components not yet built.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch are built, with the theme and language toggles (§12).
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-27
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -106,8 +106,9 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 
 | Token | Value | Used by |
 |---|---|---|
-| `card-border` | light `n-200` (= `border`) · dark `n-700` | Card, table container, panels — dark cards have no shadow, so the border carries the edge |
+| `card-border` | light `n-200` (= `border`) · dark `n-700` | Card, table container, panels, the outline Button — dark cards have no shadow, so the border carries the edge |
 | `control-height` | 40px · **44px on touch** (`pointer: coarse`) | Button, Input, Select, Checkbox row |
+| `control-text-size` | 15px (`body`) · **16px on touch** | The value typed or chosen in Input, Textarea and the Select trigger, with `body`'s line height. iOS Safari zooms the page into a focused input whose text is under 16px |
 | `button-padding-inline` | 16px | Button |
 | `card-padding` | 20px | Card, StatCard |
 | `table-row-padding-block` | 14px | Table |
@@ -190,7 +191,7 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 **Usage rules the values depend on:**
 - **Warning is never text on its own.** `warning` is for fills and icons only (3.9:1 on white). Warning text uses `warning-subtle-foreground` on `warning-subtle`.
 - **Status is never colour alone.** A badge always carries its word ("نشط", "ينتهي خلال 3 أيام", "منتهية").
-- **Disabled** = the control at 50% opacity; exempt from contrast, but never the only way a reason is shown.
+- **Disabled** = the control at 50% opacity, and in a Field the whole field with it: label, helper and error too. Exempt from contrast, but never the only way a reason is shown.
 
 ### Other scales
 | Family | Tier | Values (*Sea*) |
@@ -286,7 +287,35 @@ When a shadcn component is added, it is adapted before it is used:
 6. **Accessibility** as in §10, using Radix behaviour where available.
 7. **Own `index.ts`**, exported from the layer's root `index.ts`.
 
-What the CLI's output still needs beyond these steps (its `cn` import, `data-open:` variants, classes from Tailwind's default scales) is recorded in [finding 2](../../architecture/findings.md#2-copied-shadcn-components-need-more-than-the-contract-lists).
+### Adapting the CLI's output
+
+A copy also needs these steps, which the contract above does not cover ([finding 2](../../architecture/findings.md#2-copied-shadcn-components-need-more-than-the-contract-lists)):
+
+- **Source and place.** Take the source from `npx shadcn add <name> --dry-run --view`, so the CLI never installs a package, and write it to `components/<Name>/<Name>.tsx` beside its `index.ts`. Drop `"use client"`.
+- **Merge through the layer's `cn`.** `import { cn } from "cn"` becomes `../../lib/cn`. The `cn` package is never installed: it lacks the text styles and shadows (§3).
+- **No `dark:` classes.** The tokens resolve each theme (§6); a component never styles per theme.
+- **State variants** (`data-checked:`, `data-open:` …) are defined in shadcn's `shadcn/tailwind.css`, which the layer does not load. Each one a copy uses is declared once in `tokens/tailwind.css` as a `@custom-variant` over Radix's `data-state`. Radix's presence attributes (`data-disabled`, `data-placeholder`) need none: Tailwind's own `data-*` variant matches them.
+- **Tailwind's default scales** do not exist in the layer. Map them:
+
+| CLI class | Layer class |
+|---|---|
+| `text-xs` · `text-sm` · `text-base`, with the `font-*` and `leading-*` beside them | a text style by role: `text-label` (buttons, labels), `text-body` (listed values), `text-body-sm` (dense content), `text-caption` (helper text, meta, group labels). The style carries the weight and line height |
+| `shadow-xs` | none: controls are flat |
+| `shadow-md` · `shadow-lg` | `shadow-floating` (menus, popovers) |
+| `shadow-xl` · `shadow-2xl` | `shadow-overlay` |
+| `rounded-md` on a control | `rounded-(--radius-control)` |
+| `rounded-[4px]` | `rounded-sm` |
+| `h-9` on a control | `h-(--control-height)` |
+| `z-50` | the named layer (§5): `z-(--z-dropdown)` for anything portalled beside its trigger (menus, selects, popovers) |
+| `duration-*` on an animation | `duration-(--duration-short) ease-(--easing-standard)`. `tw-animate-css` otherwise runs a fixed 150ms, reduced motion or not |
+| the value text of a control (`text-base md:text-sm`) | `text-(length:--control-text-size) leading-(--type-body-line-height)`, in that order, so `cn` keeps both |
+
+- **One focus style:** `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`, in place of `focus-visible:ring-3 focus-visible:ring-ring/50`. At 50% the ring loses the 3:1 that §5 verifies, and an outline also survives forced-colours mode. A bordered control (input, textarea, select trigger, checkbox, radio) also turns its border to `ring`, except while invalid, when it keeps its error border.
+- **A hover never fades a fill.** A filled variant's hover mixes the fill toward the foreground (`hover:bg-[color-mix(in_oklch,var(--primary),var(--foreground)_12%)]`), which raises its label's contrast in both themes; `bg-primary/90` drops the light theme's white label below AA. Outline and ghost hovers use `accent`.
+- **Verified pairs only.** A fill carries the text §5 verifies on it (`bg-destructive text-destructive-foreground`), never a tint of a role under a colour it was not checked against (`bg-destructive/10 text-destructive`).
+- **`data-side` offsets stay physical.** Radix names the side a popup opened on (`left`, `right`) the same in either direction, so the CLI's `rtl:` reversals of those offsets are dropped.
+- **Raw px values** (`h-[18.4px]`, `translate-x-[calc(100%-2px)]`) become the spacing scale.
+- **Hooks into composites the layer does not have** (`in-data-[slot=button-group]`, `group-has-…/field`) are dropped.
 
 ---
 
@@ -295,8 +324,8 @@ What the CLI's output still needs beyond these steps (its `cn` import, `data-ope
 | Component | Source | Notes / variants |
 |---|---|---|
 | Button | shadcn | primary, secondary, outline, ghost, destructive, link · sizes sm/md/lg/icon · loading state |
-| Input, Textarea | shadcn | with error state; `dir` prop for LTR values |
-| Field | hand-built | Label + control + helper + error, wiring ids and `aria-describedby` |
+| Input, Textarea | shadcn | with error state; `dir` prop for LTR values; Input holds start and end icons and a button (`InputAction`) inside its box |
+| Field | hand-built | Label + control + helper + error, wiring ids and `aria-describedby`; an end slot on the label row; shown disabled with its control |
 | Select / Combobox | shadcn | Area filter, amenity filter (multi-select) |
 | Checkbox, RadioGroup, Switch | shadcn | |
 | Badge | shadcn | neutral, primary, success, warning, info, destructive (subtle variants) |

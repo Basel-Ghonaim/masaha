@@ -15,11 +15,11 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 
 **Resolves when:**
 1. When Dialog and Sheet are built, a component token for the scrim is added. For example, `--overlay-scrim`, resolved per theme in `semantic.css` and written into foundation §4 first. The overlays bind that token.
-2. Tooltip, Popover and Select bind `--z-dropdown` when they are built.
+2. Tooltip, Popover and Select bind `--z-dropdown` when they are built. *Select does (2026-09-27); Tooltip and Popover remain.*
 
 ## 2. Copied shadcn components need more than the contract lists
 
-**Status:** Open · **Date:** 2026-09-27
+**Status:** Resolved · **Date:** 2026-09-27
 
 **Evidence:** `npx shadcn@4.21.0 add dialog --dry-run` (and `breadcrumb`), run with the layer's `components.json` (style `radix-vega`, `rtl: true`). The RTL transform works: physical classes arrive logical (`start-1/2`, `end-4`, `rtl:translate-x-1/2`). Beyond the steps of foundation §11, the output also:
 1. Imports `cn` from the `cn` package, ignoring the `utils` alias, and the CLI would install that package. The package's `cn` lacks the layer's text-style and shadow configuration (foundation §3), so it drops `text-body` next to a colour.
@@ -35,12 +35,28 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 
 Whatever becomes a standing step is added to foundation §11.
 
+**Resolution (2026-09-27):** settled with the first copies (Button, Input, Textarea, Select, Checkbox, RadioGroup, Switch), and written into foundation §11 *Adapting the CLI's output*:
+1. Each copy imports the layer's `lib/cn`; the `cn` package is not installed.
+2. The four state variants in use (`data-checked`, `data-unchecked`, `data-open`, `data-closed`) are declared in `tokens/tailwind.css` over Radix's `data-state`; `shadcn/tailwind.css` is not loaded.
+3. Default-scale classes are mapped to the text styles, shadows, radii, component tokens and named layers, by the table in §11.
+4. Each copy lives in `components/<Name>/` with its own `index.ts`.
+
 ## 3. Classes used only by tests or the showcase reach the production CSS
 
-**Status:** Open · **Date:** 2026-09-27
+**Status:** Resolved · **Date:** 2026-09-27
 
 **Evidence:** `tokens/tailwind.css` scans all of `src/` (`source('../../..')`), including test files and `pages/showcase/`. Tailwind generates every class it finds there into the one stylesheet, in development and in the build alike. With the showcase, the built CSS grew from 32.24 kB to 34.62 kB (+0.5 kB gzip). Class strings in tests, such as `cn.unit.test.ts`, are generated too. `check:build` looks for the showcase's route path and text, not class names, so it does not catch this. The built JavaScript holds no showcase code.
 
 **Resolves when:**
 1. Test files are left out of scanning with `@source not` in `tailwind.css`.
 2. For the showcase, one stylesheet serves both development and the build, so its utilities stay in the build unless the owner decides a different setup is worth it.
+
+**Resolution (2026-09-27):** `tailwind.css` leaves `*.test.{ts,tsx}` out of the scan with `@source not`. The built CSS fell from 34.62 kB to 31.07 kB, and `shadow-none`, used only in `cn.unit.test.ts`, is no longer in it. The showcase's utilities stay in the build, as item 2 decides.
+
+## 4. Showcase sample text can clash with the app's text in `check:build`
+
+**Status:** Open · **Date:** 2026-09-27
+
+**Evidence:** `check:build` fails when `dist/` contains any string from the showcase's `fixtures.json`, and relies on fixture strings being phrases that occur nowhere else by chance. The copy catalogues are not built yet. Once they are, a catalogue entry equal to a fixture string will fail `check:build` although no showcase code reached the build. The toolbar's `Light theme` and `Dark theme` are likely catalogue entries for the theme setting. WI-5's samples avoid the app's likely words (the language toggle's sample is "English version", not "English"), but nothing enforces it.
+
+**Resolves when:** the catalogue mechanism is built, and `check:build` either skips fixture strings that are also catalogue strings, or finds the showcase by what only it carries (its route path, which it already checks) rather than by its text.

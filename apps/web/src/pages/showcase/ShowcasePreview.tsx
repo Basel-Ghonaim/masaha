@@ -2,7 +2,18 @@ import { DirectionProvider } from '@shared/design-system';
 import { useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import fixtures from './fixtures.json';
-import { IconsSection } from './sections';
+import {
+  ButtonSection,
+  CheckboxSection,
+  FieldSection,
+  IconsSection,
+  InputSection,
+  RadioGroupSection,
+  SelectSection,
+  SwitchSection,
+  TextareaSection,
+  TogglesSection,
+} from './sections';
 import { readSettings } from './settings';
 
 /**
@@ -27,6 +38,15 @@ export function ShowcasePreview() {
     <DirectionProvider dir={direction}>
       <main className="flex flex-col gap-12 p-6">
         <IconsSection samples={samples.icons} />
+        <ButtonSection samples={samples.button} />
+        <TogglesSection samples={samples.toggles} otherLanguage={language === 'ar' ? 'en' : 'ar'} />
+        <FieldSection samples={samples.field} />
+        <InputSection samples={samples.input} />
+        <TextareaSection samples={samples.textarea} />
+        <SelectSection samples={samples.select} />
+        <CheckboxSection samples={samples.checkbox} />
+        <RadioGroupSection samples={samples.radioGroup} />
+        <SwitchSection samples={samples.switch} />
       </main>
     </DirectionProvider>
   );

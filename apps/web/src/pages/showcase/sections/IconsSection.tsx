@@ -1,11 +1,22 @@
 import {
   ArrowEndIcon,
   ArrowStartIcon,
+  CheckIcon,
+  ChevronDownIcon,
   ChevronEndIcon,
   ChevronStartIcon,
+  ChevronUpIcon,
+  CircleAlertIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LanguagesIcon,
+  LoaderIcon,
   LogInIcon,
   LogOutIcon,
+  MoonIcon,
   SearchIcon,
+  SunIcon,
+  XIcon,
   type IconProps,
 } from '@shared/design-system';
 import type { ComponentType } from 'react';
@@ -21,7 +32,20 @@ const MIRRORED = [
   LogInIcon,
   LogOutIcon,
 ];
-const FIXED = [SearchIcon];
+const FIXED = [
+  SearchIcon,
+  LoaderIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  CircleAlertIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LanguagesIcon,
+  MoonIcon,
+  SunIcon,
+  XIcon,
+];
 
 function IconGroup({ caption, icons }: { caption: string; icons: ComponentType<IconProps>[] }) {
   return (

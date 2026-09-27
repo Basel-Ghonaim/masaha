@@ -5,11 +5,22 @@ import { DirectionProvider } from '../components/DirectionProvider';
 import {
   ArrowEndIcon,
   ArrowStartIcon,
+  CheckIcon,
+  ChevronDownIcon,
   ChevronEndIcon,
   ChevronStartIcon,
+  ChevronUpIcon,
+  CircleAlertIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LanguagesIcon,
+  LoaderIcon,
   LogInIcon,
   LogOutIcon,
+  MoonIcon,
   SearchIcon,
+  SunIcon,
+  XIcon,
   type IconProps,
 } from '.';
 
@@ -22,6 +33,21 @@ const DIRECTIONAL = [
   ArrowEndIcon,
   LogInIcon,
   LogOutIcon,
+].map((icon) => ({ name: icon.name, icon }));
+
+const NON_DIRECTIONAL = [
+  SearchIcon,
+  LoaderIcon,
+  CircleAlertIcon,
+  EyeIcon,
+  EyeOffIcon,
+  XIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  SunIcon,
+  MoonIcon,
+  LanguagesIcon,
 ].map((icon) => ({ name: icon.name, icon }));
 
 function svgOf(dir: 'ltr' | 'rtl', Glyph: ComponentType<IconProps>, props: IconProps = {}) {
@@ -42,8 +68,8 @@ describe('icon mirroring', () => {
     expect(svgOf('ltr', icon)).not.toHaveClass(MIRRORED);
   });
 
-  it('never mirrors the search icon', () => {
-    expect(svgOf('rtl', SearchIcon)).not.toHaveClass(MIRRORED);
+  it.each(NON_DIRECTIONAL)('never mirrors $name', ({ icon }) => {
+    expect(svgOf('rtl', icon)).not.toHaveClass(MIRRORED);
   });
 
   it('keeps the classes it is given', () => {
