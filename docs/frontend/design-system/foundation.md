@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens built (`tokens/`, §3); components not yet built.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3); the §12 components not yet built.
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-27
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -70,6 +70,8 @@ apps/web/src/shared/design-system/
 - **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
 
 **Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library or `cva` outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
+
+**Showcase:** a development-only page, `/__showcase` (`apps/web/src/pages/showcase/`), shows the layer in either theme and direction, at 360, 768 or 1280 px. The preview sits in an iframe of that width, so breakpoints respond as they would on a device. Each component adds a section in `sections/`; sample text comes from `fixtures.json`, since the page is not user-facing. The build leaves the page out, and `check:build` verifies it.
 
 ---
 

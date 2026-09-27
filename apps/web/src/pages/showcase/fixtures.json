@@ -1,0 +1,38 @@
+{
+  "toolbar": {
+    "heading": "Masaha design system showcase",
+    "theme": "Preview theme",
+    "direction": "Preview direction",
+    "width": "Preview width",
+    "frame": "Preview of every showcase section",
+    "themes": {
+      "light": "Light theme",
+      "dark": "Dark theme"
+    },
+    "languages": {
+      "ar": "Arabic, right to left",
+      "en": "English, left to right"
+    },
+    "widths": {
+      "360": "Phone, 360 pixels",
+      "768": "Tablet, 768 pixels",
+      "1280": "Desktop, 1280 pixels"
+    }
+  },
+  "samples": {
+    "ar": {
+      "icons": {
+        "title": "الأيقونات والانعكاس",
+        "mirrored": "أيقونات اتجاهية: تنعكس من اليمين إلى اليسار",
+        "fixed": "أيقونات غير اتجاهية: لا تنعكس أبدًا"
+      }
+    },
+    "en": {
+      "icons": {
+        "title": "Icons and mirroring",
+        "mirrored": "Directional icons: mirrored right to left",
+        "fixed": "Non-directional icons: never mirrored"
+      }
+    }
+  }
+}

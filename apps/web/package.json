@@ -10,7 +10,8 @@
     "typecheck": "tsc -b",
     "test:unit": "vitest run --project unit",
     "test:component": "vitest run --project component",
-    "check:classes": "node scripts/checkClasses.ts"
+    "check:classes": "node scripts/checkClasses.ts",
+    "check:build": "node scripts/checkBuild.ts"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

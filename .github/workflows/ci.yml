@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        task: [lint, typecheck, 'test:unit', 'test:component', 'check:classes']
+        task: [lint, typecheck, 'test:unit', 'test:component', 'check:classes', build]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -28,3 +28,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run ${{ matrix.task }}
+      # The design-system showcase is development-only; the build must not contain it.
+      - if: matrix.task == 'build'
+        run: npm run check:build

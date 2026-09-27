@@ -68,8 +68,9 @@ Any override must be **stated, never silent.**
 Node 24 (`.nvmrc`, enforced by `engine-strict`). Run from the root; details in `docs/development/setup.md`.
 
 - `npm ci` — install every workspace
-- `npm run dev` — web dev server
+- `npm run dev` — web dev server; the design-system showcase is at `/__showcase`
 - `npm run build` · `npm run lint` · `npm run typecheck` · `npm run check:classes` (no physical direction classes; no arbitrary values outside the design system)
+- `npm run check:build` — after a build: fails if the development-only showcase reached it
 - `npm run test:unit` · `npm run test:component` — test lanes, chosen by file suffix (`*.unit.test.ts`, `*.component.test.tsx`)
 - `npm run format` — Prettier (Markdown excluded)
 
