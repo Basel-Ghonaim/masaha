@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findPhysicalClasses } from './checkClasses';
+import { findArbitraryValueClasses, findPhysicalClasses } from './checkClasses';
 
 const classesIn = (source: string) => findPhysicalClasses(source).map((hit) => hit.className);
 
@@ -84,6 +84,67 @@ describe('findPhysicalClasses', () => {
   it('reports the line and column of each hit', () => {
     expect(findPhysicalClasses("const a = 'ps-2';\nconst b = 'mt-1 ml-2';")).toEqual([
       { line: 2, column: 17, className: 'ml-2' },
+    ]);
+  });
+});
+
+const arbitraryIn = (source: string) =>
+  findArbitraryValueClasses(source).map((hit) => hit.className);
+
+describe('findArbitraryValueClasses', () => {
+  it.each([
+    'text-[13px]',
+    'bg-[#fff]',
+    'bg-(--brand-600)',
+    'w-[calc(100%-2rem)]',
+    'grid-cols-[1fr_2fr]',
+    '-mt-[3px]',
+    'bg-primary/[0.5]',
+    '[mask-type:alpha]',
+  ])('flags %s', (className) => {
+    expect(arbitraryIn(`<div className="flex ${className} gap-2" />`)).toEqual([className]);
+  });
+
+  it.each([
+    'md:w-[320px]',
+    'hover:bg-[#fff]',
+    'data-[state=open]:w-[3px]',
+    '!p-[3px]',
+    'dark:[color:red]',
+  ])('flags an arbitrary value behind a modifier: %s', (className) => {
+    expect(arbitraryIn(`cn('${className}')`)).toEqual([className]);
+  });
+
+  it('flags an arbitrary value in a CSS @apply', () => {
+    expect(arbitraryIn('.x { @apply p-2 text-[13px]; }')).toEqual(['text-[13px]']);
+  });
+
+  it.each([
+    'bg-primary',
+    'text-body',
+    'w-1/2',
+    'bg-primary/50',
+    'data-[state=open]:bg-accent',
+    'aria-[sort=ascending]:text-foreground',
+    'group-data-[collapsed=true]:hidden',
+    '[&>svg]:size-4',
+  ])('does not flag %s, whose value is a token or whose brackets are a variant', (className) => {
+    expect(arbitraryIn(`<div className="${className}" />`)).toEqual([]);
+  });
+
+  it.each([
+    'const first = items[0];',
+    "const value = record['key'];",
+    'const options = { key: value };',
+    'const gap = width - [offset];',
+    "const url = 'https://example.test/a-(b)';",
+  ])('does not flag code that is not a class: %s', (source) => {
+    expect(arbitraryIn(source)).toEqual([]);
+  });
+
+  it('reports the line and column of each hit', () => {
+    expect(findArbitraryValueClasses("const a = 'p-2';\nconst b = 'mt-1 w-[3px]';")).toEqual([
+      { line: 2, column: 17, className: 'w-[3px]' },
     ]);
   });
 });

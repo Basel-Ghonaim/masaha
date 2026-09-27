@@ -1,8 +1,38 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Resolves the theme, language and direction before first paint, so a reload never flashes
+      // (docs/frontend/localisation.md#mechanism). The attributes on <html> above are the fallback
+      // when this script cannot run. The app's preferences store must write the same keys.
+      ((window, document) => {
+        const LANGUAGES = ['ar', 'en'];
+        const stored = (key, allowed) => {
+          try {
+            const value = window.localStorage.getItem(key);
+            return allowed.includes(value) ? value : null;
+          } catch {
+            return null;
+          }
+        };
+        const theme =
+          stored('masaha.theme', ['light', 'dark']) ??
+          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        const language =
+          stored('masaha.language', LANGUAGES) ??
+          window.navigator.languages
+            .map((tag) => tag.split('-')[0].toLowerCase())
+            .find((base) => LANGUAGES.includes(base)) ??
+          'ar';
+        const root = document.documentElement;
+        root.dataset.theme = theme;
+        root.lang = language;
+        root.dir = language === 'ar' ? 'rtl' : 'ltr';
+      })(window, document);
+    </script>
+    <link rel="stylesheet" href="/src/shared/design-system/tokens/tailwind.css" />
   </head>
   <body>
     <div id="root"></div>

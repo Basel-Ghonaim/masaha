@@ -1,8 +1,9 @@
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   // The zone aliases (@app, @pages, @features, @shared) are defined once, in tsconfig.app.json.
   resolve: { tsconfigPaths: true },
   test: {
@@ -14,6 +15,9 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           include: ['src/**/*.unit.test.ts', 'scripts/**/*.unit.test.ts'],
+          // Vitest empties every CSS import, ?raw included, unless the file is listed here. The
+          // token tests read the token files as text.
+          css: { include: [/\/design-system\/tokens\/[^/?]+\.css\b/] },
         },
       },
       {

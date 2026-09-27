@@ -1,0 +1,146 @@
+/*
+ * Semantic tokens: roles with meaning, each theme a complete resolution of the same keys
+ * (docs/frontend/design-system/foundation.md §4–§6). Names follow shadcn/ui plus Masaha's status
+ * roles. semantic.unit.test.ts checks key parity and every contrast pair foundation §5 verifies.
+ */
+:root {
+  --radius: var(--radius-scale-lg);
+
+  /* Component tokens: only for values no role covers, each bound by its component alone. */
+  --control-height: 40px;
+  --button-padding-inline: 16px;
+  --card-padding: 20px;
+  --table-row-padding-block: 14px;
+  --radius-control: var(--radius-scale-md);
+  --radius-pill: var(--radius-scale-full);
+}
+
+@media (pointer: coarse) {
+  :root {
+    --control-height: 44px;
+  }
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --background: var(--neutral-50);
+  --foreground: var(--neutral-900);
+  --card: var(--white);
+  --card-foreground: var(--neutral-900);
+  --popover: var(--white);
+  --popover-foreground: var(--neutral-900);
+  --muted: var(--neutral-100);
+  --muted-foreground: var(--neutral-600);
+  --border: var(--neutral-200);
+  --input: var(--neutral-500);
+  --ring: var(--brand-500);
+
+  --primary: var(--brand-600);
+  --primary-foreground: var(--white);
+  --secondary: var(--neutral-100);
+  --secondary-foreground: var(--neutral-900);
+  --accent: var(--brand-50);
+  --accent-foreground: var(--brand-800);
+  --destructive: var(--red-600);
+  --destructive-foreground: var(--white);
+  --destructive-subtle: var(--red-50);
+  --destructive-subtle-foreground: var(--red-800);
+
+  --success: var(--green-600);
+  --success-foreground: var(--white);
+  --success-subtle: var(--green-50);
+  --success-subtle-foreground: var(--green-800);
+  --warning: var(--amber-500);
+  --warning-foreground: var(--amber-950);
+  --warning-subtle: var(--amber-50);
+  --warning-subtle-foreground: var(--amber-800);
+  --info: var(--blue-600);
+  --info-foreground: var(--white);
+  --info-subtle: var(--blue-50);
+  --info-subtle-foreground: var(--blue-800);
+
+  --sidebar: var(--white);
+  --sidebar-foreground: var(--neutral-700);
+  --sidebar-primary: var(--brand-600);
+  --sidebar-primary-foreground: var(--white);
+  --sidebar-accent: var(--brand-50);
+  --sidebar-accent-foreground: var(--brand-800);
+  --sidebar-border: var(--neutral-200);
+  --sidebar-ring: var(--brand-500);
+
+  --chart-1: var(--brand-600);
+  --chart-2: var(--blue-600);
+  --chart-3: var(--amber-500);
+  --chart-4: var(--green-500);
+  --chart-5: var(--neutral-500);
+
+  --elevation-raised: var(--shadow-scale-raised);
+  --elevation-floating: var(--shadow-scale-floating);
+  --elevation-overlay: var(--shadow-scale-overlay);
+
+  /* Equal to --border in this theme only; they mean different things (foundation §4). */
+  --card-border: var(--neutral-200);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --background: var(--neutral-950);
+  --foreground: var(--neutral-50);
+  --card: var(--neutral-900);
+  --card-foreground: var(--neutral-50);
+  --popover: var(--neutral-900);
+  --popover-foreground: var(--neutral-50);
+  --muted: var(--neutral-800);
+  --muted-foreground: var(--neutral-400);
+  --border: var(--neutral-800);
+  --input: var(--neutral-500);
+  --ring: var(--brand-400);
+
+  --primary: var(--brand-400);
+  --primary-foreground: var(--brand-950);
+  --secondary: var(--neutral-800);
+  --secondary-foreground: var(--neutral-100);
+  --accent: var(--brand-900);
+  --accent-foreground: var(--brand-100);
+  --destructive: var(--red-400);
+  --destructive-foreground: var(--red-950);
+  --destructive-subtle: var(--red-950);
+  --destructive-subtle-foreground: var(--red-200);
+
+  --success: var(--green-400);
+  --success-foreground: var(--green-950);
+  --success-subtle: var(--green-950);
+  --success-subtle-foreground: var(--green-200);
+  --warning: var(--amber-400);
+  --warning-foreground: var(--amber-950);
+  --warning-subtle: var(--amber-950);
+  --warning-subtle-foreground: var(--amber-200);
+  --info: var(--blue-400);
+  --info-foreground: var(--blue-950);
+  --info-subtle: var(--blue-950);
+  --info-subtle-foreground: var(--blue-200);
+
+  --sidebar: var(--neutral-900);
+  --sidebar-foreground: var(--neutral-300);
+  --sidebar-primary: var(--brand-400);
+  --sidebar-primary-foreground: var(--brand-950);
+  --sidebar-accent: var(--neutral-800);
+  --sidebar-accent-foreground: var(--neutral-50);
+  --sidebar-border: var(--neutral-800);
+  --sidebar-ring: var(--brand-400);
+
+  --chart-1: var(--brand-400);
+  --chart-2: var(--blue-400);
+  --chart-3: var(--amber-400);
+  --chart-4: var(--green-400);
+  --chart-5: var(--neutral-500);
+
+  /* Dark cards have no shadow; --card-border carries the edge instead. */
+  --elevation-raised: var(--shadow-scale-none);
+  --elevation-floating: var(--shadow-scale-floating-dark);
+  --elevation-overlay: var(--shadow-scale-overlay-dark);
+
+  --card-border: var(--neutral-700);
+}
