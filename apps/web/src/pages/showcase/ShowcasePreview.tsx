@@ -9,6 +9,7 @@ import {
   ButtonSection,
   CardSection,
   CheckboxSection,
+  EmptyStateSection,
   FieldSection,
   IconsSection,
   InputSection,
@@ -17,6 +18,7 @@ import {
   SeparatorSection,
   SkeletonSection,
   SpinnerSection,
+  StatCardSection,
   SwitchSection,
   TextareaSection,
   ToastSection,
@@ -65,6 +67,8 @@ export function ShowcasePreview() {
         <AlertSection samples={samples.alert} />
         <TooltipSection samples={samples.tooltip} />
         <ToastSection samples={samples.toast} />
+        <EmptyStateSection samples={samples.emptyState} />
+        <StatCardSection samples={samples.statCard} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

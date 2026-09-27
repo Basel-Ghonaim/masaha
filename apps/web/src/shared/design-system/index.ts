@@ -21,6 +21,7 @@ export {
 } from './components/Card';
 export { Checkbox, type CheckboxProps } from './components/Checkbox';
 export { DirectionProvider } from './components/DirectionProvider';
+export { EmptyState, type EmptyStateProps } from './components/EmptyState';
 export { Field, type FieldProps } from './components/Field';
 export { Input, InputAction, type InputActionProps, type InputProps } from './components/Input';
 export { LanguageToggle, type LanguageToggleProps } from './components/LanguageToggle';
@@ -43,6 +44,7 @@ export {
 export { Separator, type SeparatorProps } from './components/Separator';
 export { Skeleton } from './components/Skeleton';
 export { Spinner, type SpinnerProps } from './components/Spinner';
+export { StatCard, type StatCardProps } from './components/StatCard';
 export { Switch, type SwitchProps } from './components/Switch';
 export { Textarea, type TextareaProps } from './components/Textarea';
 export { ThemeToggle, type ThemeToggleProps } from './components/ThemeToggle';
@@ -67,8 +69,10 @@ export {
   LogOutIcon,
   MoonIcon,
   SearchIcon,
+  SearchXIcon,
   SunIcon,
   TriangleAlertIcon,
+  UsersIcon,
   XIcon,
   type IconProps,
 } from './icons';

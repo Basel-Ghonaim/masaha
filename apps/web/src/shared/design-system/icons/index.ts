@@ -18,7 +18,9 @@ export {
   LogOutIcon,
   MoonIcon,
   SearchIcon,
+  SearchXIcon,
   SunIcon,
   TriangleAlertIcon,
+  UsersIcon,
   XIcon,
 } from './iconSet';

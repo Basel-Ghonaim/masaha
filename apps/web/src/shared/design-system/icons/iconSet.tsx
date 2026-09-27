@@ -17,8 +17,10 @@ import {
   LogOut,
   Moon,
   Search,
+  SearchX,
   Sun,
   TriangleAlert,
+  Users,
   X,
 } from 'lucide-react';
 import { Icon, type IconProps } from './Icon';
@@ -81,6 +83,14 @@ export function XIcon(props: IconProps) {
 
 export function SearchIcon(props: IconProps) {
   return <Icon glyph={Search} {...props} />;
+}
+
+export function SearchXIcon(props: IconProps) {
+  return <Icon glyph={SearchX} {...props} />;
+}
+
+export function UsersIcon(props: IconProps) {
+  return <Icon glyph={Users} {...props} />;
 }
 
 export function LoaderIcon(props: IconProps) {

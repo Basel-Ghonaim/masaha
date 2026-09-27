@@ -332,6 +332,40 @@
           "message": "أُلغي تنشيط المشترك",
           "label": "تراجع عن الإلغاء"
         }
+      },
+      "emptyState": {
+        "title": "الحالات الفارغة",
+        "searchCaption": "بحث بلا نتائج، بإجراءين",
+        "search": {
+          "title": "لا يوجد مشترك باسم «خالد»",
+          "description": "تحقّق من كتابة الاسم، أو ابحث برقم الهاتف.",
+          "clear": "مسح البحث",
+          "add": "إضافة مشترك"
+        },
+        "firstCaption": "قائمة فارغة لأول مرة",
+        "first": {
+          "title": "لا يوجد مشتركون بعد",
+          "description": "أضف أول مشترك لتبدأ بتسجيل الحضور.",
+          "add": "إضافة أول مشترك"
+        }
+      },
+      "statCard": {
+        "title": "بطاقات الأرقام",
+        "caption": "بأيقونة ونص مساعد، وبدونهما",
+        "present": {
+          "label": "حاضرون الآن",
+          "value": "7 / 40",
+          "helper": "من المقاعد المتاحة"
+        },
+        "ending": {
+          "label": "عضويات تنتهي هذا الأسبوع",
+          "value": 5,
+          "helper": "منها 2 خلال يومين"
+        },
+        "reports": {
+          "label": "بلاغات جديدة",
+          "value": 3
+        }
       }
     },
     "en": {
@@ -649,6 +683,40 @@
           "trigger": "Toast with an action",
           "message": "The member was deactivated",
           "label": "Undo the deactivation"
+        }
+      },
+      "emptyState": {
+        "title": "Empty states",
+        "searchCaption": "A search with no results, with two actions",
+        "search": {
+          "title": "No members named “Khaled”",
+          "description": "Check the spelling, or search by phone number.",
+          "clear": "Clear the search",
+          "add": "Add a member"
+        },
+        "firstCaption": "A list that is empty for the first time",
+        "first": {
+          "title": "No members yet",
+          "description": "Add your first member to start checking people in.",
+          "add": "Add your first member"
+        }
+      },
+      "statCard": {
+        "title": "Stat cards",
+        "caption": "With an icon and helper text, and without",
+        "present": {
+          "label": "Present right now",
+          "value": "7 / 40",
+          "helper": "of the seats available"
+        },
+        "ending": {
+          "label": "Memberships ending this week",
+          "value": 5,
+          "helper": "2 of them within two days"
+        },
+        "reports": {
+          "label": "New data reports",
+          "value": 3
         }
       }
     }
