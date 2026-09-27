@@ -12,6 +12,7 @@ import {
   SelectSection,
   SwitchSection,
   TextareaSection,
+  TogglesSection,
 } from './sections';
 import { readSettings } from './settings';
 
@@ -38,6 +39,7 @@ export function ShowcasePreview() {
       <main className="flex flex-col gap-12 p-6">
         <IconsSection samples={samples.icons} />
         <ButtonSection samples={samples.button} />
+        <TogglesSection samples={samples.toggles} otherLanguage={language === 'ar' ? 'en' : 'ar'} />
         <FieldSection samples={samples.field} />
         <InputSection samples={samples.input} />
         <TextareaSection samples={samples.textarea} />

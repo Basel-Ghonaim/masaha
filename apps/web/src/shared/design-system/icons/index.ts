@@ -10,9 +10,12 @@ export {
   CircleAlertIcon,
   EyeIcon,
   EyeOffIcon,
+  LanguagesIcon,
   LoaderIcon,
   LogInIcon,
   LogOutIcon,
+  MoonIcon,
   SearchIcon,
+  SunIcon,
   XIcon,
 } from './iconSet';

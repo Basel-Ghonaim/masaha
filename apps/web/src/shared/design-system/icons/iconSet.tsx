@@ -9,10 +9,13 @@ import {
   CircleAlert,
   Eye,
   EyeOff,
+  Languages,
   LoaderCircle,
   LogIn,
   LogOut,
+  Moon,
   Search,
+  Sun,
   X,
 } from 'lucide-react';
 import { Icon, type IconProps } from './Icon';
@@ -79,4 +82,16 @@ export function ChevronDownIcon(props: IconProps) {
 
 export function ChevronUpIcon(props: IconProps) {
   return <Icon glyph={ChevronUp} {...props} />;
+}
+
+export function SunIcon(props: IconProps) {
+  return <Icon glyph={Sun} {...props} />;
+}
+
+export function MoonIcon(props: IconProps) {
+  return <Icon glyph={Moon} {...props} />;
+}
+
+export function LanguagesIcon(props: IconProps) {
+  return <Icon glyph={Languages} {...props} />;
 }

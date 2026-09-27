@@ -9,10 +9,13 @@ import {
   CircleAlertIcon,
   EyeIcon,
   EyeOffIcon,
+  LanguagesIcon,
   LoaderIcon,
   LogInIcon,
   LogOutIcon,
+  MoonIcon,
   SearchIcon,
+  SunIcon,
   XIcon,
   type IconProps,
 } from '@shared/design-system';
@@ -32,13 +35,16 @@ const MIRRORED = [
 const FIXED = [
   SearchIcon,
   LoaderIcon,
-  CircleAlertIcon,
-  EyeIcon,
-  EyeOffIcon,
-  XIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  CircleAlertIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LanguagesIcon,
+  MoonIcon,
+  SunIcon,
+  XIcon,
 ];
 
 function IconGroup({ caption, icons }: { caption: string; icons: ComponentType<IconProps>[] }) {

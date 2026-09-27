@@ -7,3 +7,4 @@ export { RadioGroupSection } from './RadioGroupSection';
 export { SelectSection } from './SelectSection';
 export { SwitchSection } from './SwitchSection';
 export { TextareaSection } from './TextareaSection';
+export { TogglesSection } from './TogglesSection';

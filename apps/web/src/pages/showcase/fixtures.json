@@ -211,6 +211,14 @@
             "options": ["مخيم النصيرات", "مدينة دير البلح", "مخيم البريج"]
           }
         ]
+      },
+      "toggles": {
+        "title": "مفتاحا الوضع واللغة",
+        "themeCaption": "يعرض الوضع الذي ينتقل إليه: القمر في الفاتح، والشمس في الداكن",
+        "languageCaption": "اللغة الأخرى باسمها في لغتها",
+        "otherLanguage": "English version",
+        "toDark": "الانتقال إلى الوضع الداكن للواجهة",
+        "toLight": "الانتقال إلى الوضع الفاتح للواجهة"
       }
     },
     "en": {
@@ -408,6 +416,14 @@
             "options": ["Nuseirat camp", "Deir al-Balah city", "Bureij camp"]
           }
         ]
+      },
+      "toggles": {
+        "title": "Theme and language toggles",
+        "themeCaption": "Shows the theme it switches to: the moon in light, the sun in dark",
+        "languageCaption": "The other language, named in its own words",
+        "otherLanguage": "النسخة العربية",
+        "toDark": "Switch the interface to the dark theme",
+        "toLight": "Switch the interface to the light theme"
       }
     }
   }

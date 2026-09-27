@@ -5,6 +5,7 @@ export { Checkbox, type CheckboxProps } from './components/Checkbox';
 export { DirectionProvider } from './components/DirectionProvider';
 export { Field, type FieldProps } from './components/Field';
 export { Input, InputAction, type InputActionProps, type InputProps } from './components/Input';
+export { LanguageToggle, type LanguageToggleProps } from './components/LanguageToggle';
 export {
   RadioGroup,
   RadioGroupItem,
@@ -23,6 +24,7 @@ export {
 } from './components/Select';
 export { Switch, type SwitchProps } from './components/Switch';
 export { Textarea, type TextareaProps } from './components/Textarea';
+export { ThemeToggle, type ThemeToggleProps } from './components/ThemeToggle';
 export {
   ArrowEndIcon,
   ArrowStartIcon,
@@ -34,10 +36,13 @@ export {
   CircleAlertIcon,
   EyeIcon,
   EyeOffIcon,
+  LanguagesIcon,
   LoaderIcon,
   LogInIcon,
   LogOutIcon,
+  MoonIcon,
   SearchIcon,
+  SunIcon,
   XIcon,
   type IconProps,
 } from './icons';
