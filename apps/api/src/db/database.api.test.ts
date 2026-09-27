@@ -1,13 +1,22 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { resetDatabase } from '../../test/reset-database.ts';
-import { prisma } from './prisma.ts';
+import { createPrismaClient, isDatabaseUp, prisma } from './prisma.ts';
 
 describe('the test database', () => {
   it('is reached through the Prisma client', async () => {
     const [row] = await prisma.$queryRaw<{ name: string }[]>`SELECT current_database() AS name`;
 
     expect(row?.name).toMatch(/_test$/);
+  });
+
+  it('is reported up, and an unreachable one down', async () => {
+    const unreachable = createPrismaClient('postgresql://masaha:masaha@localhost:1/masaha_test');
+
+    expect(await isDatabaseUp(prisma)).toBe(true);
+    expect(await isDatabaseUp(unreachable)).toBe(false);
+
+    await unreachable.$disconnect();
   });
 
   describe('between test files', () => {

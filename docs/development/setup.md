@@ -69,7 +69,17 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
 
 ## The API
 
-The API reads its settings from `apps/api/.env`, loaded by Node's `--env-file`. Copy `apps/api/.env.example` to `.env` first. It lists every variable, and the API refuses to start, naming each one, when a required variable is missing or invalid.
+### First run
+
+From the repository root, with Docker Desktop running:
+
+1. `npm ci`, which also generates the Prisma client.
+2. Copy `apps/api/.env.example` to `apps/api/.env`. **Do this before the first run.** Without it the API stops at once, reporting `CORS_ORIGIN` and `DATABASE_URL` as missing. The example's values match the local database, so nothing needs changing.
+3. `npm run db:up` starts PostgreSQL.
+4. `npm run db:migrate` applies the migrations to `masaha_dev`.
+5. `npm run dev -w @masaha/api`, then open `http://localhost:3000/health`: it reports `"db": "up"`.
+
+The API reads its settings from `apps/api/.env`, loaded by Node's `--env-file`. The example lists every variable. The API refuses to start, naming each one, when a required variable is missing or invalid. It also refuses to start when the database at `DATABASE_URL` cannot be reached.
 
 | Command | What it does |
 |---|---|
@@ -77,7 +87,7 @@ The API reads its settings from `apps/api/.env`, loaded by Node's `--env-file`. 
 | `npm run build -w @masaha/api` | Compiles `apps/api/src` to `apps/api/dist` (build `packages/shared` first, or run the root `build`) |
 | `npm run start -w @masaha/api` | Runs the built API from `dist`, with JSON logs |
 
-`GET /health` answers when the API is up; everything else lives under `/api/v1`.
+`GET /health` reports the API and the database (`{ status, db, timestamp }`): 200 with `db: "up"`, or 503 with `db: "down"` while the database is unreachable. Everything else lives under `/api/v1`.
 
 In development, tests and typechecking, the API reads `@masaha/shared` from its source through the package's `@masaha/source` export condition, so the shared package does not need building first. Only `build` and `start` use its `dist`.
 

@@ -1,1 +1,1 @@
-export { createPrismaClient, prisma } from './prisma.ts';
+export { createPrismaClient, isDatabaseUp, prisma } from './prisma.ts';
