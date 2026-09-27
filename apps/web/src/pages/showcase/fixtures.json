@@ -269,6 +269,25 @@
         "caption": "بحجمين، مع نص بجانبه",
         "label": "جارٍ تحميل المشتركين",
         "text": "جارٍ تحميل المشتركين…"
+      },
+      "alert": {
+        "title": "التنبيهات",
+        "caption": "معلومة، تحذير، خطأ",
+        "info": {
+          "title": "الأسعار للاطلاع فقط",
+          "description": "تأكّد منها مع المساحة قبل زيارتك."
+        },
+        "warning": {
+          "title": "قد تكون ساعات العمل قديمة",
+          "description": "آخر تحديث لها قبل أكثر من 90 يومًا.",
+          "action": "الإبلاغ عن معلومة خاطئة"
+        },
+        "destructive": {
+          "title": "تعذّر حفظ بيانات المساحة",
+          "description": "تحقّق من اتصالك بالإنترنت ثم حاول مرة أخرى."
+        },
+        "titleOnlyCaption": "بعنوان فقط، ومع إجراء",
+        "titleOnly": "انتهت عضوية هذا المشترك"
       }
     },
     "en": {
@@ -524,6 +543,25 @@
         "caption": "Two sizes, and with text beside it",
         "label": "Loading the members list",
         "text": "Loading the members list…"
+      },
+      "alert": {
+        "title": "Alerts",
+        "caption": "Information, warning and error",
+        "info": {
+          "title": "Prices are shown for reference",
+          "description": "Confirm them with the space before you visit."
+        },
+        "warning": {
+          "title": "Opening hours may be outdated",
+          "description": "They were last updated more than 90 days ago.",
+          "action": "Report wrong information"
+        },
+        "destructive": {
+          "title": "The space could not be saved",
+          "description": "Check your internet connection and try again."
+        },
+        "titleOnlyCaption": "With a title only, and with an action",
+        "titleOnly": "This membership has already expired"
       }
     }
   }

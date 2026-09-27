@@ -9,6 +9,7 @@ import {
   CircleAlert,
   Eye,
   EyeOff,
+  Info,
   Languages,
   LoaderCircle,
   LogIn,
@@ -16,6 +17,7 @@ import {
   Moon,
   Search,
   Sun,
+  TriangleAlert,
   X,
 } from 'lucide-react';
 import { Icon, type IconProps } from './Icon';
@@ -50,6 +52,14 @@ export function LogOutIcon(props: IconProps) {
 
 export function CircleAlertIcon(props: IconProps) {
   return <Icon glyph={CircleAlert} {...props} />;
+}
+
+export function InfoIcon(props: IconProps) {
+  return <Icon glyph={Info} {...props} />;
+}
+
+export function TriangleAlertIcon(props: IconProps) {
+  return <Icon glyph={TriangleAlert} {...props} />;
 }
 
 export function EyeIcon(props: IconProps) {

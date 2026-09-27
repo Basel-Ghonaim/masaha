@@ -1,5 +1,12 @@
 // The design-system layer's only public surface: consumers import from @shared/design-system,
 // never from inside it (docs/frontend/design-system/foundation.md §3).
+export {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+  type AlertProps,
+} from './components/Alert';
 export { Avatar, AvatarFallback, AvatarImage, type AvatarProps } from './components/Avatar';
 export { Badge, type BadgeProps } from './components/Badge';
 export { Button, type ButtonProps } from './components/Button';
@@ -50,6 +57,7 @@ export {
   CircleAlertIcon,
   EyeIcon,
   EyeOffIcon,
+  InfoIcon,
   LanguagesIcon,
   LoaderIcon,
   LogInIcon,
@@ -57,6 +65,7 @@ export {
   MoonIcon,
   SearchIcon,
   SunIcon,
+  TriangleAlertIcon,
   XIcon,
   type IconProps,
 } from './icons';

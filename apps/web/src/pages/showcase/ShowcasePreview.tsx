@@ -3,6 +3,7 @@ import { useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import fixtures from './fixtures.json';
 import {
+  AlertSection,
   AvatarSection,
   BadgeSection,
   ButtonSection,
@@ -59,6 +60,7 @@ export function ShowcasePreview() {
         <AvatarSection samples={samples.avatar} />
         <SkeletonSection samples={samples.skeleton} />
         <SpinnerSection samples={samples.spinner} />
+        <AlertSection samples={samples.alert} />
       </main>
     </DirectionProvider>
   );

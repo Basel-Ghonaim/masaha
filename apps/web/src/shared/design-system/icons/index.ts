@@ -10,6 +10,7 @@ export {
   CircleAlertIcon,
   EyeIcon,
   EyeOffIcon,
+  InfoIcon,
   LanguagesIcon,
   LoaderIcon,
   LogInIcon,
@@ -17,5 +18,6 @@ export {
   MoonIcon,
   SearchIcon,
   SunIcon,
+  TriangleAlertIcon,
   XIcon,
 } from './iconSet';

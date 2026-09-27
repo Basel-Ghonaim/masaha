@@ -1,3 +1,4 @@
+export { AlertSection } from './AlertSection';
 export { AvatarSection } from './AvatarSection';
 export { BadgeSection } from './BadgeSection';
 export { ButtonSection } from './ButtonSection';
