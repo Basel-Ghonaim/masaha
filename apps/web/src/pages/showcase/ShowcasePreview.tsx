@@ -24,6 +24,7 @@ import {
   SpinnerSection,
   StatCardSection,
   SwitchSection,
+  TabsSection,
   TextareaSection,
   ToastSection,
   TogglesSection,
@@ -77,6 +78,7 @@ export function ShowcasePreview() {
         <AlertDialogSection samples={samples.alertDialog} />
         <SheetSection samples={samples.sheet} />
         <DropdownMenuSection samples={samples.dropdownMenu} />
+        <TabsSection samples={samples.tabs} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

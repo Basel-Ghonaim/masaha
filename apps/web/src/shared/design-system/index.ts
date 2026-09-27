@@ -96,6 +96,7 @@ export { Skeleton } from './components/Skeleton';
 export { Spinner, type SpinnerProps } from './components/Spinner';
 export { StatCard, type StatCardProps } from './components/StatCard';
 export { Switch, type SwitchProps } from './components/Switch';
+export { Tabs, TabsContent, TabsList, TabsTrigger, type TabsListProps } from './components/Tabs';
 export { Textarea, type TextareaProps } from './components/Textarea';
 export { ThemeToggle, type ThemeToggleProps } from './components/ThemeToggle';
 export { Toaster, toast, type ToasterProps } from './components/Toast';

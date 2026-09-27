@@ -430,6 +430,52 @@
         "sorts": ["الأحدث اشتراكاً أولاً", "الأسماء أبجدياً"],
         "moreLabel": "تصدير الجدول",
         "more": ["كملف جدول بيانات", "كصفحة قابلة للطباعة"]
+      },
+      "tabs": {
+        "title": "علامات التبويب",
+        "defaultCaption": "الافتراضي: أقراص على الهاتف، ومفتاح مقسّم من الجهاز اللوحي فما فوق",
+        "statusLabel": "تصفية المشتركين حسب الحالة",
+        "statuses": [
+          {
+            "value": "members-all-tab",
+            "label": "كل المشتركين 38",
+            "content": "جميع مشتركي مساحة الريادة."
+          },
+          {
+            "value": "members-active-tab",
+            "label": "النشطون الآن 31",
+            "content": "المشتركون الذين عضويتهم فعّالة."
+          },
+          {
+            "value": "members-ending-tab",
+            "label": "تنتهي هذا الأسبوع 5",
+            "content": "عضويات تنتهي خلال 7 أيام."
+          },
+          {
+            "value": "members-expired-tab",
+            "label": "المنتهية سابقاً 2",
+            "content": "عضويات انتهت."
+          }
+        ],
+        "lineCaption": "الخطي: أقسام الصفحة",
+        "sectionsLabel": "أقسام ملف المساحة",
+        "sections": [
+          {
+            "value": "profile-details-tab",
+            "label": "بيانات المساحة",
+            "content": "الاسم والمنطقة والسعة ووسائل التواصل."
+          },
+          {
+            "value": "profile-hours-tab",
+            "label": "ساعات الدوام",
+            "content": "من السبت إلى الخميس، من 08:00 حتى 20:00."
+          },
+          {
+            "value": "profile-photos-tab",
+            "label": "صور المساحة",
+            "content": "حتى ثماني صور للمساحة."
+          }
+        ]
       }
     },
     "en": {
@@ -846,6 +892,52 @@
         "sorts": ["Newest members first", "Names from A to Z"],
         "moreLabel": "Export the table",
         "more": ["As a spreadsheet file", "As a printable page"]
+      },
+      "tabs": {
+        "title": "Tabs",
+        "defaultCaption": "Default: pills on a phone, a segmented control from the tablet up",
+        "statusLabel": "Filter members by status",
+        "statuses": [
+          {
+            "value": "members-all-tab",
+            "label": "All members 38",
+            "content": "Every member of Riyada Space."
+          },
+          {
+            "value": "members-active-tab",
+            "label": "Active now 31",
+            "content": "Members whose membership is active."
+          },
+          {
+            "value": "members-ending-tab",
+            "label": "Ending this week 5",
+            "content": "Memberships that end within 7 days."
+          },
+          {
+            "value": "members-expired-tab",
+            "label": "Already expired 2",
+            "content": "Memberships that have ended."
+          }
+        ],
+        "lineCaption": "Line: the sections of a page",
+        "sectionsLabel": "Space profile sections",
+        "sections": [
+          {
+            "value": "profile-details-tab",
+            "label": "Space details",
+            "content": "Name, area, capacity and contact."
+          },
+          {
+            "value": "profile-hours-tab",
+            "label": "Opening hours",
+            "content": "Saturday to Thursday, 08:00 to 20:00."
+          },
+          {
+            "value": "profile-photos-tab",
+            "label": "Space photos",
+            "content": "Up to eight photos of the space."
+          }
+        ]
       }
     }
   }
