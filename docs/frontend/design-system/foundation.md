@@ -2,9 +2,9 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens built (`tokens/`, §3); components not yet built.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3); the §12 components not yet built.
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-09-26
+> **Last Updated:** 2026-09-27
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -63,12 +63,15 @@ apps/web/src/shared/design-system/
 **Rules:**
 - **Public surface:** consumers import from `@shared/design-system` only, never from inside a component folder.
 - **Closure:** the layer imports nothing from outside itself (no features, pages, app, or other `shared/` modules).
-- **shadcn/ui** is configured (`components.json` aliases) to copy components into `components/`. Once copied, a component is ours and follows this contract (§11).
+- **Class merging:** `cn` (`lib/cn.ts`) joins classes; when two set the same thing, the later wins. It is configured with the layer's text styles and shadows, which tailwind-merge would otherwise misread (`text-body` as a colour, so `cn('text-body', 'text-primary')` would drop it). Every component, copied ones included, merges through it; the layer exports it for pages and features too.
+- **shadcn/ui** is configured (`apps/web/components.json`: style `radix-vega`, `rtl: true`, every alias inside the layer) to copy components into `components/`. With `rtl: true` the CLI writes logical classes. The CLI reads the aliases from `apps/web/tsconfig.json`, which repeats `@shared/*` for it. Once copied, a component is ours and follows this contract (§11).
 - **Radix primitives, the icon library and variant utilities** (`class-variance-authority`) are imported **only** inside the layer.
 - **No CSS files outside the layer.** Pages and features use Tailwind for layout only (grid, flex, gap, spacing, sizing).
 - **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
 
-**Enforcement:** lint rules forbid (a) imports into the layer's internals, (b) importing Radix, the icon library or `cva` outside the layer, and (c) raw palette or arbitrary-value classes outside the layer. A test checks theme key parity (§6).
+**Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library or `cva` outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
+
+**Showcase:** a development-only page, `/__showcase` (`apps/web/src/pages/showcase/`), shows the layer in either theme and direction, at 360, 768 or 1280 px. The preview sits in an iframe of that width, so breakpoints respond as they would on a device. Each component adds a section in `sections/`; sample text comes from `fixtures.json`, since the page is not user-facing. The build leaves the page out, and `check:build` verifies it.
 
 ---
 
@@ -236,8 +239,8 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 
 - **Logical properties only:** `ms-/me-/ps-/pe-/start-/end-/text-start/text-end/border-s/border-e/rounded-s/rounded-e`. Physical ones (`ml-`, `left-`, `text-left`) are forbidden.
 - **Direction follows language:** `ar` → `rtl`, `en` → `ltr`. It is never chosen separately.
-- **Radix `DirectionProvider`** wraps the app so Radix-based components (menus, tabs, sliders) respect direction.
-- **Icons declare mirroring:** directional icons (arrows, chevrons, "back") mirror in RTL; non-directional ones (search, calendar, check) never do. The mirroring rule lives in the `icons/` wrapper, not in each component.
+- **`DirectionProvider`** (the layer's, over Radix's) wraps the app with the direction the pre-paint script set on `<html>`, so Radix-based components (menus, tabs, sliders) and the icons follow it. A subtree shown in the other direction nests its own.
+- **Icons declare mirroring:** directional icons (arrows, chevrons, log-in/out, "back") mirror in RTL; non-directional ones (search, calendar, check) never do. The mirroring rule lives in the `icons/` wrapper, not in each component. Each icon is declared once in `icons/` with its flag and named for the reading direction (`ChevronStartIcon`, `ChevronEndIcon`). Mirroring is a horizontal flip, not a rotation, so icons that are not symmetric top to bottom keep their shape.
 - **Always-LTR values:** phone numbers, emails, prices, times and numeric IDs render with `dir="ltr"` inside RTL text. User-written text uses `dir="auto"`.
 - **Mixed content:** a value inserted into a sentence is isolated (`<bdi>` or Unicode isolates) so it never reorders the sentence.
 
@@ -277,11 +280,13 @@ When a shadcn component is added, it is adapted before it is used:
 
 1. **No built-in words.** Hardcoded strings ("Close", "Previous", "Next", "More", `sr-only` text) become props, supplied from the catalogue.
 2. **Logical properties.** Convert any physical class to its logical form (§8).
-3. **Icons through the wrapper**, with the mirroring flag.
+3. **Icons through the wrapper**, with the mirroring flag. A `lucide-react` icon becomes the matching layer icon (§8), including the directional ones the CLI marks `rtl:rotate-180`.
 4. **Semantic roles only.** No palette or arbitrary values.
 5. **Variants via `cva`**, typed. Props extend the native element's props.
 6. **Accessibility** as in §10, using Radix behaviour where available.
 7. **Own `index.ts`**, exported from the layer's root `index.ts`.
+
+What the CLI's output still needs beyond these steps (its `cn` import, `data-open:` variants, classes from Tailwind's default scales) is recorded in [finding 2](../../architecture/findings.md#2-copied-shadcn-components-need-more-than-the-contract-lists).
 
 ---
 

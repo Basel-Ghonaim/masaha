@@ -1,6 +1,6 @@
 # Plan — Repository scaffold and design-system layer
 
-> **Status:** Active · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-27 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that take Masaha from "documents only" to "a built design-system layer synced into Claude Design" (phases 2–3 of [v1-mvp.md](v1-mvp.md)). *What* the layer is, and its values, is owned by [foundation.md](../frontend/design-system/foundation.md); *how* work is executed by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
@@ -19,10 +19,10 @@
 One Work Item = one fresh Claude Code conversation = one branch = one PR.
 
 1. **Start clean.** On `main`, pull. Open a **new** Claude Code conversation (fresh context per item).
-2. **Plan first.** Switch Claude Code to *plan mode* and send the prompt in §3. It reads `CLAUDE.md` and this plan, then proposes: the branch name, the PR contract (scope, acceptance criteria, out of scope), the files it will touch, and any dependency not listed in §4.
+2. **Plan first.** Switch Claude Code to *plan mode* and send the prompt in §3. It reads `CLAUDE.md` and this plan, then proposes: the branch name, the PR contract (scope, acceptance criteria, out of scope), the planned commits, the files it will touch, and any dependency not listed in §4.
 3. **Approve or correct the plan.** Nothing is written before this.
-4. **Implement.** Claude Code works on the branch, commits at each checkpoint, runs lint, typecheck and tests, and self-reviews against the Definition of Done.
-5. **Push and open the PR.** Claude Code pushes and opens the PR with the description format from [workflow §3](../development/workflow.md#pr-description). This needs the GitHub CLI signed in. If it isn't, Claude Code gives you the text and you open the PR in the browser.
+4. **Implement.** Claude Code works on the branch and commits each complete unit of change ([workflow §3](../development/workflow.md#commits)). Before every commit it runs lint, typecheck and tests. It then self-reviews against the Definition of Done.
+5. **Push and open the PR.** Claude Code pushes and opens the PR with the description format from [workflow §3](../development/workflow.md#pr-description), assigned to you and labelled ([workflow §3](../development/workflow.md#pr-assignee-and-labels)). This needs the GitHub CLI signed in. If it isn't, Claude Code gives you the text and you open the PR in the browser.
 6. **Review.** Look at the diff and the screenshots, and run the showcase yourself (§6). For a second opinion, send the PR description and screenshots for review.
 7. **Merge** on GitHub with a merge commit or rebase, not squash, so the atomic commits survive. Then delete the branch.
 
@@ -34,8 +34,9 @@ One Work Item = one fresh Claude Code conversation = one branch = one PR.
 Implement WI-<n> from docs/plans/design-system-layer.md.
 Read CLAUDE.md, docs/development/workflow.md and the documents WI-<n> links to first.
 Start in plan mode: propose the branch, the PR contract (scope, acceptance criteria,
-out of scope) based on the WI's draft, the files you will touch, and any dependency
-not approved in §4 of the plan. Wait for my approval before writing anything.
+out of scope) based on the WI's draft, the planned commits (workflow §3), the files
+you will touch, and any dependency not approved in §4 of the plan. Wait for my
+approval before writing anything.
 ```
 
 ## 4. Approved dependencies
@@ -47,7 +48,7 @@ Approving this plan approves these. Anything else is proposed in the item's plan
 | Workspace and tooling | `typescript`, `eslint` (flat config) + `typescript-eslint` + `eslint-plugin-react-hooks` + `eslint-plugin-boundaries`, `prettier` |
 | Web app | `react` 19, `react-dom`, `vite`, `@vitejs/plugin-react`, `react-router` |
 | Styling | `tailwindcss` v4 + `@tailwindcss/vite`, `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css` (shadcn's animation utilities) |
-| Components | shadcn CLI (dev-time only), the `@radix-ui/*` packages shadcn pulls in, `lucide-react`, `sonner`, `cmdk` (Combobox), `react-day-picker` + `date-fns` (Calendar), `@tanstack/react-table` (DataTable) |
+| Components | shadcn CLI (dev-time only), `radix-ui` (the unified Radix package shadcn now imports; approved in WI-4 in place of the separate `@radix-ui/*` packages), `lucide-react`, `sonner`, `cmdk` (Combobox), `react-day-picker` + `date-fns` (Calendar), `@tanstack/react-table` (DataTable) |
 | Font | `@fontsource/ibm-plex-sans-arabic` (self-hosted, weights 400/500/600) |
 | Tests | `vitest`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, `jsdom`, `vitest-axe` (accessibility check in component tests) |
 
@@ -272,4 +273,4 @@ Each item also meets the same bar:
 | A shadcn component resists RTL (Radix portal, animation direction) | Stop rule: record it, propose a fix. Never patch around it with physical classes |
 | Tailwind v4 or shadcn changes since these docs were written | Claude Code checks current docs in the plan step and proposes any difference |
 | The layer grows domain components | Admission test (foundation §2.8): SpaceCard, MemberRow and others wait for their features |
-| Outages break a long item mid-way | Commit and push at every checkpoint; items are sized ≤ 2 days |
+| Outages break a long item mid-way | Commit and push each unit as it is finished; items are sized ≤ 2 days |

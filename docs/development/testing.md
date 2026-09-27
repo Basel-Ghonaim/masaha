@@ -1,6 +1,6 @@
 # Testing
 
-> **Status:** Active · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-27 · **Owner:** Basel Ghoneim
 > **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof, not its style.
 
 ## 1. The assignment rule
@@ -42,4 +42,4 @@ A test file's suffix names its lane, and each lane's script runs only its own fi
 
 ## 5. CI gate
 
-GitHub Actions on every PR: `lint` · `typecheck` · `check:classes` · `test:unit` · `test:component` · `test:api` (with a PostgreSQL service). E2E runs locally before a release; the PR states whether it was run.
+GitHub Actions on every PR: `lint` · `typecheck` · `check:classes` · `test:unit` · `test:component` · `build` (then `check:build`) · `test:api` (with a PostgreSQL service). E2E runs locally before a release; the PR states whether it was run.
