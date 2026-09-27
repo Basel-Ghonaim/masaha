@@ -8,6 +8,7 @@
 
   /* Component tokens: only for values no role covers, each bound by its component alone. */
   --control-height: 40px;
+  --control-text-size: 15px;
   --button-padding-inline: 16px;
   --card-padding: 20px;
   --table-row-padding-block: 14px;
@@ -15,9 +16,11 @@
   --radius-pill: var(--radius-scale-full);
 }
 
+/* Touch screens: a 44px target, and 16px text, below which iOS Safari zooms into a focused input. */
 @media (pointer: coarse) {
   :root {
     --control-height: 44px;
+    --control-text-size: 16px;
   }
 }
 

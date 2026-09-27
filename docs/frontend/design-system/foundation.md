@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, Button is built.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, Button, Field, Input and Textarea are built.
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-27
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -108,6 +108,7 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 |---|---|---|
 | `card-border` | light `n-200` (= `border`) · dark `n-700` | Card, table container, panels, the outline Button — dark cards have no shadow, so the border carries the edge |
 | `control-height` | 40px · **44px on touch** (`pointer: coarse`) | Button, Input, Select, Checkbox row |
+| `control-text-size` | 15px (`body`) · **16px on touch** | The value typed or chosen in Input, Textarea and the Select trigger, with `body`'s line height. iOS Safari zooms the page into a focused input whose text is under 16px |
 | `button-padding-inline` | 16px | Button |
 | `card-padding` | 20px | Card, StatCard |
 | `table-row-padding-block` | 14px | Table |
@@ -190,7 +191,7 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 **Usage rules the values depend on:**
 - **Warning is never text on its own.** `warning` is for fills and icons only (3.9:1 on white). Warning text uses `warning-subtle-foreground` on `warning-subtle`.
 - **Status is never colour alone.** A badge always carries its word ("نشط", "ينتهي خلال 3 أيام", "منتهية").
-- **Disabled** = the control at 50% opacity; exempt from contrast, but never the only way a reason is shown.
+- **Disabled** = the control at 50% opacity, and in a Field the whole field with it: label, helper and error too. Exempt from contrast, but never the only way a reason is shown.
 
 ### Other scales
 | Family | Tier | Values (*Sea*) |
@@ -304,8 +305,9 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | `rounded-md` on a control | `rounded-(--radius-control)` |
 | `rounded-[4px]` | `rounded-sm` |
 | `h-9` on a control | `h-(--control-height)` |
+| the value text of a control (`text-base md:text-sm`) | `text-(length:--control-text-size) leading-(--type-body-line-height)`, in that order, so `cn` keeps both |
 
-- **One focus style:** `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`, in place of `focus-visible:ring-3 focus-visible:ring-ring/50`. At 50% the ring loses the 3:1 that §5 verifies, and an outline also survives forced-colours mode.
+- **One focus style:** `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`, in place of `focus-visible:ring-3 focus-visible:ring-ring/50`. At 50% the ring loses the 3:1 that §5 verifies, and an outline also survives forced-colours mode. A bordered control (input, textarea, select trigger, checkbox, radio) also turns its border to `ring`, except while invalid, when it keeps its error border.
 - **A hover never fades a fill.** A filled variant's hover mixes the fill toward the foreground (`hover:bg-[color-mix(in_oklch,var(--primary),var(--foreground)_12%)]`), which raises its label's contrast in both themes; `bg-primary/90` drops the light theme's white label below AA. Outline and ghost hovers use `accent`.
 - **Verified pairs only.** A fill carries the text §5 verifies on it (`bg-destructive text-destructive-foreground`), never a tint of a role under a colour it was not checked against (`bg-destructive/10 text-destructive`).
 - **Hooks into composites the layer does not have** (`in-data-[slot=button-group]`, `group-has-…/field`) are dropped.
@@ -317,8 +319,8 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Component | Source | Notes / variants |
 |---|---|---|
 | Button | shadcn | primary, secondary, outline, ghost, destructive, link · sizes sm/md/lg/icon · loading state |
-| Input, Textarea | shadcn | with error state; `dir` prop for LTR values |
-| Field | hand-built | Label + control + helper + error, wiring ids and `aria-describedby` |
+| Input, Textarea | shadcn | with error state; `dir` prop for LTR values; Input holds start and end icons and a button (`InputAction`) inside its box |
+| Field | hand-built | Label + control + helper + error, wiring ids and `aria-describedby`; an end slot on the label row; shown disabled with its control |
 | Select / Combobox | shadcn | Area filter, amenity filter (multi-select) |
 | Checkbox, RadioGroup, Switch | shadcn | |
 | Badge | shadcn | neutral, primary, success, warning, info, destructive (subtle variants) |

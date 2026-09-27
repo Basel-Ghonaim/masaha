@@ -3,10 +3,14 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  CircleAlert,
+  Eye,
+  EyeOff,
   LoaderCircle,
   LogIn,
   LogOut,
   Search,
+  X,
 } from 'lucide-react';
 import { Icon, type IconProps } from './Icon';
 
@@ -36,6 +40,22 @@ export function LogInIcon(props: IconProps) {
 
 export function LogOutIcon(props: IconProps) {
   return <Icon glyph={LogOut} mirror {...props} />;
+}
+
+export function CircleAlertIcon(props: IconProps) {
+  return <Icon glyph={CircleAlert} {...props} />;
+}
+
+export function EyeIcon(props: IconProps) {
+  return <Icon glyph={Eye} {...props} />;
+}
+
+export function EyeOffIcon(props: IconProps) {
+  return <Icon glyph={EyeOff} {...props} />;
+}
+
+export function XIcon(props: IconProps) {
+  return <Icon glyph={X} {...props} />;
 }
 
 export function SearchIcon(props: IconProps) {

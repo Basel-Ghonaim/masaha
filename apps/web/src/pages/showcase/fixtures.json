@@ -51,6 +51,102 @@
         "loading": "جارٍ حفظ التغييرات",
         "disabled": "إجراء غير متاح الآن",
         "asLink": "رابط يبدو كزر"
+      },
+      "input": {
+        "title": "حقول النص في سطر واحد",
+        "statesCaption": "فارغ، ممتلئ، معطّل، وغير صالح",
+        "directionCaption": "قيمة تُقرأ من اليسار إلى اليمين في أي اتجاه",
+        "empty": {
+          "label": "الاسم الكامل في الحساب",
+          "placeholder": "اسمك الأول واسم العائلة"
+        },
+        "filled": {
+          "label": "اسم مساحة العمل",
+          "value": "مساحة شارع عمر المختار"
+        },
+        "disabled": {
+          "label": "تاريخ الانضمام، لا يمكن تعديله",
+          "value": "عضو منذ يناير 2026"
+        },
+        "invalid": {
+          "label": "المقاعد المتاحة الآن",
+          "value": "سالب ثلاثة",
+          "error": "أدخل عددًا من صفر فأكثر"
+        },
+        "email": {
+          "label": "البريد الإلكتروني لتسجيل الدخول",
+          "placeholder": "showcase.sample@example.com"
+        },
+        "phone": {
+          "label": "رقم الجوال مع رمز الدولة",
+          "value": "+970 59 000 0000"
+        },
+        "slotsCaption": "أيقونات وأزرار داخل الحقل",
+        "search": {
+          "label": "البحث في المشتركين",
+          "placeholder": "ابحث بالاسم أو رقم الهاتف",
+          "value": "خالد عيسى",
+          "clear": "مسح نص البحث"
+        },
+        "password": {
+          "label": "كلمة المرور للحساب",
+          "value": "showcase secret phrase",
+          "show": "إظهار كلمة المرور",
+          "hide": "إخفاء كلمة المرور"
+        },
+        "wrongEmail": {
+          "label": "البريد الإلكتروني للحساب",
+          "value": "ahmad@riyada",
+          "error": "أدخل بريدًا إلكترونيًا صحيحًا، مثل showcase.sample@example.com"
+        }
+      },
+      "textarea": {
+        "title": "حقول النص متعددة الأسطر",
+        "caption": "فارغ، ممتلئ، معطّل، وغير صالح",
+        "empty": {
+          "label": "وصف المشكلة في البيانات",
+          "placeholder": "ما الذي تغيّر في بيانات المساحة؟"
+        },
+        "filled": {
+          "label": "نص الإعلان للأعضاء",
+          "value": "تُغلق المساحة يوم الجمعة للصيانة.\nنعود يوم السبت في التاسعة صباحًا."
+        },
+        "disabled": {
+          "label": "ملاحظة الإدارة، للقراءة فقط",
+          "value": "تمت مراجعة هذا البلاغ وإغلاقه."
+        },
+        "invalid": {
+          "label": "سبب إيقاف العضوية",
+          "error": "اكتب سببًا قبل الإيقاف"
+        }
+      },
+      "field": {
+        "title": "الحقل: العنوان والمساعدة والخطأ",
+        "caption": "نص مساعد، رسالة خطأ، أو كلاهما معًا",
+        "helper": {
+          "label": "السعة الكلية للمساحة",
+          "helper": "عدد المقاعد عند امتلاء المساحة بالكامل"
+        },
+        "error": {
+          "label": "كلمة المرور الحالية",
+          "error": "كلمة المرور غير صحيحة، حاول مرة أخرى"
+        },
+        "both": {
+          "label": "مدة الإعلان بالأيام",
+          "helper": "يختفي الإعلان تلقائيًا بعد انتهاء المدة",
+          "error": "اختر مدة بين يوم واحد وثلاثين يومًا"
+        },
+        "extrasCaption": "رابط في سطر العنوان، وحقل معطّل بالكامل",
+        "labelEnd": {
+          "label": "كلمة المرور الحالية للحساب",
+          "link": "استعادة كلمة مرور منسية",
+          "helper": "ثمانية أحرف على الأقل"
+        },
+        "disabled": {
+          "label": "البريد الإلكتروني، مقفل للتعديل",
+          "helper": "يتغيّر من إعدادات الحساب فقط",
+          "value": "showcase.locked@example.com"
+        }
       }
     },
     "en": {
@@ -84,6 +180,102 @@
         "loading": "Saving your changes",
         "disabled": "Not available right now",
         "asLink": "A link that looks like a button"
+      },
+      "input": {
+        "title": "Single-line text inputs",
+        "statesCaption": "Empty, filled, disabled and invalid",
+        "directionCaption": "A left-to-right value in either direction",
+        "empty": {
+          "label": "Full name on the account",
+          "placeholder": "Your first and last name"
+        },
+        "filled": {
+          "label": "Coworking space name",
+          "value": "Space on Omar Al-Mukhtar Street"
+        },
+        "disabled": {
+          "label": "Joined on, not editable",
+          "value": "Member since January 2026"
+        },
+        "invalid": {
+          "label": "Seats available right now",
+          "value": "minus three",
+          "error": "Enter a number from zero up"
+        },
+        "email": {
+          "label": "Email address for signing in",
+          "placeholder": "showcase.sample@example.com"
+        },
+        "phone": {
+          "label": "Mobile number with country code",
+          "value": "+970 59 000 0000"
+        },
+        "slotsCaption": "Icons and buttons inside the box",
+        "search": {
+          "label": "Search the members",
+          "placeholder": "Search by name or phone number",
+          "value": "Khaled Issa",
+          "clear": "Clear the search text"
+        },
+        "password": {
+          "label": "Password for the account",
+          "value": "showcase secret phrase",
+          "show": "Show the password",
+          "hide": "Hide the password"
+        },
+        "wrongEmail": {
+          "label": "Email address for the account",
+          "value": "ahmad@riyada",
+          "error": "Enter a valid email, like showcase.sample@example.com"
+        }
+      },
+      "textarea": {
+        "title": "Multi-line text inputs",
+        "caption": "Empty, filled, disabled and invalid",
+        "empty": {
+          "label": "What is wrong in the listing",
+          "placeholder": "What changed about this space?"
+        },
+        "filled": {
+          "label": "Announcement for members",
+          "value": "The space is closed on Friday for maintenance.\nWe reopen on Saturday at nine in the morning."
+        },
+        "disabled": {
+          "label": "Admin note, read only",
+          "value": "This report was reviewed and closed."
+        },
+        "invalid": {
+          "label": "Reason for pausing the membership",
+          "error": "Write a reason before pausing"
+        }
+      },
+      "field": {
+        "title": "Field: label, helper and error",
+        "caption": "Helper text, an error message, or both together",
+        "helper": {
+          "label": "Total capacity of the space",
+          "helper": "The number of seats when the space is completely full"
+        },
+        "error": {
+          "label": "Your current password",
+          "error": "That password is not right, try again"
+        },
+        "both": {
+          "label": "Announcement length in days",
+          "helper": "The announcement disappears once the time is up",
+          "error": "Choose between one and thirty days"
+        },
+        "extrasCaption": "A link on the label row, and a field that is disabled as a whole",
+        "labelEnd": {
+          "label": "Current password for the account",
+          "link": "Recover a forgotten password",
+          "helper": "Eight characters at the least"
+        },
+        "disabled": {
+          "label": "Email address, locked for editing",
+          "helper": "It changes from the account settings only",
+          "value": "showcase.locked@example.com"
+        }
       }
     }
   }

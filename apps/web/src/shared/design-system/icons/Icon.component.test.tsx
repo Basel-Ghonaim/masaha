@@ -7,10 +7,14 @@ import {
   ArrowStartIcon,
   ChevronEndIcon,
   ChevronStartIcon,
+  CircleAlertIcon,
+  EyeIcon,
+  EyeOffIcon,
   LoaderIcon,
   LogInIcon,
   LogOutIcon,
   SearchIcon,
+  XIcon,
   type IconProps,
 } from '.';
 
@@ -25,7 +29,9 @@ const DIRECTIONAL = [
   LogOutIcon,
 ].map((icon) => ({ name: icon.name, icon }));
 
-const NON_DIRECTIONAL = [SearchIcon, LoaderIcon].map((icon) => ({ name: icon.name, icon }));
+const NON_DIRECTIONAL = [SearchIcon, LoaderIcon, CircleAlertIcon, EyeIcon, EyeOffIcon, XIcon].map(
+  (icon) => ({ name: icon.name, icon }),
+);
 
 function svgOf(dir: 'ltr' | 'rtl', Glyph: ComponentType<IconProps>, props: IconProps = {}) {
   const { container } = render(
