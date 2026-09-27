@@ -5,6 +5,7 @@ import { DirectionProvider } from '../components/DirectionProvider';
 import {
   ArrowEndIcon,
   ArrowStartIcon,
+  CheckIcon,
   ChevronEndIcon,
   ChevronStartIcon,
   CircleAlertIcon,
@@ -29,9 +30,15 @@ const DIRECTIONAL = [
   LogOutIcon,
 ].map((icon) => ({ name: icon.name, icon }));
 
-const NON_DIRECTIONAL = [SearchIcon, LoaderIcon, CircleAlertIcon, EyeIcon, EyeOffIcon, XIcon].map(
-  (icon) => ({ name: icon.name, icon }),
-);
+const NON_DIRECTIONAL = [
+  SearchIcon,
+  LoaderIcon,
+  CircleAlertIcon,
+  EyeIcon,
+  EyeOffIcon,
+  XIcon,
+  CheckIcon,
+].map((icon) => ({ name: icon.name, icon }));
 
 function svgOf(dir: 'ltr' | 'rtl', Glyph: ComponentType<IconProps>, props: IconProps = {}) {
   const { container } = render(

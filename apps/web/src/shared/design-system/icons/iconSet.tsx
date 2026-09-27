@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   ArrowRight,
+  Check,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
@@ -64,4 +65,8 @@ export function SearchIcon(props: IconProps) {
 
 export function LoaderIcon(props: IconProps) {
   return <Icon glyph={LoaderCircle} {...props} />;
+}
+
+export function CheckIcon(props: IconProps) {
+  return <Icon glyph={Check} {...props} />;
 }

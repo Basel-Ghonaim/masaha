@@ -147,6 +147,48 @@
           "helper": "يتغيّر من إعدادات الحساب فقط",
           "value": "showcase.locked@example.com"
         }
+      },
+      "checkbox": {
+        "title": "مربعات الاختيار",
+        "caption": "غير محدد، محدد، مع مساعدة، معطّل، وغير صالح",
+        "unchecked": "المساحات الموثّقة فقط",
+        "checked": "متاحة الآن للحجز المباشر",
+        "withHelper": {
+          "label": "إظهار المساحات القريبة",
+          "helper": "حسب المنطقة التي اخترتها في ملفك"
+        },
+        "disabled": "خيار غير متاح في منطقتك",
+        "disabledChecked": "مفعّل من إدارة المنصة",
+        "invalid": {
+          "label": "أوافق على شروط الاستخدام",
+          "error": "وافق على الشروط للمتابعة"
+        }
+      },
+      "radioGroup": {
+        "title": "مجموعات الخيار الواحد",
+        "caption": "مجموعة مع مساعدة وخيار معطّل، ومجموعة غير صالحة",
+        "plan": {
+          "label": "نوع الاشتراك في المساحة",
+          "helper": "يمكنك تغييره عند التجديد",
+          "options": ["اشتراك يومي", "اشتراك أسبوعي", "اشتراك شهري"],
+          "unavailable": 1
+        },
+        "invalid": {
+          "label": "نوع الإعلان للأعضاء",
+          "error": "اختر نوع الإعلان قبل النشر",
+          "options": ["خبر عام للأعضاء", "إغلاق مؤقت للمساحة"]
+        }
+      },
+      "switch": {
+        "title": "مفاتيح التشغيل",
+        "caption": "متوقف، يعمل، ومعطّل في الحالتين",
+        "off": "تنبيه عند امتلاء المساحة",
+        "on": {
+          "label": "تسجيل خروج الأعضاء تلقائيًا",
+          "helper": "عند وقت الإغلاق كل يوم"
+        },
+        "disabled": "مزامنة التقويم غير متاحة",
+        "disabledOn": "إشعارات الأمان مفعّلة دائمًا"
       }
     },
     "en": {
@@ -276,6 +318,48 @@
           "helper": "It changes from the account settings only",
           "value": "showcase.locked@example.com"
         }
+      },
+      "checkbox": {
+        "title": "Checkboxes and their states",
+        "caption": "Unchecked, checked, with helper, disabled and invalid",
+        "unchecked": "Verified spaces only",
+        "checked": "Open for walk-ins right now",
+        "withHelper": {
+          "label": "Show spaces near me",
+          "helper": "Based on the area in your profile"
+        },
+        "disabled": "Not offered in your area",
+        "disabledChecked": "Turned on by the platform admin",
+        "invalid": {
+          "label": "I agree to the terms of use",
+          "error": "Agree to the terms to continue"
+        }
+      },
+      "radioGroup": {
+        "title": "Radio groups",
+        "caption": "A group with a helper and a disabled option, and an invalid group",
+        "plan": {
+          "label": "Membership plan for the space",
+          "helper": "You can change it when you renew",
+          "options": ["Daily membership", "Weekly membership", "Monthly membership"],
+          "unavailable": 1
+        },
+        "invalid": {
+          "label": "Announcement type for members",
+          "error": "Choose a type before posting",
+          "options": ["General news for members", "Temporary closure of the space"]
+        }
+      },
+      "switch": {
+        "title": "Switches and their states",
+        "caption": "Off, on, and disabled in both",
+        "off": "Alert me when the space is full",
+        "on": {
+          "label": "Check members out automatically",
+          "helper": "At closing time every day"
+        },
+        "disabled": "Calendar sync is not available",
+        "disabledOn": "Security emails are always on"
       }
     }
   }

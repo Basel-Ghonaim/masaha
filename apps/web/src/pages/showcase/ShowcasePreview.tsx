@@ -4,9 +4,12 @@ import { useSearchParams } from 'react-router';
 import fixtures from './fixtures.json';
 import {
   ButtonSection,
+  CheckboxSection,
   FieldSection,
   IconsSection,
   InputSection,
+  RadioGroupSection,
+  SwitchSection,
   TextareaSection,
 } from './sections';
 import { readSettings } from './settings';
@@ -37,6 +40,9 @@ export function ShowcasePreview() {
         <FieldSection samples={samples.field} />
         <InputSection samples={samples.input} />
         <TextareaSection samples={samples.textarea} />
+        <CheckboxSection samples={samples.checkbox} />
+        <RadioGroupSection samples={samples.radioGroup} />
+        <SwitchSection samples={samples.switch} />
       </main>
     </DirectionProvider>
   );

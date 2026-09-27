@@ -1,2 +1,2 @@
 export { Field, type FieldProps } from './Field';
-export { useFieldControl } from './useFieldControl';
+export { FieldContext, useField, useFieldControl } from './useFieldControl';

@@ -2,6 +2,7 @@ export type { IconProps } from './Icon';
 export {
   ArrowEndIcon,
   ArrowStartIcon,
+  CheckIcon,
   ChevronEndIcon,
   ChevronStartIcon,
   CircleAlertIcon,

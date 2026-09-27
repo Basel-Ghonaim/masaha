@@ -1,5 +1,8 @@
 export { ButtonSection } from './ButtonSection';
+export { CheckboxSection } from './CheckboxSection';
 export { FieldSection } from './FieldSection';
 export { IconsSection } from './IconsSection';
 export { InputSection } from './InputSection';
+export { RadioGroupSection } from './RadioGroupSection';
+export { SwitchSection } from './SwitchSection';
 export { TextareaSection } from './TextareaSection';

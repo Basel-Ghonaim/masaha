@@ -16,6 +16,14 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /*
+ * The state variants copied components use. Radix writes a state as data-state="…", which Tailwind's
+ * own data-checked: would not match. Only the variants in use are declared here; shadcn's
+ * shadcn/tailwind.css, which defines them all, is not loaded.
+ */
+@custom-variant data-checked (&:where([data-state='checked']));
+@custom-variant data-unchecked (&:where([data-state='unchecked']));
+
+/*
  * The resets remove Tailwind's defaults, so bg-blue-500, text-sm and shadow-md do not exist.
  * inline makes each utility use the token's var() directly, so it resolves against the theme of
  * the element it sits in.

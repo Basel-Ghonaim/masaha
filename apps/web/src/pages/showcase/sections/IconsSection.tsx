@@ -1,6 +1,7 @@
 import {
   ArrowEndIcon,
   ArrowStartIcon,
+  CheckIcon,
   ChevronEndIcon,
   ChevronStartIcon,
   CircleAlertIcon,
@@ -26,7 +27,7 @@ const MIRRORED = [
   LogInIcon,
   LogOutIcon,
 ];
-const FIXED = [SearchIcon, LoaderIcon, CircleAlertIcon, EyeIcon, EyeOffIcon, XIcon];
+const FIXED = [SearchIcon, LoaderIcon, CircleAlertIcon, EyeIcon, EyeOffIcon, XIcon, CheckIcon];
 
 function IconGroup({ caption, icons }: { caption: string; icons: ComponentType<IconProps>[] }) {
   return (

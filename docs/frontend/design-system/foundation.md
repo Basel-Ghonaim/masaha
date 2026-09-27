@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, Button, Field, Input and Textarea are built.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, Button, Field, Input, Textarea, Checkbox, RadioGroup and Switch are built.
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-27
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -294,6 +294,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 - **Source and place.** Take the source from `npx shadcn add <name> --dry-run --view`, so the CLI never installs a package, and write it to `components/<Name>/<Name>.tsx` beside its `index.ts`. Drop `"use client"`.
 - **Merge through the layer's `cn`.** `import { cn } from "cn"` becomes `../../lib/cn`. The `cn` package is never installed: it lacks the text styles and shadows (§3).
 - **No `dark:` classes.** The tokens resolve each theme (§6); a component never styles per theme.
+- **State variants** (`data-checked:`, `data-open:` …) are defined in shadcn's `shadcn/tailwind.css`, which the layer does not load. Each one a copy uses is declared once in `tokens/tailwind.css` as a `@custom-variant` over Radix's `data-state`. Radix's presence attributes (`data-disabled`, `data-placeholder`) need none: Tailwind's own `data-*` variant matches them.
 - **Tailwind's default scales** do not exist in the layer. Map them:
 
 | CLI class | Layer class |
@@ -310,6 +311,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 - **One focus style:** `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`, in place of `focus-visible:ring-3 focus-visible:ring-ring/50`. At 50% the ring loses the 3:1 that §5 verifies, and an outline also survives forced-colours mode. A bordered control (input, textarea, select trigger, checkbox, radio) also turns its border to `ring`, except while invalid, when it keeps its error border.
 - **A hover never fades a fill.** A filled variant's hover mixes the fill toward the foreground (`hover:bg-[color-mix(in_oklch,var(--primary),var(--foreground)_12%)]`), which raises its label's contrast in both themes; `bg-primary/90` drops the light theme's white label below AA. Outline and ghost hovers use `accent`.
 - **Verified pairs only.** A fill carries the text §5 verifies on it (`bg-destructive text-destructive-foreground`), never a tint of a role under a colour it was not checked against (`bg-destructive/10 text-destructive`).
+- **Raw px values** (`h-[18.4px]`, `translate-x-[calc(100%-2px)]`) become the spacing scale.
 - **Hooks into composites the layer does not have** (`in-data-[slot=button-group]`, `group-has-…/field`) are dropped.
 
 ---
