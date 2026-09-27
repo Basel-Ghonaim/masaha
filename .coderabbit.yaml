@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Only what differs from the settings in CodeRabbit's web interface: without inheritance, this file
+# would replace them all.
+inheritance: true
+reviews:
+  # The PR description is written to docs/development/workflow.md §3, so CodeRabbit does not add a
+  # summary to it. Review comments stay on.
+  high_level_summary: false
