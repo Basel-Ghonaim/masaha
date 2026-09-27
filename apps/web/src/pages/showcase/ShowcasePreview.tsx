@@ -9,6 +9,7 @@ import {
   IconsSection,
   InputSection,
   RadioGroupSection,
+  SelectSection,
   SwitchSection,
   TextareaSection,
 } from './sections';
@@ -40,6 +41,7 @@ export function ShowcasePreview() {
         <FieldSection samples={samples.field} />
         <InputSection samples={samples.input} />
         <TextareaSection samples={samples.textarea} />
+        <SelectSection samples={samples.select} />
         <CheckboxSection samples={samples.checkbox} />
         <RadioGroupSection samples={samples.radioGroup} />
         <SwitchSection samples={samples.switch} />

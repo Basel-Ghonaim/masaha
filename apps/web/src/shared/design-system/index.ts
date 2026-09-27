@@ -11,14 +11,26 @@ export {
   type RadioGroupItemProps,
   type RadioGroupProps,
 } from './components/RadioGroup';
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from './components/Select';
 export { Switch, type SwitchProps } from './components/Switch';
 export { Textarea, type TextareaProps } from './components/Textarea';
 export {
   ArrowEndIcon,
   ArrowStartIcon,
   CheckIcon,
+  ChevronDownIcon,
   ChevronEndIcon,
   ChevronStartIcon,
+  ChevronUpIcon,
   CircleAlertIcon,
   EyeIcon,
   EyeOffIcon,

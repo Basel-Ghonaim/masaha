@@ -2,8 +2,10 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CircleAlert,
   Eye,
   EyeOff,
@@ -69,4 +71,12 @@ export function LoaderIcon(props: IconProps) {
 
 export function CheckIcon(props: IconProps) {
   return <Icon glyph={Check} {...props} />;
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return <Icon glyph={ChevronDown} {...props} />;
+}
+
+export function ChevronUpIcon(props: IconProps) {
+  return <Icon glyph={ChevronUp} {...props} />;
 }

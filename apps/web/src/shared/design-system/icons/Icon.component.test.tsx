@@ -6,8 +6,10 @@ import {
   ArrowEndIcon,
   ArrowStartIcon,
   CheckIcon,
+  ChevronDownIcon,
   ChevronEndIcon,
   ChevronStartIcon,
+  ChevronUpIcon,
   CircleAlertIcon,
   EyeIcon,
   EyeOffIcon,
@@ -38,6 +40,8 @@ const NON_DIRECTIONAL = [
   EyeOffIcon,
   XIcon,
   CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
 ].map((icon) => ({ name: icon.name, icon }));
 
 function svgOf(dir: 'ltr' | 'rtl', Glyph: ComponentType<IconProps>, props: IconProps = {}) {

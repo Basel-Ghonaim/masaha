@@ -189,6 +189,28 @@
         },
         "disabled": "مزامنة التقويم غير متاحة",
         "disabledOn": "إشعارات الأمان مفعّلة دائمًا"
+      },
+      "select": {
+        "title": "اختيار قيمة واحدة من قائمة",
+        "caption": "فارغ، مختار، معطّل، وغير صالح",
+        "placeholder": "اختر منطقة المساحة",
+        "empty": "منطقة مساحة العمل",
+        "chosen": "المنطقة الأقرب إليك",
+        "disabled": "المنطقة التي حددتها الإدارة",
+        "invalid": {
+          "label": "المنطقة في طلب الإضافة",
+          "error": "اختر المنطقة قبل الإرسال"
+        },
+        "groups": [
+          {
+            "label": "أحياء مدينة غزة",
+            "options": ["حي الرمال", "حي تل الهوى", "حي الشجاعية"]
+          },
+          {
+            "label": "مخيمات المنطقة الوسطى",
+            "options": ["مخيم النصيرات", "مدينة دير البلح", "مخيم البريج"]
+          }
+        ]
       }
     },
     "en": {
@@ -360,6 +382,32 @@
         },
         "disabled": "Calendar sync is not available",
         "disabledOn": "Security emails are always on"
+      },
+      "select": {
+        "title": "Choosing one value from a list",
+        "caption": "Empty, chosen, disabled and invalid",
+        "placeholder": "Choose the area of the space",
+        "empty": "Area of the coworking space",
+        "chosen": "The area nearest to you",
+        "disabled": "Area set by the platform admin",
+        "invalid": {
+          "label": "Area in the listing request",
+          "error": "Choose the area before sending"
+        },
+        "groups": [
+          {
+            "label": "Gaza City neighbourhoods",
+            "options": [
+              "Rimal neighbourhood",
+              "Tal al-Hawa neighbourhood",
+              "Shujaiyya neighbourhood"
+            ]
+          },
+          {
+            "label": "Middle Area towns and camps",
+            "options": ["Nuseirat camp", "Deir al-Balah city", "Bureij camp"]
+          }
+        ]
       }
     }
   }
