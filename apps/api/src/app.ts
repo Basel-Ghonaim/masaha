@@ -5,6 +5,8 @@ import helmet from 'helmet';
 import type { Logger } from 'pino';
 import { pinoHttp } from 'pino-http';
 
+import { errorHandler, notFoundHandler } from './shared/errors/index.ts';
+
 export interface AppOptions {
   corsOrigin: string;
   logger: Logger;
@@ -28,6 +30,8 @@ export function createApp({ corsOrigin, logger, apiRouter = Router() }: AppOptio
   });
 
   app.use('/api/v1', apiRouter);
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }
