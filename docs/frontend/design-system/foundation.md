@@ -69,7 +69,7 @@ apps/web/src/shared/design-system/
 - **No CSS files outside the layer.** Pages and features use Tailwind for layout only (grid, flex, gap, spacing, sizing).
 - **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
 
-**Enforcement:** lint rules forbid (a) imports into the layer's internals, (b) importing Radix, the icon library or `cva` outside the layer, and (c) raw palette or arbitrary-value classes outside the layer. A test checks theme key parity (§6).
+**Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library or `cva` outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
 
 ---
 
