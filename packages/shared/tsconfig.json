@@ -1,6 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // The build is loaded by Node as well as by Vite, so it follows Node's ESM rules: relative
+    // imports name their .ts file, and the emit rewrites them to .js.
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rewriteRelativeImportExtensions": true,
+    "erasableSyntaxOnly": true,
     "rootDir": "src",
     "outDir": "dist",
     "declaration": true
