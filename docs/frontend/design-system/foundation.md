@@ -64,7 +64,7 @@ apps/web/src/shared/design-system/
 - **Public surface:** consumers import from `@shared/design-system` only, never from inside a component folder.
 - **Closure:** the layer imports nothing from outside itself (no features, pages, app, or other `shared/` modules).
 - **Class merging:** `cn` (`lib/cn.ts`) joins classes; when two set the same thing, the later wins. It is configured with the layer's text styles and shadows, which tailwind-merge would otherwise misread (`text-body` as a colour, so `cn('text-body', 'text-primary')` would drop it). Every component, copied ones included, merges through it; the layer exports it for pages and features too.
-- **shadcn/ui** is configured (`components.json` aliases) to copy components into `components/`. Once copied, a component is ours and follows this contract (§11).
+- **shadcn/ui** is configured (`apps/web/components.json`: style `radix-vega`, `rtl: true`, every alias inside the layer) to copy components into `components/`. With `rtl: true` the CLI writes logical classes. The CLI reads the aliases from `apps/web/tsconfig.json`, which repeats `@shared/*` for it. Once copied, a component is ours and follows this contract (§11).
 - **Radix primitives, the icon library and variant utilities** (`class-variance-authority`) are imported **only** inside the layer.
 - **No CSS files outside the layer.** Pages and features use Tailwind for layout only (grid, flex, gap, spacing, sizing).
 - **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
@@ -278,11 +278,13 @@ When a shadcn component is added, it is adapted before it is used:
 
 1. **No built-in words.** Hardcoded strings ("Close", "Previous", "Next", "More", `sr-only` text) become props, supplied from the catalogue.
 2. **Logical properties.** Convert any physical class to its logical form (§8).
-3. **Icons through the wrapper**, with the mirroring flag.
+3. **Icons through the wrapper**, with the mirroring flag. A `lucide-react` icon becomes the matching layer icon (§8), including the directional ones the CLI marks `rtl:rotate-180`.
 4. **Semantic roles only.** No palette or arbitrary values.
 5. **Variants via `cva`**, typed. Props extend the native element's props.
 6. **Accessibility** as in §10, using Radix behaviour where available.
 7. **Own `index.ts`**, exported from the layer's root `index.ts`.
+
+What the CLI's output still needs beyond these steps (its `cn` import, `data-open:` variants, classes from Tailwind's default scales) is recorded in [finding 2](../../architecture/findings.md#2-copied-shadcn-components-need-more-than-the-contract-lists).
 
 ---
 

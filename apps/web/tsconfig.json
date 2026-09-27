@@ -1,4 +1,9 @@
 {
   "files": [],
-  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }],
+  "compilerOptions": {
+    // The shadcn CLI (components.json) reads path aliases only from this file. tsconfig.app.json
+    // defines the aliases for the code; this repeats the one components.json uses.
+    "paths": { "@shared/*": ["./src/shared/*"] }
+  }
 }

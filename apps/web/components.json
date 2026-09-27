@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "radix-vega",
+  "rsc": false,
+  "tsx": true,
+  "rtl": true,
+  "iconLibrary": "lucide",
+  "tailwind": {
+    "config": "",
+    "css": "src/shared/design-system/tokens/tailwind.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@shared/design-system/components",
+    "ui": "@shared/design-system/components",
+    "utils": "@shared/design-system/lib/cn",
+    "lib": "@shared/design-system/lib",
+    "hooks": "@shared/design-system/lib"
+  }
+}
