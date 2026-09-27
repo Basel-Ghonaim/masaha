@@ -7,6 +7,7 @@
 
 - **Node.js 24** (≥ 24.15), the version in `.nvmrc` ([ADR 0001](../architecture/decisions/0001-monorepo-and-stack.md)). With nvm: `nvm use`.
 - **npm**, the one bundled with Node 24.
+- **Docker Desktop** (on Windows, with the WSL 2 backend), running. It hosts the local PostgreSQL ([Database](#database)).
 
 The pin is strict: `engines` allows `>=24.15.0 <25`, and `.npmrc` sets `engine-strict`, so `npm install` and `npm ci` fail on any other Node version.
 
@@ -40,6 +41,23 @@ All commands run from the repository root.
 A single workspace can be targeted with `-w`, for example `npm run test:unit -w @masaha/web`.
 
 In development, the design-system showcase is at `/__showcase` ([foundation §3](../frontend/design-system/foundation.md#3-architecture)).
+
+## Database
+
+PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compose.yml)): one service with a named volume and a healthcheck.
+
+- It listens on host port **5433**, not the default 5432, so a native PostgreSQL on this machine can keep running.
+- It holds two databases:
+  - `masaha_dev`, used by the running API;
+  - `masaha_test`, used only by the API test lane.
+- The user and password are both `masaha`. This is a local development secret, never used anywhere else.
+- `masaha_test` is created by [`docker/postgres/create-test-database.sql`](../../docker/postgres/create-test-database.sql) when the volume is first created.
+- The Compose project is named `masaha`, so every checkout of the repository (including a git worktree) shares the same container and data.
+
+| Command | What it does |
+|---|---|
+| `npm run db:up` | Starts PostgreSQL and waits until it is healthy |
+| `npm run db:down` | Stops it; the data stays in the volume. `docker compose down -v` also deletes the data |
 
 ## The API
 

@@ -19,6 +19,8 @@
     "test:api": "npm run test:api --workspaces --if-present",
     "check:classes": "npm run check:classes -w @masaha/web",
     "check:build": "npm run check:build -w @masaha/web",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
     "format": "prettier --write ."
   },
   "devDependencies": {

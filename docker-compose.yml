@@ -1,0 +1,25 @@
+# Local PostgreSQL for development and the API test lane (docs/development/setup.md#database).
+name: masaha
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: masaha
+      POSTGRES_PASSWORD: masaha
+      POSTGRES_DB: masaha_dev
+    # Host port 5433, so a native PostgreSQL on 5432 can keep running.
+    ports:
+      - '5433:5432'
+    volumes:
+      # From 18 on, the image keeps its data under /var/lib/postgresql (not /data).
+      - masaha-pgdata:/var/lib/postgresql
+      # Runs once, when the volume is first created: adds masaha_test next to masaha_dev.
+      - ./docker/postgres/create-test-database.sql:/docker-entrypoint-initdb.d/create-test-database.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U masaha -d masaha_dev']
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  masaha-pgdata:
