@@ -1,6 +1,6 @@
 # Workflow
 
-> **Status:** Active · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-27 · **Owner:** Basel Ghoneim
 > **Authority:** How work is executed on Masaha: task classes, the Git lifecycle, scope control, the Definition of Done, decision authority and stop rules. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
 
 Masaha is built by **one developer (the owner)** with AI assistants. The workflow keeps the discipline of a team process — reviewable units, a clean history, gated decisions — without ceremony a solo project does not need.
@@ -57,8 +57,15 @@ For a substantial item, agree the contract **before** implementing: agree → de
 Closes #n   (only when an Issue exists)
 ```
 
-### Commit habits
-- Commit at each coherent checkpoint as you go.
+### PR assignee and labels
+- Every PR is assigned to the owner: `gh pr create --assignee @me`.
+- Every PR carries **one type label** (`feat`, `fix`, `chore`, `docs`, `refactor`, `test`) and **one or more area labels** (`area:web`, `area:api`, `area:design-system`, `area:docs`, `area:ci`).
+- A label that does not exist yet is created with `gh label create`, with a short description and a sensible colour.
+
+### Commits
+- **One commit = one complete, working unit of change** that can be described in one sentence (for example, "add the icon wrapper with RTL mirroring").
+- A unit's code, its tests and the documents that describe it go in the **same** commit. Not one commit per file or per layer (no separate "add tests" or "add docs" commit for the same unit), and not one commit for the whole branch. A typical Work Item has 3–6 commits.
+- Every commit builds and passes lint, typecheck and tests.
 - Stage **by path**; never `git add -A` or `git add .`. Run `git status` before each commit.
 - **No tool attribution** in any commit, PR, Issue or document.
 
