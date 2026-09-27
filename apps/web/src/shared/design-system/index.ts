@@ -1,5 +1,6 @@
 // The design-system layer's only public surface: consumers import from @shared/design-system,
 // never from inside it (docs/frontend/design-system/foundation.md §3).
+export { Avatar, AvatarFallback, AvatarImage, type AvatarProps } from './components/Avatar';
 export { Badge, type BadgeProps } from './components/Badge';
 export { Button, type ButtonProps } from './components/Button';
 export {
@@ -33,6 +34,8 @@ export {
   SelectValue,
 } from './components/Select';
 export { Separator, type SeparatorProps } from './components/Separator';
+export { Skeleton } from './components/Skeleton';
+export { Spinner, type SpinnerProps } from './components/Spinner';
 export { Switch, type SwitchProps } from './components/Switch';
 export { Textarea, type TextareaProps } from './components/Textarea';
 export { ThemeToggle, type ThemeToggleProps } from './components/ThemeToggle';

@@ -250,6 +250,25 @@
         "below": "بيانات التواصل",
         "verticalCaption": "رأسي بين عناصر في صف",
         "items": ["الملف الشخصي", "المفضلة", "بلاغاتي"]
+      },
+      "avatar": {
+        "title": "الصور الرمزية",
+        "sizesCaption": "الأحجام: صغير ومتوسط وكبير، بالأحرف الأولى",
+        "initials": "س ح",
+        "withNameCaption": "بجانب الاسم",
+        "name": "سارة الحلو",
+        "phone": "+970 59 234 1188"
+      },
+      "skeleton": {
+        "title": "هياكل التحميل",
+        "rowCaption": "صف مشترك قيد التحميل",
+        "cardCaption": "بطاقة قيد التحميل"
+      },
+      "spinner": {
+        "title": "مؤشر التحميل",
+        "caption": "بحجمين، مع نص بجانبه",
+        "label": "جارٍ تحميل المشتركين",
+        "text": "جارٍ تحميل المشتركين…"
       }
     },
     "en": {
@@ -486,6 +505,25 @@
         "below": "Contact details",
         "verticalCaption": "Vertical, between items in a row",
         "items": ["My profile", "Favourites", "My reports"]
+      },
+      "avatar": {
+        "title": "Avatars",
+        "sizesCaption": "Small, medium and large, with initials",
+        "initials": "S H",
+        "withNameCaption": "Beside the person's name",
+        "name": "Sara Helou",
+        "phone": "+970 59 234 1188"
+      },
+      "skeleton": {
+        "title": "Loading skeletons",
+        "rowCaption": "A member row while it loads",
+        "cardCaption": "A card while it loads"
+      },
+      "spinner": {
+        "title": "Loading spinner",
+        "caption": "Two sizes, and with text beside it",
+        "label": "Loading the members list",
+        "text": "Loading the members list…"
       }
     }
   }

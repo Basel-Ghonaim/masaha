@@ -1,3 +1,4 @@
+export { AvatarSection } from './AvatarSection';
 export { BadgeSection } from './BadgeSection';
 export { ButtonSection } from './ButtonSection';
 export { CardSection } from './CardSection';
@@ -8,6 +9,8 @@ export { InputSection } from './InputSection';
 export { RadioGroupSection } from './RadioGroupSection';
 export { SelectSection } from './SelectSection';
 export { SeparatorSection } from './SeparatorSection';
+export { SkeletonSection } from './SkeletonSection';
+export { SpinnerSection } from './SpinnerSection';
 export { SwitchSection } from './SwitchSection';
 export { TextareaSection } from './TextareaSection';
 export { TogglesSection } from './TogglesSection';

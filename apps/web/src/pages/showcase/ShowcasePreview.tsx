@@ -3,6 +3,7 @@ import { useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import fixtures from './fixtures.json';
 import {
+  AvatarSection,
   BadgeSection,
   ButtonSection,
   CardSection,
@@ -13,6 +14,8 @@ import {
   RadioGroupSection,
   SelectSection,
   SeparatorSection,
+  SkeletonSection,
+  SpinnerSection,
   SwitchSection,
   TextareaSection,
   TogglesSection,
@@ -53,6 +56,9 @@ export function ShowcasePreview() {
         <BadgeSection samples={samples.badge} />
         <CardSection samples={samples.card} />
         <SeparatorSection samples={samples.separator} />
+        <AvatarSection samples={samples.avatar} />
+        <SkeletonSection samples={samples.skeleton} />
+        <SpinnerSection samples={samples.spinner} />
       </main>
     </DirectionProvider>
   );
