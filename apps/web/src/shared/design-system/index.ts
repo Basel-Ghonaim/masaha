@@ -43,6 +43,22 @@ export {
   type DialogContentProps,
 } from './components/Dialog';
 export { DirectionProvider } from './components/DirectionProvider';
+export {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+  type DropdownMenuItemProps,
+} from './components/DropdownMenu';
 export { EmptyState, type EmptyStateProps } from './components/EmptyState';
 export { Field, type FieldProps } from './components/Field';
 export { Input, InputAction, type InputActionProps, type InputProps } from './components/Input';
@@ -94,6 +110,8 @@ export {
   ChevronUpIcon,
   CircleAlertIcon,
   CircleCheckIcon,
+  EllipsisIcon,
+  EllipsisVerticalIcon,
   EyeIcon,
   EyeOffIcon,
   InfoIcon,

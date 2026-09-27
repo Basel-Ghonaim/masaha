@@ -9,6 +9,8 @@ export {
   ChevronUpIcon,
   CircleAlertIcon,
   CircleCheckIcon,
+  EllipsisIcon,
+  EllipsisVerticalIcon,
   EyeIcon,
   EyeOffIcon,
   InfoIcon,

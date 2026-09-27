@@ -8,6 +8,8 @@ import {
   ChevronUp,
   CircleAlert,
   CircleCheck,
+  Ellipsis,
+  EllipsisVertical,
   Eye,
   EyeOff,
   Info,
@@ -119,4 +121,12 @@ export function MoonIcon(props: IconProps) {
 
 export function LanguagesIcon(props: IconProps) {
   return <Icon glyph={Languages} {...props} />;
+}
+
+export function EllipsisIcon(props: IconProps) {
+  return <Icon glyph={Ellipsis} {...props} />;
+}
+
+export function EllipsisVerticalIcon(props: IconProps) {
+  return <Icon glyph={EllipsisVertical} {...props} />;
 }

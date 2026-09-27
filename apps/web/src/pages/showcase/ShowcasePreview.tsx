@@ -11,6 +11,7 @@ import {
   CardSection,
   CheckboxSection,
   DialogSection,
+  DropdownMenuSection,
   EmptyStateSection,
   FieldSection,
   IconsSection,
@@ -75,6 +76,7 @@ export function ShowcasePreview() {
         <DialogSection samples={samples.dialog} />
         <AlertDialogSection samples={samples.alertDialog} />
         <SheetSection samples={samples.sheet} />
+        <DropdownMenuSection samples={samples.dropdownMenu} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

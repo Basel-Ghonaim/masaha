@@ -6,6 +6,7 @@ export { ButtonSection } from './ButtonSection';
 export { CardSection } from './CardSection';
 export { CheckboxSection } from './CheckboxSection';
 export { DialogSection } from './DialogSection';
+export { DropdownMenuSection } from './DropdownMenuSection';
 export { EmptyStateSection } from './EmptyStateSection';
 export { FieldSection } from './FieldSection';
 export { IconsSection } from './IconsSection';

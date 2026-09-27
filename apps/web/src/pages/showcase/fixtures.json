@@ -413,6 +413,23 @@
           "areas": ["كل المناطق", "الرمال", "تل الهوا"],
           "apply": "عرض 20 بلاغاً مطابقاً"
         }
+      },
+      "dropdownMenu": {
+        "title": "القوائم المنسدلة",
+        "rowCaption": "إجراءات الصف، من نقاط أفقية أو عمودية",
+        "rowLabel": "إجراءات البلاغ عن مساحة الريادة",
+        "view": "عرض تفاصيل البلاغ",
+        "markCorrected": "وضع علامة: تم تصحيح البلاغ",
+        "unavailable": "تعديل بيانات المساحة (غير متاح)",
+        "reject": "رفض البلاغ المرسل",
+        "optionsCaption": "عناصر اختيار متعدد وأحادي، وقائمة فرعية نحو جهة النهاية",
+        "optionsTrigger": "خيارات عرض الجدول",
+        "columnsLabel": "الأعمدة الظاهرة",
+        "columns": ["هاتف المشترك", "تاريخ انتهاء العضوية", "وقت آخر حضور"],
+        "sortLabel": "ترتيب الصفوف",
+        "sorts": ["الأحدث اشتراكاً أولاً", "الأسماء أبجدياً"],
+        "moreLabel": "تصدير الجدول",
+        "more": ["كملف جدول بيانات", "كصفحة قابلة للطباعة"]
       }
     },
     "en": {
@@ -812,6 +829,23 @@
           "areas": ["Every area", "Rimal", "Tal al-Hawa"],
           "apply": "Show 20 matching reports"
         }
+      },
+      "dropdownMenu": {
+        "title": "Dropdown menus",
+        "rowCaption": "Row actions, from a horizontal or vertical ellipsis",
+        "rowLabel": "Actions for the report about Riyada Space",
+        "view": "View the report details",
+        "markCorrected": "Mark the report as corrected",
+        "unavailable": "Edit the space data (unavailable)",
+        "reject": "Reject the report",
+        "optionsCaption": "Checkbox and radio items, and a submenu toward the end side",
+        "optionsTrigger": "Table view options",
+        "columnsLabel": "Visible columns",
+        "columns": ["Member phone", "Membership end date", "Last check-in time"],
+        "sortLabel": "Order of rows",
+        "sorts": ["Newest members first", "Names from A to Z"],
+        "moreLabel": "Export the table",
+        "more": ["As a spreadsheet file", "As a printable page"]
       }
     }
   }
