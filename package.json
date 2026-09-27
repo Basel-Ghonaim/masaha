@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "engines": {
     "node": ">=24.15.0 <25"
@@ -16,6 +16,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test:unit": "npm run test:unit --workspaces --if-present",
     "test:component": "npm run test:component --workspaces --if-present",
+    "test:api": "npm run test:api --workspaces --if-present",
     "check:classes": "npm run check:classes -w @masaha/web",
     "check:build": "npm run check:build -w @masaha/web",
     "format": "prettier --write ."

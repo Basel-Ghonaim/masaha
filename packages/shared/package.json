@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": {
+      "@masaha/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
@@ -12,5 +13,8 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
   }
 }

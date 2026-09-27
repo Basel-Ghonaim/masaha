@@ -71,7 +71,8 @@ Node 24 (`.nvmrc`, enforced by `engine-strict`). Run from the root; details in `
 - `npm run dev` — web dev server; the design-system showcase is at `/__showcase`
 - `npm run build` · `npm run lint` · `npm run typecheck` · `npm run check:classes` (no physical direction classes; no arbitrary values outside the design system)
 - `npm run check:build` — after a build: fails if the development-only showcase reached it
-- `npm run test:unit` · `npm run test:component` — test lanes, chosen by file suffix (`*.unit.test.ts`, `*.component.test.tsx`)
+- `npm run test:unit` · `npm run test:component` · `npm run test:api` — test lanes, chosen by file suffix (`*.unit.test.ts`, `*.component.test.tsx`, `*.api.test.ts`)
+- `npm run dev -w @masaha/api` — the API (copy `apps/api/.env.example` to `.env` first); `GET /health`
 - `npm run format` — Prettier (Markdown excluded)
 
 ---

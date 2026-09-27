@@ -1,0 +1,33 @@
+import { describe, expect, it } from 'vitest';
+
+import { EnvError, loadEnv } from './env.ts';
+
+const valid = { CORS_ORIGIN: 'http://localhost:5173' };
+
+describe('loadEnv', () => {
+  it('applies the defaults', () => {
+    expect(loadEnv(valid)).toEqual({
+      NODE_ENV: 'development',
+      PORT: 3000,
+      CORS_ORIGIN: 'http://localhost:5173',
+      LOG_LEVEL: 'info',
+    });
+  });
+
+  it('coerces the port', () => {
+    expect(loadEnv({ ...valid, PORT: '8080' }).PORT).toBe(8080);
+  });
+
+  it('names a missing variable', () => {
+    expect(() => loadEnv({})).toThrow(EnvError);
+    expect(() => loadEnv({})).toThrow(/CORS_ORIGIN/);
+  });
+
+  it('names every invalid variable at once', () => {
+    const load = () => loadEnv({ CORS_ORIGIN: 'not a url', PORT: '0', NODE_ENV: 'staging' });
+
+    expect(load).toThrow(/CORS_ORIGIN/);
+    expect(load).toThrow(/PORT/);
+    expect(load).toThrow(/NODE_ENV/);
+  });
+});
