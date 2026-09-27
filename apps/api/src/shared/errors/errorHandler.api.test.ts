@@ -1,11 +1,12 @@
-import type { ErrorType } from '@masaha/shared';
+import { paginationQuerySchema, type ErrorType, type PaginationQuery } from '@masaha/shared';
 import { Router } from 'express';
 import { pino } from 'pino';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
 import { createApp } from '../../app.ts';
-import { sendNoContent, sendSuccess } from '../http/index.ts';
+import { buildPaginationMeta, sendNoContent, sendSuccess } from '../http/index.ts';
+import { validate } from '../validation/index.ts';
 import { AppError } from './index.ts';
 
 const factories = {
@@ -43,6 +44,9 @@ router.get('/items', (_req, res) => {
 router.post('/items', (req, res) => {
   sendSuccess(res, req.body, { status: 201 });
 });
+router.get('/pages', validate(paginationQuerySchema, 'query'), (req, res) => {
+  sendSuccess(res, [], { meta: buildPaginationMeta(req.query as unknown as PaginationQuery, 45) });
+});
 router.delete('/items/1', (_req, res) => {
   sendNoContent(res);
 });
@@ -76,6 +80,24 @@ describe('success envelope', () => {
 
     expect(response.status).toBe(201);
     expect(response.body).toEqual({ success: true, data: { name: 'Desk' } });
+  });
+
+  it('carries pagination meta for a list', async () => {
+    const response = await request(app).get('/api/v1/pages?page=2&limit=20');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      success: true,
+      data: [],
+      meta: {
+        currentPage: 2,
+        limit: 20,
+        totalPages: 3,
+        totalRecords: 45,
+        hasNextPage: true,
+        hasPreviousPage: true,
+      },
+    });
   });
 
   it('sends no body with 204', async () => {
