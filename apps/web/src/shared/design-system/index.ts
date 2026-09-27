@@ -7,6 +7,17 @@ export {
   AlertTitle,
   type AlertProps,
 } from './components/Alert';
+export {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from './components/AlertDialog';
 export { Avatar, AvatarFallback, AvatarImage, type AvatarProps } from './components/Avatar';
 export { Badge, type BadgeProps } from './components/Badge';
 export { Button, type ButtonProps } from './components/Button';
@@ -20,6 +31,17 @@ export {
   CardTitle,
 } from './components/Card';
 export { Checkbox, type CheckboxProps } from './components/Checkbox';
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  type DialogContentProps,
+} from './components/Dialog';
 export { DirectionProvider } from './components/DirectionProvider';
 export { EmptyState, type EmptyStateProps } from './components/EmptyState';
 export { Field, type FieldProps } from './components/Field';

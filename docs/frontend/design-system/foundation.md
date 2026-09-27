@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch are built, with the theme and language toggles, and Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard (§12).
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog and AlertDialog.
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-27
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -116,6 +116,7 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 | `table-row-padding-block` | 14px | Table |
 | `radius-control` | 6px (`radius-md`) | Button, Input, Select |
 | `radius-pill` | 999px | Badge, filter chips |
+| `overlay-scrim` | light `n-950` at 50% · dark `n-950` at 70% (mixed with transparent), no blur | The scrim behind Dialog, AlertDialog and Sheet, on the `overlay` layer. No role covers a translucent dimming layer |
 
 **Layout is not tokenised.** Pages use Tailwind's 4px scale; *Sea*'s rhythm maps to it: page gutter 32px (`8`; 16px on phones), grid gap 16px (`4`) / 24px (`6`), section spacing 56px (`14`), home hero padding 64px (`16`). These are guidance for page composition, not layer tokens.
 
@@ -309,7 +310,8 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | `rounded-md` on a control | `rounded-(--radius-control)` |
 | `rounded-[4px]` | `rounded-sm` |
 | `h-9` on a control | `h-(--control-height)` |
-| `z-50` | the named layer (§5): `z-(--z-dropdown)` for anything portalled beside its trigger (menus, selects, popovers) |
+| `z-50` | the named layer (§5): `z-(--z-dropdown)` for anything portalled beside its trigger (menus, selects, popovers, tooltips); `z-(--z-overlay)` for a modal's scrim; `z-(--z-modal)` for a modal's content (Dialog, AlertDialog, Sheet) |
+| `bg-black/10` · `bg-black/50` on an overlay | `bg-(--overlay-scrim)` (§4) |
 | `duration-*` on an animation | `duration-(--duration-short) ease-(--easing-standard)`. `tw-animate-css` otherwise runs a fixed 150ms, reduced motion or not |
 | the value text of a control (`text-base md:text-sm`) | `text-(length:--control-text-size) leading-(--type-body-line-height)`, in that order, so `cn` keeps both |
 

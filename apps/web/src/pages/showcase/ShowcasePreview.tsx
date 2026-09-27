@@ -3,12 +3,14 @@ import { useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import fixtures from './fixtures.json';
 import {
+  AlertDialogSection,
   AlertSection,
   AvatarSection,
   BadgeSection,
   ButtonSection,
   CardSection,
   CheckboxSection,
+  DialogSection,
   EmptyStateSection,
   FieldSection,
   IconsSection,
@@ -69,6 +71,8 @@ export function ShowcasePreview() {
         <ToastSection samples={samples.toast} />
         <EmptyStateSection samples={samples.emptyState} />
         <StatCardSection samples={samples.statCard} />
+        <DialogSection samples={samples.dialog} />
+        <AlertDialogSection samples={samples.alertDialog} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

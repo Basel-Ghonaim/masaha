@@ -1,9 +1,11 @@
+export { AlertDialogSection } from './AlertDialogSection';
 export { AlertSection } from './AlertSection';
 export { AvatarSection } from './AvatarSection';
 export { BadgeSection } from './BadgeSection';
 export { ButtonSection } from './ButtonSection';
 export { CardSection } from './CardSection';
 export { CheckboxSection } from './CheckboxSection';
+export { DialogSection } from './DialogSection';
 export { EmptyStateSection } from './EmptyStateSection';
 export { FieldSection } from './FieldSection';
 export { IconsSection } from './IconsSection';

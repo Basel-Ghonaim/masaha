@@ -366,6 +366,27 @@
           "label": "بلاغات جديدة",
           "value": 3
         }
+      },
+      "dialog": {
+        "title": "النوافذ الحوارية",
+        "caption": "مهمة قصيرة في نافذة، مع زر إغلاق في الزاوية",
+        "trigger": "تغيير اسم المساحة",
+        "dialogTitle": "تغيير اسم المساحة",
+        "description": "يظهر الاسم الجديد في الدليل فوراً.",
+        "fieldLabel": "اسم المساحة",
+        "fieldValue": "مساحة الريادة",
+        "keep": "إبقاء الاسم الحالي",
+        "save": "حفظ الاسم الجديد",
+        "closeLabel": "إغلاق نافذة تغيير الاسم"
+      },
+      "alertDialog": {
+        "title": "نوافذ التأكيد",
+        "caption": "سؤال يجب الإجابة عنه؛ النقر خارجه لا يغلقه",
+        "trigger": "إيقاف عضوية سارة الحلو",
+        "dialogTitle": "إيقاف عضوية سارة الحلو؟",
+        "description": "لن يتمكن المشترك من تسجيل الحضور. يمكنك إعادة تفعيل العضوية لاحقاً.",
+        "cancel": "إبقاء العضوية فعّالة",
+        "action": "إيقاف العضوية"
       }
     },
     "en": {
@@ -718,6 +739,27 @@
           "label": "New data reports",
           "value": 3
         }
+      },
+      "dialog": {
+        "title": "Dialogs",
+        "caption": "A short task in a modal window, with a close button in the corner",
+        "trigger": "Rename the space",
+        "dialogTitle": "Rename the space",
+        "description": "The new name shows in the directory at once.",
+        "fieldLabel": "Space name",
+        "fieldValue": "Riyada Space",
+        "keep": "Keep the current name",
+        "save": "Save the new name",
+        "closeLabel": "Close the rename window"
+      },
+      "alertDialog": {
+        "title": "Confirmations",
+        "caption": "A question that must be answered; a click outside does not close it",
+        "trigger": "Deactivate Sara Helou",
+        "dialogTitle": "Deactivate Sara Helou's membership?",
+        "description": "The member can no longer check in. You can reactivate the membership later.",
+        "cancel": "Keep the membership active",
+        "action": "Deactivate the membership"
       }
     }
   }
