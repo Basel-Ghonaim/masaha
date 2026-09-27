@@ -2,6 +2,7 @@
 
 > **Status:** Accepted · **Date:** 2026-09-26
 > **Revised:** 2026-09-26 — Node 22 → 24 (24 is Active LTS; 22 is maintenance-only)
+> **Revised:** 2026-09-27 — PostgreSQL 16 → 18 (18 is the current major)
 
 ## Context
 One developer, four months, a web client and an API that must agree on validation rules and types. The developer is strong in React and TypeScript and relies on AI assistance for the backend. A previous project (Quick Tweets) established a working architecture on a similar stack.
@@ -9,7 +10,7 @@ One developer, four months, a web client and an API that must agree on validatio
 ## Decision
 - **npm workspaces monorepo**, one lockfile:
   - `apps/web` — React 19, TypeScript (strict), Vite, React Router.
-  - `apps/api` — Node.js 24 LTS, Express 5, Prisma, PostgreSQL 16.
+  - `apps/api` — Node.js 24 LTS, Express 5, Prisma, PostgreSQL 18.
   - `packages/shared` — Zod schemas, enums (`Role`, membership types), error codes and shared types. No runtime dependencies beyond Zod.
 - Apps never import each other; both may import `packages/shared`.
 - API under `/api/v1`.

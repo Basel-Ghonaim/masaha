@@ -64,6 +64,7 @@ router.get('/async-bug', async () => {
 const app = createApp({
   corsOrigin: 'http://localhost:5173',
   logger: pino({ level: 'silent' }),
+  checkDatabase: () => Promise.resolve(true),
   apiRouter: router,
 });
 

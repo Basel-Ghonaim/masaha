@@ -1,0 +1,13 @@
+// The database schema. No models yet: the real schema arrives with F-3 (docs/plans/foundation.md).
+// The connection URL lives in prisma.config.ts.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}

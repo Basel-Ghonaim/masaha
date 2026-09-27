@@ -10,12 +10,14 @@ import { errorHandler, notFoundHandler } from './shared/errors/index.ts';
 export interface AppOptions {
   corsOrigin: string;
   logger: Logger;
+  /** Whether the database is reachable; /health reports it. */
+  checkDatabase: () => Promise<boolean>;
   /** Mounted at /api/v1. */
   apiRouter?: Router;
 }
 
 /** Builds the Express app. The middleware order is fixed (docs/backend/conventions.md §1). */
-export function createApp({ corsOrigin, logger, apiRouter = Router() }: AppOptions) {
+export function createApp({ corsOrigin, logger, checkDatabase, apiRouter = Router() }: AppOptions) {
   const app = express();
 
   app.use(helmet());
@@ -25,8 +27,13 @@ export function createApp({ corsOrigin, logger, apiRouter = Router() }: AppOptio
   app.use(pinoHttp({ logger }));
 
   // Outside /api/v1 and not enveloped, so any probe can read it (docs/api/api-contract.md §1).
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  app.get('/health', async (_req, res) => {
+    const up = await checkDatabase();
+    res.status(up ? 200 : 503).json({
+      status: up ? 'ok' : 'error',
+      db: up ? 'up' : 'down',
+      timestamp: new Date().toISOString(),
+    });
   });
 
   app.use('/api/v1', apiRouter);
