@@ -48,7 +48,7 @@ Approving this plan approves these. Anything else is proposed in the item's plan
 | Workspace and tooling | `typescript`, `eslint` (flat config) + `typescript-eslint` + `eslint-plugin-react-hooks` + `eslint-plugin-boundaries`, `prettier` |
 | Web app | `react` 19, `react-dom`, `vite`, `@vitejs/plugin-react`, `react-router` |
 | Styling | `tailwindcss` v4 + `@tailwindcss/vite`, `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css` (shadcn's animation utilities) |
-| Components | shadcn CLI (dev-time only), the `@radix-ui/*` packages shadcn pulls in, `lucide-react`, `sonner`, `cmdk` (Combobox), `react-day-picker` + `date-fns` (Calendar), `@tanstack/react-table` (DataTable) |
+| Components | shadcn CLI (dev-time only), `radix-ui` (the unified Radix package shadcn now imports; approved in WI-4 in place of the separate `@radix-ui/*` packages), `lucide-react`, `sonner`, `cmdk` (Combobox), `react-day-picker` + `date-fns` (Calendar), `@tanstack/react-table` (DataTable) |
 | Font | `@fontsource/ibm-plex-sans-arabic` (self-hosted, weights 400/500/600) |
 | Tests | `vitest`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, `jsdom`, `vitest-axe` (accessibility check in component tests) |
 

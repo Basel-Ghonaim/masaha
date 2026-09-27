@@ -237,8 +237,8 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 
 - **Logical properties only:** `ms-/me-/ps-/pe-/start-/end-/text-start/text-end/border-s/border-e/rounded-s/rounded-e`. Physical ones (`ml-`, `left-`, `text-left`) are forbidden.
 - **Direction follows language:** `ar` → `rtl`, `en` → `ltr`. It is never chosen separately.
-- **Radix `DirectionProvider`** wraps the app so Radix-based components (menus, tabs, sliders) respect direction.
-- **Icons declare mirroring:** directional icons (arrows, chevrons, "back") mirror in RTL; non-directional ones (search, calendar, check) never do. The mirroring rule lives in the `icons/` wrapper, not in each component.
+- **`DirectionProvider`** (the layer's, over Radix's) wraps the app with the direction the pre-paint script set on `<html>`, so Radix-based components (menus, tabs, sliders) and the icons follow it. A subtree shown in the other direction nests its own.
+- **Icons declare mirroring:** directional icons (arrows, chevrons, log-in/out, "back") mirror in RTL; non-directional ones (search, calendar, check) never do. The mirroring rule lives in the `icons/` wrapper, not in each component. Each icon is declared once in `icons/` with its flag and named for the reading direction (`ChevronStartIcon`, `ChevronEndIcon`). Mirroring is a horizontal flip, not a rotation, so icons that are not symmetric top to bottom keep their shape.
 - **Always-LTR values:** phone numbers, emails, prices, times and numeric IDs render with `dir="ltr"` inside RTL text. User-written text uses `dir="auto"`.
 - **Mixed content:** a value inserted into a sentence is isolated (`<bdi>` or Unicode isolates) so it never reorders the sentence.
 

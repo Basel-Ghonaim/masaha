@@ -16,7 +16,8 @@ const TEXT_STYLES = [
 ];
 const SHADOWS = ['raised', 'floating', 'overlay'];
 
-const twMerge = extendTailwindMerge({
+// Pure, so a bundle that imports the layer without using cn leaves tailwind-merge out.
+const twMerge = /* @__PURE__ */ extendTailwindMerge({
   extend: { theme: { text: TEXT_STYLES, shadow: SHADOWS } },
 });
 
