@@ -63,7 +63,7 @@ Whatever becomes a standing step is added to foundation §11.
 
 ## 5. In dark, the destructive badge reads louder than the other status badges
 
-**Status:** Open · **Date:** 2026-09-27
+**Status:** Resolved · **Date:** 2026-09-27
 
 **Evidence:** In the dark stress test (Owner › Members), the «منتهية» (expired) badge looks brighter than «نشط» (active) and «ينتهي خلال 3 أيام» (ending in 3 days). The built Badge shows the same thing in the showcase. The values are not the cause:
 1. **Values match.** The stress test's fills, sampled from `0-overview.jpg`, match foundation §5's dark subtle surfaces:
@@ -77,3 +77,5 @@ Whatever becomes a standing step is added to foundation §11.
 **Resolves when:** the owner chooses one of:
 1. **Accept.** Expired is the status that needs action, so the extra salience is acceptable. The finding becomes *Accepted*.
 2. **Calm the red.** Give dark `destructive-subtle` a lower-chroma surface: `red-950` with its chroma cut to blue's level (0.062) is `#300A09`; red-200 on it is 12.63:1. That is a new value in foundation §4–§5 first, then in `semantic.css`, where the contrast test re-checks it. Badge, Alert and Toast all bind the role, so all three change.
+
+**Resolution (2026-09-27):** accepted as is, with no token change (option 1). The badge matches foundation and the stress test; expired is the status that should draw attention; and `#300A09` would be a value outside the red ramp.
