@@ -3,6 +3,7 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  LoaderCircle,
   LogIn,
   LogOut,
   Search,
@@ -39,4 +40,8 @@ export function LogOutIcon(props: IconProps) {
 
 export function SearchIcon(props: IconProps) {
   return <Icon glyph={Search} {...props} />;
+}
+
+export function LoaderIcon(props: IconProps) {
+  return <Icon glyph={LoaderCircle} {...props} />;
 }

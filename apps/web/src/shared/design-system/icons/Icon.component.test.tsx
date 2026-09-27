@@ -7,6 +7,7 @@ import {
   ArrowStartIcon,
   ChevronEndIcon,
   ChevronStartIcon,
+  LoaderIcon,
   LogInIcon,
   LogOutIcon,
   SearchIcon,
@@ -23,6 +24,8 @@ const DIRECTIONAL = [
   LogInIcon,
   LogOutIcon,
 ].map((icon) => ({ name: icon.name, icon }));
+
+const NON_DIRECTIONAL = [SearchIcon, LoaderIcon].map((icon) => ({ name: icon.name, icon }));
 
 function svgOf(dir: 'ltr' | 'rtl', Glyph: ComponentType<IconProps>, props: IconProps = {}) {
   const { container } = render(
@@ -42,8 +45,8 @@ describe('icon mirroring', () => {
     expect(svgOf('ltr', icon)).not.toHaveClass(MIRRORED);
   });
 
-  it('never mirrors the search icon', () => {
-    expect(svgOf('rtl', SearchIcon)).not.toHaveClass(MIRRORED);
+  it.each(NON_DIRECTIONAL)('never mirrors $name', ({ icon }) => {
+    expect(svgOf('rtl', icon)).not.toHaveClass(MIRRORED);
   });
 
   it('keeps the classes it is given', () => {

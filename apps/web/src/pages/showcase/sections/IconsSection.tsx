@@ -3,6 +3,7 @@ import {
   ArrowStartIcon,
   ChevronEndIcon,
   ChevronStartIcon,
+  LoaderIcon,
   LogInIcon,
   LogOutIcon,
   SearchIcon,
@@ -21,7 +22,7 @@ const MIRRORED = [
   LogInIcon,
   LogOutIcon,
 ];
-const FIXED = [SearchIcon];
+const FIXED = [SearchIcon, LoaderIcon];
 
 function IconGroup({ caption, icons }: { caption: string; icons: ComponentType<IconProps>[] }) {
   return (

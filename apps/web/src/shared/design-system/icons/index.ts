@@ -4,6 +4,7 @@ export {
   ArrowStartIcon,
   ChevronEndIcon,
   ChevronStartIcon,
+  LoaderIcon,
   LogInIcon,
   LogOutIcon,
   SearchIcon,

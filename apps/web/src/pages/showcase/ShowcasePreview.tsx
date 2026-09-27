@@ -2,7 +2,7 @@ import { DirectionProvider } from '@shared/design-system';
 import { useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import fixtures from './fixtures.json';
-import { IconsSection } from './sections';
+import { ButtonSection, IconsSection } from './sections';
 import { readSettings } from './settings';
 
 /**
@@ -27,6 +27,7 @@ export function ShowcasePreview() {
     <DirectionProvider dir={direction}>
       <main className="flex flex-col gap-12 p-6">
         <IconsSection samples={samples.icons} />
+        <ButtonSection samples={samples.button} />
       </main>
     </DirectionProvider>
   );

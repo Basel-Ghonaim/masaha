@@ -25,6 +25,32 @@
         "title": "الأيقونات والانعكاس",
         "mirrored": "أيقونات اتجاهية: تنعكس من اليمين إلى اليسار",
         "fixed": "أيقونات غير اتجاهية: لا تنعكس أبدًا"
+      },
+      "button": {
+        "title": "الأزرار وحالاتها",
+        "variantsCaption": "الأنواع بالحجم المتوسط",
+        "sizesCaption": "الأحجام: صغير ومتوسط وكبير وأيقونة فقط",
+        "iconsCaption": "أيقونة قبل النص أو بعده",
+        "statesCaption": "الحالات: قيد التحميل، معطّل، ورابط بشكل زر",
+        "variants": {
+          "primary": "إجراء أساسي",
+          "secondary": "إجراء ثانوي",
+          "outline": "إجراء بإطار",
+          "ghost": "إجراء بلا خلفية",
+          "destructive": "إجراء حذف نهائي",
+          "link": "إجراء بشكل رابط"
+        },
+        "sizes": {
+          "sm": "زر صغير",
+          "md": "زر متوسط",
+          "lg": "زر كبير",
+          "icon": "بحث في المساحات"
+        },
+        "leadingIcon": "تسجيل الدخول إلى الحساب",
+        "trailingIcon": "متابعة إلى الخطوة التالية",
+        "loading": "جارٍ حفظ التغييرات",
+        "disabled": "إجراء غير متاح الآن",
+        "asLink": "رابط يبدو كزر"
       }
     },
     "en": {
@@ -32,6 +58,32 @@
         "title": "Icons and mirroring",
         "mirrored": "Directional icons: mirrored right to left",
         "fixed": "Non-directional icons: never mirrored"
+      },
+      "button": {
+        "title": "Buttons and their states",
+        "variantsCaption": "Variants at the medium size",
+        "sizesCaption": "Sizes: small, medium, large and icon only",
+        "iconsCaption": "An icon before or after the text",
+        "statesCaption": "States: loading, disabled, and a link styled as a button",
+        "variants": {
+          "primary": "Primary action",
+          "secondary": "Secondary action",
+          "outline": "Outline action",
+          "ghost": "Ghost action",
+          "destructive": "Delete for good",
+          "link": "Link-styled action"
+        },
+        "sizes": {
+          "sm": "Small button",
+          "md": "Medium button",
+          "lg": "Large button",
+          "icon": "Search the spaces"
+        },
+        "leadingIcon": "Sign in to your account",
+        "trailingIcon": "Continue to the next step",
+        "loading": "Saving your changes",
+        "disabled": "Not available right now",
+        "asLink": "A link that looks like a button"
       }
     }
   }
