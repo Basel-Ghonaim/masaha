@@ -8,7 +8,7 @@ import { cn } from '../../lib/cn';
 // the page, so the alert keeps an edge in the dark theme, where the subtle surface barely differs
 // from the page.
 const alertVariants = cva(
-  "group/alert relative grid w-full gap-0.5 rounded-lg border px-4 py-3 text-start text-body-sm has-data-[slot=alert-action]:pe-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
+  "group/alert grid w-full gap-0.5 rounded-lg border px-4 py-3 text-start text-body-sm has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -86,9 +86,16 @@ export function AlertDescription({ className, ...props }: ComponentProps<'div'>)
   );
 }
 
-/** A control at the end of the alert, such as a link to fix the problem. */
+/**
+ * A control after the text, such as a link to fix the problem. It sits below the text rather than
+ * beside it, so a long label never overlaps the title on a phone.
+ */
 export function AlertAction({ className, ...props }: ComponentProps<'div'>) {
   return (
-    <div data-slot="alert-action" className={cn('absolute top-2.5 end-3', className)} {...props} />
+    <div
+      data-slot="alert-action"
+      className={cn('mt-2 flex group-has-[>svg]/alert:col-start-2', className)}
+      {...props}
+    />
   );
 }
