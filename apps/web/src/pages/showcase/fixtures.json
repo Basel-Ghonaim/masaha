@@ -288,6 +288,15 @@
         },
         "titleOnlyCaption": "بعنوان فقط، ومع إجراء",
         "titleOnly": "انتهت عضوية هذا المشترك"
+      },
+      "tooltip": {
+        "title": "التلميحات",
+        "caption": "على أزرار الأيقونات: مرّر المؤشر أو انتقل إليها بلوحة المفاتيح",
+        "search": "البحث في المشتركين",
+        "signOut": "تسجيل الخروج من الحساب",
+        "openCaption": "تلميح مفتوح للمعاينة",
+        "hintedAction": "نسخ رابط المساحة",
+        "hint": "ينسخ عنوان صفحة المساحة العامة"
       }
     },
     "en": {
@@ -562,6 +571,15 @@
         },
         "titleOnlyCaption": "With a title only, and with an action",
         "titleOnly": "This membership has already expired"
+      },
+      "tooltip": {
+        "title": "Tooltips",
+        "caption": "On icon buttons: hover, or reach them with the keyboard",
+        "search": "Search the members list",
+        "signOut": "Sign out of your account",
+        "openCaption": "Held open for review",
+        "hintedAction": "Copy the space link",
+        "hint": "Copies the address of the space's public page"
       }
     }
   }

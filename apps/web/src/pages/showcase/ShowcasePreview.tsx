@@ -20,6 +20,7 @@ import {
   SwitchSection,
   TextareaSection,
   TogglesSection,
+  TooltipSection,
 } from './sections';
 import { readSettings } from './settings';
 
@@ -61,6 +62,7 @@ export function ShowcasePreview() {
         <SkeletonSection samples={samples.skeleton} />
         <SpinnerSection samples={samples.spinner} />
         <AlertSection samples={samples.alert} />
+        <TooltipSection samples={samples.tooltip} />
       </main>
     </DirectionProvider>
   );

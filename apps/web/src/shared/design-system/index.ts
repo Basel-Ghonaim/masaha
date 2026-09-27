@@ -46,6 +46,7 @@ export { Spinner, type SpinnerProps } from './components/Spinner';
 export { Switch, type SwitchProps } from './components/Switch';
 export { Textarea, type TextareaProps } from './components/Textarea';
 export { ThemeToggle, type ThemeToggleProps } from './components/ThemeToggle';
+export { Tooltip, TooltipContent, TooltipTrigger, type TooltipProps } from './components/Tooltip';
 export {
   ArrowEndIcon,
   ArrowStartIcon,

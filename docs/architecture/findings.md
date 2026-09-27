@@ -15,7 +15,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 
 **Resolves when:**
 1. When Dialog and Sheet are built, a component token for the scrim is added. For example, `--overlay-scrim`, resolved per theme in `semantic.css` and written into foundation §4 first. The overlays bind that token.
-2. Tooltip, Popover and Select bind `--z-dropdown` when they are built. *Select does (2026-09-27); Tooltip and Popover remain.*
+2. Tooltip, Popover and Select bind `--z-dropdown` when they are built. *Select and Tooltip do (2026-09-27); Popover remains.*
 
 ## 2. Copied shadcn components need more than the contract lists
 

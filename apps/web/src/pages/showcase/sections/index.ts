@@ -15,3 +15,4 @@ export { SpinnerSection } from './SpinnerSection';
 export { SwitchSection } from './SwitchSection';
 export { TextareaSection } from './TextareaSection';
 export { TogglesSection } from './TogglesSection';
+export { TooltipSection } from './TooltipSection';
