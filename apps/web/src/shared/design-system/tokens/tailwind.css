@@ -9,6 +9,9 @@
 @import './semantic.css';
 @import './typography.css';
 
+/* Class strings in tests only exercise code, so they must not add rules to the app's CSS. */
+@source not '../../../**/*.test.{ts,tsx}';
+
 /* The theme is set on <html> as data-theme (before paint, by index.html), not shadcn's .dark. */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
