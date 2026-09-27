@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ChevronUp,
   CircleAlert,
+  CircleCheck,
   Eye,
   EyeOff,
   Info,
@@ -60,6 +61,10 @@ export function InfoIcon(props: IconProps) {
 
 export function TriangleAlertIcon(props: IconProps) {
   return <Icon glyph={TriangleAlert} {...props} />;
+}
+
+export function CircleCheckIcon(props: IconProps) {
+  return <Icon glyph={CircleCheck} {...props} />;
 }
 
 export function EyeIcon(props: IconProps) {

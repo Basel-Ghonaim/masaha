@@ -14,5 +14,6 @@ export { SkeletonSection } from './SkeletonSection';
 export { SpinnerSection } from './SpinnerSection';
 export { SwitchSection } from './SwitchSection';
 export { TextareaSection } from './TextareaSection';
+export { ToastSection } from './ToastSection';
 export { TogglesSection } from './TogglesSection';
 export { TooltipSection } from './TooltipSection';

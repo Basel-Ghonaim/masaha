@@ -1,4 +1,4 @@
-import { DirectionProvider } from '@shared/design-system';
+import { DirectionProvider, Toaster } from '@shared/design-system';
 import { useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import fixtures from './fixtures.json';
@@ -19,6 +19,7 @@ import {
   SpinnerSection,
   SwitchSection,
   TextareaSection,
+  ToastSection,
   TogglesSection,
   TooltipSection,
 } from './sections';
@@ -63,7 +64,9 @@ export function ShowcasePreview() {
         <SpinnerSection samples={samples.spinner} />
         <AlertSection samples={samples.alert} />
         <TooltipSection samples={samples.tooltip} />
+        <ToastSection samples={samples.toast} />
       </main>
+      <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>
   );
 }

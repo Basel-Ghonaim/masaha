@@ -8,6 +8,7 @@ export {
   ChevronStartIcon,
   ChevronUpIcon,
   CircleAlertIcon,
+  CircleCheckIcon,
   EyeIcon,
   EyeOffIcon,
   InfoIcon,

@@ -297,6 +297,41 @@
         "openCaption": "تلميح مفتوح للمعاينة",
         "hintedAction": "نسخ رابط المساحة",
         "hint": "ينسخ عنوان صفحة المساحة العامة"
+      },
+      "toaster": {
+        "label": "الإشعارات",
+        "closeLabel": "إغلاق الإشعار"
+      },
+      "toast": {
+        "title": "الإشعارات المؤقتة",
+        "caption": "اضغط لعرض كل نوع، في الركن السفلي عند نهاية السطر",
+        "plain": {
+          "trigger": "إشعار عادي",
+          "message": "نُشر الإعلان للمشتركين"
+        },
+        "success": {
+          "trigger": "نجاح",
+          "message": "سُجّل حضور سارة الحلو"
+        },
+        "info": {
+          "trigger": "معلومة",
+          "message": "يُحدَّث عدد المقاعد كل دقيقة",
+          "description": "قد يتأخر قليلًا عند ضعف الاتصال."
+        },
+        "warning": {
+          "trigger": "تنبيه",
+          "message": "بقي 3 مقاعد فقط"
+        },
+        "error": {
+          "trigger": "خطأ",
+          "message": "تعذّر تسجيل الحضور",
+          "description": "تحقّق من اتصالك ثم حاول مرة أخرى."
+        },
+        "action": {
+          "trigger": "مع إجراء",
+          "message": "أُلغي تنشيط المشترك",
+          "label": "تراجع عن الإلغاء"
+        }
       }
     },
     "en": {
@@ -580,6 +615,41 @@
         "openCaption": "Held open for review",
         "hintedAction": "Copy the space link",
         "hint": "Copies the address of the space's public page"
+      },
+      "toaster": {
+        "label": "Showcase notifications",
+        "closeLabel": "Close this notification"
+      },
+      "toast": {
+        "title": "Toast notifications",
+        "caption": "Press to show each kind, in the bottom corner at the end of the line",
+        "plain": {
+          "trigger": "Plain toast",
+          "message": "The announcement was published to members"
+        },
+        "success": {
+          "trigger": "Success toast",
+          "message": "Sara Helou was checked in"
+        },
+        "info": {
+          "trigger": "Information toast",
+          "message": "Seat counts refresh every minute",
+          "description": "They may lag a little on a weak connection."
+        },
+        "warning": {
+          "trigger": "Warning toast",
+          "message": "Only 3 seats are left"
+        },
+        "error": {
+          "trigger": "Error toast",
+          "message": "The check-in could not be saved",
+          "description": "Check your connection and try again."
+        },
+        "action": {
+          "trigger": "Toast with an action",
+          "message": "The member was deactivated",
+          "label": "Undo the deactivation"
+        }
       }
     }
   }
