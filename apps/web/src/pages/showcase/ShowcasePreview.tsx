@@ -1,18 +1,29 @@
-import { DirectionProvider } from '@shared/design-system';
+import { DirectionProvider, Toaster } from '@shared/design-system';
 import { useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import fixtures from './fixtures.json';
 import {
+  AlertSection,
+  AvatarSection,
+  BadgeSection,
   ButtonSection,
+  CardSection,
   CheckboxSection,
+  EmptyStateSection,
   FieldSection,
   IconsSection,
   InputSection,
   RadioGroupSection,
   SelectSection,
+  SeparatorSection,
+  SkeletonSection,
+  SpinnerSection,
+  StatCardSection,
   SwitchSection,
   TextareaSection,
+  ToastSection,
   TogglesSection,
+  TooltipSection,
 } from './sections';
 import { readSettings } from './settings';
 
@@ -47,7 +58,19 @@ export function ShowcasePreview() {
         <CheckboxSection samples={samples.checkbox} />
         <RadioGroupSection samples={samples.radioGroup} />
         <SwitchSection samples={samples.switch} />
+        <BadgeSection samples={samples.badge} />
+        <CardSection samples={samples.card} />
+        <SeparatorSection samples={samples.separator} />
+        <AvatarSection samples={samples.avatar} />
+        <SkeletonSection samples={samples.skeleton} />
+        <SpinnerSection samples={samples.spinner} />
+        <AlertSection samples={samples.alert} />
+        <TooltipSection samples={samples.tooltip} />
+        <ToastSection samples={samples.toast} />
+        <EmptyStateSection samples={samples.emptyState} />
+        <StatCardSection samples={samples.statCard} />
       </main>
+      <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>
   );
 }

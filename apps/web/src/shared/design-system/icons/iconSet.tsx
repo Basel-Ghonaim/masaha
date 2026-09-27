@@ -7,15 +7,20 @@ import {
   ChevronRight,
   ChevronUp,
   CircleAlert,
+  CircleCheck,
   Eye,
   EyeOff,
+  Info,
   Languages,
   LoaderCircle,
   LogIn,
   LogOut,
   Moon,
   Search,
+  SearchX,
   Sun,
+  TriangleAlert,
+  Users,
   X,
 } from 'lucide-react';
 import { Icon, type IconProps } from './Icon';
@@ -52,6 +57,18 @@ export function CircleAlertIcon(props: IconProps) {
   return <Icon glyph={CircleAlert} {...props} />;
 }
 
+export function InfoIcon(props: IconProps) {
+  return <Icon glyph={Info} {...props} />;
+}
+
+export function TriangleAlertIcon(props: IconProps) {
+  return <Icon glyph={TriangleAlert} {...props} />;
+}
+
+export function CircleCheckIcon(props: IconProps) {
+  return <Icon glyph={CircleCheck} {...props} />;
+}
+
 export function EyeIcon(props: IconProps) {
   return <Icon glyph={Eye} {...props} />;
 }
@@ -66,6 +83,14 @@ export function XIcon(props: IconProps) {
 
 export function SearchIcon(props: IconProps) {
   return <Icon glyph={Search} {...props} />;
+}
+
+export function SearchXIcon(props: IconProps) {
+  return <Icon glyph={SearchX} {...props} />;
+}
+
+export function UsersIcon(props: IconProps) {
+  return <Icon glyph={Users} {...props} />;
 }
 
 export function LoaderIcon(props: IconProps) {

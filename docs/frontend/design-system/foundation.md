@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch are built, with the theme and language toggles (§12).
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch are built, with the theme and language toggles, and Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard (§12).
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-27
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -69,7 +69,9 @@ apps/web/src/shared/design-system/
 - **No CSS files outside the layer.** Pages and features use Tailwind for layout only (grid, flex, gap, spacing, sizing).
 - **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
 
-**Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library or `cva` outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
+**Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library, `cva` or Sonner outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
+
+**Wrapped libraries:** every third-party UI library the layer wraps is added to (b), the ESLint import restriction, in the same PR that introduces it, so pages and features reach it only through the layer.
 
 **Showcase:** a development-only page, `/__showcase` (`apps/web/src/pages/showcase/`), shows the layer in either theme and direction, at 360, 768 or 1280 px. The preview sits in an iframe of that width, so breakpoints respond as they would on a device. Each component adds a section in `sections/`; sample text comes from `fixtures.json`, since the page is not user-facing. The build leaves the page out, and `check:build` verifies it.
 
@@ -192,6 +194,7 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 - **Warning is never text on its own.** `warning` is for fills and icons only (3.9:1 on white). Warning text uses `warning-subtle-foreground` on `warning-subtle`.
 - **Status is never colour alone.** A badge always carries its word ("نشط", "ينتهي خلال 3 أيام", "منتهية").
 - **Disabled** = the control at 50% opacity, and in a Field the whole field with it: label, helper and error too. Exempt from contrast, but never the only way a reason is shown.
+- **A tooltip only supplements.** Touch screens cannot open it, so it never holds information or an action that is unavailable without hover. An icon-only button still has its own `aria-label`; the tooltip repeats it for sighted mouse users.
 
 ### Other scales
 | Family | Tier | Values (*Sea*) |

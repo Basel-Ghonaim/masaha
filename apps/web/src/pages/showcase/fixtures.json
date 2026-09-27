@@ -219,6 +219,153 @@
         "otherLanguage": "English version",
         "toDark": "الانتقال إلى الوضع الداكن للواجهة",
         "toLight": "الانتقال إلى الوضع الفاتح للواجهة"
+      },
+      "badge": {
+        "title": "الشارات",
+        "caption": "الأنواع: محايدة، أساسية، نجاح، تنبيه، معلومة، خطر",
+        "variants": {
+          "neutral": "مرفوض",
+          "primary": "مالك",
+          "success": "نشط",
+          "warning": "ينتهي خلال 3 أيام",
+          "info": "جديد",
+          "destructive": "منتهية"
+        }
+      },
+      "card": {
+        "title": "البطاقات",
+        "caption": "عنوان ووصف وإجراء ومحتوى وتذييل",
+        "cardTitle": "ساعات العمل",
+        "description": "تظهر في صفحة المساحة العامة",
+        "action": "تعديل",
+        "content": "من السبت إلى الخميس، من 08:00 حتى 20:00. الجمعة مغلق.",
+        "footer": "آخر تحديث قبل يومين",
+        "plainCaption": "بطاقة بمحتوى فقط",
+        "plain": "مساحة هادئة قرب الجامعة، بإنترنت مستقر وكهرباء طوال اليوم."
+      },
+      "separator": {
+        "title": "الفواصل",
+        "horizontalCaption": "أفقي بين كتلتين",
+        "above": "بيانات المساحة",
+        "below": "بيانات التواصل",
+        "verticalCaption": "رأسي بين عناصر في صف",
+        "items": ["الملف الشخصي", "المفضلة", "بلاغاتي"]
+      },
+      "avatar": {
+        "title": "الصور الرمزية",
+        "sizesCaption": "الأحجام: صغير ومتوسط وكبير، بالأحرف الأولى",
+        "initials": "س ح",
+        "withNameCaption": "بجانب الاسم",
+        "name": "سارة الحلو",
+        "phone": "+970 59 234 1188"
+      },
+      "skeleton": {
+        "title": "هياكل التحميل",
+        "rowCaption": "صف مشترك قيد التحميل",
+        "cardCaption": "بطاقة قيد التحميل"
+      },
+      "spinner": {
+        "title": "مؤشر التحميل",
+        "caption": "بحجمين، مع نص بجانبه",
+        "label": "جارٍ تحميل المشتركين",
+        "text": "جارٍ تحميل المشتركين…"
+      },
+      "alert": {
+        "title": "التنبيهات",
+        "caption": "معلومة، تحذير، خطأ",
+        "info": {
+          "title": "الأسعار للاطلاع فقط",
+          "description": "تأكّد منها مع المساحة قبل زيارتك."
+        },
+        "warning": {
+          "title": "قد تكون ساعات العمل قديمة",
+          "description": "آخر تحديث لها قبل أكثر من 90 يومًا.",
+          "action": "الإبلاغ عن معلومة خاطئة"
+        },
+        "destructive": {
+          "title": "تعذّر حفظ بيانات المساحة",
+          "description": "تحقّق من اتصالك بالإنترنت ثم حاول مرة أخرى."
+        },
+        "titleOnlyCaption": "بعنوان فقط، ومع إجراء",
+        "titleOnly": "انتهت عضوية هذا المشترك"
+      },
+      "tooltip": {
+        "title": "التلميحات",
+        "caption": "على أزرار الأيقونات: مرّر المؤشر أو انتقل إليها بلوحة المفاتيح",
+        "search": "البحث في المشتركين",
+        "signOut": "تسجيل الخروج من الحساب",
+        "openCaption": "تلميح مفتوح للمعاينة",
+        "hintedAction": "نسخ رابط المساحة",
+        "hint": "ينسخ عنوان صفحة المساحة العامة"
+      },
+      "toaster": {
+        "label": "الإشعارات",
+        "closeLabel": "إغلاق الإشعار"
+      },
+      "toast": {
+        "title": "الإشعارات المؤقتة",
+        "caption": "اضغط لعرض كل نوع، في الركن السفلي عند نهاية السطر",
+        "plain": {
+          "trigger": "إشعار عادي",
+          "message": "نُشر الإعلان للمشتركين"
+        },
+        "success": {
+          "trigger": "نجاح",
+          "message": "سُجّل حضور سارة الحلو"
+        },
+        "info": {
+          "trigger": "معلومة",
+          "message": "يُحدَّث عدد المقاعد كل دقيقة",
+          "description": "قد يتأخر قليلًا عند ضعف الاتصال."
+        },
+        "warning": {
+          "trigger": "تنبيه",
+          "message": "بقي 3 مقاعد فقط"
+        },
+        "error": {
+          "trigger": "خطأ",
+          "message": "تعذّر تسجيل الحضور",
+          "description": "تحقّق من اتصالك ثم حاول مرة أخرى."
+        },
+        "action": {
+          "trigger": "مع إجراء",
+          "message": "أُلغي تنشيط المشترك",
+          "label": "تراجع عن الإلغاء"
+        }
+      },
+      "emptyState": {
+        "title": "الحالات الفارغة",
+        "searchCaption": "بحث بلا نتائج، بإجراءين",
+        "search": {
+          "title": "لا يوجد مشترك باسم «خالد»",
+          "description": "تحقّق من كتابة الاسم، أو ابحث برقم الهاتف.",
+          "clear": "مسح البحث",
+          "add": "إضافة مشترك"
+        },
+        "firstCaption": "قائمة فارغة لأول مرة",
+        "first": {
+          "title": "لا يوجد مشتركون بعد",
+          "description": "أضف أول مشترك لتبدأ بتسجيل الحضور.",
+          "add": "إضافة أول مشترك"
+        }
+      },
+      "statCard": {
+        "title": "بطاقات الأرقام",
+        "caption": "بأيقونة ونص مساعد، وبدونهما",
+        "present": {
+          "label": "حاضرون الآن",
+          "value": "7 / 40",
+          "helper": "من المقاعد المتاحة"
+        },
+        "ending": {
+          "label": "عضويات تنتهي هذا الأسبوع",
+          "value": 5,
+          "helper": "منها 2 خلال يومين"
+        },
+        "reports": {
+          "label": "بلاغات جديدة",
+          "value": 3
+        }
       }
     },
     "en": {
@@ -424,6 +571,153 @@
         "otherLanguage": "النسخة العربية",
         "toDark": "Switch the interface to the dark theme",
         "toLight": "Switch the interface to the light theme"
+      },
+      "badge": {
+        "title": "Badges",
+        "caption": "Neutral, primary, success, warning, info and destructive",
+        "variants": {
+          "neutral": "Rejected",
+          "primary": "Space owner",
+          "success": "Active member",
+          "warning": "Ends in 3 days",
+          "info": "New report",
+          "destructive": "Expired"
+        }
+      },
+      "card": {
+        "title": "Cards",
+        "caption": "Title, description, action, content and footer",
+        "cardTitle": "Opening hours",
+        "description": "Shown on the space's public page",
+        "action": "Edit hours",
+        "content": "Saturday to Thursday, 08:00 to 20:00. Closed on Friday.",
+        "footer": "Last updated two days ago",
+        "plainCaption": "A card with content only",
+        "plain": "A quiet space near the university, with steady internet and power all day."
+      },
+      "separator": {
+        "title": "Separators",
+        "horizontalCaption": "Horizontal, between two blocks",
+        "above": "Space details",
+        "below": "Contact details",
+        "verticalCaption": "Vertical, between items in a row",
+        "items": ["My profile", "Favourites", "My reports"]
+      },
+      "avatar": {
+        "title": "Avatars",
+        "sizesCaption": "Small, medium and large, with initials",
+        "initials": "S H",
+        "withNameCaption": "Beside the person's name",
+        "name": "Sara Helou",
+        "phone": "+970 59 234 1188"
+      },
+      "skeleton": {
+        "title": "Loading skeletons",
+        "rowCaption": "A member row while it loads",
+        "cardCaption": "A card while it loads"
+      },
+      "spinner": {
+        "title": "Loading spinner",
+        "caption": "Two sizes, and with text beside it",
+        "label": "Loading the members list",
+        "text": "Loading the members list…"
+      },
+      "alert": {
+        "title": "Alerts",
+        "caption": "Information, warning and error",
+        "info": {
+          "title": "Prices are shown for reference",
+          "description": "Confirm them with the space before you visit."
+        },
+        "warning": {
+          "title": "Opening hours may be outdated",
+          "description": "They were last updated more than 90 days ago.",
+          "action": "Report wrong information"
+        },
+        "destructive": {
+          "title": "The space could not be saved",
+          "description": "Check your internet connection and try again."
+        },
+        "titleOnlyCaption": "With a title only, and with an action",
+        "titleOnly": "This membership has already expired"
+      },
+      "tooltip": {
+        "title": "Tooltips",
+        "caption": "On icon buttons: hover, or reach them with the keyboard",
+        "search": "Search the members list",
+        "signOut": "Sign out of your account",
+        "openCaption": "Held open for review",
+        "hintedAction": "Copy the space link",
+        "hint": "Copies the address of the space's public page"
+      },
+      "toaster": {
+        "label": "Showcase notifications",
+        "closeLabel": "Close this notification"
+      },
+      "toast": {
+        "title": "Toast notifications",
+        "caption": "Press to show each kind, in the bottom corner at the end of the line",
+        "plain": {
+          "trigger": "Plain toast",
+          "message": "The announcement was published to members"
+        },
+        "success": {
+          "trigger": "Success toast",
+          "message": "Sara Helou was checked in"
+        },
+        "info": {
+          "trigger": "Information toast",
+          "message": "Seat counts refresh every minute",
+          "description": "They may lag a little on a weak connection."
+        },
+        "warning": {
+          "trigger": "Warning toast",
+          "message": "Only 3 seats are left"
+        },
+        "error": {
+          "trigger": "Error toast",
+          "message": "The check-in could not be saved",
+          "description": "Check your connection and try again."
+        },
+        "action": {
+          "trigger": "Toast with an action",
+          "message": "The member was deactivated",
+          "label": "Undo the deactivation"
+        }
+      },
+      "emptyState": {
+        "title": "Empty states",
+        "searchCaption": "A search with no results, with two actions",
+        "search": {
+          "title": "No members named “Khaled”",
+          "description": "Check the spelling, or search by phone number.",
+          "clear": "Clear the search",
+          "add": "Add a member"
+        },
+        "firstCaption": "A list that is empty for the first time",
+        "first": {
+          "title": "No members yet",
+          "description": "Add your first member to start checking people in.",
+          "add": "Add your first member"
+        }
+      },
+      "statCard": {
+        "title": "Stat cards",
+        "caption": "With an icon and helper text, and without",
+        "present": {
+          "label": "Present right now",
+          "value": "7 / 40",
+          "helper": "of the seats available"
+        },
+        "ending": {
+          "label": "Memberships ending this week",
+          "value": 5,
+          "helper": "2 of them within two days"
+        },
+        "reports": {
+          "label": "New data reports",
+          "value": 3
+        }
       }
     }
   }
