@@ -1,6 +1,6 @@
 # Plan — Repository scaffold and design-system layer
 
-> **Status:** Active · **Last Updated:** 2026-09-27 · **Owner:** Basel Ghoneim
+> **Status:** Finished · **Last Updated:** 2026-09-28 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that take Masaha from "documents only" to "a built design-system layer synced into Claude Design" (phases 2–3 of [v1-mvp.md](v1-mvp.md)). *What* the layer is, and its values, is owned by [foundation.md](../frontend/design-system/foundation.md); *how* work is executed by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
@@ -252,7 +252,7 @@ Each item also meets the same bar:
 
 **After merge** (owner, outside the PR)
 1. In Claude Design, **detach the Oyoun Academy design system** from the Masaha project.
-2. Import the repository's design system into Claude Design, from GitHub or with the design-sync command where available.
+2. Import the repository's design system into Claude Design, from GitHub or with the design-sync command where available. *(Done: synced with `/design-sync` into the Claude Design project «Masaha Design System»; the sync's inputs live in `.design-sync/`.)*
 3. Check one screen in Claude Design uses the real Button, Field and DataTable.
 
 → Phase 4, screen design, starts.

@@ -12,7 +12,7 @@
 | 0. Foundation decisions | 1 | This docs set, CLAUDE.md, ADRs 0001–0007 ✔ |
 | 1. Visual direction (Claude Design) ✅ | 1 | Chosen palette, fonts, radius, density on 3 anchor screens (light/dark, RTL) — *Sea* |
 | 2. Lock tokens + scaffold repo | 1–2 | Token values in foundation.md ✅; monorepo, lint, typecheck, CI — [design-system-layer.md](design-system-layer.md) WI-1–2. The API and database skeleton moves alongside phase 4 |
-| 3. Design-system layer in code | 2–3 | Tokens, themes, pre-paint script, adapted shadcn components; synced into Claude Design — [design-system-layer.md](design-system-layer.md) WI-3–9 · layer built ✅; sync pending (owner, after merge) |
+| 3. Design-system layer in code | 2–3 | Tokens, themes, pre-paint script, adapted shadcn components; synced into Claude Design — [design-system-layer.md](design-system-layer.md) WI-3–9 · layer built ✅; synced ✅ |
 | 4. Screen design (Claude Design) | 3–5 | 27 screens (phone + desktop, light + dark, key screens LTR). In parallel: API skeleton, PostgreSQL, Prisma init, `test:api` in CI |
 | 5. Technical design | 5 | Prisma schema, permission table, API contract finalised |
 | 6. Build | 6–12 | Foundation (auth, session, i18n, shells) → directory → admin → owner dashboard → attendance, occupancy, reports |
