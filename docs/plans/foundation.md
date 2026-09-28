@@ -1,6 +1,6 @@
 # Plan — Application foundation
 
-> **Status:** Active · **Last Updated:** 2026-09-27 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-28 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
@@ -131,7 +131,7 @@ WI-9 merged ──────────────────────�
 This item turns the planned model into the real one. It is the largest design step of the project, so its plan step must list every entity and every decision before writing.
 
 **Scope**
-- **The full Prisma schema** from [v1-mvp.md *Planned data model*](v1-mvp.md#planned-data-model), following every rule in [data-model.md](../architecture/data-model.md):
+- **The full Prisma schema** from [v1-mvp.md *Planned data model*](v1-mvp.md#data-model), following every rule in [data-model.md](../architecture/data-model.md):
   - IDs, snake_case mapping, timestamps and soft delete;
   - agorot prices and bilingual pairs;
   - the freshness fields and the partial unique indexes (via SQL in the migration where Prisma cannot express them).

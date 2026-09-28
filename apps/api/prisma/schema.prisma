@@ -1,13 +1,566 @@
-// The database schema. No models yet: the real schema arrives with F-3 (docs/plans/foundation.md).
-// The connection URL lives in prisma.config.ts.
+// The database schema: the source of truth for every entity and field. The conventions and the
+// reasoning are in docs/architecture/data-model.md. The connection URL lives in prisma.config.ts.
+//
+// The CHECK constraints cannot be expressed here: they are raw SQL at the end of the init
+// migration. Prisma does not compare CHECK constraints, so later migrations leave them alone.
 
 generator client {
   provider            = "prisma-client"
   output              = "../src/generated/prisma"
   moduleFormat        = "esm"
   importFileExtension = "ts"
+  // Partial unique indexes (`@@unique(…, where: …)`), so Prisma knows them and never drops them.
+  previewFeatures     = ["partialIndexes"]
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  OWNER
+  ADMIN
+}
+
+// The web's language codes (docs/frontend/localisation.md).
+enum Language {
+  ar
+  en
+}
+
+// v1 has one value; staff roles would be new values (ADR 0002).
+enum SpaceManagerRole {
+  OWNER
+}
+
+enum Currency {
+  ILS
+}
+
+enum PricePeriod {
+  HOUR
+  DAY
+  WEEK
+  MONTH
+}
+
+enum PriceAudience {
+  GENERAL
+  STUDENT
+}
+
+enum ContactType {
+  WHATSAPP
+  PHONE
+  EMAIL
+  INSTAGRAM
+  FACEBOOK
+  TIKTOK
+  WEBSITE
+}
+
+// SEASONAL is any other length; the membership's dates define it.
+enum MembershipType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  SEASONAL
+}
+
+enum CheckInMethod {
+  MANUAL
+}
+
+enum CheckOutMethod {
+  MANUAL
+  AUTO
+}
+
+// OUTAGE is a power or internet outage. An active CLOSURE makes the live status CLOSED.
+enum AnnouncementType {
+  GENERAL
+  OUTAGE
+  CLOSURE
+  OFFER
+  EVENT
+}
+
+// There is no capacity field: capacity is private (ADR 0008).
+enum DataReportField {
+  PRICES
+  HOURS
+  CONTACT
+  LOCATION
+  AMENITIES
+  OTHER
+}
+
+enum DataReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+// ─── Users and sessions ──────────────────────────────────────────────────────────────────────
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  /// Stored lowercased.
+  email              String    @unique
+  /// E.164. Unique because login accepts email or phone.
+  phone              String?   @unique
+  passwordHash       String    @map("password_hash")
+  name               String
+  role               Role      @default(USER)
+  language           Language  @default(ar)
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  /// Users are suspended, never deleted (ADR 0007).
+  suspendedAt        DateTime? @map("suspended_at") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  managedSpaces       SpaceManager[]
+  favorites           Favorite[]
+  dataReports         DataReport[]         @relation("DataReportAuthor")
+  resolvedDataReports DataReport[]         @relation("DataReportResolver")
+  members             Member[]
+  auditLogs           AuditLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  tokenHash    String    @unique @map("token_hash")
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  rotatedAt    DateTime? @map("rotated_at") @db.Timestamptz(3)
+  replacedById Int?      @unique @map("replaced_by_id")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy RefreshToken? @relation("RefreshTokenRotation", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces   RefreshToken? @relation("RefreshTokenRotation")
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+/// Single use; the token is stored as its SHA-256 hash (docs/backend/security.md).
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ─── Lookups ─────────────────────────────────────────────────────────────────────────────────
+
+/// An inactive governorate or area is hidden from filters and forms, and the spaces in it are
+/// not listed publicly, without deleting anything.
+model Governorate {
+  id        Int      @id @default(autoincrement())
+  nameAr    String   @unique @map("name_ar")
+  nameEn    String   @map("name_en")
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  areas Area[]
+
+  @@map("governorates")
+}
+
+model Area {
+  id            Int      @id @default(autoincrement())
+  governorateId Int      @map("governorate_id")
+  nameAr        String   @map("name_ar")
+  nameEn        String   @map("name_en")
+  sortOrder     Int      @default(0) @map("sort_order")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  governorate Governorate @relation(fields: [governorateId], references: [id], onDelete: Restrict)
+  spaces      Space[]
+
+  // Its governorate_id prefix also serves the foreign key.
+  @@unique([governorateId, nameAr])
+  @@map("areas")
+}
+
+model Amenity {
+  id        Int      @id @default(autoincrement())
+  /// snake_case, stable; code refers to amenities by key.
+  key       String   @unique
+  nameAr    String   @map("name_ar")
+  nameEn    String   @map("name_en")
+  /// A key from the fixed set the web maps to an icon.
+  icon      String
+  sortOrder Int      @default(0) @map("sort_order")
+  /// An inactive amenity is retired: hidden from forms, its space links kept.
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  spaces SpaceAmenity[]
+
+  @@map("amenities")
+}
+
+// ─── Spaces ──────────────────────────────────────────────────────────────────────────────────
+
+model Space {
+  id                 Int       @id @default(autoincrement())
+  /// Never reused, including after a soft delete.
+  slug               String    @unique
+  nameAr             String    @map("name_ar")
+  nameEn             String?   @map("name_en")
+  descriptionAr      String?   @map("description_ar")
+  descriptionEn      String?   @map("description_en")
+  /// Free text with landmarks.
+  addressAr          String    @map("address_ar")
+  addressEn          String?   @map("address_en")
+  areaId             Int       @map("area_id")
+  lat                Float
+  lng                Float
+  /// Private: only the space's owner sees it (ADR 0008). Null until set.
+  capacity           Int?
+  /// Auto check-out after this long, if earlier than closing time. Null = at closing only.
+  maxStayMinutes     Int?      @map("max_stay_minutes")
+  isHidden           Boolean   @default(false) @map("is_hidden")
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(3)
+  // Freshness per fact group: set when the group is saved or confirmed unchanged.
+  /// Name, description, address, area, location and photos.
+  profileUpdatedAt   DateTime  @default(now()) @map("profile_updated_at") @db.Timestamptz(3)
+  hoursUpdatedAt     DateTime  @default(now()) @map("hours_updated_at") @db.Timestamptz(3)
+  /// Prices and shifts.
+  pricesUpdatedAt    DateTime  @default(now()) @map("prices_updated_at") @db.Timestamptz(3)
+  amenitiesUpdatedAt DateTime  @default(now()) @map("amenities_updated_at") @db.Timestamptz(3)
+  contactsUpdatedAt  DateTime  @default(now()) @map("contacts_updated_at") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  area          Area           @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  managers      SpaceManager[]
+  amenities     SpaceAmenity[]
+  hours         SpaceHours[]
+  shifts        SpaceShift[]
+  prices        SpacePrice[]
+  contacts      SpaceContact[]
+  photos        SpacePhoto[]
+  members       Member[]
+  checkIns      CheckIn[]
+  announcements Announcement[]
+  dataReports   DataReport[]
+  favorites     Favorite[]
+  auditLogs     AuditLog[]
+
+  @@index([areaId])
+  @@map("spaces")
+}
+
+/// A space with at least one manager is verified (ADR 0002).
+model SpaceManager {
+  spaceId   Int              @map("space_id")
+  userId    Int              @map("user_id")
+  role      SpaceManagerRole @default(OWNER)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([spaceId, userId])
+  @@index([userId])
+  @@map("space_managers")
+}
+
+model SpaceAmenity {
+  spaceId   Int      @map("space_id")
+  amenityId Int      @map("amenity_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space   Space   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  amenity Amenity @relation(fields: [amenityId], references: [id], onDelete: Restrict)
+
+  @@id([spaceId, amenityId])
+  @@index([amenityId])
+  @@map("space_amenities")
+}
+
+/// One opening range per day, in minutes after midnight (Asia/Gaza). Shifts sit inside it.
+/// Closing mid-day and reopening, or closing after midnight, is not supported in v1.
+model SpaceHours {
+  id           Int      @id @default(autoincrement())
+  spaceId      Int      @map("space_id")
+  /// 0 = Sunday … 6 = Saturday, as JavaScript's getDay().
+  dayOfWeek    Int      @map("day_of_week")
+  isClosed     Boolean  @default(false) @map("is_closed")
+  opensMinute  Int?     @map("opens_minute")
+  closesMinute Int?     @map("closes_minute")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, dayOfWeek])
+  @@map("space_hours")
+}
+
+/// An optional named shift inside the opening range, in minutes after midnight (Asia/Gaza).
+/// Part of the prices fact group.
+model SpaceShift {
+  id           Int      @id @default(autoincrement())
+  spaceId      Int      @map("space_id")
+  nameAr       String   @map("name_ar")
+  nameEn       String?  @map("name_en")
+  startsMinute Int      @map("starts_minute")
+  endsMinute   Int      @map("ends_minute")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space       Space        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  prices      SpacePrice[]
+  memberships Membership[]
+
+  @@unique([spaceId, nameAr])
+  // The target of SpacePrice's foreign key, which keeps a price's shift in its own space.
+  @@unique([id, spaceId])
+  @@map("space_shifts")
+}
+
+/// Every period is optional: a missing period is a missing row. One price per (space, period,
+/// audience, shift, label), where a missing shift or label counts as one value: one plain general
+/// monthly price, one student price, one per shift, one per label.
+model SpacePrice {
+  id           Int           @id @default(autoincrement())
+  spaceId      Int           @map("space_id")
+  period       PricePeriod
+  audience     PriceAudience @default(GENERAL)
+  shiftId      Int?          @map("shift_id")
+  /// A custom label for a row beyond the standard ones.
+  labelAr      String?       @map("label_ar")
+  labelEn      String?       @map("label_en")
+  amountAgorot Int           @map("amount_agorot")
+  currency     Currency      @default(ILS)
+  sortOrder    Int           @default(0) @map("sort_order")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  // Through spaceId too, so a price can only name a shift of its own space. NoAction, checked at
+  // the end of the statement: a shift in use cannot be deleted, but a whole space still cascades.
+  shift SpaceShift? @relation(fields: [shiftId, spaceId], references: [id, spaceId], onDelete: NoAction)
+
+  // PostgreSQL treats NULLs as distinct in a unique index, so each combination of a missing shift
+  // and label gets its own partial index. Their space_id prefix also serves the price list.
+  @@unique([spaceId, period, audience], where: { shiftId: null, labelAr: null })
+  @@unique([spaceId, period, audience, shiftId], where: { labelAr: null })
+  @@unique([spaceId, period, audience, labelAr], where: { shiftId: null })
+  @@unique([spaceId, period, audience, shiftId, labelAr])
+  @@map("space_prices")
+}
+
+/// Phone and WhatsApp values are E.164; social and website values are full https URLs.
+model SpaceContact {
+  id        Int         @id @default(autoincrement())
+  spaceId   Int         @map("space_id")
+  type      ContactType
+  value     String
+  sortOrder Int         @default(0) @map("sort_order")
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, type, value])
+  @@map("space_contacts")
+}
+
+model SpacePhoto {
+  id        Int      @id @default(autoincrement())
+  spaceId   Int      @map("space_id")
+  /// The storage key.
+  path      String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId])
+  @@map("space_photos")
+}
+
+// ─── Operations ──────────────────────────────────────────────────────────────────────────────
+
+/// The person. Phone is unique within a space among non-deleted members.
+model Member {
+  id        Int       @id @default(autoincrement())
+  spaceId   Int       @map("space_id")
+  name      String
+  /// E.164.
+  phone     String
+  /// Unused in v1.
+  userId    Int?      @map("user_id")
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space       Space        @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  memberships Membership[]
+  checkIns    CheckIn[]
+
+  // Partial: a deleted member's phone can be registered again. Also serves the owner's list.
+  @@unique([spaceId, phone], where: { deletedAt: null })
+  @@map("members")
+}
+
+/// A renewal adds a row. The member's status derives from the latest membership (greatest
+/// endsOn). The shift must belong to the member's space: the service checks it.
+model Membership {
+  id        Int            @id @default(autoincrement())
+  memberId  Int            @map("member_id")
+  type      MembershipType
+  startsOn  DateTime       @map("starts_on") @db.Date
+  endsOn    DateTime       @map("ends_on") @db.Date
+  shiftId   Int?           @map("shift_id")
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  member Member      @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  shift  SpaceShift? @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+
+  @@index([memberId, endsOn])
+  @@map("memberships")
+}
+
+/// A member or a daily visitor, never both. Never deleted (ADR 0007).
+model CheckIn {
+  id             Int             @id @default(autoincrement())
+  spaceId        Int             @map("space_id")
+  memberId       Int?            @map("member_id")
+  visitorName    String?         @map("visitor_name")
+  checkedInAt    DateTime        @default(now()) @map("checked_in_at") @db.Timestamptz(3)
+  checkedOutAt   DateTime?       @map("checked_out_at") @db.Timestamptz(3)
+  method         CheckInMethod   @default(MANUAL)
+  /// Null while the check-in is open.
+  checkoutMethod CheckOutMethod? @map("checkout_method")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space  Space   @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  member Member? @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  // At most one open check-in per member.
+  @@unique([memberId], where: { checkedOutAt: null })
+  // Open check-ins per space (live status), and date ranges (reports).
+  @@index([spaceId, checkedOutAt])
+  @@index([spaceId, checkedInAt])
+  @@map("check_ins")
+}
+
+model Announcement {
+  id        Int              @id @default(autoincrement())
+  spaceId   Int              @map("space_id")
+  type      AnnouncementType
+  textAr    String           @map("text_ar")
+  textEn    String?          @map("text_en")
+  startsAt  DateTime         @map("starts_at") @db.Timestamptz(3)
+  /// Null = until removed.
+  endsAt    DateTime?        @map("ends_at") @db.Timestamptz(3)
+  deletedAt DateTime?        @map("deleted_at") @db.Timestamptz(3)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+
+  @@index([spaceId])
+  @@map("announcements")
+}
+
+model DataReport {
+  id           Int              @id @default(autoincrement())
+  spaceId      Int              @map("space_id")
+  userId       Int              @map("user_id")
+  field        DataReportField
+  /// Required when field is OTHER (checked by the input schema).
+  message      String?
+  status       DataReportStatus @default(OPEN)
+  resolvedById Int?             @map("resolved_by_id")
+  resolvedAt   DateTime?        @map("resolved_at") @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space      Space @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  user       User  @relation("DataReportAuthor", fields: [userId], references: [id], onDelete: Restrict)
+  resolvedBy User? @relation("DataReportResolver", fields: [resolvedById], references: [id], onDelete: Restrict)
+
+  @@index([spaceId, status])
+  @@index([userId])
+  @@index([status])
+  @@map("data_reports")
+}
+
+model Favorite {
+  userId    Int      @map("user_id")
+  spaceId   Int      @map("space_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@id([userId, spaceId])
+  @@map("favorites")
+}
+
+/// Platform settings. The keys are fixed in code; each value is validated when read.
+model Setting {
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("settings")
+}
+
+/// Append-only, so it has no updatedAt. Never deleted (ADR 0007).
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  /// Null = the system (for example, auto check-out).
+  actorId    Int?     @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   Int?     @map("entity_id")
+  spaceId    Int?     @map("space_id")
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  actor User?  @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  space Space? @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+
+  @@index([spaceId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

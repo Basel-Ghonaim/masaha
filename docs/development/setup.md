@@ -21,11 +21,12 @@ One lockfile at the root installs every workspace: `packages/shared`, `apps/api`
 
 **After a pull that changes `package-lock.json`, install again** (`npm install` or `npm ci`). Until then, the new packages are missing. For example, a checkout installed before the API's database work has no `prisma` and no generated client, and `npm run lint` fails with hundreds of `no-unsafe-*` errors in `apps/api`.
 
-**Install scripts.** npm 11 reviews dependencies' install scripts against the `allowScripts` field of the root `package.json`. The field approves, by name, the five packages whose scripts the setup needs:
+**Install scripts.** npm 11 reviews dependencies' install scripts against the `allowScripts` field of the root `package.json`. The field approves, by name, the six packages whose scripts the setup needs:
 
 | Package | Why |
 |---|---|
 | `prisma`, `@prisma/engines` | Prisma's CLI and its engines, used by the generation and the migrations |
+| `bcrypt` | password hashing; its script uses the bundled prebuilt binary, and compiles only on a platform without one |
 | `esbuild` | the bundler inside Vite and `tsx` |
 | `unrs-resolver` | the import resolver behind the zone boundaries in ESLint |
 | `fsevents` | macOS only, for file watching; never installed on Windows or Linux |
@@ -81,13 +82,26 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
 | `npm run db:up` | Starts PostgreSQL and waits until it is healthy |
 | `npm run db:down` | Stops it; the data stays in the volume. `docker compose down -v` also deletes the data |
 | `npm run db:migrate` | `prisma migrate dev` on `masaha_dev`: applies pending migrations and creates one from any schema change |
-| `npm run db:reset` | `prisma migrate reset`: drops `masaha_dev` and re-applies every migration |
+| `npm run db:reset` | `prisma migrate reset`, then `prisma db seed`: drops `masaha_dev`, re-applies every migration and seeds it. Prisma 7's reset no longer seeds by itself, so the script chains the seed. Prisma first asks "Are you sure…?": type `y`. The default is No, so Enter cancels ("Reset cancelled."), and then nothing is dropped and the seed does not run either |
+| `npm run db:seed` | Seeds `masaha_dev` (see [The seed](#the-seed)) |
 | `npm run db:studio` | Opens Prisma Studio on `masaha_dev` |
 
 **Prisma** (7) lives in `apps/api`:
-- The schema is in `prisma/schema.prisma`. It has no models yet.
+- The schema is in `prisma/schema.prisma`, the source of truth for every model ([data-model.md](../architecture/data-model.md)). Its migrations are in `prisma/migrations/`.
+- **After `prisma migrate dev` creates a migration, read it before committing.** The `CHECK` constraints live as raw SQL in the migrations, and a change to one needs a hand-written migration ([data-model.md › Constraints](../architecture/data-model.md#constraints-worth-stating)).
 - The connection comes from `DATABASE_URL` through `prisma.config.ts`, which loads `apps/api/.env` the same way the API does.
 - The client is generated into `apps/api/src/generated/prisma/`. That folder is not committed. Every `npm install` and `npm ci` regenerates it (the API's `postinstall`), even when no package changed. After a schema change, `npm exec -w @masaha/api -- prisma generate` regenerates it by hand.
+
+### The seed
+
+`npm run db:seed` fills a database with what every environment starts with:
+- the lookups: the Gaza Strip's governorates and areas (the unreachable ones inactive) and the amenities, in both languages;
+- one `ADMIN` account;
+- the default settings: the staleness thresholds (60 days, and 30 for prices), plus the platform's contact email and WhatsApp when they are given.
+
+It reads the admin's credentials and the contact from `apps/api/.env` (`SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, optionally `SEED_ADMIN_NAME`, `SEED_CONTACT_EMAIL`, `SEED_CONTACT_WHATSAPP`; see `.env.example`). They live only there, never in the repository. It stops, naming each one, when a required one is missing or invalid.
+
+The seed only **creates what is missing**. It never changes an existing row, so running it again changes nothing, and the admin's later edits (a hidden area, a changed setting, the admin's password) survive. The data of real spaces is not seeded: it is entered through the admin screens.
 
 ## The API
 
@@ -96,10 +110,11 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
 From the repository root, with Docker Desktop running:
 
 1. `npm ci`, which also generates the Prisma client.
-2. Copy `apps/api/.env.example` to `apps/api/.env`. **Do this before the first run.** Without it the API stops at once, reporting `CORS_ORIGIN` and `DATABASE_URL` as missing. The example's values match the local database, so nothing needs changing.
+2. Copy `apps/api/.env.example` to `apps/api/.env`. **Do this before the first run.** Without it the API stops at once, reporting `CORS_ORIGIN` and `DATABASE_URL` as missing. The example's database values match the local database; fill in `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` for the seed.
 3. `npm run db:up` starts PostgreSQL.
 4. `npm run db:migrate` applies the migrations to `masaha_dev`.
-5. `npm run dev -w @masaha/api`, then open `http://localhost:3000/health`: it reports `"db": "up"`.
+5. `npm run db:seed` adds the lookups, the admin account and the settings.
+6. `npm run dev -w @masaha/api`, then open `http://localhost:3000/health`: it reports `"db": "up"`.
 
 The API reads its settings from `apps/api/.env`, loaded by Node's `--env-file`. The example lists every variable. The API refuses to start, naming each one, when a required variable is missing or invalid. It also refuses to start when the database at `DATABASE_URL` cannot be reached.
 

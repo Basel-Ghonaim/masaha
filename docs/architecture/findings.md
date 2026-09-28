@@ -146,3 +146,23 @@ Vitest itself prints the root as `C:/…`, while npm reports the working directo
 Shells opened by an editor can start in a lowercase `c:\`, as this session's did at times. So a red lane there may not mean a regression, the harm finding 6 described. CI runs on Linux and is not affected.
 
 **Resolves when:** the lanes pass whatever the drive letter's case. For example, the Vitest configs could normalise the root, or a Vitest release could fix it upstream. Until then, [setup.md](../development/setup.md#commands) says to run the test lanes from a path with an uppercase drive letter.
+
+## 10. The seeded amenity icon keys have no icons in the design system yet
+
+**Status:** Open · **Date:** 2026-09-28
+
+**Evidence:** F-3 seeds eight amenities, each with an `icon` key that the web maps to an icon ([`apps/api/src/db/seed/lookups.ts`](../../apps/api/src/db/seed/lookups.ts)): `wifi`, `zap`, `sun`, `plug-zap`, `coffee`, `users`, `presentation`, `graduation-cap`. They are Lucide names, and Lucide is imported only inside the design-system layer. The layer's icon set (`shared/design-system/icons/iconSet.tsx`) includes none of them yet, so the web has nothing to map these keys to.
+
+**Resolves when:** the directory slice (step 3 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build)) adds these eight keys to the design-system icon set, with the map from key to icon, and the admin's amenity form offers that set.
+
+## 11. Nested writes in an interactive transaction trigger a `pg` deprecation warning
+
+**Status:** Open · **Date:** 2026-09-28
+
+**Evidence:** during F-3, a script that validated the schema against the owner's six reference spaces ran `prisma.$transaction(async (tx) => …)` with nested creates (`space.create` with `hours`, `prices`, `amenities` and `contacts`). Node printed:
+
+> `DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0.`
+
+The writes succeeded and rolled back correctly. The warning comes from Prisma's PostgreSQL adapter (`@prisma/adapter-pg` 7.10 on `pg` 8.23): inside an interactive transaction, all queries share one `pg` client, and the nested creates reach it while another query is still running. The API lane, which uses no interactive transactions yet, prints no such warning.
+
+**Resolves when:** before `pg` is upgraded to 9, either a Prisma release serialises the queries of an interactive transaction, or the features that write nested data in a transaction are proven to work with `pg` 9 (for example, the admin's space creation, the first such feature). Until then, a `pg` major upgrade is not taken without checking this.

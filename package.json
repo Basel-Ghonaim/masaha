@@ -23,6 +23,7 @@
     "db:down": "docker compose down",
     "db:migrate": "npm run db:migrate -w @masaha/api",
     "db:reset": "npm run db:reset -w @masaha/api",
+    "db:seed": "npm run db:seed -w @masaha/api",
     "db:studio": "npm run db:studio -w @masaha/api",
     "format": "prettier --write ."
   },
@@ -41,6 +42,7 @@
     "prisma": true,
     "@prisma/engines": true,
     "unrs-resolver": true,
-    "fsevents": true
+    "fsevents": true,
+    "bcrypt": true
   }
 }

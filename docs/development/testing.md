@@ -1,6 +1,6 @@
 # Testing
 
-> **Status:** Active · **Last Updated:** 2026-09-27 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-28 · **Owner:** Basel Ghoneim
 > **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof, not its style.
 
 ## 1. The assignment rule
@@ -21,7 +21,7 @@ A behaviour is proven in the lane of the **single unit that decides it**. **One 
 | **Unit** (web and api) | Vitest | Services, mappers, validators, occupancy calculation, permission checks (`can()`), catalogue parity | Rendering, network, database |
 | **Component** (web) | Vitest + Testing Library (with user-event) + vitest-axe + MSW | Forms, dashboard wiring, role-based navigation, empty/loading/error states | Layout and visual correctness; real server |
 | **API integration** | Vitest + Supertest + real PostgreSQL (test database) | Endpoints end to end: validation, **authorization per role and per space**, persistence, error envelope | Mocking Prisma |
-| **E2E smoke** (end of project) | Playwright | 2–3 critical flows: search a space; owner checks a member in and the directory's available seats change; admin links an owner | Covering what lower lanes already prove |
+| **E2E smoke** (end of project) | Playwright | 2–3 critical flows: search a space; owner checks a member in and the directory's live status changes; admin links an owner | Covering what lower lanes already prove |
 | **Manual** | Browser | Visual review in RTL/LTR, light/dark, phone/desktop (Definition of Done) | Being the only proof of a behaviour |
 
 A test file's suffix names its lane, and each lane's script runs only its own files: `*.unit.test.ts` (`test:unit`, Node), `*.component.test.tsx` (`test:component`, jsdom), and `*.api.test.ts` (`test:api`, Node).
@@ -36,7 +36,7 @@ A test file's suffix names its lane, and each lane's script runs only its own fi
 ## 4. What must always be tested
 
 - Every authorization rule: each protected endpoint is tested as USER, as an OWNER of another space, as the OWNER of this space, and as ADMIN.
-- Occupancy: available = capacity − open check-ins; never negative; auto check-out rules.
+- Live status: each branch of the rule in [data-model.md](../architecture/data-model.md#derived-values-computed-not-stored) (unverified, closure, outside hours, no hours, no capacity, full, available); no public response carries capacity or counts; auto check-out rules.
 - Both catalogues have exactly the same keys and parameters.
 - Both themes define exactly the same semantic tokens.
 
