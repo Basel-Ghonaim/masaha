@@ -80,6 +80,8 @@ const VERIFIED_PAIRS: Pair[] = [
   ...['muted-foreground', 'primary', 'destructive', 'success', 'info'].flatMap((text) =>
     ['background', 'card', 'muted'].map((surface) => ({ text, surface, minimum: TEXT })),
   ),
+  // Table rows take the accent when hovered or when their menu is open, with their text unchanged.
+  ...['foreground', 'muted-foreground'].map((text) => ({ text, surface: 'accent', minimum: TEXT })),
   ...[
     'input',
     'ring',

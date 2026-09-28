@@ -27,6 +27,7 @@
 @custom-variant data-open (&:where([data-state='open']));
 @custom-variant data-closed (&:where([data-state='closed']));
 @custom-variant data-active (&:where([data-state='active']));
+@custom-variant data-on (&:where([data-state='on']));
 
 /*
  * The resets remove Tailwind's defaults, so bg-blue-500, text-sm and shadow-md do not exist.

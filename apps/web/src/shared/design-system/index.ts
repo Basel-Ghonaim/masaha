@@ -33,6 +33,7 @@ export {
   type BreadcrumbProps,
 } from './components/Breadcrumb';
 export { Button, type ButtonProps } from './components/Button';
+export { Calendar, type CalendarProps, type DateRange } from './components/Calendar';
 export {
   Card,
   CardAction,
@@ -44,6 +45,17 @@ export {
 } from './components/Card';
 export { Checkbox, type CheckboxProps } from './components/Checkbox';
 export {
+  Combobox,
+  ComboboxContent,
+  ComboboxGroup,
+  ComboboxItem,
+  ComboboxTrigger,
+  type ComboboxContentProps,
+  type ComboboxGroupProps,
+  type ComboboxItemProps,
+  type ComboboxProps,
+} from './components/Combobox';
+export {
   Dialog,
   DialogClose,
   DialogContent,
@@ -54,6 +66,21 @@ export {
   DialogTrigger,
   type DialogContentProps,
 } from './components/Dialog';
+export {
+  DataTable,
+  createDataTableColumnHelper,
+  type DataTableColumn,
+  type DataTableColumnMeta,
+  type DataTableProps,
+  type DataTableSorting,
+} from './components/DataTable';
+export {
+  DatePicker,
+  DatePickerContent,
+  DatePickerTrigger,
+  type DatePickerContentProps,
+  type DatePickerTriggerProps,
+} from './components/DatePicker';
 export { DirectionProvider } from './components/DirectionProvider';
 export {
   DropdownMenu,
@@ -90,6 +117,7 @@ export {
   type PaginationPreviousProps,
   type PaginationProps,
 } from './components/Pagination';
+export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './components/Popover';
 export {
   RadioGroup,
   RadioGroupItem,
@@ -141,19 +169,39 @@ export { Skeleton } from './components/Skeleton';
 export { Spinner, type SpinnerProps } from './components/Spinner';
 export { StatCard, type StatCardProps } from './components/StatCard';
 export { Switch, type SwitchProps } from './components/Switch';
+export {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './components/Table';
 export { Tabs, TabsContent, TabsList, TabsTrigger, type TabsListProps } from './components/Tabs';
 export { Textarea, type TextareaProps } from './components/Textarea';
 export { ThemeToggle, type ThemeToggleProps } from './components/ThemeToggle';
+export {
+  ToggleGroup,
+  ToggleGroupItem,
+  type ToggleGroupItemProps,
+  type ToggleGroupProps,
+} from './components/ToggleGroup';
 export { Toaster, toast, type ToasterProps } from './components/Toast';
 export { Tooltip, TooltipContent, TooltipTrigger, type TooltipProps } from './components/Tooltip';
 export {
+  ArrowDownIcon,
   ArrowEndIcon,
   ArrowStartIcon,
+  ArrowUpIcon,
+  CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronEndIcon,
   ChevronStartIcon,
   ChevronUpIcon,
+  ChevronsUpDownIcon,
   CircleAlertIcon,
   CircleCheckIcon,
   EllipsisIcon,

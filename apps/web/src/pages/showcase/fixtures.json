@@ -408,7 +408,12 @@
           "title": "فلاتر البلاغات",
           "clear": "مسح كل الفلاتر",
           "status": "حالة البلاغ",
-          "statuses": ["البلاغات الجديدة", "البلاغات قيد المراجعة", "البلاغات المصححة"],
+          "statuses": [
+            "البلاغات الجديدة",
+            "البلاغات قيد المراجعة",
+            "البلاغات المصححة",
+            "البلاغات المرفوضة"
+          ],
           "area": "منطقة المساحة",
           "areas": ["كل المناطق", "الرمال", "تل الهوا"],
           "apply": "عرض 20 بلاغاً مطابقاً"
@@ -513,6 +518,252 @@
         "signOut": "مغادرة لوحة التحكم",
         "trigger": "فتح تنقل لوحة التحكم",
         "page": "صفحة مشتركي المساحة"
+      },
+      "toggleGroup": {
+        "title": "شرائح الفلترة",
+        "caption": "عدة شرائح مفعّلة معاً، لكل منها علامة؛ وشريحة معطّلة",
+        "label": "حالة بلاغ البيانات",
+        "helper": "اختر أي عدد من الحالات",
+        "options": [
+          "بلاغات البيانات الجديدة",
+          "بلاغات البيانات قيد المراجعة",
+          "بلاغات البيانات المصحّحة",
+          "بلاغات البيانات المرفوضة"
+        ],
+        "disabledLabel": "حالة يحدّدها مدير المنصة"
+      },
+      "popover": {
+        "title": "الألواح العائمة",
+        "caption": "لوح يُفتح بجانب زرّه",
+        "trigger": "عرض ساعات العمل",
+        "label": "ساعات عمل المساحة",
+        "text": "مفتوحة كل يوم من الثامنة صباحاً حتى الثامنة مساءً."
+      },
+      "combobox": {
+        "title": "الاختيار من قائمة قابلة للبحث",
+        "caption": "قيمة واحدة، وعدة قيم، وحقل غير صالح",
+        "single": {
+          "label": "منطقة مساحة العمل",
+          "placeholder": "اختر منطقة من القائمة"
+        },
+        "multiple": {
+          "label": "مرافق المساحة",
+          "placeholder": "اختر المرافق",
+          "summary": "{count} مرافق مختارة"
+        },
+        "invalid": {
+          "label": "المنطقة في طلب الإدراج",
+          "placeholder": "اختر منطقة الإدراج",
+          "error": "اختر المنطقة قبل إرسال الطلب"
+        },
+        "areas": {
+          "search": "البحث في قائمة المناطق",
+          "searchPlaceholder": "اكتب جزءاً من اسم المنطقة",
+          "list": "المناطق في قطاع غزة",
+          "empty": "لا توجد منطقة تطابق هذا البحث",
+          "options": ["حي الرمال", "حي تل الهوا", "حي الشجاعية", "مخيم النصيرات", "مدينة دير البلح"]
+        },
+        "amenities": {
+          "search": "البحث في قائمة المرافق",
+          "searchPlaceholder": "اكتب جزءاً من اسم المرفق",
+          "list": "المرافق التي قد توفرها المساحة",
+          "empty": "لا يوجد مرفق يطابق هذا البحث",
+          "options": [
+            "إنترنت ألياف سريع",
+            "كهرباء من مولّد احتياطي",
+            "غرفة اجتماعات هادئة",
+            "مياه شرب مجانية"
+          ]
+        },
+        "filterCaption": "مشغّلات صف الفلاتر، بعرض نصها",
+        "filters": {
+          "status": "الحالة: حالتان محدّدتان",
+          "area": "المنطقة: كل المناطق",
+          "statuses": {
+            "search": "البحث في حالات البلاغ",
+            "searchPlaceholder": "اكتب جزءاً من الحالة",
+            "list": "حالات البلاغ للفلترة",
+            "empty": "لا توجد حالة تطابق هذا البحث",
+            "options": [
+              "بلاغ بيانات جديد",
+              "بلاغ بيانات قيد المراجعة",
+              "بلاغ بيانات مصحّح",
+              "بلاغ بيانات مرفوض"
+            ]
+          }
+        }
+      },
+      "calendar": {
+        "title": "تقويم الشهر",
+        "singleCaption": "تاريخ واحد مختار؛ ويُميَّز اليوم حين يظهر",
+        "rangeCaption": "مدة مختارة من التواريخ",
+        "previous": "عرض الشهر السابق",
+        "next": "عرض الشهر التالي"
+      },
+      "datePicker": {
+        "title": "اختيار تاريخ من لوح",
+        "caption": "تاريخ اشتراك في حقل، ومدة بلاغات في صف الفلاتر، وحقل غير صالح",
+        "previous": "عرض الشهر السابق",
+        "next": "عرض الشهر التالي",
+        "start": {
+          "label": "بداية الاشتراك",
+          "helper": "أول يوم يمكن للمشترك الحضور فيه",
+          "placeholder": "اختر أول يوم في الاشتراك",
+          "panel": "اختيار بداية الاشتراك"
+        },
+        "period": {
+          "preset": "آخر 30 يوماً من البلاغات",
+          "panel": "اختيار مدة البلاغات"
+        },
+        "invalid": {
+          "label": "نهاية الاشتراك",
+          "placeholder": "اختر آخر يوم في الاشتراك",
+          "error": "اختر تاريخ النهاية قبل الحفظ",
+          "panel": "اختيار نهاية الاشتراك"
+        }
+      },
+      "members": {
+        "label": "مشتركو مساحة الريادة",
+        "columns": {
+          "member": "المشترك",
+          "membership": "العضوية",
+          "ends": "تنتهي في",
+          "status": "الحالة",
+          "attendance": "الحضور"
+        },
+        "rows": [
+          {
+            "name": "سارة الحلو",
+            "phone": "+970 59 234 1188",
+            "plan": "شهرية",
+            "ends": "28/09/2026",
+            "status": "ينتهي خلال يومين"
+          },
+          {
+            "name": "محمد أبو شعبان",
+            "phone": "+970 56 771 0932",
+            "plan": "أسبوعية",
+            "ends": "29/09/2026",
+            "status": "ينتهي خلال 3 أيام"
+          },
+          {
+            "name": "نور الهدى عبد الرحمن الخالدي",
+            "phone": "+970 59 610 2284",
+            "plan": "فصلية",
+            "ends": "30/11/2026",
+            "status": "نشط"
+          },
+          {
+            "name": "ليان عوض",
+            "phone": "+970 59 818 4471",
+            "plan": "شهرية",
+            "ends": "14/10/2026",
+            "status": "نشط"
+          },
+          {
+            "name": "هبة قاسم",
+            "phone": "+970 59 440 2210",
+            "plan": "أسبوعية",
+            "ends": "24/09/2026",
+            "status": "منتهية"
+          },
+          {
+            "name": "يوسف النجار",
+            "phone": "+970 56 302 7765",
+            "plan": "شهرية",
+            "ends": "21/10/2026",
+            "status": "نشط"
+          },
+          {
+            "name": "عمر الشوا",
+            "phone": "+970 59 127 5530",
+            "plan": "شهرية",
+            "ends": "05/10/2026",
+            "status": "نشط"
+          },
+          {
+            "name": "أحمد صيام",
+            "phone": "+970 56 948 0016",
+            "plan": "أسبوعية",
+            "ends": "19/09/2026",
+            "status": "منتهية"
+          }
+        ]
+      },
+      "table": {
+        "title": "الجداول",
+        "caption": "صف عناوين خافت، وصفوف كثيفة، ولون التمييز على الصف تحت المؤشر"
+      },
+      "dataTable": {
+        "title": "جداول البيانات",
+        "membersCaption": "المالك › المشتركون: ترتيب بالاسم وتاريخ الانتهاء، وشريط أدوات، وصف ترقيم الصفحات؛ وبطاقات تحت 768 بكسل",
+        "loadingCaption": "التحميل: صفوف مؤقتة",
+        "emptyCaption": "بلا صفوف: الحالة الفارغة مكانها",
+        "reportsCaption": "المدير › بلاغات البيانات: صف الفلاتر، وقائمة الصف",
+        "search": "ابحث بالاسم أو رقم الهاتف",
+        "tabsLabel": "فلترة المشتركين حسب الحالة",
+        "tabs": ["الكل 38", "نشط 31", "ينتهي قريباً 5", "منتهية 2"],
+        "checkIn": "تسجيل حضور",
+        "actions": "إجراءات",
+        "view": "عرض تفاصيل المشترك",
+        "edit": "تعديل العضوية",
+        "endsPrefix": "تنتهي",
+        "summary": "عرض 1–8 من 38",
+        "reports": {
+          "label": "بلاغات البيانات من المستخدمين",
+          "search": "ابحث في البلاغات",
+          "status": "الحالة: 2 محدّدة",
+          "area": "المنطقة: الكل",
+          "type": "نوع المعلومة: الكل",
+          "period": "آخر 30 يوماً",
+          "periodPanel": "اختيار مدة البلاغات",
+          "columns": {
+            "report": "البلاغ",
+            "space": "المساحة",
+            "reporter": "المُبلِّغ",
+            "date": "التاريخ",
+            "status": "حالة البلاغ"
+          },
+          "fieldPrefix": "الحقل:",
+          "rows": [
+            {
+              "title": "سعر اليوم الكامل غير صحيح",
+              "field": "الأسعار",
+              "space": "مساحة الريادة",
+              "area": "الرمال",
+              "reporter": "رامي خليل",
+              "date": "26/09/2026",
+              "status": "جديد"
+            },
+            {
+              "title": "ساعات يوم الجمعة تغيّرت",
+              "field": "ساعات العمل",
+              "space": "بيت العمل",
+              "area": "تل الهوا",
+              "reporter": "منى سالم",
+              "date": "25/09/2026",
+              "status": "قيد المراجعة"
+            },
+            {
+              "title": "الموقع على الخريطة غير دقيق",
+              "field": "الموقع",
+              "space": "بيت العمل",
+              "area": "تل الهوا",
+              "reporter": "دعاء فروانة",
+              "date": "18/09/2026",
+              "status": "تم التصحيح"
+            }
+          ],
+          "summary": "عرض 1–3 من 20",
+          "types": {
+            "search": "البحث في أنواع المعلومات",
+            "searchPlaceholder": "اكتب جزءاً من نوع المعلومة",
+            "list": "أنواع المعلومات للفلترة",
+            "empty": "لا يوجد نوع معلومة يطابق هذا البحث",
+            "options": ["أسعار المساحة", "ساعات عمل المساحة", "الموقع على الخريطة", "مرافق المساحة"]
+          },
+          "menu": ["عرض تفاصيل البلاغ", "وضع علامة: تم التصحيح"]
+        }
       }
     },
     "en": {
@@ -907,7 +1158,7 @@
           "title": "Report filters",
           "clear": "Clear every filter",
           "status": "Report status",
-          "statuses": ["New reports", "Reports in review", "Corrected reports"],
+          "statuses": ["New reports", "Reports in review", "Corrected reports", "Rejected reports"],
           "area": "Space area",
           "areas": ["Every area", "Rimal", "Tal al-Hawa"],
           "apply": "Show 20 matching reports"
@@ -1012,6 +1263,263 @@
         "signOut": "Leave the dashboard",
         "trigger": "Open the dashboard navigation",
         "page": "Space members page"
+      },
+      "toggleGroup": {
+        "title": "Filter chips",
+        "caption": "Several on at once, each with a check; one chip disabled",
+        "label": "Status of the data report",
+        "helper": "Choose any number of statuses",
+        "options": [
+          "New data reports",
+          "Data reports under review",
+          "Corrected data reports",
+          "Rejected data reports"
+        ],
+        "disabledLabel": "Status set by the platform admin"
+      },
+      "popover": {
+        "title": "Floating panels",
+        "caption": "A panel opened beside its button",
+        "trigger": "Show the opening hours",
+        "label": "Opening hours of the space",
+        "text": "Open every day from eight in the morning until eight in the evening."
+      },
+      "combobox": {
+        "title": "Choosing from a searchable list",
+        "caption": "One value, several values, and an invalid field",
+        "single": {
+          "label": "Area of the coworking space",
+          "placeholder": "Choose an area from the list"
+        },
+        "multiple": {
+          "label": "Amenities of the space",
+          "placeholder": "Choose the amenities",
+          "summary": "{count} amenities chosen"
+        },
+        "invalid": {
+          "label": "Area in the listing request",
+          "placeholder": "Choose the area of the listing",
+          "error": "Choose an area before sending the request"
+        },
+        "areas": {
+          "search": "Search the list of areas",
+          "searchPlaceholder": "Type part of the area name",
+          "list": "Areas in the Gaza Strip",
+          "empty": "No area matches this search",
+          "options": [
+            "Rimal neighbourhood",
+            "Tal al-Hawa neighbourhood",
+            "Shujaiyya neighbourhood",
+            "Nuseirat camp",
+            "Deir al-Balah city"
+          ]
+        },
+        "amenities": {
+          "search": "Search the list of amenities",
+          "searchPlaceholder": "Type part of the amenity",
+          "list": "Amenities a space can offer",
+          "empty": "No amenity matches this search",
+          "options": [
+            "Fast fibre internet",
+            "Backup generator power",
+            "Quiet meeting room",
+            "Free drinking water"
+          ]
+        },
+        "filterCaption": "Filter-row triggers, as wide as their text",
+        "filters": {
+          "status": "Status: 2 statuses chosen",
+          "area": "Area: every area",
+          "statuses": {
+            "search": "Search the report statuses",
+            "searchPlaceholder": "Type part of a status",
+            "list": "Report statuses to filter by",
+            "empty": "No status matches this search",
+            "options": [
+              "New data report",
+              "Data report in review",
+              "Corrected data report",
+              "Rejected data report"
+            ]
+          }
+        }
+      },
+      "calendar": {
+        "title": "Month calendars",
+        "singleCaption": "One chosen date; today is marked when it is in view",
+        "rangeCaption": "A chosen range of dates",
+        "previous": "Show the previous month",
+        "next": "Show the next month"
+      },
+      "datePicker": {
+        "title": "Choosing a date in a panel",
+        "caption": "A membership date in a field, a report period in the filter row, and an invalid field",
+        "previous": "Show the previous month",
+        "next": "Show the next month",
+        "start": {
+          "label": "Start of the membership",
+          "helper": "The first day the member can come in",
+          "placeholder": "Pick the first day of the membership",
+          "panel": "Choose the start of the membership"
+        },
+        "period": {
+          "preset": "The last 30 days of reports",
+          "panel": "Choose the period of the reports"
+        },
+        "invalid": {
+          "label": "End of the membership",
+          "placeholder": "Pick the last day of the membership",
+          "error": "Choose the end date before saving",
+          "panel": "Choose the end of the membership"
+        }
+      },
+      "members": {
+        "label": "Members of the Riyada space",
+        "columns": {
+          "member": "Member",
+          "membership": "Membership",
+          "ends": "Ends on",
+          "status": "Membership status",
+          "attendance": "Attendance"
+        },
+        "rows": [
+          {
+            "name": "Sara al-Helou",
+            "phone": "+970 59 234 1188",
+            "plan": "Monthly",
+            "ends": "28/09/2026",
+            "status": "Ends in 2 days"
+          },
+          {
+            "name": "Mohammed Abu Shaaban",
+            "phone": "+970 56 771 0932",
+            "plan": "Weekly",
+            "ends": "29/09/2026",
+            "status": "Ends in 3 days"
+          },
+          {
+            "name": "Nour al-Huda Abdulrahman al-Khalidi",
+            "phone": "+970 59 610 2284",
+            "plan": "Quarterly",
+            "ends": "30/11/2026",
+            "status": "Active member"
+          },
+          {
+            "name": "Layan Awad",
+            "phone": "+970 59 818 4471",
+            "plan": "Monthly",
+            "ends": "14/10/2026",
+            "status": "Active member"
+          },
+          {
+            "name": "Hiba Qasem",
+            "phone": "+970 59 440 2210",
+            "plan": "Weekly",
+            "ends": "24/09/2026",
+            "status": "Expired"
+          },
+          {
+            "name": "Yousef al-Najjar",
+            "phone": "+970 56 302 7765",
+            "plan": "Monthly",
+            "ends": "21/10/2026",
+            "status": "Active member"
+          },
+          {
+            "name": "Omar al-Shawa",
+            "phone": "+970 59 127 5530",
+            "plan": "Monthly",
+            "ends": "05/10/2026",
+            "status": "Active member"
+          },
+          {
+            "name": "Ahmed Siam",
+            "phone": "+970 56 948 0016",
+            "plan": "Weekly",
+            "ends": "19/09/2026",
+            "status": "Expired"
+          }
+        ]
+      },
+      "table": {
+        "title": "Tables",
+        "caption": "A muted header row, dense rows, and the accent on the hovered row"
+      },
+      "dataTable": {
+        "title": "Data tables",
+        "membersCaption": "Owner › Members: sortable names and end dates, a toolbar, and the pagination row; cards below 768px",
+        "loadingCaption": "Loading: placeholder rows",
+        "emptyCaption": "No rows: the empty state in their place",
+        "reportsCaption": "Admin › Data reports: the filter row, and a row menu",
+        "search": "Search by name or phone number",
+        "tabsLabel": "Filter the members by status",
+        "tabs": ["All 38", "Active 31", "Ending soon 5", "Expired 2"],
+        "checkIn": "Check the member in",
+        "actions": "Actions for",
+        "view": "View the member's details",
+        "edit": "Edit the membership",
+        "endsPrefix": "ends on",
+        "summary": "Showing 1–8 of 38",
+        "reports": {
+          "label": "Data reports from users",
+          "search": "Search the data reports",
+          "status": "Status: 2 statuses chosen",
+          "area": "Area: every area",
+          "type": "Information type: every type",
+          "period": "The last 30 days of reports",
+          "periodPanel": "Choose the period of the reports",
+          "columns": {
+            "report": "Data report",
+            "space": "Space reported",
+            "reporter": "Reported by",
+            "date": "Reported on",
+            "status": "Report status"
+          },
+          "fieldPrefix": "Field:",
+          "rows": [
+            {
+              "title": "The full-day price is wrong",
+              "field": "Prices",
+              "space": "Riyada Space",
+              "area": "Rimal",
+              "reporter": "Rami Khalil",
+              "date": "26/09/2026",
+              "status": "New report"
+            },
+            {
+              "title": "The Friday hours have changed",
+              "field": "Opening hours",
+              "space": "Bayt al-Amal",
+              "area": "Tal al-Hawa",
+              "reporter": "Mona Salem",
+              "date": "25/09/2026",
+              "status": "Report in review"
+            },
+            {
+              "title": "The map location is not accurate",
+              "field": "Map location",
+              "space": "Bayt al-Amal",
+              "area": "Tal al-Hawa",
+              "reporter": "Doaa Farwana",
+              "date": "18/09/2026",
+              "status": "Report corrected"
+            }
+          ],
+          "summary": "Showing 1–3 of 20",
+          "types": {
+            "search": "Search the information types",
+            "searchPlaceholder": "Type part of the information type",
+            "list": "Information types to filter by",
+            "empty": "No information type matches this search",
+            "options": [
+              "Prices of the space",
+              "Opening hours of the space",
+              "Location on the map",
+              "Amenities of the space"
+            ]
+          },
+          "menu": ["View the report details", "Mark the report as corrected"]
+        }
       }
     }
   }

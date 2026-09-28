@@ -9,8 +9,12 @@ import {
   BadgeSection,
   BreadcrumbSection,
   ButtonSection,
+  CalendarSection,
   CardSection,
   CheckboxSection,
+  ComboboxSection,
+  DataTableSection,
+  DatePickerSection,
   DialogSection,
   DropdownMenuSection,
   EmptyStateSection,
@@ -18,6 +22,7 @@ import {
   IconsSection,
   InputSection,
   PaginationSection,
+  PopoverSection,
   RadioGroupSection,
   SelectSection,
   SeparatorSection,
@@ -27,9 +32,11 @@ import {
   SpinnerSection,
   StatCardSection,
   SwitchSection,
+  TableSection,
   TabsSection,
   TextareaSection,
   ToastSection,
+  ToggleGroupSection,
   TogglesSection,
   TooltipSection,
 } from './sections';
@@ -85,6 +92,21 @@ export function ShowcasePreview() {
         <BreadcrumbSection samples={samples.breadcrumb} />
         <PaginationSection samples={samples.pagination} />
         <SidebarSection samples={samples.sidebar} />
+        <ToggleGroupSection samples={samples.toggleGroup} />
+        <PopoverSection samples={samples.popover} />
+        <ComboboxSection samples={samples.combobox} />
+        <CalendarSection samples={samples.calendar} lang={language} />
+        <DatePickerSection samples={samples.datePicker} lang={language} />
+        <TableSection samples={samples.table} members={samples.members} />
+        <DataTableSection
+          samples={samples.dataTable}
+          members={samples.members}
+          pagination={samples.pagination}
+          emptyState={samples.emptyState}
+          lists={{ areas: samples.combobox.areas, statuses: samples.combobox.filters.statuses }}
+          calendar={samples.calendar}
+          lang={language}
+        />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>
