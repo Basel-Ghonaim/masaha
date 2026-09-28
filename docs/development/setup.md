@@ -85,7 +85,8 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
 | `npm run db:studio` | Opens Prisma Studio on `masaha_dev` |
 
 **Prisma** (7) lives in `apps/api`:
-- The schema is in `prisma/schema.prisma`. It has no models yet.
+- The schema is in `prisma/schema.prisma`, the source of truth for every model ([data-model.md](../architecture/data-model.md)). Its migrations are in `prisma/migrations/`.
+- **After `prisma migrate dev` creates a migration, read it before committing.** The `CHECK` constraints live as raw SQL in the migrations, and a change to one needs a hand-written migration ([data-model.md › Constraints](../architecture/data-model.md#constraints-worth-stating)).
 - The connection comes from `DATABASE_URL` through `prisma.config.ts`, which loads `apps/api/.env` the same way the API does.
 - The client is generated into `apps/api/src/generated/prisma/`. That folder is not committed. Every `npm install` and `npm ci` regenerates it (the API's `postinstall`), even when no package changed. After a schema change, `npm exec -w @masaha/api -- prisma generate` regenerates it by hand.
 

@@ -16,7 +16,7 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
 - [glossary.md](project/glossary.md) — the canonical vocabulary (English and Arabic).
 
 ### `architecture/` — how the system fits together
-- [data-model.md](architecture/data-model.md) — data conventions, derived values and constraints (entities deferred).
+- [data-model.md](architecture/data-model.md) — data conventions, entities, derived values and constraints; the Prisma schema owns the fields.
 - [decisions/](architecture/decisions/) — Architectural Decision Records:
   - [0001](architecture/decisions/0001-monorepo-and-stack.md) monorepo and stack
   - [0002](architecture/decisions/0002-authorization-model.md) authorization: three roles and space-scoped ownership
@@ -53,7 +53,6 @@ These documents are **committed but not yet written**, because what they describ
 | Document | Written when | Holds until then |
 |---|---|---|
 | `architecture/system-overview.md` | the first request works end to end (web → API → database) | [ADR 0001](architecture/decisions/0001-monorepo-and-stack.md) (stack) |
-| *Entities* in [data-model.md](architecture/data-model.md) | the Prisma schema is written | [plan: planned data model](plans/v1-mvp.md#planned-data-model) |
 | *Endpoints* in [api-contract.md](api/api-contract.md) | each endpoint is built | [plan: planned API surface](plans/v1-mvp.md#planned-api-surface) |
 | *Mechanism › Catalogues* in [localisation.md](frontend/localisation.md) | the catalogue mechanism is lifted from Quick Tweets | [ADR 0006](architecture/decisions/0006-localisation-approach.md) |
 

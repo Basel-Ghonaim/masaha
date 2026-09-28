@@ -88,18 +88,19 @@ Legend: 🌐 public · 👤 any signed-in user · 🏢 OWNER of that space · �
 | GET | `/spaces/:slug` | 🌐 | full public profile incl. announcements and freshness; never capacity |
 | GET | `/spaces/:slug/occupancy` | 🌐 | `{ status: "AVAILABLE" \| "FULL" \| "CLOSED" }`, never counts ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)) — verified spaces only |
 | POST | `/spaces/:slug/reports` | 👤 | report wrong information |
-| GET | `/lookups` | 🌐 | areas and amenities, both languages |
+| GET | `/lookups` | 🌐 | active governorates with their active areas, and active amenities, both languages |
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Owner — managed spaces (`/manage/spaces/:spaceId/...`, 🏢)
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/manage/spaces` | spaces the caller manages |
-| GET / PATCH | `/manage/spaces/:spaceId` | profile, hours, prices, amenities, contact, capacity (private) |
+| GET / PATCH | `/manage/spaces/:spaceId` | profile, hours, shifts, prices, amenities, contacts, capacity (private) |
 | GET | `/manage/spaces/:spaceId/occupancy` | exact numbers for the owner: `{ capacity, present }` |
 | POST / DELETE | `/manage/spaces/:spaceId/photos[/:photoId]` | upload, remove, reorder |
 | GET / POST | `/manage/spaces/:spaceId/members` | list (search, status filter), create |
 | PATCH / DELETE | `/manage/spaces/:spaceId/members/:memberId` | edit, deactivate (soft) |
+| POST / PATCH | `/manage/spaces/:spaceId/members/:memberId/memberships[/:id]` | renew (adds a membership), correct one |
 | GET | `/manage/spaces/:spaceId/check-ins` | `?open=true` or date range |
 | POST | `/manage/spaces/:spaceId/check-ins` | `{ memberId }` or `{ visitorName }` |
 | POST | `/manage/spaces/:spaceId/check-ins/:checkInId/check-out` | |
@@ -120,30 +121,10 @@ Legend: 🌐 public · 👤 any signed-in user · 🏢 OWNER of that space · �
 | POST | `/admin/owners` | create an OWNER account (temporary password, must change) |
 | GET / PATCH | `/admin/users[/:userId]` | search; suspend; change role |
 | GET / PATCH | `/admin/data-reports[/:id]` | |
-| CRUD | `/admin/areas`, `/admin/amenities` | bilingual lookups |
+| CRUD | `/admin/governorates`, `/admin/areas`, `/admin/amenities` | bilingual lookups; hide and restore with the active flag |
 | GET | `/admin/audit-log` | |
 | GET / PATCH | `/admin/settings` | contact info, defaults |
 
-## Planned data model
+## Data model
 
-Moves into [data-model.md](../architecture/data-model.md) and the Prisma schema in the technical-design phase.
-
-| Entity | Key fields | Relations |
-|---|---|---|
-| `User` | email (unique), phone, passwordHash, name, role (`USER`/`OWNER`/`ADMIN`), language, mustChangePassword, suspendedAt | managed spaces, favourites, reports, sessions |
-| `RefreshToken` | tokenHash, expiresAt, rotatedAt, replacedById | belongs to User (cascade) |
-| `Space` | slug, nameAr/En, descriptionAr/En, addressAr/En, areaId, lat, lng, capacity, phone, whatsapp, email, isHidden, deletedAt, profileUpdatedAt | area, managers, hours, prices, amenities, photos, members, check-ins, announcements, reports |
-| `SpaceManager` | spaceId + userId (composite PK), role (`OWNER` only in v1) | Space, User |
-| `Area` | nameAr, nameEn, sortOrder | spaces |
-| `Amenity` | key, nameAr, nameEn, icon | via `SpaceAmenity` |
-| `SpaceAmenity` | spaceId + amenityId | |
-| `SpaceHours` | spaceId, dayOfWeek, opensAt, closesAt, isClosed | Space |
-| `SpacePrice` | spaceId, period (`HOUR`/`DAY`/`WEEK`/`MONTH`), amountAgorot, currency, updatedAt | Space |
-| `SpacePhoto` | spaceId, path, sortOrder | Space |
-| `Member` | spaceId, name, phone, membershipType, startsOn, endsOn, userId (nullable, unused in v1), deletedAt | Space, check-ins |
-| `CheckIn` | spaceId, memberId (nullable), visitorName (nullable), checkedInAt, checkedOutAt, method (`MANUAL`), checkoutMethod (`MANUAL`/`AUTO`) | Space, Member |
-| `Announcement` | spaceId, type, textAr, textEn, startsAt, endsAt, deletedAt | Space |
-| `DataReport` | spaceId, userId, field, message, status (`OPEN`/`RESOLVED`/`DISMISSED`), resolvedById | Space, User |
-| `Favorite` | userId + spaceId | |
-| `Setting` | key, value | platform settings |
-| `AuditLog` | actorId, action, entityType, entityId, spaceId, before, after, createdAt | |
+Built: the Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), owns every entity and field, and [data-model.md](../architecture/data-model.md) owns the conventions, derived values and constraints.
