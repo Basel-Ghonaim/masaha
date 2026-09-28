@@ -1,13 +1,13 @@
 # Project Overview
 
-> **Status:** Active · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-28 · **Owner:** Basel Ghoneim
 > **Authority:** What Masaha is, what is built today, what v1 is committed to, and what is explicitly not in v1. It names scope; it does not specify behaviour.
 
 ## What Masaha is
 
 A bilingual (Arabic RTL / English), fully responsive web platform for coworking spaces in the Gaza Strip.
 
-- **Users** (freelancers, students, remote workers) find a space: where it is, what it costs, what it offers, and how many seats are free right now.
+- **Users** (freelancers, students, remote workers) find a space: where it is, what it costs, what it offers, and whether it has a free seat right now.
 - **Space owners** run their space from a dashboard: profile, members, daily attendance, announcements, occupancy reports.
 - **The admin** runs the platform: spaces, owner accounts, reports, users, lookup lists.
 
@@ -22,7 +22,7 @@ Nothing yet. This section lists a capability only once it is merged and working.
 
 ### Public site
 - Directory of spaces: list and map, search and filters (area, price, amenities, verified, available now).
-- Space page: photos, prices (display only), amenities, hours, contact, announcements, live available seats (verified spaces), "last updated" per fact.
+- Space page: photos, prices (display only), amenities, hours, contact, announcements, live status — available, full or closed now, never a seat count (verified spaces) — and "last updated" per fact.
 - Verified / unverified spaces: every space is listed whether or not its owner has joined.
 - "Are you the owner?": contact by email or WhatsApp (no in-app request).
 - Report wrong information. Favourites.

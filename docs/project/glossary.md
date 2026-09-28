@@ -1,6 +1,6 @@
 # Glossary
 
-> **Status:** Active · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-28 · **Owner:** Basel Ghoneim
 > **Authority:** The canonical vocabulary. Code, documents and copy use these terms.
 
 | Term | Arabic | Meaning |
@@ -16,9 +16,9 @@
 | **Check-in** | تسجيل حضور | A record that a member or visitor is present at a space |
 | **Open check-in** | حضور مفتوح | A check-in without a check-out |
 | **Auto check-out** | خروج تلقائي | A check-out the system records at closing time or after the maximum duration |
-| **Capacity** | السعة | The number of seats a space declares |
-| **Available seats** | المقاعد المتاحة | Capacity minus open check-ins, never below zero |
-| **Occupancy** | الإشغال | Open check-ins relative to capacity, live or over time |
+| **Capacity** | السعة | The number of seats a space declares. Private: only the space's owner sees it |
+| **Live status** | الحالة المباشرة | The public state of a verified space right now: **Available** (متاح), **Full** (ممتلئ) or **Closed now** (مغلق الآن). Never a count |
+| **Occupancy** | الإشغال | Open check-ins relative to capacity, live or over time; shown only to the space's owner |
 | **Announcement** | إعلان | A time-bound notice from an owner shown on the space page |
 | **Data report** | بلاغ | A user's report that a space's information is wrong or outdated |
 | **Stale** | قد تكون قديمة | A fact not updated within the staleness threshold (default 60 days) |

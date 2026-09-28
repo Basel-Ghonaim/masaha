@@ -25,6 +25,7 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
   - [0005](architecture/decisions/0005-design-system-approach.md) design system: one layer, shadcn/ui and Tailwind on a tiered token structure
   - [0006](architecture/decisions/0006-localisation-approach.md) localisation: typed catalogues, language not in the URL
   - [0007](architecture/decisions/0007-soft-delete.md) soft delete for operational records
+  - [0008](architecture/decisions/0008-live-status-not-counts.md) live occupancy is public as a state, never a count
 - [findings.md](architecture/findings.md) — recorded divergences from the intended design.
 
 ### `api/`

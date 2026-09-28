@@ -84,9 +84,9 @@ Legend: 🌐 public · 👤 any signed-in user · 🏢 OWNER of that space · �
 #### Public directory
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| GET | `/spaces` | 🌐 | filters: `area`, `priceMin`, `priceMax`, `period`, `amenities`, `verified`, `availableNow`, `q`; sort |
-| GET | `/spaces/:slug` | 🌐 | full public profile incl. announcements and freshness |
-| GET | `/spaces/:slug/occupancy` | 🌐 | `{ capacity, present, available }` — verified spaces only |
+| GET | `/spaces` | 🌐 | filters: `area`, `priceMin`, `priceMax`, `period`, `amenities`, `verified`, `availableNow` (live status `AVAILABLE`), `q`; sort |
+| GET | `/spaces/:slug` | 🌐 | full public profile incl. announcements and freshness; never capacity |
+| GET | `/spaces/:slug/occupancy` | 🌐 | `{ status: "AVAILABLE" \| "FULL" \| "CLOSED" }`, never counts ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)) — verified spaces only |
 | POST | `/spaces/:slug/reports` | 👤 | report wrong information |
 | GET | `/lookups` | 🌐 | areas and amenities, both languages |
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
@@ -95,7 +95,8 @@ Legend: 🌐 public · 👤 any signed-in user · 🏢 OWNER of that space · �
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/manage/spaces` | spaces the caller manages |
-| GET / PATCH | `/manage/spaces/:spaceId` | profile, hours, prices, amenities, contact |
+| GET / PATCH | `/manage/spaces/:spaceId` | profile, hours, prices, amenities, contact, capacity (private) |
+| GET | `/manage/spaces/:spaceId/occupancy` | exact numbers for the owner: `{ capacity, present }` |
 | POST / DELETE | `/manage/spaces/:spaceId/photos[/:photoId]` | upload, remove, reorder |
 | GET / POST | `/manage/spaces/:spaceId/members` | list (search, status filter), create |
 | PATCH / DELETE | `/manage/spaces/:spaceId/members/:memberId` | edit, deactivate (soft) |

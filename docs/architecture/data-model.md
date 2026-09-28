@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; no schema exists yet · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; no schema exists yet · **Last Updated:** 2026-09-28 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations and data conventions. The Prisma schema becomes the source of truth once it exists.
 
 ## Conventions
@@ -22,7 +22,15 @@
 ## Derived values (computed, not stored)
 
 - **Verified:** a space with at least one `SpaceManager` row.
-- **Available seats:** `max(capacity − open check-ins, 0)`.
+- **Live status** — public, a state and never a count ([ADR 0008](decisions/0008-live-status-not-counts.md)). Evaluated in this order, in Asia/Gaza time:
+  1. an unverified space has **no live state**;
+  2. **`CLOSED`** (مغلق الآن) while an active `CLOSURE` announcement covers now (not deleted, `startsAt ≤ now`, and `endsAt` after now or not set), or outside today's opening hours;
+  3. **no live state** when the space has no opening hours at all, or is open but its capacity is not set;
+  4. **`FULL`** (ممتلئ) when open check-ins ≥ capacity;
+  5. otherwise **`AVAILABLE`** (متاح).
+
+  The directory's "available now" filter selects `AVAILABLE`. Capacity and the exact numbers (present / capacity) are shown only to the space's owner.
+- **Auto check-out:** open check-ins are closed at the space's closing time, or at 23:59 when the space has no opening hours.
 - **Membership status:** from `endsOn` — active, ending soon (≤ 7 days), expired.
 - **Stale:** a fact group whose `...UpdatedAt` is older than the staleness setting (default 60 days).
 
