@@ -531,6 +531,67 @@
           "بلاغات البيانات المرفوضة"
         ],
         "disabledLabel": "حالة يحدّدها مدير المنصة"
+      },
+      "popover": {
+        "title": "الألواح العائمة",
+        "caption": "لوح يُفتح بجانب زرّه",
+        "trigger": "عرض ساعات العمل",
+        "label": "ساعات عمل المساحة",
+        "text": "مفتوحة كل يوم من الثامنة صباحاً حتى الثامنة مساءً."
+      },
+      "combobox": {
+        "title": "الاختيار من قائمة قابلة للبحث",
+        "caption": "قيمة واحدة، وعدة قيم، وحقل غير صالح",
+        "single": {
+          "label": "منطقة مساحة العمل",
+          "placeholder": "اختر منطقة من القائمة"
+        },
+        "multiple": {
+          "label": "مرافق المساحة",
+          "placeholder": "اختر المرافق",
+          "summary": "{count} مرافق مختارة"
+        },
+        "invalid": {
+          "label": "المنطقة في طلب الإدراج",
+          "placeholder": "اختر منطقة الإدراج",
+          "error": "اختر المنطقة قبل إرسال الطلب"
+        },
+        "areas": {
+          "search": "البحث في قائمة المناطق",
+          "searchPlaceholder": "اكتب جزءاً من اسم المنطقة",
+          "list": "المناطق في قطاع غزة",
+          "empty": "لا توجد منطقة تطابق هذا البحث",
+          "options": ["حي الرمال", "حي تل الهوا", "حي الشجاعية", "مخيم النصيرات", "مدينة دير البلح"]
+        },
+        "amenities": {
+          "search": "البحث في قائمة المرافق",
+          "searchPlaceholder": "اكتب جزءاً من اسم المرفق",
+          "list": "المرافق التي قد توفرها المساحة",
+          "empty": "لا يوجد مرفق يطابق هذا البحث",
+          "options": [
+            "إنترنت ألياف سريع",
+            "كهرباء من مولّد احتياطي",
+            "غرفة اجتماعات هادئة",
+            "مياه شرب مجانية"
+          ]
+        },
+        "filterCaption": "مشغّلات صف الفلاتر، بعرض نصها",
+        "filters": {
+          "status": "الحالة: حالتان محدّدتان",
+          "area": "المنطقة: كل المناطق",
+          "statuses": {
+            "search": "البحث في حالات البلاغ",
+            "searchPlaceholder": "اكتب جزءاً من الحالة",
+            "list": "حالات البلاغ للفلترة",
+            "empty": "لا توجد حالة تطابق هذا البحث",
+            "options": [
+              "بلاغ بيانات جديد",
+              "بلاغ بيانات قيد المراجعة",
+              "بلاغ بيانات مصحّح",
+              "بلاغ بيانات مرفوض"
+            ]
+          }
+        }
       }
     },
     "en": {
@@ -1043,6 +1104,73 @@
           "Rejected data reports"
         ],
         "disabledLabel": "Status set by the platform admin"
+      },
+      "popover": {
+        "title": "Floating panels",
+        "caption": "A panel opened beside its button",
+        "trigger": "Show the opening hours",
+        "label": "Opening hours of the space",
+        "text": "Open every day from eight in the morning until eight in the evening."
+      },
+      "combobox": {
+        "title": "Choosing from a searchable list",
+        "caption": "One value, several values, and an invalid field",
+        "single": {
+          "label": "Area of the coworking space",
+          "placeholder": "Choose an area from the list"
+        },
+        "multiple": {
+          "label": "Amenities of the space",
+          "placeholder": "Choose the amenities",
+          "summary": "{count} amenities chosen"
+        },
+        "invalid": {
+          "label": "Area in the listing request",
+          "placeholder": "Choose the area of the listing",
+          "error": "Choose an area before sending the request"
+        },
+        "areas": {
+          "search": "Search the list of areas",
+          "searchPlaceholder": "Type part of the area name",
+          "list": "Areas in the Gaza Strip",
+          "empty": "No area matches this search",
+          "options": [
+            "Rimal neighbourhood",
+            "Tal al-Hawa neighbourhood",
+            "Shujaiyya neighbourhood",
+            "Nuseirat camp",
+            "Deir al-Balah city"
+          ]
+        },
+        "amenities": {
+          "search": "Search the list of amenities",
+          "searchPlaceholder": "Type part of the amenity",
+          "list": "Amenities a space can offer",
+          "empty": "No amenity matches this search",
+          "options": [
+            "Fast fibre internet",
+            "Backup generator power",
+            "Quiet meeting room",
+            "Free drinking water"
+          ]
+        },
+        "filterCaption": "Filter-row triggers, as wide as their text",
+        "filters": {
+          "status": "Status: 2 statuses chosen",
+          "area": "Area: every area",
+          "statuses": {
+            "search": "Search the report statuses",
+            "searchPlaceholder": "Type part of a status",
+            "list": "Report statuses to filter by",
+            "empty": "No status matches this search",
+            "options": [
+              "New data report",
+              "Data report in review",
+              "Corrected data report",
+              "Rejected data report"
+            ]
+          }
+        }
       }
     }
   }

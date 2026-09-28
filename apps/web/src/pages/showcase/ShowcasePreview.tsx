@@ -11,6 +11,7 @@ import {
   ButtonSection,
   CardSection,
   CheckboxSection,
+  ComboboxSection,
   DialogSection,
   DropdownMenuSection,
   EmptyStateSection,
@@ -18,6 +19,7 @@ import {
   IconsSection,
   InputSection,
   PaginationSection,
+  PopoverSection,
   RadioGroupSection,
   SelectSection,
   SeparatorSection,
@@ -87,6 +89,8 @@ export function ShowcasePreview() {
         <PaginationSection samples={samples.pagination} />
         <SidebarSection samples={samples.sidebar} />
         <ToggleGroupSection samples={samples.toggleGroup} />
+        <PopoverSection samples={samples.popover} />
+        <ComboboxSection samples={samples.combobox} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

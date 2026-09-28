@@ -44,6 +44,17 @@ export {
 } from './components/Card';
 export { Checkbox, type CheckboxProps } from './components/Checkbox';
 export {
+  Combobox,
+  ComboboxContent,
+  ComboboxGroup,
+  ComboboxItem,
+  ComboboxTrigger,
+  type ComboboxContentProps,
+  type ComboboxGroupProps,
+  type ComboboxItemProps,
+  type ComboboxProps,
+} from './components/Combobox';
+export {
   Dialog,
   DialogClose,
   DialogContent,
@@ -90,6 +101,7 @@ export {
   type PaginationPreviousProps,
   type PaginationProps,
 } from './components/Pagination';
+export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './components/Popover';
 export {
   RadioGroup,
   RadioGroupItem,

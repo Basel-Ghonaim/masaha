@@ -92,9 +92,9 @@ export default defineConfig([
     },
   },
   {
-    // Radix primitives, the icon library, variant utilities and the toast library are imported
-    // only inside the design-system layer (docs/frontend/design-system/foundation.md §3).
-    // Everything else uses what the layer exports.
+    // Radix primitives, the icon library, variant utilities, the toast library and every other
+    // third-party UI library the layer wraps are imported only inside the design-system layer
+    // (docs/frontend/design-system/foundation.md §3). Everything else uses what the layer exports.
     files: ['apps/web/src/**/*.{ts,tsx}'],
     ignores: ['apps/web/src/shared/design-system/**'],
     rules: {
@@ -109,6 +109,7 @@ export default defineConfig([
                 'lucide-react',
                 'class-variance-authority',
                 'sonner',
+                'cmdk',
               ],
               message:
                 'Only the design-system layer imports this package. Use what @shared/design-system exports.',
