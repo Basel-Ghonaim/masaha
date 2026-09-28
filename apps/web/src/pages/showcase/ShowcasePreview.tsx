@@ -7,6 +7,7 @@ import {
   AlertSection,
   AvatarSection,
   BadgeSection,
+  BreadcrumbSection,
   ButtonSection,
   CardSection,
   CheckboxSection,
@@ -16,6 +17,7 @@ import {
   FieldSection,
   IconsSection,
   InputSection,
+  PaginationSection,
   RadioGroupSection,
   SelectSection,
   SeparatorSection,
@@ -79,6 +81,8 @@ export function ShowcasePreview() {
         <SheetSection samples={samples.sheet} />
         <DropdownMenuSection samples={samples.dropdownMenu} />
         <TabsSection samples={samples.tabs} />
+        <BreadcrumbSection samples={samples.breadcrumb} />
+        <PaginationSection samples={samples.pagination} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

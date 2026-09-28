@@ -20,6 +20,18 @@ export {
 } from './components/AlertDialog';
 export { Avatar, AvatarFallback, AvatarImage, type AvatarProps } from './components/Avatar';
 export { Badge, type BadgeProps } from './components/Badge';
+export {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  type BreadcrumbEllipsisProps,
+  type BreadcrumbLinkProps,
+  type BreadcrumbProps,
+} from './components/Breadcrumb';
 export { Button, type ButtonProps } from './components/Button';
 export {
   Card,
@@ -63,6 +75,21 @@ export { EmptyState, type EmptyStateProps } from './components/EmptyState';
 export { Field, type FieldProps } from './components/Field';
 export { Input, InputAction, type InputActionProps, type InputProps } from './components/Input';
 export { LanguageToggle, type LanguageToggleProps } from './components/LanguageToggle';
+export {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationSummary,
+  type PaginationEllipsisProps,
+  type PaginationLinkProps,
+  type PaginationNextProps,
+  type PaginationPreviousProps,
+  type PaginationProps,
+} from './components/Pagination';
 export {
   RadioGroup,
   RadioGroupItem,

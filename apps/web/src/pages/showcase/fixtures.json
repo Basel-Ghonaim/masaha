@@ -476,6 +476,25 @@
             "content": "حتى ثماني صور للمساحة."
           }
         ]
+      },
+      "breadcrumb": {
+        "title": "مسارات التنقل",
+        "caption": "المسار إلى صفحة فرعية في لوحة التحكم",
+        "label": "المسار إلى صفحة لوحة التحكم هذه",
+        "trail": ["لوحة تحكم المالك", "مشتركو مساحة الريادة"],
+        "current": "عضوية سارة الحلو",
+        "longCaption": "مسار طويل، مع حذف الصفحات الوسطى",
+        "more": "صفحات محذوفة من المسار"
+      },
+      "pagination": {
+        "title": "ترقيم الصفحات",
+        "caption": "أرقام الصفحات من الجهاز اللوحي فما فوق؛ السابق والملخص والتالي على الهاتف",
+        "label": "صفحات قائمة المشتركين",
+        "previous": "السابقة",
+        "next": "التالية",
+        "more": "أرقام صفحات محذوفة",
+        "summary": "صفحة {page} من {total}",
+        "pageCaptions": ["في الصفحة الأولى", "في صفحة وسطى", "في الصفحة الأخيرة"]
       }
     },
     "en": {
@@ -938,6 +957,25 @@
             "content": "Up to eight photos of the space."
           }
         ]
+      },
+      "breadcrumb": {
+        "title": "Breadcrumbs",
+        "caption": "The path to a dashboard sub-page",
+        "label": "Path to this dashboard page",
+        "trail": ["Owner dashboard", "Riyada Space members"],
+        "current": "Membership of Sara Helou",
+        "longCaption": "A long path, with the middle pages left out",
+        "more": "Pages left out of the path"
+      },
+      "pagination": {
+        "title": "Pagination",
+        "caption": "Page numbers from the tablet up; Previous, a summary and Next on a phone",
+        "label": "Pages of the members list",
+        "previous": "Earlier",
+        "next": "Later",
+        "more": "Page numbers left out",
+        "summary": "Page {page} of {total}",
+        "pageCaptions": ["On the first page", "On a middle page", "On the last page"]
       }
     }
   }

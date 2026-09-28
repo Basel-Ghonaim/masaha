@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog, AlertDialog, Sheet, DropdownMenu and Tabs.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog, AlertDialog, Sheet, DropdownMenu, Tabs, Breadcrumb and Pagination.
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-27
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -336,7 +336,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Badge | shadcn | neutral, primary, success, warning, info, destructive (subtle variants) |
 | Card | shadcn | |
 | Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** |
-| Pagination | shadcn | Words as props |
+| Pagination | shadcn | Words as props · page numbers from `md`, the current one outlined; on a phone, Previous and Next around a summary ("Page 1 of 5"), as in the Owner › Members stress test · a missing step stays in place, marked `aria-disabled` |
 | Dialog, AlertDialog | shadcn | Confirmations (check-out, deactivate member, hide space) |
 | Sheet | shadcn | Logical sides: `start` for mobile navigation (where the sidebar sits), `end` for a secondary panel, `bottom` for the phone filter panel (with a handle, which does not drag) |
 | DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side |
@@ -349,7 +349,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Separator | shadcn | |
 | Calendar / DatePicker | shadcn | Membership start and end dates |
 | Sidebar | shadcn | Dashboard shell |
-| Breadcrumb | shadcn | Dashboard sub-pages |
+| Breadcrumb | shadcn | Dashboard sub-pages · named by a `label` prop; separators are `ChevronEndIcon` · ancestors `muted-foreground`, the current page `foreground` at the `label` weight, as in the Owner › Members stress test |
 | EmptyState | hand-built | Icon + title + text + action |
 | StatCard | hand-built | Dashboard overview numbers |
 | Spinner | hand-built | |
