@@ -67,9 +67,11 @@ Whatever becomes a standing step is added to foundation §11.
 
 **Resolves when:** the catalogue mechanism is built, and `check:build` either skips fixture strings that are also catalogue strings, or finds the showcase by what only it carries (its route path, which it already checks) rather than by its text.
 
+*Reviewed (2026-09-28, WI-9):* still open. It is owned by F-4, the localisation mechanism in the [foundation plan](../plans/foundation.md), which builds the catalogues.
+
 ## 5. In dark, the destructive badge reads louder than the other status badges
 
-**Status:** Resolved · **Date:** 2026-09-27
+**Status:** Accepted · **Date:** 2026-09-27
 
 **Evidence:** In the dark stress test (Owner › Members), the «منتهية» (expired) badge looks brighter than «نشط» (active) and «ينتهي خلال 3 أيام» (ending in 3 days). The built Badge shows the same thing in the showcase. The values are not the cause:
 1. **Values match.** The stress test's fills, sampled from `0-overview.jpg`, match foundation §5's dark subtle surfaces:
@@ -84,7 +86,7 @@ Whatever becomes a standing step is added to foundation §11.
 1. **Accept.** Expired is the status that needs action, so the extra salience is acceptable. The finding becomes *Accepted*.
 2. **Calm the red.** Give dark `destructive-subtle` a lower-chroma surface: `red-950` with its chroma cut to blue's level (0.062) is `#300A09`; red-200 on it is 12.63:1. That is a new value in foundation §4–§5 first, then in `semantic.css`, where the contrast test re-checks it. Badge, Alert and Toast all bind the role, so all three change.
 
-**Resolution (2026-09-27):** accepted as is, with no token change (option 1). The badge matches foundation and the stress test; expired is the status that should draw attention; and `#300A09` would be a value outside the red ramp.
+**Resolution (2026-09-27):** accepted as is, with no token change (option 1). *The status read Resolved until WI-9 (2026-09-28) corrected it to Accepted, as option 1 says.* The badge matches foundation and the stress test; expired is the status that should draw attention; and `#300A09` would be a value outside the red ramp.
 
 ## 6. Radix component tests failed once under load
 
@@ -122,3 +124,25 @@ Whatever becomes a standing step is added to foundation §11.
 **Evidence:** Under the filter row, the Admin › Data reports stress test (`5-data-reports-desktop.png`, and the phone screens of `0-overview.jpg`) shows the filters in force as a tag: «الحالة: جديد، قيد المراجعة ×». It is a grey pill with a remove button, beside a «مسح الفلاتر» link. Foundation §12 lists no removable tag. A Badge has no button, and a ToggleGroup chip toggles rather than removes. WI-8 builds the filter row without it: the showcase shows the search, the Combobox triggers and the DatePicker.
 
 **Resolves when:** the owner decides whether the layer gets a removable tag (for example, a Badge with a remove button whose label is a prop, which would take a §12 row), or whether the Data reports page composes one when it is built. The «مسح الفلاتر» link is an ordinary `Button variant="link"` either way.
+
+*Decided (2026-09-28, WI-9):*
+- **The component:** the layer gets a removable filter tag, as a layer component with a §12 row.
+- **When:** it is built at the start of the data-reports feature slice, step 8 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build).
+- **Until then:** the finding stays open, and nothing is built now.
+
+## 9. Every Vitest lane fails when the working directory's drive letter is lowercase
+
+**Status:** Open · **Date:** 2026-09-28
+
+**Evidence:** during WI-9, `test:unit` and `test:component` twice failed every file before any test ran. The unit lane reported `TypeError: Cannot read properties of undefined (reading 'config')` at the file's first `describe`. The component lane reported `Vitest failed to find the current suite`.
+
+The cause is the case of the drive letter in the working directory:
+- From `c:\Users\…\masaha` (lowercase), `npm run test:unit -w @masaha/api` fails every file. `test:component` fails all 38 files.
+- From `C:\Users\…\masaha`, the same commands pass.
+- `lint` and `typecheck` pass either way.
+
+Vitest itself prints the root as `C:/…`, while npm reports the working directory as `c:\…`. The likely mechanism is that the runner and the test files load `vitest` through the two spellings of the path. They then get two module instances, and the test file's `describe` finds no runner state. That mechanism is inferred, not traced.
+
+Shells opened by an editor can start in a lowercase `c:\`, as this session's did at times. So a red lane there may not mean a regression, the harm finding 6 described. CI runs on Linux and is not affected.
+
+**Resolves when:** the lanes pass whatever the drive letter's case. For example, the Vitest configs could normalise the root, or a Vitest release could fix it upstream. Until then, [setup.md](../development/setup.md#commands) says to run the test lanes from a path with an uppercase drive letter.
