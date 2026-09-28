@@ -28,6 +28,10 @@ export default defineConfig({
           environment: 'jsdom',
           include: ['src/**/*.component.test.tsx'],
           setupFiles: ['./src/test/componentSetup.ts'],
+          // Each jsdom test is CPU-bound, and one worker per core left the machine no headroom: under
+          // load, the overlay tests slowed past their timeout (finding 6). Half the cores keeps them
+          // well inside it, at the same timeouts.
+          maxWorkers: '50%',
         },
       },
     ],
