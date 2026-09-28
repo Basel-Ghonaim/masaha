@@ -82,7 +82,7 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
 | `npm run db:up` | Starts PostgreSQL and waits until it is healthy |
 | `npm run db:down` | Stops it; the data stays in the volume. `docker compose down -v` also deletes the data |
 | `npm run db:migrate` | `prisma migrate dev` on `masaha_dev`: applies pending migrations and creates one from any schema change |
-| `npm run db:reset` | `prisma migrate reset`, then the seed: drops `masaha_dev`, re-applies every migration and seeds it. Prisma asks for confirmation first |
+| `npm run db:reset` | `prisma migrate reset`, then `prisma db seed`: drops `masaha_dev`, re-applies every migration and seeds it. Prisma 7's reset no longer seeds by itself, so the script chains the seed. Prisma first asks "Are you sure…?": type `y`. The default is No, so Enter cancels ("Reset cancelled."), and then nothing is dropped and the seed does not run either |
 | `npm run db:seed` | Seeds `masaha_dev` (see [The seed](#the-seed)) |
 | `npm run db:studio` | Opens Prisma Studio on `masaha_dev` |
 
