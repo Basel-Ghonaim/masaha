@@ -107,7 +107,7 @@ Legend: 馃寪 public 路 馃懁 any signed-in user 路 馃彚 OWNER of that space 路 馃
 | GET / POST | `/manage/spaces/:spaceId/announcements` | |
 | PATCH / DELETE | `/manage/spaces/:spaceId/announcements/:id` | |
 | GET | `/manage/spaces/:spaceId/reports/occupancy` | by hour, by day, peaks, average stay |
-| GET / PATCH | `/manage/spaces/:spaceId/data-reports[/:id]` | resolve or dismiss |
+| GET / PATCH | `/manage/spaces/:spaceId/data-reports[/:id]` | resolve or dismiss (the owner keeps them once the space is verified) |
 | GET / PATCH | `/manage/spaces/:spaceId/settings` | auto check-out rule |
 | GET | `/manage/spaces/:spaceId/audit-log` | |
 
@@ -116,11 +116,11 @@ Legend: 馃寪 public 路 馃懁 any signed-in user 路 馃彚 OWNER of that space 路 馃
 |---|---|---|
 | GET | `/admin/stats` | aggregate numbers only |
 | GET / POST | `/admin/spaces` | list with filters; create unverified space |
-| PATCH / DELETE | `/admin/spaces/:spaceId` | edit profile; hide; soft delete |
+| PATCH / DELETE | `/admin/spaces/:spaceId` | edit profile and facts while the space is unverified; hide or unhide and soft delete any space |
 | POST / DELETE | `/admin/spaces/:spaceId/managers[/:userId]` | link / unlink an owner |
 | POST | `/admin/owners` | create an OWNER account (temporary password, must change) |
 | GET / PATCH | `/admin/users[/:userId]` | search; suspend; change role |
-| GET / PATCH | `/admin/data-reports[/:id]` | |
+| GET / PATCH | `/admin/data-reports[/:id]` | read all; resolve or dismiss those of unverified spaces |
 | CRUD | `/admin/governorates`, `/admin/areas`, `/admin/amenities` | bilingual lookups; hide and restore with the active flag |
 | GET | `/admin/audit-log` | |
 | GET / PATCH | `/admin/settings` | contact info, defaults |
