@@ -1,11 +1,11 @@
 # Plan — Repository scaffold and design-system layer
 
 > **Status:** Finished · **Last Updated:** 2026-09-28 · **Owner:** Basel Ghoneim
-> **Authority:** The work items that take Masaha from "documents only" to "a built design-system layer synced into Claude Design" (phases 2–3 of [v1-mvp.md](v1-mvp.md)). *What* the layer is, and its values, is owned by [foundation.md](../frontend/design-system/foundation.md); *how* work is executed by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
+> **Authority:** The work items that take Masaha from "documents only" to "a built design-system layer synced into Claude Design" (phases 2–3 of [v1-mvp.md](../v1-mvp.md)). *What* the layer is, and its values, is owned by [foundation.md](../../frontend/design-system/foundation.md); *how* work is executed by [workflow.md](../../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
 
-**Goal:** a working monorepo, and the design-system layer (`apps/web/src/shared/design-system/`) built from the locked *Sea* values, with all 26 components of [foundation §12](../frontend/design-system/foundation.md#12-component-inventory), so the 27 screens are designed in Claude Design with the real components.
+**Goal:** a working monorepo, and the design-system layer (`apps/web/src/shared/design-system/`) built from the locked *Sea* values, with all 26 components of [foundation §12](../../frontend/design-system/foundation.md#12-component-inventory), so the 27 screens are designed in Claude Design with the real components.
 
 **Finished when:**
 - Every Work Item below is merged.
@@ -21,12 +21,12 @@ One Work Item = one fresh Claude Code conversation = one branch = one PR.
 1. **Start clean.** On `main`, pull. Open a **new** Claude Code conversation (fresh context per item).
 2. **Plan first.** Switch Claude Code to *plan mode* and send the prompt in §3. It reads `CLAUDE.md` and this plan, then proposes: the branch name, the PR contract (scope, acceptance criteria, out of scope), the planned commits, the files it will touch, and any dependency not listed in §4.
 3. **Approve or correct the plan.** Nothing is written before this.
-4. **Implement.** Claude Code works on the branch and commits each complete unit of change ([workflow §3](../development/workflow.md#commits)). Before every commit it runs lint, typecheck and tests. It then self-reviews against the Definition of Done.
-5. **Push and open the PR.** Claude Code pushes and opens the PR with the description format from [workflow §3](../development/workflow.md#pr-description), assigned to you and labelled ([workflow §3](../development/workflow.md#pr-assignee-and-labels)). This needs the GitHub CLI signed in. If it isn't, Claude Code gives you the text and you open the PR in the browser.
+4. **Implement.** Claude Code works on the branch and commits each complete unit of change ([workflow §3](../../development/workflow.md#commits)). Before every commit it runs lint, typecheck and tests. It then self-reviews against the Definition of Done.
+5. **Push and open the PR.** Claude Code pushes and opens the PR with the description format from [workflow §3](../../development/workflow.md#pr-description), assigned to you and labelled ([workflow §3](../../development/workflow.md#pr-assignee-and-labels)). This needs the GitHub CLI signed in. If it isn't, Claude Code gives you the text and you open the PR in the browser.
 6. **Review.** Look at the diff and the screenshots, and run the showcase yourself (§6). For a second opinion, send the PR description and screenshots for review.
 7. **Merge** on GitHub with a merge commit or rebase, not squash, so the atomic commits survive. Then delete the branch.
 
-**Stop rules apply** ([workflow §8](../development/workflow.md#8-stop-rules)). In particular, when Claude Code meets a real choice not settled here, it stops and asks.
+**Stop rules apply** ([workflow §8](../../development/workflow.md#8-stop-rules)). In particular, when Claude Code meets a real choice not settled here, it stops and asks.
 
 ## 3. The prompt (same for every item)
 
@@ -92,7 +92,7 @@ WI-5 to WI-8 each depend only on WI-4. They are done in order, but none blocks a
 ### WI-2 — Frontend zones and boundaries · `chore/web-zones` · S
 
 **Scope**
-- The four zones of [frontend/architecture.md §1](../frontend/architecture.md#1-four-zones): `app/`, `pages/`, `features/`, `shared/`. Each zone holds only what exists; no empty placeholder folders.
+- The four zones of [frontend/architecture.md §1](../../frontend/architecture.md#1-four-zones): `app/`, `pages/`, `features/`, `shared/`. Each zone holds only what exists; no empty placeholder folders.
 - Path aliases (`@app/*`, `@pages/*`, `@features/*`, `@shared/*`) in TypeScript and Vite.
 - `eslint-plugin-boundaries`:
   - the one-way dependency rule;
@@ -113,7 +113,7 @@ WI-5 to WI-8 each depend only on WI-4. They are done in order, but none blocks a
 
 ### WI-3 — Tokens, themes and fonts · `feat/design-system-tokens` · L
 
-Builds [foundation §3–§7](../frontend/design-system/foundation.md) exactly as locked.
+Builds [foundation §3–§7](../../frontend/design-system/foundation.md) exactly as locked.
 
 **Scope**
 - `tokens/primitives.css`: the six ramps, `white`, radius scale, shadow scale, motion, z-index layers.
@@ -126,7 +126,7 @@ Builds [foundation §3–§7](../frontend/design-system/foundation.md) exactly a
 - `check:classes` extended to fail on arbitrary-value classes (e.g. `text-[13px]`, `bg-[#fff]`) outside `shared/design-system/`.
 - **Pre-paint script** in `index.html`:
   - sets `data-theme` (stored choice → system preference);
-  - sets `lang` and `dir` (stored choice → browser language → `ar`), per [localisation.md](../frontend/localisation.md#languages-and-resolution).
+  - sets `lang` and `dir` (stored choice → browser language → `ar`), per [localisation.md](../../frontend/localisation.md#languages-and-resolution).
 - **Unit tests:**
   - **key parity:** both themes define the same keys, and every key foundation §5 lists;
   - **contrast:** every pair listed under *Verified* in foundation §5, resolved from the CSS files, meets its threshold.
@@ -176,7 +176,7 @@ Builds [foundation §3–§7](../frontend/design-system/foundation.md) exactly a
 
 ### Component items (WI-5 to WI-8)
 
-Every component in these items follows the [component contract](../frontend/design-system/foundation.md#11-component-contract-applies-to-every-component-including-copied-shadcn-ones):
+Every component in these items follows the [component contract](../../frontend/design-system/foundation.md#11-component-contract-applies-to-every-component-including-copied-shadcn-ones):
 
 - no built-in words;
 - logical properties only;
@@ -227,7 +227,7 @@ Each item also meets the same bar:
 ### WI-8 — Data and dates · `feat/ds-data` · L
 
 - **Components:** Table · DataTable · Combobox (single and multi) · Calendar · DatePicker · ToggleGroup (filter chips).
-- **ToggleGroup** (added by the owner in WI-7, [finding 7](../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)):
+- **ToggleGroup** (added by the owner in WI-7, [finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)):
   - on Radix's ToggleGroup, from the approved `radix-ui` package;
   - chips as in the Admin › Data reports phone filter sheet: `radius-pill`, several selectable at once, a check and the `accent` pair when selected;
   - arrow keys follow the direction.
