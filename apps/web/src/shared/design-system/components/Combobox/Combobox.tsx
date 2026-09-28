@@ -105,6 +105,11 @@ export function Combobox(props: ComboboxProps) {
   );
 }
 
+export type ComboboxTriggerProps = ComponentProps<'button'> & {
+  /** Nothing is chosen yet, so the text is a placeholder and is shown muted. */
+  empty?: boolean;
+};
+
 /**
  * The control that opens the list, drawn like a Select trigger. Inside a Field it takes the Field's
  * label, descriptions and error; outside one, its own text names it, since that text carries the
@@ -113,11 +118,12 @@ export function Combobox(props: ComboboxProps) {
 export function ComboboxTrigger({
   className,
   children,
+  empty = false,
   id,
   'aria-describedby': describedBy,
   'aria-invalid': invalid,
   ...props
-}: ComponentProps<'button'>) {
+}: ComboboxTriggerProps) {
   const field = useField();
   const valueId = useId();
   const fieldProps = useFieldControl({
@@ -132,8 +138,9 @@ export function ComboboxTrigger({
         type="button"
         role="combobox"
         data-slot="combobox-trigger"
+        data-empty={empty || undefined}
         className={cn(
-          "flex h-(--control-height) w-full items-center justify-between gap-2 rounded-(--radius-control) border border-input bg-background ps-3 pe-2 text-(length:--control-text-size) leading-(--type-body-line-height) whitespace-nowrap text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:not-aria-invalid:border-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          "flex h-(--control-height) w-full items-center justify-between gap-2 rounded-(--radius-control) border border-input bg-background ps-3 pe-2 text-(length:--control-text-size) leading-(--type-body-line-height) whitespace-nowrap text-foreground transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:not-aria-invalid:border-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive data-empty:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
           className,
         )}
         // A Field's label names the control through its `for`; without one, the text does.

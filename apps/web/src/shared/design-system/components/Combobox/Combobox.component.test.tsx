@@ -43,16 +43,16 @@ function AreaFilter({ summary = 'Area: all', ...props }: AreaFilterProps) {
 }
 
 describe('Combobox', () => {
-  it('is named by its text outside a Field, and by the label inside one', () => {
+  it('is named by its text outside a Field, and by the label inside one; an empty one is marked', () => {
     const { unmount } = render(<AreaFilter type="single" />);
 
-    expect(screen.getByRole('combobox', { name: 'Area: all' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Area: all' })).not.toHaveAttribute('data-empty');
     unmount();
 
     render(
       <Field label="Space area" error="Choose an area">
         <Combobox type="single">
-          <ComboboxTrigger>Choose an area</ComboboxTrigger>
+          <ComboboxTrigger empty>Choose an area</ComboboxTrigger>
           <AreaList />
         </Combobox>
       </Field>,
@@ -61,6 +61,7 @@ describe('Combobox', () => {
 
     expect(trigger).toHaveAccessibleDescription('Choose an area');
     expect(trigger).toHaveAttribute('aria-invalid', 'true');
+    expect(trigger).toHaveAttribute('data-empty');
   });
 
   it('opens on a search box and a list named by their props', async () => {

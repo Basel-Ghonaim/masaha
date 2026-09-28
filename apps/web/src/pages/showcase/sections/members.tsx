@@ -58,7 +58,7 @@ export function MemberCell({ member }: { member: Member }) {
       <MemberAvatar member={member} />
       <div className="flex flex-col">
         <span className="text-body-sm text-foreground">{member.name}</span>
-        <span dir="ltr" className="self-start text-caption text-muted-foreground">
+        <span dir="ltr" className="self-start text-caption whitespace-nowrap text-muted-foreground">
           {member.phone}
         </span>
       </div>

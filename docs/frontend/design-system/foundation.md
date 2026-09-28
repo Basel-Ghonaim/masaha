@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog, AlertDialog, Sheet, DropdownMenu, Tabs, Breadcrumb, Pagination and Sidebar; ToggleGroup, Popover, Combobox, Calendar and DatePicker; Table and DataTable.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9).
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-28
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -331,7 +331,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Button | shadcn | primary, secondary, outline, ghost, destructive, link · sizes sm/md/lg/icon · loading state |
 | Input, Textarea | shadcn | with error state; `dir` prop for LTR values; Input holds start and end icons and a button (`InputAction`) inside its box |
 | Field | hand-built | Label + control + helper + error, wiring ids and `aria-describedby`; an end slot on the label row; shown disabled with its control |
-| Select / Combobox | shadcn | Area filter, amenity filter (multi-select) · Combobox is a Popover holding cmdk's search and list (shadcn's current `combobox` is built on Base UI, which the layer does not use): `single` closes on a choice, `multiple` stays open · its trigger is drawn like Select's and shows the caller's summary («الحالة: 2 محدّدة»); outside a Field that text names it · the search, list and empty text are props (cmdk's default list label is replaced); the search row shows its focus by its divider turning `ring`, not an outline · a chosen option is `aria-checked` with a check at its end, because cmdk keeps `aria-selected` for the highlighted one |
+| Select / Combobox | shadcn | Area filter, amenity filter (multi-select) · Combobox is a Popover holding cmdk's search and list (shadcn's current `combobox` is built on Base UI, which the layer does not use): `single` closes on a choice, `multiple` stays open · its trigger is drawn like Select's and shows the caller's summary («الحالة: 2 محدّدة»); outside a Field that text names it; `empty` shows a placeholder muted, as on DatePicker's trigger · the search, list and empty text are props (cmdk's default list label is replaced); the search row shows its focus by its divider turning `ring`, not an outline · a chosen option is `aria-checked` with a check at its end, because cmdk keeps `aria-selected` for the highlighted one |
 | Checkbox, RadioGroup, Switch | shadcn | |
 | Badge | shadcn | neutral, primary, success, warning, info, destructive (subtle variants) |
 | Card | shadcn | |
@@ -406,7 +406,7 @@ Every screen: phone and desktop, light and dark. Key screens also in LTR (Englis
 
 1. ✅ **Visual direction (Claude Design).** Use this document as the brief. Explore 2–3 directions on three anchor screens: *Home*, *Space details*, *Owner overview*, each in light and dark, RTL. Choose one direction. **Output:** the palette ramps, semantic role values for both themes, font choice, radius and shadow.
 2. ✅ **Lock the tokens.** Write the chosen values into §4–§7 of this document. *(Done: direction 1a Sea, with contrast fixes and a stress test on Sign in, Owner › Members and Admin › Data reports.)*
-3. **Build the layer in code (Claude Code).** Tokens, themes, pre-paint script, the shadcn components from §12 adapted per §11. Push to GitHub.
+3. ✅ **Build the layer in code (Claude Code).** Tokens, themes, pre-paint script, the shadcn components from §12 adapted per §11. Push to GitHub.
 4. **Sync into Claude Design.** Import the repository's design system (`/design-sync` from Claude Code, or a GitHub import) so every screen is designed with the real components.
 5. **Design the 27 screens** (§13) in Claude Design.
 6. **Hand off** each area to Claude Code with Claude Design's handoff bundle, and implement.

@@ -29,7 +29,7 @@ export function RadioGroup({
   return (
     <RadioGroupPrimitive.Root
       data-slot="radio-group"
-      className={cn('grid gap-1', className)}
+      className={cn('group/radio-group grid gap-1', className)}
       // A group is not a labelable element, so the Field's label names it by reference.
       aria-labelledby={labelledBy ?? field?.labelId}
       {...fieldProps}
@@ -55,7 +55,7 @@ export function RadioGroupItem({
     <RadioGroupPrimitive.Item
       data-slot="radio-group-item"
       className={cn(
-        'relative flex aspect-square size-4.5 shrink-0 items-center justify-center rounded-full border border-input bg-transparent transition-colors after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:not-aria-invalid:border-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive data-checked:border-primary data-checked:bg-primary',
+        'relative flex aspect-square size-4.5 shrink-0 items-center justify-center rounded-full border border-input bg-transparent transition-colors after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:not-aria-invalid:not-group-aria-invalid/radio-group:border-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive group-aria-invalid/radio-group:border-destructive data-checked:border-primary data-checked:bg-primary',
         className,
       )}
       {...fieldProps}

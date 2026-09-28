@@ -85,7 +85,8 @@ export function TabsContent({ className, ...props }: ComponentProps<typeof TabsP
     <TabsPrimitive.Content
       data-slot="tabs-content"
       className={cn(
-        'outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        // Not outline-none: in Tailwind 4 it empties the outline style that focus-visible:outline-2 uses.
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         className,
       )}
       {...props}

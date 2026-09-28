@@ -24,11 +24,25 @@ type PaginationSamples = {
 
 const TOTAL = 5;
 
-function Pages({ page, samples }: { page: number; samples: PaginationSamples }) {
-  // Three page numbers around the current one, then the last page.
-  const first = Math.min(Math.max(page - 1, 1), TOTAL - 3);
-  const numbers = [first, first + 1, first + 2];
+/**
+ * Three page numbers around the current one, with the first and last pages always in reach. An
+ * ellipsis stands only where pages are skipped: `1 2 3 … 5`, `1 2 3 4 5`, `1 … 3 4 5`.
+ */
+function pageList(page: number): (number | 'before' | 'after')[] {
+  const start = Math.min(Math.max(page - 1, 1), TOTAL - 2);
+  const end = start + 2;
+  return [
+    ...(start > 1 ? [1] : []),
+    ...(start > 2 ? (['before'] as const) : []),
+    start,
+    start + 1,
+    end,
+    ...(end < TOTAL - 1 ? (['after'] as const) : []),
+    ...(end < TOTAL ? [TOTAL] : []),
+  ];
+}
 
+function Pages({ page, samples }: { page: number; samples: PaginationSamples }) {
   return (
     <Pagination label={samples.label}>
       <PaginationContent>
@@ -37,21 +51,17 @@ function Pages({ page, samples }: { page: number; samples: PaginationSamples }) 
             {samples.previous}
           </PaginationPrevious>
         </PaginationItem>
-        {numbers.map((number) => (
-          <PaginationItem key={number}>
-            <PaginationLink href="#" isActive={number === page}>
-              {number}
-            </PaginationLink>
+        {pageList(page).map((entry) => (
+          <PaginationItem key={entry}>
+            {typeof entry === 'number' ? (
+              <PaginationLink href="#" isActive={entry === page}>
+                {entry}
+              </PaginationLink>
+            ) : (
+              <PaginationEllipsis label={samples.more} />
+            )}
           </PaginationItem>
         ))}
-        <PaginationItem>
-          <PaginationEllipsis label={samples.more} />
-        </PaginationItem>
-        <PaginationItem>
-          <PaginationLink href="#" isActive={page === TOTAL}>
-            {TOTAL}
-          </PaginationLink>
-        </PaginationItem>
         <PaginationSummary>
           {samples.summary.replace('{page}', String(page)).replace('{total}', String(TOTAL))}
         </PaginationSummary>

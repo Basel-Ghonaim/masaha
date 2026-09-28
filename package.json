@@ -35,5 +35,12 @@
     "prettier": "^3.9.9",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.70.1"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "prisma": true,
+    "@prisma/engines": true,
+    "unrs-resolver": true,
+    "fsevents": true
   }
 }
