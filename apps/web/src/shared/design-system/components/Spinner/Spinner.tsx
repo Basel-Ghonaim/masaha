@@ -14,10 +14,7 @@ export function Spinner({ label, className, ...props }: SpinnerProps) {
       data-slot="spinner"
       role="status"
       aria-label={label}
-      className={cn(
-        "inline-flex shrink-0 text-muted-foreground [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
+      className={cn('inline-flex shrink-0 text-muted-foreground [&_svg]:size-4', className)}
       {...props}
     >
       <LoaderIcon aria-hidden className="motion-safe:animate-spin" />
