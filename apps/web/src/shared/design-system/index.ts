@@ -144,6 +144,12 @@ export { Switch, type SwitchProps } from './components/Switch';
 export { Tabs, TabsContent, TabsList, TabsTrigger, type TabsListProps } from './components/Tabs';
 export { Textarea, type TextareaProps } from './components/Textarea';
 export { ThemeToggle, type ThemeToggleProps } from './components/ThemeToggle';
+export {
+  ToggleGroup,
+  ToggleGroupItem,
+  type ToggleGroupItemProps,
+  type ToggleGroupProps,
+} from './components/ToggleGroup';
 export { Toaster, toast, type ToasterProps } from './components/Toast';
 export { Tooltip, TooltipContent, TooltipTrigger, type TooltipProps } from './components/Tooltip';
 export {

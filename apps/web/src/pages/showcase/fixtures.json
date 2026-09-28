@@ -408,7 +408,12 @@
           "title": "فلاتر البلاغات",
           "clear": "مسح كل الفلاتر",
           "status": "حالة البلاغ",
-          "statuses": ["البلاغات الجديدة", "البلاغات قيد المراجعة", "البلاغات المصححة"],
+          "statuses": [
+            "البلاغات الجديدة",
+            "البلاغات قيد المراجعة",
+            "البلاغات المصححة",
+            "البلاغات المرفوضة"
+          ],
           "area": "منطقة المساحة",
           "areas": ["كل المناطق", "الرمال", "تل الهوا"],
           "apply": "عرض 20 بلاغاً مطابقاً"
@@ -513,6 +518,19 @@
         "signOut": "مغادرة لوحة التحكم",
         "trigger": "فتح تنقل لوحة التحكم",
         "page": "صفحة مشتركي المساحة"
+      },
+      "toggleGroup": {
+        "title": "شرائح الفلترة",
+        "caption": "عدة شرائح مفعّلة معاً، لكل منها علامة؛ وشريحة معطّلة",
+        "label": "حالة بلاغ البيانات",
+        "helper": "اختر أي عدد من الحالات",
+        "options": [
+          "بلاغات البيانات الجديدة",
+          "بلاغات البيانات قيد المراجعة",
+          "بلاغات البيانات المصحّحة",
+          "بلاغات البيانات المرفوضة"
+        ],
+        "disabledLabel": "حالة يحدّدها مدير المنصة"
       }
     },
     "en": {
@@ -907,7 +925,7 @@
           "title": "Report filters",
           "clear": "Clear every filter",
           "status": "Report status",
-          "statuses": ["New reports", "Reports in review", "Corrected reports"],
+          "statuses": ["New reports", "Reports in review", "Corrected reports", "Rejected reports"],
           "area": "Space area",
           "areas": ["Every area", "Rimal", "Tal al-Hawa"],
           "apply": "Show 20 matching reports"
@@ -1012,6 +1030,19 @@
         "signOut": "Leave the dashboard",
         "trigger": "Open the dashboard navigation",
         "page": "Space members page"
+      },
+      "toggleGroup": {
+        "title": "Filter chips",
+        "caption": "Several on at once, each with a check; one chip disabled",
+        "label": "Status of the data report",
+        "helper": "Choose any number of statuses",
+        "options": [
+          "New data reports",
+          "Data reports under review",
+          "Corrected data reports",
+          "Rejected data reports"
+        ],
+        "disabledLabel": "Status set by the platform admin"
       }
     }
   }

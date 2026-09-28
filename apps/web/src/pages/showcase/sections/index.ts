@@ -25,5 +25,6 @@ export { SwitchSection } from './SwitchSection';
 export { TabsSection } from './TabsSection';
 export { TextareaSection } from './TextareaSection';
 export { ToastSection } from './ToastSection';
+export { ToggleGroupSection } from './ToggleGroupSection';
 export { TogglesSection } from './TogglesSection';
 export { TooltipSection } from './TooltipSection';

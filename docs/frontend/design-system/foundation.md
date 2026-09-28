@@ -2,9 +2,9 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog, AlertDialog, Sheet, DropdownMenu, Tabs, Breadcrumb, Pagination and Sidebar.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog, AlertDialog, Sheet, DropdownMenu, Tabs, Breadcrumb, Pagination and Sidebar; ToggleGroup.
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-09-27
+> **Last Updated:** 2026-09-28
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -348,7 +348,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Avatar | shadcn | Initials fallback |
 | Separator | shadcn | |
 | Calendar / DatePicker | shadcn | Membership start and end dates |
-| ToggleGroup (filter chips) | shadcn | Multi-select filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, a check and the `accent` pair when selected. Planned for WI-8 ([finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)) |
+| ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)) |
 | Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
 | Breadcrumb | shadcn | Dashboard sub-pages · named by a `label` prop; separators are `ChevronEndIcon` · ancestors `muted-foreground`, the current page `foreground` at the `label` weight, as in the Owner › Members stress test |
 | EmptyState | hand-built | Icon + title + text + action |

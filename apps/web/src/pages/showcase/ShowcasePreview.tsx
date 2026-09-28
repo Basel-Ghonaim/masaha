@@ -30,6 +30,7 @@ import {
   TabsSection,
   TextareaSection,
   ToastSection,
+  ToggleGroupSection,
   TogglesSection,
   TooltipSection,
 } from './sections';
@@ -85,6 +86,7 @@ export function ShowcasePreview() {
         <BreadcrumbSection samples={samples.breadcrumb} />
         <PaginationSection samples={samples.pagination} />
         <SidebarSection samples={samples.sidebar} />
+        <ToggleGroupSection samples={samples.toggleGroup} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

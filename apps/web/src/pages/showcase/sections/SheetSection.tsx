@@ -1,6 +1,5 @@
 import {
   Button,
-  Checkbox,
   Field,
   Select,
   SelectContent,
@@ -16,6 +15,8 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@shared/design-system';
 import { ShowcaseGroup, ShowcaseSection } from '../ShowcaseSection';
 
@@ -89,13 +90,14 @@ export function SheetSection({ samples }: { samples: SheetSamples }) {
             </SheetHeader>
             <SheetBody className="flex flex-col gap-4">
               <Field label={filters.status}>
-                <div className="flex flex-col gap-1">
-                  {filters.statuses.map((status) => (
-                    <Field key={status} label={status} orientation="horizontal">
-                      <Checkbox />
-                    </Field>
+                {/* Values come from position: fixtures hold phrases only. */}
+                <ToggleGroup type="multiple" defaultValue={['0', '1']}>
+                  {filters.statuses.map((status, index) => (
+                    <ToggleGroupItem key={status} value={String(index)}>
+                      {status}
+                    </ToggleGroupItem>
                   ))}
-                </div>
+                </ToggleGroup>
               </Field>
               <Field label={filters.area}>
                 <Select defaultValue={filters.areas[0]}>
