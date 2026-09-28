@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog, AlertDialog, Sheet, DropdownMenu, Tabs, Breadcrumb, Pagination and Sidebar; ToggleGroup, Popover, Combobox, Calendar and DatePicker.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog, AlertDialog, Sheet, DropdownMenu, Tabs, Breadcrumb, Pagination and Sidebar; ToggleGroup, Popover, Combobox, Calendar and DatePicker; Table.
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-28
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -189,7 +189,7 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 | `sidebar-border` / `sidebar-ring` | n-200 / b-500 | n-800 / b-400 |
 | `chart-1` … `chart-5` | b-600 · i-600 · a-500 · g-500 · n-500 | b-400 · i-400 · a-400 · g-400 · n-500 |
 
-**Verified:** every `-foreground` on its surface, and `muted-foreground`, `primary`, `destructive`, `success` and `info` as text on `background`, `card` and `muted`, meet 4.5:1 in both themes. `input`, `ring`, every `chart-*` and the status fills meet 3:1 against `background` and `card`. The layer's contrast test re-checks these pairs.
+**Verified:** every `-foreground` on its surface, and `muted-foreground`, `primary`, `destructive`, `success` and `info` as text on `background`, `card` and `muted`, and `foreground` and `muted-foreground` on `accent` (a highlighted table row), meet 4.5:1 in both themes. `input`, `ring`, every `chart-*` and the status fills meet 3:1 against `background` and `card`. The layer's contrast test re-checks these pairs.
 
 **Usage rules the values depend on:**
 - **Warning is never text on its own.** `warning` is for fills and icons only (3.9:1 on white). Warning text uses `warning-subtle-foreground` on `warning-subtle`.
@@ -335,7 +335,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Checkbox, RadioGroup, Switch | shadcn | |
 | Badge | shadcn | neutral, primary, success, warning, info, destructive (subtle variants) |
 | Card | shadcn | |
-| Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** |
+| Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** · Table, as in the Owner › Members stress test: a `muted` header row with `caption` headings, `body-sm` rows with `table-row-padding-block` and a `border` divider, the outer cells in line with `card-padding`; a row takes `accent` when hovered and while its row menu is open · Table has no frame: DataTable frames it as a card |
 | Pagination | shadcn | Words as props · page numbers from `md`, the current one outlined; on a phone, Previous and Next around a summary ("Page 1 of 5"), as in the Owner › Members stress test · a missing step stays in place, marked `aria-disabled` |
 | Dialog, AlertDialog | shadcn | Confirmations (check-out, deactivate member, hide space) |
 | Sheet | shadcn | Logical sides: `start` for mobile navigation (where the sidebar sits), `end` for a secondary panel, `bottom` for the phone filter panel (with a handle, which does not drag) |

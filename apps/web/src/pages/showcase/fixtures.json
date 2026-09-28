@@ -621,6 +621,78 @@
           "error": "اختر تاريخ النهاية قبل الحفظ",
           "panel": "اختيار نهاية الاشتراك"
         }
+      },
+      "members": {
+        "label": "مشتركو مساحة الريادة",
+        "columns": {
+          "member": "المشترك",
+          "membership": "العضوية",
+          "ends": "تنتهي في",
+          "status": "الحالة",
+          "attendance": "الحضور"
+        },
+        "rows": [
+          {
+            "name": "سارة الحلو",
+            "phone": "+970 59 234 1188",
+            "plan": "شهرية",
+            "ends": "28/09/2026",
+            "status": "ينتهي خلال يومين"
+          },
+          {
+            "name": "محمد أبو شعبان",
+            "phone": "+970 56 771 0932",
+            "plan": "أسبوعية",
+            "ends": "29/09/2026",
+            "status": "ينتهي خلال 3 أيام"
+          },
+          {
+            "name": "نور الهدى عبد الرحمن الخالدي",
+            "phone": "+970 59 610 2284",
+            "plan": "فصلية",
+            "ends": "30/11/2026",
+            "status": "نشط"
+          },
+          {
+            "name": "ليان عوض",
+            "phone": "+970 59 818 4471",
+            "plan": "شهرية",
+            "ends": "14/10/2026",
+            "status": "نشط"
+          },
+          {
+            "name": "هبة قاسم",
+            "phone": "+970 59 440 2210",
+            "plan": "أسبوعية",
+            "ends": "24/09/2026",
+            "status": "منتهية"
+          },
+          {
+            "name": "يوسف النجار",
+            "phone": "+970 56 302 7765",
+            "plan": "شهرية",
+            "ends": "21/10/2026",
+            "status": "نشط"
+          },
+          {
+            "name": "عمر الشوا",
+            "phone": "+970 59 127 5530",
+            "plan": "شهرية",
+            "ends": "05/10/2026",
+            "status": "نشط"
+          },
+          {
+            "name": "أحمد صيام",
+            "phone": "+970 56 948 0016",
+            "plan": "أسبوعية",
+            "ends": "19/09/2026",
+            "status": "منتهية"
+          }
+        ]
+      },
+      "table": {
+        "title": "الجداول",
+        "caption": "صف عناوين خافت، وصفوف كثيفة، ولون التمييز على الصف تحت المؤشر"
       }
     },
     "en": {
@@ -1229,6 +1301,78 @@
           "error": "Choose the end date before saving",
           "panel": "Choose the end of the membership"
         }
+      },
+      "members": {
+        "label": "Members of the Riyada space",
+        "columns": {
+          "member": "Member",
+          "membership": "Membership",
+          "ends": "Ends on",
+          "status": "Membership status",
+          "attendance": "Attendance"
+        },
+        "rows": [
+          {
+            "name": "Sara al-Helou",
+            "phone": "+970 59 234 1188",
+            "plan": "Monthly",
+            "ends": "28/09/2026",
+            "status": "Ends in 2 days"
+          },
+          {
+            "name": "Mohammed Abu Shaaban",
+            "phone": "+970 56 771 0932",
+            "plan": "Weekly",
+            "ends": "29/09/2026",
+            "status": "Ends in 3 days"
+          },
+          {
+            "name": "Nour al-Huda Abdulrahman al-Khalidi",
+            "phone": "+970 59 610 2284",
+            "plan": "Quarterly",
+            "ends": "30/11/2026",
+            "status": "Active member"
+          },
+          {
+            "name": "Layan Awad",
+            "phone": "+970 59 818 4471",
+            "plan": "Monthly",
+            "ends": "14/10/2026",
+            "status": "Active member"
+          },
+          {
+            "name": "Hiba Qasem",
+            "phone": "+970 59 440 2210",
+            "plan": "Weekly",
+            "ends": "24/09/2026",
+            "status": "Expired"
+          },
+          {
+            "name": "Yousef al-Najjar",
+            "phone": "+970 56 302 7765",
+            "plan": "Monthly",
+            "ends": "21/10/2026",
+            "status": "Active member"
+          },
+          {
+            "name": "Omar al-Shawa",
+            "phone": "+970 59 127 5530",
+            "plan": "Monthly",
+            "ends": "05/10/2026",
+            "status": "Active member"
+          },
+          {
+            "name": "Ahmed Siam",
+            "phone": "+970 56 948 0016",
+            "plan": "Weekly",
+            "ends": "19/09/2026",
+            "status": "Expired"
+          }
+        ]
+      },
+      "table": {
+        "title": "Tables",
+        "caption": "A muted header row, dense rows, and the accent on the hovered row"
       }
     }
   }

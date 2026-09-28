@@ -31,6 +31,7 @@ import {
   SpinnerSection,
   StatCardSection,
   SwitchSection,
+  TableSection,
   TabsSection,
   TextareaSection,
   ToastSection,
@@ -95,6 +96,7 @@ export function ShowcasePreview() {
         <ComboboxSection samples={samples.combobox} />
         <CalendarSection samples={samples.calendar} lang={language} />
         <DatePickerSection samples={samples.datePicker} lang={language} />
+        <TableSection samples={samples.table} members={samples.members} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

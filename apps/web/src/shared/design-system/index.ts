@@ -161,6 +161,16 @@ export { Skeleton } from './components/Skeleton';
 export { Spinner, type SpinnerProps } from './components/Spinner';
 export { StatCard, type StatCardProps } from './components/StatCard';
 export { Switch, type SwitchProps } from './components/Switch';
+export {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './components/Table';
 export { Tabs, TabsContent, TabsList, TabsTrigger, type TabsListProps } from './components/Tabs';
 export { Textarea, type TextareaProps } from './components/Textarea';
 export { ThemeToggle, type ThemeToggleProps } from './components/ThemeToggle';
