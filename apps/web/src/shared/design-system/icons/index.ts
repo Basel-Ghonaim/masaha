@@ -18,6 +18,7 @@ export {
   LoaderIcon,
   LogInIcon,
   LogOutIcon,
+  MenuIcon,
   MoonIcon,
   SearchIcon,
   SearchXIcon,

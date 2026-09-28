@@ -17,6 +17,7 @@ export { RadioGroupSection } from './RadioGroupSection';
 export { SelectSection } from './SelectSection';
 export { SeparatorSection } from './SeparatorSection';
 export { SheetSection } from './SheetSection';
+export { SidebarSection } from './SidebarSection';
 export { SkeletonSection } from './SkeletonSection';
 export { SpinnerSection } from './SpinnerSection';
 export { StatCardSection } from './StatCardSection';

@@ -495,6 +495,24 @@
         "more": "أرقام صفحات محذوفة",
         "summary": "صفحة {page} من {total}",
         "pageCaptions": ["في الصفحة الأولى", "في صفحة وسطى", "في الصفحة الأخيرة"]
+      },
+      "sidebar": {
+        "title": "الشريط الجانبي",
+        "caption": "موسّع على الحاسوب، وأيقونات فقط على الجهاز اللوحي، ودرج من جهة البداية على الهاتف",
+        "label": "لوحة تحكم مالك مساحة الريادة",
+        "product": "مساحة للعرض",
+        "area": "لوحة تحكم المالك",
+        "groupLabel": "العمل اليومي",
+        "items": {
+          "overview": "نظرة على المساحة",
+          "attendance": "حضور اليوم",
+          "members": "مشتركو المساحة",
+          "reports": "البيانات المبلّغ عنها"
+        },
+        "reportsBadge": "3 بلاغات بانتظار المراجعة",
+        "signOut": "مغادرة لوحة التحكم",
+        "trigger": "فتح تنقل لوحة التحكم",
+        "page": "صفحة مشتركي المساحة"
       }
     },
     "en": {
@@ -976,6 +994,24 @@
         "more": "Page numbers left out",
         "summary": "Page {page} of {total}",
         "pageCaptions": ["On the first page", "On a middle page", "On the last page"]
+      },
+      "sidebar": {
+        "title": "Sidebar",
+        "caption": "Expanded on a desktop, icons only on a tablet, a drawer from the start side on a phone",
+        "label": "Riyada Space owner dashboard",
+        "product": "Masaha showcase",
+        "area": "Owner's dashboard",
+        "groupLabel": "Daily operations",
+        "items": {
+          "overview": "Space overview",
+          "attendance": "Today's attendance",
+          "members": "Space members",
+          "reports": "Reported data"
+        },
+        "reportsBadge": "3 reports to review",
+        "signOut": "Leave the dashboard",
+        "trigger": "Open the dashboard navigation",
+        "page": "Space members page"
       }
     }
   }

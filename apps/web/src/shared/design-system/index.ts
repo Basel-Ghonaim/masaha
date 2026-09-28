@@ -119,6 +119,24 @@ export {
   SheetTrigger,
   type SheetContentProps,
 } from './components/Sheet';
+export {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  type SidebarHeaderProps,
+  type SidebarMenuButtonProps,
+  type SidebarProps,
+  type SidebarTriggerProps,
+} from './components/Sidebar';
 export { Skeleton } from './components/Skeleton';
 export { Spinner, type SpinnerProps } from './components/Spinner';
 export { StatCard, type StatCardProps } from './components/StatCard';
@@ -147,6 +165,7 @@ export {
   LoaderIcon,
   LogInIcon,
   LogOutIcon,
+  MenuIcon,
   MoonIcon,
   SearchIcon,
   SearchXIcon,

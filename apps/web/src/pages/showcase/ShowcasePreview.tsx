@@ -22,6 +22,7 @@ import {
   SelectSection,
   SeparatorSection,
   SheetSection,
+  SidebarSection,
   SkeletonSection,
   SpinnerSection,
   StatCardSection,
@@ -83,6 +84,7 @@ export function ShowcasePreview() {
         <TabsSection samples={samples.tabs} />
         <BreadcrumbSection samples={samples.breadcrumb} />
         <PaginationSection samples={samples.pagination} />
+        <SidebarSection samples={samples.sidebar} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

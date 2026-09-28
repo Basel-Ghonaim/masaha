@@ -17,6 +17,7 @@ import {
   LoaderCircle,
   LogIn,
   LogOut,
+  Menu,
   Moon,
   Search,
   SearchX,
@@ -129,4 +130,8 @@ export function EllipsisIcon(props: IconProps) {
 
 export function EllipsisVerticalIcon(props: IconProps) {
   return <Icon glyph={EllipsisVertical} {...props} />;
+}
+
+export function MenuIcon(props: IconProps) {
+  return <Icon glyph={Menu} {...props} />;
 }
