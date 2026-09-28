@@ -1,6 +1,6 @@
 # Setup
 
-> **Status:** Active · **Last Updated:** 2026-09-27 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-28 · **Owner:** Basel Ghoneim
 > **Authority:** How to install, run, check and test the repository locally, and what CI runs. Which lane proves a behaviour is owned by [testing.md](testing.md); how work is executed by [workflow.md](workflow.md).
 
 ## Prerequisites
@@ -17,9 +17,29 @@ The pin is strict: `engines` allows `>=24.15.0 <25`, and `.npmrc` sets `engine-s
 npm ci
 ```
 
-One lockfile at the root installs every workspace: `packages/shared`, `apps/api` and `apps/web`.
+One lockfile at the root installs every workspace: `packages/shared`, `apps/api` and `apps/web`. The install also generates the Prisma client ([Database](#database)), so a fresh clone needs nothing beyond `npm ci`.
 
-**Windows:** `npm ci` deletes `node_modules` first. It fails with `EPERM` on `resolver.win32-x64-msvc.node` while an editor's ESLint server has that native module loaded (it comes with the TypeScript import resolver that the zone boundaries use). Close VS Code, or disable its ESLint extension, before running `npm ci`. `npm install` with an unchanged lockfile is not affected.
+**After a pull that changes `package-lock.json`, install again** (`npm install` or `npm ci`). Until then, the new packages are missing. For example, a checkout installed before the API's database work has no `prisma` and no generated client, and `npm run lint` fails with hundreds of `no-unsafe-*` errors in `apps/api`.
+
+**Install scripts.** npm 11 reviews dependencies' install scripts against the `allowScripts` field of the root `package.json`. The field approves, by name, the five packages whose scripts the setup needs:
+
+| Package | Why |
+|---|---|
+| `prisma`, `@prisma/engines` | Prisma's CLI and its engines, used by the generation and the migrations |
+| `esbuild` | the bundler inside Vite and `tsx` |
+| `unrs-resolver` | the import resolver behind the zone boundaries in ESLint |
+| `fsevents` | macOS only, for file watching; never installed on Windows or Linux |
+
+- **Today the policy only warns.** npm still runs unreviewed scripts, but reports them as `npm warn allow-scripts`. A future npm release will block them. With this list, the install prints no such warning, and `npm ci --strict-allow-scripts` passes.
+- **When a new dependency brings an install script,** npm names it in that warning. Review it, then approve it with `npm approve-scripts --no-allow-scripts-pin <pkg>`. Entries are name-only, because the lockfile already pins every version.
+- **Keep the policy in `package.json`.** npm ignores an `allowScripts` in a workspace, and refuses `--allow-scripts` on the command line inside a project.
+- The API's own `postinstall` (`prisma generate`) belongs to a workspace, which the policy does not cover. It always runs.
+
+**Windows:** `npm ci` deletes `node_modules` first. It fails with `EPERM` on `resolver.win32-x64-msvc.node` while an editor's ESLint server has that native module loaded (it comes with the TypeScript import resolver that the zone boundaries use).
+- **Before `npm ci`,** close VS Code, or disable its ESLint extension.
+- **If it has already failed,** `node_modules` is left half-deleted, without `prisma`. Close the editor and run `npm ci` again.
+- **Do not run a bare `npx prisma` on such a tree.** With no local `prisma`, `npx` goes to the registry instead.
+- `npm install` with an unchanged lockfile is not affected.
 
 ## Commands
 
@@ -65,7 +85,7 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
 **Prisma** (7) lives in `apps/api`:
 - The schema is in `prisma/schema.prisma`. It has no models yet.
 - The connection comes from `DATABASE_URL` through `prisma.config.ts`, which loads `apps/api/.env` the same way the API does.
-- The client is generated into `apps/api/src/generated/prisma/`. That folder is not committed. `npm install` and `npm ci` regenerate it (the API's `postinstall`). After a schema change, `npm exec -w @masaha/api -- prisma generate` regenerates it by hand.
+- The client is generated into `apps/api/src/generated/prisma/`. That folder is not committed. Every `npm install` and `npm ci` regenerates it (the API's `postinstall`), even when no package changed. After a schema change, `npm exec -w @masaha/api -- prisma generate` regenerates it by hand.
 
 ## The API
 
