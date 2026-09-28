@@ -107,4 +107,6 @@ Whatever becomes a standing step is added to foundation §11.
 
 **Evidence:** the Admin › Data reports phone stress test (`0-overview.jpg`, the filter bottom sheet) chooses statuses with toggle chips: pill-shaped, several selectable at once, a check and the `accent` pair when selected. Foundation §4 names "filter chips" as a user of `radius-pill`, but §12 lists no component for them, and none of WI-5 to WI-8 builds one. WI-7's showcase shows the filter sheet with checkboxes in their place.
 
-**Resolves when:** the owner decides whether a chip toggle belongs in the layer (a §12 row, for example "ToggleChip", on Radix's ToggleGroup, in the `radix-ui` package already approved) or the filter screens use checkboxes. Either way, the Directory and Data reports screens are designed with the answer.
+**Resolves when:** WI-8 builds the ToggleGroup (filter chips).
+
+*Decided (2026-09-28):* the owner put a ToggleGroup, on Radix's ToggleGroup from the approved `radix-ui` package, into the layer. It has a foundation §12 row and is in WI-8's scope in the [design-system plan](../plans/design-system-layer.md). The finding stays open until WI-8 builds it.
