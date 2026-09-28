@@ -57,7 +57,7 @@ export type PaginationLinkProps = LinkProps & {
   isActive?: boolean;
 };
 
-/** A page number. The current page is outlined and marked as the current page. */
+/** A page number. The current page is outlined on the page background and marked as current. */
 export function PaginationLink({
   isActive = false,
   asChild = false,
@@ -70,7 +70,13 @@ export function PaginationLink({
     <Button
       asChild
       variant={isActive ? 'outline' : 'ghost'}
-      className={cn('size-8 px-0 pointer-coarse:size-(--control-height)', className)}
+      className={cn(
+        'size-8 px-0 pointer-coarse:size-(--control-height)',
+        // The current page keeps its outline on the page background, as in the stress test, rather
+        // than the outline variant's card fill.
+        isActive && 'bg-background',
+        className,
+      )}
     >
       <Comp data-slot="pagination-link" aria-current={isActive ? 'page' : undefined} {...props} />
     </Button>
