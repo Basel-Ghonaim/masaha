@@ -146,3 +146,11 @@ Vitest itself prints the root as `C:/…`, while npm reports the working directo
 Shells opened by an editor can start in a lowercase `c:\`, as this session's did at times. So a red lane there may not mean a regression, the harm finding 6 described. CI runs on Linux and is not affected.
 
 **Resolves when:** the lanes pass whatever the drive letter's case. For example, the Vitest configs could normalise the root, or a Vitest release could fix it upstream. Until then, [setup.md](../development/setup.md#commands) says to run the test lanes from a path with an uppercase drive letter.
+
+## 10. The seeded amenity icon keys have no icons in the design system yet
+
+**Status:** Open · **Date:** 2026-09-28
+
+**Evidence:** F-3 seeds eight amenities, each with an `icon` key that the web maps to an icon ([`apps/api/src/db/seed/lookups.ts`](../../apps/api/src/db/seed/lookups.ts)): `wifi`, `zap`, `sun`, `plug-zap`, `coffee`, `users`, `presentation`, `graduation-cap`. They are Lucide names, and Lucide is imported only inside the design-system layer. The layer's icon set (`shared/design-system/icons/iconSet.tsx`) includes none of them yet, so the web has nothing to map these keys to.
+
+**Resolves when:** the directory slice (step 3 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build)) adds these eight keys to the design-system icon set, with the map from key to icon, and the admin's amenity form offers that set.

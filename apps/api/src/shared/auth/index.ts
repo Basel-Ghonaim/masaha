@@ -8,3 +8,4 @@ export type {
   SpaceResource,
   UnscopedAction,
 } from './can.ts';
+export { hashPassword } from './password.ts';
