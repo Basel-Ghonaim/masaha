@@ -63,7 +63,7 @@ export function ComboboxSection({ samples }: { samples: ComboboxSamples }) {
       <ShowcaseGroup caption={samples.caption}>
         <Field label={single.label} className={FIELD_WIDTH}>
           <Combobox type="single" value={area} onValueChange={setArea}>
-            <ComboboxTrigger>
+            <ComboboxTrigger empty={area === ''}>
               {area === '' ? single.placeholder : areas.options[Number(area)]}
             </ComboboxTrigger>
             <List samples={areas} />
@@ -71,7 +71,7 @@ export function ComboboxSection({ samples }: { samples: ComboboxSamples }) {
         </Field>
         <Field label={multiple.label} className={FIELD_WIDTH}>
           <Combobox type="multiple" value={chosenAmenities} onValueChange={setChosenAmenities}>
-            <ComboboxTrigger>
+            <ComboboxTrigger empty={chosenAmenities.length === 0}>
               {chosenAmenities.length === 0
                 ? multiple.placeholder
                 : multiple.summary.replace('{count}', String(chosenAmenities.length))}
@@ -81,7 +81,7 @@ export function ComboboxSection({ samples }: { samples: ComboboxSamples }) {
         </Field>
         <Field label={invalid.label} error={invalid.error} className={FIELD_WIDTH}>
           <Combobox type="single">
-            <ComboboxTrigger>{invalid.placeholder}</ComboboxTrigger>
+            <ComboboxTrigger empty>{invalid.placeholder}</ComboboxTrigger>
             <List samples={areas} />
           </Combobox>
         </Field>

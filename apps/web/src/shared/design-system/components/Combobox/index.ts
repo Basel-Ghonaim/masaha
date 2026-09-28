@@ -8,4 +8,5 @@ export {
   type ComboboxGroupProps,
   type ComboboxItemProps,
   type ComboboxProps,
+  type ComboboxTriggerProps,
 } from './Combobox';
