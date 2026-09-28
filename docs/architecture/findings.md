@@ -7,7 +7,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 
 ## 1. Overlays: the scrim has no token, and floating content shares the dropdown layer
 
-**Status:** Open · **Date:** 2026-09-26
+**Status:** Resolved · **Date:** 2026-09-26
 
 **Evidence:**
 1. `tokens/tailwind.css` resets Tailwind's `--color-*` so only the semantic roles exist. That also removes `black`, so shadcn's overlay class `bg-black/50` generates nothing. No semantic role covers the Dialog and Sheet overlay, the dimming scrim behind a modal.
@@ -16,6 +16,12 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 **Resolves when:**
 1. When Dialog and Sheet are built, a component token for the scrim is added. For example, `--overlay-scrim`, resolved per theme in `semantic.css` and written into foundation §4 first. The overlays bind that token.
 2. Tooltip, Popover and Select bind `--z-dropdown` when they are built. *Select and Tooltip do (2026-09-27); Popover remains.*
+
+*Item 1 done (2026-09-27):* `--overlay-scrim` is a component token in foundation §4 (light `n-950` at 50%, dark at 70%), resolved per theme in `semantic.css`. Dialog and AlertDialog bind it on `--z-overlay`, with their content on `--z-modal`.
+
+**Resolution (2026-09-27):** both items settled in WI-7.
+1. Dialog, AlertDialog and Sheet bind `--overlay-scrim` on `--z-overlay`, and their content on `--z-modal`.
+2. DropdownMenu, like Select and Tooltip, binds `--z-dropdown`. For Popover, which comes with WI-8, this is now a standing rule rather than open work: foundation §11 maps `z-50` to the named layer for each kind of overlay, and `bg-black/*` to the scrim token.
 
 ## 2. Copied shadcn components need more than the contract lists
 
@@ -57,7 +63,7 @@ Whatever becomes a standing step is added to foundation §11.
 
 **Status:** Open · **Date:** 2026-09-27
 
-**Evidence:** `check:build` fails when `dist/` contains any string from the showcase's `fixtures.json`, and relies on fixture strings being phrases that occur nowhere else by chance. The copy catalogues are not built yet. Once they are, a catalogue entry equal to a fixture string will fail `check:build` although no showcase code reached the build. The toolbar's `Light theme` and `Dark theme` are likely catalogue entries for the theme setting. WI-5's samples avoid the app's likely words (the language toggle's sample is "English version", not "English"), but nothing enforces it.
+**Evidence:** `check:build` fails when `dist/` contains any string from the showcase's `fixtures.json`, and relies on fixture strings being phrases that occur nowhere else by chance. The copy catalogues are not built yet. Once they are, a catalogue entry equal to a fixture string will fail `check:build` although no showcase code reached the build. The toolbar's `Light theme` and `Dark theme` are likely catalogue entries for the theme setting. WI-5's samples avoid the app's likely words (the language toggle's sample is "English version", not "English"), but nothing enforces it. It has fired already: WI-7's first Tabs fixtures used values such as `all`, `active` and `details`, and `check:build` found them in the build's CSS and JavaScript, where they occur by chance. The values were renamed (`members-all-tab`).
 
 **Resolves when:** the catalogue mechanism is built, and `check:build` either skips fixture strings that are also catalogue strings, or finds the showcase by what only it carries (its route path, which it already checks) rather than by its text.
 
@@ -82,8 +88,27 @@ Whatever becomes a standing step is added to foundation §11.
 
 ## 6. Radix component tests failed once under load
 
-**Status:** Open · **Date:** 2026-09-27
+**Status:** Resolved · **Date:** 2026-09-27
 
 **Evidence:** while the checks for the F-1 PR were running, the Switch and RadioGroup component tests failed once and passed on a rerun with no change. Both components are built on Radix and exercised with user-event. The failure was not reproduced, so the cause is unknown; a timing dependence that shows only on a busy machine is the likely kind. A test that can fail without a code change weakens the CI gate: a red run no longer means a regression.
 
 **Resolves when:** WI-7, which adds more Radix components and their tests, investigates the failure: it reproduces it (for example, running the component lane repeatedly or under CPU load), finds the cause, and fixes the tests or the components so the lane is stable. Not fixed in WI-6.
+
+**Resolution (2026-09-27):** a timeout, not a race, and not specific to Radix.
+1. **Reproduced.** With 24 busy loops on 12 cores, `Switch › turns on and off when its label is clicked` failed with `Test timed out in 5000ms` (5144 ms); RadioGroup's first test took 5032 ms. No assertion failed and no `act()` warning appeared.
+2. **Always the first test in its file.** Unloaded, each file's first test took 2–5× its later ones (Switch 839 ms, then 173, 154, 283 ms), whatever it did.
+3. **Cause, from a CPU profile of the test.** jsdom parses its whole default stylesheet the first time `getComputedStyle` runs, and every test file gets a fresh jsdom. `getByRole` with a `name` reaches `getComputedStyle` through each accessible-name check, so the parse, and a cold selector engine, landed inside the file's first test: 214 ms of Switch's 271 ms, which CPU starvation stretched past 5 s.
+4. **Fix.** `componentSetup.ts` calls `getComputedStyle` once, so the environment's start-up is paid in setup, before any test. The timeout, retries and the tests are unchanged.
+5. **Proof.** Unloaded, the first tests fell to 338 ms (Switch), 330 ms (RadioGroup) and 213 ms (Card, from 1132 ms). Under the same load, 10 consecutive runs of `test:component` passed, the slowest test taking at most 2808 ms.
+6. **Second cause, once WI-7's overlays arrived: throughput.** The lane grew from 108 to 167 tests, and the new Dialog, Sheet and DropdownMenu tests are the heaviest in it: focus management, floating-ui positioning and portals, all in jsdom. With one worker per core and 24 busy loops on 12 cores, run 7 of 10 failed: `Dialog › keeps the focus inside while open` took 5173 ms. The profile showed no single hot spot, only dev-mode React rendering, jsdom's computed styles and selector matching. The slow tests were no longer the first in their files. The machine had no headroom left.
+7. **Second fix, the owner's choice.** The component project runs on at most half the cores (`maxWorkers: '50%'` in `vite.config.ts`). Isolation stays on, and the timeout and the tests are unchanged. Under the same load, 10 consecutive runs passed 167/167, the slowest test taking at most 3466 ms. With lint, typecheck, build and `test:unit` running beside it, as when the failure was first seen, 3 of 3 runs passed, the slowest test taking at most 1133 ms. Unloaded, the lane takes 37 s. 24 busy loops on 12 cores (about 3× oversubscription) is far harsher than CI, where a runner does one job on its own cores.
+
+## 7. The stress test's filter chips have no component
+
+**Status:** Open · **Date:** 2026-09-28
+
+**Evidence:** the Admin › Data reports phone stress test (`0-overview.jpg`, the filter bottom sheet) chooses statuses with toggle chips: pill-shaped, several selectable at once, a check and the `accent` pair when selected. Foundation §4 names "filter chips" as a user of `radius-pill`, but §12 lists no component for them, and none of WI-5 to WI-8 builds one. WI-7's showcase shows the filter sheet with checkboxes in their place.
+
+**Resolves when:** WI-8 builds the ToggleGroup (filter chips).
+
+*Decided (2026-09-28):* the owner put a ToggleGroup, on Radix's ToggleGroup from the approved `radix-ui` package, into the layer. It has a foundation §12 row and is in WI-8's scope in the [design-system plan](../plans/design-system-layer.md). The finding stays open until WI-8 builds it.

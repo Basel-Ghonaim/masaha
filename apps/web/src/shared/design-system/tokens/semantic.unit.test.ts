@@ -57,6 +57,7 @@ const THEMED_TOKENS = [
   'elevation-floating',
   'elevation-overlay',
   'card-border',
+  'overlay-scrim',
 ];
 
 type Theme = 'light' | 'dark';

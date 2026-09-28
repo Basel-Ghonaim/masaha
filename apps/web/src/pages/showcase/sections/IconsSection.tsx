@@ -8,6 +8,8 @@ import {
   ChevronUpIcon,
   CircleAlertIcon,
   CircleCheckIcon,
+  EllipsisIcon,
+  EllipsisVerticalIcon,
   EyeIcon,
   EyeOffIcon,
   InfoIcon,
@@ -15,6 +17,7 @@ import {
   LoaderIcon,
   LogInIcon,
   LogOutIcon,
+  MenuIcon,
   MoonIcon,
   SearchIcon,
   SearchXIcon,
@@ -55,6 +58,9 @@ const FIXED = [
   MoonIcon,
   SunIcon,
   XIcon,
+  EllipsisIcon,
+  EllipsisVerticalIcon,
+  MenuIcon,
 ];
 
 function IconGroup({ caption, icons }: { caption: string; icons: ComponentType<IconProps>[] }) {

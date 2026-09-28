@@ -5,7 +5,7 @@
 
 ## 1. Goal and finish line
 
-**Goal:** a working monorepo, and the design-system layer (`apps/web/src/shared/design-system/`) built from the locked *Sea* values, with all 25 components of [foundation §12](../frontend/design-system/foundation.md#12-component-inventory), so the 27 screens are designed in Claude Design with the real components.
+**Goal:** a working monorepo, and the design-system layer (`apps/web/src/shared/design-system/`) built from the locked *Sea* values, with all 26 components of [foundation §12](../frontend/design-system/foundation.md#12-component-inventory), so the 27 screens are designed in Claude Design with the real components.
 
 **Finished when:**
 - Every Work Item below is merged.
@@ -216,7 +216,7 @@ Each item also meets the same bar:
 ### WI-7 — Overlays and navigation · `feat/ds-navigation` · L
 
 - **Components:** Dialog · AlertDialog · Sheet · DropdownMenu · Tabs · Breadcrumb · Pagination · Sidebar.
-- **Sheet:** opens from the logical end on navigation, and from the bottom for filters.
+- **Sheet:** opens from the logical start on navigation (where the sidebar sits), and from the bottom for filters.
 - **Pagination:** takes its words as props, and its chevrons mirror.
 - **Sidebar:**
   - expanded on desktop;
@@ -226,7 +226,11 @@ Each item also meets the same bar:
 
 ### WI-8 — Data and dates · `feat/ds-data` · L
 
-- **Components:** Table · DataTable · Combobox (single and multi) · Calendar · DatePicker.
+- **Components:** Table · DataTable · Combobox (single and multi) · Calendar · DatePicker · ToggleGroup (filter chips).
+- **ToggleGroup** (added by the owner in WI-7, [finding 7](../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)):
+  - on Radix's ToggleGroup, from the approved `radix-ui` package;
+  - chips as in the Admin › Data reports phone filter sheet: `radius-pill`, several selectable at once, a check and the `accent` pair when selected;
+  - arrow keys follow the direction.
 - **DataTable:**
   - built on `@tanstack/react-table`;
   - sorting, empty state and loading rows;

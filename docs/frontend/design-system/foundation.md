@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch are built, with the theme and language toggles, and Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard (§12).
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog, AlertDialog, Sheet, DropdownMenu, Tabs, Breadcrumb, Pagination and Sidebar.
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-27
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -116,6 +116,7 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 | `table-row-padding-block` | 14px | Table |
 | `radius-control` | 6px (`radius-md`) | Button, Input, Select |
 | `radius-pill` | 999px | Badge, filter chips |
+| `overlay-scrim` | light `n-950` at 50% · dark `n-950` at 70% (mixed with transparent), no blur | The scrim behind Dialog, AlertDialog and Sheet, on the `overlay` layer. No role covers a translucent dimming layer |
 
 **Layout is not tokenised.** Pages use Tailwind's 4px scale; *Sea*'s rhythm maps to it: page gutter 32px (`8`; 16px on phones), grid gap 16px (`4`) / 24px (`6`), section spacing 56px (`14`), home hero padding 64px (`16`). These are guidance for page composition, not layer tokens.
 
@@ -309,7 +310,8 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | `rounded-md` on a control | `rounded-(--radius-control)` |
 | `rounded-[4px]` | `rounded-sm` |
 | `h-9` on a control | `h-(--control-height)` |
-| `z-50` | the named layer (§5): `z-(--z-dropdown)` for anything portalled beside its trigger (menus, selects, popovers) |
+| `z-50` | the named layer (§5): `z-(--z-dropdown)` for anything portalled beside its trigger (menus, selects, popovers, tooltips); `z-(--z-overlay)` for a modal's scrim; `z-(--z-modal)` for a modal's content (Dialog, AlertDialog, Sheet) |
+| `bg-black/10` · `bg-black/50` on an overlay | `bg-(--overlay-scrim)` (§4) |
 | `duration-*` on an animation | `duration-(--duration-short) ease-(--easing-standard)`. `tw-animate-css` otherwise runs a fixed 150ms, reduced motion or not |
 | the value text of a control (`text-base md:text-sm`) | `text-(length:--control-text-size) leading-(--type-body-line-height)`, in that order, so `cn` keeps both |
 
@@ -334,11 +336,11 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Badge | shadcn | neutral, primary, success, warning, info, destructive (subtle variants) |
 | Card | shadcn | |
 | Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** |
-| Pagination | shadcn | Words as props |
+| Pagination | shadcn | Words as props · page numbers from `md`, the current one outlined; on a phone, Previous and Next around a summary ("Page 1 of 5"), as in the Owner › Members stress test · a missing step stays in place, marked `aria-disabled` |
 | Dialog, AlertDialog | shadcn | Confirmations (check-out, deactivate member, hide space) |
-| Sheet | shadcn | Mobile navigation, filter panel |
-| DropdownMenu | shadcn | Row actions, account menu |
-| Tabs | shadcn | |
+| Sheet | shadcn | Logical sides: `start` for mobile navigation (where the sidebar sits), `end` for a secondary panel, `bottom` for the phone filter panel (with a handle, which does not drag) |
+| DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side |
+| Tabs | shadcn | `default`: pills on a phone (the active one `primary`), a segmented control from `md` (the active one on `card`), as in the Owner › Members stress test · `line`: underlined, for the sections of a page |
 | Tooltip | shadcn | |
 | Toast | shadcn (Sonner) | Success and error feedback |
 | Alert | shadcn | info, warning, destructive |
@@ -346,8 +348,9 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Avatar | shadcn | Initials fallback |
 | Separator | shadcn | |
 | Calendar / DatePicker | shadcn | Membership start and end dates |
-| Sidebar | shadcn | Dashboard shell |
-| Breadcrumb | shadcn | Dashboard sub-pages |
+| ToggleGroup (filter chips) | shadcn | Multi-select filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, a check and the `accent` pair when selected. Planned for WI-8 ([finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)) |
+| Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
+| Breadcrumb | shadcn | Dashboard sub-pages · named by a `label` prop; separators are `ChevronEndIcon` · ancestors `muted-foreground`, the current page `foreground` at the `label` weight, as in the Owner › Members stress test |
 | EmptyState | hand-built | Icon + title + text + action |
 | StatCard | hand-built | Dashboard overview numbers |
 | Spinner | hand-built | |

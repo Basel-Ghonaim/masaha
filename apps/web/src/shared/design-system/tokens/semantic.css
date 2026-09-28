@@ -84,6 +84,9 @@
 
   /* Equal to --border in this theme only; they mean different things (foundation §4). */
   --card-border: var(--neutral-200);
+
+  /* The scrim dims the page behind a modal overlay (Dialog, AlertDialog, Sheet). */
+  --overlay-scrim: color-mix(in oklch, var(--neutral-950) 50%, transparent);
 }
 
 [data-theme='dark'] {
@@ -146,4 +149,7 @@
   --elevation-overlay: var(--shadow-scale-overlay-dark);
 
   --card-border: var(--neutral-700);
+
+  /* Darker than light's: the page is already dark, so a lighter scrim barely shows. */
+  --overlay-scrim: color-mix(in oklch, var(--neutral-950) 70%, transparent);
 }

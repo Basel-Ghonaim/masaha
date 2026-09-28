@@ -366,6 +366,153 @@
           "label": "بلاغات جديدة",
           "value": 3
         }
+      },
+      "dialog": {
+        "title": "النوافذ الحوارية",
+        "caption": "مهمة قصيرة في نافذة، مع زر إغلاق في الزاوية",
+        "trigger": "تغيير اسم المساحة",
+        "dialogTitle": "تغيير اسم المساحة",
+        "description": "يظهر الاسم الجديد في الدليل فوراً.",
+        "fieldLabel": "اسم المساحة",
+        "fieldValue": "مساحة الريادة",
+        "keep": "إبقاء الاسم الحالي",
+        "save": "حفظ الاسم الجديد",
+        "closeLabel": "إغلاق نافذة تغيير الاسم"
+      },
+      "alertDialog": {
+        "title": "نوافذ التأكيد",
+        "caption": "سؤال يجب الإجابة عنه؛ النقر خارجه لا يغلقه",
+        "trigger": "إيقاف عضوية سارة الحلو",
+        "dialogTitle": "إيقاف عضوية سارة الحلو؟",
+        "description": "لن يتمكن المشترك من تسجيل الحضور. يمكنك إعادة تفعيل العضوية لاحقاً.",
+        "cancel": "إبقاء العضوية فعّالة",
+        "action": "إيقاف العضوية"
+      },
+      "sheet": {
+        "title": "الألواح الجانبية",
+        "caption": "التنقل من جهة البداية، ولوح من جهة النهاية، والفلاتر من الأسفل",
+        "navigation": {
+          "trigger": "فتح درج التنقل",
+          "title": "لوحة المالك",
+          "items": ["صفحة النظرة العامة", "صفحة المشتركين", "صفحة الإعلانات"],
+          "closeLabel": "إغلاق درج التنقل"
+        },
+        "details": {
+          "trigger": "فتح لوح التفاصيل",
+          "title": "تفاصيل البلاغ",
+          "description": "أرسله رامي خليل عن سعر اليوم الكامل.",
+          "closeLabel": "إغلاق لوح التفاصيل"
+        },
+        "filters": {
+          "trigger": "فتح لوح الفلاتر",
+          "title": "فلاتر البلاغات",
+          "clear": "مسح كل الفلاتر",
+          "status": "حالة البلاغ",
+          "statuses": ["البلاغات الجديدة", "البلاغات قيد المراجعة", "البلاغات المصححة"],
+          "area": "منطقة المساحة",
+          "areas": ["كل المناطق", "الرمال", "تل الهوا"],
+          "apply": "عرض 20 بلاغاً مطابقاً"
+        }
+      },
+      "dropdownMenu": {
+        "title": "القوائم المنسدلة",
+        "rowCaption": "إجراءات الصف، من نقاط أفقية أو عمودية",
+        "rowLabel": "إجراءات البلاغ عن مساحة الريادة",
+        "view": "عرض تفاصيل البلاغ",
+        "markCorrected": "وضع علامة: تم تصحيح البلاغ",
+        "unavailable": "تعديل بيانات المساحة (غير متاح)",
+        "reject": "رفض البلاغ المرسل",
+        "optionsCaption": "عناصر اختيار متعدد وأحادي، وقائمة فرعية نحو جهة النهاية",
+        "optionsTrigger": "خيارات عرض الجدول",
+        "columnsLabel": "الأعمدة الظاهرة",
+        "columns": ["هاتف المشترك", "تاريخ انتهاء العضوية", "وقت آخر حضور"],
+        "sortLabel": "ترتيب الصفوف",
+        "sorts": ["الأحدث اشتراكاً أولاً", "الأسماء أبجدياً"],
+        "moreLabel": "تصدير الجدول",
+        "more": ["كملف جدول بيانات", "كصفحة قابلة للطباعة"]
+      },
+      "tabs": {
+        "title": "علامات التبويب",
+        "defaultCaption": "الافتراضي: أقراص على الهاتف، ومفتاح مقسّم من الجهاز اللوحي فما فوق",
+        "statusLabel": "تصفية المشتركين حسب الحالة",
+        "statuses": [
+          {
+            "value": "members-all-tab",
+            "label": "كل المشتركين 38",
+            "content": "جميع مشتركي مساحة الريادة."
+          },
+          {
+            "value": "members-active-tab",
+            "label": "النشطون الآن 31",
+            "content": "المشتركون الذين عضويتهم فعّالة."
+          },
+          {
+            "value": "members-ending-tab",
+            "label": "تنتهي هذا الأسبوع 5",
+            "content": "عضويات تنتهي خلال 7 أيام."
+          },
+          {
+            "value": "members-expired-tab",
+            "label": "المنتهية سابقاً 2",
+            "content": "عضويات انتهت."
+          }
+        ],
+        "lineCaption": "الخطي: أقسام الصفحة",
+        "sectionsLabel": "أقسام ملف المساحة",
+        "sections": [
+          {
+            "value": "profile-details-tab",
+            "label": "بيانات المساحة",
+            "content": "الاسم والمنطقة والسعة ووسائل التواصل."
+          },
+          {
+            "value": "profile-hours-tab",
+            "label": "ساعات الدوام",
+            "content": "من السبت إلى الخميس، من 08:00 حتى 20:00."
+          },
+          {
+            "value": "profile-photos-tab",
+            "label": "صور المساحة",
+            "content": "حتى ثماني صور للمساحة."
+          }
+        ]
+      },
+      "breadcrumb": {
+        "title": "مسارات التنقل",
+        "caption": "المسار إلى صفحة فرعية في لوحة التحكم",
+        "label": "المسار إلى صفحة لوحة التحكم هذه",
+        "trail": ["لوحة تحكم المالك", "مشتركو مساحة الريادة"],
+        "current": "عضوية سارة الحلو",
+        "longCaption": "مسار طويل، مع حذف الصفحات الوسطى",
+        "more": "صفحات محذوفة من المسار"
+      },
+      "pagination": {
+        "title": "ترقيم الصفحات",
+        "caption": "أرقام الصفحات من الجهاز اللوحي فما فوق؛ السابق والملخص والتالي على الهاتف",
+        "label": "صفحات قائمة المشتركين",
+        "previous": "السابقة",
+        "next": "التالية",
+        "more": "أرقام صفحات محذوفة",
+        "summary": "صفحة {page} من {total}",
+        "pageCaptions": ["في الصفحة الأولى", "في صفحة وسطى", "في الصفحة الأخيرة"]
+      },
+      "sidebar": {
+        "title": "الشريط الجانبي",
+        "caption": "موسّع على الحاسوب، وأيقونات فقط على الجهاز اللوحي، ودرج من جهة البداية على الهاتف",
+        "label": "لوحة تحكم مالك مساحة الريادة",
+        "product": "مساحة للعرض",
+        "area": "لوحة تحكم المالك",
+        "groupLabel": "العمل اليومي",
+        "items": {
+          "overview": "نظرة على المساحة",
+          "attendance": "حضور اليوم",
+          "members": "مشتركو المساحة",
+          "reports": "البيانات المبلّغ عنها"
+        },
+        "reportsBadge": "3 بلاغات بانتظار المراجعة",
+        "signOut": "مغادرة لوحة التحكم",
+        "trigger": "فتح تنقل لوحة التحكم",
+        "page": "صفحة مشتركي المساحة"
       }
     },
     "en": {
@@ -718,6 +865,153 @@
           "label": "New data reports",
           "value": 3
         }
+      },
+      "dialog": {
+        "title": "Dialogs",
+        "caption": "A short task in a modal window, with a close button in the corner",
+        "trigger": "Rename the space",
+        "dialogTitle": "Rename the space",
+        "description": "The new name shows in the directory at once.",
+        "fieldLabel": "Space name",
+        "fieldValue": "Riyada Space",
+        "keep": "Keep the current name",
+        "save": "Save the new name",
+        "closeLabel": "Close the rename window"
+      },
+      "alertDialog": {
+        "title": "Confirmations",
+        "caption": "A question that must be answered; a click outside does not close it",
+        "trigger": "Deactivate Sara Helou",
+        "dialogTitle": "Deactivate Sara Helou's membership?",
+        "description": "The member can no longer check in. You can reactivate the membership later.",
+        "cancel": "Keep the membership active",
+        "action": "Deactivate the membership"
+      },
+      "sheet": {
+        "title": "Sheets",
+        "caption": "Navigation from the start side, a panel from the end, filters from the bottom",
+        "navigation": {
+          "trigger": "Open the navigation drawer",
+          "title": "Owner dashboard",
+          "items": ["Overview page", "Members page", "Announcements page"],
+          "closeLabel": "Close the navigation drawer"
+        },
+        "details": {
+          "trigger": "Open the details panel",
+          "title": "Report details",
+          "description": "Sent by Rami Khalil about the full-day price.",
+          "closeLabel": "Close the details panel"
+        },
+        "filters": {
+          "trigger": "Open the filter panel",
+          "title": "Report filters",
+          "clear": "Clear every filter",
+          "status": "Report status",
+          "statuses": ["New reports", "Reports in review", "Corrected reports"],
+          "area": "Space area",
+          "areas": ["Every area", "Rimal", "Tal al-Hawa"],
+          "apply": "Show 20 matching reports"
+        }
+      },
+      "dropdownMenu": {
+        "title": "Dropdown menus",
+        "rowCaption": "Row actions, from a horizontal or vertical ellipsis",
+        "rowLabel": "Actions for the report about Riyada Space",
+        "view": "View the report details",
+        "markCorrected": "Mark the report as corrected",
+        "unavailable": "Edit the space data (unavailable)",
+        "reject": "Reject the report",
+        "optionsCaption": "Checkbox and radio items, and a submenu toward the end side",
+        "optionsTrigger": "Table view options",
+        "columnsLabel": "Visible columns",
+        "columns": ["Member phone", "Membership end date", "Last check-in time"],
+        "sortLabel": "Order of rows",
+        "sorts": ["Newest members first", "Names from A to Z"],
+        "moreLabel": "Export the table",
+        "more": ["As a spreadsheet file", "As a printable page"]
+      },
+      "tabs": {
+        "title": "Tabs",
+        "defaultCaption": "Default: pills on a phone, a segmented control from the tablet up",
+        "statusLabel": "Filter members by status",
+        "statuses": [
+          {
+            "value": "members-all-tab",
+            "label": "All members 38",
+            "content": "Every member of Riyada Space."
+          },
+          {
+            "value": "members-active-tab",
+            "label": "Active now 31",
+            "content": "Members whose membership is active."
+          },
+          {
+            "value": "members-ending-tab",
+            "label": "Ending this week 5",
+            "content": "Memberships that end within 7 days."
+          },
+          {
+            "value": "members-expired-tab",
+            "label": "Already expired 2",
+            "content": "Memberships that have ended."
+          }
+        ],
+        "lineCaption": "Line: the sections of a page",
+        "sectionsLabel": "Space profile sections",
+        "sections": [
+          {
+            "value": "profile-details-tab",
+            "label": "Space details",
+            "content": "Name, area, capacity and contact."
+          },
+          {
+            "value": "profile-hours-tab",
+            "label": "Opening hours",
+            "content": "Saturday to Thursday, 08:00 to 20:00."
+          },
+          {
+            "value": "profile-photos-tab",
+            "label": "Space photos",
+            "content": "Up to eight photos of the space."
+          }
+        ]
+      },
+      "breadcrumb": {
+        "title": "Breadcrumbs",
+        "caption": "The path to a dashboard sub-page",
+        "label": "Path to this dashboard page",
+        "trail": ["Owner dashboard", "Riyada Space members"],
+        "current": "Membership of Sara Helou",
+        "longCaption": "A long path, with the middle pages left out",
+        "more": "Pages left out of the path"
+      },
+      "pagination": {
+        "title": "Pagination",
+        "caption": "Page numbers from the tablet up; Previous, a summary and Next on a phone",
+        "label": "Pages of the members list",
+        "previous": "Earlier",
+        "next": "Later",
+        "more": "Page numbers left out",
+        "summary": "Page {page} of {total}",
+        "pageCaptions": ["On the first page", "On a middle page", "On the last page"]
+      },
+      "sidebar": {
+        "title": "Sidebar",
+        "caption": "Expanded on a desktop, icons only on a tablet, a drawer from the start side on a phone",
+        "label": "Riyada Space owner dashboard",
+        "product": "Masaha showcase",
+        "area": "Owner's dashboard",
+        "groupLabel": "Daily operations",
+        "items": {
+          "overview": "Space overview",
+          "attendance": "Today's attendance",
+          "members": "Space members",
+          "reports": "Reported data"
+        },
+        "reportsBadge": "3 reports to review",
+        "signOut": "Leave the dashboard",
+        "trigger": "Open the dashboard navigation",
+        "page": "Space members page"
       }
     }
   }
