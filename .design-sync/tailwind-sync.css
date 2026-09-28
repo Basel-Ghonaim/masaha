@@ -1,0 +1,36 @@
+/*
+ * The stylesheet the design-sync upload ships (.design-sync/build-pkg.mjs compiles it). It is the
+ * app's own entry, tokens/tailwind.css, unchanged, plus a fixed utility vocabulary: the app's
+ * build only emits the classes its source uses, but designs built in Claude Design compose their
+ * own layout from the same utilities. Nothing here adds a value; every class resolves to the
+ * layer's tokens or Tailwind's spacing scale, as it would in the app.
+ */
+@import '../apps/web/src/shared/design-system/tokens/tailwind.css';
+
+/* The previews' own layout glue. */
+@source './previews';
+
+/* Layout (foundation §3: pages use Tailwind for layout only). Logical sides only (§8). */
+@source inline("{,sm:,md:,lg:,xl:}{flex,inline-flex,grid,inline-grid,block,inline-block,hidden,contents}");
+@source inline("{,sm:,md:,lg:,xl:}{flex-row,flex-col,flex-wrap,flex-nowrap,flex-1,flex-auto,flex-none,grow,shrink-0}");
+@source inline("{,sm:,md:,lg:,xl:}{items,self}-{start,center,end,stretch,baseline}");
+@source inline("{,sm:,md:,lg:,xl:}justify-{start,center,end,between,around,evenly}");
+@source inline("{,sm:,md:,lg:,xl:}{grid-cols,col-span}-{1..12}");
+@source inline("{,sm:,md:,lg:,xl:}{gap,gap-x,gap-y,p,px,py,ps,pe,pt,pb,m,mx,my,ms,me,mt,mb,space-x,space-y}-{0,0.5,1,1.5,2,2.5,3,4,5,6,8,10,12,14,16,20,24}");
+@source inline("{,sm:,md:,lg:,xl:}{w,h,size}-{full,auto,fit,screen,4,5,6,8,10,12,16,20,24,32,40,48,64}");
+@source inline("{,sm:,md:,lg:,xl:}max-w-{xs,sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,none,prose}");
+@source inline("{mx-auto,min-h-screen,min-h-dvh,h-dvh,min-w-0,overflow-hidden,overflow-auto,overflow-x-auto,overflow-y-auto}");
+@source inline("{relative,absolute,sticky,fixed,inset-0,top-0,bottom-0,start-0,end-0,z-10,aspect-square,aspect-video,object-cover,sr-only}");
+
+/* The semantic roles (foundation §5), as fills, text and edges. */
+@source inline("{,hover:}{bg,text,border}-{background,foreground,card,card-foreground,popover,popover-foreground,muted,muted-foreground,border,input,ring,primary,primary-foreground,secondary,secondary-foreground,accent,accent-foreground}");
+@source inline("{bg,text,border}-{destructive,success,warning,info}{,-foreground,-subtle,-subtle-foreground}");
+@source inline("{bg,text,border}-sidebar{,-foreground,-primary,-primary-foreground,-accent,-accent-foreground,-border,-ring}");
+@source inline("{bg,text,fill,stroke}-chart-{1..5}");
+
+/* Text styles (§7), radius, elevation and edges. */
+@source inline("{,md:,lg:}text-{display,heading-1,heading-2,heading-3,body,body-sm,label,caption}");
+@source inline("{text-start,text-end,text-center,font-normal,font-medium,font-semibold,truncate,whitespace-nowrap,tabular-nums,line-clamp-1,line-clamp-2,line-clamp-3}");
+@source inline("rounded{,-none,-sm,-md,-lg,-xl,-full}");
+@source inline("shadow-{none,raised,floating,overlay}");
+@source inline("{border,border-0,border-2,border-t,border-b,border-s,border-e,border-x,border-y,divide-y,divide-x}");

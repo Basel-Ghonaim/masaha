@@ -6,6 +6,9 @@ import tseslint from 'typescript-eslint';
 
 export default defineConfig([
   globalIgnores(['**/dist/', '**/coverage/', 'apps/api/src/generated/']),
+  // The Claude Design sync (.design-sync/NOTES.md): its inputs are checked by the sync's own
+  // render check and grading, and the other three are its gitignored build output.
+  globalIgnores(['.design-sync/', '.ds-sync/', '.ds-pkg/', 'ds-bundle/']),
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {

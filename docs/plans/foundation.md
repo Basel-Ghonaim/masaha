@@ -16,7 +16,7 @@
 
 ## 2. Running in parallel with the design-system plan
 
-F-1, F-2 and F-3 touch only `apps/api`, `packages/shared`, the database and docs, so they run **at the same time** as [design-system-layer.md](design-system-layer.md) WI-6 → WI-9, in a **separate git worktree**.
+F-1, F-2 and F-3 touch only `apps/api`, `packages/shared`, the database and docs, so they run **at the same time** as [design-system-layer.md](historical/design-system-layer.md) WI-6 → WI-9, in a **separate git worktree**.
 
 **Rules while two conversations run:**
 - **Where each one works:**
@@ -35,7 +35,7 @@ F-1, F-2 and F-3 touch only `apps/api`, `packages/shared`, the database and docs
 
 ## 3. How each Work Item is run
 
-Exactly as [design-system-layer.md §2–§3](design-system-layer.md#2-how-each-work-item-is-run-claude-code-in-vs-code):
+Exactly as [design-system-layer.md §2–§3](historical/design-system-layer.md#2-how-each-work-item-is-run-claude-code-in-vs-code):
 
 - **The session:** a fresh conversation per item, started in plan mode;
 - **Commits and PR:** the commit and PR rules of workflow §3;
