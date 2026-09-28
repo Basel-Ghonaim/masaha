@@ -89,6 +89,8 @@ function CalendarDayButton({ className, day, modifiers, ...props }: DayButtonPro
       className={cn(
         'relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) rounded-(--cell-radius) text-body-sm leading-none',
         'data-range-middle:rounded-none data-range-middle:bg-accent data-range-middle:text-accent-foreground',
+        // The ghost Button's colour would hide the cell's `outside` style, so the day sets it.
+        modifiers.outside && 'text-muted-foreground',
         (single || modifiers.range_start || modifiers.range_end) && FILLED,
         className,
       )}
