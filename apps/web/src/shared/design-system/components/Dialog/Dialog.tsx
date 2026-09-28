@@ -28,9 +28,12 @@ export function DialogClose(props: ComponentProps<typeof DialogPrimitive.Close>)
 export const overlayClasses =
   'fixed inset-0 z-(--z-overlay) bg-(--overlay-scrim) duration-(--duration-short) ease-(--easing-standard) data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0';
 
-/** The window's surface, centred on the modal layer. Shared with AlertDialog. */
+/**
+ * The window's surface, centred on the modal layer. Shared with AlertDialog. Its one column may shrink
+ * below its content's widest line, so an input's default width never pushes it past the window.
+ */
 export const modalContentClasses =
-  'fixed top-1/2 start-1/2 z-(--z-modal) grid w-full max-w-[calc(100%-(--spacing(8)))] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl border border-(--card-border) bg-popover p-6 text-body text-popover-foreground shadow-overlay duration-(--duration-short) ease-(--easing-standard) outline-none sm:max-w-md rtl:translate-x-1/2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95';
+  'fixed top-1/2 start-1/2 z-(--z-modal) grid w-full grid-cols-1 max-w-[calc(100%-(--spacing(8)))] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl border border-(--card-border) bg-popover p-6 text-body text-popover-foreground shadow-overlay duration-(--duration-short) ease-(--easing-standard) outline-none sm:max-w-md rtl:translate-x-1/2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95';
 
 export type DialogContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
   /** Names the close button in the corner. Without it, the dialog has no such button. */
