@@ -17,6 +17,14 @@ apps/api/src/generated/
 # Logs
 *.log
 
+# Design sync (.design-sync/NOTES.md): staged converter, staged package, build output, machine state
+.ds-sync/
+.ds-pkg/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+
 # Claude Code personal settings
 .claude/settings.local.json
 
