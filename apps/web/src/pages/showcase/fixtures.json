@@ -693,6 +693,77 @@
       "table": {
         "title": "الجداول",
         "caption": "صف عناوين خافت، وصفوف كثيفة، ولون التمييز على الصف تحت المؤشر"
+      },
+      "dataTable": {
+        "title": "جداول البيانات",
+        "membersCaption": "المالك › المشتركون: ترتيب بالاسم وتاريخ الانتهاء، وشريط أدوات، وصف ترقيم الصفحات؛ وبطاقات تحت 768 بكسل",
+        "loadingCaption": "التحميل: صفوف مؤقتة",
+        "emptyCaption": "بلا صفوف: الحالة الفارغة مكانها",
+        "reportsCaption": "المدير › بلاغات البيانات: صف الفلاتر، وقائمة الصف",
+        "search": "ابحث بالاسم أو رقم الهاتف",
+        "tabsLabel": "فلترة المشتركين حسب الحالة",
+        "tabs": ["الكل 38", "نشط 31", "ينتهي قريباً 5", "منتهية 2"],
+        "checkIn": "تسجيل حضور",
+        "actions": "إجراءات",
+        "view": "عرض تفاصيل المشترك",
+        "edit": "تعديل العضوية",
+        "endsPrefix": "تنتهي",
+        "summary": "عرض 1–8 من 38",
+        "reports": {
+          "label": "بلاغات البيانات من المستخدمين",
+          "search": "ابحث في البلاغات",
+          "status": "الحالة: 2 محدّدة",
+          "area": "المنطقة: الكل",
+          "type": "نوع المعلومة: الكل",
+          "period": "آخر 30 يوماً",
+          "periodPanel": "اختيار مدة البلاغات",
+          "columns": {
+            "report": "البلاغ",
+            "space": "المساحة",
+            "reporter": "المُبلِّغ",
+            "date": "التاريخ",
+            "status": "حالة البلاغ"
+          },
+          "fieldPrefix": "الحقل:",
+          "rows": [
+            {
+              "title": "سعر اليوم الكامل غير صحيح",
+              "field": "الأسعار",
+              "space": "مساحة الريادة",
+              "area": "الرمال",
+              "reporter": "رامي خليل",
+              "date": "26/09/2026",
+              "status": "جديد"
+            },
+            {
+              "title": "ساعات يوم الجمعة تغيّرت",
+              "field": "ساعات العمل",
+              "space": "بيت العمل",
+              "area": "تل الهوا",
+              "reporter": "منى سالم",
+              "date": "25/09/2026",
+              "status": "قيد المراجعة"
+            },
+            {
+              "title": "الموقع على الخريطة غير دقيق",
+              "field": "الموقع",
+              "space": "بيت العمل",
+              "area": "تل الهوا",
+              "reporter": "دعاء فروانة",
+              "date": "18/09/2026",
+              "status": "تم التصحيح"
+            }
+          ],
+          "summary": "عرض 1–3 من 20",
+          "types": {
+            "search": "البحث في أنواع المعلومات",
+            "searchPlaceholder": "اكتب جزءاً من نوع المعلومة",
+            "list": "أنواع المعلومات للفلترة",
+            "empty": "لا يوجد نوع معلومة يطابق هذا البحث",
+            "options": ["أسعار المساحة", "ساعات عمل المساحة", "الموقع على الخريطة", "مرافق المساحة"]
+          },
+          "menu": ["عرض تفاصيل البلاغ", "وضع علامة: تم التصحيح"]
+        }
       }
     },
     "en": {
@@ -1373,6 +1444,82 @@
       "table": {
         "title": "Tables",
         "caption": "A muted header row, dense rows, and the accent on the hovered row"
+      },
+      "dataTable": {
+        "title": "Data tables",
+        "membersCaption": "Owner › Members: sortable names and end dates, a toolbar, and the pagination row; cards below 768px",
+        "loadingCaption": "Loading: placeholder rows",
+        "emptyCaption": "No rows: the empty state in their place",
+        "reportsCaption": "Admin › Data reports: the filter row, and a row menu",
+        "search": "Search by name or phone number",
+        "tabsLabel": "Filter the members by status",
+        "tabs": ["All 38", "Active 31", "Ending soon 5", "Expired 2"],
+        "checkIn": "Check the member in",
+        "actions": "Actions for",
+        "view": "View the member's details",
+        "edit": "Edit the membership",
+        "endsPrefix": "ends on",
+        "summary": "Showing 1–8 of 38",
+        "reports": {
+          "label": "Data reports from users",
+          "search": "Search the data reports",
+          "status": "Status: 2 statuses chosen",
+          "area": "Area: every area",
+          "type": "Information type: every type",
+          "period": "The last 30 days of reports",
+          "periodPanel": "Choose the period of the reports",
+          "columns": {
+            "report": "Data report",
+            "space": "Space reported",
+            "reporter": "Reported by",
+            "date": "Reported on",
+            "status": "Report status"
+          },
+          "fieldPrefix": "Field:",
+          "rows": [
+            {
+              "title": "The full-day price is wrong",
+              "field": "Prices",
+              "space": "Riyada Space",
+              "area": "Rimal",
+              "reporter": "Rami Khalil",
+              "date": "26/09/2026",
+              "status": "New report"
+            },
+            {
+              "title": "The Friday hours have changed",
+              "field": "Opening hours",
+              "space": "Bayt al-Amal",
+              "area": "Tal al-Hawa",
+              "reporter": "Mona Salem",
+              "date": "25/09/2026",
+              "status": "Report in review"
+            },
+            {
+              "title": "The map location is not accurate",
+              "field": "Map location",
+              "space": "Bayt al-Amal",
+              "area": "Tal al-Hawa",
+              "reporter": "Doaa Farwana",
+              "date": "18/09/2026",
+              "status": "Report corrected"
+            }
+          ],
+          "summary": "Showing 1–3 of 20",
+          "types": {
+            "search": "Search the information types",
+            "searchPlaceholder": "Type part of the information type",
+            "list": "Information types to filter by",
+            "empty": "No information type matches this search",
+            "options": [
+              "Prices of the space",
+              "Opening hours of the space",
+              "Location on the map",
+              "Amenities of the space"
+            ]
+          },
+          "menu": ["View the report details", "Mark the report as corrected"]
+        }
       }
     }
   }

@@ -1,12 +1,15 @@
 import {
+  ArrowDownIcon,
   ArrowEndIcon,
   ArrowStartIcon,
+  ArrowUpIcon,
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronEndIcon,
   ChevronStartIcon,
   ChevronUpIcon,
+  ChevronsUpDownIcon,
   CircleAlertIcon,
   CircleCheckIcon,
   EllipsisIcon,
@@ -63,6 +66,9 @@ const FIXED = [
   EllipsisVerticalIcon,
   MenuIcon,
   CalendarIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  ChevronsUpDownIcon,
 ];
 
 function IconGroup({ caption, icons }: { caption: string; icons: ComponentType<IconProps>[] }) {

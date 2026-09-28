@@ -8,6 +8,7 @@ export { CalendarSection } from './CalendarSection';
 export { CardSection } from './CardSection';
 export { CheckboxSection } from './CheckboxSection';
 export { ComboboxSection } from './ComboboxSection';
+export { DataTableSection } from './DataTableSection';
 export { DatePickerSection } from './DatePickerSection';
 export { DialogSection } from './DialogSection';
 export { DropdownMenuSection } from './DropdownMenuSection';

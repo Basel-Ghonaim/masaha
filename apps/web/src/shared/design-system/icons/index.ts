@@ -1,13 +1,16 @@
 export type { IconProps } from './Icon';
 export {
+  ArrowDownIcon,
   ArrowEndIcon,
   ArrowStartIcon,
+  ArrowUpIcon,
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronEndIcon,
   ChevronStartIcon,
   ChevronUpIcon,
+  ChevronsUpDownIcon,
   CircleAlertIcon,
   CircleCheckIcon,
   EllipsisIcon,

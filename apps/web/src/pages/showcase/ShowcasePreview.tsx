@@ -13,6 +13,7 @@ import {
   CardSection,
   CheckboxSection,
   ComboboxSection,
+  DataTableSection,
   DatePickerSection,
   DialogSection,
   DropdownMenuSection,
@@ -97,6 +98,15 @@ export function ShowcasePreview() {
         <CalendarSection samples={samples.calendar} lang={language} />
         <DatePickerSection samples={samples.datePicker} lang={language} />
         <TableSection samples={samples.table} members={samples.members} />
+        <DataTableSection
+          samples={samples.dataTable}
+          members={samples.members}
+          pagination={samples.pagination}
+          emptyState={samples.emptyState}
+          lists={{ areas: samples.combobox.areas, statuses: samples.combobox.filters.statuses }}
+          calendar={samples.calendar}
+          lang={language}
+        />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

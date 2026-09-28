@@ -112,6 +112,8 @@ export default defineConfig([
                 'cmdk',
                 'react-day-picker',
                 'react-day-picker/*',
+                '@tanstack/react-table',
+                '@tanstack/table-core',
               ],
               message:
                 'Only the design-system layer imports this package. Use what @shared/design-system exports.',

@@ -1,12 +1,15 @@
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Calendar,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  ChevronsUpDown,
   CircleAlert,
   CircleCheck,
   Ellipsis,
@@ -139,4 +142,16 @@ export function MenuIcon(props: IconProps) {
 
 export function CalendarIcon(props: IconProps) {
   return <Icon glyph={Calendar} {...props} />;
+}
+
+export function ArrowUpIcon(props: IconProps) {
+  return <Icon glyph={ArrowUp} {...props} />;
+}
+
+export function ArrowDownIcon(props: IconProps) {
+  return <Icon glyph={ArrowDown} {...props} />;
+}
+
+export function ChevronsUpDownIcon(props: IconProps) {
+  return <Icon glyph={ChevronsUpDown} {...props} />;
 }

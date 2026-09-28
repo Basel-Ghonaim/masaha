@@ -67,6 +67,14 @@ export {
   type DialogContentProps,
 } from './components/Dialog';
 export {
+  DataTable,
+  createDataTableColumnHelper,
+  type DataTableColumn,
+  type DataTableColumnMeta,
+  type DataTableProps,
+  type DataTableSorting,
+} from './components/DataTable';
+export {
   DatePicker,
   DatePickerContent,
   DatePickerTrigger,
@@ -183,14 +191,17 @@ export {
 export { Toaster, toast, type ToasterProps } from './components/Toast';
 export { Tooltip, TooltipContent, TooltipTrigger, type TooltipProps } from './components/Tooltip';
 export {
+  ArrowDownIcon,
   ArrowEndIcon,
   ArrowStartIcon,
+  ArrowUpIcon,
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronEndIcon,
   ChevronStartIcon,
   ChevronUpIcon,
+  ChevronsUpDownIcon,
   CircleAlertIcon,
   CircleCheckIcon,
   EllipsisIcon,
