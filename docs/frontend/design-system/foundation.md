@@ -2,7 +2,7 @@
 
 _Also the brief given to Claude Design._
 
-> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog, AlertDialog, Sheet, DropdownMenu, Tabs, Breadcrumb, Pagination and Sidebar; ToggleGroup, Popover and Combobox.
+> **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). Tokens and the layer base built (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3). Of the §12 components, these are built: Button, Field, Input, Textarea, Select, Checkbox, RadioGroup and Switch, with the theme and language toggles; Badge, Card, Separator, Avatar, Skeleton, Spinner, Alert, Tooltip, Toast, EmptyState and StatCard; Dialog, AlertDialog, Sheet, DropdownMenu, Tabs, Breadcrumb, Pagination and Sidebar; ToggleGroup, Popover, Combobox, Calendar and DatePicker.
 > **Owner:** Basel Ghoneim
 > **Last Updated:** 2026-09-28
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
@@ -69,7 +69,7 @@ apps/web/src/shared/design-system/
 - **No CSS files outside the layer.** Pages and features use Tailwind for layout only (grid, flex, gap, spacing, sizing).
 - **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
 
-**Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library, `cva`, Sonner or cmdk outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
+**Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library, `cva`, Sonner, cmdk or react-day-picker outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
 
 **Wrapped libraries:** every third-party UI library the layer wraps is added to (b), the ESLint import restriction, in the same PR that introduces it, so pages and features reach it only through the layer.
 
@@ -348,7 +348,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Skeleton | shadcn | Loading states |
 | Avatar | shadcn | Initials fallback |
 | Separator | shadcn | |
-| Calendar / DatePicker | shadcn | Membership start and end dates |
+| Calendar / DatePicker | shadcn | Membership start and end dates; report periods · one date or a range · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
 | ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)) |
 | Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
 | Breadcrumb | shadcn | Dashboard sub-pages · named by a `label` prop; separators are `ChevronEndIcon` · ancestors `muted-foreground`, the current page `foreground` at the `label` weight, as in the Owner › Members stress test |

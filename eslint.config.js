@@ -110,6 +110,8 @@ export default defineConfig([
                 'class-variance-authority',
                 'sonner',
                 'cmdk',
+                'react-day-picker',
+                'react-day-picker/*',
               ],
               message:
                 'Only the design-system layer imports this package. Use what @shared/design-system exports.',

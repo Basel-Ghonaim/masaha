@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   ArrowRight,
+  Calendar,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -134,4 +135,8 @@ export function EllipsisVerticalIcon(props: IconProps) {
 
 export function MenuIcon(props: IconProps) {
   return <Icon glyph={Menu} {...props} />;
+}
+
+export function CalendarIcon(props: IconProps) {
+  return <Icon glyph={Calendar} {...props} />;
 }

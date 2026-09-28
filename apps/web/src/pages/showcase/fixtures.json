@@ -592,6 +592,35 @@
             ]
           }
         }
+      },
+      "calendar": {
+        "title": "تقويم الشهر",
+        "singleCaption": "تاريخ واحد مختار؛ ويُميَّز اليوم حين يظهر",
+        "rangeCaption": "مدة مختارة من التواريخ",
+        "previous": "عرض الشهر السابق",
+        "next": "عرض الشهر التالي"
+      },
+      "datePicker": {
+        "title": "اختيار تاريخ من لوح",
+        "caption": "تاريخ اشتراك في حقل، ومدة بلاغات في صف الفلاتر، وحقل غير صالح",
+        "previous": "عرض الشهر السابق",
+        "next": "عرض الشهر التالي",
+        "start": {
+          "label": "بداية الاشتراك",
+          "helper": "أول يوم يمكن للمشترك الحضور فيه",
+          "placeholder": "اختر أول يوم في الاشتراك",
+          "panel": "اختيار بداية الاشتراك"
+        },
+        "period": {
+          "preset": "آخر 30 يوماً من البلاغات",
+          "panel": "اختيار مدة البلاغات"
+        },
+        "invalid": {
+          "label": "نهاية الاشتراك",
+          "placeholder": "اختر آخر يوم في الاشتراك",
+          "error": "اختر تاريخ النهاية قبل الحفظ",
+          "panel": "اختيار نهاية الاشتراك"
+        }
       }
     },
     "en": {
@@ -1170,6 +1199,35 @@
               "Rejected data report"
             ]
           }
+        }
+      },
+      "calendar": {
+        "title": "Month calendars",
+        "singleCaption": "One chosen date; today is marked when it is in view",
+        "rangeCaption": "A chosen range of dates",
+        "previous": "Show the previous month",
+        "next": "Show the next month"
+      },
+      "datePicker": {
+        "title": "Choosing a date in a panel",
+        "caption": "A membership date in a field, a report period in the filter row, and an invalid field",
+        "previous": "Show the previous month",
+        "next": "Show the next month",
+        "start": {
+          "label": "Start of the membership",
+          "helper": "The first day the member can come in",
+          "placeholder": "Pick the first day of the membership",
+          "panel": "Choose the start of the membership"
+        },
+        "period": {
+          "preset": "The last 30 days of reports",
+          "panel": "Choose the period of the reports"
+        },
+        "invalid": {
+          "label": "End of the membership",
+          "placeholder": "Pick the last day of the membership",
+          "error": "Choose the end date before saving",
+          "panel": "Choose the end of the membership"
         }
       }
     }

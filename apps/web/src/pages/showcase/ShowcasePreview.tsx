@@ -9,9 +9,11 @@ import {
   BadgeSection,
   BreadcrumbSection,
   ButtonSection,
+  CalendarSection,
   CardSection,
   CheckboxSection,
   ComboboxSection,
+  DatePickerSection,
   DialogSection,
   DropdownMenuSection,
   EmptyStateSection,
@@ -91,6 +93,8 @@ export function ShowcasePreview() {
         <ToggleGroupSection samples={samples.toggleGroup} />
         <PopoverSection samples={samples.popover} />
         <ComboboxSection samples={samples.combobox} />
+        <CalendarSection samples={samples.calendar} lang={language} />
+        <DatePickerSection samples={samples.datePicker} lang={language} />
       </main>
       <Toaster label={samples.toaster.label} closeLabel={samples.toaster.closeLabel} />
     </DirectionProvider>

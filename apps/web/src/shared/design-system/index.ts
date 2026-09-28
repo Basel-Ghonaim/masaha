@@ -33,6 +33,7 @@ export {
   type BreadcrumbProps,
 } from './components/Breadcrumb';
 export { Button, type ButtonProps } from './components/Button';
+export { Calendar, type CalendarProps, type DateRange } from './components/Calendar';
 export {
   Card,
   CardAction,
@@ -65,6 +66,13 @@ export {
   DialogTrigger,
   type DialogContentProps,
 } from './components/Dialog';
+export {
+  DatePicker,
+  DatePickerContent,
+  DatePickerTrigger,
+  type DatePickerContentProps,
+  type DatePickerTriggerProps,
+} from './components/DatePicker';
 export { DirectionProvider } from './components/DirectionProvider';
 export {
   DropdownMenu,
@@ -167,6 +175,7 @@ export { Tooltip, TooltipContent, TooltipTrigger, type TooltipProps } from './co
 export {
   ArrowEndIcon,
   ArrowStartIcon,
+  CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronEndIcon,
