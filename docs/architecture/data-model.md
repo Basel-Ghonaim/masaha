@@ -8,18 +8,20 @@
 
 - **IDs:** `Int @id @default(autoincrement())`. Public space URLs use a unique `slug`, never reused.
 - **Naming:** models PascalCase, fields camelCase, mapped to snake_case tables (plural) and columns with `@map` / `@@map`.
-- **Timestamps:** `createdAt`, `updatedAt` on every table, as `timestamptz`. The one exception is `AuditLog`, which is append-only and has `createdAt` only. Calendar dates (membership start and end) are `date`.
-- **Soft delete:** `deletedAt` on `Space`, `Member`, `Announcement`; `suspendedAt` on `User` ([ADR 0007](decisions/0007-soft-delete.md)). Purely dependent rows (managers, hours, shifts, prices, contacts, amenity links, photos, favourites, tokens) cascade from their parent; history (members, memberships, check-ins, announcements, data reports, audit log) restricts deletion.
+- **Timestamps:** `createdAt`, `updatedAt` on every table, as `timestamptz`. The one exception is `AuditLog`, which is append-only and has `createdAt` only. Calendar dates (a subscription's start and end) are `date`.
+- **Soft delete:** `deletedAt` on `Space` and `Announcement`, and `archivedAt` on `Customer` (named as the desk sees it); `suspendedAt` on `User` ([ADR 0007](decisions/0007-soft-delete.md)). Purely dependent rows (managers, hours, shifts, prices, contacts, amenity links, photos, favourites, tokens) cascade from their parent; history (customers, packages, subscriptions, check-ins, visits, announcements, data reports, audit log) restricts deletion.
 - **Bilingual content:** paired fields such as `nameAr` / `nameEn`, `descriptionAr` / `descriptionEn`, `addressAr` / `addressEn`. Arabic required, English optional. A space's description is optional in both languages. Lookups (governorates, areas, amenities) require both.
 - **Areas are two-level:** governorate → area, covering the whole Gaza Strip. Each carries an admin-managed `isActive` flag: an area beyond reach is hidden and restored later without deleting anything. Amenities carry the same flag, so a retired amenity keeps its links.
 - **Prices:** every period (hour, day, week, month) is optional, so a missing period is a missing row. A price has an audience (general or student), an optional shift and an optional custom label (Arabic and English). Amounts are integers in agorot with a `currency` (`ILS`); display only in v1. Halls for rent and technical training are amenities, never prices.
-- **Shifts:** a space may define named shifts inside its one daily opening range (for example 08:00–16:00 and 16:00–22:00 inside 08:00–22:00). Most spaces have none. A price or a membership may name one. Shifts belong to the prices fact group.
+- **Shifts:** a space may define named shifts inside its one daily opening range (for example 08:00–16:00 and 16:00–22:00 inside 08:00–22:00). Most spaces have none. A price, a package, a subscription or a visit may name one. Shifts belong to the prices fact group.
 - **Times of day** are minutes after midnight in Asia/Gaza, not `time` columns. Opening hours are one range per day of the week (0 = Sunday … 6 = Saturday) with a closed flag. v1 does not support closing mid-day and reopening, or closing after midnight. New spaces start from the template Saturday–Thursday open, Friday closed.
 - **Contacts** are a typed list per space (WhatsApp, phone, email, Instagram, Facebook, TikTok, website), not fixed columns:
-  - phone and WhatsApp values, like every phone number in the database (members), are stored in **E.164**. Input arrives as `00970…`, `+972…` or local `05…`; Palestinian mobiles (`059…` Jawwal, `056…` Ooredoo) are normalised to `+970…` whatever prefix they arrived with, so one number has one form. Numbers are displayed LTR;
+  - phone and WhatsApp values, like every phone number in the database (customers), are stored in **E.164**. Input arrives as `00970…`, `+972…` or local `05…`; Palestinian mobiles (`059…` Jawwal, `056…` Ooredoo) are normalised to `+970…` whatever prefix they arrived with, so one number has one form. Numbers are displayed LTR;
   - email is stored lowercased; Instagram, Facebook, TikTok and website as full `https://` URLs.
 - **Capacity is private from the public:** stored on the space, visible only to the space's staff (owner and reception), never to the admin or in a public page or response ([ADR 0008](decisions/0008-live-status-not-counts.md)).
 - **Freshness:** each fact group of a space carries its own `…UpdatedAt`, set when the group is saved **or confirmed unchanged**: profile (name, description, address, area, location, photos), hours, prices (with shifts), amenities, contacts. Confirming («المعلومات ما زالت صحيحة») resets only that group's date and changes none of its data.
+- **Same space by construction:** a record that points at two things of one space carries the `spaceId` and points at each through a composite foreign key, `(id, spaceId)`, so the database refuses a customer, package, shift or subscription of another space. A price's shift set the pattern.
+- **Idempotency:** a record the desk creates from a request that may be retried (a check-in, a visit) carries a client-generated `requestId` (a UUID), unique within its space. A retried request hits the key, and the service returns the row that already exists instead of recording it twice.
 - **Settings** are key–value rows whose keys are fixed in code; each value is validated when read.
 - **Indexes only for queries that run.** Foreign keys used in lists are indexed, or covered by the prefix of a unique index.
 - **Unique violations** (Prisma `P2002`) become `409 CONFLICT`.
@@ -47,9 +49,11 @@ Summaries only: the schema owns the fields.
 - **SpacePhoto** — ordered photos, by storage key.
 
 ### Operations
-- **Member** — a person registered at one space by its owner: name and phone, optionally a platform user (unused in v1). Soft-deleted.
-- **Membership** — one period of a member's subscription: type (daily, weekly, monthly, seasonal), start and end dates, optional shift. A renewal adds a row; corrections update it and are audited.
-- **CheckIn** — a member or a daily visitor present at a space, opened and closed manually or closed automatically. Never deleted.
+- **Customer** — everyone on file at one space: a subscriber, or a visitor who left a debt. A name and an optional phone, unique within the space among customers that are not archived; optionally a platform user (unused in v1). Archived, never deleted.
+- **Package** — an owner-defined subscription template, private to the space's staff: a validity in days, the same optional limits and billing as a subscription, an audience, an optional shift and an active flag. The public packages are the published `SpacePrice` rows, never duplicated here.
+- **Subscription** — any multi-day arrangement for a customer, from a package or custom («مخصّص», typed at the desk): a name, optional limits (start and end dates, total days, days per week, hours per day, total hours), fixed or usage-based billing (per hour or per day) with its price or rate copied in, an audience and an optional shift. It records who typed a desk price and who ended it early, and when. A renewal adds a row.
+- **CheckIn** — a customer present on one of their subscriptions, opened and closed manually or closed automatically. Never deleted.
+- **Visit** — a same-day stay, checked in by name, as a customer, or both, with an audience and an optional shift. Its hour and day rates are copied at check-in; at check-out it stores its charge: the rounding in force, whether the day-price cap applied, the amount, and who typed it when the desk had to. It gains a customer when it is left unpaid. Never deleted.
 - **Announcement** — a time-bound bilingual notice from the owner, typed (general, outage, closure, offer, event). Soft-deleted.
 - **DataReport** — a user's report that one field group of a space is wrong (prices, hours, contact, location, amenities, other), with its resolution.
 - **Favorite** — a user's saved space.
@@ -65,12 +69,11 @@ Summaries only: the schema owns the fields.
   2. **`CLOSED`** (مغلق الآن) while an active `CLOSURE` announcement covers now (not deleted, `startsAt ≤ now`, and `endsAt` after now or not set), or outside today's opening hours;
   3. *planned (F-3b):* while the space is open by its hours, a **manual override** in force gives its state: `AVAILABLE`, `FULL` or `CLOSED`, even when capacity is not set. The owner or reception sets it for 30 min, 1 h, 2 h or until today's closing time. A new override replaces the previous one, and staff can clear it early;
   4. **no live state** when the space has no opening hours at all, or is open but its capacity is not set;
-  5. **`FULL`** (ممتلئ) when present ≥ capacity, where *present* is the open check-ins (*planned:* the open visits plus the open subscription check-ins);
+  5. **`FULL`** (ممتلئ) when present ≥ capacity, where *present* is the open visits plus the open subscription check-ins;
   6. otherwise **`AVAILABLE`** (متاح).
 
   The directory's "available now" filter selects `AVAILABLE`. Capacity and the exact numbers (present / capacity) are shown only to the space's staff (owner and reception).
 - **Auto check-out:** open check-ins are closed at the space's closing time, or at 23:59 when the space has no opening hours — or earlier, after `maxStayMinutes`, when the owner sets it. Closing-time check-out cannot be turned off.
-- **Membership status:** from the member's latest membership (the greatest `endsOn`) — active, ending soon (≤ 7 days), expired. *Replaced by the subscription status below in F-3b.*
 - **Stale:** a fact group whose `…UpdatedAt` is older than its threshold: `priceStalenessDays` (default 30) for prices, `stalenessDays` (default 60) for the others. Both are admin settings.
 - **Stale prices:**
   - on an **unverified** space, the amounts are hidden, "Price not up to date — contact the space" is shown, and the space is left out of the price filter;
@@ -113,17 +116,19 @@ The subscription model must express each of these without special cases; F-3b pr
 
 ## Constraints worth stating
 
-The database enforces these; `apps/api/src/db/schema.api.test.ts` proves each one.
+The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove each one (`schema` for spaces, prices and accounts, `front-desk`, `subscriptions`).
 
-- One open check-in per member (partial unique index on `memberId` where `checkedOutAt IS NULL`).
-- Member phone unique within a space among non-deleted members (partial unique index).
+- One open check-in per customer, and one open visit per customer (partial unique indexes on `customerId` where `checkedOutAt IS NULL`). One open presence across both is checked by the service.
+- Customer phone unique within a space among customers that are not archived (partial unique index); customers without a phone are not limited.
+- A check-in's, a visit's, a subscription's and a package's customer, subscription, package and shift belong to the record's own space (composite foreign keys).
+- A `requestId` is unique within its space (check-ins, visits).
 - One price per space, period, audience, shift and label, where a missing shift or label counts as one value (four unique indexes, three of them partial, because PostgreSQL treats NULLs as distinct).
 - A price's shift belongs to the price's own space (a foreign key through `(shiftId, spaceId)`).
-- A membership's shift belongs to the member's space: checked by the service, since a membership has no `spaceId`.
-- `CHECK` constraints, written as raw SQL at the end of the init migration: phone numbers in E.164; an opening range and a shift inside the day, and a closed day without times; a check-in has a member or a visitor, never both, closes after it opens, and has a check-out method exactly when closed; end dates after start dates; location, capacity, stay limit and amounts in range.
+- `CHECK` constraints, written as raw SQL at the end of the init migration: phone numbers in E.164; an opening range and a shift inside the day, and a closed day without times; a check-in closes after it opens, and has a check-out method exactly when closed; end dates after start dates; location, capacity, stay limit and amounts in range.
 - A user has a password, a Google subject, or both (a `CHECK`); a Google subject belongs to one user.
 - The partial indexes use Prisma's `partialIndexes` preview feature, so Prisma knows them and later migrations keep them. `CHECK` constraints are not compared by Prisma, so later migrations leave them alone; a change to one is a new raw-SQL migration.
-- Check-ins, memberships and audit-log entries are never deleted.
+- `CHECK` constraints of the later migrations: a customer's phone in E.164; a subscription's and a package's limits positive (at most 7 days a week and 24 hours a day), prices not negative, and an early end with both its time and who ended it; a visit has a name or a customer, closes after it opens, has a check-out method exactly when closed, has no charge while open, names who typed a charge only with a charge, keeps rounding minutes (1–59) exactly for the "up after N minutes" rule, and has no negative rate or charge.
+- Check-ins, visits, subscriptions and audit-log entries are never deleted.
 
 ### Planned constraints (F-3b)
 
@@ -132,16 +137,11 @@ The database enforces these; `apps/api/src/db/schema.api.test.ts` proves each on
 - A payment may exceed what remains due only on a usage-based subscription (checked by the service).
 - An unpaid visit has a customer.
 - A closure's subscription extension is applied at most once per closure announcement.
-- One open check-in per customer, as for members today.
 
 ## Pending entity changes (F-3b)
 
 Planned, not built. The schema will own the fields; this section folds into *Entities* when F-3b is merged.
 
-- **Member → Customer** (a rename): everyone on file at a space.
-- **Membership → Subscription** (a rename): the optional limits, the billing mode (fixed, per hour or per day), the price snapshot, the package or «مخصّص», who set a desk-typed price, and the early end. `MembershipType` and its `DAILY` value are dropped: daily visitors are visits.
-- **Package** (new): an owner-defined subscription template. The published prices are the public packages; private packages are never public.
-- **Visit** (new): a same-day stay by name, with its copied rates, check-in and check-out, charge and optional customer. Whether it is its own model or grows from `CheckIn`'s visitor rows is decided in F-3b.
 - **Payment** (new): the ledger of [ADR 0010](decisions/0010-manual-payment-ledger.md).
 - **Space:** the manual state override (state, until, who set it) and the visit rounding rule.
 - **DataReport:** an optional resolution note, written by whoever resolves it.

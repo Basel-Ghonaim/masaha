@@ -63,12 +63,19 @@ enum ContactType {
   WEBSITE
 }
 
-// SEASONAL is any other length; the membership's dates define it.
-enum MembershipType {
-  DAILY
-  WEEKLY
-  MONTHLY
-  SEASONAL
+// How a subscription or a package is charged: one fixed price, or its attendance at a rate.
+enum SubscriptionBilling {
+  FIXED
+  PER_HOUR
+  PER_DAY
+}
+
+// How a visit's stay is rounded before the hour rate applies (a space setting).
+enum VisitRounding {
+  /// A started hour counts in full once the space's number of minutes into it have passed.
+  UP_AFTER_MINUTES
+  NEAREST_HALF_HOUR
+  PER_MINUTE
 }
 
 enum CheckInMethod {
@@ -131,8 +138,12 @@ model User {
   favorites           Favorite[]
   dataReports         DataReport[]         @relation("DataReportAuthor")
   resolvedDataReports DataReport[]         @relation("DataReportResolver")
-  members             Member[]
+  customers           Customer[]
   auditLogs           AuditLog[]
+  // Who typed a price or a charge at the desk, and who ended a subscription early.
+  pricedSubscriptions Subscription[]       @relation("SubscriptionPriceSetBy")
+  endedSubscriptions  Subscription[]       @relation("SubscriptionEndedBy")
+  chargedVisits       Visit[]              @relation("VisitChargeSetBy")
 
   @@map("users")
 }
@@ -267,8 +278,11 @@ model Space {
   prices        SpacePrice[]
   contacts      SpaceContact[]
   photos        SpacePhoto[]
-  members       Member[]
+  customers     Customer[]
+  packages      Package[]
+  subscriptions Subscription[]
   checkIns      CheckIn[]
+  visits        Visit[]
   announcements Announcement[]
   dataReports   DataReport[]
   favorites     Favorite[]
@@ -343,9 +357,11 @@ model SpaceShift {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  space       Space        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  prices      SpacePrice[]
-  memberships Membership[]
+  space         Space          @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  prices        SpacePrice[]
+  packages      Package[]
+  subscriptions Subscription[]
+  visits        Visit[]
 
   @@unique([spaceId, nameAr])
   // The target of SpacePrice's foreign key, which keeps a price's shift in its own space.
@@ -418,54 +434,126 @@ model SpacePhoto {
 
 // ─── Operations ──────────────────────────────────────────────────────────────────────────────
 
-/// The person. Phone is unique within a space among non-deleted members.
-model Member {
-  id        Int       @id @default(autoincrement())
-  spaceId   Int       @map("space_id")
-  name      String
-  /// E.164.
-  phone     String
+/// Everyone on file at a space: a subscriber, or a visitor who left a debt. The phone is unique
+/// within a space among customers that are not archived.
+model Customer {
+  id         Int       @id @default(autoincrement())
+  spaceId    Int       @map("space_id")
+  name       String
+  /// E.164. Optional: a subscriber may have none.
+  phone      String?
   /// Unused in v1.
-  userId    Int?      @map("user_id")
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  userId     Int?      @map("user_id")
+  /// The soft delete (ADR 0007), named as the desk sees it.
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  space       Space        @relation(fields: [spaceId], references: [id], onDelete: Restrict)
-  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  memberships Membership[]
-  checkIns    CheckIn[]
+  space         Space          @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  subscriptions Subscription[]
+  checkIns      CheckIn[]
+  visits        Visit[]
 
-  // Partial: a deleted member's phone can be registered again. Also serves the owner's list.
-  @@unique([spaceId, phone], where: { deletedAt: null })
-  @@map("members")
+  // Partial: an archived customer's phone can be used again. Also serves the customer list.
+  @@unique([spaceId, phone], where: { archivedAt: null })
+  // The target of the foreign keys that keep a customer's records in the customer's space.
+  @@unique([id, spaceId])
+  @@map("customers")
 }
 
-/// A renewal adds a row. The member's status derives from the latest membership (greatest
-/// endsOn). The shift must belong to the member's space: the service checks it.
-model Membership {
-  id        Int            @id @default(autoincrement())
-  memberId  Int            @map("member_id")
-  type      MembershipType
-  startsOn  DateTime       @map("starts_on") @db.Date
-  endsOn    DateTime       @map("ends_on") @db.Date
-  shiftId   Int?           @map("shift_id")
-  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+/// An owner-defined subscription template, private to the space's staff. The published prices
+/// (SpacePrice) are the public packages; a subscription copies a package's terms when it is made.
+model Package {
+  id           Int                 @id @default(autoincrement())
+  spaceId      Int                 @map("space_id")
+  name         String
+  /// A subscription made from it ends this many days after it starts.
+  validityDays Int                 @map("validity_days")
+  // Optional limits, as on a subscription.
+  totalDays    Int?                @map("total_days")
+  daysPerWeek  Int?                @map("days_per_week")
+  hoursPerDay  Int?                @map("hours_per_day")
+  totalHours   Int?                @map("total_hours")
+  billing      SubscriptionBilling
+  /// The whole price when FIXED; otherwise the rate per hour or per day.
+  priceAgorot  Int                 @map("price_agorot")
+  audience     PriceAudience       @default(GENERAL)
+  shiftId      Int?                @map("shift_id")
+  /// An inactive package is no longer offered; the subscriptions made from it keep it.
+  isActive     Boolean             @default(true) @map("is_active")
+  sortOrder    Int                 @default(0) @map("sort_order")
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  member Member      @relation(fields: [memberId], references: [id], onDelete: Restrict)
-  shift  SpaceShift? @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  space         Space          @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  // Through spaceId too, as on SpacePrice: only a shift of the package's own space.
+  shift         SpaceShift?    @relation(fields: [shiftId, spaceId], references: [id, spaceId], onDelete: NoAction)
+  subscriptions Subscription[]
 
-  @@index([memberId, endsOn])
-  @@map("memberships")
+  // Its space_id prefix also serves the package list.
+  @@unique([spaceId, name])
+  @@unique([id, spaceId])
+  @@map("packages")
 }
 
-/// A member or a daily visitor, never both. Never deleted (ADR 0007).
+/// Any multi-day arrangement for a customer: from a package, or custom (typed at the desk). Every
+/// limit is optional and only warns at check-in. The prices are a snapshot (ADR 0010). A renewal
+/// adds a row.
+model Subscription {
+  id           Int                 @id @default(autoincrement())
+  spaceId      Int                 @map("space_id")
+  customerId   Int                 @map("customer_id")
+  /// Null for a custom subscription.
+  packageId    Int?                @map("package_id")
+  name         String
+  startsOn     DateTime?           @map("starts_on") @db.Date
+  /// Moved to today when the subscription is ended early, and later by closure extensions.
+  endsOn       DateTime?           @map("ends_on") @db.Date
+  totalDays    Int?                @map("total_days")
+  daysPerWeek  Int?                @map("days_per_week")
+  hoursPerDay  Int?                @map("hours_per_day")
+  totalHours   Int?                @map("total_hours")
+  billing      SubscriptionBilling
+  /// The whole price when FIXED; otherwise the rate per hour or per day.
+  priceAgorot  Int                 @map("price_agorot")
+  audience     PriceAudience       @default(GENERAL)
+  shiftId      Int?                @map("shift_id")
+  /// Who typed the price at the desk; null when it came from a package.
+  priceSetById Int?                @map("price_set_by_id")
+  /// Ended early: when and by whom.
+  endedAt      DateTime?           @map("ended_at") @db.Timestamptz(3)
+  endedById    Int?                @map("ended_by_id")
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space      Space       @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  // Through spaceId, so the customer, the package and the shift all belong to the same space.
+  customer   Customer    @relation(fields: [customerId, spaceId], references: [id, spaceId], onDelete: Restrict)
+  package    Package?    @relation(fields: [packageId, spaceId], references: [id, spaceId], onDelete: NoAction)
+  shift      SpaceShift? @relation(fields: [shiftId, spaceId], references: [id, spaceId], onDelete: NoAction)
+  priceSetBy User?       @relation("SubscriptionPriceSetBy", fields: [priceSetById], references: [id], onDelete: Restrict)
+  endedBy    User?       @relation("SubscriptionEndedBy", fields: [endedById], references: [id], onDelete: Restrict)
+  checkIns   CheckIn[]
+
+  // The targets of the foreign keys that keep a check-in with its customer, and a payment in its
+  // space.
+  @@unique([id, customerId])
+  @@unique([id, spaceId])
+  // The customer's subscriptions, latest first; and the space's, by end date (ending soon).
+  @@index([customerId, endsOn])
+  @@index([spaceId, endsOn])
+  @@map("subscriptions")
+}
+
+/// A customer present on a subscription. Never deleted (ADR 0007).
 model CheckIn {
   id             Int             @id @default(autoincrement())
   spaceId        Int             @map("space_id")
-  memberId       Int?            @map("member_id")
-  visitorName    String?         @map("visitor_name")
+  /// Generated by the client, so a retried request never checks in twice.
+  requestId      String          @map("request_id") @db.Uuid
+  customerId     Int             @map("customer_id")
+  subscriptionId Int             @map("subscription_id")
   checkedInAt    DateTime        @default(now()) @map("checked_in_at") @db.Timestamptz(3)
   checkedOutAt   DateTime?       @map("checked_out_at") @db.Timestamptz(3)
   method         CheckInMethod   @default(MANUAL)
@@ -474,15 +562,67 @@ model CheckIn {
   createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  space  Space   @relation(fields: [spaceId], references: [id], onDelete: Restrict)
-  member Member? @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  space        Space        @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  // The customer is of this space, and the subscription is this customer's.
+  customer     Customer     @relation(fields: [customerId, spaceId], references: [id, spaceId], onDelete: Restrict)
+  subscription Subscription @relation(fields: [subscriptionId, customerId], references: [id, customerId], onDelete: Restrict)
 
-  // At most one open check-in per member.
-  @@unique([memberId], where: { checkedOutAt: null })
+  @@unique([spaceId, requestId])
+  // At most one open check-in per customer.
+  @@unique([customerId], where: { checkedOutAt: null })
   // Open check-ins per space (live status), and date ranges (reports).
   @@index([spaceId, checkedOutAt])
   @@index([spaceId, checkedInAt])
+  // A subscription's progress.
+  @@index([subscriptionId, checkedInAt])
   @@map("check_ins")
+}
+
+/// A same-day stay, checked in by name or as a customer and charged at check-out. Its rates are
+/// copied at check-in and its charge is stored at check-out (ADR 0010). Never deleted (ADR 0007).
+model Visit {
+  id              Int             @id @default(autoincrement())
+  spaceId         Int             @map("space_id")
+  /// Generated by the client, so a retried request never checks in twice.
+  requestId       String          @map("request_id") @db.Uuid
+  visitorName     String?         @map("visitor_name")
+  /// Set when the visit is a customer's, or when it is left unpaid (the customer with that phone).
+  customerId      Int?            @map("customer_id")
+  audience        PriceAudience   @default(GENERAL)
+  shiftId         Int?            @map("shift_id")
+  /// Copied at check-in from the space's prices; null when the space has no such price.
+  hourRateAgorot  Int?            @map("hour_rate_agorot")
+  dayRateAgorot   Int?            @map("day_rate_agorot")
+  checkedInAt     DateTime        @default(now()) @map("checked_in_at") @db.Timestamptz(3)
+  checkedOutAt    DateTime?       @map("checked_out_at") @db.Timestamptz(3)
+  method          CheckInMethod   @default(MANUAL)
+  /// Null while the visit is open.
+  checkoutMethod  CheckOutMethod? @map("checkout_method")
+  // The charge, set at check-out: the rounding in force, whether the day-price cap cut it, and the
+  // amount. Null while open, and after an auto check-out that had no rate to charge.
+  roundingRule    VisitRounding?  @map("rounding_rule")
+  roundingMinutes Int?            @map("rounding_minutes")
+  capApplied      Boolean?        @map("cap_applied")
+  chargeAgorot    Int?            @map("charge_agorot")
+  /// Who typed the charge at the desk, when there was no rate to compute it.
+  chargeSetById   Int?            @map("charge_set_by_id")
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space       Space       @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  customer    Customer?   @relation(fields: [customerId, spaceId], references: [id, spaceId], onDelete: NoAction)
+  shift       SpaceShift? @relation(fields: [shiftId, spaceId], references: [id, spaceId], onDelete: NoAction)
+  chargeSetBy User?       @relation("VisitChargeSetBy", fields: [chargeSetById], references: [id], onDelete: Restrict)
+
+  @@unique([spaceId, requestId])
+  // At most one open visit per customer.
+  @@unique([customerId], where: { checkedOutAt: null })
+  // The target of the foreign key that keeps a payment in its visit's space.
+  @@unique([id, spaceId])
+  // Open visits per space (live status), and date ranges (reports, uncollected visits).
+  @@index([spaceId, checkedOutAt])
+  @@index([spaceId, checkedInAt])
+  @@map("visits")
 }
 
 model Announcement {
