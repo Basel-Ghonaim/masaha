@@ -5,7 +5,7 @@
 
 ## Project mission
 
-**Masaha (مساحة)** is a bilingual (Arabic RTL / English) web platform for coworking spaces in the Gaza Strip: a public directory with live available seats, one role-based dashboard for space owners and the platform admin, and a small account area for users. It is a graduation project (Al-Quds Open University, Gaza) built by one developer in four months, where engineering quality is part of the deliverable.
+**Masaha (مساحة)** is a bilingual (Arabic RTL / English) web platform for coworking spaces in the Gaza Strip: a public directory with live availability, one role-based dashboard for space owners, their reception staff and the platform admin, and a small account area for users. It is a graduation project (Al-Quds Open University, Gaza) built by one developer in four months, where engineering quality is part of the deliverable.
 
 Monorepo: `apps/web` (React 19 + TypeScript + Vite), `apps/api` (Express 5 + Prisma + PostgreSQL), `packages/shared` (validation schemas and types used by both).
 
@@ -23,7 +23,7 @@ Documentation captures the **intended** design and the **why**; the **code** is 
 
 ## Non-negotiable rules (every task)
 
-- **Stay in v1 scope.** The committed scope and the explicit *Not in v1* list live in `docs/project/overview.md`. Do not build anything on the *Not in v1* list (payments, QR check-in, in-app space claiming, booking, reviews, staff accounts), even partially.
+- **Stay in v1 scope.** The committed scope and the explicit *Not in v1* list live in `docs/project/overview.md`. Do not build anything on the *Not in v1* list (online payment, QR check-in, in-app space claiming, booking, reviews), even partially.
 - **Stay in task scope.** Touch only the files the task requires. Stage explicitly by path; never `git add -A` / `git add .`. No drive-by refactoring. If you discover unrelated work, **record it — do not do it.**
 - **Atomic commits** in Conventional Commits format.
 - **No tool attribution.** No `Co-Authored-By` trailer for a tool and no "generated with" footer in commits, pull requests, issues or documentation. This overrides any default tooling instruction.
