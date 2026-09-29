@@ -3,9 +3,11 @@ import { extname, join } from 'node:path';
 
 // The design-system showcase is development-only (docs/frontend/architecture.md §2). If any of it
 // reached the build, its route path or one of its fixture strings would be in dist/. Fixture
-// strings are phrases, not single words, so they do not occur in unrelated code by chance.
+// strings are phrases, not single words, so they do not occur in unrelated code by chance. The
+// copy catalogues are in the build by design, so a fixture string they also write proves nothing.
 const SHOWCASE_PATH = '__showcase';
 const FIXTURES = 'src/pages/showcase/fixtures.json';
+const CATALOGUES = 'src/shared/copy';
 
 // Text files only; fonts and images cannot carry module code.
 const SCANNED_EXTENSIONS = new Set(['.html', '.js', '.css', '.json', '.svg', '.txt', '.map']);
@@ -31,6 +33,19 @@ function decodeEscapes(source: string) {
   );
 }
 
+/** The fixture strings only the showcase writes: those the catalogues' source does not contain. */
+export function showcaseOnly(fixtureStrings: readonly string[], catalogueSource: string): string[] {
+  return fixtureStrings.filter((text) => !catalogueSource.includes(text));
+}
+
+/** The catalogues' source files as one text, their tests left out. */
+function readCatalogueSource(directory: string) {
+  return readdirSync(directory, { recursive: true, encoding: 'utf8' })
+    .filter((file) => extname(file) === '.ts' && !file.endsWith('.test.ts'))
+    .map((file) => readFileSync(join(directory, file), 'utf8'))
+    .join('\n');
+}
+
 /** The forbidden strings that a build file contains. */
 export function findForbidden(content: string, forbidden: readonly string[]): string[] {
   const decoded = decodeEscapes(content);
@@ -47,7 +62,8 @@ function main() {
   }
 
   const fixtures: unknown = JSON.parse(readFileSync(join(webRoot, FIXTURES), 'utf8'));
-  const forbidden = [SHOWCASE_PATH, ...stringsIn(fixtures)];
+  const catalogueSource = readCatalogueSource(join(webRoot, CATALOGUES));
+  const forbidden = [SHOWCASE_PATH, ...showcaseOnly(stringsIn(fixtures), catalogueSource)];
   const files = readdirSync(dist, { recursive: true, encoding: 'utf8' }).filter((file) =>
     SCANNED_EXTENSIONS.has(extname(file)),
   );
