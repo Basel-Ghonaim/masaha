@@ -1,4 +1,6 @@
+import { ERRORS } from './errors';
 import { TERMS } from './terms';
+import { VALIDATION } from './validation';
 
 /**
  * English, the source catalogue: every other catalogue is written in the shape of this one.
@@ -9,5 +11,7 @@ import { TERMS } from './terms';
  * line so it can be reflowed.
  */
 export const ENGLISH = {
+  errors: ERRORS,
   terms: TERMS,
+  validation: VALIDATION,
 } as const;

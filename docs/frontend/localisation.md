@@ -56,6 +56,8 @@ The mechanism (`shared/localisation`) and the content (`shared/copy`) are separa
 - Each Arabic section is written `satisfies Catalogue['<section>']`, and the Arabic catalogue `satisfies Catalogue`, so a missing line, an extra line or different parameters fails the typecheck.
 - `catalogues.unit.test.ts` walks both catalogues and requires the same key paths and the same kind of line (words or a function) at each, which catches an extra line however a catalogue is assembled. It also refuses an empty line.
 
+**Server codes.** `errors` has a line for every error type and domain code, and `validation` one for every field-error code. English types both sections against the codes in `@masaha/shared`, so a code added to the contract without its line, or a line for no code, fails the typecheck. A screen reads `copy.errors[error.code ?? error.type]` unless it has something more specific to say.
+
 **Writing a line.** A key addresses a whole line, never a fragment. A varying value comes in through a function's named parameters, never by concatenation. No markup travels with text.
 
 **Registration.** `app/bootstrap.ts` runs before the first render and calls `setupLocalisation({ catalogues: CATALOGUES, language })`. The fallback language, `ar`, must have a catalogue, or setup throws. Reading the language or a catalogue before setup throws.
