@@ -19,13 +19,15 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
 - [data-model.md](architecture/data-model.md) — data conventions, entities, derived values and constraints; the Prisma schema owns the fields.
 - [decisions/](architecture/decisions/) — Architectural Decision Records:
   - [0001](architecture/decisions/0001-monorepo-and-stack.md) monorepo and stack
-  - [0002](architecture/decisions/0002-authorization-model.md) authorization: three roles and space-scoped ownership
+  - [0002](architecture/decisions/0002-authorization-model.md) authorization: three roles and space-scoped ownership (partly superseded by 0009)
   - [0003](architecture/decisions/0003-session-model.md) session: in-memory access token, rotating refresh cookie
   - [0004](architecture/decisions/0004-frontend-data-and-state.md) frontend data and state: TanStack Query, Axios, Zustand
   - [0005](architecture/decisions/0005-design-system-approach.md) design system: one layer, shadcn/ui and Tailwind on a tiered token structure
   - [0006](architecture/decisions/0006-localisation-approach.md) localisation: typed catalogues, language not in the URL
   - [0007](architecture/decisions/0007-soft-delete.md) soft delete for operational records
   - [0008](architecture/decisions/0008-live-status-not-counts.md) live occupancy is public as a state, never a count
+  - [0009](architecture/decisions/0009-space-scoped-reception-role.md) space-scoped staff: the Reception role
+  - [0010](architecture/decisions/0010-manual-payment-ledger.md) payments: a manual, append-only ledger
 - [findings.md](architecture/findings.md) — recorded divergences from the intended design.
 
 ### `api/`

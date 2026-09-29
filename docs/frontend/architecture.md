@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint, and the development-only `showcase` group (§2) is built; the rest is not yet implemented · **Last Updated:** 2026-09-27 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint, and the development-only `showcase` group (§2) is built; the rest is not yet implemented · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the capability layout, routing and role guards. Data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -23,18 +23,19 @@
 | `public` | `/`, `/spaces`, `/spaces/:slug`, `/about` | none |
 | `auth` | `/login`, `/register`, `/forgot-password`, `/reset-password` | guests only |
 | `account` | `/me`, `/me/favorites`, `/me/reports` | signed in |
-| `dashboard` | `/dashboard/...` | OWNER or ADMIN (per route) |
+| `dashboard` | `/dashboard/...` | ADMIN, or an active space link, OWNER or RECEPTION (per route) |
 | `showcase` | `/__showcase`, `/__showcase/preview` | none; **development only**, not in the build |
 
 - A page group's barrel exports its **route subtree**, not individual screens.
 - **Guards sit visibly on each route** (`<RequireRole roles={['OWNER']}>`), never inherited silently from the group.
 - The dashboard's **navigation config per role** belongs to the `dashboard` page group, because choosing what appears together is composition. Features stay role-agnostic: the page passes the scope (`mine` for an owner, `all` for the admin).
+- In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space selected** in the space switcher, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
 - UI hiding is for usability only; the server is the authority.
 - **`showcase`** is a development tool for the design-system layer ([foundation §3](design-system/foundation.md#3-architecture)). `app/router.tsx` mounts it only when `import.meta.env.DEV`, so a build leaves it out; `check:build` fails if any of it reaches the build.
 
 ## 3. Capabilities (features)
 
-`auth` · `spaces` (directory and public profile) · `space-management` (owner/admin profile editing) · `members` · `attendance` · `occupancy` · `announcements` · `reports` (occupancy reports) · `data-reports` · `favorites` · `owners` (admin linking) · `users` · `lookups` · `audit` · `settings`
+`auth` · `spaces` (directory and public profile) · `space-management` (owner/admin profile editing) · `customers` · `subscriptions` · `packages` · `visits` · `attendance` (subscription check-ins) · `payments` · `occupancy` · `announcements` · `finance` (finance and statistics, with the occupancy reports) · `staff` · `data-reports` · `favorites` · `owners` (admin linking) · `users` · `lookups` · `audit` · `settings`
 
 ### Capability layout
 
