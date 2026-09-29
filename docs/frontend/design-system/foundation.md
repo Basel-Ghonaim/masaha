@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-09-28
+> **Last Updated:** 2026-09-29
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -17,16 +17,16 @@ This document defines **how** Masaha's Design System is structured, **what** it 
 
 | Area | Who | Purpose |
 |---|---|---|
-| **Public site** | everyone | Directory of coworking spaces (list + map), space details, live available seats |
+| **Public site** | everyone | Directory of coworking spaces (list or map), space details, live status (available, full, closed now) |
 | **My account** | User, Owner | Profile, favourites, reports the user submitted |
-| **Dashboard** | Owner, Admin | One role-based dashboard: Owner manages their own space(s); Admin manages the platform |
+| **Dashboard** | Owner, Reception, Admin | One role-based dashboard: Owner runs their own space(s), Reception works the front desk of its space; Admin manages the platform |
 
-**Roles:** `USER` (freelancer or student looking for a space), `OWNER` (space owner; also does the receptionist's work), `ADMIN` (platform administrator).
+**Roles:** `USER` (freelancer or student looking for a space), `OWNER` (space owner), `RECEPTION` (front-desk staff of one space, added by its owner), `ADMIN` (platform administrator). `OWNER` and `RECEPTION` are roles at a space ([ADR 0009](../../architecture/decisions/0009-space-scoped-reception-role.md)).
 
 **Context that shapes the design:**
 - Users are freelancers and students in Gaza. Internet is weak and intermittent, so pages must stay light.
 - Arabic is the primary language, and RTL is a first-class direction, not an adaptation.
-- Owners manage a daily operation: check-ins, members, announcements. Speed of repeated actions matters more than decoration.
+- Owners and their reception staff run a daily operation: check-ins, visits, subscriptions, payments, announcements. Speed of repeated actions matters more than decoration.
 - Tone: calm, trustworthy, practical. No playful or decorative styling.
 
 ---
@@ -148,10 +148,10 @@ Names follow shadcn/ui's convention so copied components work unchanged, plus Ma
 ### Status (Masaha additions)
 | Role | Purpose | Domain uses (decided by features, not the layer) |
 |---|---|---|
-| `success` / `success-foreground` | Positive state | Seats available, active membership, verified |
-| `warning` / `warning-foreground` | Attention | Space filling up, membership ending within 7 days, possibly outdated data |
+| `success` / `success-foreground` | Positive state | Available now, active subscription, paid, verified |
+| `warning` / `warning-foreground` | Attention | Subscription ending soon, partly paid, possibly outdated data |
 | `info` / `info-foreground` | Neutral notice | Announcements, tips |
-| `destructive` (above) | Negative state | Space full, expired membership, errors |
+| `destructive` (above) | Negative state | Space full, expired subscription, unpaid, errors |
 
 Each status also needs a **subtle** surface for badges and alerts (`success-subtle`, `warning-subtle`, `info-subtle`, `destructive-subtle`) with text that meets AA on it.
 
@@ -159,7 +159,7 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 `sidebar`, `sidebar-foreground`, `sidebar-primary`, `sidebar-primary-foreground`, `sidebar-accent`, `sidebar-accent-foreground`, `sidebar-border`, `sidebar-ring` — as in shadcn's Sidebar component.
 
 ### Data visualisation
-`chart-1` … `chart-5` — for the occupancy reports (occupancy by hour and by day).
+`chart-1` … `chart-5` — for finance and statistics (income by month, visits and subscriptions; occupancy by hour and by day).
 
 ### Values (locked — *Sea*)
 
@@ -255,11 +255,13 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 
 | Size | Width | Behaviour |
 |---|---|---|
-| Phone | 360–767px | Single column. Dashboard sidebar becomes a drawer (`Sheet`). Tables become stacked cards. Directory shows list **or** map with a toggle. Filters open in a bottom sheet. |
+| Phone | 360–767px | Single column. Dashboard sidebar becomes a drawer (`Sheet`). Tables become stacked cards. Filters open in a bottom sheet. |
 | Tablet | 768–1023px | Two columns where useful. Sidebar collapses to icons. |
-| Desktop | ≥1024px | Full layout: visible sidebar, full tables, directory list and map side by side. |
+| Desktop | ≥1024px | Full layout: visible sidebar, full tables. |
 
 Tailwind breakpoints: `md` = 768, `lg` = 1024 (defaults).
+
+**Directory, at every width:** the list **or** the map, never side by side, switched by a «قائمة | خريطة» toggle. The list is the default, and the view is kept in the URL (`?view=map`).
 
 **Shells:**
 - **Public shell:** top header (logo, directory, language switch, theme toggle, sign-in / account menu), content, footer.
@@ -337,7 +339,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Card | shadcn | |
 | Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** · Table, as in the Owner › Members stress test: a `muted` header row with `caption` headings, `body-sm` rows with `table-row-padding-block` and a `border` divider, the outer cells in line with `card-padding`; a row takes `accent` when hovered and while its row menu is open · Table has no frame: DataTable frames it as a card · DataTable is TanStack Table v9; features build its columns with `createDataTableColumnHelper`, so they never import the library · a column sorts only when it asks to (`enableSorting`): its header becomes a button with an arrow, and `aria-sort` says the order; client-side, or `manualSorting` when the server sorts · from 768px, one card holds the toolbar, the table and a footer with the summary at the start and the pagination at the end; below it there is no frame, and each row is a card drawn from the feature's `renderCard` in a named list, with the pagination under it · `loading` stands placeholder rows or cards in and marks the table busy; `empty` stands in for the rows |
 | Pagination | shadcn | Words as props · page numbers from `md`, the current one outlined on the page `background`; on a phone, Previous and Next around a summary ("Page 1 of 5"), as in the Owner › Members stress test · a missing step stays in place, marked `aria-disabled` |
-| Dialog, AlertDialog | shadcn | Confirmations (check-out, deactivate member, hide space) |
+| Dialog, AlertDialog | shadcn | Confirmations (check-out, void a payment, deactivate staff, hide space) |
 | Sheet | shadcn | Logical sides: `start` for mobile navigation (where the sidebar sits), `end` for a secondary panel, `bottom` for the phone filter panel (with a handle, which does not drag) |
 | DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side |
 | Tabs | shadcn | `default`: pills on a phone (the active one `primary`), a segmented control from `md` (the active one on `card`), as in the Owner › Members stress test · `line`: underlined, for the sections of a page |
@@ -348,7 +350,7 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | Skeleton | shadcn | Loading states |
 | Avatar | shadcn | Initials fallback |
 | Separator | shadcn | |
-| Calendar / DatePicker | shadcn | Membership start and end dates; report periods · one date or a range · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
+| Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
 | ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)) |
 | Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
 | Breadcrumb | shadcn | Dashboard sub-pages · named by a `label` prop; separators are `ChevronEndIcon` · ancestors `muted-foreground`, the current page `foreground` at the `label` weight, as in the Owner › Members stress test |
@@ -356,49 +358,59 @@ A copy also needs these steps, which the contract above does not cover ([finding
 | StatCard | hand-built | Dashboard overview numbers |
 | Spinner | hand-built | |
 
-**Not in the layer (built by features from it):** SpaceCard, SpaceMap and markers, OccupancyIndicator, MemberRow, AnnouncementBanner, VerifiedBadge (a Badge usage).
+**Not in the layer (built by features from it):** SpaceCard, SpaceMap and markers, OccupancyIndicator, CustomerRow, AnnouncementBanner, VerifiedBadge (a Badge usage).
 **Not in the layer (app-level):** theme and language *policy*. The toggles' visual controls are ordinary layer components.
 
 ---
 
-## 13. Screens to design (27)
+## 13. Screens to design (32)
 
 Every screen: phone and desktop, light and dark. Key screens also in LTR (English). States: default, loading (skeleton), empty, error.
 
 ### Public site (8)
-1. **Home** — hero with search, quick area filters, featured or nearby spaces
-2. **Directory** — list + map; filters: area, price range, amenities, verified only, available now; sort
-3. **Space details** — photos, prices (display only), amenities, hours, contact, announcements, live available seats (verified spaces), "last updated" notes, "Are you the owner? Contact us" (unverified), report wrong info
+1. **Home** — hero with search, quick area filters; «الأقرب إليك» when a location is in use, otherwise «متاحة الآن»
+2. **Directory** — list **or** map (the «قائمة | خريطة» toggle, §9); filters: area, price range, amenities (only the ones that tell spaces apart, not Internet or stable power), an "Other" group («أسعار للطلاب», «مفتوحة يوم الجمعة»), verified only, available now; sort, including «الأقرب إليّ»
+   - **Near me:** the browser's location, used on the device and never sent to the API; distances are straight-line and labelled approximate.
+   - A location is **not used** when the permission is denied or unavailable, when it is imprecise (accuracy worse than about 2 km), or when it falls outside the Gaza Strip. The screen then offers choosing an area, or placing a pin by hand on the map.
+3. **Space details** — photos, prices (display only), amenities, hours, contact, announcements, live status (available, full or closed now; verified spaces), "last updated" notes, "Are you the owner? Contact us" (unverified), report wrong info
 4. **About / Contact** — contact email and WhatsApp
-5. **Sign in**
-6. **Register**
-7. **Forgot / reset password**
+5. **Sign in** — email and password, or Google
+6. **Register** — name, email and password
+7. **Forgot / reset password** — a reset link by email; lost access to the email → contact Masaha on WhatsApp
 8. **404**
 
 ### My account (3)
-9. **Profile & settings** — name, password, language, theme
+9. **Profile & settings** — name, password (a Google-only account can add one), language, theme
 10. **Favourites**
-11. **My reports** — submitted reports and their status
+11. **My reports** — submitted reports, their status and the resolution note («ردّ إدارة المساحة» or «ردّ فريق مساحة»)
 
-### Owner dashboard (8)
-12. **Overview** — present now / capacity, memberships ending this week, active announcements, new reports
-13. **Space profile** — bilingual fields, map location, hours, capacity, amenities, prices, photos, contact
-14. **Members** — list, search, add / edit / deactivate; status: active, ending soon, expired
-15. **Attendance** — present now; check in a member or a daily visitor; check out; history with date filter
-16. **Announcements** — create with type and duration
-17. **Reports** — occupancy by hour and by day, peak times, average stay (charts)
-18. **Data reports** — users' reports about the space's info
-19. **Settings** — auto check-out rule, account
+### Dashboard — owner and reception (13)
+
+**O** = owner only · **O+R** = owner and reception. Navigation follows the user's role at the selected space; who may do what is owned by [ADR 0009](../../architecture/decisions/0009-space-scoped-reception-role.md).
+
+12. **Overview** (O) — present now / capacity and the live status, income today and this month, total debt, subscriptions ending this week, active announcements, new reports
+13. **Front desk** (O+R) — present now / capacity («الحاضرون الآن 27 / 40»); check in a visitor by name or a customer, with a warning when the space is full; check out with the visit charge and its payment; uncollected visits; set or clear the manual state override
+14. **Customers** (O+R) — everyone on file; search; filters: subscription type (monthly, weekly, package, custom, none), status, payment (has debt, settled)
+15. **Customer details** (O+R) — subscriptions with their progress and statement, payments, balance or credit, attendance; receive a payment, renew (a warning when a balance is due), end a subscription early
+16. **New subscription** (O+R) — from a package or «مخصّص»; limits (date range, total days, days per week, hours per day, total hours); billing (fixed, per hour or per day); price
+17. **Payments** (O+R) — the owner sees every payment, filtered by date, staff member and method, and can void one with a reason; reception sees only its own payments today (shift handover)
+18. **Announcements** (O+R) — create with type and duration, including a closure notice; the owner can then extend all active subscriptions by the closure days
+19. **Finance & statistics** (O) — income today, this month (against last month) and all time; total debt; income by month, split into visits and subscriptions; visit income per day; debtors (a WhatsApp reminder link) and payers; collections per staff member; occupancy (peak hours, average stay, charts); CSV export
+20. **Space profile** (O) — bilingual fields, map location, hours, capacity, amenities, photos, contact; «المعلومات ما زالت صحيحة» per fact group
+21. **Prices & packages** (O) — the published prices (hour, day, week, month, student), which are the public packages, and private packages
+22. **Staff** (O) — reception accounts: add by name and email (a temporary password shown once, or an existing account linked), deactivate
+23. **Data reports** (O) — users' reports about the space's info; resolve with an optional note
+24. **Settings** (O) — auto check-out rule, visit rounding rule, account
 
 ### Admin dashboard (8)
-20. **Overview** — spaces verified / unverified, open reports, new users, data completeness
-21. **Spaces** — all spaces, filters, add / edit / hide, link owner
-22. **Space owners** — create an Owner account or upgrade a user; link to one or more spaces
-23. **Data reports** — all reports and their status
-24. **Users** — search, suspend, change role
-25. **Lookups** — areas and amenities, in Arabic and English
-26. **Audit log**
-27. **Settings** — contact email and WhatsApp, default auto check-out, data-staleness threshold
+25. **Overview** — spaces verified / unverified, open reports, new users, data completeness
+26. **Spaces** — all spaces, filters, add / edit / hide, link owner
+27. **Space owners** — create an Owner account or upgrade a user; link to one or more spaces
+28. **Data reports** — all reports and their status; resolve those of unverified spaces with an optional note
+29. **Users** — search, suspend, change role; issue a temporary password to a user who lost access to their email
+30. **Lookups** — areas and amenities, in Arabic and English
+31. **Audit log**
+32. **Settings** — contact email and WhatsApp, default auto check-out, data-staleness threshold
 
 ---
 
@@ -408,7 +420,7 @@ Every screen: phone and desktop, light and dark. Key screens also in LTR (Englis
 2. ✅ **Lock the tokens.** Write the chosen values into §4–§7 of this document. *(Done: direction 1a Sea, with contrast fixes and a stress test on Sign in, Owner › Members and Admin › Data reports.)*
 3. ✅ **Build the layer in code (Claude Code).** Tokens, themes, pre-paint script, the shadcn components from §12 adapted per §11. Push to GitHub.
 4. ✅ **Sync into Claude Design.** Import the repository's design system (`/design-sync` from Claude Code, or a GitHub import) so every screen is designed with the real components. *(Done: synced with `/design-sync` into the Claude Design project «Masaha Design System»; the sync's inputs live in `.design-sync/`.)*
-5. **Design the 27 screens** (§13) in Claude Design.
+5. **Design the 32 screens** (§13) in Claude Design.
 6. **Hand off** each area to Claude Code with Claude Design's handoff bundle, and implement.
 
 Steps 3–4 make the design and the code share one design system, so what is designed is what gets built.

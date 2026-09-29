@@ -1,6 +1,6 @@
 # Plan — Application foundation
 
-> **Status:** Active · **Last Updated:** 2026-09-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
@@ -8,7 +8,7 @@
 **Goal:** the web app talks to a real API backed by PostgreSQL. A user can register, sign in, stay signed in across reloads, and land in the right shell for their role, in Arabic or English, light or dark.
 
 **Finished when:**
-- F-1 to F-6 are merged;
+- F-1 to F-6 and F-3b are merged;
 - CI runs every lane, including `test:api` against a real PostgreSQL;
 - the *Entities* section of `data-model.md`, `architecture/system-overview.md` and the catalogue part of `localisation.md` *Mechanism* are written (deferred documents).
 
@@ -65,7 +65,11 @@ Approving this plan approves these. Anything else is proposed in the item's plan
 F-1 api skeleton ─► F-2 database ─► F-3 technical design        (parallel with WI-6 … WI-9)
                                          │
 WI-9 merged ─────────────────────────────┴─► F-4 localisation ─► F-5 auth ─► F-6 shells
+                                                                 ▲
+F-3 merged + dashboard screens reviewed ─► F-3b update ──────────┘
 ```
+
+F-3b waits until the dashboard screens (Owner and Reception, [foundation §13](../frontend/design-system/foundation.md#13-screens-to-design-32)) are reviewed, so the model follows the reviewed designs. F-5 waits for F-3b, because it needs the account changes.
 
 ---
 
@@ -163,6 +167,36 @@ This item turns the planned model into the real one. It is the largest design st
 
 ---
 
+### F-3b — Technical design update · `feat/schema-update`
+
+Brings the schema and the permission table to the scope change of 2026-09-29. Like F-3, its plan step lists every entity change and every decision before writing.
+
+**Scope**
+- **Schema:** the [pending entity changes](../architecture/data-model.md#pending-entity-changes-f-3b), in new migrations (F-3's migration is never edited):
+  - the renames `Member` → `Customer` and `Membership` → `Subscription`, in the models, tables, enums, code and tests;
+  - the new models, fields and flags, and the [planned constraints](../architecture/data-model.md#planned-constraints-f-3b), with raw SQL where Prisma cannot express them.
+- **The permission table:**
+  - `can()` gains the `RECEPTION` rows and every action in [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md);
+  - space checks read only the link's role, never the global role;
+  - unit tests cover every action × six actors: USER, reception of this space, reception of another space, owner of another space, owner of this space, ADMIN.
+- **Seed:**
+  - the defaults the features need (for example, the visit rounding rule);
+  - development-only demo data: one verified space with an owner and a reception account, packages, and the four [subscription scenarios](../architecture/data-model.md#subscription-scenarios). It never runs in production.
+- **Documents:**
+  - fold the pending section and the planned rules of `data-model.md` into its built sections;
+  - remove the glossary's note on the old code names.
+
+**Acceptance criteria**
+- [ ] `db:reset` runs clean on an empty database, and the new migrations apply on top of F-3's.
+- [ ] Integration tests prove each planned constraint the database enforces.
+- [ ] Each subscription scenario is expressible, proven by a test.
+- [ ] `can()` unit tests cover every action × the six actors.
+- [ ] Every pending entity change exists, or its absence is stated and approved in the plan step.
+
+**Out of scope:** endpoints, services and screens (the features build them).
+
+---
+
 ### F-4, F-5, F-6 — after WI-9
 
 Drafted briefly here; each gets its full contract in its plan step, once the design-system layer is complete.
@@ -175,13 +209,18 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - **Fallback:** react-i18next per [ADR 0006](../architecture/decisions/0006-localisation-approach.md) if lifting takes more than two days.
   - Writes the catalogue part of `localisation.md` *Mechanism*.
 - **F-5 — Authentication and session** (`feat/auth`):
+  - after F-3b;
   - the auth endpoints from the plan's API surface;
+  - Google sign-in: the ID token verified with `jose` (approved in §4), and the account created or linked as [security.md](../backend/security.md#sign-in-methods) says;
+  - the reset email: the provider is chosen in the plan step and proposed there as a new dependency;
+  - staff sign-in: a reception account signs in like any user, changes its temporary password first, and the refresh response carries its space links;
+  - no phone login;
   - tokens, cookies, rotation and rate limits exactly as [security.md](../backend/security.md);
   - on the web: the Axios client with single-flight refresh, the `AppError` normaliser, `shared/session`, `RequireRole` guards, and the sign-in, register, forgot and reset screens.
   - Writes `architecture/system-overview.md` (the first end-to-end request).
 - **F-6 — Shells and preferences** (`feat/shells`):
   - `shared/preferences` (language and theme, writing the pre-paint keys);
-  - the public shell (header, footer) and the dashboard shell (sidebar per role, top bar, space switcher);
+  - the public shell (header, footer) and the dashboard shell (sidebar per role: ADMIN, and OWNER or RECEPTION at the selected space; top bar; space switcher);
   - the placeholder pages each route group needs to be navigable.
 
 ## 6. Risks

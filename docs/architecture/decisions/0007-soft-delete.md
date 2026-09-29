@@ -1,6 +1,7 @@
 # ADR 0007 — Soft delete for operational records
 
 > **Status:** Accepted · **Date:** 2026-09-26
+> **Revised:** 2026-09-29 — payments are never deleted either, only voided ([ADR 0010](0010-manual-payment-ledger.md)).
 
 ## Context
 Quick Tweets deletes rows and cascades. Masaha's occupancy reports and audit log depend on history: a deleted member would erase past check-ins and distort reports.
