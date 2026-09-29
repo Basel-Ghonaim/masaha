@@ -21,7 +21,7 @@
 - **Capacity is private from the public:** stored on the space, visible only to the space's staff (owner and reception), never to the admin or in a public page or response ([ADR 0008](decisions/0008-live-status-not-counts.md)).
 - **Freshness:** each fact group of a space carries its own `…UpdatedAt`, set when the group is saved **or confirmed unchanged**: profile (name, description, address, area, location, photos), hours, prices (with shifts), amenities, contacts. Confirming («المعلومات ما زالت صحيحة») resets only that group's date and changes none of its data.
 - **Same space by construction:** a record that points at two things of one space carries the `spaceId` and points at each through a composite foreign key, `(id, spaceId)`, so the database refuses a customer, package, shift or subscription of another space. A price's shift set the pattern.
-- **Idempotency:** a record the desk creates from a request that may be retried (a check-in, a visit) carries a client-generated `requestId` (a UUID), unique within its space. A retried request hits the key, and the service returns the row that already exists instead of recording it twice.
+- **Idempotency:** a record the desk creates from a request that may be retried (a check-in, a visit, a payment) carries a client-generated `requestId` (a UUID), unique within its space. A retried request hits the key, and the service returns the row that already exists instead of recording it twice.
 - **Settings** are key–value rows whose keys are fixed in code; each value is validated when read.
 - **Indexes only for queries that run.** Foreign keys used in lists are indexed, or covered by the prefix of a unique index.
 - **Unique violations** (Prisma `P2002`) become `409 CONFLICT`.
@@ -37,10 +37,10 @@ Summaries only: the schema owns the fields.
 
 ### Lookups
 - **Governorate** and **Area** — the two-level place list, bilingual, ordered, with active flags. An area belongs to one governorate; a space belongs to one area.
-- **Amenity** — a bilingual yes/no feature with a stable `key` and an icon key, ordered, with an active flag. Linked to spaces through **SpaceAmenity**.
+- **Amenity** — a bilingual yes/no feature with a stable `key` and an icon key, ordered, with an active flag and a filter flag: the directory's filter leaves out what nearly every space has (Internet, stable power), which tells no space apart. Linked to spaces through **SpaceAmenity**.
 
 ### Spaces
-- **Space** — a listed coworking space: bilingual profile, area and map location, private capacity, the optional auto check-out limit (`maxStayMinutes`), the admin's hide flag, soft delete, and one freshness timestamp per fact group.
+- **Space** — a listed coworking space: bilingual profile, area and map location, private capacity, the optional auto check-out limit (`maxStayMinutes`), the admin's hide flag, soft delete, and one freshness timestamp per fact group. It holds the manual live-status override (the state, until when, and who set it) and the space's settings, each with a default: auto check-out at closing (on), the visit rounding rule (up after 15 minutes; or to the nearest half hour, or per minute), the visit cap at the day price (on), student prices for visits (on), and the WhatsApp reminder template (none: the copy catalogue's default text).
 - **SpaceManager** — a user's link to a space, with its role there, `OWNER` or `RECEPTION` ([ADR 0009](decisions/0009-space-scoped-reception-role.md)). The role alone decides what the user may do at the space; `can()` never reads the global role for it. The owner deactivates a reception link rather than deleting it, because payments and the audit log name its user; a deactivated link grants nothing. An active `OWNER` link makes the space verified.
 - **SpaceHours** — one row per day of the week: a closed flag, or one opening range.
 - **SpaceShift** — optional named shifts inside the opening range.
@@ -55,8 +55,9 @@ Summaries only: the schema owns the fields.
 - **CheckIn** — a customer present on one of their subscriptions, opened and closed manually or closed automatically. Never deleted.
 - **Visit** — a same-day stay, checked in by name, as a customer, or both, with an audience and an optional shift. Its hour and day rates are copied at check-in; at check-out it stores its charge: the rounding in force, whether the day-price cap applied, the amount, and who typed it when the desk had to. It gains a customer when it is left unpaid. Never deleted.
 - **Payment** — money the desk received for exactly one visit or one subscription ([ADR 0010](decisions/0010-manual-payment-ledger.md)): an amount above zero, the method (cash or transfer), an optional note, who recorded it and when it was received, and a client `requestId`. Never updated or deleted: a mistake is voided once, with who, when and a reason, and a voided payment counts nowhere.
-- **Announcement** — a time-bound bilingual notice from the owner, typed (general, outage, closure, offer, event). Soft-deleted.
-- **DataReport** — a user's report that one field group of a space is wrong (prices, hours, contact, location, amenities, other), with its resolution.
+- **Announcement** — a time-bound bilingual notice from the owner or reception, typed (general, outage, closure, offer, event). Soft-deleted.
+- **ClosureExtension** — the owner extended the space's active subscriptions after a closure: the closure announcement (at most one extension each), the days, who applied it and when. **SubscriptionExtension** links it to each subscription it moved on; how many is the count of those links.
+- **DataReport** — a user's report that one field group of a space is wrong (prices, hours, contact, location, amenities, other), with its resolution and an optional note to the reporter, written by whoever resolves it.
 - **Favorite** — a user's saved space.
 - **Setting** — a platform setting: the staleness thresholds `stalenessDays` (60) and `priceStalenessDays` (30), and the platform's `contactEmail` and `contactWhatsapp`.
 - **AuditLog** — who did what to which entity, with before and after, optionally scoped to a space. The actor is null for system actions such as auto check-out. Never deleted.
@@ -68,13 +69,13 @@ Summaries only: the schema owns the fields.
 - **Live status** — public, a state and never a count ([ADR 0008](decisions/0008-live-status-not-counts.md)). Evaluated in this order, in Asia/Gaza time:
   1. an unverified space has **no live state**;
   2. **`CLOSED`** (مغلق الآن) while an active `CLOSURE` announcement covers now (not deleted, `startsAt ≤ now`, and `endsAt` after now or not set), or outside today's opening hours;
-  3. *planned (F-3b):* while the space is open by its hours, a **manual override** in force gives its state: `AVAILABLE`, `FULL` or `CLOSED`, even when capacity is not set. The owner or reception sets it for 30 min, 1 h, 2 h or until today's closing time. A new override replaces the previous one, and staff can clear it early;
+  3. while the space is open by its hours, a **manual override** in force gives its state: `AVAILABLE`, `FULL` or `CLOSED`, even when capacity is not set. The owner or reception sets it for 30 min, 1 h, 2 h or until today's closing time. A new override replaces the previous one, and staff can clear it early;
   4. **no live state** when the space has no opening hours at all, or is open but its capacity is not set;
   5. **`FULL`** (ممتلئ) when present ≥ capacity, where *present* is the open visits plus the open subscription check-ins;
   6. otherwise **`AVAILABLE`** (متاح).
 
   The directory's "available now" filter selects `AVAILABLE`. Capacity and the exact numbers (present / capacity) are shown only to the space's staff (owner and reception).
-- **Auto check-out:** open check-ins are closed at the space's closing time, or at 23:59 when the space has no opening hours — or earlier, after `maxStayMinutes`, when the owner sets it. Closing-time check-out cannot be turned off.
+- **Auto check-out:** open visits and check-ins are closed at the space's closing time, or at 23:59 when the space has no opening hours, unless the owner turns closing-time check-out off in the space's settings; and earlier, after `maxStayMinutes`, when the owner sets it.
 - **Stale:** a fact group whose `…UpdatedAt` is older than its threshold: `priceStalenessDays` (default 30) for prices, `stalenessDays` (default 60) for the others. Both are admin settings.
 - **Stale prices:**
   - on an **unverified** space, the amounts are hidden, "Price not up to date — contact the space" is shown, and the space is left out of the price filter;
@@ -84,7 +85,7 @@ Summaries only: the schema owns the fields.
 
 The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.md); who may do what in [ADR 0009](decisions/0009-space-scoped-reception-role.md). Amounts are in agorot; days and times are Asia/Gaza.
 
-- **Visit charge.** When a visit is checked in, its rates are copied from the space's prices: the hour and day prices of its audience (student when chosen, otherwise general) and, for a visit in a shift, that shift's prices. At check-out, the stay is rounded by the space's rounding rule and multiplied by the hour rate, capped at the day price. The charge is stored on the visit. Fallbacks:
+- **Visit charge.** When a visit is checked in, its rates are copied from the space's prices: the hour and day prices of its audience (student when chosen and the space's settings allow student prices for visits, otherwise general) and, for a visit in a shift, that shift's prices. At check-out, the stay is rounded by the space's rounding rule and multiplied by the hour rate, capped at the day price unless the space's settings turn the cap off. The charge is stored on the visit. Fallbacks:
   - no hour price → the charge is the day price;
   - no day price → no cap;
   - neither → the desk types the amount, recorded as a desk-set price with who set it.
@@ -134,18 +135,9 @@ The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove eac
   - it is never updated or deleted; its only change is one void that sets the time, who voided and a non-blank reason together and touches nothing else, and a voided payment never changes again;
   - the payments of a visit, or of a fixed-price subscription, that are not voided never add up to more than its charge or price, and a visit is paid only once its charge is set. A usage-based subscription has no ceiling, so paying ahead leaves it in credit. The item's row is locked while this is checked, so payments recorded at once are counted in turn, and a retried request reaches its unique key rather than the ceiling;
   - the services check the same rules first, to answer with a domain error; the database is the backstop.
+- **The space's settings and override**, by `CHECK` constraints: an override has its state, its end and who set it, together; the rounding minutes (1–59) are set exactly for the "up after N minutes" rule. A closure extension is applied at most once per closure announcement (a unique key), by at least one day.
 - Check-ins, visits, subscriptions, payments and audit-log entries are never deleted.
 
 ### Planned constraints (F-3b)
 
 - An unpaid visit has a customer.
-- A closure's subscription extension is applied at most once per closure announcement.
-
-## Pending entity changes (F-3b)
-
-Planned, not built. The schema will own the fields; this section folds into *Entities* when F-3b is merged.
-
-- **Space:** the manual state override (state, until, who set it) and the visit rounding rule.
-- **DataReport:** an optional resolution note, written by whoever resolves it.
-- **Amenity:** a flag for the directory filter, so shared amenities (Internet, stable power) are left out of it.
-- **Closure extension:** a record tying an extension to its closure announcement.

@@ -38,6 +38,17 @@ describe('seed', () => {
     });
   });
 
+  it('leaves the amenities nearly every space has out of the directory filter', async () => {
+    await seed(prisma, INPUT);
+
+    const unfiltered = await prisma.amenity.findMany({
+      where: { isFilterable: false },
+      select: { key: true },
+      orderBy: { key: 'asc' },
+    });
+    expect(unfiltered.map(({ key }) => key)).toEqual(['internet', 'stable_power']);
+  });
+
   it('hides the unreachable governorate and areas', async () => {
     await seed(prisma, INPUT);
 

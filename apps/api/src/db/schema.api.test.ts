@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createSpace } from '../../test/factories.ts';
+import {
+  createCustomer,
+  createSpace,
+  createSubscription,
+  createUser,
+} from '../../test/factories.ts';
 import { resetDatabase } from '../../test/reset-database.ts';
 import { prisma } from './prisma.ts';
 
@@ -141,6 +146,61 @@ describe('a space', () => {
     await expect(contact('PHONE', '0569000001')).rejects.toThrow(/space_contacts_phone_e164_check/);
     await expect(contact('INSTAGRAM', 'https://instagram.com/focus')).resolves.toBeDefined();
   });
+
+  it('starts with the default settings and no override', async () => {
+    await expect(createSpace()).resolves.toMatchObject({
+      autoCheckoutAtClosing: true,
+      visitRounding: 'UP_AFTER_MINUTES',
+      visitRoundingMinutes: 15,
+      visitCapAtDayPrice: true,
+      visitStudentPrices: true,
+      reminderTemplate: null,
+      stateOverride: null,
+    });
+  });
+
+  it('keeps rounding minutes for the "up after N minutes" rule only, from 1 to 59', async () => {
+    const space = await createSpace();
+    const update = (data: {
+      visitRounding?: 'UP_AFTER_MINUTES' | 'PER_MINUTE';
+      visitRoundingMinutes?: number | null;
+    }) => prisma.space.update({ where: { id: space.id }, data });
+
+    await expect(update({ visitRounding: 'PER_MINUTE' })).rejects.toThrow(
+      /spaces_visit_rounding_check/,
+    );
+    await expect(update({ visitRoundingMinutes: null })).rejects.toThrow(
+      /spaces_visit_rounding_check/,
+    );
+    await expect(update({ visitRoundingMinutes: 60 })).rejects.toThrow(
+      /spaces_visit_rounding_check/,
+    );
+    await expect(
+      update({ visitRounding: 'PER_MINUTE', visitRoundingMinutes: null }),
+    ).resolves.toMatchObject({ visitRounding: 'PER_MINUTE' });
+  });
+
+  it('sets a state override with its end and who set it, together', async () => {
+    const space = await createSpace();
+    const staff = await createUser();
+    const update = (data: {
+      stateOverride: 'FULL' | null;
+      stateOverrideUntil?: Date | null;
+      stateOverrideById?: number | null;
+    }) => prisma.space.update({ where: { id: space.id }, data });
+
+    await expect(update({ stateOverride: 'FULL' })).rejects.toThrow(/spaces_state_override_check/);
+    await expect(
+      update({
+        stateOverride: 'FULL',
+        stateOverrideUntil: new Date('2026-10-01T10:00:00Z'),
+        stateOverrideById: staff.id,
+      }),
+    ).resolves.toMatchObject({ stateOverride: 'FULL' });
+    await expect(
+      update({ stateOverride: null, stateOverrideUntil: null, stateOverrideById: null }),
+    ).resolves.toMatchObject({ stateOverride: null });
+  });
 });
 
 describe('an announcement', () => {
@@ -153,6 +213,51 @@ describe('an announcement', () => {
         data: { spaceId: space.id, type: 'CLOSURE', textAr: 'مغلق', startsAt, endsAt: startsAt },
       }),
     ).rejects.toThrow(/announcements_dates_check/);
+  });
+});
+
+describe('a closure extension', () => {
+  async function closure() {
+    const space = await createSpace();
+    const owner = await createUser();
+    const announcement = await prisma.announcement.create({
+      data: {
+        spaceId: space.id,
+        type: 'CLOSURE',
+        textAr: 'مغلق',
+        startsAt: new Date('2026-10-01T05:00:00Z'),
+        endsAt: new Date('2026-10-03T05:00:00Z'),
+      },
+    });
+    return { space, owner, announcement };
+  }
+
+  it('is applied once per closure, and records the subscriptions it extended', async () => {
+    const { space, owner, announcement } = await closure();
+    const subscription = await createSubscription(await createCustomer(space.id), {
+      startsOn: new Date('2026-09-15'),
+      endsOn: new Date('2026-10-17'),
+    });
+    const data = { announcementId: announcement.id, days: 2, appliedById: owner.id };
+
+    const extension = await prisma.closureExtension.create({
+      data: { ...data, subscriptions: { create: [{ subscriptionId: subscription.id }] } },
+      include: { _count: { select: { subscriptions: true } } },
+    });
+    expect(extension._count.subscriptions).toBe(1);
+    await expect(prisma.closureExtension.create({ data })).rejects.toMatchObject({
+      code: 'P2002',
+    });
+  });
+
+  it('extends by at least one day', async () => {
+    const { owner, announcement } = await closure();
+
+    await expect(
+      prisma.closureExtension.create({
+        data: { announcementId: announcement.id, days: 0, appliedById: owner.id },
+      }),
+    ).rejects.toThrow(/closure_extensions_days_check/);
   });
 });
 

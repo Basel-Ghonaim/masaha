@@ -70,6 +70,13 @@ enum SubscriptionBilling {
   PER_DAY
 }
 
+// The public live status (ADR 0008); stored only as a manual override set by the space's staff.
+enum LiveStatus {
+  AVAILABLE
+  FULL
+  CLOSED
+}
+
 // How a visit's stay is rounded before the hour rate applies (a space setting).
 enum VisitRounding {
   /// A started hour counts in full once the space's number of minutes into it have passed.
@@ -152,6 +159,8 @@ model User {
   chargedVisits       Visit[]              @relation("VisitChargeSetBy")
   recordedPayments    Payment[]            @relation("PaymentRecordedBy")
   voidedPayments      Payment[]            @relation("PaymentVoidedBy")
+  stateOverrides      Space[]              @relation("SpaceStateOverrideBy")
+  closureExtensions   ClosureExtension[]
 
   @@map("users")
 }
@@ -227,18 +236,21 @@ model Area {
 }
 
 model Amenity {
-  id        Int      @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   /// snake_case, stable; code refers to amenities by key.
-  key       String   @unique
-  nameAr    String   @map("name_ar")
-  nameEn    String   @map("name_en")
+  key          String   @unique
+  nameAr       String   @map("name_ar")
+  nameEn       String   @map("name_en")
   /// A key from the fixed set the web maps to an icon.
-  icon      String
-  sortOrder Int      @default(0) @map("sort_order")
+  icon         String
+  sortOrder    Int      @default(0) @map("sort_order")
   /// An inactive amenity is retired: hidden from forms, its space links kept.
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  isActive     Boolean  @default(true) @map("is_active")
+  /// Offered in the directory's filter; false for what nearly every space has (Internet, stable
+  /// power), which tells no space apart.
+  isFilterable Boolean  @default(true) @map("is_filterable")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   spaces SpaceAmenity[]
 
@@ -248,54 +260,72 @@ model Amenity {
 // ─── Spaces ──────────────────────────────────────────────────────────────────────────────────
 
 model Space {
-  id                 Int       @id @default(autoincrement())
+  id                    Int           @id @default(autoincrement())
   /// Never reused, including after a soft delete.
-  slug               String    @unique
-  nameAr             String    @map("name_ar")
-  nameEn             String?   @map("name_en")
-  descriptionAr      String?   @map("description_ar")
-  descriptionEn      String?   @map("description_en")
+  slug                  String        @unique
+  nameAr                String        @map("name_ar")
+  nameEn                String?       @map("name_en")
+  descriptionAr         String?       @map("description_ar")
+  descriptionEn         String?       @map("description_en")
   /// Free text with landmarks.
-  addressAr          String    @map("address_ar")
-  addressEn          String?   @map("address_en")
-  areaId             Int       @map("area_id")
-  lat                Float
-  lng                Float
+  addressAr             String        @map("address_ar")
+  addressEn             String?       @map("address_en")
+  areaId                Int           @map("area_id")
+  lat                   Float
+  lng                   Float
   /// Private: only the space's owner sees it (ADR 0008). Null until set.
-  capacity           Int?
+  capacity              Int?
   /// Auto check-out after this long, if earlier than closing time. Null = at closing only.
-  maxStayMinutes     Int?      @map("max_stay_minutes")
-  isHidden           Boolean   @default(false) @map("is_hidden")
-  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(3)
+  maxStayMinutes        Int?          @map("max_stay_minutes")
+  // The manual live-status override: the state, until when, and who set it; all three or none. It
+  // counts only while it has not expired (docs/architecture/data-model.md › Live status).
+  stateOverride         LiveStatus?   @map("state_override")
+  stateOverrideUntil    DateTime?     @map("state_override_until") @db.Timestamptz(3)
+  stateOverrideById     Int?          @map("state_override_by_id")
+  // The space's settings (the owner's Settings screen).
+  /// Open visits and check-ins are closed automatically at closing time.
+  autoCheckoutAtClosing Boolean       @default(true) @map("auto_checkout_at_closing")
+  visitRounding         VisitRounding @default(UP_AFTER_MINUTES) @map("visit_rounding")
+  /// The N of "up after N minutes"; set exactly for that rule.
+  visitRoundingMinutes  Int?          @default(15) @map("visit_rounding_minutes")
+  /// A visit's charge never exceeds the day price.
+  visitCapAtDayPrice    Boolean       @default(true) @map("visit_cap_at_day_price")
+  /// The desk may charge a visit at the student prices.
+  visitStudentPrices    Boolean       @default(true) @map("visit_student_prices")
+  /// The WhatsApp debt reminder; null = the default text from the copy catalogue.
+  reminderTemplate      String?       @map("reminder_template")
+  isHidden              Boolean       @default(false) @map("is_hidden")
+  deletedAt             DateTime?     @map("deleted_at") @db.Timestamptz(3)
   // Freshness per fact group: set when the group is saved or confirmed unchanged.
   /// Name, description, address, area, location and photos.
-  profileUpdatedAt   DateTime  @default(now()) @map("profile_updated_at") @db.Timestamptz(3)
-  hoursUpdatedAt     DateTime  @default(now()) @map("hours_updated_at") @db.Timestamptz(3)
+  profileUpdatedAt      DateTime      @default(now()) @map("profile_updated_at") @db.Timestamptz(3)
+  hoursUpdatedAt        DateTime      @default(now()) @map("hours_updated_at") @db.Timestamptz(3)
   /// Prices and shifts.
-  pricesUpdatedAt    DateTime  @default(now()) @map("prices_updated_at") @db.Timestamptz(3)
-  amenitiesUpdatedAt DateTime  @default(now()) @map("amenities_updated_at") @db.Timestamptz(3)
-  contactsUpdatedAt  DateTime  @default(now()) @map("contacts_updated_at") @db.Timestamptz(3)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  pricesUpdatedAt       DateTime      @default(now()) @map("prices_updated_at") @db.Timestamptz(3)
+  amenitiesUpdatedAt    DateTime      @default(now()) @map("amenities_updated_at") @db.Timestamptz(3)
+  contactsUpdatedAt     DateTime      @default(now()) @map("contacts_updated_at") @db.Timestamptz(3)
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  area          Area           @relation(fields: [areaId], references: [id], onDelete: Restrict)
-  managers      SpaceManager[]
-  amenities     SpaceAmenity[]
-  hours         SpaceHours[]
-  shifts        SpaceShift[]
-  prices        SpacePrice[]
-  contacts      SpaceContact[]
-  photos        SpacePhoto[]
-  customers     Customer[]
-  packages      Package[]
-  subscriptions Subscription[]
-  checkIns      CheckIn[]
-  visits        Visit[]
-  payments      Payment[]
-  announcements Announcement[]
-  dataReports   DataReport[]
-  favorites     Favorite[]
-  auditLogs     AuditLog[]
+  area            Area           @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  stateOverrideBy User?          @relation("SpaceStateOverrideBy", fields: [stateOverrideById], references: [id], onDelete: Restrict)
+  managers        SpaceManager[]
+  amenities       SpaceAmenity[]
+  hours           SpaceHours[]
+  shifts          SpaceShift[]
+  prices          SpacePrice[]
+  contacts        SpaceContact[]
+  photos          SpacePhoto[]
+  customers       Customer[]
+  packages        Package[]
+  subscriptions   Subscription[]
+  checkIns        CheckIn[]
+  visits          Visit[]
+  payments        Payment[]
+  announcements   Announcement[]
+  dataReports     DataReport[]
+  favorites       Favorite[]
+  auditLogs       AuditLog[]
 
   @@index([areaId])
   @@map("spaces")
@@ -536,15 +566,16 @@ model Subscription {
   createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  space      Space       @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  space      Space                   @relation(fields: [spaceId], references: [id], onDelete: Restrict)
   // Through spaceId, so the customer, the package and the shift all belong to the same space.
-  customer   Customer    @relation(fields: [customerId, spaceId], references: [id, spaceId], onDelete: Restrict)
-  package    Package?    @relation(fields: [packageId, spaceId], references: [id, spaceId], onDelete: NoAction)
-  shift      SpaceShift? @relation(fields: [shiftId, spaceId], references: [id, spaceId], onDelete: NoAction)
-  priceSetBy User?       @relation("SubscriptionPriceSetBy", fields: [priceSetById], references: [id], onDelete: Restrict)
-  endedBy    User?       @relation("SubscriptionEndedBy", fields: [endedById], references: [id], onDelete: Restrict)
+  customer   Customer                @relation(fields: [customerId, spaceId], references: [id, spaceId], onDelete: Restrict)
+  package    Package?                @relation(fields: [packageId, spaceId], references: [id, spaceId], onDelete: NoAction)
+  shift      SpaceShift?             @relation(fields: [shiftId, spaceId], references: [id, spaceId], onDelete: NoAction)
+  priceSetBy User?                   @relation("SubscriptionPriceSetBy", fields: [priceSetById], references: [id], onDelete: Restrict)
+  endedBy    User?                   @relation("SubscriptionEndedBy", fields: [endedById], references: [id], onDelete: Restrict)
   checkIns   CheckIn[]
   payments   Payment[]
+  extensions SubscriptionExtension[]
 
   // The targets of the foreign keys that keep a check-in with its customer, and a payment in its
   // space.
@@ -687,24 +718,60 @@ model Announcement {
   createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  space Space @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  space            Space             @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  closureExtension ClosureExtension?
 
   @@index([spaceId])
   @@map("announcements")
 }
 
+/// The owner extended the space's active subscriptions after a closure: by how many days, and by
+/// whom (createdAt is when). At most once per closure announcement; that the announcement is a
+/// CLOSURE is checked by the service. How many were extended is the count of its links.
+model ClosureExtension {
+  id             Int      @id @default(autoincrement())
+  announcementId Int      @unique @map("announcement_id")
+  days           Int
+  appliedById    Int      @map("applied_by_id")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  announcement  Announcement            @relation(fields: [announcementId], references: [id], onDelete: Restrict)
+  appliedBy     User                    @relation(fields: [appliedById], references: [id], onDelete: Restrict)
+  subscriptions SubscriptionExtension[]
+
+  @@map("closure_extensions")
+}
+
+/// A subscription moved on by a closure extension: its end date gained the extension's days.
+model SubscriptionExtension {
+  closureExtensionId Int      @map("closure_extension_id")
+  subscriptionId     Int      @map("subscription_id")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  closureExtension ClosureExtension @relation(fields: [closureExtensionId], references: [id], onDelete: Restrict)
+  subscription     Subscription     @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+
+  @@id([closureExtensionId, subscriptionId])
+  @@index([subscriptionId])
+  @@map("subscription_extensions")
+}
+
 model DataReport {
-  id           Int              @id @default(autoincrement())
-  spaceId      Int              @map("space_id")
-  userId       Int              @map("user_id")
-  field        DataReportField
+  id             Int              @id @default(autoincrement())
+  spaceId        Int              @map("space_id")
+  userId         Int              @map("user_id")
+  field          DataReportField
   /// Required when field is OTHER (checked by the input schema).
-  message      String?
-  status       DataReportStatus @default(OPEN)
-  resolvedById Int?             @map("resolved_by_id")
-  resolvedAt   DateTime?        @map("resolved_at") @db.Timestamptz(3)
-  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  message        String?
+  status         DataReportStatus @default(OPEN)
+  resolvedById   Int?             @map("resolved_by_id")
+  resolvedAt     DateTime?        @map("resolved_at") @db.Timestamptz(3)
+  /// Written by whoever resolves it; shown to the reporter.
+  resolutionNote String?          @map("resolution_note")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   space      Space @relation(fields: [spaceId], references: [id], onDelete: Restrict)
   user       User  @relation("DataReportAuthor", fields: [userId], references: [id], onDelete: Restrict)

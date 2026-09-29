@@ -75,11 +75,18 @@ export const GOVERNORATES: readonly GovernorateSeed[] = [
   },
 ];
 
-// Icon keys are mapped to icons by the web (docs/architecture/findings.md, finding 10).
+// Icon keys are mapped to icons by the web (docs/architecture/findings.md, finding 10). The
+// directory filter offers every amenity except those nearly every space has (isFilterable: false).
 export const AMENITIES = [
   // One entry: no fiber or fast distinction.
-  { key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi' },
-  { key: 'stable_power', nameAr: 'كهرباء مستقرة', nameEn: 'Stable power', icon: 'zap' },
+  { key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi', isFilterable: false },
+  {
+    key: 'stable_power',
+    nameAr: 'كهرباء مستقرة',
+    nameEn: 'Stable power',
+    icon: 'zap',
+    isFilterable: false,
+  },
   { key: 'solar_power', nameAr: 'طاقة شمسية', nameEn: 'Solar power', icon: 'sun' },
   {
     key: 'generator_line',
