@@ -8,7 +8,7 @@
 
 - **IDs:** `Int @id @default(autoincrement())`. Public space URLs use a unique `slug`, never reused.
 - **Naming:** models PascalCase, fields camelCase, mapped to snake_case tables (plural) and columns with `@map` / `@@map`.
-- **Timestamps:** `createdAt`, `updatedAt` on every table, as `timestamptz`. The one exception is `AuditLog`, which is append-only and has `createdAt` only. Calendar dates (a subscription's start and end) are `date`.
+- **Timestamps:** `createdAt`, `updatedAt` on every table, as `timestamptz`. The exceptions are the append-only `AuditLog` and `Payment`, which have `createdAt` only; a payment's one change, its void, carries its own time. Calendar dates (a subscription's start and end) are `date`.
 - **Soft delete:** `deletedAt` on `Space` and `Announcement`, and `archivedAt` on `Customer` (named as the desk sees it); `suspendedAt` on `User` ([ADR 0007](decisions/0007-soft-delete.md)). Purely dependent rows (managers, hours, shifts, prices, contacts, amenity links, photos, favourites, tokens) cascade from their parent; history (customers, packages, subscriptions, check-ins, visits, announcements, data reports, audit log) restricts deletion.
 - **Bilingual content:** paired fields such as `nameAr` / `nameEn`, `descriptionAr` / `descriptionEn`, `addressAr` / `addressEn`. Arabic required, English optional. A space's description is optional in both languages. Lookups (governorates, areas, amenities) require both.
 - **Areas are two-level:** governorate → area, covering the whole Gaza Strip. Each carries an admin-managed `isActive` flag: an area beyond reach is hidden and restored later without deleting anything. Amenities carry the same flag, so a retired amenity keeps its links.
@@ -54,6 +54,7 @@ Summaries only: the schema owns the fields.
 - **Subscription** — any multi-day arrangement for a customer, from a package or custom («مخصّص», typed at the desk): a name, optional limits (start and end dates, total days, days per week, hours per day, total hours), fixed or usage-based billing (per hour or per day) with its price or rate copied in, an audience and an optional shift. It records who typed a desk price and who ended it early, and when. A renewal adds a row.
 - **CheckIn** — a customer present on one of their subscriptions, opened and closed manually or closed automatically. Never deleted.
 - **Visit** — a same-day stay, checked in by name, as a customer, or both, with an audience and an optional shift. Its hour and day rates are copied at check-in; at check-out it stores its charge: the rounding in force, whether the day-price cap applied, the amount, and who typed it when the desk had to. It gains a customer when it is left unpaid. Never deleted.
+- **Payment** — money the desk received for exactly one visit or one subscription ([ADR 0010](decisions/0010-manual-payment-ledger.md)): an amount above zero, the method (cash or transfer), an optional note, who recorded it and when it was received, and a client `requestId`. Never updated or deleted: a mistake is voided once, with who, when and a reason, and a voided payment counts nowhere.
 - **Announcement** — a time-bound bilingual notice from the owner, typed (general, outage, closure, offer, event). Soft-deleted.
 - **DataReport** — a user's report that one field group of a space is wrong (prices, hours, contact, location, amenities, other), with its resolution.
 - **Favorite** — a user's saved space.
@@ -116,25 +117,27 @@ The subscription model must express each of these without special cases; F-3b pr
 
 ## Constraints worth stating
 
-The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove each one (`schema` for spaces, prices and accounts, `front-desk`, `subscriptions`).
+The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove each one (`schema` for spaces, prices and accounts, `front-desk`, `subscriptions`, `payments`).
 
 - One open check-in per customer, and one open visit per customer (partial unique indexes on `customerId` where `checkedOutAt IS NULL`). One open presence across both is checked by the service.
 - Customer phone unique within a space among customers that are not archived (partial unique index); customers without a phone are not limited.
 - A check-in's, a visit's, a subscription's and a package's customer, subscription, package and shift belong to the record's own space (composite foreign keys).
-- A `requestId` is unique within its space (check-ins, visits).
+- A `requestId` is unique within its space (check-ins, visits, payments).
 - One price per space, period, audience, shift and label, where a missing shift or label counts as one value (four unique indexes, three of them partial, because PostgreSQL treats NULLs as distinct).
 - A price's shift belongs to the price's own space (a foreign key through `(shiftId, spaceId)`).
 - `CHECK` constraints, written as raw SQL at the end of the init migration: phone numbers in E.164; an opening range and a shift inside the day, and a closed day without times; a check-in closes after it opens, and has a check-out method exactly when closed; end dates after start dates; location, capacity, stay limit and amounts in range.
 - A user has a password, a Google subject, or both (a `CHECK`); a Google subject belongs to one user.
 - The partial indexes use Prisma's `partialIndexes` preview feature, so Prisma knows them and later migrations keep them. `CHECK` constraints are not compared by Prisma, so later migrations leave them alone; a change to one is a new raw-SQL migration.
 - `CHECK` constraints of the later migrations: a customer's phone in E.164; a subscription's and a package's limits positive (at most 7 days a week and 24 hours a day), prices not negative, and an early end with both its time and who ended it; a visit has a name or a customer, closes after it opens, has a check-out method exactly when closed, has no charge while open, names who typed a charge only with a charge, keeps rounding minutes (1–59) exactly for the "up after N minutes" rule, and has no negative rate or charge.
-- Check-ins, visits, subscriptions and audit-log entries are never deleted.
+- **The payment ledger**, by `CHECK` constraints and two triggers in the payments migration:
+  - a payment settles exactly one item, a visit or a subscription of its own space, with an amount above zero;
+  - it is never updated or deleted; its only change is one void that sets the time, who voided and a non-blank reason together and touches nothing else, and a voided payment never changes again;
+  - the payments of a visit, or of a fixed-price subscription, that are not voided never add up to more than its charge or price, and a visit is paid only once its charge is set. A usage-based subscription has no ceiling, so paying ahead leaves it in credit. The item's row is locked while this is checked, so payments recorded at once are counted in turn, and a retried request reaches its unique key rather than the ceiling;
+  - the services check the same rules first, to answer with a domain error; the database is the backstop.
+- Check-ins, visits, subscriptions, payments and audit-log entries are never deleted.
 
 ### Planned constraints (F-3b)
 
-- A payment is never updated or deleted. Its void (who, when, reason) is set once, and the reason is required.
-- A payment's amount is > 0, and it settles exactly one item: a visit or a subscription.
-- A payment may exceed what remains due only on a usage-based subscription (checked by the service).
 - An unpaid visit has a customer.
 - A closure's subscription extension is applied at most once per closure announcement.
 
@@ -142,7 +145,6 @@ The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove eac
 
 Planned, not built. The schema will own the fields; this section folds into *Entities* when F-3b is merged.
 
-- **Payment** (new): the ledger of [ADR 0010](decisions/0010-manual-payment-ledger.md).
 - **Space:** the manual state override (state, until, who set it) and the visit rounding rule.
 - **DataReport:** an optional resolution note, written by whoever resolves it.
 - **Amenity:** a flag for the directory filter, so shared amenities (Internet, stable power) are left out of it.
