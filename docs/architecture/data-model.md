@@ -16,7 +16,7 @@
 - **Shifts:** a space may define named shifts inside its one daily opening range (for example 08:00–16:00 and 16:00–22:00 inside 08:00–22:00). Most spaces have none. A price or a membership may name one. Shifts belong to the prices fact group.
 - **Times of day** are minutes after midnight in Asia/Gaza, not `time` columns. Opening hours are one range per day of the week (0 = Sunday … 6 = Saturday) with a closed flag. v1 does not support closing mid-day and reopening, or closing after midnight. New spaces start from the template Saturday–Thursday open, Friday closed.
 - **Contacts** are a typed list per space (WhatsApp, phone, email, Instagram, Facebook, TikTok, website), not fixed columns:
-  - phone and WhatsApp values, like every phone number in the database (users, members), are stored in **E.164**. Input arrives as `00970…`, `+972…` or local `05…`; Palestinian mobiles (`059…` Jawwal, `056…` Ooredoo) are normalised to `+970…` whatever prefix they arrived with, so one number has one form. Numbers are displayed LTR;
+  - phone and WhatsApp values, like every phone number in the database (members), are stored in **E.164**. Input arrives as `00970…`, `+972…` or local `05…`; Palestinian mobiles (`059…` Jawwal, `056…` Ooredoo) are normalised to `+970…` whatever prefix they arrived with, so one number has one form. Numbers are displayed LTR;
   - email is stored lowercased; Instagram, Facebook, TikTok and website as full `https://` URLs.
 - **Capacity is private from the public:** stored on the space, visible only to the space's staff (owner and reception), never to the admin or in a public page or response ([ADR 0008](decisions/0008-live-status-not-counts.md)).
 - **Freshness:** each fact group of a space carries its own `…UpdatedAt`, set when the group is saved **or confirmed unchanged**: profile (name, description, address, area, location, photos), hours, prices (with shifts), amenities, contacts. Confirming («المعلومات ما زالت صحيحة») resets only that group's date and changes none of its data.
@@ -29,7 +29,7 @@
 Summaries only: the schema owns the fields.
 
 ### Users and sessions
-- **User** — an account with one global role (`USER` / `OWNER` / `ADMIN`, [ADR 0002](decisions/0002-authorization-model.md)), a unique email and an optional unique phone (login accepts either), a language, and `mustChangePassword` for new owners. Suspended, never deleted.
+- **User** — an account with one global role (`USER` / `OWNER` / `ADMIN`, [ADR 0002](decisions/0002-authorization-model.md)), a unique email, a language, and `mustChangePassword` for accounts created by someone else (new owners, new reception accounts, admin recovery). It signs in with a password, Google (a unique Google subject), or both, never neither: a Google-only account has no password ([security.md](../backend/security.md#sign-in-methods)). There is no phone login, so no phone. Suspended, never deleted.
 - **RefreshToken** — one row per session, stored hashed, rotated with a link to its replacement ([security.md](../backend/security.md)). Cascades from its user.
 - **PasswordResetToken** — a single-use reset token, stored hashed, with an expiry. Cascades from its user.
 
@@ -121,6 +121,7 @@ The database enforces these; `apps/api/src/db/schema.api.test.ts` proves each on
 - A price's shift belongs to the price's own space (a foreign key through `(shiftId, spaceId)`).
 - A membership's shift belongs to the member's space: checked by the service, since a membership has no `spaceId`.
 - `CHECK` constraints, written as raw SQL at the end of the init migration: phone numbers in E.164; an opening range and a shift inside the day, and a closed day without times; a check-in has a member or a visitor, never both, closes after it opens, and has a check-out method exactly when closed; end dates after start dates; location, capacity, stay limit and amounts in range.
+- A user has a password, a Google subject, or both (a `CHECK`); a Google subject belongs to one user.
 - The partial indexes use Prisma's `partialIndexes` preview feature, so Prisma knows them and later migrations keep them. `CHECK` constraints are not compared by Prisma, so later migrations leave them alone; a change to one is a new raw-SQL migration.
 - Check-ins, memberships and audit-log entries are never deleted.
 
@@ -137,7 +138,6 @@ The database enforces these; `apps/api/src/db/schema.api.test.ts` proves each on
 
 Planned, not built. The schema will own the fields; this section folds into *Entities* when F-3b is merged.
 
-- **User:** phone removed (no phone login); password optional (a Google-only account); a unique Google subject. `mustChangePassword` also covers new reception accounts and admin recovery ([security.md](../backend/security.md)).
 - **SpaceManager:** role `OWNER | RECEPTION`, and a deactivation; verified means at least one active `OWNER` link ([ADR 0009](decisions/0009-space-scoped-reception-role.md)).
 - **Member → Customer** (a rename): everyone on file at a space.
 - **Membership → Subscription** (a rename): the optional limits, the billing mode (fixed, per hour or per day), the price snapshot, the package or «مخصّص», who set a desk-typed price, and the early end. `MembershipType` and its `DAILY` value are dropped: daily visitors are visits.

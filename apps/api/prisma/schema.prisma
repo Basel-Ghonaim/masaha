@@ -106,13 +106,15 @@ enum DataReportStatus {
 
 // ─── Users and sessions ──────────────────────────────────────────────────────────────────────
 
+/// Signs in with a password, Google, or both; at least one (a CHECK in the accounts migration).
 model User {
   id                 Int       @id @default(autoincrement())
   /// Stored lowercased.
   email              String    @unique
-  /// E.164. Unique because login accepts email or phone.
-  phone              String?   @unique
-  passwordHash       String    @map("password_hash")
+  /// Null for a Google-only account (docs/backend/security.md).
+  passwordHash       String?   @map("password_hash")
+  /// The Google account's `sub` claim, once Google is linked.
+  googleSubject      String?   @unique @map("google_subject")
   name               String
   role               Role      @default(USER)
   language           Language  @default(ar)

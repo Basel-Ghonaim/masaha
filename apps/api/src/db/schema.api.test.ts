@@ -297,13 +297,23 @@ describe('dates', () => {
 });
 
 describe('a user', () => {
-  it('stores a phone in E.164, when given', async () => {
-    const user = (email: string, phone: string | null) =>
-      prisma.user.create({ data: { email, phone, passwordHash: 'x', name: 'Sara' } });
+  const user = (email: string, sign: { passwordHash?: string; googleSubject?: string }) =>
+    prisma.user.create({ data: { email, name: 'Sara', ...sign } });
 
-    await expect(user('a@example.com', '+970 59 900 0001')).rejects.toThrow(
-      /users_phone_e164_check/,
-    );
-    await expect(user('b@example.com', null)).resolves.toBeDefined();
+  it('signs in with a password, Google or both, never neither', async () => {
+    await expect(user('a@example.com', { passwordHash: 'x' })).resolves.toBeDefined();
+    await expect(user('b@example.com', { googleSubject: '1001' })).resolves.toBeDefined();
+    await expect(
+      user('c@example.com', { passwordHash: 'x', googleSubject: '1002' }),
+    ).resolves.toBeDefined();
+    await expect(user('d@example.com', {})).rejects.toThrow(/users_sign_in_method_check/);
+  });
+
+  it('links one Google account to one user', async () => {
+    await user('a@example.com', { googleSubject: '1001' });
+
+    await expect(user('b@example.com', { googleSubject: '1001' })).rejects.toMatchObject({
+      code: 'P2002',
+    });
   });
 });

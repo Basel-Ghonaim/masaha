@@ -68,7 +68,7 @@ describe('seed', () => {
     const admin = await prisma.user.findUniqueOrThrow({ where: { email: 'admin@example.com' } });
     expect(admin).toMatchObject({ role: 'ADMIN', mustChangePassword: false });
     expect(admin.passwordHash).not.toContain(INPUT.admin.password);
-    expect(await bcrypt.compare(INPUT.admin.password, admin.passwordHash)).toBe(true);
+    expect(await bcrypt.compare(INPUT.admin.password, admin.passwordHash ?? '')).toBe(true);
   });
 
   it('stores the default settings, and the contact only when given', async () => {
@@ -98,6 +98,6 @@ describe('seed', () => {
       await prisma.setting.findUniqueOrThrow({ where: { key: 'stalenessDays' } }),
     ).toMatchObject({ value: 45 });
     const admin = await prisma.user.findUniqueOrThrow({ where: { email: 'admin@example.com' } });
-    expect(await bcrypt.compare(INPUT.admin.password, admin.passwordHash)).toBe(true);
+    expect(await bcrypt.compare(INPUT.admin.password, admin.passwordHash ?? '')).toBe(true);
   });
 });
