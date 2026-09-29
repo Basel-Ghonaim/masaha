@@ -61,4 +61,4 @@ These documents are **committed but not yet written**, because what they describ
 ### `plans/`
 - [v1-mvp.md](plans/v1-mvp.md) — the active plan: phases, sequence, risks. Plans move to `plans/historical/` when finished.
 - [historical/design-system-layer.md](plans/historical/design-system-layer.md) — finished: phases 2–3, the repository scaffold and the design-system layer, as nine Work Items.
-- [foundation.md](plans/foundation.md) — the application foundation: API skeleton, database, technical design, localisation, authentication and shells, as six Work Items.
+- [foundation.md](plans/foundation.md) — the application foundation: API skeleton, database, technical design and its update, localisation, authentication and shells, as seven Work Items.
