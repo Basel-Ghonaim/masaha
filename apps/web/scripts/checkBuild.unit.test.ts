@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findForbidden, stringsIn } from './checkBuild';
+import { findForbidden, showcaseOnly, stringsIn } from './checkBuild';
 
 const ARABIC = 'الأيقونات والانعكاس';
 
@@ -20,6 +20,17 @@ describe('stringsIn', () => {
       'one',
       'two',
       'three',
+    ]);
+  });
+});
+
+describe('showcaseOnly', () => {
+  const catalogueSource = "export const TERMS = { owner: 'صاحب المساحة', expired: 'Expired' };";
+
+  it('drops a fixture string the catalogues also write, whole or inside a longer line', () => {
+    expect(showcaseOnly(['Expired', 'المساحة', 'Preview theme', ARABIC], catalogueSource)).toEqual([
+      'Preview theme',
+      ARABIC,
     ]);
   });
 });

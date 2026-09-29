@@ -6,6 +6,10 @@
     "jsx": "react-jsx",
     "types": ["vite/client"],
     "noEmit": true,
+    // @masaha/shared is read from its source, as the API reads it, so it need not be built first.
+    // Its source names its own files with .ts, which a program that never emits may import.
+    "customConditions": ["@masaha/source"],
+    "allowImportingTsExtensions": true,
     "paths": {
       "@app/*": ["./src/app/*"],
       "@pages/*": ["./src/pages/*"],
