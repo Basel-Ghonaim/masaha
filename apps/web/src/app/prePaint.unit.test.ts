@@ -1,3 +1,5 @@
+import { CATALOGUES } from '@shared/copy';
+import { currentLanguage, directionOf, setupLocalisation } from '@shared/localisation';
 import { describe, expect, it } from 'vitest';
 import indexHtml from '../../index.html?raw';
 
@@ -116,5 +118,36 @@ describe('pre-paint storage', () => {
       lang: 'en',
       dir: 'ltr',
     });
+  });
+});
+
+// The script runs before the bundle exists, so it shares no code with the app; these hold the two
+// to the same decisions (docs/frontend/localisation.md#catalogues).
+describe('pre-paint agreement with the app', () => {
+  it('lists exactly the languages a catalogue is registered for', () => {
+    const listed = /const LANGUAGES = (\[[^\]]*\]);/.exec(script ?? '')?.[1];
+    if (!listed) {
+      throw new Error('the pre-paint script declares no LANGUAGES');
+    }
+
+    expect(JSON.parse(listed.replaceAll("'", '"'))).toEqual(Object.keys(CATALOGUES));
+  });
+
+  it.each(Object.keys(CATALOGUES))('stamps %s with the direction the app gives it', (language) => {
+    const result = prePaint({ stored: { 'masaha.language': language } });
+
+    expect({ lang: result.lang, dir: result.dir }).toEqual({
+      lang: language,
+      dir: directionOf(language),
+    });
+  });
+
+  it('falls back to the language the app falls back to', () => {
+    setupLocalisation({
+      catalogues: CATALOGUES,
+      language: { current: () => '', subscribe: () => () => undefined },
+    });
+
+    expect(prePaint({}).lang).toBe(currentLanguage());
   });
 });
