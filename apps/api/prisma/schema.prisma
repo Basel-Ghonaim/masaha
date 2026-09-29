@@ -31,9 +31,10 @@ enum Language {
   en
 }
 
-// v1 has one value; staff roles would be new values (ADR 0002).
+// A user's role at one space; it alone decides what they may do there (ADR 0009).
 enum SpaceManagerRole {
   OWNER
+  RECEPTION
 }
 
 enum Currency {
@@ -277,13 +278,16 @@ model Space {
   @@map("spaces")
 }
 
-/// A space with at least one manager is verified (ADR 0002).
+/// A user's link to a space, as its OWNER or RECEPTION. A space with at least one active OWNER
+/// link is verified (ADR 0009).
 model SpaceManager {
-  spaceId   Int              @map("space_id")
-  userId    Int              @map("user_id")
-  role      SpaceManagerRole @default(OWNER)
-  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  spaceId       Int              @map("space_id")
+  userId        Int              @map("user_id")
+  role          SpaceManagerRole @default(OWNER)
+  /// A deactivated link grants nothing, and is kept: payments and the audit log name its user.
+  deactivatedAt DateTime?        @map("deactivated_at") @db.Timestamptz(3)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)

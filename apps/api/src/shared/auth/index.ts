@@ -5,6 +5,7 @@ export type {
   OwnedResource,
   SelfAction,
   SpaceAction,
+  SpaceLink,
   SpaceResource,
   UnscopedAction,
 } from './can.ts';

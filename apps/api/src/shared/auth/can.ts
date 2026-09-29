@@ -1,7 +1,7 @@
-import type { Role } from '../../generated/prisma/enums.ts';
+import type { Role, SpaceManagerRole } from '../../generated/prisma/enums.ts';
 
-// The permission table of ADR 0002: every protected action and the one rule that decides it.
-// Services call can(); no role check lives anywhere else.
+// The permission table of ADR 0002 and ADR 0009: every protected action and the one rule that
+// decides it. Services call can(); no role check lives anywhere else.
 
 /** Who is acting: the signed-in user, from the access token. */
 export interface Actor {
@@ -9,12 +9,20 @@ export interface Actor {
   readonly role: Role;
 }
 
+/** One SpaceManager row: a user's link to the space, as its OWNER or RECEPTION. */
+export interface SpaceLink {
+  readonly userId: number;
+  readonly role: SpaceManagerRole;
+  /** A deactivated link grants nothing. */
+  readonly deactivatedAt: Date | null;
+}
+
 /**
- * The space an action targets. `managerIds` are the users of its SpaceManager rows, loaded by the
- * service from the database, never taken from the client. A space with none is unverified.
+ * The space an action targets. `links` are its SpaceManager rows, loaded by the service from the
+ * database, never taken from the client. A space without an active OWNER link is unverified.
  */
 export interface SpaceResource {
-  readonly managerIds: readonly number[];
+  readonly links: readonly SpaceLink[];
 }
 
 /** A resource that belongs to one user: their profile, favourites or data reports. */
@@ -25,12 +33,14 @@ export interface OwnedResource {
 type Rule =
   /** ADMIN only, on any space. */
   | 'admin'
-  /** The OWNER linked to the space. */
-  | 'manager'
-  /** ADMIN, or the OWNER linked to the space. */
-  | 'adminOrManager'
+  /** The space's OWNER. */
+  | 'owner'
+  /** The space's staff: its OWNER or its RECEPTION. */
+  | 'staff'
+  /** ADMIN, or the space's OWNER. */
+  | 'adminOrOwner'
   /** ADMIN while the space is unverified; once verified, only its OWNER, and no longer ADMIN. */
-  | 'adminWhileUnverifiedElseManager'
+  | 'adminWhileUnverifiedElseOwner'
   /** Any role, on their own resource only. */
   | 'self'
   /** Any signed-in user. */
@@ -38,20 +48,33 @@ type Rule =
 
 const PERMISSIONS = {
   // The space's public facts: who keeps them depends on whether an owner has joined.
-  'space.profile.update': 'adminWhileUnverifiedElseManager',
-  'space.facts.update': 'adminWhileUnverifiedElseManager',
-  'dataReports.resolve': 'adminWhileUnverifiedElseManager',
-  'space.dataReports.read': 'adminOrManager',
+  'space.profile.update': 'adminWhileUnverifiedElseOwner',
+  'space.facts.update': 'adminWhileUnverifiedElseOwner',
+  'dataReports.resolve': 'adminWhileUnverifiedElseOwner',
+  'space.dataReports.read': 'adminOrOwner',
 
-  // The space's operations. Members and attendance are private from the admin (ADR 0002), and so
-  // is capacity (ADR 0008).
-  'space.capacity.manage': 'manager',
-  'space.settings.manage': 'manager',
-  'members.manage': 'manager',
-  'attendance.record': 'manager',
-  'occupancy.read': 'manager',
-  'announcements.manage': 'manager',
-  'space.auditLog.read': 'manager',
+  // The front desk, for the owner and reception (ADR 0009). Customers, attendance, payments and
+  // capacity are private from the admin (ADR 0002, ADR 0008).
+  'attendance.record': 'staff',
+  'occupancy.read': 'staff',
+  'customers.manage': 'staff',
+  'subscriptions.manage': 'staff',
+  'payments.record': 'staff',
+  /** The payments the actor recorded today (shift handover). */
+  'payments.readOwn': 'staff',
+  'announcements.manage': 'staff',
+  'space.liveStatus.override': 'staff',
+
+  // The owner's own: money, the space's setup and its staff.
+  'payments.read': 'owner',
+  'payments.void': 'owner',
+  'finance.read': 'owner',
+  'subscriptions.extendAfterClosure': 'owner',
+  'packages.manage': 'owner',
+  'space.capacity.manage': 'owner',
+  'space.settings.manage': 'owner',
+  'staff.manage': 'owner',
+  'space.auditLog.read': 'owner',
 
   // The platform. Hiding, soft-deleting and linking apply to every space, verified or not.
   'platform.spaces.manage': 'admin',
@@ -78,7 +101,7 @@ type ActionWith<R extends Rule> = {
 
 /** Actions on one space; they take its `SpaceResource`. */
 export type SpaceAction = ActionWith<
-  'manager' | 'adminOrManager' | 'adminWhileUnverifiedElseManager'
+  'owner' | 'staff' | 'adminOrOwner' | 'adminWhileUnverifiedElseOwner'
 >;
 /** Actions on a user's own resource; they take an `OwnedResource`. */
 export type SelfAction = ActionWith<'self'>;
@@ -92,9 +115,10 @@ interface RuleResources {
   admin: [];
   signedIn: [];
   self: [resource: OwnedResource];
-  manager: [resource: SpaceResource];
-  adminOrManager: [resource: SpaceResource];
-  adminWhileUnverifiedElseManager: [resource: SpaceResource];
+  owner: [resource: SpaceResource];
+  staff: [resource: SpaceResource];
+  adminOrOwner: [resource: SpaceResource];
+  adminWhileUnverifiedElseOwner: [resource: SpaceResource];
 }
 
 /** Whether `actor` may perform `action` on `resource`. Pure: the caller loads the resource. */
@@ -114,13 +138,15 @@ export function can<A extends Action>(
       return true;
     case 'self':
       return actor.id === (resource as OwnedResource).userId;
-    case 'manager':
-      return isManager(actor, resource as SpaceResource);
-    case 'adminOrManager':
-      return isAdmin(actor) || isManager(actor, resource as SpaceResource);
-    case 'adminWhileUnverifiedElseManager': {
+    case 'owner':
+      return roleAt(actor, resource as SpaceResource) === 'OWNER';
+    case 'staff':
+      return roleAt(actor, resource as SpaceResource) !== undefined;
+    case 'adminOrOwner':
+      return isAdmin(actor) || roleAt(actor, resource as SpaceResource) === 'OWNER';
+    case 'adminWhileUnverifiedElseOwner': {
       const space = resource as SpaceResource;
-      return space.managerIds.length === 0 ? isAdmin(actor) : isManager(actor, space);
+      return isVerified(space) ? roleAt(actor, space) === 'OWNER' : isAdmin(actor);
     }
   }
 }
@@ -129,7 +155,13 @@ function isAdmin(actor: Actor): boolean {
   return actor.role === 'ADMIN';
 }
 
-// The role is checked too: a demoted owner loses access even before the link is removed.
-function isManager(actor: Actor, space: SpaceResource): boolean {
-  return actor.role === 'OWNER' && space.managerIds.includes(actor.id);
+// The actor's role at the space comes only from their active link, never from the global role
+// (ADR 0009): the global OWNER is a label, and reception staff are global USERs.
+function roleAt(actor: Actor, space: SpaceResource): SpaceManagerRole | undefined {
+  return space.links.find((link) => link.userId === actor.id && link.deactivatedAt === null)?.role;
+}
+
+// A RECEPTION link never verifies a space (ADR 0009).
+function isVerified(space: SpaceResource): boolean {
+  return space.links.some((link) => link.role === 'OWNER' && link.deactivatedAt === null);
 }

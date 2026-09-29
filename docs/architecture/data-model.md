@@ -39,7 +39,7 @@ Summaries only: the schema owns the fields.
 
 ### Spaces
 - **Space** — a listed coworking space: bilingual profile, area and map location, private capacity, the optional auto check-out limit (`maxStayMinutes`), the admin's hide flag, soft delete, and one freshness timestamp per fact group.
-- **SpaceManager** — the link that makes a user the owner of a space (`role` `OWNER` in v1); its existence makes the space verified.
+- **SpaceManager** — a user's link to a space, with its role there, `OWNER` or `RECEPTION` ([ADR 0009](decisions/0009-space-scoped-reception-role.md)). The role alone decides what the user may do at the space; `can()` never reads the global role for it. The owner deactivates a reception link rather than deleting it, because payments and the audit log name its user; a deactivated link grants nothing. An active `OWNER` link makes the space verified.
 - **SpaceHours** — one row per day of the week: a closed flag, or one opening range.
 - **SpaceShift** — optional named shifts inside the opening range.
 - **SpacePrice** — optional price rows by period, audience, shift and label.
@@ -58,7 +58,7 @@ Summaries only: the schema owns the fields.
 
 ## Derived values (computed, not stored)
 
-- **Verified:** a space with at least one `SpaceManager` row.
+- **Verified:** a space with at least one active `OWNER` link. A `RECEPTION` link never verifies a space.
 - **Publicly listed:** a space is listed publicly (directory, search, map) and its page is public only when it is not deleted, not hidden, and both its area and its governorate are active. Otherwise the public gets "not found", while its owner and the admin still see it.
 - **Live status** — public, a state and never a count ([ADR 0008](decisions/0008-live-status-not-counts.md)). Evaluated in this order, in Asia/Gaza time:
   1. an unverified space has **no live state**;
@@ -138,7 +138,6 @@ The database enforces these; `apps/api/src/db/schema.api.test.ts` proves each on
 
 Planned, not built. The schema will own the fields; this section folds into *Entities* when F-3b is merged.
 
-- **SpaceManager:** role `OWNER | RECEPTION`, and a deactivation; verified means at least one active `OWNER` link ([ADR 0009](decisions/0009-space-scoped-reception-role.md)).
 - **Member → Customer** (a rename): everyone on file at a space.
 - **Membership → Subscription** (a rename): the optional limits, the billing mode (fixed, per hour or per day), the price snapshot, the package or «مخصّص», who set a desk-typed price, and the early end. `MembershipType` and its `DAILY` value are dropped: daily visitors are visits.
 - **Package** (new): an owner-defined subscription template. The published prices are the public packages; private packages are never public.

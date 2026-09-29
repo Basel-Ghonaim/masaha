@@ -6,38 +6,70 @@ import {
   type Actor,
   type SelfAction,
   type SpaceAction,
+  type SpaceLink,
   type SpaceResource,
   type UnscopedAction,
 } from './can.ts';
 
-// The expected permissions of ADR 0002, written out independently of the table in can.ts: a
-// mistake in the table fails here instead of being copied.
+// The expected permissions of ADR 0002 and ADR 0009, written out independently of the table in
+// can.ts: a mistake in the table fails here instead of being copied.
 
+// Reception staff are global USERs; owners carry the global OWNER label (ADR 0009).
 const USER: Actor = { id: 1, role: 'USER' };
-const OWNER_OF_ANOTHER_SPACE: Actor = { id: 2, role: 'OWNER' };
-const OWNER_OF_THIS_SPACE: Actor = { id: 3, role: 'OWNER' };
-const ADMIN: Actor = { id: 4, role: 'ADMIN' };
+const RECEPTION_OF_THIS_SPACE: Actor = { id: 2, role: 'USER' };
+const RECEPTION_OF_ANOTHER_SPACE: Actor = { id: 3, role: 'USER' };
+const OWNER_OF_ANOTHER_SPACE: Actor = { id: 4, role: 'OWNER' };
+const OWNER_OF_THIS_SPACE: Actor = { id: 5, role: 'OWNER' };
+const ADMIN: Actor = { id: 6, role: 'ADMIN' };
 
-const UNVERIFIED: SpaceResource = { managerIds: [] };
-const VERIFIED: SpaceResource = { managerIds: [OWNER_OF_THIS_SPACE.id, 9] };
+const link = (userId: number, role: SpaceLink['role'], deactivatedAt: Date | null = null) => ({
+  userId,
+  role,
+  deactivatedAt,
+});
 
-// On an unverified space no owner of it exists, so every owner is an owner of another space.
-type SpaceCells = [
-  unverified: { user: boolean; otherOwner: boolean; admin: boolean },
-  verified: { user: boolean; otherOwner: boolean; thisOwner: boolean; admin: boolean },
-];
+const VERIFIED: SpaceResource = {
+  links: [
+    link(OWNER_OF_THIS_SPACE.id, 'OWNER'),
+    link(RECEPTION_OF_THIS_SPACE.id, 'RECEPTION'),
+    link(9, 'OWNER'),
+  ],
+};
+// No owner has joined, or the owner was unlinked while a reception link remained: a RECEPTION
+// link never verifies a space.
+const UNVERIFIED: SpaceResource = { links: [link(RECEPTION_OF_THIS_SPACE.id, 'RECEPTION')] };
 
-const OWNER_ONLY: SpaceCells = [
-  { user: false, otherOwner: false, admin: false },
-  { user: false, otherOwner: false, thisOwner: true, admin: false },
-];
-const ADMIN_WHILE_UNVERIFIED: SpaceCells = [
-  { user: false, otherOwner: false, admin: true },
-  { user: false, otherOwner: false, thisOwner: true, admin: false },
+interface Cells {
+  user: boolean;
+  receptionOfThis: boolean;
+  receptionOfAnother: boolean;
+  ownerOfAnother: boolean;
+  /** Absent on an unverified space: no owner of it exists. */
+  ownerOfThis?: boolean;
+  admin: boolean;
+}
+type SpaceCells = [unverified: Cells, verified: Cells];
+
+const NOBODY = {
+  user: false,
+  receptionOfThis: false,
+  receptionOfAnother: false,
+  ownerOfAnother: false,
+  admin: false,
+};
+
+const OWNER_ONLY: SpaceCells = [NOBODY, { ...NOBODY, ownerOfThis: true }];
+const STAFF: SpaceCells = [
+  { ...NOBODY, receptionOfThis: true },
+  { ...NOBODY, receptionOfThis: true, ownerOfThis: true },
 ];
 const ADMIN_OR_OWNER: SpaceCells = [
-  { user: false, otherOwner: false, admin: true },
-  { user: false, otherOwner: false, thisOwner: true, admin: true },
+  { ...NOBODY, admin: true },
+  { ...NOBODY, ownerOfThis: true, admin: true },
+];
+const ADMIN_WHILE_UNVERIFIED: SpaceCells = [
+  { ...NOBODY, admin: true },
+  { ...NOBODY, ownerOfThis: true },
 ];
 
 const SPACE_EXPECTATIONS: Record<SpaceAction, SpaceCells> = {
@@ -45,12 +77,22 @@ const SPACE_EXPECTATIONS: Record<SpaceAction, SpaceCells> = {
   'space.facts.update': ADMIN_WHILE_UNVERIFIED,
   'dataReports.resolve': ADMIN_WHILE_UNVERIFIED,
   'space.dataReports.read': ADMIN_OR_OWNER,
+  'attendance.record': STAFF,
+  'occupancy.read': STAFF,
+  'customers.manage': STAFF,
+  'subscriptions.manage': STAFF,
+  'payments.record': STAFF,
+  'payments.readOwn': STAFF,
+  'announcements.manage': STAFF,
+  'space.liveStatus.override': STAFF,
+  'payments.read': OWNER_ONLY,
+  'payments.void': OWNER_ONLY,
+  'finance.read': OWNER_ONLY,
+  'subscriptions.extendAfterClosure': OWNER_ONLY,
+  'packages.manage': OWNER_ONLY,
   'space.capacity.manage': OWNER_ONLY,
   'space.settings.manage': OWNER_ONLY,
-  'members.manage': OWNER_ONLY,
-  'attendance.record': OWNER_ONLY,
-  'occupancy.read': OWNER_ONLY,
-  'announcements.manage': OWNER_ONLY,
+  'staff.manage': OWNER_ONLY,
   'space.auditLog.read': OWNER_ONLY,
 };
 
@@ -74,6 +116,8 @@ const SELF_ACTIONS: readonly SelfAction[] = [
 
 const ALL_ACTORS = [
   ['a USER', USER],
+  ['the reception of this space', RECEPTION_OF_THIS_SPACE],
+  ['the reception of another space', RECEPTION_OF_ANOTHER_SPACE],
   ['an OWNER of another space', OWNER_OF_ANOTHER_SPACE],
   ['the OWNER of this space', OWNER_OF_THIS_SPACE],
   ['an ADMIN', ADMIN],
@@ -85,7 +129,13 @@ describe('can', () => {
     (action, [unverified, verified]) => {
       it.each([
         ['a USER', unverified.user, USER],
-        ['an OWNER', unverified.otherOwner, OWNER_OF_ANOTHER_SPACE],
+        ['a reception left linked to it', unverified.receptionOfThis, RECEPTION_OF_THIS_SPACE],
+        [
+          'the reception of another space',
+          unverified.receptionOfAnother,
+          RECEPTION_OF_ANOTHER_SPACE,
+        ],
+        ['an OWNER', unverified.ownerOfAnother, OWNER_OF_ANOTHER_SPACE],
         ['an ADMIN', unverified.admin, ADMIN],
       ])('on an unverified space, for %s: %s', (_who, expected, actor) => {
         expect(can(actor, action, UNVERIFIED)).toBe(expected);
@@ -93,17 +143,37 @@ describe('can', () => {
 
       it.each([
         ['a USER', verified.user, USER],
-        ['an OWNER of another space', verified.otherOwner, OWNER_OF_ANOTHER_SPACE],
-        ['the OWNER of this space', verified.thisOwner, OWNER_OF_THIS_SPACE],
+        ['the reception of this space', verified.receptionOfThis, RECEPTION_OF_THIS_SPACE],
+        ['the reception of another space', verified.receptionOfAnother, RECEPTION_OF_ANOTHER_SPACE],
+        ['an OWNER of another space', verified.ownerOfAnother, OWNER_OF_ANOTHER_SPACE],
+        ['the OWNER of this space', verified.ownerOfThis, OWNER_OF_THIS_SPACE],
         ['an ADMIN', verified.admin, ADMIN],
       ])('on a verified space, for %s: %s', (_who, expected, actor) => {
         expect(can(actor, action, VERIFIED)).toBe(expected);
       });
 
-      it('refuses a linked user whose role is no longer OWNER', () => {
-        const demoted: Actor = { id: OWNER_OF_THIS_SPACE.id, role: 'USER' };
+      it('grants nothing through a deactivated link', () => {
+        const deactivated: SpaceResource = {
+          links: [
+            link(OWNER_OF_THIS_SPACE.id, 'OWNER', new Date('2026-09-29T10:00:00Z')),
+            link(RECEPTION_OF_THIS_SPACE.id, 'RECEPTION', new Date('2026-09-29T10:00:00Z')),
+            link(9, 'OWNER'),
+          ],
+        };
 
-        expect(can(demoted, action, VERIFIED)).toBe(false);
+        expect(can(OWNER_OF_THIS_SPACE, action, deactivated)).toBe(false);
+        expect(can(RECEPTION_OF_THIS_SPACE, action, deactivated)).toBe(false);
+      });
+
+      it("follows the link's role, never the global role", () => {
+        // Labels out of sync with the links: a global USER holding an OWNER link, and a global
+        // OWNER (of another space) working as reception here.
+        const space: SpaceResource = {
+          links: [link(USER.id, 'OWNER'), link(OWNER_OF_ANOTHER_SPACE.id, 'RECEPTION')],
+        };
+
+        expect(can(USER, action, space)).toBe(verified.ownerOfThis);
+        expect(can(OWNER_OF_ANOTHER_SPACE, action, space)).toBe(verified.receptionOfThis);
       });
     },
   );
