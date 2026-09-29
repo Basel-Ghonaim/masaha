@@ -27,10 +27,10 @@
 | **Check-in** | تسجيل حضور | A record that a customer or a visitor is present at a space |
 | **Open check-in** | حضور مفتوح | A check-in without a check-out |
 | **Auto check-out** | خروج تلقائي | A check-out the system records at closing time or after the maximum duration |
-| **Capacity** | السعة | The number of seats a space declares. Private: only the space's owner sees it |
+| **Capacity** | السعة | The number of seats a space declares. Private from the public: only the space's staff (owner and reception) see it |
 | **Live status** | الحالة المباشرة | The public state of a verified space right now: **Available** (متاح), **Full** (ممتلئ) or **Closed now** (مغلق الآن). Never a count |
 | **Manual state override** | ضبط الحالة يدويًا | The owner or reception sets the live status by hand for a set time |
-| **Occupancy** | الإشغال | Open check-ins and visits relative to capacity, live or over time; shown only to the space's owner |
+| **Occupancy** | الإشغال | Open check-ins and visits relative to capacity: live, shown to the space's staff; over time, in the owner's statistics |
 | **Announcement** | إعلان | A time-bound notice from an owner shown on the space page |
 | **Data report** | بلاغ | A user's report that a space's information is wrong or outdated; it may be resolved with a note shown to the reporter |
 | **Stale** | قد تكون قديمة | A fact not updated or confirmed within its staleness threshold: 30 days for prices, 60 days for the other facts (both admin settings) |

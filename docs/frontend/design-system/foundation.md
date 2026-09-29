@@ -389,7 +389,7 @@ Every screen: phone and desktop, light and dark. Key screens also in LTR (Englis
 **O** = owner only · **O+R** = owner and reception. Navigation follows the user's role at the selected space; who may do what is owned by [ADR 0009](../../architecture/decisions/0009-space-scoped-reception-role.md).
 
 12. **Overview** (O) — present now / capacity and the live status, income today and this month, total debt, subscriptions ending this week, active announcements, new reports
-13. **Front desk** (O+R) — present now; check in a visitor by name or a customer; check out with the visit charge and its payment; uncollected visits; set or clear the manual state override
+13. **Front desk** (O+R) — present now / capacity («الحاضرون الآن 27 / 40»); check in a visitor by name or a customer, with a warning when the space is full; check out with the visit charge and its payment; uncollected visits; set or clear the manual state override
 14. **Customers** (O+R) — everyone on file; search; filters: subscription type (monthly, weekly, package, custom, none), status, payment (has debt, settled)
 15. **Customer details** (O+R) — subscriptions with their progress and statement, payments, balance or credit, attendance; receive a payment, renew (a warning when a balance is due), end a subscription early
 16. **New subscription** (O+R) — from a package or «مخصّص»; limits (date range, total days, days per week, hours per day, total hours); billing (fixed, per hour or per day); price

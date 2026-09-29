@@ -18,7 +18,7 @@
 - **Contacts** are a typed list per space (WhatsApp, phone, email, Instagram, Facebook, TikTok, website), not fixed columns:
   - phone and WhatsApp values, like every phone number in the database (users, members), are stored in **E.164**. Input arrives as `00970…`, `+972…` or local `05…`; Palestinian mobiles (`059…` Jawwal, `056…` Ooredoo) are normalised to `+970…` whatever prefix they arrived with, so one number has one form. Numbers are displayed LTR;
   - email is stored lowercased; Instagram, Facebook, TikTok and website as full `https://` URLs.
-- **Capacity is private:** stored on the space, visible only to its owner, never in a public page or response ([ADR 0008](decisions/0008-live-status-not-counts.md)).
+- **Capacity is private from the public:** stored on the space, visible only to the space's staff (owner and reception), never to the admin or in a public page or response ([ADR 0008](decisions/0008-live-status-not-counts.md)).
 - **Freshness:** each fact group of a space carries its own `…UpdatedAt`, set when the group is saved **or confirmed unchanged**: profile (name, description, address, area, location, photos), hours, prices (with shifts), amenities, contacts. Confirming («المعلومات ما زالت صحيحة») resets only that group's date and changes none of its data.
 - **Settings** are key–value rows whose keys are fixed in code; each value is validated when read.
 - **Indexes only for queries that run.** Foreign keys used in lists are indexed, or covered by the prefix of a unique index.
@@ -68,7 +68,7 @@ Summaries only: the schema owns the fields.
   5. **`FULL`** (ممتلئ) when present ≥ capacity, where *present* is the open check-ins (*planned:* the open visits plus the open subscription check-ins);
   6. otherwise **`AVAILABLE`** (متاح).
 
-  The directory's "available now" filter selects `AVAILABLE`. Capacity and the exact numbers (present / capacity) are shown only to the space's owner.
+  The directory's "available now" filter selects `AVAILABLE`. Capacity and the exact numbers (present / capacity) are shown only to the space's staff (owner and reception).
 - **Auto check-out:** open check-ins are closed at the space's closing time, or at 23:59 when the space has no opening hours — or earlier, after `maxStayMinutes`, when the owner sets it. Closing-time check-out cannot be turned off.
 - **Membership status:** from the member's latest membership (the greatest `endsOn`) — active, ending soon (≤ 7 days), expired. *Replaced by the subscription status below in F-3b.*
 - **Stale:** a fact group whose `…UpdatedAt` is older than its threshold: `priceStalenessDays` (default 30) for prices, `stalenessDays` (default 60) for the others. Both are admin settings.
@@ -86,12 +86,14 @@ The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.m
   - neither → the desk types the amount, recorded as a desk-set price with who set it.
 - **Unpaid visit:** a visit may be left unpaid only with a phone number. It then belongs to the customer with that phone (created if new), and its charge counts in that customer's debt.
 - **Uncollected visits:** visits closed by the auto check-out and left unpaid.
+- **Full warning:** a check-in (visit or subscription) while present ≥ capacity warns, never blocks.
 - **Subscription limits:** any of a date range, total days, days per week, hours per day and total hours, freely combined, all optional. They produce warnings at check-in, never blocks.
 - **Subscription progress**, from its check-ins: days used, days this week (Saturday to Friday), hours today and hours used.
-- **Subscription status:**
-  - with an end date: *active*; *ending soon* ≤ 7 days before the end (for a subscription shorter than a week, on its last day); *expired* after the end;
-  - without an end date but with total days or hours: *expired* once the total is used; *ending soon* when ≤ 20 % of it is left;
-  - with neither: *active* until it is ended.
+- **Subscription status**, from its end date and its total (days or hours), whichever it has:
+  - *expired* at whichever comes first: the end date passes, or the total is used up;
+  - *ending soon* at whichever comes first: ≤ 7 days before the end date (for a subscription shorter than a week, on its last day), or ≤ 20 % of the total left;
+  - otherwise *active*; with neither an end date nor a total, it stays *active* until it is ended.
+  - The end date and the total are limits too: past them, a check-in still only warns.
   - The desk can end any subscription early («إنهاء الاشتراك»): its end becomes today, and who ended it is recorded.
 - **Amount due:** a subscription's fixed price or, when it is usage-based, its attendance × its rate (days used × the day rate, or hours used × the hour rate). A visit's due is its charge.
 - **Balance:** amount due − the payments that are not voided. **Payment status:** *paid* when the balance is ≤ 0, *partly paid* when a payment exists and the balance is > 0, *unpaid* when there is none. A negative balance, possible only on a usage-based subscription, is **credit** («له رصيد»).
@@ -104,10 +106,10 @@ The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.m
 
 The subscription model must express each of these without special cases; F-3b proves them with tests.
 
-1. **Exam student:** three weeks, billed by the hour; a statement of days and hours at any time.
-2. **A split week:** six days over two weeks, three per week, at a fixed price.
-3. **Every other day:** a month, three days per week, at a fixed, agreed price.
-4. **An hours pack:** 20 hours at a fixed price, with no end date.
+1. **Exam student:** three weeks, billed by the hour; a statement of days and hours at any time. Expires when the three weeks end.
+2. **A split week:** six days over two weeks, three per week, at a fixed price. Expires when the two weeks end or the sixth day is used, whichever comes first.
+3. **Every other day:** a month, three days per week, at a fixed, agreed price. Expires when the month ends; the days per week only warn.
+4. **An hours pack:** 20 hours at a fixed price, with no end date. Expires when the 20 hours are used; ending soon from 4 hours left.
 
 ## Constraints worth stating
 

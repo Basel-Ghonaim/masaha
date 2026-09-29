@@ -102,7 +102,7 @@ Legend: 🌐 public · 👤 any signed-in user · 🧾 OWNER or RECEPTION of tha
 | GET | `/manage/spaces` | 🧾 | spaces the caller has an active link to, with the role at each |
 | GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | profile, hours, shifts, prices, amenities, contacts, capacity (private) |
 | POST | `/manage/spaces/:spaceId/facts/:group/confirm` | 🏢 | «المعلومات ما زالت صحيحة»: resets that group's freshness date |
-| GET | `/manage/spaces/:spaceId/occupancy` | 🏢 | exact numbers for the owner: `{ capacity, present }` |
+| GET | `/manage/spaces/:spaceId/occupancy` | 🧾 | the live numbers for the space's staff: `{ capacity, present }`; the statistics are under finance (🏢) |
 | PUT / DELETE | `/manage/spaces/:spaceId/status-override` | 🧾 | set a state until a time (30 min, 1 h, 2 h or closing time), or clear it |
 | POST / DELETE | `/manage/spaces/:spaceId/photos[/:photoId]` | 🏢 | upload, remove, reorder |
 | GET / POST / PATCH | `/manage/spaces/:spaceId/staff[/:userId]` | 🏢 | add reception by name and email (a new account with a temporary password shown once, or an existing account linked); deactivate |
@@ -112,9 +112,9 @@ Legend: 🌐 public · 👤 any signed-in user · 🧾 OWNER or RECEPTION of tha
 | POST | `/manage/spaces/:spaceId/customers/:customerId/subscriptions` | 🧾 | new or renewal, from a package or custom; warns when the customer has a balance |
 | GET / PATCH | `/manage/spaces/:spaceId/subscriptions/:id` | 🧾 | progress and statement; correct one |
 | POST | `/manage/spaces/:spaceId/subscriptions/:id/end` | 🧾 | end early: the end becomes today |
-| GET / POST | `/manage/spaces/:spaceId/visits` | 🧾 | `?open=true`, `?uncollected=true` or a date range; check in by name |
+| GET / POST | `/manage/spaces/:spaceId/visits` | 🧾 | `?open=true`, `?uncollected=true` or a date range; check in by name; a warning in `meta.warnings` when the space is full |
 | POST | `/manage/spaces/:spaceId/visits/:visitId/check-out` | 🧾 | → the charge; records its payment, or leaves it unpaid with a phone number |
-| GET / POST | `/manage/spaces/:spaceId/check-ins` | 🧾 | subscription check-ins: `?open=true` or a date range; limit warnings in `meta.warnings` |
+| GET / POST | `/manage/spaces/:spaceId/check-ins` | 🧾 | subscription check-ins: `?open=true` or a date range; limit and full-space warnings in `meta.warnings` |
 | POST | `/manage/spaces/:spaceId/check-ins/:checkInId/check-out` | 🧾 | |
 | GET / POST | `/manage/spaces/:spaceId/payments` | 🧾 | record one payment for one visit or subscription; list: the owner sees all (date, staff and method filters), reception its own today |
 | POST | `/manage/spaces/:spaceId/payments/:paymentId/void` | 🏢 | reason required |

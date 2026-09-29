@@ -20,6 +20,7 @@ ADR 0002 deferred a receptionist role: the front desk was to use the owner's acc
    | Action | Reception | Owner |
    |---|---|---|
    | Check in / check out | ✓ | ✓ |
+   | See present / capacity (a warning at check-in when full) | ✓ | ✓ |
    | New customer; subscription from a package or custom | ✓ | ✓ |
    | Receive a payment, settle a debt, renew | ✓ | ✓ |
    | Collections today (shift handover) | own | all staff |
