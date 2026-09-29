@@ -168,3 +168,21 @@ Shells opened by an editor can start in a lowercase `c:\`, as this session's did
 The writes succeeded and rolled back correctly. The warning comes from Prisma's PostgreSQL adapter (`@prisma/adapter-pg` 7.10 on `pg` 8.23): inside an interactive transaction, all queries share one `pg` client, and the nested creates reach it while another query is still running. The API lane, which uses no interactive transactions yet, prints no such warning.
 
 **Resolves when:** before `pg` is upgraded to 9, either a Prisma release serialises the queries of an interactive transaction, or the features that write nested data in a transaction are proven to work with `pg` 9 (for example, the admin's space creation, the first such feature). Until then, a `pg` major upgrade is not taken without checking this.
+
+## 12. The admin's settings list a "default auto check-out" that the model has no place for
+
+**Status:** Open · **Date:** 2026-09-29
+
+**Evidence:** foundation §13, screen 32 (admin *Settings*), lists "default auto check-out" beside the contact and the staleness threshold. F-3b follows the reviewed owner screens: auto check-out at closing and `maxStayMinutes` are settings of each space, with column defaults ([data-model.md](data-model.md#entities)). No platform setting holds a default, and nothing says what it would set: the closing-time switch, the stay limit, or the starting values of a new space.
+
+**Resolves when:** the owner decides whether a platform default exists and what it governs. Either the admin screen drops the item, or a `Setting` key is added in the settings slice (step 11 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build)).
+
+## 13. Two documents still say "member" for the renamed customer
+
+**Status:** Open · **Date:** 2026-09-29
+
+**Evidence:** F-3b renamed `Member` to `Customer` and moved daily visitors to `Visit`. Two documents outside its scope still use the old terms:
+- [conventions.md](../backend/conventions.md) lists a `members` module and audits "member create/edit/deactivate";
+- [testing.md](../development/testing.md) names the E2E flow "owner checks a member in".
+
+**Resolves when:** those documents use the glossary's terms (customers, visits, check-ins), for example when the front-desk slice creates its modules.

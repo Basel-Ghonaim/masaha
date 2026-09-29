@@ -38,5 +38,3 @@
 | **Area** | منطقة | A neighbourhood or town within a governorate; every space is in one. The admin hides an unreachable area without deleting it |
 | **Lookup** | قائمة ثابتة | An admin-managed bilingual list: governorates, areas, amenities |
 | **Audit log** | سجل التدقيق | The record of sensitive actions: who, when, what |
-
-The code keeps `Member`, `Membership` and the visitor check-in until F-3b renames and reshapes them ([pending changes](../architecture/data-model.md#pending-entity-changes-f-3b)).

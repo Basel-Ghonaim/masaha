@@ -172,9 +172,9 @@ This item turns the planned model into the real one. It is the largest design st
 Brings the schema and the permission table to the scope change of 2026-09-29. Like F-3, its plan step lists every entity change and every decision before writing.
 
 **Scope**
-- **Schema:** the [pending entity changes](../architecture/data-model.md#pending-entity-changes-f-3b), in new migrations (F-3's migration is never edited):
+- **Schema:** the [pending entity changes](../architecture/data-model.md#entities), in new migrations (F-3's migration is never edited):
   - the renames `Member` → `Customer` and `Membership` → `Subscription`, in the models, tables, enums, code and tests;
-  - the new models, fields and flags, and the [planned constraints](../architecture/data-model.md#planned-constraints-f-3b), with raw SQL where Prisma cannot express them.
+  - the new models, fields and flags, and the [planned constraints](../architecture/data-model.md#constraints-worth-stating), with raw SQL where Prisma cannot express them.
 - **The permission table:**
   - `can()` gains the `RECEPTION` rows and every action in [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md);
   - space checks read only the link's role, never the global role;

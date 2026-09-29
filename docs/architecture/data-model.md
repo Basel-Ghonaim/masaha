@@ -2,7 +2,6 @@
 
 > **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
-> **Planned:** the scope change of 2026-09-29 adds rules marked *planned (F-3b)*. They are not in the schema yet; [Pending entity changes](#pending-entity-changes-f-3b) lists what F-3b adds.
 
 ## Conventions
 
@@ -81,7 +80,7 @@ Summaries only: the schema owns the fields.
   - on an **unverified** space, the amounts are hidden, "Price not up to date — contact the space" is shown, and the space is left out of the price filter;
   - on a **verified** space, the amounts are shown with a "may have changed" note, and the owner's overview reminds them to confirm.
 
-### Front desk and money — planned (F-3b)
+### Front desk and money
 
 The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.md); who may do what in [ADR 0009](decisions/0009-space-scoped-reception-role.md). Amounts are in agorot; days and times are Asia/Gaza.
 
@@ -109,7 +108,7 @@ The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.m
 
 ### Subscription scenarios
 
-The subscription model must express each of these without special cases; F-3b proves them with tests.
+The subscription model expresses each of these without special cases: `apps/api/src/db/subscriptions.api.test.ts` stores each one, and the demo seed holds all four.
 
 1. **Exam student:** three weeks, billed by the hour; a statement of days and hours at any time. Expires when the three weeks end.
 2. **A split week:** six days over two weeks, three per week, at a fixed price. Expires when the two weeks end or the sixth day is used, whichever comes first.
@@ -120,7 +119,7 @@ The subscription model must express each of these without special cases; F-3b pr
 
 The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove each one (`schema` for spaces, prices and accounts, `front-desk`, `subscriptions`, `payments`).
 
-- One open check-in per customer, and one open visit per customer (partial unique indexes on `customerId` where `checkedOutAt IS NULL`). One open presence across both is checked by the service.
+- One open check-in per customer, and one open visit per customer (partial unique indexes on `customerId` where `checkedOutAt IS NULL`).
 - Customer phone unique within a space among customers that are not archived (partial unique index); customers without a phone are not limited.
 - A check-in's, a visit's, a subscription's and a package's customer, subscription, package and shift belong to the record's own space (composite foreign keys).
 - A `requestId` is unique within its space (check-ins, visits, payments).
@@ -134,10 +133,13 @@ The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove eac
   - a payment settles exactly one item, a visit or a subscription of its own space, with an amount above zero;
   - it is never updated or deleted; its only change is one void that sets the time, who voided and a non-blank reason together and touches nothing else, and a voided payment never changes again;
   - the payments of a visit, or of a fixed-price subscription, that are not voided never add up to more than its charge or price, and a visit is paid only once its charge is set. A usage-based subscription has no ceiling, so paying ahead leaves it in credit. The item's row is locked while this is checked, so payments recorded at once are counted in turn, and a retried request reaches its unique key rather than the ceiling;
-  - the services check the same rules first, to answer with a domain error; the database is the backstop.
 - **The space's settings and override**, by `CHECK` constraints: an override has its state, its end and who set it, together; the rounding minutes (1–59) are set exactly for the "up after N minutes" rule. A closure extension is applied at most once per closure announcement (a unique key), by at least one day.
 - Check-ins, visits, subscriptions, payments and audit-log entries are never deleted.
 
-### Planned constraints (F-3b)
+### Checked by the service
 
-- An unpaid visit has a customer.
+These rules span rows the database checks one at a time, so the services own them:
+- a visit left unpaid at a manual check-out has a customer (the payment and the check-out are separate writes; a visit closed by the auto check-out may have none: it is uncollected);
+- a customer is present at most once across visits and check-ins (each table has its own index);
+- a closure extension belongs to a `CLOSURE` announcement, and extends only that space's active subscriptions;
+- a recorded payment within the due, and a void by the owner with a reason, are checked first here too, for a domain error, with the database as the backstop.
