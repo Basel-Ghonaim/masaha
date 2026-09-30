@@ -1,140 +1,21 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import {
+  createCustomer,
+  createSpace,
+  createSubscription,
+  createUser,
+} from '../../test/factories.ts';
 import { resetDatabase } from '../../test/reset-database.ts';
 import { prisma } from './prisma.ts';
 
-// The rules the database itself enforces beyond Prisma's own checks: the partial unique indexes and
-// the CHECK constraints of the init migration (docs/architecture/data-model.md › Constraints worth
-// stating). Only the real database can prove them.
+// The rules the database itself enforces beyond Prisma's own checks, for spaces, their facts and
+// accounts: the partial unique indexes and the CHECK constraints (docs/architecture/data-model.md ›
+// Constraints worth stating). Only the real database can prove them. The front desk, subscriptions
+// and payments have their own files.
 
 beforeEach(async () => {
   await resetDatabase(prisma);
-});
-
-const PHONE = '+970599000001';
-
-async function createSpace(slug = 'focus-hub') {
-  const governorate = await prisma.governorate.upsert({
-    where: { nameAr: 'غزة' },
-    create: { nameAr: 'غزة', nameEn: 'Gaza City' },
-    update: {},
-  });
-  const area = await prisma.area.upsert({
-    where: { governorateId_nameAr: { governorateId: governorate.id, nameAr: 'النصر' } },
-    create: { governorateId: governorate.id, nameAr: 'النصر', nameEn: 'An-Nasr' },
-    update: {},
-  });
-  return prisma.space.create({
-    data: {
-      slug,
-      nameAr: 'فوكس هاب',
-      addressAr: 'غرب المزنر',
-      areaId: area.id,
-      lat: 31.53,
-      lng: 34.46,
-    },
-  });
-}
-
-async function createMember(spaceId: number, phone = PHONE) {
-  return prisma.member.create({ data: { spaceId, name: 'Sara', phone } });
-}
-
-describe('a member', () => {
-  it('cannot share a phone with another non-deleted member of the same space', async () => {
-    const space = await createSpace();
-    await createMember(space.id);
-
-    await expect(createMember(space.id)).rejects.toMatchObject({ code: 'P2002' });
-  });
-
-  it('may share a phone with a member of another space', async () => {
-    const space = await createSpace();
-    const other = await createSpace('branch-hub');
-    await createMember(space.id);
-
-    await expect(createMember(other.id)).resolves.toMatchObject({ phone: PHONE });
-  });
-
-  it('may reuse the phone of a soft-deleted member', async () => {
-    const space = await createSpace();
-    const deleted = await createMember(space.id);
-    await prisma.member.update({ where: { id: deleted.id }, data: { deletedAt: new Date() } });
-
-    await expect(createMember(space.id)).resolves.toMatchObject({ phone: PHONE });
-  });
-
-  it('stores its phone in E.164', async () => {
-    const space = await createSpace();
-
-    await expect(createMember(space.id, '0599000001')).rejects.toThrow(/members_phone_e164_check/);
-  });
-});
-
-describe('a check-in', () => {
-  it('cannot be opened twice for the same member', async () => {
-    const space = await createSpace();
-    const member = await createMember(space.id);
-    await prisma.checkIn.create({ data: { spaceId: space.id, memberId: member.id } });
-
-    await expect(
-      prisma.checkIn.create({ data: { spaceId: space.id, memberId: member.id } }),
-    ).rejects.toMatchObject({ code: 'P2002' });
-  });
-
-  it('can be opened again once the previous one is closed', async () => {
-    const space = await createSpace();
-    const member = await createMember(space.id);
-    await prisma.checkIn.create({
-      data: {
-        spaceId: space.id,
-        memberId: member.id,
-        checkedInAt: new Date('2026-09-28T08:00:00Z'),
-        checkedOutAt: new Date('2026-09-28T12:00:00Z'),
-        checkoutMethod: 'MANUAL',
-      },
-    });
-
-    await expect(
-      prisma.checkIn.create({ data: { spaceId: space.id, memberId: member.id } }),
-    ).resolves.toMatchObject({ checkedOutAt: null });
-  });
-
-  it('belongs to a member or a daily visitor, never both and never neither', async () => {
-    const space = await createSpace();
-    const member = await createMember(space.id);
-
-    await expect(
-      prisma.checkIn.create({
-        data: { spaceId: space.id, memberId: member.id, visitorName: 'Omar' },
-      }),
-    ).rejects.toThrow(/check_ins_member_or_visitor_check/);
-    await expect(prisma.checkIn.create({ data: { spaceId: space.id } })).rejects.toThrow(
-      /check_ins_member_or_visitor_check/,
-    );
-  });
-
-  it('closes after it opens, with a method exactly when closed', async () => {
-    const space = await createSpace();
-    const checkedInAt = new Date('2026-09-28T08:00:00Z');
-
-    await expect(
-      prisma.checkIn.create({
-        data: {
-          spaceId: space.id,
-          visitorName: 'Omar',
-          checkedInAt,
-          checkedOutAt: new Date('2026-09-28T07:00:00Z'),
-          checkoutMethod: 'MANUAL',
-        },
-      }),
-    ).rejects.toThrow(/check_ins_checked_out_at_check/);
-    await expect(
-      prisma.checkIn.create({
-        data: { spaceId: space.id, visitorName: 'Omar', checkedInAt, checkoutMethod: 'AUTO' },
-      }),
-    ).rejects.toThrow(/check_ins_checkout_method_check/);
-  });
 });
 
 describe('a price', () => {
@@ -265,26 +146,65 @@ describe('a space', () => {
     await expect(contact('PHONE', '0569000001')).rejects.toThrow(/space_contacts_phone_e164_check/);
     await expect(contact('INSTAGRAM', 'https://instagram.com/focus')).resolves.toBeDefined();
   });
-});
 
-describe('dates', () => {
-  it('never let a membership end before it starts', async () => {
-    const space = await createSpace();
-    const member = await createMember(space.id);
-
-    await expect(
-      prisma.membership.create({
-        data: {
-          memberId: member.id,
-          type: 'MONTHLY',
-          startsOn: new Date('2026-10-01'),
-          endsOn: new Date('2026-09-30'),
-        },
-      }),
-    ).rejects.toThrow(/memberships_dates_check/);
+  it('starts with the default settings and no override', async () => {
+    await expect(createSpace()).resolves.toMatchObject({
+      autoCheckoutAtClosing: true,
+      visitRounding: 'UP_AFTER_MINUTES',
+      visitRoundingMinutes: 15,
+      visitCapAtDayPrice: true,
+      visitStudentPrices: true,
+      reminderTemplate: null,
+      stateOverride: null,
+    });
   });
 
-  it('never let an announcement end before it starts', async () => {
+  it('keeps rounding minutes for the "up after N minutes" rule only, from 1 to 59', async () => {
+    const space = await createSpace();
+    const update = (data: {
+      visitRounding?: 'UP_AFTER_MINUTES' | 'PER_MINUTE';
+      visitRoundingMinutes?: number | null;
+    }) => prisma.space.update({ where: { id: space.id }, data });
+
+    await expect(update({ visitRounding: 'PER_MINUTE' })).rejects.toThrow(
+      /spaces_visit_rounding_check/,
+    );
+    await expect(update({ visitRoundingMinutes: null })).rejects.toThrow(
+      /spaces_visit_rounding_check/,
+    );
+    await expect(update({ visitRoundingMinutes: 60 })).rejects.toThrow(
+      /spaces_visit_rounding_check/,
+    );
+    await expect(
+      update({ visitRounding: 'PER_MINUTE', visitRoundingMinutes: null }),
+    ).resolves.toMatchObject({ visitRounding: 'PER_MINUTE' });
+  });
+
+  it('sets a state override with its end and who set it, together', async () => {
+    const space = await createSpace();
+    const staff = await createUser();
+    const update = (data: {
+      stateOverride: 'FULL' | null;
+      stateOverrideUntil?: Date | null;
+      stateOverrideById?: number | null;
+    }) => prisma.space.update({ where: { id: space.id }, data });
+
+    await expect(update({ stateOverride: 'FULL' })).rejects.toThrow(/spaces_state_override_check/);
+    await expect(
+      update({
+        stateOverride: 'FULL',
+        stateOverrideUntil: new Date('2026-10-01T10:00:00Z'),
+        stateOverrideById: staff.id,
+      }),
+    ).resolves.toMatchObject({ stateOverride: 'FULL' });
+    await expect(
+      update({ stateOverride: null, stateOverrideUntil: null, stateOverrideById: null }),
+    ).resolves.toMatchObject({ stateOverride: null });
+  });
+});
+
+describe('an announcement', () => {
+  it('never ends before it starts', async () => {
     const space = await createSpace();
     const startsAt = new Date('2026-10-01T08:00:00Z');
 
@@ -296,14 +216,69 @@ describe('dates', () => {
   });
 });
 
-describe('a user', () => {
-  it('stores a phone in E.164, when given', async () => {
-    const user = (email: string, phone: string | null) =>
-      prisma.user.create({ data: { email, phone, passwordHash: 'x', name: 'Sara' } });
+describe('a closure extension', () => {
+  async function closure() {
+    const space = await createSpace();
+    const owner = await createUser();
+    const announcement = await prisma.announcement.create({
+      data: {
+        spaceId: space.id,
+        type: 'CLOSURE',
+        textAr: 'مغلق',
+        startsAt: new Date('2026-10-01T05:00:00Z'),
+        endsAt: new Date('2026-10-03T05:00:00Z'),
+      },
+    });
+    return { space, owner, announcement };
+  }
 
-    await expect(user('a@example.com', '+970 59 900 0001')).rejects.toThrow(
-      /users_phone_e164_check/,
-    );
-    await expect(user('b@example.com', null)).resolves.toBeDefined();
+  it('is applied once per closure, and records the subscriptions it extended', async () => {
+    const { space, owner, announcement } = await closure();
+    const subscription = await createSubscription(await createCustomer(space.id), {
+      startsOn: new Date('2026-09-15'),
+      endsOn: new Date('2026-10-17'),
+    });
+    const data = { announcementId: announcement.id, days: 2, appliedById: owner.id };
+
+    const extension = await prisma.closureExtension.create({
+      data: { ...data, subscriptions: { create: [{ subscriptionId: subscription.id }] } },
+      include: { _count: { select: { subscriptions: true } } },
+    });
+    expect(extension._count.subscriptions).toBe(1);
+    await expect(prisma.closureExtension.create({ data })).rejects.toMatchObject({
+      code: 'P2002',
+    });
+  });
+
+  it('extends by at least one day', async () => {
+    const { owner, announcement } = await closure();
+
+    await expect(
+      prisma.closureExtension.create({
+        data: { announcementId: announcement.id, days: 0, appliedById: owner.id },
+      }),
+    ).rejects.toThrow(/closure_extensions_days_check/);
+  });
+});
+
+describe('a user', () => {
+  const user = (email: string, sign: { passwordHash?: string; googleSubject?: string }) =>
+    prisma.user.create({ data: { email, name: 'Sara', ...sign } });
+
+  it('signs in with a password, Google or both, never neither', async () => {
+    await expect(user('a@example.com', { passwordHash: 'x' })).resolves.toBeDefined();
+    await expect(user('b@example.com', { googleSubject: '1001' })).resolves.toBeDefined();
+    await expect(
+      user('c@example.com', { passwordHash: 'x', googleSubject: '1002' }),
+    ).resolves.toBeDefined();
+    await expect(user('d@example.com', {})).rejects.toThrow(/users_sign_in_method_check/);
+  });
+
+  it('links one Google account to one user', async () => {
+    await user('a@example.com', { googleSubject: '1001' });
+
+    await expect(user('b@example.com', { googleSubject: '1001' })).rejects.toMatchObject({
+      code: 'P2002',
+    });
   });
 });

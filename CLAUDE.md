@@ -72,7 +72,7 @@ Node 24 (`.nvmrc`, enforced by `engine-strict`). Run from the root; details in `
 - `npm run build` · `npm run lint` · `npm run typecheck` · `npm run check:classes` (no physical direction classes; no arbitrary values outside the design system)
 - `npm run check:build` — after a build: fails if the development-only showcase reached it
 - `npm run test:unit` · `npm run test:component` · `npm run test:api` — test lanes, chosen by file suffix (`*.unit.test.ts`, `*.component.test.tsx`, `*.api.test.ts`); `test:api` needs the database up
-- `npm run db:up` · `db:down` · `db:migrate` · `db:reset` · `db:seed` · `db:studio` — local PostgreSQL in Docker (host port 5433) and Prisma; `db:seed` needs the `SEED_ADMIN_*` variables in `apps/api/.env`
+- `npm run db:up` · `db:down` · `db:migrate` · `db:reset` · `db:seed` · `db:studio` — local PostgreSQL in Docker (host port 5433) and Prisma; `db:seed` needs the `SEED_ADMIN_*` variables in `apps/api/.env`, and adds development demo data with `SEED_DEMO=true`
 - `npm run dev -w @masaha/api` — the API (copy `apps/api/.env.example` to `.env` first); `GET /health`
 - `npm run format` — Prettier (Markdown excluded)
 

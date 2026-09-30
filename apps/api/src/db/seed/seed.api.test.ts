@@ -38,6 +38,17 @@ describe('seed', () => {
     });
   });
 
+  it('leaves the amenities nearly every space has out of the directory filter', async () => {
+    await seed(prisma, INPUT);
+
+    const unfiltered = await prisma.amenity.findMany({
+      where: { isFilterable: false },
+      select: { key: true },
+      orderBy: { key: 'asc' },
+    });
+    expect(unfiltered.map(({ key }) => key)).toEqual(['internet', 'stable_power']);
+  });
+
   it('hides the unreachable governorate and areas', async () => {
     await seed(prisma, INPUT);
 
@@ -68,7 +79,7 @@ describe('seed', () => {
     const admin = await prisma.user.findUniqueOrThrow({ where: { email: 'admin@example.com' } });
     expect(admin).toMatchObject({ role: 'ADMIN', mustChangePassword: false });
     expect(admin.passwordHash).not.toContain(INPUT.admin.password);
-    expect(await bcrypt.compare(INPUT.admin.password, admin.passwordHash)).toBe(true);
+    expect(await bcrypt.compare(INPUT.admin.password, admin.passwordHash ?? '')).toBe(true);
   });
 
   it('stores the default settings, and the contact only when given', async () => {
@@ -98,6 +109,6 @@ describe('seed', () => {
       await prisma.setting.findUniqueOrThrow({ where: { key: 'stalenessDays' } }),
     ).toMatchObject({ value: 45 });
     const admin = await prisma.user.findUniqueOrThrow({ where: { email: 'admin@example.com' } });
-    expect(await bcrypt.compare(INPUT.admin.password, admin.passwordHash)).toBe(true);
+    expect(await bcrypt.compare(INPUT.admin.password, admin.passwordHash ?? '')).toBe(true);
   });
 });

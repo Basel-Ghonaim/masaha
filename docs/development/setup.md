@@ -103,6 +103,8 @@ It reads the admin's credentials and the contact from `apps/api/.env` (`SEED_ADM
 
 The seed only **creates what is missing**. It never changes an existing row, so running it again changes nothing, and the admin's later edits (a hidden area, a changed setting, the admin's password) survive. The data of real spaces is not seeded: it is entered through the admin screens.
 
+**Demo data (development only).** With `SEED_DEMO=true` and a `SEED_DEMO_PASSWORD` in `apps/api/.env`, the seed also adds one verified demo space (`masaha-demo`): an owner (`demo-owner@example.com`) and a reception account (`demo-reception@example.com`), both with that password; the space's hours, prices, shifts and packages; the four [subscription scenarios](../architecture/data-model.md#subscription-scenarios); people present now, visits (paid, uncollected, and unpaid on a customer) and payments (partial, voided, and a credit). Its dates are counted from the day it runs. It is created once: when the demo space exists, it changes nothing. It refuses to run with `NODE_ENV=production`.
+
 ## The API
 
 ### First run
