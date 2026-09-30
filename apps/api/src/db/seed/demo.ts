@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { Prisma, PrismaClient } from '../../generated/prisma/client.ts';
 import { hashPassword } from '../../shared/auth/index.ts';
+import { newSpaceDefaultsSchema } from './lookups.ts';
 
 // Development-only demo data: one verified space with an owner and a reception account, its
 // packages, the four subscription scenarios of docs/architecture/data-model.md, and some visits and
@@ -32,6 +33,10 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
   }
   const area = await db.area.findFirst({ where: { nameEn: 'Al-Rimal' }, select: { id: true } });
   if (!area) throw new Error('Seed the lookups before the demo data (npm run db:seed).');
+  // A new space's settings start as a copy of the platform's new-space defaults.
+  const defaults = await db.setting.findUnique({ where: { key: 'newSpaceDefaults' } });
+  if (!defaults) throw new Error('Seed the settings before the demo data (npm run db:seed).');
+  const settings = newSpaceDefaultsSchema.parse(defaults.value);
 
   const now = input.now ?? new Date();
   const at = gazaClock(now);
@@ -57,6 +62,7 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
         lat: 31.5205,
         lng: 34.4535,
         capacity: 40,
+        settings: { create: settings },
         managers: {
           create: [
             { userId: owner.id, role: 'OWNER' },
