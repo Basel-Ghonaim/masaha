@@ -254,7 +254,13 @@ Drafted here; its full contract is written in its plan step. Documentation and d
 - payments: database triggers vs services;
 - server-state conventions on the web;
 - routes and guards;
-- the development port.
+- the development port;
+- where each deferred topic is decided, recorded so none is lost:
+  - the auto check-out scheduling mechanism: the front-desk slice, within A-3's deployment decision;
+  - photos and CSV exports: the space-management and finance slices;
+  - the reset-email provider: F-5;
+  - live-status delivery and caching: the directory slice;
+  - charts, the map and date inputs: their slices.
 
 **Dependencies:** after A-1, and in parallel with A-2. F-5 waits for it.
 

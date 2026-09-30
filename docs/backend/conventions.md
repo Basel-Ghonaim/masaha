@@ -76,6 +76,9 @@ Inside a module, each layer calls only the one below it.
   - it knows no domain concept. The calling service names the action and the entity.
 - **Services audit their sensitive actions:**
   - space profile and fact changes;
+  - spaces created, hidden, unhidden and soft-deleted;
+  - lookup changes: a governorate, area or amenity added, edited, hidden or restored;
+  - data reports resolved or dismissed;
   - customer create, edit and archive; subscriptions created, corrected and ended;
   - check-in and check-out, for visits and subscriptions;
   - payments recorded and voided ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md));
@@ -154,7 +157,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
   - a genuine upward need that moving the logic or passing a parameter cannot solve.
 
   The port lives in the module that needs it, never in `shared/`.
-- **R6 — The platform knows no domain.** `shared/` holds only errors, http, validation, the pure `can()` permission table, the audit writer, jobs and storage.
+- **R6 — The platform knows no domain.** `shared/` holds only errors, http, validation, auth (the route guards and the pure `can()` table), the audit writer, jobs and storage.
 - **R7 — Read models read, never write.** Read models may read other modules' tables with aggregate queries: `finance`, `overview` and the `audit` reader. They never write.
 - **R8 — Testing**, in the lanes of [testing.md](../development/testing.md):
   - **Service logic** is unit-tested with plain-object fakes of the dependencies' public types. TypeScript is structural, so no interface files are written for this.
