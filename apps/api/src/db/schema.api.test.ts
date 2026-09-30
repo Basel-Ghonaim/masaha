@@ -125,13 +125,12 @@ describe('opening hours and shifts', () => {
 });
 
 describe('a space', () => {
-  it('has a location on the globe, and a positive capacity when set', async () => {
+  it('has a location on the globe', async () => {
     const space = await createSpace();
-    const update = (data: { lat?: number; capacity?: number }) =>
-      prisma.space.update({ where: { id: space.id }, data });
 
-    await expect(update({ lat: 91 })).rejects.toThrow(/spaces_location_check/);
-    await expect(update({ capacity: 0 })).rejects.toThrow(/spaces_capacity_check/);
+    await expect(
+      prisma.space.update({ where: { id: space.id }, data: { lat: 91 } }),
+    ).rejects.toThrow(/spaces_location_check/);
   });
 
   it('stores phone and WhatsApp contacts in E.164, other contacts as given', async () => {
@@ -145,21 +144,41 @@ describe('a space', () => {
     await expect(contact('PHONE', '0569000001')).rejects.toThrow(/space_contacts_phone_e164_check/);
     await expect(contact('INSTAGRAM', 'https://instagram.com/focus')).resolves.toBeDefined();
   });
+});
 
-  it('starts with no override', async () => {
-    await expect(createSpace()).resolves.toMatchObject({ stateOverride: null });
+describe("a space's occupancy", () => {
+  it('is one row per space, keyed by the space, and goes with it', async () => {
+    const space = await createSpace();
+    await prisma.spaceOccupancy.create({ data: { spaceId: space.id, capacity: 30 } });
+
+    await expect(
+      prisma.spaceOccupancy.create({ data: { spaceId: space.id, capacity: 20 } }),
+    ).rejects.toMatchObject({ code: 'P2002' });
+    await prisma.space.delete({ where: { id: space.id } });
+    expect(await prisma.spaceOccupancy.count()).toBe(0);
+  });
+
+  it('has a positive capacity when set', async () => {
+    const space = await createSpace();
+
+    await expect(
+      prisma.spaceOccupancy.create({ data: { spaceId: space.id, capacity: 0 } }),
+    ).rejects.toThrow(/space_occupancy_capacity_check/);
   });
 
   it('sets a state override with its end and who set it, together', async () => {
     const space = await createSpace();
     const staff = await createUser();
+    await prisma.spaceOccupancy.create({ data: { spaceId: space.id } });
     const update = (data: {
       stateOverride: 'FULL' | null;
       stateOverrideUntil?: Date | null;
       stateOverrideById?: number | null;
-    }) => prisma.space.update({ where: { id: space.id }, data });
+    }) => prisma.spaceOccupancy.update({ where: { spaceId: space.id }, data });
 
-    await expect(update({ stateOverride: 'FULL' })).rejects.toThrow(/spaces_state_override_check/);
+    await expect(update({ stateOverride: 'FULL' })).rejects.toThrow(
+      /space_occupancy_state_override_check/,
+    );
     await expect(
       update({
         stateOverride: 'FULL',

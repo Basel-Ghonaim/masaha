@@ -61,8 +61,8 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
         areaId: area.id,
         lat: 31.5205,
         lng: 34.4535,
-        capacity: 40,
         settings: { create: settings },
+        occupancy: { create: { capacity: 40 } },
         managers: {
           create: [
             { userId: owner.id, role: 'OWNER' },

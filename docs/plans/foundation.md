@@ -220,7 +220,7 @@ Documentation only. It records the approved backend architecture and adds the de
 
 ### A-2 — Space settings and occupancy tables · `feat/space-tables`
 
-Drafted here; its full contract is written in its plan step. It is a schema item, so its plan step lists every change before writing.
+Its contract was settled in its plan step (2026-09-30) and built on `feat/space-tables`: the two tables, their data moved by two migrations, and the new-space defaults as one setting, `newSpaceDefaults`.
 
 **Scope**
 - **`space_settings`:** the 1:1 table owned by `space-settings` ([conventions §9](../backend/conventions.md#space-settings)). It takes over `autoCheckoutAtClosing`, `maxStayMinutes`, `visitRounding`, `visitRoundingMinutes`, `visitCapAtDayPrice`, `visitStudentPrices` and `reminderTemplate` from `Space`.
@@ -232,7 +232,7 @@ Drafted here; its full contract is written in its plan step. It is a schema item
 - **Documents:** data-model.md's entities, constraints and `Setting` keys, and [finding 12](../architecture/findings.md#12-the-admins-settings-list-a-default-auto-check-out-that-the-model-has-no-place-for) resolved.
 
 **Acceptance criteria**
-- [ ] `db:reset` runs clean, and the new migrations apply on top of F-3b's with the data moved.
+- [ ] On a fresh empty database every migration applies and the seed runs clean, and the new migrations apply on top of F-3b's with the data moved.
 - [ ] Integration tests prove the moved constraints and the 1:1 keys.
 - [ ] The demo space's settings equal the seeded defaults.
 
