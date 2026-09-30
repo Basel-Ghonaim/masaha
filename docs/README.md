@@ -28,6 +28,7 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
   - [0008](architecture/decisions/0008-live-status-not-counts.md) live occupancy is public as a state, never a count
   - [0009](architecture/decisions/0009-space-scoped-reception-role.md) space-scoped staff: the Reception role
   - [0010](architecture/decisions/0010-manual-payment-ledger.md) payments: a manual, append-only ledger
+  - [0011](architecture/decisions/0011-one-web-app.md) one web application for the public site and the dashboard
 - [findings.md](architecture/findings.md) — recorded divergences from the intended design.
 
 ### `api/`
