@@ -1,7 +1,7 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy` and the catalogue registration in `app/` (§1), and the development-only `showcase` group (§2), are built; the rest is not yet implemented · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
-> **Authority:** The zones of `apps/web`, the dependency rule, the capability layout, routing and role guards. Data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy` and the catalogue registration in `app/` (§1), and the development-only `showcase` group (§2), are built; the site and dashboard boundary (lazy page groups in §2, the dashboard-only rule in §3) and the rest are not yet implemented · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
+> **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
 
@@ -26,16 +26,32 @@
 | `dashboard` | `/dashboard/...` | ADMIN, or an active space link, OWNER or RECEPTION (per route) |
 | `showcase` | `/__showcase`, `/__showcase/preview` | none; **development only**, not in the build |
 
-- A page group's barrel exports its **route subtree**, not individual screens.
+- **Two domains, one application** ([ADR 0011](../architecture/decisions/0011-one-web-app.md)): the **site** is `public`, `auth` and `account`; the **dashboard** is `dashboard`.
+- A page group's barrel exports its **route subtree**, not individual screens. `app/router.tsx` mounts each subtree **lazily**, so a visitor to the site downloads no dashboard code.
 - **Guards sit visibly on each route** (`<RequireRole roles={['OWNER']}>`), never inherited silently from the group.
 - The dashboard's **navigation config per role** belongs to the `dashboard` page group, because choosing what appears together is composition. Features stay role-agnostic: the page passes the scope (`mine` for an owner, `all` for the admin).
 - In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space selected** in the space switcher, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
+- Inside the `dashboard` group, the shell and the navigation are kept apart from the screens of each area:
+
+  ```
+  pages/dashboard/
+    index.ts        the route subtree, the group's only export
+    shell/          layout, sidebar, top bar, space switcher
+    navigation.ts   the navigation config per role
+    admin/          platform screens (ADMIN)
+    space/          the selected space's screens (OWNER, RECEPTION)
+  ```
 - UI hiding is for usability only; the server is the authority.
 - **`showcase`** is a development tool for the design-system layer ([foundation §3](design-system/foundation.md#3-architecture)). `app/router.tsx` mounts it only when `import.meta.env.DEV`, so a build leaves it out; `check:build` fails if any of it reaches the build.
 
 ## 3. Capabilities (features)
 
-`auth` · `spaces` (directory and public profile) · `space-management` (owner/admin profile editing) · `customers` · `subscriptions` · `packages` · `visits` · `attendance` (subscription check-ins) · `payments` · `occupancy` · `announcements` · `finance` (finance and statistics, with the occupancy reports) · `staff` · `data-reports` · `favorites` · `owners` (admin linking) · `users` · `lookups` · `audit` · `settings`
+| Imported by | Capabilities |
+|---|---|
+| Any page group | `auth` · `spaces` (directory and public profile) · `favorites` · `occupancy` · `announcements` · `data-reports` · `lookups` · `settings` |
+| The dashboard only | `space-management` (owner/admin profile editing) · `customers` · `subscriptions` · `packages` · `visits` · `attendance` (subscription check-ins) · `payments` · `finance` (finance and statistics, with the occupancy reports) · `staff` · `owners` (admin linking) · `users` · `audit` |
+
+**The dashboard-only rule:** the site's page groups (`public`, `auth`, `account`) never import a dashboard-only capability, so the site never pulls dashboard code in. The dashboard may import any capability. Lint holds this rule, as it holds the zones (§1).
 
 ### Capability layout
 
