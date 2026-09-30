@@ -6,3 +6,6 @@ reviews:
   # The PR description is written to docs/development/workflow.md §3, so CodeRabbit does not add a
   # summary to it. Review comments stay on.
   high_level_summary: false
+  # The design archive (docs/design/README.md) is a frozen record with vendored code: not reviewed.
+  path_filters:
+    - '!docs/design/**'

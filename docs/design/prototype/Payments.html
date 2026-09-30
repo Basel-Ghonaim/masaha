@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الدفعات — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/desk-sheet.jsx"></script>
+<script type="text/babel" src="masaha/finance.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Field, Switch, Textarea, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, CircleCheckIcon, SearchXIcon, toast } = window.MasahaDesignSystem;
+const st = pageParams.get('state');
+const range0 = pageParams.get('range') === 'today' ? { from: dayDate(DESK.TODAY), to: dayDate(DESK.TODAY) } : { from: dayDate('2026-09-01'), to: dayDate(DESK.TODAY) };
+
+function Pick({ label, value, onChange, options }) {
+  return <Field label={label}><Select value={value} onValueChange={onChange}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{options.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></Field>;
+}
+
+function PaymentsInner({ theme, setTheme }) {
+  const desk = useDesk();
+  const [range, setRange] = React.useState(range0);
+  const [staff, setStaff] = React.useState(pageParams.get('staff') || 'all'); const [method, setMethod] = React.useState('all'); const [type, setType] = React.useState('all');
+  const [showVoid, setShowVoid] = React.useState(pageParams.get('voided') === '1');
+  const [voiding, setVoiding] = React.useState(null); const [reason, setReason] = React.useState(''); const [err, setErr] = React.useState();
+  const all = st === 'empty' ? [] : DESK.ledger();
+  React.useEffect(() => { if (pageParams.get('void') && all.length) setVoiding(all.find((r) => !r.voided)); }, []);
+  const rows = all.filter((r) => inRange(r.date, range) && (staff === 'all' || r.by === staff) && (method === 'all' || r.method === method) && (type === 'all' || r.type === type) && (showVoid || !r.voided));
+  const live = rows.filter((r) => !r.voided);
+  const sum = (m) => live.filter((r) => !m || r.method === m).reduce((a, r) => a + r.amount, 0);
+  const doVoid = () => {
+    if (!reason.trim()) return setErr(tr('اكتب سبب الإلغاء', 'Write the reason'));
+    const r = voiding;
+    if (r.type === 'sub') { r.ref[5] = reason.trim(); r.ref[7] = DESK.AHMAD; } else { r.ref.voided = reason.trim(); r.ref.voidedBy = DESK.AHMAD; }
+    setVoiding(null); setReason(''); setErr(); desk.bump(); toast(tr('أُلغيت الدفعة', 'Payment voided'), { description: DESK.money(r.amount) + ' · ' + r.who });
+  };
+  const exportCsv = () => downloadCSV('masaha-payments', [tr('التاريخ', 'Date'), tr('الوقت', 'Time'), tr('الاسم', 'Name'), tr('عن', 'For'), tr('المبلغ', 'Amount'), tr('الطريقة', 'Method'), tr('سجّلها', 'Recorded by'), tr('ملغاة', 'Voided')], rows.map((r) => [r.date, r.time, r.who, r.item, r.amount, DESK.methodLabel[r.method], DESK.by(r.by), r.voided || '']));
+  const Amt = ({ r }) => r.voided ? <span className="flex flex-col"><span className="strike text-muted-foreground"><Money n={r.amount} /></span><span className="text-caption text-muted-foreground">{tr('ألغاها', 'Voided by')} {DESK.by(r.voidedBy)}: {r.voided}</span></span> : <span className="text-label"><Money n={r.amount} /></span>;
+  const columns = [
+    { id: 'date', header: tr('التاريخ والوقت', 'Date and time'), cell: ({ row }) => <span>{DESK.fmtDate(row.original.date)} · <Num>{row.original.time}</Num></span> },
+    { id: 'who', header: tr('الزبون', 'Customer'), cell: ({ row }) => row.original.customerId ? <a className="text-foreground" href={'Customer file.html?id=' + row.original.customerId}>{row.original.who}</a> : row.original.who },
+    { id: 'item', header: tr('البند', 'Item'), cell: ({ row }) => row.original.type === 'visit' ? <Badge variant="neutral">{row.original.item}</Badge> : row.original.item },
+    { id: 'amount', header: tr('المبلغ', 'Amount'), cell: ({ row }) => <Amt r={row.original} /> },
+    { id: 'method', header: tr('الطريقة', 'Method'), cell: ({ row }) => DESK.methodLabel[row.original.method] },
+    { id: 'by', header: tr('سجّلها', 'Recorded by'), cell: ({ row }) => DESK.by(row.original.by) },
+    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{!row.original.voided && <Button size="sm" variant="ghost" onClick={() => setVoiding(row.original)}>{tr('إلغاء الدفعة', 'Void payment')}</Button>}</div> }
+  ];
+  return (
+    <OwnerShell current="payments" title={tr('الدفعات', 'Payments')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={<CsvButton onClick={exportCsv} />}>
+      <DataTable label={tr('سجل الدفعات', 'Payments ledger')} columns={columns} data={rows} getRowId={(r) => r.id} loading={st === 'loading'}
+        summary={<span className="flex flex-wrap gap-x-4 gap-y-1"><span className="text-label">{tr('المجموع', 'Total')} <Money n={sum()} /></span><span>{DESK.methodLabel.cash} <Money n={sum('cash')} /></span><span>{DESK.methodLabel.transfer} <Money n={sum('transfer')} /></span><span><Num>{live.length}</Num> {tr('دفعة', 'payments')}</span></span>}
+        toolbar={<div className="flex flex-col gap-3">
+          <FilterSheet active={[staff, method, type].filter((x) => x !== 'all').length} onClear={() => { setStaff('all'); setMethod('all'); setType('all'); }}><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <RangePicker value={range} onChange={setRange} />
+            <Pick label={tr('الموظف', 'Staff')} value={staff} onChange={setStaff} options={[['all', tr('كل الموظفين', 'All staff')], [DESK.AHMAD, DESK.by(DESK.AHMAD)], [DESK.SAMI, DESK.by(DESK.SAMI)]]} />
+            <Pick label={tr('الطريقة', 'Method')} value={method} onChange={setMethod} options={[['all', tr('كل الطرق', 'All methods')], ['cash', DESK.methodLabel.cash], ['transfer', DESK.methodLabel.transfer]]} />
+            <Pick label={tr('النوع', 'Type')} value={type} onChange={setType} options={[['all', tr('كل الأنواع', 'All types')], ['visit', tr('زيارات', 'Visits')], ['sub', tr('اشتراكات', 'Memberships')]]} />
+          </div></FilterSheet>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Field label={tr('إظهار الملغاة', 'Show voided')} orientation="horizontal"><Switch checked={showVoid} onCheckedChange={setShowVoid} /></Field>
+            <span className="md:hidden"><CsvButton onClick={exportCsv} /></span>
+          </div>
+        </div>}
+        renderCard={(r) => (
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="text-label">{r.who}</span>
+              <span className="text-caption text-muted-foreground">{DESK.fmtDate(r.date)} · <Num>{r.time}</Num> · {r.item} · {DESK.methodLabel[r.method]} · {DESK.by(r.by)}</span>
+              {!r.voided && <span><Button size="sm" variant="ghost" className="px-0" onClick={() => setVoiding(r)}>{tr('إلغاء الدفعة', 'Void payment')}</Button></span>}
+            </div>
+            <Amt r={r} />
+          </div>
+        )}
+        empty={<EmptyState icon={all.length ? <SearchXIcon /> : <CircleCheckIcon />} title={all.length ? tr('لا توجد دفعات تطابق الفلاتر', 'No payments match the filters') : tr('لا توجد دفعات بعد', 'No payments yet')} description={all.length ? tr('غيّر الفترة أو الفلاتر.', 'Change the period or filters.') : tr('تظهر هنا كل دفعة تُسجَّل في مكتب الاستقبال.', 'Every payment recorded at the front desk shows up here.')} />} />
+      <Dialog open={!!voiding} onOpenChange={(o) => !o && setVoiding(null)}>
+        <DialogContent closeLabel={tr('إغلاق', 'Close')}>
+          <DialogHeader><DialogTitle>{tr('إلغاء الدفعة', 'Void payment')}</DialogTitle>{voiding && <DialogDescription><Money n={voiding.amount} /> · {voiding.who} · {DESK.fmtDate(voiding.date)} · {DESK.methodLabel[voiding.method]}. {tr('تبقى ظاهرة مشطوبة مع السبب، ولا تُحسب في الدخل.', 'It stays visible, struck through, with the reason, and isn’t counted as income.')}</DialogDescription>}</DialogHeader>
+          <Field label={tr('السبب', 'Reason')} error={err}><Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+          <DialogFooter><Button variant="destructive" onClick={doVoid}>{tr('إلغاء الدفعة', 'Void payment')}</Button><Button variant="ghost" onClick={() => setVoiding(null)}>{tr('رجوع', 'Back')}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </OwnerShell>
+  );
+}
+function PaymentsScreen() { const [theme, setTheme] = useTheme(); return <DeskProvider><PaymentsInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><PaymentsScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

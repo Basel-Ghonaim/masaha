@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>خطأ — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Card, EmptyState, Button, SearchXIcon, TriangleAlertIcon, CircleAlertIcon } = window.MasahaDesignSystem;
+const TYPES = {
+  404: { icon: <SearchXIcon />, title: tr("الصفحة غير موجودة", "Page not found"), text: tr("ربما تغيّر الرابط أو حُذفت الصفحة.", "The link may have changed or the page was removed."), actions: [[tr("الرئيسية", "Home"), 'Home.html', 'primary'], [tr("تصفّح المساحات", "Browse spaces"), 'Directory.html', 'outline']] },
+  error: { icon: <TriangleAlertIcon />, title: tr("حدث خطأ غير متوقع", "Something went wrong"), text: tr("لم يكن الخطأ منك. حاول مرة أخرى بعد قليل.", "It wasn’t your fault. Try again in a moment."), retry: true },
+  offline: { icon: <CircleAlertIcon />, title: tr("لا يوجد اتصال بالإنترنت", "No internet connection"), text: tr("ستظهر البيانات عند عودة الاتصال.", "The data will appear when you’re back online."), retry: true }
+};
+function ErrorScreen() {
+  const [theme, setTheme] = useTheme();
+  const t = TYPES[pageParams.get('type')] || TYPES[404];
+  React.useEffect(() => { document.title = t.title + tr(' — مساحة', ' — Masaha'); }, []);
+  return (
+    <div className="flex min-h-dvh flex-col bg-background text-foreground">
+      <SiteHeader current="" theme={theme} setTheme={setTheme} />
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-10 md:px-8">
+        <EmptyState icon={t.icon} title={t.title} titleAs="h1" description={t.text}>
+          <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
+            {t.retry ? <Button className="w-full md:w-auto" onClick={() => location.reload()}>{tr("إعادة المحاولة", "Try again")}</Button>
+              : t.actions.map(([l, h, v]) => <Button key={h} variant={v} className="w-full md:w-auto" asChild><a href={h}>{l}</a></Button>)}
+          </div>
+        </EmptyState>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><ErrorScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

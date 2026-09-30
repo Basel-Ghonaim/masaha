@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مكتب الاستقبال — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/desk-sheet.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardContent, Tabs, TabsList, TabsTrigger, DataTable, EmptyState, Input, Skeleton, DatePicker, DatePickerTrigger, DatePickerContent, Calendar, Field, LogInIcon, LogOutIcon, SearchIcon, SearchXIcon, UsersIcon, CalendarIcon, CircleCheckIcon } = window.MasahaDesignSystem;
+const st = pageParams.get('state');
+if (st === 'empty') { DESK.present.length = 0; DESK.unpaid.length = 0; }
+if (pageParams.get('full') === '1') for (let i = DESK.present.length; i < DESK.capacity; i++) DESK.present.push({ id: 'x' + i, kind: 'visit', name: tr('زائر', 'Visitor') + ' ' + (i - 26), since: '12:3' + (i % 10) });
+const initialDialog = (() => {
+  const d = pageParams.get('dialog'); const cid = pageParams.get('cid');
+  if (d === 'warn') return { kind: 'warn', customerId: cid, warnings: checkInWarnings(cid) };
+  if (d === 'checkout') return { kind: 'checkout', presentId: pageParams.get('pid'), debt: pageParams.get('debt') === '1' };
+  if (d === 'pay') return { kind: 'pay', customerId: cid, itemId: pageParams.get('item') };
+  if (d === 'sheet') return { kind: 'sheet', mode: pageParams.get('mode') || 'new', customerId: cid, name: pageParams.get('name') || '', pkg: pageParams.get('pkg'), payNow: pageParams.get('paynow') };
+  if (d === 'visit') return { kind: 'visit' };
+  return null;
+})();
+
+function Detail({ p }) {
+  if (p.kind === 'visit') { const v = DESK.visitCharge(p.since); return v.mode === 'manual' ? <span className="text-muted-foreground">{tr('يُحدَّد عند الخروج', 'Set at check-out')}</span> : <span>{tr('حتى الآن', 'So far')} <Money n={v.amount} /></span>; }
+  const c = DESK.findCustomer(p.customerId); const s = DESK.currentSub(c);
+  if (!s) return <span className="text-muted-foreground">—</span>;
+  const lines = DESK.progress(s, c);
+  return <span>{lines.length > 1 ? lines[0] : lines[0]}</span>;
+}
+function KindBadge({ p }) {
+  if (p.kind === 'visit') return <Badge variant="neutral">{tr('زيارة', 'Visit')}{p.student ? tr(' · طالب', ' · student') : ''}</Badge>;
+  const s = DESK.currentSub(DESK.findCustomer(p.customerId));
+  return <Badge variant="primary">{s ? s.name : tr('مشترك', 'Member')}</Badge>;
+}
+
+function PresentList() {
+  const desk = useDesk();
+  const [q, setQ] = React.useState('');
+  const rows = DESK.present.filter((p) => !q.trim() || nameOf(p).includes(q.trim()));
+  const subs = DESK.present.filter((p) => p.kind === 'sub').length;
+  const out = (p) => <Button variant="outline" size="sm" onClick={() => desk.open('checkout', { presentId: p.id })} aria-label={tr('خروج ', 'Check out ') + nameOf(p)}><LogOutIcon />{tr('خروج', 'Check out')}</Button>;
+  const mins = (p) => DESK.toMin(DESK.NOW) - DESK.toMin(p.since);
+  const columns = [
+    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => row.original.kind === 'sub' ? <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + row.original.customerId)}>{nameOf(row.original)}</a> : <span className="text-label">{nameOf(row.original)}</span> },
+    { id: 'kind', header: tr('النوع', 'Type'), cell: ({ row }) => <KindBadge p={row.original} /> },
+    { id: 'since', header: tr('منذ', 'Since'), cell: ({ row }) => <Num>{row.original.since}</Num> },
+    { id: 'dur', header: tr('المدة', 'Duration'), cell: ({ row }) => durLabel(mins(row.original)) },
+    { id: 'detail', header: tr('الاستخدام', 'Usage'), cell: ({ row }) => <span className="text-body-sm"><Detail p={row.original} /></span> },
+    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{out(row.original)}</div> }
+  ];
+  return (
+    <DataTable label={tr('الحاضرون الآن', 'Present now')} columns={columns} data={rows} getRowId={(r) => r.id} loading={st === 'loading'}
+      summary={<span>{tr('الحاضرون الآن', 'Present now')} <Num>{DESK.present.length + ' / ' + DESK.capacity}</Num> · <Num>{subs}</Num> {tr('مشتركًا', 'members')} · <Num>{DESK.present.length - subs}</Num> {tr('زيارات', 'visits')}</span>}
+      toolbar={<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <h2 className="text-heading-3">{tr('الحاضرون الآن', 'Present now')} <Num>{DESK.present.length + ' / ' + DESK.capacity}</Num></h2>
+        <Input role="searchbox" aria-label={tr('ابحث بين الحاضرين', 'Search people present')} placeholder={tr('ابحث بين الحاضرين', 'Search people present')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} className="md:max-w-xs" />
+      </div>}
+      renderCard={(p) => (
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="text-label">{nameOf(p)}</span>
+            <span><KindBadge p={p} /></span>
+            <span className="text-caption text-muted-foreground">{tr('منذ', 'Since')} <Num>{p.since}</Num> · {durLabel(mins(p))}</span>
+            <span className="text-caption"><Detail p={p} /></span>
+          </div>
+          {out(p)}
+        </div>
+      )}
+      empty={<EmptyState icon={<UsersIcon />} title={tr('لا أحد حاضر الآن', 'No one is here right now')} description={q ? tr('لا يوجد حاضر بهذا الاسم.', 'No one present by this name.') : tr('ابحث عن زبون أو سجّل زيارة لأول من يصل.', 'Search for a customer, or check in a visit for the first arrival.')} />} />
+  );
+}
+
+function UnpaidCard() {
+  const desk = useDesk();
+  const list = DESK.unpaid;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{tr('غير محصّل', 'Not collected')}</CardTitle>
+        <CardDescription>{tr('زيارات خرجت بدون دفع أو سُجّل خروجها تلقائيًا عند الإغلاق.', 'Visits that left unpaid or were checked out automatically at closing.')}</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        {st === 'loading' ? <div className="flex flex-col gap-3 px-5 pb-5"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div>
+        : list.length ? (
+          <ul className="divide-y">
+            {list.map((u) => { const c = DESK.findCustomer(u.customerId); return (
+              <li key={u.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                <div className="flex min-w-0 flex-col">
+                  <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + c.id)}>{c.name}</a>
+                  <span className="text-caption text-muted-foreground">{u.how === 'auto' ? tr('خروج تلقائي عند الإغلاق', 'Auto check-out at closing') : tr('خرج بدون دفع', 'Left without paying')} · {u.date === DESK.TODAY ? tr('اليوم', 'today') : tr('أمس', 'yesterday')} <Num>{u.in + '–' + u.out}</Num></span>
+                </div>
+                <span className="flex items-center gap-2"><span className="text-label"><Money n={u.amount} /></span><Button size="sm" variant="outline" onClick={() => desk.open('pay', { customerId: c.id, itemId: u.id })}>{tr('تحصيل', 'Collect')}</Button></span>
+              </li>
+            ); })}
+          </ul>
+        ) : <p className="flex items-center gap-2 px-5 pb-5 text-body-sm text-muted-foreground"><CircleCheckIcon className="size-4" aria-hidden="true" />{tr('لا توجد مبالغ غير محصّلة.', 'Nothing left to collect.')}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+const LOG = () => window.OWNER.log.map(([name, a, b, how], i) => ({ id: 'l' + i, name, a, b, how }));
+function LogTab() {
+  const [date, setDate] = React.useState(new Date('2026-09-28T12:00:00'));
+  const [open, setOpen] = React.useState(false);
+  const rows = LOG();
+  const mins = (r) => DESK.toMin(r.b) - DESK.toMin(r.a);
+  const how = (r) => <Badge variant={r.how === 'auto' ? 'neutral' : 'info'}>{r.how === 'auto' ? tr('تلقائي عند الإغلاق', 'Auto at closing') : tr('يدوي', 'Manual')}</Badge>;
+  const columns = [
+    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
+    { id: 'a', header: tr('الدخول', 'In'), cell: ({ row }) => <Num>{row.original.a}</Num> },
+    { id: 'b', header: tr('الخروج', 'Out'), cell: ({ row }) => <Num>{row.original.b}</Num> },
+    { id: 'd', header: tr('المدة', 'Duration'), cell: ({ row }) => durLabel(mins(row.original)) },
+    { id: 'how', header: tr('طريقة الانتهاء', 'Ended'), cell: ({ row }) => how(row.original) }
+  ];
+  const label = date.toLocaleDateString(tr('ar-EG', 'en-GB'), { weekday: 'long', day: 'numeric', month: 'long', numberingSystem: 'latn' });
+  return (
+    <DataTable label={tr('سجل الحضور', 'Attendance log')} columns={columns} data={rows} getRowId={(r) => r.id}
+      toolbar={<div className="md:max-w-xs"><Field label={tr('التاريخ', 'Date')}>
+        <DatePicker open={open} onOpenChange={setOpen}>
+          <DatePickerTrigger>{label}</DatePickerTrigger>
+          <DatePickerContent><Calendar mode="single" lang={LANG} selected={date} onSelect={(d) => { if (d) { setDate(d); setOpen(false); } }} defaultMonth={date} today={new Date('2026-09-29T12:00:00')} previousMonthLabel={tr('الشهر السابق', 'Previous month')} nextMonthLabel={tr('الشهر التالي', 'Next month')} /></DatePickerContent>
+        </DatePicker>
+      </Field></div>}
+      renderCard={(r) => (<div className="flex flex-col gap-2"><div className="flex items-center justify-between gap-2"><span className="text-label">{r.name}</span>{how(r)}</div><span className="text-caption text-muted-foreground"><Num>{r.a + '–' + r.b}</Num> · {durLabel(mins(r))}</span></div>)}
+      empty={<EmptyState icon={<CalendarIcon />} title={tr('لا يوجد حضور في هذا اليوم', 'No attendance on this day')} />} />
+  );
+}
+
+function DeskSearch() {
+  const desk = useDesk();
+  const [q, setQ] = React.useState(pageParams.get('q') || '');
+  const term = q.trim(); const digits = term.replace(/\D/g, '');
+  const results = term ? DESK.customers.filter((c) => c.name.includes(term) || (digits.length >= 2 && digits === term.replace(/\s/g, '') && c.phone.replace(/\D/g, '').endsWith(digits))).slice(0, 6) : [];
+  return (
+    <section aria-label={tr('البحث عن زبون', 'Find a customer')} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="flex-1"><Input role="searchbox" size="lg" aria-label={tr('ابحث بالاسم أو آخر أرقام الجوال', 'Search by name or last digits of the mobile')} placeholder={tr('الاسم أو آخر أرقام الجوال', 'Name or last digits of the mobile')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} autoFocus /></div>
+        <div className="hidden flex-wrap gap-2 md:flex">
+          <Button onClick={() => desk.open('visit')}><LogInIcon />{tr('تسجيل زيارة', 'Check in a visit')}</Button>
+          <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'new' })}>{tr('زبون جديد', 'New customer')}</Button>
+          <Button variant="outline" onClick={() => desk.open('pay', {})}>{tr('استلام دفعة', 'Receive payment')}</Button>
+        </div>
+        <Button variant="outline" className="md:hidden" onClick={() => desk.open('sheet', { mode: 'new' })}>{tr('زبون جديد', 'New customer')}</Button>
+      </div>
+      {term && (results.length ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-live="polite">{results.map((c) => <CustomerCard key={c.id} c={c} />)}</div>
+      ) : (
+        <Card><EmptyState icon={<SearchXIcon />} title={tr('لا يوجد زبون بهذا الاسم أو الرقم', 'No customer with this name or number')} description={tr('إذا كان يزور لمرة واحدة، سجّل له زيارة.', 'If it’s a one-off, check in a visit.')}>
+          <Button onClick={() => desk.open('sheet', { mode: 'new', name: term })}>{tr('زبون جديد باسم', 'New customer named')} «{term}»</Button>
+          <Button variant="outline" onClick={() => desk.open('visit')}>{tr('تسجيل زيارة', 'Check in a visit')}</Button>
+        </EmptyState></Card>
+      ))}
+    </section>
+  );
+}
+
+function DeskScreen() {
+  const [theme, setTheme] = useTheme();
+  return (
+    <DeskProvider initial={initialDialog}>
+      <DeskInner theme={theme} setTheme={setTheme} />
+    </DeskProvider>
+  );
+}
+function DeskInner({ theme, setTheme }) {
+  const desk = useDesk();
+  const [tab, setTab] = React.useState(pageParams.get('tab') === 'log' ? 'log' : 'now');
+  const bottom = <>
+    <Button className="flex-1" onClick={() => desk.open('visit')}><LogInIcon />{tr('تسجيل زيارة', 'Check in a visit')}</Button>
+    <Button variant="outline" className="flex-1" onClick={() => desk.open('pay', {})}>{tr('استلام دفعة', 'Receive payment')}</Button>
+  </>;
+  return (
+    <OwnerShell current="desk" title={tr('مكتب الاستقبال', 'Front desk')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} bottomAction={bottom}>
+      <DeskSearch />
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList aria-label={tr('الحضور', 'Attendance')}>
+          <TabsTrigger value="now">{tr('الآن', 'Now')}</TabsTrigger>
+          <TabsTrigger value="log">{tr('السجل', 'Log')}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {tab === 'now' ? (
+        <div className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start">
+          <div className="min-w-0 xl:col-span-8"><PresentList /></div>
+          <div className="xl:col-span-4"><UnpaidCard /></div>
+        </div>
+      ) : <LogTab />}
+    </OwnerShell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><DeskScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

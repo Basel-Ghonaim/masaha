@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بلاغاتي — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/account.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, ToggleGroup, ToggleGroupItem, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Skeleton, CircleAlertIcon } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+const REPORTS = [
+  { id: 'r4', space: 'numberone', field: tr('ساعات العمل', 'Opening hours'), sent: tr('قبل ساعتين', '2 hours ago'), status: 'review', message: tr('المساحة تفتح الساعة 09:00 وليس 08:00 منذ بداية الشهر، والإغلاق صار 17:00 أيام الخميس.', 'The space opens at 09:00, not 08:00, since the start of the month, and closes at 17:00 on Thursdays.') },
+  { id: 'r3', space: 'golden', field: tr('الأسعار', 'Prices'), sent: tr('قبل 3 أيام', '3 days ago'), status: 'fixed', message: tr('السعر الشهري أصبح 320 ₪ والسعر اليومي 15 ₪ كما هو. سألت الإدارة مباشرة عند الاستقبال وأكّدوا السعر الجديد، ويبدأ تطبيقه من أول الشهر القادم للمشتركين الجدد.', 'The monthly price is now ₪320 and the daily price is still ₪15. I asked the front desk directly and they confirmed the new price, which applies from next month for new subscribers.') },
+  { id: 'r2', space: 'white', field: tr('التواصل', 'Contact'), sent: tr('قبل أسبوعين', '2 weeks ago'), status: 'rejected', message: tr('رقم الواتساب لا يرد.', 'The WhatsApp number doesn’t answer.'), note: tr('تواصلنا مع المساحة وتأكّدنا أن الرقم صحيح.', 'We contacted the space and confirmed the number is correct.') },
+  { id: 'r1', space: 'focus', field: tr('المرافق', 'Amenities'), sent: tr('قبل شهر', 'a month ago'), status: 'fixed', message: tr('أضافوا قاعة اجتماعات جديدة في الطابق نفسه.', 'They added a new meeting room on the same floor.'), note: tr('شكرًا، أضفنا القاعة إلى المرافق.', 'Thanks, we added the room to the amenities.') }
+];
+const STATUS = {
+  review: { label: tr('قيد المراجعة', 'In review'), variant: 'info' },
+  fixed: { label: tr('تم التصحيح', 'Corrected'), variant: 'success' },
+  rejected: { label: tr('لم يُعتمد', 'Not accepted'), variant: 'neutral' }
+};
+
+function ReportItem({ r }) {
+  const [open, setOpen] = React.useState(false);
+  const s = M.spaces.find((x) => x.id === r.space);
+  const st = STATUS[r.status];
+  const long = r.message.length > 90;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle><a href={spaceHref(s)} className="text-foreground">{s.name}</a></CardTitle>
+        <CardDescription>{r.field} · {tr('أُرسل', 'Sent')} {r.sent}</CardDescription>
+        <CardAction><Badge variant={st.variant}>{st.label}</Badge></CardAction>
+      </CardHeader>
+      <CardContent className="flex flex-col items-start gap-2">
+        <p id={'msg-' + r.id} className={'text-body-sm ' + (open ? '' : 'line-clamp-2')}>{r.message}</p>
+        {long && <Button variant="link" size="sm" className="px-0" aria-expanded={open} aria-controls={'msg-' + r.id} onClick={() => setOpen(!open)}>{open ? tr('عرض أقل', 'Show less') : tr('عرض المزيد', 'Show more')}</Button>}
+        {r.note && (
+          <div className="flex w-full flex-col gap-1 rounded-md bg-muted px-3 py-2">
+            <span className="text-caption text-muted-foreground">{s.verified ? tr('ردّ إدارة المساحة', 'Reply from the space') : tr('ردّ فريق مساحة', 'Reply from the Masaha team')}</span>
+            <p className="text-body-sm">{r.note}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReportsScreen() {
+  const [theme, setTheme] = useTheme();
+  const [state, setState] = React.useState(pageParams.get('state') || 'ready');
+  const [tab, setTab] = React.useState('all');
+  const list = state === 'empty' ? [] : REPORTS.filter((r) => tab === 'all' || (tab === 'open' ? r.status === 'review' : r.status !== 'review'));
+  const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1000); };
+  return (
+    <AccountShell current="reports" title={tr('بلاغاتي', 'My reports')} description={tr('البلاغات التي أرسلتها عن معلومات خاطئة، الأحدث أولًا.', 'Reports you’ve sent about wrong information, newest first.')} theme={theme} setTheme={setTheme}>
+      <ToggleGroup type="single" value={tab} onValueChange={(v) => v && setTab(v)} aria-label={tr('تصفية البلاغات', 'Filter reports')} className="self-start">
+        <ToggleGroupItem value="all">{tr('الكل', 'All')}</ToggleGroupItem>
+        <ToggleGroupItem value="open">{tr('قيد المراجعة', 'In review')}</ToggleGroupItem>
+        <ToggleGroupItem value="closed">{tr('مغلقة', 'Closed')}</ToggleGroupItem>
+      </ToggleGroup>
+      <section aria-label={tr('البلاغات', 'Reports')} aria-busy={state === 'loading'} className="flex max-w-3xl flex-col gap-4">
+        {state === 'loading' && [0, 1, 2].map((i) => <Card key={i} aria-hidden="true"><CardHeader><Skeleton className="h-5 w-32" /><Skeleton className="h-4 w-48" /></CardHeader><CardContent><Skeleton className="h-4 w-full" /></CardContent></Card>)}
+        {state === 'error' && (
+          <Alert variant="destructive">
+            <AlertTitle>{tr('تعذّر تحميل البلاغات', 'Couldn’t load your reports')}</AlertTitle>
+            <AlertDescription>{tr('تحقّق من اتصالك بالإنترنت ثم حاول مرة أخرى.', 'Check your internet connection and try again.')}</AlertDescription>
+            <AlertAction><Button variant="outline" size="sm" onClick={retry}>{tr('إعادة المحاولة', 'Try again')}</Button></AlertAction>
+          </Alert>
+        )}
+        {(state === 'ready' || state === 'empty') && (list.length ? list.map((r) => <ReportItem key={r.id} r={r} />) : (
+          <Card>
+            <EmptyState icon={<CircleAlertIcon />} title={state === 'empty' || tab === 'all' ? tr('لم ترسل أي بلاغ بعد', 'You haven’t sent any reports yet') : tr('لا توجد بلاغات هنا', 'No reports here')}
+              description={state === 'empty' || tab === 'all' ? tr('إذا رأيت معلومة خاطئة في صفحة مساحة، أبلغنا منها.', 'If you see wrong information on a space’s page, report it from there.') : undefined}>
+              {(state === 'empty' || tab === 'all') && <Button variant="outline" asChild><a href="Directory.html">{tr('تصفّح المساحات', 'Browse spaces')}</a></Button>}
+            </EmptyState>
+          </Card>
+        ))}
+      </section>
+    </AccountShell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><ReportsScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

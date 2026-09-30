@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تعديل مساحة — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/admin-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/admin.jsx"></script>
+<script type="text/babel" src="masaha/map.jsx"></script>
+<script type="text/babel" src="masaha/profile-a.jsx"></script>
+<script type="text/babel" src="masaha/profile-b.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Card, CardHeader, CardTitle, CardContent, Button, Alert, AlertTitle, AlertDescription, Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+const isNew = pageParams.get('new') === '1';
+const id = pageParams.get('id') || 'golden';
+const meta = AD.spaces.find((s) => s.id === id) || AD.spaces.find((s) => s.id === 'golden');
+const base = M.spaces.find((s) => s.id === id) || M.spaces.find((s) => s.id === 'golden');
+const space = isNew
+  ? { ...base, id: 'new', name: '', nameAr: '', contacts: [], amenities: [], lat: 31.52, lng: 34.45 }
+  : { ...base, name: meta.name, nameAr: base.nameAr || meta.name, contacts: base.contacts || [], amenities: base.amenities || [] };
+const readOnly = !isNew && meta.status === 'verified';
+const SECTIONS = () => [['basics', tr('الأساسيات', 'Basics')], ['location', tr('الموقع', 'Location')], ['hours', tr('ساعات العمل', 'Opening hours')], ['prices', tr('الأسعار المعلنة', 'Published prices')], ['amenities', tr('المرافق', 'Amenities')], ['contacts', tr('التواصل', 'Contacts')], ['photos', tr('الصور', 'Photos')]];
+
+// Verified space: values as text, nothing editable.
+const CT = { whatsapp: tr('واتساب', 'WhatsApp'), jawwal: tr('جوال', 'Jawwal'), ooredoo: tr('أوريدو', 'Ooredoo'), phone: tr('اتصال', 'Phone'), email: tr('بريد', 'Email'), instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', website: tr('موقع', 'Website') };
+function RO({ id, title, children }) {
+  return <Card id={id} className="scroll-mt-20"><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent><dl className="flex flex-col divide-y">{children}</dl></CardContent></Card>;
+}
+const Row = ({ k, children }) => <div className="grid gap-1 py-2 md:grid-cols-3"><dt className="text-body-sm text-muted-foreground">{k}</dt><dd className="text-body md:col-span-2">{children || <span className="text-muted-foreground">—</span>}</dd></div>;
+function ReadOnlyView() {
+  const s = base; const P = s.prices || {};
+  const per = [['hour', tr('ساعة', 'Hour')], ['day', tr('يوم', 'Day')], ['week', tr('أسبوع', 'Week')], ['month', tr('شهر', 'Month')]];
+  const money = (n) => (LANG === 'en' ? '₪' + n : n + ' ₪');
+  const amen = (M.allAmenities || []).filter((a) => (s.amenities || []).includes(a.id)).map((a) => a.name).join(tr('، ', ', '));
+  return (
+    <div className="flex min-w-0 flex-col gap-6 lg:col-span-9">
+      <RO id="basics" title={tr('الأساسيات', 'Basics')}><Row k={tr('الاسم بالعربية', 'Name in Arabic')}>{s.nameAr}</Row><Row k={tr('الاسم بالإنجليزية', 'Name in English')}><span lang="en">{s.name}</span></Row><Row k={tr('الوصف', 'Description')}>{s.about}</Row></RO>
+      <RO id="location" title={tr('الموقع', 'Location')}><Row k={tr('المنطقة', 'Area')}>{AD.areaName(meta)} · {M.govName ? M.govName(s.gov) : ''}</Row><Row k={tr('العنوان', 'Address')}>{s.address}</Row><Row k={tr('علامة مميزة', 'Landmark')}>{s.landmark}</Row><Row k={tr('الموقع على الخريطة', 'Map pin')}><span dir="ltr">{s.lat}, {s.lng}</span></Row></RO>
+      <RO id="hours" title={tr('ساعات العمل', 'Opening hours')}>{(M.weekOrder || []).map(([k, n]) => <Row key={k} k={n}>{s.hours && s.hours[k] ? <span dir="ltr">{s.hours[k][0]} – {s.hours[k][1]}</span> : tr('مغلق', 'Closed')}</Row>)}</RO>
+      <RO id="prices" title={tr('الأسعار المعلنة', 'Published prices')}>{per.map(([k, l]) => <Row key={k} k={l}>{P[k] ? <span dir="ltr">{money(P[k])}</span> : null}</Row>)}{s.studentMonth && <Row k={tr('شهر · طلاب', 'Student month')}><span dir="ltr">{money(s.studentMonth)}</span></Row>}</RO>
+      <RO id="amenities" title={tr('المرافق', 'Amenities')}><Row k={tr('المتوفر', 'Available')}>{amen}</Row></RO>
+      <RO id="contacts" title={tr('التواصل', 'Contacts')}>{(s.contacts || []).map((c, i) => <Row key={i} k={CT[c.type] || c.type}><span dir="ltr">{c.value}</span></Row>)}</RO>
+      <RO id="photos" title={tr('الصور', 'Photos')}><Row k={tr('العدد', 'Count')}><span dir="ltr">{s.photos != null ? s.photos : 0}</span></Row></RO>
+      <PrivacyNote />
+    </div>
+  );
+}
+
+function Edit({ theme, setTheme }) {
+  const title = isNew ? tr('إضافة مساحة', 'Add space') : space.name;
+  return (
+    <AdminShell current="spaces" title={isNew ? tr('إضافة مساحة', 'Add space') : tr('تعديل مساحة', 'Edit space')} theme={theme} setTheme={setTheme}>
+      <Breadcrumb label={tr('مسار التنقل', 'Breadcrumb')}>
+        <BreadcrumbList>
+          <BreadcrumbItem><BreadcrumbLink href="Admin spaces.html">{tr('المساحات', 'Spaces')}</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbPage><span lang="en">{title}</span></BreadcrumbPage></BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <div className="flex flex-wrap items-center gap-3"><h2 lang={isNew ? undefined : 'en'} className="text-heading-1">{title}</h2>{!isNew && <SpaceStatus s={meta} />}</div>
+      {readOnly ? (
+        <Alert variant="info"><AlertTitle>{tr('يعدّلها المالك', 'The owner edits it')}</AlertTitle><AlertDescription>{tr('هذه مساحة موثّقة وتظهر هنا للقراءة فقط. لتصحيح معلومة، راجع بلاغاتها أو فك ربط المالك.', 'This is a verified space, shown read-only. To correct something, check its reports or unlink the owner.')}</AlertDescription></Alert>
+      ) : (
+        <Alert variant="warning"><AlertTitle>{tr('أنت تعدّل مساحة غير موثّقة', 'You’re editing an unverified space')}</AlertTitle><AlertDescription>{tr('يظهر للزوار أن فريق مساحة جمع هذه المعلومات. كل قسم يُحفظ وحده.', 'Visitors see that the Masaha team collected this information. Each section saves on its own.')}</AlertDescription></Alert>
+      )}
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
+        <nav aria-label={tr('أقسام الملف', 'Profile sections')} className="profile-toc hidden lg:col-span-3 lg:flex lg:flex-col lg:gap-1">
+          {SECTIONS().map(([k, l]) => <Button key={k} variant="ghost" size="sm" className="w-full justify-start" asChild><a href={'#' + k}>{l}</a></Button>)}
+        </nav>
+        {readOnly ? <ReadOnlyView /> : <div className="flex min-w-0 flex-col gap-6 lg:col-span-9">
+          <BasicsSection space={space} />
+          <LocationSection space={space} />
+          <HoursSection />
+          <PricesSection space={space} />
+          <AmenitiesSection space={space} />
+          <ContactsSection space={space} />
+          <PhotosSection />
+          <PrivacyNote />
+        </div>}
+      </div>
+    </AdminShell>
+  );
+}
+function Screen() { const [theme, setTheme] = useTheme(); return <Edit theme={theme} setTheme={setTheme} />; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

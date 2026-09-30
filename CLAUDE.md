@@ -62,6 +62,7 @@ Any override must be **stated, never silent.**
 - **Frontend architecture** → `docs/frontend/architecture.md`
 - **Design system** → `docs/frontend/design-system/foundation.md`
 - **Architectural decisions** → `docs/architecture/decisions/`
+- **Design archive** → `docs/design/` (screens, prototypes)
 
 ## Commands
 

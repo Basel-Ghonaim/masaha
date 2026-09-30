@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تفاصيل المساحة — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/map.jsx"></script>
+<script type="text/babel" src="masaha/space-parts.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Toaster, toast, Button, Card, CardHeader, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, EmptyState, Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Textarea, Skeleton, CircleCheckIcon, ChevronStartIcon, SearchXIcon } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+
+const directoryHref = () => { try { return 'Directory.html' + (sessionStorage.getItem('masaha:dir-query') || ''); } catch (e) { return 'Directory.html'; } };
+// After sign-in / register the user comes back here, signed in, with the favourite saved (or the report open).
+const authHref = (page, kind) => {
+  const id = pageParams.get('id') || 'focus';
+  const next = `Space details.html?id=${id}&auth=1${kind === 'fav' ? '&fav=1' : '&dialog=report'}`;
+  return `${page}?next=${encodeURIComponent(next)}`;
+};
+const REPORT_TOPICS = [tr("الأسعار", "Prices"), tr("ساعات العمل", "Opening hours"), tr("التواصل", "Contact"), tr("الموقع", "Location"), tr("المرافق", "Amenities"), tr("أخرى", "Other")];
+
+function SignInDialog({ open, onOpenChange }) {
+  return (
+    <Dialog open={!!open} onOpenChange={onOpenChange}>
+      <DialogContent closeLabel={tr("إغلاق", "Close")}>
+        <DialogHeader>
+          <DialogTitle>{open === 'report' ? tr("سجّل الدخول للإبلاغ عن معلومة", "Sign in to report information") : tr("سجّل الدخول لحفظ المساحات في المفضلة", "Sign in to save spaces to your favourites")}</DialogTitle>
+          <DialogDescription>{open === 'report' ? tr("نطلب تسجيل الدخول لنتابع البلاغ معك إن احتجنا توضيحًا.", "We ask you to sign in so we can follow up if we need details.") : tr("تجد المساحات التي تحفظها في حسابك على أي جهاز.", "Spaces you save are in your account on any device.")}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" asChild><a href={authHref('Register.html', open)}>{tr("إنشاء حساب", "Create account")}</a></Button>
+          <Button asChild><a href={authHref('Sign in.html', open)}>{tr("تسجيل الدخول", "Sign in")}</a></Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ReportDialog({ open, onOpenChange, space }) {
+  const [topic, setTopic] = React.useState('');
+  const [msg, setMsg] = React.useState('');
+  const [tried, setTried] = React.useState(false);
+  const submit = (e) => {
+    e.preventDefault(); setTried(true);
+    if (!topic || !msg.trim()) return;
+    onOpenChange(false); setTopic(''); setMsg(''); setTried(false);
+    toast.success(tr("شكرًا، سنراجع البلاغ", "Thanks, we’ll review your report"));
+  };
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent closeLabel={tr("إغلاق", "Close")}>
+        <DialogHeader>
+          <DialogTitle>{tr("الإبلاغ عن معلومة غير صحيحة", "Report wrong information")}</DialogTitle>
+          <DialogDescription>{tr("عن ", "About ")}{space.name}{tr(". يراجع فريق مساحة البلاغ ويحدّث الصفحة.", ". The Masaha team reviews reports and updates the page.")}</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+          <Field label={tr("ما المعلومة غير الصحيحة؟", "What’s wrong?")} error={tried && !topic ? tr("اختر نوع المعلومة", "Choose what’s wrong") : undefined}>
+            <Select value={topic} onValueChange={setTopic}>
+              <SelectTrigger><SelectValue placeholder={tr("اختر", "Choose")} /></SelectTrigger>
+              <SelectContent>{REPORT_TOPICS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+          <Field label={tr("التفاصيل", "Details")} helper={tr("مثلًا: السعر الشهري أصبح 320 ₪", "For example: the monthly price is now ₪320")} error={tried && !msg.trim() ? tr("اكتب ما الذي تغيّر", "Write what has changed") : undefined}>
+            <Textarea value={msg} onChange={(e) => setMsg(e.target.value)} required rows={4} />
+          </Field>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" type="button">{tr("إلغاء", "Cancel")}</Button></DialogClose>
+            <Button type="submit">{tr("إرسال", "Send")}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PlatformContactDialog({ open, onOpenChange }) {
+  const c = M.platformContact;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent closeLabel={tr("إغلاق", "Close")}>
+        <DialogHeader>
+          <DialogTitle>{tr("تواصل مع فريق مساحة", "Contact the Masaha team")}</DialogTitle>
+          <DialogDescription>{tr("أخبرنا أنك تدير هذه المساحة، وسنتواصل معك لتأكيد معلوماتها.", "Tell us you run this space, and we’ll get in touch to confirm its information.")}</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-2">
+          <Button variant="outline" className="justify-between" asChild><a href={'https://wa.me/' + c.whatsapp.replace(/\D/g, '')} target="_blank" rel="noopener">{tr("واتساب", "WhatsApp")}<span dir="ltr" className="text-muted-foreground">{c.whatsapp}</span></a></Button>
+          <Button variant="outline" className="justify-between" asChild><a href={'mailto:' + c.email}>{tr("بريد", "Email")}<span dir="ltr" className="text-muted-foreground">{c.email}</span></a></Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DetailsSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start" aria-hidden="true">
+      <div className="flex flex-col gap-6 lg:col-span-8">
+        <Skeleton className="gallery-h rounded-xl" />
+        <div className="flex flex-col gap-2"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-32" /></div>
+        <div className="flex flex-col gap-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/4" /></div>
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+      <div className="lg:col-span-4"><Skeleton className="h-120 rounded-xl" /></div>
+    </div>
+  );
+}
+
+function SpaceDetailsScreen() {
+  const [theme, setTheme] = useTheme();
+  const near = useNearMe();
+  const [state, setState] = React.useState(pageParams.get('state') || 'ready');
+  React.useEffect(() => { if (state === 'loading' && !pageParams.get('state')) setTimeout(() => setState('ready'), 900); }, []);
+  const signedIn = pageParams.get('auth') === '1';
+  const space = M.spaces.find((s) => s.id === (pageParams.get('id') || 'focus'));
+  if (space && pageParams.get('demo') === 'stale') Object.assign(space, { stale: true, updated: tr("قبل 40 يومًا", "40 days ago"), updatedDays: 40 });
+  const [fav, setFav] = React.useState(pageParams.get('fav') === '1');
+  const [signIn, setSignIn] = React.useState(pageParams.get('dialog') === 'signin' ? 'fav' : false);
+  const [report, setReport] = React.useState(pageParams.get('dialog') === 'report');
+  const [platform, setPlatform] = React.useState(false);
+  React.useEffect(() => { if (space) document.title = `${space.name} — ${tr('مساحة', 'Masaha')}`; }, []);
+
+  const crumbs = (
+    <Breadcrumb label={tr("مسار التنقل", "Breadcrumb")}>
+      <BreadcrumbList>
+        <BreadcrumbItem><BreadcrumbLink href="Home.html">{tr("الرئيسية", "Home")}</BreadcrumbLink></BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem><BreadcrumbLink href={directoryHref()}>{tr("المساحات", "Spaces")}</BreadcrumbLink></BreadcrumbItem>
+        {space && state !== 'notfound' && <><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage>{space.name}</BreadcrumbPage></BreadcrumbItem></>}
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+
+  const shell = (content, bar) => (
+    <div className="flex min-h-dvh flex-col bg-background text-foreground">
+      <SiteHeader current="directory" theme={theme} setTheme={setTheme} />
+      <main className={'mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 ' + (bar ? 'pb-24 lg:pb-6' : '')}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {crumbs}
+          <Button variant="link" size="sm" asChild><a href={directoryHref()}><ChevronStartIcon />{tr("العودة إلى المساحات", "Back to spaces")}</a></Button>
+        </div>
+        {content}
+      </main>
+      <SiteFooter />
+      {bar}
+      <PageToaster />
+    </div>
+  );
+
+  if (state === 'loading') return shell(<DetailsSkeleton />);
+  if (!space || state === 'notfound') {
+    return shell(
+      <Card>
+        <EmptyState icon={<SearchXIcon />} title={tr("هذه المساحة غير متاحة", "This space isn’t available")} description={tr("ربما أُزيلت من الدليل أو أن الرابط غير صحيح.", "It may have been removed from the directory, or the link is wrong.")}>
+          <Button asChild><a href="Directory.html">{tr("تصفّح المساحات", "Browse spaces")}</a></Button>
+        </EmptyState>
+      </Card>
+    );
+  }
+
+  const km = near.coords ? M.distanceKm(near.coords, space) : null;
+  const wa = space.contacts.find((c) => c.type === 'whatsapp');
+  const call = space.contacts.find((c) => M.channels[c.type].phone);
+  const toggleFav = () => {
+    if (!signedIn) return setSignIn('fav');
+    setFav(!fav); toast(!fav ? tr("أُضيفت إلى المفضلة", "Added to favourites") : tr("أُزيلت من المفضلة", "Removed from favourites"));
+  };
+  const openReport = () => (signedIn ? setReport(true) : setSignIn('report'));
+
+  const bar = (wa || call) && (
+    <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background px-4 py-3 lg:hidden">
+      <div className="flex gap-2">
+        {wa && <Button className="flex-1" asChild><a href={M.channels.whatsapp.href(wa.value)} target="_blank" rel="noopener">{tr("واتساب", "WhatsApp")}</a></Button>}
+        {call && <Button variant="outline" className="flex-1" asChild><a href={M.channels[call.type].href(call.value)}>{tr("اتصال", "Call")}</a></Button>}
+      </div>
+    </div>
+  );
+
+  return shell(
+    <>
+      {space.closure && (
+        <Alert variant="warning">
+          <AlertTitle>{space.closure.title}</AlertTitle>
+          <AlertDescription>{tr("إعلان من إدارة المساحة · ", "Announcement from the space · ")}{space.closure.date}</AlertDescription>
+        </Alert>
+      )}
+      <div className="flex flex-col gap-10 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
+        <div className="flex min-w-0 flex-col gap-10 lg:col-span-8">
+          <div className="flex flex-col gap-6">
+            <Gallery space={space} />
+            <header className="flex flex-col gap-1">
+              <div className="flex items-center justify-between gap-3">
+                <h1 className="min-w-0 text-heading-1">{LANG === 'en' ? space.name : space.nameAr}</h1>
+                <Button variant="outline" size="icon" aria-pressed={fav} aria-label={fav ? tr("إزالة من المفضلة", "Remove from favourites") : tr("حفظ في المفضلة", "Save to favourites")} onClick={toggleFav} className={fav ? 'text-primary' : ''}><HeartIcon filled={fav} /></Button>
+              </div>
+              {LANG === 'en' ? <p lang="ar" dir="rtl" className="self-start text-body text-muted-foreground">{space.nameAr}</p> : <p lang="en" dir="ltr" className="self-start text-body text-muted-foreground">{space.name}</p>}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
+                <span>{areaLine(space)}</span>
+                {space.verified && <span className="inline-flex items-center gap-1 text-primary"><CircleCheckIcon className="size-4" aria-hidden="true" />{tr("موثّقة", "Verified")}</span>}
+              </div>
+            </header>
+            {!space.verified && (
+              <div className="flex flex-col gap-2">
+                <Alert variant="info">
+                  <AlertDescription>{tr("جمع فريق مساحة هذه المعلومات ولم تؤكدها إدارة المساحة بعد. آخر مراجعة: ", "The Masaha team collected this information; the space hasn’t confirmed it yet. Last reviewed ")}{space.lastReview}.</AlertDescription>
+                </Alert>
+                <Button variant="link" size="sm" className="self-start" onClick={() => setPlatform(true)}>{tr("هل تدير هذه المساحة؟ تواصل معنا", "Do you run this space? Contact us")}</Button>
+              </div>
+            )}
+            <div className="lg:hidden"><StatusContactCard space={space} km={km} compact /></div>
+          </div>
+          <AboutSection space={space} />
+          <HoursSection space={space} />
+          <PricesSection space={space} />
+          <AmenitiesSection space={space} />
+          <LocationSection space={space} user={near.coords} userSource={near.loc.source} />
+          <AnnouncementsSection space={space} />
+          <div className="border-t border-border pt-6">
+            <Button variant="link" className="px-0" onClick={openReport}>{tr("الإبلاغ عن معلومة غير صحيحة", "Report wrong information")}</Button>
+          </div>
+        </div>
+        <aside className="details-aside hidden lg:col-span-4 lg:block" aria-label={tr("الحالة والتواصل", "Status & contact")}>
+          <StatusContactCard space={space} km={km} />
+        </aside>
+      </div>
+      <SignInDialog open={signIn} onOpenChange={(o) => !o && setSignIn(false)} />
+      <ReportDialog open={report} onOpenChange={setReport} space={space} />
+      <PlatformContactDialog open={platform} onOpenChange={setPlatform} />
+    </>,
+    bar
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><SpaceDetailsScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

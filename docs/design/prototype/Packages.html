@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الباقات والأسعار — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/profile-a.jsx"></script>
+<script type="text/babel" src="masaha/profile-b.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Switch, Field, Input, ToggleGroup, ToggleGroupItem, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Alert, AlertDescription, EmptyState, InfoIcon, toast } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+const space = M.spaces.find((s) => s.id === 'focus');
+const n = (v) => (v === '' || v == null ? null : Number(v));
+const INIT = [
+  { id: 'p1', name: tr('10 أيام', '10 days'), validity: '45', totalDays: '10', daysPerWeek: '', hoursPerDay: '', totalHours: '', billing: 'fixed', unit: 'hour', price: '130', rate: '', audience: 'all', shift: '', active: true },
+  { id: 'p2', name: tr('20 ساعة', '20 hours'), validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '', totalHours: '20', billing: 'fixed', unit: 'hour', price: '50', rate: '', audience: 'all', shift: '', active: true },
+  { id: 'p3', name: tr('شهر يوم بعد يوم', 'Month, every other day'), validity: '30', totalDays: '', daysPerWeek: '3', hoursPerDay: '', totalHours: '', billing: 'fixed', unit: 'hour', price: '180', rate: '', audience: 'all', shift: '', active: true },
+  { id: 'p4', name: tr('صباحي للطلاب', 'Student mornings'), validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '5', totalHours: '', billing: 'usage', unit: 'day', price: '', rate: '10', audience: 'students', shift: 'am', active: false }
+];
+const $ = DESK.money;
+// Live one-line summary of the terms.
+function summary(p) {
+  const parts = [];
+  if (n(p.validity)) parts.push(tr(`صالحة ${p.validity} يومًا`, `valid ${p.validity} days`));
+  if (n(p.totalDays)) parts.push(tr(`${p.totalDays} أيام`, `${p.totalDays} days`));
+  if (n(p.daysPerWeek)) parts.push(tr(`${p.daysPerWeek} أيام بالأسبوع`, `${p.daysPerWeek} days a week`));
+  if (n(p.hoursPerDay)) parts.push(tr(`${p.hoursPerDay} س باليوم`, `${p.hoursPerDay} h a day`));
+  if (n(p.totalHours)) parts.push(tr(`رصيد ${p.totalHours} س`, `${p.totalHours} h balance`));
+  if (p.audience === 'students') parts.push(tr('للطلاب', 'students'));
+  if (p.shift) parts.push(DESK.SHIFTS[p.shift]);
+  parts.push(p.billing === 'fixed' ? (n(p.price) ? $(p.price) : tr('بدون سعر', 'no price')) : tr(`${n(p.rate) ? $(p.rate) : '—'} ${p.unit === 'hour' ? 'للساعة' : 'لليوم'} حسب الاستخدام`, `${n(p.rate) ? $(p.rate) : '—'} per ${p.unit}, by usage`));
+  return parts.join(' · ');
+}
+const Opt = () => <span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>;
+const NumF = ({ label, v, k, set, err }) => <Field label={label} labelEnd={<Opt />} error={err}><Input inputMode="numeric" dir="ltr" value={v[k]} onChange={(e) => set({ [k]: e.target.value.replace(/[^\d]/g, '') })} /></Field>;
+
+function PackageSheet({ pkg, onClose, onSave }) {
+  const blank = { name: '', validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '', totalHours: '', billing: 'fixed', unit: 'hour', price: '', rate: String(DESK.PRICES.hour), audience: 'all', shift: '', active: true };
+  const [v, setV] = React.useState(blank); const [err, setErr] = React.useState({});
+  React.useEffect(() => { if (pkg) { setV({ ...blank, ...pkg }); setErr({}); } }, [pkg]);
+  const set = (p) => setV((x) => ({ ...x, ...p }));
+  const submit = (e) => {
+    e.preventDefault(); const x = {};
+    if (!v.name.trim()) x.name = tr('أدخل اسم الباقة', 'Enter the package name');
+    if (v.billing === 'fixed' && !(n(v.price) > 0)) x.price = tr('أدخل السعر', 'Enter the price');
+    if (v.billing === 'usage' && !(n(v.rate) > 0)) x.rate = tr('أدخل السعر', 'Enter the rate');
+    if (n(v.daysPerWeek) > 6) x.daysPerWeek = tr('6 أيام بالأسبوع كحد أقصى', 'At most 6 days a week');
+    setErr(x); if (Object.keys(x).length) return;
+    onSave({ ...v, name: v.name.trim() });
+  };
+  return (
+    <Sheet open={!!pkg} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="end" closeLabel={tr('إغلاق', 'Close')}>
+        <SheetHeader><SheetTitle>{pkg && pkg.id ? tr('تعديل الباقة', 'Edit package') : tr('باقة جديدة', 'New package')}</SheetTitle><SheetDescription>{tr('باقة خاصة — لا تظهر للزوار، وتُختار من مكتب الاستقبال.', 'Private — not shown to visitors; chosen at the front desk.')}</SheetDescription></SheetHeader>
+        <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <SheetBody className="flex flex-col gap-5 py-2">
+            <Field label={tr('اسم الباقة', 'Package name')} error={err.name}><Input value={v.name} onChange={(e) => set({ name: e.target.value })} /></Field>
+            <p className="text-caption text-muted-foreground">{tr('كل الشروط اختيارية ويمكن جمعها.', 'Every term is optional and they can be combined.')}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <NumF label={tr('الصلاحية (أيام)', 'Validity (days)')} v={v} k="validity" set={set} />
+              <NumF label={tr('عدد الأيام الكلي', 'Total days')} v={v} k="totalDays" set={set} />
+              <NumF label={tr('أيام بالأسبوع', 'Days a week')} v={v} k="daysPerWeek" set={set} err={err.daysPerWeek} />
+              <NumF label={tr('ساعات باليوم', 'Hours a day')} v={v} k="hoursPerDay" set={set} />
+              <NumF label={tr('مجموع الساعات', 'Total hours')} v={v} k="totalHours" set={set} />
+            </div>
+            <Field label={tr('طريقة الحساب', 'Billing')}>
+              <ToggleGroup type="single" value={v.billing} onValueChange={(b) => b && set({ billing: b })}>
+                <ToggleGroupItem value="fixed">{tr('سعر ثابت', 'Fixed price')}</ToggleGroupItem>
+                <ToggleGroupItem value="usage">{tr('حسب الاستخدام', 'By usage')}</ToggleGroupItem>
+              </ToggleGroup>
+            </Field>
+            {v.billing === 'fixed' ? <Field label={tr('السعر (₪)', 'Price (₪)')} error={err.price}><Input inputMode="numeric" dir="ltr" value={v.price} onChange={(e) => set({ price: e.target.value.replace(/[^\d]/g, '') })} /></Field> : (
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label={tr('الوحدة', 'Unit')}>
+                  <ToggleGroup type="single" value={v.unit} onValueChange={(u) => u && set({ unit: u, rate: String(u === 'hour' ? DESK.PRICES.hour : DESK.PRICES.day) })}>
+                    <ToggleGroupItem value="hour">{tr('بالساعة', 'Per hour')}</ToggleGroupItem>
+                    <ToggleGroupItem value="day">{tr('باليوم', 'Per day')}</ToggleGroupItem>
+                  </ToggleGroup>
+                </Field>
+                <Field label={tr('السعر (₪)', 'Rate (₪)')} error={err.rate}><Input inputMode="numeric" dir="ltr" value={v.rate} onChange={(e) => set({ rate: e.target.value.replace(/[^\d]/g, '') })} /></Field>
+              </div>
+            )}
+            <Field label={tr('الفئة', 'Audience')}>
+              <ToggleGroup type="single" value={v.audience} onValueChange={(a) => a && set({ audience: a })}>
+                <ToggleGroupItem value="all">{tr('عام', 'Everyone')}</ToggleGroupItem>
+                <ToggleGroupItem value="students">{tr('طلاب', 'Students')}</ToggleGroupItem>
+              </ToggleGroup>
+            </Field>
+            <Field label={tr('الوردية', 'Shift')} labelEnd={<Opt />}>
+              <ToggleGroup type="single" value={v.shift} onValueChange={(s) => set({ shift: s || '' })}>
+                <ToggleGroupItem value="am">{DESK.SHIFTS.am}</ToggleGroupItem>
+                <ToggleGroupItem value="pm">{DESK.SHIFTS.pm}</ToggleGroupItem>
+              </ToggleGroup>
+            </Field>
+            <div className="flex flex-col gap-1 rounded-lg bg-muted p-4" aria-live="polite">
+              <span className="text-caption text-muted-foreground">{tr('الملخّص', 'Summary')}</span>
+              <span className="text-label">{v.name.trim() || tr('باقة بدون اسم', 'Unnamed package')}</span>
+              <span className="text-body-sm">{summary(v)}</span>
+            </div>
+          </SheetBody>
+          <SheetFooter><Button type="submit" className="w-full">{tr('حفظ الباقة', 'Save package')}</Button></SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function PackagesInner({ theme, setTheme }) {
+  const [list, setList] = React.useState(pageParams.get('state') === 'empty' ? [] : INIT);
+  const [edit, setEdit] = React.useState(pageParams.get('sheet') === 'new' ? {} : pageParams.get('edit') ? INIT.find((p) => p.id === pageParams.get('edit')) : null);
+  const save = (p) => { setList((l) => (p.id ? l.map((x) => (x.id === p.id ? p : x)) : [...l, { ...p, id: 'p' + Date.now() }])); setEdit(null); toast.success(tr('حُفظت الباقة', 'Package saved'), { description: p.name }); };
+  const toggle = (p, on) => { setList((l) => l.map((x) => (x.id === p.id ? { ...x, active: on } : x))); toast(on ? tr('الباقة مفعّلة في المكتب', 'Package available at the desk') : tr('أُوقفت الباقة — الاشتراكات الحالية لا تتأثر', 'Package paused — current memberships aren’t affected'), { description: p.name }); };
+  return (
+    <OwnerShell current="packages" title={tr('الباقات والأسعار', 'Packages & prices')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
+      <section className="flex flex-col gap-3" aria-labelledby="pub">
+        <div className="flex flex-col gap-1">
+          <h2 id="pub" className="text-heading-2">{tr('الأسعار المعلنة', 'Published prices')}</h2>
+          <p className="text-body-sm text-muted-foreground">{tr('تظهر في صفحة المساحة العامة. الشهري والأسبوعي وشهري الطلاب تُؤخذ من هذه الأسعار.', 'Shown on the public space page. Monthly, weekly and student month packages come from these prices.')}</p>
+        </div>
+        <PricesSection space={space} confirmable />
+      </section>
+      <section className="flex flex-col gap-3" aria-labelledby="priv">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <h2 id="priv" className="text-heading-2">{tr('الباقات الخاصة', 'Private packages')}</h2>
+            <p className="text-body-sm text-muted-foreground">{tr('لا تظهر للزوار. تُختار عند إنشاء اشتراك في مكتب الاستقبال.', 'Not shown to visitors. Chosen when creating a membership at the front desk.')}</p>
+          </div>
+          <Button onClick={() => setEdit({})}>{tr('باقة جديدة', 'New package')}</Button>
+        </div>
+        {list.length ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {list.map((p) => (
+              <Card key={p.id} className={p.active ? '' : 'bg-muted'}>
+                <CardHeader>
+                  <CardTitle>{p.name}</CardTitle>
+                  <CardDescription>{summary(p)}</CardDescription>
+                  <CardAction><Badge variant={p.active ? 'success' : 'neutral'}>{p.active ? tr('مفعّلة', 'Active') : tr('موقوفة', 'Paused')}</Badge></CardAction>
+                </CardHeader>
+                <CardFooter className="flex items-center justify-between gap-2">
+                  <Field label={tr('متاحة في المكتب', 'Available at the desk')} orientation="horizontal"><Switch checked={p.active} onCheckedChange={(on) => toggle(p, on)} /></Field>
+                  <Button size="sm" variant="outline" onClick={() => setEdit(p)}>{tr('تعديل', 'Edit')}</Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : <Card><EmptyState icon={<InfoIcon />} title={tr('لا توجد باقات خاصة', 'No private packages')} description={tr('أنشئ باقة مثل «10 أيام» أو «20 ساعة» لتختارها في المكتب.', 'Create a package like «10 days» or «20 hours» to pick at the desk.')}><Button onClick={() => setEdit({})}>{tr('باقة جديدة', 'New package')}</Button></EmptyState></Card>}
+      </section>
+      <PackageSheet pkg={edit} onClose={() => setEdit(null)} onSave={save} />
+    </OwnerShell>
+  );
+}
+function PackagesScreen() { const [theme, setTheme] = useTheme(); return <DeskProvider><PackagesInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><PackagesScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

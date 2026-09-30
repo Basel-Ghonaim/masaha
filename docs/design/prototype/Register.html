@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>إنشاء حساب — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/auth.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Field, Input, InputAction, Button, Alert, AlertTitle, AlertDescription, AlertAction, EyeIcon, EyeOffIcon, LogInIcon, CircleCheckIcon, TriangleAlertIcon } = window.MasahaDesignSystem;
+const initialState = pageParams.get('state');
+
+const DEMO = {
+  errors: { name: '', email: 'sara@', password: 'abc' },
+  exists: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'taken@example.com', password: 'masaha2026' },
+  ratelimit: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'sara@example.com', password: 'masaha2026' },
+  network: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'sara@example.com', password: 'masaha2026' },
+  loading: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'sara@example.com', password: 'masaha2026' },
+  typing: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'sara@example.com', password: 'masaha2' },
+  filled: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'sara@example.com', password: 'masaha2026' }
+};
+function validate(v) {
+  const e = {};
+  if (!v.name.trim()) e.name = tr("أدخل اسمك", "Enter your name");
+  if (!v.email.trim()) e.email = tr("أدخل بريدك الإلكتروني", "Enter your email");
+  else if (!EMAIL_RE.test(v.email)) e.email = <>{tr('تحقّق من كتابة البريد الإلكتروني، مثل', 'Check the email address, for example')} <span dir="ltr">name@example.com</span></>;
+  if (!v.password) e.password = tr("أدخل كلمة المرور", "Enter your password");
+  else if (!passwordOk(v.password)) e.password = tr("كلمة المرور لا تستوفي الشروط أدناه", "The password doesn’t meet the rules below");
+  return e;
+}
+
+function RegisterScreen() {
+  const [theme, setTheme] = useTheme();
+  const google = useGoogleSignIn();
+  const [v, setV] = React.useState(DEMO[initialState] || { name: '', email: '', password: '' });
+  const [errors, setErrors] = React.useState(initialState === 'errors' ? validate(DEMO.errors) : {});
+  const [loading, setLoading] = React.useState(initialState === 'loading');
+  const [submitted, setSubmitted] = React.useState(initialState === 'errors');
+  const [problem, setProblem] = React.useState(['exists', 'ratelimit', 'network'].includes(initialState) ? initialState : null);
+  const set = (k) => (val) => setV((p) => ({ ...p, [k]: typeof val === 'string' ? val : val.target.value }));
+
+  const submit = (e) => {
+    e && e.preventDefault();
+    const next = validate(v);
+    setErrors(next); setProblem(null); setSubmitted(true);
+    if (Object.keys(next).length) return;
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      if (v.email.startsWith('taken')) return setProblem('exists');
+      window.__pendingUser = { name: v.name.trim(), email: v.email.trim(), method: 'email' };
+      finishAuth(tr(`أهلًا ${v.name.trim().split(' ')[0]}، تم إنشاء حسابك`, `Welcome ${v.name.trim().split(' ')[0]}, your account is ready`));
+    }, 1200);
+  };
+
+  return (
+    <AuthShell theme={theme} setTheme={setTheme}>
+      <Card className="w-full md:max-w-md">
+        <CardHeader>
+          <CardTitle>{tr("إنشاء حساب", "Create account")}</CardTitle>
+          <CardDescription>{tr("احفظ مساحاتك المفضّلة وتابع البلاغات التي ترسلها.", "Save your favourite spaces and follow the reports you send.")}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <GoogleBlock google={google} />
+          <form className="flex flex-col gap-4" noValidate onSubmit={submit}>
+            {problem === 'exists' && (
+              <Alert variant="warning">
+                <AlertDescription>{tr("هذا البريد مسجّل مسبقًا — ", "This email is already registered — ")}<a href={withNext('Sign in.html')}>{tr("سجّل الدخول", "sign in")}</a>{tr(" أو ", " or ")}<a href="Forgot password.html">{tr("استعد كلمة المرور", "reset your password")}</a></AlertDescription>
+              </Alert>
+            )}
+            {problem === 'ratelimit' && <RateLimitAlert />}
+            {problem === 'network' && <NetworkAlert onRetry={submit} />}
+            <Field label={tr("الاسم", "Name")} error={errors.name}>
+              <Input autoComplete="name" value={v.name} disabled={loading} onChange={set('name')} />
+            </Field>
+            <Field label={tr("البريد الإلكتروني", "Email")} error={errors.email}>
+              <Input type="email" dir="ltr" autoComplete="email" placeholder="name@example.com" value={v.email} disabled={loading} onChange={set('email')} />
+            </Field>
+            <PasswordField label={tr("كلمة المرور", "Password")} value={v.password} onChange={set('password')} error={errors.password} disabled={loading} submitted={submitted} />
+            <Button type="submit" className="w-full" loading={loading}>{tr("إنشاء الحساب", "Create account")}</Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-3 text-body-sm text-muted-foreground">
+          <p className="flex flex-wrap items-center justify-center gap-1">
+            {tr("لديك حساب؟", "Have an account?")}
+            <Button variant="link" size="sm" asChild><a href={withNext('Sign in.html')}>{tr("تسجيل الدخول", "Sign in")}</a></Button>
+          </p>
+          <p className="text-center text-caption">{tr("تدير مساحة عمل؟ حسابات أصحاب المساحات ينشئها فريق مساحة — ", "Run a coworking space? Space owner accounts are created by the Masaha team — ")}<a href="About.html#owners">{tr("تواصل معنا", "Contact us")}</a></p>
+        </CardFooter>
+      </Card>
+    </AuthShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><RegisterScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

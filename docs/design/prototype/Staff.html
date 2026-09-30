@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الموظفون — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/desk-sheet.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, Field, Input, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, Alert, AlertTitle, AlertDescription, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, UsersIcon, EllipsisVerticalIcon, CheckIcon, toast } = window.MasahaDesignSystem;
+const INIT = [
+  { id: 'st1', name: tr('سامي', 'Sami'), key: DESK.SAMI, email: 'sami@example.com', status: 'active', last: tr('اليوم 07:52', 'Today 07:52'), month: 1380 },
+  { id: 'st2', name: tr('هالة', 'Hala'), key: 'هالة', email: 'hala@example.com', status: 'suspended', last: tr('قبل 3 أسابيع', '3 weeks ago'), month: 0 }
+];
+const EXISTING = ['nour@example.com', 'sara@example.com'];
+const tempPass = () => 'Msh-' + Math.random().toString(36).slice(2, 6) + '-' + (100 + Math.floor(Math.random() * 900));
+
+function StaffInner({ theme, setTheme }) {
+  const [list, setList] = React.useState(pageParams.get('state') === 'empty' ? [] : INIT);
+  const [add, setAdd] = React.useState(pageParams.get('sheet') === 'add');
+  const [name, setName] = React.useState(pageParams.get('email') ? tr('نور', 'Nour') : ''); const [email, setEmail] = React.useState(pageParams.get('email') || ''); const [err, setErr] = React.useState({});
+  const [link, setLink] = React.useState(null);
+  const [pass, setPass] = React.useState(pageParams.get('pass') ? { name: tr('ليلى', 'Laila'), email: 'laila@example.com', pw: 'Msh-7k2q-418' } : null);
+  const [copied, setCopied] = React.useState(false);
+  const [confirm, setConfirm] = React.useState(pageParams.get('stop') ? INIT[0] : null);
+  const submit = (e) => {
+    e.preventDefault(); const x = {};
+    if (!name.trim()) x.name = tr('أدخل الاسم', 'Enter the name');
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) x.email = tr('أدخل بريدًا صحيحًا، مثل name@example.com', 'Enter a valid email, e.g. name@example.com');
+    else if (list.some((s) => s.email === email.trim().toLowerCase())) x.email = tr('هذا الموظف مضاف مسبقًا', 'This staff member is already added');
+    setErr(x); if (Object.keys(x).length) return;
+    const e2 = email.trim().toLowerCase();
+    if (EXISTING.includes(e2)) return setLink({ name: name.trim(), email: e2 });
+    const pw = tempPass();
+    setList((l) => [...l, { id: 's' + Date.now(), name: name.trim(), key: name.trim(), email: e2, status: 'active', last: tr('لم يدخل بعد', 'Not signed in yet'), month: 0 }]);
+    setAdd(false); setCopied(false); setPass({ name: name.trim(), email: e2, pw }); setName(''); setEmail('');
+  };
+  const doLink = () => { setList((l) => [...l, { id: 's' + Date.now(), name: link.name, key: link.name, email: link.email, status: 'active', last: tr('لم يدخل بعد', 'Not signed in yet'), month: 0 }]); toast.success(tr('رُبط الحساب بالمساحة', 'Account linked to the space'), { description: link.email }); setLink(null); setAdd(false); setName(''); setEmail(''); };
+  const setStatus = (s, status) => { setList((l) => l.map((x) => (x.id === s.id ? { ...x, status } : x))); toast(status === 'active' ? tr(`أُعيد تفعيل ${s.name}`, `${s.name} reactivated`) : tr(`أُوقف ${s.name}`, `${s.name} suspended`)); };
+  const copy = () => { try { navigator.clipboard.writeText(pass.pw); } catch (e) {} setCopied(true); };
+  const actions = (s) => (
+    <DropdownMenu dir={DIR}>
+      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={tr('إجراءات ', 'Actions for ') + s.name}><EllipsisVerticalIcon /></Button></DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild><a href={'Payments.html?staff=' + encodeURIComponent(s.key)}>{tr('عرض مقبوضاته', 'View collections')}</a></DropdownMenuItem>
+        {s.status === 'active' ? <DropdownMenuItem onSelect={() => setConfirm(s)}>{tr('إيقاف', 'Suspend')}</DropdownMenuItem> : <DropdownMenuItem onSelect={() => setStatus(s, 'active')}>{tr('إعادة تفعيل', 'Reactivate')}</DropdownMenuItem>}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+  const StatusB = ({ s }) => <Badge variant={s.status === 'active' ? 'success' : 'neutral'}>{s.status === 'active' ? tr('نشط', 'Active') : tr('موقوف', 'Suspended')}</Badge>;
+  const MonthLink = ({ s }) => <a href={'Payments.html?staff=' + encodeURIComponent(s.key)}><Money n={s.month} /></a>;
+  const columns = [
+    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
+    { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <span dir="ltr">{row.original.email}</span> },
+    { id: 'role', header: tr('الدور', 'Role'), cell: () => tr('الاستقبال', 'Reception') },
+    { id: 'status', header: tr('الحالة', 'Status'), cell: ({ row }) => <StatusB s={row.original} /> },
+    { id: 'last', header: tr('آخر دخول', 'Last sign-in'), cell: ({ row }) => row.original.last },
+    { id: 'month', header: tr('مقبوضاته هذا الشهر', 'Collected this month'), cell: ({ row }) => <MonthLink s={row.original} /> },
+    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
+  ];
+  const addBtn = <Button onClick={() => { setAdd(true); setErr({}); }}>{tr('إضافة موظف', 'Add staff member')}</Button>;
+  return (
+    <OwnerShell current="staff" title={tr('الموظفون', 'Staff')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={addBtn}>
+      <p className="text-body-sm text-muted-foreground">{tr('موظفو الاستقبال يرون المكتب والزبائن والإعلانات ودفعاتهم اليومية فقط، بدون أرقام الدخل.', 'Reception staff see the desk, customers, announcements and their own payments today — no income figures.')}</p>
+      <DataTable label={tr('الموظفون', 'Staff')} columns={columns} data={list} getRowId={(r) => r.id}
+        toolbar={<div className="md:hidden">{addBtn}</div>}
+        renderCard={(s) => (
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="text-label">{s.name}</span>
+              <span dir="ltr" className="self-start text-caption text-muted-foreground">{s.email}</span>
+              <span className="text-caption text-muted-foreground">{tr('الاستقبال', 'Reception')} · {tr('آخر دخول', 'Last sign-in')}: {s.last}</span>
+              <span className="flex flex-wrap items-center gap-2"><StatusB s={s} /><span className="text-caption">{tr('هذا الشهر', 'This month')} <MonthLink s={s} /></span></span>
+            </div>
+            {actions(s)}
+          </div>
+        )}
+        empty={<EmptyState icon={<UsersIcon />} title={tr('لا يوجد موظفون', 'No staff yet')} description={tr('يمكنك إدارة المكتب بنفسك أو إضافة موظف استقبال.', 'You can run the desk yourself or add a reception staff member.')}>{addBtn}</EmptyState>} />
+      <Sheet open={add} onOpenChange={setAdd}>
+        <SheetContent side="end" closeLabel={tr('إغلاق', 'Close')}>
+          <SheetHeader><SheetTitle>{tr('إضافة موظف', 'Add staff member')}</SheetTitle><SheetDescription>{tr('الدور: الاستقبال', 'Role: Reception')}</SheetDescription></SheetHeader>
+          <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
+            <SheetBody className="flex flex-col gap-5 py-2">
+              <Field label={tr('الاسم', 'Name')} error={err.name}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+              <Field label={tr('البريد الإلكتروني', 'Email')} error={err.email}><Input type="email" dir="ltr" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+              {link && (
+                <Alert variant="info">
+                  <AlertTitle>{tr('هذا البريد له حساب في مساحة', 'This email already has a Masaha account')}</AlertTitle>
+                  <AlertDescription>{tr('سيُربط بالمساحة ويدخل بكلمة مروره.', 'It will be linked to the space and sign in with its own password.')}</AlertDescription>
+                </Alert>
+              )}
+            </SheetBody>
+            <SheetFooter>{link ? <Button type="button" className="w-full" onClick={doLink}>{tr('ربط', 'Link')}</Button> : <Button type="submit" className="w-full">{tr('إضافة', 'Add')}</Button>}</SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
+      <Dialog open={!!pass} onOpenChange={(o) => !o && setPass(null)}>
+        <DialogContent closeLabel={tr('إغلاق', 'Close')}>
+          <DialogHeader><DialogTitle>{tr('كلمة المرور المؤقتة', 'Temporary password')}</DialogTitle><DialogDescription>{pass && <>{pass.name} · <span dir="ltr">{pass.email}</span></>}</DialogDescription></DialogHeader>
+          {pass && <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-muted p-3"><span dir="ltr" className="text-heading-3">{pass.pw}</span><Button size="sm" variant="outline" onClick={copy}>{copied ? <><CheckIcon />{tr('نُسخت', 'Copied')}</> : tr('نسخ', 'Copy')}</Button></div>
+            <p className="text-body-sm">{tr('سلّمها للموظف؛ سيُطلب منه تغييرها عند أول دخول.', 'Hand it to the staff member; they’ll be asked to change it at first sign-in.')}</p>
+            <p className="text-caption text-muted-foreground">{tr('لن تظهر مرة أخرى بعد إغلاق هذه النافذة.', 'It won’t be shown again after you close this window.')}</p>
+          </div>}
+          <DialogFooter><Button onClick={() => setPass(null)}>{tr('تم', 'Done')}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{tr('إيقاف', 'Suspend')} {confirm && confirm.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('ينتهي دخوله فورًا، ويبقى سجله ودفعاته.', 'Their access ends right away; their record and payments are kept.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => setStatus(confirm, 'suspended')}>{tr('إيقاف', 'Suspend')}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </OwnerShell>
+  );
+}
+
+function Screen() { const [theme, setTheme] = useTheme(); return <DeskProvider><StaffInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

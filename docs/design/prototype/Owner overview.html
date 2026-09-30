@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>نظرة عامة — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, StatCard, toast, LogInIcon } = window.MasahaDesignSystem;
+// Freshness: prices stale after 30 days, others after 60.
+const GROUPS = [
+  { id: 'prices', label: tr('الأسعار', 'Prices'), days: 34, limit: 30 },
+  { id: 'hours', label: tr('ساعات العمل', 'Opening hours'), days: 12, limit: 60 },
+  { id: 'contacts', label: tr('التواصل', 'Contacts'), days: 75, limit: 60 },
+  { id: 'amenities', label: tr('المرافق', 'Amenities'), days: 20, limit: 60 }
+];
+const ago = (d) => d === 0 ? tr('اليوم', 'today') : tr(`قبل ${d} يومًا`, `${d} days ago`);
+
+function Meter({ value, max }) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
+  return (
+    <div className="h-3 w-full overflow-hidden rounded-full bg-muted" role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={value} aria-label={tr('نسبة الإشغال', 'Occupancy')}>
+      <div className={'h-full rounded-full ' + (value >= max ? 'bg-warning' : 'bg-primary')} style={{ width: pct + '%' }}></div>
+    </div>
+  );
+}
+
+function FreshnessCard() {
+  const [groups, setGroups] = React.useState(GROUPS);
+  const confirm = (id) => { setGroups((g) => g.map((x) => (x.id === id ? { ...x, days: 0 } : x))); toast.success(tr('أكّدنا أن المعلومات ما زالت صحيحة', 'Confirmed as still correct')); };
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{tr('حداثة البيانات', 'Data freshness')}</CardTitle>
+        <CardDescription>{tr('يرى الزوار «آخر تحديث» بجانب كل مجموعة.', 'Visitors see «Updated» next to each group.')}</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ul className="divide-y">
+          {groups.map((g) => {
+            const stale = g.days > g.limit;
+            return (
+              <li key={g.id} className="flex flex-col gap-2 px-5 py-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-label">{g.label}</span>
+                  <span className="text-body-sm text-muted-foreground">{tr('آخر تحديث', 'Updated')} {ago(g.days)}</span>
+                  {stale && <Badge variant="warning">{tr('تحتاج مراجعة', 'Needs review')}</Badge>}
+                </div>
+                {stale && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" asChild><a href={'Owner space profile.html#' + g.id}>{tr('تعديل', 'Edit')}</a></Button>
+                    <Button variant="ghost" size="sm" onClick={() => confirm(g.id)}>{tr('المعلومات ما زالت صحيحة', 'Still correct')}</Button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Money row: each tile links to its page.
+function MoneyTile({ href, ...p }) { return <a href={href} className="block rounded-xl text-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><StatCard className="h-full" {...p} /></a>; }
+function MoneyRow() {
+  const rows = DESK.ledger();
+  const today = DESK.collected(rows.filter((r) => r.date === DESK.TODAY));
+  const month = DESK.monthly[11][0] + DESK.monthly[11][1];
+  const prev = DESK.monthly[10][0] + DESK.monthly[10][1];
+  const pct = Math.round(((month - prev) / prev) * 100);
+  const debtors = DESK.customers.filter((c) => DESK.balance(c) > 0);
+  const debt = debtors.reduce((a, c) => a + DESK.balance(c), 0);
+  const unpaidToday = DESK.unpaid.filter((u) => u.date === DESK.TODAY);
+  return (
+    <section aria-label={tr('المال', 'Money')} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <MoneyTile href="Payments.html?range=today" label={tr('دخل اليوم', 'Income today')} value={<Money n={today} />} helper={tr('المقبوض فعليًا', 'Actually collected')} />
+      <MoneyTile href="Finance.html" label={tr('دخل الشهر', 'Income this month')} value={<Money n={month} />} helper={<>{pct >= 0 ? '+' : ''}<Num>{pct + '%'}</Num> {tr('عن الشهر الماضي', 'vs last month')}</>} />
+      <MoneyTile href="Finance.html?tab=debts" label={tr('مجموع الديون', 'Total owed')} value={<Money n={debt} />} helper={<><Num>{debtors.length}</Num> {tr('زبائن عليهم مبالغ', 'customers owe money')}</>} />
+      <MoneyTile href="Desk.html" label={tr('غير محصّل اليوم', 'Not collected today')} value={<Money n={unpaidToday.reduce((a, u) => a + u.amount, 0)} />} helper={<><Num>{unpaidToday.length}</Num> {tr('زيارات', 'visits')}</>} />
+    </section>
+  );
+}
+
+function OverviewScreen() {
+  const [theme, setTheme] = useTheme();
+  const n = DESK.present.length;
+  const subs = DESK.present.filter((p) => p.kind === 'sub').length;
+  const state = publicState(n, O.capacity);
+  const ending = DESK.customers.filter((c) => DESK.customerStatus(c) === 'soon').map((c) => ({ c, s: DESK.currentSub(c), d: DESK.daysBetween(DESK.TODAY, DESK.currentSub(c).to) })).sort((a, b) => a.d - b.d);
+  const checkInBtn = (cls) => <Button className={cls} asChild><a href="Desk.html"><LogInIcon />{tr('مكتب الاستقبال', 'Front desk')}</a></Button>;
+  return (
+    <OwnerShell current="overview" title={tr('نظرة عامة', 'Overview')} state={state} theme={theme} setTheme={setTheme} actions={checkInBtn()} bottomAction={checkInBtn('w-full')}>
+      <MoneyRow />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardDescription>{tr('الحاضرون الآن', 'Present now')}</CardDescription>
+            <CardTitle className="text-display"><Num>{`${n} / ${O.capacity}`}</Num></CardTitle>
+            <CardAction><Button variant="outline" size="sm" asChild><a href="Desk.html">{tr('عرض الحاضرين', 'View who’s here')}</a></Button></CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Meter value={n} max={O.capacity} />
+            <div className="flex flex-wrap items-center gap-2 text-body-sm text-muted-foreground">
+              <PublicStateBadge state={state} />
+              <span>{state === 'full' ? tr('وصلت إلى السعة، فتظهر المساحة «ممتلئ».', 'At capacity, so the space shows «Full».') : tr('السعة لا تظهر للزوار، فقط الحالة.', 'Visitors never see capacity, only the state.')}</span>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="grid gap-4">
+          <StatCard label={tr('حضور اليوم', 'Attendance today')} value={<><Num>{n + DESK.leftToday}</Num> {tr('اليوم', 'today')} · <Num>{n}</Num> {tr('الآن', 'now')}</>} helper={<>{tr('الآن:', 'Now:')} <Num>{subs}</Num> {tr('مشتركًا', 'members')} · <Num>{n - subs}</Num> {tr('زيارات', 'visits')}</>} />
+          <StatCard label={tr('إعلانات نشطة', 'Active announcements')} value={<Num>1</Num>} helper={tr('ورشة تعريفية يوم الأحد', 'Intro workshop on Sunday')} />
+        </div>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>{tr('اشتراكات تنتهي هذا الأسبوع', 'Memberships ending this week')}</CardTitle>
+            <CardDescription><Num>{ending.length}</Num> {tr('اشتراكات', 'memberships')}</CardDescription>
+            <CardAction><Button variant="link" size="sm" asChild><a href="Customers.html?status=soon">{tr('عرض الكل', 'View all')}</a></Button></CardAction>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ul className="divide-y">
+              {ending.slice(0, 5).map(({ c: m, s: sub, d }) => (
+                <li key={m.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div className="flex min-w-0 flex-col">
+                    <a className="text-label text-foreground" href={'Customer file.html?id=' + m.id}>{m.name}</a>
+                    <span className="text-caption text-muted-foreground">{sub.name} · {d === 0 ? tr('ينتهي اليوم', 'Ends today') : tr(`ينتهي بعد ${d} أيام`, `Ends in ${d} days`)}</span>
+                  </div>
+                  <Button variant="outline" size="sm" asChild><a href={'Customers.html?renew=' + m.id}>{tr('تجديد', 'Renew')}</a></Button>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+        <StatCard label={tr('بلاغات جديدة', 'New data reports')} value={<Num>2</Num>} helper={tr('عن الأسعار وساعات العمل', 'About prices and hours')} />
+      </div>
+      <FreshnessCard />
+    </OwnerShell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><OverviewScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

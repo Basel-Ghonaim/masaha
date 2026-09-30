@@ -43,6 +43,9 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
 - [localisation.md](frontend/localisation.md) — languages, direction, catalogues, formatting.
 - [design-system/foundation.md](frontend/design-system/foundation.md) — the design system: tokens, themes, typography, direction, components, screens.
 
+### `design/` — the final screen designs
+- [design/README.md](design/README.md) — the design archive (made in Claude Design, 2026-09-29): a screenshot of every frame and the clickable prototypes, kept as a frozen record. [SCREENS.md](design/SCREENS.md) maps the 32 screens of [foundation §13](frontend/design-system/foundation.md#13-screens-to-design-32) to it.
+
 ### `development/`
 - [workflow.md](development/workflow.md) — how work is executed.
 - [engineering-principles.md](development/engineering-principles.md) — code-design rules.

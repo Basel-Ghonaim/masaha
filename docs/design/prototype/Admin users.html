@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>المستخدمون — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/admin-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/admin.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, Input, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, RadioGroup, RadioGroupItem, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, SearchIcon, SearchXIcon, EllipsisVerticalIcon, toast } = window.MasahaDesignSystem;
+function Users({ theme, setTheme }) {
+  const [list, setList] = React.useState(AD.users);
+  const [q, setQ] = React.useState(''); const [role, setRole] = React.useState(pageParams.get('role') || 'all'); const [status, setStatus] = React.useState('all');
+  const [susp, setSusp] = React.useState(pageParams.get('suspend') ? AD.users[1] : null);
+  const [roleDlg, setRoleDlg] = React.useState(pageParams.get('changerole') ? AD.users[0] : null); const [newRole, setNewRole] = React.useState('user');
+  const [tp, setTp] = React.useState(pageParams.get('temp') ? AD.users[4] : null); const [pass, setPass] = React.useState(null);
+  React.useEffect(() => { if (roleDlg) setNewRole(roleDlg.role); }, [roleDlg]);
+  const t = q.trim().toLowerCase();
+  const rows = list.filter((u) => (!t || u.name.toLowerCase().includes(t) || u.email.includes(t)) && (role === 'all' || u.role === role) && (status === 'all' || u.status === status));
+  const upd = (id, p) => setList((l) => l.map((x) => (x.id === id ? { ...x, ...p } : x)));
+  const St = ({ u }) => <Badge variant={u.status === 'active' ? 'success' : 'neutral'}>{u.status === 'active' ? tr('نشط', 'Active') : tr('موقوف', 'Suspended')}</Badge>;
+  const actions = (u) => u.me ? <span className="text-caption text-muted-foreground">{tr('أنت', 'You')}</span> : (
+    <DropdownMenu dir={DIR}>
+      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={tr('إجراءات ', 'Actions for ') + u.name}><EllipsisVerticalIcon /></Button></DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => setRoleDlg(u)}>{tr('تغيير الدور', 'Change role')}</DropdownMenuItem>
+        {u.method !== 'google' && <DropdownMenuItem onSelect={() => setTp(u)}>{tr('إصدار كلمة مرور مؤقتة', 'Issue a temporary password')}</DropdownMenuItem>}
+        <DropdownMenuSeparator />
+        {u.status === 'active' ? <DropdownMenuItem onSelect={() => setSusp(u)}>{tr('إيقاف', 'Suspend')}</DropdownMenuItem> : <DropdownMenuItem onSelect={() => { upd(u.id, { status: 'active' }); toast(tr(`أُلغي إيقاف ${u.name}`, `${u.name} unsuspended`)); }}>{tr('إلغاء الإيقاف', 'Unsuspend')}</DropdownMenuItem>}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+  const columns = [
+    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
+    { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <span dir="ltr">{row.original.email}</span> },
+    { id: 'role', header: tr('الدور', 'Role'), cell: ({ row }) => AD.ROLE[row.original.role] },
+    { id: 'method', header: tr('طريقة الدخول', 'Sign-in method'), cell: ({ row }) => AD.METHOD[row.original.method] },
+    { id: 'joined', header: tr('انضم', 'Joined'), cell: ({ row }) => AD.fmt(row.original.joined, true) },
+    { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <St u={row.original} /> },
+    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
+  ];
+  return (
+    <AdminShell current="users" title={tr('المستخدمون', 'Users')} theme={theme} setTheme={setTheme}>
+      <DataTable label={tr('المستخدمون', 'Users')} columns={columns} data={rows} getRowId={(r) => r.id}
+        summary={<span>{tr('العدد', 'Count')}: <Num>{rows.length}</Num></span>}
+        toolbar={<div className="grid gap-3 md:grid-cols-3">
+          <Field label={tr('بحث', 'Search')}><Input role="searchbox" placeholder={tr('الاسم أو البريد', 'Name or email')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} /></Field>
+          <Field label={tr('الدور', 'Role')}><Select value={role} onValueChange={setRole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الأدوار', 'All roles')}</SelectItem>{Object.entries(AD.ROLE).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
+          <Field label={tr('الحالة', 'Status')}><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الحالات', 'All statuses')}</SelectItem><SelectItem value="active">{tr('نشط', 'Active')}</SelectItem><SelectItem value="suspended">{tr('موقوف', 'Suspended')}</SelectItem></SelectContent></Select></Field>
+        </div>}
+        renderCard={(u) => (<div className="flex items-start justify-between gap-3"><div className="flex min-w-0 flex-col gap-1"><span className="text-label">{u.name}</span><span dir="ltr" className="self-start text-caption text-muted-foreground">{u.email}</span><span className="text-caption text-muted-foreground">{AD.ROLE[u.role]} · {AD.METHOD[u.method]} · {AD.fmt(u.joined, true)}</span><span><St u={u} /></span></div>{actions(u)}</div>)}
+        empty={<EmptyState icon={<SearchXIcon />} title={tr('لا يوجد مستخدمون يطابقون البحث', 'No users match')} />} />
+      <AlertDialog open={!!susp} onOpenChange={(o) => !o && setSusp(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{tr('إيقاف', 'Suspend')} {susp && susp.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('تنتهي كل جلساته فورًا ولا يستطيع الدخول حتى يُلغى الإيقاف.', 'All their sessions end right away and they can’t sign in until unsuspended.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { upd(susp.id, { status: 'suspended' }); toast(tr(`أُوقف ${susp.name} · انتهت الجلسات`, `${susp.name} suspended · sessions ended`)); }}>{tr('إيقاف', 'Suspend')}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Dialog open={!!roleDlg} onOpenChange={(o) => !o && setRoleDlg(null)}>
+        <DialogContent closeLabel={tr('إغلاق', 'Close')}>
+          <DialogHeader><DialogTitle>{tr('تغيير الدور', 'Change role')} · {roleDlg && roleDlg.name}</DialogTitle><DialogDescription>{tr('المالك يحتاج ربطه بمساحة من «أصحاب المساحات».', 'An owner still needs linking to a space in «Space owners».')}</DialogDescription></DialogHeader>
+          <RadioGroup value={newRole} onValueChange={setNewRole}>{Object.entries(AD.ROLE).map(([k, l]) => <Field key={k} label={l} orientation="horizontal"><RadioGroupItem value={k} /></Field>)}</RadioGroup>
+          <DialogFooter><Button onClick={() => { upd(roleDlg.id, { role: newRole }); toast.success(tr('تغيّر الدور', 'Role changed'), { description: roleDlg.name + ' · ' + AD.ROLE[newRole] }); setRoleDlg(null); }} disabled={roleDlg && newRole === roleDlg.role}>{tr('حفظ', 'Save')}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={!!tp} onOpenChange={(o) => !o && setTp(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{tr('إصدار كلمة مرور مؤقتة لـ', 'Issue a temporary password for')} {tp && tp.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('لاستعادة الحساب عبر واتساب بعد التأكد من هويته. تُلغى كلمة مروره الحالية، ويُطلب منه تغييرها عند الدخول التالي.', 'For account recovery over WhatsApp once you’ve confirmed who they are. Their current password stops working and they must change it at the next sign-in.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { setPass({ name: tp.name, email: tp.email, pw: tempPass() }); }}>{tr('إصدار', 'Issue')}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <TempPassDialog info={pass} onClose={() => setPass(null)} line={tr('أرسلها له عبر واتساب؛ سيُطلب منه تغييرها عند الدخول التالي.', 'Send it over WhatsApp; they’ll be asked to change it at the next sign-in.')} />
+    </AdminShell>
+  );
+}
+
+function Screen() { const [theme, setTheme] = useTheme(); return <Users theme={theme} setTheme={setTheme} />; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

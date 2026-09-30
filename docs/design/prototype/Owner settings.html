@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الإعدادات — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/desk-sheet.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Field, Switch, RadioGroup, RadioGroupItem, Textarea, ArrowEndIcon, toast } = window.MasahaDesignSystem;
+// Each card saves on its own.
+function useCard(init) {
+  const [v, setV] = React.useState(init); const [saved, setSaved] = React.useState(init);
+  const dirty = JSON.stringify(v) !== JSON.stringify(saved);
+  return { v, set: (p) => setV((x) => ({ ...x, ...p })), dirty, save: () => { setSaved(v); toast.success(tr('حُفظت الإعدادات', 'Settings saved')); }, reset: () => setV(saved) };
+}
+function SettingsCard({ title, description, card, children, onSave }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle>{title}</CardTitle>{description && <CardDescription>{description}</CardDescription>}{card.dirty && <CardAction><Badge variant="warning">{tr('تغييرات غير محفوظة', 'Unsaved changes')}</Badge></CardAction>}</CardHeader>
+      <CardContent className="flex flex-col gap-5">{children}</CardContent>
+      <CardFooter className="flex flex-wrap gap-2"><Button disabled={!card.dirty} onClick={onSave || card.save}>{tr('حفظ', 'Save')}</Button>{card.dirty && <Button variant="ghost" onClick={card.reset}>{tr('تجاهل', 'Discard')}</Button>}</CardFooter>
+    </Card>
+  );
+}
+const TOKENS = () => [['{الاسم}', tr('الاسم', 'name')], ['{المبلغ}', tr('المبلغ', 'amount')], ['{المساحة}', tr('المساحة', 'space')]];
+const DEFAULT_MSG = 'مرحبًا {الاسم}، تذكير من {المساحة}: عليك {المبلغ}. يمكنك الدفع في المساحة. شكرًا.';
+
+function OSInner({ theme, setTheme }) {
+  const att = useCard({ autoOut: true });
+  const pr = useCard({ rounding: 'up10', cap: true, student: false });
+  const msg = useCard({ text: DEFAULT_MSG });
+  const [err, setErr] = React.useState();
+  const ta = React.useRef(null);
+  const insert = (tok) => { const el = ta.current && ta.current.querySelector ? ta.current.querySelector('textarea') || ta.current : ta.current; const t = msg.v.text; const pos = el && el.selectionStart != null ? el.selectionStart : t.length; msg.set({ text: t.slice(0, pos) + tok + t.slice(pos) }); };
+  const preview = msg.v.text.split('{الاسم}').join(tr('رهف', 'Rahaf')).split('{المبلغ}').join(DESK.money(150)).split('{المساحة}').join('Focus Hub');
+  const saveMsg = () => { if (!msg.v.text.includes('{المبلغ}')) return setErr(tr('أضف {المبلغ} ليعرف الزبون كم عليه.', 'Add {المبلغ} so the customer knows how much they owe.')); setErr(); msg.save(); };
+  const RO = [['up10', tr('تقريب لأعلى بعد 10 دقائق', 'Round up after 10 minutes'), tr('ساعتان و8 دقائق = ساعتان · ساعتان و11 دقيقة = 3 ساعات', '2 h 8 min = 2 h · 2 h 11 min = 3 h')], ['half', tr('لأقرب نصف ساعة', 'To the nearest half hour'), tr('ساعتان و20 دقيقة = ساعتان ونصف', '2 h 20 min = 2.5 h')], ['minute', tr('بالدقيقة', 'By the minute'), tr('ساعتان و20 دقيقة = 7 ₪', '2 h 20 min = ₪7')]];
+  return (
+    <OwnerShell current="settings" title={tr('الإعدادات', 'Settings')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
+      <div className="flex max-w-2xl flex-col gap-6">
+        <SettingsCard title={tr('الحضور', 'Attendance')} card={att}>
+          <Field label={tr('تسجيل خروج تلقائي عند الإغلاق', 'Check everyone out automatically at closing')} helper={<>{tr('يُسجَّل خروج الجميع الساعة', 'Everyone is checked out at')} <Num>{DESK.CLOSE}</Num>. {tr('الزيارات غير المدفوعة تظهر في «غير محصّل».', 'Unpaid visits show in «Not collected».')}</>} orientation="horizontal"><Switch checked={att.v.autoOut} onCheckedChange={(b) => att.set({ autoOut: b })} /></Field>
+        </SettingsCard>
+        <SettingsCard title={tr('تسعير الزيارات', 'Visit pricing')} description={<>{tr('سعر الساعة', 'Hour price')} <Money n={DESK.PRICES.hour || 0} /> · {tr('سعر اليوم', 'day price')} <Money n={DESK.PRICES.day || 0} /> — <a href="Packages.html">{tr('الباقات والأسعار', 'Packages & prices')}</a></>} card={pr}>
+          <Field label={tr('التقريب', 'Rounding')}>
+            <RadioGroup value={pr.v.rounding} onValueChange={(r) => pr.set({ rounding: r })}>
+              {RO.map(([k, l, h]) => <Field key={k} orientation="horizontal" label={<span className="flex flex-col"><span>{l}</span><span className="text-caption text-muted-foreground">{h}</span></span>}><RadioGroupItem value={k} /></Field>)}
+            </RadioGroup>
+          </Field>
+          <Field label={tr('لا يتجاوز سعر اليوم', 'Never more than the day price')} orientation="horizontal"><Switch checked={pr.v.cap} onCheckedChange={(b) => pr.set({ cap: b })} /></Field>
+          <Field label={tr('استخدام أسعار الطلاب للزيارات عند توفرها', 'Use student prices for visits when available')} orientation="horizontal"><Switch checked={pr.v.student} onCheckedChange={(b) => pr.set({ student: b })} /></Field>
+        </SettingsCard>
+        <SettingsCard title={tr('رسالة التذكير', 'Reminder message')} description={tr('تُفتح في واتساب برسالة جاهزة من ملف الزبون، وترسلها أنت.', 'Opens in WhatsApp as a ready message from the customer file; you send it yourself.')} card={msg} onSave={saveMsg}>
+          <Field label={tr('نص الرسالة', 'Message text')} error={err}><Textarea ref={ta} rows={4} value={msg.v.text} onChange={(e) => msg.set({ text: e.target.value })} /></Field>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-caption text-muted-foreground">{tr('إدراج:', 'Insert:')}</span>
+            {TOKENS().map(([t, l]) => <Button key={t} size="sm" variant="outline" onClick={() => insert(t)} aria-label={tr('إدراج ', 'Insert ') + l}><span dir="rtl">{t}</span></Button>)}
+          </div>
+          <div className="flex flex-col gap-1 rounded-lg bg-muted p-3"><span className="text-caption text-muted-foreground">{tr('معاينة', 'Preview')}</span><p className="text-body" dir="rtl">{preview}</p></div>
+        </SettingsCard>
+        <Card>
+          <CardHeader><CardTitle>{tr('حسابي', 'My account')}</CardTitle><CardDescription>{tr('الاسم وكلمة المرور واللغة والمظهر.', 'Name, password, language and theme.')}</CardDescription><CardAction><Button variant="outline" size="sm" asChild><a href="Settings.html?auth=1">{tr('الإعدادات الشخصية', 'Personal settings')}<ArrowEndIcon /></a></Button></CardAction></CardHeader>
+        </Card>
+      </div>
+    </OwnerShell>
+  );
+}
+function Screen() { const [theme, setTheme] = useTheme(); return <DeskProvider><OSInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

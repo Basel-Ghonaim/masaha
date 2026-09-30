@@ -9,6 +9,8 @@ export default defineConfig([
   // The Claude Design sync (.design-sync/NOTES.md): its inputs are checked by the sync's own
   // render check and grading, and the other three are its gitignored build output.
   globalIgnores(['.design-sync/', '.ds-sync/', '.ds-pkg/', 'ds-bundle/']),
+  // The design archive (docs/design/README.md): a frozen prototype with vendored code, never linted.
+  globalIgnores(['docs/design/']),
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {

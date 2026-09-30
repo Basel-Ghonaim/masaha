@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>أصحاب المساحات — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/admin-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/admin.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, Field, Input, Checkbox, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Alert, AlertTitle, AlertDescription, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, UsersIcon, EllipsisVerticalIcon, XIcon, toast } = window.MasahaDesignSystem;
+const spaceName = (id) => AD.spaces.find((s) => s.id === id).name;
+const lastOwner = (sid, list) => list.filter((o) => o.spaces.includes(sid)).length === 1;
+function Owners({ theme, setTheme }) {
+  const [list, setList] = React.useState(AD.owners);
+  const [sheet, setSheet] = React.useState(pageParams.get('sheet') === 'add' ? { mode: 'add' } : pageParams.get('link') ? { mode: 'link', owner: AD.owners.find((o) => o.id === pageParams.get('link')) } : null);
+  const [name, setName] = React.useState(pageParams.get('email') ? tr('نور سالم', 'Nour Salem') : ''); const [email, setEmail] = React.useState(pageParams.get('email') || ''); const [picked, setPicked] = React.useState(pageParams.get('email') ? ['zm'] : []); const [err, setErr] = React.useState({});
+  const [pass, setPass] = React.useState(pageParams.get('pass') ? { name: tr('ريم', 'Reem'), email: 'reem@example.com', pw: 'Msh-9d3x-527' } : null);
+  const [unlink, setUnlink] = React.useState(pageParams.get('unlink') ? { o: AD.owners[2], sid: 'numberone' } : null);
+  const existing = AD.users.find((u) => u.email === email.trim().toLowerCase() && u.role === 'user');
+  const already = list.find((o) => o.email === email.trim().toLowerCase());
+  const linkable = AD.spaces.filter((s) => s.status !== 'hidden');
+  const togglePick = (id, on) => setPicked((p) => (on ? [...p, id] : p.filter((x) => x !== id)));
+  const openAdd = () => { setName(''); setEmail(''); setPicked([]); setErr({}); setSheet({ mode: 'add' }); };
+  const submit = (e) => {
+    e.preventDefault();
+    if (sheet.mode === 'link') { const o = sheet.owner; setList((l) => l.map((x) => (x.id === o.id ? { ...x, spaces: [...new Set([...x.spaces, ...picked])] } : x))); toast.success(tr('رُبطت المساحات', 'Spaces linked'), { description: o.name }); setSheet(null); return; }
+    const x = {};
+    if (!name.trim()) x.name = tr('أدخل الاسم', 'Enter the name');
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) x.email = tr('أدخل بريدًا صحيحًا، مثل name@example.com', 'Enter a valid email, e.g. name@example.com');
+    else if (already) x.email = tr('هذا البريد مالك مسبقًا', 'This email is already an owner');
+    setErr(x); if (Object.keys(x).length) return;
+    const o = { id: 'o' + Date.now(), name: name.trim(), email: email.trim().toLowerCase(), spaces: picked, status: 'active' };
+    setList((l) => [...l, o]); setSheet(null);
+    if (existing) toast.success(tr('رُقّي الحساب إلى مالك ورُبط', 'Account upgraded to owner and linked'), { description: o.email });
+    else setPass({ name: o.name, email: o.email, pw: tempPass() });
+  };
+  const doUnlink = () => { const { o, sid } = unlink; const wasLast = lastOwner(sid, list); setList((l) => l.map((x) => (x.id === o.id ? { ...x, spaces: x.spaces.filter((s) => s !== sid) } : x))); toast(wasLast ? tr('فُك الربط · المساحة أصبحت غير موثّقة', 'Unlinked · the space is now unverified') : tr('فُك الربط', 'Unlinked')); };
+  const chips = (o) => o.spaces.length ? <span className="flex flex-wrap gap-2">{o.spaces.map((sid) => <Badge key={sid} variant="neutral"><span lang="en">{spaceName(sid)}</span></Badge>)}</span> : <span className="text-muted-foreground">{tr('بدون مساحة', 'No space')}</span>;
+  const actions = (o) => (
+    <DropdownMenu dir={DIR}>
+      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={tr('إجراءات ', 'Actions for ') + o.name}><EllipsisVerticalIcon /></Button></DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => { setPicked([]); setSheet({ mode: 'link', owner: o }); }}>{tr('ربط بمساحة', 'Link to a space')}</DropdownMenuItem>
+        {o.spaces.map((sid) => <DropdownMenuItem key={sid} onSelect={() => setUnlink({ o, sid })}>{tr('فك الربط من ', 'Unlink from ')}<span lang="en">{spaceName(sid)}</span></DropdownMenuItem>)}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+  const St = ({ o }) => <Badge variant={o.status === 'active' ? 'success' : 'neutral'}>{o.status === 'active' ? tr('نشط', 'Active') : tr('موقوف', 'Suspended')}</Badge>;
+  const columns = [
+    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
+    { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <span dir="ltr">{row.original.email}</span> },
+    { id: 'spaces', header: tr('المساحات المرتبطة', 'Linked spaces'), cell: ({ row }) => chips(row.original) },
+    { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <St o={row.original} /> },
+    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
+  ];
+  const addBtn = <Button onClick={openAdd}>{tr('إضافة مالك', 'Add owner')}</Button>;
+  return (
+    <AdminShell current="owners" title={tr('أصحاب المساحات', 'Space owners')} theme={theme} setTheme={setTheme} actions={addBtn}>
+      <p className="text-body-sm text-muted-foreground">{tr('ربط مالك بمساحة يجعلها موثّقة؛ بعدها يعدّلها المالك ويرى تشغيلها وحده.', 'Linking an owner makes a space verified; from then on the owner edits it and alone sees its operations.')}</p>
+      <DataTable label={tr('أصحاب المساحات', 'Space owners')} columns={columns} data={list} getRowId={(r) => r.id}
+        toolbar={<div className="md:hidden">{addBtn}</div>}
+        renderCard={(o) => (<div className="flex items-start justify-between gap-3"><div className="flex min-w-0 flex-col gap-2"><span className="text-label">{o.name}</span><span dir="ltr" className="self-start text-caption text-muted-foreground">{o.email}</span>{chips(o)}<span><St o={o} /></span></div>{actions(o)}</div>)}
+        empty={<EmptyState icon={<UsersIcon />} title={tr('لا يوجد أصحاب مساحات', 'No space owners')} description={tr('أضف مالكًا واربطه بمساحته لتصبح موثّقة.', 'Add an owner and link their space to verify it.')}>{addBtn}</EmptyState>} />
+      <Sheet open={!!sheet} onOpenChange={(o) => !o && setSheet(null)}>
+        <SheetContent side="end" closeLabel={tr('إغلاق', 'Close')}>
+          <SheetHeader><SheetTitle>{sheet && sheet.mode === 'link' ? tr('ربط بمساحة', 'Link to a space') + ' · ' + sheet.owner.name : tr('إضافة مالك', 'Add owner')}</SheetTitle><SheetDescription>{tr('يمكن ربط مالك بأكثر من مساحة.', 'An owner can be linked to more than one space.')}</SheetDescription></SheetHeader>
+          <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
+            <SheetBody className="flex flex-col gap-5 py-2">
+              {sheet && sheet.mode === 'add' && <>
+                <Field label={tr('الاسم', 'Name')} error={err.name}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+                <Field label={tr('البريد الإلكتروني', 'Email')} error={err.email}><Input type="email" dir="ltr" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+                {existing && !already && <Alert variant="info"><AlertTitle>{tr('هذا البريد له حساب مستخدم', 'This email has a user account')}</AlertTitle><AlertDescription>{tr('سيُرقّى إلى مالك ويُربط، ويدخل بكلمة مروره.', 'It will be upgraded to owner and linked, and signs in with its own password.')}</AlertDescription></Alert>}
+              </>}
+              <Field label={tr('المساحات', 'Spaces')}>
+                <div className="flex flex-col gap-2">{linkable.map((s) => {
+                  const mine = sheet && sheet.mode === 'link' && sheet.owner.spaces.includes(s.id);
+                  return <Field key={s.id} orientation="horizontal" label={<span className="flex flex-wrap items-center gap-2"><span lang="en">{s.name}</span><SpaceStatus s={s} />{mine && <span className="text-caption text-muted-foreground">{tr('مربوطة', 'Linked')}</span>}</span>}><Checkbox checked={mine || picked.includes(s.id)} disabled={mine} onCheckedChange={(on) => togglePick(s.id, !!on)} /></Field>;
+                })}</div>
+              </Field>
+            </SheetBody>
+            <SheetFooter><Button type="submit" className="w-full">{sheet && sheet.mode === 'link' ? tr('ربط', 'Link') : existing && !already ? tr('ترقية وربط', 'Upgrade and link') : tr('إضافة', 'Add')}</Button></SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
+      <TempPassDialog info={pass} onClose={() => setPass(null)} line={tr('سلّمها للمالك؛ سيُطلب منه تغييرها عند أول دخول.', 'Hand it to the owner; they’ll be asked to change it at first sign-in.')} />
+      <AlertDialog open={!!unlink} onOpenChange={(o) => !o && setUnlink(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{tr('فك ربط', 'Unlink')} {unlink && unlink.o.name} {tr('من', 'from')} <span lang="en">{unlink && spaceName(unlink.sid)}</span>؟</AlertDialogTitle>
+            <AlertDialogDescription>{unlink && lastOwner(unlink.sid, list) ? tr('ستصبح المساحة غير موثّقة: تختفي حالتها المباشرة ويعدّلها فريق مساحة.', 'The space will become unverified: its live status disappears and the Masaha team edits it.') : tr('يبقى المالكون الآخرون مرتبطين.', 'The other owners stay linked.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={doUnlink}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AdminShell>
+  );
+}
+
+function Screen() { const [theme, setTheme] = useTheme(); return <Owners theme={theme} setTheme={setTheme} />; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>
