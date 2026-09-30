@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
 
 ## Conventions
@@ -58,7 +58,7 @@ Summaries only: the schema owns the fields.
 - **ClosureExtension** — the owner extended the space's active subscriptions after a closure: the closure announcement (at most one extension each), the days, who applied it and when. **SubscriptionExtension** links it to each subscription it moved on; how many is the count of those links.
 - **DataReport** — a user's report that one field group of a space is wrong (prices, hours, contact, location, amenities, other), with its resolution and an optional note to the reporter, written by whoever resolves it.
 - **Favorite** — a user's saved space.
-- **Setting** — a platform setting: the staleness thresholds `stalenessDays` (60) and `priceStalenessDays` (30), and the platform's `contactEmail` and `contactWhatsapp`.
+- **Setting** — a platform setting: the staleness thresholds `stalenessDays` (60) and `priceStalenessDays` (30); `newSpaceDefaults`, one object holding the values a new space's settings are copied from (auto check-out at closing on, the visit rounding rule up after 15 minutes, the cap at the day price on; [conventions §9](../backend/conventions.md#new-space-defaults)); and the platform's `contactEmail` and `contactWhatsapp`.
 - **AuditLog** — who did what to which entity, with before and after, optionally scoped to a space. The actor is null for system actions such as auto check-out. Never deleted.
 
 ## Derived values (computed, not stored)

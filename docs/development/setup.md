@@ -97,7 +97,7 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
 `npm run db:seed` fills a database with what every environment starts with:
 - the lookups: the Gaza Strip's governorates and areas (the unreachable ones inactive) and the amenities, in both languages;
 - one `ADMIN` account;
-- the default settings: the staleness thresholds (60 days, and 30 for prices), plus the platform's contact email and WhatsApp when they are given.
+- the default settings: the staleness thresholds (60 days, and 30 for prices) and the new-space defaults (auto check-out at closing on, visits rounded up after 15 minutes, capped at the day price), plus the platform's contact email and WhatsApp when they are given.
 
 It reads the admin's credentials and the contact from `apps/api/.env` (`SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, optionally `SEED_ADMIN_NAME`, `SEED_CONTACT_EMAIL`, `SEED_CONTACT_WHATSAPP`; see `.env.example`). They live only there, never in the repository. It stops, naming each one, when a required one is missing or invalid.
 
