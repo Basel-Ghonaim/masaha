@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>المالية والتقارير — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/desk-sheet.jsx"></script>
+<script type="text/babel" src="masaha/finance.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, StatCard, Tabs, TabsList, TabsTrigger, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState, CircleCheckIcon } = window.MasahaDesignSystem;
+const monthName = (ym) => new Date(ym + '-15T12:00:00').toLocaleDateString(tr('ar-EG', 'en-GB'), { month: 'short' });
+const SUBS = tr('اشتراكات', 'Memberships'), VISITS = tr('زيارات', 'Visits');
+
+function IncomeTab() {
+  const rows = DESK.ledger();
+  const today = DESK.collected(rows.filter((r) => r.date === DESK.TODAY));
+  const [mv, ms] = DESK.monthly[11], [pv, ps] = DESK.monthly[10];
+  const month = mv + ms, prev = pv + ps, pct = Math.round(((month - prev) / prev) * 100);
+  const allTime = 18240 + DESK.monthly.reduce((a, [v, s]) => a + v + s, 0);
+  const days30 = DESK.daily30.map((v, i) => { const iso = DESK.addDays(DESK.TODAY, i - 29); return { iso, day: Number(iso.slice(8)), label: DESK.fmtDate(iso), values: [v] }; });
+  const TICKS = [1, 5, 10, 15, 20, 25, 30];
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard label={tr('اليوم', 'Today')} value={<Money n={today} />} helper={tr('حتى', 'Up to') + ' ' + DESK.NOW} />
+        <StatCard label={tr('هذا الشهر', 'This month')} value={<Money n={month} />} helper={<>{pct >= 0 ? '+' : ''}<Num>{pct + '%'}</Num> {tr('عن الشهر الماضي', 'vs last month')} (<Money n={prev} />)</>} />
+        <StatCard label={tr('منذ البداية', 'All time')} value={<Money n={allTime} />} helper={tr('منذ مارس 2025', 'Since March 2025')} />
+      </div>
+      <Card>
+        <CardHeader><CardTitle>{tr('الدخل حسب الشهر', 'Income by month')}</CardTitle><CardDescription>{tr('آخر 12 شهرًا', 'Last 12 months')}</CardDescription></CardHeader>
+        <CardContent><BarChart altHide title={tr('الدخل حسب الشهر، آخر 12 شهرًا', 'Income by month, last 12 months')} fmt={DESK.money} series={[{ name: SUBS, cls: 'bg-chart-1' }, { name: VISITS, cls: 'bg-chart-2' }]} data={DESK.MONTHS.map((m, i) => ({ label: monthName(m), values: [DESK.monthly[i][1], DESK.monthly[i][0]] }))} /></CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>{tr('دخل الزيارات يوميًا', 'Visit income per day')}</CardTitle><CardDescription>{tr('آخر 30 يومًا · الجمعة مغلق', 'Last 30 days · closed on Fridays')}</CardDescription></CardHeader>
+        <CardContent><BarChart title={tr('دخل الزيارات يوميًا، آخر 30 يومًا', 'Visit income per day, last 30 days')} fmt={DESK.money} height="chart-h-sm" tick={(d) => (TICKS.includes(d.day) && d.iso.startsWith('2026-09') ? <Num>{d.day}</Num> : '')} axisCaption={tr('أغسطس – سبتمبر 2026', 'August – September 2026')} series={[{ name: VISITS, cls: 'bg-chart-2' }]} data={days30} /></CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>{tr('التحصيل حسب الموظف', 'Collections by staff member')}</CardTitle><CardDescription>{tr('هذا الشهر', 'This month')}</CardDescription></CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader><TableRow><TableHead>{tr('الموظف', 'Staff')}</TableHead><TableHead>{tr('العدد', 'Count')}</TableHead><TableHead>{tr('المجموع', 'Total')}</TableHead><TableHead>{DESK.methodLabel.cash}</TableHead><TableHead>{DESK.methodLabel.transfer}</TableHead></TableRow></TableHeader>
+            <TableBody>{DESK.staffMonth.map(([who, n, total, cash, tf]) => (
+              <TableRow key={who}><TableCell className="text-label">{DESK.by(who)}</TableCell><TableCell><Num>{n}</Num></TableCell><TableCell className="text-label"><Money n={total} /></TableCell><TableCell><Money n={cash} /></TableCell><TableCell><Money n={tf} /></TableCell></TableRow>
+            ))}</TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function DebtsTab() {
+  const desk = useDesk();
+  const debtors = DESK.customers.filter((c) => DESK.balance(c) > 0).map((c) => { const items = DESK.openItems(c); return { c, bal: DESK.balance(c), since: items[0].date, oldest: items[0].label }; }).sort((a, b) => b.bal - a.bal);
+  const total = debtors.reduce((a, d) => a + d.bal, 0);
+  const credits = DESK.customers.filter((c) => DESK.credit(c) > 0);
+  const paidThisMonth = [...new Set(DESK.ledger().filter((r) => !r.voided && r.date.startsWith('2026-09') && r.customerId).map((r) => r.customerId))].map((id) => DESK.findCustomer(id));
+  const wa = (c, bal) => 'https://wa.me/' + c.phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(tr(`مرحبًا ${c.name.split(' ')[0]}، تذكير من Focus Hub: عليك ${DESK.money(bal)}. يمكنك الدفع في المساحة. شكرًا.`, `Hi ${c.name.split(' ')[0]}, a reminder from Focus Hub: you owe ${DESK.money(bal)}. You can pay at the space. Thank you.`));
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard label={tr('مجموع الديون', 'Total owed')} value={<Money n={total} />} helper={<><Num>{debtors.length}</Num> {tr('زبائن', 'customers')}</>} />
+        <StatCard label={tr('أرصدة للزبائن', 'Customer credit')} value={<Money n={credits.reduce((a, c) => a + DESK.credit(c), 0)} />} helper={<><Num>{credits.length}</Num> {tr('زبون دفع مقدمًا', 'prepaid')}</>} />
+        <StatCard label={tr('دفعوا هذا الشهر', 'Paid this month')} value={<Num>{paidThisMonth.length}</Num>} helper={tr('زبائن', 'customers')} />
+      </div>
+      <Card>
+        <CardHeader><CardTitle>{tr('عليهم مبالغ', 'Customers who owe')}</CardTitle><CardDescription>{tr('الأكبر أولًا', 'Largest first')}</CardDescription></CardHeader>
+        <CardContent className="p-0">
+          {debtors.length ? <ul className="divide-y">{debtors.map(({ c, bal, since, oldest }) => (
+            <li key={c.id} className="flex flex-col gap-2 px-5 py-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex min-w-0 flex-col">
+                <a className="text-label text-foreground" href={'Customer file.html?id=' + c.id}>{c.name}</a>
+                <span className="text-caption text-muted-foreground">{tr('منذ', 'Since')} {DESK.fmtDate(since)} · {tr('أقدم بند:', 'Oldest item:')} {oldest}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="warning"><span>{tr('عليه', 'Owes')} <Money n={bal} /></span></Badge>
+                {c.phone && <Button size="sm" variant="ghost" asChild><a href={wa(c, bal)} target="_blank" rel="noopener">{tr('تذكير على واتساب', 'WhatsApp reminder')}</a></Button>}
+                <Button size="sm" variant="outline" onClick={() => desk.open('pay', { customerId: c.id })}>{tr('استلام دفعة', 'Receive payment')}</Button>
+              </div>
+            </li>
+          ))}</ul> : <EmptyState icon={<CircleCheckIcon />} title={tr('لا توجد ديون', 'No one owes anything')} />}
+        </CardContent>
+      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>{tr('لهم رصيد', 'In credit')}</CardTitle><CardDescription>{tr('دفعوا مقدمًا أكثر مما استخدموا', 'Paid in advance beyond their use')}</CardDescription></CardHeader>
+          <CardContent className="p-0"><ul className="divide-y">{credits.map((c) => <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-3"><a className="text-label text-foreground" href={'Customer file.html?id=' + c.id}>{c.name}</a><BalanceBadge c={c} /></li>)}</ul></CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>{tr('دفعوا هذا الشهر', 'Paid this month')}</CardTitle></CardHeader>
+          <CardContent className="p-0"><ul className="divide-y">{paidThisMonth.slice(0, 8).map((c) => <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-3"><a className="text-label text-foreground" href={'Customer file.html?id=' + c.id}>{c.name}</a><span className="text-body-sm text-muted-foreground">{DESK.currentSub(c) ? DESK.currentSub(c).name : ''}</span></li>)}</ul>
+          {paidThisMonth.length > 8 && <p className="px-5 pb-4 text-caption text-muted-foreground">{tr('و', 'and')} <Num>{paidThisMonth.length - 8}</Num> {tr('آخرين', 'more')}</p>}</CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function OccupancyTab() {
+  const hours = ['08', '09', '10', '11', '12', '13', '14', '15', '16', '17'];
+  const rows = DESK.WEEKDAYS.filter(([k]) => DESK.heat[k]).map(([k, l]) => ({ label: l, values: DESK.heat[k] }));
+  const days = DESK.perDay.map(([s, v], i) => ({ label: DESK.fmtDate(DESK.addDays(DESK.TODAY, i - 13)), values: [s, v] }));
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard label={tr('متوسط مدة الجلوس', 'Average stay')} value={<><Num>4:12</Num> {tr('س', 'h')}</>} helper={tr('المشتركون 5:05 · الزيارات 2:40', 'Members 5:05 · visits 2:40')} />
+        <StatCard label={tr('ساعة الذروة', 'Peak hour')} value={<Num>11:00–13:00</Num>} helper={tr('الأحد والاثنين الأعلى', 'Sunday and Monday are busiest')} />
+        <StatCard label={tr('متوسط الحضور اليومي', 'Average daily attendance')} value={<Num>26</Num>} helper={tr('آخر 14 يومًا', 'Last 14 days')} />
+      </div>
+      <Card>
+        <CardHeader><CardTitle>{tr('ساعات الذروة', 'Peak hours')}</CardTitle><CardDescription>{tr('متوسط الحاضرين لكل ساعة · الجمعة مغلق', 'Average people present per hour · closed on Fridays')}</CardDescription></CardHeader>
+        <CardContent className="overflow-x-auto"><Heatmap title={tr('متوسط الحاضرين حسب اليوم والساعة', 'Average people present by day and hour')} unit={tr('أشخاص', 'people')} rows={rows} hours={hours} /></CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>{tr('الزيارات والمشتركون يوميًا', 'Visits and members per day')}</CardTitle><CardDescription>{tr('آخر 14 يومًا', 'Last 14 days')}</CardDescription></CardHeader>
+        <CardContent><BarChart title={tr('الزيارات والمشتركون يوميًا، آخر 14 يومًا', 'Visits and members per day, last 14 days')} showEvery={2} series={[{ name: tr('مشتركون', 'Members'), cls: 'bg-chart-1' }, { name: VISITS, cls: 'bg-chart-2' }]} data={days} /></CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function FinanceInner({ theme, setTheme }) {
+  const [tab, setTab] = React.useState(pageParams.get('tab') || 'income');
+  const [range, setRange] = React.useState({ from: dayDate('2026-09-01'), to: dayDate(DESK.TODAY) });
+  const exportCsv = () => {
+    if (tab === 'income') downloadCSV('masaha-income', [tr('الشهر', 'Month'), SUBS, VISITS, tr('المجموع', 'Total')], DESK.MONTHS.map((m, i) => [m, DESK.monthly[i][1], DESK.monthly[i][0], DESK.monthly[i][0] + DESK.monthly[i][1]]));
+    else if (tab === 'debts') downloadCSV('masaha-debts', [tr('الاسم', 'Name'), tr('الجوال', 'Mobile'), tr('المبلغ', 'Amount')], DESK.customers.filter((c) => DESK.balance(c) > 0).map((c) => [c.name, c.phone, DESK.balance(c)]));
+    else downloadCSV('masaha-occupancy', [tr('اليوم', 'Day'), '08', '09', '10', '11', '12', '13', '14', '15', '16', '17'], DESK.WEEKDAYS.filter(([k]) => DESK.heat[k]).map(([k, l]) => [l, ...DESK.heat[k]]));
+  };
+  return (
+    <OwnerShell current="finance" title={tr('المالية والتقارير', 'Finance & reports')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList aria-label={tr('التقارير', 'Reports')}>
+            <TabsTrigger value="income">{tr('الدخل', 'Income')}</TabsTrigger>
+            <TabsTrigger value="debts">{tr('الديون', 'Debts')}</TabsTrigger>
+            <TabsTrigger value="occupancy">{tr('الإشغال', 'Occupancy')}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="flex flex-col gap-2 md:flex-row md:items-end">
+          <FilterSheet><div className="md:w-72"><RangePicker value={range} onChange={setRange} /></div></FilterSheet>
+          <CsvButton onClick={exportCsv} />
+        </div>
+      </div>
+      {tab === 'income' && <p className="text-caption text-muted-foreground">{tr('الدخل = المبالغ المقبوضة فعليًا، بدون الدفعات الملغاة.', 'Income = amounts actually collected, excluding voided payments.')}</p>}
+      {tab === 'income' ? <IncomeTab /> : tab === 'debts' ? <DebtsTab /> : <OccupancyTab />}
+    </OwnerShell>
+  );
+}
+function FinanceScreen() { const [theme, setTheme] = useTheme(); return <DeskProvider><FinanceInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><FinanceScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

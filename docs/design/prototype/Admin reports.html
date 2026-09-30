@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بلاغات البيانات — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/admin-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/admin.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, ToggleGroup, ToggleGroupItem, Field, Textarea, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Alert, AlertDescription, TriangleAlertIcon, ArrowEndIcon, toast } = window.MasahaDesignSystem;
+const spaceOf = (r) => AD.spaces.find((s) => s.id === r.space);
+const CURRENT = { prices: tr('ساعة 3 ₪ · يوم 15 ₪ · شهر 300 ₪', 'Hour ₪3 · Day ₪15 · Month ₪300'), location: tr('غزة، شارع النفق، قرب مسجد …', 'Gaza, An-Nafaq Street, near … mosque'), contacts: tr('واتساب +970 59 000 0000', 'WhatsApp +970 59 000 0000'), hours: tr('السبت – الخميس 08:00–18:00', 'Sat – Thu 08:00–18:00'), amenities: tr('إنترنت · كهرباء مستقرة · مشروبات ساخنة', 'Internet · Stable power · Hot drinks'), other: '—' };
+const SECTION = { prices: 'prices', hours: 'hours', contacts: 'contacts', location: 'location', amenities: 'amenities', other: 'basics' };
+function Reports({ theme, setTheme }) {
+  const [list, setList] = React.useState(AD.reports);
+  const [st, setSt] = React.useState(pageParams.get('status') || 'all');
+  const [open, setOpen] = React.useState(pageParams.get('open') ? AD.reports.find((r) => r.id === pageParams.get('open')) : null);
+  const [reply, setReply] = React.useState('');
+  React.useEffect(() => { if (open) setReply(open.reply || ''); }, [open]);
+  const rows = list.filter((r) => st === 'all' || r.status === st);
+  const decide = (status) => { setList((l) => l.map((x) => (x.id === open.id ? { ...x, status, reply } : x))); setOpen(null); toast.success(status === 'fixed' ? tr('عُلّم «تم التصحيح»', 'Marked «Corrected»') : tr('عُلّم «لم يُعتمد»', 'Marked «Not accepted»')); };
+  const S = AD.RSTAT;
+  const By = ({ r }) => AD.handledBy(r) === 'admin' ? <Badge variant="info">{tr('الإدارة', 'Admin')}</Badge> : <Badge variant="neutral">{tr('المالك', 'Owner')}</Badge>;
+  const columns = [
+    { id: 'space', header: tr('المساحة', 'Space'), cell: ({ row }) => <span lang="en" className="text-label">{spaceOf(row.original).name}</span> },
+    { id: 'field', header: tr('الحقل', 'Field'), cell: ({ row }) => AD.FIELD[row.original.field] },
+    { id: 'msg', header: tr('البلاغ', 'Report'), cell: ({ row }) => <span className="line-clamp-2 text-body-sm">{row.original.msg}</span> },
+    { id: 'who', header: tr('المُبلِّغ', 'Reporter'), cell: ({ row }) => row.original.who },
+    { id: 'date', header: tr('التاريخ', 'Date'), cell: ({ row }) => AD.fmt(row.original.date) },
+    { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <Badge variant={S[row.original.status][1]}>{S[row.original.status][0]}</Badge> },
+    { id: 'by', header: tr('يعالجه', 'Handled by'), cell: ({ row }) => <By r={row.original} /> },
+    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end"><Button size="sm" variant="outline" onClick={() => setOpen(row.original)}>{AD.handledBy(row.original) === 'admin' ? tr('فتح', 'Open') : tr('عرض', 'View')}</Button></div> }
+  ];
+  const ro = open && AD.handledBy(open) === 'owner';
+  return (
+    <AdminShell current="reports" title={tr('بلاغات البيانات', 'Data reports')} theme={theme} setTheme={setTheme}>
+      <p className="text-body-sm text-muted-foreground">{tr('الإدارة تعالج بلاغات المساحات غير الموثّقة. بلاغات المساحات الموثّقة يعالجها مالكها وتظهر هنا للاطلاع.', 'The admin handles reports on unverified spaces. Reports on verified spaces are handled by their owner and shown here for reference.')}</p>
+      <DataTable label={tr('بلاغات البيانات', 'Data reports')} columns={columns} data={rows} getRowId={(r) => r.id}
+        toolbar={<ToggleGroup type="single" value={st} onValueChange={(v) => v && setSt(v)} aria-label={tr('تصفية حسب الحالة', 'Filter by status')}><ToggleGroupItem value="all">{tr('الكل', 'All')}</ToggleGroupItem>{Object.entries(S).map(([k, [l]]) => <ToggleGroupItem key={k} value={k}>{l}</ToggleGroupItem>)}</ToggleGroup>}
+        renderCard={(r) => (<div className="flex flex-col gap-2"><div className="flex items-center justify-between gap-2"><span className="text-label"><span lang="en">{spaceOf(r).name}</span> · {AD.FIELD[r.field]}</span><Badge variant={S[r.status][1]}>{S[r.status][0]}</Badge></div><p className="line-clamp-2 text-body-sm">{r.msg}</p><div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-caption text-muted-foreground">{r.who} · {AD.fmt(r.date)} <By r={r} /></span><Button size="sm" variant="outline" onClick={() => setOpen(r)}>{AD.handledBy(r) === 'admin' ? tr('فتح', 'Open') : tr('عرض', 'View')}</Button></div></div>)}
+        empty={<EmptyState icon={<TriangleAlertIcon />} title={tr('لا توجد بلاغات بهذه الحالة', 'No reports with this status')} />} />
+      <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
+        <SheetContent side="end" closeLabel={tr('إغلاق', 'Close')}>
+          {open && <>
+            <SheetHeader><SheetTitle><span lang="en">{spaceOf(open).name}</span> · {AD.FIELD[open.field]}</SheetTitle><SheetDescription>{open.who} · {AD.fmt(open.date, true)} · <Badge variant={S[open.status][1]}>{S[open.status][0]}</Badge></SheetDescription></SheetHeader>
+            <SheetBody className="flex flex-col gap-5 py-2">
+              {ro && <Alert variant="info"><AlertDescription>{tr('مساحة موثّقة — يعالج المالك هذا البلاغ. للاطلاع فقط.', 'Verified space — its owner handles this report. For reference only.')}</AlertDescription></Alert>}
+              <div className="flex flex-col gap-1 rounded-lg border border-border p-3"><span className="text-caption text-muted-foreground">{tr('البلاغ', 'The report')}</span><p className="text-body">{open.msg}</p></div>
+              <div className="flex flex-col gap-1 rounded-lg bg-muted p-3"><span className="text-caption text-muted-foreground">{tr('القيمة الحالية في صفحة المساحة', 'Current value on the space page')}</span><p className="text-body">{CURRENT[open.field]}</p></div>
+              {!ro && <Button variant="outline" className="self-start" asChild><a href={'Admin space edit.html?id=' + open.space + '#' + SECTION[open.field]}>{tr('تعديل الحقل', 'Edit the field')}<ArrowEndIcon /></a></Button>}
+              {ro ? (open.reply && <div className="flex flex-col gap-1 rounded-lg bg-muted p-3"><span className="text-caption text-muted-foreground">{tr('ردّ إدارة المساحة', 'Reply from the space')}</span><p className="text-body-sm">{open.reply}</p></div>)
+                : <Field label={tr('ردّ فريق مساحة', 'Reply from the Masaha team')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>} helper={tr('يظهر لصاحب البلاغ.', 'Shown to the person who reported it.')}><Textarea rows={3} value={reply} onChange={(e) => setReply(e.target.value)} /></Field>}
+            </SheetBody>
+            {!ro && <SheetFooter className="flex flex-row gap-2"><Button className="flex-1" onClick={() => decide('fixed')}>{tr('تم التصحيح', 'Corrected')}</Button><Button variant="outline" className="flex-1" onClick={() => decide('rejected')}>{tr('لم يُعتمد', 'Not accepted')}</Button></SheetFooter>}
+          </>}
+        </SheetContent>
+      </Sheet>
+    </AdminShell>
+  );
+}
+
+function Screen() { const [theme, setTheme] = useTheme(); return <Reports theme={theme} setTheme={setTheme} />; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

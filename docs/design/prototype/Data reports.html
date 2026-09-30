@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بلاغات البيانات — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/desk-sheet.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, ToggleGroup, ToggleGroupItem, Field, Textarea, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, TriangleAlertIcon, ArrowEndIcon, toast } = window.MasahaDesignSystem;
+const FIELDS = () => ({ prices: [tr('الأسعار', 'Prices'), 'Packages.html'], hours: [tr('ساعات العمل', 'Opening hours'), 'Owner space profile.html#hours'], contacts: [tr('التواصل', 'Contacts'), 'Owner space profile.html#contacts'], location: [tr('الموقع', 'Location'), 'Owner space profile.html#location'], amenities: [tr('المرافق', 'Amenities'), 'Owner space profile.html#amenities'], other: [tr('أخرى', 'Other'), 'Owner space profile.html'] });
+const CURRENT = () => ({
+  prices: tr('ساعة 3 ₪ · يوم 15 ₪ · أسبوع 90 ₪ · شهر 300 ₪ · شهر طلاب 250 ₪', 'Hour ₪3 · Day ₪15 · Week ₪90 · Month ₪300 · Student month ₪250'),
+  hours: tr('السبت – الخميس 08:00–18:00 · الجمعة مغلق', 'Sat – Thu 08:00–18:00 · Fri closed'),
+  contacts: tr('واتساب +970 59 000 0000 · اتصال +970 59 000 0001 · Instagram focushub', 'WhatsApp +970 59 000 0000 · Phone +970 59 000 0001 · Instagram focushub'),
+  location: tr('النصر، شارع النصر، عمارة 12، الطابق الثالث · قرب مفترق العيون', 'An-Nasr, An-Nasr Street, Building 12, 3rd floor · near Al-Oyoun junction'),
+  amenities: tr('إنترنت · كهرباء مستقرة · طاقة شمسية · مشروبات ساخنة · قاعة اجتماعات', 'Internet · Stable power · Solar power · Hot drinks · Meeting room'),
+  other: '—'
+});
+const INIT = [
+  { id: 'd1', field: 'hours', who: tr('سارة', 'Sara'), date: '2026-09-29', status: 'new', msg: tr('صارت المساحة تفتح 09:00 بدل 08:00 منذ بداية الأسبوع.', 'The space opens at 09:00 instead of 08:00 since the start of the week.') },
+  { id: 'd2', field: 'prices', who: tr('عمر', 'Omar'), date: '2026-09-27', status: 'new', msg: tr('سعر الأسبوع عند الاستقبال 100 ₪ وليس 90 ₪.', 'The weekly price at the desk is ₪100, not ₪90.') },
+  { id: 'd3', field: 'amenities', who: tr('ليان', 'Layan'), date: '2026-09-20', status: 'fixed', msg: tr('أضافوا قاعة اجتماعات جديدة في الطابق نفسه.', 'They added a new meeting room on the same floor.'), reply: tr('شكرًا، أضفنا القاعة إلى المرافق.', 'Thanks, we added the room to the amenities.') },
+  { id: 'd4', field: 'contacts', who: tr('خالد', 'Khaled'), date: '2026-09-12', status: 'rejected', msg: tr('رقم الواتساب لا يرد.', 'The WhatsApp number doesn’t answer.'), reply: tr('الرقم صحيح، نرد خلال ساعات العمل.', 'The number is correct; we reply during opening hours.') }
+];
+const STAT = () => ({ new: [tr('جديد', 'New'), 'info'], fixed: [tr('تم التصحيح', 'Corrected'), 'success'], rejected: [tr('لم يُعتمد', 'Not accepted'), 'neutral'] });
+
+function ReportSheet({ r, onClose, onDecide }) {
+  const [reply, setReply] = React.useState('');
+  React.useEffect(() => { if (r) setReply(r.reply || ''); }, [r]);
+  const F = FIELDS();
+  return (
+    <Sheet open={!!r} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="end" closeLabel={tr('إغلاق', 'Close')}>
+        {r && <>
+          <SheetHeader><SheetTitle>{tr('بلاغ عن', 'Report about')} {F[r.field][0]}</SheetTitle><SheetDescription>{r.who} · {DESK.fmtDate(r.date, true)} · <Badge variant={STAT()[r.status][1]}>{STAT()[r.status][0]}</Badge></SheetDescription></SheetHeader>
+          <SheetBody className="flex flex-col gap-5 py-2">
+            <div className="grid gap-3">
+              <div className="flex flex-col gap-1 rounded-lg border border-border p-3"><span className="text-caption text-muted-foreground">{tr('البلاغ', 'The report')}</span><p className="text-body">{r.msg}</p></div>
+              <div className="flex flex-col gap-1 rounded-lg bg-muted p-3"><span className="text-caption text-muted-foreground">{tr('القيمة الحالية في صفحة المساحة', 'Current value on the space page')}</span><p className="text-body">{CURRENT()[r.field]}</p></div>
+            </div>
+            <Button variant="outline" className="self-start" asChild><a href={F[r.field][1]}>{tr('تعديل الحقل', 'Edit the field')}<ArrowEndIcon /></a></Button>
+            <Field label={tr('ردّ إدارة المساحة', 'Reply from the space')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>} helper={tr('يظهر لصاحب البلاغ.', 'Shown to the person who reported it.')}><Textarea rows={3} value={reply} onChange={(e) => setReply(e.target.value)} /></Field>
+          </SheetBody>
+          <SheetFooter className="flex flex-row gap-2">
+            <Button className="flex-1" onClick={() => onDecide(r, 'fixed', reply)}>{tr('تم التصحيح', 'Corrected')}</Button>
+            <Button variant="outline" className="flex-1" onClick={() => onDecide(r, 'rejected', reply)}>{tr('لم يُعتمد', 'Not accepted')}</Button>
+          </SheetFooter>
+        </>}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function DRInner({ theme, setTheme }) {
+  const [list, setList] = React.useState(pageParams.get('state') === 'empty' ? [] : INIT);
+  const [st, setSt] = React.useState(pageParams.get('status') || 'all');
+  const [open, setOpen] = React.useState(pageParams.get('open') ? INIT.find((x) => x.id === pageParams.get('open')) : null);
+  const rows = list.filter((r) => st === 'all' || r.status === st);
+  const decide = (r, status, reply) => { setList((l) => l.map((x) => (x.id === r.id ? { ...x, status, reply } : x))); setOpen(null); toast.success(status === 'fixed' ? tr('عُلّم «تم التصحيح»', 'Marked «Corrected»') : tr('عُلّم «لم يُعتمد»', 'Marked «Not accepted»'), { description: reply ? tr('أُرسل الرد لصاحب البلاغ', 'The reply is shown to the reporter') : undefined }); };
+  const F = FIELDS(), S = STAT();
+  const columns = [
+    { id: 'field', header: tr('الحقل', 'Field'), cell: ({ row }) => <span className="text-label">{F[row.original.field][0]}</span> },
+    { id: 'msg', header: tr('البلاغ', 'Report'), cell: ({ row }) => <span className="line-clamp-2 text-body-sm">{row.original.msg}</span> },
+    { id: 'who', header: tr('المُبلِّغ', 'Reporter'), cell: ({ row }) => row.original.who },
+    { id: 'date', header: tr('التاريخ', 'Date'), cell: ({ row }) => DESK.fmtDate(row.original.date) },
+    { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <Badge variant={S[row.original.status][1]}>{S[row.original.status][0]}</Badge> },
+    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end"><Button size="sm" variant="outline" onClick={() => setOpen(row.original)}>{tr('فتح', 'Open')}</Button></div> }
+  ];
+  return (
+    <OwnerShell current="data-reports" title={tr('بلاغات البيانات', 'Data reports')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
+      <p className="text-body-sm text-muted-foreground">{tr('بلاغات الزوار عن معلومات خاطئة في صفحة المساحة.', 'Visitors’ reports about wrong information on the space page.')}</p>
+      <DataTable label={tr('بلاغات البيانات', 'Data reports')} columns={columns} data={rows} getRowId={(r) => r.id}
+        toolbar={<ToggleGroup type="single" value={st} onValueChange={(v) => v && setSt(v)} aria-label={tr('تصفية حسب الحالة', 'Filter by status')}>
+          <ToggleGroupItem value="all">{tr('الكل', 'All')}</ToggleGroupItem>
+          {Object.entries(S).map(([k, [l]]) => <ToggleGroupItem key={k} value={k}>{l}</ToggleGroupItem>)}
+        </ToggleGroup>}
+        renderCard={(r) => (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2"><span className="text-label">{F[r.field][0]}</span><Badge variant={S[r.status][1]}>{S[r.status][0]}</Badge></div>
+            <p className="line-clamp-2 text-body-sm">{r.msg}</p>
+            <div className="flex items-center justify-between gap-2"><span className="text-caption text-muted-foreground">{r.who} · {DESK.fmtDate(r.date)}</span><Button size="sm" variant="outline" onClick={() => setOpen(r)}>{tr('فتح', 'Open')}</Button></div>
+          </div>
+        )}
+        empty={<EmptyState icon={<TriangleAlertIcon />} title={list.length ? tr('لا توجد بلاغات بهذه الحالة', 'No reports with this status') : tr('لا توجد بلاغات', 'No reports')} description={list.length ? undefined : tr('عندما يبلّغ زائر عن معلومة خاطئة تظهر هنا.', 'When a visitor reports wrong information it shows up here.')} />} />
+      <ReportSheet r={open} onClose={() => setOpen(null)} onDecide={decide} />
+    </OwnerShell>
+  );
+}
+function Screen() { const [theme, setTheme] = useTheme(); return <DeskProvider><DRInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

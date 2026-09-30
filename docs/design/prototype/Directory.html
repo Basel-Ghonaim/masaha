@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>المساحات — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/location.jsx"></script>
+<script type="text/babel" src="masaha/map.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Input, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, ToggleGroup, ToggleGroupItem, Switch, Tabs, TabsList, TabsTrigger, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, SheetClose, Skeleton, SearchIcon, SearchXIcon, XIcon } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+
+const list = (k) => (pageParams.get(k) || '').split(',').filter(Boolean);
+const initialFilters = () => ({
+  q: pageParams.get('q') || '',
+  gov: pageParams.get('gov') || 'gaza',
+  areas: list('area'),
+  availableOnly: pageParams.get('available') === '1',
+  verifiedOnly: pageParams.get('verified') === '1',
+  period: pageParams.get('period') || '',
+  amenities: list('am'),
+  others: pageParams.get('demo') === 'noresults' ? ['friday'] : list('other')
+});
+// Filters live in the URL so the space page's back link returns to the same results.
+function syncUrl(f, view) {
+  const p = new URLSearchParams(location.search);
+  const put = (k, v) => (v ? p.set(k, v) : p.delete(k));
+  put('q', f.q.trim()); put('gov', f.gov !== 'gaza' ? f.gov : ''); put('area', f.areas.join(',')); put('available', f.availableOnly ? '1' : '');
+  put('verified', f.verifiedOnly ? '1' : ''); put('period', f.period); put('am', f.amenities.join(',')); put('other', f.others.join(',')); put('view', view === 'map' ? 'map' : '');
+  ['sheet', 'selected', 'pick'].forEach((k) => p.delete(k));
+  const qs = p.toString() ? '?' + p.toString() : '';
+  history.replaceState(null, '', location.pathname + qs);
+  try { const keep = new URLSearchParams(qs); ['state', 'demo', 'loc'].forEach((k) => keep.delete(k)); sessionStorage.setItem('masaha:dir-query', keep.toString() ? '?' + keep : ''); } catch (e) {}
+}
+const clearedFilters = (f) => ({ ...f, q: '', gov: 'gaza', areas: [], availableOnly: false, verifiedOnly: false, period: '', amenities: [], others: [] });
+const activeCount = (f) => f.areas.length + (f.gov !== 'gaza' ? 1 : 0) + (f.availableOnly ? 1 : 0) + (f.verifiedOnly ? 1 : 0) + (f.period ? 1 : 0) + f.amenities.length + f.others.length;
+const countLabel = (n) => n === 0 ? tr("لا توجد مساحات", "No spaces") : n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : LANG === 'en' ? `${n} spaces` : n <= 10 ? `${n} مساحات` : `${n} مساحة`;
+
+function applyFilters(f, sort, coords) {
+  const q = f.q.trim().toLowerCase();
+  const list = M.spaces.filter((s) =>
+    s.gov === f.gov &&
+    (!f.areas.length || f.areas.includes(s.area)) &&
+    (!f.availableOnly || (s.verified && s.status === 'open')) &&
+    (!f.verifiedOnly || s.verified) &&
+    (!f.period || s.prices[f.period] != null) &&
+    f.amenities.every((a) => s.amenities.includes(a)) &&
+    f.others.every((o) => s.others.includes(o)) &&
+    (!q || s.name.toLowerCase().includes(q) || M.areaName(s.area).includes(q))
+  ).map((s) => ({ s, km: coords ? M.distanceKm(coords, s) : null }));
+  const by = {
+    distance: (a, b) => a.km - b.km,
+    updated: (a, b) => a.s.updatedDays - b.s.updatedDays,
+    price: (a, b) => M.minPrice(a.s, f.period) - M.minPrice(b.s, f.period),
+    name: (a, b) => a.s.name.localeCompare(b.s.name)
+  };
+  return list.sort(by[sort] || by.updated);
+}
+
+function FiltersForm({ f, set }) {
+  const gov = M.governorates.find((g) => g.id === f.gov);
+  return (
+    <div className="flex flex-col gap-6">
+      <Field label={tr("المحافظة", "Governorate")}>
+        <Select value={f.gov} onValueChange={(v) => set({ gov: v, areas: [] })}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>{M.governorates.filter((g) => !g.hidden).map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
+        </Select>
+      </Field>
+      <Field label={tr("المنطقة", "Area")} helper={gov.areas.length ? undefined : tr("لا توجد مناطق مضافة في هذه المحافظة بعد", "No areas added in this governorate yet")}>
+        <ToggleGroup type="multiple" value={f.areas} onValueChange={(v) => set({ areas: v })}>
+          {gov.areas.map((a) => <ToggleGroupItem key={a.id} value={a.id}>{a.name}</ToggleGroupItem>)}
+        </ToggleGroup>
+      </Field>
+      <div className="flex flex-col gap-2">
+        <Field label={tr("متاحة الآن فقط", "Available now only")} orientation="horizontal"><Switch checked={f.availableOnly} onCheckedChange={(v) => set({ availableOnly: v })} /></Field>
+        <Field label={tr("المساحات الموثّقة فقط", "Verified spaces only")} orientation="horizontal"><Switch checked={f.verifiedOnly} onCheckedChange={(v) => set({ verifiedOnly: v })} /></Field>
+      </div>
+      <Field label={tr("مدة الاشتراك", "Period")}>
+        <ToggleGroup type="single" value={f.period} onValueChange={(v) => set({ period: v })}>
+          {M.periods.map((p) => <ToggleGroupItem key={p.id} value={p.id}>{p.filter}</ToggleGroupItem>)}
+        </ToggleGroup>
+      </Field>
+      <Field label={tr("المرافق", "Amenities")}>
+        <ToggleGroup type="multiple" value={f.amenities} onValueChange={(v) => set({ amenities: v })}>
+          {M.amenities.map((a) => <ToggleGroupItem key={a.id} value={a.id}>{a.name}</ToggleGroupItem>)}
+        </ToggleGroup>
+      </Field>
+      <Field label={tr("أخرى", "Other")}>
+        <ToggleGroup type="multiple" value={f.others} onValueChange={(v) => set({ others: v })}>
+          {M.others.map((a) => <ToggleGroupItem key={a.id} value={a.id}>{a.name}</ToggleGroupItem>)}
+        </ToggleGroup>
+      </Field>
+    </div>
+  );
+}
+
+function NoResults({ onClear }) {
+  return (
+    <EmptyState icon={<SearchXIcon />} title={tr("لا توجد مساحات تطابق الفلاتر", "No spaces match the filters")} description={tr("جرّب إزالة بعض الفلاتر أو البحث باسم آخر.", "Try removing some filters or searching for another name.")}>
+      <Button variant="outline" onClick={onClear}>{tr("مسح الفلاتر", "Clear filters")}</Button>
+    </EmptyState>
+  );
+}
+
+function CompactSpaceCard({ item, onClose }) {
+  const { s, km } = item;
+  return (
+    <Card className="shadow-overlay">
+      <CardHeader>
+        <CardTitle>{s.name}</CardTitle>
+        <CardDescription>{areaLine(s)}</CardDescription>
+        <CardAction><Button variant="ghost" size="icon" aria-label={tr("إغلاق", "Close")} onClick={onClose}><XIcon /></Button></CardAction>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        <LiveStatus space={s} />
+        <SpaceMeta space={s} km={km} />
+      </CardContent>
+      <CardFooter><Button className="w-full" asChild><a href={spaceHref(s)}>{tr("عرض التفاصيل", "View details")}</a></Button></CardFooter>
+    </Card>
+  );
+}
+
+function DirectoryScreen() {
+  const [theme, setTheme] = useTheme();
+  const isDesktop = useIsDesktop();
+  const near = useNearMe();
+  const [state, setState] = React.useState(pageParams.get('state') || 'ready');
+  const [f, setF] = React.useState(initialFilters);
+  const [view, setView] = React.useState(pageParams.get('view') === 'map' || near.loc.status === 'picking' ? 'map' : 'list');
+  const [sheetOpen, setSheetOpen] = React.useState(pageParams.get('sheet') === 'filters');
+  const [selectedId, setSelectedId] = React.useState(pageParams.get('selected'));
+  const [sort, setSort] = React.useState(near.coords ? 'distance' : 'updated');
+  const set = (patch) => setF((prev) => ({ ...prev, ...patch }));
+
+  // «الأقرب إليّ» lives in the sort: choosing it asks for location (or reuses the saved/manual one).
+  React.useEffect(() => {
+    if (near.coords) setSort('distance');
+    else if (near.loc.status !== 'locating') setSort((s) => (s === 'distance' ? 'updated' : s));
+  }, [!!near.coords, near.loc.status]);
+  const chooseSort = (v) => {
+    if (v === 'distance' && !near.coords) { setSort('distance'); near.request(); return; }
+    setSort(v);
+  };
+  const changeView = (v) => setView(v);
+  const firstSync = React.useRef(true);
+  React.useEffect(() => { if (firstSync.current && pageParams.get('sheet')) { firstSync.current = false; return; } firstSync.current = false; syncUrl(f, view); }, [f, view]);
+  const pickOnMap = () => { changeView('map'); setSelectedId(null); near.startPick(); };
+  const chooseArea = () => setSheetOpen(true);
+
+  const results = applyFilters(f, sort === 'distance' && !near.coords ? 'updated' : sort, near.coords);
+  const selected = results.find((r) => r.s.id === selectedId);
+  const count = activeCount(f);
+  const clear = () => setF(clearedFilters);
+  const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1200); };
+  const ready = state === 'ready';
+  const picking = near.loc.status === 'picking';
+
+  const filtersButton = (className) => (
+    <Button variant="outline" className={className} onClick={() => setSheetOpen(true)}>{tr("الفلاتر", "Filters")}{count > 0 && <Badge variant="primary">{count}</Badge>}</Button>
+  );
+
+  return (
+    <div className="flex min-h-dvh flex-col bg-background text-foreground">
+      <SiteHeader current="directory" theme={theme} setTheme={setTheme} />
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 md:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-heading-1">{tr("مساحات العمل", "Workspaces")}</h1>
+            <p className="text-body-sm text-muted-foreground" aria-live="polite">{ready ? tr(`${countLabel(results.length)} في ${M.govName(f.gov)}`, `${countLabel(results.length)} in ${M.govName(f.gov)}`) : '\u00a0'}</p>
+          </div>
+          <Tabs value={view} onValueChange={changeView}>
+            <TabsList aria-label={tr("طريقة العرض", "View")}>
+              <TabsTrigger value="list">{tr("قائمة", "List")}</TabsTrigger>
+              <TabsTrigger value="map">{tr("خريطة", "Map")}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <Input role="searchbox" aria-label={tr("ابحث عن مساحة", "Search for a space")} placeholder={tr("اسم المساحة أو المنطقة", "Space name or area")} startIcon={<SearchIcon />} className="md:flex-1" value={f.q} onChange={(e) => set({ q: e.target.value })} />
+          <div className="flex items-center gap-2">
+            {filtersButton(view === 'list' ? 'flex-1 md:flex-none lg:hidden' : 'flex-1 md:flex-none')}
+            {view === 'list' && (
+              <div className="flex-1 md:w-48 md:flex-none">
+                <Select value={sort} onValueChange={chooseSort}>
+                  <SelectTrigger aria-label={tr("الترتيب", "Sort")}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="distance">{near.loc.status === 'locating' ? tr("الأقرب إليّ — جارٍ تحديد موقعك…", "Nearest to me — finding your location…") : tr("الأقرب إليّ", "Nearest to me")}</SelectItem>
+                    <SelectItem value="updated">{tr("الأحدث تحديثًا", "Recently updated")}</SelectItem>
+                    <SelectItem value="price">{tr("الأقل سعرًا", "Lowest price")}</SelectItem>
+                    <SelectItem value="name">{tr("حسب الاسم", "By name")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </div>
+        {!picking && <LocationStatus near={near} showIdle={view === 'list'} onPickOnMap={pickOnMap} onChooseArea={chooseArea} />}
+
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent side={isDesktop ? 'end' : 'bottom'} closeLabel={tr("إغلاق الفلاتر", "Close filters")}>
+            <SheetHeader>
+              <SheetTitle>{tr("الفلاتر", "Filters")}</SheetTitle>
+              <SheetDescription>{tr("تُطبَّق فورًا على النتائج", "Applied to the results right away")}</SheetDescription>
+            </SheetHeader>
+            <SheetBody className="py-2"><FiltersForm f={f} set={set} /></SheetBody>
+            <SheetFooter>
+              <SheetClose asChild><Button size="lg" className="w-full">{results.length ? tr(`عرض ${countLabel(results.length)}`, `Show ${countLabel(results.length)}`) : tr("لا توجد نتائج", "No results")}</Button></SheetClose>
+              <Button variant="ghost" className="w-full" onClick={clear} disabled={count === 0}>{tr("مسح الفلاتر", "Clear filters")}</Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+
+        {state === 'error' && (
+          <Alert variant="destructive">
+            <AlertTitle>{tr("تعذّر تحميل المساحات", "Couldn’t load spaces")}</AlertTitle>
+            <AlertDescription>{tr("تحقّق من اتصالك بالإنترنت ثم حاول مرة أخرى.", "Check your internet connection and try again.")}</AlertDescription>
+            <AlertAction><Button variant="outline" size="sm" onClick={retry}>{tr("إعادة المحاولة", "Try again")}</Button></AlertAction>
+          </Alert>
+        )}
+
+        {view === 'list' && (
+          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
+            <aside className="hidden lg:col-span-3 lg:block" aria-label={tr("الفلاتر", "Filters")}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{tr("الفلاتر", "Filters")}</CardTitle>
+                  <CardAction><Button variant="ghost" size="sm" onClick={clear} disabled={count === 0}>{tr("مسح", "Clear")}</Button></CardAction>
+                </CardHeader>
+                <CardContent><FiltersForm f={f} set={set} /></CardContent>
+              </Card>
+            </aside>
+            <section aria-label={tr("النتائج", "Results")} aria-busy={state === 'loading'} className="grid gap-4 md:grid-cols-2 lg:col-span-9">
+              {state === 'loading' && [0, 1, 2, 3].map((i) => <SpaceCardSkeleton key={i} />)}
+              {ready && (results.length
+                ? results.map((r) => <SpaceCard key={r.s.id} space={r.s} km={r.km} />)
+                : <Card className="md:col-span-2"><NoResults onClear={clear} /></Card>)}
+            </section>
+          </div>
+        )}
+
+        {view === 'map' && (
+          <section aria-label={tr("الخريطة", "Map")} aria-busy={state === 'loading'} className="flex flex-col gap-3">
+            {state === 'loading' ? <Skeleton className="map-canvas rounded-xl" /> : (
+              <SpaceMap
+                spaces={ready ? results.map((r) => r.s) : []}
+                selectedId={selected && selected.s.id}
+                onSelect={setSelectedId}
+                user={near.coords}
+                userSource={near.loc.source}
+                picking={picking}
+                onPick={(c) => { near.placePin(c); setSort('distance'); }}
+                onLocate={near.request}
+                locating={near.loc.status === 'locating'}
+                label={tr("خريطة المساحات", "Map of spaces")}
+                className="map-canvas">
+                {picking ? (
+                  <Card className="shadow-overlay">
+                    <CardHeader>
+                      <CardTitle>{tr("حدّد موقعك على الخريطة", "Set your location on the map")}</CardTitle>
+                      <CardDescription>{tr("اضغط على مكانك التقريبي. نحسب المسافات منه، ويبقى على جهازك فقط.", "Tap your approximate location. We measure distances from it, and it stays on your device.")}</CardDescription>
+                      <CardAction><Button variant="ghost" size="sm" onClick={near.clear}>{tr("إلغاء", "Cancel")}</Button></CardAction>
+                    </CardHeader>
+                  </Card>
+                ) : selected ? <CompactSpaceCard item={selected} onClose={() => setSelectedId(null)} />
+                  : ready && !results.length ? <Card className="shadow-overlay"><NoResults onClear={clear} /></Card> : null}
+              </SpaceMap>
+            )}
+            <MapLegend />
+          </section>
+        )}
+      </main>
+      <SiteFooter />
+      <PageToaster />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><DirectoryScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

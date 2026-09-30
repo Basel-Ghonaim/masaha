@@ -1,18 +1,18 @@
 # Plan — Application foundation
 
 > **Status:** Active · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
-> **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
+> **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built, and the backend architecture they are built on. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
 
 **Goal:** the web app talks to a real API backed by PostgreSQL. A user can register, sign in, stay signed in across reloads, and land in the right shell for their role, in Arabic or English, light or dark.
 
 **Finished when:**
-- F-1 to F-6 and F-3b are merged;
+- F-1 to F-6, F-3b and A-1 to A-3 are merged;
 - CI runs every lane, including `test:api` against a real PostgreSQL;
 - the *Entities* section of `data-model.md`, `architecture/system-overview.md` and the catalogue part of `localisation.md` *Mechanism* are written (deferred documents).
 
-**Not in this plan:** any feature (spaces, members, attendance …). Those are the next plan.
+**Not in this plan:** any feature (the directory, spaces, the front desk …). Those are the next plan.
 
 ## 2. Running in parallel with the design-system plan
 
@@ -69,7 +69,18 @@ WI-9 merged ──────────────────────�
 F-3 merged + dashboard screens reviewed ─► F-3b update ──────────┘
 ```
 
+```
+A-1 architecture ─┬─► A-3 cross-cutting decisions ─► F-5 auth ─► F-6 shells
+                  └─► A-2 space tables ─► the space-management and front-desk slices
+```
+
 F-3b waits until the dashboard screens (Owner and Reception, [foundation §13](../frontend/design-system/foundation.md#13-screens-to-design-32)) are reviewed, so the model follows the reviewed designs. F-5 waits for F-3b, because it needs the account changes.
+
+The backend architecture was settled before F-5 (2026-09-30), as three items:
+- **A-1** records it.
+- **A-2 and A-3** then run in parallel.
+- **F-5 waits for A-3**, whose decisions it builds on, but **not for A-2**: authentication touches none of the tables A-2 moves.
+- **A-2 must land before** the first feature slice that creates or edits a space or runs the front desk.
 
 ---
 
@@ -197,6 +208,64 @@ Brings the schema and the permission table to the scope change of 2026-09-29. Li
 
 ---
 
+### A-1 — Backend architecture and the design archive · `docs/architecture`
+
+Documentation only. It records the approved backend architecture and adds the design archive:
+- [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md) (a modular monolith) and [ADR 0013](../architecture/decisions/0013-identity-modules.md) (identity as three modules);
+- the rewritten [backend conventions](../backend/conventions.md): modules, levels, rules and placements;
+- the frontend capability names in [architecture.md §3](../frontend/architecture.md#3-capabilities-features);
+- the [design archive](../design/README.md).
+
+---
+
+### A-2 — Space settings and occupancy tables · `feat/space-tables`
+
+Drafted here; its full contract is written in its plan step. It is a schema item, so its plan step lists every change before writing.
+
+**Scope**
+- **`space_settings`:** the 1:1 table owned by `space-settings` ([conventions §9](../backend/conventions.md#space-settings)). It takes over `autoCheckoutAtClosing`, `maxStayMinutes`, `visitRounding`, `visitRoundingMinutes`, `visitCapAtDayPrice`, `visitStudentPrices` and `reminderTemplate` from `Space`.
+- **`space_occupancy`:** the 1:1 table owned by `occupancy`. It takes over capacity and the manual override. A space without a row has no capacity and no override ([conventions §9](../backend/conventions.md#occupancy-the-spaces-state-now)).
+- **Migrations:** new ones, which move the existing data. Earlier migrations are never edited. The `CHECK` constraints move with their columns.
+- **New-space defaults** ([conventions §9](../backend/conventions.md#new-space-defaults)):
+  - the `platform-settings` keys for auto check-out at closing, the visit rounding rule and its minutes, and the cap at the day price, seeded;
+  - the seed creates its demo space's settings by copying them.
+- **Documents:** data-model.md's entities, constraints and `Setting` keys, and [finding 12](../architecture/findings.md#12-the-admins-settings-list-a-default-auto-check-out-that-the-model-has-no-place-for) resolved.
+
+**Acceptance criteria**
+- [ ] `db:reset` runs clean, and the new migrations apply on top of F-3b's with the data moved.
+- [ ] Integration tests prove the moved constraints and the 1:1 keys.
+- [ ] The demo space's settings equal the seeded defaults.
+
+**Out of scope:** modules, endpoints and services. The copy of the defaults at space creation is built by the slice that creates spaces.
+
+**Dependencies:** after A-1, and in parallel with A-3. It must be merged before the space-management slices (the admin's, step 2 of the [build sequence](v1-mvp.md#sequence-inside-the-build), and the owner's, step 5) and the front desk (step 7).
+
+---
+
+### A-3 — Cross-cutting decisions · `docs/cross-cutting`
+
+Drafted here; its full contract is written in its plan step. Documentation and decisions only: each topic is proposed to the owner, then recorded in its owning document, or in an ADR where the threshold is met ([workflow §7](../development/workflow.md#7-documentation-update-triggers)).
+
+**Scope:** the decisions still open:
+- deployment;
+- time (Asia/Gaza, the clock);
+- errors and logging;
+- concurrency and idempotency;
+- payments: database triggers vs services;
+- server-state conventions on the web;
+- routes and guards;
+- the development port;
+- where each deferred topic is decided, recorded so none is lost:
+  - the auto check-out scheduling mechanism: the front-desk slice, within A-3's deployment decision;
+  - photos and CSV exports: the space-management and finance slices;
+  - the reset-email provider: F-5;
+  - live-status delivery and caching: the directory slice;
+  - charts, the map and date inputs: their slices.
+
+**Dependencies:** after A-1, and in parallel with A-2. F-5 waits for it.
+
+---
+
 ### F-4, F-5, F-6 — after WI-9
 
 Drafted briefly here; each gets its full contract in its plan step, once the design-system layer is complete.
@@ -209,8 +278,13 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - **Fallback:** react-i18next per [ADR 0006](../architecture/decisions/0006-localisation-approach.md) if lifting takes more than two days.
   - Writes the catalogue part of `localisation.md` *Mechanism*.
 - **F-5 — Authentication and session** (`feat/auth`):
-  - after F-3b;
+  - after F-3b and A-3 (not A-2);
+  - the identity modules of [ADR 0013](../architecture/decisions/0013-identity-modules.md), as the [conventions](../backend/conventions.md#7-modules) place them:
+    - `sessions`, `users` and `auth`;
+    - the minimum of `space-links` that the refresh response needs, the user's active links;
+  - the ESLint level rule: an import of a module at the same or a higher level ([conventions §7](../backend/conventions.md#level-map)), or past a module's `index.ts`, fails `lint`;
   - the auth endpoints from the plan's API surface;
+  - the password change and the forced change move to the `users` `me` router, at `/me/password`: F-5 updates the [planned surface](v1-mvp.md#planned-api-surface) and api-contract.md;
   - Google sign-in: the ID token verified with `jose` (approved in §4), and the account created or linked as [security.md](../backend/security.md#sign-in-methods) says;
   - the reset email: the provider is chosen in the plan step and proposed there as a new dependency;
   - staff sign-in: a reception account signs in like any user, changes its temporary password first, and the refresh response carries its space links;
@@ -222,7 +296,8 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - `shared/preferences` (language and theme, writing the pre-paint keys);
   - the public shell (header, footer) and the dashboard shell (sidebar per role: ADMIN, and OWNER or RECEPTION at the selected space; top bar; space switcher);
   - the placeholder pages each route group needs to be navigable;
-  - the site and dashboard boundary ([ADR 0011](../architecture/decisions/0011-one-web-app.md), [architecture.md §2–§3](../frontend/architecture.md#2-page-groups)): each page group mounted lazily, and the dashboard-only rule in lint;
+  - the site and dashboard boundary ([ADR 0011](../architecture/decisions/0011-one-web-app.md), [architecture.md §2–§3](../frontend/architecture.md#2-page-groups)): each page group mounted lazily, and the dashboard-only rule in lint, over the capability names of [architecture.md §3](../frontend/architecture.md#3-capabilities-features);
+  - the account's profile and settings belong to the `users` capability;
   - acceptance: a guest's download holds no dashboard code, and a site page group that imports a dashboard-only capability fails `lint`.
 
 ## 6. Risks

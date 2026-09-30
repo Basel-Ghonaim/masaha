@@ -29,19 +29,24 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
   - [0009](architecture/decisions/0009-space-scoped-reception-role.md) space-scoped staff: the Reception role
   - [0010](architecture/decisions/0010-manual-payment-ledger.md) payments: a manual, append-only ledger
   - [0011](architecture/decisions/0011-one-web-app.md) one web application for the public site and the dashboard
+  - [0012](architecture/decisions/0012-modular-monolith-backend.md) backend: a modular monolith with levelled modules
+  - [0013](architecture/decisions/0013-identity-modules.md) identity: sessions, users and auth as three modules
 - [findings.md](architecture/findings.md) — recorded divergences from the intended design.
 
 ### `api/`
 - [api-contract.md](api/api-contract.md) — conventions, envelope, error model, pagination and endpoints.
 
 ### `backend/`
-- [conventions.md](backend/conventions.md) — module layering, validation, errors, pagination.
+- [conventions.md](backend/conventions.md) — the modules, their levels, routers and placements, the module rules; layering, validation, errors, pagination and audit.
 - [security.md](backend/security.md) — tokens, passwords, cookies, authorization, rate limits, hardening.
 
 ### `frontend/`
 - [architecture.md](frontend/architecture.md) — the four zones, dependency rule, capability layout, routing and role guards.
 - [localisation.md](frontend/localisation.md) — languages, direction, catalogues, formatting.
 - [design-system/foundation.md](frontend/design-system/foundation.md) — the design system: tokens, themes, typography, direction, components, screens.
+
+### `design/` — the final screen designs
+- [design/README.md](design/README.md) — the design archive (made in Claude Design, 2026-09-29): a screenshot of every frame and the clickable prototypes, kept as a frozen record. [SCREENS.md](design/SCREENS.md) maps the 32 screens of [foundation §13](frontend/design-system/foundation.md#13-screens-to-design-32) to it.
 
 ### `development/`
 - [workflow.md](development/workflow.md) — how work is executed.
@@ -61,4 +66,4 @@ These documents are **committed but not yet written**, because what they describ
 ### `plans/`
 - [v1-mvp.md](plans/v1-mvp.md) — the active plan: phases, sequence, risks. Plans move to `plans/historical/` when finished.
 - [historical/design-system-layer.md](plans/historical/design-system-layer.md) — finished: phases 2–3, the repository scaffold and the design-system layer, as nine Work Items.
-- [foundation.md](plans/foundation.md) — the application foundation: API skeleton, database, technical design and its update, localisation, authentication and shells, as seven Work Items.
+- [foundation.md](plans/foundation.md) — the application foundation: API skeleton, database, technical design and its update, the backend architecture and its follow-ups, localisation, authentication and shells, as ten Work Items.

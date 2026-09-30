@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-09-29
+> **Last Updated:** 2026-09-30
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -366,6 +366,8 @@ A copy also needs these steps, which the contract above does not cover ([finding
 ## 13. Screens to design (32)
 
 Every screen: phone and desktop, light and dark. Key screens also in LTR (English). States: default, loading (skeleton), empty, error.
+
+The final designs are archived in [docs/design/](../../design/README.md): [SCREENS.md](../../design/SCREENS.md) maps each screen below to its prototype page and screenshots.
 
 ### Public site (8)
 1. **Home** — hero with search, quick area filters; «الأقرب إليك» when a location is in use, otherwise «متاحة الآن»

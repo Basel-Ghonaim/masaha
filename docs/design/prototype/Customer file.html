@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ملف الزبون — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/desk-sheet.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Tabs, TabsList, TabsTrigger, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Field, Input, Textarea, Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, EmptyState, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, LogInIcon, LogOutIcon, UsersIcon } = window.MasahaDesignSystem;
+const c = DESK.findCustomer(pageParams.get('id') || 'm6');
+
+function SubsTab({ bump }) {
+  const [ending, setEnding] = React.useState(pageParams.get('end') ? c.subs[0] : null);
+  const endNow = () => { const s = ending; s.to = DESK.TODAY; setEnding(null); bump(); window.MasahaDesignSystem.toast.success(tr('انتهى الاشتراك اليوم', 'Membership ended today'), { description: s.name }); };
+  if (!c.subs.length) return <Card><EmptyState icon={<UsersIcon />} title={tr('لا توجد اشتراكات', 'No memberships')} description={tr('هذا الزبون يأتي بزيارات فقط.', 'This customer only comes for visits.')} /></Card>;
+  return (
+    <div className="flex flex-col gap-4">
+      {c.subs.map((s, i) => { const [pv, pl] = DESK.payBadge[DESK.payStatus(s, c)]; const [sv, sl] = DESK.statusBadge[DESK.subStatus(s)]; return (
+        <Card key={s.id}>
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-2">{s.name}{s.manual && <Badge variant="info">{tr('سعر يدوي', 'Manual price')}</Badge>}</CardTitle>
+            <CardDescription>{DESK.fmtDate(s.from, true)} – {DESK.fmtDate(s.to, true)} · {DESK.termsLine(s)}</CardDescription>
+            <CardAction className="flex flex-wrap gap-2">{i === 0 && <Badge variant={sv}>{sl}</Badge>}<Badge variant={pv}>{pl}</Badge></CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <dl className="grid grid-cols-3 gap-3 rounded-lg bg-muted p-3">
+              <div className="flex flex-col"><dt className="text-caption text-muted-foreground">{s.billing.type === 'usage' ? tr('المستحق حتى الآن', 'Due so far') : tr('المستحق', 'Due')}</dt><dd className="text-label"><Money n={DESK.due(s, c)} /></dd></div>
+              <div className="flex flex-col"><dt className="text-caption text-muted-foreground">{tr('المدفوع', 'Paid')}</dt><dd className="text-label"><Money n={DESK.paid(s)} /></dd></div>
+              <div className="flex flex-col"><dt className="text-caption text-muted-foreground">{tr('المتبقي', 'Left')}</dt><dd className="text-label"><Money n={Math.max(0, DESK.due(s, c) - DESK.paid(s))} /></dd></div>
+            </dl>
+            <ul className="flex flex-col gap-1 text-body-sm text-muted-foreground">{DESK.progress(s, c).map((l, k) => <li key={k}>{l}</li>)}</ul>
+            {s.note && <p className="text-body-sm">{tr('ملاحظة:', 'Note:')} {s.note}</p>}
+          </CardContent>
+          {i === 0 && DESK.subStatus(s) !== 'expired' && s.to !== DESK.TODAY && <CardFooter><Button variant="ghost" size="sm" onClick={() => setEnding(s)}>{tr('إنهاء الاشتراك', 'End membership')}</Button></CardFooter>}
+        </Card>
+      ); })}
+      <AlertDialog open={!!ending} onOpenChange={(o) => !o && setEnding(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tr('إنهاء الاشتراك اليوم؟', 'End the membership today?')}</AlertDialogTitle>
+            <AlertDialogDescription>{ending && <>{ending.name} · {tr('يصبح تاريخ النهاية', 'The end date becomes')} {DESK.fmtDate(DESK.TODAY, true)} {tr('بدل', 'instead of')} {DESK.fmtDate(ending.to, true)}. {tr('المبالغ المدفوعة والمستحقة لا تتغيّر.', 'Amounts paid and due don’t change.')}</>}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel>
+            <AlertDialogAction onClick={endNow}>{tr('إنهاء الاشتراك', 'End membership')}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function AttendanceTab() {
+  const [from, setFrom] = React.useState('2026-09-20'); const [to, setTo] = React.useState(DESK.TODAY);
+  const all = DESK.attendance[c.id] || [];
+  const rows = all.filter(([d]) => d >= from && d <= to);
+  const minsOf = ([, a, b]) => DESK.toMin(b || DESK.NOW) - DESK.toMin(a);
+  const total = rows.reduce((x, r) => x + minsOf(r), 0);
+  const s = DESK.currentSub(c); const usage = s && s.billing.type === 'usage';
+  const billedHours = rows.reduce((x, r) => x + Math.ceil(minsOf(r) / 60), 0);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{tr('كشف الحضور', 'Attendance statement')}</CardTitle>
+        <CardDescription>{tr('اختر الفترة.', 'Choose the period.')}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid gap-3 md:max-w-xl md:grid-cols-2">
+          <DateField label={tr('من', 'From')} value={from} onChange={setFrom} />
+          <DateField label={tr('إلى', 'To')} value={to} onChange={setTo} />
+        </div>
+        {rows.length ? <>
+          <Table>
+            <TableHeader><TableRow><TableHead>{tr('اليوم', 'Day')}</TableHead><TableHead>{tr('الدخول', 'In')}</TableHead><TableHead>{tr('الخروج', 'Out')}</TableHead><TableHead>{tr('الساعات', 'Hours')}</TableHead></TableRow></TableHeader>
+            <TableBody>{rows.map((r) => (
+              <TableRow key={r[0]}>
+                <TableCell>{DESK.fmtDate(r[0])}</TableCell><TableCell><Num>{r[1]}</Num></TableCell>
+                <TableCell>{r[2] ? <Num>{r[2]}</Num> : <Badge variant="info">{tr('حاضر الآن', 'Here now')}</Badge>}</TableCell>
+                <TableCell><Num>{DESK.hm(minsOf(r))}</Num></TableCell>
+              </TableRow>
+            ))}</TableBody>
+          </Table>
+          <div className="flex flex-col gap-1 rounded-lg bg-muted p-3">
+            <span className="text-label"><Num>{rows.length}</Num> {tr('أيام', 'days')} · <Num>{DESK.hm(total)}</Num> {tr('ساعة', 'hours')}</span>
+            {usage && <span className="text-body-sm">{tr('المستحق من الساعات:', 'Due from the hours:')} <Num>{billedHours}</Num> {tr('س', 'h')} × <Money n={s.billing.rate} /> = <Money n={billedHours * s.billing.rate} /> <span className="text-muted-foreground">({tr('كل يوم يُقرّب لأعلى', 'each day rounded up')})</span></span>}
+          </div>
+        </> : <p className="text-body-sm text-muted-foreground">{tr('لا يوجد حضور في هذه الفترة.', 'No attendance in this period.')}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PaymentsTab({ bump }) {
+  const [voiding, setVoiding] = React.useState(pageParams.get('void') ? true : null);
+  const [reason, setReason] = React.useState(''); const [err, setErr] = React.useState();
+  const pays = [];
+  c.subs.forEach((s) => s.pays.forEach((p, i) => pays.push({ key: s.id + i, s, p, date: p[0], time: p[1], amount: p[2], method: p[3], by: p[4], voided: p[5], note: p[6] })));
+  DESK.visitPays.filter((v) => v.name === c.name).forEach((v) => pays.push({ key: v.id, date: v.date, time: v.time, amount: v.amount, method: v.method, by: v.by, item: tr('زيارة', 'Visit') }));
+  pays.sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1));
+  const target = voiding === true ? pays.find((x) => !x.voided && x.s) : voiding;
+  const doVoid = () => { if (!reason.trim()) return setErr(tr('اكتب سبب الإلغاء', 'Write the reason')); target.p[5] = reason.trim(); setVoiding(null); setReason(''); setErr(); bump(); window.MasahaDesignSystem.toast(tr('أُلغيت الدفعة', 'Payment voided')); };
+  if (!pays.length) return <Card><EmptyState icon={<UsersIcon />} title={tr('لا توجد دفعات بعد', 'No payments yet')} /></Card>;
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader><TableRow><TableHead>{tr('التاريخ', 'Date')}</TableHead><TableHead>{tr('المبلغ', 'Amount')}</TableHead><TableHead>{tr('الطريقة', 'Method')}</TableHead><TableHead>{tr('عن', 'For')}</TableHead><TableHead>{tr('سجّلها', 'Recorded by')}</TableHead>{IS_OWNER && <TableHead><span className="sr-only">{tr('إجراءات', 'Actions')}</span></TableHead>}</TableRow></TableHeader>
+          <TableBody>{pays.map((x) => (
+            <TableRow key={x.key}>
+              <TableCell>{DESK.fmtDate(x.date)} · <Num>{x.time}</Num></TableCell>
+              <TableCell>{x.voided ? <span className="flex flex-col"><s className="text-muted-foreground"><Money n={x.amount} /></s><span className="text-caption text-muted-foreground">{tr('أُلغيت:', 'Voided:')} {x.voided}</span></span> : <span className="text-label"><Money n={x.amount} /></span>}</TableCell>
+              <TableCell>{DESK.methodLabel[x.method]}</TableCell>
+              <TableCell>{x.s ? x.s.name : x.item}</TableCell>
+              <TableCell>{DESK.by(x.by)}</TableCell>
+              {IS_OWNER && <TableCell className="text-end">{!x.voided && x.s && <Button size="sm" variant="ghost" onClick={() => setVoiding(x)}>{tr('إلغاء الدفعة', 'Void payment')}</Button>}</TableCell>}
+            </TableRow>
+          ))}</TableBody>
+        </Table>
+      </CardContent>
+      <Dialog open={!!target && !!voiding} onOpenChange={(o) => !o && setVoiding(null)}>
+        <DialogContent closeLabel={tr('إغلاق', 'Close')}>
+          <DialogHeader><DialogTitle>{tr('إلغاء الدفعة', 'Void payment')}</DialogTitle>{target && <DialogDescription><Money n={target.amount} /> · {DESK.fmtDate(target.date)} · {DESK.methodLabel[target.method]}. {tr('تبقى ظاهرة مشطوبة مع السبب.', 'It stays visible, struck through, with the reason.')}</DialogDescription>}</DialogHeader>
+          <Field label={tr('السبب', 'Reason')} error={err}><Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+          <DialogFooter><Button variant="destructive" onClick={doVoid}>{tr('إلغاء الدفعة', 'Void payment')}</Button><Button variant="ghost" onClick={() => setVoiding(null)}>{tr('رجوع', 'Back')}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+function FileInner({ theme, setTheme }) {
+  const desk = useDesk();
+  const [tab, setTab] = React.useState(pageParams.get('tab') || 'subs');
+  const bal = DESK.balance(c); const here = DESK.presentOf(c.id); const s = DESK.currentSub(c);
+  const debtSub = DESK.openItems(c).find((i) => i.kind === 'sub'); const ds = debtSub && c.subs.find((x) => x.id === debtSub.id);
+  const msg = tr(`مرحبًا ${c.name.split(' ')[0]}، تذكير من Focus Hub: عليك ${DESK.money(bal)}${ds && ds.debtLabel ? ' من ' + ds.debtLabel : ''}. يمكنك الدفع في المساحة. شكرًا.`, `Hi ${c.name.split(' ')[0]}, a reminder from Focus Hub: you owe ${DESK.money(bal)}${ds && ds.debtLabel ? ' for ' + ds.debtLabel : ''}. You can pay at the space. Thank you.`);
+  const wa = 'https://wa.me/' + c.phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(msg);
+  return (
+    <OwnerShell current="customers" title={tr('ملف الزبون', 'Customer file')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
+      <Breadcrumb label={tr('مسار التنقل', 'Breadcrumb')}>
+        <BreadcrumbList>
+          <BreadcrumbItem><BreadcrumbLink href={roleQ('Customers.html')}>{tr('الزبائن', 'Customers')}</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbPage>{c.name}</BreadcrumbPage></BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-heading-2">{c.name}</CardTitle>
+          <CardDescription className="flex flex-wrap items-center gap-2">{c.phone && <span dir="ltr">{c.phone}</span>}{here && <Badge variant="info"><span>{tr('حاضر منذ', 'Here since')} <Num>{here.since}</Num></span></Badge>}<StatusBadge c={c} /></CardDescription>
+          <CardAction className="flex flex-col items-end gap-1">
+            <span className="text-caption text-muted-foreground">{tr('الرصيد', 'Balance')}</span>
+            {bal > 0 || DESK.credit(c) > 0 ? <BalanceBadge c={c} /> : <Badge variant="neutral">{tr('مسدّد', 'Settled')}</Badge>}
+          </CardAction>
+        </CardHeader>
+        <CardFooter className="flex flex-wrap gap-2">
+          {here ? <Button variant="outline" onClick={() => desk.open('checkout', { presentId: here.id })}><LogOutIcon />{tr('خروج', 'Check out')}</Button> : <Button onClick={() => desk.tapCheckIn(c.id)}><LogInIcon />{tr('حضور', 'Check in')}</Button>}
+          <Button variant={bal > 0 ? 'secondary' : 'outline'} onClick={() => desk.open('pay', { customerId: c.id })}>{tr('استلام دفعة', 'Receive payment')}</Button>
+          {s && <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</Button>}
+          <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New membership')}</Button>
+          {c.phone && bal > 0 && <Button variant="ghost" asChild><a href={wa} target="_blank" rel="noopener">{tr('تذكير على واتساب', 'WhatsApp reminder')}</a></Button>}
+        </CardFooter>
+      </Card>
+      {c.phone && bal > 0 && <p className="-mt-3 text-caption text-muted-foreground">{tr('يفتح واتساب برسالة جاهزة، وترسلها أنت.', 'Opens WhatsApp with a ready message; you send it yourself.')}</p>}
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList aria-label={tr('ملف الزبون', 'Customer file')}>
+          <TabsTrigger value="subs">{tr('الاشتراكات', 'Memberships')}</TabsTrigger>
+          <TabsTrigger value="att">{tr('الحضور', 'Attendance')}</TabsTrigger>
+          <TabsTrigger value="pays">{tr('الدفعات', 'Payments')}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {tab === 'subs' ? <SubsTab bump={desk.bump} /> : tab === 'att' ? <AttendanceTab /> : <PaymentsTab bump={desk.bump} />}
+    </OwnerShell>
+  );
+}
+function FileScreen() { const [theme, setTheme] = useTheme(); return <DeskProvider><FileInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><FileScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

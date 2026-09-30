@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>عن مساحة — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Badge, CircleCheckIcon } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+
+function AboutScreen() {
+  const [theme, setTheme] = useTheme();
+  const c = M.platformContact;
+  const legend = [
+    [<Badge variant="success">{tr("متاح", "Available")}</Badge>, tr("فيها أماكن شاغرة الآن، حسب آخر تحديث من إدارة المساحة.", "Has free places now, according to the space’s latest update.")],
+    [<Badge variant="warning">{tr("ممتلئ", "Full")}</Badge>, tr("مفتوحة، لكن لا أماكن شاغرة الآن.", "Open, but no free places right now.")],
+    [<Badge variant="neutral">{tr("مغلق الآن", "Closed now")}</Badge>, tr("خارج ساعات العمل، أو مغلقة مؤقتًا بإعلان من المساحة.", "Outside opening hours, or temporarily closed by an announcement from the space.")],
+    [<span className="text-body-sm text-muted-foreground">{tr("لا تتوفر حالة مباشرة", "No live status")}</span>, tr("المساحة غير موثّقة، فلا أحد يحدّث حالتها لحظة بلحظة. راجع ساعات العمل أو تواصل معها.", "The space isn’t verified, so no one updates its status live. Check its hours or contact it.")]
+  ];
+  return (
+    <div className="flex min-h-dvh flex-col bg-background text-foreground">
+      <SiteHeader current="about" theme={theme} setTheme={setTheme} />
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-14 px-4 py-10 md:px-8 md:py-16">
+        <section className="flex flex-col gap-4">
+          <h1 className="text-heading-1 md:text-display">{tr("عن مساحة", "About Masaha")}</h1>
+          <p className="text-body">{tr("مساحة دليل لمساحات العمل المشتركة في قطاع غزة. نجمع في مكان واحد ساعات عمل كل مساحة وأسعارها ومرافقها وطرق التواصل معها، ونعرض حالتها المباشرة إن كانت موثّقة، لتعرف قبل أن تخرج إن كانت مفتوحة وفيها مكان.", "Masaha is a directory of coworking spaces in the Gaza Strip. It brings together each space’s hours, prices, amenities and contacts, and shows its live status if it’s verified, so you know before you leave whether it’s open and has room.")}</p>
+          <p className="text-body text-muted-foreground">{tr("لمن يعمل عن بعد، وللطلاب، ولكل من يحتاج مكانًا فيه كهرباء وإنترنت ليعمل أو يدرس.", "For remote workers, students, and anyone who needs a place with power and internet to work or study.")}</p>
+          <div className="flex flex-col gap-2 md:flex-row"><Button className="w-full md:w-auto" asChild><a href="Directory.html">{tr("تصفّح المساحات", "Browse spaces")}</a></Button></div>
+        </section>
+
+        <section aria-labelledby="source" className="flex flex-col gap-4">
+          <h2 id="source" className="text-heading-2">{tr("من أين تأتي المعلومات؟", "Where does the information come from?")}</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><CircleCheckIcon className="size-5 text-primary" aria-hidden="true" />{tr("مساحة موثّقة", "Verified space")}</CardTitle>
+                <CardDescription>{tr("تديرها المساحة نفسها", "Managed by the space itself")}</CardDescription>
+              </CardHeader>
+              <CardContent><p className="text-body-sm">{tr("تحدّث إدارة المساحة ساعاتها وأسعارها وإعلاناتها بنفسها، وتغيّر حالتها المباشرة خلال اليوم.", "The space updates its own hours, prices and announcements, and changes its live status during the day.")}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>{tr("مساحة غير موثّقة", "Unverified space")}</CardTitle>
+                <CardDescription>{tr("جمعها فريق مساحة", "Collected by the Masaha team")}</CardDescription>
+              </CardHeader>
+              <CardContent><p className="text-body-sm">{tr("جمع فريقنا معلوماتها من المساحة ومن صفحاتها العامة، ونراجعها دوريًا. لا تظهر لها حالة مباشرة.", "Our team collected its information from the space and its public pages, and reviews it periodically. It has no live status.")}</p></CardContent>
+            </Card>
+          </div>
+          <p className="text-body-sm text-muted-foreground">{tr("«آخر تحديث» هو آخر مرة تأكّدنا فيها من المعلومة أو حدّثتها المساحة. كلما طالت المدة زاد احتمال أن تكون قد تغيّرت، فنعرض تنبيهًا بجانب الأسعار القديمة. إن وجدت معلومة خاطئة، أبلغنا من صفحة المساحة.", "“Updated” is the last time we confirmed the information or the space updated it. The longer ago, the more likely it has changed, so we show a note next to old prices. If you find wrong information, report it from the space’s page.")}</p>
+        </section>
+
+        <section aria-labelledby="status" className="flex flex-col gap-4">
+          <h2 id="status" className="text-heading-2">{tr("ماذا تعني الحالة؟", "What does the status mean?")}</h2>
+          <Card className="py-0">
+            <dl className="divide-y">
+              {legend.map(([k, d], i) => (
+                <div key={i} className="flex flex-col gap-2 px-5 py-4 md:flex-row md:items-center md:gap-6">
+                  <dt className="md:w-48 md:shrink-0">{k}</dt>
+                  <dd className="text-body-sm text-muted-foreground">{d}</dd>
+                </div>
+              ))}
+            </dl>
+          </Card>
+        </section>
+
+        <section id="owners" aria-labelledby="owners-title" className="flex flex-col gap-4">
+          <h2 id="owners-title" className="text-heading-2">{tr("لأصحاب المساحات", "For space owners")}</h2>
+          <Card>
+            <CardContent className="flex flex-col gap-4 pt-5">
+              <ol className="flex list-decimal-inside flex-col gap-2 ps-5 text-body">
+                <li>{tr("تواصل معنا وأخبرنا باسم مساحتك وموقعها.", "Contact us with your space’s name and location.")}</li>
+                <li>{tr("نتأكّد معك من المعلومات وننشئ حساب إدارة المساحة.", "We confirm the information with you and create the space’s management account.")}</li>
+                <li>{tr("تصبح مساحتك موثّقة، وتحدّث حالتها وأسعارها وساعاتها بنفسك.", "Your space becomes verified, and you update its status, prices and hours yourself.")}</li>
+              </ol>
+              <div className="flex flex-col gap-2 md:flex-row">
+                <Button className="justify-between md:justify-center" asChild><a href={'https://wa.me/' + c.whatsapp.replace(/\D/g, '')} target="_blank" rel="noopener">{tr("واتساب ", "WhatsApp ")}<span dir="ltr">{c.whatsapp}</span></a></Button>
+                <Button variant="outline" className="justify-between md:justify-center" asChild><a href={'mailto:' + c.email}>{tr("بريد ", "Email ")}<span dir="ltr" className="text-muted-foreground">{c.email}</span></a></Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <p className="text-caption text-muted-foreground">{tr("مشروع تخرّج — جامعة القدس المفتوحة، فرع غزة", "Graduation project — Al-Quds Open University, Gaza branch")}</p>
+      </main>
+      <SiteFooter />
+      <PageToaster />
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><AboutScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

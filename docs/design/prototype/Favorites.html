@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>المفضّلة — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/location.jsx"></script>
+<script type="text/babel" src="masaha/account.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Card, CardHeader, CardTitle, CardDescription, CardAction, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, toast } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+// Demo: Focus, Branch, Golden saved; one saved space was later hidden by the admin.
+const SAVED = ['focus', 'branch', 'golden', 'hidden:palm'];
+const HIDDEN_NAMES = { palm: 'Palm Hub' };
+
+function FavCard({ space, km, onRemove }) {
+  return (
+    <div className="relative h-full">
+      <SpaceCard space={space} km={km} reserveEnd />
+      <Button variant="outline" size="icon" className="fav-remove bg-card text-primary" aria-pressed="true" aria-label={tr('إزالة ' + space.name + ' من المفضّلة', 'Remove ' + space.name + ' from favourites')} onClick={onRemove}><HeartIcon filled /></Button>
+    </div>
+  );
+}
+
+function FavoritesScreen() {
+  const [theme, setTheme] = useTheme();
+  const near = useNearMe();
+  const [state, setState] = React.useState(pageParams.get('state') || 'ready');
+  const [ids, setIds] = React.useState(state === 'empty' ? [] : SAVED);
+  const remove = (id, name) => {
+    const before = ids;
+    setIds(ids.filter((x) => x !== id));
+    toast(tr('أُزيلت من المفضّلة', 'Removed from favourites'), { description: name, action: { label: tr('تراجع', 'Undo'), onClick: () => setIds(before) } });
+  };
+  const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1000); };
+  return (
+    <AccountShell current="favorites" title={tr('المفضّلة', 'Favourites')} description={tr('المساحات التي حفظتها، بحالتها وأسعارها الحالية.', 'The spaces you saved, with their current status and prices.')} theme={theme} setTheme={setTheme}>
+      {state === 'loading' && <div className="grid gap-4 md:grid-cols-2">{[0, 1, 2].map((i) => <SpaceCardSkeleton key={i} />)}</div>}
+      {state === 'error' && (
+        <Alert variant="destructive">
+          <AlertTitle>{tr('تعذّر تحميل المفضّلة', 'Couldn’t load your favourites')}</AlertTitle>
+          <AlertDescription>{tr('تحقّق من اتصالك بالإنترنت ثم حاول مرة أخرى.', 'Check your internet connection and try again.')}</AlertDescription>
+          <AlertAction><Button variant="outline" size="sm" onClick={retry}>{tr('إعادة المحاولة', 'Try again')}</Button></AlertAction>
+        </Alert>
+      )}
+      {(state === 'ready' || state === 'empty') && (ids.length ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {ids.map((id) => {
+            if (id.startsWith('hidden:')) {
+              const name = HIDDEN_NAMES[id.slice(7)];
+              return (
+                <Card key={id} className="bg-muted">
+                  <CardHeader>
+                    <CardTitle className="text-muted-foreground">{name}</CardTitle>
+                    <CardDescription>{tr('هذه المساحة لم تعد متاحة', 'This space is no longer available')}</CardDescription>
+                    <CardAction><Button variant="outline" size="sm" onClick={() => remove(id, name)}>{tr('إزالة', 'Remove')}</Button></CardAction>
+                  </CardHeader>
+                </Card>
+              );
+            }
+            const s = M.spaces.find((x) => x.id === id);
+            return <FavCard key={id} space={s} km={near.coords ? M.distanceKm(near.coords, s) : null} onRemove={() => remove(id, s.name)} />;
+          })}
+        </div>
+      ) : (
+        <Card>
+          <EmptyState icon={<HeartIcon />} title={tr('لم تحفظ أي مساحة بعد', 'You haven’t saved any spaces yet')} description={tr('اضغط على القلب في صفحة أي مساحة لتجدها هنا.', 'Tap the heart on any space’s page to find it here.')}>
+            <Button asChild><a href="Directory.html">{tr('تصفّح المساحات', 'Browse spaces')}</a></Button>
+          </EmptyState>
+        </Card>
+      ))}
+    </AccountShell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><FavoritesScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

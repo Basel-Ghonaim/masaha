@@ -1,0 +1,43 @@
+@layer base{a{color:var(--primary)}a:hover{opacity:.85}}
+body{margin:0}
+.map-canvas{height:calc(100svh - 17rem);min-height:26rem}
+.map-illustration .land{fill:var(--muted)}
+.map-illustration .sea{fill:var(--info-subtle)}
+.map-illustration .park{fill:var(--success-subtle)}
+.map-illustration .block{fill:var(--accent)}
+.map-illustration .road-edge{stroke:var(--border);stroke-width:9;fill:none;stroke-linecap:round}
+.map-illustration .road{stroke:var(--card);stroke-width:7;fill:none;stroke-linecap:round}
+.map-illustration .lane{stroke:var(--card);stroke-width:3;fill:none;stroke-linecap:round}
+.map-pin{transform:translate(-50%,-50%)}
+.map-pin-label{transform:translate(-50%,calc(-100% - .75rem))}
+.cursor-crosshair{cursor:crosshair}
+.map-accuracy{transform:translate(-50%,-50%);background:color-mix(in oklch,var(--primary) 14%,transparent);border:1px solid color-mix(in oklch,var(--primary) 45%,transparent)}
+.pointer-events-auto{pointer-events:auto}
+.gallery-h{height:14rem}.lightbox-h{height:18rem}.list-disc-inside{list-style:disc}
+@media(min-width:768px){.gallery-h{height:20rem}.gallery-rows{grid-template-rows:repeat(2,minmax(0,1fr))}.md-row-span-2{grid-row:span 2/span 2}.lightbox-h{height:24rem}}
+@media(min-width:1024px){.details-aside{position:sticky;top:1.5rem}}
+.gallery-more{position:absolute;bottom:1rem;inset-inline-end:1rem}
+/* Switch OFF: quiet track, thumb at the start side. Upstream uses --input (dark) for the off track. */
+[data-slot=switch]:not([data-checked]):not([data-state=checked]){background:var(--muted);border-color:var(--input)}
+[data-slot=switch]:not([data-checked]):not([data-state=checked]) [data-slot=switch-thumb]{background:var(--input);transform:none}
+/* Google Sign-In button — Google's branding (neutral theme), not DS tokens. */
+.gsi-button{display:flex;width:100%;align-items:center;justify-content:center;gap:10px;height:var(--control-height);padding:0 12px;border:1px solid #747775;border-radius:4px;background:#fff;color:#1f1f1f;font-family:Roboto,var(--font-ar),sans-serif;font-size:14px;font-weight:500;line-height:20px;cursor:pointer;transition:background-color .2s}
+.gsi-button:hover{background:#f2f2f2}.gsi-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.gsi-button:disabled{cursor:default;opacity:.7}
+[data-theme=dark] .gsi-button{background:#131314;border-color:#8e918f;color:#e3e3e3}[data-theme=dark] .gsi-button:hover{background:#1f1f20}
+.list-decimal-inside{list-style:decimal}
+html[lang=en] .text-body{line-height:1.6}
+.fav-remove{position:absolute;top:1rem;inset-inline-end:1rem}
+@media(min-width:1024px){.account-nav{border-bottom-width:0}}
+[data-slot=sidebar][data-mode=tablet] .owner-collapse-hide{display:none}
+.num-iso{unicode-bidi:isolate;display:inline-block;white-space:nowrap}
+.photo-cover{position:absolute;top:.5rem;inset-inline-start:.5rem}@media(min-width:1024px){.profile-toc{position:sticky;top:5rem}}
+.scroll-mt-20{scroll-margin-top:5rem}
+/* Sidebar background spans the whole page; its contents stay pinned to the viewport. */
+[data-slot=sidebar-wrapper]>[data-slot=sidebar]{position:relative;top:auto;height:auto;min-height:100svh;align-self:stretch}
+.sidebar-stick{display:flex;min-height:0;flex:1;flex-direction:column}
+[data-slot=sidebar-wrapper]>[data-slot=sidebar] .sidebar-stick{position:sticky;top:0;height:100svh;flex:none}
+.chart-h{height:12rem}.chart-h-sm{height:8rem}.heat-grid{display:grid;gap:4px;align-items:center}.heat-cell{display:block;height:1.75rem}
+.bar-top{border-start-start-radius:var(--radius-sm);border-start-end-radius:var(--radius-sm)}
+.strike{text-decoration:line-through}
+.chart-tick{min-width:0;white-space:nowrap;overflow:visible}@media(max-width:767px){.tick-alt{visibility:hidden}}
+.legend-swatch{display:inline-block;width:.75rem;height:.75rem;flex-shrink:0}

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>المساحات — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/admin-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/admin.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, Input, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, RadioGroup, RadioGroupItem, SearchIcon, SearchXIcon, EllipsisVerticalIcon, toast } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+const ownerName = (id) => AD.owners.find((o) => o.id === id).name;
+function Spaces({ theme, setTheme }) {
+  const [list, setList] = React.useState(AD.spaces);
+  const [q, setQ] = React.useState(''); const [gov, setGov] = React.useState('all'); const [status, setStatus] = React.useState('all'); const [stale, setStale] = React.useState(pageParams.get('stale') === '1');
+  const [del, setDel] = React.useState(pageParams.get('del') ? AD.spaces.find((s) => s.id === pageParams.get('del')) : null);
+  const [unlink, setUnlink] = React.useState(pageParams.get('unlink') ? { s: AD.spaces.find((s) => s.id === pageParams.get('unlink')), o: 'o3' } : null);
+  const [link, setLink] = React.useState(pageParams.get('link') ? AD.spaces.find((s) => s.id === pageParams.get('link')) : null);
+  const [pick, setPick] = React.useState('o4');
+  const govs = M.governorates.filter((g) => !g.hidden);
+  const areaOpts = govs.flatMap((g) => [['g:' + g.id, g.name], ...g.areas.map((a) => ['a:' + a.id, '— ' + a.name])]);
+  const rows = list.filter((s) => (!q.trim() || s.name.toLowerCase().includes(q.trim().toLowerCase())) && (gov === 'all' || gov === 'g:' + s.gov || gov === 'a:' + s.area) && (status === 'all' || s.status === status) && (!stale || AD.staleGroups(s).length));
+  const upd = (id, p) => setList((l) => l.map((x) => (x.id === id ? { ...x, ...p } : x)));
+  const toggleHide = (s) => { const hidden = s.status !== 'hidden'; upd(s.id, { status: hidden ? 'hidden' : s.owners.length ? 'verified' : 'unverified' }); toast(hidden ? tr(`أُخفيت ${s.name} من الموقع`, `${s.name} hidden from the site`) : tr(`أصبحت ${s.name} ظاهرة`, `${s.name} is visible again`)); };
+  const fresh = (s) => { const g = AD.staleGroups(s); return g.length ? <Badge variant="warning"><span>{tr('قديمة:', 'Stale:')} {g.map((x) => AD.GROUP[x]).join(tr('، ', ', '))}</span></Badge> : <Badge variant="success">{tr('محدّثة', 'Up to date')}</Badge>; };
+  const owners = (s) => s.owners.length ? s.owners.map(ownerName).join(tr('، ', ', ')) : <span className="text-muted-foreground">—</span>;
+  const actions = (s) => (
+    <DropdownMenu dir={DIR}>
+      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={tr('إجراءات ', 'Actions for ') + s.name}><EllipsisVerticalIcon /></Button></DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild><a href={'Admin space edit.html?id=' + s.id}>{s.status === 'verified' ? tr('عرض (يعدّلها المالك)', 'View (the owner edits it)') : tr('تعديل', 'Edit')}</a></DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => toggleHide(s)}>{s.status === 'hidden' ? tr('إظهار', 'Show') : tr('إخفاء', 'Hide')}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setLink(s)}>{tr('ربط مالك', 'Link owner')}</DropdownMenuItem>
+        {s.owners.length > 0 && <DropdownMenuItem onSelect={() => setUnlink({ s, o: s.owners[0] })}>{tr('فك الربط', 'Unlink owner')}</DropdownMenuItem>}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => setDel(s)}>{tr('حذف', 'Delete')}</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+  const columns = [
+    { id: 'name', header: tr('المساحة', 'Space'), cell: ({ row }) => <a lang="en" className="text-label text-foreground" href={'Admin space edit.html?id=' + row.original.id}>{row.original.name}</a> },
+    { id: 'area', header: tr('المنطقة', 'Area'), cell: ({ row }) => AD.areaName(row.original) },
+    { id: 'status', header: tr('الحالة', 'Status'), cell: ({ row }) => <SpaceStatus s={row.original} /> },
+    { id: 'owners', header: tr('المالك', 'Owner'), cell: ({ row }) => owners(row.original) },
+    { id: 'fresh', header: tr('الحداثة', 'Freshness'), cell: ({ row }) => fresh(row.original) },
+    { id: 'last', header: tr('آخر تحديث', 'Last update'), cell: ({ row }) => AD.fmt(row.original.last) },
+    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
+  ];
+  const addBtn = <Button asChild><a href="Admin space edit.html?new=1">{tr('إضافة مساحة', 'Add space')}</a></Button>;
+  const free = AD.owners.filter((o) => !link || !link.owners.includes(o.id));
+  return (
+    <AdminShell current="spaces" title={tr('المساحات', 'Spaces')} theme={theme} setTheme={setTheme} actions={addBtn}>
+      <DataTable label={tr('المساحات', 'Spaces')} columns={columns} data={rows} getRowId={(r) => r.id}
+        summary={<span>{tr('عدد المساحات', 'Spaces')}: <Num>{rows.length}</Num></span>}
+        toolbar={<div className="flex flex-col gap-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <Field label={tr('بحث', 'Search')}><Input role="searchbox" placeholder={tr('اسم المساحة', 'Space name')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} /></Field>
+            <FilterSheet active={[gov !== 'all', status !== 'all', stale].filter(Boolean).length} onClear={() => { setGov('all'); setStatus('all'); setStale(false); }}>
+            <Field label={tr('المحافظة / المنطقة', 'Governorate / area')}><Select value={gov} onValueChange={setGov}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل المناطق', 'All areas')}</SelectItem>{areaOpts.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></Field>
+            <Field label={tr('الحالة', 'Status')}><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الحالات', 'All statuses')}</SelectItem>{Object.entries(AD.STATUS).map(([k, [l]]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
+            <Field label={tr('بيانات قديمة فقط', 'Stale data only')} orientation="horizontal"><Switch checked={stale} onCheckedChange={setStale} /></Field>
+            </FilterSheet>
+          </div>
+          <div className="md:hidden">{addBtn}</div>
+        </div>}
+        renderCard={(s) => (
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              <a lang="en" className="self-start text-label text-foreground" href={'Admin space edit.html?id=' + s.id}>{s.name}</a>
+              <span className="text-caption text-muted-foreground">{AD.areaName(s)} · {tr('المالك', 'Owner')}: {owners(s)} · {AD.fmt(s.last)}</span>
+              <span className="flex flex-wrap gap-2"><SpaceStatus s={s} />{fresh(s)}</span>
+            </div>
+            {actions(s)}
+          </div>
+        )}
+        empty={<EmptyState icon={<SearchXIcon />} title={tr('لا توجد مساحات تطابق الفلاتر', 'No spaces match the filters')} />} />
+      <Dialog open={!!link} onOpenChange={(o) => !o && setLink(null)}>
+        <DialogContent closeLabel={tr('إغلاق', 'Close')}>
+          <DialogHeader><DialogTitle>{tr('ربط مالك', 'Link an owner')} · <span lang="en">{link && link.name}</span></DialogTitle><DialogDescription>{tr('تصبح المساحة موثّقة ويعدّلها مالكها.', 'The space becomes verified and its owner edits it.')}</DialogDescription></DialogHeader>
+          <RadioGroup value={pick} onValueChange={setPick}>{free.map((o) => <Field key={o.id} orientation="horizontal" label={<span className="flex flex-col"><span>{o.name}</span><span dir="ltr" className="self-start text-caption text-muted-foreground">{o.email}</span></span>}><RadioGroupItem value={o.id} /></Field>)}</RadioGroup>
+          <p className="text-caption text-muted-foreground">{tr('مالك جديد؟ أضفه من', 'New owner? Add them in')} <a href="Admin owners.html?sheet=add">{tr('أصحاب المساحات', 'Space owners')}</a>.</p>
+          <DialogFooter><Button onClick={() => { upd(link.id, { owners: [...link.owners, pick], status: 'verified' }); toast.success(tr('رُبط المالك · المساحة موثّقة', 'Owner linked · space verified')); setLink(null); }}>{tr('ربط', 'Link')}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={!!unlink} onOpenChange={(o) => !o && setUnlink(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{tr('فك ربط', 'Unlink')} {unlink && ownerName(unlink.o)}؟</AlertDialogTitle><AlertDialogDescription>{unlink && unlink.s.owners.length === 1 ? tr('هو آخر مالك لهذه المساحة، فستصبح المساحة غير موثّقة ويعدّلها فريق مساحة.', 'They’re the last owner, so the space will become unverified and the Masaha team will edit it.') : tr('يبقى المالكون الآخرون.', 'The other owners stay.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { const s = unlink.s; const left = s.owners.filter((x) => x !== unlink.o); upd(s.id, { owners: left, status: left.length ? s.status : 'unverified' }); toast(left.length ? tr('فُك الربط', 'Unlinked') : tr('فُك الربط · المساحة غير موثّقة', 'Unlinked · space unverified')); }}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!del} onOpenChange={(o) => !o && setDel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{tr('حذف', 'Delete')} <span lang="en">{del && del.name}</span>؟</AlertDialogTitle><AlertDialogDescription>{tr('تختفي من الموقع ومن هذه القائمة، وتبقى في قاعدة البيانات ويمكن استرجاعها.', 'It disappears from the site and this list; it stays in the database and can be restored.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { const s = del; setList((l) => l.filter((x) => x.id !== s.id)); toast(tr('حُذفت المساحة', 'Space deleted'), { action: { label: tr('تراجع', 'Undo'), onClick: () => setList((l) => [...l, s]) } }); }}>{tr('حذف', 'Delete')}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AdminShell>
+  );
+}
+
+function Screen() { const [theme, setTheme] = useTheme(); return <Spaces theme={theme} setTheme={setTheme} />; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

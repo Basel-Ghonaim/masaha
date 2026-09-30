@@ -177,12 +177,36 @@ The writes succeeded and rolled back correctly. The warning comes from Prisma's 
 
 **Resolves when:** the owner decides whether a platform default exists and what it governs. Either the admin screen drops the item, or a `Setting` key is added in the settings slice (step 11 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build)).
 
+*Decided (2026-09-30, A-1):*
+- `platform-settings` holds the defaults for a new space: auto check-out at closing, the visit rounding rule and its minutes, and the cap at the day price.
+- They are copied into a space's settings when the space is created. Changing them never affects existing spaces ([conventions §9](../backend/conventions.md#new-space-defaults)).
+- The finding stays open until A-2 in the [foundation plan](../plans/foundation.md) builds it.
+
 ## 13. Two documents still say "member" for the renamed customer
 
-**Status:** Open · **Date:** 2026-09-29
+**Status:** Resolved · **Date:** 2026-09-29
 
 **Evidence:** F-3b renamed `Member` to `Customer` and moved daily visitors to `Visit`. Two documents outside its scope still use the old terms:
 - [conventions.md](../backend/conventions.md) lists a `members` module and audits "member create/edit/deactivate";
 - [testing.md](../development/testing.md) names the E2E flow "owner checks a member in".
 
 **Resolves when:** those documents use the glossary's terms (customers, visits, check-ins), for example when the front-desk slice creates its modules.
+
+**Resolution (2026-09-30, A-1):**
+- A-1 rewrote conventions.md around the new module list: `customers`, `visits`, and `subscriptions` with its check-ins. Its audit list uses the glossary's terms.
+- testing.md's E2E flow is now "reception checks a visitor in".
+- workflow.md's commit scopes no longer name `members` and `attendance`. They point to the module list.
+
+## 14. The owner's audit screen has no design
+
+**Status:** Open · **Date:** 2026-09-30
+
+**Evidence:** The owner's audit log is in v1 scope, but no screen for it was designed:
+- The scope includes it: [overview.md](../project/overview.md) lists "Audit log" in the owner and reception dashboard. `can()` has `space.auditLog.read` for the owner, and the planned API has `GET /manage/spaces/:spaceId/audit-log`.
+- A reader exists for it: [conventions §6](../backend/conventions.md#6-audit) gives the `audit` module a `manage` router.
+- No design covers it:
+  - [foundation §13](../frontend/design-system/foundation.md#13-screens-to-design-32) lists owner screens 12–24, none of them an audit log. Screen 31, *Audit log*, is the admin's.
+  - The [design archive](../design/SCREENS.md) has only `Admin audit.html`.
+  - The owner's navigation in the [design brief](../design/prototype/BRIEF.md) has no audit entry.
+
+**Resolves when:** the audit slice (step 11 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build)) designs the owner's audit screen, with its place in the owner's navigation, and builds it.

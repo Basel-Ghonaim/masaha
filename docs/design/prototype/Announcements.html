@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الإعلانات — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/desk-sheet.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Tabs, TabsList, TabsTrigger, EmptyState, Field, Input, Textarea, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Alert, AlertTitle, AlertDescription, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, CircleAlertIcon, TriangleAlertIcon, CircleCheckIcon, toast } = window.MasahaDesignSystem;
+const TYPES = () => ({ general: [tr('عام', 'General'), 'neutral'], outage: [tr('انقطاع كهرباء أو إنترنت', 'Power or internet outage'), 'warning'], closure: [tr('إغلاق مؤقت', 'Temporary closure'), 'destructive'], offer: [tr('عرض', 'Offer'), 'success'], event: [tr('فعالية', 'Event'), 'info'] });
+const A = DESK.AHMAD, S = DESK.SAMI;
+const INIT = [
+  { id: 'a1', type: 'closure', titleAr: 'مغلقة مؤقتًا حتى الخميس — انقطاع الكهرباء', titleEn: 'Closed until Thursday — power cut', text: tr('نعتذر، المساحة مغلقة بسبب انقطاع الكهرباء في المنطقة. نعود يوم الجمعة.', 'Sorry — the space is closed because of a power cut in the area. We reopen on Friday.'), from: '2026-10-01', to: '2026-10-03', by: A },
+  { id: 'a2', type: 'event', titleAr: 'ورشة تعريفية يوم الأحد', titleEn: 'Intro workshop on Sunday', text: tr('ورشة مجانية عن أدوات العمل عن بُعد، الساعة 11:00 في قاعة الاجتماعات.', 'A free workshop on remote-work tools, 11:00 in the meeting room.'), from: '2026-09-27', to: '2026-10-04', by: S },
+  { id: 'a3', type: 'offer', titleAr: 'شهري الطلاب 250 ₪ حتى نهاية أكتوبر', titleEn: 'Student month ₪250 until end of October', text: tr('أحضر بطاقتك الجامعية عند الاستقبال.', 'Bring your student card to the front desk.'), from: '2026-09-15', to: '2026-10-31', by: A },
+  { id: 'a4', type: 'closure', titleAr: 'إغلاق مؤقت — صيانة المولّد', titleEn: 'Temporary closure — generator maintenance', text: '', from: '2026-09-14', to: '2026-09-16', by: A, extended: { count: 19, days: 3, by: A, on: '2026-09-17' } },
+  { id: 'a5', type: 'outage', titleAr: 'الإنترنت بطيء صباح اليوم', titleEn: 'Slow internet this morning', text: '', from: '2026-09-22', to: '2026-09-22', by: S }
+];
+const statusOf = (a) => (a.to < DESK.TODAY ? 'ended' : a.from > DESK.TODAY ? 'scheduled' : 'active');
+const STAT = () => ({ active: [tr('نشط', 'Active'), 'success'], scheduled: [tr('مجدول', 'Scheduled'), 'info'], ended: [tr('انتهى', 'Ended'), 'neutral'] });
+const period = (a) => a.from === a.to ? DESK.fmtDate(a.from, true) : DESK.fmtDate(a.from) + ' – ' + DESK.fmtDate(a.to, true);
+const titleOf = (a) => (LANG === 'en' && a.titleEn ? a.titleEn : a.titleAr);
+const daysOf = (a) => DESK.daysBetween(a.from, a.to) + 1;
+const affected = DESK.customers.filter((c) => { const s = DESK.currentSub(c); return s && DESK.subStatus(s) !== 'expired'; }).length;
+
+// How it looks on the public space page.
+function Preview({ a }) {
+  const t = titleOf(a) || tr('عنوان الإعلان', 'Announcement title');
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4">
+      <span className="text-caption text-muted-foreground">{tr('معاينة — صفحة المساحة العامة', 'Preview — public space page')}</span>
+      {a.type === 'closure' ? <>
+        <Alert variant="destructive"><AlertTitle>{t}</AlertTitle>{a.text && <AlertDescription>{a.text}</AlertDescription>}</Alert>
+        <div className="flex flex-wrap items-center gap-2"><span lang="en" className="text-heading-3">Focus Hub</span><Badge variant="neutral">{tr('مغلق الآن', 'Closed now')}</Badge></div>
+        <p className="text-caption text-muted-foreground">{tr('تظهر الحالة «مغلق الآن» خلال', 'The state shows «Closed now» during')} {period(a)}.</p>
+      </> : (
+        <div className="flex flex-col gap-1">
+          <span className="text-heading-3">{tr('الإعلانات', 'Announcements')}</span>
+          <div className="flex flex-col gap-1 border-t border-border pt-2">
+            <span className="flex flex-wrap items-center gap-2"><Badge variant={TYPES()[a.type][1]}>{TYPES()[a.type][0]}</Badge><span className="text-label">{t}</span></span>
+            {a.text && <p className="text-body-sm">{a.text}</p>}
+            <span className="text-caption text-muted-foreground">{period(a)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExtendCard({ a, onDone }) {
+  const [days, setDays] = React.useState(String(daysOf(a)));
+  const [ask, setAsk] = React.useState(false);
+  if (a.extended) return (
+    <Alert variant="success"><AlertTitle>{tr(`تم تمديد ${a.extended.count} اشتراكًا بـ ${a.extended.days} أيام`, `${a.extended.count} memberships extended by ${a.extended.days} days`)}</AlertTitle><AlertDescription>{DESK.by(a.extended.by)} · {DESK.fmtDate(a.extended.on, true)} · {tr('يُطبَّق مرة واحدة لكل إغلاق.', 'Applied once per closure.')}</AlertDescription></Alert>
+  );
+  if (!IS_OWNER) return <p className="rounded-lg bg-muted p-3 text-body-sm text-muted-foreground">{tr('يمكن للمالك تمديد الاشتراكات النشطة بمدة الإغلاق.', 'The owner can extend active memberships by the closure length.')}</p>;
+  const d = Number(days) || 0;
+  return (
+    <Card>
+      <CardHeader><CardTitle>{tr('تمديد الاشتراكات النشطة', 'Extend active memberships')}</CardTitle><CardDescription>{tr('يُضاف عدد الأيام إلى تاريخ نهاية كل اشتراك نشط. مرة واحدة لكل إغلاق.', 'Adds the days to the end date of every active membership. Once per closure.')}</CardDescription></CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <Field label={tr('عدد الأيام', 'Number of days')} helper={tr(`محسوب من الإغلاق: ${daysOf(a)} أيام`, `From the closure: ${daysOf(a)} days`)}><Input inputMode="numeric" dir="ltr" className="md:max-w-32" value={days} onChange={(e) => setDays(e.target.value.replace(/[^\d]/g, ''))} /></Field>
+        <p className="text-body-sm">{tr(`سيتأثر ${affected} اشتراكًا`, `${affected} memberships will be affected`)}</p>
+      </CardContent>
+      <CardFooter><Button disabled={!d} onClick={() => setAsk(true)}>{tr('تمديد', 'Extend')}</Button></CardFooter>
+      <AlertDialog open={ask} onOpenChange={setAsk}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{tr(`تمديد ${affected} اشتراكًا بـ ${d} أيام؟`, `Extend ${affected} memberships by ${d} days?`)}</AlertDialogTitle><AlertDialogDescription>{tr('لا يمكن تطبيقه مرة أخرى على هذا الإغلاق.', 'It can’t be applied again for this closure.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { onDone({ count: affected, days: d, by: A, on: DESK.TODAY }); toast.success(tr(`تم تمديد ${affected} اشتراكًا بـ ${d} أيام · أحمد`, `${affected} memberships extended by ${d} days · Ahmad`)); }}>{tr('تمديد', 'Extend')}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+}
+
+function AnnSheet({ item, onClose, onSave, onExtend }) {
+  const blank = { type: 'general', titleAr: '', titleEn: '', text: '', from: DESK.TODAY, to: DESK.TODAY };
+  const [v, setV] = React.useState(blank); const [err, setErr] = React.useState({});
+  React.useEffect(() => { if (item) { setV({ ...blank, ...item }); setErr({}); } }, [item]);
+  const set = (p) => setV((x) => ({ ...x, ...p }));
+  const submit = (e) => { e.preventDefault(); const x = {}; if (!v.titleAr.trim()) x.titleAr = tr('أدخل العنوان بالعربية', 'Enter the Arabic title'); if (v.to < v.from) x.to = tr('النهاية قبل البداية', 'The end is before the start'); setErr(x); if (!Object.keys(x).length) onSave(v); };
+  const T = TYPES();
+  return (
+    <Sheet open={!!item} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="end" closeLabel={tr('إغلاق', 'Close')}>
+        <SheetHeader><SheetTitle>{item && item.id ? tr('تعديل الإعلان', 'Edit announcement') : tr('إعلان جديد', 'New announcement')}</SheetTitle><SheetDescription>{tr('يظهر في صفحة المساحة العامة خلال الفترة.', 'Shown on the public space page during the period.')}</SheetDescription></SheetHeader>
+        <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <SheetBody className="flex flex-col gap-5 py-2">
+            <Field label={tr('النوع', 'Type')}><Select value={v.type} onValueChange={(t) => set({ type: t })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(T).map(([k, [l]]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
+            <Field label={tr('العنوان بالعربية', 'Title in Arabic')} error={err.titleAr}><Input lang="ar" dir="rtl" value={v.titleAr} onChange={(e) => set({ titleAr: e.target.value })} /></Field>
+            <Field label={tr('العنوان بالإنجليزية', 'Title in English')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>}><Input lang="en" dir="ltr" value={v.titleEn} onChange={(e) => set({ titleEn: e.target.value })} /></Field>
+            <Field label={tr('النص', 'Text')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>}><Textarea rows={3} value={v.text} onChange={(e) => set({ text: e.target.value })} /></Field>
+            <div className="grid gap-3 md:grid-cols-2">
+              <DateField label={tr('من', 'From')} value={v.from} onChange={(x) => set({ from: x })} />
+              <DateField label={tr('إلى', 'To')} error={err.to} value={v.to} onChange={(x) => set({ to: x })} />
+            </div>
+            <Preview a={v} />
+            {v.type === 'closure' && item && item.id && <ExtendCard a={item} onDone={(ext) => onExtend(item.id, ext)} />}
+            {v.type === 'closure' && !(item && item.id) && <p className="text-caption text-muted-foreground">{IS_OWNER ? tr('بعد الحفظ يمكنك تمديد الاشتراكات النشطة بمدة الإغلاق.', 'After saving you can extend active memberships by the closure length.') : tr('يمكن للمالك تمديد الاشتراكات بعد الحفظ.', 'The owner can extend memberships after saving.')}</p>}
+          </SheetBody>
+          <SheetFooter><Button type="submit" className="w-full">{item && item.id ? tr('حفظ', 'Save') : tr('نشر الإعلان', 'Publish')}</Button></SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function AnnInner({ theme, setTheme }) {
+  const [list, setList] = React.useState(pageParams.get('state') === 'empty' ? [] : INIT);
+  const [tab, setTab] = React.useState(pageParams.get('tab') || 'active');
+  const [edit, setEdit] = React.useState(pageParams.get('edit') ? INIT.find((a) => a.id === pageParams.get('edit')) : pageParams.get('sheet') === 'new' ? { type: pageParams.get('type') || 'general' } : null);
+  const shown = list.filter((a) => statusOf(a) === tab);
+  const save = (v) => { setList((l) => (v.id ? l.map((x) => (x.id === v.id ? v : x)) : [{ ...v, id: 'a' + Date.now(), by: IS_OWNER ? A : S }, ...l])); setEdit(null); toast.success(v.id ? tr('حُفظ الإعلان', 'Announcement saved') : tr('نُشر الإعلان', 'Announcement published')); };
+  const extend = (id, ext) => { setList((l) => l.map((x) => (x.id === id ? { ...x, extended: ext } : x))); setEdit((e) => e && { ...e, extended: ext }); };
+  const count = (s) => list.filter((a) => statusOf(a) === s).length;
+  const newBtn = <Button onClick={() => setEdit({ type: 'general' })}>{tr('إعلان جديد', 'New announcement')}</Button>;
+  return (
+    <OwnerShell current="announcements" title={tr('الإعلانات', 'Announcements')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={newBtn}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList aria-label={tr('حالة الإعلان', 'Announcement status')}>
+            <TabsTrigger value="active">{tr('نشطة', 'Active')} (<Num>{count('active')}</Num>)</TabsTrigger>
+            <TabsTrigger value="scheduled">{tr('مجدولة', 'Scheduled')} (<Num>{count('scheduled')}</Num>)</TabsTrigger>
+            <TabsTrigger value="ended">{tr('منتهية', 'Ended')} (<Num>{count('ended')}</Num>)</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="md:hidden">{newBtn}</div>
+      </div>
+      {shown.length ? (
+        <div className="flex max-w-4xl flex-col gap-4">
+          {shown.map((a) => { const [tl, tv] = TYPES()[a.type]; const [sl, sv] = STAT()[statusOf(a)]; return (
+            <Card key={a.id}>
+              <CardHeader>
+                <CardTitle className="flex flex-wrap items-center gap-2"><Badge variant={tv}>{tl}</Badge>{titleOf(a)}</CardTitle>
+                <CardDescription>{period(a)} · {tr('أنشأه', 'Created by')} {DESK.by(a.by)}</CardDescription>
+                <CardAction><Badge variant={sv}>{sl}</Badge></CardAction>
+              </CardHeader>
+              {(a.text || a.type === 'closure') && <CardContent className="flex flex-col gap-2">
+                {a.text && <p className="text-body-sm">{a.text}</p>}
+                {a.type === 'closure' && (a.extended ? <span className="flex items-center gap-2 text-caption text-muted-foreground"><CircleCheckIcon className="size-4" aria-hidden="true" />{tr(`مُدِّد ${a.extended.count} اشتراكًا بـ ${a.extended.days} أيام · ${DESK.by(a.extended.by)}`, `${a.extended.count} memberships extended by ${a.extended.days} days · ${DESK.by(a.extended.by)}`)}</span> : <span className="text-caption text-muted-foreground">{IS_OWNER ? tr('لم تُمدَّد الاشتراكات بعد — افتح الإعلان للتمديد.', 'Memberships not extended yet — open to extend.') : tr('يمكن للمالك تمديد الاشتراكات.', 'The owner can extend memberships.')}</span>)}
+              </CardContent>}
+              <CardFooter><Button size="sm" variant="outline" onClick={() => setEdit(a)}>{statusOf(a) === 'ended' ? tr('عرض', 'View') : tr('تعديل', 'Edit')}</Button></CardFooter>
+            </Card>
+          ); })}
+        </div>
+      ) : <Card><EmptyState icon={<CircleAlertIcon />} title={tab === 'active' ? tr('لا توجد إعلانات نشطة', 'No active announcements') : tab === 'scheduled' ? tr('لا توجد إعلانات مجدولة', 'No scheduled announcements') : tr('لا توجد إعلانات منتهية', 'No ended announcements')} description={tr('أعلن عن إغلاق، أو انقطاع، أو عرض، أو فعالية ليراه الزوار في صفحة المساحة.', 'Announce a closure, outage, offer or event for visitors to see on the space page.')}>{newBtn}</EmptyState></Card>}
+      <AnnSheet item={edit} onClose={() => setEdit(null)} onSave={save} onExtend={extend} />
+    </OwnerShell>
+  );
+}
+function Screen() { const [theme, setTheme] = useTheme(); return <DeskProvider><AnnInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سجل التدقيق — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/admin-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/admin.jsx"></script>
+<script type="text/babel" src="masaha/finance.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel">
+const { DirectionProvider, Badge, DataTable, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SearchXIcon } = window.MasahaDesignSystem;
+const ROWS = AD.audit.map(([date, time, actor, action, target, details], i) => ({ id: 'e' + i, date, time, actor, action, target, details }));
+const VARIANT = { space_hidden: 'warning', owner_linked: 'success', role_changed: 'info', user_suspended: 'destructive', temp_password: 'info', lookup_changed: 'neutral', settings_changed: 'neutral' };
+function Audit({ theme, setTheme }) {
+  const [range, setRange] = React.useState({ from: dayDate('2026-09-01'), to: dayDate(AD.TODAY) });
+  const [actor, setActor] = React.useState('all'); const [action, setAction] = React.useState('all');
+  const rows = ROWS.filter((r) => inRange(r.date, range) && (actor === 'all' || r.actor === actor) && (action === 'all' || r.action === action));
+  const Act = ({ r }) => <Badge variant={VARIANT[r.action]}>{AD.ACTION[r.action]}</Badge>;
+  const columns = [
+    { id: 't', header: tr('الوقت', 'Time'), cell: ({ row }) => <span>{AD.fmt(row.original.date)} · <Num>{row.original.time}</Num></span> },
+    { id: 'actor', header: tr('المنفّذ', 'Actor'), cell: ({ row }) => row.original.actor },
+    { id: 'action', header: tr('الإجراء', 'Action'), cell: ({ row }) => <Act r={row.original} /> },
+    { id: 'target', header: tr('الهدف', 'Target'), cell: ({ row }) => <span className="text-label">{row.original.target}</span> },
+    { id: 'details', header: tr('التفاصيل', 'Details'), cell: ({ row }) => <span className="text-body-sm text-muted-foreground">{row.original.details}</span> }
+  ];
+  return (
+    <AdminShell current="audit" title={tr('سجل التدقيق', 'Audit log')} theme={theme} setTheme={setTheme}>
+      <p className="text-body-sm text-muted-foreground">{tr('أحداث المنصة فقط. أحداث تشغيل المساحات (الزبائن والدفعات) يراها مالك المساحة فقط.', 'Platform events only. Space operations events (customers and payments) are seen only by the space owner.')}</p>
+      <DataTable label={tr('سجل التدقيق', 'Audit log')} columns={columns} data={rows} getRowId={(r) => r.id}
+        toolbar={<div className="grid gap-3 md:grid-cols-3">
+          <RangePicker value={range} onChange={setRange} />
+          <Field label={tr('المنفّذ', 'Actor')}><Select value={actor} onValueChange={setActor}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('الكل', 'All')}</SelectItem><SelectItem value={AD.admin.name}>{AD.admin.name}</SelectItem></SelectContent></Select></Field>
+          <Field label={tr('نوع الإجراء', 'Action type')}><Select value={action} onValueChange={setAction}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الإجراءات', 'All actions')}</SelectItem>{Object.entries(AD.ACTION).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
+        </div>}
+        renderCard={(r) => (<div className="flex flex-col gap-1"><div className="flex items-center justify-between gap-2"><Act r={r} /><span className="text-caption text-muted-foreground">{AD.fmt(r.date)} · <Num>{r.time}</Num></span></div><span className="text-label">{r.target}</span><span className="text-body-sm text-muted-foreground">{r.details}</span><span className="text-caption text-muted-foreground">{r.actor}</span></div>)}
+        empty={<EmptyState icon={<SearchXIcon />} title={tr('لا توجد أحداث تطابق الفلاتر', 'No events match the filters')} />} />
+    </AdminShell>
+  );
+}
+
+function Screen() { const [theme, setTheme] = useTheme(); return <Audit theme={theme} setTheme={setTheme} />; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

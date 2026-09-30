@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دفعاتي اليوم — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/desk-sheet.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Card, CardHeader, CardTitle, CardDescription, CardContent, StatCard, DataTable, EmptyState, Badge, CircleCheckIcon } = window.MasahaDesignSystem;
+// Reception's own payments today, for the end-of-shift handover.
+function rowsFor(by) {
+  const out = [];
+  DESK.customers.forEach((c) => c.subs.forEach((s) => s.pays.forEach((p, i) => { if (p[0] === DESK.TODAY && p[4] === by) out.push({ id: s.id + i, time: p[1], who: c.name, item: s.name, amount: p[2], method: p[3], voided: p[5] }); })));
+  DESK.visitPays.forEach((v) => { if (v.date === DESK.TODAY && v.by === by) out.push({ id: v.id, time: v.time, who: v.name, item: tr('زيارة', 'Visit'), amount: v.amount, method: v.method }); });
+  return out.sort((a, b) => (a.time < b.time ? 1 : -1));
+}
+function MineInner({ theme, setTheme }) {
+  const rows = pageParams.get('state') === 'empty' ? [] : rowsFor(DESK.SAMI);
+  const live = rows.filter((r) => !r.voided);
+  const sum = (m) => live.filter((r) => !m || r.method === m).reduce((a, r) => a + r.amount, 0);
+  const columns = [
+    { id: 'time', header: tr('الوقت', 'Time'), cell: ({ row }) => <Num>{row.original.time}</Num> },
+    { id: 'who', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.who}</span> },
+    { id: 'item', header: tr('عن', 'For'), cell: ({ row }) => row.original.item },
+    { id: 'method', header: tr('الطريقة', 'Method'), cell: ({ row }) => <Badge variant={row.original.method === 'cash' ? 'neutral' : 'info'}>{DESK.methodLabel[row.original.method]}</Badge> },
+    { id: 'amount', header: tr('المبلغ', 'Amount'), cell: ({ row }) => <span className="text-label"><Money n={row.original.amount} /></span> }
+  ];
+  return (
+    <OwnerShell current="my-payments" title={tr('دفعاتي اليوم', 'My payments today')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
+      <p className="text-body-sm text-muted-foreground">{tr('الدفعات التي سجّلتها أنت اليوم، لتسليمها في نهاية الوردية.', 'The payments you recorded today, for the end-of-shift handover.')} · {DESK.fmtDate(DESK.TODAY, true)}</p>
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard label={tr('نقدًا', 'Cash')} value={<Money n={sum('cash')} />} helper={tr('للتسليم نقدًا', 'To hand over in cash')} />
+        <StatCard label={tr('تحويل', 'Transfer')} value={<Money n={sum('transfer')} />} helper={tr('وصلت إلى حساب المساحة', 'Received in the space’s account')} />
+        <StatCard label={tr('المجموع', 'Total')} value={<Money n={sum()} />} helper={<><Num>{live.length}</Num> {tr('دفعات', 'payments')}</>} />
+      </div>
+      <DataTable label={tr('دفعاتي اليوم', 'My payments today')} columns={columns} data={rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
+        renderCard={(r) => (<div className="flex items-start justify-between gap-3"><div className="flex flex-col gap-1"><span className="text-label">{r.who}</span><span className="text-caption text-muted-foreground"><Num>{r.time}</Num> · {r.item} · {DESK.methodLabel[r.method]}</span></div><span className="text-label"><Money n={r.amount} /></span></div>)}
+        empty={<EmptyState icon={<CircleCheckIcon />} title={tr('لم تسجّل أي دفعة اليوم', 'You haven’t recorded any payments today')} />} />
+    </OwnerShell>
+  );
+}
+function MineScreen() { const [theme, setTheme] = useTheme(); return <DeskProvider><MineInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><MineScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

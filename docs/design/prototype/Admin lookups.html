@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>القوائم — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/admin-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/admin.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, Tabs, TabsList, TabsTrigger, Field, Input, Switch, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, ArrowUpIcon, ArrowDownIcon, toast } = window.MasahaDesignSystem;
+const DS = window.MasahaDesignSystem;
+const ICONS = ['InfoIcon', 'SearchIcon', 'CircleCheckIcon', 'CircleAlertIcon', 'TriangleAlertIcon', 'UsersIcon', 'CalendarIcon', 'EyeIcon', 'LogInIcon'];
+const Ico = ({ name }) => { const C = DS[name] || DS.InfoIcon; return <C className="size-4" aria-hidden="true" />; };
+const HiddenB = () => <Badge variant="warning">{tr('مخفية', 'Hidden')}</Badge>;
+
+function EditSheet({ item, onClose, onSave }) {
+  const [v, setV] = React.useState({}); const [err, setErr] = React.useState({});
+  React.useEffect(() => { if (item) { setV({ ...item.data }); setErr({}); } }, [item]);
+  const set = (p) => setV((x) => ({ ...x, ...p }));
+  if (!item) return <Sheet open={false}><SheetContent closeLabel="" /></Sheet>;
+  const kind = item.kind;
+  const submit = (e) => { e.preventDefault(); const x = {}; if (!(v.ar || '').trim()) x.ar = tr('أدخل الاسم بالعربية', 'Enter the Arabic name'); if (!(v.en || '').trim()) x.en = tr('أدخل الاسم بالإنجليزية', 'Enter the English name'); setErr(x); if (!Object.keys(x).length) onSave(item, v); };
+  const title = { gov: tr('محافظة', 'Governorate'), area: tr('منطقة', 'Area'), amenity: tr('مرفق', 'Amenity') }[kind];
+  return (
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="end" closeLabel={tr('إغلاق', 'Close')}>
+        <SheetHeader><SheetTitle>{item.isNew ? tr('إضافة ', 'Add ') + title : tr('تعديل ', 'Edit ') + title}</SheetTitle>{item.parent && <SheetDescription>{item.parent}</SheetDescription>}</SheetHeader>
+        <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <SheetBody className="flex flex-col gap-5 py-2">
+            <Field label={tr('الاسم بالعربية', 'Name in Arabic')} error={err.ar}><Input lang="ar" dir="rtl" value={v.ar || ''} onChange={(e) => set({ ar: e.target.value })} /></Field>
+            <Field label={tr('الاسم بالإنجليزية', 'Name in English')} error={err.en}><Input lang="en" dir="ltr" value={v.en || ''} onChange={(e) => set({ en: e.target.value })} /></Field>
+            {kind === 'amenity' && <>
+              <Field label={tr('الأيقونة', 'Icon')}><Select value={v.icon || 'InfoIcon'} onValueChange={(i) => set({ icon: i })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ICONS.map((i) => <SelectItem key={i} value={i}><span className="flex items-center gap-2"><Ico name={i} /><span dir="ltr">{i.replace('Icon', '')}</span></span></SelectItem>)}</SelectContent></Select></Field>
+              <Field label={tr('يظهر في الفلاتر', 'Shown in filters')} helper={tr('أوقفه للمرافق التي تتوفر في كل المساحات.', 'Turn off for amenities every space has.')} orientation="horizontal"><Switch checked={!!v.filter} onCheckedChange={(b) => set({ filter: b })} /></Field>
+            </>}
+            <Field label={tr('نشطة', 'Active')} helper={tr('مخفية: لا تظهر في الفلاتر والنماذج.', 'Hidden: not shown in filters and forms.')} orientation="horizontal"><Switch checked={v.active !== false} onCheckedChange={(b) => set({ active: b })} /></Field>
+          </SheetBody>
+          <SheetFooter><Button type="submit" className="w-full">{tr('حفظ', 'Save')}</Button></SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function Lookups({ theme, setTheme }) {
+  const [tab, setTab] = React.useState(pageParams.get('tab') || 'areas');
+  const [govs, setGovs] = React.useState(AD.lookups.govs);
+  const [ams, setAms] = React.useState(AD.lookups.amenities);
+  const [edit, setEdit] = React.useState(pageParams.get('edit') === 'area' ? { kind: 'area', gov: 'gaza', parent: tr('محافظة غزة', 'Gaza City'), data: AD.lookups.govs[1].areas[10] } : null);
+  const name = (x) => (LANG === 'en' ? x.en : x.ar);
+  const move = (arr, i, d) => { const a = arr.slice(); [a[i], a[i + d]] = [a[i + d], a[i]]; return a; };
+  const setGov = (id, p) => setGovs((g) => g.map((x) => (x.id === id ? { ...x, ...p } : x)));
+  const setArea = (gid, aid, p) => setGovs((g) => g.map((x) => (x.id === gid ? { ...x, areas: x.areas.map((a) => (a.id === aid ? { ...a, ...p } : a)) } : x)));
+  const flip = (label, on) => toast(on ? tr(`أصبحت «${label}» ظاهرة`, `«${label}» is shown`) : tr(`أُخفيت «${label}» من الفلاتر والنماذج`, `«${label}» hidden from filters and forms`));
+  const save = (item, v) => {
+    if (item.kind === 'gov') item.isNew ? setGovs((g) => [...g, { id: 'g' + Date.now(), areas: [], active: true, ...v }]) : setGov(item.data.id, v);
+    if (item.kind === 'area') item.isNew ? setGovs((g) => g.map((x) => (x.id === item.gov ? { ...x, areas: [...x.areas, { id: 'a' + Date.now(), active: true, ...v }] } : x))) : setArea(item.gov, item.data.id, v);
+    if (item.kind === 'amenity') item.isNew ? setAms((a) => [...a, { id: 'm' + Date.now(), active: true, filter: true, icon: 'InfoIcon', ...v }]) : setAms((a) => a.map((x) => (x.id === item.data.id ? { ...x, ...v } : x)));
+    setEdit(null); toast.success(tr('حُفظت القائمة', 'Lookup saved'));
+  };
+  const Order = ({ i, n, onMove, label }) => (
+    <span className="flex gap-1">
+      <Button type="button" variant="ghost" size="icon" disabled={i === 0} aria-label={tr('تحريك لأعلى: ', 'Move up: ') + label} onClick={() => onMove(-1)}><ArrowUpIcon /></Button>
+      <Button type="button" variant="ghost" size="icon" disabled={i === n - 1} aria-label={tr('تحريك لأسفل: ', 'Move down: ') + label} onClick={() => onMove(1)}><ArrowDownIcon /></Button>
+    </span>
+  );
+  return (
+    <AdminShell current="lookups" title={tr('القوائم', 'Lookups')} theme={theme} setTheme={setTheme}>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList aria-label={tr('القوائم', 'Lookups')}><TabsTrigger value="areas">{tr('المحافظات والمناطق', 'Governorates and areas')}</TabsTrigger><TabsTrigger value="amenities">{tr('المرافق', 'Amenities')}</TabsTrigger></TabsList>
+      </Tabs>
+      <p className="text-body-sm text-muted-foreground">{tr('مخفية: لا تظهر في الفلاتر والنماذج. المساحات المرتبطة بها تبقى كما هي. الترتيب هنا هو ترتيب الظهور.', 'Hidden: not shown in filters and forms. Spaces already using it stay as they are. The order here is the display order.')}</p>
+      {tab === 'areas' ? (
+        <div className="flex max-w-4xl flex-col gap-4">
+          {govs.map((g, gi) => (
+            <Card key={g.id} className={g.active ? '' : 'bg-muted'}>
+              <CardHeader>
+                <CardTitle className="flex flex-wrap items-center gap-2">{name(g)}{!g.active && <HiddenB />}</CardTitle>
+                <CardDescription><span lang={LANG === 'en' ? 'ar' : 'en'}>{LANG === 'en' ? g.ar : g.en}</span> · <Num>{g.areas.length}</Num> {tr('مناطق', 'areas')}</CardDescription>
+                <CardAction className="flex items-center gap-1">
+                  <Order i={gi} n={govs.length} label={name(g)} onMove={(d) => setGovs((x) => move(x, gi, d))} />
+                  <Switch checked={g.active} aria-label={tr('ظاهرة: ', 'Shown: ') + name(g)} onCheckedChange={(on) => { setGov(g.id, { active: on }); flip(name(g), on); }} />
+                  <Button size="sm" variant="ghost" onClick={() => setEdit({ kind: 'gov', data: g })}>{tr('تعديل', 'Edit')}</Button>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                {g.areas.length > 0 && <ul className="flex flex-col divide-y rounded-lg border border-border">
+                  {g.areas.map((a, ai) => (
+                    <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                      <span className="flex flex-wrap items-center gap-2"><span className="text-label">{name(a)}</span><span lang={LANG === 'en' ? 'ar' : 'en'} className="text-caption text-muted-foreground">{LANG === 'en' ? a.ar : a.en}</span>{!a.active && <HiddenB />}</span>
+                      <span className="flex items-center gap-1">
+                        <Order i={ai} n={g.areas.length} label={name(a)} onMove={(d) => setGov(g.id, { areas: move(g.areas, ai, d) })} />
+                        <Switch checked={a.active} aria-label={tr('ظاهرة: ', 'Shown: ') + name(a)} onCheckedChange={(on) => { setArea(g.id, a.id, { active: on }); flip(name(a), on); }} />
+                        <Button size="sm" variant="ghost" onClick={() => setEdit({ kind: 'area', gov: g.id, parent: name(g), data: a })}>{tr('تعديل', 'Edit')}</Button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>}
+                <Button size="sm" variant="outline" className="self-start" onClick={() => setEdit({ kind: 'area', gov: g.id, parent: name(g), isNew: true, data: {} })}>{tr('إضافة منطقة', 'Add area')}</Button>
+              </CardContent>
+            </Card>
+          ))}
+          <Button variant="outline" className="self-start" onClick={() => setEdit({ kind: 'gov', isNew: true, data: {} })}>{tr('إضافة محافظة', 'Add governorate')}</Button>
+        </div>
+      ) : (
+        <Card className="max-w-4xl">
+          <CardHeader><CardTitle>{tr('المرافق', 'Amenities')}</CardTitle><CardDescription>{tr('«يظهر في الفلاتر» متوقف للإنترنت والكهرباء المستقرة لأنها في كل المساحات.', '«Shown in filters» is off for Internet and Stable power, since every space has them.')}</CardDescription><CardAction><Button size="sm" onClick={() => setEdit({ kind: 'amenity', isNew: true, data: { filter: true, icon: 'InfoIcon' } })}>{tr('إضافة مرفق', 'Add amenity')}</Button></CardAction></CardHeader>
+          <CardContent className="p-0">
+            <ul className="divide-y">
+              {ams.map((m, i) => (
+                <li key={m.id} className="flex flex-col gap-2 px-5 py-3 md:flex-row md:items-center md:justify-between">
+                  <span className="flex flex-wrap items-center gap-2"><Ico name={m.icon} /><span className="text-label">{name(m)}</span><span lang={LANG === 'en' ? 'ar' : 'en'} className="text-caption text-muted-foreground">{LANG === 'en' ? m.ar : m.en}</span>{!m.filter && <Badge variant="neutral">{tr('ليس في الفلاتر', 'Not in filters')}</Badge>}{!m.active && <HiddenB />}</span>
+                  <span className="flex flex-wrap items-center gap-2">
+                    <Order i={i} n={ams.length} label={name(m)} onMove={(d) => setAms((x) => move(x, i, d))} />
+                    <Field label={tr('في الفلاتر', 'In filters')} orientation="horizontal"><Switch checked={m.filter} onCheckedChange={(on) => setAms((a) => a.map((x) => (x.id === m.id ? { ...x, filter: on } : x)))} /></Field>
+                    <Field label={tr('نشط', 'Active')} orientation="horizontal"><Switch checked={m.active} onCheckedChange={(on) => { setAms((a) => a.map((x) => (x.id === m.id ? { ...x, active: on } : x))); flip(name(m), on); }} /></Field>
+                    <Button size="sm" variant="ghost" onClick={() => setEdit({ kind: 'amenity', data: m })}>{tr('تعديل', 'Edit')}</Button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+      <EditSheet item={edit} onClose={() => setEdit(null)} onSave={save} />
+    </AdminShell>
+  );
+}
+
+function Screen() { const [theme, setTheme] = useTheme(); return <Lookups theme={theme} setTheme={setTheme} />; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

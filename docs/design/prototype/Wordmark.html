@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Masaha — Wordmark</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<style>
+body{margin:0;font-family:system-ui,sans-serif}
+.note,.opt{position:absolute;width:1160px}
+.note h1{margin:0;font-size:30px;color:#222}.note p{margin:8px 0 0;font-size:16px;color:#555;max-width:900px}
+.opt{display:flex;flex-direction:column;gap:20px;padding:28px;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.12);box-sizing:border-box}
+.opt-h h2{margin:0;font-size:22px;color:#222}.opt-h h2 em{font-style:normal;font-size:13px;background:#222;color:#fff;border-radius:99px;padding:3px 10px;margin-inline-start:8px;vertical-align:middle}.opt-h p{margin:6px 0 0;font-size:15px;color:#555}
+.row{display:flex;gap:24px}.hdr nav span,.hdr>div>span{white-space:nowrap}.cell{flex:1;display:flex;flex-direction:column;gap:8px}.lbl{margin:0;font-size:13px;color:#777}
+.favs,.lockup{display:flex;align-items:center;gap:24px;padding:20px 24px;min-height:150px;box-sizing:border-box}.zoom{display:flex;align-items:center;gap:24px;margin-inline-start:auto}
+.lockup{justify-content:center;gap:16px}.lockup .en{font-family:var(--font-sans);font-size:22px;font-weight:600;color:var(--muted-foreground);letter-spacing:.02em}
+/* wordmarks — tokens only */
+.wm{position:relative;display:inline-flex;align-items:center;color:var(--primary);font-weight:700;line-height:1}
+.wm-h3{font-size:var(--type-heading-3-size,20px)}.wm-h2{font-size:32px}
+.wm-b{padding:.28em .45em}
+.wm-b::before,.wm-b::after{content:"";position:absolute;width:.5em;height:.5em;border:0 solid var(--primary)}
+.wm-b::before{top:0;inset-inline-start:0;border-top-width:.12em;border-inline-start-width:.12em}
+.wm-b::after{bottom:0;inset-inline-end:0;border-bottom-width:.12em;border-inline-end-width:.12em}
+.wm-c{padding-bottom:.32em}
+.wm-c::before,.wm-c::after{content:"";position:absolute;bottom:0;height:.12em;background:var(--primary);border-radius:var(--radius-scale-full,999px)}
+.wm-c::before{inset-inline-start:0;width:.35em}.wm-c::after{inset-inline-start:.55em;inset-inline-end:0}
+.fav{position:relative;display:inline-flex;align-items:center;justify-content:center;width:var(--s);height:var(--s);flex:none;font-weight:700;line-height:1;box-sizing:border-box}
+.fav span{font-size:calc(var(--s)*.62);transform:translateY(-.04em)}
+.fav-a{background:var(--primary);color:var(--primary-foreground);border-radius:calc(var(--s)*.22)}
+.fav-b{background:var(--card);color:var(--primary)}
+.fav-b::before,.fav-b::after{content:"";position:absolute;width:40%;height:40%;border:0 solid var(--primary)}
+.fav-b::before{top:0;right:0;border-top-width:calc(var(--s)*.11);border-right-width:calc(var(--s)*.11)}
+.fav-b::after{bottom:0;left:0;border-bottom-width:calc(var(--s)*.11);border-left-width:calc(var(--s)*.11)}
+.fav-b span{font-size:calc(var(--s)*.56)}
+.fav-c{background:var(--card);color:var(--primary)}
+.fav-c span{font-size:calc(var(--s)*.58);transform:translateY(-.18em)}
+.fav-c::before,.fav-c::after{content:"";position:absolute;bottom:8%;height:12%;background:var(--primary);border-radius:999px}
+.fav-c::before{right:6%;width:18%}.fav-c::after{right:32%;left:6%}
+</style>
+</head>
+<body>
+<div class="note" style="left:40px;top:40px"><h1>Wordmark — مساحة / Masaha</h1><p>DS font (IBM Plex Sans Arabic) and DS colours only. Chosen: <b>A · Plain</b> — the word alone in primary; favicon م on a primary tile. Applied to every header, the favicon and the reset email.</p></div>
+<section class="opt" style="left:40px;top:170px"><div class="opt-h"><h2>A · Plain <em>Chosen</em></h2><p>The word alone, set in the DS Arabic font at heading weight in primary. Favicon: م on a primary tile.</p></div>
+<div class="row"><div class="cell"><p class="lbl">Header · light</p><div data-theme="light" class="hdr bg-background text-foreground border border-border rounded-lg" dir="rtl" lang="ar"><div class="flex h-14 items-center gap-6 px-6"><span class="wm wm-a wm-h3" lang="ar"><span class="wm-word">مساحة</span></span><nav class="flex gap-4 text-body-sm text-muted-foreground"><span class="text-foreground">الرئيسية</span><span>المساحات</span><span>عن مساحة</span></nav><span class="ms-auto rounded-md border border-border px-3 py-1 text-body-sm">تسجيل الدخول</span></div></div></div></div>
+<div class="row"><div class="cell"><p class="lbl">Header · dark</p><div data-theme="dark" class="hdr bg-background text-foreground border border-border rounded-lg" dir="rtl" lang="ar"><div class="flex h-14 items-center gap-6 px-6"><span class="wm wm-a wm-h3" lang="ar"><span class="wm-word">مساحة</span></span><nav class="flex gap-4 text-body-sm text-muted-foreground"><span class="text-foreground">الرئيسية</span><span>المساحات</span><span>عن مساحة</span></nav><span class="ms-auto rounded-md border border-border px-3 py-1 text-body-sm">تسجيل الدخول</span></div></div></div></div>
+<div class="row"><div class="cell"><p class="lbl">Favicon · 32px and 16px (actual size, then 4×)</p><div data-theme="light" class="favs bg-card border border-border rounded-lg"><span class="fav fav-a" style="--s:32px" lang="ar" role="img" aria-label="favicon 32px"><span>م</span></span><span class="fav fav-a" style="--s:16px" lang="ar" role="img" aria-label="favicon 16px"><span>م</span></span><span class="zoom"><span class="fav fav-a" style="--s:128px" lang="ar" role="img" aria-label="favicon 128px"><span>م</span></span><span class="fav fav-a" style="--s:64px" lang="ar" role="img" aria-label="favicon 64px"><span>م</span></span></span></div></div>
+<div class="cell"><p class="lbl">With the English name</p><div data-theme="light" class="lockup bg-card border border-border rounded-lg"><span class="wm wm-a wm-h2" lang="ar"><span class="wm-word">مساحة</span></span><span class="en" lang="en">Masaha</span></div></div></div>
+</section>
+<section class="opt" style="left:40px;top:790px"><div class="opt-h"><h2>B · Open frame</h2><p>Two corners mark out an area around the word, reading as a space without drawing a building or desk. Favicon: م between the corners.</p></div>
+<div class="row"><div class="cell"><p class="lbl">Header · light</p><div data-theme="light" class="hdr bg-background text-foreground border border-border rounded-lg" dir="rtl" lang="ar"><div class="flex h-14 items-center gap-6 px-6"><span class="wm wm-b wm-h3" lang="ar"><span class="wm-word">مساحة</span></span><nav class="flex gap-4 text-body-sm text-muted-foreground"><span class="text-foreground">الرئيسية</span><span>المساحات</span><span>عن مساحة</span></nav><span class="ms-auto rounded-md border border-border px-3 py-1 text-body-sm">تسجيل الدخول</span></div></div></div></div>
+<div class="row"><div class="cell"><p class="lbl">Header · dark</p><div data-theme="dark" class="hdr bg-background text-foreground border border-border rounded-lg" dir="rtl" lang="ar"><div class="flex h-14 items-center gap-6 px-6"><span class="wm wm-b wm-h3" lang="ar"><span class="wm-word">مساحة</span></span><nav class="flex gap-4 text-body-sm text-muted-foreground"><span class="text-foreground">الرئيسية</span><span>المساحات</span><span>عن مساحة</span></nav><span class="ms-auto rounded-md border border-border px-3 py-1 text-body-sm">تسجيل الدخول</span></div></div></div></div>
+<div class="row"><div class="cell"><p class="lbl">Favicon · 32px and 16px (actual size, then 4×)</p><div data-theme="light" class="favs bg-card border border-border rounded-lg"><span class="fav fav-b" style="--s:32px" lang="ar" role="img" aria-label="favicon 32px"><span>م</span></span><span class="fav fav-b" style="--s:16px" lang="ar" role="img" aria-label="favicon 16px"><span>م</span></span><span class="zoom"><span class="fav fav-b" style="--s:128px" lang="ar" role="img" aria-label="favicon 128px"><span>م</span></span><span class="fav fav-b" style="--s:64px" lang="ar" role="img" aria-label="favicon 64px"><span>م</span></span></span></div></div>
+<div class="cell"><p class="lbl">With the English name</p><div data-theme="light" class="lockup bg-card border border-border rounded-lg"><span class="wm wm-b wm-h2" lang="ar"><span class="wm-word">مساحة</span></span><span class="en" lang="en">Masaha</span></div></div></div>
+</section>
+<section class="opt" style="left:40px;top:1410px"><div class="opt-h"><h2>C · Floor line</h2><p>A primary line under the word, broken near the start like a gap in a floor plan. Favicon: م on the broken line.</p></div>
+<div class="row"><div class="cell"><p class="lbl">Header · light</p><div data-theme="light" class="hdr bg-background text-foreground border border-border rounded-lg" dir="rtl" lang="ar"><div class="flex h-14 items-center gap-6 px-6"><span class="wm wm-c wm-h3" lang="ar"><span class="wm-word">مساحة</span></span><nav class="flex gap-4 text-body-sm text-muted-foreground"><span class="text-foreground">الرئيسية</span><span>المساحات</span><span>عن مساحة</span></nav><span class="ms-auto rounded-md border border-border px-3 py-1 text-body-sm">تسجيل الدخول</span></div></div></div></div>
+<div class="row"><div class="cell"><p class="lbl">Header · dark</p><div data-theme="dark" class="hdr bg-background text-foreground border border-border rounded-lg" dir="rtl" lang="ar"><div class="flex h-14 items-center gap-6 px-6"><span class="wm wm-c wm-h3" lang="ar"><span class="wm-word">مساحة</span></span><nav class="flex gap-4 text-body-sm text-muted-foreground"><span class="text-foreground">الرئيسية</span><span>المساحات</span><span>عن مساحة</span></nav><span class="ms-auto rounded-md border border-border px-3 py-1 text-body-sm">تسجيل الدخول</span></div></div></div></div>
+<div class="row"><div class="cell"><p class="lbl">Favicon · 32px and 16px (actual size, then 4×)</p><div data-theme="light" class="favs bg-card border border-border rounded-lg"><span class="fav fav-c" style="--s:32px" lang="ar" role="img" aria-label="favicon 32px"><span>م</span></span><span class="fav fav-c" style="--s:16px" lang="ar" role="img" aria-label="favicon 16px"><span>م</span></span><span class="zoom"><span class="fav fav-c" style="--s:128px" lang="ar" role="img" aria-label="favicon 128px"><span>م</span></span><span class="fav fav-c" style="--s:64px" lang="ar" role="img" aria-label="favicon 64px"><span>م</span></span></span></div></div>
+<div class="cell"><p class="lbl">With the English name</p><div data-theme="light" class="lockup bg-card border border-border rounded-lg"><span class="wm wm-c wm-h2" lang="ar"><span class="wm-word">مساحة</span></span><span class="en" lang="en">Masaha</span></div></div></div>
+</section>
+</body>
+</html>

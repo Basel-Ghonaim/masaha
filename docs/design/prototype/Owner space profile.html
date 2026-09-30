@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ملف المساحة — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script type="text/babel" src="masaha/map.jsx"></script>
+<script type="text/babel" src="masaha/profile-a.jsx"></script>
+<script type="text/babel" src="masaha/profile-b.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Alert, AlertDescription, Card, CardHeader, CardTitle, CardDescription, CardAction, ArrowEndIcon } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+const SECTIONS = () => [['basics', tr('الأساسيات', 'Basics')], ['location', tr('الموقع', 'Location')], ['hours', tr('ساعات العمل', 'Opening hours')], ['prices', tr('الأسعار', 'Prices')], ['amenities', tr('المرافق', 'Amenities')], ['contacts', tr('التواصل', 'Contacts')], ['photos', tr('الصور', 'Photos')], ['capacity', tr('السعة ومدة الجلوس', 'Capacity and stay')]];
+
+function ProfileScreen() {
+  const [theme, setTheme] = useTheme();
+  const space = M.spaces.find((s) => s.id === 'focus');
+  const [dirty, setDirty] = React.useState(0);
+  React.useEffect(() => { const h = () => setDirty(dirtySet.size); window.addEventListener('masaha-dirty', h); return () => window.removeEventListener('masaha-dirty', h); }, []);
+  return (
+    <OwnerShell current="profile" title={tr('ملف المساحة', 'Space profile')} state="open" theme={theme} setTheme={setTheme}>
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
+        <nav aria-label={tr('أقسام الملف', 'Profile sections')} className="profile-toc hidden lg:col-span-3 lg:flex lg:flex-col lg:gap-1">
+          {SECTIONS().map(([id, l]) => <Button key={id} variant="ghost" size="sm" className="w-full justify-start" asChild><a href={'#' + id}>{l}</a></Button>)}
+        </nav>
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-9">
+          <p className="text-body-sm text-muted-foreground">{tr('كل قسم يُحفظ وحده، ويظهر للزوار فور الحفظ.', 'Each section saves on its own and shows to visitors as soon as it’s saved.')} <a href="Space details.html?id=focus" target="_blank" rel="noopener">{tr('عرض الصفحة العامة', 'View public page')}</a></p>
+          {dirty > 0 && <Alert variant="warning"><AlertDescription>{tr(`لديك تغييرات غير محفوظة في ${dirty} ${dirty === 1 ? 'قسم' : 'أقسام'}. ستُفقد إذا غادرت الصفحة.`, `You have unsaved changes in ${dirty} section${dirty === 1 ? '' : 's'}. They’ll be lost if you leave the page.`)}</AlertDescription></Alert>}
+          <BasicsSection space={space} />
+          <LocationSection space={space} />
+          <HoursSection />
+          <Card id="prices">
+            <CardHeader>
+              <CardTitle>{tr('الأسعار', 'Prices')}</CardTitle>
+              <CardDescription>{tr('انتقلت الأسعار المعلنة والباقات الخاصة إلى صفحة مستقلة.', 'Published prices and private packages now have their own page.')}</CardDescription>
+              <CardAction><Button variant="outline" size="sm" asChild><a href="Packages.html">{tr('الباقات والأسعار', 'Packages & prices')}<ArrowEndIcon /></a></Button></CardAction>
+            </CardHeader>
+          </Card>
+          <AmenitiesSection space={space} />
+          <ContactsSection space={space} />
+          <PhotosSection />
+          <CapacitySection />
+        </div>
+      </div>
+    </OwnerShell>
+  );
+}
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><ProfileScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

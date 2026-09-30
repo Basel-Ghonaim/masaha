@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تسجيل الدخول — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/auth.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Field, Input, InputAction, Button, Alert, AlertTitle, AlertDescription, AlertAction, EyeIcon, EyeOffIcon, LogInIcon, CircleCheckIcon, TriangleAlertIcon } = window.MasahaDesignSystem;
+const initialState = pageParams.get('state');
+
+function SignInScreen() {
+  const [theme, setTheme] = useTheme();
+  const google = useGoogleSignIn();
+  const prefill = initialState === 'error' || initialState === 'loading';
+  const [email, setEmail] = React.useState(prefill ? 'name@example.com' : '');
+  const [password, setPassword] = React.useState(prefill ? 'masaha2026' : '');
+  const [errors, setErrors] = React.useState({});
+  const [loading, setLoading] = React.useState(initialState === 'loading');
+  const [failed, setFailed] = React.useState(initialState === 'error');
+  const [limited, setLimited] = React.useState(initialState === 'ratelimit');
+
+  const submit = (e) => {
+    e.preventDefault();
+    const next = {};
+    if (!email.trim()) next.email = tr("أدخل بريدك الإلكتروني", "Enter your email");
+    else if (!EMAIL_RE.test(email)) next.email = tr("تحقّق من كتابة البريد الإلكتروني", "Check the email address");
+    if (!password) next.password = tr("أدخل كلمة المرور", "Enter your password");
+    setErrors(next); setFailed(false);
+    if (Object.keys(next).length || limited) return;
+    setLoading(true);
+    // Demo: "wrong@example.com" fails; anything else signs in and returns to where the user was.
+    setTimeout(() => { setLoading(false); if (email.startsWith('wrong')) setFailed(true); else finishAuth(tr("أهلًا بعودتك", "Welcome back")); }, 1200);
+  };
+
+  return (
+    <AuthShell theme={theme} setTheme={setTheme}>
+      <Card className="w-full md:max-w-md">
+        <CardHeader>
+          <CardTitle>{tr("تسجيل الدخول", "Sign in")}</CardTitle>
+          <CardDescription>{tr("سجّل الدخول لمتابعة مساحاتك المفضّلة والبلاغات التي أرسلتها عن المعلومات الخاطئة.", "Sign in to follow your favourite spaces and the reports you’ve sent about wrong information.")}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <GoogleBlock google={google} />
+          <form className="flex flex-col gap-4" noValidate onSubmit={submit}>
+            {failed && (
+              <Alert variant="destructive">
+                <AlertTitle>{tr("تعذّر تسجيل الدخول", "Couldn’t sign in")}</AlertTitle>
+                <AlertDescription>{tr("البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة أخرى.", "The email or password is wrong. Try again.")}</AlertDescription>
+              </Alert>
+            )}
+            {limited && <RateLimitAlert />}
+            <Field label={tr("البريد الإلكتروني", "Email")} error={errors.email}>
+              <Input type="email" dir="ltr" autoComplete="email" placeholder="name@example.com" value={email} disabled={loading} onChange={(e) => setEmail(e.target.value)} />
+            </Field>
+            <div className="flex flex-col gap-1">
+              <PasswordField label={tr("كلمة المرور", "Password")} value={password} onChange={setPassword} error={errors.password} disabled={loading} autoComplete="current-password" rules={false} />
+              <Button variant="link" size="sm" className="self-end px-0" asChild><a href="Forgot password.html">{tr("نسيت كلمة المرور؟", "Forgot password?")}</a></Button>
+            </div>
+            <Button type="submit" className="w-full" loading={loading}><LogInIcon />{tr("تسجيل الدخول", "Sign in")}</Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-2 text-body-sm text-muted-foreground">
+          <p className="flex flex-wrap items-center justify-center gap-1">
+            {tr("ليس لديك حساب؟", "No account?")}
+            <Button variant="link" size="sm" asChild><a href={withNext('Register.html')}>{tr("إنشاء حساب", "Create account")}</a></Button>
+          </p>
+          <Button variant="ghost" size="sm" asChild><a href="Directory.html">{tr("تصفّح المساحات بدون حساب", "Browse spaces without an account")}</a></Button>
+        </CardFooter>
+      </Card>
+    </AuthShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><SignInScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

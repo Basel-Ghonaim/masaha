@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>نظرة عامة — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/admin-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/admin.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardContent, StatCard } = window.MasahaDesignSystem;
+function Tile({ href, ...p }) { return <a href={href} className="block rounded-xl text-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><StatCard className="h-full" {...p} /></a>; }
+function Overview({ theme, setTheme }) {
+  const S = AD.spaces; const c = (st) => S.filter((s) => s.status === st).length;
+  const open = AD.reports.filter((r) => r.status === 'new');
+  const mine = open.filter((r) => AD.handledBy(r) === 'admin').length;
+  const newUsers = AD.users.filter((u) => AD.fmt && u.joined >= '2026-09-23').length;
+  const stale = S.filter((s) => s.status !== 'hidden' && AD.staleGroups(s).length);
+  const todo = S.filter((s) => s.status !== 'hidden' && (s.missing.length || AD.staleGroups(s).length));
+  return (
+    <AdminShell current="overview" title={tr('نظرة عامة', 'Overview')} theme={theme} setTheme={setTheme}>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label={tr('ملخص المنصة', 'Platform summary')}>
+        <Tile href="Admin spaces.html" label={tr('المساحات', 'Spaces')} value={<Num>{S.length}</Num>} helper={<><Num>{c('verified')}</Num> {tr('موثّقة', 'verified')} · <Num>{c('unverified')}</Num> {tr('غير موثّقة', 'unverified')} · <Num>{c('hidden')}</Num> {tr('مخفية', 'hidden')}</>} />
+        <Tile href="Admin reports.html?status=new" label={tr('بلاغات مفتوحة', 'Open data reports')} value={<Num>{open.length}</Num>} helper={<><Num>{mine}</Num> {tr('بانتظار الإدارة', 'waiting for the admin')} · <Num>{open.length - mine}</Num> {tr('بانتظار المالكين', 'waiting for owners')}</>} />
+        <Tile href="Admin users.html" label={tr('مستخدمون جدد هذا الأسبوع', 'New users this week')} value={<Num>{newUsers}</Num>} helper={tr('منذ السبت', 'Since Saturday')} />
+        <Tile href="Admin spaces.html?stale=1" label={tr('مساحات بيانات قديمة', 'Spaces with stale data')} value={<Num>{stale.length}</Num>} helper={tr('الأسعار > 30 يومًا · الباقي > 60', 'Prices > 30 days · others > 60')} />
+      </section>
+      <Card>
+        <CardHeader><CardTitle>{tr('اكتمال البيانات', 'Data completeness')}</CardTitle><CardDescription>{tr('مساحات ينقصها شيء أو فيها بيانات قديمة. المساحات المخفية غير مشمولة.', 'Spaces missing something or with stale data. Hidden spaces are left out.')}</CardDescription></CardHeader>
+        <CardContent className="p-0">
+          <ul className="divide-y">
+            {todo.map((s) => (
+              <li key={s.id} className="flex flex-col gap-2 px-5 py-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="flex flex-wrap items-center gap-2"><span lang="en" className="text-label">{s.name}</span><SpaceStatus s={s} /></span>
+                  <span className="flex flex-wrap gap-2">
+                    {s.missing.map((m) => <Badge key={m} variant="destructive">{AD.MISSING[m]}</Badge>)}
+                    {AD.staleGroups(s).map((g) => <Badge key={g} variant="warning"><span>{AD.GROUP[g]} · <Num>{s.upd[g]}</Num> {tr('يومًا', 'days')}</span></Badge>)}
+                  </span>
+                </div>
+                {s.status === 'verified' ? <span className="text-caption text-muted-foreground">{tr('يعدّلها المالك', 'The owner edits it')}</span> : <Button size="sm" variant="outline" asChild><a href={'Admin space edit.html?id=' + s.id}>{tr('تعديل', 'Edit')}</a></Button>}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+      <PrivacyNote />
+    </AdminShell>
+  );
+}
+
+function Screen() { const [theme, setTheme] = useTheme(); return <Overview theme={theme} setTheme={setTheme} />; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

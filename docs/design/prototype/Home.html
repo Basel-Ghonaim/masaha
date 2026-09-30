@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مساحة — مساحات العمل في غزة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/location.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardAction, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, SearchIcon, ChevronEndIcon, ArrowEndIcon } = window.MasahaDesignSystem;
+const M = window.MASAHA;
+
+function HomeScreen() {
+  const [theme, setTheme] = useTheme();
+  const [state, setState] = React.useState(pageParams.get('state') || 'ready');
+  const near = useNearMe();
+  const gaza = M.governorates[0];
+  const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1200); };
+  const nearest = near.coords ? M.spaces.map((s) => ({ s, km: M.distanceKm(near.coords, s) })).sort((a, b) => a.km - b.km).slice(0, 3) : null;
+  const available = state === 'empty' ? [] : M.spaces.filter((s) => s.verified && s.status === 'open').map((s) => ({ s }));
+  const items = nearest || available;
+  const title = nearest ? tr("الأقرب إليك", "Nearest to you") : tr("متاحة الآن", "Available now");
+  const allHref = nearest ? 'Directory.html?near=1' + locPass() : 'Directory.html?available=1';
+
+  return (
+    <div className="flex min-h-dvh flex-col bg-background text-foreground">
+      <SiteHeader current="home" theme={theme} setTheme={setTheme} />
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-14 px-4 py-10 md:px-8 md:py-16">
+        <section className="flex flex-col gap-6 md:max-w-2xl">
+          <div className="flex flex-col gap-3">
+            <h1 className="text-heading-1 md:text-display">{tr("اعثر على مساحة عمل في غزة", "Find a workspace in Gaza")}</h1>
+            <p className="text-body text-muted-foreground">{tr("ساعات العمل والأسعار والحالة المباشرة لمساحات العمل المشتركة، في مكان واحد.", "Opening hours, prices and live status of coworking spaces, in one place.")}</p>
+          </div>
+          <form action="Directory.html" className="flex flex-col gap-2 md:flex-row md:items-center" role="search">
+            <Input name="q" aria-label={tr("ابحث عن مساحة", "Search for a space")} placeholder={tr("اسم المساحة أو المنطقة", "Space name or area")} startIcon={<SearchIcon />} className="md:flex-1" />
+            <Button type="submit" className="w-full md:w-auto">{tr("بحث", "Search")}</Button>
+          </form>
+        </section>
+
+        <section className="flex flex-col gap-4" aria-labelledby="spaces-title" aria-busy={state === 'loading'}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="spaces-title" className="text-heading-2">{title}</h2>
+            <div className="flex items-center gap-2">
+              {!nearest && <NearMeButton near={near} />}
+              <Button variant="link" asChild><a href={allHref}>{tr("عرض الكل", "View all")}<ChevronEndIcon /></a></Button>
+            </div>
+          </div>
+          <LocationStatus near={near} showIdle={false}
+            onPickOnMap={() => { location.href = 'Directory.html?view=map&pick=1'; }}
+            onChooseArea={() => { location.href = 'Directory.html?sheet=filters'; }} />
+          {state === 'loading' && <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((i) => <SpaceCardSkeleton key={i} />)}</div>}
+          {state === 'error' && (
+            <Alert variant="destructive">
+              <AlertTitle>{tr("تعذّر تحميل المساحات", "Couldn’t load spaces")}</AlertTitle>
+              <AlertDescription>{tr("تحقّق من اتصالك بالإنترنت ثم حاول مرة أخرى.", "Check your internet connection and try again.")}</AlertDescription>
+              <AlertAction><Button variant="outline" size="sm" onClick={retry}>{tr("إعادة المحاولة", "Try again")}</Button></AlertAction>
+            </Alert>
+          )}
+          {(state === 'ready' || state === 'empty') && (items.length ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{items.map(({ s, km }) => <SpaceCard key={s.id} space={s} km={km} />)}</div>
+          ) : (
+            <Card>
+              <EmptyState icon={<SearchIcon />} title={tr("لا توجد مساحات متاحة الآن", "No spaces available right now")} titleAs="h3" description={tr("قد تكون المساحات ممتلئة أو مغلقة في هذا الوقت. تصفّح كل المساحات لمعرفة ساعات عملها.", "Spaces may be full or closed at this time. Browse all spaces to see their hours.")}>
+                <Button variant="outline" asChild><a href="Directory.html">{tr("تصفّح كل المساحات", "Browse all spaces")}</a></Button>
+              </EmptyState>
+            </Card>
+          ))}
+        </section>
+
+        <section className="flex flex-col gap-4" aria-labelledby="areas-title">
+          <div className="flex flex-col gap-1">
+            <h2 id="areas-title" className="text-heading-2">{tr("تصفّح حسب المنطقة", "Browse by area")}</h2>
+            <p className="text-body-sm text-muted-foreground">{gaza.name}</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {gaza.areas.map((a) => {
+              const n = M.spaces.filter((s) => s.area === a.id).length;
+              return (
+                <a key={a.id} href={`Directory.html?area=${a.id}`} className="block rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                  <Card className="transition-colors hover:bg-accent">
+                    <CardHeader>
+                      <CardTitle>{a.name}</CardTitle>
+                      <CardDescription>{n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : tr(`${n} مساحات`, `${n} spaces`)}</CardDescription>
+                      <CardAction><ArrowEndIcon className="size-5 text-muted-foreground" aria-hidden="true" /></CardAction>
+                    </CardHeader>
+                  </Card>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+
+        <section aria-labelledby="owner-title">
+          <Card className="bg-muted">
+            <CardHeader>
+              <CardTitle id="owner-title">{tr("هل تدير مساحة عمل؟", "Do you run a coworking space?")}</CardTitle>
+              <CardDescription>{tr("تواصل معنا لإضافة مساحتك وتحديث ساعاتها وأسعارها وحالتها المباشرة.", "Contact us to add your space and keep its hours, prices and live status up to date.")}</CardDescription>
+            </CardHeader>
+            <CardContent><Button variant="outline" className="w-full md:w-auto md:self-start" asChild><a href="#">{tr("تواصل معنا", "Contact us")}</a></Button></CardContent>
+          </Card>
+        </section>
+      </main>
+      <SiteFooter />
+      <PageToaster />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><HomeScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

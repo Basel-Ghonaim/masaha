@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الزبائن — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/desk-core.jsx"></script>
+<script type="text/babel" src="masaha/desk-sheet.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, SearchIcon, UsersIcon, EllipsisVerticalIcon } = window.MasahaDesignSystem;
+const st = pageParams.get('state');
+if (st === 'empty') DESK.customers.length = 0;
+const kindLabel = { month: tr('شهري', 'Monthly'), week: tr('أسبوعي', 'Weekly'), package: tr('باقة', 'Package'), custom: tr('مخصّص', 'Custom'), none: tr('بدون اشتراك', 'No membership') };
+const kindOf = (c) => { const s = DESK.currentSub(c); return s ? DESK.subKind(s) : 'none'; };
+const renew = pageParams.get('renew');
+const initial = renew ? { kind: 'sheet', mode: 'renew', customerId: renew } : pageParams.get('sheet') === 'new' ? { kind: 'sheet', mode: 'new' } : null;
+
+function Filter({ label, value, onChange, options }) {
+  return (
+    <div className="md:w-44"><Select value={value} onValueChange={onChange}>
+      <SelectTrigger aria-label={label}><SelectValue /></SelectTrigger>
+      <SelectContent>{options.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+    </Select></div>
+  );
+}
+
+function CustomersInner({ theme, setTheme }) {
+  const desk = useDesk();
+  const [q, setQ] = React.useState('');
+  const [kind, setKind] = React.useState(pageParams.get('kind') || 'all');
+  const [status, setStatus] = React.useState(pageParams.get('status') || 'all');
+  const [pay, setPay] = React.useState(pageParams.get('pay') || 'all');
+  const [arch, setArch] = React.useState(pageParams.get('archive') ? DESK.findCustomer(pageParams.get('archive')) : null);
+  const term = q.trim(); const digits = term.replace(/\D/g, '');
+  const list = DESK.customers.filter((c) => (kind === 'all' || kindOf(c) === kind) && (status === 'all' || DESK.customerStatus(c) === status) && (pay === 'all' || (pay === 'owes' ? DESK.balance(c) > 0 : pay === 'credit' ? DESK.credit(c) > 0 : DESK.balance(c) === 0 && DESK.credit(c) === 0)) && (!term || c.name.includes(term) || (digits.length >= 2 && c.phone.replace(/\D/g, '').endsWith(digits))));
+  const actions = (c) => (
+    <DropdownMenu dir={DIR}>
+      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={tr('إجراءات ', 'Actions for ') + c.name}><EllipsisVerticalIcon /></Button></DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild><a href={roleQ('Customer file.html?id=' + c.id)}>{tr('ملف الزبون', 'Customer file')}</a></DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => desk.open('pay', { customerId: c.id })}>{tr('استلام دفعة', 'Receive payment')}</DropdownMenuItem>
+        {DESK.currentSub(c) && <DropdownMenuItem onSelect={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</DropdownMenuItem>}
+        <DropdownMenuItem onSelect={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New membership')}</DropdownMenuItem>
+        {IS_OWNER && <><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => setArch(c)}>{tr('أرشفة', 'Archive')}</DropdownMenuItem></>}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+  const sub = (c) => DESK.currentSub(c);
+  const columns = [
+    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + row.original.id)}>{row.original.name}</a> },
+    { id: 'phone', header: tr('الجوال', 'Mobile'), cell: ({ row }) => row.original.phone ? <span dir="ltr">{row.original.phone}</span> : <span className="text-muted-foreground">—</span> },
+    { id: 'sub', header: tr('الاشتراك الحالي', 'Current membership'), cell: ({ row }) => sub(row.original) ? sub(row.original).name : <span className="text-muted-foreground">—</span> },
+    { id: 'to', header: tr('صالح حتى', 'Valid until'), cell: ({ row }) => sub(row.original) ? DESK.fmtDate(sub(row.original).to) : <span className="text-muted-foreground">—</span> },
+    { id: 'status', header: tr('الحالة', 'Status'), cell: ({ row }) => <StatusBadge c={row.original} /> },
+    { id: 'bal', header: tr('الرصيد', 'Balance'), cell: ({ row }) => DESK.balance(row.original) > 0 || DESK.credit(row.original) > 0 ? <BalanceBadge c={row.original} /> : <span className="text-body-sm text-muted-foreground">{tr('مسدّد', 'Settled')}</span> },
+    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
+  ];
+  const add = () => desk.open('sheet', { mode: 'new' });
+  const archBal = arch ? DESK.balance(arch) : 0;
+  return (
+    <OwnerShell current="customers" title={tr('الزبائن', 'Customers')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={<Button onClick={add}>{tr('زبون جديد', 'New customer')}</Button>}>
+      <DataTable label={tr('زبائن المساحة', 'Customers of the space')} columns={columns} data={list} getRowId={(r) => r.id} loading={st === 'loading'}
+        summary={<span>{tr('عدد الزبائن', 'Customers')}: <Num>{list.length}</Num></span>}
+        toolbar={<div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
+          <Input role="searchbox" aria-label={tr('ابحث بالاسم أو آخر أرقام الجوال', 'Search by name or last digits')} placeholder={tr('الاسم أو آخر أرقام الجوال', 'Name or last digits of the mobile')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} className="md:max-w-xs" />
+          <FilterSheet active={[kind, status, pay].filter((x) => x !== 'all').length} onClear={() => { setKind('all'); setStatus('all'); setPay('all'); }}>
+          <Filter label={tr('نوع الاشتراك', 'Membership type')} value={kind} onChange={setKind} options={[['all', tr('كل الأنواع', 'All types')], ['month', kindLabel.month], ['week', kindLabel.week], ['package', kindLabel.package], ['custom', kindLabel.custom], ['none', kindLabel.none]]} />
+          <Filter label={tr('الحالة', 'Status')} value={status} onChange={setStatus} options={[['all', tr('كل الحالات', 'All statuses')], ...['active', 'soon', 'expired', 'none'].map((k) => [k, DESK.statusBadge[k][1]])]} />
+          <Filter label={tr('الدفع', 'Payment')} value={pay} onChange={setPay} options={[['all', tr('كل حالات الدفع', 'All payment states')], ['owes', tr('عليه دين', 'Owes money')], ['credit', tr('له رصيد', 'In credit')], ['settled', tr('مسدّد', 'Settled')]]} />
+          </FilterSheet>
+          <Button className="md:hidden" onClick={add}>{tr('زبون جديد', 'New customer')}</Button>
+        </div>}
+        renderCard={(c) => (
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              <a className="self-start text-label text-foreground" href={roleQ('Customer file.html?id=' + c.id)}>{c.name}</a>
+              {c.phone && <span dir="ltr" className="self-start text-caption text-muted-foreground">{c.phone}</span>}
+              <span className="text-caption text-muted-foreground">{sub(c) ? <>{sub(c).name} · {tr('حتى', 'until')} {DESK.fmtDate(sub(c).to)}</> : tr('بدون اشتراك', 'No membership')}</span>
+              <span className="flex flex-wrap gap-2"><StatusBadge c={c} /><BalanceBadge c={c} /></span>
+            </div>
+            {actions(c)}
+          </div>
+        )}
+        empty={<EmptyState icon={<UsersIcon />} title={DESK.customers.length ? tr('لا يوجد زبائن يطابقون البحث', 'No customers match') : tr('لا يوجد زبائن بعد', 'No customers yet')} description={DESK.customers.length ? tr('جرّب اسمًا أو رقمًا آخر، أو غيّر الفلاتر.', 'Try another name or number, or change the filters.') : tr('يُضاف الزبون عند أول اشتراك، أو عندما يخرج زائر بدون دفع.', 'Customers are added with their first membership, or when a visitor leaves without paying.')}>
+          {!DESK.customers.length && <Button onClick={add}>{tr('زبون جديد', 'New customer')}</Button>}
+        </EmptyState>} />
+      <AlertDialog open={!!arch} onOpenChange={(o) => !o && setArch(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tr('أرشفة', 'Archive')} {arch && arch.name}؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              {archBal > 0 ? <>{tr('عليه', 'They owe')} <Money n={archBal} /> {tr('غير مسدّدة. يبقى المبلغ في سجله ويمكنك استرجاعه لاحقًا.', 'unpaid. The amount stays in their record and you can restore them later.')}</> : tr('لن يظهر في القائمة ولا في البحث. يبقى سجله محفوظًا.', 'They won’t appear in the list or search. Their record is kept.')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => desk.archive(arch.id)}>{archBal > 0 ? tr('أرشفة رغم الدين', 'Archive anyway') : tr('أرشفة', 'Archive')}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </OwnerShell>
+  );
+}
+function CustomersScreen() { const [theme, setTheme] = useTheme(); return <DeskProvider initial={initial}><CustomersInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><CustomersScreen /></DirectionProvider>);
+</script>
+</body>
+</html>

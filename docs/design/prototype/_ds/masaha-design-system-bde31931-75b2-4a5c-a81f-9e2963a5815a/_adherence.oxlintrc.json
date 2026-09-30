@@ -1,0 +1,569 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": [
+          {
+            "element": "button",
+            "message": "Use <Button> from the design system instead of <button>."
+          },
+          {
+            "element": "input",
+            "message": "Use <Checkbox> from the design system instead of <input>."
+          },
+          {
+            "element": "dialog",
+            "message": "Use <Dialog> from the design system instead of <dialog>."
+          },
+          {
+            "element": "input",
+            "message": "Use <Input> from the design system instead of <input>."
+          },
+          {
+            "element": "select",
+            "message": "Use <Select> from the design system instead of <select>."
+          },
+          {
+            "element": "table",
+            "message": "Use <Table> from the design system instead of <table>."
+          },
+          {
+            "element": "textarea",
+            "message": "Use <Textarea> from the design system instead of <textarea>."
+          }
+        ]
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/general/Alert/**",
+              "components/general/AlertDialog/**",
+              "components/general/Avatar/**",
+              "components/general/Badge/**",
+              "components/general/Breadcrumb/**",
+              "components/general/Button/**",
+              "components/general/Calendar/**",
+              "components/general/Card/**",
+              "components/general/Checkbox/**",
+              "components/general/Combobox/**",
+              "components/general/DataTable/**",
+              "components/general/DatePicker/**",
+              "components/general/Dialog/**",
+              "components/general/DropdownMenu/**",
+              "components/general/EmptyState/**",
+              "components/general/Field/**",
+              "components/general/Input/**",
+              "components/general/LanguageToggle/**",
+              "components/general/Pagination/**",
+              "components/general/Popover/**",
+              "components/general/RadioGroup/**",
+              "components/general/Select/**",
+              "components/general/Separator/**",
+              "components/general/Sheet/**",
+              "components/general/Sidebar/**",
+              "components/general/Skeleton/**",
+              "components/general/Spinner/**",
+              "components/general/StatCard/**",
+              "components/general/Switch/**",
+              "components/general/Table/**",
+              "components/general/Tabs/**",
+              "components/general/Textarea/**",
+              "components/general/ThemeToggle/**",
+              "components/general/ToggleGroup/**",
+              "components/general/Tooltip/**",
+              "components/toast/Toaster/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:IBM Plex Sans Arabic))/i]",
+        "message": "Font not provided by the design system. Available: IBM Plex Sans Arabic."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Alert'] > JSXAttribute > JSXIdentifier[name!=/^(?:ref|className|id|style|children|variant|icon|key|ref|className|style|children)$/]",
+        "message": "<Alert> doesn't accept that prop. Declared props: ref, className, id, style, children, variant, icon."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Alert'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:info|warning|destructive)$/]",
+        "message": "<Alert> variant must be one of 'info' | 'warning' | 'destructive'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='AlertDialog'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|open|defaultOpen|key|ref|className|style|children)$/]",
+        "message": "<AlertDialog> doesn't accept that prop. Declared props: children, open, defaultOpen."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Avatar'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|children|id|asChild|ref|size|key|ref|className|style|children)$/]",
+        "message": "<Avatar> doesn't accept that prop. Declared props: style, className, children, id, asChild, ref, size."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Avatar'] > JSXAttribute[name.name='size'] > Literal[value!=/^(?:sm|md|lg)$/]",
+        "message": "<Avatar> size must be one of 'sm' | 'md' | 'lg'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Badge'] > JSXAttribute > JSXIdentifier[name!=/^(?:ref|className|id|style|children|variant|key|ref|className|style|children)$/]",
+        "message": "<Badge> doesn't accept that prop. Declared props: ref, className, id, style, children, variant."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Badge'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:info|warning|destructive|primary|neutral|success)$/]",
+        "message": "<Badge> variant must be one of 'info' | 'warning' | 'destructive' | 'primary' | 'neutral' | 'success'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Breadcrumb'] > JSXAttribute > JSXIdentifier[name!=/^(?:ref|className|id|style|children|label|key|ref|className|style|children)$/]",
+        "message": "<Breadcrumb> doesn't accept that prop. Declared props: ref, className, id, style, children, label."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute > JSXIdentifier[name!=/^(?:ref|className|id|style|children|variant|size|asChild|loading|key|ref|className|style|children)$/]",
+        "message": "<Button> doesn't accept that prop. Declared props: ref, className, id, style, children, variant, size, asChild, loading."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:link|destructive|primary|secondary|outline|ghost)$/]",
+        "message": "<Button> variant must be one of 'link' | 'destructive' | 'primary' | 'secondary' | 'outline' | 'ghost'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='size'] > Literal[value!=/^(?:sm|md|lg|icon)$/]",
+        "message": "<Button> size must be one of 'sm' | 'md' | 'lg' | 'icon'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Calendar'] > JSXAttribute > JSXIdentifier[name!=/^(?:footer|style|title|animate|className|autoFocus|hidden|id|lang|nonce|role|mode|required|classNames|modifiersClassNames|styles|modifiersStyles|defaultMonth|month|numberOfMonths|startMonth|endMonth|pagedNavigation|reverseMonths|hideNavigation|disableNavigation|reverseYears|navLayout|fixedWeeks|hideWeekdays|showOutsideDays|showWeekNumber|broadcastCalendar|ISOWeek|timeZone|noonSafe|disabled|today|modifiers|formatters|firstWeekContainsDate|useAdditionalWeekYearTokens|useAdditionalDayOfYearTokens|dateLib|previousMonthLabel|nextMonthLabel|key|ref|className|style|children)$/]",
+        "message": "<Calendar> doesn't accept that prop. Declared props: footer, style, title, animate, className, autoFocus, hidden, id, lang, nonce, role, mode, required, classNames, modifiersClassNames, styles, modifiersStyles, defaultMonth, month, numberOfMonths, startMonth, endMonth, pagedNavigation, reverseMonths, hideNavigation, disableNavigation, reverseYears, navLayout, fixedWeeks, hideWeekdays, showOutsideDays, showWeekNumber, broadcastCalendar, ISOWeek, timeZone, noonSafe, disabled, today, modifiers, formatters, firstWeekContainsDate, useAdditionalWeekYearTokens, useAdditionalDayOfYearTokens, dateLib, previousMonthLabel, nextMonthLabel."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Calendar'] > JSXAttribute[name.name='lang'] > Literal[value!=/^(?:ar|en)$/]",
+        "message": "<Calendar> lang must be one of 'ar' | 'en'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Calendar'] > JSXAttribute[name.name='role'] > Literal[value!=/^(?:dialog|application)$/]",
+        "message": "<Calendar> role must be one of 'dialog' | 'application'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Calendar'] > JSXAttribute[name.name='mode'] > Literal[value!=/^(?:single|multiple|range)$/]",
+        "message": "<Calendar> mode must be one of 'single' | 'multiple' | 'range'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Calendar'] > JSXAttribute[name.name='navLayout'] > Literal[value!=/^(?:around|after)$/]",
+        "message": "<Calendar> navLayout must be one of 'around' | 'after'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Card'] > JSXAttribute > JSXIdentifier[name!=/^(?:ref|className|id|style|children|key|ref|className|style|children)$/]",
+        "message": "<Card> doesn't accept that prop. Declared props: ref, className, id, style, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Checkbox'] > JSXAttribute > JSXIdentifier[name!=/^(?:checked|defaultChecked|required|style|className|children|id|asChild|ref|key|ref|className|style|children)$/]",
+        "message": "<Checkbox> doesn't accept that prop. Declared props: checked, defaultChecked, required, style, className, children, id, asChild, ref."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Combobox'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|open|defaultOpen|onOpenChange|type|value|defaultValue|onValueChange|key|ref|className|style|children)$/]",
+        "message": "<Combobox> doesn't accept that prop. Declared props: children, open, defaultOpen, onOpenChange, type, value, defaultValue, onValueChange."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Combobox'] > JSXAttribute[name.name='type'] > Literal[value!=/^(?:single|multiple)$/]",
+        "message": "<Combobox> type must be one of 'single' | 'multiple'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DataTable'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|columns|data|getRowId|renderCard|empty|loading|loadingRows|sorting|defaultSorting|onSortingChange|manualSorting|toolbar|summary|pagination|className|key|ref|className|style|children)$/]",
+        "message": "<DataTable> doesn't accept that prop. Declared props: label, columns, data, getRowId, renderCard, empty, loading, loadingRows, sorting, defaultSorting, onSortingChange, manualSorting, toolbar, summary, pagination, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DatePicker'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|open|defaultOpen|modal|key|ref|className|style|children)$/]",
+        "message": "<DatePicker> doesn't accept that prop. Declared props: children, open, defaultOpen, modal."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Dialog'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|open|defaultOpen|modal|key|ref|className|style|children)$/]",
+        "message": "<Dialog> doesn't accept that prop. Declared props: children, open, defaultOpen, modal."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DropdownMenu'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|dir|open|defaultOpen|modal|key|ref|className|style|children)$/]",
+        "message": "<DropdownMenu> doesn't accept that prop. Declared props: children, dir, open, defaultOpen, modal."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DropdownMenu'] > JSXAttribute[name.name='dir'] > Literal[value!=/^(?:ltr|rtl)$/]",
+        "message": "<DropdownMenu> dir must be one of 'ltr' | 'rtl'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='EmptyState'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|ref|children|id|icon|title|description|titleAs|key|ref|className|style|children)$/]",
+        "message": "<EmptyState> doesn't accept that prop. Declared props: style, className, ref, children, id, icon, title, description, titleAs."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='EmptyState'] > JSXAttribute[name.name='titleAs'] > Literal[value!=/^(?:h2|h3|h4)$/]",
+        "message": "<EmptyState> titleAs must be one of 'h2' | 'h3' | 'h4'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Field'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|ref|id|label|labelEnd|helper|error|orientation|children|key|ref|className|style|children)$/]",
+        "message": "<Field> doesn't accept that prop. Declared props: style, className, ref, id, label, labelEnd, helper, error, orientation, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Field'] > JSXAttribute[name.name='orientation'] > Literal[value!=/^(?:vertical|horizontal)$/]",
+        "message": "<Field> orientation must be one of 'vertical' | 'horizontal'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Input'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|ref|children|id|dir|startIcon|endIcon|action|key|ref|className|style|children)$/]",
+        "message": "<Input> doesn't accept that prop. Declared props: style, className, ref, children, id, dir, startIcon, endIcon, action."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Input'] > JSXAttribute[name.name='dir'] > Literal[value!=/^(?:auto|ltr|rtl)$/]",
+        "message": "<Input> dir must be one of 'auto' | 'ltr' | 'rtl'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='LanguageToggle'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|ref|id|lang|label|key|ref|className|style|children)$/]",
+        "message": "<LanguageToggle> doesn't accept that prop. Declared props: style, className, ref, id, lang, label."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Pagination'] > JSXAttribute > JSXIdentifier[name!=/^(?:ref|className|id|style|children|label|key|ref|className|style|children)$/]",
+        "message": "<Pagination> doesn't accept that prop. Declared props: ref, className, id, style, children, label."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Popover'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|open|defaultOpen|modal|key|ref|className|style|children)$/]",
+        "message": "<Popover> doesn't accept that prop. Declared props: children, open, defaultOpen, modal."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='RadioGroup'] > JSXAttribute > JSXIdentifier[name!=/^(?:name|form|required|disabled|dir|orientation|loop|defaultValue|value|style|className|children|id|asChild|ref|key|ref|className|style|children)$/]",
+        "message": "<RadioGroup> doesn't accept that prop. Declared props: name, form, required, disabled, dir, orientation, loop, defaultValue, value, style, className, children, id, asChild, ref."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='RadioGroup'] > JSXAttribute[name.name='dir'] > Literal[value!=/^(?:ltr|rtl)$/]",
+        "message": "<RadioGroup> dir must be one of 'ltr' | 'rtl'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='RadioGroup'] > JSXAttribute[name.name='orientation'] > Literal[value!=/^(?:vertical|horizontal)$/]",
+        "message": "<RadioGroup> orientation must be one of 'vertical' | 'horizontal'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Select'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|open|defaultOpen|dir|name|autoComplete|disabled|required|form|value|defaultValue|key|ref|className|style|children)$/]",
+        "message": "<Select> doesn't accept that prop. Declared props: children, open, defaultOpen, dir, name, autoComplete, disabled, required, form, value, defaultValue."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Select'] > JSXAttribute[name.name='dir'] > Literal[value!=/^(?:ltr|rtl)$/]",
+        "message": "<Select> dir must be one of 'ltr' | 'rtl'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Separator'] > JSXAttribute > JSXIdentifier[name!=/^(?:orientation|decorative|style|className|children|id|asChild|ref|key|ref|className|style|children)$/]",
+        "message": "<Separator> doesn't accept that prop. Declared props: orientation, decorative, style, className, children, id, asChild, ref."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Separator'] > JSXAttribute[name.name='orientation'] > Literal[value!=/^(?:vertical|horizontal)$/]",
+        "message": "<Separator> orientation must be one of 'vertical' | 'horizontal'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Sheet'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|open|defaultOpen|modal|key|ref|className|style|children)$/]",
+        "message": "<Sheet> doesn't accept that prop. Declared props: children, open, defaultOpen, modal."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Sidebar'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|ref|children|id|label|key|ref|className|style|children)$/]",
+        "message": "<Sidebar> doesn't accept that prop. Declared props: style, className, ref, children, id, label."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Skeleton'] > JSXAttribute > JSXIdentifier[name!=/^(?:ref|className|id|style|children|key|ref|className|style|children)$/]",
+        "message": "<Skeleton> doesn't accept that prop. Declared props: ref, className, id, style, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Spinner'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|ref|id|label|key|ref|className|style|children)$/]",
+        "message": "<Spinner> doesn't accept that prop. Declared props: style, className, ref, id, label."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='StatCard'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|ref|id|label|value|helper|icon|key|ref|className|style|children)$/]",
+        "message": "<StatCard> doesn't accept that prop. Declared props: style, className, ref, id, label, value, helper, icon."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Switch'] > JSXAttribute > JSXIdentifier[name!=/^(?:checked|defaultChecked|required|style|className|children|id|asChild|ref|key|ref|className|style|children)$/]",
+        "message": "<Switch> doesn't accept that prop. Declared props: checked, defaultChecked, required, style, className, children, id, asChild, ref."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Table'] > JSXAttribute > JSXIdentifier[name!=/^(?:ref|className|id|style|children|key|ref|className|style|children)$/]",
+        "message": "<Table> doesn't accept that prop. Declared props: ref, className, id, style, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Tabs'] > JSXAttribute > JSXIdentifier[name!=/^(?:value|defaultValue|orientation|dir|activationMode|style|className|children|id|asChild|ref|key|ref|className|style|children)$/]",
+        "message": "<Tabs> doesn't accept that prop. Declared props: value, defaultValue, orientation, dir, activationMode, style, className, children, id, asChild, ref."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Tabs'] > JSXAttribute[name.name='orientation'] > Literal[value!=/^(?:vertical|horizontal)$/]",
+        "message": "<Tabs> orientation must be one of 'vertical' | 'horizontal'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Tabs'] > JSXAttribute[name.name='dir'] > Literal[value!=/^(?:ltr|rtl)$/]",
+        "message": "<Tabs> dir must be one of 'ltr' | 'rtl'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Tabs'] > JSXAttribute[name.name='activationMode'] > Literal[value!=/^(?:manual|automatic)$/]",
+        "message": "<Tabs> activationMode must be one of 'manual' | 'automatic'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Textarea'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|ref|children|id|dir|key|ref|className|style|children)$/]",
+        "message": "<Textarea> doesn't accept that prop. Declared props: style, className, ref, children, id, dir."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Textarea'] > JSXAttribute[name.name='dir'] > Literal[value!=/^(?:auto|ltr|rtl)$/]",
+        "message": "<Textarea> dir must be one of 'auto' | 'ltr' | 'rtl'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ThemeToggle'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|ref|id|theme|onThemeChange|label|key|ref|className|style|children)$/]",
+        "message": "<ThemeToggle> doesn't accept that prop. Declared props: style, className, ref, id, theme, onThemeChange, label."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ThemeToggle'] > JSXAttribute[name.name='theme'] > Literal[value!=/^(?:light|dark)$/]",
+        "message": "<ThemeToggle> theme must be one of 'light' | 'dark'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Toaster'] > JSXAttribute > JSXIdentifier[name!=/^(?:style|className|id|invert|hotkey|expand|duration|gap|visibleToasts|toastOptions|offset|mobileOffset|swipeDirections|label|closeLabel|position|key|ref|className|style|children)$/]",
+        "message": "<Toaster> doesn't accept that prop. Declared props: style, className, id, invert, hotkey, expand, duration, gap, visibleToasts, toastOptions, offset, mobileOffset, swipeDirections, label, closeLabel, position."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Toaster'] > JSXAttribute[name.name='position'] > Literal[value!=/^(?:top-center|top-start|top-end|bottom-center|bottom-start|bottom-end)$/]",
+        "message": "<Toaster> position must be one of 'top-center' | 'top-start' | 'top-end' | 'bottom-center' | 'bottom-start' | 'bottom-end'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ToggleGroup'] > JSXAttribute > JSXIdentifier[name!=/^(?:type|value|defaultValue|disabled|rovingFocus|loop|orientation|dir|style|className|children|id|asChild|ref|key|ref|className|style|children)$/]",
+        "message": "<ToggleGroup> doesn't accept that prop. Declared props: type, value, defaultValue, disabled, rovingFocus, loop, orientation, dir, style, className, children, id, asChild, ref."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ToggleGroup'] > JSXAttribute[name.name='type'] > Literal[value!=/^(?:single|multiple)$/]",
+        "message": "<ToggleGroup> type must be one of 'single' | 'multiple'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ToggleGroup'] > JSXAttribute[name.name='orientation'] > Literal[value!=/^(?:vertical|horizontal)$/]",
+        "message": "<ToggleGroup> orientation must be one of 'vertical' | 'horizontal'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ToggleGroup'] > JSXAttribute[name.name='dir'] > Literal[value!=/^(?:ltr|rtl)$/]",
+        "message": "<ToggleGroup> dir must be one of 'ltr' | 'rtl'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Tooltip'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|open|defaultOpen|delayDuration|disableHoverableContent|key|ref|className|style|children)$/]",
+        "message": "<Tooltip> doesn't accept that prop. Declared props: children, open, defaultOpen, delayDuration, disableHoverableContent."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "Alert": {
+        "replaces": []
+      },
+      "AlertDialog": {
+        "replaces": []
+      },
+      "Avatar": {
+        "replaces": []
+      },
+      "Badge": {
+        "replaces": []
+      },
+      "Breadcrumb": {
+        "replaces": []
+      },
+      "Button": {
+        "replaces": [
+          "button"
+        ]
+      },
+      "Calendar": {
+        "replaces": []
+      },
+      "Card": {
+        "replaces": []
+      },
+      "Checkbox": {
+        "replaces": [
+          "input[type=checkbox]"
+        ]
+      },
+      "Combobox": {
+        "replaces": []
+      },
+      "DataTable": {
+        "replaces": []
+      },
+      "DatePicker": {
+        "replaces": []
+      },
+      "Dialog": {
+        "replaces": [
+          "dialog"
+        ]
+      },
+      "DropdownMenu": {
+        "replaces": []
+      },
+      "EmptyState": {
+        "replaces": []
+      },
+      "Field": {
+        "replaces": []
+      },
+      "Input": {
+        "replaces": [
+          "input"
+        ]
+      },
+      "LanguageToggle": {
+        "replaces": []
+      },
+      "Pagination": {
+        "replaces": []
+      },
+      "Popover": {
+        "replaces": []
+      },
+      "RadioGroup": {
+        "replaces": []
+      },
+      "Select": {
+        "replaces": [
+          "select"
+        ]
+      },
+      "Separator": {
+        "replaces": []
+      },
+      "Sheet": {
+        "replaces": []
+      },
+      "Sidebar": {
+        "replaces": []
+      },
+      "Skeleton": {
+        "replaces": []
+      },
+      "Spinner": {
+        "replaces": []
+      },
+      "StatCard": {
+        "replaces": []
+      },
+      "Switch": {
+        "replaces": []
+      },
+      "Table": {
+        "replaces": [
+          "table"
+        ]
+      },
+      "Tabs": {
+        "replaces": []
+      },
+      "Textarea": {
+        "replaces": [
+          "textarea"
+        ]
+      },
+      "ThemeToggle": {
+        "replaces": []
+      },
+      "Toaster": {
+        "replaces": []
+      },
+      "ToggleGroup": {
+        "replaces": []
+      },
+      "Tooltip": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--animate-pulse",
+      "--animate-spin",
+      "--aspect-video",
+      "--container-2xl",
+      "--container-3xl",
+      "--container-4xl",
+      "--container-5xl",
+      "--container-6xl",
+      "--container-7xl",
+      "--container-lg",
+      "--container-md",
+      "--container-sm",
+      "--container-xl",
+      "--container-xs",
+      "--default-font-family",
+      "--default-mono-font-family",
+      "--font-mono",
+      "--font-sans",
+      "--font-weight-medium",
+      "--font-weight-normal",
+      "--font-weight-semibold",
+      "--radius-md",
+      "--spacing",
+      "--tw-duration",
+      "--tw-ease",
+      "--tw-font-weight",
+      "--tw-leading",
+      "--tw-numeric-spacing",
+      "--tw-outline-style",
+      "--tw-ring-shadow",
+      "--tw-scale-x",
+      "--tw-shadow",
+      "--tw-translate-x",
+      "--tw-translate-y"
+    ],
+    "tokenKinds": {
+      "--font-sans": "font",
+      "--font-mono": "font",
+      "--spacing": "spacing",
+      "--container-xs": "spacing",
+      "--container-sm": "spacing",
+      "--container-md": "spacing",
+      "--container-lg": "spacing",
+      "--container-xl": "spacing",
+      "--container-2xl": "spacing",
+      "--container-3xl": "spacing",
+      "--container-4xl": "spacing",
+      "--container-5xl": "spacing",
+      "--container-6xl": "spacing",
+      "--container-7xl": "spacing",
+      "--font-weight-normal": "font",
+      "--font-weight-medium": "font",
+      "--font-weight-semibold": "font",
+      "--animate-spin": "other",
+      "--animate-pulse": "other",
+      "--aspect-video": "other",
+      "--default-font-family": "font",
+      "--default-mono-font-family": "font",
+      "--radius-md": "radius",
+      "--tw-translate-x": "color",
+      "--tw-translate-y": "color",
+      "--tw-scale-x": "other",
+      "--tw-leading": "font",
+      "--tw-font-weight": "font",
+      "--tw-numeric-spacing": "spacing",
+      "--tw-shadow": "shadow",
+      "--tw-ring-shadow": "shadow",
+      "--tw-outline-style": "other",
+      "--tw-duration": "color",
+      "--tw-ease": "color"
+    },
+    "fontFamilies": [
+      "IBM Plex Sans Arabic"
+    ]
+  }
+}

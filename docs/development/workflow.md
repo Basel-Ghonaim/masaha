@@ -1,6 +1,6 @@
 # Workflow
 
-> **Status:** Active · **Last Updated:** 2026-09-27 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
 > **Authority:** How work is executed on Masaha: task classes, the Git lifecycle, scope control, the Definition of Done, decision authority and stop rules. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
 
 Masaha is built by **one developer (the owner)** with AI assistants. The workflow keeps the discipline of a team process — reviewable units, a clean history, gated decisions — without ceremony a solo project does not need.
@@ -43,7 +43,7 @@ For a substantial item, agree the contract **before** implementing: agree → de
 | PR title | same as the main commit | |
 
 **Types:** `feat` · `fix` · `docs` · `refactor` · `test` · `style` · `chore`.
-**Scopes:** the capability or area (`auth`, `spaces`, `members`, `attendance`, `occupancy`, `design-system`, `i18n`, `api`, `db`, …).
+**Scopes:** the capability or area: a backend module or frontend feature ([backend conventions §7](../backend/conventions.md#7-modules), [frontend architecture §3](../frontend/architecture.md#3-capabilities-features)), or an area (`design-system`, `i18n`, `api`, `db`, `docs`, …).
 
 ### PR description
 

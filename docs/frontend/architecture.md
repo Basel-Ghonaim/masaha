@@ -48,8 +48,10 @@
 
 | Imported by | Capabilities |
 |---|---|
-| Any page group | `auth` · `spaces` (directory and public profile) · `favorites` · `occupancy` · `announcements` · `data-reports` · `lookups` · `settings` |
-| The dashboard only | `space-management` (owner/admin profile editing) · `customers` · `subscriptions` · `packages` · `visits` · `attendance` (subscription check-ins) · `payments` · `finance` (finance and statistics, with the occupancy reports) · `staff` · `owners` (admin linking) · `users` · `audit` |
+| Any page group | `auth` · `directory` (the directory and the public profile) · `favorites` · `occupancy` · `announcements` · `data-reports` · `lookups` · `platform-settings` (the public contact) · `users` (the account's profile and settings; the admin's user screens) |
+| The dashboard only | `spaces` (owner and admin profile editing) · `space-settings` · `customers` · `subscriptions` (with their check-ins) · `packages` · `visits` · `payments` · `desk` (the front desk: check-in, check-out with payment, subscribe with payment; the customers list and file) · `finance` (finance and statistics, with the occupancy reports) · `overview` (the owner's and the admin's overview) · `staff` · `owners` (admin linking) · `audit` |
+
+**Names match the backend.** A capability carries the name of the backend module it calls ([backend conventions §7](../backend/conventions.md#7-modules)). A feature may be finer than its module only when it serves a different audience on different screens: `staff` (the owner's reception accounts) and `owners` (the admin's linking) are two features over the one `space-links` module. A sub-part with the same audience and the same screens stays inside its module's feature. Check-ins stay in `subscriptions`, for example, because a check-in changes the subscription's progress: split apart, one feature would have to import the other's query keys. Whether a feature exports screens or only hooks is not decided yet.
 
 **The dashboard-only rule:** the site's page groups (`public`, `auth`, `account`) never import a dashboard-only capability, so the site never pulls dashboard code in. The dashboard may import any capability. Lint holds this rule, as it holds the zones (§1).
 
@@ -79,4 +81,4 @@ One normaliser turns any failure (Axios, network, timeout, unknown) into `AppErr
 
 ## 6. Map
 
-`shared/map` wraps React Leaflet and OpenStreetMap tiles (loaded lazily). Space markers and popups belong to the `spaces` feature.
+`shared/map` wraps React Leaflet and OpenStreetMap tiles (loaded lazily). Space markers and popups belong to the `directory` feature.
