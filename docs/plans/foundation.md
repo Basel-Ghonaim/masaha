@@ -1,6 +1,6 @@
 # Plan — Application foundation
 
-> **Status:** Active · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
@@ -221,7 +221,9 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
 - **F-6 — Shells and preferences** (`feat/shells`):
   - `shared/preferences` (language and theme, writing the pre-paint keys);
   - the public shell (header, footer) and the dashboard shell (sidebar per role: ADMIN, and OWNER or RECEPTION at the selected space; top bar; space switcher);
-  - the placeholder pages each route group needs to be navigable.
+  - the placeholder pages each route group needs to be navigable;
+  - the site and dashboard boundary ([ADR 0011](../architecture/decisions/0011-one-web-app.md), [architecture.md §2–§3](../frontend/architecture.md#2-page-groups)): each page group mounted lazily, and the dashboard-only rule in lint;
+  - acceptance: a guest's download holds no dashboard code, and a site page group that imports a dashboard-only capability fails `lint`.
 
 ## 6. Risks
 
