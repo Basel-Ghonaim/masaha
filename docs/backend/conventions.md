@@ -1,46 +1,53 @@
 # Backend Conventions
 
-> **Status:** Active · **Class:** Contract — rules to build against; not yet implemented · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
-> **Authority:** Module layering, dependency injection, validation, errors and pagination in `apps/api`. Payload shapes are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md).
+> **Status:** Active · **Class:** Contract — rules to build against. Built: the shared errors, http and validation code and the `can()` permission table. No module is built yet. The `space_settings` and `space_occupancy` tables (§9) and the new-space defaults (§9) come with A-2 in the [foundation plan](../plans/foundation.md); until then those columns stay on `Space` ([data-model.md](../architecture/data-model.md#entities)). The level rule in lint (§7) comes with F-5 · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
+> **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination and audit in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
+
+The backend is one application divided into **modules**, one per capability, arranged in **levels** (§7). Each module is built from the same **layers** (§2). **A screen is not a capability** (§7): placements follow the rule that consumes a value, never the screen that shows it.
 
 ## 1. Layout
 
 ```
 apps/api/src/
-  app.ts               builds the Express app (middleware order, routes, error handler)
-  server.ts            starts it (env check, DB check, graceful shutdown)
-  config/env.ts        Zod-validated environment; fails fast
-  modules/<feature>/   auth, me, spaces, manage, members, attendance, announcements,
-                       occupancy, reports, admin, lookups, settings, audit
-    <feature>.routes.ts
-    <feature>.controller.ts
-    <feature>.service.ts
-    <feature>.repository.ts
-    <feature>.mapper.ts
-    index.ts
-  shared/
+  app.ts               the composition root: builds each module's service, wires the ports
+                       (storage, email, clock, scheduler), mounts the space middleware (§8) and
+                       every router where the API contract puts it; then the 404 and error handler
+  server.ts            starts it (env check, DB check, the scheduler, graceful shutdown)
+  config/              Zod-validated environment; fails fast
+  db/                  the database infrastructure, in one place: the Prisma client,
+                       runInTransaction (§8) and the seed
+  modules/<module>/    one folder per module (§7)
+    index.ts           the public entry: the service factory, the routers, the public types
+    <module>.routes.ts           one file per router kind the module has (public, me, manage, admin)
+    <module>.controller.ts
+    <module>.service.ts          becomes a folder when it grows (§8)
+    <module>.repository.ts
+    <module>.mapper.ts
+    <rule>.ts                    the pure domain rules the module owns (§8)
+  shared/              the platform (R6): knows no domain concept
     errors/            AppError + factories, error handler
     http/              sendSuccess, pagination helpers
     validation/        validate(schema, source) middleware, parseId, text normalisation
-    auth/              requireAuth, optionalAuth, requireRole, can() permission table
-    audit/             audit(actor, action, entity, before, after)
-    storage/           storage port + local-disk adapter (photos)
-    jobs/              auto check-out scheduler
-  db/prisma.ts         Prisma singleton
+    auth/              requireAuth, optionalAuth, requireRole, requireSpaceAccess (§8), can()
+    audit/             the audit writer (§6)
+    jobs/              the scheduler that runs the modules' timed work
+    storage/           the local-disk storage adapter (photos)
 ```
+
+Only what exists is created: no empty module folders, and a layer a module does not need is absent.
 
 ## 2. Layers
 
-Each layer calls only the one below it.
+Inside a module, each layer calls only the one below it.
 
 | Layer | Owns | Never |
 |---|---|---|
 | **Routes** | The per-endpoint chain: rate limiter → auth guard → role guard → `validate(schema)` → controller | Logic |
 | **Controller** | HTTP only: read validated input, call the service, respond with `sendSuccess`, set cookies | Business rules, Prisma |
-| **Service** | Business rules, permission checks via `can()`, mapping to DTOs, audit entries, transactions | Importing Prisma or Express |
-| **Repository** | Prisma queries only; applies soft-delete filters by default | Rules |
+| **Service** | Business rules, permission checks via `can()`, mapping to DTOs, audit entries (§6), calls to lower modules' services, transactions when it orchestrates (§8) | Importing Prisma or Express |
+| **Repository** | Prisma queries on the module's own tables only; applies soft-delete filters by default; each function accepts an optional `tx` (§8) | Rules |
 
-**Dependency injection** by factory functions with defaults: `createController(service = createService())` → `createService(repo = createRepository())` → `createRepository(db = prisma)`. Tests pass plain-object fakes.
+**Dependency injection** by factory functions with defaults: `createController(service = createService())` → `createService(repo = createRepository(), …lower modules' services)` → `createRepository(db = prisma)`. Tests pass plain-object fakes (R8).
 
 ## 3. Validation
 
@@ -57,8 +64,202 @@ Each layer calls only the one below it.
 
 ## 5. Pagination
 
-Offset only: the service computes `skip = (page − 1) × limit` and runs `findMany` and `count` in parallel.
+- Offset only: the service computes `skip = (page − 1) × limit` and runs `findMany` and `count` in parallel.
+- **Filter before paginating.** A filter on a value another module owns is resolved to ids first: the owning module turns the filter into the matching ids, set-based, in one query for the whole space. The listing module then applies its own filters and search to those ids and paginates. Every page is full and the total is right. A page is never filtered after it is fetched.
 
 ## 6. Audit
 
-Services call `audit()` for sensitive actions: space profile changes, member create/edit/deactivate, check-in/out, owner linking, role changes, suspensions, settings changes.
+- **Writing is a mechanism**, `shared/audit`:
+  - append-only;
+  - the only writer of the audit table;
+  - it takes the caller's `tx`, so an entry commits or rolls back with the change it records;
+  - it knows no domain concept. The calling service names the action and the entity.
+- **Services audit their sensitive actions:**
+  - space profile and fact changes;
+  - customer create, edit and archive; subscriptions created, corrected and ended;
+  - check-in and check-out, for visits and subscriptions;
+  - payments recorded and voided ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md));
+  - space links: linking owners, adding and deactivating staff;
+  - role changes, suspensions and temporary passwords ([security.md](security.md#sign-in-methods));
+  - settings changes, for spaces and the platform.
+- **Reading is a module**, `audit` (L5, §7). It owns no table and has a `manage` and an `admin` router.
+- **Privacy is a default-deny allowlist.** The admin sees only the platform event types on the audit module's list, never an entry about a space's customers, visits, subscriptions or payments ([ADR 0002](../architecture/decisions/0002-authorization-model.md), [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). An event type not on the list stays hidden from the admin. The owner sees their space's entries.
+- The owner's audit screen is in v1 scope ([overview.md](../project/overview.md)) but has no design yet ([finding 14](../architecture/findings.md#14-the-owners-audit-screen-has-no-design)).
+
+## 7. Modules
+
+**A screen is not a capability.** For each value or action on a screen, ask which rule consumes it and who may change it. Different consumers or different permissions mean different capabilities. A module is never created because a screen exists. A screen that shows several capabilities is served by composition at a higher level (§9).
+
+### Level map
+
+This is the only level map. A module imports only modules at **lower** levels, through their `index.ts`, and never one at its own level, so the graph has no cycles. From F-5, lint enforces it.
+
+| Level | Modules |
+|---|---|
+| **L0** | `sessions` · `lookups` · `platform-settings` · `space-settings` |
+| **L1** | `users` · `spaces` |
+| **L2** | `space-links` · `customers` · `packages` · `announcements` · `favorites` |
+| **L3** | `auth` · `data-reports` · `visits` · `subscriptions` |
+| **L4** | `payments` · `occupancy` |
+| **L5** | `desk` · `directory` · `finance` · `overview` · `audit` |
+
+### Routers
+
+A module has up to four routers, one per audience:
+
+| Router | Serves | Guarded by |
+|---|---|---|
+| **public** | Anyone, signed in or not | none, or `optionalAuth` |
+| **me** | The signed-in user's own things | `requireAuth` |
+| **manage** | A space's staff (owner and reception), under `/manage/spaces/:spaceId` | `requireAuth` and the space middleware (§8); `can()` decides per action |
+| **admin** | The platform, under `/admin` | `requireAuth` and `requireRole('ADMIN')` |
+
+The [API contract](../api/api-contract.md) owns the paths. The composition root mounts each router where the contract puts it, so a path need not carry its module's name.
+
+### The modules
+
+| Module | Level | Owns (only it writes) | Routers | Holds |
+|---|---|---|---|---|
+| `sessions` | L0 | `refresh_tokens`, `password_reset_tokens` | — | Issue, rotate with the grace window, revoke all. Knows only a user id ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
+| `lookups` | L0 | `governorates`, `areas`, `amenities` | public, admin | The bilingual lookup lists |
+| `platform-settings` | L0 | `settings` | public, admin | The typed key catalogue (§9) |
+| `space-settings` | L0 | `space_settings` | manage | A space's settings (§9) |
+| `users` | L1 | `users` | me, admin | Identity, hashing and verifying credentials, the temporary password and the forced change, suspension, the role ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
+| `spaces` | L1 | `spaces`, `space_hours`, `space_shifts`, `space_prices`, `space_contacts`, `space_photos`, `space_amenities` | manage, admin | The profile, hours, shifts, published prices, contacts, photos, amenities and freshness; hiding and soft delete; the pure cut-off time for auto check-out |
+| `space-links` | L2 | `space_managers` | me, manage, admin | The user's spaces and their role at each; staff (reception accounts); linking owners; the admin's spaces with their owners, and owners with their spaces (§9); the links loader for the space middleware (§8) |
+| `customers` | L2 | `customers` | manage | Create, edit, archive; search and pagination over given ids (§9) |
+| `packages` | L2 | `packages` | manage | The owner's subscription templates |
+| `announcements` | L2 | `announcements` | manage | Announcements, including closure notices |
+| `favorites` | L2 | `favorites` | me | A user's saved spaces (§9) |
+| `auth` | L3 | — | public | The sign-in flows, as orchestrator: register, sign in with a password or with Google, refresh, sign out, forgot and reset password ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
+| `data-reports` | L3 | `data_reports` | me, manage, admin | Reports about a space's information (§9) |
+| `visits` | L3 | `visits` | manage | The pure visit charge; auto check-out of its own visits |
+| `subscriptions` | L3 | `subscriptions`, `check_ins`, `closure_extensions`, `subscription_extensions` | manage | Subscriptions, their check-ins and closure extensions; the pure progress and status; auto check-out of its own check-ins |
+| `payments` | L4 | `payments` | manage | The ledger ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)); the pure balance; debt; uncollected visits (§9) |
+| `occupancy` | L4 | `space_occupancy` | public, manage | The space's state now (§9) |
+| `desk` | L5 | — | manage | The front desk's orchestrations and the customers list and file (§9) |
+| `directory` | L5 | — | public | The public directory and profile, and the favourites' cards (§9) |
+| `finance` | L5 | — (reads) | manage | Read model: finance and statistics, including the occupancy statistics |
+| `overview` | L5 | — | manage, admin | Read composition for the two overview screens (§9) |
+| `audit` | L5 | — (reads the audit table) | manage, admin | The audit reader (§6) |
+
+## 8. Module rules
+
+- **R1 — Ownership.** A module is one capability and owns its tables; only it writes them.
+- **R2 — One public entry.** A module's `index.ts` exports its service factory, its routers and its public types. It never exports a repository or a mapper, and nothing imports past it.
+- **R3 — Levels.** The module graph is acyclic: a module imports only lower levels (§7), never a module at its own level.
+- **R4 — Direct calls, orchestrators above.** Calling a lower module's public API is the default. An operation that spans modules belongs to the module above them, which orchestrates it and owns its transaction.
+- **R5 — Ports, rarely.** A port is an abstraction wired in the composition root. It is allowed only for:
+  - external infrastructure: storage, email, the clock, the scheduler;
+  - a genuine upward need that moving the logic or passing a parameter cannot solve.
+
+  The port lives in the module that needs it, never in `shared/`.
+- **R6 — The platform knows no domain.** `shared/` holds only errors, http, validation, the pure `can()` permission table, the audit writer, jobs and storage.
+- **R7 — Read models read, never write.** Read models may read other modules' tables with aggregate queries: `finance`, `overview` and the `audit` reader. They never write.
+- **R8 — Testing**, in the lanes of [testing.md](../development/testing.md):
+  - **Service logic** is unit-tested with plain-object fakes of the dependencies' public types. TypeScript is structural, so no interface files are written for this.
+  - **Every endpoint and every orchestrator** is proven by API integration tests on the real database.
+
+### Transactions
+
+- `runInTransaction` lives in `db/`, next to the Prisma client, and is the one way to open a transaction. The orchestrator's service receives it by injection, like any dependency.
+- The orchestrator opens the transaction and passes `tx` to each lower module's service it calls. Repository functions accept an optional `tx` and use it when it is given.
+- A module called inside an orchestrator's transaction never opens its own.
+
+### Space access
+
+- `requireSpaceAccess` (`shared/auth`) takes a links loader. The composition root wires it with `space-links`' service and mounts it **once** on `/manage/spaces/:spaceId`, before every module's `manage` router.
+- It refuses a caller with no active link at the space. Otherwise it puts the space's links on the request: the `SpaceResource` from which `can()` reads the caller's role and whether the space is verified.
+- On the admin's space routes, the composition root mounts the same loader without the refusal, so "verified" is known there too.
+- Modules read the links from the request and pass them to their service. **No module imports `space-links` to learn its access or "verified".** `can()` decides per action.
+
+### Pure rules
+
+Each pure domain rule is a pure file in its owning module, computed nowhere else:
+- the visit charge in `visits`;
+- subscription progress and status in `subscriptions`;
+- the balance in `payments`;
+- the live status in `occupancy`;
+- the auto check-out cut-off time in `spaces`.
+
+The rules themselves are owned by [data-model.md](../architecture/data-model.md#derived-values-computed-not-stored).
+
+### Growth
+
+When a module's service grows, it becomes a folder inside the module, with one file per use case. It never spills into a new module.
+
+## 9. Placements
+
+How the rules of §7–§8 place the capabilities that are easy to misplace.
+
+### Settings: three screens, three owners
+- **Personal settings** → `users`, plus `sessions` for signing out everywhere. The theme lives only in the browser.
+- **Space settings** → `space-settings`.
+- **Platform settings** → `platform-settings`:
+  - the key-value `Setting` table, with one typed key catalogue;
+  - an admin router and a public router (the public contact);
+  - values only, no rules. The module that consumes a value applies it.
+
+### New-space defaults
+- `platform-settings` holds the defaults for a new space:
+  - auto check-out at closing;
+  - the visit rounding rule and its minutes;
+  - the cap at the day price.
+- They are **copied** into a space's settings when the space is created. `spaces` does this in the same transaction, reading `platform-settings` and writing through `space-settings`, both below it.
+- Changing a default never affects existing spaces.
+
+### `space-settings`
+It owns the 1:1 `space_settings` table, which takes over from `Space`:
+- `autoCheckoutAtClosing`, `maxStayMinutes`;
+- `visitRounding`, `visitRoundingMinutes`, `visitCapAtDayPrice`, `visitStudentPrices`;
+- `reminderTemplate`.
+
+The modules that apply them read them: visits and subscriptions (auto check-out), visits (the charge), finance (the reminder).
+
+### `occupancy`: the space's state now
+- **It owns:**
+  - the single definition of *present* (open visits plus open subscription check-ins), the count, and the one list of who is present;
+  - capacity and the manual override, in the 1:1 `space_occupancy` table. A space without a row has no capacity and no override. `occupancy` creates the row on its first write, so no lower module ever does;
+  - the pure live-status rule;
+  - `liveStatusFor(spaceIds)`, set-based, so the directory has no N+1.
+- **It does not own:**
+  - the occupancy statistics (peak hours, average stay), which are `finance`'s (R7);
+  - auto check-out. `visits` and `subscriptions` each close their own records. The cut-off time is a pure function in `spaces`, and the timer is `shared/jobs`, wired in the composition root;
+  - override expiry and staleness, which are derived at read time. No job runs for them.
+
+### `data-reports`
+- One module with three routers: `me` (the reporter's own, and creating one), `manage` and `admin`.
+- Who may resolve a report comes from `can()`, with "verified" as an input.
+- Resolving a report never edits the space. The design's "Edit the field" button is navigation only.
+
+### `overview`
+- One read-composition module, one file per screen (owner, admin), and one aggregate endpoint per screen because the users' connection is weak.
+- **No logic:** every figure comes from its owning module.
+- **It never imports `finance`:** the figures both show come from `payments`.
+- Figures are fetched in parallel.
+
+### The front desk: `desk`
+`desk` orchestrates the operations that span the desk's modules, each in one transaction:
+- **check-in** of a visit or a subscription, with the full-space warning from `occupancy`;
+- **check-out of a visit** with its charge and its payment;
+- **subscribing or renewing** with its payment, and the warning when the customer has a balance.
+
+### Composed reads
+A screen that shows or filters by values from several modules is composed by a module above all of them.
+- **Set-based APIs, no duplicated rules.**
+  - Subscription status is computed only by `subscriptions`, and the balance and debt only by `payments`.
+  - Each offers a set-based API for many customers at once: no per-customer calls, no N+1.
+  - `desk`, `finance` (debtors) and `overview` (total owed) all use the same APIs. None of them computes a status or a balance.
+- **The customers list and the customer file** → `desk`.
+  - The status and payment filters resolve to customer ids first, from `subscriptions` and `payments`.
+  - `customers` then applies the search and the pagination to those ids (§5).
+  - The file adds each subscription's progress, the payments, the balance and the attendance.
+- **The admin's spaces list** (owners and verified status) and **the space owners list** → `space-links`.
+  - The verified filter resolves to space ids in `space-links` first.
+  - `spaces` then applies the hidden, stale and search filters and the pagination to those ids (§5).
+- **"Verified" on the write side.**
+  - The admin edits a space's facts only while it is unverified, and data reports follow the same rule.
+  - `spaces` never imports `space-links` for this. The space middleware resolves the links on the space routes (§8), and `can()` decides.
+  - `data-reports` sits above `space-links` and may call it directly for a report's space.
+- **Uncollected visits** (closed by the auto check-out and left unpaid) → `payments`, which owns the balance.
+- **The favourites' cards** (live status and prices) → `directory`, from the ids that `favorites` records. `favorites` never reads live status.

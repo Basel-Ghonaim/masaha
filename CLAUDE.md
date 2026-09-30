@@ -59,6 +59,7 @@ Any override must be **stated, never silent.**
 - **Engineering principles** → `docs/development/engineering-principles.md`
 - **Testing** (lanes and where a behaviour is proven) → `docs/development/testing.md`
 - **API contract** → `docs/api/api-contract.md`
+- **Backend architecture** → `docs/backend/conventions.md`
 - **Frontend architecture** → `docs/frontend/architecture.md`
 - **Design system** → `docs/frontend/design-system/foundation.md`
 - **Architectural decisions** → `docs/architecture/decisions/`

@@ -37,7 +37,7 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
 - [api-contract.md](api/api-contract.md) — conventions, envelope, error model, pagination and endpoints.
 
 ### `backend/`
-- [conventions.md](backend/conventions.md) — module layering, validation, errors, pagination.
+- [conventions.md](backend/conventions.md) — the modules, their levels, routers and placements, the module rules; layering, validation, errors, pagination and audit.
 - [security.md](backend/security.md) — tokens, passwords, cookies, authorization, rate limits, hardening.
 
 ### `frontend/`
