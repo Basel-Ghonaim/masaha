@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy` and the catalogue registration in `app/` (§1), and the development-only `showcase` group (§2), are built; the site and dashboard boundary (lazy page groups in §2, the dashboard-only rule in §3) and the rest are not yet implemented · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy` and the catalogue registration in `app/` (§1), and the development-only `showcase` group (§2), are built; the site and dashboard boundary (lazy page groups in §2, the dashboard-only rule in §3) and the rest are not yet implemented · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -77,7 +77,9 @@ A layer the capability does not need is **absent, not empty**. A screen only pre
 
 ## 5. Errors
 
-One normaliser turns any failure (Axios, network, timeout, unknown) into `AppError { type, status, code?, errors? }`. Screens pick catalogue text from `code` or `type`; no raw error ever reaches a component.
+One normaliser turns any failure (Axios, network, timeout, unknown) into `AppError { type, status, code?, errors?, requestId? }`. Screens pick catalogue text from `code` or `type`; no raw error ever reaches a component.
+
+`requestId` is the server's request id ([api-contract §1](../api/api-contract.md#1-conventions)), present whenever the server answered. Error states show it, so a user's report can be matched to the log. Planned: F-5 builds it.
 
 ## 6. Map
 
