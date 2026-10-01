@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { Calendar, type CalendarProps } from '.';
-import { DirectionProvider } from '../DirectionProvider';
+import { DirectionProvider } from '../../lib/DirectionProvider';
 
 // 28 September 2026 is a Monday.
 const MONTH = new Date(2026, 8, 1);

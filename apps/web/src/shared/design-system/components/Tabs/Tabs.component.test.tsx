@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 import { Tabs, TabsContent, TabsList, TabsTrigger, type TabsListProps } from '.';
-import { DirectionProvider } from '../DirectionProvider';
+import { DirectionProvider } from '../../lib/DirectionProvider';
 
 function StatusTabs({ variant }: Pick<TabsListProps, 'variant'>) {
   return (

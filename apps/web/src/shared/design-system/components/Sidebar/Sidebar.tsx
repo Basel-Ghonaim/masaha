@@ -13,7 +13,7 @@ import { MenuIcon } from '../../icons';
 import { cn } from '../../lib/cn';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import { Button } from '../Button';
-import { useDirection } from '../DirectionProvider';
+import { useDirection } from '../../lib/DirectionProvider';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../Sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../Tooltip';
 

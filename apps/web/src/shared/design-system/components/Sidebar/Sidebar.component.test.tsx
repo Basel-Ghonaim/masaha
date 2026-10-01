@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
 } from '.';
 import { SearchIcon, UsersIcon } from '../../icons';
-import { DirectionProvider } from '../DirectionProvider';
+import { DirectionProvider } from '../../lib/DirectionProvider';
 
 // jsdom has no media queries. This stand-in answers the (min-width: …px) queries the sidebar asks
 // against a chosen screen width.

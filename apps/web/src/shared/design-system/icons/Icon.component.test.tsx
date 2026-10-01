@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import type { ComponentType } from 'react';
 import { describe, expect, it } from 'vitest';
-import { DirectionProvider } from '../components/DirectionProvider';
+import { DirectionProvider } from '../lib/DirectionProvider';
 import {
   ArrowEndIcon,
   ArrowStartIcon,

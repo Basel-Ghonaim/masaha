@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 import { RadioGroup, RadioGroupItem, type RadioGroupProps } from '.';
-import { DirectionProvider } from '../DirectionProvider';
+import { DirectionProvider } from '../../lib/DirectionProvider';
 import { Field } from '../Field';
 
 const PLANS = [

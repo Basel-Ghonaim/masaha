@@ -10,7 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '.';
-import { DirectionProvider } from '../DirectionProvider';
+import { DirectionProvider } from '../../lib/DirectionProvider';
 
 const MIRRORED = '-scale-x-100';
 

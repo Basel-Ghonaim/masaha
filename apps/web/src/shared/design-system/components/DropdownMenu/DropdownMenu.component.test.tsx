@@ -16,7 +16,7 @@ import {
 } from '.';
 import { EllipsisIcon } from '../../icons';
 import { Button } from '../Button';
-import { DirectionProvider } from '../DirectionProvider';
+import { DirectionProvider } from '../../lib/DirectionProvider';
 
 function RowActions({ onView = () => undefined }: { onView?: () => void }) {
   return (

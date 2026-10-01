@@ -7,7 +7,7 @@ import {
   TriangleAlertIcon,
   XIcon,
 } from '../../icons';
-import { useDirection } from '../DirectionProvider';
+import { useDirection } from '../../lib/DirectionProvider';
 
 export { toast } from 'sonner';
 

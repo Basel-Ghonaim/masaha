@@ -82,7 +82,7 @@ export {
   type DatePickerContentProps,
   type DatePickerTriggerProps,
 } from './components/DatePicker';
-export { DirectionProvider } from './components/DirectionProvider';
+export { DirectionProvider } from './lib/DirectionProvider';
 export {
   DropdownMenu,
   DropdownMenuCheckboxItem,

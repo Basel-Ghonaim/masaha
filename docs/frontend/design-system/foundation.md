@@ -57,6 +57,7 @@ apps/web/src/shared/design-system/
     <ComponentName>/  one folder per component (shadcn-sourced or hand-built), own index.ts
   icons/              single wrapper over the icon library + mirroring rule
   lib/cn.ts           class-merge helper (lives inside the layer — the layer imports nothing from outside)
+  lib/DirectionProvider.tsx  the reading direction for Radix and the icons (§8); not a visual component
   index.ts            the only public surface
 ```
 

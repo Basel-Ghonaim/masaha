@@ -13,7 +13,7 @@ import { ar, enUS } from 'react-day-picker/locale';
 import { ChevronEndIcon, ChevronStartIcon } from '../../icons';
 import { cn } from '../../lib/cn';
 import { Button } from '../Button';
-import { useDirection } from '../DirectionProvider';
+import { useDirection } from '../../lib/DirectionProvider';
 
 // Arabic starts the week on Saturday; English keeps its own locale's Sunday.
 const LANGUAGES = {

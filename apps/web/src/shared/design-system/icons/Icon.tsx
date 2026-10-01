@@ -1,5 +1,5 @@
 import type { LucideIcon, LucideProps } from 'lucide-react';
-import { useDirection } from '../components/DirectionProvider';
+import { useDirection } from '../lib/DirectionProvider';
 import { cn } from '../lib/cn';
 
 export type IconProps = LucideProps;
