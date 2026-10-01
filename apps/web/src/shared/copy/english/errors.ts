@@ -28,4 +28,5 @@ export const ERRORS = {
   SPACE_CAPACITY_NOT_SET: 'Set the space’s capacity first.',
   OUTSIDE_OPENING_HOURS: 'This check-in is outside the space’s opening hours.',
   OWNER_ALREADY_LINKED: 'This owner is already linked to the space.',
+  CURRENT_PASSWORD_INCORRECT: 'The current password is incorrect.',
 } as const satisfies Record<ErrorType | DomainErrorCode, string>;

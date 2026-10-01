@@ -30,6 +30,21 @@ export const loginSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof loginSchema>;
 
+/**
+ * A new password for the signed-in user. The current one is required, except while a temporary
+ * password is pending and for a Google-only account's first password.
+ */
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(PASSWORD_MAX_LENGTH).optional(),
+  password: passwordSchema,
+});
+export type ChangePasswordRequest = z.infer<typeof changePasswordSchema>;
+
+/** What a password change answers, beside a new refresh cookie: the session goes on, renewed. */
+export interface PasswordChanged {
+  accessToken: string;
+}
+
 /** The global role (ADR 0002). */
 export type Role = 'USER' | 'OWNER' | 'ADMIN';
 

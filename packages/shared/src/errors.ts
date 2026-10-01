@@ -44,6 +44,7 @@ export const DOMAIN_ERROR_CODES = [
   'SPACE_CAPACITY_NOT_SET',
   'OUTSIDE_OPENING_HOURS',
   'OWNER_ALREADY_LINKED',
+  'CURRENT_PASSWORD_INCORRECT',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

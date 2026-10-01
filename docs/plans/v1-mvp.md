@@ -196,9 +196,10 @@ Built: register, login, refresh and logout ([api-contract §5](../api/api-contra
 | POST | `/auth/google` | 🌐 | Google ID token → as login; creates or links the account ([security.md](../backend/security.md#sign-in-methods)) |
 | POST | `/auth/password/forgot` | 🌐 | always 202; emails a reset link valid for 1 hour |
 | POST | `/auth/password/reset` | 🌐 | token + new password |
-| POST | `/auth/password/change` | 👤 | required at first sign-in for accounts created by someone else; a Google-only account sets its first password |
 
 #### Me
+Built: `POST /me/password`, the password change and the forced change at first sign-in ([api-contract §5](../api/api-contract.md#5-endpoints)).
+
 | Method | Path | Access |
 |---|---|---|
 | GET / PATCH | `/me` | 👤 name, language |

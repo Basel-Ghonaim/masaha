@@ -43,6 +43,21 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return { account, passwordHash };
     },
 
+    /** The account's hash, for a password check only. */
+    async findPasswordHash(id: number): Promise<string | null> {
+      const row = await db.user.findUnique({ where: { id }, select: { passwordHash: true } });
+      return row?.passwordHash ?? null;
+    },
+
+    /** Sets the password, which also settles a pending temporary one. */
+    async setPassword(id: number, passwordHash: string, tx: Tx = db): Promise<Account> {
+      return tx.user.update({
+        where: { id },
+        data: { passwordHash, mustChangePassword: false },
+        select: ACCOUNT,
+      });
+    },
+
     async hasPassword(id: number, tx: Tx = db): Promise<boolean> {
       return (await tx.user.count({ where: { id, passwordHash: { not: null } } })) === 1;
     },

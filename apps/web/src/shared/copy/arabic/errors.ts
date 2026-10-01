@@ -24,4 +24,5 @@ export const ERRORS = {
   SPACE_CAPACITY_NOT_SET: 'حدّد سعة المساحة أولًا.',
   OUTSIDE_OPENING_HOURS: 'سُجّل هذا الحضور خارج ساعات عمل المساحة.',
   OWNER_ALREADY_LINKED: 'صاحب المساحة هذا مرتبط بها بالفعل.',
+  CURRENT_PASSWORD_INCORRECT: 'كلمة المرور الحالية غير صحيحة.',
 } satisfies Catalogue['errors'];

@@ -15,7 +15,7 @@
 | Reuse | A token rotated **more** than 30 s ago means a copy of it is in use: its family is deleted and the refresh answers 401. The user's other sessions, on other devices, are untouched. Ending only the family still cuts a stolen chain (OAuth 2.0 Security BCP), while a reception desk on another device keeps working |
 | Refresh cookie | `masaha_refresh` · `HttpOnly` · `Secure` (production) · `SameSite=Strict` · `Path=/api/v1/auth` · 7 days; set and cleared from one shared options object |
 | Session hint | `masaha_session=1`, readable by JS, `Path=/`, no secret |
-| Revocation | Password change, password reset, role change, suspension and the deactivation of a reception link delete all the user's refresh tokens |
+| Revocation | Password change, password reset, role change, suspension and the deactivation of a reception link delete all the user's refresh tokens. A password change then opens a new session for its own device |
 
 ## Sign-in methods
 
@@ -38,7 +38,8 @@
   - a reception account the owner creates for a new email. An email that already has an account is linked instead: no temporary password ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md));
   - an admin recovery (below).
 
-  Every endpoint except `/auth/password/change`, `/auth/logout` and `/me` returns `PASSWORD_CHANGE_REQUIRED` until the password is changed.
+  Every endpoint except `/me/password`, `/auth/logout` and `/me` returns `PASSWORD_CHANGE_REQUIRED` until the password is changed. The access token carries `mustChangePassword`, and `requireAuth` refuses it unless the route allows a pending change; the session's refresh still works, so the web can restore the session and show the change.
+- **Changing the password** (`/me/password`) asks for the current one, except during the forced change and for a Google-only account's first password. It ends every session of the user, then opens a new one for the device that changed it: a new access token without `mustChangePassword`, and a new refresh cookie.
 - **Password reset** is a link sent by email: a single-use token stored as a SHA-256 hash, valid for 1 hour. The request always returns 202, and success revokes all sessions. It is a transactional email, not a notification, and the only email Masaha sends. The provider is chosen in F-5, within [ADR 0014](../architecture/decisions/0014-deployment.md)'s constraint: without a domain of its own, no domain-verified provider is possible, so the email goes from a single verified sender, or Gmail SMTP. In development, the email port logs the link instead of sending it.
 - **Recovery without the email:** the person contacts Masaha on WhatsApp, and the admin issues a temporary password (`mustChangePassword`). The action is audited.
 

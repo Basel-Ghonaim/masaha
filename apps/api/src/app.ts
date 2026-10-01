@@ -8,8 +8,12 @@ import { createRunInTransaction } from './db/index.ts';
 import { createAuthController, createAuthRouter, createAuthService } from './modules/auth/index.ts';
 import { createSessionCookies, createSessionsService } from './modules/sessions/index.ts';
 import { createSpaceLinksService } from './modules/space-links/index.ts';
-import { createUsersService } from './modules/users/index.ts';
-import { createAccessTokens, readAccessToken } from './shared/auth/index.ts';
+import {
+  createUsersController,
+  createUsersMeRouter,
+  createUsersService,
+} from './modules/users/index.ts';
+import { createAccessTokens, createRequireAuth, readAccessToken } from './shared/auth/index.ts';
 import { errorHandler, notFoundHandler } from './shared/errors/index.ts';
 import { requestLogger } from './shared/http/index.ts';
 import {
@@ -98,8 +102,11 @@ export function createApi({ jwtSecret, secureCookies }: ApiOptions): Router {
   const accessTokens = createAccessTokens(jwtSecret);
   const cookies = createSessionCookies({ secure: secureCookies });
 
+  const requireAuth = createRequireAuth(accessTokens);
+  const runInTransaction = createRunInTransaction();
+
   const sessions = createSessionsService();
-  const users = createUsersService();
+  const users = createUsersService({ accessTokens, sessions, runInTransaction });
   const spaceLinks = createSpaceLinksService();
   const auth = createAuthService({
     users,
@@ -107,7 +114,7 @@ export function createApi({ jwtSecret, secureCookies }: ApiOptions): Router {
     spaceLinks,
     accessTokens,
     limiter,
-    runInTransaction: createRunInTransaction(),
+    runInTransaction,
   });
 
   const api = Router();
@@ -120,5 +127,6 @@ export function createApi({ jwtSecret, secureCookies }: ApiOptions): Router {
     }),
   );
   api.use('/auth', createAuthRouter(createAuthController(auth, cookies)));
+  api.use('/me', createUsersMeRouter(createUsersController(users, cookies), requireAuth));
   return api;
 }
