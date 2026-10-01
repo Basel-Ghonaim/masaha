@@ -54,12 +54,27 @@ apps/web/src/shared/design-system/
     typography.css    font stacks per script + composite text styles
     tailwind.css      @theme mapping: exposes semantic roles as Tailwind utilities
   components/
-    <ComponentName>/  one folder per component (shadcn-sourced or hand-built), own index.ts
+    <category>/       one folder per category (below)
+      <ComponentName>/  one folder per component (shadcn-sourced or hand-built), own index.ts
   icons/              single wrapper over the icon library + mirroring rule
   lib/cn.ts           class-merge helper (lives inside the layer — the layer imports nothing from outside)
   lib/DirectionProvider.tsx  the reading direction for Radix and the icons (§8); not a visual component
   index.ts            the only public surface
 ```
+
+**Categories.** A component's category is its **primary role for the user**: what the user does with it or gets from it, never its form. Each component has exactly one. A component that takes another's form is still classed by its role: Select's list floats, and Sidebar becomes a drawer on a phone, but they are a field and navigation.
+
+| Category | Role | Components |
+|---|---|---|
+| `actions` | triggers an action | Button · ThemeToggle · LanguageToggle · DropdownMenu |
+| `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · Switch · ToggleGroup · Calendar · DatePicker |
+| `display` | shows content | Avatar · Badge · Card · StatCard · Separator |
+| `data` | shows records in rows and columns | Table · DataTable |
+| `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState |
+| `overlays` | holds the caller's content above the page | Dialog · AlertDialog · Sheet · Popover · Tooltip |
+| `navigation` | moves between places | Breadcrumb · Tabs · Pagination · Sidebar |
+
+A new component goes in the category of its role: the removable filter tag ([finding 8](../../architecture/findings.md#8-the-stress-tests-applied-filter-tag-has-no-component)) in `display`, charts in `data`. A new category is added only when a role fits none of these.
 
 **Rules:**
 - **Public surface:** consumers import from `@shared/design-system` only, never from inside a component folder.
@@ -298,8 +313,8 @@ When a shadcn component is added, it is adapted before it is used:
 
 A copy also needs these steps, which the contract above does not cover ([finding 2](../../architecture/findings.md#2-copied-shadcn-components-need-more-than-the-contract-lists)):
 
-- **Source and place.** Take the source from `npx shadcn add <name> --dry-run --view`, so the CLI never installs a package, and write it to `components/<Name>/<Name>.tsx` beside its `index.ts`. Drop `"use client"`.
-- **Merge through the layer's `cn`.** `import { cn } from "cn"` becomes `../../lib/cn`. The `cn` package is never installed: it lacks the text styles and shadows (§3).
+- **Source and place.** Take the source from `npx shadcn add <name> --dry-run --view`, so the CLI never installs a package. Move it into its category folder: write it to `components/<category>/<Name>/<Name>.tsx` beside its `index.ts`, the category chosen by its role (§3). Drop `"use client"`.
+- **Merge through the layer's `cn`.** `import { cn } from "cn"` becomes `../../../lib/cn`. The `cn` package is never installed: it lacks the text styles and shadows (§3).
 - **No `dark:` classes.** The tokens resolve each theme (§6); a component never styles per theme.
 - **State variants** (`data-checked:`, `data-open:` …) are defined in shadcn's `shadcn/tailwind.css`, which the layer does not load. Each one a copy uses is declared once in `tokens/tailwind.css` as a `@custom-variant` over Radix's `data-state`. Radix's presence attributes (`data-disabled`, `data-placeholder`) need none: Tailwind's own `data-*` variant matches them.
 - **Tailwind's default scales** do not exist in the layer. Map them:
@@ -329,35 +344,69 @@ A copy also needs these steps, which the contract above does not cover ([finding
 
 ## 12. Component inventory
 
+Grouped by category (§3). The theme and language toggles (`actions`) have no row; the last line below covers them.
+
+### `actions`
+
 | Component | Source | Notes / variants |
 |---|---|---|
 | Button | shadcn | primary, secondary, outline, ghost, destructive, link · sizes sm/md/lg/icon · loading state |
+| DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side |
+
+### `fields`
+
+| Component | Source | Notes / variants |
+|---|---|---|
 | Input, Textarea | shadcn | with error state; `dir` prop for LTR values; Input holds start and end icons and a button (`InputAction`) inside its box |
 | Field | hand-built | Label + control + helper + error, wiring ids and `aria-describedby`; an end slot on the label row; shown disabled with its control |
 | Select / Combobox | shadcn | Area filter, amenity filter (multi-select) · Combobox is a Popover holding cmdk's search and list (shadcn's current `combobox` is built on Base UI, which the layer does not use): `single` closes on a choice, `multiple` stays open · its trigger is drawn like Select's and shows the caller's summary («الحالة: 2 محدّدة»); outside a Field that text names it; `empty` shows a placeholder muted, as on DatePicker's trigger · the search, list and empty text are props (cmdk's default list label is replaced); the search row shows its focus by its divider turning `ring`, not an outline · a chosen option is `aria-checked` with a check at its end, because cmdk keeps `aria-selected` for the highlighted one |
 | Checkbox, RadioGroup, Switch | shadcn | |
+| Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
+| ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)) |
+
+### `display`
+
+| Component | Source | Notes / variants |
+|---|---|---|
 | Badge | shadcn | neutral, primary, success, warning, info, destructive (subtle variants) |
 | Card | shadcn | |
+| Avatar | shadcn | Initials fallback |
+| Separator | shadcn | |
+| StatCard | hand-built | Dashboard overview numbers |
+
+### `data`
+
+| Component | Source | Notes / variants |
+|---|---|---|
 | Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** · Table, as in the Owner › Members stress test: a `muted` header row with `caption` headings, `body-sm` rows with `table-row-padding-block` and a `border` divider, the outer cells in line with `card-padding`; a row takes `accent` when hovered and while its row menu is open · Table has no frame: DataTable frames it as a card · DataTable is TanStack Table v9; features build its columns with `createDataTableColumnHelper`, so they never import the library · a column sorts only when it asks to (`enableSorting`): its header becomes a button with an arrow, and `aria-sort` says the order; client-side, or `manualSorting` when the server sorts · from 768px, one card holds the toolbar, the table and a footer with the summary at the start and the pagination at the end; below it there is no frame, and each row is a card drawn from the feature's `renderCard` in a named list, with the pagination under it · `loading` stands placeholder rows or cards in and marks the table busy; `empty` stands in for the rows |
-| Pagination | shadcn | Words as props · page numbers from `md`, the current one outlined on the page `background`; on a phone, Previous and Next around a summary ("Page 1 of 5"), as in the Owner › Members stress test · a missing step stays in place, marked `aria-disabled` |
-| Dialog, AlertDialog | shadcn | Confirmations (check-out, void a payment, deactivate staff, hide space) |
-| Sheet | shadcn | Logical sides: `start` for mobile navigation (where the sidebar sits), `end` for a secondary panel, `bottom` for the phone filter panel (with a handle, which does not drag) |
-| DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side |
-| Tabs | shadcn | `default`: pills on a phone (the active one `primary`), a segmented control from `md` (the active one on `card`), as in the Owner › Members stress test · `line`: underlined, for the sections of a page |
-| Tooltip | shadcn | |
-| Popover | shadcn | The floating panel under Combobox and DatePicker, and for features' small panels · on `--z-dropdown`, `rounded-lg`, bordered, `shadow-floating` · a dialog, so it is named by `aria-label` or its title |
+
+### `feedback`
+
+| Component | Source | Notes / variants |
+|---|---|---|
 | Toast | shadcn (Sonner) | Success and error feedback |
 | Alert | shadcn | info, warning, destructive |
 | Skeleton | shadcn | Loading states |
-| Avatar | shadcn | Initials fallback |
-| Separator | shadcn | |
-| Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
-| ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)) |
+| EmptyState | hand-built | Icon + title + text + action |
+| Spinner | hand-built | |
+
+### `overlays`
+
+| Component | Source | Notes / variants |
+|---|---|---|
+| Dialog, AlertDialog | shadcn | Confirmations (check-out, void a payment, deactivate staff, hide space) |
+| Sheet | shadcn | Logical sides: `start` for mobile navigation (where the sidebar sits), `end` for a secondary panel, `bottom` for the phone filter panel (with a handle, which does not drag) |
+| Tooltip | shadcn | |
+| Popover | shadcn | The floating panel under Combobox and DatePicker, and for features' small panels · on `--z-dropdown`, `rounded-lg`, bordered, `shadow-floating` · a dialog, so it is named by `aria-label` or its title |
+
+### `navigation`
+
+| Component | Source | Notes / variants |
+|---|---|---|
+| Pagination | shadcn | Words as props · page numbers from `md`, the current one outlined on the page `background`; on a phone, Previous and Next around a summary ("Page 1 of 5"), as in the Owner › Members stress test · a missing step stays in place, marked `aria-disabled` |
+| Tabs | shadcn | `default`: pills on a phone (the active one `primary`), a segmented control from `md` (the active one on `card`), as in the Owner › Members stress test · `line`: underlined, for the sections of a page |
 | Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
 | Breadcrumb | shadcn | Dashboard sub-pages · named by a `label` prop; separators are `ChevronEndIcon` · ancestors `muted-foreground`, the current page `foreground` at the `label` weight, as in the Owner › Members stress test |
-| EmptyState | hand-built | Icon + title + text + action |
-| StatCard | hand-built | Dashboard overview numbers |
-| Spinner | hand-built | |
 
 **Not in the layer (built by features from it):** SpaceCard, SpaceMap and markers, OccupancyIndicator, CustomerRow, AnnouncementBanner, VerifiedBadge (a Badge usage).
 **Not in the layer (app-level):** theme and language *policy*. The toggles' visual controls are ordinary layer components.

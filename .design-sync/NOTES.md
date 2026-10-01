@@ -10,7 +10,7 @@ Repo-specific knowledge for syncing Masaha's design-system layer (`apps/web/src/
 - **Document attributes:** the tokens resolve only under `[data-theme]` (`semantic.css`), the font stacks only under `[lang]` (`typography.css`), and menus/dialogs portal to `<body>`. So every preview imports `.design-sync/previews/_document.ts`, which sets `lang="ar" dir="rtl" data-theme="light"` on `<html>` as the app's pre-paint script does. Without it a preview renders unstyled in the browser-default font.
 - **Provider:** `DirectionProvider dir="rtl"` (a real layer export) wraps every preview, as `App.tsx` wraps the app.
 - **Cards:** the layer exports every compound part flat (`CardHeader`, `DialogContent`, ...). Those, the 30 icons and `DirectionProvider` are excluded from cards with `componentSrcMap: null`; they stay in the bundle and on `window.MasahaDesignSystem`, and the parent's preview examples show them in use. Consequence: parts have no `.d.ts` of their own; their props (`closeLabel`, `side`, `variant` on `TabsList` ...) reach the design agent only through the parent's examples and the conventions header.
-- **Groups:** every component lands in `general` (the layer has no category folders and no `@category` JSDoc), except `Toaster`, in `toast`: it lives in `components/Toast/`, and its `componentSrcMap` pin (which brings its JSDoc on `toast()` usage into the `.prompt.md`) derives the group from that folder. Kept deliberately; the grade key is the name, so regrouping would orphan nothing.
+- **Groups:** at the first sync every component landed in `general` (the layer had no category folders and no `@category` JSDoc), except `Toaster`, in `toast`: it lived in `components/Toast/`, and its `componentSrcMap` pin (which brings its JSDoc on `toast()` usage into the `.prompt.md`) derived the group from that folder. Since DS-1 the layer groups its components in category folders, `components/<category>/<Name>/` (foundation §3), and the Toaster pin points at `components/feedback/Toast/Toast.tsx`. The next sync is expected to group the cards by those folders; that is unverified until it runs, so check the groups it produces. The grade key is the name, so regrouping orphans nothing.
 
 ## Authoring previews
 
@@ -36,6 +36,7 @@ Repo-specific knowledge for syncing Masaha's design-system layer (`apps/web/src/
 ## Re-sync risks
 
 - `.design-sync/tailwind-sync.css` imports `tokens/tailwind.css` by path; moving it breaks the build.
+- The `Toaster` pin in `config.json` names its source file by path; moving `Toast/` to another category breaks it.
 - `@tailwindcss/cli` in `.ds-sync/` must match the repo's `tailwindcss` version; `playwright` must match the cached chromium build (1.60.0 ↔ chromium-1223 on the first sync's machine).
 - The preview text is copied from `fixtures.json`; a fixture edit does not update the previews.
 - A new component in the layer's `index.ts` becomes a new card automatically, but a new compound part or icon also becomes a (floor) card until it is added to `componentSrcMap` as `null`.

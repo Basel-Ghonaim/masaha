@@ -28,7 +28,7 @@
     "Sidebar": { "cardMode": "column", "viewport": "1280x800" }
   },
   "componentSrcMap": {
-    "Toaster": "../apps/web/src/shared/design-system/components/Toast/Toast.tsx",
+    "Toaster": "../apps/web/src/shared/design-system/components/feedback/Toast/Toast.tsx",
     "DirectionProvider": null,
     "AlertAction": null,
     "AlertDescription": null,

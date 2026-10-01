@@ -45,7 +45,7 @@ Compose layout with Tailwind classes. The palette is reset: `bg-blue-500`, `text
 
 ## Where the truth is
 
-`styles.css` imports `_ds_bundle.css`: the compiled tokens (`--background`, `--primary`, `--type-body-size` …) and every utility above. Before using a component, read `components/general/<Name>/<Name>.prompt.md` (its examples are the real usage) and `<Name>.d.ts`.
+`styles.css` imports `_ds_bundle.css`: the compiled tokens (`--background`, `--primary`, `--type-body-size` …) and every utility above. Before using a component, read `components/<group>/<Name>/<Name>.prompt.md` (its examples are the real usage) and `<Name>.d.ts`.
 
 ## Example
 
