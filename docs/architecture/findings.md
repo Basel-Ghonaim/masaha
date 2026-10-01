@@ -129,7 +129,7 @@ Whatever becomes a standing step is added to foundation §11.
 
 *Decided (2026-09-28, WI-9):*
 - **The component:** the layer gets a removable filter tag, as a layer component with a §12 row.
-- **When:** it is built at the start of the data-reports feature slice, step 8 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build).
+- **When:** it is built at the start of the data-reports feature slice, step 10 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build).
 - **Until then:** the finding stays open, and nothing is built now.
 
 ## 9. Every Vitest lane fails when the working directory's drive letter is lowercase
@@ -155,7 +155,7 @@ Shells opened by an editor can start in a lowercase `c:\`, as this session's did
 
 **Evidence:** F-3 seeds eight amenities, each with an `icon` key that the web maps to an icon ([`apps/api/src/db/seed/lookups.ts`](../../apps/api/src/db/seed/lookups.ts)): `wifi`, `zap`, `sun`, `plug-zap`, `coffee`, `users`, `presentation`, `graduation-cap`. They are Lucide names, and Lucide is imported only inside the design-system layer. The layer's icon set (`shared/design-system/icons/iconSet.tsx`) includes none of them yet, so the web has nothing to map these keys to.
 
-**Resolves when:** the directory slice (step 3 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build)) adds these eight keys to the design-system icon set, with the map from key to icon, and the admin's amenity form offers that set.
+**Resolves when:** the lookups and admin spaces slice (step 2 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build)) adds these eight keys to the design-system icon set, with the map from key to icon, and the admin's amenity form offers that set.
 
 ## 11. Nested writes in an interactive transaction trigger a `pg` deprecation warning
 
