@@ -23,14 +23,14 @@
 | `public` | `/`, `/spaces`, `/spaces/:slug`, `/about` | none |
 | `auth` | `/login`, `/register`, `/forgot-password`, `/reset-password` | guests only |
 | `account` | `/me`, `/me/favorites`, `/me/reports` | signed in |
-| `dashboard` | `/dashboard/...` | ADMIN, or an active space link, OWNER or RECEPTION (per route) |
+| `dashboard` | `/dashboard` (redirects, below), `/dashboard/admin/...`, `/dashboard/spaces/:spaceId/...` ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) | `admin/...`: ADMIN · `spaces/:spaceId/...`: an active link at that space, OWNER or RECEPTION (per route) |
 | `showcase` | `/__showcase`, `/__showcase/preview` | none; **development only**, not in the build |
 
 - **Two domains, one application** ([ADR 0011](../architecture/decisions/0011-one-web-app.md)): the **site** is `public`, `auth` and `account`; the **dashboard** is `dashboard`.
 - A page group's barrel exports its **route subtree**, not individual screens. `app/router.tsx` mounts each subtree **lazily**, so a visitor to the site downloads no dashboard code.
 - **Guards sit visibly on each route** (`<RequireRole roles={['OWNER']}>`), never inherited silently from the group.
 - The dashboard's **navigation config per role** belongs to the `dashboard` page group, because choosing what appears together is composition. Features stay role-agnostic: the page passes the scope (`mine` for an owner, `all` for the admin).
-- In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space selected** in the space switcher, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
+- In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space in the URL**, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). The selected space is the `:spaceId` of the route, never client state; the space switcher only navigates ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)).
 - Inside the `dashboard` group, the shell and the navigation are kept apart from the screens of each area:
 
   ```
@@ -39,10 +39,26 @@
     shell/          layout, sidebar, top bar, space switcher
     navigation.ts   the navigation config per role
     admin/          platform screens (ADMIN)
-    space/          the selected space's screens (OWNER, RECEPTION)
+    space/          the screens of the space in the URL (OWNER, RECEPTION)
   ```
 - UI hiding is for usability only; the server is the authority.
 - **`showcase`** is a development tool for the design-system layer ([foundation §3](design-system/foundation.md#3-architecture)). `app/router.tsx` mounts it only when `import.meta.env.DEV`, so a build leaves it out; `check:build` fails if any of it reaches the build.
+
+### Landing and guards
+
+Not built yet: F-5 builds the guards and F-6 the landing and the switcher.
+
+- **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
+- **Landing after sign-in:**
+  1. the return URL, when there is one;
+  2. otherwise the admin goes to the admin's overview;
+  3. a user with space links goes to the last space they used, on the page their link's role there gives: the overview for `OWNER`, the front desk for `RECEPTION`. When no space is remembered, or the remembered one is no longer an active link (a first sign-in, a link deactivated or removed), they go to their oldest active link, by the same rule. How the last space is remembered is F-6's choice;
+  4. `/dashboard` itself redirects by the same rules.
+- **Failed guards:**
+  - a guest goes to sign-in, with the return URL;
+  - a signed-in user without access gets a clear 403 page, never a silent redirect;
+  - an unknown space gets a 404 page.
+- **The space switcher** shows for anyone with more than one active link, whatever their role at each.
 
 ## 3. Capabilities (features)
 
