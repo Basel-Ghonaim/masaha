@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import type { Prisma, PrismaClient } from '../../generated/prisma/client.ts';
-import { hashPassword } from '../../shared/auth/index.ts';
+import { hashPassword } from '../../modules/users/index.ts';
 import { newSpaceDefaultsSchema } from './lookups.ts';
 
 // Development-only demo data: one verified space with an owner and a reception account, its

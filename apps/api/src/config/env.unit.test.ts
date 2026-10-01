@@ -5,6 +5,7 @@ import { EnvError, loadEnv } from './env.ts';
 const valid = {
   CORS_ORIGIN: 'http://localhost:5173',
   DATABASE_URL: 'postgresql://masaha:masaha@localhost:5433/masaha_dev',
+  JWT_SECRET: 'a-development-secret-of-32-characters',
 };
 
 describe('loadEnv', () => {
@@ -14,6 +15,7 @@ describe('loadEnv', () => {
       PORT: 3000,
       CORS_ORIGIN: 'http://localhost:5173',
       DATABASE_URL: 'postgresql://masaha:masaha@localhost:5433/masaha_dev',
+      JWT_SECRET: 'a-development-secret-of-32-characters',
       LOG_LEVEL: 'info',
       TRUST_PROXY: 'loopback',
     });
@@ -34,6 +36,11 @@ describe('loadEnv', () => {
     expect(() => loadEnv({})).toThrow(EnvError);
     expect(() => loadEnv({})).toThrow(/CORS_ORIGIN/);
     expect(() => loadEnv({})).toThrow(/DATABASE_URL/);
+    expect(() => loadEnv({})).toThrow(/JWT_SECRET/);
+  });
+
+  it('refuses a JWT secret shorter than 32 characters', () => {
+    expect(() => loadEnv({ ...valid, JWT_SECRET: 'x'.repeat(31) })).toThrow(/JWT_SECRET/);
   });
 
   it('refuses a database URL that is not PostgreSQL', () => {

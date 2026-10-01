@@ -110,7 +110,7 @@ The seed only **creates what is missing**. It never changes an existing row, so 
 From the repository root, with Docker Desktop running:
 
 1. `npm ci`, which also generates the Prisma client.
-2. Copy `apps/api/.env.example` to `apps/api/.env`. **Do this before the first run.** Without it the API stops at once, reporting `CORS_ORIGIN` and `DATABASE_URL` as missing. The example's database values match the local database; fill in `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` for the seed.
+2. Copy `apps/api/.env.example` to `apps/api/.env`. **Do this before the first run.** Without it the API stops at once, reporting `CORS_ORIGIN`, `DATABASE_URL` and `JWT_SECRET` as missing. The example's database values match the local database. Set `JWT_SECRET` to a random value of at least 32 characters (for example, the output of `node -e "console.log(crypto.randomBytes(32).toString('base64url'))"`), and fill in `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` for the seed.
 3. `npm run db:up` starts PostgreSQL.
 4. `npm run db:migrate` applies the migrations to `masaha_dev`.
 5. `npm run db:seed` adds the lookups, the admin account and the settings.

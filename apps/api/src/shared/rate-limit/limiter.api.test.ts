@@ -1,16 +1,10 @@
-import { pino } from 'pino';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { createApi, createApp } from '../../app.ts';
+import { createTestApp } from '../../../test/app.ts';
 import { prisma } from '../../db/index.ts';
 
-const app = createApp({
-  corsOrigin: 'http://localhost:5173',
-  logger: pino({ level: 'silent' }),
-  checkDatabase: () => Promise.resolve(true),
-  apiRouter: createApi(),
-});
+const app = createTestApp();
 
 describe('the general rate limit', () => {
   it('counts every API request, and answers 429 with its headers over the guest ceiling', async () => {

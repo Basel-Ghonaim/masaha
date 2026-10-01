@@ -58,7 +58,44 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 
 ## 5. Endpoints
 
-**None built yet.** The planned endpoint surface lives in [plans/v1-mvp.md](../plans/v1-mvp.md#planned-api-surface). Each endpoint is added here, with its request and response, in the PR that builds it.
+Each endpoint is added here, with its request and response, in the PR that builds it. The endpoints not yet built are planned in [plans/v1-mvp.md](../plans/v1-mvp.md#planned-api-surface). Request schemas are in `packages/shared`; every error answers with the envelope of §2.
+
+### Session
+
+The shapes several endpoints answer with (`packages/shared`, `auth.ts`):
+
+```ts
+Session = { user: SessionUser, accessToken: string }   // the access token is kept in memory only
+
+SessionUser = {
+  id: number, email: string, name: string,
+  role: "USER" | "OWNER" | "ADMIN",                    // the global role (ADR 0002)
+  language: "ar" | "en",
+  mustChangePassword: boolean,                         // a temporary password must be changed first
+  hasPassword: boolean,                                // false for a Google-only account
+  spaces: { spaceId: number, role: "OWNER" | "RECEPTION" }[]   // the active links, oldest first
+}
+```
+
+An answer that opens or renews a session also sets the refresh cookie and the session hint, and an answer that ends one clears them ([security.md](../backend/security.md#tokens-and-cookies)). The sign-in limits count failures only ([security.md](../backend/security.md#rate-limits-fixed-window)); a refused attempt answers `rate_limit` (429).
+
+#### `POST /auth/register` · 🌐
+- **Body:** `{ name, email, password, language? }`. The name is 1–100 characters, NFC-normalised, with no bidirectional controls; the email is trimmed and lowercased; the password follows the policy ([security.md](../backend/security.md#passwords)); `language` is the interface's, `ar` when absent.
+- **201:** `Session`, for a new `USER`.
+- **Errors:** `validation` (422); `conflict` (409) `EMAIL_TAKEN`, with `errors.email = ["not_unique"]`.
+
+#### `POST /auth/login` · 🌐
+- **Body:** `{ email, password }`. The policy is not checked here.
+- **200:** `Session`.
+- **Errors:** `unauthorized` (401) `INVALID_CREDENTIALS` for an unknown email, a wrong password or a Google-only account alike; `forbidden` (403) `ACCOUNT_SUSPENDED`, only once the password matches.
+
+#### `POST /auth/refresh` · the refresh cookie
+- **Body:** none.
+- **200:** `Session`, with the token rotated ([security.md](../backend/security.md#tokens-and-cookies)).
+- **Errors:** `unauthorized` (401) without a valid token, or for a token reused after the grace window, which ends its session; `forbidden` (403) `ACCOUNT_SUSPENDED`, which ends every session of the user. Both clear the cookies. `rate_limit` (429) keeps them.
+
+#### `POST /auth/logout` · the refresh cookie
+- **204:** the device's session is ended, and the cookies cleared. Without a session, the same.
 
 ## 6. Domain error codes (initial)
 

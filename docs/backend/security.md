@@ -7,9 +7,12 @@
 
 | Item | Rule |
 |---|---|
-| Access token | JWT, HS256 set explicitly on sign and verify, 15 min, `{ userId, role }`, returned in the body, kept in memory by the client |
+| Access token | JWT, HS256 set explicitly on sign and verify, 15 min. Claims: `sub` (the user's id), `role` and `mustChangePassword` ([Passwords](#passwords)). Returned in the body, kept in memory by the client |
 | Secret | ≥ 32 characters, validated at startup |
-| Refresh token | Random opaque value, stored **hashed**, 7 days, rotated on each refresh in a transaction, 30 s reuse grace |
+| Refresh token | Random opaque value (256 bits), stored as its SHA-256 hash, 7 days, rotated on each refresh in a transaction |
+| Session | The tokens rotated from one sign-in form a **family**, named by the id of its first token. Logout ends the whole family, the device's session |
+| Rotation grace | A token rotated less than 30 s ago is still honoured: its refresh gets a new token of the same family, so two tabs refreshing together, or a refresh retried after a lost answer, stay signed in |
+| Reuse | A token rotated **more** than 30 s ago means a copy of it is in use: its family is deleted and the refresh answers 401. The user's other sessions, on other devices, are untouched. Ending only the family still cuts a stolen chain (OAuth 2.0 Security BCP), while a reception desk on another device keeps working |
 | Refresh cookie | `masaha_refresh` · `HttpOnly` · `Secure` (production) · `SameSite=Strict` · `Path=/api/v1/auth` · 7 days; set and cleared from one shared options object |
 | Session hint | `masaha_session=1`, readable by JS, `Path=/`, no secret |
 | Revocation | Password change, password reset, role change, suspension and the deactivation of a reception link delete all the user's refresh tokens |
@@ -22,10 +25,11 @@
   - A Google sign-in whose verified email matches an existing account links Google to that account automatically.
   - A Google-only account has no password, so a password sign-in fails with `INVALID_CREDENTIALS`. It may add a password later.
 - Both methods issue the same session ([ADR 0003](../architecture/decisions/0003-session-model.md)).
+- **Registering an email that has an account answers `EMAIL_TAKEN`.** That tells the caller the account exists, unlike the forgotten password's answer. It is an accepted trade-off, for usability: a person who already has an account learns to sign in instead. The sign-in limits count each refused registration as a failure.
 
 ## Passwords
 
-- bcrypt, cost 12, hashed outside database transactions.
+- bcrypt, cost 12, hashed outside database transactions, by the `users` module ([ADR 0013](../architecture/decisions/0013-identity-modules.md)). A sign-in for an unknown email, or for an account with no password, still spends one comparison, so its timing does not reveal which accounts exist.
 - Policy: 8–72 characters, at least one letter and one digit.
 - The hash is excluded in the Prisma `select`, never only by the mapper.
 - Wrong credentials: generic `INVALID_CREDENTIALS`.

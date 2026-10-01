@@ -35,7 +35,10 @@ const app = createApp({
   logger,
   checkDatabase: () => isDatabaseUp(prisma),
   trustProxy: env.TRUST_PROXY,
-  apiRouter: createApi(),
+  apiRouter: createApi({
+    jwtSecret: env.JWT_SECRET,
+    secureCookies: env.NODE_ENV === 'production',
+  }),
 });
 
 const server = app.listen(env.PORT, () => {

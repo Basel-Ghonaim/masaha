@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import type { Request } from 'express';
 import { pino, type DestinationStream, type Level, type Logger } from 'pino';
 import { pinoHttp } from 'pino-http';
 
@@ -41,6 +42,11 @@ export function requestLogger(logger: Logger) {
       const id = randomUUID();
       res.setHeader('X-Request-Id', id);
       return id;
+    },
+    // The signed-in user and their role, once requireAuth has read them (conventions §10).
+    customProps: (req) => {
+      const { auth } = req as Request;
+      return auth ? { userId: auth.userId, role: auth.role } : {};
     },
     customLogLevel: (_req, res, error) => {
       if (error || res.statusCode >= 500) return 'error';

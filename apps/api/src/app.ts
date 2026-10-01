@@ -4,8 +4,12 @@ import express, { Router } from 'express';
 import helmet from 'helmet';
 import type { Logger } from 'pino';
 
-import { prisma } from './db/index.ts';
-import type { PrismaClient } from './generated/prisma/client.ts';
+import { createRunInTransaction } from './db/index.ts';
+import { createAuthController, createAuthRouter, createAuthService } from './modules/auth/index.ts';
+import { createSessionCookies, createSessionsService } from './modules/sessions/index.ts';
+import { createSpaceLinksService } from './modules/space-links/index.ts';
+import { createUsersService } from './modules/users/index.ts';
+import { createAccessTokens, readAccessToken } from './shared/auth/index.ts';
 import { errorHandler, notFoundHandler } from './shared/errors/index.ts';
 import { requestLogger } from './shared/http/index.ts';
 import {
@@ -18,8 +22,14 @@ import {
 
 const FIFTEEN_MINUTES = 15 * 60_000;
 
-// The general limit on every API request (docs/backend/security.md › Rate limits). Guests count by
-// address, with a higher ceiling: a whole coworking space may share one address.
+// The general limit on every API request (docs/backend/security.md › Rate limits): by the user when
+// the request is signed in, otherwise by address, with a higher ceiling, because a whole coworking
+// space may share one address.
+const GENERAL_USER: RateLimitPolicy = {
+  name: 'general-user',
+  limit: 300,
+  windowMs: FIFTEEN_MINUTES,
+};
 const GENERAL_GUEST: RateLimitPolicy = {
   name: 'general-guest',
   limit: 1_200,
@@ -73,19 +83,42 @@ export function createApp({
 }
 
 export interface ApiOptions {
-  db?: PrismaClient;
+  /** Signs and verifies the access tokens (JWT_SECRET). */
+  jwtSecret: string;
+  /** Whether the session cookies are Secure: in production, over HTTPS. */
+  secureCookies: boolean;
 }
 
 /**
  * The composition root (docs/backend/conventions.md §1): builds each module's service, wires the
  * ports and mounts every router where the API contract puts it, behind the general rate limit.
  */
-export function createApi({ db = prisma }: ApiOptions = {}): Router {
-  const limiter = createLimiter(createCounter(db));
+export function createApi({ jwtSecret, secureCookies }: ApiOptions): Router {
+  const limiter = createLimiter(createCounter());
+  const accessTokens = createAccessTokens(jwtSecret);
+  const cookies = createSessionCookies({ secure: secureCookies });
+
+  const sessions = createSessionsService();
+  const users = createUsersService();
+  const spaceLinks = createSpaceLinksService();
+  const auth = createAuthService({
+    users,
+    sessions,
+    spaceLinks,
+    accessTokens,
+    limiter,
+    runInTransaction: createRunInTransaction(),
+  });
 
   const api = Router();
   api.use(
-    limitRequests(limiter, (req) => ({ policy: GENERAL_GUEST, by: [clientAddress(req.ip)] })),
+    limitRequests(limiter, async (req) => {
+      const claims = await readAccessToken(req, accessTokens);
+      return claims
+        ? { policy: GENERAL_USER, by: [String(claims.userId)] }
+        : { policy: GENERAL_GUEST, by: [clientAddress(req.ip)] };
+    }),
   );
+  api.use('/auth', createAuthRouter(createAuthController(auth, cookies)));
   return api;
 }
