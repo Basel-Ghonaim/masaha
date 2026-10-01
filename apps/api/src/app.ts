@@ -4,21 +4,49 @@ import express, { Router } from 'express';
 import helmet from 'helmet';
 import type { Logger } from 'pino';
 
+import { prisma } from './db/index.ts';
+import type { PrismaClient } from './generated/prisma/client.ts';
 import { errorHandler, notFoundHandler } from './shared/errors/index.ts';
 import { requestLogger } from './shared/http/index.ts';
+import {
+  clientAddress,
+  createCounter,
+  createLimiter,
+  limitRequests,
+  type RateLimitPolicy,
+} from './shared/rate-limit/index.ts';
+
+const FIFTEEN_MINUTES = 15 * 60_000;
+
+// The general limit on every API request (docs/backend/security.md › Rate limits). Guests count by
+// address, with a higher ceiling: a whole coworking space may share one address.
+const GENERAL_GUEST: RateLimitPolicy = {
+  name: 'general-guest',
+  limit: 1_200,
+  windowMs: FIFTEEN_MINUTES,
+};
 
 export interface AppOptions {
   corsOrigin: string;
   logger: Logger;
   /** Whether the database is reachable; /health reports it. */
   checkDatabase: () => Promise<boolean>;
+  /** Which proxies to trust for the client's address (TRUST_PROXY). Default: loopback. */
+  trustProxy?: boolean | number | string;
   /** Mounted at /api/v1. */
   apiRouter?: Router;
 }
 
-/** Builds the Express app. The middleware order is fixed (docs/backend/conventions.md §1). */
-export function createApp({ corsOrigin, logger, checkDatabase, apiRouter = Router() }: AppOptions) {
+/** Builds the Express app around the API's router. */
+export function createApp({
+  corsOrigin,
+  logger,
+  checkDatabase,
+  trustProxy = 'loopback',
+  apiRouter = Router(),
+}: AppOptions) {
   const app = express();
+  app.set('trust proxy', trustProxy);
 
   // First, so every response has a request id and a log line, even one the JSON parser refuses.
   app.use(requestLogger(logger));
@@ -42,4 +70,22 @@ export function createApp({ corsOrigin, logger, checkDatabase, apiRouter = Route
   app.use(errorHandler);
 
   return app;
+}
+
+export interface ApiOptions {
+  db?: PrismaClient;
+}
+
+/**
+ * The composition root (docs/backend/conventions.md §1): builds each module's service, wires the
+ * ports and mounts every router where the API contract puts it, behind the general rate limit.
+ */
+export function createApi({ db = prisma }: ApiOptions = {}): Router {
+  const limiter = createLimiter(createCounter(db));
+
+  const api = Router();
+  api.use(
+    limitRequests(limiter, (req) => ({ policy: GENERAL_GUEST, by: [clientAddress(req.ip)] })),
+  );
+  return api;
 }

@@ -46,17 +46,31 @@ The model (roles, space scope, what each role may do) is owned by [ADR 0002](../
 - Services call `can(actor, action, resource)`; the space scope and the role at the space (`OWNER` or `RECEPTION`) come from the user's active `SpaceManager` link, never from the global role or the client ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
 - Suspended users cannot log in or refresh.
 
-## Rate limits (per IP, fixed window)
+## Rate limits (fixed window)
 
-The counters are stored in PostgreSQL, so every instance of the API shares them: online, the API runs as functions that share no memory ([ADR 0014](../architecture/decisions/0014-deployment.md)). F-5 adds their table.
+The counters are stored in PostgreSQL, in the `rate_limits` table, so every instance of the API shares them: online, the API runs as functions that share no memory ([ADR 0014](../architecture/decisions/0014-deployment.md)).
 
-| Scope | Limit |
-|---|---|
-| Login (password or Google), register | 10 / 15 min |
-| Refresh | 30 / 15 min |
-| Password forgot / reset | 5 / 15 min |
-| Data reports | 10 / hour |
-| General API | 300 / 15 min |
+**What each limit counts by.** Masaha's users sit in coworking spaces, where everyone shares one network address. A limit keyed only by the address would lock a whole space out, so each limit counts by what it protects:
+
+| Scope | Counts | Limit |
+|---|---|---|
+| Sign-in (password or Google) and register | **Failed** attempts only, by address and email: brute force against one account | 10 / 15 min |
+| | **Failed** attempts only, by address: one address trying many accounts. A failed Google sign-in has no email, so it counts here only | 50 / 15 min |
+| Refresh | Every refresh, by the user its cookie belongs to. The token is random and cannot be guessed, so an unknown cookie is simply refused | 30 / 15 min |
+| Password forgot | Every request, by address and email, beside the reset email's own caps ([Passwords](#passwords)) | 5 / 15 min |
+| Password reset and its check | Every request, by address and token | 5 / 15 min |
+| Password forgot, reset and check together | Every request, by address | 50 / 15 min |
+| Data reports | Every report, by the user | 10 / hour |
+| General API, signed in | Every request, by the user | 300 / 15 min |
+| General API, guest | Every request, by address: live-status polling from one space's shared address | 1,200 / 15 min |
+
+**The mechanism** is `shared/rate-limit`, a small limiter over the counter:
+- Every count is one atomic statement on its key, and every count is written **before the response is sent** (ADR 0014).
+- A limit on failures is checked before the attempt, and the failure is counted where it is decided, before it is answered. A success counts nothing.
+- A key is the policy's name and a SHA-256 digest of what it counts by, so the table holds no address, email or token.
+- The address is `req.ip`, which depends on `TRUST_PROXY` (the proxies Express trusts). An IPv6 address counts by its /64 network.
+- A 429 carries the error envelope, `Retry-After` and the `RateLimit-Policy` and `RateLimit` header fields.
+- `express-rate-limit`, approved in the foundation plan, is **not used**. It counts failures-only limits by adding every request and subtracting the successes after the response is sent: work after the response, which ADR 0014 forbids.
 
 ## HTTP hardening
 

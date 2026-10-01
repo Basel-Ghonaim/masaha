@@ -1,6 +1,6 @@
-import type { ErrorRequestHandler, RequestHandler } from 'express';
+import type { ErrorRequestHandler, RequestHandler, Response } from 'express';
 
-import { AppError, errorTypeForStatus } from './appError.ts';
+import { AppError, errorTypeForStatus, type RateLimitState } from './appError.ts';
 
 /** Registered after every route: anything unmatched is a `not_found`. */
 export const notFoundHandler: RequestHandler = (req) => {
@@ -19,6 +19,8 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, req, res, next
     req.log.error({ err: error }, appError === error ? appError.message : 'Unhandled error');
   }
 
+  if (appError.rateLimitState) setRateLimitHeaders(res, appError.rateLimitState);
+
   res.status(appError.status).json({
     success: false,
     error: {
@@ -32,6 +34,14 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, req, res, next
     },
   });
 };
+
+// The IETF RateLimit header fields (draft-ietf-httpapi-ratelimit-headers), and Retry-After.
+function setRateLimitHeaders(res: Response, state: RateLimitState) {
+  const { policy, limit, windowSeconds, retryAfterSeconds } = state;
+  res.setHeader('Retry-After', String(retryAfterSeconds));
+  res.setHeader('RateLimit-Policy', `"${policy}";q=${String(limit)};w=${String(windowSeconds)}`);
+  res.setHeader('RateLimit', `"${policy}";r=0;t=${String(retryAfterSeconds)}`);
+}
 
 function toAppError(error: unknown): AppError {
   if (error instanceof AppError) return error;

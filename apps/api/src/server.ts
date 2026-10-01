@@ -1,4 +1,4 @@
-import { createApp } from './app.ts';
+import { createApi, createApp } from './app.ts';
 import { EnvError, loadEnv, type Env } from './config/index.ts';
 import { isDatabaseUp, prisma } from './db/index.ts';
 import { createLogger } from './shared/http/index.ts';
@@ -34,6 +34,8 @@ const app = createApp({
   corsOrigin: env.CORS_ORIGIN,
   logger,
   checkDatabase: () => isDatabaseUp(prisma),
+  trustProxy: env.TRUST_PROXY,
+  apiRouter: createApi(),
 });
 
 const server = app.listen(env.PORT, () => {

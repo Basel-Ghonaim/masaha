@@ -31,8 +31,9 @@ Summaries only: the schema owns the fields.
 
 ### Users and sessions
 - **User** — an account with one global role (`USER` / `OWNER` / `ADMIN`, [ADR 0002](decisions/0002-authorization-model.md)), a unique email, a language, and `mustChangePassword` for accounts created by someone else (new owners, new reception accounts, admin recovery). It signs in with a password, Google (a unique Google subject), or both, never neither: a Google-only account has no password ([security.md](../backend/security.md#sign-in-methods)). There is no phone login, so no phone. Suspended, never deleted.
-- **RefreshToken** — one row per session, stored hashed, rotated with a link to its replacement ([security.md](../backend/security.md)). Cascades from its user.
+- **RefreshToken** — one row per token, stored hashed, rotated with a link to its replacement. The tokens rotated from one sign-in form a family, its session, named by the id of its first token, so a reused token ends its own session and no other ([security.md](../backend/security.md)). Cascades from its user.
 - **PasswordResetToken** — a single-use reset token, stored hashed, with an expiry. Cascades from its user.
+- **RateLimit** — a fixed-window counter: a key, its hits and when its window ends. The rate limits and the reset email's caps share it ([security.md](../backend/security.md#rate-limits-fixed-window)). It belongs to no user: a key is a digest, so it names no one.
 
 ### Lookups
 - **Governorate** and **Area** — the two-level place list, bilingual, ordered, with active flags. An area belongs to one governorate; a space belongs to one area.

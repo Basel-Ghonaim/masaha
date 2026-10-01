@@ -165,9 +165,13 @@ model User {
   @@map("users")
 }
 
+/// Stored as its SHA-256 hash. A session is a family of tokens, one per rotation (docs/backend/security.md).
 model RefreshToken {
   id           Int       @id @default(autoincrement())
   userId       Int       @map("user_id")
+  /// The id of the session's first token, copied to every token rotated from it, so a reused token
+  /// ends its own session and no other.
+  familyId     Int       @map("family_id")
   tokenHash    String    @unique @map("token_hash")
   expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
   rotatedAt    DateTime? @map("rotated_at") @db.Timestamptz(3)
@@ -180,6 +184,7 @@ model RefreshToken {
   replaces   RefreshToken? @relation("RefreshTokenRotation")
 
   @@index([userId])
+  @@index([familyId])
   @@map("refresh_tokens")
 }
 
@@ -831,6 +836,19 @@ model Setting {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("settings")
+}
+
+/// A fixed-window counter, shared by every instance of the API: the rate limits and the email caps
+/// (docs/backend/security.md). The key is a policy's name and a digest of what it counts by, so no
+/// address, IP or token is stored.
+model RateLimit {
+  key       String   @id
+  hits      Int
+  resetAt   DateTime @map("reset_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("rate_limits")
 }
 
 /// Append-only, so it has no updatedAt. Never deleted (ADR 0007).

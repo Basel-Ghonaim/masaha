@@ -15,6 +15,16 @@ const ERROR_DEFINITIONS = {
   service_unavailable: { status: 503, message: 'Service unavailable' },
 } as const satisfies Record<ErrorType, { status: number; message: string }>;
 
+/** What a 429 tells the client about the limit it reached, in its headers. */
+export interface RateLimitState {
+  /** The policy's name. */
+  policy: string;
+  limit: number;
+  windowSeconds: number;
+  /** Until the window resets. */
+  retryAfterSeconds: number;
+}
+
 /** The one error shape every layer throws; the error handler turns it into the error envelope. */
 export class AppError extends Error {
   override name = 'AppError';
@@ -22,6 +32,8 @@ export class AppError extends Error {
   readonly status: number;
   readonly code: DomainErrorCode | undefined;
   readonly errors: FieldErrors | undefined;
+  /** Set on a `rate_limit` error that knows its limit. */
+  rateLimitState: RateLimitState | undefined;
 
   constructor(type: ErrorType, code?: DomainErrorCode, message?: string, errors?: FieldErrors) {
     const definition = ERROR_DEFINITIONS[type];
@@ -65,8 +77,10 @@ export class AppError extends Error {
     return new AppError('validation', code, message, errors);
   }
 
-  static rateLimit(code?: DomainErrorCode, message?: string) {
-    return new AppError('rate_limit', code, message);
+  static rateLimit(code?: DomainErrorCode, message?: string, state?: RateLimitState) {
+    const error = new AppError('rate_limit', code, message);
+    error.rateLimitState = state;
+    return error;
   }
 
   static server(code?: DomainErrorCode, message?: string) {

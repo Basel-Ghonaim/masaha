@@ -15,11 +15,19 @@ describe('loadEnv', () => {
       CORS_ORIGIN: 'http://localhost:5173',
       DATABASE_URL: 'postgresql://masaha:masaha@localhost:5433/masaha_dev',
       LOG_LEVEL: 'info',
+      TRUST_PROXY: 'loopback',
     });
   });
 
   it('coerces the port', () => {
     expect(loadEnv({ ...valid, PORT: '8080' }).PORT).toBe(8080);
+  });
+
+  it('reads a number of proxy hops as a number', () => {
+    expect(loadEnv({ ...valid, TRUST_PROXY: '1' }).TRUST_PROXY).toBe(1);
+    expect(loadEnv({ ...valid, TRUST_PROXY: 'loopback, 10.0.0.1' }).TRUST_PROXY).toBe(
+      'loopback, 10.0.0.1',
+    );
   });
 
   it('names a missing variable', () => {

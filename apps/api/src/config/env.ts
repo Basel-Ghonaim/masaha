@@ -8,6 +8,13 @@ const envSchema = z.object({
   // PostgreSQL connection string (docs/development/setup.md#database).
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  // Which proxies Express trusts for the client's address, which the per-IP rate limits count by
+  // (docs/backend/security.md). Express's own syntax: a number of hops, or addresses and the names
+  // loopback, linklocal and uniquelocal. Locally, the web's development server is on loopback.
+  TRUST_PROXY: z
+    .string()
+    .default('loopback')
+    .transform((value) => (/^\d+$/.test(value) ? Number(value) : value)),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -35,6 +35,7 @@ apps/api/src/
     jobs/              the scheduler that runs the modules' timed work: an in-process timer
                        locally, an internal endpoint called by an external cron online (§12)
     storage/           the storage adapters (photos): local disk locally, object storage online (§12)
+    rate-limit/        the fixed-window counters in PostgreSQL and the limiter over them (§12)
 ```
 
 Only what exists is created: no empty module folders, and a layer a module does not need is absent.
@@ -166,7 +167,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
   - a genuine upward need that moving the logic or passing a parameter cannot solve.
 
   The port lives in the module that needs it, never in `shared/`.
-- **R6 — The platform knows no domain.** `shared/` holds only errors, http, validation, auth (the route guards and the pure `can()` table), the audit writer, jobs and storage.
+- **R6 — The platform knows no domain.** `shared/` holds only errors, http, validation, auth (the route guards and the pure `can()` table), the audit writer, jobs, storage and the rate limiter.
 - **R7 — Read models read, never write.** Read models may read other modules' tables with aggregate queries: `finance`, `overview` and the `audit` reader. They never write.
 - **R8 — Testing**, in the lanes of [testing.md](../development/testing.md):
   - **Service logic** is unit-tested with plain-object fakes of the dependencies' public types. TypeScript is structural, so no interface files are written for this.
@@ -310,7 +311,7 @@ The application runs in two environments: a long-running server locally, and a f
   | Clock | the system clock | the system clock. Tests inject a fixed one (§11) |
 - **No work runs after a response is sent**, in either environment. A function may be frozen as soon as it answers, so whatever a request must do is done before it responds.
 - **Timed work tolerates a late run.** An auto check-out records the cut-off time it was due at, never the time the job ran.
-- **Rate limits** are stored in PostgreSQL, so every instance shares them ([security.md](security.md#rate-limits-per-ip-fixed-window)).
+- **Rate limits** are stored in PostgreSQL, so every instance shares them ([security.md](security.md#rate-limits-fixed-window)).
 
 ## 13. Idempotency and concurrency
 
