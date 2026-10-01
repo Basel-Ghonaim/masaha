@@ -19,3 +19,24 @@ export const SIGN_IN_ADDRESS: RateLimitPolicy = {
 
 /** Refreshes by one user. */
 export const REFRESH: RateLimitPolicy = { name: 'refresh', limit: 30, windowMs: FIFTEEN_MINUTES };
+
+/** Reset links asked for one email, from one address. */
+export const PASSWORD_EMAIL: RateLimitPolicy = {
+  name: 'password-email',
+  limit: 5,
+  windowMs: FIFTEEN_MINUTES,
+};
+
+/** Checks and uses of one reset link, from one address. */
+export const PASSWORD_TOKEN: RateLimitPolicy = {
+  name: 'password-token',
+  limit: 5,
+  windowMs: FIFTEEN_MINUTES,
+};
+
+/** The forgotten-password requests of one address together. */
+export const PASSWORD_ADDRESS: RateLimitPolicy = {
+  name: 'password-address',
+  limit: 50,
+  windowMs: FIFTEEN_MINUTES,
+};

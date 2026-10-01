@@ -306,7 +306,7 @@ The application runs in two environments: a long-running server locally, and a f
   | Port | Locally | Online |
   |---|---|---|
   | Storage | local disk | free object storage |
-  | Email | the development mode, which logs the link (F-5) | a single verified sender ([security.md](security.md#passwords)) |
+  | Email | `log`: nothing is sent, and the link is written to the log (development only) | `smtp`: a single Gmail sender, through any SMTP relay ([security.md](security.md#passwords)) |
   | Scheduler | an in-process timer started by `server.ts` | an internal, secret-protected endpoint that an external cron calls every few minutes. The slice that builds it adds its path to the API contract |
   | Clock | the system clock | the system clock. Tests inject a fixed one (§11) |
 - **No work runs after a response is sent**, in either environment. A function may be frozen as soon as it answers, so whatever a request must do is done before it responds.

@@ -29,6 +29,20 @@ const envSchema = z
     // Masaha's Google OAuth client id: the audience of Google sign-in. Without it, Google sign-in
     // answers service_unavailable; production requires it.
     GOOGLE_CLIENT_ID: optional,
+    // The reset email (docs/backend/security.md › Passwords). `log` sends nothing and writes the
+    // link to the log, so it is allowed in development only; `smtp` sends through the SMTP relay.
+    EMAIL_MODE: z.enum(['log', 'smtp']).default('log'),
+    SMTP_HOST: optional,
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(465),
+    // Implicit TLS (465); false is STARTTLS (587).
+    SMTP_SECURE: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((value) => value === 'true'),
+    SMTP_USER: optional,
+    SMTP_PASSWORD: optional,
+    // The sender, e.g. "مساحة Masaha" <name@gmail.com>. Gmail requires the account's own address.
+    EMAIL_FROM: optional,
   })
   .superRefine((env, context) => {
     if (env.NODE_ENV === 'production' && !env.GOOGLE_CLIENT_ID) {
@@ -37,6 +51,26 @@ const envSchema = z
         path: ['GOOGLE_CLIENT_ID'],
         message: 'Required in production',
       });
+    }
+    // A mode that sends nothing would report success while delivering nothing: only development
+    // may use it, and production must deliver.
+    if (env.EMAIL_MODE === 'log' && env.NODE_ENV !== 'development') {
+      context.addIssue({
+        code: 'custom',
+        path: ['EMAIL_MODE'],
+        message: 'log sends nothing and logs the link: development only. Use smtp',
+      });
+    }
+    if (env.EMAIL_MODE === 'smtp') {
+      for (const name of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD', 'EMAIL_FROM'] as const) {
+        if (!env[name]) {
+          context.addIssue({
+            code: 'custom',
+            path: [name],
+            message: 'Required with EMAIL_MODE=smtp',
+          });
+        }
+      }
     }
   });
 

@@ -1,7 +1,8 @@
-import { pino, type Logger } from 'pino';
+import { pino } from 'pino';
 import request from 'supertest';
 
 import { createApi, createApp, type ApiOptions } from '../src/app.ts';
+import type { EmailMessage, EmailSender } from '../src/modules/auth/index.ts';
 import { hashPassword } from '../src/modules/users/index.ts';
 import { createAccessTokens } from '../src/shared/auth/index.ts';
 import { prisma } from '../src/db/index.ts';
@@ -10,14 +11,35 @@ import type { Prisma } from '../src/generated/prisma/client.ts';
 export const TEST_JWT_SECRET = 'a-test-secret-of-at-least-32-characters';
 export const accessTokens = createAccessTokens(TEST_JWT_SECRET);
 
+export const WEB_ORIGIN = 'http://localhost:5173';
+
+/** An email sender that keeps what it is given, for the test to read. */
+export function recordingEmailSender(): EmailSender & { sent: EmailMessage[] } {
+  const sent: EmailMessage[] = [];
+  return {
+    sent,
+    send(message) {
+      sent.push(message);
+      return Promise.resolve({ sent: true });
+    },
+  };
+}
+
 /** The API as server.ts assembles it, with test settings. */
-export function createTestApp(options: Partial<ApiOptions> & { logger?: Logger } = {}) {
+export function createTestApp(options: Partial<ApiOptions> = {}) {
   const { logger = pino({ level: 'silent' }), ...api } = options;
   return createApp({
-    corsOrigin: 'http://localhost:5173',
+    corsOrigin: WEB_ORIGIN,
     logger,
     checkDatabase: () => Promise.resolve(true),
-    apiRouter: createApi({ jwtSecret: TEST_JWT_SECRET, secureCookies: false, ...api }),
+    apiRouter: createApi({
+      jwtSecret: TEST_JWT_SECRET,
+      secureCookies: false,
+      email: recordingEmailSender(),
+      webOrigin: WEB_ORIGIN,
+      logger,
+      ...api,
+    }),
   });
 }
 

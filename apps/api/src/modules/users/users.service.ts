@@ -123,6 +123,21 @@ export function createUsersService({
 
     get,
 
+    /** The account with this email, if there is one. */
+    async findByEmail(email: string): Promise<Account | null> {
+      return (await repository.findByEmail(email))?.account ?? null;
+    },
+
+    /** Hashes a new password, before the transaction that sets it opens. */
+    hashPassword(password: string): Promise<string> {
+      return hashPassword(password);
+    },
+
+    /** Sets a password already hashed, settling a pending temporary one. */
+    async setPassword(userId: number, passwordHash: string, tx?: Tx): Promise<void> {
+      await repository.setPassword(userId, passwordHash, tx);
+    },
+
     async view(account: Account, tx?: Tx): Promise<UserView> {
       return toUserView(account, await repository.hasPassword(account.id, tx));
     },

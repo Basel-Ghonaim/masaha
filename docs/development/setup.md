@@ -111,6 +111,8 @@ From the repository root, with Docker Desktop running:
 
 1. `npm ci`, which also generates the Prisma client.
 2. Copy `apps/api/.env.example` to `apps/api/.env`. **Do this before the first run.** Without it the API stops at once, reporting `CORS_ORIGIN`, `DATABASE_URL` and `JWT_SECRET` as missing. The example's database values match the local database. Set `JWT_SECRET` to a random value of at least 32 characters (for example, the output of `node -e "console.log(crypto.randomBytes(32).toString('base64url'))"`), and fill in `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` for the seed. `GOOGLE_CLIENT_ID` is optional locally: without it, Google sign-in is off.
+
+   The reset email defaults to `EMAIL_MODE=log`: nothing is sent, and the reset link appears in the API's log. To send real email from development, set `EMAIL_MODE=smtp` and the `SMTP_*` and `EMAIL_FROM` values (the example explains Gmail's app password). Outside development, `log` is refused.
 3. `npm run db:up` starts PostgreSQL.
 4. `npm run db:migrate` applies the migrations to `masaha_dev`.
 5. `npm run db:seed` adds the lookups, the admin account and the settings.

@@ -8,6 +8,14 @@ const valid = {
   JWT_SECRET: 'a-development-secret-of-32-characters',
 };
 
+const smtp = {
+  EMAIL_MODE: 'smtp',
+  SMTP_HOST: 'smtp.gmail.com',
+  SMTP_USER: 'masaha@example.com',
+  SMTP_PASSWORD: 'an-app-password',
+  EMAIL_FROM: 'Masaha <masaha@example.com>',
+};
+
 describe('loadEnv', () => {
   it('applies the defaults', () => {
     expect(loadEnv(valid)).toEqual({
@@ -19,6 +27,13 @@ describe('loadEnv', () => {
       LOG_LEVEL: 'info',
       TRUST_PROXY: 'loopback',
       GOOGLE_CLIENT_ID: undefined,
+      EMAIL_MODE: 'log',
+      SMTP_HOST: undefined,
+      SMTP_PORT: 465,
+      SMTP_SECURE: true,
+      SMTP_USER: undefined,
+      SMTP_PASSWORD: undefined,
+      EMAIL_FROM: undefined,
     });
   });
 
@@ -39,10 +54,38 @@ describe('loadEnv', () => {
     expect(
       loadEnv({
         ...valid,
+        ...smtp,
         NODE_ENV: 'production',
         GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com',
       }).GOOGLE_CLIENT_ID,
     ).toBe('id.apps.googleusercontent.com');
+  });
+
+  it('allows the email log mode, which sends nothing and logs the link, in development only', () => {
+    expect(loadEnv(valid).EMAIL_MODE).toBe('log');
+    for (const NODE_ENV of ['test', 'production']) {
+      expect(() => loadEnv({ ...valid, NODE_ENV, GOOGLE_CLIENT_ID: 'id' })).toThrow(/EMAIL_MODE/);
+    }
+  });
+
+  it('refuses to start in smtp mode until every SMTP setting is given', () => {
+    const load = () => loadEnv({ ...valid, EMAIL_MODE: 'smtp' });
+
+    for (const name of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD', 'EMAIL_FROM']) {
+      expect(load).toThrow(new RegExp(name));
+    }
+    expect(loadEnv({ ...valid, ...smtp, SMTP_PORT: '587', SMTP_SECURE: 'false' })).toMatchObject({
+      EMAIL_MODE: 'smtp',
+      SMTP_HOST: 'smtp.gmail.com',
+      SMTP_PORT: 587,
+      SMTP_SECURE: false,
+    });
+  });
+
+  it('starts in production with Google and a delivering email mode', () => {
+    expect(
+      loadEnv({ ...valid, ...smtp, NODE_ENV: 'production', GOOGLE_CLIENT_ID: 'id' }).NODE_ENV,
+    ).toBe('production');
   });
 
   it('names a missing variable', () => {

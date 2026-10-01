@@ -66,6 +66,37 @@ export function createSessionsRepository(db: PrismaClient = prisma) {
     async deleteExpired(userId: number, now: Date, tx: Tx = db): Promise<void> {
       await tx.refreshToken.deleteMany({ where: { userId, expiresAt: { lte: now } } });
     },
+
+    /**
+     * A new reset token for the user, replacing any earlier one not used yet: one live link. Should
+     * the insert fail after the delete, the user merely has no link, and asks again.
+     */
+    async replaceResetToken(userId: number, tokenHash: string, expiresAt: Date): Promise<void> {
+      await db.passwordResetToken.deleteMany({ where: { userId, usedAt: null } });
+      await db.passwordResetToken.create({ data: { userId, tokenHash, expiresAt } });
+    },
+
+    /** Whose unused, unexpired reset token this is. Changes nothing. */
+    async findResetTokenOwner(tokenHash: string, now: Date): Promise<number | undefined> {
+      const row = await db.passwordResetToken.findFirst({
+        where: { tokenHash, usedAt: null, expiresAt: { gt: now } },
+        select: { userId: true },
+      });
+      return row?.userId;
+    },
+
+    /** Uses the token, in one atomic statement, so it is used once. Whose it was, if it was valid. */
+    async consumeResetToken(
+      tokenHash: string,
+      now: Date,
+      tx: Tx = db,
+    ): Promise<number | undefined> {
+      const [row] = await tx.$queryRaw<{ user_id: number }[]>`
+        UPDATE password_reset_tokens SET used_at = ${now}, updated_at = ${now}
+        WHERE token_hash = ${tokenHash} AND used_at IS NULL AND expires_at > ${now}
+        RETURNING user_id`;
+      return row?.user_id;
+    },
   };
 }
 

@@ -9,6 +9,8 @@ import {
   createAuthController,
   createAuthRouter,
   createAuthService,
+  createCappedEmailSender,
+  type EmailSender,
   type GoogleIdentity,
 } from './modules/auth/index.ts';
 import { createSessionCookies, createSessionsService } from './modules/sessions/index.ts';
@@ -98,13 +100,25 @@ export interface ApiOptions {
   secureCookies: boolean;
   /** Google's identity, when a Google client id is configured (GOOGLE_CLIENT_ID). */
   google?: GoogleIdentity;
+  /** The reset email's sender for this environment (EMAIL_MODE); its caps are added here. */
+  email: EmailSender;
+  /** The web's origin, where the reset email's link leads. */
+  webOrigin: string;
+  logger: Logger;
 }
 
 /**
  * The composition root (docs/backend/conventions.md §1): builds each module's service, wires the
  * ports and mounts every router where the API contract puts it, behind the general rate limit.
  */
-export function createApi({ jwtSecret, secureCookies, google }: ApiOptions): Router {
+export function createApi({
+  jwtSecret,
+  secureCookies,
+  google,
+  email,
+  webOrigin,
+  logger,
+}: ApiOptions): Router {
   const limiter = createLimiter(createCounter());
   const accessTokens = createAccessTokens(jwtSecret);
   const cookies = createSessionCookies({ secure: secureCookies });
@@ -123,6 +137,8 @@ export function createApi({ jwtSecret, secureCookies, google }: ApiOptions): Rou
     limiter,
     runInTransaction,
     google,
+    email: createCappedEmailSender(email, { limiter, logger }),
+    webOrigin,
   });
 
   const api = Router();

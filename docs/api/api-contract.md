@@ -102,6 +102,25 @@ An answer that opens or renews a session also sets the refresh cookie and the se
 #### `POST /auth/logout` · the refresh cookie
 - **204:** the device's session is ended, and the cookies cleared. Without a session, the same.
 
+### The forgotten password
+
+The reset link and its email are described in [security.md](../backend/security.md#passwords). These three share the password limits ([security.md](../backend/security.md#rate-limits-fixed-window)).
+
+#### `POST /auth/password/forgot` · 🌐
+- **Body:** `{ email }`.
+- **202, no body**, whether or not the email has an account. When it has one that may sign in, the reset email is sent, with a link valid for one hour.
+- **Errors:** `validation` (422); `rate_limit` (429).
+
+#### `POST /auth/password/reset/check` · 🌐
+- **Body:** `{ token }`, read by the web from the link's fragment.
+- **200:** `{ email }`, the account the link is for. The token is neither used nor extended.
+- **Errors:** `bad_request` (400) `RESET_TOKEN_INVALID`, the same for an unknown, expired or used link.
+
+#### `POST /auth/password/reset` · 🌐
+- **Body:** `{ token, password }`. The password follows the policy.
+- **204:** the password is set, a pending temporary one is settled, and every session of the user ended. The link is used.
+- **Errors:** `validation` (422); `bad_request` (400) `RESET_TOKEN_INVALID`.
+
 ### Me
 
 The signed-in user's own account. Each endpoint needs the access token.
@@ -115,4 +134,4 @@ The signed-in user's own account. Each endpoint needs the access token.
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `OWNER_ALREADY_LINKED` · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `OWNER_ALREADY_LINKED` · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID`.

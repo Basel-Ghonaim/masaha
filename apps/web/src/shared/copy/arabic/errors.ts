@@ -27,4 +27,5 @@ export const ERRORS = {
   CURRENT_PASSWORD_INCORRECT: 'كلمة المرور الحالية غير صحيحة.',
   GOOGLE_TOKEN_INVALID:
     'تعذّر تسجيل الدخول باستخدام Google، حاول مرة أخرى أو استخدم البريد الإلكتروني.',
+  RESET_TOKEN_INVALID: 'انتهت صلاحية الرابط أو استُخدم من قبل.',
 } satisfies Catalogue['errors'];

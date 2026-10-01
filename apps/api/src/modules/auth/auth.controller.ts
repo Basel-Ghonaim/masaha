@@ -1,8 +1,11 @@
 import type {
+  ForgotPasswordRequest,
   GoogleSession,
   GoogleSignInRequest,
   LoginRequest,
   RegisterRequest,
+  ResetCheckRequest,
+  ResetPasswordRequest,
 } from '@masaha/shared';
 import type { Request, Response } from 'express';
 
@@ -46,6 +49,21 @@ export function createAuthController(auth: AuthService, cookies: SessionCookies)
         }
         throw error;
       }
+    },
+
+    forgotPassword: async (req: Request, res: Response) => {
+      await auth.forgotPassword(req.body as ForgotPasswordRequest, clientAddress(req.ip));
+      res.status(202).end();
+    },
+
+    checkResetToken: async (req: Request, res: Response) => {
+      const { token } = req.body as ResetCheckRequest;
+      sendSuccess(res, await auth.checkResetToken(token, clientAddress(req.ip)));
+    },
+
+    resetPassword: async (req: Request, res: Response) => {
+      await auth.resetPassword(req.body as ResetPasswordRequest, clientAddress(req.ip));
+      sendNoContent(res);
     },
 
     logout: async (req: Request, res: Response) => {

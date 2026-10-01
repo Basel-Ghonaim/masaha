@@ -38,6 +38,24 @@ export const googleSignInSchema = z.object({
 });
 export type GoogleSignInRequest = z.infer<typeof googleSignInSchema>;
 
+/** Asks for a reset link. The answer is the same whether or not the email has an account. */
+export const forgotPasswordSchema = z.object({ email: emailSchema });
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordSchema>;
+
+/** A reset link's token, as the web reads it from the link's fragment. */
+const resetTokenSchema = z.string().min(1).max(256);
+
+export const resetCheckSchema = z.object({ token: resetTokenSchema });
+export type ResetCheckRequest = z.infer<typeof resetCheckSchema>;
+
+/** Which account a valid reset link is for, so the page can name it before the form is sent. */
+export interface ResetCheck {
+  email: string;
+}
+
+export const resetPasswordSchema = z.object({ token: resetTokenSchema, password: passwordSchema });
+export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;
+
 /**
  * A new password for the signed-in user. The current one is required, except while a temporary
  * password is pending and for a Google-only account's first password.

@@ -1,6 +1,6 @@
 # Security
 
-> **Status:** Active · **Class:** Contract — rules to build against; not yet implemented · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against. Built: tokens and cookies, both sign-in methods, passwords and the reset email, the rate limits of the sign-in flows and the general API, and the log redaction. Not yet built: suspension and role changes (the admin's user screens), the upload limits, and the data-report limit · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
 > **Authority:** Tokens, passwords, cookies, authorization, rate limits and HTTP hardening. The session model's reasoning is in [ADR 0003](../architecture/decisions/0003-session-model.md); the authorization model's in [ADR 0002](../architecture/decisions/0002-authorization-model.md).
 
 ## Tokens and cookies
@@ -42,7 +42,19 @@
 
   Every endpoint except `/me/password`, `/auth/logout` and `/me` returns `PASSWORD_CHANGE_REQUIRED` until the password is changed. The access token carries `mustChangePassword`, and `requireAuth` refuses it unless the route allows a pending change; the session's refresh still works, so the web can restore the session and show the change.
 - **Changing the password** (`/me/password`) asks for the current one, except during the forced change and for a Google-only account's first password. It ends every session of the user, then opens a new one for the device that changed it: a new access token without `mustChangePassword`, and a new refresh cookie.
-- **Password reset** is a link sent by email: a single-use token stored as a SHA-256 hash, valid for 1 hour. The request always returns 202, and success revokes all sessions. It is a transactional email, not a notification, and the only email Masaha sends. The provider is chosen in F-5, within [ADR 0014](../architecture/decisions/0014-deployment.md)'s constraint: without a domain of its own, no domain-verified provider is possible, so the email goes from a single verified sender, or Gmail SMTP. In development, the email port logs the link instead of sending it.
+- **Password reset** is a link sent by email, following the OWASP Forgot Password Cheat Sheet. It is a transactional email, not a notification, and the only email Masaha sends.
+  - **The token** is random (256 bits) and stored only as its SHA-256 hash. It is valid for 1 hour, and used once, by one atomic statement, so two concurrent resets cannot both succeed. Asking again ends the earlier link: one live link per account.
+  - **The request** always answers 202 with no body, whether or not the email has an account. An unknown or suspended account gets no email, and a failed send is only logged.
+  - **The link** is `<web origin>/reset-password#token=…`. The token rides in the URL fragment, which no server ever receives, so it reaches no hosting log and no `Referer` header. The web reads it there and removes it from the address bar.
+  - **The check** (`POST /auth/password/reset/check`) tells the reset page which account a link is for, before the form is sent. It neither uses the token nor extends it, and answers the same `RESET_TOKEN_INVALID` for an unknown, expired or used link.
+  - **Success** sets the password, settles a pending temporary one, and ends every session of the user.
+  - **The token is never logged** outside development. The request logger never logs bodies, and the log mode below is refused anywhere else.
+- **The reset email's delivery** is the email port of the `auth` module ([conventions R5](conventions.md#8-module-rules)), in one of two modes, chosen by `EMAIL_MODE`:
+  - `log`, the default, sends nothing and writes the message, with its link, to the log. It is allowed in development only;
+  - `smtp` sends through any SMTP relay with `nodemailer`. Without a domain of its own, no domain-verified provider is possible ([ADR 0014](../architecture/decisions/0014-deployment.md)), so the email goes from a single Gmail account with an app password, which passes DMARC because the mail really comes from Gmail. Moving to a project account, or another relay, changes the configuration and no code. The address and the app password live only in `apps/api/.env`.
+  - **Production refuses to start** unless the mode can deliver: `log` is refused there, and `smtp` needs every setting.
+  - **The caps**, a decorator over either mode, so development exercises them too: at most 3 emails an hour to one inbox, and at most 100 a day in all, which protects Gmail's daily quota and the sender's reputation. They count in the rate-limit table, by digests, so no address is stored. When a cap cannot be checked, nothing is sent. Reaching the daily ceiling writes a `[email:ceiling]` line to the log.
+  - **The email** is bilingual, Arabic then English, as designed ([SCREENS.md](../design/SCREENS.md) row 7). Its words live with the `auth` module, in both languages held to one shape, since the API has no copy catalogue.
 - **Recovery without the email:** the person contacts Masaha on WhatsApp, and the admin issues a temporary password (`mustChangePassword`). The action is audited.
 
 ## Authorization
