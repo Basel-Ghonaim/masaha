@@ -100,3 +100,21 @@ One normaliser turns any failure (Axios, network, timeout, unknown) into `AppErr
 ## 6. Map
 
 `shared/map` wraps React Leaflet and OpenStreetMap tiles (loaded lazily). Space markers and popups belong to the `directory` feature.
+
+## 7. Server state
+
+TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). Not built yet: these rules apply from the first feature that fetches.
+
+- **Query keys start with their scope:**
+  - `['space', spaceId, '<capability>', …]` for a space's data;
+  - `['me', …]` for the signed-in user's own;
+  - `['public', …]` for the public site's.
+- **Invalidation:** each feature invalidates only its own keys. `desk`'s operations span several capabilities, so they invalidate the whole `['space', spaceId]` prefix, without importing the other features.
+- **Retries:**
+  - queries are always retried;
+  - a mutation is retried only when it carries an idempotency key ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). The key is generated once per user action and reused on every retry of it.
+- **Polling:**
+  - the live status every 60 s, paused while the tab is hidden ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md));
+  - the front desk's list of who is present every 30 s, and on window focus.
+- **Optimistic updates** never for money or presence; only for favourites.
+- **Offline:** there is no offline queue. A lost connection shows a clear "no connection" state, and the user retries.
