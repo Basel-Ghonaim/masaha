@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -32,7 +32,7 @@ Each slice is complete (table → API → screen → tests) before the next begi
 5. Owner space profile, prices and packages, confirming a fact group is still correct.
 6. Staff management: reception accounts.
 7. Front desk and visits: check in and out, the visit charge and its payment at check-out, live status with the manual override, auto check-out, uncollected visits.
-8. Customers, subscriptions and packages: limits, billing, progress, statement, renewal, ending early; subscription check-ins.
+8. Customers, subscriptions and packages: limits, billing, progress, statement, renewal, ending early; subscription check-ins. Subscriptions and customers gain the idempotency key the desk's other creates already carry, so a retried new subscription is not recorded twice ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)).
 9. Payments and debts: receiving a payment, balances, credit and debts, voiding (owner), collections today.
 10. Announcements (with the closure extension), data reports (with the resolution note), favourites.
 11. Finance and statistics (with the occupancy reports; the CSV export is the first to drop if time is short), audit log, settings.

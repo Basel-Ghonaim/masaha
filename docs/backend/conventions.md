@@ -1,7 +1,7 @@
 # Backend Conventions
 
 > **Status:** Active · **Class:** Contract — rules to build against. Built: the shared errors, http and validation code and the `can()` permission table. No module is built yet. The level rule in lint (§7) comes with F-5; the sections from §10 on are rules not yet built · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
-> **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging, time and environments in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
+> **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging, time, environments, idempotency and concurrency in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
 
 The backend is one application divided into **modules**, one per capability, arranged in **levels** (§7). Each module is built from the same **layers** (§2). **A screen is not a capability** (§7): placements follow the rule that consumes a value, never the screen that shows it.
 
@@ -64,6 +64,7 @@ Inside a module, each layer calls only the one below it.
 - Any layer throws `AppError.<type>(code?, message?, errors?)`: `badRequest`, `unauthorized`, `forbidden`, `notFound`, `conflict`, `validation`, `rateLimit`, …
 - One error handler, registered last, shapes the envelope. Unknown errors are logged and returned as a generic `server` error. The envelope carries the request id (§10).
 - Prisma `P2002` → `conflict` with `NOT_UNIQUE` field errors.
+- **Database rules become domain codes.** One translation table in `shared/errors` maps a database constraint's name to a domain error code, for example `payments_within_due` → `PAYMENT_EXCEEDS_DUE`, the way `P2002` becomes `NOT_UNIQUE`. The text comes from the copy catalogues. The ledger rules it serves are in §13.
 - **Adding a domain error code**, in this order:
   1. the code in `packages/shared`;
   2. its text in both copy catalogues (the typecheck fails while one is missing);
@@ -310,3 +311,25 @@ The application runs in two environments: a long-running server locally, and a f
 - **No work runs after a response is sent**, in either environment. A function may be frozen as soon as it answers, so whatever a request must do is done before it responds.
 - **Timed work tolerates a late run.** An auto check-out records the cut-off time it was due at, never the time the job ran.
 - **Rate limits** are stored in PostgreSQL, so every instance shares them ([security.md](security.md#rate-limits-per-ip-fixed-window)).
+
+## 13. Idempotency and concurrency
+
+Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
+
+**Two ids, never confused.** The **idempotency key** is the client's: one per user action, the same on every retry of that action, sent in the `Idempotency-Key` header and stored with the record it creates. The **request id** is the server's: a new one for every HTTP request, retries included, used only for tracing (§10). A record never stores the request id as its idempotency key, or every retry would look new.
+
+### Idempotency
+- **Creates at the front desk** store the idempotency key, unique within the space. Today payments, visits and check-ins have it, in their `request_id` column; F-5 renames the Prisma field to `idempotencyKey` ([data-model.md](../architecture/data-model.md#conventions)).
+  - Subscriptions and customers have none yet. The slice that builds them adds it ([plan, step 8](../plans/v1-mvp.md#sequence-inside-the-build)).
+- **A retry returns the first result**, with the same status and body, never a conflict. The unique violation on the key is caught by the service, which returns the record that already exists. The general `P2002` → `NOT_UNIQUE` mapping (§4) never answers a retry.
+- **Updates and deletes are idempotent by design.** A repeated check-out returns the closed record, and a repeated void returns the voided payment.
+- **There is no generic store of responses.**
+
+### Concurrency
+- **Isolation stays at PostgreSQL's default, read committed.** The database's constraints and row locks are the guarantee.
+- **Rows are locked in one fixed order:** oldest first, then by id. One amount spread over several items ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)) locks and pays them in that order, so it cannot deadlock.
+
+### The ledger's rules
+- **The database owns the three payment rules its triggers enforce:** append-only, voided once, and never above the amount due ([data-model.md](../architecture/data-model.md#constraints-worth-stating)). The last one locks the item's row, so concurrent payments are counted one after the other.
+- **Services do not repeat these rules.** They write, and the error handler translates a violation through the constraint table (§4). Who may void a payment is not a ledger rule: it stays with `can()`.
+- **Each trigger is reached by an API integration test**, which checks the code the endpoint returns ([testing.md](../development/testing.md)).
