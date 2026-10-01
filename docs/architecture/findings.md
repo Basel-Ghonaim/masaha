@@ -233,3 +233,35 @@ The writes succeeded and rolled back correctly. The warning comes from Prisma's 
 2. **One constraint name, two causes.** The insert trigger raises `payments_within_due` both when a payment would exceed the amount due, and when a visit is paid before its charge is set. The translation table of [conventions §4](../backend/conventions.md#4-errors) maps a constraint's name to one code, so an uncharged visit would read as `PAYMENT_EXCEEDS_DUE`. **Open.**
 
 **Resolves when:** item 2 is settled by the slice that builds the payments endpoint, before the translation table gains `payments_within_due`: a new migration gives the uncharged visit its own constraint name and code, or the payments flow makes that case unreachable and a test proves it.
+
+## 16. The forgotten password's timing can tell whether an account exists
+
+**Status:** Open · **Date:** 2026-10-01
+
+**Evidence:** `POST /auth/password/forgot` answers the same 202, with no body, for every email ([security.md](../backend/security.md#passwords)). For an account that may sign in, though, it first stores a token and sends the email, which over SMTP takes up to seconds, while an unknown email answers at once. No work may run after a response is sent ([ADR 0014](decisions/0014-deployment.md)), so the send cannot move after the answer, which is how the OWASP Forgot Password Cheat Sheet keeps the timing uniform. The rate limits (5 per address and email, 50 per address, every 15 minutes) slow a probe down, but do not stop it.
+
+**Resolves when:** the timing is made uniform, for example by padding every answer to a fixed minimum, or the leak is accepted in security.md as a trade-off, as `EMAIL_TAKEN` on registration is.
+
+## 17. Expired rate-limit counters are never swept
+
+**Status:** Open · **Date:** 2026-10-01
+
+**Evidence:** the `rate_limits` table ([security.md](../backend/security.md#rate-limits-fixed-window)) keeps a row per key, and a key's window starts over on its next hit. A key never hit again keeps its expired row for good. The rows are small, but the table grows with every address and account that ever made a request, against Neon's 0.5 GB free tier ([ADR 0014](decisions/0014-deployment.md)). Refresh tokens past their expiry are removed only when their user signs in again, so the same holds for abandoned sessions.
+
+**Resolves when:** a timed job (the scheduler port, [conventions §12](../backend/conventions.md#12-environments)) deletes expired counters and expired tokens, or a measurement shows the growth does not matter within v1.
+
+## 18. Whether a link to a deleted space still counts
+
+**Status:** Open · **Date:** 2026-10-01
+
+**Evidence:** the session lists the user's active links: those not deactivated ([api-contract §5](../api/api-contract.md#session)). A space is soft-deleted (`deletedAt`), and its links are not touched, so a link to a deleted space still appears and would still open the dashboard. `space-links` reads only its own table (conventions R1), so it cannot filter by the space's state, and nothing deletes spaces yet.
+
+**Resolves when:** the slice that soft-deletes spaces decides it, for example by deactivating the space's links in the same transaction, with a test.
+
+## 19. The reset email's colours are written outside the design system
+
+**Status:** Accepted · **Date:** 2026-10-01
+
+**Evidence:** the reset email (`apps/api/src/modules/auth/email/resetEmail.ts`) writes seven colours as literal values, inline, copied from its design (`docs/design/prototype/Reset email.html`). The design system is the one place for colours, as semantic tokens ([foundation](../frontend/design-system/foundation.md)), but an email client reads no stylesheet and no custom property, and the API cannot import the web's tokens. **Accepted:** the email is the only one Masaha sends, and its colours are named in one object.
+
+**Resolves when:** a design-system change of the brand or neutral colours is carried to that object too, or the email is generated from the tokens at build time.
