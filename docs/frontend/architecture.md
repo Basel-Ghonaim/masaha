@@ -24,7 +24,7 @@
 | `auth` | `/login`, `/register`, `/forgot-password`, `/reset-password` | guests only |
 | `account` | `/me`, `/me/favorites`, `/me/reports` | signed in |
 | `dashboard` | `/dashboard` (redirects, below), `/dashboard/admin/...`, `/dashboard/spaces/:spaceId/...` ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) | `admin/...`: ADMIN · `spaces/:spaceId/...`: an active link at that space, OWNER or RECEPTION (per route) |
-| `showcase` | `/__showcase`, `/__showcase/preview` | none; **development only**, not in the build |
+| `showcase` | `/__showcase/…` | none; **development only**, not in the build |
 
 - **Two domains, one application** ([ADR 0011](../architecture/decisions/0011-one-web-app.md)): the **site** is `public`, `auth` and `account`; the **dashboard** is `dashboard`.
 - A page group's barrel exports its **route subtree**, not individual screens. `app/router.tsx` mounts each subtree **lazily**, so a visitor to the site downloads no dashboard code.

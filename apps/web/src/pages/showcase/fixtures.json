@@ -5,6 +5,10 @@
     "direction": "Preview direction",
     "width": "Preview width",
     "frame": "Preview of every showcase section",
+    "navigation": "Showcase sections",
+    "openNavigation": "Open the list of showcase sections",
+    "closeNavigation": "Close the list of showcase sections",
+    "all": "Every section, in build order",
     "themes": {
       "light": "Light theme",
       "dark": "Dark theme"

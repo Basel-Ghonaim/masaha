@@ -89,7 +89,12 @@ A new component goes in the category of its role: the removable filter tag ([fin
 
 **Wrapped libraries:** every third-party UI library the layer wraps is added to (b), the ESLint import restriction, in the same PR that introduces it, so pages and features reach it only through the layer.
 
-**Showcase:** a development-only page, `/__showcase` (`apps/web/src/pages/showcase/`), shows the layer in either theme and direction, at 360, 768 or 1280 px. The preview sits in an iframe of that width, so breakpoints respond as they would on a device. Each component adds a section in `sections/`; sample text comes from `fixtures.json`, since the page is not user-facing. The build leaves the page out, and `check:build` verifies it.
+**Showcase:** a development-only page, `/__showcase` (`apps/web/src/pages/showcase/`), shows the layer in either theme and direction, at 360, 768 or 1280 px. The preview sits in an iframe of that width, so breakpoints respond as they would on a device. It has three views, each with its own address:
+- every section, in the order the components were built (`/__showcase`);
+- one category (`/__showcase/fields`);
+- one component (`/__showcase/fields/date-picker`).
+
+A navigation grouped by category leads to all three; on a phone it is a drawer. The toolbar's settings stay in the address across views. Each component adds a section in `sections/<category>/` and one entry in the registry (`registry.tsx`), the one list behind the navigation and the views; a test keeps its categories in step with the layer's folders. Sample text comes from `fixtures.json`, since the page is not user-facing. The build leaves the page out, and `check:build` verifies it.
 
 ---
 
