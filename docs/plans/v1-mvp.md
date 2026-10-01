@@ -23,19 +23,140 @@
 
 ## Sequence inside the build
 
-Each slice is complete (table → API → screen → tests) before the next begins:
+This is the **build map**: the direction the build follows, not a contract. It changes as the project learns, through a PR like any document.
 
-1. Auth and session (email and password, Google, the reset email, staff sign-in), role guards, dashboard and public shells, language and theme switching.
-2. Lookups and admin space management (seed the survey data).
-3. Public directory: the list or the map, near me, filters, space page.
-4. Admin owner linking → verified spaces.
-5. Owner space profile, prices and packages, confirming a fact group is still correct.
-6. Staff management: reception accounts.
-7. Front desk and visits: check in and out, the visit charge and its payment at check-out, live status with the manual override, auto check-out, uncollected visits.
-8. Customers, subscriptions and packages: limits, billing, progress, statement, renewal, ending early; subscription check-ins. Subscriptions and customers gain the idempotency key the desk's other creates already carry, so a retried new subscription is not recorded twice ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)).
-9. Payments and debts: receiving a payment, balances, credit and debts, voiding (owner), collections today.
-10. Announcements (with the closure extension), data reports (with the resolution note), favourites.
-11. Finance and statistics (with the occupancy reports; the CSV export is the first to drop if time is short), audit log, settings.
+Each step names its goal and points to what supports it:
+- its screens, as numbered in [SCREENS.md](../design/SCREENS.md);
+- the decisions and the owning documents it builds on;
+- the findings it closes;
+- the deferred decisions it settles, from [foundation.md › A-3](foundation.md#a-3--cross-cutting-decisions--docscross-cutting).
+
+**How** a step is built is decided in that step's own plan. A step is finished only when it is complete: table → API → screen → tests. Steps follow this order; two run side by side only when neither needs the other ([ordering notes](#ordering-notes)).
+
+### 1. Foundation: sign-in, session and shells
+
+**Goal:** a user signs in and lands in the right shell for their role, in Arabic or English, light or dark, locally and at the public address.
+- **Screens:**
+  - [public site](../design/SCREENS.md#public-site-8): 5 Sign in, 6 Register, 7 Forgot / reset password, 8 404 / error / offline;
+  - [my account](../design/SCREENS.md#my-account-3): 9 Profile & settings; its forced password change belongs to F-5.
+- **Supported by:** the contracts of F-5, F-6 and F-7 in the [foundation plan](foundation.md#5-work-items).
+- **Settles:** the reset-email provider (F-5).
+
+### 2. Lookups and the admin's spaces
+
+**Goal:** the admin keeps the lookup lists and enters the surveyed spaces, so the directory starts with real data.
+- **Screens:** [admin](../design/SCREENS.md#admin-8): 26 Spaces, 30 Lookups.
+- **Supported by:**
+  - [ADR 0007](../architecture/decisions/0007-soft-delete.md) (soft delete) and [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md) (access to a space);
+  - conventions §9: [new-space defaults](../backend/conventions.md#new-space-defaults) and [composed reads](../backend/conventions.md#composed-reads) (the admin's spaces list).
+- **Closes:**
+  - [finding 10](../architecture/findings.md#10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet): the amenity icons, which the admin's amenity form offers;
+  - [finding 11](../architecture/findings.md#11-nested-writes-in-an-interactive-transaction-trigger-a-pg-deprecation-warning): the first nested write, the admin's space creation.
+- **Settles:** the map: the admin places a space's pin.
+
+### 3. Public directory
+
+**Goal:** anyone finds a space, in the list or on the map, near them or by filter, and sees its page and how to contact Masaha.
+- **Screens:** [public site](../design/SCREENS.md#public-site-8): 1 Home, 2 Directory, 3 Space details, 4 About / Contact.
+- **Supported by:**
+  - [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md) (live status);
+  - conventions §9: [occupancy](../backend/conventions.md#occupancy-the-spaces-state-now) and [composed reads](../backend/conventions.md#composed-reads);
+  - [frontend architecture §6](../frontend/architecture.md#6-map) (the map) and [foundation §13](../frontend/design-system/foundation.md#13-screens-to-design-32) (near me, under *Directory*).
+- **Settles:** live-status delivery and caching.
+
+### 4. Owners and users
+
+**Goal:** the admin manages accounts: owners are created or upgraded and linked to their spaces, which become verified, and users are suspended, given a role or a temporary password.
+- **Screens:** [admin](../design/SCREENS.md#admin-8): 27 Space owners, 29 Users.
+- **Supported by:**
+  - [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md) and [ADR 0013](../architecture/decisions/0013-identity-modules.md);
+  - conventions [§7](../backend/conventions.md#the-modules) (`space-links`, `users`) and §9 [composed reads](../backend/conventions.md#composed-reads) (the space owners list);
+  - [security.md](../backend/security.md#passwords) (temporary passwords).
+
+### 5. The owner's space profile and packages
+
+**Goal:** an owner keeps the space's public facts and prices true, and confirms them.
+- **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 20 Space profile, 21 Prices & packages.
+- **Supported by:**
+  - conventions [§7](../backend/conventions.md#the-modules) (`spaces`, `packages`) and §9 [occupancy](../backend/conventions.md#occupancy-the-spaces-state-now) (capacity);
+  - [ADR 0014](../architecture/decisions/0014-deployment.md) (the request size limit).
+- **Settles:** photos.
+
+### 6. Staff
+
+**Goal:** an owner adds and deactivates reception accounts.
+- **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 22 Staff.
+- **Supported by:** [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md); conventions [§7](../backend/conventions.md#the-modules) (`space-links`).
+
+### 7. Front desk and visits
+
+**Goal:** the staff run the day at the desk: check in and out, the visit charge and its payment at check-out, live status with the manual override, auto check-out, uncollected visits.
+- **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 13 Front desk.
+- **Supported by:**
+  - [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md), [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md) and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md);
+  - conventions §9: [the front desk](../backend/conventions.md#the-front-desk-desk), [occupancy](../backend/conventions.md#occupancy-the-spaces-state-now) and [composed reads](../backend/conventions.md#composed-reads) (uncollected visits);
+  - conventions [§11](../backend/conventions.md#11-time) (time) and [§13](../backend/conventions.md#13-idempotency-and-concurrency) (idempotency and concurrency);
+  - data-model.md: [derived values](../architecture/data-model.md#derived-values-computed-not-stored).
+- **Closes:** [finding 15](../architecture/findings.md#15-the-payments-migration-predates-adr-0015): the first payment is written at a visit's check-out.
+- **Settles:** the auto check-out scheduling mechanism, within ADR 0014.
+
+### 8. Customers and subscriptions
+
+**Goal:** the staff keep customers on file and run their subscriptions: limits, billing, progress, statement, renewal, ending early, and subscription check-ins.
+- **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 14 Customers, 15 Customer details, 16 New / renew subscription.
+- **Supported by:**
+  - [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md), and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md): subscriptions and customers gain their idempotency key;
+  - conventions §9: [the front desk](../backend/conventions.md#the-front-desk-desk) and [composed reads](../backend/conventions.md#composed-reads) (the customers list and file);
+  - data-model.md: [subscription scenarios](../architecture/data-model.md#subscription-scenarios).
+- **Settles:** date inputs.
+
+### 9. Payments and debts
+
+**Goal:** payments are received and voided, and balances, credit, debts and each staff member's collections today are seen.
+- **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 17 Payments.
+- **Supported by:** [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md) and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md); conventions §13: [the ledger's rules](../backend/conventions.md#the-ledgers-rules).
+
+### 10. Announcements, data reports and favourites
+
+**Goal:** a space tells its users what changes, with the closure extension; users report wrong information and see the resolution note; users keep their favourite spaces.
+- **Screens:**
+  - [my account](../design/SCREENS.md#my-account-3): 10 Favourites, 11 My reports;
+  - [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 18 Announcements, 23 Data reports;
+  - [admin](../design/SCREENS.md#admin-8): 28 Data reports.
+- **Supported by:** [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md); conventions §9: [data reports](../backend/conventions.md#data-reports) and [composed reads](../backend/conventions.md#composed-reads) (the favourites' cards).
+- **Closes:** [finding 8](../architecture/findings.md#8-the-stress-tests-applied-filter-tag-has-no-component), at the start of the step: the removable filter tag.
+
+### 11. Finance, audit and settings
+
+**Goal:** the owner reads the space's money and occupancy; the owner and the admin read their audit logs; the space's and the platform's settings are edited.
+- **Screens:**
+  - [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 19 Finance & statistics, 24 Settings;
+  - [admin](../design/SCREENS.md#admin-8): 31 Audit log, 32 Settings.
+- **Supported by:**
+  - conventions [§6](../backend/conventions.md#6-audit) (audit), [§8](../backend/conventions.md#8-module-rules) (R7, read models) and §9 [settings](../backend/conventions.md#settings-three-screens-three-owners);
+  - [ADR 0014](../architecture/decisions/0014-deployment.md) (the response size limit);
+  - [overview.md](../project/overview.md#dashboard--owner-and-reception) (what drops first if time is short).
+- **Closes:** [finding 14](../architecture/findings.md#14-the-owners-audit-screen-has-no-design): the owner's audit screen.
+- **Settles:** charts and CSV exports.
+
+### 12. Overviews
+
+**Goal:** the owner and the admin see their figures at a glance.
+- **Screens:**
+  - [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 12 Overview;
+  - [admin](../design/SCREENS.md#admin-8): 25 Overview.
+- **Supported by:** conventions §9: [overview](../backend/conventions.md#overview).
+
+### Ordering notes
+
+- The foundation comes first: every screen needs the session and a shell.
+- The directory follows the admin's spaces: it lists the spaces the admin entered.
+- Until the front desk (step 7), Home, the directory and the space page show no live state.
+- The space page's announcements, its report button and the favourite action arrive with step 10.
+- Owners are linked (step 4) before they edit their space (5) or add staff (6). The admin's *Spaces* screen gains its owner linking in step 4.
+- Payments (step 9) follow the desk (7) and subscriptions (8), which record the first payments.
+- Until step 11, a space runs on the new-space defaults copied at its creation, and the platform on its seeded settings.
+- The overviews come last: they compose figures from every module.
 
 ## Documentation milestones
 
