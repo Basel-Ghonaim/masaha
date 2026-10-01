@@ -5,21 +5,21 @@
 
 ## Timeline
 
-16 weeks, from 27 September 2026 to 16 January 2027.
+The project started on 27 September 2026 and ends with the report and the defence by **16 January 2027**, its only fixed date. Every phase before it is a target: the phases follow one another by what they produce, not by weeks.
 
-| Phase | Weeks | Output |
+| Phase | Output | State |
 |---|---|---|
-| 0. Foundation decisions | 1 | This docs set, CLAUDE.md, ADRs 0001–0007 ✔ |
-| 1. Visual direction (Claude Design) ✅ | 1 | Chosen palette, fonts, radius, density on 3 anchor screens (light/dark, RTL) — *Sea* |
-| 2. Lock tokens + scaffold repo | 1–2 | Token values in foundation.md ✅; monorepo, lint, typecheck, CI — [design-system-layer.md](historical/design-system-layer.md) WI-1–2. The API and database skeleton moves alongside phase 4 |
-| 3. Design-system layer in code | 2–3 | Tokens, themes, pre-paint script, adapted shadcn components; synced into Claude Design — [design-system-layer.md](historical/design-system-layer.md) WI-3–9 · layer built ✅; synced ✅ |
-| 4. Screen design (Claude Design) | 3–5 | 32 screens (phone + desktop, light + dark, key screens LTR). In parallel: API skeleton, PostgreSQL, Prisma init, `test:api` in CI |
-| 5. Technical design | 5 | Prisma schema, permission table, API contract finalised; F-3b updates them for the scope change once the dashboard screens are reviewed ([foundation.md](foundation.md)) |
-| 6. Build | 6–12 | Foundation (auth, session, i18n, shells) → directory → admin → space profile and staff → front desk, customers, subscriptions, payments → finance and statistics |
-| 7. Test and evaluate | 13–14 | Functional tests, occupancy scenarios on seeded data, usability test with students and freelancers |
-| 8. Report and defence | 15–16 | Final report, presentation, rehearsal |
+| 0. Foundation decisions | This docs set, CLAUDE.md, ADRs 0001–0007 | ✅ |
+| 1. Visual direction (Claude Design) | Chosen palette, fonts, radius, density on 3 anchor screens (light/dark, RTL) — *Sea* | ✅ |
+| 2. Lock tokens + scaffold repo | Token values in foundation.md; monorepo, lint, typecheck, CI — [design-system-layer.md](historical/design-system-layer.md) WI-1–2. The API and database skeleton moves alongside phase 4 | ✅ |
+| 3. Design-system layer in code | Tokens, themes, pre-paint script, adapted shadcn components; synced into Claude Design — [design-system-layer.md](historical/design-system-layer.md) WI-3–9 | ✅ |
+| 4. Screen design (Claude Design) | 32 screens (phone + desktop, light + dark, key screens LTR). In parallel: API skeleton, PostgreSQL, Prisma init, `test:api` in CI | ✅ |
+| 5. Technical design | Prisma schema, permission table, API contract finalised; F-3b updates them for the scope change once the dashboard screens are reviewed ([foundation.md](foundation.md)) | ✅ |
+| 6. Build | The steps of the [build map](#sequence-inside-the-build) | In progress |
+| 7. Test and evaluate | Functional tests, occupancy scenarios on seeded data, usability test with students and freelancers | To come |
+| 8. Report and defence | Final report, presentation, rehearsal; by 16 January 2027 | To come |
 
-**Scope change (2026-09-29):** the owner and reception dashboard adds about 8–9 working days to phase 6. The phase dates are not moved.
+**Scope change (2026-09-29):** the owner and reception dashboard enlarges the build. The final date does not move.
 
 ## Sequence inside the build
 
