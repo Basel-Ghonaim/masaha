@@ -22,7 +22,9 @@
 - **Email and password.** Registration asks for name, email and password only. There is no phone login.
 - **Google**, as an extra option beside the password. The client sends a Google OpenID Connect ID token, and the server verifies it with `jose` against Google's published keys: signature, issuer, audience (Masaha's client ID), expiry and `email_verified`. Scopes are `openid email profile`.
   - A first Google sign-in with an unknown email creates a `USER`.
-  - A Google sign-in whose verified email matches an existing account links Google to that account automatically.
+  - A Google sign-in whose verified email matches an existing account links Google to that account automatically, and says so in its answer. An account already linked to **another** Google account is never relinked: the sign-in is refused with `GOOGLE_TOKEN_INVALID`.
+  - A new account takes Google's name when it is valid user text, else the email's local part.
+  - The client ID is `GOOGLE_CLIENT_ID`. Without it, Google sign-in answers `service_unavailable`; production refuses to start without it.
   - A Google-only account has no password, so a password sign-in fails with `INVALID_CREDENTIALS`. It may add a password later.
 - Both methods issue the same session ([ADR 0003](../architecture/decisions/0003-session-model.md)).
 - **Registering an email that has an account answers `EMAIL_TAKEN`.** That tells the caller the account exists, unlike the forgotten password's answer. It is an accepted trade-off, for usability: a person who already has an account learns to sign in instead. The sign-in limits count each refused registration as a failure.

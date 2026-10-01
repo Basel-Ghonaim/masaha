@@ -25,4 +25,6 @@ export const ERRORS = {
   OUTSIDE_OPENING_HOURS: 'سُجّل هذا الحضور خارج ساعات عمل المساحة.',
   OWNER_ALREADY_LINKED: 'صاحب المساحة هذا مرتبط بها بالفعل.',
   CURRENT_PASSWORD_INCORRECT: 'كلمة المرور الحالية غير صحيحة.',
+  GOOGLE_TOKEN_INVALID:
+    'تعذّر تسجيل الدخول باستخدام Google، حاول مرة أخرى أو استخدم البريد الإلكتروني.',
 } satisfies Catalogue['errors'];

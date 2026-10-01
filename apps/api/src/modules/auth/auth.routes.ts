@@ -1,4 +1,4 @@
-import { loginSchema, registerSchema } from '@masaha/shared';
+import { googleSignInSchema, loginSchema, registerSchema } from '@masaha/shared';
 import { Router } from 'express';
 
 import { validate } from '../../shared/validation/index.ts';
@@ -12,6 +12,7 @@ export function createAuthRouter(controller: AuthController): Router {
   const router = Router();
   router.post('/register', validate(registerSchema), controller.register);
   router.post('/login', validate(loginSchema), controller.login);
+  router.post('/google', validate(googleSignInSchema), controller.google);
   router.post('/refresh', controller.refresh);
   router.post('/logout', controller.logout);
   return router;

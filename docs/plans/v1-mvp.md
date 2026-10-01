@@ -189,11 +189,10 @@ Moves into [api-contract.md](../api/api-contract.md) endpoint by endpoint as eac
 Legend: 🌐 public · 👤 any signed-in user · 🧾 OWNER or RECEPTION of that space · 🏢 OWNER of that space · 🛡 ADMIN. Space access comes from the user's link to that space ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
 
 #### Auth
-Built: register, login, refresh and logout ([api-contract §5](../api/api-contract.md#5-endpoints)).
+Built: register, login, Google sign-in, refresh and logout ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| POST | `/auth/google` | 🌐 | Google ID token → as login; creates or links the account ([security.md](../backend/security.md#sign-in-methods)) |
 | POST | `/auth/password/forgot` | 🌐 | always 202; emails a reset link valid for 1 hour |
 | POST | `/auth/password/reset` | 🌐 | token + new password |
 

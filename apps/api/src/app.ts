@@ -5,7 +5,12 @@ import helmet from 'helmet';
 import type { Logger } from 'pino';
 
 import { createRunInTransaction } from './db/index.ts';
-import { createAuthController, createAuthRouter, createAuthService } from './modules/auth/index.ts';
+import {
+  createAuthController,
+  createAuthRouter,
+  createAuthService,
+  type GoogleIdentity,
+} from './modules/auth/index.ts';
 import { createSessionCookies, createSessionsService } from './modules/sessions/index.ts';
 import { createSpaceLinksService } from './modules/space-links/index.ts';
 import {
@@ -91,13 +96,15 @@ export interface ApiOptions {
   jwtSecret: string;
   /** Whether the session cookies are Secure: in production, over HTTPS. */
   secureCookies: boolean;
+  /** Google's identity, when a Google client id is configured (GOOGLE_CLIENT_ID). */
+  google?: GoogleIdentity;
 }
 
 /**
  * The composition root (docs/backend/conventions.md §1): builds each module's service, wires the
  * ports and mounts every router where the API contract puts it, behind the general rate limit.
  */
-export function createApi({ jwtSecret, secureCookies }: ApiOptions): Router {
+export function createApi({ jwtSecret, secureCookies, google }: ApiOptions): Router {
   const limiter = createLimiter(createCounter());
   const accessTokens = createAccessTokens(jwtSecret);
   const cookies = createSessionCookies({ secure: secureCookies });
@@ -115,6 +122,7 @@ export function createApi({ jwtSecret, secureCookies }: ApiOptions): Router {
     accessTokens,
     limiter,
     runInTransaction,
+    google,
   });
 
   const api = Router();

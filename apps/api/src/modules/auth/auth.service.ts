@@ -1,4 +1,4 @@
-import type { LoginRequest, RegisterRequest, Session } from '@masaha/shared';
+import type { GoogleSignInRequest, LoginRequest, RegisterRequest, Session } from '@masaha/shared';
 
 import type { RunInTransaction } from '../../db/index.ts';
 import type { AccessTokens } from '../../shared/auth/index.ts';
@@ -8,6 +8,7 @@ import type { SessionsService } from '../sessions/index.ts';
 import type { SpaceLinksService } from '../space-links/index.ts';
 import type { Account, UsersService } from '../users/index.ts';
 import { REFRESH, SIGN_IN_ACCOUNT, SIGN_IN_ADDRESS } from './auth.limits.ts';
+import type { GoogleIdentity } from './google.ts';
 
 /** A session for the body, and its refresh token for the cookie. */
 export interface SignedIn {
@@ -22,6 +23,8 @@ interface Dependencies {
   accessTokens: AccessTokens;
   limiter: Limiter;
   runInTransaction: RunInTransaction;
+  /** Absent when no Google client id is configured: Google sign-in is then unavailable. */
+  google: GoogleIdentity | undefined;
 }
 
 /**
@@ -35,6 +38,7 @@ export function createAuthService({
   accessTokens,
   limiter,
   runInTransaction,
+  google,
 }: Dependencies) {
   /** The user, their space links and a new access token, for a session whose refresh token exists. */
   async function sessionFor(account: Account): Promise<Session> {
@@ -88,6 +92,24 @@ export function createAuthService({
       return limitFailures(address, email, async () =>
         signIn(await users.verifyCredentials(email, password)),
       );
+    },
+
+    /**
+     * Signs in with a Google ID token, creating or linking the account. A failure has no email to
+     * count by, so it counts on the address only.
+     */
+    async google(
+      { idToken, language }: GoogleSignInRequest,
+      address: string,
+    ): Promise<SignedIn & { linked: boolean }> {
+      if (!google) throw AppError.serviceUnavailable(undefined, 'Google sign-in is not configured');
+      return limitFailures(address, undefined, async () => {
+        const profile = await google.verify(idToken);
+        if (!profile)
+          throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Invalid Google ID token');
+        const { account, linked } = await users.signInWithGoogle(profile, language);
+        return { ...(await signIn(account)), linked };
+      });
     },
 
     /** Rotates the refresh token and restores the session: who is signed in, in one request (ADR 0003). */

@@ -1,4 +1,10 @@
-import type { ChangePasswordRequest, RegisterRequest } from '@masaha/shared';
+import {
+  NAME_MAX_LENGTH,
+  textSchema,
+  type ChangePasswordRequest,
+  type Language,
+  type RegisterRequest,
+} from '@masaha/shared';
 
 import { createRunInTransaction, type RunInTransaction, type Tx } from '../../db/index.ts';
 import type { AccessTokens } from '../../shared/auth/index.ts';
@@ -14,6 +20,16 @@ interface Dependencies {
   sessions?: SessionsService;
   runInTransaction?: RunInTransaction;
 }
+
+/** A person Google has verified (the auth module's Google port). */
+export interface GoogleAccount {
+  subject: string;
+  email: string;
+  name: string | undefined;
+}
+
+// A Google name becomes the account's name when it is valid user text, else the email's local part.
+const googleName = textSchema(1, NAME_MAX_LENGTH);
 
 /** A changed password: the device's session goes on with these, and every other one has ended. */
 export interface PasswordChange {
@@ -64,6 +80,45 @@ export function createUsersService({
       }
       assertMaySignIn(found.account);
       return found.account;
+    },
+
+    /**
+     * The account a verified Google identity opens (docs/backend/security.md › Sign-in methods): the
+     * one already linked to it; else the account with its verified email, which it links
+     * (`linked`); else a new USER without a password. Only then does a suspension show.
+     */
+    async signInWithGoogle(
+      google: GoogleAccount,
+      language: Language | undefined,
+    ): Promise<{ account: Account; linked: boolean }> {
+      const known = await repository.findByGoogleSubject(google.subject);
+      if (known) {
+        assertMaySignIn(known);
+        return { account: known, linked: false };
+      }
+
+      const byEmail = await repository.findByEmail(google.email);
+      if (byEmail) {
+        // Another Google account is already linked to this email's account: never replaced silently.
+        if (byEmail.googleSubject) {
+          throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
+        }
+        assertMaySignIn(byEmail.account);
+        return {
+          account: await repository.linkGoogle(byEmail.account.id, google.subject),
+          linked: true,
+        };
+      }
+
+      const parsedName = googleName.safeParse(google.name);
+      const account = await repository.create({
+        email: google.email,
+        name: parsedName.success ? parsedName.data : (google.email.split('@')[0] ?? google.email),
+        passwordHash: null,
+        googleSubject: google.subject,
+        language,
+      });
+      return { account, linked: false };
     },
 
     get,

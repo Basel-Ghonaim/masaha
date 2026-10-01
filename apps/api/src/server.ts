@@ -1,4 +1,5 @@
 import { createApi, createApp } from './app.ts';
+import { createGoogleIdentity } from './modules/auth/index.ts';
 import { EnvError, loadEnv, type Env } from './config/index.ts';
 import { isDatabaseUp, prisma } from './db/index.ts';
 import { createLogger } from './shared/http/index.ts';
@@ -38,6 +39,9 @@ const app = createApp({
   apiRouter: createApi({
     jwtSecret: env.JWT_SECRET,
     secureCookies: env.NODE_ENV === 'production',
+    google: env.GOOGLE_CLIENT_ID
+      ? createGoogleIdentity({ clientId: env.GOOGLE_CLIENT_ID })
+      : undefined,
   }),
 });
 

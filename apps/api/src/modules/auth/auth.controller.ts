@@ -1,4 +1,9 @@
-import type { LoginRequest, RegisterRequest } from '@masaha/shared';
+import type {
+  GoogleSession,
+  GoogleSignInRequest,
+  LoginRequest,
+  RegisterRequest,
+} from '@masaha/shared';
 import type { Request, Response } from 'express';
 
 import { AppError } from '../../shared/errors/index.ts';
@@ -20,6 +25,15 @@ export function createAuthController(auth: AuthService, cookies: SessionCookies)
 
     login: async (req: Request, res: Response) => {
       answer(res, await auth.login(req.body as LoginRequest, clientAddress(req.ip)));
+    },
+
+    google: async (req: Request, res: Response) => {
+      const { session, refreshToken, linked } = await auth.google(
+        req.body as GoogleSignInRequest,
+        clientAddress(req.ip),
+      );
+      cookies.set(res, refreshToken);
+      sendSuccess(res, { ...session, linked } satisfies GoogleSession);
     },
 
     refresh: async (req: Request, res: Response) => {

@@ -21,6 +21,7 @@ export interface NewAccount {
   email: string;
   name: string;
   passwordHash: string | null;
+  googleSubject?: string;
   language?: Language;
 }
 
@@ -41,6 +42,27 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       if (!row) return null;
       const { passwordHash, ...account } = row;
       return { account, passwordHash };
+    },
+
+    findByGoogleSubject(googleSubject: string): Promise<Account | null> {
+      return db.user.findUnique({ where: { googleSubject }, select: ACCOUNT });
+    },
+
+    /** The account with this email, and the Google account linked to it, if any. */
+    async findByEmail(
+      email: string,
+    ): Promise<{ account: Account; googleSubject: string | null } | null> {
+      const row = await db.user.findUnique({
+        where: { email },
+        select: { ...ACCOUNT, googleSubject: true },
+      });
+      if (!row) return null;
+      const { googleSubject, ...account } = row;
+      return { account, googleSubject };
+    },
+
+    async linkGoogle(id: number, googleSubject: string): Promise<Account> {
+      return db.user.update({ where: { id }, data: { googleSubject }, select: ACCOUNT });
     },
 
     /** The account's hash, for a password check only. */

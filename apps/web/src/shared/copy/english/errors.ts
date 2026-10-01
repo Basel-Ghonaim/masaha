@@ -29,4 +29,5 @@ export const ERRORS = {
   OUTSIDE_OPENING_HOURS: 'This check-in is outside the space’s opening hours.',
   OWNER_ALREADY_LINKED: 'This owner is already linked to the space.',
   CURRENT_PASSWORD_INCORRECT: 'The current password is incorrect.',
+  GOOGLE_TOKEN_INVALID: 'We couldn’t sign you in with Google. Try again or use your email.',
 } as const satisfies Record<ErrorType | DomainErrorCode, string>;

@@ -18,6 +18,7 @@ describe('loadEnv', () => {
       JWT_SECRET: 'a-development-secret-of-32-characters',
       LOG_LEVEL: 'info',
       TRUST_PROXY: 'loopback',
+      GOOGLE_CLIENT_ID: undefined,
     });
   });
 
@@ -30,6 +31,18 @@ describe('loadEnv', () => {
     expect(loadEnv({ ...valid, TRUST_PROXY: 'loopback, 10.0.0.1' }).TRUST_PROXY).toBe(
       'loopback, 10.0.0.1',
     );
+  });
+
+  it('reads an empty optional setting as absent, and requires the Google client id in production', () => {
+    expect(loadEnv({ ...valid, GOOGLE_CLIENT_ID: '' }).GOOGLE_CLIENT_ID).toBeUndefined();
+    expect(() => loadEnv({ ...valid, NODE_ENV: 'production' })).toThrow(/GOOGLE_CLIENT_ID/);
+    expect(
+      loadEnv({
+        ...valid,
+        NODE_ENV: 'production',
+        GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com',
+      }).GOOGLE_CLIENT_ID,
+    ).toBe('id.apps.googleusercontent.com');
   });
 
   it('names a missing variable', () => {

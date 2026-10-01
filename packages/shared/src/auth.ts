@@ -30,6 +30,14 @@ export const loginSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof loginSchema>;
 
+/** A Google OpenID Connect ID token, from Google's sign-in on the web (docs/backend/security.md). */
+export const googleSignInSchema = z.object({
+  idToken: z.string().min(1).max(4096),
+  /** The interface language, for an account this sign-in creates. */
+  language: z.enum(LANGUAGES).optional(),
+});
+export type GoogleSignInRequest = z.infer<typeof googleSignInSchema>;
+
 /**
  * A new password for the signed-in user. The current one is required, except while a temporary
  * password is pending and for a Google-only account's first password.
@@ -74,4 +82,9 @@ export interface Session {
   user: SessionUser;
   /** Kept in memory only (ADR 0003). */
   accessToken: string;
+}
+
+/** A Google sign-in's answer: `linked` when it has just joined Google to an existing account. */
+export interface GoogleSession extends Session {
+  linked: boolean;
 }

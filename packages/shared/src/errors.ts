@@ -45,6 +45,7 @@ export const DOMAIN_ERROR_CODES = [
   'OUTSIDE_OPENING_HOURS',
   'OWNER_ALREADY_LINKED',
   'CURRENT_PASSWORD_INCORRECT',
+  'GOOGLE_TOKEN_INVALID',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];
