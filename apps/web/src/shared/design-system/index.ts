@@ -6,7 +6,7 @@ export {
   AlertDescription,
   AlertTitle,
   type AlertProps,
-} from './components/Alert';
+} from './components/feedback/Alert';
 export {
   AlertDialog,
   AlertDialogAction,
@@ -17,9 +17,9 @@ export {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from './components/AlertDialog';
-export { Avatar, AvatarFallback, AvatarImage, type AvatarProps } from './components/Avatar';
-export { Badge, type BadgeProps } from './components/Badge';
+} from './components/overlays/AlertDialog';
+export { Avatar, AvatarFallback, AvatarImage, type AvatarProps } from './components/display/Avatar';
+export { Badge, type BadgeProps } from './components/display/Badge';
 export {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -31,9 +31,9 @@ export {
   type BreadcrumbEllipsisProps,
   type BreadcrumbLinkProps,
   type BreadcrumbProps,
-} from './components/Breadcrumb';
-export { Button, type ButtonProps } from './components/Button';
-export { Calendar, type CalendarProps, type DateRange } from './components/Calendar';
+} from './components/navigation/Breadcrumb';
+export { Button, type ButtonProps } from './components/actions/Button';
+export { Calendar, type CalendarProps, type DateRange } from './components/fields/Calendar';
 export {
   Card,
   CardAction,
@@ -42,8 +42,8 @@ export {
   CardFooter,
   CardHeader,
   CardTitle,
-} from './components/Card';
-export { Checkbox, type CheckboxProps } from './components/Checkbox';
+} from './components/display/Card';
+export { Checkbox, type CheckboxProps } from './components/fields/Checkbox';
 export {
   Combobox,
   ComboboxContent,
@@ -55,7 +55,7 @@ export {
   type ComboboxItemProps,
   type ComboboxProps,
   type ComboboxTriggerProps,
-} from './components/Combobox';
+} from './components/fields/Combobox';
 export {
   Dialog,
   DialogClose,
@@ -66,7 +66,7 @@ export {
   DialogTitle,
   DialogTrigger,
   type DialogContentProps,
-} from './components/Dialog';
+} from './components/overlays/Dialog';
 export {
   DataTable,
   createDataTableColumnHelper,
@@ -74,15 +74,15 @@ export {
   type DataTableColumnMeta,
   type DataTableProps,
   type DataTableSorting,
-} from './components/DataTable';
+} from './components/data/DataTable';
 export {
   DatePicker,
   DatePickerContent,
   DatePickerTrigger,
   type DatePickerContentProps,
   type DatePickerTriggerProps,
-} from './components/DatePicker';
-export { DirectionProvider } from './components/DirectionProvider';
+} from './components/fields/DatePicker';
+export { DirectionProvider } from './lib/DirectionProvider';
 export {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -98,11 +98,16 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   type DropdownMenuItemProps,
-} from './components/DropdownMenu';
-export { EmptyState, type EmptyStateProps } from './components/EmptyState';
-export { Field, type FieldProps } from './components/Field';
-export { Input, InputAction, type InputActionProps, type InputProps } from './components/Input';
-export { LanguageToggle, type LanguageToggleProps } from './components/LanguageToggle';
+} from './components/actions/DropdownMenu';
+export { EmptyState, type EmptyStateProps } from './components/feedback/EmptyState';
+export { Field, type FieldProps } from './components/fields/Field';
+export {
+  Input,
+  InputAction,
+  type InputActionProps,
+  type InputProps,
+} from './components/fields/Input';
+export { LanguageToggle, type LanguageToggleProps } from './components/actions/LanguageToggle';
 export {
   Pagination,
   PaginationContent,
@@ -117,14 +122,19 @@ export {
   type PaginationNextProps,
   type PaginationPreviousProps,
   type PaginationProps,
-} from './components/Pagination';
-export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './components/Popover';
+} from './components/navigation/Pagination';
+export {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from './components/overlays/Popover';
 export {
   RadioGroup,
   RadioGroupItem,
   type RadioGroupItemProps,
   type RadioGroupProps,
-} from './components/RadioGroup';
+} from './components/fields/RadioGroup';
 export {
   Select,
   SelectContent,
@@ -134,8 +144,8 @@ export {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from './components/Select';
-export { Separator, type SeparatorProps } from './components/Separator';
+} from './components/fields/Select';
+export { Separator, type SeparatorProps } from './components/display/Separator';
 export {
   Sheet,
   SheetBody,
@@ -147,7 +157,7 @@ export {
   SheetTitle,
   SheetTrigger,
   type SheetContentProps,
-} from './components/Sheet';
+} from './components/overlays/Sheet';
 export {
   Sidebar,
   SidebarContent,
@@ -165,11 +175,11 @@ export {
   type SidebarMenuButtonProps,
   type SidebarProps,
   type SidebarTriggerProps,
-} from './components/Sidebar';
-export { Skeleton } from './components/Skeleton';
-export { Spinner, type SpinnerProps } from './components/Spinner';
-export { StatCard, type StatCardProps } from './components/StatCard';
-export { Switch, type SwitchProps } from './components/Switch';
+} from './components/navigation/Sidebar';
+export { Skeleton } from './components/feedback/Skeleton';
+export { Spinner, type SpinnerProps } from './components/feedback/Spinner';
+export { StatCard, type StatCardProps } from './components/display/StatCard';
+export { Switch, type SwitchProps } from './components/fields/Switch';
 export {
   Table,
   TableBody,
@@ -179,18 +189,29 @@ export {
   TableHead,
   TableHeader,
   TableRow,
-} from './components/Table';
-export { Tabs, TabsContent, TabsList, TabsTrigger, type TabsListProps } from './components/Tabs';
-export { Textarea, type TextareaProps } from './components/Textarea';
-export { ThemeToggle, type ThemeToggleProps } from './components/ThemeToggle';
+} from './components/data/Table';
+export {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  type TabsListProps,
+} from './components/navigation/Tabs';
+export { Textarea, type TextareaProps } from './components/fields/Textarea';
+export { ThemeToggle, type ThemeToggleProps } from './components/actions/ThemeToggle';
 export {
   ToggleGroup,
   ToggleGroupItem,
   type ToggleGroupItemProps,
   type ToggleGroupProps,
-} from './components/ToggleGroup';
-export { Toaster, toast, type ToasterProps } from './components/Toast';
-export { Tooltip, TooltipContent, TooltipTrigger, type TooltipProps } from './components/Tooltip';
+} from './components/fields/ToggleGroup';
+export { Toaster, toast, type ToasterProps } from './components/feedback/Toast';
+export {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  type TooltipProps,
+} from './components/overlays/Tooltip';
 export {
   ArrowDownIcon,
   ArrowEndIcon,

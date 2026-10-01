@@ -1,7 +1,19 @@
-import { cn } from '@shared/design-system';
-import type { ReactNode } from 'react';
-import { useHref, useSearchParams } from 'react-router';
+import {
+  Button,
+  MenuIcon,
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  cn,
+} from '@shared/design-system';
+import { useState, type ReactNode } from 'react';
+import { Navigate, useHref, useLocation, useParams, useSearchParams } from 'react-router';
 import fixtures from './fixtures.json';
+import { SHOWCASE_ROOT, resolveView, viewSegments, type ShowcaseView } from './registry';
+import { ShowcaseNav } from './ShowcaseNav';
 import {
   LANGUAGES,
   THEMES,
@@ -43,17 +55,32 @@ function ToolbarSelect({ label, value, onChange, children }: ToolbarSelectProps)
   );
 }
 
+// The frame is named by what it shows: an entry or a category by its identifier, as the navigation
+// names them.
+function frameTitle(view: ShowcaseView | null) {
+  if (view?.kind === 'entry') return view.entry.name;
+  if (view?.kind === 'category') return view.category;
+  return toolbar.frame;
+}
+
 /**
- * The showcase: a toolbar, and the preview in an iframe of the chosen width, so breakpoints respond
- * as they would on a device that wide. Changing the theme or language reloads the frame.
+ * The showcase: a toolbar, the navigation, and the preview of the chosen view in an iframe of the
+ * chosen width, so breakpoints respond as they would on a device that wide. Changing the view, the
+ * theme or the language reloads the frame. On a phone the navigation is a drawer.
  */
 export function ShowcasePage() {
   const [params, setParams] = useSearchParams();
+  const { category, entry } = useParams();
+  const { search } = useLocation();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const view = resolveView(category, entry);
   const settings = readSettings(params);
   const previewHref = useHref({
-    pathname: 'preview',
+    pathname: `${SHOWCASE_ROOT}/preview${viewSegments(view)}`,
     search: `?theme=${settings.theme}&lang=${settings.language}`,
   });
+
+  if (view === null) return <Navigate to={{ pathname: SHOWCASE_ROOT, search }} replace />;
 
   const update = (change: Partial<Settings>) => {
     const next = { ...settings, ...change };
@@ -63,7 +90,40 @@ export function ShowcasePage() {
   return (
     <div className="flex h-dvh flex-col">
       <header className="flex flex-wrap items-end gap-4 border-b border-border bg-card p-4 text-card-foreground">
-        <h1 className="me-auto text-heading-3">{toolbar.heading}</h1>
+        <div className="me-auto flex items-center gap-2">
+          <Sheet open={navigationOpen} onOpenChange={setNavigationOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={toolbar.openNavigation}
+                className="md:hidden"
+              >
+                <MenuIcon aria-hidden />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="start"
+              closeLabel={toolbar.closeNavigation}
+              aria-describedby={undefined}
+            >
+              <SheetHeader>
+                <SheetTitle>{toolbar.navigation}</SheetTitle>
+              </SheetHeader>
+              <SheetBody className="px-0">
+                <ShowcaseNav
+                  label={toolbar.navigation}
+                  allLabel={toolbar.all}
+                  search={search}
+                  onNavigate={() => {
+                    setNavigationOpen(false);
+                  }}
+                />
+              </SheetBody>
+            </SheetContent>
+          </Sheet>
+          <h1 className="text-heading-3">{toolbar.heading}</h1>
+        </div>
         <ToolbarSelect
           label={toolbar.theme}
           value={settings.theme}
@@ -104,16 +164,21 @@ export function ShowcasePage() {
           ))}
         </ToolbarSelect>
       </header>
-      <main className="flex-1 overflow-auto bg-muted p-4">
-        <iframe
-          src={previewHref}
-          title={toolbar.frame}
-          className={cn(
-            'mx-auto block h-full max-w-none border border-border bg-background',
-            FRAME_WIDTH[settings.width],
-          )}
-        />
-      </main>
+      <div className="flex min-h-0 flex-1">
+        <aside className="hidden w-60 shrink-0 overflow-y-auto border-e border-border bg-card text-card-foreground md:block">
+          <ShowcaseNav label={toolbar.navigation} allLabel={toolbar.all} search={search} />
+        </aside>
+        <main className="min-w-0 flex-1 overflow-auto bg-muted p-4">
+          <iframe
+            src={previewHref}
+            title={frameTitle(view)}
+            className={cn(
+              'mx-auto block h-full max-w-none border border-border bg-background',
+              FRAME_WIDTH[settings.width],
+            )}
+          />
+        </main>
+      </div>
     </div>
   );
 }
