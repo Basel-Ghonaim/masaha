@@ -26,6 +26,9 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, req, res, next
       ...(appError.code && { code: appError.code }),
       message: appError.message,
       ...(appError.errors && { errors: appError.errors }),
+      // A UUID string: the request logger gives every request its id (docs/backend/conventions.md
+      // §10), before anything else runs.
+      requestId: req.id as string,
     },
   });
 };

@@ -1,8 +1,7 @@
-import { pino } from 'pino';
-
 import { createApp } from './app.ts';
 import { EnvError, loadEnv, type Env } from './config/index.ts';
 import { isDatabaseUp, prisma } from './db/index.ts';
+import { createLogger } from './shared/http/index.ts';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -18,7 +17,7 @@ function readEnv(): Env {
 }
 
 const env = readEnv();
-const logger = pino({ level: env.LOG_LEVEL });
+const logger = createLogger(env.LOG_LEVEL);
 
 // The API refuses to start without a reachable database (docs/backend/security.md).
 try {

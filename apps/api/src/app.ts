@@ -3,9 +3,9 @@ import cors from 'cors';
 import express, { Router } from 'express';
 import helmet from 'helmet';
 import type { Logger } from 'pino';
-import { pinoHttp } from 'pino-http';
 
 import { errorHandler, notFoundHandler } from './shared/errors/index.ts';
+import { requestLogger } from './shared/http/index.ts';
 
 export interface AppOptions {
   corsOrigin: string;
@@ -20,11 +20,12 @@ export interface AppOptions {
 export function createApp({ corsOrigin, logger, checkDatabase, apiRouter = Router() }: AppOptions) {
   const app = express();
 
+  // First, so every response has a request id and a log line, even one the JSON parser refuses.
+  app.use(requestLogger(logger));
   app.use(helmet());
   app.use(cors({ origin: corsOrigin, credentials: true }));
   app.use(express.json({ limit: '16kb' }));
   app.use(cookieParser());
-  app.use(pinoHttp({ logger }));
 
   // Outside /api/v1 and not enveloped, so any probe can read it (docs/api/api-contract.md §1).
   app.get('/health', async (_req, res) => {
