@@ -97,6 +97,74 @@ export default defineConfig([
     },
   },
   {
+    // The API's module levels (docs/backend/conventions.md §7, the only level map; this mirrors it).
+    // A module imports only modules at lower levels, and only through their index.ts: never one at
+    // its own level, a higher one, or a file past another module's index.ts. Its own files are
+    // internal, which the rule does not check. The composition root, the database code and the
+    // tests reach a module through its index.ts too, and the platform (shared/) knows no module
+    // (R6). Everything else is left to the other rules.
+    files: ['apps/api/src/**/*.ts', 'apps/api/test/**/*.ts'],
+    plugins: { boundaries },
+    settings: {
+      'import/resolver': { typescript: { project: 'apps/api/tsconfig.json' } },
+      'boundaries/dependency-nodes': ['import', 'export', 'dynamic-import'],
+      'boundaries/elements': [
+        {
+          type: 'L0',
+          pattern: 'apps/api/src/modules/{sessions,lookups,platform-settings,space-settings}',
+        },
+        { type: 'L1', pattern: 'apps/api/src/modules/{users,spaces}' },
+        {
+          type: 'L2',
+          pattern: 'apps/api/src/modules/{space-links,customers,packages,announcements,favorites}',
+        },
+        { type: 'L3', pattern: 'apps/api/src/modules/{auth,data-reports,visits,subscriptions}' },
+        { type: 'L4', pattern: 'apps/api/src/modules/{payments,occupancy}' },
+        { type: 'L5', pattern: 'apps/api/src/modules/{desk,directory,finance,overview,audit}' },
+        // A module folder missing from the level map: refused everywhere until it is placed.
+        { type: 'unplaced', pattern: 'apps/api/src/modules/*' },
+        { type: 'platform', pattern: 'apps/api/src/shared/*' },
+        { type: 'assembly', pattern: ['apps/api/src/{db,config}', 'apps/api/test'] },
+        // Last, so it takes only what no element above did: app.ts, server.ts and their tests.
+        { type: 'assembly', pattern: 'apps/api/src' },
+      ],
+    },
+    rules: {
+      'boundaries/dependencies': [
+        'error',
+        {
+          default: 'allow',
+          message:
+            '{{ from.type }} → {{ to.type }} ({{ to.internalPath }}) is not allowed. A module imports only lower levels, through their index.ts (docs/backend/conventions.md §7); shared/ imports no module.',
+          // The last matching policy decides.
+          policies: [
+            {
+              from: {
+                element: {
+                  type: ['L0', 'L1', 'L2', 'L3', 'L4', 'L5', 'unplaced', 'platform', 'assembly'],
+                },
+              },
+              disallow: {
+                to: { element: { type: ['L0', 'L1', 'L2', 'L3', 'L4', 'L5', 'unplaced'] } },
+              },
+            },
+            ...[
+              ['L1', ['L0']],
+              ['L2', ['L0', 'L1']],
+              ['L3', ['L0', 'L1', 'L2']],
+              ['L4', ['L0', 'L1', 'L2', 'L3']],
+              ['L5', ['L0', 'L1', 'L2', 'L3', 'L4']],
+              ['assembly', ['L0', 'L1', 'L2', 'L3', 'L4', 'L5']],
+            ].map(([from, lower]) => ({
+              from: { element: { type: from } },
+              allow: { to: { element: { type: lower, fileInternalPath: 'index.ts' } } },
+            })),
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Radix primitives, the icon library, variant utilities, the toast library and every other
     // third-party UI library the layer wraps are imported only inside the design-system layer
     // (docs/frontend/design-system/foundation.md §3). Everything else uses what the layer exports.

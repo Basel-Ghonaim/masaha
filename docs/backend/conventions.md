@@ -1,6 +1,6 @@
 # Backend Conventions
 
-> **Status:** Active · **Class:** Contract — rules to build against. Built: the shared errors, http and validation code and the `can()` permission table. No module is built yet. The level rule in lint (§7) comes with F-5; the sections from §10 on are rules not yet built · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against. Built: the shared errors, http and validation code and the `can()` permission table. The level rule (§7) is enforced by lint. No module is built yet. Of the sections from §10 on, only the logging of §10 is built · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
 > **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging, time, environments, idempotency and concurrency in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
 
 The backend is one application divided into **modules**, one per capability, arranged in **levels** (§7). Each module is built from the same **layers** (§2). **A screen is not a capability** (§7): placements follow the rule that consumes a value, never the screen that shows it.
@@ -104,7 +104,7 @@ Inside a module, each layer calls only the one below it.
 
 ### Level map
 
-This is the only level map. A module imports only modules at **lower** levels, through their `index.ts`, and never one at its own level, so the graph has no cycles. From F-5, lint enforces it.
+This is the only level map. A module imports only modules at **lower** levels, through their `index.ts`, and never one at its own level, so the graph has no cycles. Lint enforces it (`eslint.config.js`, which mirrors this map): an import of a module at the same or a higher level, past a module's `index.ts`, of a module missing from the map, or of any module from `shared/` fails `lint`.
 
 | Level | Modules |
 |---|---|
