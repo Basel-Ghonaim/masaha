@@ -1,6 +1,6 @@
 # Security
 
-> **Status:** Active · **Class:** Contract — rules to build against; not yet implemented · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; not yet implemented · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
 > **Authority:** Tokens, passwords, cookies, authorization, rate limits and HTTP hardening. The session model's reasoning is in [ADR 0003](../architecture/decisions/0003-session-model.md); the authorization model's in [ADR 0002](../architecture/decisions/0002-authorization-model.md).
 
 ## Tokens and cookies
@@ -35,7 +35,7 @@
   - an admin recovery (below).
 
   Every endpoint except `/auth/password/change`, `/auth/logout` and `/me` returns `PASSWORD_CHANGE_REQUIRED` until the password is changed.
-- **Password reset** is a link sent by email: a single-use token stored as a SHA-256 hash, valid for 1 hour. The request always returns 202, and success revokes all sessions. It is a transactional email, not a notification, and the only email Masaha sends; the provider is chosen in F-5.
+- **Password reset** is a link sent by email: a single-use token stored as a SHA-256 hash, valid for 1 hour. The request always returns 202, and success revokes all sessions. It is a transactional email, not a notification, and the only email Masaha sends. The provider is chosen in F-5, within [ADR 0014](../architecture/decisions/0014-deployment.md)'s constraint: without a domain of its own, no domain-verified provider is possible, so the email goes from a single verified sender, or Gmail SMTP. In development, the email port logs the link instead of sending it.
 - **Recovery without the email:** the person contacts Masaha on WhatsApp, and the admin issues a temporary password (`mustChangePassword`). The action is audited.
 
 ## Authorization
@@ -47,6 +47,8 @@ The model (roles, space scope, what each role may do) is owned by [ADR 0002](../
 - Suspended users cannot log in or refresh.
 
 ## Rate limits (per IP, fixed window)
+
+The counters are stored in PostgreSQL, so every instance of the API shares them: online, the API runs as functions that share no memory ([ADR 0014](../architecture/decisions/0014-deployment.md)). F-5 adds their table.
 
 | Scope | Limit |
 |---|---|
@@ -60,4 +62,6 @@ The model (roles, space scope, what each role may do) is owned by [ADR 0002](../
 
 - `helmet` defaults; CORS allows one origin from the environment with credentials; `trust proxy` set.
 - JSON body limit 16 kB; upload limit 5 MB per photo, JPEG/PNG/WebP only, content checked, re-encoded with sharp.
+- Online, a request or a response is limited to 4.5 MB ([ADR 0014](../architecture/decisions/0014-deployment.md)), below the photo limit. Photos are therefore resized on the client or uploaded directly to storage; the space-management slice settles which.
 - The server refuses to start without a reachable database; graceful shutdown on SIGTERM/SIGINT.
+- **The HTTP logger redacts** the `cookie`, `authorization` and `set-cookie` headers, and any field named like a password or a token, and **never logs request bodies**. Not built yet: today `pino-http` runs without redaction and logs the request headers. No cookie or token exists yet, so F-5 ships the redaction together with the first token. The other logging rules are in [backend conventions §10](conventions.md#10-logging).

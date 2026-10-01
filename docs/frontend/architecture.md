@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy` and the catalogue registration in `app/` (§1), and the development-only `showcase` group (§2), are built; the site and dashboard boundary (lazy page groups in §2, the dashboard-only rule in §3) and the rest are not yet implemented · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy` and the catalogue registration in `app/` (§1), and the development-only `showcase` group (§2), are built; the site and dashboard boundary (lazy page groups in §2, the dashboard-only rule in §3) and the rest are not yet implemented · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -23,14 +23,14 @@
 | `public` | `/`, `/spaces`, `/spaces/:slug`, `/about` | none |
 | `auth` | `/login`, `/register`, `/forgot-password`, `/reset-password` | guests only |
 | `account` | `/me`, `/me/favorites`, `/me/reports` | signed in |
-| `dashboard` | `/dashboard/...` | ADMIN, or an active space link, OWNER or RECEPTION (per route) |
+| `dashboard` | `/dashboard` (redirects, below), `/dashboard/admin/...`, `/dashboard/spaces/:spaceId/...` ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) | `admin/...`: ADMIN · `spaces/:spaceId/...`: an active link at that space, OWNER or RECEPTION (per route) |
 | `showcase` | `/__showcase`, `/__showcase/preview` | none; **development only**, not in the build |
 
 - **Two domains, one application** ([ADR 0011](../architecture/decisions/0011-one-web-app.md)): the **site** is `public`, `auth` and `account`; the **dashboard** is `dashboard`.
 - A page group's barrel exports its **route subtree**, not individual screens. `app/router.tsx` mounts each subtree **lazily**, so a visitor to the site downloads no dashboard code.
 - **Guards sit visibly on each route** (`<RequireRole roles={['OWNER']}>`), never inherited silently from the group.
 - The dashboard's **navigation config per role** belongs to the `dashboard` page group, because choosing what appears together is composition. Features stay role-agnostic: the page passes the scope (`mine` for an owner, `all` for the admin).
-- In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space selected** in the space switcher, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
+- In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space in the URL**, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). The selected space is the `:spaceId` of the route, never client state; the space switcher only navigates ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)).
 - Inside the `dashboard` group, the shell and the navigation are kept apart from the screens of each area:
 
   ```
@@ -39,10 +39,26 @@
     shell/          layout, sidebar, top bar, space switcher
     navigation.ts   the navigation config per role
     admin/          platform screens (ADMIN)
-    space/          the selected space's screens (OWNER, RECEPTION)
+    space/          the screens of the space in the URL (OWNER, RECEPTION)
   ```
 - UI hiding is for usability only; the server is the authority.
 - **`showcase`** is a development tool for the design-system layer ([foundation §3](design-system/foundation.md#3-architecture)). `app/router.tsx` mounts it only when `import.meta.env.DEV`, so a build leaves it out; `check:build` fails if any of it reaches the build.
+
+### Landing and guards
+
+Not built yet: F-5 builds the guards and F-6 the landing and the switcher.
+
+- **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
+- **Landing after sign-in:**
+  1. the return URL, when there is one;
+  2. otherwise the admin goes to the admin's overview;
+  3. a user with space links goes to the last space they used, on the page their link's role there gives: the overview for `OWNER`, the front desk for `RECEPTION`. When no space is remembered, or the remembered one is no longer an active link (a first sign-in, a link deactivated or removed), they go to their oldest active link, by the same rule. How the last space is remembered is F-6's choice;
+  4. `/dashboard` itself redirects by the same rules.
+- **Failed guards:**
+  - a guest goes to sign-in, with the return URL;
+  - a signed-in user without access gets a clear 403 page, never a silent redirect;
+  - an unknown space gets a 404 page.
+- **The space switcher** shows for anyone with more than one active link, whatever their role at each.
 
 ## 3. Capabilities (features)
 
@@ -77,8 +93,28 @@ A layer the capability does not need is **absent, not empty**. A screen only pre
 
 ## 5. Errors
 
-One normaliser turns any failure (Axios, network, timeout, unknown) into `AppError { type, status, code?, errors? }`. Screens pick catalogue text from `code` or `type`; no raw error ever reaches a component.
+One normaliser turns any failure (Axios, network, timeout, unknown) into `AppError { type, status, code?, errors?, requestId? }`. Screens pick catalogue text from `code` or `type`; no raw error ever reaches a component.
+
+`requestId` is the server's request id ([api-contract §1](../api/api-contract.md#1-conventions)), present whenever the server answered. Error states show it, so a user's report can be matched to the log. Planned: F-5 builds it.
 
 ## 6. Map
 
 `shared/map` wraps React Leaflet and OpenStreetMap tiles (loaded lazily). Space markers and popups belong to the `directory` feature.
+
+## 7. Server state
+
+TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). Not built yet: these rules apply from the first feature that fetches.
+
+- **Query keys start with their scope:**
+  - `['space', spaceId, '<capability>', …]` for a space's data;
+  - `['me', …]` for the signed-in user's own;
+  - `['public', …]` for the public site's.
+- **Invalidation:** each feature invalidates only its own keys. `desk`'s operations span several capabilities, so they invalidate the whole `['space', spaceId]` prefix, without importing the other features.
+- **Retries:**
+  - queries are always retried;
+  - a mutation is retried only when it carries an idempotency key ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). The key is generated once per user action and reused on every retry of it.
+- **Polling:**
+  - the live status every 60 s, paused while the tab is hidden ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md));
+  - the front desk's list of who is present every 30 s, and on window focus.
+- **Optimistic updates** never for money or presence; only for favourites.
+- **Offline:** there is no offline queue. A lost connection shows a clear "no connection" state, and the user retries.

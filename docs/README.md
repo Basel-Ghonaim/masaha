@@ -31,6 +31,9 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
   - [0011](architecture/decisions/0011-one-web-app.md) one web application for the public site and the dashboard
   - [0012](architecture/decisions/0012-modular-monolith-backend.md) backend: a modular monolith with levelled modules
   - [0013](architecture/decisions/0013-identity-modules.md) identity: sessions, users and auth as three modules
+  - [0014](architecture/decisions/0014-deployment.md) deployment: one origin on Vercel and Neon's free tiers, adapted to the architecture
+  - [0015](architecture/decisions/0015-idempotency-and-concurrency.md) idempotency and concurrency: idempotency keys, read committed, the database owns the ledger's rules
+  - [0016](architecture/decisions/0016-dashboard-urls.md) dashboard URLs: the selected space is in the URL
 - [findings.md](architecture/findings.md) — recorded divergences from the intended design.
 
 ### `api/`
@@ -66,4 +69,4 @@ These documents are **committed but not yet written**, because what they describ
 ### `plans/`
 - [v1-mvp.md](plans/v1-mvp.md) — the active plan: phases, sequence, risks. Plans move to `plans/historical/` when finished.
 - [historical/design-system-layer.md](plans/historical/design-system-layer.md) — finished: phases 2–3, the repository scaffold and the design-system layer, as nine Work Items.
-- [foundation.md](plans/foundation.md) — the application foundation: API skeleton, database, technical design and its update, the backend architecture and its follow-ups, localisation, authentication and shells, as ten Work Items.
+- [foundation.md](plans/foundation.md) — the application foundation: API skeleton, database, technical design and its update, the backend architecture and its follow-ups, localisation, authentication, shells and the first public deployment, as eleven Work Items.

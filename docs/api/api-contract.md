@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -8,6 +8,8 @@
 - Base path: `/api/v1`. JSON only. `GET /health` sits outside it (`{ status, db, timestamp }`, 200 or 503).
 - Auth: `Authorization: Bearer <accessToken>` on protected endpoints; the refresh token travels only as its cookie.
 - The server **never sends display text** for the UI. It sends error `type`, an optional domain `code`, and field-error codes; the client translates ([ADR 0006](../architecture/decisions/0006-localisation-approach.md)).
+- **Request id:** every response carries an `X-Request-Id` header, a UUID the server generates for each request, and an error repeats it in the envelope (§2). It matches the request's log lines ([backend conventions §10](../backend/conventions.md#10-logging)). Not built yet: F-5 builds the request id.
+- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Not built yet: the desk slices build the idempotency key.
 
 ## 2. Response envelope
 
@@ -22,7 +24,8 @@
     type: ErrorType,                    // see §3
     code?: string,                      // domain code, UPPER_SNAKE_CASE, e.g. "MEMBER_ALREADY_CHECKED_IN"
     message: string,                    // English, for developers and logs only — never shown to users
-    errors?: Record<string, string[]>   // field → error codes, e.g. { "phone": ["invalid_format"] }
+    errors?: Record<string, string[]>,  // field → error codes, e.g. { "phone": ["invalid_format"] }
+    requestId: string                   // the X-Request-Id of this response (§1); not built yet: F-5
   }
 }
 ```
@@ -58,5 +61,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 **None built yet.** The planned endpoint surface lives in [plans/v1-mvp.md](../plans/v1-mvp.md#planned-api-surface). Each endpoint is added here, with its request and response, in the PR that builds it.
 
 ## 6. Domain error codes (initial)
+
+A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
 `EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `OWNER_ALREADY_LINKED`.

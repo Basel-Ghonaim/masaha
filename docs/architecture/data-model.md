@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
 
 ## Conventions
@@ -20,7 +20,7 @@
 - **Capacity is private from the public:** stored in the space's occupancy row, visible only to the space's staff (owner and reception), never to the admin or in a public page or response ([ADR 0008](decisions/0008-live-status-not-counts.md)).
 - **Freshness:** each fact group of a space carries its own `…UpdatedAt`, set when the group is saved **or confirmed unchanged**: profile (name, description, address, area, location, photos), hours, prices (with shifts), amenities, contacts. Confirming («المعلومات ما زالت صحيحة») resets only that group's date and changes none of its data.
 - **Same space by construction:** a record that points at two things of one space carries the `spaceId` and points at each through a composite foreign key, `(id, spaceId)`, so the database refuses a customer, package, shift or subscription of another space. A price's shift set the pattern.
-- **Idempotency:** a record the desk creates from a request that may be retried (a check-in, a visit, a payment) carries a client-generated `requestId` (a UUID), unique within its space. A retried request hits the key, and the service returns the row that already exists instead of recording it twice.
+- **Idempotency:** a record the desk creates from a request that may be retried (a check-in, a visit, a payment) carries the client's **idempotency key** (a UUID, sent in the `Idempotency-Key` header), unique within its space ([ADR 0015](decisions/0015-idempotency-and-concurrency.md)). A retried request hits the key, and the service returns the row that already exists instead of recording it twice. The key is stored in the `request_id` column; F-5 renames its Prisma field from `requestId` to `idempotencyKey`, with no migration.
 - **Settings** are key–value rows whose keys are fixed in code; each value is validated when read.
 - **Indexes only for queries that run.** Foreign keys used in lists are indexed, or covered by the prefix of a unique index.
 - **Unique violations** (Prisma `P2002`) become `409 CONFLICT`.
@@ -55,7 +55,7 @@ Summaries only: the schema owns the fields.
 - **Subscription** — any multi-day arrangement for a customer, from a package or custom («مخصّص», typed at the desk): a name, optional limits (start and end dates, total days, days per week, hours per day, total hours), fixed or usage-based billing (per hour or per day) with its price or rate copied in, an audience and an optional shift. It records who typed a desk price and who ended it early, and when. A renewal adds a row.
 - **CheckIn** — a customer present on one of their subscriptions, opened and closed manually or closed automatically. Never deleted.
 - **Visit** — a same-day stay, checked in by name, as a customer, or both, with an audience and an optional shift. Its hour and day rates are copied at check-in; at check-out it stores its charge: the rounding in force, whether the day-price cap applied, the amount, and who typed it when the desk had to. It gains a customer when it is left unpaid. Never deleted.
-- **Payment** — money the desk received for exactly one visit or one subscription ([ADR 0010](decisions/0010-manual-payment-ledger.md)): an amount above zero, the method (cash or transfer), an optional note, who recorded it and when it was received, and a client `requestId`. Never updated or deleted: a mistake is voided once, with who, when and a reason, and a voided payment counts nowhere.
+- **Payment** — money the desk received for exactly one visit or one subscription ([ADR 0010](decisions/0010-manual-payment-ledger.md)): an amount above zero, the method (cash or transfer), an optional note, who recorded it and when it was received, and the client's idempotency key. Never updated or deleted: a mistake is voided once, with who, when and a reason, and a voided payment counts nowhere.
 - **Announcement** — a time-bound bilingual notice from the owner or reception, typed (general, outage, closure, offer, event). Soft-deleted.
 - **ClosureExtension** — the owner extended the space's active subscriptions after a closure: the closure announcement (at most one extension each), the days, who applied it and when. **SubscriptionExtension** links it to each subscription it moved on; how many is the count of those links.
 - **DataReport** — a user's report that one field group of a space is wrong (prices, hours, contact, location, amenities, other), with its resolution and an optional note to the reporter, written by whoever resolves it.
@@ -124,7 +124,7 @@ The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove eac
 - One open check-in per customer, and one open visit per customer (partial unique indexes on `customerId` where `checkedOutAt IS NULL`).
 - Customer phone unique within a space among customers that are not archived (partial unique index); customers without a phone are not limited.
 - A check-in's, a visit's, a subscription's and a package's customer, subscription, package and shift belong to the record's own space (composite foreign keys).
-- A `requestId` is unique within its space (check-ins, visits, payments).
+- An idempotency key is unique within its space (check-ins, visits, payments).
 - One price per space, period, audience, shift and label, where a missing shift or label counts as one value (four unique indexes, three of them partial, because PostgreSQL treats NULLs as distinct).
 - A price's shift belongs to the price's own space (a foreign key through `(shiftId, spaceId)`).
 - `CHECK` constraints, written as raw SQL at the end of the init migration: phone numbers in E.164; an opening range and a shift inside the day, and a closed day without times; a check-in closes after it opens, and has a check-out method exactly when closed; end dates after start dates; location and amounts in range.
@@ -145,4 +145,6 @@ These rules span rows the database checks one at a time, so the services own the
 - a visit left unpaid at a manual check-out has a customer (the payment and the check-out are separate writes; a visit closed by the auto check-out may have none: it is uncollected);
 - a customer is present at most once across visits and check-ins (each table has its own index);
 - a closure extension belongs to a `CLOSURE` announcement, and extends only that space's active subscriptions;
-- a recorded payment within the due, and a void by the owner with a reason, are checked first here too, for a domain error, with the database as the backstop.
+- a void by the owner: who may void is a permission, checked by `can()`.
+
+The ledger's own rules (append-only, voided once, within the due) are the database's alone: the services do not repeat them, and a violation is translated into a domain error code ([ADR 0015](decisions/0015-idempotency-and-concurrency.md), [conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)).

@@ -3,6 +3,7 @@
 > **Status:** Accepted · **Date:** 2026-09-26
 > **Revised:** 2026-09-26 — Node 22 → 24 (24 is Active LTS; 22 is maintenance-only)
 > **Revised:** 2026-09-27 — PostgreSQL 16 → 18 (18 is the current major)
+> **Revised:** 2026-10-01 — `packages/shared` may also depend on `date-fns` and `@date-fns/tz`, for the Gaza calendar rules both apps share
 
 ## Context
 One developer, four months, a web client and an API that must agree on validation rules and types. The developer is strong in React and TypeScript and relies on AI assistance for the backend. A previous project (Quick Tweets) established a working architecture on a similar stack.
@@ -11,7 +12,7 @@ One developer, four months, a web client and an API that must agree on validatio
 - **npm workspaces monorepo**, one lockfile:
   - `apps/web` — React 19, TypeScript (strict), Vite, React Router.
   - `apps/api` — Node.js 24 LTS, Express 5, Prisma, PostgreSQL 18.
-  - `packages/shared` — Zod schemas, enums (`Role`, membership types), error codes and shared types. No runtime dependencies beyond Zod.
+  - `packages/shared` — Zod schemas, enums (`Role`, membership types), error codes, shared types and the Gaza calendar rules. No runtime dependencies beyond Zod, `date-fns` and `@date-fns/tz`.
 - Apps never import each other; both may import `packages/shared`.
 - API under `/api/v1`.
 

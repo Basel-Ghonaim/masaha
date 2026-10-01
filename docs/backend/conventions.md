@@ -1,7 +1,7 @@
 # Backend Conventions
 
-> **Status:** Active · **Class:** Contract — rules to build against. Built: the shared errors, http and validation code and the `can()` permission table. No module is built yet. The level rule in lint (§7) comes with F-5 · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
-> **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination and audit in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
+> **Status:** Active · **Class:** Contract — rules to build against. Built: the shared errors, http and validation code and the `can()` permission table. No module is built yet. The level rule in lint (§7) comes with F-5; the sections from §10 on are rules not yet built · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging, time, environments, idempotency and concurrency in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
 
 The backend is one application divided into **modules**, one per capability, arranged in **levels** (§7). Each module is built from the same **layers** (§2). **A screen is not a capability** (§7): placements follow the rule that consumes a value, never the screen that shows it.
 
@@ -12,7 +12,9 @@ apps/api/src/
   app.ts               the composition root: builds each module's service, wires the ports
                        (storage, email, clock, scheduler), mounts the space middleware (§8) and
                        every router where the API contract puts it; then the 404 and error handler
-  server.ts            starts it (env check, DB check, the scheduler, graceful shutdown)
+  server.ts            starts it as a long-running server, locally (env check, DB check, the
+                       scheduler, graceful shutdown); online, one thin function entry wraps the
+                       same app instead and starts no scheduler (§12)
   config/              Zod-validated environment; fails fast
   db/                  the database infrastructure, in one place: the Prisma client,
                        runInTransaction (§8) and the seed
@@ -30,8 +32,9 @@ apps/api/src/
     validation/        validate(schema, source) middleware, parseId, text normalisation
     auth/              requireAuth, optionalAuth, requireRole, requireSpaceAccess (§8), can()
     audit/             the audit writer (§6)
-    jobs/              the scheduler that runs the modules' timed work
-    storage/           the local-disk storage adapter (photos)
+    jobs/              the scheduler that runs the modules' timed work: an in-process timer
+                       locally, an internal endpoint called by an external cron online (§12)
+    storage/           the storage adapters (photos): local disk locally, object storage online (§12)
 ```
 
 Only what exists is created: no empty module folders, and a layer a module does not need is absent.
@@ -59,8 +62,14 @@ Inside a module, each layer calls only the one below it.
 ## 4. Errors
 
 - Any layer throws `AppError.<type>(code?, message?, errors?)`: `badRequest`, `unauthorized`, `forbidden`, `notFound`, `conflict`, `validation`, `rateLimit`, …
-- One error handler, registered last, shapes the envelope. Unknown errors are logged and returned as a generic `server` error.
+- One error handler, registered last, shapes the envelope. Unknown errors are logged and returned as a generic `server` error. The envelope carries the request id (§10).
 - Prisma `P2002` → `conflict` with `NOT_UNIQUE` field errors.
+- **Database rules become domain codes.** One translation table in `shared/errors` maps a database constraint's name to a domain error code, for example `payments_within_due` → `PAYMENT_EXCEEDS_DUE`, the way `P2002` becomes `NOT_UNIQUE`. The text comes from the copy catalogues. The ledger rules it serves are in §13.
+- **Adding a domain error code**, in this order:
+  1. the code in `packages/shared`;
+  2. its text in both copy catalogues (the typecheck fails while one is missing);
+  3. its line in [api-contract §6](../api/api-contract.md#6-domain-error-codes-initial);
+  4. a test that provokes it.
 
 ## 5. Pagination
 
@@ -266,3 +275,61 @@ A screen that shows or filters by values from several modules is composed by a m
   - `data-reports` sits above `space-links` and may call it directly for a report's space.
 - **Uncollected visits** (closed by the auto check-out and left unpaid) → `payments`, which owns the balance.
 - **The favourites' cards** (live status and prices) → `directory`, from the ids that `favorites` records. `favorites` never reads live status.
+
+## 10. Logging
+
+Not built yet: today `pino-http` logs with its defaults. F-5 builds what follows.
+
+- **Redaction** is owned by [security.md](security.md#http-hardening): what the HTTP logger never writes.
+- **The request id.** Every request gets a UUID, generated by the server. It is written in the request's log lines, returned in the `X-Request-Id` response header and in the error envelope ([api-contract §2](../api/api-contract.md#2-response-envelope)), and the web shows it in its error states, so a user's report can be matched to the log.
+- **Fields** of every request log: the request id, the user, their role, the space (on space routes), the route, the status and the duration.
+- **Levels:** a 4xx response is logged at `warn`, a 5xx at `error`.
+
+## 11. Time
+
+Masaha runs on Gaza time (`Asia/Gaza`). Not built yet: each rule applies from the first slice that reads the time.
+
+- **The library.** Gaza time is computed with `@date-fns/tz` and `date-fns`. Both are already in the lockfile through `react-day-picker`. The first slice that needs them adds them as direct dependencies of `apps/api` and `packages/shared`.
+- **The calendar rules are shared.** "Today" in Gaza and the week (Saturday to Friday) are pure functions in `packages/shared`, so the web and the API agree. They take the time as a parameter and never read the clock. They are calendar rules, not one module's domain rule (§8).
+- **Date-only columns** (a subscription's start and end) hold Gaza dates and are never converted to or from another zone.
+- **The clock is a port** (R5), injected where the application is assembled. A rule never calls `new Date()`: it receives the time.
+- **Daylight saving.** Palestine's daylight-saving dates change by decree, so the time-zone data can lag behind. This is a known risk, mitigated by keeping Node updated, and by a unit test that pins one known Gaza transition, so outdated data fails the tests.
+
+## 12. Environments
+
+The application runs in two environments: a long-running server locally, and a function on Vercel online ([ADR 0014](../architecture/decisions/0014-deployment.md)).
+
+- **One composition root.** The same `app.ts` assembles the application in both. Only a thin entry differs. No module, rule or path changes between them.
+- **The ports take a different implementation per environment.** Nothing else does.
+
+  | Port | Locally | Online |
+  |---|---|---|
+  | Storage | local disk | free object storage |
+  | Email | the development mode, which logs the link (F-5) | a single verified sender ([security.md](security.md#passwords)) |
+  | Scheduler | an in-process timer started by `server.ts` | an internal, secret-protected endpoint that an external cron calls every few minutes. The slice that builds it adds its path to the API contract |
+  | Clock | the system clock | the system clock. Tests inject a fixed one (§11) |
+- **No work runs after a response is sent**, in either environment. A function may be frozen as soon as it answers, so whatever a request must do is done before it responds.
+- **Timed work tolerates a late run.** An auto check-out records the cut-off time it was due at, never the time the job ran.
+- **Rate limits** are stored in PostgreSQL, so every instance shares them ([security.md](security.md#rate-limits-per-ip-fixed-window)).
+
+## 13. Idempotency and concurrency
+
+Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
+
+**Two ids, never confused.** The **idempotency key** is the client's: one per user action, the same on every retry of that action, sent in the `Idempotency-Key` header and stored with the record it creates. The **request id** is the server's: a new one for every HTTP request, retries included, used only for tracing (§10). A record never stores the request id as its idempotency key, or every retry would look new.
+
+### Idempotency
+- **Creates at the front desk** store the idempotency key, unique within the space. Today payments, visits and check-ins have it, in their `request_id` column; F-5 renames the Prisma field to `idempotencyKey` ([data-model.md](../architecture/data-model.md#conventions)).
+  - Subscriptions and customers have none yet. The slice that builds them adds it ([plan, step 8](../plans/v1-mvp.md#sequence-inside-the-build)).
+- **A retry returns the first result**, with the same status and body, never a conflict. The unique violation on the key is caught by the service, which returns the record that already exists. The general `P2002` → `NOT_UNIQUE` mapping (§4) never answers a retry.
+- **Updates and deletes are idempotent by design.** A repeated check-out returns the closed record, and a repeated void returns the voided payment.
+- **There is no generic store of responses.**
+
+### Concurrency
+- **Isolation stays at PostgreSQL's default, read committed.** The database's constraints and row locks are the guarantee.
+- **Rows are locked in one fixed order:** oldest first, then by id. One amount spread over several items ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)) locks and pays them in that order, so it cannot deadlock.
+
+### The ledger's rules
+- **The database owns the three payment rules its triggers enforce:** append-only, voided once, and never above the amount due ([data-model.md](../architecture/data-model.md#constraints-worth-stating)). The last one locks the item's row, so concurrent payments are counted one after the other.
+- **Services do not repeat these rules.** They write, and the error handler translates a violation through the constraint table (§4). Who may void a payment is not a ledger rule: it stays with `can()`.
+- **Each trigger is reached by an API integration test**, which checks the code the endpoint returns ([testing.md](../development/testing.md)).
