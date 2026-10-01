@@ -31,6 +31,7 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
   - [0011](architecture/decisions/0011-one-web-app.md) one web application for the public site and the dashboard
   - [0012](architecture/decisions/0012-modular-monolith-backend.md) backend: a modular monolith with levelled modules
   - [0013](architecture/decisions/0013-identity-modules.md) identity: sessions, users and auth as three modules
+  - [0014](architecture/decisions/0014-deployment.md) deployment: one origin on Vercel and Neon's free tiers, adapted to the architecture
 - [findings.md](architecture/findings.md) — recorded divergences from the intended design.
 
 ### `api/`

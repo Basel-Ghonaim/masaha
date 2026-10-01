@@ -1,7 +1,7 @@
 # Backend Conventions
 
 > **Status:** Active · **Class:** Contract — rules to build against. Built: the shared errors, http and validation code and the `can()` permission table. No module is built yet. The level rule in lint (§7) comes with F-5; the sections from §10 on are rules not yet built · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
-> **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging and time in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
+> **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging, time and environments in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
 
 The backend is one application divided into **modules**, one per capability, arranged in **levels** (§7). Each module is built from the same **layers** (§2). **A screen is not a capability** (§7): placements follow the rule that consumes a value, never the screen that shows it.
 
@@ -12,7 +12,9 @@ apps/api/src/
   app.ts               the composition root: builds each module's service, wires the ports
                        (storage, email, clock, scheduler), mounts the space middleware (§8) and
                        every router where the API contract puts it; then the 404 and error handler
-  server.ts            starts it (env check, DB check, the scheduler, graceful shutdown)
+  server.ts            starts it as a long-running server, locally (env check, DB check, the
+                       scheduler, graceful shutdown); online, one thin function entry wraps the
+                       same app instead and starts no scheduler (§12)
   config/              Zod-validated environment; fails fast
   db/                  the database infrastructure, in one place: the Prisma client,
                        runInTransaction (§8) and the seed
@@ -30,8 +32,9 @@ apps/api/src/
     validation/        validate(schema, source) middleware, parseId, text normalisation
     auth/              requireAuth, optionalAuth, requireRole, requireSpaceAccess (§8), can()
     audit/             the audit writer (§6)
-    jobs/              the scheduler that runs the modules' timed work
-    storage/           the local-disk storage adapter (photos)
+    jobs/              the scheduler that runs the modules' timed work: an in-process timer
+                       locally, an internal endpoint called by an external cron online (§12)
+    storage/           the storage adapters (photos): local disk locally, object storage online (§12)
 ```
 
 Only what exists is created: no empty module folders, and a layer a module does not need is absent.
@@ -290,3 +293,20 @@ Masaha runs on Gaza time (`Asia/Gaza`). Not built yet: each rule applies from th
 - **Date-only columns** (a subscription's start and end) hold Gaza dates and are never converted to or from another zone.
 - **The clock is a port** (R5), injected where the application is assembled. A rule never calls `new Date()`: it receives the time.
 - **Daylight saving.** Palestine's daylight-saving dates change by decree, so the time-zone data can lag behind. This is a known risk, mitigated by keeping Node updated, and by a unit test that pins one known Gaza transition, so outdated data fails the tests.
+
+## 12. Environments
+
+The application runs in two environments: a long-running server locally, and a function on Vercel online ([ADR 0014](../architecture/decisions/0014-deployment.md)).
+
+- **One composition root.** The same `app.ts` assembles the application in both. Only a thin entry differs. No module, rule or path changes between them.
+- **The ports take a different implementation per environment.** Nothing else does.
+
+  | Port | Locally | Online |
+  |---|---|---|
+  | Storage | local disk | free object storage |
+  | Email | the development mode, which logs the link (F-5) | a single verified sender ([security.md](security.md#passwords)) |
+  | Scheduler | an in-process timer started by `server.ts` | an internal, secret-protected endpoint that an external cron calls every few minutes. The slice that builds it adds its path to the API contract |
+  | Clock | the system clock | the system clock. Tests inject a fixed one (§11) |
+- **No work runs after a response is sent**, in either environment. A function may be frozen as soon as it answers, so whatever a request must do is done before it responds.
+- **Timed work tolerates a late run.** An auto check-out records the cut-off time it was due at, never the time the job ran.
+- **Rate limits** are stored in PostgreSQL, so every instance shares them ([security.md](security.md#rate-limits-per-ip-fixed-window)).
