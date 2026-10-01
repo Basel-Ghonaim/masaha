@@ -1,8 +1,8 @@
 // The database schema: the source of truth for every entity and field. The conventions and the
 // reasoning are in docs/architecture/data-model.md. The connection URL lives in prisma.config.ts.
 //
-// The CHECK constraints cannot be expressed here: they are raw SQL at the end of the init
-// migration. Prisma does not compare CHECK constraints, so later migrations leave them alone.
+// The CHECK constraints cannot be expressed here: they are raw SQL at the end of the migration
+// that adds them. Prisma does not compare CHECK constraints, so later migrations leave them alone.
 
 generator client {
   provider            = "prisma-client"
@@ -159,7 +159,7 @@ model User {
   chargedVisits       Visit[]              @relation("VisitChargeSetBy")
   recordedPayments    Payment[]            @relation("PaymentRecordedBy")
   voidedPayments      Payment[]            @relation("PaymentVoidedBy")
-  stateOverrides      Space[]              @relation("SpaceStateOverrideBy")
+  stateOverrides      SpaceOccupancy[]     @relation("SpaceStateOverrideBy")
   closureExtensions   ClosureExtension[]
 
   @@map("users")
@@ -260,72 +260,52 @@ model Amenity {
 // ─── Spaces ──────────────────────────────────────────────────────────────────────────────────
 
 model Space {
-  id                    Int           @id @default(autoincrement())
+  id                 Int       @id @default(autoincrement())
   /// Never reused, including after a soft delete.
-  slug                  String        @unique
-  nameAr                String        @map("name_ar")
-  nameEn                String?       @map("name_en")
-  descriptionAr         String?       @map("description_ar")
-  descriptionEn         String?       @map("description_en")
+  slug               String    @unique
+  nameAr             String    @map("name_ar")
+  nameEn             String?   @map("name_en")
+  descriptionAr      String?   @map("description_ar")
+  descriptionEn      String?   @map("description_en")
   /// Free text with landmarks.
-  addressAr             String        @map("address_ar")
-  addressEn             String?       @map("address_en")
-  areaId                Int           @map("area_id")
-  lat                   Float
-  lng                   Float
-  /// Private: only the space's owner sees it (ADR 0008). Null until set.
-  capacity              Int?
-  /// Auto check-out after this long, if earlier than closing time. Null = at closing only.
-  maxStayMinutes        Int?          @map("max_stay_minutes")
-  // The manual live-status override: the state, until when, and who set it; all three or none. It
-  // counts only while it has not expired (docs/architecture/data-model.md › Live status).
-  stateOverride         LiveStatus?   @map("state_override")
-  stateOverrideUntil    DateTime?     @map("state_override_until") @db.Timestamptz(3)
-  stateOverrideById     Int?          @map("state_override_by_id")
-  // The space's settings (the owner's Settings screen).
-  /// Open visits and check-ins are closed automatically at closing time.
-  autoCheckoutAtClosing Boolean       @default(true) @map("auto_checkout_at_closing")
-  visitRounding         VisitRounding @default(UP_AFTER_MINUTES) @map("visit_rounding")
-  /// The N of "up after N minutes"; set exactly for that rule.
-  visitRoundingMinutes  Int?          @default(15) @map("visit_rounding_minutes")
-  /// A visit's charge never exceeds the day price.
-  visitCapAtDayPrice    Boolean       @default(true) @map("visit_cap_at_day_price")
-  /// The desk may charge a visit at the student prices.
-  visitStudentPrices    Boolean       @default(true) @map("visit_student_prices")
-  /// The WhatsApp debt reminder; null = the default text from the copy catalogue.
-  reminderTemplate      String?       @map("reminder_template")
-  isHidden              Boolean       @default(false) @map("is_hidden")
-  deletedAt             DateTime?     @map("deleted_at") @db.Timestamptz(3)
+  addressAr          String    @map("address_ar")
+  addressEn          String?   @map("address_en")
+  areaId             Int       @map("area_id")
+  lat                Float
+  lng                Float
+  isHidden           Boolean   @default(false) @map("is_hidden")
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(3)
   // Freshness per fact group: set when the group is saved or confirmed unchanged.
   /// Name, description, address, area, location and photos.
-  profileUpdatedAt      DateTime      @default(now()) @map("profile_updated_at") @db.Timestamptz(3)
-  hoursUpdatedAt        DateTime      @default(now()) @map("hours_updated_at") @db.Timestamptz(3)
+  profileUpdatedAt   DateTime  @default(now()) @map("profile_updated_at") @db.Timestamptz(3)
+  hoursUpdatedAt     DateTime  @default(now()) @map("hours_updated_at") @db.Timestamptz(3)
   /// Prices and shifts.
-  pricesUpdatedAt       DateTime      @default(now()) @map("prices_updated_at") @db.Timestamptz(3)
-  amenitiesUpdatedAt    DateTime      @default(now()) @map("amenities_updated_at") @db.Timestamptz(3)
-  contactsUpdatedAt     DateTime      @default(now()) @map("contacts_updated_at") @db.Timestamptz(3)
-  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  pricesUpdatedAt    DateTime  @default(now()) @map("prices_updated_at") @db.Timestamptz(3)
+  amenitiesUpdatedAt DateTime  @default(now()) @map("amenities_updated_at") @db.Timestamptz(3)
+  contactsUpdatedAt  DateTime  @default(now()) @map("contacts_updated_at") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  area            Area           @relation(fields: [areaId], references: [id], onDelete: Restrict)
-  stateOverrideBy User?          @relation("SpaceStateOverrideBy", fields: [stateOverrideById], references: [id], onDelete: Restrict)
-  managers        SpaceManager[]
-  amenities       SpaceAmenity[]
-  hours           SpaceHours[]
-  shifts          SpaceShift[]
-  prices          SpacePrice[]
-  contacts        SpaceContact[]
-  photos          SpacePhoto[]
-  customers       Customer[]
-  packages        Package[]
-  subscriptions   Subscription[]
-  checkIns        CheckIn[]
-  visits          Visit[]
-  payments        Payment[]
-  announcements   Announcement[]
-  dataReports     DataReport[]
-  favorites       Favorite[]
-  auditLogs       AuditLog[]
+  area          Area            @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  settings      SpaceSettings?
+  occupancy     SpaceOccupancy?
+  managers      SpaceManager[]
+  amenities     SpaceAmenity[]
+  hours         SpaceHours[]
+  shifts        SpaceShift[]
+  prices        SpacePrice[]
+  contacts      SpaceContact[]
+  photos        SpacePhoto[]
+  customers     Customer[]
+  packages      Package[]
+  subscriptions Subscription[]
+  checkIns      CheckIn[]
+  visits        Visit[]
+  payments      Payment[]
+  announcements Announcement[]
+  dataReports   DataReport[]
+  favorites     Favorite[]
+  auditLogs     AuditLog[]
 
   @@index([areaId])
   @@map("spaces")
@@ -333,6 +313,53 @@ model Space {
 
 /// A user's link to a space, as its OWNER or RECEPTION. A space with at least one active OWNER
 /// link is verified (ADR 0009).
+// The space's settings (the owner's Settings screen), owned by the space-settings module. Every
+// space has one row, created with the space from the new-space defaults. The four settings those
+// defaults govern have no database default, so a space created without copying them fails.
+model SpaceSettings {
+  spaceId               Int           @id @map("space_id")
+  /// Open visits and check-ins are closed automatically at closing time.
+  autoCheckoutAtClosing Boolean       @map("auto_checkout_at_closing")
+  /// Auto check-out after this long, if earlier than closing time. Null = at closing only.
+  maxStayMinutes        Int?          @map("max_stay_minutes")
+  visitRounding         VisitRounding @map("visit_rounding")
+  /// The N of "up after N minutes"; set exactly for that rule.
+  visitRoundingMinutes  Int?          @map("visit_rounding_minutes")
+  /// A visit's charge never exceeds the day price.
+  visitCapAtDayPrice    Boolean       @map("visit_cap_at_day_price")
+  /// The desk may charge a visit at the student prices.
+  visitStudentPrices    Boolean       @default(true) @map("visit_student_prices")
+  /// The WhatsApp debt reminder; null = the default text from the copy catalogue.
+  reminderTemplate      String?       @map("reminder_template")
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@map("space_settings")
+}
+
+// Capacity and the manual override, owned by the occupancy module. A space without a row has no
+// capacity and no override; occupancy creates the row on its first write.
+model SpaceOccupancy {
+  spaceId            Int         @id @map("space_id")
+  /// Private from the public and the admin: the space's staff see it, and only the owner edits it
+  /// (ADR 0008). Null until set.
+  capacity           Int?
+  // The manual live-status override: the state, until when, and who set it; all three or none. It
+  // counts only while it has not expired (docs/architecture/data-model.md › Live status).
+  stateOverride      LiveStatus? @map("state_override")
+  stateOverrideUntil DateTime?   @map("state_override_until") @db.Timestamptz(3)
+  stateOverrideById  Int?        @map("state_override_by_id")
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space           Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  stateOverrideBy User? @relation("SpaceStateOverrideBy", fields: [stateOverrideById], references: [id], onDelete: Restrict)
+
+  @@map("space_occupancy")
+}
+
 model SpaceManager {
   spaceId       Int              @map("space_id")
   userId        Int              @map("user_id")

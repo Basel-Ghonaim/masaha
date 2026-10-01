@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma } from '../prisma.ts';
+import { newSpaceDefaultsSchema } from './lookups.ts';
 import { seed, type SeedInput } from './seed.ts';
 
 const INPUT: SeedInput = {
@@ -33,7 +34,7 @@ describe('seed', () => {
       governorates: 5,
       areas: 25,
       amenities: 8,
-      settings: 4,
+      settings: 5,
       users: 1,
     });
   });
@@ -87,9 +88,27 @@ describe('seed', () => {
 
     const settings = await prisma.setting.findMany({ orderBy: { key: 'asc' } });
     expect(settings.map(({ key, value }) => [key, value])).toEqual([
+      [
+        'newSpaceDefaults',
+        {
+          autoCheckoutAtClosing: true,
+          visitRounding: 'UP_AFTER_MINUTES',
+          visitRoundingMinutes: 15,
+          visitCapAtDayPrice: true,
+        },
+      ],
       ['priceStalenessDays', 30],
       ['stalenessDays', 60],
     ]);
+  });
+
+  it('stores new-space defaults that pass their own validation', async () => {
+    await seed(prisma, INPUT);
+
+    const { value } = await prisma.setting.findUniqueOrThrow({
+      where: { key: 'newSpaceDefaults' },
+    });
+    expect(newSpaceDefaultsSchema.safeParse(value).success).toBe(true);
   });
 
   it('changes nothing when run again, and keeps the admin edits', async () => {

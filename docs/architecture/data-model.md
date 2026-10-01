@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
 
 ## Conventions
@@ -8,7 +8,7 @@
 - **IDs:** `Int @id @default(autoincrement())`. Public space URLs use a unique `slug`, never reused.
 - **Naming:** models PascalCase, fields camelCase, mapped to snake_case tables (plural) and columns with `@map` / `@@map`.
 - **Timestamps:** `createdAt`, `updatedAt` on every table, as `timestamptz`. The exceptions are the append-only `AuditLog` and `Payment`, which have `createdAt` only; a payment's one change, its void, carries its own time. Calendar dates (a subscription's start and end) are `date`.
-- **Soft delete:** `deletedAt` on `Space` and `Announcement`, and `archivedAt` on `Customer` (named as the desk sees it); `suspendedAt` on `User` ([ADR 0007](decisions/0007-soft-delete.md)). Purely dependent rows (managers, hours, shifts, prices, contacts, amenity links, photos, favourites, tokens) cascade from their parent; history (customers, packages, subscriptions, check-ins, visits, announcements, data reports, audit log) restricts deletion.
+- **Soft delete:** `deletedAt` on `Space` and `Announcement`, and `archivedAt` on `Customer` (named as the desk sees it); `suspendedAt` on `User` ([ADR 0007](decisions/0007-soft-delete.md)). Purely dependent rows (managers, settings, occupancy, hours, shifts, prices, contacts, amenity links, photos, favourites, tokens) cascade from their parent; history (customers, packages, subscriptions, check-ins, visits, announcements, data reports, audit log) restricts deletion.
 - **Bilingual content:** paired fields such as `nameAr` / `nameEn`, `descriptionAr` / `descriptionEn`, `addressAr` / `addressEn`. Arabic required, English optional. A space's description is optional in both languages. Lookups (governorates, areas, amenities) require both.
 - **Areas are two-level:** governorate → area, covering the whole Gaza Strip. Each carries an admin-managed `isActive` flag: an area beyond reach is hidden and restored later without deleting anything. Amenities carry the same flag, so a retired amenity keeps its links.
 - **Prices:** every period (hour, day, week, month) is optional, so a missing period is a missing row. A price has an audience (general or student), an optional shift and an optional custom label (Arabic and English). Amounts are integers in agorot with a `currency` (`ILS`); display only in v1. Halls for rent and technical training are amenities, never prices.
@@ -17,7 +17,7 @@
 - **Contacts** are a typed list per space (WhatsApp, phone, email, Instagram, Facebook, TikTok, website), not fixed columns:
   - phone and WhatsApp values, like every phone number in the database (customers), are stored in **E.164**. Input arrives as `00970…`, `+972…` or local `05…`; Palestinian mobiles (`059…` Jawwal, `056…` Ooredoo) are normalised to `+970…` whatever prefix they arrived with, so one number has one form. Numbers are displayed LTR;
   - email is stored lowercased; Instagram, Facebook, TikTok and website as full `https://` URLs.
-- **Capacity is private from the public:** stored on the space, visible only to the space's staff (owner and reception), never to the admin or in a public page or response ([ADR 0008](decisions/0008-live-status-not-counts.md)).
+- **Capacity is private from the public:** stored in the space's occupancy row, visible only to the space's staff (owner and reception), never to the admin or in a public page or response ([ADR 0008](decisions/0008-live-status-not-counts.md)).
 - **Freshness:** each fact group of a space carries its own `…UpdatedAt`, set when the group is saved **or confirmed unchanged**: profile (name, description, address, area, location, photos), hours, prices (with shifts), amenities, contacts. Confirming («المعلومات ما زالت صحيحة») resets only that group's date and changes none of its data.
 - **Same space by construction:** a record that points at two things of one space carries the `spaceId` and points at each through a composite foreign key, `(id, spaceId)`, so the database refuses a customer, package, shift or subscription of another space. A price's shift set the pattern.
 - **Idempotency:** a record the desk creates from a request that may be retried (a check-in, a visit, a payment) carries a client-generated `requestId` (a UUID), unique within its space. A retried request hits the key, and the service returns the row that already exists instead of recording it twice.
@@ -39,7 +39,9 @@ Summaries only: the schema owns the fields.
 - **Amenity** — a bilingual yes/no feature with a stable `key` and an icon key, ordered, with an active flag and a filter flag: the directory's filter leaves out what nearly every space has (Internet, stable power), which tells no space apart. Linked to spaces through **SpaceAmenity**.
 
 ### Spaces
-- **Space** — a listed coworking space: bilingual profile, area and map location, private capacity, the optional auto check-out limit (`maxStayMinutes`), the admin's hide flag, soft delete, and one freshness timestamp per fact group. It holds the manual live-status override (the state, until when, and who set it) and the space's settings, each with a default: auto check-out at closing (on), the visit rounding rule (up after 15 minutes; or to the nearest half hour, or per minute), the visit cap at the day price (on), student prices for visits (on), and the WhatsApp reminder template (none: the copy catalogue's default text).
+- **Space** — a listed coworking space: bilingual profile, area and map location, the admin's hide flag, soft delete, and one freshness timestamp per fact group.
+- **SpaceSettings** — the space's settings, one row per space, keyed by the space and owned by the `space-settings` module ([conventions §9](../backend/conventions.md#space-settings)): auto check-out at closing, the optional auto check-out limit (`maxStayMinutes`), the visit rounding rule (up after N minutes, to the nearest half hour, or per minute), the visit cap at the day price, student prices for visits (on by default), and the WhatsApp reminder template (none by default: the copy catalogue's text). Every space has a row, created with the space as a copy of the `newSpaceDefaults` setting. The four settings those defaults govern have no database default, so a space created without copying them fails rather than silently taking other values.
+- **SpaceOccupancy** — the space's private capacity and the manual live-status override (the state, until when, and who set it), at most one row per space, keyed by the space and owned by the `occupancy` module ([conventions §9](../backend/conventions.md#occupancy-the-spaces-state-now)). A space without a row has no capacity and no override; `occupancy` creates the row on its first write.
 - **SpaceManager** — a user's link to a space, with its role there, `OWNER` or `RECEPTION` ([ADR 0009](decisions/0009-space-scoped-reception-role.md)). The role alone decides what the user may do at the space; `can()` never reads the global role for it. The owner deactivates a reception link rather than deleting it, because payments and the audit log name its user; a deactivated link grants nothing. An active `OWNER` link makes the space verified.
 - **SpaceHours** — one row per day of the week: a closed flag, or one opening range.
 - **SpaceShift** — optional named shifts inside the opening range.
@@ -58,7 +60,7 @@ Summaries only: the schema owns the fields.
 - **ClosureExtension** — the owner extended the space's active subscriptions after a closure: the closure announcement (at most one extension each), the days, who applied it and when. **SubscriptionExtension** links it to each subscription it moved on; how many is the count of those links.
 - **DataReport** — a user's report that one field group of a space is wrong (prices, hours, contact, location, amenities, other), with its resolution and an optional note to the reporter, written by whoever resolves it.
 - **Favorite** — a user's saved space.
-- **Setting** — a platform setting: the staleness thresholds `stalenessDays` (60) and `priceStalenessDays` (30), and the platform's `contactEmail` and `contactWhatsapp`.
+- **Setting** — a platform setting: the staleness thresholds `stalenessDays` (60) and `priceStalenessDays` (30); `newSpaceDefaults`, one object holding the values a new space's settings are copied from (auto check-out at closing on, the visit rounding rule up after 15 minutes, the cap at the day price on; [conventions §9](../backend/conventions.md#new-space-defaults)); and the platform's `contactEmail` and `contactWhatsapp`.
 - **AuditLog** — who did what to which entity, with before and after, optionally scoped to a space. The actor is null for system actions such as auto check-out. Never deleted.
 
 ## Derived values (computed, not stored)
@@ -125,7 +127,7 @@ The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove eac
 - A `requestId` is unique within its space (check-ins, visits, payments).
 - One price per space, period, audience, shift and label, where a missing shift or label counts as one value (four unique indexes, three of them partial, because PostgreSQL treats NULLs as distinct).
 - A price's shift belongs to the price's own space (a foreign key through `(shiftId, spaceId)`).
-- `CHECK` constraints, written as raw SQL at the end of the init migration: phone numbers in E.164; an opening range and a shift inside the day, and a closed day without times; a check-in closes after it opens, and has a check-out method exactly when closed; end dates after start dates; location, capacity, stay limit and amounts in range.
+- `CHECK` constraints, written as raw SQL at the end of the init migration: phone numbers in E.164; an opening range and a shift inside the day, and a closed day without times; a check-in closes after it opens, and has a check-out method exactly when closed; end dates after start dates; location and amounts in range.
 - A user has a password, a Google subject, or both (a `CHECK`); a Google subject belongs to one user.
 - The partial indexes use Prisma's `partialIndexes` preview feature, so Prisma knows them and later migrations keep them. `CHECK` constraints are not compared by Prisma, so later migrations leave them alone; a change to one is a new raw-SQL migration.
 - `CHECK` constraints of the later migrations: a customer's phone in E.164; a subscription's and a package's limits positive (at most 7 days a week and 24 hours a day), prices not negative, and an early end with both its time and who ended it; a visit has a name or a customer, closes after it opens, has a check-out method exactly when closed, has no charge while open, names who typed a charge only with a charge, keeps rounding minutes (1–59) exactly for the "up after N minutes" rule, and has no negative rate or charge.
@@ -133,12 +135,13 @@ The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove eac
   - a payment settles exactly one item, a visit or a subscription of its own space, with an amount above zero;
   - it is never updated or deleted; its only change is one void that sets the time, who voided and a non-blank reason together and touches nothing else, and a voided payment never changes again;
   - the payments of a visit, or of a fixed-price subscription, that are not voided never add up to more than its charge or price, and a visit is paid only once its charge is set. A usage-based subscription has no ceiling, so paying ahead leaves it in credit. The item's row is locked while this is checked, so payments recorded at once are counted in turn, and a retried request reaches its unique key rather than the ceiling;
-- **The space's settings and override**, by `CHECK` constraints: an override has its state, its end and who set it, together; the rounding minutes (1–59) are set exactly for the "up after N minutes" rule. A closure extension is applied at most once per closure announcement (a unique key), by at least one day.
+- **The space's settings and occupancy**: a space has at most one row of each (the space is the key of both). By `CHECK` constraints, in the settings the rounding minutes (1–59) are set exactly for the "up after N minutes" rule and a stay limit is positive; in the occupancy a capacity is positive, and an override has its state, its end and who set it, together. A closure extension is applied at most once per closure announcement (a unique key), by at least one day.
 - Check-ins, visits, subscriptions, payments and audit-log entries are never deleted.
 
 ### Checked by the service
 
 These rules span rows the database checks one at a time, so the services own them:
+- every space has a settings row, created in the same transaction as the space, from the new-space defaults ([conventions §9](../backend/conventions.md#new-space-defaults));
 - a visit left unpaid at a manual check-out has a customer (the payment and the check-out are separate writes; a visit closed by the auto check-out may have none: it is uncollected);
 - a customer is present at most once across visits and check-ins (each table has its own index);
 - a closure extension belongs to a `CLOSURE` announcement, and extends only that space's active subscriptions;

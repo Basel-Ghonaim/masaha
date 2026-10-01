@@ -125,14 +125,12 @@ describe('opening hours and shifts', () => {
 });
 
 describe('a space', () => {
-  it('has a location on the globe, and a positive capacity and stay limit when set', async () => {
+  it('has a location on the globe', async () => {
     const space = await createSpace();
-    const update = (data: { lat?: number; capacity?: number; maxStayMinutes?: number }) =>
-      prisma.space.update({ where: { id: space.id }, data });
 
-    await expect(update({ lat: 91 })).rejects.toThrow(/spaces_location_check/);
-    await expect(update({ capacity: 0 })).rejects.toThrow(/spaces_capacity_check/);
-    await expect(update({ maxStayMinutes: 0 })).rejects.toThrow(/spaces_max_stay_minutes_check/);
+    await expect(
+      prisma.space.update({ where: { id: space.id }, data: { lat: 91 } }),
+    ).rejects.toThrow(/spaces_location_check/);
   });
 
   it('stores phone and WhatsApp contacts in E.164, other contacts as given', async () => {
@@ -146,50 +144,41 @@ describe('a space', () => {
     await expect(contact('PHONE', '0569000001')).rejects.toThrow(/space_contacts_phone_e164_check/);
     await expect(contact('INSTAGRAM', 'https://instagram.com/focus')).resolves.toBeDefined();
   });
+});
 
-  it('starts with the default settings and no override', async () => {
-    await expect(createSpace()).resolves.toMatchObject({
-      autoCheckoutAtClosing: true,
-      visitRounding: 'UP_AFTER_MINUTES',
-      visitRoundingMinutes: 15,
-      visitCapAtDayPrice: true,
-      visitStudentPrices: true,
-      reminderTemplate: null,
-      stateOverride: null,
-    });
+describe("a space's occupancy", () => {
+  it('is one row per space, keyed by the space, and goes with it', async () => {
+    const space = await createSpace();
+    await prisma.spaceOccupancy.create({ data: { spaceId: space.id, capacity: 30 } });
+
+    await expect(
+      prisma.spaceOccupancy.create({ data: { spaceId: space.id, capacity: 20 } }),
+    ).rejects.toMatchObject({ code: 'P2002' });
+    await prisma.space.delete({ where: { id: space.id } });
+    expect(await prisma.spaceOccupancy.count()).toBe(0);
   });
 
-  it('keeps rounding minutes for the "up after N minutes" rule only, from 1 to 59', async () => {
+  it('has a positive capacity when set', async () => {
     const space = await createSpace();
-    const update = (data: {
-      visitRounding?: 'UP_AFTER_MINUTES' | 'PER_MINUTE';
-      visitRoundingMinutes?: number | null;
-    }) => prisma.space.update({ where: { id: space.id }, data });
 
-    await expect(update({ visitRounding: 'PER_MINUTE' })).rejects.toThrow(
-      /spaces_visit_rounding_check/,
-    );
-    await expect(update({ visitRoundingMinutes: null })).rejects.toThrow(
-      /spaces_visit_rounding_check/,
-    );
-    await expect(update({ visitRoundingMinutes: 60 })).rejects.toThrow(
-      /spaces_visit_rounding_check/,
-    );
     await expect(
-      update({ visitRounding: 'PER_MINUTE', visitRoundingMinutes: null }),
-    ).resolves.toMatchObject({ visitRounding: 'PER_MINUTE' });
+      prisma.spaceOccupancy.create({ data: { spaceId: space.id, capacity: 0 } }),
+    ).rejects.toThrow(/space_occupancy_capacity_check/);
   });
 
   it('sets a state override with its end and who set it, together', async () => {
     const space = await createSpace();
     const staff = await createUser();
+    await prisma.spaceOccupancy.create({ data: { spaceId: space.id } });
     const update = (data: {
       stateOverride: 'FULL' | null;
       stateOverrideUntil?: Date | null;
       stateOverrideById?: number | null;
-    }) => prisma.space.update({ where: { id: space.id }, data });
+    }) => prisma.spaceOccupancy.update({ where: { spaceId: space.id }, data });
 
-    await expect(update({ stateOverride: 'FULL' })).rejects.toThrow(/spaces_state_override_check/);
+    await expect(update({ stateOverride: 'FULL' })).rejects.toThrow(
+      /space_occupancy_state_override_check/,
+    );
     await expect(
       update({
         stateOverride: 'FULL',
@@ -200,6 +189,74 @@ describe('a space', () => {
     await expect(
       update({ stateOverride: null, stateOverrideUntil: null, stateOverrideById: null }),
     ).resolves.toMatchObject({ stateOverride: null });
+  });
+});
+
+describe("a space's settings", () => {
+  /** The four settings the new-space defaults govern, as a space starts with them. */
+  const DEFAULTS = {
+    autoCheckoutAtClosing: true,
+    visitRounding: 'UP_AFTER_MINUTES',
+    visitRoundingMinutes: 15,
+    visitCapAtDayPrice: true,
+  } as const;
+
+  async function createSettings(spaceId: number) {
+    return prisma.spaceSettings.create({ data: { spaceId, ...DEFAULTS } });
+  }
+
+  it('are one row per space, keyed by the space, and go with it', async () => {
+    const space = await createSpace();
+    await createSettings(space.id);
+
+    await expect(createSettings(space.id)).rejects.toMatchObject({ code: 'P2002' });
+    await prisma.space.delete({ where: { id: space.id } });
+    expect(await prisma.spaceSettings.count()).toBe(0);
+  });
+
+  it('have no database default for the settings the new-space defaults govern', async () => {
+    const space = await createSpace();
+
+    await expect(
+      prisma.$executeRaw`INSERT INTO "space_settings" ("space_id", "updated_at")
+        VALUES (${space.id}, now())`,
+    ).rejects.toThrow(/auto_checkout_at_closing/);
+    await expect(createSettings(space.id)).resolves.toMatchObject({
+      visitStudentPrices: true,
+      maxStayMinutes: null,
+      reminderTemplate: null,
+    });
+  });
+
+  it('keep rounding minutes for the "up after N minutes" rule only, from 1 to 59', async () => {
+    const space = await createSpace();
+    await createSettings(space.id);
+    const update = (data: {
+      visitRounding?: 'UP_AFTER_MINUTES' | 'PER_MINUTE';
+      visitRoundingMinutes?: number | null;
+    }) => prisma.spaceSettings.update({ where: { spaceId: space.id }, data });
+
+    await expect(update({ visitRounding: 'PER_MINUTE' })).rejects.toThrow(
+      /space_settings_visit_rounding_check/,
+    );
+    await expect(update({ visitRoundingMinutes: null })).rejects.toThrow(
+      /space_settings_visit_rounding_check/,
+    );
+    await expect(update({ visitRoundingMinutes: 60 })).rejects.toThrow(
+      /space_settings_visit_rounding_check/,
+    );
+    await expect(
+      update({ visitRounding: 'PER_MINUTE', visitRoundingMinutes: null }),
+    ).resolves.toMatchObject({ visitRounding: 'PER_MINUTE' });
+  });
+
+  it('have a positive stay limit when set', async () => {
+    const space = await createSpace();
+    await createSettings(space.id);
+
+    await expect(
+      prisma.spaceSettings.update({ where: { spaceId: space.id }, data: { maxStayMinutes: 0 } }),
+    ).rejects.toThrow(/space_settings_max_stay_minutes_check/);
   });
 });
 

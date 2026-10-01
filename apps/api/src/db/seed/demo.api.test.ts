@@ -41,6 +41,56 @@ describe('seedDemo', () => {
     expect(await prisma.package.count({ where: { spaceId: space.id } })).toBe(5);
   });
 
+  it('has a capacity, and no override', async () => {
+    await seedDemo(prisma, DEMO);
+
+    const { occupancy } = await prisma.space.findUniqueOrThrow({
+      where: { slug: DEMO_SPACE_SLUG },
+      include: { occupancy: true },
+    });
+    expect(occupancy).toMatchObject({ capacity: 40, stateOverride: null });
+  });
+
+  it('copies its settings from the seeded new-space defaults', async () => {
+    await seedDemo(prisma, DEMO);
+
+    const { settings } = await prisma.space.findUniqueOrThrow({
+      where: { slug: DEMO_SPACE_SLUG },
+      include: { settings: true },
+    });
+    const { value } = await prisma.setting.findUniqueOrThrow({
+      where: { key: 'newSpaceDefaults' },
+    });
+    expect(settings).toMatchObject(value as object);
+  });
+
+  it("copies the admin's edited defaults, not the seed's", async () => {
+    await prisma.setting.update({
+      where: { key: 'newSpaceDefaults' },
+      data: {
+        value: {
+          autoCheckoutAtClosing: false,
+          visitRounding: 'PER_MINUTE',
+          visitRoundingMinutes: null,
+          visitCapAtDayPrice: false,
+        },
+      },
+    });
+
+    await seedDemo(prisma, DEMO);
+
+    const { settings } = await prisma.space.findUniqueOrThrow({
+      where: { slug: DEMO_SPACE_SLUG },
+      include: { settings: true },
+    });
+    expect(settings).toMatchObject({
+      autoCheckoutAtClosing: false,
+      visitRounding: 'PER_MINUTE',
+      visitRoundingMinutes: null,
+      visitCapAtDayPrice: false,
+    });
+  });
+
   it('holds the four subscription scenarios', async () => {
     await seedDemo(prisma, DEMO);
 

@@ -1,4 +1,4 @@
-import type { PrismaClient } from '../../generated/prisma/client.ts';
+import type { Prisma, PrismaClient } from '../../generated/prisma/client.ts';
 import { hashPassword } from '../../shared/auth/index.ts';
 import { AMENITIES, DEFAULT_SETTINGS, GOVERNORATES } from './lookups.ts';
 
@@ -36,7 +36,7 @@ export async function seed(db: PrismaClient, input: SeedInput): Promise<void> {
     });
   }
 
-  const settings: Record<string, string | number> = { ...DEFAULT_SETTINGS };
+  const settings: Record<string, Prisma.InputJsonValue> = { ...DEFAULT_SETTINGS };
   if (input.contact.email) settings.contactEmail = input.contact.email;
   if (input.contact.whatsapp) settings.contactWhatsapp = input.contact.whatsapp;
   for (const [key, value] of Object.entries(settings)) {
