@@ -229,23 +229,27 @@ describe('a visit', () => {
 describe('the request id', () => {
   it('records a retried visit once', async () => {
     const space = await createSpace();
-    const requestId = randomUUID();
-    const first = await createVisit(space.id, { requestId });
+    const idempotencyKey = randomUUID();
+    const first = await createVisit(space.id, { idempotencyKey });
 
-    await expect(createVisit(space.id, { requestId })).rejects.toMatchObject({ code: 'P2002' });
+    await expect(createVisit(space.id, { idempotencyKey })).rejects.toMatchObject({
+      code: 'P2002',
+    });
     expect(await prisma.visit.count()).toBe(1);
     await expect(
-      prisma.visit.findUnique({ where: { spaceId_requestId: { spaceId: space.id, requestId } } }),
+      prisma.visit.findUnique({
+        where: { spaceId_idempotencyKey: { spaceId: space.id, idempotencyKey } },
+      }),
     ).resolves.toMatchObject({ id: first.id });
   });
 
   it('records a retried check-in once', async () => {
     const space = await createSpace();
     const subscription = await createSubscription(await createCustomer(space.id));
-    const requestId = randomUUID();
-    await createCheckIn(subscription, { ...stay('2026-10-01', '08:00', '12:00'), requestId });
+    const idempotencyKey = randomUUID();
+    await createCheckIn(subscription, { ...stay('2026-10-01', '08:00', '12:00'), idempotencyKey });
 
-    await expect(createCheckIn(subscription, { requestId })).rejects.toMatchObject({
+    await expect(createCheckIn(subscription, { idempotencyKey })).rejects.toMatchObject({
       code: 'P2002',
     });
     expect(await prisma.checkIn.count()).toBe(1);
@@ -254,9 +258,9 @@ describe('the request id', () => {
   it('is scoped to its space', async () => {
     const space = await createSpace();
     const other = await createSpace('branch-hub');
-    const requestId = randomUUID();
-    await createVisit(space.id, { requestId });
+    const idempotencyKey = randomUUID();
+    await createVisit(space.id, { idempotencyKey });
 
-    await expect(createVisit(other.id, { requestId })).resolves.toBeDefined();
+    await expect(createVisit(other.id, { idempotencyKey })).resolves.toBeDefined();
   });
 });

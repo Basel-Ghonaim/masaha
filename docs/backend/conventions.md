@@ -319,7 +319,7 @@ Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
 **Two ids, never confused.** The **idempotency key** is the client's: one per user action, the same on every retry of that action, sent in the `Idempotency-Key` header and stored with the record it creates. The **request id** is the server's: a new one for every HTTP request, retries included, used only for tracing (§10). A record never stores the request id as its idempotency key, or every retry would look new.
 
 ### Idempotency
-- **Creates at the front desk** store the idempotency key, unique within the space. Today payments, visits and check-ins have it, in their `request_id` column; F-5 renames the Prisma field to `idempotencyKey` ([data-model.md](../architecture/data-model.md#conventions)).
+- **Creates at the front desk** store the idempotency key, unique within the space. Today payments, visits and check-ins have it, in the Prisma field `idempotencyKey`, stored in the `request_id` column ([data-model.md](../architecture/data-model.md#conventions)).
   - Subscriptions and customers have none yet. The slice that builds them adds it ([plan, step 8](../plans/v1-mvp.md#sequence-inside-the-build)).
 - **A retry returns the first result**, with the same status and body, never a conflict. The unique violation on the key is caught by the service, which returns the record that already exists. The general `P2002` → `NOT_UNIQUE` mapping (§4) never answers a retry.
 - **Updates and deletes are idempotent by design.** A repeated check-out returns the closed record, and a repeated void returns the voided payment.

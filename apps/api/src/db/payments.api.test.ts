@@ -53,7 +53,7 @@ function pay(
   return prisma.payment.create({
     data: {
       spaceId,
-      requestId: randomUUID(),
+      idempotencyKey: randomUUID(),
       recordedById,
       method: 'CASH',
       amountAgorot,
@@ -227,25 +227,27 @@ describe('the due', () => {
 describe('the request id', () => {
   it('records a retried payment once', async () => {
     const { space, staff, visit } = await setup();
-    const requestId = randomUUID();
-    const first = await pay(space.id, staff.id, { visitId: visit.id }, 500, { requestId });
+    const idempotencyKey = randomUUID();
+    const first = await pay(space.id, staff.id, { visitId: visit.id }, 500, { idempotencyKey });
 
     await expect(
-      pay(space.id, staff.id, { visitId: visit.id }, 500, { requestId }),
+      pay(space.id, staff.id, { visitId: visit.id }, 500, { idempotencyKey }),
     ).rejects.toMatchObject({ code: 'P2002' });
     expect(await prisma.payment.count()).toBe(1);
     await expect(
-      prisma.payment.findUnique({ where: { spaceId_requestId: { spaceId: space.id, requestId } } }),
+      prisma.payment.findUnique({
+        where: { spaceId_idempotencyKey: { spaceId: space.id, idempotencyKey } },
+      }),
     ).resolves.toMatchObject({ id: first.id });
   });
 
   it('reports a retry as a retry, even when the first payment settled the item', async () => {
     const { space, staff, visit } = await setup();
-    const requestId = randomUUID();
-    await pay(space.id, staff.id, { visitId: visit.id }, 1_500, { requestId });
+    const idempotencyKey = randomUUID();
+    await pay(space.id, staff.id, { visitId: visit.id }, 1_500, { idempotencyKey });
 
     await expect(
-      pay(space.id, staff.id, { visitId: visit.id }, 1_500, { requestId }),
+      pay(space.id, staff.id, { visitId: visit.id }, 1_500, { idempotencyKey }),
     ).rejects.toMatchObject({ code: 'P2002' });
   });
 });
