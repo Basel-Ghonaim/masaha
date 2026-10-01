@@ -15,7 +15,7 @@ Repo-specific knowledge for syncing Masaha's design-system layer (`apps/web/src/
 ## Authoring previews
 
 - One `.design-sync/previews/<Name>.tsx` per component; first line `import './_document';`; import from `'@masaha/design-system'` (shimmed to the bundle global).
-- Port the showcase section (`apps/web/src/pages/showcase/sections/<Name>Section.tsx`) with the Arabic sample text from `fixtures.json` (`samples.ar`), inlined. Each named export is one card cell; 2-6 per component.
+- Port the showcase section (`apps/web/src/pages/showcase/sections/<category>/<Name>Section.tsx`) with the Arabic sample text from `fixtures.json` (`samples.ar`), inlined. Each named export is one card cell; 2-6 per component.
 - Overlays render open (`defaultOpen` / `open`) and use `cardMode: "single"`; wide components use `"column"` (config `overrides`). **A single or column card shows `primaryStory` first, else the alphabetically first export** — not the first one in the file. Every multi-export single card sets `primaryStory` to its open state; without it Select's card showed a closed, disabled field.
 - Layout glue uses the app's utilities (`flex`, `gap-3`, `max-w-96` ...); `@source './previews'` compiles whatever the previews use. Checking a class with `grep -F` on `_ds_bundle.css`: escape `:` and `/` (`.md\:flex`, `.w-3\/5`).
 - `useState` from `'react'` works in previews. A dark cell is a wrapper `<div data-theme="dark">`: the tokens match `[data-theme]` on any element.
