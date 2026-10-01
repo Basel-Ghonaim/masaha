@@ -7,5 +7,5 @@
     // Scripts run directly under Node's type stripping, which only removes erasable syntax.
     "erasableSyntaxOnly": true
   },
-  "include": ["vite.config.ts", "scripts"]
+  "include": ["vite.config.ts", "scripts", "test"]
 }

@@ -61,8 +61,6 @@ All commands run from the repository root.
 
 A single workspace can be targeted with `-w`, for example `npm run test:unit -w @masaha/web`.
 
-**Windows:** run the test lanes from a working directory whose drive letter is uppercase (`C:\…`). From `c:\…`, as an editor's terminal sometimes opens, every Vitest file fails before its tests run ([finding 9](../architecture/findings.md#9-every-vitest-lane-fails-when-the-working-directorys-drive-letter-is-lowercase)). `cd C:\path\to\masaha` fixes the shell.
-
 In development, the design-system showcase is at `/__showcase` ([foundation §3](../frontend/design-system/foundation.md#3-architecture)).
 
 ## Database

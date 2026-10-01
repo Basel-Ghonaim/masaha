@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 import { defineConfig } from 'vitest/config';
 
@@ -14,6 +15,9 @@ export default defineConfig({
     resolve: { conditions: ['@masaha/source', 'module', 'node', 'development|production'] },
   },
   test: {
+    // Every worker loads Vitest once, whatever the case of the drive letter it was started from
+    // (finding 9).
+    execArgv: ['--import', pathToFileURL(`${import.meta.dirname}/test/drive-letter-hook.ts`).href],
     // One project per test lane (docs/development/testing.md); the file suffix picks the lane.
     projects: [
       {

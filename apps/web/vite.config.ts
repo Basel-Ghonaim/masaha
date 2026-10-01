@@ -1,3 +1,5 @@
+import { pathToFileURL } from 'node:url';
+
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
@@ -8,6 +10,9 @@ export default defineConfig({
   // tsconfig.json repeats @shared/* only for the shadcn CLI.
   resolve: { tsconfigPaths: true },
   test: {
+    // Every worker loads Vitest once, whatever the case of the drive letter it was started from
+    // (finding 9).
+    execArgv: ['--import', pathToFileURL(`${import.meta.dirname}/test/driveLetterHook.ts`).href],
     // One project per test lane (docs/development/testing.md); the file suffix picks the lane.
     projects: [
       {
