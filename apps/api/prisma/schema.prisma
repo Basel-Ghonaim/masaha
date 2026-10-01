@@ -343,7 +343,8 @@ model SpaceSettings {
 // capacity and no override; occupancy creates the row on its first write.
 model SpaceOccupancy {
   spaceId            Int         @id @map("space_id")
-  /// Private: only the space's owner sees it (ADR 0008). Null until set.
+  /// Private from the public and the admin: the space's staff see it, and only the owner edits it
+  /// (ADR 0008). Null until set.
   capacity           Int?
   // The manual live-status override: the state, until when, and who set it; all three or none. It
   // counts only while it has not expired (docs/architecture/data-model.md › Live status).
