@@ -1,14 +1,14 @@
 # Plan — Application foundation
 
-> **Status:** Active · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
-> **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built, and the backend architecture they are built on. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
+> **Status:** Active · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built, the backend architecture they are built on, and the first public deployment. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
 
-**Goal:** the web app talks to a real API backed by PostgreSQL. A user can register, sign in, stay signed in across reloads, and land in the right shell for their role, in Arabic or English, light or dark.
+**Goal:** the web app talks to a real API backed by PostgreSQL. A user can register, sign in, stay signed in across reloads, and land in the right shell for their role, in Arabic or English, light or dark, locally and at the public address.
 
 **Finished when:**
-- F-1 to F-6, F-3b and A-1 to A-3 are merged;
+- F-1 to F-7, F-3b and A-1 to A-3 are merged;
 - CI runs every lane, including `test:api` against a real PostgreSQL;
 - the *Entities* section of `data-model.md`, `architecture/system-overview.md` and the catalogue part of `localisation.md` *Mechanism* are written (deferred documents).
 
@@ -64,13 +64,13 @@ Approving this plan approves these. Anything else is proposed in the item's plan
 ```
 F-1 api skeleton ─► F-2 database ─► F-3 technical design        (parallel with WI-6 … WI-9)
                                          │
-WI-9 merged ─────────────────────────────┴─► F-4 localisation ─► F-5 auth ─► F-6 shells
+WI-9 merged ─────────────────────────────┴─► F-4 localisation ─► F-5 auth ─► F-6 shells ─► F-7 deployment
                                                                  ▲
 F-3 merged + dashboard screens reviewed ─► F-3b update ──────────┘
 ```
 
 ```
-A-1 architecture ─┬─► A-3 cross-cutting decisions ─► F-5 auth ─► F-6 shells
+A-1 architecture ─┬─► A-3 cross-cutting decisions ─► F-5 auth ─► F-6 shells ─► F-7 deployment
                   └─► A-2 space tables ─► the space-management and front-desk slices
 ```
 
@@ -244,25 +244,22 @@ Its contract was settled in its plan step (2026-09-30) and built on `feat/space-
 
 ### A-3 — Cross-cutting decisions · `docs/cross-cutting`
 
-Drafted here; its full contract is written in its plan step. Documentation and decisions only: each topic is proposed to the owner, then recorded in its owning document, or in an ADR where the threshold is met ([workflow §7](../development/workflow.md#7-documentation-update-triggers)).
+Documentation only. The owner and an analyst decided every open cross-cutting topic, and A-3 records them in their owning documents (2026-10-01):
+- **Deployment:** [ADR 0014](../architecture/decisions/0014-deployment.md), with its rules in [conventions §12](../backend/conventions.md#12-environments) and [security.md](../backend/security.md); built by F-5 (the development ports and proxy) and F-7.
+- **Idempotency and concurrency, and payments: database triggers or services:** [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md), with its rules in [conventions §13](../backend/conventions.md#13-idempotency-and-concurrency) and [finding 15](../architecture/findings.md#15-the-payments-migration-predates-adr-0015).
+- **Dashboard routes and guards:** [ADR 0016](../architecture/decisions/0016-dashboard-urls.md), with the landing and the guards in [architecture.md §2](../frontend/architecture.md#landing-and-guards).
+- **Time:** [conventions §11](../backend/conventions.md#11-time).
+- **Errors and logging:** [conventions §4](../backend/conventions.md#4-errors) and [§10](../backend/conventions.md#10-logging), the redaction in [security.md](../backend/security.md#http-hardening).
+- **Server state on the web:** [architecture.md §7](../frontend/architecture.md#7-server-state), and the revision of [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md).
+- **The development ports:** recorded in ADR 0014 and F-5's contract.
 
-**Scope:** the decisions still open:
-- deployment;
-- time (Asia/Gaza, the clock);
-- errors and logging;
-- concurrency and idempotency;
-- payments: database triggers vs services;
-- server-state conventions on the web;
-- routes and guards;
-- the development port;
-- where each deferred topic is decided, recorded so none is lost:
-  - the auto check-out scheduling mechanism: the front-desk slice, within A-3's deployment decision;
-  - photos and CSV exports: the space-management and finance slices;
-  - the reset-email provider: F-5;
-  - live-status delivery and caching: the directory slice;
-  - charts, the map and date inputs: their slices.
-
-**Dependencies:** after A-1, and in parallel with A-2. F-5 waits for it.
+**Where each deferred topic is decided**, recorded so none is lost:
+- the auto check-out scheduling mechanism: the front-desk slice, within ADR 0014 (an internal endpoint called by an external cron online);
+- photos: the space-management slice, within ADR 0014's 4.5 MB request limit (resized on the client, or uploaded directly);
+- CSV exports: the finance slice, within ADR 0014's 4.5 MB response limit;
+- the reset-email provider: F-5, within ADR 0014's email constraint;
+- live-status delivery and caching: the directory slice;
+- charts, the map and date inputs: their slices.
 
 ---
 
@@ -286,10 +283,17 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - the auth endpoints from the plan's API surface;
   - the password change and the forced change move to the `users` `me` router, at `/me/password`: F-5 updates the [planned surface](v1-mvp.md#planned-api-surface) and api-contract.md;
   - Google sign-in: the ID token verified with `jose` (approved in §4), and the account created or linked as [security.md](../backend/security.md#sign-in-methods) says;
-  - the reset email: the provider is chosen in the plan step and proposed there as a new dependency;
+  - the reset email: the provider is chosen in the plan step and proposed there as a new dependency, within [ADR 0014](../architecture/decisions/0014-deployment.md)'s constraint: no domain-verified provider, so a single verified sender or Gmail SMTP; in development, the email port logs the link instead of sending it;
   - staff sign-in: a reception account signs in like any user, changes its temporary password first, and the refresh response carries its space links;
   - no phone login;
-  - tokens, cookies, rotation and rate limits exactly as [security.md](../backend/security.md);
+  - tokens, cookies, rotation and rate limits exactly as [security.md](../backend/security.md), with the rate-limit counters in a PostgreSQL table (a schema change; data-model.md updated);
+  - logging ([conventions §10](../backend/conventions.md#10-logging)):
+    - the log redaction of [security.md](../backend/security.md#http-hardening), shipped together with the first token (an acceptance criterion);
+    - the request id: generated per request, in the logs, the `X-Request-Id` header and the error envelope, and carried by the web's `AppError`;
+  - the development ports and proxy ([ADR 0014](../architecture/decisions/0014-deployment.md)), with `setup.md`, `.env.example` and `CLAUDE.md` *Commands*:
+    - the web on port 5320 and the API on 3320, with Vite's `strictPort`, and `CORS_ORIGIN` to match;
+    - Vite's proxy for `/api`, and the web calling `/api/v1` relatively in every environment;
+  - the idempotency key's name ([conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)): the Prisma field `requestId` becomes `idempotencyKey`, still mapped to `request_id`, so no migration; the seed and the tests that use it follow;
   - on the web: the Axios client with single-flight refresh, the `AppError` normaliser, `shared/session`, `RequireRole` guards, and the sign-in, register, forgot and reset screens.
   - Writes `architecture/system-overview.md` (the first end-to-end request).
 - **F-6 — Shells and preferences** (`feat/shells`):
@@ -299,6 +303,28 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - the site and dashboard boundary ([ADR 0011](../architecture/decisions/0011-one-web-app.md), [architecture.md §2–§3](../frontend/architecture.md#2-page-groups)): each page group mounted lazily, and the dashboard-only rule in lint, over the capability names of [architecture.md §3](../frontend/architecture.md#3-capabilities-features);
   - the account's profile and settings belong to the `users` capability;
   - acceptance: a guest's download holds no dashboard code, and a site page group that imports a dashboard-only capability fails `lint`.
+
+### F-7 — First public deployment · `chore/deployment`
+
+Drafted here; its full contract is written in its plan step. It comes right after F-6 and is inside the finish line. [ADR 0014](../architecture/decisions/0014-deployment.md) assumes the same application runs locally and online with no architectural change. F-7 proves it while the app is smallest, right after F-5 builds the session and its cookies, the riskiest part online.
+
+**Scope**
+- Vercel and Neon, both in Frankfurt, as ADR 0014 sets them up:
+  - the thin function entry around the same composition root ([conventions §12](../backend/conventions.md#12-environments));
+  - the pooled connection for the app and the direct one for migrations;
+  - the production environment variables, and the Google OAuth origins for the public address.
+- **Continuous deployment:** every merge to `main` deploys, and every PR gets a preview, so a slice that breaks something specific to the free tier is caught in its own PR, not at the end of the project.
+- The plan step settles:
+  - how one project serves the web at `/` and the API under `/api` (Vercel's *Services* is still beta);
+  - which database the previews use: a Neon branch, never production;
+  - Google sign-in on preview addresses.
+
+**Acceptance criteria**
+- [ ] Register, sign in, refresh across a reload and sign out work at the public address exactly as they do locally.
+- [ ] A merge to `main` deploys, and a PR gets a preview.
+- [ ] `setup.md` explains the deployment and its environment.
+
+**Out of scope:** the scheduler's endpoint, object storage and the email sender online. Each is built by the slice that first needs it, within ADR 0014.
 
 ## 6. Risks
 
