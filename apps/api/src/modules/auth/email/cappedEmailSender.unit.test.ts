@@ -90,11 +90,41 @@ describe('createCappedEmailSender', () => {
     expect(delivered).toHaveLength(11);
   });
 
-  it('sends nothing when the caps cannot be checked', async () => {
-    const { delivered, sender } = setup({ counterFails: true });
+  it('sends nothing when the caps cannot be checked, and says so apart from a cap', async () => {
+    const { delivered, lines, sender } = setup({ counterFails: true });
 
-    expect((await sender.send(message())).sent).toBe(false);
+    expect(await sender.send(message())).toEqual({ sent: false, reason: 'cap-unavailable' });
     expect(delivered).toHaveLength(0);
+    expect(lines.join('')).toContain('a cap could not be checked');
+    expect(lines.join('')).not.toContain('[email:ceiling]');
+  });
+
+  it('turns a sender that throws into an unsent email, without the address', async () => {
+    const { lines } = setup();
+    const throwing = createCappedEmailSender(
+      { send: () => Promise.reject(new Error('relay said no to sara@example.com')) },
+      {
+        limiter: createLimiter(
+          {
+            hit: () => Promise.resolve({ hits: 1, resetAt: new Date(Date.now() + 60_000) }),
+            refund: () => Promise.resolve(),
+          },
+          () => new Date(),
+        ),
+        logger: createLogger(
+          'info',
+          new Writable({
+            write(chunk: Buffer, _encoding, done) {
+              lines.push(chunk.toString());
+              done();
+            },
+          }),
+        ),
+      },
+    );
+
+    expect(await throwing.send(message())).toEqual({ sent: false, reason: 'sender-threw' });
+    expect(lines.filter((line) => line.includes('"level":40'))).toHaveLength(1);
   });
 
   it('counts by digests, never the address', async () => {

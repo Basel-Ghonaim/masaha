@@ -1,5 +1,6 @@
 import {
   createLocalJWKSet,
+  errors,
   exportJWK,
   generateKeyPair,
   SignJWT,
@@ -81,5 +82,16 @@ describe('createGoogleIdentity', () => {
       .sign(new TextEncoder().encode('a-secret-of-at-least-32-characters-long'));
 
     expect(await google.verify(hs256)).toBeUndefined();
+  });
+
+  it("throws, rather than refusing the token, when Google's keys cannot be loaded", async () => {
+    const unavailable = createGoogleIdentity({
+      clientId: CLIENT_ID,
+      keys: () => Promise.reject(new errors.JWKSTimeout()),
+    });
+
+    await expect(unavailable.verify(await idToken(valid))).rejects.toBeInstanceOf(
+      errors.JWKSTimeout,
+    );
   });
 });

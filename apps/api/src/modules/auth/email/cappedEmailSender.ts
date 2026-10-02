@@ -1,9 +1,8 @@
-import { createHash } from 'node:crypto';
-
 import type { Logger } from 'pino';
 
 import type { Limiter, RateLimitPolicy, Reservation } from '../../../shared/rate-limit/index.ts';
-import type { EmailSender } from './emailSender.ts';
+import { AppError } from '../../../shared/errors/index.ts';
+import type { EmailResult, EmailSender } from './emailSender.ts';
 
 // docs/backend/security.md › Passwords. The caps protect people and the sender, not the endpoint.
 /** One inbox is never flooded. */
@@ -42,32 +41,51 @@ export function createCappedEmailSender(
 ): EmailSender {
   return {
     async send(message, context) {
-      const recipient = createHash('sha256').update(message.to.toLowerCase()).digest('hex');
+      // One warn line per unsent email, with a fixed reason: never the address or the message.
+      const notSent = (reason: string, detail?: object): EmailResult => {
+        logger.warn(
+          { reason, ...detail },
+          reason === 'ceiling' ? CEILING_REACHED : '[email] not sent',
+        );
+        return { sent: false, reason };
+      };
+      // A cap that refused is a refusal; any other error means the cap could not be checked, and
+      // nothing is sent (fail closed).
+      const refusal = (error: unknown, cap: string) => {
+        if (error instanceof AppError && error.type === 'rate_limit') return notSent(cap);
+        logger.error({ err: error }, '[email] a cap could not be checked');
+        return notSent('cap-unavailable');
+      };
+
       try {
-        await limiter.count(EMAIL_PER_RECIPIENT, recipient);
-      } catch {
-        logger.warn({ reason: 'recipient-cap' }, '[email] not sent');
-        return { sent: false, reason: 'recipient cap reached, or the cap could not be checked' };
+        await limiter.count(EMAIL_PER_RECIPIENT, message.to.toLowerCase());
+      } catch (error) {
+        return refusal(error, 'recipient-cap');
       }
       try {
         await limiter.count(EMAIL_CEILING, 'all');
-      } catch {
-        logger.warn(CEILING_REACHED);
-        return { sent: false, reason: 'ceiling reached, or the ceiling could not be checked' };
+      } catch (error) {
+        return refusal(error, 'ceiling');
       }
       let requester: Reservation | undefined;
       if (context) {
         try {
           requester = await limiter.reserve(EMAIL_PER_REQUESTER, context.requester);
-        } catch {
-          logger.warn({ reason: 'requester-cap' }, '[email] not sent');
-          return { sent: false, reason: 'requester cap reached, or the cap could not be checked' };
+        } catch (error) {
+          return refusal(error, 'requester-cap');
         }
       }
-      const result = await inner.send(message);
-      if (!result.sent) await requester?.refund();
-      // The reason only: the message holds a single-use link, and the address is personal.
-      if (!result.sent) logger.warn({ reason: result.reason }, '[email] not sent');
+
+      let result: EmailResult;
+      try {
+        result = await inner.send(message);
+      } catch (error) {
+        logger.error({ err: error }, '[email] the sender threw');
+        result = { sent: false, reason: 'sender-threw' };
+      }
+      if (result.sent) return result;
+      await requester?.refund();
+      notSent(result.reason, result.detail);
       return result;
     },
   };

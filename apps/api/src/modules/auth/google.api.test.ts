@@ -189,6 +189,20 @@ describe('POST /auth/google', () => {
     expect(await prisma.refreshToken.count()).toBe(0);
   });
 
+  it('answers service_unavailable, and counts no failure, while Google cannot be reached', async () => {
+    const unreachable = createTestApp({
+      google: { verify: () => Promise.reject(new Error('JWKSTimeout')) },
+    });
+
+    const response = await signInWithGoogle('gmail', unreachable);
+
+    expect(response.status).toBe(503);
+    const counts = await prisma.rateLimit.findMany({
+      where: { key: { startsWith: 'google-address:' } },
+    });
+    expect(counts.map(({ hits }) => hits)).toEqual([0]);
+  });
+
   it('answers service_unavailable while no Google client id is configured', async () => {
     const response = await signInWithGoogle('gmail', createTestApp());
 

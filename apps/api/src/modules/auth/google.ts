@@ -1,5 +1,5 @@
 import { emailSchema } from '@masaha/shared';
-import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
+import { createRemoteJWKSet, errors, jwtVerify, type JWTVerifyGetKey } from 'jose';
 
 // Google's OpenID Connect issuer and published signing keys.
 const GOOGLE_ISSUERS = ['https://accounts.google.com', 'accounts.google.com'];
@@ -16,9 +16,24 @@ export interface GoogleProfile {
   hostedDomain: string | undefined;
 }
 
+// What jose throws for a token it refuses. Anything else, such as Google's keys failing to load,
+// is the infrastructure's failure, not the token's, and is thrown on.
+const TOKEN_REJECTIONS = [
+  errors.JWTExpired,
+  errors.JWTClaimValidationFailed,
+  errors.JWTInvalid,
+  errors.JWSInvalid,
+  errors.JWSSignatureVerificationFailed,
+  errors.JOSEAlgNotAllowed,
+  errors.JOSENotSupported,
+  errors.JWKSNoMatchingKey,
+  errors.JWKSMultipleMatchingKeys,
+];
+
 /**
  * The port to Google's identity (R5): external infrastructure, wired in the composition root, so
- * tests sign in with a fake. `verify` answers nothing for any token it cannot trust.
+ * tests sign in with a fake. `verify` answers nothing for a token it cannot trust, and throws when
+ * it cannot tell, for example while Google's keys cannot be fetched.
  */
 export interface GoogleIdentity {
   verify(idToken: string): Promise<GoogleProfile | undefined>;
@@ -52,8 +67,9 @@ export function createGoogleIdentity({
           name: typeof name === 'string' ? name : undefined,
           hostedDomain: typeof hd === 'string' ? hd.toLowerCase() : undefined,
         };
-      } catch {
-        return undefined;
+      } catch (error) {
+        if (TOKEN_REJECTIONS.some((rejection) => error instanceof rejection)) return undefined;
+        throw error;
       }
     },
   };

@@ -10,7 +10,15 @@ export interface EmailMessage {
  * Whether the message left. A failure is returned, never thrown: the forgotten password answers 202
  * whatever happens, or an error would tell the caller the account exists.
  */
-export type EmailResult = { sent: true } | { sent: false; reason: string };
+export type EmailResult =
+  | { sent: true }
+  | {
+      sent: false;
+      /** A fixed reason, never a library's message, which can hold the address. */
+      reason: string;
+      /** A relay's codes, when it answered. */
+      detail?: { code?: string; responseCode?: number; command?: string };
+    };
 
 /**
  * The email port (conventions R5): external infrastructure, owned by `auth`, its only consumer, and

@@ -143,7 +143,12 @@ export function createAuthService({
     ): Promise<SignedIn & { linked: boolean }> {
       if (!google) throw AppError.serviceUnavailable(undefined, 'Google sign-in is not configured');
       return limiter.limitFailures([{ policy: GOOGLE_ADDRESS, by: [address] }], async () => {
-        const profile = await google.verify(idToken);
+        const profile = await google.verify(idToken).catch((error: unknown) => {
+          throw AppError.serviceUnavailable(
+            undefined,
+            `Google sign-in unavailable: ${error instanceof Error ? error.name : 'unknown'}`,
+          );
+        });
         if (!profile)
           throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Invalid Google ID token');
         const { userId, link } = await users.accountForGoogle(profile, language);

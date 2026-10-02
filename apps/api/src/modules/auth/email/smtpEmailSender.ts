@@ -40,7 +40,13 @@ export function createSmtpEmailSender(settings: SmtpSettings): EmailSender {
         await transport.sendMail({ from: settings.from, to, subject, text, html });
         return { sent: true };
       } catch (error) {
-        return { sent: false, reason: error instanceof Error ? error.message : 'send failed' };
+        // nodemailer's message can quote the recipient: only its codes are kept.
+        const { code, responseCode, command } = error as {
+          code?: string;
+          responseCode?: number;
+          command?: string;
+        };
+        return { sent: false, reason: 'smtp', detail: { code, responseCode, command } };
       }
     },
   };
