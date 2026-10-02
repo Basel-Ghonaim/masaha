@@ -1,9 +1,11 @@
 import { CATALOGUES } from '@shared/copy';
-import { documentLanguage, setupLocalisation } from '@shared/localisation';
+import { setupLocalisation } from '@shared/localisation';
+import { preferencesLanguage, setupPreferences } from '@shared/preferences';
 
 /** Wires the platform before the first render. */
 export function bootstrap(): void {
-  // The language is read from <html lang>, where the pre-paint script resolved it, until the
-  // preferences store replaces this source (docs/frontend/localisation.md#catalogues).
-  setupLocalisation({ catalogues: CATALOGUES, language: documentLanguage });
+  // The preferences start from what the pre-paint script resolved, and are the language's source
+  // from then on (docs/frontend/localisation.md#mechanism).
+  setupPreferences();
+  setupLocalisation({ catalogues: CATALOGUES, language: preferencesLanguage });
 }

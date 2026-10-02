@@ -1,7 +1,10 @@
-import { CATALOGUES } from '@shared/copy';
-import { currentLanguage, directionOf, setupLocalisation } from '@shared/localisation';
+import { CATALOGUES, type Language } from '@shared/copy';
+import { THEMES } from '@shared/design-system';
+import { directionOf, FALLBACK_LANGUAGE } from '@shared/localisation';
+import { setLanguage, setTheme, setupPreferences } from '@shared/preferences';
 import { describe, expect, it } from 'vitest';
 import indexHtml from '../../index.html?raw';
+import { fakePlatform } from '../test/fakePlatform';
 
 type Browser = {
   stored?: Record<string, string>;
@@ -121,8 +124,16 @@ describe('pre-paint storage', () => {
   });
 });
 
+/** What storage holds after the preferences store makes these choices, as the app would. */
+function storedByTheApp(choose: () => void): Record<string, string> {
+  const browser = fakePlatform();
+  setupPreferences(browser.platform);
+  choose();
+  return browser.stored();
+}
+
 // The script runs before the bundle exists, so it shares no code with the app; these hold the two
-// to the same decisions (docs/frontend/localisation.md#catalogues).
+// to the same decisions (docs/frontend/localisation.md#agreement-with-the-pre-paint-script).
 describe('pre-paint agreement with the app', () => {
   it('lists exactly the languages a catalogue is registered for', () => {
     const listed = /const LANGUAGES = (\[[^\]]*\]);/.exec(script ?? '')?.[1];
@@ -143,11 +154,45 @@ describe('pre-paint agreement with the app', () => {
   });
 
   it('falls back to the language the app falls back to', () => {
-    setupLocalisation({
-      catalogues: CATALOGUES,
-      language: { current: () => '', subscribe: () => () => undefined },
+    expect(prePaint({}).lang).toBe(FALLBACK_LANGUAGE);
+  });
+
+  // A round trip: the store writes a choice, and the shipped script reads it back on the next load.
+  // A renamed key, a changed value format or a theme the script does not list fails here.
+
+  it.each(THEMES)('paints the %s theme the app stores, over the device', (theme) => {
+    const stored = storedByTheApp(() => {
+      setTheme(theme);
     });
 
-    expect(prePaint({}).lang).toBe(currentLanguage());
+    expect(prePaint({ stored, prefersDark: theme === 'light' }).theme).toBe(theme);
   });
+
+  it.each([
+    { prefersDark: true, theme: 'dark' },
+    { prefersDark: false, theme: 'light' },
+  ])('follows the device once the app stores the device as the choice: $theme', (device) => {
+    const stored = storedByTheApp(() => {
+      setTheme('dark');
+      setTheme('system');
+    });
+
+    expect(prePaint({ stored, prefersDark: device.prefersDark }).theme).toBe(device.theme);
+  });
+
+  it.each(Object.keys(CATALOGUES) as Language[])(
+    'paints the language %s the app stores, with its direction, over the browser',
+    (language) => {
+      const stored = storedByTheApp(() => {
+        setLanguage(language);
+      });
+      const browserLanguage = language === 'ar' ? 'en-US' : 'ar-EG';
+
+      const result = prePaint({ stored, languages: [browserLanguage] });
+      expect({ lang: result.lang, dir: result.dir }).toEqual({
+        lang: language,
+        dir: directionOf(language),
+      });
+    },
+  );
 });
