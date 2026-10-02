@@ -97,10 +97,11 @@ An answer that opens or renews a session also sets the refresh cookie and the se
 #### `POST /auth/refresh` · the refresh cookie
 - **Body:** none.
 - **200:** `Session`, with the token rotated ([security.md](../backend/security.md#tokens-and-cookies)).
-- **Errors:** `unauthorized` (401) without a valid token, or for a token reused after the grace window, which ends its session; `forbidden` (403) `ACCOUNT_SUSPENDED`, which ends every session of the user. Both clear the cookies. `rate_limit` (429) keeps them.
+- **Errors:** `unauthorized` (401) without a valid token, or for a token reused after the grace window, which ends its session; `forbidden` (403) `ACCOUNT_SUSPENDED`, which ends every session of the user. Both clear the cookies. `rate_limit` (429) keeps them, as does `forbidden` (403) for a cross-site request ([security.md](../backend/security.md#tokens-and-cookies)).
 
 #### `POST /auth/logout` · the refresh cookie
 - **204:** the device's session is ended, and the cookies cleared. Without a session, the same.
+- **Errors:** `forbidden` (403) for a cross-site request, which keeps the cookies.
 
 ### The forgotten password
 

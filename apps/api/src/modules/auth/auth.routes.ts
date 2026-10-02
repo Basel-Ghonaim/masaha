@@ -8,6 +8,7 @@ import {
 } from '@masaha/shared';
 import { Router } from 'express';
 
+import { refuseCrossSite } from '../../shared/http/index.ts';
 import { validate } from '../../shared/validation/index.ts';
 import type { AuthController } from './auth.controller.ts';
 
@@ -15,13 +16,15 @@ import type { AuthController } from './auth.controller.ts';
  * The public router, at /auth (docs/api/api-contract.md §5). The sign-in limits count failures
  * only, so the service applies them where a failure is decided.
  */
-export function createAuthRouter(controller: AuthController): Router {
+export function createAuthRouter(controller: AuthController, webOrigin: string): Router {
   const router = Router();
+  // The two routes that act on the session cookie alone refuse another site's request.
+  const sameSiteOnly = refuseCrossSite(webOrigin);
   router.post('/register', validate(registerSchema), controller.register);
   router.post('/login', validate(loginSchema), controller.login);
   router.post('/google', validate(googleSignInSchema), controller.google);
-  router.post('/refresh', controller.refresh);
-  router.post('/logout', controller.logout);
+  router.post('/refresh', sameSiteOnly, controller.refresh);
+  router.post('/logout', sameSiteOnly, controller.logout);
   router.post('/password/forgot', validate(forgotPasswordSchema), controller.forgotPassword);
   router.post('/password/reset/check', validate(resetCheckSchema), controller.checkResetToken);
   router.post('/password/reset', validate(resetPasswordSchema), controller.resetPassword);

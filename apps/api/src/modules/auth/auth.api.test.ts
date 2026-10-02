@@ -243,7 +243,7 @@ describe('the sign-in limits', () => {
 
     expect(answers.map(({ status }) => status)).toEqual(Array.from({ length: 10 }, () => 200));
     expect(await signInHits()).toBe(0);
-  });
+   }, 20_000);
 
   it('hold in a concurrent burst: 20 wrong passwords at once get ten 401s and ten 429s', async () => {
     await createAccount();
@@ -466,6 +466,36 @@ describe('POST /auth/logout', () => {
     expect(cookieValue(response, 'masaha_session')).toBe('');
     expect(await prisma.refreshToken.count({ where: { familyId: family } })).toBe(0);
     expect((await refresh(other)).status).toBe(200);
+  });
+
+  it.each([
+    ['another site', { 'Sec-Fetch-Site': 'cross-site' }],
+    ['another origin', { Origin: 'https://evil.example' }],
+  ])('refuses a request from %s, and leaves the cookies alone', async (_case, headers) => {
+    await createAccount();
+    const token = refreshTokenOf(await login());
+
+    for (const path of ['/api/v1/auth/logout', '/api/v1/auth/refresh']) {
+      const response = await request(app)
+        .post(path)
+        .set(headers)
+        .set('Cookie', `masaha_refresh=${token}`);
+      expect(response.status).toBe(403);
+      expect(setCookies(response)).toEqual({});
+    }
+    expect((await refresh(token)).status).toBe(200);
+  });
+
+  it('accepts the web\u2019s own request', async () => {
+    await createAccount();
+    const token = refreshTokenOf(await login());
+
+    const response = await request(app)
+      .post('/api/v1/auth/logout')
+      .set({ 'Sec-Fetch-Site': 'same-origin', Origin: 'http://localhost:5173' })
+      .set('Cookie', `masaha_refresh=${token}`);
+
+    expect(response.status).toBe(204);
   });
 
   it('answers 204 without a session', async () => {

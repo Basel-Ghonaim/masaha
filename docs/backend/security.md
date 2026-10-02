@@ -15,6 +15,7 @@
 | Reuse | A token rotated **more** than 30 s ago means a copy of it is in use: its family is deleted and the refresh answers 401. The user's other sessions, on other devices, are untouched. Ending only the family still cuts a stolen chain (OAuth 2.0 Security BCP), while a reception desk on another device keeps working |
 | Refresh cookie | `masaha_refresh` · `HttpOnly` · `Secure` everywhere but development (a missing `NODE_ENV` refuses to start, never falls back to development) · `SameSite=Strict` · `Path=/api/v1/auth` · 7 days; set and cleared from one shared options object |
 | Session hint | `masaha_session=1`, readable by JS, `Path=/`, no secret |
+| Cross-site requests | Refresh and logout act on the cookie alone, so they refuse with 403, before touching any cookie, a request the browser marks cross-site (`Sec-Fetch-Site`) or whose `Origin` is not the web's. SameSite=Strict already keeps the cookie off such a request; this stops its answer from clearing the cookies, which would sign the user out |
 | Revocation | Password change, password reset, role change, suspension and the deactivation of a reception link delete all the user's refresh tokens. A password change then opens a new session for its own device |
 
 ## Sign-in methods

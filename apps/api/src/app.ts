@@ -161,7 +161,7 @@ export function createApi({
         : { policy: GENERAL_GUEST, by: [clientAddress(req.ip)] };
     }),
   );
-  api.use(AUTH_PATH, createAuthRouter(createAuthController(auth, cookies)));
+  api.use(AUTH_PATH, createAuthRouter(createAuthController(auth, cookies), webOrigin));
   api.use('/me', createUsersMeRouter(createUsersController(users, cookies), requireAuth));
   return api;
 }
