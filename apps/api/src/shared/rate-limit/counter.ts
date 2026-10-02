@@ -11,8 +11,8 @@ export interface Count {
 export interface Counter {
   /** Adds one hit and returns the new count. A key whose window has ended starts a new one. */
   hit(key: string, windowMs: number): Promise<Count>;
-  /** The key's count in its current window, if it has one. Counts nothing. */
-  peek(key: string): Promise<Count | undefined>;
+  /** Gives back one hit, only within the window `count` was taken in: never into the next one. */
+  refund(key: string, count: Count): Promise<void>;
 }
 
 interface Row {
@@ -39,10 +39,10 @@ export function createCounter(db: PrismaClient = prisma): Counter {
       return { hits: row.hits, resetAt: row.reset_at };
     },
 
-    async peek(key) {
-      const [row] = await db.$queryRaw<Row[]>`
-        SELECT hits, reset_at FROM rate_limits WHERE key = ${key} AND reset_at > now()`;
-      return row && { hits: row.hits, resetAt: row.reset_at };
+    async refund(key, { resetAt }) {
+      await db.$executeRaw`
+        UPDATE rate_limits SET hits = hits - 1, updated_at = now()
+        WHERE key = ${key} AND reset_at = ${resetAt} AND hits > 0`;
     },
   };
 }

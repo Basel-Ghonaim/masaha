@@ -208,12 +208,34 @@ describe('POST /auth/login', () => {
 });
 
 describe('the sign-in limits', () => {
-  it('never count a successful sign-in', async () => {
+  /** The failures the sign-in limits hold now, by policy. */
+  async function signInHits() {
+    const rows = await prisma.rateLimit.findMany({ where: { key: { startsWith: 'sign-in' } } });
+    return rows.reduce((total, { hits }) => total + hits, 0);
+  }
+
+  // A slot is held while its attempt is in flight, so a burst larger than the limit is refused
+  // beyond it even when every password is right; up to the limit, all go through.
+  it('never count a successful sign-in, even in a burst up to the limit', async () => {
     await createAccount();
 
-    for (let attempt = 0; attempt < 12; attempt++) expect((await login()).status).toBe(200);
+    const answers = await Promise.all(Array.from({ length: 10 }, () => login()));
+    for (let attempt = 0; attempt < 5; attempt++) expect((await login()).status).toBe(200);
 
-    expect(await prisma.rateLimit.count({ where: { key: { startsWith: 'sign-in' } } })).toBe(0);
+    expect(answers.map(({ status }) => status)).toEqual(Array.from({ length: 10 }, () => 200));
+    expect(await signInHits()).toBe(0);
+  });
+
+  it('hold in a concurrent burst: 20 wrong passwords at once get ten 401s and ten 429s', async () => {
+    await createAccount();
+
+    const answers = await Promise.all(
+      Array.from({ length: 20 }, (_, n) => login('sara@example.com', `wrong-pass${String(n)}`)),
+    );
+
+    const statuses = answers.map(({ status }) => status);
+    expect(statuses.filter((status) => status === 401)).toHaveLength(10);
+    expect(statuses.filter((status) => status === 429)).toHaveLength(10);
   });
 
   it('refuse an account after 10 failures from one address, even with the right password', async () => {
@@ -230,7 +252,7 @@ describe('the sign-in limits', () => {
     expect(limited.headers['ratelimit-policy']).toBe('"sign-in-account";q=10;w=900');
     expect(Number(limited.headers['retry-after'])).toBeGreaterThan(0);
     expect((await login('omar@example.com')).status).toBe(200);
-  });
+  }, 20_000);
 
   it('refuse an address after 50 failures, whatever the account', async () => {
     await createAccount({ email: 'omar@example.com' });

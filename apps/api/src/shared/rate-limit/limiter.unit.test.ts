@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { AppError } from '../errors/index.ts';
+import { AppError } from '../errors/index.ts';
 import type { Count, Counter } from './counter.ts';
 import { createLimiter } from './limiter.ts';
 import type { RateLimitPolicy } from './policy.ts';
@@ -20,7 +20,11 @@ function fakeCounter() {
       counts.set(key, count);
       return Promise.resolve(count);
     },
-    peek: (key) => Promise.resolve(counts.get(key)),
+    refund(key, { resetAt }) {
+      const count = counts.get(key);
+      if (count && count.resetAt === resetAt && count.hits > 0) count.hits -= 1;
+      return Promise.resolve();
+    },
   };
   return { counts, counter };
 }
@@ -58,18 +62,14 @@ describe('createLimiter', () => {
     await expect(limiter.count(policy, 'b')).resolves.toBeUndefined();
   });
 
-  it('checks failures without counting, and refuses once they reached the limit', async () => {
+  it('gives a reserved slot back', async () => {
     const { counts, counter } = fakeCounter();
     const limiter = createLimiter(counter, () => NOW);
 
-    await limiter.check(policy, 'a');
-    expect(counts.size).toBe(0);
+    const reservation = await limiter.reserve(policy, 'a');
+    await reservation.refund();
 
-    for (let failure = 0; failure < 2; failure++) await limiter.recordFailure(policy, 'a');
-    await expect(limiter.check(policy, 'a')).resolves.toBeUndefined();
-
-    await limiter.recordFailure(policy, 'a');
-    expect((await rejection(limiter.check(policy, 'a'))).type).toBe('rate_limit');
+    expect([...counts.values()].map(({ hits }) => hits)).toEqual([0]);
   });
 
   it('keys by the policy and a digest, never the raw values', async () => {
@@ -79,5 +79,68 @@ describe('createLimiter', () => {
     await limiter.count(policy, '203.0.113.7', 'sara@example.com');
 
     expect([...counts.keys()]).toEqual([expect.stringMatching(/^sign-in:[0-9a-f]{64}$/)]);
+  });
+});
+
+describe('limitFailures', () => {
+  const account: RateLimitPolicy = { name: 'account', limit: 2, windowMs: 60_000 };
+  const address: RateLimitPolicy = { name: 'address', limit: 5, windowMs: 60_000 };
+  const limits = [
+    { policy: address, by: ['ip'] },
+    { policy: account, by: ['ip', 'sara'] },
+  ];
+  const hits = (counts: Map<string, Count>) =>
+    [...counts.entries()].map(([key, { hits: n }]) => [key.split(':')[0], n]);
+
+  it('keeps the slots of a refused attempt (a 4xx) as its failure', async () => {
+    const { counts, counter } = fakeCounter();
+    const limiter = createLimiter(counter, () => NOW);
+
+    const refused = rejection(
+      limiter.limitFailures(limits, () => Promise.reject(AppError.unauthorized())),
+    );
+
+    expect((await refused).type).toBe('unauthorized');
+    expect(hits(counts)).toEqual([
+      ['address', 1],
+      ['account', 1],
+    ]);
+  });
+
+  it('gives the slots back on a success and on a failure of the server', async () => {
+    const { counts, counter } = fakeCounter();
+    const limiter = createLimiter(counter, () => NOW);
+
+    await limiter.limitFailures(limits, () => Promise.resolve('ok'));
+    await rejection(limiter.limitFailures(limits, () => Promise.reject(new Error('bug'))));
+    await rejection(limiter.limitFailures(limits, () => Promise.reject(AppError.server())));
+
+    expect(hits(counts)).toEqual([
+      ['address', 0],
+      ['account', 0],
+    ]);
+  });
+
+  it('refuses before the attempt once failures reached a limit, and returns the earlier slot', async () => {
+    const { counts, counter } = fakeCounter();
+    const limiter = createLimiter(counter, () => NOW);
+    const fail = () => Promise.reject(AppError.unauthorized());
+    await rejection(limiter.limitFailures(limits, fail));
+    await rejection(limiter.limitFailures(limits, fail));
+
+    let tried = false;
+    const refused = await rejection(
+      limiter.limitFailures(limits, () => {
+        tried = true;
+        return Promise.resolve();
+      }),
+    );
+
+    expect(refused.type).toBe('rate_limit');
+    expect(tried).toBe(false);
+    expect(hits(counts)).toEqual([
+      ['address', 2],
+      ['account', 3],
+    ]);
   });
 });

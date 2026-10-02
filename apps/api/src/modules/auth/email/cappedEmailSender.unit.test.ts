@@ -20,7 +20,7 @@ function setup({ counterFails = false, ceilingUsed = 0 } = {}) {
       counts.set(key, count);
       return Promise.resolve(count);
     },
-    peek: (key) => Promise.resolve(counts.get(key)),
+    refund: () => Promise.resolve(),
   };
   const delivered: EmailMessage[] = [];
   const inner: EmailSender = {
@@ -94,7 +94,7 @@ describe('createCappedEmailSender', () => {
       {
         limiter: createLimiter({
           hit: () => Promise.resolve({ hits: 1, resetAt: new Date(Date.now() + 60_000) }),
-          peek: () => Promise.resolve(undefined),
+          refund: () => Promise.resolve(),
         }),
         logger: createLogger(
           'info',

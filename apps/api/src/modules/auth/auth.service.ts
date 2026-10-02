@@ -86,25 +86,22 @@ export function createAuthService({
   }
 
   /**
-   * Runs a sign-in attempt under the failure limits: refused once they are reached, and a failure
-   * is counted here, where it is decided, before it is answered. A success counts nothing.
+   * Runs a sign-in attempt under the failure limits (docs/backend/security.md › Rate limits): by
+   * address, and by address and email when there is one. The limiter reserves each slot first and
+   * gives it back on a success, so a concurrent burst cannot pass them.
    */
-  async function limitFailures<T>(
+  function limitFailures<T>(
     address: string,
     email: string | undefined,
     attempt: () => Promise<T>,
   ): Promise<T> {
-    await limiter.check(SIGN_IN_ADDRESS, address);
-    if (email !== undefined) await limiter.check(SIGN_IN_ACCOUNT, address, email);
-    try {
-      return await attempt();
-    } catch (error) {
-      if (error instanceof AppError && error.status < 500) {
-        await limiter.recordFailure(SIGN_IN_ADDRESS, address);
-        if (email !== undefined) await limiter.recordFailure(SIGN_IN_ACCOUNT, address, email);
-      }
-      throw error;
-    }
+    return limiter.limitFailures(
+      [
+        { policy: SIGN_IN_ADDRESS, by: [address] },
+        ...(email === undefined ? [] : [{ policy: SIGN_IN_ACCOUNT, by: [address, email] }]),
+      ],
+      attempt,
+    );
   }
 
   return {
