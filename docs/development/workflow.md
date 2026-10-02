@@ -1,6 +1,6 @@
 # Workflow
 
-> **Status:** Active · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
 > **Authority:** How work is executed on Masaha: task classes, the Git lifecycle, scope control, the Definition of Done, decision authority and stop rules. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
 
 Masaha is built by **one developer (the owner)** with AI assistants. The workflow keeps the discipline of a team process — reviewable units, a clean history, gated decisions — without ceremony a solo project does not need.
@@ -126,3 +126,27 @@ Pure refactors that change no behaviour need no documentation update.
 | Something blocking the contract | Stop and escalate |
 | A behaviour no test lane can own | Stop and raise it |
 | Anything unclear | Record, never absorb |
+
+## 9. Parallel work
+
+The owner may run two AI workers at the same time. These rules keep them from colliding. **Who works on what at a given moment is never recorded** in a document: it changes too often.
+
+- **Two workers:**
+  - **worker A** works in the main folder and carries the critical path;
+  - **worker B** works in one long-lived git worktree, `masaha-b`, and carries items that neither block nor wait for worker A;
+  - one Work Item is one fresh conversation, for either worker. Fixes and rebases for the same PR stay in its conversation; a new conversation is for a new Work Item.
+- **Worker B's branches:** between items, its worktree is detached at `origin/main`. Each item cuts its own branch with `git switch --no-track -c <branch> origin/main`. `--no-track` means a plain `git push` can never target `main`. The first push is `git push -u origin <branch>`.
+- **Files:**
+  - every Work Item's prompt names the other worker's files;
+  - a file both items need is declared in the plan first and edited minimally, and each side keeps to its own section;
+  - new dependencies on both sides at once are avoided, because `package-lock.json` would conflict.
+- **Databases:** the API test lane empties every table before each file ([setup › The API test lane](setup.md#the-api-test-lane)), so two workers never share a database. All live in the shared container ([setup › Database](setup.md#database)), and each folder points at its own through its `apps/api/.env`:
+  - worker A uses `masaha_dev` and `masaha_test`;
+  - worker B uses `masaha_b_dev` and `masaha_b_test`;
+  - any other worktree whose item changes the schema gets databases of its own.
+- **Merging:**
+  - one PR is merged at a time;
+  - before opening a PR, fetch and rebase on the latest `main`;
+  - whoever merges second rebases again, and resolves a conflict by keeping both sides.
+- **After each merge, in the main folder:** `git pull`. After a schema change, also regenerate the Prisma client and apply the new migrations to `masaha_dev` ([setup › Database](setup.md#database)). Without this step, the dev database once fell seven migrations behind the code merged from worktrees.
+- **After worker B's PR merges:** its worktree goes back to detached `origin/main`, and the owner deletes the merged local branch ([§6](#6-decision-authority)). If that merge, or any merge since, changed the schema, regenerate the Prisma client in the worktree and apply the migrations to `masaha_b_dev`.
