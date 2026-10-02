@@ -90,19 +90,20 @@ export function createSessionsService({
     },
 
     /** A password-reset token for the user, single use, valid for an hour. Any earlier one ends. */
-    async issueResetToken(userId: number): Promise<string> {
+    async issueResetToken(userId: number, tx?: Tx): Promise<string> {
       const token = newToken();
       await repository.replaceResetToken(
         userId,
         hashToken(token),
         new Date(now().getTime() + RESET_TOKEN_TTL_MS),
+        tx,
       );
       return token;
     },
 
     /** Whose valid reset token this is. Reading it neither uses it nor extends it. */
-    resetTokenOwner(token: string): Promise<number | undefined> {
-      return repository.findResetTokenOwner(hashToken(token), now());
+    resetTokenOwner(token: string, tx?: Tx): Promise<number | undefined> {
+      return repository.findResetTokenOwner(hashToken(token), now(), tx);
     },
 
     /** Uses the reset token, once. Whose it was, if it was still valid. */

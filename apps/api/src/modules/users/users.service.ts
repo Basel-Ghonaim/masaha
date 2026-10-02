@@ -124,8 +124,8 @@ export function createUsersService({
     get,
 
     /** The account with this email, if there is one. */
-    async findByEmail(email: string): Promise<Account | null> {
-      return (await repository.findByEmail(email))?.account ?? null;
+    async findByEmail(email: string, tx?: Tx): Promise<Account | null> {
+      return (await repository.findByEmail(email, tx))?.account ?? null;
     },
 
     /** Hashes a new password, before the transaction that sets it opens. */

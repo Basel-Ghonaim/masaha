@@ -71,14 +71,23 @@ export function createSessionsRepository(db: PrismaClient = prisma) {
      * A new reset token for the user, replacing any earlier one not used yet: one live link. Should
      * the insert fail after the delete, the user merely has no link, and asks again.
      */
-    async replaceResetToken(userId: number, tokenHash: string, expiresAt: Date): Promise<void> {
-      await db.passwordResetToken.deleteMany({ where: { userId, usedAt: null } });
-      await db.passwordResetToken.create({ data: { userId, tokenHash, expiresAt } });
+    async replaceResetToken(
+      userId: number,
+      tokenHash: string,
+      expiresAt: Date,
+      tx: Tx = db,
+    ): Promise<void> {
+      await tx.passwordResetToken.deleteMany({ where: { userId, usedAt: null } });
+      await tx.passwordResetToken.create({ data: { userId, tokenHash, expiresAt } });
     },
 
     /** Whose unused, unexpired reset token this is. Changes nothing. */
-    async findResetTokenOwner(tokenHash: string, now: Date): Promise<number | undefined> {
-      const row = await db.passwordResetToken.findFirst({
+    async findResetTokenOwner(
+      tokenHash: string,
+      now: Date,
+      tx: Tx = db,
+    ): Promise<number | undefined> {
+      const row = await tx.passwordResetToken.findFirst({
         where: { tokenHash, usedAt: null, expiresAt: { gt: now } },
         select: { userId: true },
       });

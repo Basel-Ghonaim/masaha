@@ -34,8 +34,9 @@ export function createUsersRepository(db: PrismaClient = prisma) {
     /** The account and its hash apart, for a password check only. */
     async findCredentials(
       email: string,
+      tx: Tx = db,
     ): Promise<{ account: Account; passwordHash: string | null } | null> {
-      const row = await db.user.findUnique({
+      const row = await tx.user.findUnique({
         where: { email },
         select: { ...ACCOUNT, passwordHash: true },
       });
@@ -44,15 +45,16 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return { account, passwordHash };
     },
 
-    findByGoogleSubject(googleSubject: string): Promise<Account | null> {
-      return db.user.findUnique({ where: { googleSubject }, select: ACCOUNT });
+    findByGoogleSubject(googleSubject: string, tx: Tx = db): Promise<Account | null> {
+      return tx.user.findUnique({ where: { googleSubject }, select: ACCOUNT });
     },
 
     /** The account with this email, and the Google account linked to it, if any. */
     async findByEmail(
       email: string,
+      tx: Tx = db,
     ): Promise<{ account: Account; googleSubject: string | null } | null> {
-      const row = await db.user.findUnique({
+      const row = await tx.user.findUnique({
         where: { email },
         select: { ...ACCOUNT, googleSubject: true },
       });
@@ -61,13 +63,13 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return { account, googleSubject };
     },
 
-    async linkGoogle(id: number, googleSubject: string): Promise<Account> {
-      return db.user.update({ where: { id }, data: { googleSubject }, select: ACCOUNT });
+    async linkGoogle(id: number, googleSubject: string, tx: Tx = db): Promise<Account> {
+      return tx.user.update({ where: { id }, data: { googleSubject }, select: ACCOUNT });
     },
 
     /** The account's hash, for a password check only. */
-    async findPasswordHash(id: number): Promise<string | null> {
-      const row = await db.user.findUnique({ where: { id }, select: { passwordHash: true } });
+    async findPasswordHash(id: number, tx: Tx = db): Promise<string | null> {
+      const row = await tx.user.findUnique({ where: { id }, select: { passwordHash: true } });
       return row?.passwordHash ?? null;
     },
 
