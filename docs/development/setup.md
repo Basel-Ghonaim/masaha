@@ -1,6 +1,6 @@
 # Setup
 
-> **Status:** Active · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
 > **Authority:** How to install, run, check and test the repository locally, and what CI runs. Which lane proves a behaviour is owned by [testing.md](testing.md); how work is executed by [workflow.md](workflow.md).
 
 ## Prerequisites

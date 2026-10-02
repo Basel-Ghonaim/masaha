@@ -1,11 +1,11 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
 
 ## Conventions
 
-- **IDs:** `Int @id @default(autoincrement())`. Public space URLs use a unique `slug`, never reused.
+- **IDs:** `Int @id @default(autoincrement())`. Public space URLs use a unique `slug`, never reused. Two tables are keyed by a natural string instead, because a row is only ever found by it: `Setting` (its key in the catalogue) and `RateLimit` (its counter's key).
 - **Naming:** models PascalCase, fields camelCase, mapped to snake_case tables (plural) and columns with `@map` / `@@map`.
 - **Timestamps:** `createdAt`, `updatedAt` on every table, as `timestamptz`. The exceptions are the append-only `AuditLog` and `Payment`, which have `createdAt` only; a payment's one change, its void, carries its own time. Calendar dates (a subscription's start and end) are `date`.
 - **Soft delete:** `deletedAt` on `Space` and `Announcement`, and `archivedAt` on `Customer` (named as the desk sees it); `suspendedAt` on `User` ([ADR 0007](decisions/0007-soft-delete.md)). Purely dependent rows (managers, settings, occupancy, hours, shifts, prices, contacts, amenity links, photos, favourites, tokens) cascade from their parent; history (customers, packages, subscriptions, check-ins, visits, announcements, data reports, audit log) restricts deletion.
@@ -33,7 +33,7 @@ Summaries only: the schema owns the fields.
 - **User** — an account with one global role (`USER` / `OWNER` / `ADMIN`, [ADR 0002](decisions/0002-authorization-model.md)), a unique email, a language, and `mustChangePassword` for accounts created by someone else (new owners, new reception accounts, admin recovery). It signs in with a password, Google (a unique Google subject), or both, never neither: a Google-only account has no password ([security.md](../backend/security.md#sign-in-methods)). There is no phone login, so no phone. Suspended, never deleted.
 - **RefreshToken** — one row per token, stored hashed, rotated with a link to its replacement. The tokens rotated from one sign-in form a family, its session, named by the id of its first token, so a reused token ends its own session and no other ([security.md](../backend/security.md)). Cascades from its user.
 - **PasswordResetToken** — a single-use reset token, stored hashed, with an expiry. Cascades from its user.
-- **RateLimit** — a fixed-window counter: a key, its hits and when its window ends. The rate limits and the reset email's caps share it ([security.md](../backend/security.md#rate-limits-fixed-window)). It belongs to no user: a key is a digest, so it names no one.
+- **RateLimit** — a fixed-window counter: a key, its hits and when its window ends. The rate limits and the reset email's caps share it ([security.md](../backend/security.md#rate-limits-fixed-window)). It belongs to no user. Its key is a digest, not anonymous data: an address or an email can be found again by hashing the candidates.
 
 ### Lookups
 - **Governorate** and **Area** — the two-level place list, bilingual, ordered, with active flags. An area belongs to one governorate; a space belongs to one area.

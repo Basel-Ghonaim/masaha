@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -44,7 +44,7 @@
 | `validation` | 422 | Field validation failed (`errors` present) |
 | `rate_limit` | 429 | Too many requests |
 | `server` | 500 | Unexpected error |
-| `service_unavailable` | 503 | Database unreachable |
+| `service_unavailable` | 503 | A dependency is unavailable or not configured: the database, or Google sign-in |
 
 **Field-error codes:** `required`, `too_short`, `too_long`, `invalid_format`, `out_of_range`, `not_unique`, `invalid_choice`.
 
@@ -77,7 +77,7 @@ SessionUser = {
 }
 ```
 
-An answer that opens or renews a session also sets the refresh cookie and the session hint, and an answer that ends one clears them ([security.md](../backend/security.md#tokens-and-cookies)). The sign-in limits count failures only ([security.md](../backend/security.md#rate-limits-fixed-window)); a refused attempt answers `rate_limit` (429).
+Every endpoint with a body may answer `validation` (422), and every endpoint may answer `rate_limit` (429) under the limits of [security.md](../backend/security.md#rate-limits-fixed-window); the entries below name them where they say more. An answer that opens or renews a session also sets the refresh cookie and the session hint, and an answer that ends one clears them ([security.md](../backend/security.md#tokens-and-cookies)). The sign-in limits count failures only ([security.md](../backend/security.md#rate-limits-fixed-window)); a refused attempt answers `rate_limit` (429).
 
 #### `POST /auth/register` · 🌐
 - **Body:** `{ name, email, password, language? }`. The name is 1–100 characters, NFC-normalised, with no bidirectional controls; the email is trimmed and lowercased; the password follows the policy ([security.md](../backend/security.md#passwords)); `language` is the interface's, `ar` when absent.
@@ -87,12 +87,12 @@ An answer that opens or renews a session also sets the refresh cookie and the se
 #### `POST /auth/login` · 🌐
 - **Body:** `{ email, password }`. The policy is not checked here.
 - **200:** `Session`.
-- **Errors:** `unauthorized` (401) `INVALID_CREDENTIALS` for an unknown email, a wrong password or a Google-only account alike; `forbidden` (403) `ACCOUNT_SUSPENDED`, only once the password matches.
+- **Errors:** `validation` (422); `unauthorized` (401) `INVALID_CREDENTIALS` for an unknown email, a wrong password or a Google-only account alike; `forbidden` (403) `ACCOUNT_SUSPENDED`, only once the password matches; `rate_limit` (429) after 10 failures for the address and email, or 50 for the address.
 
 #### `POST /auth/google` · 🌐
 - **Body:** `{ idToken, language? }`: a Google OpenID Connect ID token from Google's sign-in on the web, and the interface language for an account this creates.
 - **200:** `Session & { linked }`. The account is the one linked to this Google account; else the account with its email, linked now where Google is the authority for the address, with its password removed and its other sessions ended (`linked: true`, so the web can say so); else a new `USER` without a password ([security.md](../backend/security.md#sign-in-methods)).
-- **Errors:** `unauthorized` (401) `GOOGLE_TOKEN_INVALID` for a token that fails verification, or whose email's account is linked to another Google account; `conflict` (409) `GOOGLE_LINK_NOT_ALLOWED` when the email has an account and Google is not the authority for the address; `forbidden` (403) `ACCOUNT_SUSPENDED`; `service_unavailable` (503) while the API has no Google client id, or cannot load Google's keys; a 503 counts no failure.
+- **Errors:** `validation` (422); `unauthorized` (401) `GOOGLE_TOKEN_INVALID` for a token that fails verification, or whose email's account is linked to another Google account; `conflict` (409) `GOOGLE_LINK_NOT_ALLOWED` when the email has an account and Google is not the authority for the address; `forbidden` (403) `ACCOUNT_SUSPENDED`; `service_unavailable` (503) while the API has no Google client id, or cannot load Google's keys; a 503 counts no failure.
 
 #### `POST /auth/refresh` · the refresh cookie
 - **Body:** none.
@@ -115,12 +115,12 @@ The reset link and its email are described in [security.md](../backend/security.
 #### `POST /auth/password/reset/check` · 🌐
 - **Body:** `{ token }`, read by the web from the link's fragment.
 - **200:** `{ email }`, the account the link is for. The token is neither used nor extended.
-- **Errors:** `bad_request` (400) `RESET_TOKEN_INVALID`, the same for an unknown, expired or used link.
+- **Errors:** `validation` (422) for a missing or empty token; `bad_request` (400) `RESET_TOKEN_INVALID`, the same for an unknown, expired or used link; `rate_limit` (429).
 
 #### `POST /auth/password/reset` · 🌐
 - **Body:** `{ token, password }`. The password follows the policy.
 - **204:** the password is set, a pending temporary one is settled, and every session of the user ended. The link is used.
-- **Errors:** `validation` (422); `bad_request` (400) `RESET_TOKEN_INVALID`.
+- **Errors:** `validation` (422); `bad_request` (400) `RESET_TOKEN_INVALID`; `rate_limit` (429).
 
 ### Me
 

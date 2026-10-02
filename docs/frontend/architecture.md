@@ -46,7 +46,7 @@
 
 ### Landing and guards
 
-Not built yet: F-5 builds the guards and F-6 the landing and the switcher.
+Not built yet: F-5b builds the guards and F-6 the landing and the switcher.
 
 - **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
 - **Landing after sign-in:**

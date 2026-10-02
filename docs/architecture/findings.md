@@ -257,14 +257,46 @@ The writes succeeded and rolled back correctly. The warning comes from Prisma's 
 
 **Status:** Open · **Date:** 2026-10-01
 
-**Evidence:** the session lists the user's active links: those not deactivated ([api-contract §5](../api/api-contract.md#session)). A space is soft-deleted (`deletedAt`), and its links are not touched, so a link to a deleted space still appears and would still open the dashboard. `space-links` reads only its own table (conventions R1), so it cannot filter by the space's state, and nothing deletes spaces yet.
+**Evidence:** the session lists the user's active links: those not deactivated ([api-contract §5](../api/api-contract.md#session)). A space is soft-deleted (`deletedAt`), and its links are not touched, so a link to a deleted space still appears and would still open the dashboard. `space-links`' repository queries only its own table ([conventions §2](../backend/conventions.md#2-layers)), and its service does not ask `spaces` (L1, below it, so it may) for the space's state; nothing deletes spaces yet.
 
 **Resolves when:** the slice that soft-deletes spaces decides it, for example by deactivating the space's links in the same transaction, with a test.
 
-## 19. The reset email's colours are written outside the design system
+## 19. The reset email's colours, fonts and styles are written outside the design system
 
-**Status:** Accepted · **Date:** 2026-10-01
+**Status:** Open · **Date:** 2026-10-01 · **Corrected:** 2026-10-02
 
-**Evidence:** the reset email (`apps/api/src/modules/auth/email/resetEmail.ts`) writes seven colours as literal values, inline, copied from its design (`docs/design/prototype/Reset email.html`). The design system is the one place for colours, as semantic tokens ([foundation](../frontend/design-system/foundation.md)), but an email client reads no stylesheet and no custom property, and the API cannot import the web's tokens. **Accepted:** the email is the only one Masaha sends, and its colours are named in one object.
+**Evidence:** the reset email (`apps/api/src/modules/auth/email/resetEmail.ts`) writes its styles inline, copied from its design (`docs/design/prototype/Reset email.html`): seven colours as literal values, two font stacks, and every layout rule (sizes, spacing, borders, radii). The design system is the one place for colours, fonts and CSS, as semantic tokens ([foundation](../frontend/design-system/foundation.md)), but an email client reads no stylesheet and no custom property, and the API cannot import the web's tokens.
 
-**Resolves when:** a design-system change of the brand or neutral colours is carried to that object too, or the email is generated from the tokens at build time.
+**Resolves when:** the owner accepts the deviation (the email is the only one Masaha sends, and its colours and fonts are named in one place), with design-system changes of the brand, neutral colours or fonts carried to it by hand; or the email is generated from the tokens at build time.
+
+## 20. A session has no absolute lifetime
+
+**Status:** Open · **Date:** 2026-10-02
+
+**Evidence:** every rotation gives the new refresh token 7 more days ([security.md](../backend/security.md#tokens-and-cookies)). A session refreshed at least once a week therefore never ends by itself: only a logout, a password change, a reset or a suspension ends it. A stolen session that is used regularly lasts as long.
+
+**Resolves when:** a family carries an absolute deadline (for example 30 days from sign-in, after which the person signs in again), or the open-ended session is accepted in security.md.
+
+## 21. A token replayed within the grace window starts its own branch
+
+**Status:** Open · **Date:** 2026-10-02
+
+**Evidence:** within 30 s of a rotation, each presentation of the rotated token gets a new token of the same family ([security.md](../backend/security.md#tokens-and-cookies)), so two tabs refreshing together stay signed in. A copy presented within that window, say by an infostealer that replays the cookie at once, gets its own successor. From then on the thief and the owner each rotate their own branch and never present a token rotated more than 30 s ago, so reuse detection never fires; the family ends only by a logout, a password change or a reset. The owner decided to keep this for now (decision D5 of F-5a's review).
+
+**Resolves when:** every presentation within the grace returns the same successor, derived deterministically from the presented token (for example an HMAC of it under a server key), so a replay within the window gains nothing (option B of that review).
+
+## 22. The reset email's words live outside the web's copy catalogue
+
+**Status:** Open · **Date:** 2026-10-02
+
+**Evidence:** every user-facing string goes through the copy catalogue, in both languages (CLAUDE.md). The reset email is sent by the API, which has no catalogue, so its words live in `apps/api/src/modules/auth/email/resetEmail.copy.ts`, in both languages held to one shape and checked by a unit test. A change to the product's wording can miss them, and the catalogue's own parity test does not see them.
+
+**Resolves when:** the email's words move into a catalogue both apps read (for example in `packages/shared`), or this second place is accepted in localisation.md.
+
+## 23. No per-address ceiling for signed-in requests
+
+**Status:** Open · **Date:** 2026-10-02
+
+**Evidence:** a request with a valid access token counts by its user, 300 every 15 minutes ([security.md](../backend/security.md#rate-limits-fixed-window)). Registrations are bounded (20 an hour per address), but each account still brings its own bucket, so one address holding many accounts multiplies its allowance. Online, that spends the free tier's CPU and database hours ([ADR 0014](decisions/0014-deployment.md)).
+
+**Resolves when:** F-7 sizes a per-address ceiling for signed-in requests against the deployment's real limits, or records why it is not needed.

@@ -1,6 +1,6 @@
 # Testing
 
-> **Status:** Active · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
 > **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof, not its style.
 
 ## 1. The assignment rule

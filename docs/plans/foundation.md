@@ -1,6 +1,6 @@
 # Plan — Application foundation
 
-> **Status:** Active · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built, the backend architecture they are built on, and the first public deployment. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
