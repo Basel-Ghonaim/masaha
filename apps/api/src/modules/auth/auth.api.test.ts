@@ -364,6 +364,23 @@ describe('POST /auth/refresh', () => {
     }
   });
 
+  it("deletes the user's expired tokens as it rotates", async () => {
+    const user = await createAccount();
+    const token = refreshTokenOf(await login());
+    await prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        familyId: 999,
+        tokenHash: 'expired',
+        expiresAt: new Date(Date.now() - 1_000),
+      },
+    });
+
+    expect((await refresh(token)).status).toBe(200);
+
+    expect(await prisma.refreshToken.count({ where: { tokenHash: 'expired' } })).toBe(0);
+  });
+
   it('refuses an expired token', async () => {
     await createAccount();
     const token = refreshTokenOf(await login());

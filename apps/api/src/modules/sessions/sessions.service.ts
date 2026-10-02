@@ -79,6 +79,9 @@ export function createSessionsService({
         return { outcome: 'reused' };
       }
 
+      // A session that keeps refreshing never signs in again, so its expired rows go here: a
+      // live session keeps the tokens of its last 7 days, which reuse detection needs.
+      await repository.deleteExpired(stored.userId, at, tx);
       const next = await issueInFamily(stored.userId, stored.familyId, at, tx);
       // Within the grace window the token already has its successor, and the new token joins the
       // session beside it. Otherwise it is marked rotated now: the session lock means no concurrent
