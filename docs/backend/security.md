@@ -13,7 +13,7 @@
 | Session | The tokens rotated from one sign-in form a **family**, named by the id of its first token. Logout ends the whole family, the device's session |
 | Rotation grace | A token rotated less than 30 s ago is still honoured: its refresh gets a new token of the same family, so two tabs refreshing together, or a refresh retried after a lost answer, stay signed in |
 | Reuse | A token rotated **more** than 30 s ago means a copy of it is in use: its family is deleted and the refresh answers 401. The user's other sessions, on other devices, are untouched. Ending only the family still cuts a stolen chain (OAuth 2.0 Security BCP), while a reception desk on another device keeps working |
-| Refresh cookie | `masaha_refresh` · `HttpOnly` · `Secure` (production) · `SameSite=Strict` · `Path=/api/v1/auth` · 7 days; set and cleared from one shared options object |
+| Refresh cookie | `masaha_refresh` · `HttpOnly` · `Secure` everywhere but development (a missing `NODE_ENV` refuses to start, never falls back to development) · `SameSite=Strict` · `Path=/api/v1/auth` · 7 days; set and cleared from one shared options object |
 | Session hint | `masaha_session=1`, readable by JS, `Path=/`, no secret |
 | Revocation | Password change, password reset, role change, suspension and the deactivation of a reception link delete all the user's refresh tokens. A password change then opens a new session for its own device |
 

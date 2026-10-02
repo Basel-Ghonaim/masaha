@@ -8,7 +8,9 @@ const optional = z
 
 const envSchema = z
   .object({
-    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    // Required, with no default: development's relaxations (the log email mode, cookies without
+    // Secure, an optional Google client id) must never apply because the variable went missing.
+    NODE_ENV: z.enum(['development', 'test', 'production']),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     // The one web origin allowed to call the API with credentials (docs/backend/security.md).
     CORS_ORIGIN: z.url(),
@@ -21,11 +23,11 @@ const envSchema = z
       .default('info'),
     // Which proxies Express trusts for the client's address, which the per-IP rate limits count by
     // (docs/backend/security.md). Express's own syntax: a number of hops, or addresses and the names
-    // loopback, linklocal and uniquelocal. Locally, the web's development server is on loopback.
-    TRUST_PROXY: z
-      .string()
-      .default('loopback')
-      .transform((value) => (/^\d+$/.test(value) ? Number(value) : value)),
+    // loopback, linklocal and uniquelocal. Locally it defaults to loopback, the web's development
+    // server; production must set it, since a wrong value merges or forges every client's address.
+    TRUST_PROXY: optional.transform((value) =>
+      value !== undefined && /^\d+$/.test(value) ? Number(value) : value,
+    ),
     // Masaha's Google OAuth client id: the audience of Google sign-in. Without it, Google sign-in
     // answers service_unavailable; production requires it.
     GOOGLE_CLIENT_ID: optional,
@@ -45,12 +47,10 @@ const envSchema = z
     EMAIL_FROM: optional,
   })
   .superRefine((env, context) => {
-    if (env.NODE_ENV === 'production' && !env.GOOGLE_CLIENT_ID) {
-      context.addIssue({
-        code: 'custom',
-        path: ['GOOGLE_CLIENT_ID'],
-        message: 'Required in production',
-      });
+    for (const name of ['GOOGLE_CLIENT_ID', 'TRUST_PROXY'] as const) {
+      if (env.NODE_ENV === 'production' && env[name] === undefined) {
+        context.addIssue({ code: 'custom', path: [name], message: 'Required in production' });
+      }
     }
     // A mode that sends nothing would report success while delivering nothing: only development
     // may use it, and production must deliver.
@@ -75,6 +75,16 @@ const envSchema = z
   });
 
 export type Env = z.infer<typeof envSchema>;
+
+/** Which proxies to trust: as set, or loopback outside production (where it is required). */
+export function trustProxyOf(env: Env): string | number {
+  return env.TRUST_PROXY ?? 'loopback';
+}
+
+/** The session cookies are Secure everywhere but development (local HTTP). */
+export function secureCookiesOf(env: Env): boolean {
+  return env.NODE_ENV !== 'development';
+}
 
 export class EnvError extends Error {
   override name = 'EnvError';

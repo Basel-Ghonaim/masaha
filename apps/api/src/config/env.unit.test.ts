@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { EnvError, loadEnv } from './env.ts';
+import { EnvError, loadEnv, secureCookiesOf, trustProxyOf } from './env.ts';
 
 const valid = {
+  NODE_ENV: 'development',
   CORS_ORIGIN: 'http://localhost:5173',
   DATABASE_URL: 'postgresql://masaha:masaha@localhost:5433/masaha_dev',
   JWT_SECRET: 'a-development-secret-of-32-characters',
@@ -25,7 +26,7 @@ describe('loadEnv', () => {
       DATABASE_URL: 'postgresql://masaha:masaha@localhost:5433/masaha_dev',
       JWT_SECRET: 'a-development-secret-of-32-characters',
       LOG_LEVEL: 'info',
-      TRUST_PROXY: 'loopback',
+      TRUST_PROXY: undefined,
       GOOGLE_CLIENT_ID: undefined,
       EMAIL_MODE: 'log',
       SMTP_HOST: undefined,
@@ -57,6 +58,7 @@ describe('loadEnv', () => {
         ...smtp,
         NODE_ENV: 'production',
         GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com',
+        TRUST_PROXY: '1',
       }).GOOGLE_CLIENT_ID,
     ).toBe('id.apps.googleusercontent.com');
   });
@@ -84,8 +86,31 @@ describe('loadEnv', () => {
 
   it('starts in production with Google and a delivering email mode', () => {
     expect(
-      loadEnv({ ...valid, ...smtp, NODE_ENV: 'production', GOOGLE_CLIENT_ID: 'id' }).NODE_ENV,
+      loadEnv({
+        ...valid,
+        ...smtp,
+        NODE_ENV: 'production',
+        GOOGLE_CLIENT_ID: 'id',
+        TRUST_PROXY: '1',
+      }).NODE_ENV,
     ).toBe('production');
+  });
+
+  it('requires NODE_ENV: a missing one never falls back to development', () => {
+    expect(() => loadEnv({ ...valid, NODE_ENV: undefined })).toThrow(/NODE_ENV/);
+  });
+
+  it('requires TRUST_PROXY in production, and trusts loopback elsewhere', () => {
+    const production = { ...valid, ...smtp, NODE_ENV: 'production', GOOGLE_CLIENT_ID: 'id' };
+
+    expect(() => loadEnv(production)).toThrow(/TRUST_PROXY/);
+    expect(trustProxyOf(loadEnv({ ...production, TRUST_PROXY: '1' }))).toBe(1);
+    expect(trustProxyOf(loadEnv(valid))).toBe('loopback');
+  });
+
+  it('makes the cookies Secure everywhere but development', () => {
+    expect(secureCookiesOf(loadEnv(valid))).toBe(false);
+    expect(secureCookiesOf(loadEnv({ ...valid, ...smtp, NODE_ENV: 'test' }))).toBe(true);
   });
 
   it('names a missing variable', () => {

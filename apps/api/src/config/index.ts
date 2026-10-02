@@ -1,1 +1,1 @@
-export { EnvError, loadEnv, type Env } from './env.ts';
+export { EnvError, loadEnv, secureCookiesOf, trustProxyOf, type Env } from './env.ts';
