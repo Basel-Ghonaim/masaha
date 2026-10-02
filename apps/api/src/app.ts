@@ -4,12 +4,16 @@ import express, { Router } from 'express';
 import helmet from 'helmet';
 import type { Logger } from 'pino';
 
+import { secureCookiesOf, trustProxyOf, type Env } from './config/index.ts';
 import { createRunInTransaction } from './db/index.ts';
 import {
   createAuthController,
   createAuthRouter,
   createAuthService,
   createCappedEmailSender,
+  createGoogleIdentity,
+  createLogEmailSender,
+  createSmtpEmailSender,
   type EmailSender,
   type GoogleIdentity,
 } from './modules/auth/index.ts';
@@ -156,4 +160,33 @@ export function createApi({
   api.use('/auth', createAuthRouter(createAuthController(auth, cookies)));
   api.use('/me', createUsersMeRouter(createUsersController(users, cookies), requireAuth));
   return api;
+}
+
+/**
+ * The application as the environment configures it: the one mapping from settings to ports, which
+ * every entry calls (the local server, and online the function's thin entry; conventions §12).
+ */
+export function createAppFromEnv(
+  env: Env,
+  { logger, checkDatabase }: { logger: Logger; checkDatabase: () => Promise<boolean> },
+) {
+  return createApp({
+    corsOrigin: env.CORS_ORIGIN,
+    logger,
+    checkDatabase,
+    trustProxy: trustProxyOf(env),
+    apiRouter: createApi({
+      jwtSecret: env.JWT_SECRET,
+      secureCookies: secureCookiesOf(env),
+      google: env.GOOGLE_CLIENT_ID
+        ? createGoogleIdentity({ clientId: env.GOOGLE_CLIENT_ID })
+        : undefined,
+      email:
+        env.EMAIL.mode === 'smtp'
+          ? createSmtpEmailSender(env.EMAIL.settings)
+          : createLogEmailSender(logger),
+      webOrigin: env.CORS_ORIGIN,
+      logger,
+    }),
+  });
 }

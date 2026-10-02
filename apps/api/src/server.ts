@@ -1,10 +1,5 @@
-import { createApi, createApp } from './app.ts';
-import {
-  createGoogleIdentity,
-  createLogEmailSender,
-  createSmtpEmailSender,
-} from './modules/auth/index.ts';
-import { EnvError, loadEnv, secureCookiesOf, trustProxyOf, type Env } from './config/index.ts';
+import { createAppFromEnv } from './app.ts';
+import { EnvError, loadEnv, type Env } from './config/index.ts';
 import { isDatabaseUp, prisma } from './db/index.ts';
 import { createLogger } from './shared/http/index.ts';
 
@@ -35,33 +30,7 @@ try {
   process.exit(1);
 }
 
-const app = createApp({
-  corsOrigin: env.CORS_ORIGIN,
-  logger,
-  checkDatabase: () => isDatabaseUp(prisma),
-  trustProxy: trustProxyOf(env),
-  apiRouter: createApi({
-    jwtSecret: env.JWT_SECRET,
-    secureCookies: secureCookiesOf(env),
-    google: env.GOOGLE_CLIENT_ID
-      ? createGoogleIdentity({ clientId: env.GOOGLE_CLIENT_ID })
-      : undefined,
-    // The environment guarantees the SMTP settings in smtp mode, and log mode only in development.
-    email:
-      env.EMAIL_MODE === 'smtp'
-        ? createSmtpEmailSender({
-            host: env.SMTP_HOST ?? '',
-            port: env.SMTP_PORT,
-            secure: env.SMTP_SECURE,
-            user: env.SMTP_USER ?? '',
-            password: env.SMTP_PASSWORD ?? '',
-            from: env.EMAIL_FROM ?? '',
-          })
-        : createLogEmailSender(logger),
-    webOrigin: env.CORS_ORIGIN,
-    logger,
-  }),
-});
+const app = createAppFromEnv(env, { logger, checkDatabase: () => isDatabaseUp(prisma) });
 
 const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, 'API listening');

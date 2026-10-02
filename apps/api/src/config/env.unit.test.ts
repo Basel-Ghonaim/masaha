@@ -28,13 +28,7 @@ describe('loadEnv', () => {
       LOG_LEVEL: 'info',
       TRUST_PROXY: undefined,
       GOOGLE_CLIENT_ID: undefined,
-      EMAIL_MODE: 'log',
-      SMTP_HOST: undefined,
-      SMTP_PORT: 465,
-      SMTP_SECURE: true,
-      SMTP_USER: undefined,
-      SMTP_PASSWORD: undefined,
-      EMAIL_FROM: undefined,
+      EMAIL: { mode: 'log' },
     });
   });
 
@@ -64,7 +58,7 @@ describe('loadEnv', () => {
   });
 
   it('allows the email log mode, which sends nothing and logs the link, in development only', () => {
-    expect(loadEnv(valid).EMAIL_MODE).toBe('log');
+    expect(loadEnv(valid).EMAIL).toEqual({ mode: 'log' });
     for (const NODE_ENV of ['test', 'production']) {
       expect(() => loadEnv({ ...valid, NODE_ENV, GOOGLE_CLIENT_ID: 'id' })).toThrow(/EMAIL_MODE/);
     }
@@ -76,11 +70,16 @@ describe('loadEnv', () => {
     for (const name of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD', 'EMAIL_FROM']) {
       expect(load).toThrow(new RegExp(name));
     }
-    expect(loadEnv({ ...valid, ...smtp, SMTP_PORT: '587', SMTP_SECURE: 'false' })).toMatchObject({
-      EMAIL_MODE: 'smtp',
-      SMTP_HOST: 'smtp.gmail.com',
-      SMTP_PORT: 587,
-      SMTP_SECURE: false,
+    expect(loadEnv({ ...valid, ...smtp, SMTP_PORT: '587', SMTP_SECURE: 'false' }).EMAIL).toEqual({
+      mode: 'smtp',
+      settings: {
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        user: 'masaha@example.com',
+        password: 'an-app-password',
+        from: 'Masaha <masaha@example.com>',
+      },
     });
   });
 

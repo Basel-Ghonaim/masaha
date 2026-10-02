@@ -61,18 +61,67 @@ const envSchema = z
         message: 'log sends nothing and logs the link: development only. Use smtp',
       });
     }
-    if (env.EMAIL_MODE === 'smtp') {
-      for (const name of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD', 'EMAIL_FROM'] as const) {
-        if (!env[name]) {
-          context.addIssue({
-            code: 'custom',
-            path: [name],
-            message: 'Required with EMAIL_MODE=smtp',
-          });
-        }
+  })
+  // The email settings become one value whose type says what the mode needs, so no entry can wire
+  // a mode without its settings.
+  .transform(
+    (
+      {
+        EMAIL_MODE,
+        SMTP_HOST,
+        SMTP_PORT,
+        SMTP_SECURE,
+        SMTP_USER,
+        SMTP_PASSWORD,
+        EMAIL_FROM,
+        ...env
+      },
+      context,
+    ) => {
+      if (EMAIL_MODE === 'log') return { ...env, EMAIL: { mode: 'log' } as EmailSettings };
+      const settings = {
+        host: SMTP_HOST,
+        user: SMTP_USER,
+        password: SMTP_PASSWORD,
+        from: EMAIL_FROM,
+      };
+      const missing = Object.entries({
+        SMTP_HOST,
+        SMTP_USER,
+        SMTP_PASSWORD,
+        EMAIL_FROM,
+      }).filter(([, value]) => !value);
+      for (const [name] of missing) {
+        context.addIssue({
+          code: 'custom',
+          path: [name],
+          message: 'Required with EMAIL_MODE=smtp',
+        });
       }
-    }
-  });
+      const { host, user, password, from } = settings;
+      if (!host || !user || !password || !from) return z.NEVER;
+      const email: EmailSettings = {
+        mode: 'smtp',
+        settings: { host, port: SMTP_PORT, secure: SMTP_SECURE, user, password, from },
+      };
+      return { ...env, EMAIL: email };
+    },
+  );
+
+/** How the reset email goes out (docs/backend/security.md › Passwords). */
+export type EmailSettings =
+  | { mode: 'log' }
+  | {
+      mode: 'smtp';
+      settings: {
+        host: string;
+        port: number;
+        secure: boolean;
+        user: string;
+        password: string;
+        from: string;
+      };
+    };
 
 export type Env = z.infer<typeof envSchema>;
 
