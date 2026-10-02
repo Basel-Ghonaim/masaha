@@ -9,7 +9,7 @@
 
 | Zone | Owns | May import |
 |---|---|---|
-| `app/` | Composition root: bootstrap (inject the token getter, register catalogues), providers (QueryClient, DirectionProvider, theme), router | pages, features, shared |
+| `app/` | Composition root: bootstrap (inject the token getter, register catalogues), providers, composed in one component (`providers.tsx` › `AppProviders`: QueryClient, DirectionProvider, theme), router | pages, features, shared |
 | `pages/` | One folder per **page group**: its route subtree, layout, and the loading / error / empty states of what it arranges. The only zone that combines several features | features, shared |
 | `features/` | One folder per **capability**: a fact and the operations on it | shared |
 | `shared/` | The platform: `design-system`, `api` (Axios client, refresh), `errors` (AppError), `session`, `preferences`, `localisation`, `copy`, `routing`, `map`, `lib` | shared (the design system imports nothing outside itself) |
