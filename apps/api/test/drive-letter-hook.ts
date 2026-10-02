@@ -1,7 +1,7 @@
 import { registerHooks } from 'node:module';
 
-// Loaded into every test worker by vitest.config.ts. Its twin is apps/web/test/driveLetterHook.ts;
-// a change to one is made to both.
+// Loaded into every test worker by vitest.config.ts, and by packages/shared/vitest.config.ts. Its
+// twin is apps/web/test/driveLetterHook.ts; a change to one is made to both.
 //
 // On Windows, a Vitest started from a lowercase drive (c:\…, as npm does from such a working
 // directory) loads its runtime from file:///c:/…, while Vite resolves the test files' `vitest` import

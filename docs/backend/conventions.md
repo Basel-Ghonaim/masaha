@@ -58,7 +58,7 @@ Inside a module, each layer calls only the one below it.
 - **Zod**, with schemas imported from `packages/shared` where the client uses the same rules.
 - `validate(schema, source = "body" | "query" | "params")` runs before the controller; on failure it throws `AppError.validation` with field-error **codes**.
 - Query numbers (`page`, `limit`) are coerced and bounded in the schema.
-- User text is NFC-normalised and bidi control characters are refused.
+- User text is NFC-normalised, and bidi control characters and control characters (line breaks included) are refused, by `textSchema` in `packages/shared`.
 
 ## 4. Errors
 

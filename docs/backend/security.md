@@ -36,7 +36,7 @@
 ## Passwords
 
 - bcrypt, cost 12, hashed outside database transactions, by the `users` module ([ADR 0013](../architecture/decisions/0013-identity-modules.md)). A sign-in for an unknown email, or for an account with no password, still spends one comparison, so its timing does not reveal which accounts exist.
-- Policy: 8–72 characters, at least one letter and one digit.
+- Policy: at least 8 characters and at most 72 bytes in UTF-8 (bcrypt ignores every byte after the 72nd, and an Arabic letter takes two), with at least one letter and one digit.
 - The hash is excluded in the Prisma `select`, never only by the mapper.
 - Wrong credentials: generic `INVALID_CREDENTIALS`.
 - **Accounts created by someone else** get a temporary password, shown once to hand over, and `mustChangePassword = true`. This covers:
