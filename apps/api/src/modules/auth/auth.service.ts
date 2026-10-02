@@ -80,8 +80,14 @@ export function createAuthService({
     return { user: { ...user, spaces }, accessToken };
   }
 
-  async function signIn(account: Account): Promise<SignedIn> {
-    const { token } = await sessions.issue(account.id);
+  /** Opens a session for the user, under their session lock (conventions §13). */
+  async function signIn(userId: number): Promise<SignedIn> {
+    const { account, token } = await runInTransaction(async (tx) => {
+      const locked = await users.lockAccount(userId, tx);
+      if (!locked) throw AppError.unauthorized(undefined, 'Account not found');
+      users.assertMaySignIn(locked);
+      return { account: locked, token: (await sessions.issue(userId, tx)).token };
+    });
     return { session: await sessionFor(account), refreshToken: token };
   }
 
@@ -107,14 +113,21 @@ export function createAuthService({
   return {
     register(request: RegisterRequest, address: string): Promise<SignedIn> {
       return limitFailures(address, request.email, async () =>
-        signIn(await users.register(request)),
+        signIn((await users.register(request)).id),
       );
     },
 
     login({ email, password }: LoginRequest, address: string): Promise<SignedIn> {
-      return limitFailures(address, email, async () =>
-        signIn(await users.verifyCredentials(email, password)),
-      );
+      return limitFailures(address, email, async () => {
+        const verified = await users.verifyCredentials(email, password);
+        // The credentials are confirmed again under the lock, so a reset that landed during bcrypt
+        // is never followed by a new session.
+        const { account, token } = await runInTransaction(async (tx) => {
+          const confirmed = await verified.confirm(tx);
+          return { account: confirmed, token: (await sessions.issue(confirmed.id, tx)).token };
+        });
+        return { session: await sessionFor(account), refreshToken: token };
+      });
     },
 
     /**
@@ -131,28 +144,34 @@ export function createAuthService({
         if (!profile)
           throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Invalid Google ID token');
         const { account, linked } = await users.signInWithGoogle(profile, language);
-        return { ...(await signIn(account)), linked };
+        return { ...(await signIn(account.id)), linked };
       });
     },
 
     /** Rotates the refresh token and restores the session: who is signed in, in one request (ADR 0003). */
     async refresh(refreshToken: string | undefined): Promise<SignedIn> {
-      const userId = refreshToken && (await sessions.ownerOf(refreshToken));
-      if (!refreshToken || !userId) throw AppError.unauthorized(undefined, 'No valid session');
+      if (!refreshToken) throw AppError.unauthorized(undefined, 'No session');
+      const userId = await sessions.ownerOf(refreshToken);
+      if (!userId) throw AppError.unauthorized(undefined, 'No valid session');
       await limiter.count(REFRESH, String(userId));
 
-      const account = await users.get(userId);
-      try {
-        users.assertMaySignIn(account);
-      } catch (error) {
-        await sessions.revokeAll(userId);
-        throw error;
-      }
+      // Under the session lock, so a revocation that committed first is seen.
+      const result = await runInTransaction(async (tx) => {
+        const account = await users.lockAccount(userId, tx);
+        if (!account) return { outcome: 'invalid' } as const;
+        if (!users.maySignIn(account)) {
+          await sessions.revokeAll(userId, tx);
+          return { outcome: 'refused', account } as const;
+        }
+        const rotation = await sessions.rotate(refreshToken, tx);
+        return rotation.outcome === 'rotated'
+          ? ({ outcome: 'rotated', account, token: rotation.issued.token } as const)
+          : ({ outcome: 'invalid' } as const);
+      });
 
-      const rotation = await runInTransaction((tx) => sessions.rotate(refreshToken, tx));
-      if (rotation.outcome !== 'rotated')
-        throw AppError.unauthorized(undefined, 'No valid session');
-      return { session: await sessionFor(account), refreshToken: rotation.issued.token };
+      if (result.outcome === 'refused') users.assertMaySignIn(result.account);
+      if (result.outcome !== 'rotated') throw AppError.unauthorized(undefined, 'No valid session');
+      return { session: await sessionFor(result.account), refreshToken: result.token };
     },
 
     /**
@@ -189,18 +208,27 @@ export function createAuthService({
       await limiter.count(PASSWORD_ADDRESS, from);
       await limiter.count(PASSWORD_TOKEN, from, token);
 
+      // Read first, so the lock is taken in the one order: the user, then their tokens.
+      const owner = await sessions.resetTokenOwner(token);
+      if (!owner) throw invalidResetLink();
       const passwordHash = await users.hashPassword(password);
       await runInTransaction(async (tx) => {
-        const userId = await sessions.consumeResetToken(token, tx);
-        if (!userId) throw invalidResetLink();
-        await users.setPassword(userId, passwordHash, tx);
-        await sessions.revokeAll(userId, tx);
+        await users.lockAccount(owner, tx);
+        if ((await sessions.consumeResetToken(token, tx)) !== owner) throw invalidResetLink();
+        await users.setPassword(owner, passwordHash, tx);
+        await sessions.revokeAll(owner, tx);
       });
     },
 
     /** Ends this device's session. Without a session there is nothing to end. */
     async logout(refreshToken: string | undefined): Promise<void> {
-      if (refreshToken) await sessions.end(refreshToken);
+      if (!refreshToken) return;
+      await runInTransaction(async (tx) => {
+        const userId = await sessions.holderOf(refreshToken, tx);
+        if (!userId) return;
+        await users.lockAccount(userId, tx);
+        await sessions.end(refreshToken, tx);
+      });
     },
   };
 }

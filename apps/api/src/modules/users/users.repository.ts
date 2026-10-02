@@ -82,6 +82,35 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       });
     },
 
+    /**
+     * Locks the user's row until the transaction ends (conventions §13): the session lock. `FOR NO
+     * KEY UPDATE` waits for another session writer, and lets inserts that only reference the user
+     * (payments, audit entries) through. Whether the user exists.
+     */
+    async lock(id: number, tx: Tx): Promise<boolean> {
+      const rows = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM users WHERE id = ${id} FOR NO KEY UPDATE`;
+      return rows.length === 1;
+    },
+
+    /**
+     * Sets the password only if the account still has the hash and the pending flag it was checked
+     * against: a compare-and-set, so a reset that landed meanwhile is never overwritten. The account
+     * after the change, or nothing when it had changed.
+     */
+    async setPasswordIf(
+      id: number,
+      passwordHash: string,
+      expected: { passwordHash: string | null; mustChangePassword: boolean },
+      tx: Tx = db,
+    ): Promise<Account | null> {
+      const { count } = await tx.user.updateMany({
+        where: { id, ...expected },
+        data: { passwordHash, mustChangePassword: false },
+      });
+      return count === 1 ? tx.user.findUnique({ where: { id }, select: ACCOUNT }) : null;
+    },
+
     async hasPassword(id: number, tx: Tx = db): Promise<boolean> {
       return (await tx.user.count({ where: { id, passwordHash: { not: null } } })) === 1;
     },

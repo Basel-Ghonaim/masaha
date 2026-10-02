@@ -60,7 +60,15 @@ export function createSessionsService({
       return stored && stored.expiresAt > now() ? stored.userId : undefined;
     },
 
-    /** Replaces the token with the next one of its session. Runs in the caller's transaction. */
+    /** Whose token this is, expired or not: the session a logout ends. Changes nothing. */
+    async holderOf(token: string, tx?: Tx): Promise<number | undefined> {
+      return (await repository.findRefreshToken(hashToken(token), tx))?.userId;
+    },
+
+    /**
+     * Replaces the token with the next one of its session. Runs in the caller's transaction, after
+     * the caller took the user's session lock (conventions §13).
+     */
     async rotate(token: string, tx: Tx): Promise<Rotation> {
       const at = now();
       const stored = await repository.findRefreshToken(hashToken(token), tx);
@@ -72,16 +80,19 @@ export function createSessionsService({
       }
 
       const next = await issueInFamily(stored.userId, stored.familyId, at, tx);
-      // Within the grace window, or when a concurrent refresh rotated it first, the token already
-      // has its successor; the new token joins the session beside it.
-      if (!stored.rotatedAt) await repository.markRotated(stored.id, next.stored.id, at, tx);
+      // Within the grace window the token already has its successor, and the new token joins the
+      // session beside it. Otherwise it is marked rotated now: the session lock means no concurrent
+      // refresh can have done it first.
+      if (!stored.rotatedAt && !(await repository.markRotated(stored.id, next.stored.id, at, tx))) {
+        throw new Error('A refresh token was rotated concurrently, despite the session lock');
+      }
       return { outcome: 'rotated', userId: stored.userId, issued: next.issued };
     },
 
     /** Ends the token's session, every token of its family. Unknown tokens are ignored. */
-    async end(token: string): Promise<void> {
-      const stored = await repository.findRefreshToken(hashToken(token));
-      if (stored) await repository.deleteFamily(stored.familyId);
+    async end(token: string, tx?: Tx): Promise<void> {
+      const stored = await repository.findRefreshToken(hashToken(token), tx);
+      if (stored) await repository.deleteFamily(stored.familyId, tx);
     },
 
     /** Ends every session of the user. */

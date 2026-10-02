@@ -31,6 +31,12 @@ export interface GoogleAccount {
 // A Google name becomes the account's name when it is valid user text, else the email's local part.
 const googleName = textSchema(1, NAME_MAX_LENGTH);
 
+/** Credentials that matched. `confirm` re-checks them under the session lock (conventions §13). */
+export interface VerifiedCredentials {
+  account: Account;
+  confirm(tx: Tx): Promise<Account>;
+}
+
 /** A changed password: the device's session goes on with these, and every other one has ended. */
 export interface PasswordChange {
   accessToken: string;
@@ -48,8 +54,21 @@ export function createUsersService({
   runInTransaction = createRunInTransaction(),
 }: Dependencies) {
   /** A suspended account cannot sign in or refresh (docs/backend/security.md). */
+  function maySignIn(account: Account): boolean {
+    return !account.suspendedAt;
+  }
+
   function assertMaySignIn(account: Account): void {
-    if (account.suspendedAt) throw AppError.forbidden('ACCOUNT_SUSPENDED', 'Account suspended');
+    if (!maySignIn(account)) throw AppError.forbidden('ACCOUNT_SUSPENDED', 'Account suspended');
+  }
+
+  /**
+   * Takes the user's session lock, and reads the account under it (conventions §13). Every
+   * transaction that writes the user's refresh tokens takes it first, so a revocation and a new
+   * session never interleave. Nothing when the account no longer exists.
+   */
+  async function lockAccount(id: number, tx: Tx): Promise<Account | null> {
+    return (await repository.lock(id, tx)) ? repository.findById(id, tx) : null;
   }
 
   /** The account, or a 401 when it no longer exists. */
@@ -60,7 +79,9 @@ export function createUsersService({
   }
 
   return {
+    maySignIn,
     assertMaySignIn,
+    lockAccount,
 
     /** A new USER with a password. A taken email is EMAIL_TAKEN. */
     async register({ name, email, password, language }: RegisterRequest): Promise<Account> {
@@ -73,13 +94,27 @@ export function createUsersService({
      * email, a wrong password, or an account with no password (Google only). Only once the password
      * matches does a suspension show.
      */
-    async verifyCredentials(email: string, password: string): Promise<Account> {
+    async verifyCredentials(email: string, password: string): Promise<VerifiedCredentials> {
       const found = await repository.findCredentials(email);
-      if (!(await verifyPassword(password, found?.passwordHash ?? null)) || !found) {
+      const matched = found?.passwordHash ?? null;
+      if (!(await verifyPassword(password, matched)) || !found) {
         throw AppError.unauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
       }
       assertMaySignIn(found.account);
-      return found.account;
+      const { id } = found.account;
+      return {
+        account: found.account,
+        // bcrypt ran outside any transaction; under the lock, the hash it matched must still be
+        // the account's, or a reset or a change landed meanwhile.
+        async confirm(tx) {
+          const locked = await lockAccount(id, tx);
+          if (!locked || (await repository.findPasswordHash(id, tx)) !== matched) {
+            throw AppError.unauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
+          }
+          assertMaySignIn(locked);
+          return locked;
+        },
+      };
     },
 
     /**
@@ -165,8 +200,16 @@ export function createUsersService({
       }
 
       const passwordHash = await hashPassword(password);
+      const expected = {
+        passwordHash: currentHash,
+        mustChangePassword: account.mustChangePassword,
+      };
       const { changed, issued } = await runInTransaction(async (tx) => {
-        const changed = await repository.setPassword(userId, passwordHash, tx);
+        // The update takes the session lock; it applies only to the password that was checked.
+        const changed = await repository.setPasswordIf(userId, passwordHash, expected, tx);
+        if (!changed) {
+          throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Password changed meanwhile');
+        }
         await sessions.revokeAll(userId, tx);
         return { changed, issued: await sessions.issue(userId, tx) };
       });
