@@ -1,6 +1,6 @@
 # Localisation
 
-> **Status:** Active · **Class:** Contract — rules to build against; the pre-paint script and the catalogue mechanism are built, no formatter is yet · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the pre-paint script, the catalogue mechanism and the preferences store that sets the language are built, no formatter is yet · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
 > **Authority:** Languages, resolution, catalogues and formatting rules in `apps/web`. The reasoning is in [ADR 0006](../architecture/decisions/0006-localisation-approach.md); direction rules for components are in [design-system/foundation.md §8](design-system/foundation.md).
 
 ## Languages and resolution
@@ -41,9 +41,13 @@ An inline script in `apps/web/index.html` runs before the stylesheet and sets th
 - `lang`: the stored choice, else the first of `navigator.languages` whose base language is registered, else `ar`.
 - `dir`: from the language.
 
-The choices are stored in `localStorage` as plain strings: `masaha.theme` (`light` | `dark`) and `masaha.language` (`ar` | `en`). An unknown value, or storage that cannot be read, falls through to the next source. The preferences store ([architecture.md §4](architecture.md#4-session-and-preferences)) must write these keys in this form.
+The choices are stored in `localStorage` as plain strings: `masaha.theme` (a theme the design system defines: `light` | `dark`) and `masaha.language` (a registered language: `ar` | `en`). An unknown value, or storage that cannot be read, falls through to the next source. The preferences store ([architecture.md §4](architecture.md#4-session-and-preferences)) is the only writer of these keys, and the app's writer of the three attributes after the first paint (the development-only showcase sets its own):
 
-`<html>` also carries `lang="ar" dir="rtl" data-theme="light"` in the markup, the result when the script cannot run. The script runs before the bundle exists, so it lists the registered languages by hand. `apps/web/src/app/prePaint.unit.test.ts` runs the shipped script against a stand-in browser, and holds it to the app's decisions ([below](#agreement-with-the-pre-paint-script)).
+- choosing a language or a theme stores it under its key;
+- choosing to follow the device removes `masaha.theme`, so the script follows `prefers-color-scheme` on the next load, as the store does live;
+- the language is stored only once the user chooses one, so until then each load resolves it from the browser again.
+
+`<html>` also carries `lang="ar" dir="rtl" data-theme="light"` in the markup, the result when the script cannot run. The script runs before the bundle exists, so it lists the registered languages and the themes by hand. `apps/web/src/app/prePaint.unit.test.ts` runs the shipped script against a stand-in browser, and holds it to the app's decisions ([below](#agreement-with-the-pre-paint-script)).
 
 ### Catalogues
 
@@ -70,15 +74,14 @@ The mechanism (`shared/localisation`) and the content (`shared/copy`) are separa
 
 **The language source.**
 - The mechanism reads the active language from a source the composition root hands in: its value now, and a way to hear it change.
-- Until the preferences store exists ([architecture.md §4](architecture.md#4-session-and-preferences)), the source is `documentLanguage`: `lang` on `<html>`, as the pre-paint script resolved it, watched for changes. It only reads, so it competes with no writer. The preferences store replaces it at bootstrap.
+- The source is the preferences store ([architecture.md §4](architecture.md#4-session-and-preferences)). `app/bootstrap.ts` starts the store first, from the language the pre-paint script left on `<html>`, then hands it to `setupLocalisation`. The store tells the mechanism only of a change of language, so a theme change renders no words again.
 - A language without a catalogue resolves to `ar`.
-- `App` feeds the `DirectionProvider` with `directionOf(useLanguage())`, so the direction follows the language.
+- `AppProviders` (`app/providers.tsx`) feeds the `DirectionProvider` with `directionOf(useLanguage())`, so the direction follows the language.
 
 #### Agreement with the pre-paint script
 
 The script and the app share no code. `prePaint.unit.test.ts` holds them together:
 - the script lists exactly the registered languages;
 - it stamps each with the direction the app gives it;
-- it falls back to the language the app falls back to.
-
-The app writes no storage key yet. When the preferences store starts writing `masaha.language` and `masaha.theme`, the same test holds those keys equal.
+- it falls back to the language the app falls back to;
+- it reads back what the preferences store writes: each theme the design system defines, the device once the stored theme is removed, and each registered language with its direction. The store writes the choice and the shipped script paints from it, so a renamed key, a changed value format or a theme the script does not list fails the test.

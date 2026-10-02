@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy` and the catalogue registration in `app/` (§1), and the development-only `showcase` group (§2), are built; the site and dashboard boundary (lazy page groups in §2, the dashboard-only rule in §3) and the rest are not yet implemented · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), and the catalogue registration and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; the site and dashboard boundary (lazy page groups in §2, the dashboard-only rule in §3) and the rest are not yet implemented · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -9,7 +9,7 @@
 
 | Zone | Owns | May import |
 |---|---|---|
-| `app/` | Composition root: bootstrap (inject the token getter, register catalogues), providers (QueryClient, DirectionProvider, theme), router | pages, features, shared |
+| `app/` | Composition root: bootstrap (inject the token getter, register catalogues), providers, composed in one component (`providers.tsx` › `AppProviders`: QueryClient, DirectionProvider), router | pages, features, shared |
 | `pages/` | One folder per **page group**: its route subtree, layout, and the loading / error / empty states of what it arranges. The only zone that combines several features | features, shared |
 | `features/` | One folder per **capability**: a fact and the operations on it | shared |
 | `shared/` | The platform: `design-system`, `api` (Axios client, refresh), `errors` (AppError), `session`, `preferences`, `localisation`, `copy`, `routing`, `map`, `lib` | shared (the design system imports nothing outside itself) |
@@ -89,7 +89,11 @@ A layer the capability does not need is **absent, not empty**. A screen only pre
 
 - `shared/session` (Zustand): user, role, access token, restore status; restore, refresh and sign-out. No UI.
 - `features/auth`: sign-in, register, password forms and their error wording.
-- `shared/preferences` (Zustand): language and theme, persisted; the app writes `lang`, `dir` and `data-theme` on change.
+- `shared/preferences` (Zustand), **built**: the language, the theme choice and the theme shown. No UI; F-6 builds the settings select and the top-bar toggles on it.
+  - **Derived, never listed.** The languages are those with a catalogue (`CATALOGUES`); the themes are those the design system exports (`THEMES`). Adding either touches no preferences code.
+  - **Theme choice:** a theme, or `system`, which stores nothing and follows the device's `prefers-color-scheme` live while it is the choice. The top-bar toggle sets the opposite of the theme shown, as an explicit choice.
+  - **Persisted** as plain strings at the keys the pre-paint script reads ([localisation.md › Mechanism](localisation.md#mechanism)), never in Zustand's own `persist` format. Each change writes `lang`, `dir` and `data-theme` on `<html>`, and reaches every open tab through the `storage` event.
+  - Read in a component with `usePreferences(select)`, elsewhere with `getPreferences()`.
 
 ## 5. Errors
 

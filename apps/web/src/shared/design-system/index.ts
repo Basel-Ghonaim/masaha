@@ -198,6 +198,7 @@ export {
   type TabsListProps,
 } from './components/navigation/Tabs';
 export { Textarea, type TextareaProps } from './components/fields/Textarea';
+export { THEMES, type Theme } from './tokens/themes';
 export { ThemeToggle, type ThemeToggleProps } from './components/actions/ThemeToggle';
 export {
   ToggleGroup,

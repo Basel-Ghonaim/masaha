@@ -2,8 +2,8 @@ import { useSyncExternalStore } from 'react';
 
 /**
  * Where the active language comes from: its value now, and a way to hear it change. The composition
- * root chooses the source, so the preferences store can replace the interim one without touching
- * this mechanism (docs/frontend/localisation.md#catalogues).
+ * root chooses the source, the preferences store's, so this mechanism knows no store
+ * (docs/frontend/localisation.md#catalogues).
  */
 export type LanguageSource = {
   current: () => string;
@@ -16,9 +16,11 @@ type Localisation = {
   language: LanguageSource;
 };
 
-// The language a reader gets when the source names none that is registered, as the pre-paint script
-// falls back to it; a test holds the two equal.
-const FALLBACK_LANGUAGE = 'ar';
+/**
+ * The language a reader gets when the source names none that is registered, as the pre-paint script
+ * falls back to it; a test holds the two equal.
+ */
+export const FALLBACK_LANGUAGE = 'ar';
 
 // Handed in by the composition root and never imported: content travels into the platform, so this
 // knows a catalogue only as an object keyed by language.
