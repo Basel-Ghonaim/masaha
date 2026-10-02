@@ -1,3 +1,4 @@
+import type { AmenityIconKey } from '@masaha/shared';
 import { z } from 'zod';
 
 import { VisitRounding } from '../../generated/prisma/enums.ts';
@@ -79,8 +80,17 @@ export const GOVERNORATES: readonly GovernorateSeed[] = [
   },
 ];
 
-// Icon keys are mapped to icons by the web (docs/architecture/findings.md, finding 10). The
-// directory filter offers every amenity except those nearly every space has (isFilterable: false).
+interface AmenitySeed {
+  readonly key: string;
+  readonly nameAr: string;
+  readonly nameEn: string;
+  readonly icon: AmenityIconKey;
+  readonly isFilterable?: boolean;
+}
+
+// Icon keys come from the shared list; the web will map each key to the design system's icon of
+// that glyph in build step 2 (docs/architecture/findings.md, finding 10). The directory filter
+// offers every amenity except those nearly every space has (isFilterable: false).
 export const AMENITIES = [
   // One entry: no fiber or fast distinction.
   { key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi', isFilterable: false },
@@ -113,7 +123,7 @@ export const AMENITIES = [
     nameEn: 'Technical training',
     icon: 'graduation-cap',
   },
-] as const;
+] as const satisfies readonly AmenitySeed[];
 
 /**
  * The defaults a new space's settings are copied from (docs/backend/conventions.md › New-space
