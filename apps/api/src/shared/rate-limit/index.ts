@@ -8,4 +8,4 @@ export {
   type RequestLimit,
   type Reservation,
 } from './limiter.ts';
-export type { RateLimitPolicy } from './policy.ts';
+export { FIFTEEN_MINUTES, type RateLimitPolicy } from './policy.ts';

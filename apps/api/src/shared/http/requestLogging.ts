@@ -23,7 +23,7 @@ const SECRET_FIELDS = [
   'idToken',
 ];
 
-export const REDACTED_PATHS = [
+const REDACTED_PATHS = [
   'req.headers.cookie',
   'req.headers.authorization',
   'res.headers["set-cookie"]',

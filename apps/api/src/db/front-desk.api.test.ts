@@ -226,7 +226,7 @@ describe('a visit', () => {
   });
 });
 
-describe('the request id', () => {
+describe('the idempotency key', () => {
   it('records a retried visit once', async () => {
     const space = await createSpace();
     const idempotencyKey = randomUUID();

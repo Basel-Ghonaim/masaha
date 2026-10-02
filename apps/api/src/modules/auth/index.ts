@@ -1,8 +1,8 @@
 export { createAuthController } from './auth.controller.ts';
 export { createAuthRouter } from './auth.routes.ts';
-export { createAuthService, type AuthService, type SignedIn } from './auth.service.ts';
-export { createGoogleIdentity, type GoogleIdentity, type GoogleProfile } from './google.ts';
+export { createAuthService } from './auth.service.ts';
 export { createCappedEmailSender } from './email/cappedEmailSender.ts';
-export type { EmailMessage, EmailResult, EmailSender } from './email/emailSender.ts';
+export type { EmailMessage, EmailSender } from './email/emailSender.ts';
 export { createLogEmailSender } from './email/logEmailSender.ts';
-export { createSmtpEmailSender, type SmtpSettings } from './email/smtpEmailSender.ts';
+export { createSmtpEmailSender } from './email/smtpEmailSender.ts';
+export { createGoogleIdentity, type GoogleIdentity } from './google.ts';

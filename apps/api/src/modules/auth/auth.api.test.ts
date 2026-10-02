@@ -299,6 +299,16 @@ describe('the sign-in limits', () => {
 });
 
 describe('POST /auth/refresh', () => {
+  it('is sent by a browser only to the auth router, where the composition root mounts it', async () => {
+    await createAccount();
+    const browser = request.agent(app);
+    await browser
+      .post('/api/v1/auth/login')
+      .send({ email: 'sara@example.com', password: PASSWORD });
+
+    expect((await browser.post('/api/v1/auth/refresh')).status).toBe(200);
+  });
+
   it('rotates the token and restores the session', async () => {
     const user = await createAccount();
     const token = refreshTokenOf(await login());

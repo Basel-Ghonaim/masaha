@@ -11,12 +11,13 @@ export const SESSION_HINT_COOKIE = 'masaha_session';
  * HttpOnly and reaches only the auth routes. The hint holds no secret: it tells the web, which can
  * read it, that a refresh is worth trying.
  */
-export function createSessionCookies({ secure }: { secure: boolean }) {
+/** `path` is where the composition root mounts the auth router: the cookie goes there only. */
+export function createSessionCookies({ secure, path }: { secure: boolean; path: string }) {
   const refresh: CookieOptions = {
     httpOnly: true,
     secure,
     sameSite: 'strict',
-    path: '/api/v1/auth',
+    path,
     maxAge: REFRESH_TOKEN_TTL_MS,
   };
   const hint: CookieOptions = {

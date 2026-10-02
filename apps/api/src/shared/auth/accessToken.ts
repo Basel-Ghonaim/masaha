@@ -5,7 +5,7 @@ import { Role } from '../../generated/prisma/enums.ts';
 // docs/backend/security.md › Tokens and cookies. The algorithm is set on sign and on verify, so a
 // token cannot choose its own.
 const ALGORITHM = 'HS256';
-export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
+const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 
 /** What an access token says: who, their global role, and whether a temporary password is pending. */
 export interface AccessClaims {

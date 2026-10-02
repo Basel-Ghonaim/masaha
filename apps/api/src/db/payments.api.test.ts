@@ -224,7 +224,7 @@ describe('the due', () => {
   });
 });
 
-describe('the request id', () => {
+describe('the idempotency key', () => {
   it('records a retried payment once', async () => {
     const { space, staff, visit } = await setup();
     const idempotencyKey = randomUUID();

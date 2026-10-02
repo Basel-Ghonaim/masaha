@@ -159,7 +159,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 ## 8. Module rules
 
 - **R1 — Ownership.** A module is one capability and owns its tables; only it writes them.
-- **R2 — One public entry.** A module's `index.ts` exports its service factory, its routers and its public types. It never exports a repository or a mapper, and nothing imports past it.
+- **R2 — One public entry.** A module's `index.ts` exports its service factory, its routers and its public types, and what the composition root and the seed must wire from it: its controller factories, the adapters of the ports it owns (`auth`'s email senders and Google identity), its HTTP helpers (`sessions`' cookies) and, for the seed, `users`' `hashPassword`. It exports nothing else, never a repository or a mapper, and nothing imports past it.
 - **R3 — Levels.** The module graph is acyclic: a module imports only lower levels (§7), never a module at its own level.
 - **R4 — Direct calls, orchestrators above.** Calling a lower module's public API is the default. An operation that spans modules belongs to the module above them, which orchestrates it and owns its transaction.
 - **R5 — Ports, rarely.** A port is an abstraction wired in the composition root. It is allowed only for:

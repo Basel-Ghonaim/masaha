@@ -1,4 +1,4 @@
-import type { RateLimitPolicy } from '../../shared/rate-limit/index.ts';
+import { FIFTEEN_MINUTES, type RateLimitPolicy } from '../../shared/rate-limit/index.ts';
 
 /**
  * Wrong current passwords at /me/password, by the user: a stolen access token must not turn into
@@ -8,5 +8,5 @@ import type { RateLimitPolicy } from '../../shared/rate-limit/index.ts';
 export const PASSWORD_CHANGE: RateLimitPolicy = {
   name: 'password-change',
   limit: 10,
-  windowMs: 15 * 60_000,
+  windowMs: FIFTEEN_MINUTES,
 };

@@ -45,7 +45,7 @@ interface Dependencies {
   /** Absent when no Google client id is configured: Google sign-in is then unavailable. */
   google: GoogleIdentity | undefined;
   /** The reset email's sender, behind its caps. */
-  email: EmailSender;
+  emailSender: EmailSender;
   /** The web's origin, where the reset link leads. */
   webOrigin: string;
 }
@@ -62,7 +62,7 @@ export function createAuthService({
   limiter,
   runInTransaction,
   google,
-  email,
+  emailSender,
   webOrigin,
 }: Dependencies) {
   const invalidResetLink = () =>
@@ -73,11 +73,7 @@ export function createAuthService({
     const [user, spaces, accessToken] = await Promise.all([
       users.view(account),
       spaceLinks.activeLinksFor(account.id),
-      accessTokens.sign({
-        userId: account.id,
-        role: account.role,
-        mustChangePassword: account.mustChangePassword,
-      }),
+      accessTokens.sign(users.accessClaims(account)),
     ]);
     return { user: { ...user, spaces }, accessToken };
   }
@@ -95,33 +91,33 @@ export function createAuthService({
 
   /**
    * Runs a sign-in attempt under the failure limits (docs/backend/security.md › Rate limits): by
-   * address, and by address and email when there is one. The limiter reserves each slot first and
+   * clientAddress, and by clientAddress and email when there is one. The limiter reserves each slot first and
    * gives it back on a success, so a concurrent burst cannot pass them.
    */
   function limitFailures<T>(
-    address: string,
+    clientAddress: string,
     email: string | undefined,
     attempt: () => Promise<T>,
   ): Promise<T> {
     return limiter.limitFailures(
       [
-        { policy: SIGN_IN_ADDRESS, by: [address] },
-        ...(email === undefined ? [] : [{ policy: SIGN_IN_ACCOUNT, by: [address, email] }]),
+        { policy: SIGN_IN_ADDRESS, by: [clientAddress] },
+        ...(email === undefined ? [] : [{ policy: SIGN_IN_ACCOUNT, by: [clientAddress, email] }]),
       ],
       attempt,
     );
   }
 
   return {
-    async register(request: RegisterRequest, address: string): Promise<SignedIn> {
-      await limiter.count(REGISTER_ADDRESS, address);
-      return limitFailures(address, request.email, async () =>
+    async register(request: RegisterRequest, clientAddress: string): Promise<SignedIn> {
+      await limiter.count(REGISTER_ADDRESS, clientAddress);
+      return limitFailures(clientAddress, request.email, async () =>
         signIn((await users.register(request)).id),
       );
     },
 
-    login({ email, password }: LoginRequest, address: string): Promise<SignedIn> {
-      return limitFailures(address, email, async () => {
+    login({ email, password }: LoginRequest, clientAddress: string): Promise<SignedIn> {
+      return limitFailures(clientAddress, email, async () => {
         const verified = await users.verifyCredentials(email, password);
         // The credentials are confirmed again under the lock, so a reset that landed during bcrypt
         // is never followed by a new session.
@@ -135,14 +131,14 @@ export function createAuthService({
 
     /**
      * Signs in with a Google ID token, creating or linking the account. A failure counts under
-     * Google's own per-address limit, so junk tokens never lock the address's password sign-ins.
+     * Google's own per-clientAddress limit, so junk tokens never lock the clientAddress's password sign-ins.
      */
     async google(
       { idToken, language }: GoogleSignInRequest,
-      address: string,
+      clientAddress: string,
     ): Promise<SignedIn & { linked: boolean }> {
       if (!google) throw AppError.serviceUnavailable(undefined, 'Google sign-in is not configured');
-      return limiter.limitFailures([{ policy: GOOGLE_ADDRESS, by: [address] }], async () => {
+      return limiter.limitFailures([{ policy: GOOGLE_ADDRESS, by: [clientAddress] }], async () => {
         const profile = await google.verify(idToken).catch((error: unknown) => {
           throw AppError.serviceUnavailable(
             undefined,
@@ -191,16 +187,16 @@ export function createAuthService({
      * Emails a reset link when the email has an account that may sign in. The caller learns nothing
      * either way: the answer is the same, and a failed send is only logged.
      */
-    async forgotPassword({ email: address }: ForgotPasswordRequest, from: string): Promise<void> {
-      await limiter.count(PASSWORD_ADDRESS, from);
-      await limiter.count(PASSWORD_EMAIL, from, address);
+    async forgotPassword({ email }: ForgotPasswordRequest, clientAddress: string): Promise<void> {
+      await limiter.count(PASSWORD_ADDRESS, clientAddress);
+      await limiter.count(PASSWORD_EMAIL, clientAddress, email);
 
-      const account = await users.findByEmail(address);
+      const account = await users.findByEmail(email);
       if (!account || !users.maySignIn(account)) return;
       const { token, id } = await sessions.issueResetToken(account.id);
-      const result = await email.send(
+      const result = await emailSender.send(
         resetEmail({ to: account.email, link: resetLink(webOrigin, token) }),
-        { requester: from },
+        { requester: clientAddress },
       );
       // Only a delivered link replaces the one already in the inbox (docs/backend/security.md).
       if (result.sent) await sessions.keepOnlyResetToken(account.id, id);
@@ -211,9 +207,9 @@ export function createAuthService({
      * The account a reset link is for, so the page can name it. Reading the link neither uses it nor
      * extends it, and every failure is the same RESET_TOKEN_INVALID.
      */
-    async checkResetToken(token: string, from: string): Promise<ResetCheck> {
-      await limiter.count(PASSWORD_ADDRESS, from);
-      await limiter.count(PASSWORD_TOKEN, from, token);
+    async checkResetToken(token: string, clientAddress: string): Promise<ResetCheck> {
+      await limiter.count(PASSWORD_ADDRESS, clientAddress);
+      await limiter.count(PASSWORD_TOKEN, clientAddress, token);
 
       const userId = await sessions.resetTokenOwner(token);
       if (!userId) throw invalidResetLink();
@@ -221,9 +217,12 @@ export function createAuthService({
     },
 
     /** Sets the new password with the link, once, and ends every session of the user. */
-    async resetPassword({ token, password }: ResetPasswordRequest, from: string): Promise<void> {
-      await limiter.count(PASSWORD_ADDRESS, from);
-      await limiter.count(PASSWORD_TOKEN, from, token);
+    async resetPassword(
+      { token, password }: ResetPasswordRequest,
+      clientAddress: string,
+    ): Promise<void> {
+      await limiter.count(PASSWORD_ADDRESS, clientAddress);
+      await limiter.count(PASSWORD_TOKEN, clientAddress, token);
 
       // Read first, so the lock is taken in the one order: the user, then their tokens.
       const owner = await sessions.resetTokenOwner(token);

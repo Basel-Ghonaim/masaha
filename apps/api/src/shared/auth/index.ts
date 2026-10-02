@@ -9,12 +9,7 @@ export type {
   SpaceResource,
   UnscopedAction,
 } from './can.ts';
-export {
-  ACCESS_TOKEN_TTL_SECONDS,
-  createAccessTokens,
-  type AccessClaims,
-  type AccessTokens,
-} from './accessToken.ts';
+export { createAccessTokens, type AccessClaims, type AccessTokens } from './accessToken.ts';
 export {
   createRequireAuth,
   readAccessToken,

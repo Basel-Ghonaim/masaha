@@ -16,7 +16,7 @@ export interface IssuedToken {
 }
 
 export type Rotation =
-  | { outcome: 'rotated'; userId: number; issued: IssuedToken }
+  | { outcome: 'rotated'; issued: IssuedToken }
   /** Unknown or expired. */
   | { outcome: 'invalid' }
   /** Rotated before the grace window: a copy is in use, so its whole session was ended. */
@@ -28,8 +28,9 @@ interface Dependencies {
 }
 
 /**
- * The refresh tokens (ADR 0013): issue, rotate with the grace window, end a session, revoke all.
- * It knows only a user's id. A session is a family of tokens, one per rotation.
+ * The tokens of identity (ADR 0013): the refresh tokens (issue, rotate with the grace window, end a
+ * session, revoke all) and the password-reset tokens (issue, keep the delivered one, withdraw,
+ * check, consume, end). It knows only a user's id. A session is a family of refresh tokens.
  */
 export function createSessionsService({
   repository = createSessionsRepository(),
@@ -89,7 +90,7 @@ export function createSessionsService({
       if (!stored.rotatedAt && !(await repository.markRotated(stored.id, next.stored.id, at, tx))) {
         throw new Error('A refresh token was rotated concurrently, despite the session lock');
       }
-      return { outcome: 'rotated', userId: stored.userId, issued: next.issued };
+      return { outcome: 'rotated', issued: next.issued };
     },
 
     /** Ends the token's session, every token of its family. Unknown tokens are ignored. */

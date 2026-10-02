@@ -1,7 +1,6 @@
-import type { RateLimitPolicy } from '../../shared/rate-limit/index.ts';
+import { FIFTEEN_MINUTES, type RateLimitPolicy } from '../../shared/rate-limit/index.ts';
 
 // The sign-in flows' limits (docs/backend/security.md › Rate limits).
-const FIFTEEN_MINUTES = 15 * 60_000;
 
 /** Failed sign-ins and registrations against one account, from one address. */
 export const SIGN_IN_ACCOUNT: RateLimitPolicy = {

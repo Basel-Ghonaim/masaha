@@ -30,12 +30,16 @@ import { requestLogger } from './shared/http/index.ts';
 import {
   clientAddress,
   createCounter,
+  FIFTEEN_MINUTES,
   createLimiter,
   limitRequests,
   type RateLimitPolicy,
 } from './shared/rate-limit/index.ts';
 
-const FIFTEEN_MINUTES = 15 * 60_000;
+// Where the API and its auth router are mounted (docs/api/api-contract.md §1); the refresh cookie
+// is scoped to the auth router's path.
+const API_BASE = '/api/v1';
+const AUTH_PATH = '/auth';
 
 // The general limit on every API request (docs/backend/security.md › Rate limits): by the user when
 // the request is signed in, otherwise by address, with a higher ceiling, because a whole coworking
@@ -90,7 +94,7 @@ export function createApp({
     });
   });
 
-  app.use('/api/v1', apiRouter);
+  app.use(API_BASE, apiRouter);
   app.use(notFoundHandler);
   app.use(errorHandler);
 
@@ -128,7 +132,7 @@ export function createApi({
 }: ApiOptions): Router {
   const limiter = createLimiter(createCounter(), clock);
   const accessTokens = createAccessTokens(jwtSecret);
-  const cookies = createSessionCookies({ secure: secureCookies });
+  const cookies = createSessionCookies({ secure: secureCookies, path: `${API_BASE}${AUTH_PATH}` });
 
   const requireAuth = createRequireAuth(accessTokens);
   const runInTransaction = createRunInTransaction();
@@ -144,7 +148,7 @@ export function createApi({
     limiter,
     runInTransaction,
     google,
-    email: createCappedEmailSender(email, { limiter, logger }),
+    emailSender: createCappedEmailSender(email, { limiter, logger }),
     webOrigin,
   });
 
@@ -157,7 +161,7 @@ export function createApi({
         : { policy: GENERAL_GUEST, by: [clientAddress(req.ip)] };
     }),
   );
-  api.use('/auth', createAuthRouter(createAuthController(auth, cookies)));
+  api.use(AUTH_PATH, createAuthRouter(createAuthController(auth, cookies)));
   api.use('/me', createUsersMeRouter(createUsersController(users, cookies), requireAuth));
   return api;
 }

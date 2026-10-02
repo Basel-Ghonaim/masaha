@@ -57,7 +57,7 @@ function setup({ sent = true, account = sara } = {}) {
     limiter: createLimiter(counter, () => new Date()),
     runInTransaction,
     google: undefined,
-    email,
+    emailSender: email,
     webOrigin: 'https://masaha.example',
   });
   return { auth, calls };

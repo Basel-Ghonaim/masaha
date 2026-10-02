@@ -7,7 +7,7 @@ import {
 } from '@masaha/shared';
 
 import { createRunInTransaction, type RunInTransaction, type Tx } from '../../db/index.ts';
-import type { AccessTokens } from '../../shared/auth/index.ts';
+import type { AccessClaims, AccessTokens } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
 import { createSessionsService, type SessionsService } from '../sessions/index.ts';
@@ -100,7 +100,17 @@ export function createUsersService({
     return account;
   }
 
+  /** What the access token says of the account (docs/backend/security.md › Tokens and cookies). */
+  function accessClaims(account: Account): AccessClaims {
+    return {
+      userId: account.id,
+      role: account.role,
+      mustChangePassword: account.mustChangePassword,
+    };
+  }
+
   return {
+    accessClaims,
     maySignIn,
     assertMaySignIn,
     lockAccount,
@@ -272,11 +282,7 @@ export function createUsersService({
             await sessions.endResetTokens(userId, tx);
             return { changed, issued: await sessions.issue(userId, tx) };
           });
-          const accessToken = await accessTokens.sign({
-            userId,
-            role: changed.role,
-            mustChangePassword: changed.mustChangePassword,
-          });
+          const accessToken = await accessTokens.sign(accessClaims(changed));
           return { accessToken, refreshToken: issued.token };
         },
       );

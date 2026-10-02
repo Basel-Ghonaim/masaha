@@ -1,6 +1,8 @@
 import { AppError } from '../errors/index.ts';
 import type { Count } from './counter.ts';
 
+export const FIFTEEN_MINUTES = 15 * 60_000;
+
 /** A limit and its fixed window. The numbers are owned by docs/backend/security.md › Rate limits. */
 export interface RateLimitPolicy {
   /** Names the policy in its keys and in the RateLimit headers. */
