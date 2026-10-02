@@ -26,6 +26,16 @@ export interface GoogleAccount {
   subject: string;
   email: string;
   name: string | undefined;
+  hostedDomain: string | undefined;
+}
+
+/**
+ * Whether Google is the authority for the address, so its `email_verified` proves who holds it:
+ * a Gmail address, or one in the Google Workspace domain the token names. Elsewhere, a Google
+ * account may belong to a former holder of the address (docs/backend/security.md).
+ */
+export function googleIsAuthoritative({ email, hostedDomain }: GoogleAccount): boolean {
+  return email.endsWith('@gmail.com') || (!!hostedDomain && email.endsWith(`@${hostedDomain}`));
 }
 
 // A Google name becomes the account's name when it is valid user text, else the email's local part.
@@ -86,7 +96,9 @@ export function createUsersService({
     /** A new USER with a password. A taken email is EMAIL_TAKEN. */
     async register({ name, email, password, language }: RegisterRequest): Promise<Account> {
       const passwordHash = await hashPassword(password);
-      return repository.create({ name, email, passwordHash, language });
+      const created = await repository.create({ name, email, passwordHash, language });
+      if ('account' in created) return created.account;
+      throw AppError.conflict('EMAIL_TAKEN', 'Email taken', { email: ['not_unique'] });
     },
 
     /**
@@ -119,41 +131,66 @@ export function createUsersService({
 
     /**
      * The account a verified Google identity opens (docs/backend/security.md › Sign-in methods): the
-     * one already linked to it; else the account with its verified email, which it links
-     * (`linked`); else a new USER without a password. Only then does a suspension show.
+     * one already linked to it; else the account with its email, which is to be linked (`link`)
+     * only where Google is authoritative for the address; else a new USER without a password.
+     * Nothing here locks: the session is opened, and a link made, under the lock (`linkGoogle`).
      */
-    async signInWithGoogle(
+    async accountForGoogle(
       google: GoogleAccount,
       language: Language | undefined,
-    ): Promise<{ account: Account; linked: boolean }> {
-      const known = await repository.findByGoogleSubject(google.subject);
-      if (known) {
-        assertMaySignIn(known);
-        return { account: known, linked: false };
-      }
+    ): Promise<{ userId: number; link: boolean }> {
+      for (let attempt = 0; ; attempt++) {
+        const known = await repository.findByGoogleSubject(google.subject);
+        if (known) return { userId: known.id, link: false };
 
-      const byEmail = await repository.findByEmail(google.email);
-      if (byEmail) {
-        // Another Google account is already linked to this email's account: never replaced silently.
-        if (byEmail.googleSubject) {
-          throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
+        const byEmail = await repository.findByEmail(google.email);
+        if (byEmail) {
+          // Another Google account is already linked to this email's account: never replaced.
+          if (byEmail.googleSubject) {
+            throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
+          }
+          if (!googleIsAuthoritative(google)) {
+            throw AppError.conflict(
+              'GOOGLE_LINK_NOT_ALLOWED',
+              'Google is not the address authority',
+            );
+          }
+          return { userId: byEmail.account.id, link: true };
         }
-        assertMaySignIn(byEmail.account);
-        return {
-          account: await repository.linkGoogle(byEmail.account.id, google.subject),
-          linked: true,
-        };
-      }
 
-      const parsedName = googleName.safeParse(google.name);
-      const account = await repository.create({
-        email: google.email,
-        name: parsedName.success ? parsedName.data : (google.email.split('@')[0] ?? google.email),
-        passwordHash: null,
-        googleSubject: google.subject,
-        language,
-      });
-      return { account, linked: false };
+        const parsedName = googleName.safeParse(google.name);
+        const created = await repository.create({
+          email: google.email,
+          name: parsedName.success ? parsedName.data : (google.email.split('@')[0] ?? google.email),
+          passwordHash: null,
+          googleSubject: google.subject,
+          language,
+        });
+        if ('account' in created) return { userId: created.account.id, link: false };
+        // A concurrent first sign-in, or a registration, created it meanwhile: read it again, once.
+        if (attempt > 0) throw AppError.conflict(undefined, 'Account created concurrently');
+      }
+    },
+
+    /**
+     * Links Google to the account, under its session lock: only where no Google account is linked
+     * yet, removing the password and ending every session, because only Google proved the address.
+     * The account, and whether this call linked it.
+     */
+    async linkGoogle(
+      userId: number,
+      google: GoogleAccount,
+      tx: Tx,
+    ): Promise<{ account: Account; linked: boolean }> {
+      const locked = await lockAccount(userId, tx);
+      if (!locked) throw AppError.unauthorized(undefined, 'Account not found');
+      assertMaySignIn(locked);
+      const linked = await repository.linkGoogleIfUnlinked(userId, google.subject, tx);
+      if (!linked && (await repository.findGoogleSubject(userId, tx)) !== google.subject) {
+        throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
+      }
+      if (linked) await sessions.revokeAll(userId, tx);
+      return { account: (await repository.findById(userId, tx)) ?? locked, linked };
     },
 
     get,

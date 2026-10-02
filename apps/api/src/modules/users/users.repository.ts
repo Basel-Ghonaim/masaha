@@ -1,7 +1,6 @@
 import { prisma, type Tx } from '../../db/index.ts';
 import { Prisma, type PrismaClient } from '../../generated/prisma/client.ts';
 import type { Language } from '../../generated/prisma/enums.ts';
-import { AppError } from '../../shared/errors/index.ts';
 
 // The account, without its password hash: the hash is selected only to check a password
 // (docs/backend/security.md › Passwords).
@@ -63,8 +62,21 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return { account, googleSubject };
     },
 
-    async linkGoogle(id: number, googleSubject: string, tx: Tx = db): Promise<Account> {
-      return tx.user.update({ where: { id }, data: { googleSubject }, select: ACCOUNT });
+    /**
+     * Links the Google account where none is linked yet, and removes the password: Google alone
+     * proved the address. Whether this call linked it.
+     */
+    async linkGoogleIfUnlinked(id: number, googleSubject: string, tx: Tx = db): Promise<boolean> {
+      const { count } = await tx.user.updateMany({
+        where: { id, googleSubject: null },
+        data: { googleSubject, passwordHash: null, mustChangePassword: false },
+      });
+      return count === 1;
+    },
+
+    async findGoogleSubject(id: number, tx: Tx = db): Promise<string | null> {
+      const row = await tx.user.findUnique({ where: { id }, select: { googleSubject: true } });
+      return row?.googleSubject ?? null;
     },
 
     /** The account's hash, for a password check only. */
@@ -115,17 +127,31 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return (await tx.user.count({ where: { id, passwordHash: { not: null } } })) === 1;
     },
 
-    async create(account: NewAccount, tx: Tx = db): Promise<Account> {
+    /** A new account, or which unique key another account already holds. */
+    async create(
+      account: NewAccount,
+      tx: Tx = db,
+    ): Promise<{ account: Account } | { taken: 'email' | 'googleSubject' }> {
       try {
-        return await tx.user.create({ data: account, select: ACCOUNT });
+        return { account: await tx.user.create({ data: account, select: ACCOUNT }) };
       } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-          throw AppError.conflict('EMAIL_TAKEN', 'Email taken', { email: ['not_unique'] });
-        }
+        const taken = takenKey(error);
+        if (taken) return { taken };
         throw error;
       }
     },
   };
+}
+
+/** Which of the users' unique keys a unique violation is about, by its constraint's name. */
+function takenKey(error: unknown): 'email' | 'googleSubject' | undefined {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+    return undefined;
+  }
+  const detail = JSON.stringify(error.meta ?? {});
+  if (detail.includes('users_email_key')) return 'email';
+  if (detail.includes('users_google_subject_key')) return 'googleSubject';
+  return undefined;
 }
 
 export type UsersRepository = ReturnType<typeof createUsersRepository>;

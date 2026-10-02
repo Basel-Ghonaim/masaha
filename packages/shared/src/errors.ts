@@ -47,6 +47,7 @@ export const DOMAIN_ERROR_CODES = [
   'CURRENT_PASSWORD_INCORRECT',
   'GOOGLE_TOKEN_INVALID',
   'RESET_TOKEN_INVALID',
+  'GOOGLE_LINK_NOT_ALLOWED',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

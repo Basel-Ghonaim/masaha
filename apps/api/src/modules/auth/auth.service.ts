@@ -143,8 +143,13 @@ export function createAuthService({
         const profile = await google.verify(idToken);
         if (!profile)
           throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Invalid Google ID token');
-        const { account, linked } = await users.signInWithGoogle(profile, language);
-        return { ...(await signIn(account.id)), linked };
+        const { userId, link } = await users.accountForGoogle(profile, language);
+        if (!link) return { ...(await signIn(userId)), linked: false };
+        const { account, linked, token } = await runInTransaction(async (tx) => {
+          const result = await users.linkGoogle(userId, profile, tx);
+          return { ...result, token: (await sessions.issue(userId, tx)).token };
+        });
+        return { session: await sessionFor(account), refreshToken: token, linked };
       });
     },
 

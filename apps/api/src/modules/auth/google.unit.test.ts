@@ -45,6 +45,10 @@ describe('createGoogleIdentity', () => {
       subject: '1234567890',
       email: 'sara@gmail.com',
       name: 'Sara',
+      hostedDomain: undefined,
+    });
+    expect(await google.verify(await idToken({ ...valid, hd: 'Masaha.ps' }))).toMatchObject({
+      hostedDomain: 'masaha.ps',
     });
     expect(
       await google.verify(await idToken({ ...valid, iss: 'accounts.google.com' })),

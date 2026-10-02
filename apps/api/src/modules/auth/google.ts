@@ -1,3 +1,4 @@
+import { emailSchema } from '@masaha/shared';
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 
 // Google's OpenID Connect issuer and published signing keys.
@@ -8,9 +9,11 @@ const GOOGLE_KEYS = new URL('https://www.googleapis.com/oauth2/v3/certs');
 export interface GoogleProfile {
   /** The Google account's stable id, the `sub` claim. */
   subject: string;
-  /** Verified by Google, lowercased. */
+  /** Verified by Google, normalised as every email is (`emailSchema`). */
   email: string;
   name: string | undefined;
+  /** The `hd` claim: the Google Workspace domain that manages the account, if any. */
+  hostedDomain: string | undefined;
 }
 
 /**
@@ -40,12 +43,14 @@ export function createGoogleIdentity({
           audience: clientId,
           algorithms: ['RS256'],
         });
-        const { sub, email, email_verified: emailVerified, name } = payload;
-        if (!sub || typeof email !== 'string' || emailVerified !== true) return undefined;
+        const { sub, email, email_verified: emailVerified, name, hd } = payload;
+        const parsed = emailSchema.safeParse(email);
+        if (!sub || !parsed.success || emailVerified !== true) return undefined;
         return {
           subject: sub,
-          email: email.trim().toLowerCase(),
+          email: parsed.data,
           name: typeof name === 'string' ? name : undefined,
+          hostedDomain: typeof hd === 'string' ? hd.toLowerCase() : undefined,
         };
       } catch {
         return undefined;

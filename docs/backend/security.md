@@ -22,7 +22,11 @@
 - **Email and password.** Registration asks for name, email and password only. There is no phone login.
 - **Google**, as an extra option beside the password. The client sends a Google OpenID Connect ID token, and the server verifies it with `jose` against Google's published keys: signature, issuer, audience (Masaha's client ID), expiry and `email_verified`. Scopes are `openid email profile`.
   - A first Google sign-in with an unknown email creates a `USER`.
-  - A Google sign-in whose verified email matches an existing account links Google to that account automatically, and says so in its answer. An account already linked to **another** Google account is never relinked: the sign-in is refused with `GOOGLE_TOKEN_INVALID`.
+  - A Google sign-in whose verified email matches an existing account links Google to it automatically **only where Google is the authority for the address**: a `@gmail.com` address, or one in the Google Workspace domain the token's `hd` claim names. Elsewhere, Google's `email_verified` does not prove who holds the address today: a Google account may belong to its former holder (a shared mailbox, an ex-employee).
+    - **Where it links,** it does so in one transaction under the session lock: Google is linked only if none is yet, the account's password is removed (its forced change with it), and every session of the account ends. Registration proves no inbox, so a password set before the link may be an attacker's who registered the address first (a pre-account takeover); only Google proved the address, so only Google opens the account. The person sets a password again through the reset email. The answer says `linked: true`, and the web says the password was removed.
+    - **Where it does not,** the sign-in is refused with `GOOGLE_LINK_NOT_ALLOWED`. The person signs in with the password, or resets it.
+    - An account already linked to **another** Google account is never relinked: the sign-in is refused with `GOOGLE_TOKEN_INVALID`.
+    - Two first sign-ins that race create one account: the second reads the first's again.
   - A new account takes Google's name when it is valid user text, else the email's local part.
   - The client ID is `GOOGLE_CLIENT_ID`. Without it, Google sign-in answers `service_unavailable`; production refuses to start without it.
   - A Google-only account has no password, so a password sign-in fails with `INVALID_CREDENTIALS`. It may add a password later.

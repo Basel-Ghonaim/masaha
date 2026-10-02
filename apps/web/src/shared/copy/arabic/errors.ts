@@ -28,4 +28,6 @@ export const ERRORS = {
   GOOGLE_TOKEN_INVALID:
     'تعذّر تسجيل الدخول باستخدام Google، حاول مرة أخرى أو استخدم البريد الإلكتروني.',
   RESET_TOKEN_INVALID: 'انتهت صلاحية الرابط أو استُخدم من قبل.',
+  GOOGLE_LINK_NOT_ALLOWED:
+    'يوجد حساب بهذا البريد الإلكتروني. سجّل الدخول بكلمة مروره أو أعد تعيينها للمتابعة.',
 } satisfies Catalogue['errors'];

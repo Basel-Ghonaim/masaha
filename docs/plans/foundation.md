@@ -302,7 +302,7 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - the Axios client with single-flight refresh, and the `AppError` normaliser, which carries the request id;
   - `shared/session` and the `RequireRole` guards ([architecture.md §2](../frontend/architecture.md#landing-and-guards));
   - the screens of [SCREENS.md](../design/SCREENS.md) rows 5–7 and the forced password change of row 9:
-    - sign in, with Google, the "accounts linked" toast (the Google response's `linked`) and the too-many-attempts state;
+    - sign in, with Google, the "accounts linked" toast (the Google response's `linked`), which also says the account's password was removed and can be set again by the reset email, the `GOOGLE_LINK_NOT_ALLOWED` state, and the too-many-attempts state;
     - register, sending the interface language;
     - forgot password;
     - reset password: the page reads the token from the URL fragment (`/reset-password#token=…`), removes it from the address bar, then checks it;
