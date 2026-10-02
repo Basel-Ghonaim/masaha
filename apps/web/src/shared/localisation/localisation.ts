@@ -16,9 +16,11 @@ type Localisation = {
   language: LanguageSource;
 };
 
-// The language a reader gets when the source names none that is registered, as the pre-paint script
-// falls back to it; a test holds the two equal.
-const FALLBACK_LANGUAGE = 'ar';
+/**
+ * The language a reader gets when the source names none that is registered, as the pre-paint script
+ * falls back to it; a test holds the two equal.
+ */
+export const FALLBACK_LANGUAGE = 'ar';
 
 // Handed in by the composition root and never imported: content travels into the platform, so this
 // knows a catalogue only as an object keyed by language.
