@@ -11,16 +11,22 @@ import {
   ChevronStartIcon,
   ChevronUpIcon,
   CircleAlertIcon,
+  CoffeeIcon,
   EyeIcon,
   EyeOffIcon,
+  GraduationCapIcon,
   LanguagesIcon,
   LoaderIcon,
   LogInIcon,
   LogOutIcon,
   MoonIcon,
+  PlugZapIcon,
+  PresentationIcon,
   SearchIcon,
   SunIcon,
+  WifiIcon,
   XIcon,
+  ZapIcon,
   type IconProps,
 } from '.';
 
@@ -48,6 +54,12 @@ const NON_DIRECTIONAL = [
   SunIcon,
   MoonIcon,
   LanguagesIcon,
+  WifiIcon,
+  ZapIcon,
+  PlugZapIcon,
+  CoffeeIcon,
+  PresentationIcon,
+  GraduationCapIcon,
 ].map((icon) => ({ name: icon.name, icon }));
 
 function svgOf(dir: 'ltr' | 'rtl', Glyph: ComponentType<IconProps>, props: IconProps = {}) {
