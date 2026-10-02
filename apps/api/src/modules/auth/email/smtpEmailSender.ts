@@ -13,8 +13,9 @@ export interface SmtpSettings {
   from: string;
 }
 
-// The whole attempt is bounded: no work runs after the response (ADR 0014), so a hung relay must
-// not hold the forgotten-password request open.
+// Each phase of the exchange is bounded, so a hung relay cannot hold the forgotten-password request
+// open forever (no work runs after the response, ADR 0014): the DNS lookup, the connection, the
+// greeting, and every quiet spell on the socket. The worst case is their sum, not one timeout.
 const TIMEOUT_MS = 10_000;
 
 /**
@@ -29,6 +30,7 @@ export function createSmtpEmailSender(settings: SmtpSettings): EmailSender {
     secure: settings.secure,
     requireTLS: !settings.secure,
     auth: { user: settings.user, pass: settings.password },
+    dnsTimeout: TIMEOUT_MS,
     connectionTimeout: TIMEOUT_MS,
     greetingTimeout: TIMEOUT_MS,
     socketTimeout: TIMEOUT_MS,
