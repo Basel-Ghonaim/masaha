@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import primitivesCss from './primitives.css?raw';
 import semanticCss from './semantic.css?raw';
+import { THEMES, type Theme } from './themes';
 
 // Every role in docs/frontend/design-system/foundation.md §5, and the tokens semantic.css resolves
 // per theme besides them.
@@ -60,8 +61,6 @@ const THEMED_TOKENS = [
   'overlay-scrim',
 ];
 
-type Theme = 'light' | 'dark';
-const THEMES: Theme[] = ['light', 'dark'];
 type Pair = { text: string; surface: string; minimum: number };
 
 // The pairs foundation §5 lists under *Verified*. A pair it names twice (muted-foreground on muted;
@@ -120,10 +119,9 @@ function customProperties(css: string, selector: string): Map<string, string> {
 }
 
 const primitives = customProperties(primitivesCss, ':root');
-const themes = {
-  light: customProperties(semanticCss, "[data-theme='light']"),
-  dark: customProperties(semanticCss, "[data-theme='dark']"),
-};
+const themes = Object.fromEntries(
+  THEMES.map((theme) => [theme, customProperties(semanticCss, `[data-theme='${theme}']`)]),
+) as Record<Theme, Map<string, string>>;
 
 /** Follows var() references through the theme and the primitives to a hex colour. */
 function resolveColour(theme: Theme, token: string): string {
@@ -153,8 +151,19 @@ function contrastRatio(first: string, second: string): number {
 }
 
 describe('theme key parity', () => {
-  it('gives both themes exactly the same keys', () => {
-    expect([...themes.dark.keys()].sort()).toEqual([...themes.light.keys()].sort());
+  it('defines a rule for exactly the themes the layer exports', () => {
+    const defined = Array.from(
+      semanticCss.matchAll(/\[data-theme='([^']+)'\]\s*\{/g),
+      ([, theme]) => theme,
+    );
+    expect(defined.sort()).toEqual([...THEMES].sort());
+  });
+
+  it('gives every theme exactly the same keys', () => {
+    const [first, ...others] = THEMES;
+    for (const theme of others) {
+      expect([...themes[theme].keys()].sort()).toEqual([...themes[first].keys()].sort());
+    }
   });
 
   it.each(THEMES)('resolves every role and themed token in the %s theme', (theme) => {
