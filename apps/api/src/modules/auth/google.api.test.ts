@@ -159,6 +159,23 @@ describe('POST /auth/google', () => {
     });
   });
 
+  it('locks only Google sign-in out after 50 failed tokens from one address', async () => {
+    await createAccount({ email: 'sara@example.com' });
+    await signInWithGoogle('forged');
+    await prisma.rateLimit.updateMany({
+      where: { key: { startsWith: 'google-address:' } },
+      data: { hits: 50 },
+    });
+
+    const google = await signInWithGoogle('forged');
+
+    expect(google.status).toBe(429);
+    expect(google.headers['ratelimit-policy']).toBe('"google-address";q=50;w=900');
+    expect((await login('sara@example.com')).status).toBe(200);
+    const signIn = await prisma.rateLimit.findMany({ where: { key: { startsWith: 'sign-in' } } });
+    expect(signIn.every(({ hits }) => hits === 0)).toBe(true);
+  });
+
   it.each([
     ['an account Google opens', { googleSubject: 'google-sara' }],
     ['an account Google would link', {}],

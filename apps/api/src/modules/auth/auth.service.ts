@@ -16,10 +16,12 @@ import type { SessionsService } from '../sessions/index.ts';
 import type { SpaceLinksService } from '../space-links/index.ts';
 import type { Account, UsersService } from '../users/index.ts';
 import {
+  GOOGLE_ADDRESS,
   PASSWORD_ADDRESS,
   PASSWORD_EMAIL,
   PASSWORD_TOKEN,
   REFRESH,
+  REGISTER_ADDRESS,
   SIGN_IN_ACCOUNT,
   SIGN_IN_ADDRESS,
 } from './auth.limits.ts';
@@ -111,7 +113,8 @@ export function createAuthService({
   }
 
   return {
-    register(request: RegisterRequest, address: string): Promise<SignedIn> {
+    async register(request: RegisterRequest, address: string): Promise<SignedIn> {
+      await limiter.count(REGISTER_ADDRESS, address);
       return limitFailures(address, request.email, async () =>
         signIn((await users.register(request)).id),
       );
@@ -131,15 +134,15 @@ export function createAuthService({
     },
 
     /**
-     * Signs in with a Google ID token, creating or linking the account. A failure has no email to
-     * count by, so it counts on the address only.
+     * Signs in with a Google ID token, creating or linking the account. A failure counts under
+     * Google's own per-address limit, so junk tokens never lock the address's password sign-ins.
      */
     async google(
       { idToken, language }: GoogleSignInRequest,
       address: string,
     ): Promise<SignedIn & { linked: boolean }> {
       if (!google) throw AppError.serviceUnavailable(undefined, 'Google sign-in is not configured');
-      return limitFailures(address, undefined, async () => {
+      return limiter.limitFailures([{ policy: GOOGLE_ADDRESS, by: [address] }], async () => {
         const profile = await google.verify(idToken);
         if (!profile)
           throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Invalid Google ID token');

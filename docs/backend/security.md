@@ -80,8 +80,10 @@ The counters are stored in PostgreSQL, in the `rate_limits` table, so every inst
 
 | Scope | Counts | Limit |
 |---|---|---|
-| Sign-in (password or Google) and register | **Failed** attempts only, by address and email: brute force against one account | 10 / 15 min |
-| | **Failed** attempts only, by address: one address trying many accounts. A failed Google sign-in has no email, so it counts here only | 50 / 15 min |
+| Password sign-in and register | **Failed** attempts only, by address and email: brute force against one account | 10 / 15 min |
+| | **Failed** attempts only, by address: one address trying many accounts | 50 / 15 min |
+| Register | **Every** registration, by address, counted before the password is hashed: each costs a bcrypt hash and an account row | 20 / hour |
+| Google sign-in | **Failed** attempts only, by address, under its own key: junk tokens fail in microseconds, so they lock only Google sign-in out, never the password sign-ins of a shared address | 50 / 15 min |
 | Refresh | Every refresh, by the user its cookie belongs to. The token is random and cannot be guessed, so an unknown cookie is simply refused | 30 / 15 min |
 | Password forgot | Every request, by address and email, beside the reset email's own caps ([Passwords](#passwords)) | 5 / 15 min |
 | Password reset and its check | Every request, by address and token | 5 / 15 min |

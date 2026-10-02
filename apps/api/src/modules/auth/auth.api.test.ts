@@ -119,6 +119,26 @@ describe('POST /auth/register', () => {
   });
 });
 
+describe('the registration limit', () => {
+  it('counts every registration from one address, successful or not, 20 an hour', async () => {
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({ name: 'Sara', email: 'first@example.com', password: PASSWORD });
+    await prisma.rateLimit.updateMany({
+      where: { key: { startsWith: 'register-address:' } },
+      data: { hits: 20 },
+    });
+
+    const limited = await request(app)
+      .post('/api/v1/auth/register')
+      .send({ name: 'Sara', email: 'second@example.com', password: PASSWORD });
+
+    expect(limited.status).toBe(429);
+    expect(limited.headers['ratelimit-policy']).toBe('"register-address";q=20;w=3600');
+    expect(await prisma.user.count()).toBe(1);
+  });
+});
+
 describe('POST /auth/login', () => {
   it('opens a session with the active space links, oldest first', async () => {
     const user = await createAccount();
