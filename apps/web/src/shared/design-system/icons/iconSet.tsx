@@ -12,10 +12,12 @@ import {
   ChevronsUpDown,
   CircleAlert,
   CircleCheck,
+  Coffee,
   Ellipsis,
   EllipsisVertical,
   Eye,
   EyeOff,
+  GraduationCap,
   Info,
   Languages,
   LoaderCircle,
@@ -23,12 +25,16 @@ import {
   LogOut,
   Menu,
   Moon,
+  PlugZap,
+  Presentation,
   Search,
   SearchX,
   Sun,
   TriangleAlert,
   Users,
+  Wifi,
   X,
+  Zap,
 } from 'lucide-react';
 import { Icon, type IconProps } from './Icon';
 
@@ -98,6 +104,30 @@ export function SearchXIcon(props: IconProps) {
 
 export function UsersIcon(props: IconProps) {
   return <Icon glyph={Users} {...props} />;
+}
+
+export function WifiIcon(props: IconProps) {
+  return <Icon glyph={Wifi} {...props} />;
+}
+
+export function ZapIcon(props: IconProps) {
+  return <Icon glyph={Zap} {...props} />;
+}
+
+export function PlugZapIcon(props: IconProps) {
+  return <Icon glyph={PlugZap} {...props} />;
+}
+
+export function CoffeeIcon(props: IconProps) {
+  return <Icon glyph={Coffee} {...props} />;
+}
+
+export function PresentationIcon(props: IconProps) {
+  return <Icon glyph={Presentation} {...props} />;
+}
+
+export function GraduationCapIcon(props: IconProps) {
+  return <Icon glyph={GraduationCap} {...props} />;
 }
 
 export function LoaderIcon(props: IconProps) {

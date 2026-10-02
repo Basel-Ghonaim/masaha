@@ -12,10 +12,12 @@ import {
   ChevronsUpDownIcon,
   CircleAlertIcon,
   CircleCheckIcon,
+  CoffeeIcon,
   EllipsisIcon,
   EllipsisVerticalIcon,
   EyeIcon,
   EyeOffIcon,
+  GraduationCapIcon,
   InfoIcon,
   LanguagesIcon,
   LoaderIcon,
@@ -23,12 +25,16 @@ import {
   LogOutIcon,
   MenuIcon,
   MoonIcon,
+  PlugZapIcon,
+  PresentationIcon,
   SearchIcon,
   SearchXIcon,
   SunIcon,
   TriangleAlertIcon,
   UsersIcon,
+  WifiIcon,
   XIcon,
+  ZapIcon,
   type IconProps,
 } from '@shared/design-system';
 import type { ComponentType } from 'react';
@@ -69,6 +75,12 @@ const FIXED = [
   ArrowUpIcon,
   ArrowDownIcon,
   ChevronsUpDownIcon,
+  WifiIcon,
+  ZapIcon,
+  PlugZapIcon,
+  CoffeeIcon,
+  PresentationIcon,
+  GraduationCapIcon,
 ];
 
 function IconGroup({ caption, icons }: { caption: string; icons: ComponentType<IconProps>[] }) {
