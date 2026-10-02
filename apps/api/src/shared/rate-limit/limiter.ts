@@ -37,14 +37,16 @@ export interface Limiter {
   limitFailures<T>(limits: LimitBy[], attempt: () => Promise<T>): Promise<T>;
 }
 
-export function createLimiter(counter: Counter, now: () => Date = () => new Date()): Limiter {
+/** `now` is the application's clock (conventions §11), wired in the composition root. */
+export function createLimiter(counter: Counter, now: () => Date): Limiter {
   const keyOf = (policy: RateLimitPolicy, by: string[]) =>
     `${policy.name}:${createHash('sha256').update(by.join('\n')).digest('hex')}`;
 
   async function reserve(policy: RateLimitPolicy, ...by: string[]): Promise<Reservation> {
     const key = keyOf(policy, by);
-    const count = await counter.hit(key, policy.windowMs);
-    if (isOverLimit(policy, count)) throw tooManyRequests(policy, count, now());
+    const at = now();
+    const count = await counter.hit(key, policy.windowMs, at);
+    if (isOverLimit(policy, count)) throw tooManyRequests(policy, count, at);
     return { refund: () => counter.refund(key, count) };
   }
 

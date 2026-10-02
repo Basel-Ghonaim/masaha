@@ -39,7 +39,10 @@ function setup({ counterFails = false, ceilingUsed = 0 } = {}) {
       },
     }),
   );
-  const sender = createCappedEmailSender(inner, { limiter: createLimiter(counter), logger });
+  const sender = createCappedEmailSender(inner, {
+    limiter: createLimiter(counter, () => new Date()),
+    logger,
+  });
   return { counts, delivered, lines, sender };
 }
 
@@ -92,10 +95,13 @@ describe('createCappedEmailSender', () => {
     const failing = createCappedEmailSender(
       { send: () => Promise.resolve({ sent: false, reason: 'relay refused' }) },
       {
-        limiter: createLimiter({
-          hit: () => Promise.resolve({ hits: 1, resetAt: new Date(Date.now() + 60_000) }),
-          refund: () => Promise.resolve(),
-        }),
+        limiter: createLimiter(
+          {
+            hit: () => Promise.resolve({ hits: 1, resetAt: new Date(Date.now() + 60_000) }),
+            refund: () => Promise.resolve(),
+          },
+          () => new Date(),
+        ),
         logger: createLogger(
           'info',
           new Writable({

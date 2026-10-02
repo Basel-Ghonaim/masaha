@@ -122,11 +122,10 @@ describe('POST /auth/register', () => {
 describe('POST /auth/login', () => {
   it('opens a session with the active space links, oldest first', async () => {
     const user = await createAccount();
-    const [older, newer, gone] = await Promise.all([
-      createSpace('older'),
-      createSpace('newer'),
-      createSpace('gone'),
-    ]);
+    // One after another: each space upserts the same governorate.
+    const older = await createSpace('older');
+    const newer = await createSpace('newer');
+    const gone = await createSpace('gone');
     await prisma.spaceManager.create({
       data: {
         spaceId: older.id,

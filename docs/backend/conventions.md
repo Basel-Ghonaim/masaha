@@ -288,12 +288,12 @@ Built: the redaction, the request id and the levels. The user and their role joi
 
 ## 11. Time
 
-Masaha runs on Gaza time (`Asia/Gaza`). Not built yet: each rule applies from the first slice that reads the time.
+Masaha runs on Gaza time (`Asia/Gaza`). Built: the clock (below), wired since F-5a. The rest is not built yet: each rule applies from the first slice that reads Gaza time.
 
 - **The library.** Gaza time is computed with `@date-fns/tz` and `date-fns`. Both are already in the lockfile through `react-day-picker`. The first slice that needs them adds them as direct dependencies of `apps/api` and `packages/shared`.
 - **The calendar rules are shared.** "Today" in Gaza and the week (Saturday to Friday) are pure functions in `packages/shared`, so the web and the API agree. They take the time as a parameter and never read the clock. They are calendar rules, not one module's domain rule (§8).
 - **Date-only columns** (a subscription's start and end) hold Gaza dates and are never converted to or from another zone.
-- **The clock is a port** (R5), injected where the application is assembled. A rule never calls `new Date()`: it receives the time.
+- **The clock is a port** (R5), injected where the application is assembled. A rule never calls `new Date()`: it receives the time. `createApi` takes one clock and hands it to every rule that reads the time: the sessions' expiries and grace window, and the rate limits. A rate-limit window is computed from that clock, never from the database's `now()`, so a window and its `Retry-After` come from one source.
 - **Daylight saving.** Palestine's daylight-saving dates change by decree, so the time-zone data can lag behind. This is a known risk, mitigated by keeping Node updated, and by a unit test that pins one known Gaza transition, so outdated data fails the tests.
 
 ## 12. Environments

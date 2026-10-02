@@ -105,6 +105,8 @@ export interface ApiOptions {
   /** The web's origin, where the reset email's link leads. */
   webOrigin: string;
   logger: Logger;
+  /** The one clock every rule reads (conventions §11). Tests pass a fixed one. */
+  clock?: () => Date;
 }
 
 /**
@@ -118,15 +120,16 @@ export function createApi({
   email,
   webOrigin,
   logger,
+  clock = () => new Date(),
 }: ApiOptions): Router {
-  const limiter = createLimiter(createCounter());
+  const limiter = createLimiter(createCounter(), clock);
   const accessTokens = createAccessTokens(jwtSecret);
   const cookies = createSessionCookies({ secure: secureCookies });
 
   const requireAuth = createRequireAuth(accessTokens);
   const runInTransaction = createRunInTransaction();
 
-  const sessions = createSessionsService();
+  const sessions = createSessionsService({ now: clock });
   const users = createUsersService({ accessTokens, sessions, runInTransaction });
   const spaceLinks = createSpaceLinksService();
   const auth = createAuthService({
