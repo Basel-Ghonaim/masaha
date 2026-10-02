@@ -37,6 +37,7 @@ export function createCappedEmailSender(
       try {
         await limiter.count(EMAIL_PER_RECIPIENT, recipient);
       } catch {
+        logger.warn({ reason: 'recipient-cap' }, '[email] not sent');
         return { sent: false, reason: 'recipient cap reached, or the cap could not be checked' };
       }
       try {

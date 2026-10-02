@@ -67,18 +67,30 @@ export function createSessionsRepository(db: PrismaClient = prisma) {
       await tx.refreshToken.deleteMany({ where: { userId, expiresAt: { lte: now } } });
     },
 
-    /**
-     * A new reset token for the user, replacing any earlier one not used yet: one live link. Should
-     * the insert fail after the delete, the user merely has no link, and asks again.
-     */
-    async replaceResetToken(
+    /** A new reset token. Earlier ones stay until this one is delivered. Its id. */
+    async createResetToken(
       userId: number,
       tokenHash: string,
       expiresAt: Date,
       tx: Tx = db,
-    ): Promise<void> {
-      await tx.passwordResetToken.deleteMany({ where: { userId, usedAt: null } });
-      await tx.passwordResetToken.create({ data: { userId, tokenHash, expiresAt } });
+    ): Promise<number> {
+      const { id } = await tx.passwordResetToken.create({
+        data: { userId, tokenHash, expiresAt },
+        select: { id: true },
+      });
+      return id;
+    },
+
+    /**
+     * Ends the user's unused reset tokens older than `id`: one statement, so concurrent requests
+     * converge on the newest delivered link.
+     */
+    async deleteOlderUnusedResetTokens(userId: number, id: number, tx: Tx = db): Promise<void> {
+      await tx.passwordResetToken.deleteMany({ where: { userId, usedAt: null, id: { lt: id } } });
+    },
+
+    async deleteResetToken(id: number, tx: Tx = db): Promise<void> {
+      await tx.passwordResetToken.deleteMany({ where: { id } });
     },
 
     /** Whose unused, unexpired reset token this is. Changes nothing. */

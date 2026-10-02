@@ -95,12 +95,24 @@ describe('POST /auth/password/forgot', () => {
     expect((await forgot('other@example.com')).status).toBe(202);
   });
 
-  it('sends one inbox at most 3 emails an hour, and still answers 202', async () => {
+  it('sends one inbox at most 3 emails an hour, and keeps the last delivered link live', async () => {
     await createAccount();
 
     for (let attempt = 0; attempt < 4; attempt++) expect((await forgot()).status).toBe(202);
 
     expect(outbox.sent).toHaveLength(3);
+    const third = lastToken();
+    expect((await check(third)).status).toBe(200);
+    expect((await reset(third)).status).toBe(204);
+  });
+
+  it('leaves one live link after two concurrent requests', async () => {
+    await createAccount();
+
+    await Promise.all([forgot(), forgot()]);
+
+    expect(outbox.sent).toHaveLength(2);
+    expect(await prisma.passwordResetToken.count({ where: { usedAt: null } })).toBe(1);
   });
 });
 

@@ -100,16 +100,29 @@ export function createSessionsService({
       await repository.deleteUserTokens(userId, tx);
     },
 
-    /** A password-reset token for the user, single use, valid for an hour. Any earlier one ends. */
-    async issueResetToken(userId: number, tx?: Tx): Promise<string> {
+    /**
+     * A password-reset token for the user, single use, valid for an hour. The earlier link stays
+     * live until this one is delivered (`keepOnlyResetToken`), or this one is withdrawn.
+     */
+    async issueResetToken(userId: number, tx?: Tx): Promise<{ token: string; id: number }> {
       const token = newToken();
-      await repository.replaceResetToken(
+      const id = await repository.createResetToken(
         userId,
         hashToken(token),
         new Date(now().getTime() + RESET_TOKEN_TTL_MS),
         tx,
       );
-      return token;
+      return { token, id };
+    },
+
+    /** The reset token `id` was delivered: it alone stays live, the older links end. */
+    async keepOnlyResetToken(userId: number, id: number, tx?: Tx): Promise<void> {
+      await repository.deleteOlderUnusedResetTokens(userId, id, tx);
+    },
+
+    /** The reset token `id` was not delivered: it ends, and the link already sent stays live. */
+    async withdrawResetToken(id: number, tx?: Tx): Promise<void> {
+      await repository.deleteResetToken(id, tx);
     },
 
     /** Whose valid reset token this is. Reading it neither uses it nor extends it. */
