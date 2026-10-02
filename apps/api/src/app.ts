@@ -130,7 +130,7 @@ export function createApi({
   const runInTransaction = createRunInTransaction();
 
   const sessions = createSessionsService({ now: clock });
-  const users = createUsersService({ accessTokens, sessions, runInTransaction });
+  const users = createUsersService({ accessTokens, limiter, sessions, runInTransaction });
   const spaceLinks = createSpaceLinksService();
   const auth = createAuthService({
     users,

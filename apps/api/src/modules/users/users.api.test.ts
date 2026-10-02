@@ -143,7 +143,7 @@ describe('POST /me/password: a voluntary change', () => {
 });
 
 describe('POST /me/password: a Google-only account', () => {
-  it('sets its first password without a current one', async () => {
+  it('sets no first password here: it goes through the reset email', async () => {
     const user = await prisma.user.create({
       data: { email: 'google@example.com', name: 'G', googleSubject: 'g1' },
     });
@@ -153,12 +153,65 @@ describe('POST /me/password: a Google-only account', () => {
       mustChangePassword: false,
     });
 
-    const changed = await changePassword(accessToken, { password: NEW_PASSWORD });
+    const response = await changePassword(accessToken, { password: NEW_PASSWORD });
 
-    expect(changed.status).toBe(200);
-    const renewed = await refresh(cookieValue(changed, 'masaha_refresh') ?? '');
-    expect(renewed.body).toMatchObject({ data: { user: { hasPassword: true } } });
-    expect((await signIn('google@example.com', NEW_PASSWORD)).accessToken).toBeTruthy();
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ error: { code: 'PASSWORD_NOT_SET' } });
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).passwordHash,
+    ).toBeNull();
+  });
+});
+
+describe('POST /me/password: the skipped current password', () => {
+  it.each([
+    ['the token says a change is pending, the account no longer does', true, false],
+    ['the account says a change is pending, the token does not', false, true],
+  ])('is required when only %s', async (_case, claim, flag) => {
+    const user = await createAccount({ mustChangePassword: flag });
+    const accessToken = await accessTokens.sign({
+      userId: user.id,
+      role: 'USER',
+      mustChangePassword: claim,
+    });
+
+    const response = await changePassword(accessToken, { password: NEW_PASSWORD });
+
+    expect(response.status).toBe(422);
+    expect(response.body).toMatchObject({ error: { errors: { currentPassword: ['required'] } } });
+  });
+});
+
+describe('POST /me/password: the failure limit', () => {
+  it('refuses a user after 10 wrong current passwords, even the right one', async () => {
+    await createAccount();
+    const { accessToken } = await signIn();
+    const wrong = { currentPassword: 'wrong-pass1', password: NEW_PASSWORD };
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      expect((await changePassword(accessToken, wrong)).status).toBe(400);
+    }
+    const limited = await changePassword(accessToken, {
+      currentPassword: PASSWORD,
+      password: NEW_PASSWORD,
+    });
+
+    expect(limited.status).toBe(429);
+    expect(limited.headers['ratelimit-policy']).toBe('"password-change";q=10;w=900');
+  }, 30_000);
+});
+
+describe('POST /me/password: a pending reset link', () => {
+  it('ends with the change', async () => {
+    const user = await createAccount();
+    const { accessToken } = await signIn();
+    await prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash: 'pending', expiresAt: new Date(Date.now() + 60_000) },
+    });
+
+    await changePassword(accessToken, { currentPassword: PASSWORD, password: NEW_PASSWORD });
+
+    expect(await prisma.passwordResetToken.count({ where: { userId: user.id } })).toBe(0);
   });
 });
 

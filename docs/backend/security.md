@@ -45,7 +45,10 @@
   - an admin recovery (below).
 
   Every endpoint except `/me/password`, `/auth/logout` and `/me` returns `PASSWORD_CHANGE_REQUIRED` until the password is changed. The access token carries `mustChangePassword`, and `requireAuth` refuses it unless the route allows a pending change; the session's refresh still works, so the web can restore the session and show the change.
-- **Changing the password** (`/me/password`) asks for the current one, except during the forced change and for a Google-only account's first password. It ends every session of the user, then opens a new one for the device that changed it: a new access token without `mustChangePassword`, and a new refresh cookie.
+- **Changing the password** (`/me/password`) asks for the current one, except during the forced change. The change counts as forced only when **both** the access token's claim and the account say a change is pending, so neither a stale token nor a flag set after the token was issued skips the check.
+  - A wrong current password counts under a per-user failures limit ([Rate limits](#rate-limits-fixed-window)): a stolen 15-minute access token must not become unlimited guesses.
+  - An account without a password (Google only) sets its first one through the reset email, which proves the inbox, never here: a stolen access token alone must not give a lasting password. It answers `PASSWORD_NOT_SET`.
+  - It writes only if the account still has the password it checked (a compare-and-set), ends every session of the user and any pending reset link, then opens a new session for the device that changed it: a new access token without `mustChangePassword`, and a new refresh cookie.
 - **Password reset** is a link sent by email, following the OWASP Forgot Password Cheat Sheet. It is a transactional email, not a notification, and the only email Masaha sends.
   - **The token** is random (256 bits) and stored only as its SHA-256 hash. It is valid for 1 hour, and used once, by one atomic statement, so two concurrent resets cannot both succeed. A delivered link ends the earlier one: one live link per account. A link that is not sent (a cap, the relay) is withdrawn, so the one already in the inbox stays live.
   - **The request** always answers 202 with no body, whether or not the email has an account. An unknown or suspended account gets no email, and a failed send is only logged.
@@ -84,6 +87,7 @@ The counters are stored in PostgreSQL, in the `rate_limits` table, so every inst
 | Password reset and its check | Every request, by address and token | 5 / 15 min |
 | Password forgot, reset and check together | Every request, by address | 50 / 15 min |
 | Data reports | Every report, by the user | 10 / hour |
+| Password change | **Failed** attempts only (a wrong current password), by the user: a thief can change address | 10 / 15 min |
 | General API, signed in | Every request, by the user | 300 / 15 min |
 | General API, guest | Every request, by address: live-status polling from one space's shared address | 1,200 / 15 min |
 

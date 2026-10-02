@@ -225,6 +225,7 @@ export function createAuthService({
         if ((await sessions.consumeResetToken(token, tx)) !== owner) throw invalidResetLink();
         await users.setPassword(owner, passwordHash, tx);
         await sessions.revokeAll(owner, tx);
+        await sessions.endResetTokens(owner, tx);
       });
     },
 

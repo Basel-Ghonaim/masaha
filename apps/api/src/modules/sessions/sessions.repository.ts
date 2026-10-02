@@ -89,6 +89,10 @@ export function createSessionsRepository(db: PrismaClient = prisma) {
       await tx.passwordResetToken.deleteMany({ where: { userId, usedAt: null, id: { lt: id } } });
     },
 
+    async deleteUserResetTokens(userId: number, tx: Tx = db): Promise<void> {
+      await tx.passwordResetToken.deleteMany({ where: { userId } });
+    },
+
     async deleteResetToken(id: number, tx: Tx = db): Promise<void> {
       await tx.passwordResetToken.deleteMany({ where: { id } });
     },

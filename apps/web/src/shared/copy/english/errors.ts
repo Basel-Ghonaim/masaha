@@ -33,4 +33,6 @@ export const ERRORS = {
   RESET_TOKEN_INVALID: 'The link has expired or was already used.',
   GOOGLE_LINK_NOT_ALLOWED:
     'An account with this email already exists. Sign in with its password, or reset the password, to continue.',
+  PASSWORD_NOT_SET:
+    'This account has no password yet. Set one from the link we email you under “Forgot password”.',
 } as const satisfies Record<ErrorType | DomainErrorCode, string>;

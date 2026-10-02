@@ -120,6 +120,14 @@ export function createSessionsService({
       await repository.deleteOlderUnusedResetTokens(userId, id, tx);
     },
 
+    /**
+     * Ends every reset link of the user, used or not: a changed password makes a pending link
+     * pointless, and a used one is kept no longer than its transaction.
+     */
+    async endResetTokens(userId: number, tx?: Tx): Promise<void> {
+      await repository.deleteUserResetTokens(userId, tx);
+    },
+
     /** The reset token `id` was not delivered: it ends, and the link already sent stays live. */
     async withdrawResetToken(id: number, tx?: Tx): Promise<void> {
       await repository.deleteResetToken(id, tx);

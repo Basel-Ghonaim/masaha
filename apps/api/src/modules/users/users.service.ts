@@ -9,13 +9,16 @@ import {
 import { createRunInTransaction, type RunInTransaction, type Tx } from '../../db/index.ts';
 import type { AccessTokens } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
+import type { Limiter } from '../../shared/rate-limit/index.ts';
 import { createSessionsService, type SessionsService } from '../sessions/index.ts';
 import { hashPassword, verifyPassword } from './password.ts';
+import { PASSWORD_CHANGE } from './users.limits.ts';
 import { toUserView, type UserView } from './users.mapper.ts';
 import { createUsersRepository, type Account, type UsersRepository } from './users.repository.ts';
 
 interface Dependencies {
   accessTokens: AccessTokens;
+  limiter: Limiter;
   repository?: UsersRepository;
   sessions?: SessionsService;
   runInTransaction?: RunInTransaction;
@@ -59,6 +62,7 @@ export interface PasswordChange {
  */
 export function createUsersService({
   accessTokens,
+  limiter,
   repository = createUsersRepository(),
   sessions = createSessionsService(),
   runInTransaction = createRunInTransaction(),
@@ -216,46 +220,58 @@ export function createUsersService({
 
     /**
      * Sets the user's password (docs/backend/security.md › Passwords). The current password is
-     * required, except while a temporary one is pending (the forced change) and for a Google-only
-     * account's first password. Every session of the user ends, and this device's goes on in a new
-     * one, without the pending change.
+     * required, except during the forced change, which both the access token's claim and the
+     * account must still say is pending. An account without a password (Google only) sets its
+     * first one through the reset email instead. Wrong current passwords count under a per-user
+     * limit. Every session of the user ends, any pending reset link with them, and this device's
+     * goes on in a new one.
      */
     async changePassword(
       userId: number,
       { currentPassword, password }: ChangePasswordRequest,
+      { pendingChange }: { pendingChange: boolean },
     ): Promise<PasswordChange> {
       const account = await get(userId);
       assertMaySignIn(account);
-
       const currentHash = await repository.findPasswordHash(userId);
-      if (currentHash && !account.mustChangePassword) {
-        if (currentPassword === undefined)
-          throw AppError.validation({ currentPassword: ['required'] });
-        if (!(await verifyPassword(currentPassword, currentHash))) {
-          throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Current password incorrect');
-        }
+      if (!currentHash) {
+        throw AppError.badRequest('PASSWORD_NOT_SET', 'Set a first password by the reset email');
+      }
+      const forced = pendingChange && account.mustChangePassword;
+      if (!forced && currentPassword === undefined) {
+        throw AppError.validation({ currentPassword: ['required'] });
       }
 
-      const passwordHash = await hashPassword(password);
-      const expected = {
-        passwordHash: currentHash,
-        mustChangePassword: account.mustChangePassword,
-      };
-      const { changed, issued } = await runInTransaction(async (tx) => {
-        // The update takes the session lock; it applies only to the password that was checked.
-        const changed = await repository.setPasswordIf(userId, passwordHash, expected, tx);
-        if (!changed) {
-          throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Password changed meanwhile');
-        }
-        await sessions.revokeAll(userId, tx);
-        return { changed, issued: await sessions.issue(userId, tx) };
-      });
-      const accessToken = await accessTokens.sign({
-        userId,
-        role: changed.role,
-        mustChangePassword: changed.mustChangePassword,
-      });
-      return { accessToken, refreshToken: issued.token };
+      return limiter.limitFailures(
+        [{ policy: PASSWORD_CHANGE, by: [String(userId)] }],
+        async () => {
+          if (!forced && !(await verifyPassword(currentPassword ?? '', currentHash))) {
+            throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Current password incorrect');
+          }
+
+          const passwordHash = await hashPassword(password);
+          const expected = {
+            passwordHash: currentHash,
+            mustChangePassword: account.mustChangePassword,
+          };
+          const { changed, issued } = await runInTransaction(async (tx) => {
+            // The update takes the session lock; it applies only to the password that was checked.
+            const changed = await repository.setPasswordIf(userId, passwordHash, expected, tx);
+            if (!changed) {
+              throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Password changed meanwhile');
+            }
+            await sessions.revokeAll(userId, tx);
+            await sessions.endResetTokens(userId, tx);
+            return { changed, issued: await sessions.issue(userId, tx) };
+          });
+          const accessToken = await accessTokens.sign({
+            userId,
+            role: changed.role,
+            mustChangePassword: changed.mustChangePassword,
+          });
+          return { accessToken, refreshToken: issued.token };
+        },
+      );
     },
   };
 }
