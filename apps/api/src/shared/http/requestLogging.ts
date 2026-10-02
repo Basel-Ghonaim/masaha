@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
 
 import type { Request } from 'express';
-import { pino, type DestinationStream, type Level, type Logger } from 'pino';
+import {
+  destination as pinoDestination,
+  pino,
+  type DestinationStream,
+  type Level,
+  type Logger,
+} from 'pino';
 import { pinoHttp } from 'pino-http';
 
 // What a log line never holds (docs/backend/security.md › HTTP hardening): the headers that carry
@@ -24,10 +30,14 @@ export const REDACTED_PATHS = [
   ...SECRET_FIELDS.flatMap((field) => [field, `*.${field}`, `*.*.${field}`]),
 ];
 
-/** The API's logger, with the redaction every line goes through. */
+/**
+ * The API's logger, with the redaction every line goes through. By default it writes to stdout
+ * synchronously: the request's line is written as its response finishes, and online a function may
+ * be frozen right after, so a buffered line could be lost (conventions §10, §12).
+ */
 export function createLogger(level: Level | 'silent', destination?: DestinationStream): Logger {
   const options = { level, redact: { paths: REDACTED_PATHS } };
-  return destination ? pino(options, destination) : pino(options);
+  return pino(options, destination ?? pinoDestination({ dest: 1, sync: true }));
 }
 
 /**
