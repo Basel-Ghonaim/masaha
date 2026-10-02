@@ -8,7 +8,11 @@ const API_MODULES = ['L0', 'L1', 'L2', 'L3', 'L4', 'L5', 'unplaced'];
 
 // The API's elements. The first pattern that matches a file decides its type.
 const API_BOUNDARY_SETTINGS = {
-  'import/resolver': { typescript: { project: 'apps/api/tsconfig.json' } },
+  // Absolute, so imports resolve whatever directory ESLint runs from (the level rule's unit test runs
+  // it from apps/api); an import that does not resolve is allowed by default.
+  'import/resolver': { typescript: { project: `${import.meta.dirname}/apps/api/tsconfig.json` } },
+  // The element patterns are relative to the repository, whatever directory ESLint runs from.
+  'boundaries/root-path': import.meta.dirname,
   'boundaries/dependency-nodes': ['import', 'export', 'dynamic-import'],
   'boundaries/elements': [
     {
