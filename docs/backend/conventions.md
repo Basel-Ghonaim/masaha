@@ -105,7 +105,7 @@ Inside a module, each layer calls only the one below it.
 
 ### Level map
 
-This is the only level map. A module imports only modules at **lower** levels, through their `index.ts`, and never one at its own level, so the graph has no cycles. Lint enforces it (`eslint.config.js`, which mirrors this map): an import of a module at the same or a higher level, past a module's `index.ts`, of a module missing from the map, or of any module from `shared/` fails `lint`.
+This is the only level map. A module imports only modules at **lower** levels, through their `index.ts`, and never one at its own level, so the graph has no cycles. Lint enforces it (`eslint.config.js`, which mirrors this map): an import of a module at the same or a higher level, past a module's `index.ts`, of a module missing from the map (or of a file placed directly in `modules/`), or of any module from `shared/`, `db` or `config` fails `lint`. So does an import of the root (`app.ts`, `server.ts`, the seed, `test/`) from anything but the root, except from a test, and an import past `db`'s or `config`'s `index.ts` from a module or `shared/`. `apps/api/test/levelRule.unit.test.ts` proves each case on probe files in the unit lane.
 
 | Level | Modules |
 |---|---|
