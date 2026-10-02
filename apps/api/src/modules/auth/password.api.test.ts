@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -130,21 +132,39 @@ describe('POST /auth/password/reset/check', () => {
   });
 
   it('answers the same RESET_TOKEN_INVALID for an unknown, expired or used link', async () => {
-    await createAccount();
-    await forgot();
-    const expired = lastToken();
-    await prisma.passwordResetToken.updateMany({ data: { expiresAt: new Date(Date.now() - 1) } });
-    await forgot();
-    const used = lastToken();
-    await reset(used);
+    const user = await createAccount();
+    const sha256 = (token: string) => createHash('sha256').update(token).digest('hex');
+    const past = new Date(Date.now() - 1_000);
+    const later = new Date(Date.now() + 60_000);
+    await prisma.passwordResetToken.createMany({
+      data: [
+        { userId: user.id, tokenHash: sha256('expired-token'), expiresAt: past },
+        { userId: user.id, tokenHash: sha256('used-token'), expiresAt: later, usedAt: past },
+      ],
+    });
 
-    for (const token of ['unknown-token', expired, used]) {
+    for (const token of ['unknown-token', 'expired-token', 'used-token']) {
       const response = await check(token);
       expect(response.status).toBe(400);
       expect(response.body).toMatchObject({
         error: { type: 'bad_request', code: 'RESET_TOKEN_INVALID' },
       });
     }
+    // Refused by their state, not by their absence: both rows are still there.
+    expect(await prisma.passwordResetToken.count({ where: { userId: user.id } })).toBe(2);
+  });
+
+  it('limits one address to 50 password requests every 15 minutes, whatever the email', async () => {
+    await forgot('first@example.com');
+    await prisma.rateLimit.updateMany({
+      where: { key: { startsWith: 'password-address:' } },
+      data: { hits: 50 },
+    });
+
+    const limited = await forgot('second@example.com');
+
+    expect(limited.status).toBe(429);
+    expect(limited.headers['ratelimit-policy']).toBe('"password-address";q=50;w=900');
   });
 
   it('limits the uses of one link to 5 every 15 minutes', async () => {

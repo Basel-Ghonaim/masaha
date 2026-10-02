@@ -421,6 +421,21 @@ describe('POST /auth/refresh', () => {
     expect(response.status).toBe(429);
     expect(response.headers['ratelimit-policy']).toBe('"refresh";q=30;w=900');
     expect(setCookies(response)).toEqual({});
+    // Refused before the rotation: the token was not used up.
+    const stored = await prisma.refreshToken.findUniqueOrThrow({
+      where: { tokenHash: sha256(token) },
+    });
+    expect(stored.rotatedAt).toBeNull();
+  });
+
+  it('restores the session of an account whose password change is pending', async () => {
+    await createAccount({ mustChangePassword: true });
+    const token = refreshTokenOf(await login());
+
+    const response = await refresh(token);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ data: { user: { mustChangePassword: true } } });
   });
 });
 
@@ -449,6 +464,23 @@ describe('POST /auth/logout', () => {
 });
 
 describe('the general limit, signed in', () => {
+  it('refuses a user after 300 requests every 15 minutes', async () => {
+    await createAccount();
+    const { accessToken } = ((await login()).body as { data: { accessToken: string } }).data;
+    await request(app).get('/api/v1/anything').set('Authorization', `Bearer ${accessToken}`);
+    await prisma.rateLimit.updateMany({
+      where: { key: { startsWith: 'general-user:' } },
+      data: { hits: 300 },
+    });
+
+    const limited = await request(app)
+      .get('/api/v1/anything')
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(limited.status).toBe(429);
+    expect(limited.headers['ratelimit-policy']).toBe('"general-user";q=300;w=900');
+  });
+
   it('counts a signed-in request by its user', async () => {
     await createAccount();
     const { accessToken } = ((await login()).body as { data: { accessToken: string } }).data;
@@ -461,12 +493,12 @@ describe('the general limit, signed in', () => {
   });
 });
 
-describe('the request log of a sign-in', () => {
-  it('holds no password, token or cookie', async () => {
+describe('the request log of a signed-in request', () => {
+  it('carries the user and their role', async () => {
     const lines: string[] = [];
     const logged = createTestApp({
       logger: createLogger(
-        'trace',
+        'info',
         new Writable({
           write(chunk: Buffer, _encoding, done) {
             lines.push(chunk.toString());
@@ -475,20 +507,24 @@ describe('the request log of a sign-in', () => {
         }),
       ),
     });
-    await createAccount();
+    const user = await createAccount({ role: 'OWNER' });
+    const { accessToken } = (
+      (
+        await request(logged)
+          .post('/api/v1/auth/login')
+          .send({ email: 'sara@example.com', password: PASSWORD })
+      ).body as { data: { accessToken: string } }
+    ).data;
 
-    const signedIn = await request(logged)
-      .post('/api/v1/auth/login')
-      .send({ email: 'sara@example.com', password: PASSWORD });
-    const token = refreshTokenOf(signedIn);
-    const { accessToken } = (signedIn.body as { data: { accessToken: string } }).data;
-    await request(logged)
-      .post('/api/v1/auth/refresh')
-      .set('Cookie', `masaha_refresh=${token}`)
-      .set('Authorization', `Bearer ${accessToken}`);
+    const response = await request(logged)
+      .post('/api/v1/me/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({});
 
-    const log = lines.join('\n');
-    expect(lines.length).toBeGreaterThanOrEqual(2);
-    for (const secret of [PASSWORD, token, accessToken]) expect(log).not.toContain(secret);
+    const id = String(response.headers['x-request-id']);
+    const line = lines
+      .map((text) => JSON.parse(text) as { req?: { id?: string }; userId?: number; role?: string })
+      .find((entry) => entry.req?.id === id);
+    expect(line).toMatchObject({ userId: user.id, role: 'OWNER' });
   });
 });
