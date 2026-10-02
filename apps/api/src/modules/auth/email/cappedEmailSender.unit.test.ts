@@ -75,6 +75,21 @@ describe('createCappedEmailSender', () => {
     expect(lines.join('')).toContain(CEILING_REACHED);
   });
 
+  it('delivers at most 10 emails a day asked for from one address', async () => {
+    const { delivered, sender } = setup();
+
+    for (let n = 0; n < 10; n++) {
+      const result = await sender.send(message(`p${String(n)}@example.com`), { requester: 'ip' });
+      expect(result.sent).toBe(true);
+    }
+    const eleventh = await sender.send(message('q@example.com'), { requester: 'ip' });
+    const elsewhere = await sender.send(message('q@example.com'), { requester: 'other' });
+
+    expect(eleventh.sent).toBe(false);
+    expect(elsewhere.sent).toBe(true);
+    expect(delivered).toHaveLength(11);
+  });
+
   it('sends nothing when the caps cannot be checked', async () => {
     const { delivered, sender } = setup({ counterFails: true });
 

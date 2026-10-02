@@ -17,5 +17,6 @@ export type EmailResult = { sent: true } | { sent: false; reason: string };
  * wired in the composition root. A sender carries no copy and no rule: it delivers what it is given.
  */
 export interface EmailSender {
-  send(message: EmailMessage): Promise<EmailResult>;
+  /** `requester` is who asked for it (a digest of their address), for the caps; senders ignore it. */
+  send(message: EmailMessage, context?: { requester: string }): Promise<EmailResult>;
 }

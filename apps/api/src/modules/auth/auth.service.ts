@@ -194,7 +194,8 @@ export function createAuthService({
       if (!account || account.suspendedAt) return;
       const { token, id } = await sessions.issueResetToken(account.id);
       const result = await email.send(
-        resetEmail({ to: account.email, name: account.name, link: resetLink(webOrigin, token) }),
+        resetEmail({ to: account.email, link: resetLink(webOrigin, token) }),
+        { requester: from },
       );
       // Only a delivered link replaces the one already in the inbox (docs/backend/security.md).
       if (result.sent) await sessions.keepOnlyResetToken(account.id, id);

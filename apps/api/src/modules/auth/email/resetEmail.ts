@@ -29,17 +29,11 @@ function escapeHtml(text: string): string {
     .replaceAll("'", '&#39;');
 }
 
-/** The reset email: Arabic first, then English, in one message, as designed. */
-export function resetEmail({
-  to,
-  name,
-  link,
-}: {
-  to: string;
-  name: string;
-  link: string;
-}): EmailMessage {
-  const who = escapeHtml(name);
+/**
+ * The reset email: Arabic first, then English, in one message, as designed. It greets no one by
+ * name: registration proves no inbox, so a name could carry an attacker's words into Masaha's mail.
+ */
+export function resetEmail({ to, link }: { to: string; link: string }): EmailMessage {
   const href = escapeHtml(link);
 
   const html = `<!doctype html>
@@ -52,7 +46,7 @@ export function resetEmail({
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;">
 <tr><td dir="rtl" align="right" style="padding:0 4px 20px;font-family:${ARABIC_FONT};font-size:24px;line-height:32px;font-weight:700;color:${COLOR.brand};">${ar.brand}</td></tr>
 <tr><td dir="rtl" align="right" style="background:${COLOR.card};border:1px solid ${COLOR.border};border-radius:12px;padding:32px;font-family:${ARABIC_FONT};color:${COLOR.text};">
-<p style="margin:0 0 12px;font-size:20px;line-height:30px;font-weight:600;">${ar.greeting(who)}</p>
+<p style="margin:0 0 12px;font-size:20px;line-height:30px;font-weight:600;">${ar.greeting}</p>
 <p style="margin:0 0 24px;font-size:16px;line-height:26px;">${ar.request} ${ar.instruction}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr><td style="border-radius:8px;background:${COLOR.brand};">
 <a href="${href}" style="display:inline-block;padding:12px 24px;font-family:${ARABIC_FONT};font-size:16px;line-height:24px;font-weight:600;color:${COLOR.onBrand};text-decoration:none;border-radius:8px;">${ar.action}</a>
@@ -60,7 +54,7 @@ export function resetEmail({
 <p style="clear:both;margin:0;padding-top:24px;font-size:14px;line-height:22px;color:${COLOR.muted};">${ar.validity}</p>
 <hr style="border:0;border-top:1px solid ${COLOR.border};margin:28px 0;">
 <div dir="ltr" lang="en" style="text-align:left;font-family:${LATIN_FONT};">
-<p style="margin:0 0 8px;font-size:15px;line-height:22px;color:${COLOR.text};">${en.greeting(who)} ${en.request} <a href="${href}" style="color:${COLOR.brand};">${en.action}</a>.</p>
+<p style="margin:0 0 8px;font-size:15px;line-height:22px;color:${COLOR.text};">${en.greeting} ${en.request} <a href="${href}" style="color:${COLOR.brand};">${en.action}</a>.</p>
 <p style="margin:0;font-size:13px;line-height:20px;color:${COLOR.muted};">${en.validity}</p>
 </div>
 </td></tr>
@@ -72,12 +66,12 @@ export function resetEmail({
 </html>`;
 
   const text = [
-    ar.greeting(name),
+    ar.greeting,
     `${ar.request} ${ar.instruction}`,
     link,
     ar.validity,
     '',
-    `${en.greeting(name)} ${en.request}`,
+    `${en.greeting} ${en.request}`,
     `${en.action}: ${link}`,
     en.validity,
     '',

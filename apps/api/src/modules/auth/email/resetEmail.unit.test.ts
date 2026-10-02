@@ -12,7 +12,7 @@ describe('resetLink', () => {
 });
 
 describe('resetEmail', () => {
-  const email = resetEmail({ to: 'sara@example.com', name: 'Sara', link });
+  const email = resetEmail({ to: 'sara@example.com', link });
 
   it('is addressed and titled in both languages', () => {
     expect(email.to).toBe('sara@example.com');
@@ -21,8 +21,8 @@ describe('resetEmail', () => {
 
   it('says it all in Arabic first, then in English, in the HTML and in the text', () => {
     for (const body of [email.html, email.text]) {
-      const arabic = body.indexOf(ARABIC.greeting('Sara'));
-      const english = body.indexOf(ENGLISH.greeting('Sara'));
+      const arabic = body.indexOf(ARABIC.greeting);
+      const english = body.indexOf(ENGLISH.greeting);
       expect(arabic).toBeGreaterThanOrEqual(0);
       expect(english).toBeGreaterThan(arabic);
       for (const line of [ARABIC.request, ARABIC.validity, ENGLISH.request, ENGLISH.validity]) {
@@ -36,18 +36,15 @@ describe('resetEmail', () => {
     expect(email.html).toContain('<div dir="ltr" lang="en"');
   });
 
-  it('escapes the name, which the user chose', () => {
-    const hostile = resetEmail({ to: 'x@example.com', name: '<img src=x onerror=alert(1)>', link });
+  it('escapes the link it is given', () => {
+    const odd = resetEmail({ to: 'x@example.com', link: 'https://masaha.example/"><img src=x>' });
 
-    expect(hostile.html).not.toContain('<img');
-    expect(hostile.html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(odd.html).not.toContain('<img');
+    expect(odd.html).toContain('&quot;&gt;&lt;img src=x&gt;');
   });
 
   it('holds the two languages to one shape', () => {
     expect(Object.keys(ARABIC).sort()).toEqual(Object.keys(ENGLISH).sort());
-    for (const [key, value] of Object.entries(ARABIC)) {
-      expect(typeof value).toBe(typeof ENGLISH[key as keyof typeof ENGLISH]);
-      if (typeof value === 'string') expect(value).not.toBe('');
-    }
+    for (const value of Object.values(ARABIC)) expect(value).not.toBe('');
   });
 });
