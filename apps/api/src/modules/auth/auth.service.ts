@@ -191,7 +191,7 @@ export function createAuthService({
       await limiter.count(PASSWORD_EMAIL, from, address);
 
       const account = await users.findByEmail(address);
-      if (!account || account.suspendedAt) return;
+      if (!account || !users.maySignIn(account)) return;
       const { token, id } = await sessions.issueResetToken(account.id);
       const result = await email.send(
         resetEmail({ to: account.email, link: resetLink(webOrigin, token) }),
