@@ -154,6 +154,21 @@ describe('users: Google', () => {
     );
   });
 
+  it('opens the account a racing first sign-in of the same subject just created', async () => {
+    let created = false;
+    const { users } = setup({
+      findByGoogleSubject: () => Promise.resolve(null),
+      findByEmail: () => Promise.resolve({ account: sara, googleSubject: google.subject }),
+      create: () => {
+        created = true;
+        return Promise.resolve({ account: sara });
+      },
+    });
+
+    expect(await users.accountForGoogle(google, undefined)).toEqual({ userId: 3, link: false });
+    expect(created).toBe(false);
+  });
+
   it('creates a USER, and reads it again when a racing sign-in created it first', async () => {
     let created = false;
     const { users } = setup({
