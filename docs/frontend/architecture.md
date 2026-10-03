@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), and the catalogue registration and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; the site and dashboard boundary (lazy page groups in §2, the dashboard-only rule in §3) and the rest are not yet implemented · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), and the catalogue registration and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; the layout tree and the two page groups (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -18,41 +18,89 @@
 
 ## 2. Page groups
 
-| Group | Routes | Guard |
-|---|---|---|
-| `public` | `/`, `/spaces`, `/spaces/:slug`, `/about` | none |
-| `auth` | `/login`, `/register`, `/forgot-password`, `/reset-password` | guests only |
-| `account` | `/me`, `/me/favorites`, `/me/reports` | signed in |
-| `dashboard` | `/dashboard` (redirects, below), `/dashboard/admin/...`, `/dashboard/spaces/:spaceId/...` ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) | `admin/...`: ADMIN · `spaces/:spaceId/...`: an active link at that space, OWNER or RECEPTION (per route) |
-| `showcase` | `/__showcase/…` | none; **development only**, not in the build |
+**Two domains, one application** ([ADR 0011](../architecture/decisions/0011-one-web-app.md)): the **site** and the **dashboard**, one page group each.
 
-- **Two domains, one application** ([ADR 0011](../architecture/decisions/0011-one-web-app.md)): the **site** is `public`, `auth` and `account`; the **dashboard** is `dashboard`.
-- A page group's barrel exports its **route subtree**, not individual screens. `app/router.tsx` mounts each subtree **lazily**, so a visitor to the site downloads no dashboard code.
-- **Guards sit visibly on each route** (`<RequireRole roles={['OWNER']}>`), never inherited silently from the group.
-- The dashboard's **navigation config per role** belongs to the `dashboard` page group, because choosing what appears together is composition. Features stay role-agnostic: the page passes the scope (`mine` for an owner, `all` for the admin).
-- In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space in the URL**, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). The selected space is the `:spaceId` of the route, never client state; the space switcher only navigates ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)).
-- Inside the `dashboard` group, the shell and the navigation are kept apart from the screens of each area:
+| Group | Area | Routes | Guard (per route) |
+|---|---|---|---|
+| `site` | public | `/`, `/spaces`, `/spaces/:slug`, `/about` | none |
+| | auth | `/login`, `/register`, `/forgot-password`, `/reset-password` | guests only |
+| | account | `/me`, `/me/favorites`, `/me/reports` | signed in |
+| `dashboard` | admin, space | `/dashboard` (redirects, below), `/dashboard/admin/...`, `/dashboard/spaces/:spaceId/...` ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) | `admin/...`: ADMIN · `spaces/:spaceId/...`: an active link at that space, OWNER or RECEPTION (per route) |
+| `showcase` | | `/__showcase/…` | none; **development only**, not in the build |
 
-  ```
-  pages/dashboard/
-    index.ts        the route subtree, the group's only export
-    shell/          layout, sidebar, top bar, space switcher
+### The layout tree
+
+```
+RootLayout (app)                 ScrollRestoration; a last-resort error state with no shell
+├── site
+│   ├── SiteLayout               full header + footer
+│   │   ├── public/*             home, directory, space details, about, the site's 404
+│   │   └── AccountLayout        + the account's side navigation
+│   │       └── account/*        favourites, my reports, settings
+│   └── FocusLayout              short header (logo, language, theme), no footer
+│       └── auth/*               sign in, register, forgot/reset password, the forced change
+│                                (the forced change's short header: logo and sign out)
+└── dashboard
+    └── DashboardLayout          sidebar + top bar (ADR 0016)
+        ├── admin/*
+        └── spaces/:spaceId/*
+```
+
+- **Each level adds one thing** around its `<Outlet/>`.
+- **Each domain owns its own shell**, and places the status states inside it.
+- **A layout is built with its first consumer.** Not built yet: all of them. `RootLayout` and `SiteLayout` come with the site shell (F-6b), `FocusLayout` with the auth screens (F-5b3), `AccountLayout` with the first account screen, and `DashboardLayout` with the dashboard shells (F-6c).
+
+### The two groups
+
+The `site` and `dashboard` groups have the same structure:
+
+```
+app/
+  router.tsx        RootLayout + siteRoutes + dashboardRoutes + showcase (development only)
+  RootLayout.tsx
+pages/
+  site/
+    index.ts        siteRoutes: the group's only export
+    shell/          SiteLayout, SiteHeader, SiteFooter, SiteMenu (phone), FocusLayout
+    navigation.ts   the site's links: configuration, no logic
+    public/         home, directory, space details, about
+    auth/           sign in, register, forgot and reset password, the forced change
+    account/        AccountLayout and its screens
+  dashboard/
+    index.ts        dashboardRoutes: the group's only export
+    shell/          DashboardLayout, sidebar, top bar, space switcher
     navigation.ts   the navigation config per role
     admin/          platform screens (ADMIN)
     space/          the screens of the space in the URL (OWNER, RECEPTION)
-  ```
+```
+
+- **Lazy loading.**
+  - A group's `index.ts` exports **route definitions only**. Their components load through React Router's `lazy`, so a visitor to the site never downloads dashboard code.
+  - Each site page loads lazily on its own.
+- **The language and theme toggles.**
+  - Their visual controls are the design system's `LanguageToggle` and `ThemeToggle`.
+  - Each shell wires them to `shared/preferences` itself, in a line or two. There is no shared "connected toggle": `shared/preferences` stays without UI, and the two groups cannot import each other.
+  - The theme toggle sets the opposite of the theme shown (§4).
+- **The status states** live in `shared/routing`: `NotFoundState`, `RouteErrorState`, and a pure `classifyRouteError`.
+  - They are route-level elements, built on the design system's `EmptyState`.
+  - They take their actions as props. The site's 404 offers "Home" and "Browse spaces"; the dashboard's will offer its own.
+  - Each domain renders them inside its own shell. Its error boundary sits on a pathless route just under its layout, because React Router renders a boundary in place of its own route's element. An error in a shell itself reaches the root's state, which has no shell.
+  - `RouteErrorState` shows **offline** for a failed lazy load or when the browser reports no connection, and the **general error** otherwise. "Try again" reloads the page, and so does the browser's `online` event: React Router keeps a failed lazy load for its route, so only a reload retries it.
+- **Guards sit visibly on each route** (`<RequireRole roles={['OWNER']}>`), never inherited silently from the group.
+- The dashboard's **navigation config per role** belongs to the `dashboard` page group, because choosing what appears together is composition. Features stay role-agnostic: the page passes the scope (`mine` for an owner, `all` for the admin).
+- In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space in the URL**, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). The selected space is the `:spaceId` of the route, never client state; the space switcher only navigates ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)).
 - UI hiding is for usability only; the server is the authority.
 - **`showcase`** is a development tool for the design-system layer ([foundation §3](design-system/foundation.md#3-architecture)). `app/router.tsx` mounts it only when `import.meta.env.DEV`, so a build leaves it out; `check:build` fails if any of it reaches the build.
 
 ### Landing and guards
 
-Not built yet: F-5b builds the guards and F-6 the landing and the switcher.
+Not built yet: F-5b2 builds the guards and F-6c the landing and the switcher.
 
 - **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
 - **Landing after sign-in:**
   1. the return URL, when there is one;
   2. otherwise the admin goes to the admin's overview;
-  3. a user with space links goes to the last space they used, on the page their link's role there gives: the overview for `OWNER`, the front desk for `RECEPTION`. When no space is remembered, or the remembered one is no longer an active link (a first sign-in, a link deactivated or removed), they go to their oldest active link, by the same rule. How the last space is remembered is F-6's choice;
+  3. a user with space links goes to the last space they used, on the page their link's role there gives: the overview for `OWNER`, the front desk for `RECEPTION`. When no space is remembered, or the remembered one is no longer an active link (a first sign-in, a link deactivated or removed), they go to their oldest active link, by the same rule. How the last space is remembered is F-6c's choice;
   4. `/dashboard` itself redirects by the same rules.
 - **Failed guards:**
   - a guest goes to sign-in, with the return URL;
@@ -69,7 +117,7 @@ Not built yet: F-5b builds the guards and F-6 the landing and the switcher.
 
 **Names match the backend.** A capability carries the name of the backend module it calls ([backend conventions §7](../backend/conventions.md#7-modules)). A feature may be finer than its module only when it serves a different audience on different screens: `staff` (the owner's reception accounts) and `owners` (the admin's linking) are two features over the one `space-links` module. A sub-part with the same audience and the same screens stays inside its module's feature. Check-ins stay in `subscriptions`, for example, because a check-in changes the subscription's progress: split apart, one feature would have to import the other's query keys. Whether a feature exports screens or only hooks is not decided yet.
 
-**The dashboard-only rule:** the site's page groups (`public`, `auth`, `account`) never import a dashboard-only capability, so the site never pulls dashboard code in. The dashboard may import any capability. Lint holds this rule, as it holds the zones (§1).
+**The dashboard-only rule:** `pages/site` never imports a dashboard-only capability, so the site never pulls dashboard code in. The dashboard may import any capability. Lint will hold this rule, as it holds the zones (§1); the rule comes with F-6c.
 
 ### Capability layout
 
