@@ -96,7 +96,7 @@ The counters are stored in PostgreSQL, in the `rate_limits` table, so every inst
 
 **The mechanism** is `shared/rate-limit`, a small limiter over the counter:
 - Every count is one atomic statement on its key, and every count is written **before the response is sent** (ADR 0014).
-- A limit on failures reserves each attempt, atomically, before it runs, and returns the slot on a success or a server failure (a 5xx), before answering: a refused attempt keeps its slot as the failure. A concurrent burst therefore cannot pass the limit, and while a slot is held a burst larger than the limit is refused beyond it, even when its passwords are right.
+- A limit on failures reserves each attempt, atomically, before it runs, and returns the slot on a success or a server failure (a 5xx), before answering: a refused attempt keeps its slot as the failure. A concurrent burst therefore cannot pass the limit, and while a slot is held a burst larger than the limit is refused beyond it, even when its passwords are right. A refused attempt (429) keeps its count: so after such a burst, or after enough failures, even the correct password is refused until the window ends.
 - A key is the policy's name and a SHA-256 digest of what it counts by, so the table holds no address, email or token in clear. The digest is not anonymous: an IPv4 address, or a known email, is found again by hashing the candidates.
 - The address is `req.ip`, which depends on `TRUST_PROXY` (the proxies Express trusts). An IPv6 address counts by its /64 network.
 - A 429 carries the error envelope, `Retry-After` and the `RateLimit-Policy` and `RateLimit` header fields.
