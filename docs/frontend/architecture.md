@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), and the catalogue registration, the transport's setup and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), and the catalogue registration, the transport's setup, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -9,7 +9,7 @@
 
 | Zone | Owns | May import |
 |---|---|---|
-| `app/` | Composition root: bootstrap (inject the token getter, register catalogues), providers, composed in one component (`providers.tsx` › `AppProviders`: QueryClient, DirectionProvider), router | pages, features, shared |
+| `app/` | Composition root: bootstrap (inject the token getter, register catalogues, create the one QueryClient), providers, composed in one component (`providers.tsx` › `AppProviders`: QueryClient, DirectionProvider), router | pages, features, shared |
 | `pages/` | One folder per **page group**: its route subtree, layout, and the loading / error / empty states of what it arranges. The only zone that combines several features | features, shared |
 | `features/` | One folder per **capability**: a fact and the operations on it | shared |
 | `shared/` | The platform: `design-system`, `api` (Axios client, refresh), `errors` (AppError), `session`, `preferences`, `localisation`, `copy`, `routing`, `map`, `lib` | shared (the design system imports nothing outside itself) |
@@ -162,17 +162,22 @@ One normaliser, `toAppError` in `shared/errors`, turns any failure (Axios, netwo
 
 ## 7. Server state
 
-TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). The transport, `shared/api`, is built: one Axios client at `/api/v1`, relative in every environment ([ADR 0014](../architecture/decisions/0014-deployment.md)), with a 15 s timeout a request may override, the token through a getter the composition root hands in, and single-flight refresh on 401. The rules on keys, invalidation and polling apply from the first feature that fetches.
+TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). The transport, `shared/api`, is built: one Axios client at `/api/v1`, relative in every environment ([ADR 0014](../architecture/decisions/0014-deployment.md)), with a 15 s timeout a request may override, the token through a getter the composition root hands in (every attempt sends its current token), and single-flight refresh on 401 through a function it hands in. The session wires both in F-5b2; until then bootstrap hands a getter that returns `null` and no refresh, so no token is sent and no refresh runs. The QueryClient and its defaults are built: the app makes one, at bootstrap, outside React. The rules on keys, invalidation and polling apply from the first feature that fetches.
 
 - **Query keys start with their scope:**
   - `['space', spaceId, '<capability>', …]` for a space's data;
   - `['me', …]` for the signed-in user's own;
   - `['public', …]` for the public site's.
 - **Invalidation:** each feature invalidates only its own keys. `desk`'s operations span several capabilities, so they invalidate the whole `['space', spaceId]` prefix, without importing the other features.
-- **Retries live in one place, the transport:**
+- **Retries live in one place, the transport.** TanStack Query's own `retry` is off, for queries and mutations, so attempts never multiply:
   - a `GET`, so every query, is retried;
   - a mutation is retried only when it carries an idempotency key ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). The key is generated once per user action and reused on every retry of it;
   - on a 5xx, a network failure or a timeout, twice, after 1 s and then 2 s. A 4xx is the server's answer and is never retried, 429 included; nor is a cancellation.
+- **Query defaults** (`createQueryClient` in `shared/api`):
+  - refetch on window focus, so the front desk refreshes when its window comes back;
+  - data stays fresh for 30 s (`staleTime`), which spares slow connections a request per screen. A query that must refresh on every focus, such as the desk's list, sets `refetchOnWindowFocus: 'always'`;
+  - `networkMode: 'always'`: a lost connection fails as a `network` error the screen shows, never a query paused on `navigator.onLine`, which stays true on a network with no internet; and a mutation is never held back to be sent later (see *Offline*);
+  - the rest are TanStack Query's own.
 - **Polling:**
   - the live status every 60 s, paused while the tab is hidden ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md));
   - the front desk's list of who is present every 30 s, and on window focus.

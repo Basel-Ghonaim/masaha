@@ -8,10 +8,10 @@ if (!rootElement) {
   throw new Error('Missing #root element in index.html');
 }
 
-bootstrap();
+const { queryClient } = bootstrap();
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <App queryClient={queryClient} />
   </StrictMode>,
 );
