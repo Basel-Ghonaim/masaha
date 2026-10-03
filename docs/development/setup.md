@@ -1,6 +1,6 @@
 # Setup
 
-> **Status:** Active · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
 > **Authority:** How to install, run, check and test the repository locally, and what CI runs. Which lane proves a behaviour is owned by [testing.md](testing.md); how work is executed by [workflow.md](workflow.md).
 
 ## Prerequisites
@@ -48,7 +48,7 @@ All commands run from the repository root.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Starts the web app's Vite dev server |
+| `npm run dev` | Starts the web app's Vite dev server at `http://localhost:5320` (it stops if the port is taken), forwarding `/api` to the API on port 3320, so the web and the API share one origin ([ADR 0014](../architecture/decisions/0014-deployment.md)) |
 | `npm run build` | Builds every workspace, `packages/shared` first because the API compiles against its `dist` (`packages/shared/dist`, `apps/api/dist`, `apps/web/dist`) |
 | `npm run lint` | ESLint over the whole repository |
 | `npm run typecheck` | TypeScript in every workspace |
@@ -62,6 +62,8 @@ All commands run from the repository root.
 A single workspace can be targeted with `-w`, for example `npm run test:unit -w @masaha/web`.
 
 In development, the design-system showcase is at `/__showcase` ([foundation §3](../frontend/design-system/foundation.md#3-architecture)).
+
+The web reads `@masaha/shared` from its source, through the package's `@masaha/source` export condition, in development, its tests, typechecking and its build, so the shared package never needs building first for the web.
 
 ## Database
 
@@ -116,13 +118,13 @@ From the repository root, with Docker Desktop running:
 3. `npm run db:up` starts PostgreSQL.
 4. `npm run db:migrate` applies the migrations to `masaha_dev`.
 5. `npm run db:seed` adds the lookups, the admin account and the settings.
-6. `npm run dev -w @masaha/api`, then open `http://localhost:3000/health`: it reports `"db": "up"`.
+6. `npm run dev -w @masaha/api`, then open `http://localhost:3320/health`: it reports `"db": "up"`.
 
 The API reads its settings from `apps/api/.env`, loaded by Node's `--env-file`. The example lists every variable. The API refuses to start, naming each one, when a required variable is missing or invalid. It also refuses to start when the database at `DATABASE_URL` cannot be reached.
 
 | Command | What it does |
 |---|---|
-| `npm run dev -w @masaha/api` | Starts the API with `tsx watch` on `PORT` (default 3000), logs made readable by `pino-pretty` |
+| `npm run dev -w @masaha/api` | Starts the API with `tsx watch` on `PORT` (default 3320), logs made readable by `pino-pretty` |
 | `npm run build -w @masaha/api` | Compiles `apps/api/src` to `apps/api/dist` (build `packages/shared` first, or run the root `build`) |
 | `npm run start -w @masaha/api` | Runs the built API from `dist`, with JSON logs |
 

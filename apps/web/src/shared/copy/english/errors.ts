@@ -1,8 +1,10 @@
-import type { DomainErrorCode, ErrorType } from '@masaha/shared';
+import type { DomainErrorCode } from '@masaha/shared';
+import type { AppErrorType } from '@shared/errors';
 
 /**
  * What a failure says, by the domain code or error type the server sends (docs/api/api-contract.md
- * §3 and §6): a screen reads `errors[code ?? type]`, unless it has something more specific to say.
+ * §3 and §6), or the type the client gives a failure with no answer (docs/frontend/architecture.md
+ * §5): a screen reads `errors[code ?? type]`, unless it has something more specific to say.
  */
 export const ERRORS = {
   bad_request: 'The request could not be understood. Please try again.',
@@ -16,6 +18,11 @@ export const ERRORS = {
   rate_limit: 'Too many attempts. Please wait a moment and try again.',
   server: 'Something went wrong on our side. Please try again.',
   service_unavailable: 'The service is temporarily unavailable. Please try again shortly.',
+
+  network: 'No connection. Check your internet and try again.',
+  timeout: 'The server took too long to respond. Please try again.',
+  canceled: 'The request was canceled.',
+  unknown: 'Something went wrong. Please try again.',
 
   EMAIL_TAKEN: 'An account with this email already exists.',
   PHONE_TAKEN: 'This phone number is already in use.',
@@ -35,4 +42,4 @@ export const ERRORS = {
     'An account with this email already exists. Sign in with its password, or reset the password, to continue.',
   PASSWORD_NOT_SET:
     'This account has no password yet. Set one from the link we email you under “Forgot password”.',
-} as const satisfies Record<ErrorType | DomainErrorCode, string>;
+} as const satisfies Record<AppErrorType | DomainErrorCode, string>;

@@ -1,6 +1,8 @@
+import type { QueryClient } from '@shared/api';
 import { useCopy } from '@shared/copy';
 import { setLanguage, setTheme } from '@shared/preferences';
-import { act, render, screen } from '@testing-library/react';
+import { useQueryClient } from '@tanstack/react-query';
+import { act, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bootstrap } from './bootstrap';
 import { AppProviders } from './providers';
@@ -8,6 +10,9 @@ import { AppProviders } from './providers';
 function Probe() {
   return <p>{useCopy().terms.space}</p>;
 }
+
+// The app's one client, as bootstrap makes it for each test.
+let queryClient: QueryClient;
 
 beforeEach(() => {
   // jsdom has no media queries; this device prefers the light scheme.
@@ -19,7 +24,7 @@ beforeEach(() => {
   }));
   window.localStorage.clear();
   document.documentElement.lang = 'ar';
-  bootstrap();
+  ({ queryClient } = bootstrap());
 });
 
 afterEach(() => {
@@ -29,7 +34,7 @@ afterEach(() => {
 describe('the preferences, wired at bootstrap', () => {
   it('render the copy again, and turn <html>, when the language changes', () => {
     render(
-      <AppProviders>
+      <AppProviders queryClient={queryClient}>
         <Probe />
       </AppProviders>,
     );
@@ -51,5 +56,17 @@ describe('the preferences, wired at bootstrap', () => {
 
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
     expect(window.localStorage.getItem('masaha.theme')).toBe('dark');
+  });
+});
+
+describe('the server state', () => {
+  it('provides the QueryClient it is given, which retries no query and no mutation', () => {
+    const { result } = renderHook(() => useQueryClient(), {
+      wrapper: ({ children }) => <AppProviders queryClient={queryClient}>{children}</AppProviders>,
+    });
+
+    expect(result.current).toBe(queryClient);
+    expect(result.current.getDefaultOptions().queries?.retry).toBe(false);
+    expect(result.current.getDefaultOptions().mutations?.retry).toBe(false);
   });
 });

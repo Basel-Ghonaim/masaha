@@ -224,4 +224,70 @@ export default defineConfig([
       ],
     },
   },
+  {
+    // Axios is imported only inside shared/api, the one transport (docs/frontend/architecture.md §1).
+    // Everything else uses what @shared/api exports. shared/errors may import Axios's types, to
+    // recognise its errors (next block); src/test/fakeAdapter.ts is the tests' fake transport. This
+    // is the typescript-eslint rule, not the core one: a second block of the core rule would replace
+    // the design-system block's options for the files both match.
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    ignores: [
+      'apps/web/src/shared/api/**',
+      'apps/web/src/shared/errors/**',
+      'apps/web/src/test/fakeAdapter.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['axios', 'axios/*'],
+              message: 'Only shared/api imports axios. Use what @shared/api exports.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // shared/errors names Axios's error type, and nothing more, so it never holds the transport.
+    files: ['apps/web/src/shared/errors/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['axios', 'axios/*'],
+              allowTypeImports: true,
+              message:
+                'shared/errors imports only Axios’s types (import type). The transport is shared/api.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The import rules see only import declarations; a lazy import() or a require() of Axios is held
+    // to the same boundary, shared/errors included, since neither can be type-only.
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    ignores: ['apps/web/src/shared/api/**', 'apps/web/src/test/fakeAdapter.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        // `axios`, or a path inside it (`axios/…`); a selector's regex cannot hold a slash.
+        ...[
+          "ImportExpression[source.value='axios']",
+          'ImportExpression[source.value=/^axios[^a-z-]/]',
+          "CallExpression[callee.name='require'][arguments.0.value='axios']",
+          "CallExpression[callee.name='require'][arguments.0.value=/^axios[^a-z-]/]",
+        ].map((selector) => ({
+          selector,
+          message: 'Only shared/api imports axios. Use what @shared/api exports.',
+        })),
+      ],
+    },
+  },
 ]);

@@ -21,7 +21,7 @@ describe('loadEnv', () => {
   it('applies the defaults', () => {
     expect(loadEnv(valid)).toEqual({
       NODE_ENV: 'development',
-      PORT: 3000,
+      PORT: 3320,
       CORS_ORIGIN: 'http://localhost:5173',
       DATABASE_URL: 'postgresql://masaha:masaha@localhost:5433/masaha_dev',
       JWT_SECRET: 'a-development-secret-of-32-characters',
