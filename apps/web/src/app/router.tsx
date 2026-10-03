@@ -1,6 +1,6 @@
 import { siteRoutes } from '@pages/site';
 import { createBrowserRouter, type RouteObject } from 'react-router';
-import { RootLayout } from './RootLayout';
+import { RootError, RootLayout } from './RootLayout';
 
 // The page groups' subtrees, under the root (docs/frontend/architecture.md §2).
 const children: RouteObject[] = [...siteRoutes];
@@ -13,11 +13,15 @@ if (import.meta.env.DEV) {
   children.push(...showcaseRoutes);
 }
 
-export const router = createBrowserRouter([
+/** The app's route tree: the root, and every page group's subtree below it. */
+export const routes: RouteObject[] = [
   {
     Component: RootLayout,
+    ErrorBoundary: RootError,
     // The first page's code is still loading: nothing to show yet.
     HydrateFallback: () => null,
     children,
   },
-]);
+];
+
+export const router = createBrowserRouter(routes);

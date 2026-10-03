@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), and the catalogue registration and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), and the catalogue registration and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -85,7 +85,7 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
   - Their visual controls are the design system's `LanguageToggle` and `ThemeToggle`.
   - Each shell wires them to `shared/preferences` itself, in a line or two. There is no shared "connected toggle": `shared/preferences` stays without UI, and the two groups cannot import each other.
   - The theme toggle sets the opposite of the theme shown (§4).
-- **The status states** live in `shared/routing`: `NotFoundState`, `RouteErrorState`, and a pure `classifyRouteError`.
+- **The status states** live in `shared/routing`: `NotFoundState`, `RouteErrorState`, and a pure `classifyRouteError`. They are built, and the site shows them.
   - They are route-level elements, built on the design system's `EmptyState`.
   - They take their actions as props. The site's 404 offers "Home" and "Browse spaces"; the dashboard's will offer its own.
   - Each domain renders them inside its own shell. Its error boundary sits on a pathless route just under its layout, because React Router renders a boundary in place of its own route's element. An error in a shell itself reaches the root's state, which has no shell.

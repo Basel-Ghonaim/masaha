@@ -13,4 +13,5 @@ export const SITE = {
   closeMenu: 'Close menu',
   tagline: 'Masaha — a directory of coworking spaces in the Gaza Strip',
   contact: 'Contact us',
+  browseSpaces: 'Browse spaces',
 } as const;

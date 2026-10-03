@@ -1,6 +1,7 @@
 import { ERRORS } from './errors';
 import { PREFERENCES } from './preferences';
 import { SITE } from './site';
+import { STATUS } from './status';
 import { TERMS } from './terms';
 import { VALIDATION } from './validation';
 
@@ -16,6 +17,7 @@ export const ENGLISH = {
   errors: ERRORS,
   preferences: PREFERENCES,
   site: SITE,
+  status: STATUS,
   terms: TERMS,
   validation: VALIDATION,
 } as const;

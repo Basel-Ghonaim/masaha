@@ -13,4 +13,5 @@ export const SITE = {
   closeMenu: 'إغلاق القائمة',
   tagline: 'مساحة — دليل مساحات العمل المشتركة في قطاع غزة',
   contact: 'تواصل معنا',
+  browseSpaces: 'تصفّح المساحات',
 } satisfies Catalogue['site'];
