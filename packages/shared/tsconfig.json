@@ -7,9 +7,9 @@
     "moduleResolution": "NodeNext",
     "rewriteRelativeImportExtensions": true,
     "erasableSyntaxOnly": true,
-    "rootDir": "src",
-    "outDir": "dist",
-    "declaration": true
+    "types": ["node"],
+    "noEmit": true
   },
-  "include": ["src"]
+  // Typechecking covers the tests and the Vitest config; tsconfig.build.json emits src only.
+  "include": ["src", "vitest.config.ts"]
 }

@@ -1,6 +1,6 @@
 # Plan — Application foundation
 
-> **Status:** Active · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built, the backend architecture they are built on, and the first public deployment. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
@@ -8,7 +8,7 @@
 **Goal:** the web app talks to a real API backed by PostgreSQL. A user can register, sign in, stay signed in across reloads, and land in the right shell for their role, in Arabic or English, light or dark, locally and at the public address.
 
 **Finished when:**
-- F-1 to F-7, F-3b and A-1 to A-3 are merged;
+- F-1 to F-7 (F-5 as F-5a and F-5b), F-3b and A-1 to A-3 are merged;
 - CI runs every lane, including `test:api` against a real PostgreSQL;
 - the *Entities* section of `data-model.md`, `architecture/system-overview.md` and the catalogue part of `localisation.md` *Mechanism* are written (deferred documents).
 
@@ -64,13 +64,13 @@ Approving this plan approves these. Anything else is proposed in the item's plan
 ```
 F-1 api skeleton ─► F-2 database ─► F-3 technical design        (parallel with WI-6 … WI-9)
                                          │
-WI-9 merged ─────────────────────────────┴─► F-4 localisation ─► F-5 auth ─► F-6 shells ─► F-7 deployment
+WI-9 merged ─────────────────────────────┴─► F-4 localisation ─► F-5a auth API ─► F-5b auth web ─► F-6 shells ─► F-7 deployment
                                                                  ▲
 F-3 merged + dashboard screens reviewed ─► F-3b update ──────────┘
 ```
 
 ```
-A-1 architecture ─┬─► A-3 cross-cutting decisions ─► F-5 auth ─► F-6 shells ─► F-7 deployment
+A-1 architecture ─┬─► A-3 cross-cutting decisions ─► F-5a auth API ─► F-5b auth web ─► F-6 shells ─► F-7 deployment
                   └─► A-2 space tables ─► the space-management and front-desk slices
 ```
 
@@ -263,7 +263,7 @@ Documentation only. The owner and an analyst decided every open cross-cutting to
 
 ---
 
-### F-4, F-5, F-6 — after WI-9
+### F-4, F-5a, F-5b, F-6 — after WI-9
 
 Drafted briefly here; each gets its full contract in its plan step, once the design-system layer is complete.
 
@@ -274,27 +274,41 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - the error-code and field-error-code entries.
   - **Fallback:** react-i18next per [ADR 0006](../architecture/decisions/0006-localisation-approach.md) if lifting takes more than two days.
   - Writes the catalogue part of `localisation.md` *Mechanism*.
-- **F-5 — Authentication and session** (`feat/auth`):
+- **F-5 — Authentication and session**, split in its plan step (2026-10-01) into two Work Items, each its own conversation and PR:
+- **F-5a — Authentication API** (`feat/auth-api`):
   - after F-3b and A-3 (not A-2);
   - the identity modules of [ADR 0013](../architecture/decisions/0013-identity-modules.md), as the [conventions](../backend/conventions.md#7-modules) place them:
-    - `sessions`, `users` and `auth`;
-    - the minimum of `space-links` that the refresh response needs, the user's active links;
+    - `sessions`, `users` and `auth`; password hashing moves into `users`;
+    - the minimum of `space-links` that the session response needs, the user's active links, oldest first;
   - the ESLint level rule: an import of a module at the same or a higher level ([conventions §7](../backend/conventions.md#level-map)), or past a module's `index.ts`, fails `lint`;
-  - the auth endpoints from the plan's API surface;
-  - the password change and the forced change move to the `users` `me` router, at `/me/password`: F-5 updates the [planned surface](v1-mvp.md#planned-api-surface) and api-contract.md;
+  - the auth endpoints from the plan's API surface, plus `POST /auth/password/reset/check` (read-only: the reset page shows the account's email, or the invalid state, before the form is sent);
+  - the password change and the forced change move to the `users` `me` router, at `/me/password`: F-5a updates the [planned surface](v1-mvp.md#planned-api-surface) and api-contract.md. The forced change is a claim in the access token; the change opens a fresh session for the current device;
   - Google sign-in: the ID token verified with `jose` (approved in §4), and the account created or linked as [security.md](../backend/security.md#sign-in-methods) says;
-  - the reset email: the provider is chosen in the plan step and proposed there as a new dependency, within [ADR 0014](../architecture/decisions/0014-deployment.md)'s constraint: no domain-verified provider, so a single verified sender or Gmail SMTP; in development, the email port logs the link instead of sending it;
-  - staff sign-in: a reception account signs in like any user, changes its temporary password first, and the refresh response carries its space links;
+  - register and the first Google sign-in take the interface language, optionally;
+  - the reset email, with `nodemailer` (approved in the plan step): a log mode in development and Gmail SMTP from a single sender, chosen by configuration only; production refuses to start without a mode that delivers; a per-recipient cap, a daily cap of delivered emails per requesting address, and a global ceiling, over every mode; the link carries the token in the URL fragment;
+  - staff sign-in: a reception account signs in like any user, changes its temporary password first, and the session response carries its space links;
   - no phone login;
-  - tokens, cookies, rotation and rate limits exactly as [security.md](../backend/security.md), with the rate-limit counters in a PostgreSQL table (a schema change; data-model.md updated);
+  - tokens, cookies, rotation and rate limits as [security.md](../backend/security.md), with the rate-limit counters in a PostgreSQL table, and refresh tokens grouped in families so a reused token ends only its own session (schema changes; data-model.md updated);
   - logging ([conventions §10](../backend/conventions.md#10-logging)):
     - the log redaction of [security.md](../backend/security.md#http-hardening), shipped together with the first token (an acceptance criterion);
-    - the request id: generated per request, in the logs, the `X-Request-Id` header and the error envelope, and carried by the web's `AppError`;
+    - the request id: generated per request, in the logs, the `X-Request-Id` header and the error envelope;
+  - the idempotency key's name ([conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)): the Prisma field `requestId` becomes `idempotencyKey`, still mapped to `request_id`, so no migration; the seed and the tests that use it follow.
+  - Proven by the unit and API lanes. It has no screen.
+- **F-5b — Authentication on the web** (`feat/auth-web`):
+  - after F-5a, and after [finding 9](../architecture/findings.md#9-every-vitest-lane-fails-when-the-working-directorys-drive-letter-is-lowercase)'s fix, which changes the Vitest configuration;
   - the development ports and proxy ([ADR 0014](../architecture/decisions/0014-deployment.md)), with `setup.md`, `.env.example` and `CLAUDE.md` *Commands*:
     - the web on port 5320 and the API on 3320, with Vite's `strictPort`, and `CORS_ORIGIN` to match;
     - Vite's proxy for `/api`, and the web calling `/api/v1` relatively in every environment;
-  - the idempotency key's name ([conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)): the Prisma field `requestId` becomes `idempotencyKey`, still mapped to `request_id`, so no migration; the seed and the tests that use it follow;
-  - on the web: the Axios client with single-flight refresh, the `AppError` normaliser, `shared/session`, `RequireRole` guards, and the sign-in, register, forgot and reset screens.
+  - the Axios client with single-flight refresh, and the `AppError` normaliser, which carries the request id;
+  - `shared/session` and the `RequireRole` guards ([architecture.md §2](../frontend/architecture.md#landing-and-guards));
+  - the screens of [SCREENS.md](../design/SCREENS.md) rows 5–7 and the forced password change of row 9:
+    - sign in, with Google, the "accounts linked" toast (the Google response's `linked`), which also says the account's password was removed and can be set again by the reset email, the `GOOGLE_LINK_NOT_ALLOWED` state, and the too-many-attempts state;
+    - register, sending the interface language;
+    - forgot password;
+    - reset password: the page reads the token from the URL fragment (`/reset-password#token=…`), removes it from the address bar, then checks it;
+    - the forced password change, before any other page;
+  - its web dependencies (for example `axios`, `zustand`, `@tanstack/react-query`, `react-hook-form`), proposed in its plan step: none is in §4;
+  - the Google client ID on the web.
   - Writes `architecture/system-overview.md` (the first end-to-end request).
 - **F-6 — Shells and preferences** (`feat/shells`):
   - `shared/preferences` (language and theme, writing the pre-paint keys);

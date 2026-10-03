@@ -1,6 +1,6 @@
 # Testing
 
-> **Status:** Active · **Last Updated:** 2026-09-30 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
 > **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof, not its style.
 
 ## 1. The assignment rule
@@ -18,7 +18,7 @@ A behaviour is proven in the lane of the **single unit that decides it**. **One 
 
 | Lane | Tools | Owns | Forbidden |
 |---|---|---|---|
-| **Unit** (web and api) | Vitest | Services, mappers, validators, occupancy calculation, permission checks (`can()`), catalogue parity | Rendering, network, database |
+| **Unit** (web, api and `packages/shared`) | Vitest | Services, mappers, validators, occupancy calculation, permission checks (`can()`), catalogue parity | Rendering, network, database |
 | **Component** (web) | Vitest + Testing Library (with user-event) + vitest-axe + MSW | Forms, dashboard wiring, role-based navigation, empty/loading/error states | Layout and visual correctness; real server |
 | **API integration** | Vitest + Supertest + real PostgreSQL (test database) | Endpoints end to end: validation, **authorization per role and per space**, persistence, error envelope | Mocking Prisma |
 | **E2E smoke** (end of project) | Playwright | 2–3 critical flows: search a space; reception checks a visitor in and the directory's live status changes; admin links an owner | Covering what lower lanes already prove |

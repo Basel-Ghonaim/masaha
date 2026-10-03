@@ -1,2 +1,2 @@
-export { AppError } from './appError.ts';
+export { AppError, type RateLimitState } from './appError.ts';
 export { errorHandler, notFoundHandler } from './errorHandler.ts';

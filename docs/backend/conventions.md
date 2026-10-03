@@ -1,6 +1,6 @@
 # Backend Conventions
 
-> **Status:** Active · **Class:** Contract — rules to build against. Built: the shared errors, http and validation code and the `can()` permission table. No module is built yet. The level rule in lint (§7) comes with F-5; the sections from §10 on are rules not yet built · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against. **Built:** the shared errors, http and validation code; `shared/auth` (the access tokens, `requireAuth` and `can()`); the rate limiter; the level rule (§7), enforced by lint; the modules `sessions`, `users`, `space-links` (only the session's links) and `auth`, with `runInTransaction` in `db/`; the logging of §10; the clock of §11; of §12, the composition root, the email port, the Google identity port and the rate limits in PostgreSQL; of §13, the idempotency key's name and the session lock. **Not yet built:** `optionalAuth`, `requireRole` and the space middleware (§8); the audit writer (§6); every other module; Gaza time (§11); the storage and scheduler ports (§12); the idempotent creates and the ledger's translation table (§13) · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
 > **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging, time, environments, idempotency and concurrency in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
 
 The backend is one application divided into **modules**, one per capability, arranged in **levels** (§7). Each module is built from the same **layers** (§2). **A screen is not a capability** (§7): placements follow the rule that consumes a value, never the screen that shows it.
@@ -10,8 +10,9 @@ The backend is one application divided into **modules**, one per capability, arr
 ```
 apps/api/src/
   app.ts               the composition root: builds each module's service, wires the ports
-                       (storage, email, clock, scheduler), mounts the space middleware (§8) and
-                       every router where the API contract puts it; then the 404 and error handler
+                       (storage, email, Google identity, clock, scheduler) from the environment
+                       (createAppFromEnv, §12), mounts the space middleware (§8) and every router
+                       where the API contract puts it; then the 404 and error handler
   server.ts            starts it as a long-running server, locally (env check, DB check, the
                        scheduler, graceful shutdown); online, one thin function entry wraps the
                        same app instead and starts no scheduler (§12)
@@ -26,15 +27,20 @@ apps/api/src/
     <module>.repository.ts
     <module>.mapper.ts
     <rule>.ts                    the pure domain rules the module owns (§8)
+    <module>.limits.ts           the rate-limit policies the module applies (§2)
+    <port>/                      a port the module owns and its adapters, e.g. auth's email/ (R5)
   shared/              the platform (R6): knows no domain concept
     errors/            AppError + factories, error handler
     http/              sendSuccess, pagination helpers
-    validation/        validate(schema, source) middleware, parseId, text normalisation
-    auth/              requireAuth, optionalAuth, requireRole, requireSpaceAccess (§8), can()
+    validation/        validate(schema, source) middleware, parseId (user text is normalised by
+                       the shared schemas, in packages/shared, §3)
+    auth/              the access-token codec, requireAuth, optionalAuth, requireRole,
+                       requireSpaceAccess (§8), can()
     audit/             the audit writer (§6)
     jobs/              the scheduler that runs the modules' timed work: an in-process timer
                        locally, an internal endpoint called by an external cron online (§12)
     storage/           the storage adapters (photos): local disk locally, object storage online (§12)
+    rate-limit/        the fixed-window counters in PostgreSQL and the limiter over them (§12)
 ```
 
 Only what exists is created: no empty module folders, and a layer a module does not need is absent.
@@ -45,7 +51,7 @@ Inside a module, each layer calls only the one below it.
 
 | Layer | Owns | Never |
 |---|---|---|
-| **Routes** | The per-endpoint chain: rate limiter → auth guard → role guard → `validate(schema)` → controller | Logic |
+| **Routes** | The per-endpoint chain: rate limiter → auth guard → role guard → `validate(schema)` → controller. A limit counted on every request sits here; a limit that counts only failures, or counts by what only the service knows (the user behind a cookie, the account of an email), is applied by the service, where the outcome is decided | Logic |
 | **Controller** | HTTP only: read validated input, call the service, respond with `sendSuccess`, set cookies | Business rules, Prisma |
 | **Service** | Business rules, permission checks via `can()`, mapping to DTOs, audit entries (§6), calls to lower modules' services, transactions when it orchestrates (§8) | Importing Prisma or Express |
 | **Repository** | Prisma queries on the module's own tables only; applies soft-delete filters by default; each function accepts an optional `tx` (§8) | Rules |
@@ -56,8 +62,9 @@ Inside a module, each layer calls only the one below it.
 
 - **Zod**, with schemas imported from `packages/shared` where the client uses the same rules.
 - `validate(schema, source = "body" | "query" | "params")` runs before the controller; on failure it throws `AppError.validation` with field-error **codes**.
+- **A controller reads the body its route validated.** It casts `req.body` to the type inferred from the same schema that route passes to `validate` (`RegisterRequest` for `registerSchema`), and nothing else ties the two: a route and its controller handler are changed together.
 - Query numbers (`page`, `limit`) are coerced and bounded in the schema.
-- User text is NFC-normalised and bidi control characters are refused.
+- User text is NFC-normalised, and bidi control characters and control characters (line breaks included) are refused, by `textSchema` in `packages/shared`.
 
 ## 4. Errors
 
@@ -104,7 +111,7 @@ Inside a module, each layer calls only the one below it.
 
 ### Level map
 
-This is the only level map. A module imports only modules at **lower** levels, through their `index.ts`, and never one at its own level, so the graph has no cycles. From F-5, lint enforces it.
+This is the only level map. A module imports only modules at **lower** levels, through their `index.ts`, and never one at its own level, so the graph has no cycles. Lint enforces it (`eslint.config.js`, which mirrors this map): an import of a module at the same or a higher level, past a module's `index.ts`, of a module missing from the map (or of a file placed directly in `modules/`), or of any module from `shared/`, `db` or `config` fails `lint`. So does an import of the root (`app.ts`, `server.ts`, the seed, `test/`) from anything but the root, except from a test, and an import past `db`'s or `config`'s `index.ts` from a module or `shared/`. `apps/api/test/levelRule.unit.test.ts` proves each case on probe files in the unit lane.
 
 | Level | Modules |
 |---|---|
@@ -158,15 +165,15 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 ## 8. Module rules
 
 - **R1 — Ownership.** A module is one capability and owns its tables; only it writes them.
-- **R2 — One public entry.** A module's `index.ts` exports its service factory, its routers and its public types. It never exports a repository or a mapper, and nothing imports past it.
+- **R2 — One public entry.** A module's `index.ts` exports its service factory, its routers and its public types, and what the composition root and the seed must wire from it: its controller factories, the adapters of the ports it owns (`auth`'s email senders and Google identity), its HTTP helpers (`sessions`' cookies) and, for the seed, `users`' `hashPassword`. It exports nothing else, never a repository or a mapper, and nothing imports past it.
 - **R3 — Levels.** The module graph is acyclic: a module imports only lower levels (§7), never a module at its own level.
 - **R4 — Direct calls, orchestrators above.** Calling a lower module's public API is the default. An operation that spans modules belongs to the module above them, which orchestrates it and owns its transaction.
 - **R5 — Ports, rarely.** A port is an abstraction wired in the composition root. It is allowed only for:
-  - external infrastructure: storage, email, the clock, the scheduler;
+  - external infrastructure: storage, email, Google's identity (sign-in), the clock, the scheduler;
   - a genuine upward need that moving the logic or passing a parameter cannot solve.
 
   The port lives in the module that needs it, never in `shared/`.
-- **R6 — The platform knows no domain.** `shared/` holds only errors, http, validation, auth (the route guards and the pure `can()` table), the audit writer, jobs and storage.
+- **R6 — The platform knows no domain.** `shared/` holds only errors, http, validation, auth (the access-token codec, the route guards and the pure `can()` table), the audit writer, jobs, storage and the rate limiter.
 - **R7 — Read models read, never write.** Read models may read other modules' tables with aggregate queries: `finance`, `overview` and the `audit` reader. They never write.
 - **R8 — Testing**, in the lanes of [testing.md](../development/testing.md):
   - **Service logic** is unit-tested with plain-object fakes of the dependencies' public types. TypeScript is structural, so no interface files are written for this.
@@ -278,7 +285,9 @@ A screen that shows or filters by values from several modules is composed by a m
 
 ## 10. Logging
 
-Not built yet: today `pino-http` logs with its defaults. F-5 builds what follows.
+Built: the redaction, the request id, the levels, and the user and their role on a signed-in request. The space joins the fields with the first space route.
+
+**The request's line is best effort online.** pino-http writes it when the response finishes, after the answer. The logger writes it to stdout synchronously, so it leaves the process at once, but a function frozen in that instant can still lose it ([§12](#12-environments)).
 
 - **Redaction** is owned by [security.md](security.md#http-hardening): what the HTTP logger never writes.
 - **The request id.** Every request gets a UUID, generated by the server. It is written in the request's log lines, returned in the `X-Request-Id` response header and in the error envelope ([api-contract §2](../api/api-contract.md#2-response-envelope)), and the web shows it in its error states, so a user's report can be matched to the log.
@@ -287,30 +296,31 @@ Not built yet: today `pino-http` logs with its defaults. F-5 builds what follows
 
 ## 11. Time
 
-Masaha runs on Gaza time (`Asia/Gaza`). Not built yet: each rule applies from the first slice that reads the time.
+Masaha runs on Gaza time (`Asia/Gaza`). Built: the clock (below), wired since F-5a. The rest is not built yet: each rule applies from the first slice that reads Gaza time.
 
 - **The library.** Gaza time is computed with `@date-fns/tz` and `date-fns`. Both are already in the lockfile through `react-day-picker`. The first slice that needs them adds them as direct dependencies of `apps/api` and `packages/shared`.
 - **The calendar rules are shared.** "Today" in Gaza and the week (Saturday to Friday) are pure functions in `packages/shared`, so the web and the API agree. They take the time as a parameter and never read the clock. They are calendar rules, not one module's domain rule (§8).
 - **Date-only columns** (a subscription's start and end) hold Gaza dates and are never converted to or from another zone.
-- **The clock is a port** (R5), injected where the application is assembled. A rule never calls `new Date()`: it receives the time.
+- **The clock is a port** (R5), injected where the application is assembled. A rule never calls `new Date()`: it receives the time. `createApi` takes one clock and hands it to every rule that reads the time: the sessions' expiries and grace window, and the rate limits. A rate-limit window is computed from that clock, never from the database's `now()`, so a window and its `Retry-After` come from one source.
 - **Daylight saving.** Palestine's daylight-saving dates change by decree, so the time-zone data can lag behind. This is a known risk, mitigated by keeping Node updated, and by a unit test that pins one known Gaza transition, so outdated data fails the tests.
 
 ## 12. Environments
 
 The application runs in two environments: a long-running server locally, and a function on Vercel online ([ADR 0014](../architecture/decisions/0014-deployment.md)).
 
-- **One composition root.** The same `app.ts` assembles the application in both. Only a thin entry differs. No module, rule or path changes between them.
+- **One composition root.** The same `app.ts` assembles the application in both. Only a thin entry differs, and it calls `createAppFromEnv`, the one mapping from the validated environment to the ports (the email mode, Google, the cookies, the trusted proxies). No module, rule or path changes between them.
 - **The ports take a different implementation per environment.** Nothing else does.
 
   | Port | Locally | Online |
   |---|---|---|
   | Storage | local disk | free object storage |
-  | Email | the development mode, which logs the link (F-5) | a single verified sender ([security.md](security.md#passwords)) |
+  | Google identity | Google's published keys, when `GOOGLE_CLIENT_ID` is set | the same. Tests inject a fake |
+  | Email | `log`: nothing is sent, and the link is written to the log (development only) | `smtp`: a single Gmail sender, through any SMTP relay ([security.md](security.md#passwords)) |
   | Scheduler | an in-process timer started by `server.ts` | an internal, secret-protected endpoint that an external cron calls every few minutes. The slice that builds it adds its path to the API contract |
   | Clock | the system clock | the system clock. Tests inject a fixed one (§11) |
-- **No work runs after a response is sent**, in either environment. A function may be frozen as soon as it answers, so whatever a request must do is done before it responds.
+- **No work runs after a response is sent**, in either environment. A function may be frozen as soon as it answers, so whatever a request must do is done before it responds. The one exception is the request's log line, written as the response finishes, synchronously and best effort (§10).
 - **Timed work tolerates a late run.** An auto check-out records the cut-off time it was due at, never the time the job ran.
-- **Rate limits** are stored in PostgreSQL, so every instance shares them ([security.md](security.md#rate-limits-per-ip-fixed-window)).
+- **Rate limits** are stored in PostgreSQL, so every instance shares them ([security.md](security.md#rate-limits-fixed-window)).
 
 ## 13. Idempotency and concurrency
 
@@ -319,7 +329,7 @@ Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
 **Two ids, never confused.** The **idempotency key** is the client's: one per user action, the same on every retry of that action, sent in the `Idempotency-Key` header and stored with the record it creates. The **request id** is the server's: a new one for every HTTP request, retries included, used only for tracing (§10). A record never stores the request id as its idempotency key, or every retry would look new.
 
 ### Idempotency
-- **Creates at the front desk** store the idempotency key, unique within the space. Today payments, visits and check-ins have it, in their `request_id` column; F-5 renames the Prisma field to `idempotencyKey` ([data-model.md](../architecture/data-model.md#conventions)).
+- **Creates at the front desk** store the idempotency key, unique within the space. Today payments, visits and check-ins have it, in the Prisma field `idempotencyKey`, stored in the `request_id` column ([data-model.md](../architecture/data-model.md#conventions)).
   - Subscriptions and customers have none yet. The slice that builds them adds it ([plan, step 8](../plans/v1-mvp.md#sequence-inside-the-build)).
 - **A retry returns the first result**, with the same status and body, never a conflict. The unique violation on the key is caught by the service, which returns the record that already exists. The general `P2002` → `NOT_UNIQUE` mapping (§4) never answers a retry.
 - **Updates and deletes are idempotent by design.** A repeated check-out returns the closed record, and a repeated void returns the voided payment.
@@ -328,6 +338,11 @@ Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
 ### Concurrency
 - **Isolation stays at PostgreSQL's default, read committed.** The database's constraints and row locks are the guarantee.
 - **Rows are locked in one fixed order:** oldest first, then by id. One amount spread over several items ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)) locks and pays them in that order, so it cannot deadlock.
+- **The session lock.** Every transaction that writes a user's refresh tokens first locks that user's row (`FOR NO KEY UPDATE`, through `users`, which owns the row). Signing in, registering, Google sign-in, refresh, logout, a password change, a reset and a suspension's revocation all take it, so a new session and a revocation never interleave: whichever commits second sees the first.
+  - **The order** is the user's row, then their tokens. A reset reads its token's owner first, without a lock, so it too takes the user's row before any token.
+  - **bcrypt stays outside every transaction.** A sign-in compares the password first, then re-reads the hash under the lock and opens the session only if it is still the one that matched.
+  - **A password change is a compare-and-set:** it writes only if the account still has the password and the pending flag it checked, so it never overwrites a reset that landed meanwhile.
+  - API tests hold the row in a test transaction while each of these runs.
 
 ### The ledger's rules
 - **The database owns the three payment rules its triggers enforce:** append-only, voided once, and never above the amount due ([data-model.md](../architecture/data-model.md#constraints-worth-stating)). The last one locks the item's row, so concurrent payments are counted one after the other.

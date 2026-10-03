@@ -189,18 +189,11 @@ Moves into [api-contract.md](../api/api-contract.md) endpoint by endpoint as eac
 Legend: 🌐 public · 👤 any signed-in user · 🧾 OWNER or RECEPTION of that space · 🏢 OWNER of that space · 🛡 ADMIN. Space access comes from the user's link to that space ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
 
 #### Auth
-| Method | Path | Access | Notes |
-|---|---|---|---|
-| POST | `/auth/register` | 🌐 | name, email, password → `{ user, accessToken }` + refresh cookie |
-| POST | `/auth/login` | 🌐 | email + password |
-| POST | `/auth/google` | 🌐 | Google ID token → as login; creates or links the account ([security.md](../backend/security.md#sign-in-methods)) |
-| POST | `/auth/refresh` | cookie | → `{ user, accessToken }`, the user with their active space links; rotation with 30 s grace |
-| POST | `/auth/logout` | cookie | 204 |
-| POST | `/auth/password/forgot` | 🌐 | always 202; emails a reset link valid for 1 hour |
-| POST | `/auth/password/reset` | 🌐 | token + new password |
-| POST | `/auth/password/change` | 👤 | required at first sign-in for accounts created by someone else; a Google-only account sets its first password |
+Built: every auth endpoint, in [api-contract §5](../api/api-contract.md#5-endpoints): register, login, Google sign-in, refresh, logout, and the forgotten password (forgot, the reset link's check, reset).
 
 #### Me
+Built: `POST /me/password`, the password change and the forced change at first sign-in ([api-contract §5](../api/api-contract.md#5-endpoints)).
+
 | Method | Path | Access |
 |---|---|---|
 | GET / PATCH | `/me` | 👤 name, language |

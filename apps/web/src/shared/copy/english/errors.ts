@@ -28,4 +28,11 @@ export const ERRORS = {
   SPACE_CAPACITY_NOT_SET: 'Set the space’s capacity first.',
   OUTSIDE_OPENING_HOURS: 'This check-in is outside the space’s opening hours.',
   OWNER_ALREADY_LINKED: 'This owner is already linked to the space.',
+  CURRENT_PASSWORD_INCORRECT: 'The current password is incorrect.',
+  GOOGLE_TOKEN_INVALID: 'We couldn’t sign you in with Google. Try again or use your email.',
+  RESET_TOKEN_INVALID: 'The link has expired or was already used.',
+  GOOGLE_LINK_NOT_ALLOWED:
+    'An account with this email already exists. Sign in with its password, or reset the password, to continue.',
+  PASSWORD_NOT_SET:
+    'This account has no password yet. Set one from the link we email you under “Forgot password”.',
 } as const satisfies Record<ErrorType | DomainErrorCode, string>;

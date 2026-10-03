@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient } from '../../generated/prisma/client.ts';
-import { hashPassword } from '../../shared/auth/index.ts';
+import { hashPassword } from '../../modules/users/index.ts';
 import { AMENITIES, DEFAULT_SETTINGS, GOVERNORATES } from './lookups.ts';
 
 export interface SeedInput {

@@ -1,13 +1,14 @@
 # ADR 0003 — Session: in-memory access token, rotating refresh cookie
 
 > **Status:** Accepted · **Date:** 2026-09-26
+> **Revised:** 2026-10-02 — a session is a family of refresh tokens, one row per rotation, not one row per session; a token reused after the grace window ends only its family.
 
 ## Context
 The SPA needs a session that survives reloads, resists XSS token theft, and lets the client know who the user is and their role. The model proven in Quick Tweets is reused. The open question was the extra request on every page load.
 
 ## Decision
 - **Access token** — a short-lived JWT returned in the response body and kept **in memory only**.
-- **Refresh token** — an opaque value, one database row per session, **rotated on every refresh**, sent only as an `HttpOnly` cookie scoped to the auth routes.
+- **Refresh token** — an opaque value, one database row per token, **rotated on every refresh**; the tokens of one session form a family, sent only as an `HttpOnly` cookie scoped to the auth routes.
 - **Session hint cookie** — readable by JS, no secret, so guests skip the refresh attempt entirely.
 - **The refresh response carries the user** (with role and language), so restoring the session and learning "who am I" is **one** request.
 - **A short rotation grace window**, so two tabs reloading together do not log the user out.

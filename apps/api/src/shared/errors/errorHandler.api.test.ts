@@ -118,7 +118,12 @@ describe('error envelope', () => {
       expect(response.status).toBe(status);
       expect(response.body).toEqual({
         success: false,
-        error: { type, message: expect.any(String) as unknown, ...rest },
+        error: {
+          type,
+          message: expect.any(String) as unknown,
+          ...rest,
+          requestId: response.headers['x-request-id'],
+        },
       });
     },
   );
@@ -129,7 +134,11 @@ describe('error envelope', () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      error: { type: 'not_found', message: 'No route for GET /api/v1/anything' },
+      error: {
+        type: 'not_found',
+        message: 'No route for GET /api/v1/anything',
+        requestId: response.headers['x-request-id'],
+      },
     });
   });
 
@@ -142,7 +151,11 @@ describe('error envelope', () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      error: { type: 'bad_request', message: 'Malformed request' },
+      error: {
+        type: 'bad_request',
+        message: 'Malformed request',
+        requestId: response.headers['x-request-id'],
+      },
     });
   });
 
@@ -163,9 +176,24 @@ describe('error envelope', () => {
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
         success: false,
-        error: { type: 'server', message: 'Internal server error' },
+        error: {
+          type: 'server',
+          message: 'Internal server error',
+          requestId: response.headers['x-request-id'],
+        },
       });
       expect(response.text).not.toMatch(/secret|stack|\/srv\//);
     },
   );
+
+  it('repeats the request id of the response, a new UUID for each request', async () => {
+    const first = await request(app).get('/api/v1/anything');
+    const second = await request(app).get('/api/v1/anything').set('X-Request-Id', 'from-client');
+
+    const id = first.headers['x-request-id'];
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.body).toMatchObject({ error: { requestId: id } });
+    expect(second.headers['x-request-id']).not.toBe(id);
+    expect(second.headers['x-request-id']).not.toBe('from-client');
+  });
 });

@@ -24,4 +24,12 @@ export const ERRORS = {
   SPACE_CAPACITY_NOT_SET: 'حدّد سعة المساحة أولًا.',
   OUTSIDE_OPENING_HOURS: 'سُجّل هذا الحضور خارج ساعات عمل المساحة.',
   OWNER_ALREADY_LINKED: 'صاحب المساحة هذا مرتبط بها بالفعل.',
+  CURRENT_PASSWORD_INCORRECT: 'كلمة المرور الحالية غير صحيحة.',
+  GOOGLE_TOKEN_INVALID:
+    'تعذّر تسجيل الدخول باستخدام Google، حاول مرة أخرى أو استخدم البريد الإلكتروني.',
+  RESET_TOKEN_INVALID: 'انتهت صلاحية الرابط أو استُخدم من قبل.',
+  GOOGLE_LINK_NOT_ALLOWED:
+    'يوجد حساب بهذا البريد الإلكتروني. سجّل الدخول بكلمة المرور، أو أعد تعيينها إن نسيتها.',
+  PASSWORD_NOT_SET:
+    'لا توجد كلمة مرور لهذا الحساب بعد. لتعيينها، اطلب رابطًا من «نسيت كلمة المرور» وسيصلك على بريدك.',
 } satisfies Catalogue['errors'];

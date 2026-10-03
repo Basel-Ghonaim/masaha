@@ -9,4 +9,10 @@ export type {
   SpaceResource,
   UnscopedAction,
 } from './can.ts';
-export { hashPassword } from './password.ts';
+export { createAccessTokens, type AccessClaims, type AccessTokens } from './accessToken.ts';
+export {
+  createRequireAuth,
+  readAccessToken,
+  type RequireAuth,
+  type RequireAuthOptions,
+} from './requireAuth.ts';

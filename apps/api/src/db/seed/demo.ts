@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import type { Prisma, PrismaClient } from '../../generated/prisma/client.ts';
-import { hashPassword } from '../../shared/auth/index.ts';
+import { hashPassword } from '../../modules/users/index.ts';
 import { newSpaceDefaultsSchema } from './lookups.ts';
 
 // Development-only demo data: one verified space with an owner and a reception account, its
@@ -213,7 +213,7 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
           spaceId,
           customerId: subscription.customerId,
           subscriptionId: subscription.id,
-          requestId: randomUUID(),
+          idempotencyKey: randomUUID(),
           checkedInAt: at.time(-daysAgo, from),
           checkedOutAt: at.time(-daysAgo, to),
           checkoutMethod: 'MANUAL' as const,
@@ -230,7 +230,7 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
         spaceId,
         customerId: sara.id,
         subscriptionId: examStudent.id,
-        requestId: randomUUID(),
+        idempotencyKey: randomUUID(),
         checkedInAt: new Date(now.getTime() - 60 * 60_000),
       },
     });
@@ -250,8 +250,8 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
     ]);
 
     const rates = { hourRateAgorot: 500, dayRateAgorot: 2_500 };
-    const visit = (data: Omit<Prisma.VisitUncheckedCreateInput, 'spaceId' | 'requestId'>) =>
-      tx.visit.create({ data: { ...data, spaceId, requestId: randomUUID(), ...rates } });
+    const visit = (data: Omit<Prisma.VisitUncheckedCreateInput, 'spaceId' | 'idempotencyKey'>) =>
+      tx.visit.create({ data: { ...data, spaceId, idempotencyKey: randomUUID(), ...rates } });
     // Present now.
     await visit({ visitorName: 'عمر', checkedInAt: new Date(now.getTime() - 2 * 60 * 60_000) });
     // 2 h 50 min, rounded up to 3 hours, paid at check-out.
@@ -299,7 +299,7 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
       tx.payment.create({
         data: {
           spaceId,
-          requestId: randomUUID(),
+          idempotencyKey: randomUUID(),
           ...item,
           amountAgorot,
           method,

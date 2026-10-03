@@ -43,6 +43,7 @@ describe('validate()', () => {
         type: 'validation',
         message: 'Validation failed',
         errors: { name: ['too_short'], phone: ['invalid_format'] },
+        requestId: response.headers['x-request-id'],
       },
     });
   });

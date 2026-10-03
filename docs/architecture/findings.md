@@ -233,3 +233,72 @@ The writes succeeded and rolled back correctly. The warning comes from Prisma's 
 2. **One constraint name, two causes.** The insert trigger raises `payments_within_due` both when a payment would exceed the amount due, and when a visit is paid before its charge is set. The translation table of [conventions §4](../backend/conventions.md#4-errors) maps a constraint's name to one code, so an uncharged visit would read as `PAYMENT_EXCEEDS_DUE`. **Open.**
 
 **Resolves when:** item 2 is settled by the slice that builds the payments endpoint, before the translation table gains `payments_within_due`: a new migration gives the uncharged visit its own constraint name and code, or the payments flow makes that case unreachable and a test proves it.
+
+## 16. The forgotten password's timing can tell whether an account exists
+
+**Status:** Open · **Date:** 2026-10-01
+
+**Evidence:** `POST /auth/password/forgot` answers the same 202, with no body, for every email ([security.md](../backend/security.md#passwords)). For an account that may sign in, though, it first stores a token and sends the email, which over SMTP takes seconds, and against a slow relay up to the sum of its phase timeouts (DNS, connection, greeting, and each quiet spell, 10 s each), while an unknown email answers at once. No work may run after a response is sent ([ADR 0014](decisions/0014-deployment.md)), so the send cannot move after the answer, which is how the OWASP Forgot Password Cheat Sheet keeps the timing uniform. The rate limits (5 per address and email, 50 per address, every 15 minutes) slow a probe down, but do not stop it.
+
+**Resolves when:** the timing is made uniform, for example by padding every answer to a fixed minimum, or the leak is accepted in security.md as a trade-off, as `EMAIL_TAKEN` on registration is.
+
+## 17. Expired rate-limit counters and abandoned sessions are never swept
+
+**Status:** Open · **Date:** 2026-10-01 · **Corrected:** 2026-10-02
+
+**Evidence:**
+- **Rate limits.** The `rate_limits` table ([security.md](../backend/security.md#rate-limits-fixed-window)) keeps a row per key, and a key's window starts over on its next hit. A key never hit again keeps its expired row for good. The rows are small, but the table grows with every address and account that ever made a request, against Neon's 0.5 GB free tier ([ADR 0014](decisions/0014-deployment.md)).
+- **Refresh tokens.** Every rotation inserts a row, and the rotated one stays until it expires, 7 days later, because reuse detection needs it. A user's expired rows are deleted when they sign in, change their password, or refresh, so a live session keeps about its last 7 days of rows. The rows of a session nobody uses again stay until that user signs in or refreshes again, possibly never.
+- **Reset tokens.** A reset deletes the user's reset tokens in its transaction, and a delivered link deletes the older ones. A link never used and never replaced stays after it expires.
+
+**Resolves when:** a timed job (the scheduler port, [conventions §12](../backend/conventions.md#12-environments)) deletes expired counters and expired tokens, or a measurement shows the growth does not matter within v1.
+
+## 18. Whether a link to a deleted space still counts
+
+**Status:** Open · **Date:** 2026-10-01
+
+**Evidence:** the session lists the user's active links: those not deactivated ([api-contract §5](../api/api-contract.md#session)). A space is soft-deleted (`deletedAt`), and its links are not touched, so a link to a deleted space still appears and would still open the dashboard. `space-links`' repository queries only its own table ([conventions §2](../backend/conventions.md#2-layers)), and its service does not ask `spaces` (L1, below it, so it may) for the space's state; nothing deletes spaces yet.
+
+**Resolves when:** the slice that soft-deletes spaces decides it, for example by deactivating the space's links in the same transaction, with a test.
+
+## 19. The reset email's colours, fonts and styles are written outside the design system
+
+**Status:** Accepted · **Date:** 2026-10-01 · **Corrected:** 2026-10-02 · **Accepted:** 2026-10-03
+
+**Evidence:** the reset email (`apps/api/src/modules/auth/email/resetEmail.ts`) writes its styles inline, copied from its design (`docs/design/prototype/Reset email.html`): seven colours as literal values, two font stacks, and every layout rule (sizes, spacing, borders, radii). The design system is the one place for colours, fonts and CSS, as semantic tokens ([foundation](../frontend/design-system/foundation.md)), but an email client reads no stylesheet and no custom property, and the API cannot import the web's tokens.
+
+**Resolves when:** the owner accepts the deviation (the email is the only one Masaha sends, and its colours and fonts are named in one place), with design-system changes of the brand, neutral colours or fonts carried to it by hand; or the email is generated from the tokens at build time.
+
+**Resolution (2026-10-03):** the owner accepted the deviation as widened: the email is the only one Masaha sends, and its colours and fonts are named in one place in `resetEmail.ts`. A design-system change of the brand or neutral colours, or of the fonts, is carried to it by hand.
+
+## 20. A session has no absolute lifetime
+
+**Status:** Open · **Date:** 2026-10-02
+
+**Evidence:** every rotation gives the new refresh token 7 more days ([security.md](../backend/security.md#tokens-and-cookies)). A session refreshed at least once a week therefore never ends by itself: only a logout, a password change, a reset or a suspension ends it. A stolen session that is used regularly lasts as long.
+
+**Resolves when:** a family carries an absolute deadline (for example 30 days from sign-in, after which the person signs in again), or the open-ended session is accepted in security.md.
+
+## 21. A token replayed within the grace window starts its own branch
+
+**Status:** Open · **Date:** 2026-10-02
+
+**Evidence:** within 30 s of a rotation, each presentation of the rotated token gets a new token of the same family ([security.md](../backend/security.md#tokens-and-cookies)), so two tabs refreshing together stay signed in. A copy presented within that window, say by an infostealer that replays the cookie at once, gets its own successor. From then on the thief and the owner each rotate their own branch and never present a token rotated more than 30 s ago, so reuse detection never fires; the family ends only by a logout, a password change or a reset. The owner decided to keep this for now (decision D5 of F-5a's review).
+
+**Resolves when:** every presentation within the grace returns the same successor, derived deterministically from the presented token (for example an HMAC of it under a server key), so a replay within the window gains nothing (option B of that review).
+
+## 22. The reset email's words live outside the web's copy catalogue
+
+**Status:** Open · **Date:** 2026-10-02
+
+**Evidence:** every user-facing string goes through the copy catalogue, in both languages (CLAUDE.md). The reset email is sent by the API, which has no catalogue, so its words live in `apps/api/src/modules/auth/email/resetEmail.copy.ts`, in both languages held to one shape and checked by a unit test. A change to the product's wording can miss them, and the catalogue's own parity test does not see them.
+
+**Resolves when:** the email's words move into a catalogue both apps read (for example in `packages/shared`), or this second place is accepted in localisation.md.
+
+## 23. No per-address ceiling for signed-in requests
+
+**Status:** Open · **Date:** 2026-10-02
+
+**Evidence:** a request with a valid access token counts by its user, 300 every 15 minutes ([security.md](../backend/security.md#rate-limits-fixed-window)). Registrations are bounded (20 an hour per address), but each account still brings its own bucket, so one address holding many accounts multiplies its allowance. Online, that spends the free tier's CPU and database hours ([ADR 0014](decisions/0014-deployment.md)).
+
+**Resolves when:** F-7 sizes a per-address ceiling for signed-in requests against the deployment's real limits, or records why it is not needed.

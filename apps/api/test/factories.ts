@@ -66,7 +66,7 @@ export async function createCheckIn(
       spaceId: subscription.spaceId,
       customerId: subscription.customerId,
       subscriptionId: subscription.id,
-      requestId: randomUUID(),
+      idempotencyKey: randomUUID(),
       ...data,
     },
   });
@@ -78,7 +78,7 @@ export async function createVisit(
   data: Partial<Prisma.VisitUncheckedCreateInput> = {},
 ) {
   return prisma.visit.create({
-    data: { spaceId, requestId: randomUUID(), visitorName: 'Omar', ...data },
+    data: { spaceId, idempotencyKey: randomUUID(), visitorName: 'Omar', ...data },
   });
 }
 

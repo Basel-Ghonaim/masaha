@@ -46,7 +46,7 @@
 
 ### Landing and guards
 
-Not built yet: F-5 builds the guards and F-6 the landing and the switcher.
+Not built yet: F-5b builds the guards and F-6 the landing and the switcher.
 
 - **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
 - **Landing after sign-in:**
@@ -99,7 +99,7 @@ A layer the capability does not need is **absent, not empty**. A screen only pre
 
 One normaliser turns any failure (Axios, network, timeout, unknown) into `AppError { type, status, code?, errors?, requestId? }`. Screens pick catalogue text from `code` or `type`; no raw error ever reaches a component.
 
-`requestId` is the server's request id ([api-contract §1](../api/api-contract.md#1-conventions)), present whenever the server answered. Error states show it, so a user's report can be matched to the log. Planned: F-5 builds it.
+`requestId` is the server's request id ([api-contract §1](../api/api-contract.md#1-conventions)), present whenever the server answered. Error states show it, so a user's report can be matched to the log. Planned: F-5b builds it.
 
 ## 6. Map
 
