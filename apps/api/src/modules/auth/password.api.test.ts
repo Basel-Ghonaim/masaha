@@ -189,6 +189,8 @@ describe('POST /auth/password/reset', () => {
 
     expect(response.status).toBe(204);
     expect(await prisma.refreshToken.count({ where: { userId: user.id } })).toBe(0);
+    // The used link goes with the transaction that used it.
+    expect(await prisma.passwordResetToken.count({ where: { userId: user.id } })).toBe(0);
     const refresh = await request(app)
       .post('/api/v1/auth/refresh')
       .set('Cookie', `masaha_refresh=${cookieValue(signedIn, 'masaha_refresh') ?? ''}`);

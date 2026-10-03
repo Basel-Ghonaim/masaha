@@ -35,10 +35,15 @@ function setup({ sent = true, account = sara } = {}) {
     keepOnlyResetToken: record('keepOnlyResetToken'),
     withdrawResetToken: record('withdrawResetToken'),
     ownerOf: () => Promise.resolve(3),
+    resetTokenOwner: () => Promise.resolve(undefined),
     revokeAll: record('revokeAll'),
   } as unknown as SessionsService;
   const users = {
     findByEmail: () => Promise.resolve(account),
+    hashPassword: () => {
+      calls.push('hashPassword');
+      return Promise.resolve('hash');
+    },
     maySignIn: (candidate: Account) => !candidate.suspendedAt,
     lockAccount: () => Promise.resolve(account),
     assertMaySignIn: () => {
@@ -95,5 +100,16 @@ describe('auth: refresh', () => {
 
     await expect(auth.refresh('token')).rejects.toMatchObject({ code: 'ACCOUNT_SUSPENDED' });
     expect(calls).toEqual(['revokeAll']);
+  });
+});
+
+describe('auth: the reset', () => {
+  it('reads the token before hashing: an invalid link never reaches bcrypt', async () => {
+    const { auth, calls } = setup();
+
+    await expect(
+      auth.resetPassword({ token: 'unknown', password: 'new2026x' }, 'ip'),
+    ).rejects.toMatchObject({ code: 'RESET_TOKEN_INVALID' });
+    expect(calls).toEqual([]);
   });
 });

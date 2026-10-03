@@ -243,7 +243,7 @@ describe('the sign-in limits', () => {
 
     expect(answers.map(({ status }) => status)).toEqual(Array.from({ length: 10 }, () => 200));
     expect(await signInHits()).toBe(0);
-   }, 20_000);
+  }, 20_000);
 
   it('hold in a concurrent burst: 20 wrong passwords at once get ten 401s and ten 429s', async () => {
     await createAccount();
