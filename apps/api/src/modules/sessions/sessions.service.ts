@@ -12,7 +12,6 @@ export const RESET_TOKEN_TTL_MS = 60 * 60_000;
 /** A refresh token to hand to the client, once: only its hash is stored. */
 export interface IssuedToken {
   token: string;
-  expiresAt: Date;
 }
 
 export type Rotation =
@@ -43,7 +42,7 @@ export function createSessionsService({
       { userId, tokenHash: hashToken(token), expiresAt, familyId },
       tx,
     );
-    return { stored, issued: { token, expiresAt } };
+    return { stored, issued: { token } };
   }
 
   return {

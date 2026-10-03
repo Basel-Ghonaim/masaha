@@ -46,7 +46,7 @@ function setup(repository: Partial<Record<keyof UsersRepository, unknown>> = {})
       return Promise.resolve();
     },
     endResetTokens: () => Promise.resolve(),
-    issue: () => Promise.resolve({ token: 'refresh', expiresAt: new Date() }),
+    issue: () => Promise.resolve({ token: 'refresh' }),
   } as unknown as SessionsService;
   const counter: Counter = {
     hit: () => Promise.resolve({ hits: 1, resetAt: new Date(Date.now() + 60_000) }),

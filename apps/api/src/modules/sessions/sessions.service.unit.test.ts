@@ -94,7 +94,6 @@ describe('sessions: lifetimes', () => {
     const issued = await sessions.issue(3, tx);
     await sessions.issueResetToken(3);
 
-    expect(issued.expiresAt).toEqual(at(7 * 24 * 60 * 60_000));
     expect(created.map(({ expiresAt }) => expiresAt)).toEqual([
       at(7 * 24 * 60 * 60_000),
       at(60 * 60_000),
