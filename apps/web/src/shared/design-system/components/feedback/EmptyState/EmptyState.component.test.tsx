@@ -12,6 +12,12 @@ describe('EmptyState', () => {
     ).toBeInTheDocument();
   });
 
+  it('titles a whole page with its first-level heading', () => {
+    render(<EmptyState title="Page not found" titleAs="h1" />);
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
+  });
+
   it('has a second-level heading by default', () => {
     render(<EmptyState title="No favourites yet" />);
 

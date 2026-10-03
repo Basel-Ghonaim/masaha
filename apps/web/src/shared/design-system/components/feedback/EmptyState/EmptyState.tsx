@@ -6,8 +6,8 @@ export type EmptyStateProps = Omit<ComponentProps<'div'>, 'title'> & {
   icon?: ReactNode;
   title: ReactNode;
   description?: ReactNode;
-  /** The title's heading level, so it fits the page outline. */
-  titleAs?: 'h2' | 'h3' | 'h4';
+  /** The title's heading level, so it fits the page outline: `h1` when the state is the whole page. */
+  titleAs?: 'h1' | 'h2' | 'h3' | 'h4';
   /** Actions, such as clearing a search or adding the first item. */
   children?: ReactNode;
 };
