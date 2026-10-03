@@ -32,8 +32,15 @@ export const CEILING_REACHED = '[email:ceiling] the daily email ceiling is reach
 
 /**
  * The abuse controls, as a decorator over any sender, so the same path runs in every mode and is
- * exercised in development too. Both caps count in the shared rate-limit table, keyed by digests:
- * no address is stored. When a cap cannot be checked, nothing is sent (fail closed).
+ * exercised in development too. Every cap counts in the shared rate-limit table, keyed by digests:
+ * no address is stored in clear. When a cap cannot be checked, nothing is sent (fail closed).
+ *
+ * The caps run in this order, so each is spent only by what the ones before it accepted:
+ * 1. the requester's daily slot is reserved first, and given back whenever a later cap refuses or
+ *    the send fails, so it counts only delivered emails;
+ * 2. the inbox's hourly count, then the daily ceiling, count every attempt that reached them. The
+ *    ceiling is therefore spent only by a request that both the requester cap and the inbox cap
+ *    accepted: one address cannot exhaust it beyond its own 10 a day.
  */
 export function createCappedEmailSender(
   inner: EmailSender,
@@ -57,16 +64,6 @@ export function createCappedEmailSender(
         return notSent('cap-unavailable');
       };
 
-      try {
-        await limiter.count(EMAIL_PER_RECIPIENT, message.to.toLowerCase());
-      } catch (error) {
-        return refusal(error, 'recipient-cap');
-      }
-      try {
-        await limiter.count(EMAIL_CEILING, 'all');
-      } catch (error) {
-        return refusal(error, 'ceiling');
-      }
       let requester: Reservation | undefined;
       if (context) {
         try {
@@ -74,6 +71,18 @@ export function createCappedEmailSender(
         } catch (error) {
           return refusal(error, 'requester-cap');
         }
+      }
+      try {
+        await limiter.count(EMAIL_PER_RECIPIENT, message.to.toLowerCase());
+      } catch (error) {
+        await requester?.refund();
+        return refusal(error, 'recipient-cap');
+      }
+      try {
+        await limiter.count(EMAIL_CEILING, 'all');
+      } catch (error) {
+        await requester?.refund();
+        return refusal(error, 'ceiling');
       }
 
       let result: EmailResult;

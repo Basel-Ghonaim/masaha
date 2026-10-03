@@ -20,7 +20,12 @@ function setup({ counterFails = false, ceilingUsed = 0 } = {}) {
       counts.set(key, count);
       return Promise.resolve(count);
     },
-    refund: () => Promise.resolve(),
+    // Its windows never end within a test, so a refund always lands in the window it was taken in.
+    refund(key) {
+      const count = counts.get(key);
+      if (count && count.hits > 0) count.hits -= 1;
+      return Promise.resolve();
+    },
   };
   const delivered: EmailMessage[] = [];
   const inner: EmailSender = {
@@ -88,6 +93,34 @@ describe('createCappedEmailSender', () => {
     expect(eleventh.sent).toBe(false);
     expect(elsewhere.sent).toBe(true);
     expect(delivered).toHaveLength(11);
+  });
+
+  it('spends no ceiling slot on a request the requester cap refused', async () => {
+    const { counts, sender } = setup();
+    for (let n = 0; n < 10; n++) {
+      await sender.send(message(`p${String(n)}@example.com`), { requester: 'ip' });
+    }
+    const ceiling = () =>
+      [...counts.entries()].find(([key]) => key.startsWith('email-ceiling:'))?.[1].hits;
+    expect(ceiling()).toBe(10);
+
+    for (let n = 0; n < 5; n++) {
+      expect(
+        (await sender.send(message(`q${String(n)}@example.com`), { requester: 'ip' })).sent,
+      ).toBe(false);
+    }
+
+    expect(ceiling()).toBe(10);
+  });
+
+  it('gives the requester slot back when a later cap refuses', async () => {
+    const { counts, sender } = setup();
+    for (let n = 0; n < 3; n++) await sender.send(message(), { requester: 'ip' });
+
+    expect((await sender.send(message(), { requester: 'ip' })).sent).toBe(false);
+
+    const requester = [...counts.entries()].find(([key]) => key.startsWith('email-requester:'));
+    expect(requester?.[1].hits).toBe(3);
   });
 
   it('sends nothing when the caps cannot be checked, and says so apart from a cap', async () => {
