@@ -11,7 +11,8 @@ const envSchema = z
     // Required, with no default: development's relaxations (the log email mode, cookies without
     // Secure, an optional Google client id) must never apply because the variable went missing.
     NODE_ENV: z.enum(['development', 'test', 'production']),
-    PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+    // The API's fixed development port; the web's development server forwards /api to it (ADR 0014).
+    PORT: z.coerce.number().int().min(1).max(65535).default(3320),
     // The one web origin allowed to call the API with credentials (docs/backend/security.md).
     CORS_ORIGIN: z.url(),
     // PostgreSQL connection string (docs/development/setup.md#database).

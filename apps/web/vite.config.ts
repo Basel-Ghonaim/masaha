@@ -15,6 +15,13 @@ export default defineConfig({
   // custom condition list replaces the defaults, so they are repeated after it.
   resolve: { tsconfigPaths: true, conditions: ['@masaha/source', ...defaultClientConditions] },
   ssr: { resolve: { conditions: ['@masaha/source', ...defaultServerConditions] } },
+  // One origin in development too (ADR 0014): the web on its fixed port, failing rather than moving
+  // if the port is taken, and /api forwarded to the API on its own, so the cookies behave as online.
+  server: {
+    port: 5320,
+    strictPort: true,
+    proxy: { '/api': 'http://localhost:3320' },
+  },
   test: {
     // Every worker loads Vitest once, whatever the case of the drive letter it was started from
     // (finding 9).
