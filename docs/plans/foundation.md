@@ -310,13 +310,20 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - its web dependencies (for example `axios`, `zustand`, `@tanstack/react-query`, `react-hook-form`), proposed in its plan step: none is in §4;
   - the Google client ID on the web.
   - Writes `architecture/system-overview.md` (the first end-to-end request).
-- **F-6 — Shells and preferences** (`feat/shells`):
-  - `shared/preferences` (language and theme, writing the pre-paint keys);
-  - the public shell (header, footer) and the dashboard shell (sidebar per role: ADMIN, and OWNER or RECEPTION at the selected space; top bar; space switcher);
-  - the placeholder pages each route group needs to be navigable;
-  - the site and dashboard boundary ([ADR 0011](../architecture/decisions/0011-one-web-app.md), [architecture.md §2–§3](../frontend/architecture.md#2-page-groups)): each page group mounted lazily, and the dashboard-only rule in lint, over the capability names of [architecture.md §3](../frontend/architecture.md#3-capabilities-features);
+- **F-6 — Shells and preferences**, split in its plan step (2026-10-03) into three Work Items, each its own conversation and PR:
+- **F-6a — Preferences** (`feat/preferences`, its own plan step on 2026-10-02), built: `shared/preferences` (language and theme, writing the pre-paint keys).
+- **F-6b — The layout tree and the site shell** (`feat/site-shell`):
+  - the whole layout tree of the site and the dashboard, written into [architecture.md §2](../frontend/architecture.md#2-page-groups); of it, only the root and the site shell are built;
+  - the two page groups `site` and `dashboard`, replacing `public`, `auth` and `account`;
+  - the site shell (header, footer, the phone menu) with the language and theme toggles;
+  - the placeholder pages of home, the directory and about;
+  - the not-found, error and offline states in `shared/routing`, inside the site shell.
+- **F-6c — The dashboard shells** (`feat/dashboard-shells`):
+  - the dashboard shell (sidebar per role: ADMIN, and OWNER or RECEPTION at the selected space; top bar; space switcher);
+  - the landing after sign-in ([architecture.md › Landing and guards](../frontend/architecture.md#landing-and-guards));
+  - the site and dashboard boundary ([ADR 0011](../architecture/decisions/0011-one-web-app.md), [architecture.md §2–§3](../frontend/architecture.md#2-page-groups)): the dashboard group mounted lazily, and the dashboard-only rule in lint, over the capability names of [architecture.md §3](../frontend/architecture.md#3-capabilities-features);
   - the account's profile and settings belong to the `users` capability;
-  - acceptance: a guest's download holds no dashboard code, and a site page group that imports a dashboard-only capability fails `lint`.
+  - acceptance: a guest's download holds no dashboard code, and `pages/site` importing a dashboard-only capability fails `lint`.
 
 ### F-7 — First public deployment · `chore/deployment`
 
