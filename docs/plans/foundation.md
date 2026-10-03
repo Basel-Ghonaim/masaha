@@ -1,6 +1,6 @@
 # Plan — Application foundation
 
-> **Status:** Active · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built, the backend architecture they are built on, and the first public deployment. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
@@ -8,7 +8,7 @@
 **Goal:** the web app talks to a real API backed by PostgreSQL. A user can register, sign in, stay signed in across reloads, and land in the right shell for their role, in Arabic or English, light or dark, locally and at the public address.
 
 **Finished when:**
-- F-1 to F-7 (F-5 as F-5a and F-5b), F-3b and A-1 to A-3 are merged;
+- F-1 to F-7 (F-5 as F-5a and F-5b, F-5b as F-5b1 to F-5b3), F-3b and A-1 to A-3 are merged;
 - CI runs every lane, including `test:api` against a real PostgreSQL;
 - the *Entities* section of `data-model.md`, `architecture/system-overview.md` and the catalogue part of `localisation.md` *Mechanism* are written (deferred documents).
 
@@ -294,22 +294,30 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
     - the request id: generated per request, in the logs, the `X-Request-Id` header and the error envelope;
   - the idempotency key's name ([conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)): the Prisma field `requestId` becomes `idempotencyKey`, still mapped to `request_id`, so no migration; the seed and the tests that use it follow.
   - Proven by the unit and API lanes. It has no screen.
-- **F-5b — Authentication on the web** (`feat/auth-web`):
+- **F-5b — Authentication on the web**, split in its plan step (2026-10-03) into three Work Items, so the platform exists before any feature uses it, each its own conversation and PR:
   - after F-5a, and after [finding 9](../architecture/findings.md#9-every-vitest-lane-fails-when-the-working-directorys-drive-letter-is-lowercase)'s fix, which changes the Vitest configuration;
+  - its web dependencies are proposed in each item's plan step: none is in §4.
+- **F-5b1 — The web transport, errors and server state** (`feat/web-transport`):
   - the development ports and proxy ([ADR 0014](../architecture/decisions/0014-deployment.md)), with `setup.md`, `.env.example` and `CLAUDE.md` *Commands*:
     - the web on port 5320 and the API on 3320, with Vite's `strictPort`, and `CORS_ORIGIN` to match;
     - Vite's proxy for `/api`, and the web calling `/api/v1` relatively in every environment;
-  - the Axios client with single-flight refresh, and the `AppError` normaliser, which carries the request id;
-  - `shared/session` and the `RequireRole` guards ([architecture.md §2](../frontend/architecture.md#landing-and-guards));
+  - the one Axios client: the token through an injected getter, the retries, single-flight refresh through an injected function, and the `AppError` normaliser, which carries the request id;
+  - TanStack Query's client and its defaults;
+  - `axios` and `@tanstack/react-query` (approved in its plan step);
+  - no session and no screen. Proven by the unit and component lanes.
+- **F-5b2 — The session and the guards**:
+  - `shared/session` and the `RequireRole` guards ([architecture.md §2](../frontend/architecture.md#landing-and-guards)), wired into F-5b1's transport at bootstrap: the token getter and the refresh;
+  - writes `architecture/system-overview.md` if restoring the session is the first request from web to API to database.
+- **F-5b3 — The auth screens**, to be split further when planned:
   - the screens of [SCREENS.md](../design/SCREENS.md) rows 5–7 and the forced password change of row 9:
     - sign in, with Google, the "accounts linked" toast (the Google response's `linked`), which also says the account's password was removed and can be set again by the reset email, the `GOOGLE_LINK_NOT_ALLOWED` state, and the too-many-attempts state;
     - register, sending the interface language;
     - forgot password;
     - reset password: the page reads the token from the URL fragment (`/reset-password#token=…`), removes it from the address bar, then checks it;
     - the forced password change, before any other page;
-  - its web dependencies (for example `axios`, `zustand`, `@tanstack/react-query`, `react-hook-form`), proposed in its plan step: none is in §4;
-  - the Google client ID on the web.
-  - Writes `architecture/system-overview.md` (the first end-to-end request).
+  - its web dependencies (for example `react-hook-form`);
+  - the Google client ID on the web;
+  - writes `architecture/system-overview.md` if F-5b2 has not.
 - **F-6 — Shells and preferences**, split in its plan step (2026-10-03) into three Work Items, each its own conversation and PR:
 - **F-6a — Preferences** (`feat/preferences`, its own plan step on 2026-10-02), built: `shared/preferences` (language and theme, writing the pre-paint keys).
 - **F-6b — The layout tree and the site shell** (`feat/site-shell`):
