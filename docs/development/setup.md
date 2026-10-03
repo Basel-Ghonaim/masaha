@@ -63,6 +63,8 @@ A single workspace can be targeted with `-w`, for example `npm run test:unit -w 
 
 In development, the design-system showcase is at `/__showcase` ([foundation §3](../frontend/design-system/foundation.md#3-architecture)).
 
+The web reads `@masaha/shared` from its source, through the package's `@masaha/source` export condition, in development, its tests, typechecking and its build, so the shared package never needs building first for the web.
+
 ## Database
 
 PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compose.yml)): one service with a named volume and a healthcheck.

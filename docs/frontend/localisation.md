@@ -1,6 +1,6 @@
 # Localisation
 
-> **Status:** Active · **Class:** Contract — rules to build against; the pre-paint script, the catalogue mechanism and the preferences store that sets the language are built, no formatter is yet · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the pre-paint script, the catalogue mechanism and the preferences store that sets the language are built, no formatter is yet · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
 > **Authority:** Languages, resolution, catalogues and formatting rules in `apps/web`. The reasoning is in [ADR 0006](../architecture/decisions/0006-localisation-approach.md); direction rules for components are in [design-system/foundation.md §8](design-system/foundation.md).
 
 ## Languages and resolution
@@ -60,7 +60,7 @@ The mechanism (`shared/localisation`) and the content (`shared/copy`) are separa
 - Each Arabic section is written `satisfies Catalogue['<section>']`, and the Arabic catalogue `satisfies Catalogue`, so a missing line, an extra line or different parameters fails the typecheck.
 - `catalogues.unit.test.ts` walks both catalogues and requires the same key paths and the same kind of line (words or a function) at each, which catches an extra line however a catalogue is assembled. It also refuses an empty line.
 
-**Server codes.** `errors` has a line for every error type and domain code, and `validation` one for every field-error code. English types both sections against the codes in `@masaha/shared`, so a code added to the contract without its line, or a line for no code, fails the typecheck. A screen reads `copy.errors[error.code ?? error.type]` unless it has something more specific to say.
+**Server codes.** `errors` has a line for every error type and domain code, and `validation` one for every field-error code. English types both sections against the codes in `@masaha/shared`, so a code added to the contract without its line, or a line for no code, fails the typecheck. `errors` also has a line for each of the client's own error types (`network`, `timeout`, `canceled`, `unknown`), through `AppErrorType` from `shared/errors` ([architecture.md §5](architecture.md#5-errors)). A screen reads `copy.errors[error.code ?? error.type]` unless it has something more specific to say.
 
 **Writing a line.** A key addresses a whole line, never a fragment. A varying value comes in through a function's named parameters, never by concatenation. No markup travels with text.
 

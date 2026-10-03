@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), and the catalogue registration and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), and the catalogue registration and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -149,9 +149,12 @@ A layer the capability does not need is **absent, not empty**. A screen only pre
 
 ## 5. Errors
 
-One normaliser turns any failure (Axios, network, timeout, unknown) into `AppError { type, status, code?, errors?, requestId? }`. Screens pick catalogue text from `code` or `type`; no raw error ever reaches a component.
+One normaliser, `toAppError` in `shared/errors`, turns any failure (Axios, network, timeout, unknown) into `AppError { type, status, code?, errors?, requestId?, retryAfterSeconds? }`. Screens pick catalogue text from `code ?? type`; no raw error ever reaches a component. `AppError` decides a failure's type and never words it: it carries no user-facing message.
 
-`requestId` is the server's request id ([api-contract §1](../api/api-contract.md#1-conventions)), present whenever the server answered. Error states show it, so a user's report can be matched to the log. Planned: F-5b builds it.
+- **The type:** the server's envelope type when it is one the contract defines ([api-contract §3](../api/api-contract.md#3-error-types)), else inferred from the status. With no answer, the client's own types: `network`, `timeout`, `canceled`, and `unknown` for anything else. Every type has a line in both catalogues.
+- **The domain code** is kept only when the client knows it, so `code ?? type` always has a line.
+- **`requestId`** is the server's request id ([api-contract §1](../api/api-contract.md#1-conventions)), from the envelope, else from the `X-Request-Id` header (a proxy's answer has no body), so it is present whenever the server answered. Error states show it, so a user's report can be matched to the log; no error state is built yet.
+- **`retryAfterSeconds`** comes from `Retry-After`, in its delta-seconds form only.
 
 ## 6. Map
 
