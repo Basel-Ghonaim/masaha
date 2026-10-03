@@ -167,8 +167,12 @@ export function createUsersService({
 
         const byEmail = await repository.findByEmail(google.email);
         if (byEmail) {
-          // Another Google account is already linked to this email's account: never replaced.
           if (byEmail.googleSubject) {
+            // Linked to this identity: a racing first sign-in created it after the read above.
+            if (byEmail.googleSubject === google.subject) {
+              return { userId: byEmail.account.id, link: false };
+            }
+            // Another Google account is already linked to this email's account: never replaced.
             throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
           }
           if (!googleIsAuthoritative(google)) {
