@@ -15,6 +15,8 @@ describe('textSchema', () => {
     ['a carriage return', 'Sara\rX'],
     ['a tab', 'Sara\tX'],
     ['a null', 'Sara\u0000'],
+    ['a line separator', 'Sara\u2028Your account is locked'],
+    ['a paragraph separator', 'Sara\u2029Your account is locked'],
     ['a bidirectional override', 'Sara\u202E'],
     ['an Arabic letter mark', 'Sara\u061C'],
   ])('refuses %s', (_case, text) => {
