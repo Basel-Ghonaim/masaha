@@ -36,7 +36,7 @@ const PROFILES: Record<string, GoogleProfile> = {
   newcomer: {
     subject: 'google-new',
     email: 'new@example.com',
-    name: 'Omar‮',
+    name: 'Omar\u202E',
     hostedDomain: undefined,
   },
 };

@@ -110,7 +110,7 @@ describe('POST /auth/register', () => {
   it('refuses a weak password and a name with bidirectional controls', async () => {
     const response = await request(app)
       .post('/api/v1/auth/register')
-      .send({ name: 'Sara‮', email: 'sara@example.com', password: 'password' });
+      .send({ name: 'Sara\u202E', email: 'sara@example.com', password: 'password' });
 
     expect(response.status).toBe(422);
     expect(response.body).toMatchObject({
