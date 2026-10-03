@@ -1,9 +1,11 @@
 # Workflow
 
-> **Status:** Active · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
 > **Authority:** How work is executed on Masaha: task classes, the Git lifecycle, scope control, the Definition of Done, decision authority and stop rules. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
 
 Masaha is built by **one developer (the owner)** with AI assistants. The workflow keeps the discipline of a team process — reviewable units, a clean history, gated decisions — without ceremony a solo project does not need.
+
+The procedures every Work Item repeats are packaged as Claude Code skills in [`.claude/skills/`](../../.claude/skills/): runbooks that link to this document, which wins if they disagree.
 
 ## 1. Task classes
 

@@ -56,6 +56,7 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
 - [engineering-principles.md](development/engineering-principles.md) — code-design rules.
 - [testing.md](development/testing.md) — where each behaviour is proven.
 - [setup.md](development/setup.md) — install, run, check and test locally; what CI runs.
+- [`.claude/skills/`](../.claude/skills/) — runbooks for the procedures every Work Item repeats; they own no facts and link to the documents that do.
 
 ### Deferred documents
 
