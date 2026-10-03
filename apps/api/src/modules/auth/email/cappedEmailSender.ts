@@ -27,6 +27,16 @@ export const EMAIL_CEILING: RateLimitPolicy = {
   windowMs: 24 * 60 * 60_000,
 };
 
+/**
+ * What a log line may say of an error: its name and code, never its message, which can quote the
+ * recipient's address.
+ */
+function errorShape(error: unknown): { error: string; code?: string } {
+  const name = error instanceof Error ? error.name : typeof error;
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'string' ? { error: name, code } : { error: name };
+}
+
 /** The line to search the logs for when the ceiling trips. */
 export const CEILING_REACHED = '[email:ceiling] the daily email ceiling is reached';
 
@@ -60,7 +70,10 @@ export function createCappedEmailSender(
       // nothing is sent (fail closed).
       const refusal = (error: unknown, cap: string) => {
         if (error instanceof AppError && error.type === 'rate_limit') return notSent(cap);
-        logger.error({ err: error }, '[email] a cap could not be checked');
+        logger.error(
+          { reason: 'cap-unavailable', ...errorShape(error) },
+          '[email] a cap could not be checked',
+        );
         return notSent('cap-unavailable');
       };
 
@@ -89,7 +102,7 @@ export function createCappedEmailSender(
       try {
         result = await inner.send(message);
       } catch (error) {
-        logger.error({ err: error }, '[email] the sender threw');
+        logger.error({ reason: 'sender-threw', ...errorShape(error) }, '[email] the sender threw');
         result = { sent: false, reason: 'sender-threw' };
       }
       if (result.sent) return result;

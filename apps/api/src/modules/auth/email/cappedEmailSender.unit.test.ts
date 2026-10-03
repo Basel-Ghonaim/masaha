@@ -11,7 +11,7 @@ function setup({ counterFails = false, ceilingUsed = 0 } = {}) {
   const counts = new Map<string, Count>();
   const counter: Counter = {
     hit(key) {
-      if (counterFails) return Promise.reject(new Error('database down'));
+      if (counterFails) return Promise.reject(new Error('database down at sara@example.com'));
       const start = key.startsWith('email-ceiling:') && !counts.has(key) ? ceilingUsed : 0;
       const count = {
         hits: (counts.get(key)?.hits ?? start) + 1,
@@ -130,6 +130,7 @@ describe('createCappedEmailSender', () => {
     expect(delivered).toHaveLength(0);
     expect(lines.join('')).toContain('a cap could not be checked');
     expect(lines.join('')).not.toContain('[email:ceiling]');
+    expect(lines.join('')).not.toContain('sara@example.com');
   });
 
   it('turns a sender that throws into an unsent email, without the address', async () => {
@@ -158,6 +159,9 @@ describe('createCappedEmailSender', () => {
 
     expect(await throwing.send(message())).toEqual({ sent: false, reason: 'sender-threw' });
     expect(lines.filter((line) => line.includes('"level":40'))).toHaveLength(1);
+    // No line, at any level, carries the address the thrown message quoted.
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    expect(lines.join('')).not.toContain('sara@example.com');
   });
 
   it('counts by digests, never the address', async () => {
