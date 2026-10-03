@@ -11,6 +11,8 @@ beforeAll(() => {
     addEventListener: () => undefined,
     removeEventListener: () => undefined,
   }));
+  // Nor does it scroll, and the root restores the scroll position.
+  vi.stubGlobal('scrollTo', () => undefined);
   bootstrap();
 });
 
@@ -19,9 +21,10 @@ afterAll(() => {
 });
 
 describe('App', () => {
-  it('renders the main landmark', () => {
+  it('renders the main landmark', async () => {
     render(<App />);
 
-    expect(screen.getByRole('main')).toBeInTheDocument();
+    // The page loads lazily, so the landmark arrives once its code has.
+    expect(await screen.findByRole('main')).toBeInTheDocument();
   });
 });

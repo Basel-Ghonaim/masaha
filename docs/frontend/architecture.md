@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), and the catalogue registration and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; the layout tree and the two page groups (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1) are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), and the catalogue registration and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -48,7 +48,9 @@ RootLayout (app)                 ScrollRestoration; a last-resort error state wi
 
 - **Each level adds one thing** around its `<Outlet/>`.
 - **Each domain owns its own shell**, and places the status states inside it.
-- **A layout is built with its first consumer.** Not built yet: all of them. `RootLayout` and `SiteLayout` come with the site shell (F-6b), `FocusLayout` with the auth screens (F-5b3), `AccountLayout` with the first account screen, and `DashboardLayout` with the dashboard shells (F-6c).
+- **A layout is built with its first consumer.**
+  - Built: `RootLayout` and `SiteLayout`, with the site's header, footer and phone menu.
+  - Not built yet: `FocusLayout`, with the auth screens (F-5b3); `AccountLayout`, with the first account screen; `DashboardLayout`, with the dashboard shells (F-6c).
 
 ### The two groups
 
@@ -73,6 +75,8 @@ pages/
     admin/          platform screens (ADMIN)
     space/          the screens of the space in the URL (OWNER, RECEPTION)
 ```
+
+Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index.ts`, `navigation.ts`, the site shell and the placeholder public pages. The `dashboard` group, `FocusLayout`, `auth/`, `account/` and the space details page are not built yet.
 
 - **Lazy loading.**
   - A group's `index.ts` exports **route definitions only**. Their components load through React Router's `lazy`, so a visitor to the site never downloads dashboard code.
