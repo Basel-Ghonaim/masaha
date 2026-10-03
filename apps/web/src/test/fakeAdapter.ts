@@ -39,6 +39,13 @@ export function settle(
   );
 }
 
+/** The error Axios rejects with for an answer that fails. */
+export function failure(answer: FakeAnswer): AxiosError {
+  const outcome = settle(answer);
+  if (!(outcome instanceof AxiosError)) throw new Error('A 2xx answer is not a failure.');
+  return outcome;
+}
+
 /**
  * A fake transport for Axios's `adapter` option, for the unit lane, which has no network. `answer`
  * receives each request and its index among every request made so far; `requests` records them all.

@@ -1,3 +1,4 @@
+import { setupApiClient } from '@shared/api';
 import { CATALOGUES } from '@shared/copy';
 import { setupLocalisation } from '@shared/localisation';
 import { preferencesLanguage, setupPreferences } from '@shared/preferences';
@@ -8,4 +9,7 @@ export function bootstrap(): void {
   // from then on (docs/frontend/localisation.md#mechanism).
   setupPreferences();
   setupLocalisation({ catalogues: CATALOGUES, language: preferencesLanguage });
+  // The transport never imports the session: the token getter and the refresh are handed in here.
+  // Without a session there is no token to send, and nothing to refresh.
+  setupApiClient({ getAccessToken: () => null });
 }
