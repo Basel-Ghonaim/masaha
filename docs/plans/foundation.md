@@ -285,7 +285,7 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - the password change and the forced change move to the `users` `me` router, at `/me/password`: F-5a updates the [planned surface](v1-mvp.md#planned-api-surface) and api-contract.md. The forced change is a claim in the access token; the change opens a fresh session for the current device;
   - Google sign-in: the ID token verified with `jose` (approved in §4), and the account created or linked as [security.md](../backend/security.md#sign-in-methods) says;
   - register and the first Google sign-in take the interface language, optionally;
-  - the reset email, with `nodemailer` (approved in the plan step): a log mode in development and Gmail SMTP from a single sender, chosen by configuration only; production refuses to start without a mode that delivers; a per-recipient cap and a global ceiling over every mode; the link carries the token in the URL fragment;
+  - the reset email, with `nodemailer` (approved in the plan step): a log mode in development and Gmail SMTP from a single sender, chosen by configuration only; production refuses to start without a mode that delivers; a per-recipient cap, a daily cap of delivered emails per requesting address, and a global ceiling, over every mode; the link carries the token in the URL fragment;
   - staff sign-in: a reception account signs in like any user, changes its temporary password first, and the session response carries its space links;
   - no phone login;
   - tokens, cookies, rotation and rate limits as [security.md](../backend/security.md), with the rate-limit counters in a PostgreSQL table, and refresh tokens grouped in families so a reused token ends only its own session (schema changes; data-model.md updated);
