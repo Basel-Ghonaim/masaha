@@ -39,10 +39,10 @@ export function fakeHint(present: boolean) {
 }
 
 /**
- * Stand-in session endpoints, for the session's operations and the screens that use them. Each
+ * Stand-in session repository, for the session's operations and the screens that use them. Each
  * answers with what the test passes, a value or a rejection, and counts its calls.
  */
-export function fakeEndpoints({
+export function fakeSessionRepository({
   refresh = () => Promise.resolve(aSession()),
   logout = () => Promise.resolve(),
 }: {

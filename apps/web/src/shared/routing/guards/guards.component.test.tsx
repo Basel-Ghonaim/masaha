@@ -12,7 +12,13 @@ import type { ReactNode } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fakeAdapter } from '../../../test/fakeAdapter';
-import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
+import {
+  aSession,
+  appError,
+  deferred,
+  fakeSessionRepository,
+  fakeHint,
+} from '../../../test/fakeSession';
 import { startPreferences } from '../../../test/startPreferences';
 import { RequireAuth } from './RequireAuth';
 import { RequireGuest } from './RequireGuest';
@@ -50,12 +56,14 @@ function signIn(user: Partial<SessionUser> = {}) {
 }
 
 async function becomeAnonymous() {
-  await restoreSession({ endpoints: fakeEndpoints(), hint: fakeHint(false) });
+  await restoreSession({ repository: fakeSessionRepository(), hint: fakeHint(false) });
 }
 
 async function becomeUnreachable(type: 'network' | 'server', status: number) {
-  const endpoints = fakeEndpoints({ refresh: () => Promise.reject(appError(type, status)) });
-  await restoreSession({ endpoints, hint: fakeHint(true) });
+  const repository = fakeSessionRepository({
+    refresh: () => Promise.reject(appError(type, status)),
+  });
+  await restoreSession({ repository, hint: fakeHint(true) });
 }
 
 function where(router: ReturnType<typeof createMemoryRouter>) {
@@ -78,7 +86,7 @@ describe.each(GUARDS)('%s', (_, guard) => {
   it('shows the spinner while the session is restored', async () => {
     const answer = deferred<Session>();
     const restoring = restoreSession({
-      endpoints: fakeEndpoints({ refresh: () => answer.promise }),
+      repository: fakeSessionRepository({ refresh: () => answer.promise }),
       hint: fakeHint(true),
     });
 

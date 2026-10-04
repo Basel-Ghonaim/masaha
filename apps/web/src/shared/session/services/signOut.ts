@@ -1,4 +1,4 @@
-import { appDependencies, type SessionDependencies } from '../gateway/dependencies';
+import { appDependencies, type SessionDependencies } from '../repository/dependencies';
 import { endSession } from '../store';
 
 /**
@@ -6,8 +6,8 @@ import { endSession } from '../store';
  * request clears nothing: the refresh cookie would still be valid, so ending the session here alone
  * would be false. The failure rejects, for the user to retry.
  */
-export async function signOut({ endpoints, hint }: SessionDependencies = appDependencies) {
-  await endpoints.logout();
+export async function signOut({ repository, hint }: SessionDependencies = appDependencies) {
+  await repository.logout();
   hint.clear();
   endSession();
 }

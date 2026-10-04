@@ -1,5 +1,5 @@
 import { toAppError, type AppError } from '@shared/errors';
-import { appDependencies, type SessionDependencies } from '../gateway/dependencies';
+import { appDependencies, type SessionDependencies } from '../repository/dependencies';
 import type { UnreachableReason } from '../model';
 import { endsSession, refreshSession } from './refresh';
 import { endSession, markRestoring, markUnreachable, sessionGeneration } from '../store';

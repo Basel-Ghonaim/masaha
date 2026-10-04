@@ -164,7 +164,7 @@ A feature's wire types, its requests and the server's answers, come from `@masah
   - **What it holds:** the `SessionUser` and the access token exactly as the server sends them (the contract's types from `@masaha/shared`, no copy and no mapper), and the status. The token lives in memory only.
   - **The status:** `restoring`, `authenticated`, `anonymous`, or `unreachable` with its reason, `offline` (no answer, or a timeout) or `error` (an answer that is not a verdict).
   - **Read** in a component with `useSession(select)`, elsewhere with `getSession()`. The raw store is never exported; only the session's own functions write it.
-  - **The endpoints** are `refresh` and `logout`, behind one interface (`SessionEndpoints`) whose factory defaults to the app's client, so a test passes a plain fake. Sign-in, registration and Google are `features/auth`'s: they hand their answer to `establishSession(session, { source: 'signIn' })`.
+  - **The repository** (`repository/`) holds the server calls, `refresh` and `logout`, behind one interface (`SessionRepository`, made by `createSessionRepository()`), on the app's one client; beside it, the session hint. Sign-in, registration and Google are `features/auth`'s: they hand their answer to `establishSession(session, { source: 'signIn' })`.
   - **The restore** runs at bootstrap and never blocks a render: public pages show at once, and only the guards wait (§2).
     - no session hint (`masaha_session`): `anonymous` at once, with no request;
     - a hint and a successful refresh: `authenticated`;

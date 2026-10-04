@@ -1,5 +1,11 @@
 import { onTestFinished, describe, expect, it, vi } from 'vitest';
-import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
+import {
+  aSession,
+  appError,
+  deferred,
+  fakeSessionRepository,
+  fakeHint,
+} from '../../../test/fakeSession';
 import type { Session } from '../model';
 import { refreshSession } from './refresh';
 import { restoreSession } from './restore';
@@ -17,23 +23,25 @@ function signedIn() {
 describe('refreshSession', () => {
   it('makes one request when the restore and the transport refresh together', async () => {
     const answer = deferred<Session>();
-    const endpoints = fakeEndpoints({ refresh: () => answer.promise });
-    const dependencies = { endpoints, hint: fakeHint(true) };
+    const repository = fakeSessionRepository({ refresh: () => answer.promise });
+    const dependencies = { repository, hint: fakeHint(true) };
 
     const restoring = restoreSession(dependencies);
     const transport = refreshSession(dependencies);
     answer.resolve(aSession({}, 'token-new'));
     await Promise.all([restoring, transport]);
 
-    expect(endpoints.refresh).toHaveBeenCalledOnce();
+    expect(repository.refresh).toHaveBeenCalledOnce();
     expect(getSession().accessToken).toBe('token-new');
   });
 
   it('has the new token in the store by the time its promise resolves', async () => {
     signedIn();
-    const endpoints = fakeEndpoints({ refresh: () => Promise.resolve(aSession({}, 'token-new')) });
+    const repository = fakeSessionRepository({
+      refresh: () => Promise.resolve(aSession({}, 'token-new')),
+    });
 
-    const tokenOnResolve = await refreshSession({ endpoints, hint: fakeHint(true) }).then(
+    const tokenOnResolve = await refreshSession({ repository, hint: fakeHint(true) }).then(
       () => getSession().accessToken,
     );
 
@@ -48,11 +56,11 @@ describe('refreshSession', () => {
     async (type, status, code) => {
       const { ended } = signedIn();
       const hint = fakeHint(true);
-      const endpoints = fakeEndpoints({
+      const repository = fakeSessionRepository({
         refresh: () => Promise.reject(appError(type, status, code)),
       });
 
-      await expect(refreshSession({ endpoints, hint })).rejects.toMatchObject({ status });
+      await expect(refreshSession({ repository, hint })).rejects.toMatchObject({ status });
 
       expect(getSession().status).toBe('anonymous');
       expect(hint.clear).toHaveBeenCalledOnce();
@@ -64,9 +72,11 @@ describe('refreshSession', () => {
     const { ended } = signedIn();
     const before = getSession();
     const hint = fakeHint(true);
-    const endpoints = fakeEndpoints({ refresh: () => Promise.reject(appError('forbidden', 403)) });
+    const repository = fakeSessionRepository({
+      refresh: () => Promise.reject(appError('forbidden', 403)),
+    });
 
-    await expect(refreshSession({ endpoints, hint })).rejects.toMatchObject({ status: 403 });
+    await expect(refreshSession({ repository, hint })).rejects.toMatchObject({ status: 403 });
 
     expect(getSession()).toEqual(before);
     expect(hint.clear).not.toHaveBeenCalled();
@@ -77,10 +87,10 @@ describe('refreshSession', () => {
     signedIn();
     const answer = deferred<Session>();
     const hint = fakeHint(true);
-    const endpoints = fakeEndpoints({ refresh: () => answer.promise });
+    const repository = fakeSessionRepository({ refresh: () => answer.promise });
 
-    const refreshing = refreshSession({ endpoints, hint });
-    await signOut({ endpoints, hint });
+    const refreshing = refreshSession({ repository, hint });
+    await signOut({ repository, hint });
     answer.resolve(aSession({}, 'token-late'));
 
     await expect(refreshing).rejects.toMatchObject({ type: 'canceled' });
@@ -91,9 +101,11 @@ describe('refreshSession', () => {
     const { ended } = signedIn();
     const before = getSession();
     const hint = fakeHint(true);
-    const endpoints = fakeEndpoints({ refresh: () => Promise.reject(appError('network', 0)) });
+    const repository = fakeSessionRepository({
+      refresh: () => Promise.reject(appError('network', 0)),
+    });
 
-    await expect(refreshSession({ endpoints, hint })).rejects.toMatchObject({ type: 'network' });
+    await expect(refreshSession({ repository, hint })).rejects.toMatchObject({ type: 'network' });
 
     expect(getSession()).toEqual(before);
     expect(getSession().status).toBe('authenticated');
@@ -103,12 +115,12 @@ describe('refreshSession', () => {
 
   it('starts a new request once the previous one has settled', async () => {
     signedIn();
-    const endpoints = fakeEndpoints();
-    const dependencies = { endpoints, hint: fakeHint(true) };
+    const repository = fakeSessionRepository();
+    const dependencies = { repository, hint: fakeHint(true) };
 
     await refreshSession(dependencies);
     await refreshSession(dependencies);
 
-    expect(endpoints.refresh).toHaveBeenCalledTimes(2);
+    expect(repository.refresh).toHaveBeenCalledTimes(2);
   });
 });

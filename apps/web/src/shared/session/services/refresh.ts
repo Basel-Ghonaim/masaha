@@ -1,5 +1,5 @@
 import { AppError, toAppError } from '@shared/errors';
-import { appDependencies, type SessionDependencies } from '../gateway/dependencies';
+import { appDependencies, type SessionDependencies } from '../repository/dependencies';
 import { endSession, establishSession, sessionGeneration } from '../store';
 
 /**
@@ -29,9 +29,9 @@ export function refreshSession(dependencies: SessionDependencies = appDependenci
   return inFlight;
 }
 
-async function renew({ endpoints, hint }: SessionDependencies): Promise<void> {
+async function renew({ repository, hint }: SessionDependencies): Promise<void> {
   const started = sessionGeneration();
-  const session = await endpoints.refresh().catch((error: unknown) => {
+  const session = await repository.refresh().catch((error: unknown) => {
     const failure = toAppError(error);
     if (endsSession(failure)) {
       hint.clear();

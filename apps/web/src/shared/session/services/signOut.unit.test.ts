@@ -1,5 +1,5 @@
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { aSession, appError, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
+import { aSession, appError, fakeSessionRepository, fakeHint } from '../../../test/fakeSession';
 import { signOut } from './signOut';
 import { establishSession, getSession, onSessionEnded } from '../store';
 
@@ -14,11 +14,11 @@ describe('signOut', () => {
   it('ends the session, clears the hint and runs the ended listeners once the server agrees', async () => {
     const { ended } = signedIn();
     const hint = fakeHint(true);
-    const endpoints = fakeEndpoints();
+    const repository = fakeSessionRepository();
 
-    await signOut({ endpoints, hint });
+    await signOut({ repository, hint });
 
-    expect(endpoints.logout).toHaveBeenCalledOnce();
+    expect(repository.logout).toHaveBeenCalledOnce();
     expect(getSession().status).toBe('anonymous');
     expect(hint.clear).toHaveBeenCalledOnce();
     expect(ended).toHaveBeenCalledOnce();
@@ -40,7 +40,7 @@ describe('signOut', () => {
     });
 
     await expect(
-      signOut({ endpoints: fakeEndpoints(), hint: fakeHint(true) }),
+      signOut({ repository: fakeSessionRepository(), hint: fakeHint(true) }),
     ).resolves.toBeUndefined();
 
     expect(getSession().status).toBe('anonymous');
@@ -56,9 +56,11 @@ describe('signOut', () => {
     async (type, status) => {
       const { ended } = signedIn();
       const hint = fakeHint(true);
-      const endpoints = fakeEndpoints({ logout: () => Promise.reject(appError(type, status)) });
+      const repository = fakeSessionRepository({
+        logout: () => Promise.reject(appError(type, status)),
+      });
 
-      await expect(signOut({ endpoints, hint })).rejects.toMatchObject({ type });
+      await expect(signOut({ repository, hint })).rejects.toMatchObject({ type });
 
       expect(getSession().status).toBe('authenticated');
       expect(hint.clear).not.toHaveBeenCalled();

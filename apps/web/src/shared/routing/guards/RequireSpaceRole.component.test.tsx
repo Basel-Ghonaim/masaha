@@ -6,7 +6,13 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fakeAdapter } from '../../../test/fakeAdapter';
-import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
+import {
+  aSession,
+  appError,
+  deferred,
+  fakeSessionRepository,
+  fakeHint,
+} from '../../../test/fakeSession';
 import { startPreferences } from '../../../test/startPreferences';
 import { RequireSpaceRole } from './RequireSpaceRole';
 
@@ -131,7 +137,7 @@ describe('RequireSpaceRole, signed in', () => {
 
 describe('RequireSpaceRole, before a session is held', () => {
   it('sends a guest to sign-in, carrying the page asked for', async () => {
-    await restoreSession({ endpoints: fakeEndpoints(), hint: fakeHint(false) });
+    await restoreSession({ repository: fakeSessionRepository(), hint: fakeHint(false) });
 
     const router = renderSpaceRoutes('/dashboard/spaces/7/desk?day=2');
 
@@ -142,7 +148,7 @@ describe('RequireSpaceRole, before a session is held', () => {
   it('shows the spinner while the session is restored, then the page', async () => {
     const answer = deferred<Session>();
     const restoring = restoreSession({
-      endpoints: fakeEndpoints({ refresh: () => answer.promise }),
+      repository: fakeSessionRepository({ refresh: () => answer.promise }),
       hint: fakeHint(true),
     });
 
@@ -160,7 +166,7 @@ describe('RequireSpaceRole, before a session is held', () => {
   it('shows offline while no answer came back, and Try again re-runs the restore', async () => {
     const user = userEvent.setup();
     await restoreSession({
-      endpoints: fakeEndpoints({ refresh: () => Promise.reject(appError('network', 0)) }),
+      repository: fakeSessionRepository({ refresh: () => Promise.reject(appError('network', 0)) }),
       hint: fakeHint(true),
     });
     document.cookie = 'masaha_session=1; Path=/';
@@ -183,7 +189,7 @@ describe('RequireSpaceRole, before a session is held', () => {
 
   it('shows the general error when the answer was no verdict', async () => {
     await restoreSession({
-      endpoints: fakeEndpoints({ refresh: () => Promise.reject(appError('server', 503)) }),
+      repository: fakeSessionRepository({ refresh: () => Promise.reject(appError('server', 503)) }),
       hint: fakeHint(true),
     });
 

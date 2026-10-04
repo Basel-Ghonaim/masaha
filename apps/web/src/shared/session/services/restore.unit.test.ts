@@ -1,24 +1,30 @@
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
+import {
+  aSession,
+  appError,
+  deferred,
+  fakeSessionRepository,
+  fakeHint,
+} from '../../../test/fakeSession';
 import type { Session } from '../model';
 import { restoreSession } from './restore';
 import { getSession, onSessionEnded, onSessionEstablished } from '../store';
 
 describe('restoreSession', () => {
   it('is anonymous at once, with no request, when there is no hint', async () => {
-    const endpoints = fakeEndpoints();
+    const repository = fakeSessionRepository();
 
-    await restoreSession({ endpoints, hint: fakeHint(false) });
+    await restoreSession({ repository, hint: fakeHint(false) });
 
     expect(getSession().status).toBe('anonymous');
-    expect(endpoints.refresh).not.toHaveBeenCalled();
+    expect(repository.refresh).not.toHaveBeenCalled();
   });
 
   it('holds the user and the token the refresh returns', async () => {
     const session = aSession({ name: 'Omar' }, 'token-restored');
-    const endpoints = fakeEndpoints({ refresh: () => Promise.resolve(session) });
+    const repository = fakeSessionRepository({ refresh: () => Promise.resolve(session) });
 
-    await restoreSession({ endpoints, hint: fakeHint(true) });
+    await restoreSession({ repository, hint: fakeHint(true) });
 
     expect(getSession()).toEqual({
       status: 'authenticated',
@@ -29,9 +35,9 @@ describe('restoreSession', () => {
 
   it('is restoring while the refresh is on its way', async () => {
     const answer = deferred<Session>();
-    const endpoints = fakeEndpoints({ refresh: () => answer.promise });
+    const repository = fakeSessionRepository({ refresh: () => answer.promise });
 
-    const restoring = restoreSession({ endpoints, hint: fakeHint(true) });
+    const restoring = restoreSession({ repository, hint: fakeHint(true) });
 
     expect(getSession().status).toBe('restoring');
     answer.resolve(aSession());
@@ -47,11 +53,11 @@ describe('restoreSession', () => {
       const ended = vi.fn();
       onTestFinished(onSessionEnded(ended));
       const hint = fakeHint(true);
-      const endpoints = fakeEndpoints({
+      const repository = fakeSessionRepository({
         refresh: () => Promise.reject(appError(type, status, code)),
       });
 
-      await restoreSession({ endpoints, hint });
+      await restoreSession({ repository, hint });
 
       expect(getSession().status).toBe('anonymous');
       expect(hint.clear).toHaveBeenCalledOnce();
@@ -61,15 +67,15 @@ describe('restoreSession', () => {
 
   it('makes one request when two restores run together', async () => {
     const answer = deferred<Session>();
-    const endpoints = fakeEndpoints({ refresh: () => answer.promise });
-    const dependencies = { endpoints, hint: fakeHint(true) };
+    const repository = fakeSessionRepository({ refresh: () => answer.promise });
+    const dependencies = { repository, hint: fakeHint(true) };
 
     const first = restoreSession(dependencies);
     const second = restoreSession(dependencies);
     answer.resolve(aSession());
     await Promise.all([first, second]);
 
-    expect(endpoints.refresh).toHaveBeenCalledOnce();
+    expect(repository.refresh).toHaveBeenCalledOnce();
     expect(getSession().status).toBe('authenticated');
   });
 
@@ -84,13 +90,13 @@ describe('restoreSession', () => {
     onTestFinished(() => {
       logged.mockRestore();
     });
-    const endpoints = fakeEndpoints();
+    const repository = fakeSessionRepository();
 
-    await expect(restoreSession({ endpoints, hint: fakeHint(true) })).resolves.toBeUndefined();
+    await expect(restoreSession({ repository, hint: fakeHint(true) })).resolves.toBeUndefined();
 
     expect(getSession().status).toBe('authenticated');
     expect(logged).toHaveBeenCalledExactlyOnceWith(failure);
-    expect(endpoints.refresh).toHaveBeenCalledOnce();
+    expect(repository.refresh).toHaveBeenCalledOnce();
   });
 
   it.each([
@@ -103,9 +109,11 @@ describe('restoreSession', () => {
     ['forbidden', 403, 'error'],
   ] as const)('is unreachable (%s %d → %s) and keeps the hint', async (type, status, reason) => {
     const hint = fakeHint(true);
-    const endpoints = fakeEndpoints({ refresh: () => Promise.reject(appError(type, status)) });
+    const repository = fakeSessionRepository({
+      refresh: () => Promise.reject(appError(type, status)),
+    });
 
-    await restoreSession({ endpoints, hint });
+    await restoreSession({ repository, hint });
 
     expect(getSession()).toEqual({
       status: 'unreachable',
@@ -118,14 +126,16 @@ describe('restoreSession', () => {
 
   it('restores the session when retried after being unreachable', async () => {
     const hint = fakeHint(true);
-    const endpoints = fakeEndpoints({ refresh: () => Promise.reject(appError('network', 0)) });
-    await restoreSession({ endpoints, hint });
+    const repository = fakeSessionRepository({
+      refresh: () => Promise.reject(appError('network', 0)),
+    });
+    await restoreSession({ repository, hint });
     expect(getSession().status).toBe('unreachable');
 
-    endpoints.refresh.mockImplementation(() => Promise.resolve(aSession()));
-    await restoreSession({ endpoints, hint });
+    repository.refresh.mockImplementation(() => Promise.resolve(aSession()));
+    await restoreSession({ repository, hint });
 
     expect(getSession().status).toBe('authenticated');
-    expect(endpoints.refresh).toHaveBeenCalledTimes(2);
+    expect(repository.refresh).toHaveBeenCalledTimes(2);
   });
 });

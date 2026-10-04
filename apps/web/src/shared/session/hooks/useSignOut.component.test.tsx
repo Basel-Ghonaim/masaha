@@ -1,6 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
+import {
+  aSession,
+  appError,
+  deferred,
+  fakeSessionRepository,
+  fakeHint,
+} from '../../../test/fakeSession';
 import { useSignOut } from './useSignOut';
 import { establishSession, getSession } from '../store';
 
@@ -9,7 +15,7 @@ describe('useSignOut', () => {
     establishSession(aSession(), { source: 'signIn' });
     const answer = deferred<undefined>();
     const dependencies = {
-      endpoints: fakeEndpoints({ logout: () => answer.promise }),
+      repository: fakeSessionRepository({ logout: () => answer.promise }),
       hint: fakeHint(true),
     };
     const { result } = renderHook(() => useSignOut(dependencies));
@@ -32,7 +38,7 @@ describe('useSignOut', () => {
   it('exposes the failure and keeps the session when the server cannot be reached', async () => {
     establishSession(aSession(), { source: 'signIn' });
     const dependencies = {
-      endpoints: fakeEndpoints({ logout: () => Promise.reject(appError('network', 0)) }),
+      repository: fakeSessionRepository({ logout: () => Promise.reject(appError('network', 0)) }),
       hint: fakeHint(true),
     };
     const { result } = renderHook(() => useSignOut(dependencies));

@@ -1,6 +1,6 @@
 import { toAppError, type AppError } from '@shared/errors';
 import { useCallback, useState } from 'react';
-import { appDependencies, type SessionDependencies } from '../gateway/dependencies';
+import { appDependencies, type SessionDependencies } from '../repository/dependencies';
 import { signOut } from '../services/signOut';
 
 export type SignOut = {

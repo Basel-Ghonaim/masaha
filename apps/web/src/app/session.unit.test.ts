@@ -3,7 +3,7 @@ import { getPreferences, setupPreferences } from '@shared/preferences';
 import { establishSession, refreshSession } from '@shared/session';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { fakePlatform } from '../test/fakePlatform';
-import { aSession, appError, fakeEndpoints, fakeHint } from '../test/fakeSession';
+import { aSession, appError, fakeSessionRepository, fakeHint } from '../test/fakeSession';
 import { connectSession } from './session';
 
 const queryClient = createQueryClient();
@@ -17,11 +17,11 @@ describe('connectSession', () => {
     setupPreferences(fakePlatform().platform);
     establishSession(aSession(), { source: 'signIn' });
     queryClient.setQueryData(['me', 'favorites'], [7]);
-    const endpoints = fakeEndpoints({
+    const repository = fakeSessionRepository({
       refresh: () => Promise.reject(appError('unauthorized', 401)),
     });
 
-    await expect(refreshSession({ endpoints, hint: fakeHint(true) })).rejects.toMatchObject({
+    await expect(refreshSession({ repository, hint: fakeHint(true) })).rejects.toMatchObject({
       status: 401,
     });
 
