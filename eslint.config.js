@@ -4,7 +4,32 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
-const API_MODULES = ['L0', 'L1', 'L2', 'L3', 'L4', 'L5', 'unplaced'];
+// The module level map (docs/backend/conventions.md §7, the only level map; this mirrors it). It
+// places the API's modules and the shared package's capabilities alike
+// (docs/architecture/shared-package.md).
+const MODULE_LEVELS = {
+  L0: ['sessions', 'lookups', 'platform-settings', 'space-settings'],
+  L1: ['users', 'spaces'],
+  L2: ['space-links', 'customers', 'packages', 'announcements', 'favorites'],
+  L3: ['auth', 'data-reports', 'visits', 'subscriptions'],
+  L4: ['payments', 'occupancy'],
+  L5: ['desk', 'directory', 'finance', 'overview', 'audit'],
+};
+const LEVELS = Object.keys(MODULE_LEVELS);
+const API_MODULES = [...LEVELS, 'unplaced'];
+
+/** The levels below `level`. */
+const lowerThan = (level) => LEVELS.slice(0, LEVELS.indexOf(level));
+
+/** One element per level: that level's folders under `root`. */
+const levelElements = (root) =>
+  LEVELS.map((level) => ({
+    type: level,
+    pattern: MODULE_LEVELS[level].map((name) => `${root}/${name}`),
+  }));
+
+/** The @masaha/shared paths open to the given levels: core and those levels' capabilities. */
+const sharedPaths = (levels) => ['core', ...levels.flatMap((level) => MODULE_LEVELS[level])];
 
 // The API's elements. The first pattern that matches a file decides its type.
 const API_BOUNDARY_SETTINGS = {
@@ -14,19 +39,11 @@ const API_BOUNDARY_SETTINGS = {
   // The element patterns are relative to the repository, whatever directory ESLint runs from.
   'boundaries/root-path': import.meta.dirname,
   'boundaries/dependency-nodes': ['import', 'export', 'dynamic-import'],
+  // @masaha/shared is a package wherever it resolves (its source, its dist or nowhere), so its rules
+  // below match it by name and path.
+  'boundaries/flag-as-external': { customSourcePatterns: ['@masaha/shared', '@masaha/shared/**'] },
   'boundaries/elements': [
-    {
-      type: 'L0',
-      pattern: 'apps/api/src/modules/{sessions,lookups,platform-settings,space-settings}',
-    },
-    { type: 'L1', pattern: 'apps/api/src/modules/{users,spaces}' },
-    {
-      type: 'L2',
-      pattern: 'apps/api/src/modules/{space-links,customers,packages,announcements,favorites}',
-    },
-    { type: 'L3', pattern: 'apps/api/src/modules/{auth,data-reports,visits,subscriptions}' },
-    { type: 'L4', pattern: 'apps/api/src/modules/{payments,occupancy}' },
-    { type: 'L5', pattern: 'apps/api/src/modules/{desk,directory,finance,overview,audit}' },
+    ...levelElements('apps/api/src/modules'),
     // A module folder missing from the level map, or a file placed directly in modules/: refused
     // everywhere until it is placed.
     { type: 'unplaced', pattern: 'apps/api/src/modules/*' },
@@ -46,22 +63,48 @@ const API_BOUNDARY_SETTINGS = {
 function apiDependencies({ guardRoot }) {
   return {
     default: 'allow',
+    // @masaha/shared is a package, so its imports are checked only when every origin is.
+    checkAllOrigins: true,
     message:
       '{{ from.type }} → {{ to.type }} ({{ to.internalPath }}) is not allowed. A module imports only lower levels, through their index.ts (docs/backend/conventions.md §7); shared/, db and config import no module, and only the root imports the root.',
     policies: [
       // No one reaches a module, except as allowed below.
       { disallow: { to: { element: { type: API_MODULES } } } },
-      ...[
-        ['L1', ['L0']],
-        ['L2', ['L0', 'L1']],
-        ['L3', ['L0', 'L1', 'L2']],
-        ['L4', ['L0', 'L1', 'L2', 'L3']],
-        ['L5', ['L0', 'L1', 'L2', 'L3', 'L4']],
-        ['root', ['L0', 'L1', 'L2', 'L3', 'L4', 'L5']],
-      ].map(([from, lower]) => ({
+      ...[...LEVELS.slice(1), 'root'].map((from) => ({
         from: { element: { type: from } },
-        allow: { to: { element: { type: lower, fileInternalPath: 'index.ts' } } },
+        allow: {
+          to: {
+            element: {
+              type: from === 'root' ? LEVELS : lowerThan(from),
+              fileInternalPath: 'index.ts',
+            },
+          },
+        },
       })),
+      // No one reaches @masaha/shared, except as allowed below: a module imports core and the
+      // capabilities at its own level or lower; the platform, db and config import core only; the
+      // root (the seed and test/ included) imports any. A path past a capability is none of these,
+      // so it is refused too.
+      {
+        disallow: { to: { module: { source: '@masaha/shared' } } },
+        message:
+          '{{ from.type }} → {{ dependency.source }} is not allowed. A module imports @masaha/shared/core and the capabilities at its own level or lower; shared/, db and config import core only (docs/backend/conventions.md §7).',
+      },
+      ...[...LEVELS, 'root'].map((from) => ({
+        from: { element: { type: from } },
+        allow: {
+          to: {
+            module: {
+              source: '@masaha/shared',
+              internalPath: sharedPaths(from === 'root' ? LEVELS : [...lowerThan(from), from]),
+            },
+          },
+        },
+      })),
+      {
+        from: { element: { type: ['platform', 'infrastructure'] } },
+        allow: { to: { module: { source: '@masaha/shared', internalPath: sharedPaths([]) } } },
+      },
       // Modules and the platform reach db and config through their index.ts only.
       {
         from: { element: { type: [...API_MODULES, 'platform'] } },
@@ -79,6 +122,63 @@ function apiDependencies({ guardRoot }) {
             },
           ]
         : []),
+    ],
+  };
+}
+
+// The shared package's elements (docs/architecture/shared-package.md): core, the capabilities the
+// level map places, and a folder it does not, refused everywhere until it is placed.
+const SHARED_BOUNDARY_SETTINGS = {
+  'import/resolver': {
+    typescript: { project: `${import.meta.dirname}/packages/shared/tsconfig.json` },
+  },
+  'boundaries/root-path': import.meta.dirname,
+  'boundaries/dependency-nodes': ['import', 'export', 'dynamic-import'],
+  // @masaha/shared is a package wherever it resolves (its source, its dist or nowhere), so its rules
+  // below match it by name and path.
+  'boundaries/flag-as-external': { customSourcePatterns: ['@masaha/shared', '@masaha/shared/**'] },
+  'boundaries/elements': [
+    { type: 'core', pattern: 'packages/shared/src/core' },
+    ...levelElements('packages/shared/src'),
+    { type: 'unplaced', pattern: 'packages/shared/src/*' },
+    { type: 'unplaced', pattern: 'packages/shared/src' },
+  ],
+};
+
+/** The shared package's dependency policies. The last matching policy decides. */
+function sharedDependencies({ guardPackages }) {
+  return {
+    default: 'allow',
+    // Packages, its own name included, are checked only when every origin is.
+    checkAllOrigins: true,
+    message:
+      '{{ from.type }} → {{ to.type }} ({{ to.internalPath }}) is not allowed. Core imports no capability, and a capability imports core and lower levels only, through their index.ts (docs/architecture/shared-package.md, R3).',
+    policies: [
+      { disallow: { to: { element: { type: ['core', ...LEVELS, 'unplaced'] } } } },
+      ...LEVELS.map((from) => ({
+        from: { element: { type: from } },
+        allow: {
+          to: { element: { type: ['core', ...lowerThan(from)], fileInternalPath: 'index.ts' } },
+        },
+      })),
+      // Core imports no package but zod: no Node module either, since the web runs it too.
+      ...(guardPackages
+        ? [
+            {
+              from: { element: { type: 'core' } },
+              disallow: { to: { module: { origin: ['external', 'core'] } } },
+              message:
+                'core → {{ dependency.source }} is not allowed. Core imports nothing but zod (docs/architecture/shared-package.md, R3).',
+            },
+            { from: { element: { type: 'core' } }, allow: { to: { module: { source: 'zod' } } } },
+          ]
+        : []),
+      // The package never imports itself by name, which would reach past the rule (and its dist).
+      {
+        disallow: { to: { module: { source: '@masaha/shared' } } },
+        message:
+          '{{ from.type }} → {{ dependency.source }} is not allowed. The package imports its own files by relative path, through their index.ts (docs/architecture/shared-package.md, R3).',
+      },
     ],
   };
 }
@@ -176,12 +276,13 @@ export default defineConfig([
     },
   },
   {
-    // The API's module levels (docs/backend/conventions.md §7, the only level map; this mirrors it).
+    // The API's module levels (docs/backend/conventions.md §7), from MODULE_LEVELS above.
     // A module imports only modules at lower levels, and only through their index.ts: never one at
     // its own level, a higher one, or a file past another module's index.ts. Its own files are
     // internal, which the rule does not check. The platform (shared/) and the infrastructure (db,
     // config) know no module (R6). Nothing but the root imports the root (app.ts, server.ts, the
-    // seed and test/), which would reach every module through it; tests are exempt below.
+    // seed and test/), which would reach every module through it; tests are exempt below. Of
+    // @masaha/shared, a module imports core and the capabilities at its own level or lower.
     files: ['apps/api/src/**/*.ts', 'apps/api/test/**/*.ts'],
     plugins: { boundaries },
     settings: API_BOUNDARY_SETTINGS,
@@ -191,6 +292,21 @@ export default defineConfig([
     // Tests may compose the application they test: the root is open to them.
     files: ['apps/api/**/*.test.ts'],
     rules: { 'boundaries/dependencies': ['error', apiDependencies({ guardRoot: false })] },
+  },
+  {
+    // The shared package's levels (docs/architecture/shared-package.md, R3), read from the same level
+    // map: core imports no capability and no package but zod, and a capability imports core and the
+    // capabilities at lower levels only, through their index.ts. A folder's own files are internal,
+    // which the rule does not check.
+    files: ['packages/shared/src/**/*.ts'],
+    plugins: { boundaries },
+    settings: SHARED_BOUNDARY_SETTINGS,
+    rules: { 'boundaries/dependencies': ['error', sharedDependencies({ guardPackages: true })] },
+  },
+  {
+    // Tests import their runner: core's tests may import packages.
+    files: ['packages/shared/src/**/*.test.ts'],
+    rules: { 'boundaries/dependencies': ['error', sharedDependencies({ guardPackages: false })] },
   },
   {
     // Radix primitives, the icon library, variant utilities, the toast library and every other
