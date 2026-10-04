@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states and the four route guards in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states, the four route guards and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -112,15 +112,19 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 - **While the session is restored,** every guard shows the design system's `Spinner`, centred. **While it is `unreachable`,** the offline state (no answer came back) or the general error (an answer that is not a verdict), whose "Try again", and the connection coming back when offline, re-run the restore.
 - **The return URL** travels as `?next=` on `/login` (`signInPath`). It is read back with `safeReturnUrl`, which accepts only a path on this site, so a crafted link cannot send a user elsewhere.
 
-**Not built yet** (F-6c): the landing below, which replaces `RequireGuest`'s return URL or `/`, and the switcher.
+**Built, with no user yet:** the landing below, `landingPath` in `shared/routing/landing/`. The sign-in pages and `/dashboard` switch to it with the dashboard's shell (F-6c2), where it replaces `RequireGuest`'s return URL or `/`.
+
+**Not built yet** (F-6c2): the switcher.
 
 - **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
 - **The dashboard's URL shape** ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) lives in `shared/routing` (`dashboardPaths.ts`), not in the `dashboard` group: the space guard and the landing read it, and `shared/` never imports `pages/`.
 - **Landing after sign-in:**
-  1. the return URL, when there is one;
+  1. the return URL, when there is one, read with `returnUrlOf`: a safe `next` wins, an explicit `next=/` included;
   2. otherwise the admin goes to the admin's overview;
-  3. a user with space links goes to the last space they used, on the page their link's role there gives: the overview for `OWNER`, the front desk for `RECEPTION`. When no space is remembered, or the remembered one is no longer an active link (a first sign-in, a link deactivated or removed), they go to their oldest active link, by the same rule. How the last space is remembered is F-6c's choice;
-  4. `/dashboard` itself redirects by the same rules.
+  3. a user with space links goes to the last space they used, on the page their link's role there gives: the overview for `OWNER`, the front desk for `RECEPTION`. When no space is remembered, or the remembered one is no longer an active link (a first sign-in, a link deactivated or removed), they go to their oldest active link, by the same rule;
+  4. a user with no role and no links goes home, `/`;
+  5. `/dashboard` itself redirects by the same rules.
+- **The last space** is remembered in the browser's `localStorage`, under a key that names the user (`rememberSpace`, for the space's pages to call; none does yet), and read back only while the user still holds an active link to it. Storage that is unavailable remembers nothing, and the landing falls back to the oldest link.
 - **Failed guards:**
   - a guest goes to sign-in, with the return URL;
   - a signed-in user without access gets a clear 403 page, never a silent redirect;
