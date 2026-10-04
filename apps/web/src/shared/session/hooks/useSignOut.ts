@@ -1,6 +1,5 @@
 import { toAppError, type AppError } from '@shared/errors';
 import { useCallback, useState } from 'react';
-import { appDependencies, type SessionDependencies } from '../repository/dependencies';
 import { signOut } from '../services/signOut';
 
 export type SignOut = {
@@ -12,18 +11,18 @@ export type SignOut = {
 };
 
 /** The server-confirmed sign-out, with its pending and error state for the screen that offers it. */
-export function useSignOut(dependencies: SessionDependencies = appDependencies): SignOut {
+export function useSignOut(): SignOut {
   const [state, setState] = useState<Omit<SignOut, 'signOut'>>({ isPending: false, error: null });
 
   const run = useCallback(async () => {
     setState({ isPending: true, error: null });
     try {
-      await signOut(dependencies);
+      await signOut();
       setState({ isPending: false, error: null });
     } catch (error) {
       setState({ isPending: false, error: toAppError(error) });
     }
-  }, [dependencies]);
+  }, []);
 
   return { signOut: run, ...state };
 }

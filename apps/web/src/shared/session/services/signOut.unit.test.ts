@@ -1,31 +1,46 @@
-import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { aSession, appError, fakeSessionRepository, fakeHint } from '../../../test/fakeSession';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import type { FakeAnswer } from '../../../test/fakeAdapter';
+import { aSession } from '../../../test/fakeSession';
+import { fakeTransport, refused, restoreTransport } from '../../../test/fakeTransport';
+import { hasSessionHint, setSessionHint, stubCookies } from '../../../test/sessionHint';
 import { signOut } from './signOut';
 import { establishSession, getSession, onSessionEnded } from '../store';
 
 function signedIn() {
   establishSession(aSession(), { source: 'signIn' });
+  setSessionHint(true);
   const ended = vi.fn();
   onTestFinished(onSessionEnded(ended));
   return { ended };
 }
 
+const NO_CONTENT: FakeAnswer = { status: 204 };
+
+beforeEach(() => {
+  stubCookies();
+});
+
+afterEach(() => {
+  restoreTransport();
+  vi.unstubAllGlobals();
+});
+
 describe('signOut', () => {
   it('ends the session, clears the hint and runs the ended listeners once the server agrees', async () => {
     const { ended } = signedIn();
-    const hint = fakeHint(true);
-    const repository = fakeSessionRepository();
+    const requests = fakeTransport(() => NO_CONTENT);
 
-    await signOut({ repository, hint });
+    await signOut();
 
-    expect(repository.logout).toHaveBeenCalledOnce();
+    expect(requests.map((request) => request.url)).toEqual(['/auth/logout']);
     expect(getSession().status).toBe('anonymous');
-    expect(hint.clear).toHaveBeenCalledOnce();
+    expect(hasSessionHint()).toBe(false);
     expect(ended).toHaveBeenCalledOnce();
   });
 
   it('ends the session, runs the other listeners and logs the error when an ended listener throws', async () => {
     signedIn();
+    fakeTransport(() => NO_CONTENT);
     const failure = new Error('A listener failed');
     onTestFinished(
       onSessionEnded(() => {
@@ -39,9 +54,7 @@ describe('signOut', () => {
       logged.mockRestore();
     });
 
-    await expect(
-      signOut({ repository: fakeSessionRepository(), hint: fakeHint(true) }),
-    ).resolves.toBeUndefined();
+    await expect(signOut()).resolves.toBeUndefined();
 
     expect(getSession().status).toBe('anonymous');
     expect(after).toHaveBeenCalledOnce();
@@ -49,21 +62,18 @@ describe('signOut', () => {
   });
 
   it.each([
-    ['network', 0],
-    ['server', 500],
-  ] as const)(
+    ['network', { failure: 'ERR_NETWORK' }],
+    ['server', refused(500, { type: 'server' })],
+  ] satisfies [string, FakeAnswer][])(
     'keeps the session and the hint, and rejects, on a %s failure',
-    async (type, status) => {
+    async (type, answer) => {
       const { ended } = signedIn();
-      const hint = fakeHint(true);
-      const repository = fakeSessionRepository({
-        logout: () => Promise.reject(appError(type, status)),
-      });
+      fakeTransport(() => answer);
 
-      await expect(signOut({ repository, hint })).rejects.toMatchObject({ type });
+      await expect(signOut()).rejects.toMatchObject({ type });
 
       expect(getSession().status).toBe('authenticated');
-      expect(hint.clear).not.toHaveBeenCalled();
+      expect(hasSessionHint()).toBe(true);
       expect(ended).not.toHaveBeenCalled();
     },
   );

@@ -5,8 +5,9 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { aSession, fakeSessionRepository, fakeHint } from '../../../test/fakeSession';
+import { aSession } from '../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
+import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
 import { siteRoutes } from '../routes';
 
@@ -29,7 +30,8 @@ function where(router: ReturnType<typeof createMemoryRouter>) {
 }
 
 async function becomeAnonymous() {
-  await restoreSession({ repository: fakeSessionRepository(), hint: fakeHint(false) });
+  setSessionHint(false);
+  await restoreSession();
 }
 
 beforeEach(async () => {

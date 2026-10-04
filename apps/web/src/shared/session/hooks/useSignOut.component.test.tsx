@@ -1,24 +1,21 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import {
-  aSession,
-  appError,
-  deferred,
-  fakeSessionRepository,
-  fakeHint,
-} from '../../../test/fakeSession';
+import { afterEach, describe, expect, it } from 'vitest';
+import type { FakeAnswer } from '../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../test/fakeSession';
+import { fakeTransport, restoreTransport } from '../../../test/fakeTransport';
 import { useSignOut } from './useSignOut';
 import { establishSession, getSession } from '../store';
+
+afterEach(() => {
+  restoreTransport();
+});
 
 describe('useSignOut', () => {
   it('is pending while the server answers, then ends the session', async () => {
     establishSession(aSession(), { source: 'signIn' });
-    const answer = deferred<undefined>();
-    const dependencies = {
-      repository: fakeSessionRepository({ logout: () => answer.promise }),
-      hint: fakeHint(true),
-    };
-    const { result } = renderHook(() => useSignOut(dependencies));
+    const answer = deferred<FakeAnswer>();
+    fakeTransport(() => answer.promise);
+    const { result } = renderHook(() => useSignOut());
 
     let signingOut: Promise<void> | undefined;
     act(() => {
@@ -27,7 +24,7 @@ describe('useSignOut', () => {
     expect(result.current.isPending).toBe(true);
 
     await act(async () => {
-      answer.resolve(undefined);
+      answer.resolve({ status: 204 });
       await signingOut;
     });
 
@@ -37,11 +34,8 @@ describe('useSignOut', () => {
 
   it('exposes the failure and keeps the session when the server cannot be reached', async () => {
     establishSession(aSession(), { source: 'signIn' });
-    const dependencies = {
-      repository: fakeSessionRepository({ logout: () => Promise.reject(appError('network', 0)) }),
-      hint: fakeHint(true),
-    };
-    const { result } = renderHook(() => useSignOut(dependencies));
+    fakeTransport(() => ({ failure: 'ERR_NETWORK' }));
+    const { result } = renderHook(() => useSignOut());
 
     await act(() => result.current.signOut());
 

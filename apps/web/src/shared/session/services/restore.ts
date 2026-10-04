@@ -1,5 +1,5 @@
 import { toAppError, type AppError } from '@shared/errors';
-import { appDependencies, type SessionDependencies } from '../repository/dependencies';
+import { cookieSessionHint } from '../repository/sessionHint';
 import type { UnreachableReason } from '../model';
 import { endsSession, refreshSession } from './refresh';
 import { endSession, markRestoring, markUnreachable, sessionGeneration } from '../store';
@@ -15,17 +15,15 @@ import { endSession, markRestoring, markUnreachable, sessionGeneration } from '.
  *   never signs the user out.
  * A session that ended while the restore waited stays ended.
  */
-export async function restoreSession(
-  dependencies: SessionDependencies = appDependencies,
-): Promise<void> {
-  if (!dependencies.hint.isPresent()) {
+export async function restoreSession(): Promise<void> {
+  if (!cookieSessionHint.isPresent()) {
     endSession();
     return;
   }
   markRestoring();
   const started = sessionGeneration();
   try {
-    await refreshSession(dependencies);
+    await refreshSession();
   } catch (error) {
     const failure = toAppError(error);
     if (endsSession(failure) || sessionGeneration() !== started) return;

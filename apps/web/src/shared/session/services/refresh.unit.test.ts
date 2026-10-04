@@ -1,49 +1,56 @@
-import { onTestFinished, describe, expect, it, vi } from 'vitest';
-import {
-  aSession,
-  appError,
-  deferred,
-  fakeSessionRepository,
-  fakeHint,
-} from '../../../test/fakeSession';
-import type { Session } from '../model';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import type { FakeAnswer } from '../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../test/fakeSession';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
+import { hasSessionHint, setSessionHint, stubCookies } from '../../../test/sessionHint';
 import { refreshSession } from './refresh';
 import { restoreSession } from './restore';
 import { signOut } from './signOut';
 import { establishSession, getSession, onSessionEnded } from '../store';
 
-/** A signed-in page, with a listener that counts the session's end. */
+/** A signed-in page, with its hint, and a listener that counts the session's end. */
 function signedIn() {
   establishSession(aSession({}, 'token-old'), { source: 'signIn' });
+  setSessionHint(true);
   const ended = vi.fn();
   onTestFinished(onSessionEnded(ended));
   return { ended };
 }
 
+/** The refreshes among the requests the fake server received. */
+function refreshes(requests: ReturnType<typeof fakeTransport>) {
+  return requests.filter((request) => request.url === '/auth/refresh');
+}
+
+beforeEach(() => {
+  stubCookies();
+});
+
+afterEach(() => {
+  restoreTransport();
+  vi.unstubAllGlobals();
+});
+
 describe('refreshSession', () => {
   it('makes one request when the restore and the transport refresh together', async () => {
-    const answer = deferred<Session>();
-    const repository = fakeSessionRepository({ refresh: () => answer.promise });
-    const dependencies = { repository, hint: fakeHint(true) };
+    setSessionHint(true);
+    const answer = deferred<FakeAnswer>();
+    const requests = fakeTransport(() => answer.promise);
 
-    const restoring = restoreSession(dependencies);
-    const transport = refreshSession(dependencies);
-    answer.resolve(aSession({}, 'token-new'));
+    const restoring = restoreSession();
+    const transport = refreshSession();
+    answer.resolve(ok(aSession({}, 'token-new')));
     await Promise.all([restoring, transport]);
 
-    expect(repository.refresh).toHaveBeenCalledOnce();
+    expect(refreshes(requests)).toHaveLength(1);
     expect(getSession().accessToken).toBe('token-new');
   });
 
   it('has the new token in the store by the time its promise resolves', async () => {
     signedIn();
-    const repository = fakeSessionRepository({
-      refresh: () => Promise.resolve(aSession({}, 'token-new')),
-    });
+    fakeTransport(() => ok(aSession({}, 'token-new')));
 
-    const tokenOnResolve = await refreshSession({ repository, hint: fakeHint(true) }).then(
-      () => getSession().accessToken,
-    );
+    const tokenOnResolve = await refreshSession().then(() => getSession().accessToken);
 
     expect(tokenOnResolve).toBe('token-new');
   });
@@ -55,15 +62,12 @@ describe('refreshSession', () => {
     'ends the session, clears the hint and rejects when the refresh answers %s %d %s',
     async (type, status, code) => {
       const { ended } = signedIn();
-      const hint = fakeHint(true);
-      const repository = fakeSessionRepository({
-        refresh: () => Promise.reject(appError(type, status, code)),
-      });
+      fakeTransport(() => refused(status, { type, ...(code ? { code } : {}) }));
 
-      await expect(refreshSession({ repository, hint })).rejects.toMatchObject({ status });
+      await expect(refreshSession()).rejects.toMatchObject({ status });
 
       expect(getSession().status).toBe('anonymous');
-      expect(hint.clear).toHaveBeenCalledOnce();
+      expect(hasSessionHint()).toBe(false);
       expect(ended).toHaveBeenCalledOnce();
     },
   );
@@ -71,27 +75,25 @@ describe('refreshSession', () => {
   it('keeps the session and rejects on a 403 with no code, a refusal of the request only', async () => {
     const { ended } = signedIn();
     const before = getSession();
-    const hint = fakeHint(true);
-    const repository = fakeSessionRepository({
-      refresh: () => Promise.reject(appError('forbidden', 403)),
-    });
+    fakeTransport(() => refused(403, { type: 'forbidden' }));
 
-    await expect(refreshSession({ repository, hint })).rejects.toMatchObject({ status: 403 });
+    await expect(refreshSession()).rejects.toMatchObject({ status: 403 });
 
     expect(getSession()).toEqual(before);
-    expect(hint.clear).not.toHaveBeenCalled();
+    expect(hasSessionHint()).toBe(true);
     expect(ended).not.toHaveBeenCalled();
   });
 
   it('drops a refresh that succeeds after a sign-out was answered first', async () => {
     signedIn();
-    const answer = deferred<Session>();
-    const hint = fakeHint(true);
-    const repository = fakeSessionRepository({ refresh: () => answer.promise });
+    const refreshAnswer = deferred<FakeAnswer>();
+    fakeTransport((request) =>
+      request.url === '/auth/refresh' ? refreshAnswer.promise : { status: 204 },
+    );
 
-    const refreshing = refreshSession({ repository, hint });
-    await signOut({ repository, hint });
-    answer.resolve(aSession({}, 'token-late'));
+    const refreshing = refreshSession();
+    await signOut();
+    refreshAnswer.resolve(ok(aSession({}, 'token-late')));
 
     await expect(refreshing).rejects.toMatchObject({ type: 'canceled' });
     expect(getSession()).toEqual({ status: 'anonymous', user: null, accessToken: null });
@@ -100,27 +102,23 @@ describe('refreshSession', () => {
   it('keeps the session and rejects when the refresh cannot reach the server', async () => {
     const { ended } = signedIn();
     const before = getSession();
-    const hint = fakeHint(true);
-    const repository = fakeSessionRepository({
-      refresh: () => Promise.reject(appError('network', 0)),
-    });
+    fakeTransport(() => ({ failure: 'ERR_NETWORK' }));
 
-    await expect(refreshSession({ repository, hint })).rejects.toMatchObject({ type: 'network' });
+    await expect(refreshSession()).rejects.toMatchObject({ type: 'network' });
 
     expect(getSession()).toEqual(before);
     expect(getSession().status).toBe('authenticated');
-    expect(hint.clear).not.toHaveBeenCalled();
+    expect(hasSessionHint()).toBe(true);
     expect(ended).not.toHaveBeenCalled();
   });
 
   it('starts a new request once the previous one has settled', async () => {
     signedIn();
-    const repository = fakeSessionRepository();
-    const dependencies = { repository, hint: fakeHint(true) };
+    const requests = fakeTransport(() => ok(aSession()));
 
-    await refreshSession(dependencies);
-    await refreshSession(dependencies);
+    await refreshSession();
+    await refreshSession();
 
-    expect(repository.refresh).toHaveBeenCalledTimes(2);
+    expect(refreshes(requests)).toHaveLength(2);
   });
 });

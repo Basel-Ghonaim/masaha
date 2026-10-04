@@ -1,24 +1,14 @@
 import { apiClient } from '@shared/api';
-import {
-  establishSession,
-  getSession,
-  restoreSession,
-  type Session,
-  type SessionUser,
-} from '@shared/session';
+import { establishSession, getSession, restoreSession, type SessionUser } from '@shared/session';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { fakeAdapter } from '../../../test/fakeAdapter';
-import {
-  aSession,
-  appError,
-  deferred,
-  fakeSessionRepository,
-  fakeHint,
-} from '../../../test/fakeSession';
+import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../test/fakeSession';
+import { fakeTransport, ok } from '../../../test/fakeTransport';
+import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
 import { RequireAuth } from './RequireAuth';
 import { RequireGuest } from './RequireGuest';
@@ -56,14 +46,15 @@ function signIn(user: Partial<SessionUser> = {}) {
 }
 
 async function becomeAnonymous() {
-  await restoreSession({ repository: fakeSessionRepository(), hint: fakeHint(false) });
+  setSessionHint(false);
+  await restoreSession();
 }
 
-async function becomeUnreachable(type: 'network' | 'server', status: number) {
-  const repository = fakeSessionRepository({
-    refresh: () => Promise.reject(appError(type, status)),
-  });
-  await restoreSession({ repository, hint: fakeHint(true) });
+/** A restore whose refresh gets `answer`, which is no verdict on the session. */
+async function becomeUnreachable(answer: FakeAnswer) {
+  setSessionHint(true);
+  fakeTransport(() => answer);
+  await restoreSession();
 }
 
 function where(router: ReturnType<typeof createMemoryRouter>) {
@@ -84,26 +75,24 @@ afterEach(() => {
 
 describe.each(GUARDS)('%s', (_, guard) => {
   it('shows the spinner while the session is restored', async () => {
-    const answer = deferred<Session>();
-    const restoring = restoreSession({
-      repository: fakeSessionRepository({ refresh: () => answer.promise }),
-      hint: fakeHint(true),
-    });
+    const answer = deferred<FakeAnswer>();
+    setSessionHint(true);
+    fakeTransport(() => answer.promise);
+    const restoring = restoreSession();
 
     renderGuarded(guard);
 
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
     expect(screen.queryByText('The guarded page')).not.toBeInTheDocument();
     await act(async () => {
-      answer.resolve(aSession({ role: 'ADMIN' }));
+      answer.resolve(ok(aSession({ role: 'ADMIN' })));
       await restoring;
     });
   });
 
   it('shows offline when no answer came back, and Try again re-runs the restore', async () => {
     const user = userEvent.setup();
-    await becomeUnreachable('network', 0);
-    document.cookie = 'masaha_session=1; Path=/';
+    await becomeUnreachable({ failure: 'ERR_NETWORK' });
     const server = fakeAdapter(() => ({
       status: 200,
       data: { success: true, data: aSession({ role: 'ADMIN' }) },
@@ -126,8 +115,7 @@ describe.each(GUARDS)('%s', (_, guard) => {
 
   it('shows the general error when the answer was no verdict, and Try again re-runs the restore', async () => {
     const user = userEvent.setup();
-    await becomeUnreachable('server', 503);
-    document.cookie = 'masaha_session=1; Path=/';
+    await becomeUnreachable({ status: 503 });
     const server = fakeAdapter(() => ({
       status: 200,
       data: { success: true, data: aSession({ role: 'ADMIN' }) },

@@ -1,30 +1,37 @@
-import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import {
-  aSession,
-  appError,
-  deferred,
-  fakeSessionRepository,
-  fakeHint,
-} from '../../../test/fakeSession';
-import type { Session } from '../model';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import type { FakeAnswer } from '../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../test/fakeSession';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
+import { hasSessionHint, setSessionHint, stubCookies } from '../../../test/sessionHint';
 import { restoreSession } from './restore';
 import { getSession, onSessionEnded, onSessionEstablished } from '../store';
 
+beforeEach(() => {
+  stubCookies();
+});
+
+afterEach(() => {
+  restoreTransport();
+  vi.unstubAllGlobals();
+});
+
 describe('restoreSession', () => {
   it('is anonymous at once, with no request, when there is no hint', async () => {
-    const repository = fakeSessionRepository();
+    setSessionHint(false);
+    const requests = fakeTransport(() => ok(aSession()));
 
-    await restoreSession({ repository, hint: fakeHint(false) });
+    await restoreSession();
 
     expect(getSession().status).toBe('anonymous');
-    expect(repository.refresh).not.toHaveBeenCalled();
+    expect(requests).toHaveLength(0);
   });
 
   it('holds the user and the token the refresh returns', async () => {
+    setSessionHint(true);
     const session = aSession({ name: 'Omar' }, 'token-restored');
-    const repository = fakeSessionRepository({ refresh: () => Promise.resolve(session) });
+    fakeTransport(() => ok(session));
 
-    await restoreSession({ repository, hint: fakeHint(true) });
+    await restoreSession();
 
     expect(getSession()).toEqual({
       status: 'authenticated',
@@ -34,13 +41,14 @@ describe('restoreSession', () => {
   });
 
   it('is restoring while the refresh is on its way', async () => {
-    const answer = deferred<Session>();
-    const repository = fakeSessionRepository({ refresh: () => answer.promise });
+    setSessionHint(true);
+    const answer = deferred<FakeAnswer>();
+    fakeTransport(() => answer.promise);
 
-    const restoring = restoreSession({ repository, hint: fakeHint(true) });
+    const restoring = restoreSession();
 
     expect(getSession().status).toBe('restoring');
-    answer.resolve(aSession());
+    answer.resolve(ok(aSession()));
     await restoring;
   });
 
@@ -50,36 +58,35 @@ describe('restoreSession', () => {
   ] as const)(
     'is anonymous, clears the hint and runs no ended listener when the refresh answers %s %d %s',
     async (type, status, code) => {
+      setSessionHint(true);
       const ended = vi.fn();
       onTestFinished(onSessionEnded(ended));
-      const hint = fakeHint(true);
-      const repository = fakeSessionRepository({
-        refresh: () => Promise.reject(appError(type, status, code)),
-      });
+      fakeTransport(() => refused(status, { type, ...(code ? { code } : {}) }));
 
-      await restoreSession({ repository, hint });
+      await restoreSession();
 
       expect(getSession().status).toBe('anonymous');
-      expect(hint.clear).toHaveBeenCalledOnce();
+      expect(hasSessionHint()).toBe(false);
       expect(ended).not.toHaveBeenCalled();
     },
   );
 
   it('makes one request when two restores run together', async () => {
-    const answer = deferred<Session>();
-    const repository = fakeSessionRepository({ refresh: () => answer.promise });
-    const dependencies = { repository, hint: fakeHint(true) };
+    setSessionHint(true);
+    const answer = deferred<FakeAnswer>();
+    const requests = fakeTransport(() => answer.promise);
 
-    const first = restoreSession(dependencies);
-    const second = restoreSession(dependencies);
-    answer.resolve(aSession());
+    const first = restoreSession();
+    const second = restoreSession();
+    answer.resolve(ok(aSession()));
     await Promise.all([first, second]);
 
-    expect(repository.refresh).toHaveBeenCalledOnce();
+    expect(requests).toHaveLength(1);
     expect(getSession().status).toBe('authenticated');
   });
 
   it('stays authenticated, and logs the error, when an established listener throws', async () => {
+    setSessionHint(true);
     const failure = new Error('A listener failed');
     onTestFinished(
       onSessionEstablished(() => {
@@ -90,52 +97,51 @@ describe('restoreSession', () => {
     onTestFinished(() => {
       logged.mockRestore();
     });
-    const repository = fakeSessionRepository();
+    const requests = fakeTransport(() => ok(aSession()));
 
-    await expect(restoreSession({ repository, hint: fakeHint(true) })).resolves.toBeUndefined();
+    await expect(restoreSession()).resolves.toBeUndefined();
 
     expect(getSession().status).toBe('authenticated');
     expect(logged).toHaveBeenCalledExactlyOnceWith(failure);
-    expect(repository.refresh).toHaveBeenCalledOnce();
+    expect(requests).toHaveLength(1);
   });
 
   it.each([
-    ['network', 0, 'offline'],
-    ['timeout', 0, 'offline'],
-    ['server', 500, 'error'],
-    ['service_unavailable', 503, 'error'],
-    ['server', 502, 'error'],
-    ['rate_limit', 429, 'error'],
-    ['forbidden', 403, 'error'],
-  ] as const)('is unreachable (%s %d → %s) and keeps the hint', async (type, status, reason) => {
-    const hint = fakeHint(true);
-    const repository = fakeSessionRepository({
-      refresh: () => Promise.reject(appError(type, status)),
-    });
+    ['network', { failure: 'ERR_NETWORK' }, 'offline'],
+    ['timeout', { failure: 'ECONNABORTED' }, 'offline'],
+    ['server 500', refused(500, { type: 'server' }), 'error'],
+    ['service_unavailable 503', refused(503, { type: 'service_unavailable' }), 'error'],
+    ['a proxy 502', { status: 502 }, 'error'],
+    ['rate_limit 429', refused(429, { type: 'rate_limit' }), 'error'],
+    ['forbidden 403', refused(403, { type: 'forbidden' }), 'error'],
+  ] satisfies [string, FakeAnswer, string][])(
+    'is unreachable (%s → %s) and keeps the hint',
+    async (_case, answer, reason) => {
+      setSessionHint(true);
+      fakeTransport(() => answer);
 
-    await restoreSession({ repository, hint });
+      await restoreSession();
 
-    expect(getSession()).toEqual({
-      status: 'unreachable',
-      reason,
-      user: null,
-      accessToken: null,
-    });
-    expect(hint.clear).not.toHaveBeenCalled();
-  });
+      expect(getSession()).toEqual({
+        status: 'unreachable',
+        reason,
+        user: null,
+        accessToken: null,
+      });
+      expect(hasSessionHint()).toBe(true);
+    },
+  );
 
   it('restores the session when retried after being unreachable', async () => {
-    const hint = fakeHint(true);
-    const repository = fakeSessionRepository({
-      refresh: () => Promise.reject(appError('network', 0)),
-    });
-    await restoreSession({ repository, hint });
+    setSessionHint(true);
+    const answers: FakeAnswer[] = [{ failure: 'ERR_NETWORK' }, ok(aSession())];
+    const requests = fakeTransport(() => answers.shift() ?? ok(aSession()));
+    await restoreSession();
     expect(getSession().status).toBe('unreachable');
 
-    repository.refresh.mockImplementation(() => Promise.resolve(aSession()));
-    await restoreSession({ repository, hint });
+    await restoreSession();
 
     expect(getSession().status).toBe('authenticated');
-    expect(repository.refresh).toHaveBeenCalledTimes(2);
+    expect(requests).toHaveLength(2);
   });
 });

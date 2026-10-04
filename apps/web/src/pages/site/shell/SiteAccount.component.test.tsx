@@ -6,8 +6,9 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../test/fakeAdapter';
-import { aSession, fakeSessionRepository, fakeHint } from '../../../test/fakeSession';
+import { aSession } from '../../../test/fakeSession';
 import { fakeTransport, ok, restoreTransport } from '../../../test/fakeTransport';
+import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
 import { siteRoutes } from '../routes';
 
@@ -50,7 +51,8 @@ const NO_CONTENT: FakeAnswer = { status: 204 };
 
 beforeEach(async () => {
   startPreferences('en');
-  await restoreSession({ repository: fakeSessionRepository(), hint: fakeHint(false) });
+  setSessionHint(false);
+  await restoreSession();
 });
 
 afterEach(() => {
