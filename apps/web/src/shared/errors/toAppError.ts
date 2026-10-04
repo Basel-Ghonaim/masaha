@@ -3,6 +3,7 @@ import {
   ERROR_TYPES,
   FIELD_ERROR_CODES,
   type DomainErrorCode,
+  type ErrorEnvelope,
   type ErrorType,
   type FieldErrorCode,
   type FieldErrors,
@@ -30,9 +31,7 @@ const TYPE_BY_STATUS: Readonly<Partial<Record<number, ErrorType>>> = {
 };
 
 /** The fields of the error envelope (api-contract §2), none of them trusted yet. */
-type UncheckedEnvelope = Partial<
-  Record<'type' | 'code' | 'message' | 'errors' | 'requestId', unknown>
->;
+type UncheckedEnvelope = Partial<Record<keyof ErrorEnvelope['error'], unknown>>;
 
 /**
  * The one normaliser: any failure becomes an `AppError` (docs/frontend/architecture.md §5). An

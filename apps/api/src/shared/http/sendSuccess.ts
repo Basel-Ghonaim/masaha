@@ -1,4 +1,4 @@
-import type { PaginationMeta } from '@masaha/shared/core';
+import type { PaginationMeta, SuccessEnvelope } from '@masaha/shared/core';
 import type { Response } from 'express';
 
 interface SuccessOptions {
@@ -12,7 +12,12 @@ export function sendSuccess(
   data: unknown,
   { status = 200, meta }: SuccessOptions = {},
 ) {
-  res.status(status).json({ success: true, data, ...(meta && { meta }) });
+  const body: SuccessEnvelope<unknown, PaginationMeta> = {
+    success: true,
+    data,
+    ...(meta && { meta }),
+  };
+  res.status(status).json(body);
 }
 
 /** 204 carries no body, so no envelope. */

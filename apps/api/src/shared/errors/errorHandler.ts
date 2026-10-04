@@ -1,3 +1,4 @@
+import type { ErrorEnvelope } from '@masaha/shared/core';
 import type { ErrorRequestHandler, RequestHandler, Response } from 'express';
 
 import { AppError, errorTypeForStatus, type RateLimitState } from './appError.ts';
@@ -32,7 +33,7 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, req, res, next
       // §10), before anything else runs.
       requestId: req.id as string,
     },
-  });
+  } satisfies ErrorEnvelope);
 };
 
 // The IETF RateLimit header fields (draft-ietf-httpapi-ratelimit-headers), and Retry-After.
