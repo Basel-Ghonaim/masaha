@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell with the sign-in and register pages, and the status states, the four route guards and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email) and `features/users` (its account menu), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell with the sign-in and register pages, and the status states, the four route guards and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -168,7 +168,7 @@ features/<capability>/
 
 **A component renders, and that is all.** It gets everything it needs from its hook, **ready to render**: values, actions (submit, retry), states (pending, disabled), and errors as **text and view models**. A component never touches an `AppError`, an error code, `Retry-After`, a mutation, the transport or a query client.
 
-- `SignInForm` renders what `useSignInForm` returns.
+- `SignInForm` renders what `useSignInForm` returns; `AccountMenu` (`features/users`) renders what `useAccount` returns.
 - A hook may hand another hook more than a component gets, such as the form instance for `useWatch`; a component never receives it.
 
 ### React Query in a feature
@@ -190,10 +190,10 @@ features/<capability>/
 
 ### What a feature exports
 
-**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. `features/auth` exports `SignInForm` and `RegisterForm`, and nothing else.
+**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. `features/auth` exports `SignInForm` and `RegisterForm`; `features/users` exports `AccountMenu` and `AccountMenuSection`.
 
 - **One capability, several places.** Ask who owns the variation (a screen is not a capability):
-  - **the places show the capability's own fact differently:** the feature exports the UI, with props or as two components;
+  - **the places show the capability's own fact differently:** the feature exports the UI, with props or as two components (the account in a header's menu, and in a phone menu's section);
   - **a place mixes the capability with others, or arranges its own layout:** the feature exports small pieces or hooks, and the page composes.
 - **A component that combines several capabilities never lives in one of them.** It lives in the page, which composes the card, the title and the links around a feature's form.
 - **Features know no routes.** No path is written inside a feature: links are props the page passes (`forgotPasswordLink`, `signInLink`).

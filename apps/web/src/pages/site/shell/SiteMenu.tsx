@@ -1,3 +1,4 @@
+import { AccountMenuSection } from '@features/users';
 import { useCopy } from '@shared/copy';
 import {
   Button,
@@ -11,14 +12,19 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@shared/design-system';
+import { useSession } from '@shared/session';
 import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
 import { SITE_LINKS, SITE_PATHS } from '../navigation';
 import { SiteLanguageToggle } from './toggles';
 
-/** The phone's menu: the header's links, sign-in and the language, in a sheet from the start side. */
+/**
+ * The phone's menu, in a sheet from the start side: the header's links, sign-in or the account once
+ * signed in, and the language.
+ */
 export function SiteMenu() {
   const copy = useCopy();
+  const user = useSession((session) => session.user);
   // The sheet is open for the location it was opened at, so any move closes it: a link chosen in
   // it, or the browser's back and forward.
   const { key } = useLocation();
@@ -56,13 +62,16 @@ export function SiteMenu() {
                 </NavLink>
               </Button>
             ))}
-            <Button asChild variant="ghost" className="w-full justify-start">
-              <Link to={SITE_PATHS.signIn}>
-                <LogInIcon aria-hidden />
-                {copy.site.signIn}
-              </Link>
-            </Button>
+            {!user && (
+              <Button asChild variant="ghost" className="w-full justify-start">
+                <Link to={SITE_PATHS.signIn}>
+                  <LogInIcon aria-hidden />
+                  {copy.site.signIn}
+                </Link>
+              </Button>
+            )}
           </nav>
+          {user && <AccountMenuSection user={user} />}
         </SheetBody>
         <SheetFooter>
           <SiteLanguageToggle className="self-start" />
