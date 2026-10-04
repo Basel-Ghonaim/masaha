@@ -16,6 +16,7 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
 - [glossary.md](project/glossary.md) — the canonical vocabulary (English and Arabic).
 
 ### `architecture/` — how the system fits together
+- [system-overview.md](architecture/system-overview.md) — the running system's parts, and one request traced from the web to the database and back; it links to each part's owner.
 - [data-model.md](architecture/data-model.md) — data conventions, entities, derived values and constraints; the Prisma schema owns the fields.
 - [decisions/](architecture/decisions/) — Architectural Decision Records:
   - [0001](architecture/decisions/0001-monorepo-and-stack.md) monorepo and stack
@@ -64,7 +65,6 @@ These documents are **committed but not yet written**, because what they describ
 
 | Document | Written when | Holds until then |
 |---|---|---|
-| `architecture/system-overview.md` | the first request works end to end (web → API → database) | [ADR 0001](architecture/decisions/0001-monorepo-and-stack.md) (stack) |
 | *Endpoints* in [api-contract.md](api/api-contract.md) | each endpoint is built | [plan: planned API surface](plans/v1-mvp.md#planned-api-surface) |
 
 ### `plans/`
