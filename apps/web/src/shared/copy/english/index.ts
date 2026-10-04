@@ -1,4 +1,5 @@
 import { ERRORS } from './errors';
+import { FORMS } from './forms';
 import { PREFERENCES } from './preferences';
 import { SITE } from './site';
 import { STATUS } from './status';
@@ -15,6 +16,7 @@ import { VALIDATION } from './validation';
  */
 export const ENGLISH = {
   errors: ERRORS,
+  forms: FORMS,
   preferences: PREFERENCES,
   site: SITE,
   status: STATUS,
