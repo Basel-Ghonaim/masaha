@@ -326,12 +326,19 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - the site shell (header, footer, the phone menu) with the language and theme toggles;
   - the placeholder pages of home, the directory and about;
   - the not-found, error and offline states in `shared/routing`, inside the site shell.
-- **F-6c — The dashboard shells** (`feat/dashboard-shells`):
-  - the dashboard shell (sidebar per role: ADMIN, and OWNER or RECEPTION at the selected space; top bar; space switcher);
-  - the landing after sign-in ([architecture.md › Landing and guards](../frontend/architecture.md#landing-and-guards));
+- **F-6c — The dashboard shells**, split in its plan step (2026-10-04) into two Work Items, each its own conversation and PR:
+- **F-6c1 — My spaces, the space guard and the landing rule** (`feat/my-spaces`):
+  - `GET /manage/spaces`, the caller's spaces and their role at each, through `space-links` over minimal `spaces` and `lookups` modules;
+  - the web's `space-links` capability that reads it;
+  - the space-role guard (OWNER or RECEPTION at the `:spaceId` in the URL) and the full landing rule ([architecture.md › Landing and guards](../frontend/architecture.md#landing-and-guards)), with the dashboard's URL shape in `shared/routing`;
+  - nothing visible yet: F-6c2 is the first user of the guard and the landing.
+- **F-6c2 — The dashboard shell** (`feat/dashboard-shells`):
+  - the dashboard shell (sidebar per role: ADMIN, and OWNER or RECEPTION at the selected space; top bar; space switcher) and its placeholder pages;
+  - the landing wired into the sign-in pages;
+  - adds `space-links` to [architecture.md §3](../frontend/architecture.md#3-capabilities-features)'s capability table, and decides whether it is dashboard-only;
   - the site and dashboard boundary ([ADR 0011](../architecture/decisions/0011-one-web-app.md), [architecture.md §2–§3](../frontend/architecture.md#2-page-groups)): the dashboard group mounted lazily, and the dashboard-only rule in lint, over the capability names of [architecture.md §3](../frontend/architecture.md#3-capabilities-features);
-  - the account's profile and settings belong to the `users` capability;
   - acceptance: a guest's download holds no dashboard code, and `pages/site` importing a dashboard-only capability fails `lint`.
+- **The account settings page** ([SCREENS.md](../design/SCREENS.md) row 9) is no longer part of F-6. It needs `GET`/`PATCH /me` on the API, and becomes its own later item; it belongs to the `users` capability.
 
 ### F-7 — First public deployment · `chore/deployment`
 
