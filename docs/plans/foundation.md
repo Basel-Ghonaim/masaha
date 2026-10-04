@@ -1,6 +1,6 @@
 # Plan — Application foundation
 
-> **Status:** Active · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built, the backend architecture they are built on, and the first public deployment. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
@@ -8,7 +8,7 @@
 **Goal:** the web app talks to a real API backed by PostgreSQL. A user can register, sign in, stay signed in across reloads, and land in the right shell for their role, in Arabic or English, light or dark, locally and at the public address.
 
 **Finished when:**
-- F-1 to F-7 (F-5 as F-5a and F-5b, F-5b as F-5b1 to F-5b3), F-3b and A-1 to A-3 are merged;
+- F-1 to F-7 (F-5 as F-5a and F-5b, F-5b as F-5b1 to F-5b3, F-5b3 as F-5b3a to F-5b3c), F-3b and A-1 to A-3 are merged;
 - CI runs every lane, including `test:api` against a real PostgreSQL;
 - the *Entities* section of `data-model.md`, `architecture/system-overview.md` and the catalogue part of `localisation.md` *Mechanism* are written (deferred documents).
 
@@ -308,16 +308,19 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
 - **F-5b2 — The session and the guards**:
   - `shared/session` and the `RequireRole` guards ([architecture.md §2](../frontend/architecture.md#landing-and-guards)), wired into F-5b1's transport at bootstrap: the token getter and the refresh;
   - writes `architecture/system-overview.md` if restoring the session is the first request from web to API to database.
-- **F-5b3 — The auth screens**, to be split further when planned:
-  - the screens of [SCREENS.md](../design/SCREENS.md) rows 5–7 and the forced password change of row 9:
-    - sign in, with Google, the "accounts linked" toast (the Google response's `linked`), which also says the account's password was removed and can be set again by the reset email, the `GOOGLE_LINK_NOT_ALLOWED` state, and the too-many-attempts state;
-    - register, sending the interface language;
-    - forgot password;
-    - reset password: the page reads the token from the URL fragment (`/reset-password#token=…`), removes it from the address bar, then checks it;
-    - the forced password change, before any other page;
-  - its web dependencies (for example `react-hook-form`);
-  - the Google client ID on the web;
-  - writes `architecture/system-overview.md` if F-5b2 has not.
+- **F-5b3 — The auth screens**, the screens of [SCREENS.md](../design/SCREENS.md) rows 5–7 and the forced password change of row 9, split in its plan step (2026-10-04) into three Work Items, each its own conversation and PR. The first is the project's first feature, so its shape sets the pattern the others follow:
+- **F-5b3a — Sign in and register by email** (`feat/auth-email`):
+  - `shared/forms`, the forms platform, with `react-hook-form` and `@hookform/resolvers` (approved in its plan step);
+  - sign in, with the too-many-attempts state;
+  - register, sending the interface language;
+  - the focus shell, and the account in the site header.
+- **F-5b3b — Google sign-in**:
+  - sign in with Google, the "accounts linked" toast (the Google response's `linked`), which also says the account's password was removed and can be set again by the reset email, and the `GOOGLE_LINK_NOT_ALLOWED` state;
+  - the Google client ID on the web.
+- **F-5b3c — Forgot, reset and the forced change**:
+  - forgot password;
+  - reset password: the page reads the token from the URL fragment (`/reset-password#token=…`), removes it from the address bar, then checks it;
+  - the forced password change, before any other page.
 - **F-6 — Shells and preferences**, split in its plan step (2026-10-03) into three Work Items, each its own conversation and PR:
 - **F-6a — Preferences** (`feat/preferences`, its own plan step on 2026-10-02), built: `shared/preferences` (language and theme, writing the pre-paint keys).
 - **F-6b — The layout tree and the site shell** (`feat/site-shell`):
