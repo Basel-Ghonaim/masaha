@@ -1,8 +1,8 @@
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../test/fakeSession';
-import type { Session } from './model';
+import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
+import type { Session } from '../model';
 import { restoreSession } from './restore';
-import { getSession, onSessionEnded, onSessionEstablished } from './store';
+import { getSession, onSessionEnded, onSessionEstablished } from '../store';
 
 describe('restoreSession', () => {
   it('is anonymous at once, with no request, when there is no hint', async () => {

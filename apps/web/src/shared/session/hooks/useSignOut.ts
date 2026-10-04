@@ -1,7 +1,7 @@
 import { toAppError, type AppError } from '@shared/errors';
 import { useCallback, useState } from 'react';
-import { appDependencies, type SessionDependencies } from './dependencies';
-import { signOut } from './signOut';
+import { appDependencies, type SessionDependencies } from '../gateway/dependencies';
+import { signOut } from '../services/signOut';
 
 export type SignOut = {
   /** Signs out; a failure is kept in `error`, never thrown. */

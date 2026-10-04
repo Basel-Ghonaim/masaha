@@ -1,10 +1,10 @@
 import { onTestFinished, describe, expect, it, vi } from 'vitest';
-import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../test/fakeSession';
-import type { Session } from './model';
+import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
+import type { Session } from '../model';
 import { refreshSession } from './refresh';
 import { restoreSession } from './restore';
 import { signOut } from './signOut';
-import { establishSession, getSession, onSessionEnded } from './store';
+import { establishSession, getSession, onSessionEnded } from '../store';
 
 /** A signed-in page, with a listener that counts the session's end. */
 function signedIn() {

@@ -1,8 +1,8 @@
 import { toAppError, type AppError } from '@shared/errors';
-import { appDependencies, type SessionDependencies } from './dependencies';
-import type { UnreachableReason } from './model';
+import { appDependencies, type SessionDependencies } from '../gateway/dependencies';
+import type { UnreachableReason } from '../model';
 import { endsSession, refreshSession } from './refresh';
-import { endSession, markRestoring, markUnreachable, sessionGeneration } from './store';
+import { endSession, markRestoring, markUnreachable, sessionGeneration } from '../store';
 
 /**
  * Restores the session when the app starts, and again on each retry while `unreachable`. It never

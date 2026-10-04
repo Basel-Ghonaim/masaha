@@ -1,7 +1,7 @@
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { aSession, appError, fakeEndpoints, fakeHint } from '../../test/fakeSession';
+import { aSession, appError, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
 import { signOut } from './signOut';
-import { establishSession, getSession, onSessionEnded } from './store';
+import { establishSession, getSession, onSessionEnded } from '../store';
 
 function signedIn() {
   establishSession(aSession(), { source: 'signIn' });

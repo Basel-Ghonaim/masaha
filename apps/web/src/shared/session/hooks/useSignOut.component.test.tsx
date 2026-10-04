@@ -1,8 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../test/fakeSession';
-import { useSignOut } from './hooks';
-import { establishSession, getSession } from './store';
+import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
+import { useSignOut } from './useSignOut';
+import { establishSession, getSession } from '../store';
 
 describe('useSignOut', () => {
   it('is pending while the server answers, then ends the session', async () => {

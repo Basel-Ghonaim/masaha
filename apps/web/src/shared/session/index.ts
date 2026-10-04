@@ -1,4 +1,4 @@
-export { useSignOut, type SignOut } from './hooks';
+export { useSignOut, type SignOut } from './hooks/useSignOut';
 export type {
   Session,
   SessionSource,
@@ -7,8 +7,8 @@ export type {
   SessionUser,
   UnreachableReason,
 } from './model';
-export { refreshSession } from './refresh';
-export { restoreSession } from './restore';
+export { refreshSession } from './services/refresh';
+export { restoreSession } from './services/restore';
 export {
   establishSession,
   getSession,

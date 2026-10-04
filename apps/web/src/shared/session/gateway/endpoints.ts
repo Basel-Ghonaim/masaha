@@ -1,5 +1,5 @@
 import { api, type Api } from '@shared/api';
-import type { Session } from './model';
+import type { Session } from '../model';
 
 /**
  * The session's own calls (docs/api/api-contract.md §5 › Session). Sign-in, registration and Google

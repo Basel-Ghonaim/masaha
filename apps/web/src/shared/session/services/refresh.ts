@@ -1,6 +1,6 @@
 import { AppError, toAppError } from '@shared/errors';
-import { appDependencies, type SessionDependencies } from './dependencies';
-import { endSession, establishSession, sessionGeneration } from './store';
+import { appDependencies, type SessionDependencies } from '../gateway/dependencies';
+import { endSession, establishSession, sessionGeneration } from '../store';
 
 /**
  * Only the server's verdict on the session ends it: a refresh refused with 401, or with 403 because

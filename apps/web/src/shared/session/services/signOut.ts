@@ -1,5 +1,5 @@
-import { appDependencies, type SessionDependencies } from './dependencies';
-import { endSession } from './store';
+import { appDependencies, type SessionDependencies } from '../gateway/dependencies';
+import { endSession } from '../store';
 
 /**
  * Signs out on the server, which is the source of truth; only then does the session end here. A failed
