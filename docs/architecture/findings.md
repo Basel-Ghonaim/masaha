@@ -320,3 +320,11 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 **Evidence:** a controller behind `requireAuth` reads the user's claims from `req.auth` through a small `signedIn(req)` helper, which throws 401 when they are missing. It is written in `apps/api/src/modules/users/users.controller.ts` and again in `apps/api/src/modules/space-links/space-links.controller.ts`, and each new module with a `me` router would add another copy.
 
 **Resolves when:** the helper moves to `shared/auth`, beside `requireAuth`, and both controllers use it, in an item allowed to touch both modules.
+
+## 26. `npm run format -- --check` rewrites files
+
+**Status:** Open · **Date:** 2026-10-04
+
+**Evidence:** the root `format` script runs Prettier with `--write`, so `npm run format -- --check` passes both flags and rewrites every file it would only have reported. On F-5b3a it rewrote `apps/web/src/shared/preferences/preferences.unit.test.ts`, which is not Prettier-formatted on `main`, outside the item's scope; the file was restored by hand. A check that writes is a trap: it changes files the author never meant to touch.
+
+**Resolves when:** a separate script checks without writing (for example `format:check`, `prettier --check .`), and the documents point to it.
