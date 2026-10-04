@@ -23,11 +23,24 @@ export const AUTH = {
     },
   },
   signIn: {
+    title: 'تسجيل الدخول',
+    description:
+      'سجّل الدخول لمتابعة مساحاتك المفضّلة والبلاغات التي أرسلتها عن المعلومات الخاطئة.',
     submit: 'تسجيل الدخول',
     failed: 'تعذّر تسجيل الدخول',
+    forgotPassword: 'نسيت كلمة المرور؟',
+    noAccount: 'ليس لديك حساب؟',
+    createAccount: 'إنشاء حساب',
+    browseWithoutAccount: 'تصفّح المساحات بدون حساب',
   },
   register: {
+    title: 'إنشاء حساب',
+    description: 'احفظ مساحاتك المفضّلة وتابع البلاغات التي ترسلها.',
     submit: 'إنشاء الحساب',
     failed: 'تعذّر إنشاء الحساب',
+    haveAccount: 'لديك حساب؟',
+    signIn: 'تسجيل الدخول',
+    signInInstead: 'سجّل الدخول بهذا البريد',
+    ownerNote: 'تدير مساحة عمل؟ حسابات أصحاب المساحات ينشئها فريق مساحة.',
   },
 } satisfies Catalogue['auth'];

@@ -1,4 +1,4 @@
-/** Signing in and registering: the forms, and what they say about a field. */
+/** Signing in and registering: the pages, their forms, and what the forms say about a field. */
 export const AUTH = {
   fields: {
     name: 'Name',
@@ -25,11 +25,25 @@ export const AUTH = {
     },
   },
   signIn: {
+    title: 'Sign in',
+    description:
+      'Sign in to follow your favourite spaces and the reports you’ve sent about wrong information.',
     submit: 'Sign in',
     failed: 'Couldn’t sign in',
+    forgotPassword: 'Forgot password?',
+    noAccount: 'No account?',
+    createAccount: 'Create account',
+    browseWithoutAccount: 'Browse spaces without an account',
   },
   register: {
+    title: 'Create account',
+    description: 'Save your favourite spaces and follow the reports you send.',
     submit: 'Create account',
     failed: 'Couldn’t create the account',
+    haveAccount: 'Have an account?',
+    signIn: 'Sign in',
+    /** Under the email field when the address already has an account. */
+    signInInstead: 'Sign in with this email',
+    ownerNote: 'Run a coworking space? Space owner accounts are created by the Masaha team.',
   },
 } as const;

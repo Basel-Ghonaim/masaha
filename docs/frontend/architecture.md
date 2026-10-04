@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states, the four route guards and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell with the sign-in and register pages, and the status states, the four route guards and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -51,8 +51,8 @@ RootLayout (app)                 ScrollRestoration; a last-resort error state wi
 - **Each level adds one thing** around its `<Outlet/>`.
 - **Each domain owns its own shell**, and places the status states inside it.
 - **A layout is built with its first consumer.**
-  - Built: `RootLayout` and `SiteLayout`, with the site's header, footer and phone menu.
-  - Not built yet: `FocusLayout`, with the auth screens (F-5b3); `AccountLayout`, with the first account screen; `DashboardLayout`, with the dashboard shell (F-6c2).
+  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`, with sign-in and register.
+  - Not built yet: `AccountLayout`, with the first account screen; `DashboardLayout`, with the dashboard shell (F-6c2).
 
 ### The two groups
 
@@ -78,7 +78,7 @@ pages/
     space/          the screens of the space in the URL (OWNER, RECEPTION)
 ```
 
-Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index.ts`, `navigation.ts`, the site shell and the placeholder public pages. The `dashboard` group, `FocusLayout`, `auth/`, `account/` and the space details page are not built yet.
+Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and in `auth/` the sign-in and register pages. The `dashboard` group, the rest of `auth/`, `account/` and the space details page are not built yet.
 
 - **Lazy loading.**
   - A group's `index.ts` exports **route definitions only**. Their components load through React Router's `lazy`, so a visitor to the site never downloads dashboard code.
@@ -100,13 +100,13 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 
 ### Landing and guards
 
-**Built:** the four guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). No route uses one yet: the account and auth pages bring the first uses (F-5b3), and the dashboard's shell the first of `RequireSpaceRole` (F-6c2).
+**Built:** the four guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). `RequireGuest` guards `/login` and `/register`; `RequireAuth` and `RequireRole` have no route yet, and come with the account and dashboard pages, and the dashboard's shell brings the first use of `RequireSpaceRole` (F-6c2).
 
 | Guard | Lets through | Otherwise |
 |---|---|---|
 | `RequireAuth` | a signed-in user | a guest goes to sign-in |
 | `RequireRole roles={[…]}` | a signed-in user with one of the global roles | a guest goes to sign-in; another role sees `ForbiddenState`, a 403, in place |
-| `RequireGuest` | a guest (the auth pages) | a signed-in user goes on to the return URL, else `/` |
+| `RequireGuest` | a guest (the auth pages) | a signed-in user goes on to the return URL, else `/`: also right after signing in or registering there, so the landing has this one owner |
 | `RequireSpaceRole roles={[…]}` | a signed-in user whose active link at the `:spaceId` in the URL has one of the roles, `OWNER` or `RECEPTION`, read from the session's links, never the global role | a guest goes to sign-in; a `:spaceId` that is not a positive integer gets `NotFoundState`, a 404; a space with no active link, or a role the route does not allow, gets `ForbiddenState`, a 403; both in place |
 
 - **While the session is restored,** every guard shows the design system's `Spinner`, centred. **While it is `unreachable`,** the offline state (no answer came back) or the general error (an answer that is not a verdict), whose "Try again", and the connection coming back when offline, re-run the restore.
