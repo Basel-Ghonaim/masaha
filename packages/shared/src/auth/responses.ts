@@ -1,20 +1,10 @@
-import type { Language } from '../core/index.ts';
 import type { SessionSpaceLink } from '../space-links/index.ts';
-import type { Role } from '../users/index.ts';
+import type { User } from '../users/index.ts';
 
 // The answers of the auth endpoints (docs/api/api-contract.md §5).
 
-/** Who is signed in. */
-export interface SessionUser {
-  id: number;
-  email: string;
-  name: string;
-  role: Role;
-  language: Language;
-  /** A temporary password must be changed before anything else (docs/backend/security.md). */
-  mustChangePassword: boolean;
-  /** False for a Google-only account, which sets its first password without a current one. */
-  hasPassword: boolean;
+/** Who is signed in: the account and its space links. */
+export interface SessionUser extends User {
   /** The user's active space links, oldest first. */
   spaces: SessionSpaceLink[];
 }
