@@ -1,6 +1,6 @@
-import type { PaginationMeta } from '@masaha/shared';
+import type { PaginationMeta, SuccessEnvelope } from '@masaha/shared/core';
 import { describe, expect, it } from 'vitest';
-import { unwrap, type ApiEnvelope } from './envelope';
+import { unwrap } from './envelope';
 
 const META: PaginationMeta = {
   currentPage: 1,
@@ -14,7 +14,7 @@ const META: PaginationMeta = {
 describe('unwrap', () => {
   it('returns the envelope’s data', () => {
     const response = {
-      data: { success: true, data: { id: 7 } } satisfies ApiEnvelope<{ id: number }>,
+      data: { success: true, data: { id: 7 } } satisfies SuccessEnvelope<{ id: number }>,
     };
 
     expect(unwrap(response)).toEqual({ id: 7 });
@@ -22,7 +22,7 @@ describe('unwrap', () => {
 
   it('leaves meta on the response, for the calls that need it', () => {
     const response = {
-      data: { success: true, data: [{ id: 7 }], meta: META } satisfies ApiEnvelope<
+      data: { success: true, data: [{ id: 7 }], meta: META } satisfies SuccessEnvelope<
         { id: number }[],
         PaginationMeta
       >,

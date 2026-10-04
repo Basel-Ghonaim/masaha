@@ -6,7 +6,7 @@ import type {
   RegisterRequest,
   ResetCheckRequest,
   ResetPasswordRequest,
-} from '@masaha/shared';
+} from '@masaha/shared/auth';
 import type { Request, Response } from 'express';
 
 import { AppError } from '../../shared/errors/index.ts';

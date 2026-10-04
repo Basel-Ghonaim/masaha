@@ -1,4 +1,4 @@
-import type { PaginationMeta, PaginationQuery } from '@masaha/shared';
+import type { PaginationMeta, PaginationQuery } from '@masaha/shared/core';
 
 /** The rows to skip for a page (docs/backend/conventions.md §5). */
 export function toSkip({ page, limit }: PaginationQuery): number {

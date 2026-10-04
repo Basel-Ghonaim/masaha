@@ -3,10 +3,11 @@ import {
   ERROR_TYPES,
   FIELD_ERROR_CODES,
   type DomainErrorCode,
+  type ErrorEnvelope,
   type ErrorType,
   type FieldErrorCode,
   type FieldErrors,
-} from '@masaha/shared';
+} from '@masaha/shared/core';
 import type { AxiosError } from 'axios';
 import { AppError } from './AppError';
 import type { AppErrorType, ClientErrorType } from './errorTypes';
@@ -30,9 +31,7 @@ const TYPE_BY_STATUS: Readonly<Partial<Record<number, ErrorType>>> = {
 };
 
 /** The fields of the error envelope (api-contract §2), none of them trusted yet. */
-type UncheckedEnvelope = Partial<
-  Record<'type' | 'code' | 'message' | 'errors' | 'requestId', unknown>
->;
+type UncheckedEnvelope = Partial<Record<keyof ErrorEnvelope['error'], unknown>>;
 
 /**
  * The one normaliser: any failure becomes an `AppError` (docs/frontend/architecture.md §5). An

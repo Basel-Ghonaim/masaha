@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { textSchema } from './text.ts';
+import { emailSchema, textSchema } from './fields.ts';
 
 const name = textSchema(1, 100);
 
@@ -33,5 +33,19 @@ describe('textSchema', () => {
     expect(name.safeParse('   ').success).toBe(false);
     expect(name.safeParse('x'.repeat(101)).success).toBe(false);
     expect(name.safeParse('x'.repeat(100)).success).toBe(true);
+  });
+});
+
+describe('emailSchema', () => {
+  it('trims and lowercases, so one address is one account', () => {
+    expect(emailSchema.parse('  Sara@Example.COM ')).toBe('sara@example.com');
+  });
+
+  it.each([
+    ['no @', 'sara.example.com'],
+    ['no domain', 'sara@'],
+    ['over 254 characters', `${'s'.repeat(64)}@${'d'.repeat(186)}.com`],
+  ])('refuses an address with %s', (_case, email) => {
+    expect(emailSchema.safeParse(email).success).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
-import type { DomainErrorCode, Session, SessionUser } from '@masaha/shared';
+import type { Session, SessionUser } from '@masaha/shared/auth';
+import type { DomainErrorCode } from '@masaha/shared/core';
 import { AppError, type AppErrorType } from '@shared/errors';
 import { vi } from 'vitest';
 

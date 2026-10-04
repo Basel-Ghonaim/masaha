@@ -1,4 +1,4 @@
-import type { ChangePasswordRequest, PasswordChanged } from '@masaha/shared';
+import type { ChangePasswordRequest, PasswordChanged } from '@masaha/shared/users';
 import type { Request, Response } from 'express';
 
 import { AppError } from '../../shared/errors/index.ts';

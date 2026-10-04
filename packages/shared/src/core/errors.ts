@@ -32,23 +32,30 @@ export type FieldErrorCode = (typeof FIELD_ERROR_CODES)[number];
 /** Field → the codes of every rule it failed, e.g. `{ phone: ['invalid_format'] }`. */
 export type FieldErrors = Record<string, FieldErrorCode[]>;
 
+// One list for every capability, grouped by the capability whose rule each code reports.
 export const DOMAIN_ERROR_CODES = [
+  // users
   'EMAIL_TAKEN',
-  'PHONE_TAKEN',
-  'INVALID_CREDENTIALS',
   'ACCOUNT_SUSPENDED',
   'PASSWORD_CHANGE_REQUIRED',
+  'CURRENT_PASSWORD_INCORRECT',
+  'PASSWORD_NOT_SET',
+  // auth
+  'INVALID_CREDENTIALS',
+  'GOOGLE_TOKEN_INVALID',
+  'GOOGLE_LINK_NOT_ALLOWED',
+  'RESET_TOKEN_INVALID',
+  // space-links
   'SPACE_NOT_MANAGED',
+  'OWNER_ALREADY_LINKED',
+  // customers
+  'PHONE_TAKEN',
+  // the check-in (visits, subscriptions)
   'MEMBER_ALREADY_CHECKED_IN',
   'CHECK_IN_ALREADY_CLOSED',
-  'SPACE_CAPACITY_NOT_SET',
   'OUTSIDE_OPENING_HOURS',
-  'OWNER_ALREADY_LINKED',
-  'CURRENT_PASSWORD_INCORRECT',
-  'GOOGLE_TOKEN_INVALID',
-  'RESET_TOKEN_INVALID',
-  'GOOGLE_LINK_NOT_ALLOWED',
-  'PASSWORD_NOT_SET',
+  // occupancy
+  'SPACE_CAPACITY_NOT_SET',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

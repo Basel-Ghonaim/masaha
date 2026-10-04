@@ -1,4 +1,4 @@
-import { FIELD_ERROR_CODES, type FieldErrorCode, type FieldErrors } from '@masaha/shared';
+import { FIELD_ERROR_CODES, type FieldErrorCode, type FieldErrors } from '@masaha/shared/core';
 import type { RequestHandler } from 'express';
 import type { z } from 'zod';
 

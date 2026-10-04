@@ -1,4 +1,4 @@
-import type { Session, SessionUser } from '@masaha/shared';
+import type { Session, SessionUser } from '@masaha/shared/auth';
 
 /** The contract's shapes (docs/api/api-contract.md §5 › Session), held as the server sends them. */
 export type { Session, SessionUser };

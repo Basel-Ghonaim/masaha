@@ -1,4 +1,4 @@
-import { passwordSchema } from '@masaha/shared';
+import { passwordSchema } from '@masaha/shared/users';
 import { z } from 'zod';
 
 import { createPrismaClient } from '../prisma.ts';

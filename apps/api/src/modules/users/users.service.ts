@@ -1,10 +1,5 @@
-import {
-  NAME_MAX_LENGTH,
-  textSchema,
-  type ChangePasswordRequest,
-  type Language,
-  type RegisterRequest,
-} from '@masaha/shared';
+import { textSchema, type Language } from '@masaha/shared/core';
+import { NAME_MAX_LENGTH, type ChangePasswordRequest, type User } from '@masaha/shared/users';
 
 import { createRunInTransaction, type RunInTransaction, type Tx } from '../../db/index.ts';
 import type { AccessClaims, AccessTokens } from '../../shared/auth/index.ts';
@@ -19,7 +14,7 @@ export interface Passwords {
   verify(password: string, hash: string | null): Promise<boolean>;
 }
 import { PASSWORD_CHANGE } from './users.limits.ts';
-import { toUserView, type UserView } from './users.mapper.ts';
+import { toUserView } from './users.mapper.ts';
 import { createUsersRepository, type Account, type UsersRepository } from './users.repository.ts';
 
 interface Dependencies {
@@ -37,6 +32,14 @@ export interface GoogleAccount {
   email: string;
   name: string | undefined;
   hostedDomain: string | undefined;
+}
+
+/** A registration: a new account with a password. */
+export interface Registration {
+  name: string;
+  email: string;
+  password: string;
+  language?: Language;
 }
 
 /**
@@ -116,7 +119,7 @@ export function createUsersService({
     lockAccount,
 
     /** A new USER with a password. A taken email is EMAIL_TAKEN. */
-    async register({ name, email, password, language }: RegisterRequest): Promise<Account> {
+    async register({ name, email, password, language }: Registration): Promise<Account> {
       const passwordHash = await passwords.hash(password);
       const created = await repository.create({ name, email, passwordHash, language });
       if ('account' in created) return created.account;
@@ -236,7 +239,7 @@ export function createUsersService({
       await repository.setPassword(userId, passwordHash, tx);
     },
 
-    async view(account: Account, tx?: Tx): Promise<UserView> {
+    async view(account: Account, tx?: Tx): Promise<User> {
       return toUserView(account, await repository.hasPassword(account.id, tx));
     },
 
