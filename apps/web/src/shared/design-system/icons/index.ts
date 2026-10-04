@@ -22,6 +22,7 @@ export {
   InfoIcon,
   LanguagesIcon,
   LoaderIcon,
+  LockIcon,
   LogInIcon,
   LogOutIcon,
   MenuIcon,

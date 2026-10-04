@@ -21,6 +21,7 @@ import {
   Info,
   Languages,
   LoaderCircle,
+  Lock,
   LogIn,
   LogOut,
   Menu,
@@ -128,6 +129,10 @@ export function PresentationIcon(props: IconProps) {
 
 export function GraduationCapIcon(props: IconProps) {
   return <Icon glyph={GraduationCap} {...props} />;
+}
+
+export function LockIcon(props: IconProps) {
+  return <Icon glyph={Lock} {...props} />;
 }
 
 export function LoaderIcon(props: IconProps) {
