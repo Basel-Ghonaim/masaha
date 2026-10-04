@@ -1,3 +1,4 @@
+import { AUTH } from './auth';
 import { ERRORS } from './errors';
 import { FORMS } from './forms';
 import { PREFERENCES } from './preferences';
@@ -15,6 +16,7 @@ import { VALIDATION } from './validation';
  * line so it can be reflowed.
  */
 export const ENGLISH = {
+  auth: AUTH,
   errors: ERRORS,
   forms: FORMS,
   preferences: PREFERENCES,

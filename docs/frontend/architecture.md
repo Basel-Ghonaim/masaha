@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states, the four route guards and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states, the four route guards and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -138,25 +138,86 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 | Any page group | `auth` · `directory` (the directory and the public profile) · `favorites` · `occupancy` · `announcements` · `data-reports` · `lookups` · `platform-settings` (the public contact) · `users` (the account's profile and settings; the admin's user screens) |
 | The dashboard only | `spaces` (owner and admin profile editing) · `space-settings` · `customers` · `subscriptions` (with their check-ins) · `packages` · `visits` · `payments` · `desk` (the front desk: check-in, check-out with payment, subscribe with payment; the customers list and file) · `finance` (finance and statistics, with the occupancy reports) · `overview` (the owner's and the admin's overview) · `staff` · `owners` (admin linking) · `audit` |
 
-**Names match the backend.** A capability carries the name of the backend module it calls ([backend conventions §7](../backend/conventions.md#7-modules)). A feature may be finer than its module only when it serves a different audience on different screens: `staff` (the owner's reception accounts) and `owners` (the admin's linking) are two features over the one `space-links` module. A sub-part with the same audience and the same screens stays inside its module's feature. Check-ins stay in `subscriptions`, for example, because a check-in changes the subscription's progress: split apart, one feature would have to import the other's query keys. Whether a feature exports screens or only hooks is not decided yet.
+**Names match the backend.** A capability carries the name of the backend module it calls ([backend conventions §7](../backend/conventions.md#7-modules)). A feature may be finer than its module only when it serves a different audience on different screens: `staff` (the owner's reception accounts) and `owners` (the admin's linking) are two features over the one `space-links` module. A sub-part with the same audience and the same screens stays inside its module's feature. Check-ins stay in `subscriptions`, for example, because a check-in changes the subscription's progress: split apart, one feature would have to import the other's query keys. What a feature exports is set below ([What a feature exports](#what-a-feature-exports)).
 
 **The dashboard-only rule:** `pages/site` never imports a dashboard-only capability, so the site never pulls dashboard code in. The dashboard may import any capability. Lint will hold this rule, as it holds the zones (§1); the rule comes with F-6c.
 
 ### Capability layout
 
+A feature, and a shared module where the roles apply, is grouped by **the kind of code**:
+
 ```
 features/<capability>/
-  index.ts      public surface — the only way in
-  model/        types and entities
-  api.ts        calls through `api` (`@shared/api`, §7) + TanStack Query hooks (query keys live here)
-  hooks/        what screens consume, when more than a query hook is needed
-  forms/        react-hook-form setups using schemas from packages/shared
-  screens/      presentation only
+  index.ts        the only way in (below)
+  repository/     what fetches the data: the server calls through `api` (`@shared/api`, §7); later
+                  also its request types, DTOs and mappers, split into files as it grows
+  hooks/          React hooks: queries, mutations, form hooks
+  components/     React components: presentation only (below)
+  services/       plain, non-React helpers
+  types/          types shared inside the capability, only when more than one file uses them
 ```
 
-A layer the capability does not need is **absent, not empty**. A screen only presents: no Axios calls, no business rules the server also enforces.
+- **A folder the capability does not need is absent, not empty.** `features/auth` has no `services/` or `types/`.
+- **One exported unit per file, named after it:** `hooks/useSignIn.ts`, `repository/authRepository.ts`. No file groups several hooks.
+- **The data layer is the repository:** the interface `AuthRepository { login, register }` and its factory `createAuthRepository()`, whose calls go through the app's one client (`api`, §7); a hook makes it once, at module level. `shared/session` names its own the same way (§4).
+- **Names inside `hooks/`:** `useXQuery` for a read, `useX` for a write (a verb and the resource: `useSignIn`, `useRegister`), `useXForm` for a form. The query keys live in `hooks/queryKeys.ts`, scoped as §7 says.
+- **Folders by role** (§1). Inner folders have no `index.ts`, and tests sit beside their files.
+- **Growth:** a file that grows becomes a folder, with one file per resource, as a backend module's service does ([backend conventions › Growth](../backend/conventions.md#growth)).
+
+### Components present; hooks prepare
+
+**A component renders, and that is all.** It gets everything it needs from its hook, **ready to render**: values, actions (submit, retry), states (pending, disabled), and errors as **text and view models**. A component never touches an `AppError`, an error code, `Retry-After`, a mutation, the transport or a query client.
+
+- `SignInForm` renders what `useSignInForm` returns.
+- A hook may hand another hook more than a component gets, such as the form instance for `useWatch`; a component never receives it.
+
+### React Query in a feature
+
+- **Side effects:**
+  - **what belongs to the capability lives in the hook.** `useSignIn` and `useRegister` hand the session they receive to `establishSession(session, { source: 'signIn' })` themselves, in `useMutation`'s own callback, which runs even when the page has gone by the time the answer arrives;
+  - **what belongs to the place lives in the page.** A feature takes no callback for it: the place reacts to the capability's own state, as `RequireGuest` reacts to the session and sends a signed-in user on (§2).
+- **The cache:** a sign-in clears nothing. Clearing happens when a session ends (§4).
+- **Tests, layer by layer** ([testing › A feature, layer by layer](../development/testing.md#a-feature-layer-by-layer)): the repository in the unit lane, and the hooks (with `renderHook`) and the components in the component lane, all through the transport (`setupApiClient`) with `fakeAdapter` on `apiClient`. No hook takes a parameter only a test passes.
+
+### Where state lives
+
+- Server data → TanStack Query ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md), §7).
+- Global client state → Zustand: the session and the preferences (§4).
+- What must survive a reload or be shared by a link (filters, views, the selected space) → the URL ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)).
+- One component's own state → `useState`.
+
+> **Context inside a feature** *(experimental: not part of the stable core; to be judged after its first use)*: only when several components of the capability, in one subtree, share client state that none of the places above fits. The capability's own component mounts it; it is never exported.
+
+### What a feature exports
+
+**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. `features/auth` exports `SignInForm` and `RegisterForm`, and nothing else.
+
+- **One capability, several places.** Ask who owns the variation (a screen is not a capability):
+  - **the places show the capability's own fact differently:** the feature exports the UI, with props or as two components;
+  - **a place mixes the capability with others, or arranges its own layout:** the feature exports small pieces or hooks, and the page composes.
+- **A component that combines several capabilities never lives in one of them.** It lives in the page, which composes the card, the title and the links around a feature's form.
+- **Features know no routes.** No path is written inside a feature: links are props the page passes (`forgotPasswordLink`, `signInLink`).
 
 A feature's wire types, its requests and the server's answers, come from `@masaha/shared/<module>` ([shared-package.md](../architecture/shared-package.md)), never a copy.
+
+### Forms
+
+`shared/forms`, **built**, is the one place every form uses: react-hook-form over the schemas of `packages/shared` ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). Every form is one pattern, `useServerForm`, and a feature's form hook only passes it what is the feature's: the contract's schema, the default values, the fields in display order, the server call, the title of a refusal, and the form's own words for some codes. `useSignInForm` and `useRegisterForm` are such hooks; register adds the interface language to its call.
+
+- **The browser names a failure as the server does.**
+  - The form's values are checked with `toFieldErrors`, the rule the API answers with (`packages/shared`, `core`).
+  - So each field's error is the field-error code the server would send for the same value, and one line serves both: the form's own line for that field and code, else `validation.<code>`. The hook hands each field's error to the component as text.
+  - The form submits the parsed value.
+- **A refusal lands where it belongs.**
+  - The server's `errors` land on the form's own fields, and the first of them takes the focus once the fields are enabled again.
+  - Whatever lands on no field becomes the form's failure, a view model (`useFormFailure`) that `FormFailure` renders:
+    - too many attempts counts down the server's `Retry-After`, and the submit stays disabled until the count ends;
+    - no connection, or no answer in time, offers to try again;
+    - any other refusal shows the form's title and the failure's line (`code ?? type`), with the request's reference when it has no domain code (§5).
+- **The password:**
+  - `PasswordInput` reads left to right and can show and hide the password;
+  - `usePasswordRules` words the policy as a checklist that ticks as the user types, from the policy's own `passwordRules`, and `PasswordRules` renders it.
+- Validation runs on submit, and the first invalid field takes the focus ([foundation §10](design-system/foundation.md#10-accessibility-baseline)).
 
 ## 4. Session and preferences
 
