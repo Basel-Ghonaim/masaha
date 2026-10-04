@@ -139,7 +139,20 @@ A layer the capability does not need is **absent, not empty**. A screen only pre
 
 ## 4. Session and preferences
 
-- `shared/session` (Zustand): user, role, access token, restore status; restore, refresh and sign-out. No UI.
+- `shared/session` (Zustand), **built**: the session's state, its restore, refresh and sign-out ([ADR 0003](../architecture/decisions/0003-session-model.md)). No UI.
+  - **What it holds:** the `SessionUser` and the access token exactly as the server sends them (the contract's types from `@masaha/shared`, no copy and no mapper), and the status. The token lives in memory only.
+  - **The status:** `restoring`, `authenticated`, `anonymous`, or `unreachable` with its reason, `offline` (no answer, or a timeout) or `error` (an answer that is not a verdict).
+  - **Read** in a component with `useSession(select)`, elsewhere with `getSession()`. The raw store is never exported; only the session's own functions write it.
+  - **The endpoints** are `refresh` and `logout`, behind one interface (`SessionEndpoints`) whose factory defaults to the app's client, so a test passes a plain fake. Sign-in, registration and Google are `features/auth`'s: they hand their answer to `establishSession(session, { source: 'signIn' })`.
+  - **The restore** runs at bootstrap and never blocks a render: public pages show at once, and only the guards wait (§2).
+    - no session hint (`masaha_session`): `anonymous` at once, with no request;
+    - a hint and a successful refresh: `authenticated`;
+    - a refresh refused with 401, or with 403 because the account is suspended (`ACCOUNT_SUSPENDED`): the server's verdict on the session, so the hint is cleared and the status is `anonymous`;
+    - any other failure (no connection, a timeout, a 5xx, a 429, or a 403 without that code, such as the API's refusal of a cross-site request, which keeps the cookies): the hint stays and the status is `unreachable`, which the guards offer to retry. A power or internet cut while the site opens never signs the user out.
+  - **The refresh** is single-flight: the restore and the transport's 401 (§7) share one request. On success the store holds the new session before the promise resolves, and the transport reads the token from its getter. The same refusals end the session; any other failure leaves it as it was and rejects, so only the request that needed it fails, and the next 401 refreshes again. A refresh that succeeds after the session has ended, because a sign-out was answered first, drops its answer and rejects as `canceled`: it never brings a signed-out session back.
+  - **A listener's failure is its own:** each listener of the two events below runs on its own, and an error it throws is logged with `console.error`. It never undoes the session's change, and never stops the other listeners.
+  - **Sign-out** is the server's: the session ends here only once `POST /auth/logout` succeeds. A failed request clears nothing, because the refresh cookie would still be valid; `useSignOut()` exposes its pending and error state, and the user retries.
+  - **Two events** let the composition root react without the session importing anything: `onSessionEstablished(listener)`, with the source (`signIn`, or `restore` for a restore and a refresh), and `onSessionEnded(listener)`, when a session that was held ends.
 - `features/auth`: sign-in, register, password forms and their error wording.
 - `shared/preferences` (Zustand), **built**: the language, the theme choice and the theme shown. No UI; F-6 builds the settings select and the top-bar toggles on it.
   - **Derived, never listed.** The languages are those with a catalogue (`CATALOGUES`); the themes are those the design system exports (`THEMES`). Adding either touches no preferences code.
