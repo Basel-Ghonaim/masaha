@@ -1,9 +1,9 @@
 import type { AxiosInstance } from 'axios';
 import { apiClient } from './client';
-import { installAuthorization } from './interceptors/authorization';
-import { installNormalise } from './interceptors/normalise';
-import { installRefreshOn401 } from './interceptors/refreshOn401';
-import { installRetry } from './interceptors/retry';
+import { installAuthorization } from '../interceptors/authorization';
+import { installNormalise } from '../interceptors/normalise';
+import { installRefreshOn401 } from '../interceptors/refreshOn401';
+import { installRetry } from '../interceptors/retry';
 
 /** What the composition root hands the transport, which never imports the session. */
 export type ApiClientDependencies = {

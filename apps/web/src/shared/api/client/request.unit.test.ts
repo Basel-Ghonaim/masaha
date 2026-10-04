@@ -2,7 +2,7 @@ import type { PaginationMeta } from '@masaha/shared';
 import { AppError } from '@shared/errors';
 import axios from 'axios';
 import { describe, expect, it } from 'vitest';
-import { fakeAdapter, type FakeAnswer } from '../../test/fakeAdapter';
+import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
 import { createApi } from './request';
 import { installInterceptors } from './setupApiClient';
 

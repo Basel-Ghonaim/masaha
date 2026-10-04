@@ -1,6 +1,6 @@
 import { AppError } from '@shared/errors';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fakeAdapter, type FakeAnswer } from '../../test/fakeAdapter';
+import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
 import { apiClient } from './client';
 import { setupApiClient } from './setupApiClient';
 

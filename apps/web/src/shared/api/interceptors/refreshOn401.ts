@@ -1,6 +1,6 @@
 import { toAppError } from '@shared/errors';
 import { isAxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
-import { API_BASE_PATH } from '../client';
+import { API_BASE_PATH } from '../client/client';
 import { stateOf, withState } from './requestState';
 
 type RefreshDependencies = {

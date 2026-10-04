@@ -2,7 +2,7 @@ import type { PaginationMeta } from '@masaha/shared';
 import { AppError } from '@shared/errors';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { apiClient } from './client';
-import type { ApiEnvelope } from './envelope';
+import type { ApiEnvelope } from '../envelope';
 
 /** A page of a list, with what the envelope's `meta` carries: the pagination, or an endpoint's own. */
 export type Page<T, M = PaginationMeta> = { data: T; meta: M };
