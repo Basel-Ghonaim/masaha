@@ -2,7 +2,7 @@ import { AppError } from '@shared/errors';
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { failure, fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
-import { installInterceptors } from '../setupApiClient';
+import { installInterceptors } from '../client/setupApiClient';
 
 const OLD = 'old-token';
 const NEW = 'new-token';

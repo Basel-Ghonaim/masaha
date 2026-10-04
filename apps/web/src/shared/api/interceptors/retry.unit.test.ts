@@ -2,7 +2,7 @@ import { AppError } from '@shared/errors';
 import axios from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
-import { installInterceptors } from '../setupApiClient';
+import { installInterceptors } from '../client/setupApiClient';
 
 /** A client with the whole chain, and a server that gives every request the same answer. */
 function serverAnswering(answer: FakeAnswer | ((index: number) => FakeAnswer)) {

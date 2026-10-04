@@ -5,6 +5,10 @@ export const STATUS = {
     title: 'الصفحة غير موجودة',
     description: 'ربما تغيّر الرابط أو حُذفت الصفحة.',
   },
+  forbidden: {
+    title: 'لا تملك صلاحية الوصول إلى هذه الصفحة',
+    description: 'هذه الصفحة غير متاحة لحسابك.',
+  },
   error: {
     title: 'حدث خطأ غير متوقع',
     description: 'لم يكن الخطأ منك. حاول مرة أخرى بعد قليل.',
@@ -14,4 +18,5 @@ export const STATUS = {
     description: 'ستظهر البيانات عند عودة الاتصال.',
   },
   retry: 'إعادة المحاولة',
+  loading: 'جارٍ التحميل',
 } satisfies Catalogue['status'];

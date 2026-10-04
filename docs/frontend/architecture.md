@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), and the catalogue registration, the transport's setup, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states and the three route guards in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -9,12 +9,14 @@
 
 | Zone | Owns | May import |
 |---|---|---|
-| `app/` | Composition root: bootstrap (inject the token getter, register catalogues, create the one QueryClient), providers, composed in one component (`providers.tsx` › `AppProviders`: QueryClient, DirectionProvider), router | pages, features, shared |
+| `app/` | Composition root: bootstrap (register catalogues, hand the transport the session's token getter and refresh, create the one QueryClient, connect the session to it and to the preferences, start the restore), providers, composed in one component (`providers.tsx` › `AppProviders`: QueryClient, DirectionProvider), router | pages, features, shared |
 | `pages/` | One folder per **page group**: its route subtree, layout, and the loading / error / empty states of what it arranges. The only zone that combines several features | features, shared |
 | `features/` | One folder per **capability**: a fact and the operations on it | shared |
 | `shared/` | The platform: `design-system`, `api` (Axios client, refresh), `errors` (AppError), `session`, `preferences`, `localisation`, `copy`, `routing`, `map`, `lib` | shared (the design system imports nothing outside itself) |
 
 **Dependency rule:** `app → pages → features → shared`, one direction only. **No sibling imports** (feature → feature, page group → page group). Held by path aliases (`@app/*`, `@pages/*`, `@features/*`, `@shared/*`), barrel-only imports, and `eslint-plugin-boundaries`.
+
+**Inside a module:** a `shared/` module or a feature groups its files into folders by role (`guards/`, `states/`, `services/`, `hooks/`, …) once it holds more than one role, so its roles read from its tree and its surface stays one file: inner folders have no `index.ts`, and the module's `index.ts` stays its only entry. Its core (its model, its store, a helper every role uses) may stay at the root, a module with a single role stays flat, and tests stay beside the files they prove. The design-system layer, whose layout [foundation §3](design-system/foundation.md#3-architecture) owns, and the copy's language folders are exempt.
 
 ## 2. Page groups
 
@@ -85,12 +87,12 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
   - Their visual controls are the design system's `LanguageToggle` and `ThemeToggle`.
   - Each shell wires them to `shared/preferences` itself, in a line or two. There is no shared "connected toggle": `shared/preferences` stays without UI, and the two groups cannot import each other.
   - The theme toggle sets the opposite of the theme shown (§4).
-- **The status states** live in `shared/routing`: `NotFoundState`, `RouteErrorState`, and a pure `classifyRouteError`. They are built, and the site shows them.
+- **The status states** live in `shared/routing`: `NotFoundState`, `ForbiddenState`, `RouteErrorState`, and a pure `classifyRouteError`. They are built; the site shows the first and the third, and `RequireRole` the 403.
   - They are route-level elements, built on the design system's `EmptyState`.
   - They take their actions as props. The site's 404 offers "Home" and "Browse spaces"; the dashboard's will offer its own.
   - Each domain renders them inside its own shell. Its error boundary sits on a pathless route just under its layout, because React Router renders a boundary in place of its own route's element. An error in a shell itself reaches the root's state, which has no shell.
   - `RouteErrorState` shows **offline** for a failed lazy load or when the browser reports no connection, and the **general error** otherwise. "Try again" reloads the page, and so does the browser's `online` event: React Router keeps a failed lazy load for its route, so only a reload retries it.
-- **Guards sit visibly on each route** (`<RequireRole roles={['OWNER']}>`), never inherited silently from the group.
+- **Guards sit visibly on each route** (`<RequireRole roles={['ADMIN']}>`), never inherited silently from the group.
 - The dashboard's **navigation config per role** belongs to the `dashboard` page group, because choosing what appears together is composition. Features stay role-agnostic: the page passes the scope (`mine` for an owner, `all` for the admin).
 - In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space in the URL**, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). The selected space is the `:spaceId` of the route, never client state; the space switcher only navigates ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)).
 - UI hiding is for usability only; the server is the authority.
@@ -98,7 +100,18 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 
 ### Landing and guards
 
-Not built yet: F-5b2 builds the guards and F-6c the landing and the switcher.
+**Built:** the three guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). No route uses one yet: the account and auth pages bring the first uses (F-5b3).
+
+| Guard | Lets through | Otherwise |
+|---|---|---|
+| `RequireAuth` | a signed-in user | a guest goes to sign-in |
+| `RequireRole roles={[…]}` | a signed-in user with one of the global roles | a guest goes to sign-in; another role sees `ForbiddenState`, a 403, in place |
+| `RequireGuest` | a guest (the auth pages) | a signed-in user goes on to the return URL, else `/` |
+
+- **While the session is restored,** every guard shows the design system's `Spinner`, centred. **While it is `unreachable`,** the offline state (no answer came back) or the general error (an answer that is not a verdict), whose "Try again", and the connection coming back when offline, re-run the restore.
+- **The return URL** travels as `?next=` on `/login` (`signInPath`). It is read back with `safeReturnUrl`, which accepts only a path on this site, so a crafted link cannot send a user elsewhere.
+
+**Not built yet** (F-6c): the space-role guard (OWNER or RECEPTION at the `:spaceId` in the URL, [ADR 0016](../architecture/decisions/0016-dashboard-urls.md)), the landing below, which replaces `RequireGuest`'s return URL or `/`, and the switcher.
 
 - **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
 - **Landing after sign-in:**
@@ -129,7 +142,7 @@ Not built yet: F-5b2 builds the guards and F-6c the landing and the switcher.
 features/<capability>/
   index.ts      public surface — the only way in
   model/        types and entities
-  api.ts        calls through `apiClient` (`@shared/api`) + TanStack Query hooks (query keys live here)
+  api.ts        calls through `api` (`@shared/api`, §7) + TanStack Query hooks (query keys live here)
   hooks/        what screens consume, when more than a query hook is needed
   forms/        react-hook-form setups using schemas from packages/shared
   screens/      presentation only
@@ -139,7 +152,22 @@ A layer the capability does not need is **absent, not empty**. A screen only pre
 
 ## 4. Session and preferences
 
-- `shared/session` (Zustand): user, role, access token, restore status; restore, refresh and sign-out. No UI.
+- `shared/session` (Zustand), **built**: the session's state, its restore, refresh and sign-out ([ADR 0003](../architecture/decisions/0003-session-model.md)). No UI.
+  - **What it holds:** the `SessionUser` and the access token exactly as the server sends them (the contract's types from `@masaha/shared`, no copy and no mapper), and the status. The token lives in memory only.
+  - **The status:** `restoring`, `authenticated`, `anonymous`, or `unreachable` with its reason, `offline` (no answer, or a timeout) or `error` (an answer that is not a verdict).
+  - **Read** in a component with `useSession(select)`, elsewhere with `getSession()`. The raw store is never exported; only the session's own functions write it.
+  - **The endpoints** are `refresh` and `logout`, behind one interface (`SessionEndpoints`) whose factory defaults to the app's client, so a test passes a plain fake. Sign-in, registration and Google are `features/auth`'s: they hand their answer to `establishSession(session, { source: 'signIn' })`.
+  - **The restore** runs at bootstrap and never blocks a render: public pages show at once, and only the guards wait (§2).
+    - no session hint (`masaha_session`): `anonymous` at once, with no request;
+    - a hint and a successful refresh: `authenticated`;
+    - a refresh refused with 401, or with 403 because the account is suspended (`ACCOUNT_SUSPENDED`): the server's verdict on the session, so the hint is cleared and the status is `anonymous`;
+    - any other failure (no connection, a timeout, a 5xx, a 429, or a 403 without that code, such as the API's refusal of a cross-site request, which keeps the cookies): the hint stays and the status is `unreachable`, which the guards offer to retry. A power or internet cut while the site opens never signs the user out.
+  - **The refresh** is single-flight: the restore and the transport's 401 (§7) share one request. On success the store holds the new session before the promise resolves, and the transport reads the token from its getter. The same refusals end the session; any other failure leaves it as it was and rejects, so only the request that needed it fails, and the next 401 refreshes again. A refresh that succeeds after the session has ended, because a sign-out was answered first, drops its answer and rejects as `canceled`: it never brings a signed-out session back.
+  - **A listener's failure is its own:** each listener of the two events below runs on its own, and an error it throws is logged with `console.error`. It never undoes the session's change, and never stops the other listeners.
+  - **Sign-out** is the server's: the session ends here only once `POST /auth/logout` succeeds. A failed request clears nothing, because the refresh cookie would still be valid; `useSignOut()` exposes its pending and error state, and the user retries.
+  - **Two events** let the composition root react without the session importing anything: `onSessionEstablished(listener)`, with the source (`signIn`, or `restore` for a restore and a refresh), and `onSessionEnded(listener)`, when a session that was held ends. Bootstrap connects them (`app/session.ts`):
+    - a session that ends clears the QueryClient, so the next user never sees the last one's data;
+    - a sign-in makes the account's language the interface's; a restore or a refresh never does, so the user's later choice on this device wins.
 - `features/auth`: sign-in, register, password forms and their error wording.
 - `shared/preferences` (Zustand), **built**: the language, the theme choice and the theme shown. No UI; F-6 builds the settings select and the top-bar toggles on it.
   - **Derived, never listed.** The languages are those with a catalogue (`CATALOGUES`); the themes are those the design system exports (`THEMES`). Adding either touches no preferences code.
@@ -162,7 +190,13 @@ One normaliser, `toAppError` in `shared/errors`, turns any failure (Axios, netwo
 
 ## 7. Server state
 
-TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). The transport, `shared/api`, is built: one Axios client at `/api/v1`, relative in every environment ([ADR 0014](../architecture/decisions/0014-deployment.md)), with a 15 s timeout a request may override, the token through a getter the composition root hands in (every attempt sends its current token), and single-flight refresh on 401 through a function it hands in. The session wires both in F-5b2; until then bootstrap hands a getter that returns `null` and no refresh, so no token is sent and no refresh runs. The QueryClient and its defaults are built: the app makes one, at bootstrap, outside React. The rules on keys, invalidation and polling apply from the first feature that fetches.
+TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). The transport, `shared/api`, is built: one Axios client at `/api/v1`, relative in every environment ([ADR 0014](../architecture/decisions/0014-deployment.md)), with a 15 s timeout a request may override, the token through a getter the composition root hands in (every attempt sends its current token), and single-flight refresh on 401 through a function it hands in. Bootstrap hands it the session's (§4): the getter reads `getSession().accessToken`, and the refresh is `refreshSession`. The QueryClient and its defaults are built: the app makes one, at bootstrap, outside React. The rules on keys, invalidation and polling apply from the first feature that fetches.
+
+- **Calls go through `api`** (`@shared/api`), whose helpers unwrap the envelope ([api-contract §2](../api/api-contract.md#2-response-envelope)), so no capability writes `unwrap` or sees the envelope:
+  - `api.get<T>`, `api.post<T>`, `put`, `patch` and `delete` resolve to the envelope's `data`; a 204 resolves with nothing;
+  - `api.getPage<T>` resolves to `{ data, meta }`, for a paginated list or an endpoint's own `meta`, such as the front desk's warnings. An answer with no `meta` breaks the contract, so it rejects as `unknown`;
+  - a failure rejects with the `AppError` (§5);
+  - `apiClient` and `unwrap` stay exported for the rare call the helpers do not fit.
 
 - **Query keys start with their scope:**
   - `['space', spaceId, '<capability>', …]` for a space's data;

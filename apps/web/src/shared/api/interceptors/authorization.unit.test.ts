@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeAdapter } from '../../../test/fakeAdapter';
-import { installInterceptors } from '../setupApiClient';
+import { installInterceptors } from '../client/setupApiClient';
 
 /** A client whose server answers the first request 503 and every later one 200, so it retries once. */
 function setup(initialToken: string | null) {

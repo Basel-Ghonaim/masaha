@@ -1,32 +1,27 @@
 import { useCopy } from '@shared/copy';
 import { Button, CircleAlertIcon, EmptyState, TriangleAlertIcon } from '@shared/design-system';
 import { useEffect } from 'react';
-import { useRouteError } from 'react-router';
-import { classifyRouteError } from './classifyRouteError';
-import { reloadPage } from './reloadPage';
 import { StatusPage } from './StatusPage';
 
 /**
- * A route's error boundary: offline when the page's code could not arrive or the connection is
- * gone, the general error otherwise. "Try again" reloads the page; offline, so does the connection
- * coming back.
+ * Offline or the general error, with "Try again". Offline, the connection coming back retries too.
+ * The caller decides what a retry is: reloading the page, or restoring the session.
  */
-export function RouteErrorState() {
+export function RetryState({ kind, onRetry }: { kind: 'offline' | 'error'; onRetry: () => void }) {
   const copy = useCopy();
-  const kind = classifyRouteError(useRouteError(), navigator.onLine);
 
   useEffect(() => {
     if (kind !== 'offline') {
       return;
     }
     const onOnline = () => {
-      reloadPage();
+      onRetry();
     };
     window.addEventListener('online', onOnline);
     return () => {
       window.removeEventListener('online', onOnline);
     };
-  }, [kind]);
+  }, [kind, onRetry]);
 
   return (
     <StatusPage>
@@ -38,7 +33,7 @@ export function RouteErrorState() {
       >
         <Button
           onClick={() => {
-            reloadPage();
+            onRetry();
           }}
         >
           {copy.status.retry}
