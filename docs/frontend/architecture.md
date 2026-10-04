@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states and the three route guards in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree and the `site` group's shell, with its toggles and lazy pages, and the status states and the four route guards in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -52,7 +52,7 @@ RootLayout (app)                 ScrollRestoration; a last-resort error state wi
 - **Each domain owns its own shell**, and places the status states inside it.
 - **A layout is built with its first consumer.**
   - Built: `RootLayout` and `SiteLayout`, with the site's header, footer and phone menu.
-  - Not built yet: `FocusLayout`, with the auth screens (F-5b3); `AccountLayout`, with the first account screen; `DashboardLayout`, with the dashboard shells (F-6c).
+  - Not built yet: `FocusLayout`, with the auth screens (F-5b3); `AccountLayout`, with the first account screen; `DashboardLayout`, with the dashboard shell (F-6c2).
 
 ### The two groups
 
@@ -100,20 +100,22 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 
 ### Landing and guards
 
-**Built:** the three guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). No route uses one yet: the account and auth pages bring the first uses (F-5b3).
+**Built:** the four guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). No route uses one yet: the account and auth pages bring the first uses (F-5b3), and the dashboard's shell the first of `RequireSpaceRole` (F-6c2).
 
 | Guard | Lets through | Otherwise |
 |---|---|---|
 | `RequireAuth` | a signed-in user | a guest goes to sign-in |
 | `RequireRole roles={[…]}` | a signed-in user with one of the global roles | a guest goes to sign-in; another role sees `ForbiddenState`, a 403, in place |
 | `RequireGuest` | a guest (the auth pages) | a signed-in user goes on to the return URL, else `/` |
+| `RequireSpaceRole roles={[…]}` | a signed-in user whose active link at the `:spaceId` in the URL has one of the roles, `OWNER` or `RECEPTION`, read from the session's links, never the global role | a guest goes to sign-in; a `:spaceId` that is not a positive integer gets `NotFoundState`, a 404; a space with no active link, or a role the route does not allow, gets `ForbiddenState`, a 403; both in place |
 
 - **While the session is restored,** every guard shows the design system's `Spinner`, centred. **While it is `unreachable`,** the offline state (no answer came back) or the general error (an answer that is not a verdict), whose "Try again", and the connection coming back when offline, re-run the restore.
 - **The return URL** travels as `?next=` on `/login` (`signInPath`). It is read back with `safeReturnUrl`, which accepts only a path on this site, so a crafted link cannot send a user elsewhere.
 
-**Not built yet** (F-6c): the space-role guard (OWNER or RECEPTION at the `:spaceId` in the URL, [ADR 0016](../architecture/decisions/0016-dashboard-urls.md)), the landing below, which replaces `RequireGuest`'s return URL or `/`, and the switcher.
+**Not built yet** (F-6c): the landing below, which replaces `RequireGuest`'s return URL or `/`, and the switcher.
 
 - **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
+- **The dashboard's URL shape** ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) lives in `shared/routing` (`dashboardPaths.ts`), not in the `dashboard` group: the space guard and the landing read it, and `shared/` never imports `pages/`.
 - **Landing after sign-in:**
   1. the return URL, when there is one;
   2. otherwise the admin goes to the admin's overview;
@@ -122,7 +124,7 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 - **Failed guards:**
   - a guest goes to sign-in, with the return URL;
   - a signed-in user without access gets a clear 403 page, never a silent redirect;
-  - an unknown space gets a 404 page.
+  - a `:spaceId` that is not a positive integer gets a 404; a space the user holds no active link to, whether it exists or not, gets a 403.
 - **The space switcher** shows for anyone with more than one active link, whatever their role at each.
 
 ## 3. Capabilities (features)
