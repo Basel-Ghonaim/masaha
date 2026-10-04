@@ -131,6 +131,22 @@ The signed-in user's own account. Each endpoint needs the access token.
 - **200:** `{ accessToken }`, and a new refresh cookie: every session of the user and any pending reset link ended, and this device's session goes on in a new one, with `mustChangePassword` settled ([security.md](../backend/security.md#passwords)).
 - **Errors:** `unauthorized` (401) without a valid access token; `validation` (422), with `currentPassword: ["required"]` when it is missing; `bad_request` (400) `CURRENT_PASSWORD_INCORRECT`, which is not a 401, so it never looks like an expired session, also when a reset changed the password meanwhile; `bad_request` (400) `PASSWORD_NOT_SET` for an account without a password, which sets one through the reset email; `forbidden` (403) `ACCOUNT_SUSPENDED`; `rate_limit` (429) after 10 wrong current passwords.
 
+### Managed spaces
+
+The spaces a signed-in user works at, as owner or reception ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
+
+#### `GET /manage/spaces` · 👤
+- **200:** `ManagedSpace[]` (`@masaha/shared/space-links`), the spaces the caller holds an active link to, oldest link first, as the session's links are. A hidden space is included, since its owner still manages it; a soft-deleted one is left out. Never another user's spaces; an account with no links, the admin included, gets `[]`.
+
+  ```ts
+  ManagedSpace = {
+    spaceId: number, role: "OWNER" | "RECEPTION",   // the caller's role at this space
+    slug: string, nameAr: string, nameEn: string | null,
+    area: { nameAr: string, nameEn: string }
+  }
+  ```
+- **Errors:** `unauthorized` (401) without a valid access token; `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending.
+
 ## 6. Domain error codes (initial)
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).

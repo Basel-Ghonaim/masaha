@@ -17,8 +17,14 @@ import {
   type EmailSender,
   type GoogleIdentity,
 } from './modules/auth/index.ts';
+import { createLookupsService } from './modules/lookups/index.ts';
 import { createSessionCookies, createSessionsService } from './modules/sessions/index.ts';
-import { createSpaceLinksService } from './modules/space-links/index.ts';
+import {
+  createSpaceLinksController,
+  createSpaceLinksMeRouter,
+  createSpaceLinksService,
+} from './modules/space-links/index.ts';
+import { createSpacesService } from './modules/spaces/index.ts';
 import {
   createUsersController,
   createUsersMeRouter,
@@ -139,7 +145,9 @@ export function createApi({
 
   const sessions = createSessionsService({ now: clock });
   const users = createUsersService({ accessTokens, limiter, sessions, runInTransaction });
-  const spaceLinks = createSpaceLinksService();
+  const lookups = createLookupsService();
+  const spaces = createSpacesService();
+  const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const auth = createAuthService({
     users,
     sessions,
@@ -163,6 +171,10 @@ export function createApi({
   );
   api.use(AUTH_PATH, createAuthRouter(createAuthController(auth, cookies), webOrigin));
   api.use('/me', createUsersMeRouter(createUsersController(users, cookies), requireAuth));
+  api.use(
+    '/manage/spaces',
+    createSpaceLinksMeRouter(createSpaceLinksController(spaceLinks), requireAuth),
+  );
   return api;
 }
 

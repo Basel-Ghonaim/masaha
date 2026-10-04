@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { safeReturnUrl, signInPath } from './returnUrl';
+import { returnUrlOf, safeReturnUrl, signInPath } from './returnUrl';
 
 describe('signInPath', () => {
   it('carries the whole requested page, query and fragment included, in `next`', () => {
@@ -32,5 +32,13 @@ describe('safeReturnUrl', () => {
     ['an encoded dot segment before the slashes', '/%2E//evil.example'],
   ])('returns `/` for %s', (_, target) => {
     expect(safeReturnUrl(`?${new URLSearchParams({ next: target }).toString()}`)).toBe('/');
+  });
+});
+
+describe('returnUrlOf', () => {
+  it('returns nothing when `next` is missing or would leave the site, and keeps an explicit `/`', () => {
+    expect(returnUrlOf('')).toBeUndefined();
+    expect(returnUrlOf('?next=%2F%2Fevil.example')).toBeUndefined();
+    expect(returnUrlOf('?next=%2F')).toBe('/');
   });
 });

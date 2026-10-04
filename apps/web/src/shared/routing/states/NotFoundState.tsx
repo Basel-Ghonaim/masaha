@@ -3,8 +3,8 @@ import { EmptyState, SearchXIcon } from '@shared/design-system';
 import type { ReactNode } from 'react';
 import { StatusPage } from './StatusPage';
 
-/** The page that is not there. Each domain gives its own way on, as `children`. */
-export function NotFoundState({ children }: { children: ReactNode }) {
+/** The page that is not there. Each domain may give its own way on, as `children`. */
+export function NotFoundState({ children }: { children?: ReactNode }) {
   const copy = useCopy();
 
   return (

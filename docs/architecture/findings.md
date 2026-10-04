@@ -257,7 +257,9 @@ The writes succeeded and rolled back correctly. The warning comes from Prisma's 
 
 **Status:** Open · **Date:** 2026-10-01
 
-**Evidence:** the session lists the user's active links: those not deactivated ([api-contract §5](../api/api-contract.md#session)). A space is soft-deleted (`deletedAt`), and its links are not touched, so a link to a deleted space still appears and would still open the dashboard. `space-links`' repository queries only its own table ([conventions §2](../backend/conventions.md#2-layers)), and its service does not ask `spaces` (L1, below it, so it may) for the space's state; nothing deletes spaces yet.
+**Evidence:** the session lists the user's active links: those not deactivated ([api-contract §5](../api/api-contract.md#session)). A space is soft-deleted (`deletedAt`), and its links are not touched, so a link to a deleted space still appears and would still open the dashboard. `space-links`' repository queries only its own table ([conventions §2](../backend/conventions.md#2-layers)); nothing deletes spaces yet.
+
+The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`) asks `spaces`, and leaves a soft-deleted space out. The session's links do not, and they feed `RequireSpaceRole` and the landing's fallback to the oldest link ([architecture.md › Landing and guards](../frontend/architecture.md#landing-and-guards)). So once the dashboard uses them (F-6c2), a user could land on, and open, a space their switcher does not list.
 
 **Resolves when:** the slice that soft-deletes spaces decides it, for example by deactivating the space's links in the same transaction, with a test.
 
@@ -310,3 +312,11 @@ The writes succeeded and rolled back correctly. The warning comes from Prisma's 
 **Evidence:** the contract gives each error type its HTTP status ([api-contract §3](../api/api-contract.md#3-error-types)). The API holds that table in `apps/api/src/shared/errors/appError.ts`. The web's normaliser (`apps/web/src/shared/errors/toAppError.ts`) needs it read backwards, to type a response that carries no envelope (a proxy's 502, say), and holds its own copy, because the shared package has none. A status changed in one place and not the other would type the same answer differently on each side.
 
 **Resolves when:** the table moves into `packages/shared`, and both apps read it from there, in an item allowed to change the API.
+
+## 25. The signed-in claims are read by a helper written twice
+
+**Status:** Open · **Date:** 2026-10-04
+
+**Evidence:** a controller behind `requireAuth` reads the user's claims from `req.auth` through a small `signedIn(req)` helper, which throws 401 when they are missing. It is written in `apps/api/src/modules/users/users.controller.ts` and again in `apps/api/src/modules/space-links/space-links.controller.ts`, and each new module with a `me` router would add another copy.
+
+**Resolves when:** the helper moves to `shared/auth`, beside `requireAuth`, and both controllers use it, in an item allowed to touch both modules.

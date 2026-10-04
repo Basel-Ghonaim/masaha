@@ -211,9 +211,10 @@ Built: `POST /me/password`, the password change and the forced change at first s
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
+Built: `GET /manage/spaces`, the spaces the caller has an active link to, with the role at each ([api-contract §5](../api/api-contract.md#5-endpoints)).
+
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| GET | `/manage/spaces` | 🧾 | spaces the caller has an active link to, with the role at each |
 | GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | profile, hours, shifts, prices, amenities, contacts, capacity (private) |
 | POST | `/manage/spaces/:spaceId/facts/:group/confirm` | 🏢 | «المعلومات ما زالت صحيحة»: resets that group's freshness date |
 | GET | `/manage/spaces/:spaceId/occupancy` | 🧾 | the live numbers for the space's staff: `{ capacity, present }`; the statistics are under finance (🏢) |
