@@ -1,4 +1,4 @@
-import type { PaginationMeta } from '@masaha/shared';
+import type { PaginationMeta } from '@masaha/shared/core';
 import { AppError } from '@shared/errors';
 import axios from 'axios';
 import { describe, expect, it } from 'vitest';

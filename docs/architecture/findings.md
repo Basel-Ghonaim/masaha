@@ -163,7 +163,7 @@ Shells opened by an editor can start in a lowercase `c:\`, as this session's did
 
 **Resolves when:** the lookups and admin spaces slice (step 2 of the build sequence in [v1-mvp.md](../plans/v1-mvp.md#sequence-inside-the-build)) adds these eight keys to the design-system icon set, with the map from key to icon, and the admin's amenity form offers that set.
 
-*Progress (2026-10-02, F-10):* the design-system icon set has an icon for each of the eight keys, and `packages/shared` owns the list of valid keys ([`amenities.ts`](../../packages/shared/src/amenities.ts)), which types the seed. The map from key to icon and the admin's amenity form remain for step 2.
+*Progress (2026-10-02, F-10):* the design-system icon set has an icon for each of the eight keys, and `packages/shared` owns the list of valid keys ([`lookups/amenityIcons.ts`](../../packages/shared/src/lookups/amenityIcons.ts)), which types the seed. The map from key to icon and the admin's amenity form remain for step 2.
 
 ## 11. Nested writes in an interactive transaction trigger a `pg` deprecation warning
 

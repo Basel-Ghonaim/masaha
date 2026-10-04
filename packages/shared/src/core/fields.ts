@@ -19,3 +19,6 @@ export function textSchema(min: number, max: number) {
       params: { code: 'invalid_format' },
     });
 }
+
+/** Stored lowercased, so one address is one account. */
+export const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));

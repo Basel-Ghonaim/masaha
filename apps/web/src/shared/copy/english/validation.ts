@@ -1,4 +1,4 @@
-import type { FieldErrorCode } from '@masaha/shared';
+import type { FieldErrorCode } from '@masaha/shared/core';
 
 /**
  * What a field says, by the field-error code the server sends (docs/api/api-contract.md §3). The

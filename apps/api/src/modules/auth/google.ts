@@ -1,4 +1,4 @@
-import { emailSchema } from '@masaha/shared';
+import { emailSchema } from '@masaha/shared/core';
 import { createRemoteJWKSet, errors, jwtVerify, type JWTVerifyGetKey } from 'jose';
 
 // Google's OpenID Connect issuer and published signing keys.

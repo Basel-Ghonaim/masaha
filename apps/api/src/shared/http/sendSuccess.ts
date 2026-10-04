@@ -1,4 +1,4 @@
-import type { PaginationMeta } from '@masaha/shared';
+import type { PaginationMeta } from '@masaha/shared/core';
 import type { Response } from 'express';
 
 interface SuccessOptions {

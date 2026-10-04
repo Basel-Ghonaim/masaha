@@ -6,7 +6,7 @@ import {
   type ErrorType,
   type FieldErrorCode,
   type FieldErrors,
-} from '@masaha/shared';
+} from '@masaha/shared/core';
 import type { AxiosError } from 'axios';
 import { AppError } from './AppError';
 import type { AppErrorType, ClientErrorType } from './errorTypes';

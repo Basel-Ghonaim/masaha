@@ -1,4 +1,4 @@
-import type { ErrorType } from '@masaha/shared';
+import type { ErrorType } from '@masaha/shared/core';
 
 /**
  * The failures only the client can name, because no answer came back, or none it understands. The

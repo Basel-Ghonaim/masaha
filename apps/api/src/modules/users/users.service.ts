@@ -1,10 +1,6 @@
-import {
-  NAME_MAX_LENGTH,
-  textSchema,
-  type ChangePasswordRequest,
-  type Language,
-  type RegisterRequest,
-} from '@masaha/shared';
+import type { RegisterRequest } from '@masaha/shared/auth';
+import { textSchema, type Language } from '@masaha/shared/core';
+import { NAME_MAX_LENGTH, type ChangePasswordRequest } from '@masaha/shared/users';
 
 import { createRunInTransaction, type RunInTransaction, type Tx } from '../../db/index.ts';
 import type { AccessClaims, AccessTokens } from '../../shared/auth/index.ts';

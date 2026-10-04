@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { passwordSchema } from './password.ts';
+import { passwordSchema } from './passwordPolicy.ts';
 
 describe('passwordSchema', () => {
   it('takes 8 characters with a letter and a digit, in any script', () => {

@@ -1,4 +1,4 @@
-import type { DomainErrorCode, FieldErrors } from '@masaha/shared';
+import type { DomainErrorCode, FieldErrors } from '@masaha/shared/core';
 import type { AppErrorType } from './errorTypes';
 
 type AppErrorFields = {

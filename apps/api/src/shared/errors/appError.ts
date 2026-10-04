@@ -1,4 +1,4 @@
-import type { DomainErrorCode, ErrorType, FieldErrors } from '@masaha/shared';
+import type { DomainErrorCode, ErrorType, FieldErrors } from '@masaha/shared/core';
 
 // docs/api/api-contract.md §3. `message` is English for developers and logs, never shown to users.
 const ERROR_DEFINITIONS = {

@@ -5,7 +5,7 @@ import {
   registerSchema,
   resetCheckSchema,
   resetPasswordSchema,
-} from '@masaha/shared';
+} from '@masaha/shared/auth';
 import { Router } from 'express';
 
 import { refuseCrossSite } from '../../shared/http/index.ts';

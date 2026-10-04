@@ -6,7 +6,7 @@ import type {
   ResetCheck,
   ResetPasswordRequest,
   Session,
-} from '@masaha/shared';
+} from '@masaha/shared/auth';
 
 import type { RunInTransaction } from '../../db/index.ts';
 import type { AccessTokens } from '../../shared/auth/index.ts';

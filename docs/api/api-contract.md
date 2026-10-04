@@ -62,7 +62,7 @@ Each endpoint is added here, with its request and response, in the PR that build
 
 ### Session
 
-The shapes several endpoints answer with (`packages/shared`, `auth.ts`):
+The shapes several endpoints answer with (`@masaha/shared/auth`):
 
 ```ts
 Session = { user: SessionUser, accessToken: string }   // the access token is kept in memory only

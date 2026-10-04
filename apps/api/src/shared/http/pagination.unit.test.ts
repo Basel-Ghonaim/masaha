@@ -1,4 +1,4 @@
-import { paginationQuerySchema } from '@masaha/shared';
+import { paginationQuerySchema } from '@masaha/shared/core';
 import { describe, expect, it } from 'vitest';
 
 import { buildPaginationMeta, toSkip } from './pagination.ts';

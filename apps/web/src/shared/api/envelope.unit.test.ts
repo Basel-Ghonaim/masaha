@@ -1,4 +1,4 @@
-import type { PaginationMeta } from '@masaha/shared';
+import type { PaginationMeta } from '@masaha/shared/core';
 import { describe, expect, it } from 'vitest';
 import { unwrap, type ApiEnvelope } from './envelope';
 

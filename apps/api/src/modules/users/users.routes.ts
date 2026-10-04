@@ -1,4 +1,4 @@
-import { changePasswordSchema } from '@masaha/shared';
+import { changePasswordSchema } from '@masaha/shared/users';
 import { Router } from 'express';
 
 import type { RequireAuth } from '../../shared/auth/index.ts';

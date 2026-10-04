@@ -1,4 +1,4 @@
-import { paginationQuerySchema, type ErrorType, type PaginationQuery } from '@masaha/shared';
+import { paginationQuerySchema, type ErrorType, type PaginationQuery } from '@masaha/shared/core';
 import { Router } from 'express';
 import { pino } from 'pino';
 import request from 'supertest';

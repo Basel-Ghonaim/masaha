@@ -1,4 +1,4 @@
-import type { DomainErrorCode } from '@masaha/shared';
+import type { DomainErrorCode } from '@masaha/shared/core';
 import type { AppErrorType } from '@shared/errors';
 
 /**

@@ -1,4 +1,4 @@
-import type { AmenityIconKey } from '@masaha/shared';
+import type { AmenityIconKey } from '@masaha/shared/lookups';
 import { z } from 'zod';
 
 import { VisitRounding } from '../../generated/prisma/enums.ts';

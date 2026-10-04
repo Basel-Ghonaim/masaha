@@ -1,4 +1,4 @@
-import type { SessionUser } from '@masaha/shared';
+import type { SessionUser } from '@masaha/shared/auth';
 
 import type { Account } from './users.repository.ts';
 
