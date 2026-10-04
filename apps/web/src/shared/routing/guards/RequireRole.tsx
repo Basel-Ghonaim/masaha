@@ -1,8 +1,8 @@
 import { useSession, type SessionUser } from '@shared/session';
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
-import { ForbiddenState } from './ForbiddenState';
-import { signInPath } from './returnUrl';
+import { ForbiddenState } from '../states/ForbiddenState';
+import { signInPath } from '../returnUrl';
 import { sessionWait, wholeSession } from './sessionWait';
 
 /**

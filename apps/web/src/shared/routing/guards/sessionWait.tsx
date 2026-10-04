@@ -2,8 +2,8 @@ import { useCopy } from '@shared/copy';
 import { Spinner } from '@shared/design-system';
 import { restoreSession, type SessionState } from '@shared/session';
 import type { ReactNode } from 'react';
-import { RetryState } from './RetryState';
-import { StatusPage } from './StatusPage';
+import { RetryState } from '../states/RetryState';
+import { StatusPage } from '../states/StatusPage';
 
 /** The whole session, for a guard, which decides on its status and user together. */
 export function wholeSession(session: SessionState): SessionState {

@@ -16,6 +16,8 @@
 
 **Dependency rule:** `app → pages → features → shared`, one direction only. **No sibling imports** (feature → feature, page group → page group). Held by path aliases (`@app/*`, `@pages/*`, `@features/*`, `@shared/*`), barrel-only imports, and `eslint-plugin-boundaries`.
 
+**Inside a module:** a `shared/` module or a feature groups its files into folders by role (`guards/`, `states/`, `services/`, `hooks/`, …) once it holds more than one role, so its roles read from its tree and its surface stays one file: inner folders have no `index.ts`, and the module's `index.ts` stays its only entry. Its core (its model, its store, a helper every role uses) may stay at the root, a module with a single role stays flat, and tests stay beside the files they prove. The design-system layer, whose layout [foundation §3](design-system/foundation.md#3-architecture) owns, and the copy's language folders are exempt.
+
 ## 2. Page groups
 
 **Two domains, one application** ([ADR 0011](../architecture/decisions/0011-one-web-app.md)): the **site** and the **dashboard**, one page group each.

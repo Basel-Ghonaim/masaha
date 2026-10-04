@@ -1,7 +1,7 @@
 import { useSession } from '@shared/session';
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
-import { safeReturnUrl } from './returnUrl';
+import { safeReturnUrl } from '../returnUrl';
 import { sessionWait, wholeSession } from './sessionWait';
 
 /**

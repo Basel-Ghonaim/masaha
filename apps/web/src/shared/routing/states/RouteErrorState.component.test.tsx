@@ -2,7 +2,7 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { startPreferences } from '../../test/startPreferences';
+import { startPreferences } from '../../../test/startPreferences';
 import { reloadPage } from './reloadPage';
 import { RouteErrorState } from './RouteErrorState';
 
