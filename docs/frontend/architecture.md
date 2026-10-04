@@ -129,7 +129,7 @@ Not built yet: F-5b2 builds the guards and F-6c the landing and the switcher.
 features/<capability>/
   index.ts      public surface — the only way in
   model/        types and entities
-  api.ts        calls through `apiClient` (`@shared/api`) + TanStack Query hooks (query keys live here)
+  api.ts        calls through `api` (`@shared/api`, §7) + TanStack Query hooks (query keys live here)
   hooks/        what screens consume, when more than a query hook is needed
   forms/        react-hook-form setups using schemas from packages/shared
   screens/      presentation only
@@ -163,6 +163,12 @@ One normaliser, `toAppError` in `shared/errors`, turns any failure (Axios, netwo
 ## 7. Server state
 
 TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). The transport, `shared/api`, is built: one Axios client at `/api/v1`, relative in every environment ([ADR 0014](../architecture/decisions/0014-deployment.md)), with a 15 s timeout a request may override, the token through a getter the composition root hands in (every attempt sends its current token), and single-flight refresh on 401 through a function it hands in. The session wires both in F-5b2; until then bootstrap hands a getter that returns `null` and no refresh, so no token is sent and no refresh runs. The QueryClient and its defaults are built: the app makes one, at bootstrap, outside React. The rules on keys, invalidation and polling apply from the first feature that fetches.
+
+- **Calls go through `api`** (`@shared/api`), whose helpers unwrap the envelope ([api-contract §2](../api/api-contract.md#2-response-envelope)), so no capability writes `unwrap` or sees the envelope:
+  - `api.get<T>`, `api.post<T>`, `put`, `patch` and `delete` resolve to the envelope's `data`; a 204 resolves with nothing;
+  - `api.getPage<T>` resolves to `{ data, meta }`, for a paginated list or an endpoint's own `meta`, such as the front desk's warnings. An answer with no `meta` breaks the contract, so it rejects as `unknown`;
+  - a failure rejects with the `AppError` (§5);
+  - `apiClient` and `unwrap` stay exported for the rare call the helpers do not fit.
 
 - **Query keys start with their scope:**
   - `['space', spaceId, '<capability>', …]` for a space's data;
