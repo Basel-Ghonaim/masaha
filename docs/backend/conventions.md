@@ -60,7 +60,7 @@ Inside a module, each layer calls only the one below it.
 
 ## 3. Validation
 
-- **Zod**, with schemas imported from `packages/shared` where the client uses the same rules.
+- **Zod**, with schemas imported from `packages/shared` where the client uses the same rules ([shared-package.md](../architecture/shared-package.md)).
 - `validate(schema, source = "body" | "query" | "params")` runs before the controller; on failure it throws `AppError.validation` with field-error **codes**.
 - **A controller reads the body its route validated.** It casts `req.body` to the type inferred from the same schema that route passes to `validate` (`RegisterRequest` for `registerSchema`), and nothing else ties the two: a route and its controller handler are changed together.
 - Query numbers (`page`, `limit`) are coerced and bounded in the schema.

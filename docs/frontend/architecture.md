@@ -150,6 +150,8 @@ features/<capability>/
 
 A layer the capability does not need is **absent, not empty**. A screen only presents: no Axios calls, no business rules the server also enforces.
 
+A feature's wire types, its requests and the server's answers, come from `@masaha/shared/<module>` ([shared-package.md](../architecture/shared-package.md)), never a copy.
+
 ## 4. Session and preferences
 
 - `shared/session` (Zustand), **built**: the session's state, its restore, refresh and sign-out ([ADR 0003](../architecture/decisions/0003-session-model.md)). No UI.

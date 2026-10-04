@@ -35,6 +35,7 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
   - [0014](architecture/decisions/0014-deployment.md) deployment: one origin on Vercel and Neon's free tiers, adapted to the architecture
   - [0015](architecture/decisions/0015-idempotency-and-concurrency.md) idempotency and concurrency: idempotency keys, read committed, the database owns the ledger's rules
   - [0016](architecture/decisions/0016-dashboard-urls.md) dashboard URLs: the selected space is in the URL
+- [shared-package.md](architecture/shared-package.md) — `packages/shared`, the web–API contract in code: its structure by capability and its rules.
 - [findings.md](architecture/findings.md) — recorded divergences from the intended design.
 
 ### `api/`
