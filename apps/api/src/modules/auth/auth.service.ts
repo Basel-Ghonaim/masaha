@@ -6,7 +6,6 @@ import type {
   LoginRequest,
   RecoveryPosition,
   RegisterRequest,
-  ResetCheck,
   ResetPasswordRequest,
   Session,
 } from '@masaha/shared/auth';
@@ -305,35 +304,61 @@ export function createAuthService({
     },
 
     /**
-     * The account a reset link is for, so the page can name it. Reading the link neither uses it nor
-     * extends it, and every failure is the same RESET_TOKEN_INVALID.
+     * Checks a reset link and binds it to the browser's recovery, or opens one for it when the
+     * browser holds none. Checking neither uses the link nor extends it, and every failure is the
+     * same RESET_TOKEN_INVALID. From here on, the recovery holds the link: the web no longer does.
      */
-    async checkResetToken(token: string, clientAddress: string): Promise<ResetCheck> {
-      await limiter.count(PASSWORD_ADDRESS, clientAddress);
-      await limiter.count(PASSWORD_TOKEN, clientAddress, token);
-
-      const userId = await sessions.resetTokenOwner(token);
-      if (!userId) throw invalidResetLink();
-      return { email: (await users.get(userId)).email };
-    },
-
-    /** Sets the new password with the link, once, and ends every session of the user. */
-    async resetPassword(
-      { token, password }: ResetPasswordRequest,
+    async checkResetToken(
+      token: string,
       clientAddress: string,
-    ): Promise<void> {
+      heldKey: string | undefined,
+    ): Promise<RecoveryAnswer> {
       await limiter.count(PASSWORD_ADDRESS, clientAddress);
       await limiter.count(PASSWORD_TOKEN, clientAddress, token);
 
       // Read first, so the lock is taken in the one order: the user, then their tokens.
       const owner = await sessions.resetTokenOwner(token);
       if (!owner) throw invalidResetLink();
+      const opened = await runInTransaction(async (tx) => {
+        const account = await users.lockAccount(owner, tx);
+        if (!account) return undefined;
+        return sessions.bindRecovery(
+          token,
+          { key: heldKey, maskedEmail: maskEmail(account.email) },
+          tx,
+        );
+      });
+      if (!opened) throw invalidResetLink();
+      const { key, recovery } = opened;
+      return { position: positionOf(recovery), key, maxAgeMs: recovery.remainingMs };
+    },
+
+    /**
+     * Sets the new password with the link the browser's recovery holds, once, and ends every
+     * session of the user and every recovery bound to one of their links. A recovery not bound to a
+     * link stays, as it does for an address with no account, so it tells nothing. A token is never
+     * taken from the request.
+     */
+    async resetPassword(
+      { password }: ResetPasswordRequest,
+      clientAddress: string,
+      key: string | undefined,
+    ): Promise<void> {
+      await limiter.count(PASSWORD_ADDRESS, clientAddress);
+      if (!key) throw invalidRecovery();
+      await limiter.count(PASSWORD_TOKEN, clientAddress, key);
+
+      // Read first, so the lock is taken in the one order: the user, then their tokens.
+      const recovery = await sessions.recovery(key);
+      const owner = recovery?.linkChecked ? recovery.userId : null;
+      if (owner === null) throw invalidRecovery();
       const passwordHash = await users.hashPassword(password);
       await runInTransaction(async (tx) => {
         await users.lockAccount(owner, tx);
-        if ((await sessions.consumeResetToken(token, tx)) !== owner) throw invalidResetLink();
+        if ((await sessions.consumeRecoveryLink(key, tx)) !== owner) throw invalidRecovery();
         await users.setPassword(owner, passwordHash, tx);
         await sessions.revokeAll(owner, tx);
+        // Ending the links ends the recoveries bound to them.
         await sessions.endResetTokens(owner, tx);
       });
     },

@@ -161,12 +161,12 @@ describe('auth: refresh', () => {
 });
 
 describe('auth: the reset', () => {
-  it('reads the token before hashing: an invalid link never reaches bcrypt', async () => {
+  it('reads the recovery before hashing: one with no link checked never reaches bcrypt', async () => {
     const { auth, calls } = setup();
 
-    await expect(
-      auth.resetPassword({ token: 'unknown', password: 'new2026x' }, 'ip'),
-    ).rejects.toMatchObject({ code: 'RESET_TOKEN_INVALID' });
+    await expect(auth.resetPassword({ password: 'new2026x' }, 'ip', 'key')).rejects.toMatchObject({
+      code: 'RECOVERY_INVALID',
+    });
     expect(calls).toEqual([]);
   });
 });

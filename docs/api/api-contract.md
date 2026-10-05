@@ -132,15 +132,15 @@ RecoveryPosition =
 - **200:** `RecoveryPosition`; `request` without a recovery, or with one that has ended or expired. Never `not_found`.
 - **Errors:** `forbidden` (403) for a cross-site request.
 
-#### `POST /auth/password/reset/check` · 🌐
-- **Body:** `{ token }`, read by the web from the link's fragment.
-- **200:** `{ email }`, the account the link is for. The token is neither used nor extended.
-- **Errors:** `validation` (422) for a missing or empty token; `bad_request` (400) `RESET_TOKEN_INVALID`, the same for an unknown, expired or used link; `rate_limit` (429).
+#### `POST /auth/password/reset/check` · 🌐 · sets the recovery cookie
+- **Body:** `{ token }`, read by the web from the link's fragment. It is the last time the web holds it.
+- **200:** `RecoveryPosition` at `password`, and the recovery cookie, now lasting as long as the link. The link is bound to the browser's recovery, or to a new one when the browser holds none (a link opened on another device), and a recovery elsewhere that held it ends. The token is neither used nor extended.
+- **Errors:** `validation` (422) for a missing or empty token; `bad_request` (400) `RESET_TOKEN_INVALID`, the same for an unknown, expired or used link; `forbidden` (403) for a cross-site request; `rate_limit` (429).
 
-#### `POST /auth/password/reset` · 🌐
-- **Body:** `{ token, password }`. The password follows the policy.
-- **204:** the password is set, a pending temporary one is settled, and every session of the user ended. The link is used.
-- **Errors:** `validation` (422); `bad_request` (400) `RESET_TOKEN_INVALID`; `rate_limit` (429).
+#### `POST /auth/password/reset` · the recovery cookie
+- **Body:** `{ password }`, following the policy. The link is the recovery's: a `token` in the body is refused.
+- **204:** the password is set with the link the recovery holds, a pending temporary one is settled, and every session, and every recovery bound to a link of the user, ended. The link is used, and the recovery cookie cleared.
+- **Errors:** `validation` (422), with `errors.token = ["invalid_format"]` for a token in the body; `bad_request` (400) `RECOVERY_INVALID` without a recovery at `password`, or when its link was used, has expired or was replaced meanwhile; `forbidden` (403) for a cross-site request, which keeps the cookie; `rate_limit` (429).
 
 ### Me
 

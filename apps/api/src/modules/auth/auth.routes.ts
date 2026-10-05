@@ -39,7 +39,17 @@ export function createAuthRouter(controller: AuthController, webOrigin: string):
     controller.resendResetLink,
   );
   router.get('/password/recovery', sameSiteOnly, controller.recoveryPosition);
-  router.post('/password/reset/check', validate(resetCheckSchema), controller.checkResetToken);
-  router.post('/password/reset', validate(resetPasswordSchema), controller.resetPassword);
+  router.post(
+    '/password/reset/check',
+    sameSiteOnly,
+    validate(resetCheckSchema),
+    controller.checkResetToken,
+  );
+  router.post(
+    '/password/reset',
+    sameSiteOnly,
+    validate(resetPasswordSchema),
+    controller.resetPassword,
+  );
   return router;
 }

@@ -339,7 +339,7 @@ Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
 - **Isolation stays at PostgreSQL's default, read committed.** The database's constraints and row locks are the guarantee.
 - **Rows are locked in one fixed order:** oldest first, then by id. One amount spread over several items ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)) locks and pays them in that order, so it cannot deadlock.
 - **The session lock.** Every transaction that writes a user's refresh tokens first locks that user's row (`FOR NO KEY UPDATE`, through `users`, which owns the row). Signing in, registering, Google sign-in, refresh, logout, a password change, a reset and a suspension's revocation all take it, so a new session and a revocation never interleave: whichever commits second sees the first.
-  - **The order** is the user's row, then their tokens. A reset reads its token's owner first, without a lock, so it too takes the user's row before any token.
+  - **The order** is the user's row, then their tokens. A reset reads its recovery's owner first, without a lock, so it too takes the user's row before any token. Checking a reset link does the same before it binds the link to a recovery, so a password change that ends the link meanwhile is seen.
   - **bcrypt stays outside every transaction.** A sign-in compares the password first, then re-reads the hash under the lock and opens the session only if it is still the one that matched.
   - **A password change is a compare-and-set:** it writes only if the account still has the password and the pending flag it checked, so it never overwrites a reset that landed meanwhile.
   - API tests hold the row in a test transaction while each of these runs.

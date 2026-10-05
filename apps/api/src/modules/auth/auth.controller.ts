@@ -84,11 +84,22 @@ export function createAuthController(
 
     checkResetToken: async (req: Request, res: Response) => {
       const { token } = req.body as ResetCheckRequest;
-      sendSuccess(res, await auth.checkResetToken(token, clientAddress(req.ip)));
+      const { position, key, maxAgeMs } = await auth.checkResetToken(
+        token,
+        clientAddress(req.ip),
+        recoveryCookie.read(req),
+      );
+      recoveryCookie.set(res, key, maxAgeMs);
+      sendSuccess(res, position);
     },
 
     resetPassword: async (req: Request, res: Response) => {
-      await auth.resetPassword(req.body as ResetPasswordRequest, clientAddress(req.ip));
+      await auth.resetPassword(
+        req.body as ResetPasswordRequest,
+        clientAddress(req.ip),
+        recoveryCookie.read(req),
+      );
+      recoveryCookie.clear(res);
       sendNoContent(res);
     },
 

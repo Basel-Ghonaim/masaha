@@ -57,8 +57,8 @@
   - **The recovery** is a row the server holds, found by the hash of the cookie's key. It names its account only when one may sign in, never discloses it, and stores the address only masked and as a SHA-256 digest. It lives as long as a reset link, an hour.
   - **Another link** is asked for through the recovery, without an email. A recovery may ask 3 times, each at least 60 seconds after the last link, a window the same for every address, so it reveals nothing. The ask is recorded before the account is read, so the position moves the same whether or not an email follows. It counts under the request's own limits ([Rate limits](#rate-limits-fixed-window)), and every email goes through the caps below.
   - **The link** is `<web origin>/reset-password#token=…`. The token rides in the URL fragment, which no server ever receives, so it reaches no hosting log and no `Referer` header. The web reads it there and removes it from the address bar.
-  - **The check** (`POST /auth/password/reset/check`) tells the reset page which account a link is for, before the form is sent. It neither uses the token nor extends it, and answers the same `RESET_TOKEN_INVALID` for an unknown, expired or used link.
-  - **Success** sets the password, settles a pending temporary one, and ends every session of the user.
+  - **The check** (`POST /auth/password/reset/check`) binds the link to the browser's recovery, or opens one for it in a browser that holds none, since most people open the email on another device. It answers with the account's email, masked, so the page names the account before the form is sent. It neither uses the token nor extends it, the recovery then lives as long as the link, and a link is bound to one recovery at a time. It answers the same `RESET_TOKEN_INVALID` for an unknown, expired or used link. From the check on, the web holds no credential.
+  - **Success** reads the link from the recovery, never from the request: a token in the body is refused (422). It sets the password, settles a pending temporary one, ends every session, and every recovery bound to a link of the user, and clears the recovery cookie. A recovery bound to no link stays, as one for an address with no account does, so the reset tells no one else whether the address has an account.
   - **The token is never logged** outside development. The request logger never logs bodies, and the log mode below is refused anywhere else.
 - **The reset email's delivery** is the email port of the `auth` module ([conventions R5](conventions.md#8-module-rules)), in one of two modes, chosen by `EMAIL_MODE`:
   - `log`, the default, sends nothing and writes the message, with its link, to the log. It is allowed in development only;
@@ -90,7 +90,7 @@ The counters are stored in PostgreSQL, in the `rate_limits` table, so every inst
 | Google sign-in | **Failed** attempts only, by address, under its own key: junk tokens fail in microseconds, so they lock only Google sign-in out, never the password sign-ins of a shared address | 50 / 15 min |
 | Refresh | Every refresh, by the user its cookie belongs to. The token is random and cannot be guessed, so an unknown cookie is simply refused | 30 / 15 min |
 | Password forgot | Every request for a link, and every resend, by address and email (a digest of it, which the recovery keeps), beside the reset email's own caps ([Passwords](#passwords)) | 5 / 15 min |
-| Password reset and its check | Every request, by address and token | 5 / 15 min |
+| Password reset and its check | Every request, by address and token (the check) or by address and recovery (the reset) | 5 / 15 min |
 | Password forgot, resend, reset and check together | Every request, by address | 50 / 15 min |
 | Data reports | Every report, by the user | 10 / hour |
 | Password change | **Failed** attempts only (a wrong current password), by the user: a thief can change address | 10 / 15 min |

@@ -21,11 +21,6 @@ export interface GoogleSession extends Session {
   linked: boolean;
 }
 
-/** Which account a valid reset link is for, so the page can name it before the form is sent. */
-export interface ResetCheck {
-  email: string;
-}
-
 /**
  * Where the caller stands in recovering a password, as the server holds it
  * (docs/api/api-contract.md › The forgotten password). The email is always masked.

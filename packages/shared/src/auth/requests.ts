@@ -45,5 +45,9 @@ export type ResetCheckRequest = z.infer<typeof resetCheckSchema>;
  */
 export const resendLinkSchema = z.strictObject({}).optional();
 
-export const resetPasswordSchema = z.object({ token: resetTokenSchema, password: passwordSchema });
+/**
+ * The new password. The link is the browser's recovery's, never the caller's to give: a token in
+ * the body is refused.
+ */
+export const resetPasswordSchema = z.strictObject({ password: passwordSchema });
 export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;

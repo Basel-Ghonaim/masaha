@@ -61,7 +61,8 @@ interface Dependencies {
 /**
  * The tokens of identity (ADR 0013): the refresh tokens (issue, rotate with the grace window, end a
  * session, revoke all), the password-reset tokens (issue, keep the delivered one, withdraw, check,
- * consume, end) and the recoveries that hold them (open, read, ask again). It knows only a user's
+ * consume, end) and the recoveries that hold them (open, read, ask again, bind a link, use it,
+ * end). It knows only a user's
  * id; of an address, only what it is handed, masked and digested. A session is a family of refresh
  * tokens.
  */
@@ -189,11 +190,6 @@ export function createSessionsService({
       return repository.findResetTokenOwner(hashToken(token), now(), tx);
     },
 
-    /** Uses the reset token, once. Whose it was, if it was still valid. */
-    consumeResetToken(token: string, tx: Tx): Promise<number | undefined> {
-      return repository.consumeResetToken(hashToken(token), now(), tx);
-    },
-
     /**
      * Opens a recovery for an address, ending the one the browser held (`replacing`, its key). It
      * lasts as long as a reset link, and may ask for another link once its window has passed.
@@ -245,6 +241,39 @@ export function createSessionsService({
         expiresAt: new Date(at.getTime() + RESET_TOKEN_TTL_MS),
       });
       return stored ? recoveryOf(stored, at) : undefined;
+    },
+
+    /**
+     * Binds a reset link to the browser's recovery (`key`), or opens one for it when the browser
+     * holds none: most people open the email on another device. Runs in the caller's transaction,
+     * after the caller took the link's owner's session lock (conventions §13). Nothing when the
+     * link is unknown, expired or used, or ended while it was being bound.
+     */
+    async bindRecovery(
+      token: string,
+      { key, maskedEmail }: { key: string | undefined; maskedEmail: string },
+      tx: Tx,
+    ): Promise<OpenedRecovery | undefined> {
+      const at = now();
+      const link = await repository.findValidResetToken(hashToken(token), at, tx);
+      if (!link) return undefined;
+      const held =
+        key && (await repository.findRecovery(hashToken(key), at, tx)) ? key : newToken();
+      const stored = await repository.bindRecovery(
+        hashToken(held),
+        link,
+        { maskedEmail, now: at },
+        tx,
+      );
+      return stored ? { key: held, recovery: recoveryOf(stored, at) } : undefined;
+    },
+
+    /**
+     * Uses the reset link bound to the recovery this key opens, once. Whose it was, if both were
+     * still valid. Runs in the caller's transaction, under the owner's session lock.
+     */
+    consumeRecoveryLink(key: string, tx: Tx): Promise<number | undefined> {
+      return repository.consumeRecoveryLink(hashToken(key), now(), tx);
     },
   };
 }

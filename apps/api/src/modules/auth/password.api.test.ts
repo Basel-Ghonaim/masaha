@@ -33,12 +33,23 @@ function position(key?: string) {
   return key === undefined ? call : call.set('Cookie', `masaha_reset=${key}`);
 }
 
-function check(token: string) {
-  return request(app).post('/api/v1/auth/password/reset/check').send({ token });
+/** Checks a link, in the browser whose recovery `key` names, or in one with none. */
+function check(token: string, key?: string) {
+  const call = request(app).post('/api/v1/auth/password/reset/check');
+  if (key !== undefined) call.set('Cookie', `masaha_reset=${key}`);
+  return call.send({ token });
 }
 
-function reset(token: string, password = NEW_PASSWORD) {
-  return request(app).post('/api/v1/auth/password/reset').send({ token, password });
+/** The key of the recovery a link's check binds it to. */
+async function checkedKey(token: string, key?: string): Promise<string> {
+  return cookieValue(await check(token, key), 'masaha_reset') ?? '';
+}
+
+/** Sets the new password in the browser whose recovery `key` names. */
+function reset(key: string | undefined, body: object = { password: NEW_PASSWORD }) {
+  const call = request(app).post('/api/v1/auth/password/reset');
+  if (key !== undefined) call.set('Cookie', `masaha_reset=${key}`);
+  return call.send(body);
 }
 
 function login(password: string) {
@@ -138,9 +149,7 @@ describe('POST /auth/password/forgot', () => {
     for (let attempt = 0; attempt < 4; attempt++) expect((await forgot()).status).toBe(202);
 
     expect(outbox.sent).toHaveLength(3);
-    const third = lastToken();
-    expect((await check(third)).status).toBe(200);
-    expect((await reset(third)).status).toBe(204);
+    expect((await reset(await checkedKey(lastToken()))).status).toBe(204);
   });
 
   it('leaves one live link after two concurrent requests', async () => {
@@ -273,6 +282,30 @@ describe('POST /auth/password/resend', () => {
     }
   });
 
+  it('refuses with RECOVERY_INVALID once a link was checked, and in a recovery the check opened', async () => {
+    await createAccount();
+    const asked = await openRecovery();
+    const token = /#token=([\w-]+)/.exec(outbox.sent.at(-1)?.text ?? '')?.[1] ?? '';
+    const checkIn = (key?: string) => {
+      const call = request(clocked).post('/api/v1/auth/password/reset/check');
+      if (key !== undefined) call.set('Cookie', `masaha_reset=${key}`);
+      return call.send({ token });
+    };
+    const refusedInvalid = async (key: string) => {
+      const response = await resend(key);
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({ error: { code: 'RECOVERY_INVALID' } });
+    };
+    now += 60_000;
+
+    // The browser that asked checks the link: its recovery holds it, and asks for no other.
+    await checkIn(asked);
+    await refusedInvalid(asked);
+    // Another browser checks it: the recovery the check opens has no address to send to.
+    await refusedInvalid(cookieValue(await checkIn(), 'masaha_reset') ?? '');
+    expect(outbox.sent).toHaveLength(1);
+  });
+
   it('refuses an email in the body with 422', async () => {
     const key = await openRecovery();
     now += 60_000;
@@ -306,16 +339,52 @@ describe('POST /auth/password/resend', () => {
 });
 
 describe('POST /auth/password/reset/check', () => {
-  it('names the account of a valid link, without using it or extending it', async () => {
+  it('binds a valid link to the browser’s recovery, without using it or extending it', async () => {
     await createAccount();
-    await forgot();
+    const key = cookieValue(await forgot(), 'masaha_reset');
     const before = await prisma.passwordResetToken.findFirstOrThrow();
 
-    const response = await check(lastToken());
+    const response = await check(lastToken(), key);
 
+    const password = { step: 'password', email: 's•••@example.com' };
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ success: true, data: { email: 'sara@example.com' } });
+    expect(response.body).toEqual({ success: true, data: password });
+    expect(cookieValue(response, 'masaha_reset')).toBe(key);
+    expect(setCookies(response).masaha_reset).toMatch(/Max-Age=(359\d|3600);/);
+    expect((await position(key)).body).toEqual({ success: true, data: password });
     expect(await prisma.passwordResetToken.findFirstOrThrow()).toEqual(before);
+  });
+
+  it('opens a recovery for a link checked in a browser that holds none, as on another device', async () => {
+    await createAccount();
+    await forgot();
+
+    const key = await checkedKey(lastToken());
+
+    expect(key).not.toBe('');
+    expect((await position(key)).body).toEqual({
+      success: true,
+      data: { step: 'password', email: 's•••@example.com' },
+    });
+  });
+
+  it('moves a link checked in a second browser there: the first browser’s recovery ends', async () => {
+    await createAccount();
+    await forgot();
+    const first = await checkedKey(lastToken());
+
+    const second = await checkedKey(lastToken());
+
+    expect((await position(first)).body).toEqual({ success: true, data: { step: 'request' } });
+    expect((await position(second)).body).toMatchObject({ data: { step: 'password' } });
+  });
+
+  it('refuses a cross-site request with 403, and binds nothing', async () => {
+    await createAccount();
+    await forgot();
+
+    expect((await check(lastToken()).set('Sec-Fetch-Site', 'cross-site')).status).toBe(403);
+    expect(await prisma.passwordRecovery.count({ where: { resetTokenId: { not: null } } })).toBe(0);
   });
 
   it('answers the same RESET_TOKEN_INVALID for an unknown, expired or used link', async () => {
@@ -366,18 +435,22 @@ describe('POST /auth/password/reset/check', () => {
 });
 
 describe('POST /auth/password/reset', () => {
-  it('sets the new password once, settles a temporary one and ends every session', async () => {
+  it('sets the new password once with the recovery’s link, settles a temporary one, ends every session and clears the cookie', async () => {
     const user = await createAccount({ mustChangePassword: true });
     const signedIn = await login(PASSWORD);
     await forgot();
-    const token = lastToken();
+    const key = await checkedKey(lastToken());
 
-    const response = await reset(token);
+    const response = await reset(key);
 
     expect(response.status).toBe(204);
+    expect(setCookies(response).masaha_reset).toMatch(
+      /^masaha_reset=; Path=\/api\/v1\/auth\/password; Expires=Thu, 01 Jan 1970/,
+    );
     expect(await prisma.refreshToken.count({ where: { userId: user.id } })).toBe(0);
-    // The used link goes with the transaction that used it.
+    // The used link, and the recovery bound to it, go with the transaction that used it.
     expect(await prisma.passwordResetToken.count({ where: { userId: user.id } })).toBe(0);
+    expect(await prisma.passwordRecovery.count({ where: { resetTokenId: { not: null } } })).toBe(0);
     const refresh = await request(app)
       .post('/api/v1/auth/refresh')
       .set('Cookie', `masaha_refresh=${cookieValue(signedIn, 'masaha_refresh') ?? ''}`);
@@ -386,17 +459,81 @@ describe('POST /auth/password/reset', () => {
     expect((await login(NEW_PASSWORD)).body).toMatchObject({
       data: { user: { mustChangePassword: false } },
     });
-    expect((await reset(token, 'again2026x')).body).toMatchObject({
-      error: { code: 'RESET_TOKEN_INVALID' },
+    expect((await reset(key, { password: 'again2026x' })).body).toMatchObject({
+      error: { code: 'RECOVERY_INVALID' },
     });
   });
 
-  it('lets only one of two concurrent resets with one link through', async () => {
+  it('leaves a recovery bound to no link reading sent after the reset, as for an unknown address', async () => {
+    await createAccount();
+    // Someone else asked for the account's link in their own browser, and for an unknown address.
+    const known = cookieValue(await forgot(), 'masaha_reset');
+    const unknown = cookieValue(await forgot('nobody@example.com'), 'masaha_reset');
+    await forgot();
+    const owner = await checkedKey(lastToken());
+
+    expect((await reset(owner)).status).toBe(204);
+
+    expect((await position(known)).body).toEqual({ success: true, data: SENT });
+    expect((await position(unknown)).body).toEqual({
+      success: true,
+      data: { ...SENT, email: 'n•••@example.com' },
+    });
+  });
+
+  it('ends the recovery bound to a link when a password change ends the link', async () => {
+    await createAccount();
+    await forgot();
+    const key = await checkedKey(lastToken());
+    const signedIn = await login(PASSWORD);
+    const { accessToken } = (signedIn.body as { data: { accessToken: string } }).data;
+
+    const changed = await request(app)
+      .post('/api/v1/me/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ currentPassword: PASSWORD, password: NEW_PASSWORD });
+
+    expect(changed.status).toBe(200);
+    expect((await position(key)).body).toEqual({ success: true, data: { step: 'request' } });
+    expect((await reset(key)).body).toMatchObject({ error: { code: 'RECOVERY_INVALID' } });
+  });
+
+  it('refuses a token in the body with 422, even beside a valid recovery', async () => {
     await createAccount();
     await forgot();
     const token = lastToken();
+    const key = await checkedKey(token);
 
-    const results = await Promise.all([reset(token, 'first2026x'), reset(token, 'second2026x')]);
+    const response = await reset(key, { token, password: NEW_PASSWORD });
+
+    expect(response.status).toBe(422);
+    expect(response.body).toMatchObject({ error: { errors: { token: ['invalid_format'] } } });
+    expect((await login(PASSWORD)).status).toBe(200);
+  });
+
+  it('refuses with RECOVERY_INVALID without a recovery, or with one where no link was checked', async () => {
+    await createAccount();
+    const unchecked = cookieValue(await forgot(), 'masaha_reset');
+
+    for (const key of [undefined, 'unknown-key', unchecked]) {
+      const response = await reset(key);
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: { type: 'bad_request', code: 'RECOVERY_INVALID' },
+      });
+    }
+    expect((await login(PASSWORD)).status).toBe(200);
+  });
+
+  it('lets only one of two concurrent resets with one recovery through', async () => {
+    await createAccount();
+    await forgot();
+    const key = await checkedKey(lastToken());
+
+    const results = await Promise.all([
+      reset(key, { password: 'first2026x' }),
+      reset(key, { password: 'second2026x' }),
+    ]);
 
     expect(results.map(({ status }) => status).sort()).toEqual([204, 400]);
   });
@@ -404,14 +541,48 @@ describe('POST /auth/password/reset', () => {
   it('refuses an expired link and a password outside the policy', async () => {
     await createAccount();
     await forgot();
-    const token = lastToken();
+    const key = await checkedKey(lastToken());
 
-    const weak = await reset(token, 'short1');
+    const weak = await reset(key, { password: 'short1' });
     await prisma.passwordResetToken.updateMany({ data: { expiresAt: new Date(Date.now() - 1) } });
-    const expired = await reset(token);
+    const expired = await reset(key);
 
     expect(weak.status).toBe(422);
-    expect(expired.body).toMatchObject({ error: { code: 'RESET_TOKEN_INVALID' } });
+    expect(expired.body).toMatchObject({ error: { code: 'RECOVERY_INVALID' } });
+    expect((await login(PASSWORD)).status).toBe(200);
+  });
+
+  it('ends the recovery of a link that a newer delivered link replaced', async () => {
+    await createAccount();
+    await forgot();
+    const key = await checkedKey(lastToken());
+
+    await forgot();
+
+    expect((await position(key)).body).toEqual({ success: true, data: { step: 'request' } });
+    expect((await reset(key)).body).toMatchObject({ error: { code: 'RECOVERY_INVALID' } });
+  });
+
+  it('limits the uses of one recovery to 5 every 15 minutes', async () => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      expect((await reset('some-key')).status).toBe(400);
+    }
+
+    const limited = await reset('some-key');
+
+    expect(limited.status).toBe(429);
+    expect(limited.headers['ratelimit-policy']).toBe('"password-token";q=5;w=900');
+  });
+
+  it('refuses a cross-site request with 403, and keeps the cookie', async () => {
+    await createAccount();
+    await forgot();
+    const key = await checkedKey(lastToken());
+
+    const response = await reset(key).set('Sec-Fetch-Site', 'cross-site');
+
+    expect(response.status).toBe(403);
+    expect(setCookies(response).masaha_reset).toBeUndefined();
     expect((await login(PASSWORD)).status).toBe(200);
   });
 });
