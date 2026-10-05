@@ -38,6 +38,9 @@ export const ERRORS = {
   CURRENT_PASSWORD_INCORRECT: 'The current password is incorrect.',
   GOOGLE_TOKEN_INVALID: 'We couldn’t sign you in with Google. Try again or use your email.',
   RESET_TOKEN_INVALID: 'The link has expired or was already used.',
+  RECOVERY_INVALID: 'Your password recovery has ended. Ask for a new link.',
+  RESEND_LIMIT_REACHED:
+    'You’ve asked for the link too many times. Enter your email again to ask for another.',
   GOOGLE_LINK_NOT_ALLOWED:
     'An account with this email already exists. Sign in with its password, or reset the password, to continue.',
   PASSWORD_NOT_SET:

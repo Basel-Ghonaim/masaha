@@ -1,7 +1,10 @@
+import { createHash } from 'node:crypto';
+
 import type {
   ForgotPasswordRequest,
   GoogleSignInRequest,
   LoginRequest,
+  RecoveryPosition,
   RegisterRequest,
   ResetCheck,
   ResetPasswordRequest,
@@ -12,7 +15,7 @@ import type { RunInTransaction } from '../../db/index.ts';
 import type { AccessTokens } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
-import type { SessionsService } from '../sessions/index.ts';
+import type { Recovery, SessionsService } from '../sessions/index.ts';
 import type { SpaceLinksService } from '../space-links/index.ts';
 import type { Account, UsersService } from '../users/index.ts';
 import {
@@ -28,11 +31,39 @@ import {
 import type { EmailSender } from './email/emailSender.ts';
 import { resetEmail, resetLink } from './email/resetEmail.ts';
 import type { GoogleIdentity } from './google.ts';
+import { maskEmail } from './maskEmail.ts';
 
 /** A session for the body, and its refresh token for the cookie. */
 export interface SignedIn {
   session: Session;
   refreshToken: string;
+}
+
+/** A recovery's position for the body, and its key and lifetime for the cookie. */
+export interface RecoveryAnswer {
+  position: RecoveryPosition;
+  key: string;
+  maxAgeMs: number;
+}
+
+/** Where a recovery stands, as its holder may see it (docs/api/api-contract.md §5). */
+function positionOf(recovery: Recovery | undefined): RecoveryPosition {
+  if (!recovery) return { step: 'request' };
+  if (recovery.linkChecked) return { step: 'password', email: recovery.maskedEmail };
+  return {
+    step: 'sent',
+    email: recovery.maskedEmail,
+    resendInSeconds: recovery.resendInSeconds,
+    canResend: recovery.canResend,
+  };
+}
+
+/**
+ * What a recovery stores of an address, and what the request's limit counts it by: a digest, so no
+ * address is stored, and a resend counts under the same key as the request it repeats.
+ */
+function emailDigest(email: string): string {
+  return createHash('sha256').update(email).digest('hex');
 }
 
 interface Dependencies {
@@ -67,6 +98,42 @@ export function createAuthService({
 }: Dependencies) {
   const invalidResetLink = () =>
     AppError.badRequest('RESET_TOKEN_INVALID', 'Reset token invalid, expired or used');
+  const invalidRecovery = () =>
+    AppError.badRequest('RECOVERY_INVALID', 'No recovery in progress in this browser');
+
+  /** The resend window has not passed: a 429 that says when it does. */
+  function resendTooSoon(retryAfterSeconds: number): AppError {
+    return AppError.rateLimit(undefined, 'Resend window not passed', {
+      policy: 'password-resend',
+      limit: 1,
+      windowSeconds: retryAfterSeconds,
+      retryAfterSeconds,
+    });
+  }
+
+  /** Why this recovery may not ask for another link now, if it may not. */
+  function resendRefusal(recovery: Recovery | undefined): AppError | undefined {
+    if (!recovery?.emailDigest || recovery.linkChecked) return invalidRecovery();
+    if (!recovery.canResend) {
+      return AppError.badRequest('RESEND_LIMIT_REACHED', 'No resends left in this recovery');
+    }
+    if (recovery.resendInSeconds > 0) return resendTooSoon(recovery.resendInSeconds);
+    return undefined;
+  }
+
+  /**
+   * Emails the account a reset link. Only a delivered link replaces the one already in the inbox
+   * (docs/backend/security.md); one that is not sent is withdrawn, and the failure only logged.
+   */
+  async function sendResetLink(account: Account, clientAddress: string): Promise<void> {
+    const { token, id } = await sessions.issueResetToken(account.id);
+    const result = await emailSender.send(
+      resetEmail({ to: account.email, link: resetLink(webOrigin, token) }),
+      { requester: clientAddress },
+    );
+    if (result.sent) await sessions.keepOnlyResetToken(account.id, id);
+    else await sessions.withdrawResetToken(id);
+  }
 
   /** The user, their space links and a new access token, for a session whose refresh token exists. */
   async function sessionFor(account: Account): Promise<Session> {
@@ -184,23 +251,57 @@ export function createAuthService({
     },
 
     /**
-     * Emails a reset link when the email has an account that may sign in. The caller learns nothing
-     * either way: the answer is the same, and a failed send is only logged.
+     * Opens a recovery in this browser, ending the one it held, and emails a reset link when the
+     * email has an account that may sign in. The caller learns nothing either way: the position and
+     * the cookie are the same for every address, and a failed send is only logged.
      */
-    async forgotPassword({ email }: ForgotPasswordRequest, clientAddress: string): Promise<void> {
+    async forgotPassword(
+      { email }: ForgotPasswordRequest,
+      clientAddress: string,
+      heldKey: string | undefined,
+    ): Promise<RecoveryAnswer> {
+      const digest = emailDigest(email);
       await limiter.count(PASSWORD_ADDRESS, clientAddress);
-      await limiter.count(PASSWORD_EMAIL, clientAddress, email);
+      await limiter.count(PASSWORD_EMAIL, clientAddress, digest);
 
       const account = await users.findByEmail(email);
-      if (!account || !users.maySignIn(account)) return;
-      const { token, id } = await sessions.issueResetToken(account.id);
-      const result = await emailSender.send(
-        resetEmail({ to: account.email, link: resetLink(webOrigin, token) }),
-        { requester: clientAddress },
-      );
-      // Only a delivered link replaces the one already in the inbox (docs/backend/security.md).
-      if (result.sent) await sessions.keepOnlyResetToken(account.id, id);
-      else await sessions.withdrawResetToken(id);
+      const holder = account && users.maySignIn(account) ? account : undefined;
+      const { key, recovery } = await sessions.openRecovery({
+        userId: holder?.id,
+        maskedEmail: maskEmail(email),
+        emailDigest: digest,
+        replacing: heldKey,
+      });
+      if (holder) await sendResetLink(holder, clientAddress);
+      return { position: positionOf(recovery), key, maxAgeMs: recovery.remainingMs };
+    },
+
+    /**
+     * Asks the browser's recovery for another link, without an address: the recovery holds it. It
+     * counts under the request's own limits, a recovery may ask 3 times, and once a minute. The
+     * ask is recorded before the account is read, so the position moves the same for every address.
+     */
+    async resendResetLink(clientAddress: string, key: string | undefined): Promise<RecoveryAnswer> {
+      await limiter.count(PASSWORD_ADDRESS, clientAddress);
+      const recovery = await sessions.recovery(key);
+      if (!key || !recovery?.emailDigest || recovery.linkChecked) throw invalidRecovery();
+      await limiter.count(PASSWORD_EMAIL, clientAddress, recovery.emailDigest);
+      const refused = resendRefusal(recovery);
+      if (refused) throw refused;
+
+      const renewed = await sessions.recordResend(recovery.id);
+      // Not recorded: a concurrent ask was recorded first, or the recovery ended meanwhile.
+      if (!renewed) throw resendRefusal(await sessions.recovery(key)) ?? resendTooSoon(1);
+      if (renewed.userId !== null) {
+        const account = await users.get(renewed.userId);
+        if (users.maySignIn(account)) await sendResetLink(account, clientAddress);
+      }
+      return { position: positionOf(renewed), key, maxAgeMs: renewed.remainingMs };
+    },
+
+    /** Where the browser's recovery stands: `request` when it holds none. Never a refusal. */
+    async recoveryPosition(key: string | undefined): Promise<RecoveryPosition> {
+      return positionOf(await sessions.recovery(key));
     },
 
     /**

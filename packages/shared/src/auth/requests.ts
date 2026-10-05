@@ -39,5 +39,11 @@ const resetTokenSchema = z.string().min(1).max(256);
 export const resetCheckSchema = z.object({ token: resetTokenSchema });
 export type ResetCheckRequest = z.infer<typeof resetCheckSchema>;
 
+/**
+ * Asks the browser's recovery for another link. The address is the recovery's, never the caller's
+ * to give, so the body is empty: any field is refused.
+ */
+export const resendLinkSchema = z.strictObject({}).optional();
+
 export const resetPasswordSchema = z.object({ token: resetTokenSchema, password: passwordSchema });
 export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;

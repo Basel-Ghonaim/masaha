@@ -147,6 +147,7 @@ model User {
 
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  passwordRecoveries  PasswordRecovery[]
   managedSpaces       SpaceManager[]
   favorites           Favorite[]
   dataReports         DataReport[]         @relation("DataReportAuthor")
@@ -198,10 +199,39 @@ model PasswordResetToken {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recovery PasswordRecovery?
 
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+/// Where a person stands in recovering a password, held by the server and found by the key in the
+/// browser's recovery cookie (docs/backend/security.md › Passwords). Opened for every address alike.
+model PasswordRecovery {
+  id           Int      @id @default(autoincrement())
+  keyHash      String   @unique @map("key_hash")
+  /// The account behind the address typed, when it may sign in; never disclosed.
+  userId       Int?     @map("user_id")
+  /// The address as the position shows it, masked.
+  maskedEmail  String   @map("masked_email")
+  /// A digest of the address typed, so a resend counts under the request's own limit; no address
+  /// is stored. None for a recovery opened by checking a link.
+  emailDigest  String?  @map("email_digest")
+  /// The reset link checked in this browser. The recovery ends with it.
+  resetTokenId Int?     @unique @map("reset_token_id")
+  resends      Int      @default(0)
+  /// When the last link was asked for: the resend window starts here.
+  sentAt       DateTime @map("sent_at") @db.Timestamptz(3)
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user       User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resetToken PasswordResetToken? @relation(fields: [resetTokenId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_recoveries")
 }
 
 // ─── Lookups ─────────────────────────────────────────────────────────────────────────────────

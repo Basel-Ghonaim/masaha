@@ -25,3 +25,16 @@ export interface GoogleSession extends Session {
 export interface ResetCheck {
   email: string;
 }
+
+/**
+ * Where the caller stands in recovering a password, as the server holds it
+ * (docs/api/api-contract.md › The forgotten password). The email is always masked.
+ * - `request`: no recovery in this browser;
+ * - `sent`: a link was asked for; another may be asked for while `canResend`, once
+ *   `resendInSeconds` reaches 0;
+ * - `password`: a link was checked in this browser, and the new password is next.
+ */
+export type RecoveryPosition =
+  | { step: 'request' }
+  | { step: 'sent'; email: string; resendInSeconds: number; canResend: boolean }
+  | { step: 'password'; email: string };

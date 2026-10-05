@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -105,12 +105,32 @@ Every endpoint with a body may answer `validation` (422), and every endpoint may
 
 ### The forgotten password
 
-The reset link and its email are described in [security.md](../backend/security.md#passwords). These three share the password limits ([security.md](../backend/security.md#rate-limits-fixed-window)).
+The reset link, its email and the recovery session are described in [security.md](../backend/security.md#passwords) ([ADR 0017](../architecture/decisions/0017-recovery-session.md)). These endpoints share the password limits ([security.md](../backend/security.md#rate-limits-fixed-window)).
 
-#### `POST /auth/password/forgot` · 🌐
+A request for a link opens a **recovery** in the browser, held by the server and found by the recovery cookie (`masaha_reset`, [security.md](../backend/security.md#tokens-and-cookies)). The endpoints that read or set that cookie refuse a cross-site request with `forbidden` (403), as refresh and logout do. They answer with where the caller stands (`@masaha/shared/auth`):
+
+```ts
+RecoveryPosition =
+  | { step: "request" }                         // no recovery in this browser
+  | { step: "sent", email: string,              // a link was asked for; the email is masked: "s•••@example.com"
+      resendInSeconds: number,                  // until another link may be asked for: 60 after each link
+      canResend: boolean }                      // false once its 3 resends are spent
+  | { step: "password", email: string }         // a link was checked in this browser; the account's email, masked
+```
+
+#### `POST /auth/password/forgot` · 🌐 · sets the recovery cookie
 - **Body:** `{ email }`.
-- **202, no body**, whether or not the email has an account. When it has one that may sign in, the reset email is sent, with a link valid for one hour.
-- **Errors:** `validation` (422); `rate_limit` (429).
+- **202:** `RecoveryPosition` at `sent`, and the recovery cookie, the same for every address, whether or not it has an account. A recovery the browser held is ended. When the address has an account that may sign in, the reset email is sent, with a link valid for one hour.
+- **Errors:** `validation` (422); `forbidden` (403) for a cross-site request; `rate_limit` (429).
+
+#### `POST /auth/password/resend` · the recovery cookie
+- **Body:** none. The address is the recovery's: any field is refused.
+- **202:** `RecoveryPosition` at `sent`, with the window started again, and the recovery cookie renewed for the new link's hour. When the recovery's address has an account that may sign in, another reset email is sent. The answer is the same either way.
+- **Errors:** `validation` (422) for a field in the body; `bad_request` (400) `RECOVERY_INVALID` without a recovery at `sent` (none, ended or expired); `bad_request` (400) `RESEND_LIMIT_REACHED` once its 3 resends are spent; `rate_limit` (429) inside the window, with `Retry-After` the seconds left; `forbidden` (403) for a cross-site request.
+
+#### `GET /auth/password/recovery` · the recovery cookie
+- **200:** `RecoveryPosition`; `request` without a recovery, or with one that has ended or expired. Never `not_found`.
+- **Errors:** `forbidden` (403) for a cross-site request.
 
 #### `POST /auth/password/reset/check` · 🌐
 - **Body:** `{ token }`, read by the web from the link's fragment.
@@ -151,4 +171,4 @@ The spaces a signed-in user works at, as owner or reception ([ADR 0009](../archi
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `OWNER_ALREADY_LINKED` · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `OWNER_ALREADY_LINKED` · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED`.

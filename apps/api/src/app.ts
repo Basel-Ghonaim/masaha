@@ -18,7 +18,11 @@ import {
   type GoogleIdentity,
 } from './modules/auth/index.ts';
 import { createLookupsService } from './modules/lookups/index.ts';
-import { createSessionCookies, createSessionsService } from './modules/sessions/index.ts';
+import {
+  createRecoveryCookie,
+  createSessionCookies,
+  createSessionsService,
+} from './modules/sessions/index.ts';
 import {
   createSpaceLinksController,
   createSpaceLinksMeRouter,
@@ -43,9 +47,10 @@ import {
 } from './shared/rate-limit/index.ts';
 
 // Where the API and its auth router are mounted (docs/api/api-contract.md §1); the refresh cookie
-// is scoped to the auth router's path.
+// is scoped to the auth router's path, and the recovery cookie to its password routes.
 const API_BASE = '/api/v1';
 const AUTH_PATH = '/auth';
+const PASSWORD_PATH = '/password';
 
 // The general limit on every API request (docs/backend/security.md › Rate limits): by the user when
 // the request is signed in, otherwise by address, with a higher ceiling, because a whole coworking
@@ -139,6 +144,10 @@ export function createApi({
   const limiter = createLimiter(createCounter(), clock);
   const accessTokens = createAccessTokens(jwtSecret);
   const cookies = createSessionCookies({ secure: secureCookies, path: `${API_BASE}${AUTH_PATH}` });
+  const recoveryCookie = createRecoveryCookie({
+    secure: secureCookies,
+    path: `${API_BASE}${AUTH_PATH}${PASSWORD_PATH}`,
+  });
 
   const requireAuth = createRequireAuth(accessTokens);
   const runInTransaction = createRunInTransaction();
@@ -169,7 +178,10 @@ export function createApi({
         : { policy: GENERAL_GUEST, by: [clientAddress(req.ip)] };
     }),
   );
-  api.use(AUTH_PATH, createAuthRouter(createAuthController(auth, cookies), webOrigin));
+  api.use(
+    AUTH_PATH,
+    createAuthRouter(createAuthController(auth, cookies, recoveryCookie), webOrigin),
+  );
   api.use('/me', createUsersMeRouter(createUsersController(users, cookies), requireAuth));
   api.use(
     '/manage/spaces',

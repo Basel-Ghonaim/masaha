@@ -1,5 +1,9 @@
 import type { Tx } from '../../db/index.ts';
-import { createSessionsRepository, type SessionsRepository } from './sessions.repository.ts';
+import {
+  createSessionsRepository,
+  type SessionsRepository,
+  type StoredRecovery,
+} from './sessions.repository.ts';
 import { hashToken, newToken } from './tokens.ts';
 
 // docs/backend/security.md › Tokens and cookies.
@@ -8,6 +12,10 @@ export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60_000;
 export const ROTATION_GRACE_MS = 30_000;
 // docs/backend/security.md › Passwords.
 export const RESET_TOKEN_TTL_MS = 60 * 60_000;
+/** How long a recovery waits before another link may be asked for, the same for every address. */
+export const RECOVERY_RESEND_WINDOW_MS = 60_000;
+/** How many more links one recovery may ask for. */
+export const RECOVERY_MAX_RESENDS = 3;
 
 /** A refresh token to hand to the client, once: only its hash is stored. */
 export interface IssuedToken {
@@ -21,6 +29,30 @@ export type Rotation =
   /** Rotated before the grace window: a copy is in use, so its whole session was ended. */
   | { outcome: 'reused' };
 
+/**
+ * A recovery as its holder may see it: where it stands, never the address behind it. `linkChecked`
+ * once a reset link was checked in its browser; until then it may ask for another link while
+ * `canResend`, once `resendInSeconds` reaches 0.
+ */
+export interface Recovery {
+  id: number;
+  /** The account behind the address typed, when it may sign in. Never disclosed. */
+  userId: number | null;
+  maskedEmail: string;
+  emailDigest: string | null;
+  linkChecked: boolean;
+  resendInSeconds: number;
+  canResend: boolean;
+  /** Until it ends: the cookie that holds its key lives as long. */
+  remainingMs: number;
+}
+
+/** A new recovery, and the key its browser holds: only the key's hash is stored. */
+export interface OpenedRecovery {
+  key: string;
+  recovery: Recovery;
+}
+
 interface Dependencies {
   repository?: SessionsRepository;
   now?: () => Date;
@@ -28,8 +60,10 @@ interface Dependencies {
 
 /**
  * The tokens of identity (ADR 0013): the refresh tokens (issue, rotate with the grace window, end a
- * session, revoke all) and the password-reset tokens (issue, keep the delivered one, withdraw,
- * check, consume, end). It knows only a user's id. A session is a family of refresh tokens.
+ * session, revoke all), the password-reset tokens (issue, keep the delivered one, withdraw, check,
+ * consume, end) and the recoveries that hold them (open, read, ask again). It knows only a user's
+ * id; of an address, only what it is handed, masked and digested. A session is a family of refresh
+ * tokens.
  */
 export function createSessionsService({
   repository = createSessionsRepository(),
@@ -43,6 +77,20 @@ export function createSessionsService({
       tx,
     );
     return { stored, issued: { token } };
+  }
+
+  function recoveryOf(stored: StoredRecovery, at: Date): Recovery {
+    const windowEnds = stored.sentAt.getTime() + RECOVERY_RESEND_WINDOW_MS;
+    return {
+      id: stored.id,
+      userId: stored.userId,
+      maskedEmail: stored.maskedEmail,
+      emailDigest: stored.emailDigest,
+      linkChecked: stored.resetTokenId !== null,
+      resendInSeconds: Math.max(0, Math.ceil((windowEnds - at.getTime()) / 1000)),
+      canResend: stored.resetTokenId === null && stored.resends < RECOVERY_MAX_RESENDS,
+      remainingMs: stored.expiresAt.getTime() - at.getTime(),
+    };
   }
 
   return {
@@ -144,6 +192,59 @@ export function createSessionsService({
     /** Uses the reset token, once. Whose it was, if it was still valid. */
     consumeResetToken(token: string, tx: Tx): Promise<number | undefined> {
       return repository.consumeResetToken(hashToken(token), now(), tx);
+    },
+
+    /**
+     * Opens a recovery for an address, ending the one the browser held (`replacing`, its key). It
+     * lasts as long as a reset link, and may ask for another link once its window has passed.
+     */
+    async openRecovery({
+      userId,
+      maskedEmail,
+      emailDigest,
+      replacing,
+    }: {
+      userId?: number;
+      maskedEmail: string;
+      emailDigest: string;
+      replacing?: string;
+    }): Promise<OpenedRecovery> {
+      const at = now();
+      if (replacing) await repository.deleteRecovery(hashToken(replacing));
+      const key = newToken();
+      const stored = await repository.createRecovery({
+        keyHash: hashToken(key),
+        userId,
+        maskedEmail,
+        emailDigest,
+        sentAt: at,
+        expiresAt: new Date(at.getTime() + RESET_TOKEN_TTL_MS),
+      });
+      return { key, recovery: recoveryOf(stored, at) };
+    },
+
+    /** The recovery this key opens, while it lasts. */
+    async recovery(key: string | undefined): Promise<Recovery | undefined> {
+      if (!key) return undefined;
+      const at = now();
+      const stored = await repository.findRecovery(hashToken(key), at);
+      return stored ? recoveryOf(stored, at) : undefined;
+    },
+
+    /**
+     * Records one more link asked for: the window starts again, and the recovery lasts as long as
+     * the new link. Nothing when the recovery cannot ask now (a link checked, its asks spent, its
+     * window not passed, or a concurrent ask recorded first).
+     */
+    async recordResend(id: number): Promise<Recovery | undefined> {
+      const at = now();
+      const stored = await repository.recordResend(id, {
+        now: at,
+        windowStart: new Date(at.getTime() - RECOVERY_RESEND_WINDOW_MS),
+        maxResends: RECOVERY_MAX_RESENDS,
+        expiresAt: new Date(at.getTime() + RESET_TOKEN_TTL_MS),
+      });
+      return stored ? recoveryOf(stored, at) : undefined;
     },
   };
 }

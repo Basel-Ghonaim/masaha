@@ -17,6 +17,37 @@ export interface StoredRefreshToken {
   rotatedAt: Date | null;
 }
 
+const RECOVERY = {
+  id: true,
+  userId: true,
+  maskedEmail: true,
+  emailDigest: true,
+  resetTokenId: true,
+  resends: true,
+  sentAt: true,
+  expiresAt: true,
+} as const;
+
+export interface StoredRecovery {
+  id: number;
+  userId: number | null;
+  maskedEmail: string;
+  emailDigest: string | null;
+  resetTokenId: number | null;
+  resends: number;
+  sentAt: Date;
+  expiresAt: Date;
+}
+
+export interface NewRecovery {
+  keyHash: string;
+  userId?: number;
+  maskedEmail: string;
+  emailDigest?: string;
+  sentAt: Date;
+  expiresAt: Date;
+}
+
 export interface NewRefreshToken {
   userId: number;
   tokenHash: string;
@@ -122,7 +153,56 @@ export function createSessionsRepository(db: PrismaClient = prisma) {
         RETURNING user_id`;
       return row?.user_id;
     },
+
+    createRecovery(recovery: NewRecovery, tx: Tx = db): Promise<StoredRecovery> {
+      return tx.passwordRecovery.create({ data: recovery, select: RECOVERY });
+    },
+
+    /** The recovery this key opens, while it lasts. */
+    findRecovery(keyHash: string, now: Date, tx: Tx = db): Promise<StoredRecovery | null> {
+      return tx.passwordRecovery.findFirst({
+        where: { keyHash, expiresAt: { gt: now } },
+        select: RECOVERY,
+      });
+    },
+
+    async deleteRecovery(keyHash: string, tx: Tx = db): Promise<void> {
+      await tx.passwordRecovery.deleteMany({ where: { keyHash } });
+    },
+
+    /**
+     * Records one more link asked for, in one statement, only while the recovery has no link
+     * checked, has asks left and is past its window, so concurrent asks cannot pass the bound. The
+     * recovery afterwards, if this call recorded it.
+     */
+    async recordResend(
+      id: number,
+      { now, windowStart, maxResends, expiresAt }: RecordedResend,
+      tx: Tx = db,
+    ): Promise<StoredRecovery | null> {
+      const { count } = await tx.passwordRecovery.updateMany({
+        where: {
+          id,
+          resetTokenId: null,
+          resends: { lt: maxResends },
+          sentAt: { lte: windowStart },
+          expiresAt: { gt: now },
+        },
+        data: { resends: { increment: 1 }, sentAt: now, expiresAt },
+      });
+      return count === 1
+        ? tx.passwordRecovery.findUnique({ where: { id }, select: RECOVERY })
+        : null;
+    },
   };
+}
+
+/** A resend's clock: the time now, the window it must be past, the bound, and the new expiry. */
+export interface RecordedResend {
+  now: Date;
+  windowStart: Date;
+  maxResends: number;
+  expiresAt: Date;
 }
 
 export type SessionsRepository = ReturnType<typeof createSessionsRepository>;
