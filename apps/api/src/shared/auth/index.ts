@@ -16,3 +16,5 @@ export {
   type RequireAuth,
   type RequireAuthOptions,
 } from './requireAuth.ts';
+export { requireRole } from './requireRole.ts';
+export { signedIn } from './signedIn.ts';

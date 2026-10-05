@@ -322,6 +322,8 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 
 **Resolves when:** the helper moves to `shared/auth`, beside `requireAuth`, and both controllers use it, in an item allowed to touch both modules.
 
+*Progress (2026-10-05, S2a-1):* the helper exists in `shared/auth` (`signedIn`), and the `lookups` controllers use it. The two old copies remain.
+
 ## 26. `npm run format -- --check` rewrites files
 
 **Status:** Open · **Date:** 2026-10-04
