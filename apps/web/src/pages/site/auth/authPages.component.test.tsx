@@ -85,7 +85,21 @@ describe('the sign-in page', () => {
     expect(where(router)).toBe('/spaces');
   });
 
-  it('lands the user home, through RequireGuest, when no page asked for the sign-in', async () => {
+  it('lands an owner in their space’s overview, through RequireGuest, when no page asked for the sign-in', async () => {
+    fakeTransport(() => ok(aSession({ role: 'OWNER', spaces: [{ spaceId: 7, role: 'OWNER' }] })));
+    const router = renderSite('/login');
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('Email'), 'sara@example.com');
+    await user.type(screen.getByLabelText('Password'), 'gaza2026');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => {
+      expect(where(router)).toBe('/dashboard/spaces/7');
+    });
+  });
+
+  it('lands a user with no dashboard home, through RequireGuest, when no page asked for the sign-in', async () => {
     fakeTransport(() => ok(aSession()));
     const router = renderSite('/login');
     const user = userEvent.setup();

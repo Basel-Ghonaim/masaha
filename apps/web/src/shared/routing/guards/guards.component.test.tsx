@@ -26,7 +26,7 @@ const GUARDS: [string, Guard][] = [
   ['RequireGuest', requireGuest],
 ];
 
-/** A guarded page at /guarded, beside a sign-in page and a home page, opened at `path`. */
+/** A guarded page at /guarded, beside sign-in, home and the dashboard, opened at `path`. */
 function renderGuarded(guard: Guard, path = '/guarded') {
   const router = createMemoryRouter(
     [
@@ -34,6 +34,7 @@ function renderGuarded(guard: Guard, path = '/guarded') {
       { path: '/login', element: <p>The sign-in page</p> },
       { path: '/', element: <p>The home page</p> },
       { path: '/me/favorites', element: <p>The favourites page</p> },
+      { path: '/dashboard/*', element: <p>The dashboard</p> },
     ],
     { initialEntries: [path] },
   );
@@ -204,12 +205,51 @@ describe('RequireGuest', () => {
     expect(where(router)).toBe('/');
   });
 
-  it('sends a signed-in user home when there is no `next`', async () => {
+  it('sends a signed-in user with no role and no space home when there is no `next`', async () => {
     signIn();
 
     const router = renderGuarded(requireGuest);
 
     expect(await screen.findByText('The home page')).toBeInTheDocument();
     expect(where(router)).toBe('/');
+  });
+
+  it.each([
+    ['the admin to the admin’s overview', { role: 'ADMIN' as const }, '/dashboard/admin'],
+    [
+      'an owner to their space’s overview',
+      { role: 'OWNER' as const, spaces: [{ spaceId: 7, role: 'OWNER' as const }] },
+      '/dashboard/spaces/7',
+    ],
+    [
+      'reception to their space’s front desk',
+      { spaces: [{ spaceId: 7, role: 'RECEPTION' as const }] },
+      '/dashboard/spaces/7/desk',
+    ],
+  ])('lands %s when there is no `next`', async (_, user, landing) => {
+    signIn(user);
+
+    const router = renderGuarded(requireGuest);
+
+    expect(await screen.findByText('The dashboard')).toBeInTheDocument();
+    expect(where(router)).toBe(landing);
+  });
+
+  it('sends the admin on to a safe `next` rather than their dashboard', async () => {
+    signIn({ role: 'ADMIN' });
+
+    const router = renderGuarded(requireGuest, '/guarded?next=%2Fme%2Ffavorites');
+
+    expect(await screen.findByText('The favourites page')).toBeInTheDocument();
+    expect(where(router)).toBe('/me/favorites');
+  });
+
+  it('lands the admin in their dashboard when `next` would leave the site', async () => {
+    signIn({ role: 'ADMIN' });
+
+    const router = renderGuarded(requireGuest, '/guarded?next=%2F%2Fevil.example');
+
+    expect(await screen.findByText('The dashboard')).toBeInTheDocument();
+    expect(where(router)).toBe('/dashboard/admin');
   });
 });

@@ -18,5 +18,5 @@ export { RequireGuest } from './guards/RequireGuest';
 export { RequirePasswordChange } from './guards/RequirePasswordChange';
 export { RequireRole } from './guards/RequireRole';
 export { RequireSpaceRole } from './guards/RequireSpaceRole';
-export { CHANGE_PASSWORD_PATH, safeReturnUrl, SIGN_IN_PATH } from './returnUrl';
+export { CHANGE_PASSWORD_PATH, SIGN_IN_PATH } from './returnUrl';
 export { RouteErrorState } from './states/RouteErrorState';

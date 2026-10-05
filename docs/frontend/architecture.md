@@ -112,15 +112,15 @@ Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the s
 |---|---|---|
 | `RequireAuth` | a signed-in user | a guest goes to sign-in |
 | `RequireRole roles={[…]}` | a signed-in user with one of the global roles | a guest goes to sign-in; another role sees `ForbiddenState`, a 403, in place |
-| `RequireGuest` | a guest (the auth pages) | a signed-in user goes on to the return URL, else `/`: also right after signing in or registering there, so the landing has this one owner |
+| `RequireGuest` | a guest (the auth pages) | a signed-in user goes on by the landing rule below: the return URL, else their dashboard, else `/`; also right after signing in or registering there, so the landing has this one owner |
 | `RequirePasswordChange` | a signed-in user with a temporary password to change (`/change-password`) | once the change clears it, the user goes on where they land (`landingPath`, below): the page the gate carried in `next`, else by their role, so the landing after the change has this one owner; a guest, such as one who has just signed out there, goes to sign-in |
 | `RequireSpaceRole roles={[…]}` | a signed-in user whose active link at the `:spaceId` in the URL has one of the roles, `OWNER` or `RECEPTION`, read from the session's links, never the global role | a guest goes to sign-in; a `:spaceId` that is not a positive integer gets `NotFoundState`, a 404; a space with no active link, or a role the route does not allow, gets `ForbiddenState`, a 403; both in place |
 
 - **The password change's gate,** `PasswordChangeGate`, is mounted once, in `RootLayout`, so it holds every route, the site's and the dashboard's. A signed-in user whose account has a temporary password to change (`mustChangePassword`) goes to `/change-password`, carrying the page they asked for in `next` (`changePasswordPath`). The change page itself is exempt, and so is signing out, which its short header offers: once the session ends, the gate holds nothing. While no such session is held, during the restore included, it lets every route through, so public pages never wait. The server refuses every other endpoint meanwhile ([security.md](../backend/security.md#passwords)); the gate is for usability.
 - **While the session is restored,** every guard shows the design system's `Spinner`, centred. **While it is `unreachable`,** the offline state (no answer came back) or the general error (an answer that is not a verdict), whose "Try again", and the connection coming back when offline, re-run the restore.
-- **The return URL** travels as `?next=` on `/login` (`signInPath`). It is read back with `safeReturnUrl`, which accepts only a path on this site, so a crafted link cannot send a user elsewhere.
+- **The return URL** travels as `?next=` on `/login` (`signInPath`). It is read back with `returnUrlOf`, which accepts only a path on this site, so a crafted link cannot send a user elsewhere.
 
-**Built:** the landing below, `landingPath` in `shared/routing/landing/`. Its first user is `RequirePasswordChange`, after a forced change, and `/dashboard` redirects by it. The sign-in pages switch to it next, where it replaces `RequireGuest`'s return URL or `/`.
+**Built:** the landing below, `landingPath` in `shared/routing/landing/`. `RequireGuest` lands the user by it, `RequirePasswordChange` after a forced change, and `/dashboard` redirects by it.
 
 **Built:** the space switcher, `SpaceSwitcher` in `features/space-links` (§3), which the space's shell places in its sidebar header.
 
