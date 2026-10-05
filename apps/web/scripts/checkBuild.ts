@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
+import { DASHBOARD_CHUNK, isDashboardModule } from './dashboardOnly.ts';
 
 // The design-system showcase is development-only (docs/frontend/architecture.md §2). If any of it
 // reached the build, its route path or one of its fixture strings would be in dist/. Fixture
@@ -46,6 +47,50 @@ function readCatalogueSource(directory: string) {
     .join('\n');
 }
 
+// The dashboard is loaded only when it is opened (ADR 0011): the site's first download, its entry and
+// every chunk the entry imports statically, holds none of its code. Vite's manifest names each chunk
+// and what it imports; the dashboard's code is one chunk of its own (vite.config.ts).
+const MANIFEST = 'dist/.vite/manifest.json';
+
+/** A chunk as Vite's build manifest describes it. */
+export type ManifestChunk = { name?: string; src?: string; isEntry?: boolean; imports?: string[] };
+
+/** The manifest's keys of the first download's chunks: each entry and its static imports, deeply. */
+export function firstDownload(manifest: Record<string, ManifestChunk>): string[] {
+  const reached = new Set<string>();
+  const pending = Object.keys(manifest).filter((key) => manifest[key]?.isEntry === true);
+  for (let key = pending.pop(); key !== undefined; key = pending.pop()) {
+    if (!reached.has(key)) {
+      reached.add(key);
+      pending.push(...(manifest[key]?.imports ?? []));
+    }
+  }
+  return [...reached];
+}
+
+/** Whether a chunk holds dashboard code: the dashboard's chunk, or a chunk made from its module. */
+function isDashboardChunk(chunk: ManifestChunk | undefined): boolean {
+  return (
+    chunk?.name === DASHBOARD_CHUNK || (chunk?.src !== undefined && isDashboardModule(chunk.src))
+  );
+}
+
+/**
+ * What is wrong with the dashboard's place in the build: each chunk of the first download that holds
+ * dashboard code, or, when the build has no dashboard chunk at all, that the check has nothing to
+ * hold the site against.
+ */
+export function dashboardProblems(manifest: Record<string, ManifestChunk>): string[] {
+  if (!Object.values(manifest).some((chunk) => chunk.name === DASHBOARD_CHUNK)) {
+    return [
+      `No "${DASHBOARD_CHUNK}" chunk in the build: the dashboard's code is not split from the site's.`,
+    ];
+  }
+  return firstDownload(manifest)
+    .filter((key) => isDashboardChunk(manifest[key]))
+    .map((key) => `${key} is dashboard code in the site's first download.`);
+}
+
 /** The forbidden strings that a build file contains. */
 export function findForbidden(content: string, forbidden: readonly string[]): string[] {
   const decoded = decodeEscapes(content);
@@ -76,6 +121,17 @@ function main() {
     }
   }
 
+  const manifestPath = join(webRoot, MANIFEST);
+  const manifest = existsSync(manifestPath)
+    ? (JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, ManifestChunk>)
+    : undefined;
+  const problems = manifest
+    ? dashboardProblems(manifest)
+    : [`${MANIFEST} does not exist: the build writes no manifest.`];
+  for (const problem of problems) {
+    console.error(problem);
+  }
+
   if (hits > 0) {
     console.error(
       `\n${String(hits)} showcase string(s) in the build. The showcase must stay development-only. If a fixture string only matches unrelated text, reword the fixture.`,
@@ -85,6 +141,16 @@ function main() {
     console.log(
       `No showcase code in ${String(files.length)} build files (${String(forbidden.length)} strings checked).`,
     );
+  }
+
+  if (problems.length > 0) {
+    console.error(
+      `
+The site's first download must not reach the dashboard (ADR 0011): look for a static import of dashboard code outside the dashboard.`,
+    );
+    process.exitCode = 1;
+  } else {
+    console.log("No dashboard code in the site's first download.");
   }
 }
 

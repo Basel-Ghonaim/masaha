@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { findForbidden, showcaseOnly, stringsIn } from './checkBuild';
+import {
+  dashboardProblems,
+  findForbidden,
+  firstDownload,
+  showcaseOnly,
+  stringsIn,
+  type ManifestChunk,
+} from './checkBuild';
 
 const ARABIC = 'الأيقونات والانعكاس';
 
@@ -51,5 +58,71 @@ describe('findForbidden', () => {
 
   it('finds nothing in a build file without the showcase', () => {
     expect(findForbidden('function App(){return null}', forbidden)).toEqual([]);
+  });
+});
+
+describe('firstDownload', () => {
+  it('holds each entry and its static imports, deeply, but no dynamic import', () => {
+    const manifest: Record<string, ManifestChunk> = {
+      'index.html': { isEntry: true, imports: ['_react.js', '_copy.js'] },
+      '_react.js': { imports: ['_runtime.js'] },
+      '_copy.js': { imports: ['_react.js'] },
+      '_runtime.js': {},
+      'src/pages/site/shell/SiteLayout.tsx': { imports: ['_react.js'] },
+    };
+
+    expect(firstDownload(manifest).sort()).toEqual([
+      '_copy.js',
+      '_react.js',
+      '_runtime.js',
+      'index.html',
+    ]);
+  });
+});
+
+describe('dashboardProblems', () => {
+  const site: Record<string, ManifestChunk> = {
+    'index.html': { isEntry: true, imports: ['_react.js'] },
+    '_react.js': {},
+    '_dashboard.js': { name: 'dashboard', imports: ['_react.js', 'index.html'] },
+    'src/pages/dashboard/shell/SpaceLayout.tsx': {
+      src: 'src/pages/dashboard/shell/SpaceLayout.tsx',
+    },
+  };
+
+  it('finds nothing when only lazy imports reach the dashboard', () => {
+    expect(dashboardProblems(site)).toEqual([]);
+  });
+
+  it('names the dashboard chunk when the first download imports it', () => {
+    const manifest = { ...site, '_react.js': { imports: ['_dashboard.js'] } };
+
+    expect(dashboardProblems(manifest)).toEqual([
+      "_dashboard.js is dashboard code in the site's first download.",
+    ]);
+  });
+
+  it('names a chunk made from a dashboard module when the first download imports it', () => {
+    const manifest = {
+      ...site,
+      'index.html': {
+        isEntry: true,
+        imports: ['_react.js', 'src/pages/dashboard/shell/SpaceLayout.tsx'],
+      },
+    };
+
+    expect(dashboardProblems(manifest)).toEqual([
+      "src/pages/dashboard/shell/SpaceLayout.tsx is dashboard code in the site's first download.",
+    ]);
+  });
+
+  it('fails when the build has no dashboard chunk to hold the site against', () => {
+    const manifest = Object.fromEntries(
+      Object.entries(site).filter(([, chunk]) => chunk.name !== 'dashboard'),
+    );
+
+    expect(dashboardProblems(manifest)).toEqual([
+      `No "dashboard" chunk in the build: the dashboard's code is not split from the site's.`,
+    ]);
   });
 });

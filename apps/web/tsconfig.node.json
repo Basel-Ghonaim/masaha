@@ -4,8 +4,10 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "types": ["node"],
     "noEmit": true,
-    // Scripts run directly under Node's type stripping, which only removes erasable syntax.
-    "erasableSyntaxOnly": true
+    // Scripts run directly under Node's type stripping, which only removes erasable syntax, and
+    // resolves no extension: a script imports another by its .ts name.
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["vite.config.ts", "scripts", "test"]
 }

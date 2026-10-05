@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defaultClientConditions, defaultServerConditions } from 'vite';
 import { defineConfig } from 'vitest/config';
+import { DASHBOARD_CHUNK, isDashboardModule } from './scripts/dashboardOnly.ts';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -15,6 +16,25 @@ export default defineConfig({
   // custom condition list replaces the defaults, so they are repeated after it.
   resolve: { tsconfigPaths: true, conditions: ['@masaha/source', ...defaultClientConditions] },
   ssr: { resolve: { conditions: ['@masaha/source', ...defaultServerConditions] } },
+  build: {
+    // The dashboard's own code is one chunk, loaded lazily when the dashboard opens (ADR 0011); what
+    // it shares with the site stays out of it. The manifest lets check:build prove the site's first
+    // download never reaches it.
+    manifest: true,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: DASHBOARD_CHUNK,
+              test: isDashboardModule,
+              includeDependenciesRecursively: false,
+            },
+          ],
+        },
+      },
+    },
+  },
   // One origin in development too (ADR 0014): the web on its fixed port, failing rather than moving
   // if the port is taken, and /api forwarded to the API on its own, so the cookies behave as online.
   server: {
