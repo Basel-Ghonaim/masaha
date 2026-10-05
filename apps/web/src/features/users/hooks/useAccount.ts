@@ -1,16 +1,13 @@
 import { useCopy } from '@shared/copy';
+import { isolate } from '@shared/localisation';
+import { hasDashboard } from '@shared/routing';
 import type { SessionUser } from '@shared/session';
 import { useSignOutAction } from './useSignOutAction';
 
-// A value inserted into a sentence, isolated so it never reorders the sentence around it
-// (docs/frontend/design-system/foundation.md §8).
-function isolated(value: string): string {
-  return `\u2068${value}\u2069`;
-}
-
 /**
- * The signed-in user's account, ready to render: the names the menu shows, the avatar's initial, and
- * the server-confirmed sign-out with its pending state and its failure as text.
+ * The signed-in user's account, ready to render: the names the menu shows, the avatar's initial,
+ * whether it leads to the dashboard, and the server-confirmed sign-out with its pending state and its
+ * failure as text.
  */
 export function useAccount(user: SessionUser) {
   const copy = useCopy();
@@ -25,8 +22,11 @@ export function useAccount(user: SessionUser) {
     initial: Array.from(name)[0] ?? '',
     email: user.email,
     /** The account button's accessible name. */
-    menuLabel: copy.users.menu({ name: isolated(name) }),
+    menuLabel: copy.users.menu({ name: isolate(name) }),
     sectionLabel: copy.users.section,
+    /** Whether the user has a dashboard to go to (the landing rule's `hasDashboard`). */
+    showsDashboard: hasDashboard(user),
+    dashboardLabel: copy.users.dashboard,
     ...signOut,
   };
 }

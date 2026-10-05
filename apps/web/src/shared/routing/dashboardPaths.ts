@@ -1,9 +1,13 @@
+import type { SessionSpaceLink } from '@masaha/shared/space-links';
+
 /**
  * The dashboard's URL shape (ADR 0016): the admin's branch, and a space's branch with the space's id
  * in the path. Here, not in the dashboard's pages, because the landing rule and the space guard read
  * it too.
  */
 export const DASHBOARD_PATHS = {
+  /** Redirects each user to their own dashboard (the landing rule). */
+  home: '/dashboard',
   admin: '/dashboard/admin',
   space: '/dashboard/spaces/:spaceId',
   spaceDesk: '/dashboard/spaces/:spaceId/desk',
@@ -17,6 +21,11 @@ export function spaceOverviewPath(spaceId: number): string {
 /** A space's front desk, where its reception lands. */
 export function spaceDeskPath(spaceId: number): string {
   return DASHBOARD_PATHS.spaceDesk.replace(':spaceId', String(spaceId));
+}
+
+/** A space's first page for the user's role there: the overview for its owner, the desk for reception. */
+export function spaceHomePath({ spaceId, role }: SessionSpaceLink): string {
+  return role === 'OWNER' ? spaceOverviewPath(spaceId) : spaceDeskPath(spaceId);
 }
 
 /** The space id a URL's `:spaceId` names: a positive integer as written, nothing else. */

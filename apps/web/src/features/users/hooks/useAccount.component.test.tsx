@@ -23,6 +23,8 @@ describe('useAccount', () => {
       email: 'sara@example.com',
       menuLabel: 'Account menu: \u2068Sara Ahmad\u2069',
       sectionLabel: 'Account',
+      showsDashboard: false,
+      dashboardLabel: 'Dashboard',
       signOutLabel: 'Sign out',
       isPending: false,
       failure: null,
@@ -33,5 +35,11 @@ describe('useAccount', () => {
     const { result } = renderHook(() => useAccount({ ...USER, name: 'سارة أحمد' }));
 
     expect(result.current).toMatchObject({ firstName: 'سارة', initial: 'س' });
+  });
+
+  it('shows the dashboard to a user who has one', () => {
+    const { result } = renderHook(() => useAccount({ ...USER, role: 'ADMIN' }));
+
+    expect(result.current.showsDashboard).toBe(true);
   });
 });

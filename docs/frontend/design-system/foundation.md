@@ -224,7 +224,7 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 | Radius | Primitive scale + one semantic `radius` base | `--radius` 8px → `sm` 4 · `md` 6 · `lg` 8 · `xl` 12 · `full` 999 |
 | Shadow | Primitive scale | **raised** `0 1px 2px rgb(15 30 40 / .06), 0 2px 6px rgb(15 30 40 / .06)` · **floating** `0 8px 24px rgb(15 30 40 / .10)` · **overlay** `0 16px 48px rgb(15 30 40 / .16)`. Dark: raised `none`, floating and overlay use `rgb(0 0 0 / .4)` |
 | Spacing | Tailwind's 4px scale | Layout binds the scale; control padding is owned by components (§4 component tokens) |
-| Z-index | Named layers | `sticky` 100 · `overlay` 200 · `modal` 300 · `dropdown` 400 · `toast` 500. Dropdown sits above modal: floating content is portalled to `<body>`, and one opened from a dialog must appear over it |
+| Z-index | Named layers | `sticky` 100 · `overlay` 200 · `modal` 300 · `dropdown` 400 · `toast` 500. Dropdown sits above modal: floating content is portalled to `<body>`, and one opened from a dialog must appear over it. Outside the layer, a sticky bar names its layer with the `z-sticky` utility |
 | Motion | 2 durations + 1 easing | 150ms · 250ms · `cubic-bezier(.2, 0, 0, 1)`; off under `prefers-reduced-motion` |
 
 ---
@@ -286,7 +286,7 @@ Tailwind breakpoints: `md` = 768, `lg` = 1024 (defaults).
 
 **Shells:**
 - **Public shell:** top header (logo, directory, language switch, theme toggle, sign-in / account menu), content, footer.
-- **Dashboard shell:** sidebar (items built from the role), top bar (space switcher for owners with more than one space, language, theme, account menu), content.
+- **Dashboard shell:** sidebar (items built from the role, the space switcher in its header), top bar (the page's title, language, theme, account menu), content; the frontend architecture owns it ([architecture §2](../architecture.md#2-page-groups)).
 
 ---
 
@@ -410,7 +410,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 |---|---|---|
 | Pagination | shadcn | Words as props · page numbers from `md`, the current one outlined on the page `background`; on a phone, Previous and Next around a summary ("Page 1 of 5"), as in the Owner › Members stress test · a missing step stays in place, marked `aria-disabled` |
 | Tabs | shadcn | `default`: pills on a phone (the active one `primary`), a segmented control from `md` (the active one on `card`), as in the Owner › Members stress test · `line`: underlined, for the sections of a page |
-| Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
+| Sidebar | shadcn | Dashboard shell · its form follows the width (§9): expanded from `lg`, an icon rail with tooltips from `md`, a start-side Sheet opened by `SidebarTrigger` on a phone · `SidebarText` holds text beside a mark outside the menu, such as the space switcher's name, kept for assistive technology only on the rail · a menu item's count is shown only, and its `badgeLabel` describes the item · cut down from shadcn's: no stored state, no keyboard shortcut, no rail toggle or submenus |
 | Breadcrumb | shadcn | Dashboard sub-pages · named by a `label` prop; separators are `ChevronEndIcon` · ancestors `muted-foreground`, the current page `foreground` at the `label` weight, as in the Owner › Members stress test |
 
 **Not in the layer (built by features from it):** SpaceCard, SpaceMap and markers, OccupancyIndicator, CustomerRow, AnnouncementBanner, VerifiedBadge (a Badge usage).

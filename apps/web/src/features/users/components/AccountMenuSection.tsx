@@ -1,10 +1,20 @@
-import { Button, LogOutIcon } from '@shared/design-system';
+import { Button, LayoutDashboardIcon, LogOutIcon } from '@shared/design-system';
 import type { SessionUser } from '@shared/session';
+import { Link } from 'react-router';
 import { useAccount } from '../hooks/useAccount';
 import { SignOutFailure } from './SignOutFailure';
 
-/** The signed-in user in a phone menu: the name, and sign-out with its pending and error states. */
-export function AccountMenuSection({ user }: { user: SessionUser }) {
+/**
+ * The signed-in user in a phone menu: the name, the way into the dashboard (`dashboardPath`) for those
+ * who have one, and sign-out with its pending and error states.
+ */
+export function AccountMenuSection({
+  user,
+  dashboardPath,
+}: {
+  user: SessionUser;
+  dashboardPath: string;
+}) {
   const account = useAccount(user);
 
   return (
@@ -16,6 +26,14 @@ export function AccountMenuSection({ user }: { user: SessionUser }) {
       <p className="px-3 pb-2 text-label">
         <bdi>{account.name}</bdi>
       </p>
+      {account.showsDashboard && (
+        <Button asChild variant="ghost" className="w-full justify-start">
+          <Link to={dashboardPath}>
+            <LayoutDashboardIcon aria-hidden />
+            {account.dashboardLabel}
+          </Link>
+        </Button>
+      )}
       <Button
         variant="ghost"
         className="w-full justify-start"

@@ -2,7 +2,8 @@ import { useCopy } from '@shared/copy';
 import type { ReactNode } from 'react';
 import { Link, Outlet } from 'react-router';
 import { SITE_PATHS } from '../navigation';
-import { SiteLanguageToggle, SiteThemeToggle } from './toggles';
+import { SiteLanguageToggle } from './SiteLanguageToggle';
+import { SiteThemeToggle } from './SiteThemeToggle';
 
 /**
  * The shell of the pages that ask for one thing, such as signing in: the short header (the wordmark,

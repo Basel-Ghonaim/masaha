@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email) and `features/users` (its account menu, its sign-out button and the forced password change's form), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell with the sign-in, register and forced password change pages, and the status states, the four route guards, the password change's gate and its guard, and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), Axios only inside `shared/api`, and the dashboard-only rule (§3) are enforced by lint, and the dashboard-only rule by `check:build` too; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email) and `features/users` (its account menu, its sign-out button and the forced password change's form), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell with the sign-in, register and forced password change pages, and the status states, the four route guards, the password change's gate and its guard, and the landing rule in `shared/routing` (§2); so is the `dashboard` group's shell, with its navigation per role, the space switcher and a placeholder for each page (§2); the rest of the layout tree, the dashboard's screens and the rest are not yet implemented · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -17,6 +17,8 @@
 **Dependency rule:** `app → pages → features → shared`, one direction only. **No sibling imports** (feature → feature, page group → page group). Held by path aliases (`@app/*`, `@pages/*`, `@features/*`, `@shared/*`), barrel-only imports, and `eslint-plugin-boundaries`.
 
 **Inside a module:** a `shared/` module or a feature groups its files into folders by role (`guards/`, `states/`, `services/`, `hooks/`, …) once it holds more than one role, so its roles read from its tree and its surface stays one file: inner folders have no `index.ts`, and the module's `index.ts` stays its only entry. Its core (its model, its store, a helper every role uses) may stay at the root, a module with a single role stays flat, and tests stay beside the files they prove. The design-system layer, whose layout [foundation §3](design-system/foundation.md#3-architecture) owns, and the copy's language folders are exempt.
+
+**One responsibility per file** holds in a module and a page group alike (§3 › Capability layout); a page group groups its files into role folders too, such as `pages/dashboard/shell/`.
 
 ## 2. Page groups
 
@@ -44,15 +46,15 @@ RootLayout (app)                 ScrollRestoration; the password change's gate; 
 │                                (the forced change's short header: logo and sign out)
 └── dashboard
     └── DashboardLayout          sidebar + top bar (ADR 0016)
-        ├── admin/*
-        └── spaces/:spaceId/*
+        ├── admin/*              AdminLayout: the admin's header and navigation
+        └── spaces/:spaceId/*    SpaceLayout: the space switcher, the navigation of the role there
 ```
 
 - **Each level adds one thing** around its `<Outlet/>`.
 - **Each domain owns its own shell**, and places the status states inside it.
 - **A layout is built with its first consumer.**
-  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`, with sign-in and register, and the forced change, for which the route gives the header sign-out as its only action.
-  - Not built yet: `AccountLayout`, with the first account screen; `DashboardLayout`, with the dashboard shell (F-6c2).
+  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`, with sign-in and register, and the forced change, for which the route gives the header sign-out as its only action; `DashboardLayout`, with the dashboard's two branches.
+  - Not built yet: `AccountLayout`, with the first account screen.
 
 ### The two groups
 
@@ -72,13 +74,19 @@ pages/
     account/        AccountLayout and its screens
   dashboard/
     index.ts        dashboardRoutes: the group's only export
-    shell/          DashboardLayout, sidebar, top bar, space switcher
-    navigation.ts   the navigation config per role
+    shell/          DashboardLayout, AdminLayout, SpaceLayout, the top bar and the page's header
+    navigation.ts   each branch's pages, and the roles each space page allows: configuration, no logic
     admin/          platform screens (ADMIN)
     space/          the screens of the space in the URL (OWNER, RECEPTION)
 ```
 
-Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and in `auth/` the sign-in, register and forced password change pages. The `dashboard` group, the rest of `auth/`, `account/` and the space details page are not built yet.
+Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and in `auth/` the sign-in, register and forced password change pages; in `pages/dashboard` its `index.ts`, `navigation.ts`, the shell, the `/dashboard` redirect and one `PlaceholderPage`, which titles each page from its navigation item until the page is built. The dashboard's screens (`admin/`, `space/`), the rest of `auth/`, `account/` and the space details page are not built yet.
+
+- **The dashboard's shell.**
+  - The sidebar takes the design system's `Sidebar` form for each width. Its header is the space switcher in a space, and the wordmark with "Platform admin" for the admin; its foot links a space's public page (`publicSpacePath`, by its slug), and on a phone holds the language.
+  - The top bar holds the drawer's trigger on a phone, the page's title, the language and theme toggles, and the account (`CompactAccountMenu`). **The page fills the title and its own controls** with `PageHeader`, which the shell places in the bar.
+  - A space's navigation lists the pages the user's role at the space in the URL allows (the owner's eleven, reception's four); a space they hold no link to lists none. The owner's audit screen is not listed ([finding 14](../architecture/findings.md#14-the-owners-audit-screen-has-no-design)).
+  - The space branch's element remembers the space entered (`rememberSpace`), for the landing.
 
 - **Lazy loading.**
   - A group's `index.ts` exports **route definitions only**. Their components load through React Router's `lazy`, so a visitor to the site never downloads dashboard code.
@@ -87,9 +95,9 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
   - Their visual controls are the design system's `LanguageToggle` and `ThemeToggle`.
   - Each shell wires them to `shared/preferences` itself, in a line or two. There is no shared "connected toggle": `shared/preferences` stays without UI, and the two groups cannot import each other.
   - The theme toggle sets the opposite of the theme shown (§4).
-- **The status states** live in `shared/routing`: `NotFoundState`, `ForbiddenState`, `RouteErrorState`, and a pure `classifyRouteError`. They are built; the site shows the first and the third, and `RequireRole` the 403.
+- **The status states** live in `shared/routing`: `NotFoundState`, `ForbiddenState`, `RouteErrorState`, and a pure `classifyRouteError`. They are built; each shell shows the 404 and the general error, `RequireRole` the 403, and `RequireSpaceRole` the 404 and the 403.
   - They are route-level elements, built on the design system's `EmptyState`.
-  - They take their actions as props. The site's 404 offers "Home" and "Browse spaces"; the dashboard's will offer its own.
+  - They take their actions as props. The site's 404 offers "Home" and "Browse spaces"; the dashboard's offers none, since its sidebar is the way on.
   - Each domain renders them inside its own shell. Its error boundary sits on a pathless route just under its layout, because React Router renders a boundary in place of its own route's element. An error in a shell itself reaches the root's state, which has no shell.
   - `RouteErrorState` shows **offline** for a failed lazy load or when the browser reports no connection, and the **general error** otherwise. "Try again" reloads the page, and so does the browser's `online` event: React Router keeps a failed lazy load for its route, so only a reload retries it.
 - **Guards sit visibly on each route** (`<RequireRole roles={['ADMIN']}>`), never inherited silently from the group.
@@ -100,23 +108,23 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 
 ### Landing and guards
 
-**Built:** the four guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). `RequireGuest` guards `/login` and `/register`; `RequireAuth` and `RequireRole` have no route yet, and come with the account and dashboard pages, and the dashboard's shell brings the first use of `RequireSpaceRole` (F-6c2). Beside them, the password change's gate and its guard (below).
+**Built:** the four guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). `RequireGuest` guards `/login` and `/register`; `RequireAuth` guards `/dashboard` and the space branch's shell, `RequireRole` the admin's branch (a non-admin gets the 403 without the admin's shell), and `RequireSpaceRole` each space page, with the roles its navigation item allows, so a 404 or a 403 for the space in the URL shows inside the space's shell. Beside them, the password change's gate and its guard (below).
 
 | Guard | Lets through | Otherwise |
 |---|---|---|
 | `RequireAuth` | a signed-in user | a guest goes to sign-in |
 | `RequireRole roles={[…]}` | a signed-in user with one of the global roles | a guest goes to sign-in; another role sees `ForbiddenState`, a 403, in place |
-| `RequireGuest` | a guest (the auth pages) | a signed-in user goes on to the return URL, else `/`: also right after signing in or registering there, so the landing has this one owner |
+| `RequireGuest` | a guest (the auth pages) | a signed-in user goes on by the landing rule below: the return URL, else their dashboard, else `/`; also right after signing in or registering there, so the landing has this one owner |
 | `RequirePasswordChange` | a signed-in user with a temporary password to change (`/change-password`) | once the change clears it, the user goes on where they land (`landingPath`, below): the page the gate carried in `next`, else by their role, so the landing after the change has this one owner; a guest, such as one who has just signed out there, goes to sign-in |
 | `RequireSpaceRole roles={[…]}` | a signed-in user whose active link at the `:spaceId` in the URL has one of the roles, `OWNER` or `RECEPTION`, read from the session's links, never the global role | a guest goes to sign-in; a `:spaceId` that is not a positive integer gets `NotFoundState`, a 404; a space with no active link, or a role the route does not allow, gets `ForbiddenState`, a 403; both in place |
 
 - **The password change's gate,** `PasswordChangeGate`, is mounted once, in `RootLayout`, so it holds every route, the site's and the dashboard's. A signed-in user whose account has a temporary password to change (`mustChangePassword`) goes to `/change-password`, carrying the page they asked for in `next` (`changePasswordPath`). The change page itself is exempt, and so is signing out, which its short header offers: once the session ends, the gate holds nothing. While no such session is held, during the restore included, it lets every route through, so public pages never wait. The server refuses every other endpoint meanwhile ([security.md](../backend/security.md#passwords)); the gate is for usability.
 - **While the session is restored,** every guard shows the design system's `Spinner`, centred. **While it is `unreachable`,** the offline state (no answer came back) or the general error (an answer that is not a verdict), whose "Try again", and the connection coming back when offline, re-run the restore.
-- **The return URL** travels as `?next=` on `/login` (`signInPath`). It is read back with `safeReturnUrl`, which accepts only a path on this site, so a crafted link cannot send a user elsewhere.
+- **The return URL** travels as `?next=` on `/login` (`signInPath`). It is read back with `returnUrlOf`, which accepts only a path on this site, so a crafted link cannot send a user elsewhere.
 
-**Built:** the landing below, `landingPath` in `shared/routing/landing/`. Its first user is `RequirePasswordChange`, after a forced change. The sign-in pages and `/dashboard` switch to it with the dashboard's shell (F-6c2), where it replaces `RequireGuest`'s return URL or `/`.
+**Built:** the landing below, `landingPath` in `shared/routing/landing/`. `RequireGuest` lands the user by it, `RequirePasswordChange` after a forced change, and `/dashboard` redirects by it.
 
-**Not built yet** (F-6c2): the switcher.
+**Built:** the space switcher, `SpaceSwitcher` in `features/space-links` (§3), which the space's shell places in its sidebar header.
 
 - **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
 - **The dashboard's URL shape** ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) lives in `shared/routing` (`dashboardPaths.ts`), not in the `dashboard` group: the space guard and the landing read it, and `shared/` never imports `pages/`.
@@ -126,23 +134,25 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
   3. a user with space links goes to the last space they used, on the page their link's role there gives: the overview for `OWNER`, the front desk for `RECEPTION`. When no space is remembered, or the remembered one is no longer an active link (a first sign-in, a link deactivated or removed), they go to their oldest active link, by the same rule;
   4. a user with no role and no links goes home, `/`;
   5. `/dashboard` itself redirects by the same rules.
-- **The last space** is remembered in the browser's `localStorage`, under a key that names the user (`rememberSpace`, for the space's pages to call; none does yet), and read back only while the user still holds an active link to it. Storage that is unavailable remembers nothing, and the landing falls back to the oldest link.
+- **The last space** is remembered in the browser's `localStorage`, under a key that names the user (`rememberSpace`, which the space branch's shell calls), and read back only while the user still holds an active link to it. Storage that is unavailable remembers nothing, and the landing falls back to the oldest link.
 - **Failed guards:**
   - a guest goes to sign-in, with the return URL;
   - a signed-in user without access gets a clear 403 page, never a silent redirect;
   - a `:spaceId` that is not a positive integer gets a 404; a space the user holds no active link to, whether it exists or not, gets a 403.
-- **The space switcher** shows for anyone with more than one active link, whatever their role at each.
+- **The space switcher** shows the space in the URL, its name and area. For anyone with more than one active link, whatever their role at each, it opens their spaces, and choosing one follows the link the page gives it. A URL whose space is none of theirs offers their spaces. While the spaces load it shows the design system's `Skeleton`; a failure offers to try again.
 
 ## 3. Capabilities (features)
 
 | Imported by | Capabilities |
 |---|---|
 | Any page group | `auth` · `directory` (the directory and the public profile) · `favorites` · `occupancy` · `announcements` · `data-reports` · `lookups` · `platform-settings` (the public contact) · `users` (the account's profile and settings; the admin's user screens) |
-| The dashboard only | `spaces` (owner and admin profile editing) · `space-settings` · `customers` · `subscriptions` (with their check-ins) · `packages` · `visits` · `payments` · `desk` (the front desk: check-in, check-out with payment, subscribe with payment; the customers list and file) · `finance` (finance and statistics, with the occupancy reports) · `overview` (the owner's and the admin's overview) · `staff` · `owners` (admin linking) · `audit` |
+| The dashboard only | `spaces` (owner and admin profile editing) · `space-settings` · `customers` · `subscriptions` (with their check-ins) · `packages` · `visits` · `payments` · `desk` (the front desk: check-in, check-out with payment, subscribe with payment; the customers list and file) · `finance` (finance and statistics, with the occupancy reports) · `overview` (the owner's and the admin's overview) · `staff` · `owners` (admin linking) · `audit` · `space-links` (the user's own spaces: the space switcher) |
 
 **Names match the backend.** A capability carries the name of the backend module it calls ([backend conventions §7](../backend/conventions.md#7-modules)). A feature may be finer than its module only when it serves a different audience on different screens: `staff` (the owner's reception accounts) and `owners` (the admin's linking) are two features over the one `space-links` module. A sub-part with the same audience and the same screens stays inside its module's feature. Check-ins stay in `subscriptions`, for example, because a check-in changes the subscription's progress: split apart, one feature would have to import the other's query keys. What a feature exports is set below ([What a feature exports](#what-a-feature-exports)).
 
-**The dashboard-only rule:** `pages/site` never imports a dashboard-only capability, so the site never pulls dashboard code in. The dashboard may import any capability. Lint will hold this rule, as it holds the zones (§1); the rule comes with F-6c.
+**The dashboard-only rule:** `pages/site` never imports a dashboard-only capability, so the site never pulls dashboard code in. The dashboard may import any capability. The list above lives in code once, `apps/web/scripts/dashboardOnly.ts`, and two checks hold the rule ([ADR 0011](../architecture/decisions/0011-one-web-app.md)):
+- **lint** refuses a dashboard-only capability in `pages/site`, as it refuses one page group in another (§1);
+- **the build** puts the dashboard's code (the `dashboard` group, its route definitions aside, and the dashboard-only capabilities) in one chunk of its own, loaded lazily; what only the dashboard uses besides, such as TanStack Query's `useQuery`, lands in a chunk the dashboard loads beside it ([finding 27](../architecture/findings.md#27-two-dashboard-chunks-import-each-other)). `check:build` reads the build's manifest: the site's first download, its entry and every chunk the entry imports statically, must not reach the dashboard's chunk, nor a chunk made from a dashboard module. The group's route definitions (`index.ts`, `routes.tsx`, `navigation.ts`, `placeOf.ts`) are in the first download by design, so they hold paths, guards and lazy imports only.
 
 ### Capability layout
 
@@ -160,7 +170,7 @@ features/<capability>/
 ```
 
 - **A folder the capability does not need is absent, not empty.** `features/auth` has no `services/` or `types/`.
-- **One exported unit per file, named after it:** `hooks/useSignIn.ts`, `repository/authRepository.ts`. No file groups several hooks.
+- **One component, one hook, one responsibility per file, internal ones included,** named after what it holds: `hooks/useSignIn.ts`, `components/SpaceName.tsx`, `repository/authRepository.ts`. A file's name tells what it holds, so a reader never hunts inside a file. No file groups several hooks or components, a component used only inside its capability stays out of `index.ts`, and a pure helper sits in `services/`, never in `components/`.
 - **The data layer is the repository:** the interface `AuthRepository { login, register }` and its factory `createAuthRepository()`, whose calls go through the app's one client (`api`, §7); a hook makes it once, at module level. `shared/session` names its own the same way (§4).
 - **Names inside `hooks/`:** `useXQuery` for a read, `useX` for a write (a verb and the resource: `useSignIn`, `useRegister`), `useXForm` for a form. The query keys live in `hooks/queryKeys.ts`, scoped as §7 says.
 - **Folders by role** (§1). Inner folders have no `index.ts`, and tests sit beside their files.
@@ -192,7 +202,7 @@ features/<capability>/
 
 ### What a feature exports
 
-**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. `features/auth` exports `SignInForm` and `RegisterForm`; `features/users` exports `AccountMenu`, `AccountMenuSection`, `SignOutButton` and `ForcedPasswordChangeForm`.
+**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. `features/auth` exports `SignInForm` and `RegisterForm`; `features/users` exports `AccountMenu`, `CompactAccountMenu` (the avatar alone, for the dashboard's top bar) and `AccountMenuSection`, which lead the admin and anyone with an active link to `/dashboard`, a path the page passes; it also exports `SignOutButton` and `ForcedPasswordChangeForm`.
 
 - **One capability, several places.** Ask who owns the variation (a screen is not a capability):
   - **the places show the capability's own fact differently:** the feature exports the UI, with props or as two components (the account in a header's menu, and in a phone menu's section);
@@ -241,7 +251,7 @@ A feature's wire types, its requests and the server's answers, come from `@masah
     - a session that ends clears the QueryClient, so the next user never sees the last one's data;
     - a sign-in makes the account's language the interface's; a restore or a refresh never does, so the user's later choice on this device wins.
 - `features/auth`: sign-in, register, password forms and their error wording.
-- `shared/preferences` (Zustand), **built**: the language, the theme choice and the theme shown. No UI; F-6 builds the settings select and the top-bar toggles on it.
+- `shared/preferences` (Zustand), **built**: the language, the theme choice and the theme shown. No UI: each shell wires its own toggles to it, and `otherLanguage` names the language a two-language toggle offers.
   - **Derived, never listed.** The languages are those with a catalogue (`CATALOGUES`); the themes are those the design system exports (`THEMES`). Adding either touches no preferences code.
   - **Theme choice:** a theme, or `system`, which stores nothing and follows the device's `prefers-color-scheme` live while it is the choice. The top-bar toggle sets the opposite of the theme shown, as an explicit choice.
   - **Persisted** as plain strings at the keys the pre-paint script reads ([localisation.md › Mechanism](localisation.md#mechanism)), never in Zustand's own `persist` format. Each change writes `lang`, `dir` and `data-theme` on `<html>`, and reaches every open tab through the `storage` event.

@@ -1,9 +1,10 @@
+import { dashboardRoutes } from '@pages/dashboard';
 import { siteRoutes } from '@pages/site';
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { RootError, RootLayout } from './RootLayout';
 
 // The page groups' subtrees, under the root (docs/frontend/architecture.md §2).
-const children: RouteObject[] = [...siteRoutes];
+const children: RouteObject[] = [...siteRoutes, ...dashboardRoutes];
 
 // The design-system showcase is a development tool (docs/frontend/architecture.md §2). A build
 // replaces import.meta.env.DEV with false, which drops this branch and the showcase with it;

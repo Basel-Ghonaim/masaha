@@ -44,8 +44,3 @@ export function returnUrlOf(search: string): string | undefined {
     url.origin !== SITE || url.pathname.startsWith('//') || url.pathname.startsWith('/\\');
   return leaves ? undefined : `${url.pathname}${url.search}${url.hash}`;
 }
-
-/** The page to return to, from a query string, or `/` (`returnUrlOf`). */
-export function safeReturnUrl(search: string): string {
-  return returnUrlOf(search) ?? '/';
-}

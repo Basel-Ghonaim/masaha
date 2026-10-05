@@ -260,7 +260,7 @@ The writes succeeded and rolled back correctly. The warning comes from Prisma's 
 
 **Evidence:** the session lists the user's active links: those not deactivated ([api-contract §5](../api/api-contract.md#session)). A space is soft-deleted (`deletedAt`), and its links are not touched, so a link to a deleted space still appears and would still open the dashboard. `space-links`' repository queries only its own table ([conventions §2](../backend/conventions.md#2-layers)); nothing deletes spaces yet.
 
-The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`) asks `spaces`, and leaves a soft-deleted space out. The session's links do not, and they feed `RequireSpaceRole` and the landing's fallback to the oldest link ([architecture.md › Landing and guards](../frontend/architecture.md#landing-and-guards)). So once the dashboard uses them (F-6c2), a user could land on, and open, a space their switcher does not list.
+The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`) asks `spaces`, and leaves a soft-deleted space out. The session's links do not, and they feed `RequireSpaceRole` and the landing's fallback to the oldest link ([architecture.md › Landing and guards](../frontend/architecture.md#landing-and-guards)). The dashboard reads both: its guards and its navigation read the session's links, and its switcher reads `mySpaces`. So a user can land on, and open, a space their switcher does not list.
 
 **Resolves when:** the slice that soft-deletes spaces decides it, for example by deactivating the space's links in the same transaction, with a test.
 
@@ -329,3 +329,19 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 **Evidence:** the root `format` script runs Prettier with `--write`, so `npm run format -- --check` passes both flags and rewrites every file it would only have reported. On F-5b3a it rewrote `apps/web/src/shared/preferences/preferences.unit.test.ts`, which is not Prettier-formatted on `main`, outside the item's scope; the file was restored by hand. A check that writes is a trap: it changes files the author never meant to touch.
 
 **Resolves when:** a separate script checks without writing (for example `format:check`, `prettier --check .`), and the documents point to it.
+
+## 27. Two dashboard chunks import each other
+
+**Status:** Open · **Date:** 2026-10-05
+
+**Evidence:** the build gathers the dashboard's own modules into one `dashboard` chunk, leaving out what it shares with the site ([architecture §3](../frontend/architecture.md#3-capabilities-features)). What only the dashboard uses besides, today TanStack Query's `useQuery` and `publicSpacePath`, has no chunk of its own, so the bundler places it in the chunk of the space shell's lazy import (`SpaceLayout`). That chunk imports the `dashboard` chunk, and the `dashboard` chunk imports it back. Nothing breaks today, because every use across the two chunks happens inside a function. A dashboard module that used one of those imports at load time (a module-level `queryOptions(…)`, for example) would fail with a reference error when the space shell is the first dashboard page opened. `check:build` still classifies both chunks as dashboard code.
+
+**Resolves when:** the build gives what only the dashboard uses a place that does not import the dashboard's chunk back (a second chunk group, for example), proven by the manifest, or a dashboard module first needs such an import at load time.
+
+## 28. A dashboard routes test can time out under load
+
+**Status:** Open · **Date:** 2026-10-05
+
+**Evidence:** in one full `test:component` run on F-6c2, "lists the owner’s eleven pages, the overview marked as the page shown" (`apps/web/src/pages/dashboard/routes.component.test.tsx`) failed after about 1.1 s with `Unable to find role="navigation" and name "Space dashboard"`: the lazily loaded space shell was not on screen within the default wait. The file passed three times alone, and the whole lane passed when run again.
+
+**Resolves when:** the test waits for the lazy shell in a way that holds under a full run, proven by repeated full runs.

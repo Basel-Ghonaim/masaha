@@ -139,6 +139,22 @@ export function SidebarHeader({ mark, className, children, ...props }: SidebarHe
   );
 }
 
+/**
+ * Text beside a mark or an icon outside the menu, such as a switcher's name and area: shown, except
+ * on the rail, where it stays for assistive technology only.
+ */
+export function SidebarText({ className, ...props }: ComponentProps<'span'>) {
+  const { mode } = useSidebar();
+
+  return (
+    <span
+      data-slot="sidebar-text"
+      className={cn(mode === 'tablet' && 'sr-only', className)}
+      {...props}
+    />
+  );
+}
+
 export function SidebarContent({ className, ...props }: ComponentProps<'div'>) {
   const { mode } = useSidebar();
 

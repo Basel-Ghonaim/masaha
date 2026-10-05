@@ -7,6 +7,8 @@ export const USERS = {
   menu: ({ name }: { name: string }) => `Account menu: ${name}`,
   /** The phone menu's account section. */
   section: 'Account',
+  /** The way into the dashboard, for the admin and anyone who runs a space. */
+  dashboard: 'Dashboard',
   signOut: 'Sign out',
   signOutFailed: 'Couldn’t sign out',
   /** The change of a temporary password, before any other page. */

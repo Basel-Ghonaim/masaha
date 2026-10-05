@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { parseSpaceId, spaceDeskPath, spaceOverviewPath } from './dashboardPaths';
+import { parseSpaceId, spaceDeskPath, spaceHomePath, spaceOverviewPath } from './dashboardPaths';
 
 describe('the dashboard paths', () => {
   it('put the space’s id in its overview’s and its desk’s paths', () => {
     expect(spaceOverviewPath(7)).toBe('/dashboard/spaces/7');
     expect(spaceDeskPath(7)).toBe('/dashboard/spaces/7/desk');
+  });
+
+  it('open a space on its overview for its owner and on its desk for its reception', () => {
+    expect(spaceHomePath({ spaceId: 7, role: 'OWNER' })).toBe('/dashboard/spaces/7');
+    expect(spaceHomePath({ spaceId: 7, role: 'RECEPTION' })).toBe('/dashboard/spaces/7/desk');
   });
 });
 

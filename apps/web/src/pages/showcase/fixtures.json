@@ -512,6 +512,7 @@
         "product": "مساحة للعرض",
         "area": "لوحة تحكم المالك",
         "groupLabel": "العمل اليومي",
+        "railText": "نص بجانب العلامة يختفي على الشريط",
         "items": {
           "overview": "نظرة على المساحة",
           "attendance": "حضور اليوم",
@@ -1251,12 +1252,13 @@
         "pageCaptions": ["On the first page", "On a middle page", "On the last page"]
       },
       "sidebar": {
-        "title": "Sidebar",
+        "title": "The dashboard sidebar",
         "caption": "Expanded on a desktop, icons only on a tablet, a drawer from the start side on a phone",
         "label": "Riyada Space owner dashboard",
         "product": "Masaha showcase",
         "area": "Owner's dashboard",
         "groupLabel": "Daily operations",
+        "railText": "Text beside the mark, hidden on the rail",
         "items": {
           "overview": "Space overview",
           "attendance": "Today's attendance",

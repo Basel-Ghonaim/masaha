@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowUp,
   Calendar,
+  ChartColumn,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -14,25 +15,37 @@ import {
   CircleAlert,
   CircleCheck,
   Coffee,
+  ConciergeBell,
   Ellipsis,
   EllipsisVertical,
   Eye,
   EyeOff,
+  Flag,
   GraduationCap,
+  IdCard,
   Info,
   Languages,
+  LayoutDashboard,
+  ListChecks,
   LoaderCircle,
   Lock,
   LogIn,
   LogOut,
+  Megaphone,
   Menu,
   Moon,
   PlugZap,
   Presentation,
+  Receipt,
+  ScrollText,
   Search,
   SearchX,
+  Settings,
+  Store,
   Sun,
+  Tag,
   TriangleAlert,
+  UserCog,
   Users,
   Wifi,
   X,
@@ -194,4 +207,58 @@ export function ArrowDownIcon(props: IconProps) {
 
 export function ChevronsUpDownIcon(props: IconProps) {
   return <Icon glyph={ChevronsUpDown} {...props} />;
+}
+
+// The dashboard's navigation.
+
+export function LayoutDashboardIcon(props: IconProps) {
+  return <Icon glyph={LayoutDashboard} {...props} />;
+}
+
+export function ConciergeBellIcon(props: IconProps) {
+  return <Icon glyph={ConciergeBell} {...props} />;
+}
+
+export function ReceiptIcon(props: IconProps) {
+  return <Icon glyph={Receipt} {...props} />;
+}
+
+export function ChartColumnIcon(props: IconProps) {
+  return <Icon glyph={ChartColumn} {...props} />;
+}
+
+export function TagIcon(props: IconProps) {
+  return <Icon glyph={Tag} {...props} />;
+}
+
+export function StoreIcon(props: IconProps) {
+  return <Icon glyph={Store} {...props} />;
+}
+
+export function MegaphoneIcon(props: IconProps) {
+  return <Icon glyph={Megaphone} {...props} />;
+}
+
+export function FlagIcon(props: IconProps) {
+  return <Icon glyph={Flag} {...props} />;
+}
+
+export function IdCardIcon(props: IconProps) {
+  return <Icon glyph={IdCard} {...props} />;
+}
+
+export function SettingsIcon(props: IconProps) {
+  return <Icon glyph={Settings} {...props} />;
+}
+
+export function UserCogIcon(props: IconProps) {
+  return <Icon glyph={UserCog} {...props} />;
+}
+
+export function ListChecksIcon(props: IconProps) {
+  return <Icon glyph={ListChecks} {...props} />;
+}
+
+export function ScrollTextIcon(props: IconProps) {
+  return <Icon glyph={ScrollText} {...props} />;
 }

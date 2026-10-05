@@ -1,3 +1,4 @@
+export { otherLanguage } from './otherLanguage';
 export type { Platform } from './platform';
 export {
   getPreferences,

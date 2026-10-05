@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { changePasswordPath, returnUrlOf, safeReturnUrl, signInPath } from './returnUrl';
+import { changePasswordPath, returnUrlOf, signInPath } from './returnUrl';
 
 describe('signInPath', () => {
   it('carries the whole requested page, query and fragment included, in `next`', () => {
@@ -17,15 +17,11 @@ describe('changePasswordPath', () => {
   });
 });
 
-describe('safeReturnUrl', () => {
+describe('returnUrlOf', () => {
   it('returns the page carried in `next`', () => {
-    expect(safeReturnUrl('?next=%2Fme%2Ffavorites%3Fpage%3D2%23top')).toBe(
+    expect(returnUrlOf('?next=%2Fme%2Ffavorites%3Fpage%3D2%23top')).toBe(
       '/me/favorites?page=2#top',
     );
-  });
-
-  it('returns `/` when there is no `next`', () => {
-    expect(safeReturnUrl('')).toBe('/');
   });
 
   it.each([
@@ -38,12 +34,10 @@ describe('safeReturnUrl', () => {
     ['a dot segment before the slashes', '/.//evil.example'],
     ['a parent segment before the slashes', '/..//evil.example'],
     ['an encoded dot segment before the slashes', '/%2E//evil.example'],
-  ])('returns `/` for %s', (_, target) => {
-    expect(safeReturnUrl(`?${new URLSearchParams({ next: target }).toString()}`)).toBe('/');
+  ])('returns nothing for %s', (_, target) => {
+    expect(returnUrlOf(`?${new URLSearchParams({ next: target }).toString()}`)).toBeUndefined();
   });
-});
 
-describe('returnUrlOf', () => {
   it('returns nothing when `next` is missing or would leave the site, and keeps an explicit `/`', () => {
     expect(returnUrlOf('')).toBeUndefined();
     expect(returnUrlOf('?next=%2F%2Fevil.example')).toBeUndefined();

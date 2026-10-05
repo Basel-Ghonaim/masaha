@@ -1,4 +1,5 @@
 export { directionOf, type Direction } from './direction';
+export { isolate } from './isolate';
 export {
   currentCatalogue,
   currentLanguage,

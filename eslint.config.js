@@ -3,6 +3,7 @@ import boundaries from 'eslint-plugin-boundaries';
 import reactHooks from 'eslint-plugin-react-hooks';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
+import { DASHBOARD_ONLY_CAPABILITIES } from './apps/web/scripts/dashboardOnly.ts';
 
 // The module level map (docs/backend/conventions.md §7, the only level map; this mirrors it). It
 // places the API's modules and the shared package's capabilities alike
@@ -220,13 +221,19 @@ export default defineConfig([
     plugins: { boundaries },
     settings: {
       // Resolves the @app, @pages, @features and @shared aliases, so aliased imports are checked too.
-      'import/resolver': { typescript: { project: 'apps/web/tsconfig.app.json' } },
+      // Absolute, with the element patterns relative to the repository, so the rule holds whatever
+      // directory ESLint runs from.
+      'import/resolver': {
+        typescript: { project: `${import.meta.dirname}/apps/web/tsconfig.app.json` },
+      },
+      'boundaries/root-path': import.meta.dirname,
       // Re-exports and lazy imports count as dependencies, so a barrel cannot route around the rule.
       'boundaries/dependency-nodes': ['import', 'export', 'dynamic-import'],
       'boundaries/elements': [
         { type: 'app', pattern: 'apps/web/src/app' },
-        { type: 'page', pattern: 'apps/web/src/pages/*' },
-        { type: 'feature', pattern: 'apps/web/src/features/*' },
+        // The page group and the capability are captured, for the dashboard-only rule below.
+        { type: 'page', pattern: 'apps/web/src/pages/*', capture: ['group'] },
+        { type: 'feature', pattern: 'apps/web/src/features/*', capture: ['capability'] },
         // Before shared, whose pattern also matches it: the first matching element wins.
         { type: 'design-system', pattern: 'apps/web/src/shared/design-system' },
         { type: 'shared', pattern: 'apps/web/src/shared/*' },
@@ -269,6 +276,22 @@ export default defineConfig([
                   element: { type: ['shared', 'design-system'], fileInternalPath: 'index.ts' },
                 },
               },
+            },
+            // The dashboard-only rule (ADR 0011, docs/frontend/architecture.md §3): the site never
+            // imports a capability only the dashboard uses, so it never pulls dashboard code in.
+            // check:build proves the same of the build.
+            {
+              from: { element: { type: 'page', captured: { group: 'site' } } },
+              disallow: {
+                to: {
+                  element: {
+                    type: 'feature',
+                    captured: { capability: [...DASHBOARD_ONLY_CAPABILITIES] },
+                  },
+                },
+              },
+              message:
+                'site → {{ to.captured.capability }} is not allowed. The site never imports a dashboard-only capability (docs/frontend/architecture.md §3, apps/web/scripts/dashboardOnly.ts).',
             },
           ],
         },
