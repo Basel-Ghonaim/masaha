@@ -1,11 +1,14 @@
 import {
+  createAreaSchema,
   createGovernorateSchema,
   orderSchema,
+  updateAreaSchema,
   updateGovernorateSchema,
 } from '@masaha/shared/lookups';
 import { Router } from 'express';
 
 import { validate } from '../../shared/validation/index.ts';
+import type { AreasController } from './areas/areas.controller.ts';
 import type { GovernoratesController } from './governorates/governorates.controller.ts';
 
 /**
@@ -14,13 +17,18 @@ import type { GovernoratesController } from './governorates/governorates.control
  */
 export function createLookupsAdminRouter({
   governorates,
+  areas,
 }: {
   governorates: GovernoratesController;
+  areas: AreasController;
 }): Router {
   const router = Router();
   router.get('/governorates', governorates.list);
   router.post('/governorates', validate(createGovernorateSchema), governorates.add);
   router.put('/governorates/order', validate(orderSchema), governorates.reorder);
   router.patch('/governorates/:id', validate(updateGovernorateSchema), governorates.update);
+  router.put('/governorates/:id/areas/order', validate(orderSchema), areas.reorder);
+  router.post('/areas', validate(createAreaSchema), areas.add);
+  router.patch('/areas/:id', validate(updateAreaSchema), areas.update);
   return router;
 }

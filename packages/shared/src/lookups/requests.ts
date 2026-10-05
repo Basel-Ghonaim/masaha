@@ -25,6 +25,22 @@ export const updateGovernorateSchema = z.object({
 });
 export type UpdateGovernorateRequest = z.infer<typeof updateGovernorateSchema>;
 
+/** A new area in a governorate, placed last in it. Its governorate never changes afterwards. */
+export const createAreaSchema = z.object({
+  governorateId: id,
+  nameAr: lookupName,
+  nameEn: lookupName,
+});
+export type CreateAreaRequest = z.infer<typeof createAreaSchema>;
+
+/** Renames an area, hides it or restores it; what is absent is kept. */
+export const updateAreaSchema = z.object({
+  nameAr: lookupName.optional(),
+  nameEn: lookupName.optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateAreaRequest = z.infer<typeof updateAreaSchema>;
+
 /** A list's new order: every id of the list, each once, first to last. */
 export const orderSchema = z.object({ ids: z.array(id) });
 export type OrderRequest = z.infer<typeof orderSchema>;

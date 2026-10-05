@@ -3,9 +3,11 @@ import type { z } from 'zod';
 
 import { toFieldErrors } from '../core/index.ts';
 import {
+  createAreaSchema,
   createGovernorateSchema,
   LOOKUP_NAME_MAX_LENGTH,
   orderSchema,
+  updateAreaSchema,
   updateGovernorateSchema,
 } from './requests.ts';
 
@@ -46,6 +48,27 @@ describe('updateGovernorateSchema', () => {
     expect(fieldErrors(updateGovernorateSchema, { nameAr: '', isActive: 'no' })).toEqual({
       nameAr: ['too_short'],
       isActive: ['invalid_format'],
+    });
+  });
+});
+
+describe('createAreaSchema', () => {
+  it('requires its governorate and both names', () => {
+    expect(createAreaSchema.parse({ governorateId: 2, ...names })).toEqual({
+      governorateId: 2,
+      ...names,
+    });
+    expect(fieldErrors(createAreaSchema, { governorateId: 0, nameAr: 'رفح' })).toEqual({
+      governorateId: ['out_of_range'],
+      nameEn: ['required'],
+    });
+  });
+});
+
+describe('updateAreaSchema', () => {
+  it('never moves an area to another governorate', () => {
+    expect(updateAreaSchema.parse({ governorateId: 3, nameEn: 'Rafah' })).toEqual({
+      nameEn: 'Rafah',
     });
   });
 });

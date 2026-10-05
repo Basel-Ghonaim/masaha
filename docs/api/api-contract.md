@@ -205,6 +205,21 @@ AdminGovernorateWithAreas = AdminGovernorate & { areas: AdminArea[] }
 - **204:** the order is applied in one transaction. Repeating it changes nothing. Not audited.
 - **Errors:** `validation` (422); `conflict` (409), with no code, when the ids are not exactly the current governorates (one missing, extra or repeated): the list changed since it was read.
 
+#### `PUT /admin/governorates/:id/areas/order` · 🛡
+- **Body:** `{ ids: number[] }`: every id of the governorate's areas, each once, first to last.
+- **204:** as for the governorates' order.
+- **Errors:** `validation` (422); `not_found` (404) for an unknown governorate; `conflict` (409), with no code, when the ids are not exactly the governorate's current areas.
+
+#### `POST /admin/areas` · 🛡
+- **Body:** `{ governorateId, nameAr, nameEn }`. The governorate may be hidden. An area never moves to another governorate: no endpoint changes `governorateId`.
+- **201:** `AdminArea`, active and placed last in its governorate. Audited `area.added`, with `governorateId` in `after`.
+- **Errors:** `validation` (422); `not_found` (404) for an unknown governorate; `conflict` (409), with `errors.nameAr = ["not_unique"]`, when another area of the same governorate has the Arabic name.
+
+#### `PATCH /admin/areas/:id` · 🛡
+- **Body:** `{ nameAr?, nameEn?, isActive? }`; what is absent is kept.
+- **200:** `AdminArea`. Audited `area.edited`, `area.hidden` or `area.restored`.
+- **Errors:** `validation` (422); `not_found` (404); `conflict` (409), with `errors.nameAr = ["not_unique"]`.
+
 ## 6. Domain error codes (initial)
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).

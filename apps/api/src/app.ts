@@ -18,6 +18,8 @@ import {
   type GoogleIdentity,
 } from './modules/auth/index.ts';
 import {
+  createAreasController,
+  createAreasService,
   createGovernoratesController,
   createGovernoratesService,
   createLookupsAdminRouter,
@@ -167,6 +169,7 @@ export function createApi({
   const users = createUsersService({ accessTokens, limiter, sessions, runInTransaction });
   const lookups = createLookupsService();
   const governorates = createGovernoratesService({ runInTransaction, audit: writeAudit });
+  const areas = createAreasService({ runInTransaction, audit: writeAudit });
   const spaces = createSpacesService();
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const auth = createAuthService({
@@ -202,7 +205,12 @@ export function createApi({
 
   // The platform's routes: guarded once here, so no module's admin router can leave it out.
   const admin = Router();
-  admin.use(createLookupsAdminRouter({ governorates: createGovernoratesController(governorates) }));
+  admin.use(
+    createLookupsAdminRouter({
+      governorates: createGovernoratesController(governorates),
+      areas: createAreasController(areas),
+    }),
+  );
   api.use('/admin', requireAuth(), requireRole('ADMIN'), admin);
   return api;
 }

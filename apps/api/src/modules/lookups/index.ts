@@ -1,3 +1,5 @@
+export { createAreasController } from './areas/areas.controller.ts';
+export { createAreasService, type AreasService } from './areas/areas.service.ts';
 export { createGovernoratesController } from './governorates/governorates.controller.ts';
 export {
   createGovernoratesService,

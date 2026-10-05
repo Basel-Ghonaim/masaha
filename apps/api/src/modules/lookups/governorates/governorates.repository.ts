@@ -54,7 +54,8 @@ export function createGovernoratesRepository(db: PrismaClient = prisma) {
 
     /**
      * Locks the governorate's row until the transaction ends, so the state a change replaces is the
-     * one it read. Its areas can still be added meanwhile. The governorate, or nothing.
+     * one it read. Adding an area to it, or ordering its areas, waits for it. The governorate, or
+     * nothing.
      */
     async lock(id: number, tx: Tx): Promise<GovernorateRow | null> {
       const rows = await tx.$queryRaw<{ id: number }[]>`
