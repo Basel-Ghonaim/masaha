@@ -1479,7 +1479,7 @@
             "date": "Reported on",
             "status": "Report status"
           },
-          "fieldPrefix": "Field:",
+          "fieldPrefix": "Field reported:",
           "rows": [
             {
               "title": "The full-day price is wrong",

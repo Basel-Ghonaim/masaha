@@ -1,0 +1,46 @@
+import type { Catalogue } from '../shape';
+
+export const AUTH = {
+  fields: {
+    name: 'الاسم',
+    email: 'البريد الإلكتروني',
+    emailExample: 'name@example.com',
+    password: 'كلمة المرور',
+  },
+  fieldErrors: {
+    name: {
+      too_short: 'أدخل اسمك',
+    },
+    email: {
+      invalid_format: 'تحقّق من كتابة البريد الإلكتروني، مثل \u2066name@example.com\u2069',
+    },
+    currentPassword: {
+      too_short: 'أدخل كلمة المرور',
+    },
+    newPassword: {
+      too_short: 'كلمة المرور لا تستوفي الشروط أدناه',
+      invalid_format: 'كلمة المرور لا تستوفي الشروط أدناه',
+    },
+  },
+  signIn: {
+    title: 'تسجيل الدخول',
+    description:
+      'سجّل الدخول لمتابعة مساحاتك المفضّلة والبلاغات التي أرسلتها عن المعلومات الخاطئة.',
+    submit: 'تسجيل الدخول',
+    failed: 'تعذّر تسجيل الدخول',
+    forgotPassword: 'نسيت كلمة المرور؟',
+    noAccount: 'ليس لديك حساب؟',
+    createAccount: 'إنشاء حساب',
+    browseWithoutAccount: 'تصفّح المساحات بدون حساب',
+  },
+  register: {
+    title: 'إنشاء حساب',
+    description: 'احفظ مساحاتك المفضّلة وتابع البلاغات التي ترسلها.',
+    submit: 'إنشاء الحساب',
+    failed: 'تعذّر إنشاء الحساب',
+    haveAccount: 'لديك حساب؟',
+    signIn: 'تسجيل الدخول',
+    signInInstead: 'سجّل الدخول بهذا البريد',
+    ownerNote: 'تدير مساحة عمل؟ حسابات أصحاب المساحات ينشئها فريق مساحة.',
+  },
+} satisfies Catalogue['auth'];

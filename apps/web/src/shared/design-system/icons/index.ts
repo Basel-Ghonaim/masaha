@@ -13,6 +13,7 @@ export {
   ChevronsUpDownIcon,
   CircleAlertIcon,
   CircleCheckIcon,
+  CircleIcon,
   CoffeeIcon,
   EllipsisIcon,
   EllipsisVerticalIcon,

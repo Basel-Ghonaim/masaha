@@ -1,10 +1,11 @@
-import { RouteErrorState } from '@shared/routing';
+import { RequireGuest, RouteErrorState } from '@shared/routing';
 import type { RouteObject } from 'react-router';
 import { SITE_PATHS } from './navigation';
 
 /**
- * The site's route subtree (docs/frontend/architecture.md §2). Definitions only: the shell and each
- * page load lazily, so the site downloads one page at a time and never the dashboard.
+ * The site's route subtree (docs/frontend/architecture.md §2). Definitions only: the shells and each
+ * page load lazily, so the site downloads one page at a time and never the dashboard. A guard sits
+ * visibly on each route that has one.
  */
 export const siteRoutes: RouteObject[] = [
   {
@@ -37,6 +38,43 @@ export const siteRoutes: RouteObject[] = [
             lazy: async () => ({
               Component: (await import('./public/not-found/NotFoundPage')).NotFoundPage,
             }),
+          },
+        ],
+      },
+    ],
+  },
+  {
+    lazy: async () => ({ Component: (await import('./shell/FocusLayout')).FocusLayout }),
+    children: [
+      {
+        // The focus shell's own boundary, as the site shell has one.
+        ErrorBoundary: RouteErrorState,
+        children: [
+          {
+            path: SITE_PATHS.signIn,
+            lazy: async () => {
+              const { SignInPage } = await import('./auth/SignInPage');
+              return {
+                element: (
+                  <RequireGuest>
+                    <SignInPage />
+                  </RequireGuest>
+                ),
+              };
+            },
+          },
+          {
+            path: SITE_PATHS.register,
+            lazy: async () => {
+              const { RegisterPage } = await import('./auth/RegisterPage');
+              return {
+                element: (
+                  <RequireGuest>
+                    <RegisterPage />
+                  </RequireGuest>
+                ),
+              };
+            },
           },
         ],
       },

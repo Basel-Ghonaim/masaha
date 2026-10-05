@@ -1,16 +1,20 @@
+import { AccountMenu } from '@features/users';
 import { useCopy } from '@shared/copy';
 import { Button, LogInIcon } from '@shared/design-system';
+import { useSession } from '@shared/session';
 import { Link, NavLink } from 'react-router';
 import { SITE_LINKS, SITE_PATHS } from '../navigation';
 import { SiteMenu } from './SiteMenu';
 import { SiteLanguageToggle, SiteThemeToggle } from './toggles';
 
 /**
- * The site's header. On a desktop: the wordmark, the links, the language and theme toggles and
- * sign-in. On a phone: the menu, the wordmark and the theme toggle; the menu holds the rest.
+ * The site's header. On a desktop: the wordmark, the links, the language and theme toggles, and
+ * sign-in, or the account once signed in. On a phone: the menu, the wordmark and the theme toggle;
+ * the menu holds the rest.
  */
 export function SiteHeader() {
   const copy = useCopy();
+  const user = useSession((session) => session.user);
 
   return (
     <header className="border-b border-border bg-background">
@@ -37,12 +41,16 @@ export function SiteHeader() {
         <div className="ms-auto flex items-center gap-2">
           <SiteLanguageToggle className="hidden md:inline-flex" />
           <SiteThemeToggle />
-          <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
-            <Link to={SITE_PATHS.signIn}>
-              <LogInIcon aria-hidden />
-              {copy.site.signIn}
-            </Link>
-          </Button>
+          {user ? (
+            <AccountMenu user={user} className="hidden md:inline-flex" />
+          ) : (
+            <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+              <Link to={SITE_PATHS.signIn}>
+                <LogInIcon aria-hidden />
+                {copy.site.signIn}
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

@@ -1,12 +1,14 @@
 import type { SessionSpaceLink } from '@masaha/shared/space-links';
 import { apiClient } from '@shared/api';
-import { establishSession, getSession, restoreSession, type Session } from '@shared/session';
+import { establishSession, getSession, restoreSession } from '@shared/session';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { fakeAdapter } from '../../../test/fakeAdapter';
-import { aSession, appError, deferred, fakeEndpoints, fakeHint } from '../../../test/fakeSession';
+import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../test/fakeSession';
+import { fakeTransport, ok } from '../../../test/fakeTransport';
+import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
 import { RequireSpaceRole } from './RequireSpaceRole';
 
@@ -131,7 +133,8 @@ describe('RequireSpaceRole, signed in', () => {
 
 describe('RequireSpaceRole, before a session is held', () => {
   it('sends a guest to sign-in, carrying the page asked for', async () => {
-    await restoreSession({ endpoints: fakeEndpoints(), hint: fakeHint(false) });
+    setSessionHint(false);
+    await restoreSession();
 
     const router = renderSpaceRoutes('/dashboard/spaces/7/desk?day=2');
 
@@ -140,18 +143,17 @@ describe('RequireSpaceRole, before a session is held', () => {
   });
 
   it('shows the spinner while the session is restored, then the page', async () => {
-    const answer = deferred<Session>();
-    const restoring = restoreSession({
-      endpoints: fakeEndpoints({ refresh: () => answer.promise }),
-      hint: fakeHint(true),
-    });
+    const answer = deferred<FakeAnswer>();
+    setSessionHint(true);
+    fakeTransport(() => answer.promise);
+    const restoring = restoreSession();
 
     renderSpaceRoutes('/dashboard/spaces/7/desk');
 
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
     expect(screen.queryByText('The desk')).not.toBeInTheDocument();
     await act(async () => {
-      answer.resolve(aSession({ spaces: [{ spaceId: 7, role: 'RECEPTION' }] }));
+      answer.resolve(ok(aSession({ spaces: [{ spaceId: 7, role: 'RECEPTION' }] })));
       await restoring;
     });
     expect(screen.getByText('The desk')).toBeInTheDocument();
@@ -159,11 +161,9 @@ describe('RequireSpaceRole, before a session is held', () => {
 
   it('shows offline while no answer came back, and Try again re-runs the restore', async () => {
     const user = userEvent.setup();
-    await restoreSession({
-      endpoints: fakeEndpoints({ refresh: () => Promise.reject(appError('network', 0)) }),
-      hint: fakeHint(true),
-    });
-    document.cookie = 'masaha_session=1; Path=/';
+    setSessionHint(true);
+    fakeTransport(() => ({ failure: 'ERR_NETWORK' }));
+    await restoreSession();
     const server = fakeAdapter(() => ({
       status: 200,
       data: { success: true, data: aSession({ spaces: [{ spaceId: 7, role: 'OWNER' }] }) },
@@ -182,10 +182,9 @@ describe('RequireSpaceRole, before a session is held', () => {
   });
 
   it('shows the general error when the answer was no verdict', async () => {
-    await restoreSession({
-      endpoints: fakeEndpoints({ refresh: () => Promise.reject(appError('server', 503)) }),
-      hint: fakeHint(true),
-    });
+    setSessionHint(true);
+    fakeTransport(() => ({ status: 503 }));
+    await restoreSession();
 
     renderSpaceRoutes('/dashboard/spaces/7');
 

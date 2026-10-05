@@ -1,9 +1,11 @@
 import { createQueryClient } from '@shared/api';
 import { getPreferences, setupPreferences } from '@shared/preferences';
 import { establishSession, refreshSession } from '@shared/session';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { fakePlatform } from '../test/fakePlatform';
-import { aSession, appError, fakeEndpoints, fakeHint } from '../test/fakeSession';
+import { aSession } from '../test/fakeSession';
+import { fakeTransport, refused, restoreTransport } from '../test/fakeTransport';
+import { setSessionHint, stubCookies } from '../test/sessionHint';
 import { connectSession } from './session';
 
 const queryClient = createQueryClient();
@@ -12,18 +14,21 @@ beforeAll(() => {
   connectSession(queryClient);
 });
 
+afterEach(() => {
+  restoreTransport();
+  vi.unstubAllGlobals();
+});
+
 describe('connectSession', () => {
   it('clears the cached server state when the session ends', async () => {
     setupPreferences(fakePlatform().platform);
     establishSession(aSession(), { source: 'signIn' });
     queryClient.setQueryData(['me', 'favorites'], [7]);
-    const endpoints = fakeEndpoints({
-      refresh: () => Promise.reject(appError('unauthorized', 401)),
-    });
+    stubCookies();
+    setSessionHint(true);
+    fakeTransport(() => refused(401, { type: 'unauthorized' }));
 
-    await expect(refreshSession({ endpoints, hint: fakeHint(true) })).rejects.toMatchObject({
-      status: 401,
-    });
+    await expect(refreshSession()).rejects.toMatchObject({ status: 401 });
 
     expect(queryClient.getQueryData(['me', 'favorites'])).toBeUndefined();
   });

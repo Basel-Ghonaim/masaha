@@ -13,6 +13,8 @@ export const SITE_PATHS = {
   /** The about page's contact section, which the footer links to. */
   contact: `${ABOUT}#${CONTACT_ANCHOR}`,
   signIn: '/login',
+  register: '/register',
+  forgotPassword: '/forgot-password',
 } as const;
 
 type SiteLink = {

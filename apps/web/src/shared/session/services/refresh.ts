@@ -1,6 +1,9 @@
 import { AppError, toAppError } from '@shared/errors';
-import { appDependencies, type SessionDependencies } from '../gateway/dependencies';
+import { cookieSessionHint } from '../repository/sessionHint';
+import { createSessionRepository } from '../repository/sessionRepository';
 import { endSession, establishSession, sessionGeneration } from '../store';
+
+const repository = createSessionRepository();
 
 /**
  * Only the server's verdict on the session ends it: a refresh refused with 401, or with 403 because
@@ -22,19 +25,19 @@ let inFlight: Promise<void> | undefined;
  * ended, by a sign-out answered first, drops its answer and rejects as `canceled`
  * (docs/frontend/architecture.md §4).
  */
-export function refreshSession(dependencies: SessionDependencies = appDependencies): Promise<void> {
-  inFlight ??= renew(dependencies).finally(() => {
+export function refreshSession(): Promise<void> {
+  inFlight ??= renew().finally(() => {
     inFlight = undefined;
   });
   return inFlight;
 }
 
-async function renew({ endpoints, hint }: SessionDependencies): Promise<void> {
+async function renew(): Promise<void> {
   const started = sessionGeneration();
-  const session = await endpoints.refresh().catch((error: unknown) => {
+  const session = await repository.refresh().catch((error: unknown) => {
     const failure = toAppError(error);
     if (endsSession(failure)) {
-      hint.clear();
+      cookieSessionHint.clear();
       endSession();
     }
     throw failure;

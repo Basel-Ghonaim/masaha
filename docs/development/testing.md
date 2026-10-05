@@ -1,6 +1,6 @@
 # Testing
 
-> **Status:** Active · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
 > **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof, not its style.
 
 ## 1. The assignment rule
@@ -19,7 +19,7 @@ A behaviour is proven in the lane of the **single unit that decides it**. **One 
 | Lane | Tools | Owns | Forbidden |
 |---|---|---|---|
 | **Unit** (web, api and `packages/shared`) | Vitest | Services, mappers, validators, occupancy calculation, permission checks (`can()`), catalogue parity | Rendering, network, database |
-| **Component** (web) | Vitest + Testing Library (with user-event) + vitest-axe + MSW | Forms, dashboard wiring, role-based navigation, empty/loading/error states | Layout and visual correctness; real server |
+| **Component** (web) | Vitest + Testing Library (with user-event, `renderHook`) + vitest-axe + `fakeAdapter` on the one client | Forms, dashboard wiring, role-based navigation, empty/loading/error states | Layout and visual correctness; real server |
 | **API integration** | Vitest + Supertest + real PostgreSQL (test database) | Endpoints end to end: validation, **authorization per role and per space**, persistence, error envelope | Mocking Prisma |
 | **E2E smoke** (end of project) | Playwright | 2–3 critical flows: search a space; reception checks a visitor in and the directory's live status changes; admin links an owner | Covering what lower lanes already prove |
 | **Manual** | Browser | Visual review in RTL/LTR, light/dark, phone/desktop (Definition of Done) | Being the only proof of a behaviour |
@@ -32,6 +32,18 @@ A test file's suffix names its lane, and each lane's script runs only its own fi
 2. No production code exists only to serve a test.
 3. A seam sits at the unit that owns the dependency (inject the repository, not a global mock).
 4. If a test needs a production change, keep it only if production is better for it anyway.
+
+### A feature, layer by layer
+
+A feature's logic lives in its hooks, and its components only render ([frontend architecture §3](../frontend/architecture.md#components-present-hooks-prepare)), so each layer's test proves only what that layer decides:
+
+| Layer | Lane | Proves |
+|---|---|---|
+| `repository/` | Unit, through `fakeAdapter` on the one client | Each call's method, path and body, the unwrapped result, and that a failure arrives as an `AppError` |
+| `hooks/` | Component, with `renderHook`, through the same fake adapter | The hook's own logic: the session held as a sign-in, even when the page unmounts first, the failure's view, what a form adds to its call, the pending state. Not the path or the body: the repository's test owns them |
+| `components/` | Component | What rendering decides: each state shown, the labels, the accessible names and descriptions, the focus, what is disabled |
+
+**The seams are the platform's** (rule 3): a test sets the fake adapter on the one client, and a cookie, such as the session hint, through the browser's `document`. No hook or service takes a parameter only a test passes (rule 2), and no module is replaced with `vi.mock`.
 
 ## 4. What must always be tested
 
