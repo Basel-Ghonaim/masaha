@@ -6,7 +6,8 @@ import { useSession } from '@shared/session';
 import { Link, NavLink } from 'react-router';
 import { SITE_LINKS, SITE_PATHS } from '../navigation';
 import { SiteMenu } from './SiteMenu';
-import { SiteLanguageToggle, SiteThemeToggle } from './toggles';
+import { SiteLanguageToggle } from './SiteLanguageToggle';
+import { SiteThemeToggle } from './SiteThemeToggle';
 
 /**
  * The site's header. On a desktop: the wordmark, the links, the language and theme toggles, and
