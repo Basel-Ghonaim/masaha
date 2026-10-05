@@ -1252,7 +1252,7 @@
         "pageCaptions": ["On the first page", "On a middle page", "On the last page"]
       },
       "sidebar": {
-        "title": "Sidebar",
+        "title": "The dashboard sidebar",
         "caption": "Expanded on a desktop, icons only on a tablet, a drawer from the start side on a phone",
         "label": "Riyada Space owner dashboard",
         "product": "Masaha showcase",

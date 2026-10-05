@@ -1,4 +1,5 @@
 import { AUTH } from './auth';
+import { DASHBOARD } from './dashboard';
 import { ERRORS } from './errors';
 import { FORMS } from './forms';
 import { PREFERENCES } from './preferences';
@@ -19,6 +20,7 @@ import { VALIDATION } from './validation';
  */
 export const ENGLISH = {
   auth: AUTH,
+  dashboard: DASHBOARD,
   errors: ERRORS,
   forms: FORMS,
   preferences: PREFERENCES,

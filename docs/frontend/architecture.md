@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email) and `features/users` (its account menu, its sign-out button and the forced password change's form), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell with the sign-in, register and forced password change pages, and the status states, the four route guards, the password change's gate and its guard, and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email) and `features/users` (its account menu, its sign-out button and the forced password change's form), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell with the sign-in, register and forced password change pages, and the status states, the four route guards, the password change's gate and its guard, and the landing rule in `shared/routing` (§2); so is the `dashboard` group's shell, with its navigation per role, the space switcher and a placeholder for each page (§2); the rest of the layout tree, the dashboard's screens, the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -44,15 +44,15 @@ RootLayout (app)                 ScrollRestoration; the password change's gate; 
 │                                (the forced change's short header: logo and sign out)
 └── dashboard
     └── DashboardLayout          sidebar + top bar (ADR 0016)
-        ├── admin/*
-        └── spaces/:spaceId/*
+        ├── admin/*              AdminLayout: the admin's header and navigation
+        └── spaces/:spaceId/*    SpaceLayout: the space switcher, the navigation of the role there
 ```
 
 - **Each level adds one thing** around its `<Outlet/>`.
 - **Each domain owns its own shell**, and places the status states inside it.
 - **A layout is built with its first consumer.**
-  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`, with sign-in and register, and the forced change, for which the route gives the header sign-out as its only action.
-  - Not built yet: `AccountLayout`, with the first account screen; `DashboardLayout`, with the dashboard shell (F-6c2).
+  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`, with sign-in and register, and the forced change, for which the route gives the header sign-out as its only action; `DashboardLayout`, with the dashboard's two branches.
+  - Not built yet: `AccountLayout`, with the first account screen.
 
 ### The two groups
 
@@ -72,13 +72,19 @@ pages/
     account/        AccountLayout and its screens
   dashboard/
     index.ts        dashboardRoutes: the group's only export
-    shell/          DashboardLayout, sidebar, top bar, space switcher
-    navigation.ts   the navigation config per role
+    shell/          DashboardLayout, AdminLayout, SpaceLayout, the top bar and the page's header
+    navigation.ts   each branch's pages, and the roles each space page allows: configuration, no logic
     admin/          platform screens (ADMIN)
     space/          the screens of the space in the URL (OWNER, RECEPTION)
 ```
 
-Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and in `auth/` the sign-in, register and forced password change pages. The `dashboard` group, the rest of `auth/`, `account/` and the space details page are not built yet.
+Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and in `auth/` the sign-in, register and forced password change pages; in `pages/dashboard` its `index.ts`, `navigation.ts`, the shell, the `/dashboard` redirect and one `PlaceholderPage`, which titles each page from its navigation item until the page is built. The dashboard's screens (`admin/`, `space/`), the rest of `auth/`, `account/` and the space details page are not built yet.
+
+- **The dashboard's shell.**
+  - The sidebar takes the design system's `Sidebar` form for each width. Its header is the space switcher in a space, and the wordmark with "Platform admin" for the admin; its foot links a space's public page (`publicSpacePath`, by its slug), and on a phone holds the language.
+  - The top bar holds the drawer's trigger on a phone, the page's title, the language and theme toggles, and the account (`CompactAccountMenu`). **The page fills the title and its own controls** with `PageHeader`, which the shell places in the bar.
+  - A space's navigation lists the pages the user's role at the space in the URL allows (the owner's eleven, reception's four); a space they hold no link to lists none. The owner's audit screen is not listed ([finding 14](../architecture/findings.md#14-the-owners-audit-screen-has-no-design)).
+  - The space branch's element remembers the space entered (`rememberSpace`), for the landing.
 
 - **Lazy loading.**
   - A group's `index.ts` exports **route definitions only**. Their components load through React Router's `lazy`, so a visitor to the site never downloads dashboard code.
@@ -87,9 +93,9 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
   - Their visual controls are the design system's `LanguageToggle` and `ThemeToggle`.
   - Each shell wires them to `shared/preferences` itself, in a line or two. There is no shared "connected toggle": `shared/preferences` stays without UI, and the two groups cannot import each other.
   - The theme toggle sets the opposite of the theme shown (§4).
-- **The status states** live in `shared/routing`: `NotFoundState`, `ForbiddenState`, `RouteErrorState`, and a pure `classifyRouteError`. They are built; the site shows the first and the third, and `RequireRole` the 403.
+- **The status states** live in `shared/routing`: `NotFoundState`, `ForbiddenState`, `RouteErrorState`, and a pure `classifyRouteError`. They are built; each shell shows the 404 and the general error, `RequireRole` the 403, and `RequireSpaceRole` the 404 and the 403.
   - They are route-level elements, built on the design system's `EmptyState`.
-  - They take their actions as props. The site's 404 offers "Home" and "Browse spaces"; the dashboard's will offer its own.
+  - They take their actions as props. The site's 404 offers "Home" and "Browse spaces"; the dashboard's offers none, since its sidebar is the way on.
   - Each domain renders them inside its own shell. Its error boundary sits on a pathless route just under its layout, because React Router renders a boundary in place of its own route's element. An error in a shell itself reaches the root's state, which has no shell.
   - `RouteErrorState` shows **offline** for a failed lazy load or when the browser reports no connection, and the **general error** otherwise. "Try again" reloads the page, and so does the browser's `online` event: React Router keeps a failed lazy load for its route, so only a reload retries it.
 - **Guards sit visibly on each route** (`<RequireRole roles={['ADMIN']}>`), never inherited silently from the group.
@@ -100,7 +106,7 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 
 ### Landing and guards
 
-**Built:** the four guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). `RequireGuest` guards `/login` and `/register`; `RequireAuth` and `RequireRole` have no route yet, and come with the account and dashboard pages, and the dashboard's shell brings the first use of `RequireSpaceRole` (F-6c2). Beside them, the password change's gate and its guard (below).
+**Built:** the four guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). `RequireGuest` guards `/login` and `/register`; `RequireAuth` guards `/dashboard` and the space branch's shell, `RequireRole` the admin's branch (a non-admin gets the 403 without the admin's shell), and `RequireSpaceRole` each space page, with the roles its navigation item allows, so a 404 or a 403 for the space in the URL shows inside the space's shell. Beside them, the password change's gate and its guard (below).
 
 | Guard | Lets through | Otherwise |
 |---|---|---|
@@ -114,9 +120,9 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 - **While the session is restored,** every guard shows the design system's `Spinner`, centred. **While it is `unreachable`,** the offline state (no answer came back) or the general error (an answer that is not a verdict), whose "Try again", and the connection coming back when offline, re-run the restore.
 - **The return URL** travels as `?next=` on `/login` (`signInPath`). It is read back with `safeReturnUrl`, which accepts only a path on this site, so a crafted link cannot send a user elsewhere.
 
-**Built:** the landing below, `landingPath` in `shared/routing/landing/`. Its first user is `RequirePasswordChange`, after a forced change. The sign-in pages and `/dashboard` switch to it with the dashboard's shell (F-6c2), where it replaces `RequireGuest`'s return URL or `/`.
+**Built:** the landing below, `landingPath` in `shared/routing/landing/`. Its first user is `RequirePasswordChange`, after a forced change, and `/dashboard` redirects by it. The sign-in pages switch to it next, where it replaces `RequireGuest`'s return URL or `/`.
 
-**Built:** the space switcher, `SpaceSwitcher` in `features/space-links` (§3), for the dashboard's shell to place.
+**Built:** the space switcher, `SpaceSwitcher` in `features/space-links` (§3), which the space's shell places in its sidebar header.
 
 - **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
 - **The dashboard's URL shape** ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) lives in `shared/routing` (`dashboardPaths.ts`), not in the `dashboard` group: the space guard and the landing read it, and `shared/` never imports `pages/`.
@@ -126,7 +132,7 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
   3. a user with space links goes to the last space they used, on the page their link's role there gives: the overview for `OWNER`, the front desk for `RECEPTION`. When no space is remembered, or the remembered one is no longer an active link (a first sign-in, a link deactivated or removed), they go to their oldest active link, by the same rule;
   4. a user with no role and no links goes home, `/`;
   5. `/dashboard` itself redirects by the same rules.
-- **The last space** is remembered in the browser's `localStorage`, under a key that names the user (`rememberSpace`, for the space's pages to call; none does yet), and read back only while the user still holds an active link to it. Storage that is unavailable remembers nothing, and the landing falls back to the oldest link.
+- **The last space** is remembered in the browser's `localStorage`, under a key that names the user (`rememberSpace`, which the space branch's shell calls), and read back only while the user still holds an active link to it. Storage that is unavailable remembers nothing, and the landing falls back to the oldest link.
 - **Failed guards:**
   - a guest goes to sign-in, with the return URL;
   - a signed-in user without access gets a clear 403 page, never a silent redirect;

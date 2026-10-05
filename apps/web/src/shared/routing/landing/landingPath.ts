@@ -1,5 +1,5 @@
 import type { SessionUser } from '@shared/session';
-import { DASHBOARD_PATHS, spaceDeskPath, spaceOverviewPath } from '../dashboardPaths';
+import { DASHBOARD_PATHS, spaceHomePath } from '../dashboardPaths';
 import { returnUrlOf } from '../returnUrl';
 import { lastSpace } from './lastSpace';
 
@@ -22,8 +22,5 @@ export function landingPath(user: SessionUser, search: string): string {
     return DASHBOARD_PATHS.admin;
   }
   const link = lastSpace(user) ?? user.spaces[0];
-  if (link) {
-    return link.role === 'OWNER' ? spaceOverviewPath(link.spaceId) : spaceDeskPath(link.spaceId);
-  }
-  return '/';
+  return link ? spaceHomePath(link) : '/';
 }

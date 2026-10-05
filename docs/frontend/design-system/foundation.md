@@ -286,7 +286,7 @@ Tailwind breakpoints: `md` = 768, `lg` = 1024 (defaults).
 
 **Shells:**
 - **Public shell:** top header (logo, directory, language switch, theme toggle, sign-in / account menu), content, footer.
-- **Dashboard shell:** sidebar (items built from the role), top bar (space switcher for owners with more than one space, language, theme, account menu), content.
+- **Dashboard shell:** sidebar (items built from the role, the space switcher in its header), top bar (the page's title, language, theme, account menu), content; the frontend architecture owns it ([architecture §2](../architecture.md#2-page-groups)).
 
 ---
 
