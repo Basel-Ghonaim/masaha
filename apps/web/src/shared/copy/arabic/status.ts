@@ -19,4 +19,8 @@ export const STATUS = {
   },
   retry: 'إعادة المحاولة',
   loading: 'جارٍ التحميل',
+  toasts: {
+    label: 'الإشعارات',
+    close: 'إغلاق الإشعار',
+  },
 } satisfies Catalogue['status'];

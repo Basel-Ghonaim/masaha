@@ -42,6 +42,7 @@ export const AUTH = {
     signIn: 'تسجيل الدخول',
     signInInstead: 'سجّل الدخول بهذا البريد',
     ownerNote: 'تدير مساحة عمل؟ حسابات أصحاب المساحات ينشئها فريق مساحة.',
+    welcome: ({ name }: { name: string }) => `أهلًا ${name}، تم إنشاء حسابك`,
   },
   forgotPassword: {
     title: 'نسيت كلمة المرور',

@@ -48,6 +48,8 @@ export const AUTH = {
     /** Under the email field when the address already has an account. */
     signInInstead: 'Sign in with this email',
     ownerNote: 'Run a coworking space? Space owner accounts are created by the Masaha team.',
+    /** The toast once the account is created, with its name. */
+    welcome: ({ name }: { name: string }) => `Welcome ${name}, your account is ready`,
   },
   /** The forgotten password: asking for a reset link, and the link sent. */
   forgotPassword: {

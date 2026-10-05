@@ -12,5 +12,6 @@ export const USERS = {
     newPassword: 'كلمة المرور الجديدة',
     submit: 'حفظ والمتابعة',
     failed: 'تعذّر حفظ كلمة المرور',
+    saved: 'حُفظت كلمة المرور الجديدة',
   },
 } satisfies Catalogue['users'];

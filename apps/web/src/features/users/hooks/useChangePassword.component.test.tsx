@@ -1,15 +1,18 @@
+import { Toaster, toast } from '@shared/design-system';
 import { establishSession, getSession } from '@shared/session';
-import { act, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../test/fakeAdapter';
 import { aSession, deferred } from '../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
 import { queryWrapper } from '../../../test/queryWrapper';
+import { startPreferences } from '../../../test/startPreferences';
 import { useChangePassword } from './useChangePassword';
 
 const REQUEST = { password: 'mine2026x' };
 
 beforeEach(() => {
+  startPreferences('en');
   establishSession(aSession({ mustChangePassword: true }, 'token-temporary'), {
     source: 'signIn',
   });
@@ -17,9 +20,23 @@ beforeEach(() => {
 
 afterEach(() => {
   restoreTransport();
+  act(() => {
+    toast.dismiss();
+  });
+  vi.unstubAllGlobals();
 });
 
 describe('useChangePassword', () => {
+  it('says the new password is saved', async () => {
+    fakeTransport(() => ok({ accessToken: 'token-renewed' }));
+    render(<Toaster label="Notifications" />);
+    const { result } = renderHook(() => useChangePassword(), { wrapper: queryWrapper() });
+
+    await act(() => result.current.mutateAsync(REQUEST));
+
+    expect(await screen.findByText('Your new password is saved')).toBeVisible();
+  });
+
   it('goes on with the renewed token and no change pending once the change succeeds', async () => {
     fakeTransport(() => ok({ accessToken: 'token-renewed' }));
     const { result } = renderHook(() => useChangePassword(), { wrapper: queryWrapper() });

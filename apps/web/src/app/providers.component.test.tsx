@@ -1,5 +1,6 @@
 import type { QueryClient } from '@shared/api';
 import { useCopy } from '@shared/copy';
+import { toast } from '@shared/design-system';
 import { setLanguage, setTheme } from '@shared/preferences';
 import { useQueryClient } from '@tanstack/react-query';
 import { act, render, renderHook, screen } from '@testing-library/react';
@@ -56,6 +57,26 @@ describe('the preferences, wired at bootstrap', () => {
 
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
     expect(window.localStorage.getItem('masaha.theme')).toBe('dark');
+  });
+});
+
+describe('the toasts', () => {
+  it('announce a toast raised anywhere in a region named in the interface’s language', async () => {
+    render(
+      <AppProviders queryClient={queryClient}>
+        <Probe />
+      </AppProviders>,
+    );
+
+    act(() => {
+      toast.success('حُفظ');
+    });
+
+    expect(screen.getByRole('region', { name: 'الإشعارات' })).toBeInTheDocument();
+    expect(await screen.findByText('حُفظ')).toBeVisible();
+    act(() => {
+      toast.dismiss();
+    });
   });
 });
 

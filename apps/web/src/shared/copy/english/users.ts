@@ -19,5 +19,7 @@ export const USERS = {
     newPassword: 'New password',
     submit: 'Save and continue',
     failed: 'Couldn’t save the password',
+    /** The toast once the new password is saved. */
+    saved: 'Your new password is saved',
   },
 } as const;

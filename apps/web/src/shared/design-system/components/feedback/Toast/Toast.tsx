@@ -67,7 +67,7 @@ const ICONS = {
 };
 
 /**
- * Where toasts appear. Mount one per page shell and raise toasts with `toast()`,
+ * Where toasts appear. Mount one, at the app's root, and raise toasts with `toast()`,
  * `toast.success()`, `toast.error()` … It sits on the toast layer, above dialogs and menus.
  */
 export function Toaster({
