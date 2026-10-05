@@ -116,7 +116,7 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 
 **Built:** the landing below, `landingPath` in `shared/routing/landing/`. Its first user is `RequirePasswordChange`, after a forced change. The sign-in pages and `/dashboard` switch to it with the dashboard's shell (F-6c2), where it replaces `RequireGuest`'s return URL or `/`.
 
-**Not built yet** (F-6c2): the switcher.
+**Built:** the space switcher, `SpaceSwitcher` in `features/space-links` (§3), for the dashboard's shell to place.
 
 - **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
 - **The dashboard's URL shape** ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) lives in `shared/routing` (`dashboardPaths.ts`), not in the `dashboard` group: the space guard and the landing read it, and `shared/` never imports `pages/`.
@@ -131,14 +131,14 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
   - a guest goes to sign-in, with the return URL;
   - a signed-in user without access gets a clear 403 page, never a silent redirect;
   - a `:spaceId` that is not a positive integer gets a 404; a space the user holds no active link to, whether it exists or not, gets a 403.
-- **The space switcher** shows for anyone with more than one active link, whatever their role at each.
+- **The space switcher** shows the space in the URL, its name and area. For anyone with more than one active link, whatever their role at each, it opens their spaces, and choosing one follows the link the page gives it. A URL whose space is none of theirs offers their spaces. While the spaces load it shows the design system's `Skeleton`; a failure offers to try again.
 
 ## 3. Capabilities (features)
 
 | Imported by | Capabilities |
 |---|---|
 | Any page group | `auth` · `directory` (the directory and the public profile) · `favorites` · `occupancy` · `announcements` · `data-reports` · `lookups` · `platform-settings` (the public contact) · `users` (the account's profile and settings; the admin's user screens) |
-| The dashboard only | `spaces` (owner and admin profile editing) · `space-settings` · `customers` · `subscriptions` (with their check-ins) · `packages` · `visits` · `payments` · `desk` (the front desk: check-in, check-out with payment, subscribe with payment; the customers list and file) · `finance` (finance and statistics, with the occupancy reports) · `overview` (the owner's and the admin's overview) · `staff` · `owners` (admin linking) · `audit` |
+| The dashboard only | `spaces` (owner and admin profile editing) · `space-settings` · `customers` · `subscriptions` (with their check-ins) · `packages` · `visits` · `payments` · `desk` (the front desk: check-in, check-out with payment, subscribe with payment; the customers list and file) · `finance` (finance and statistics, with the occupancy reports) · `overview` (the owner's and the admin's overview) · `staff` · `owners` (admin linking) · `audit` · `space-links` (the user's own spaces: the space switcher) |
 
 **Names match the backend.** A capability carries the name of the backend module it calls ([backend conventions §7](../backend/conventions.md#7-modules)). A feature may be finer than its module only when it serves a different audience on different screens: `staff` (the owner's reception accounts) and `owners` (the admin's linking) are two features over the one `space-links` module. A sub-part with the same audience and the same screens stays inside its module's feature. Check-ins stay in `subscriptions`, for example, because a check-in changes the subscription's progress: split apart, one feature would have to import the other's query keys. What a feature exports is set below ([What a feature exports](#what-a-feature-exports)).
 

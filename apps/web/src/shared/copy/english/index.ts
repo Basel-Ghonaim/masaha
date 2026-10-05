@@ -3,6 +3,7 @@ import { ERRORS } from './errors';
 import { FORMS } from './forms';
 import { PREFERENCES } from './preferences';
 import { SITE } from './site';
+import { SPACE_LINKS } from './spaceLinks';
 import { STATUS } from './status';
 import { TERMS } from './terms';
 import { USERS } from './users';
@@ -22,6 +23,7 @@ export const ENGLISH = {
   forms: FORMS,
   preferences: PREFERENCES,
   site: SITE,
+  spaceLinks: SPACE_LINKS,
   status: STATUS,
   terms: TERMS,
   users: USERS,
