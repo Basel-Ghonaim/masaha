@@ -8,11 +8,7 @@ import {
 } from '@shared/routing';
 import type { RouteObject } from 'react-router';
 import { ADMIN_NAV, SPACE_NAV } from './navigation';
-
-/** A page's place below its branch: the branch's own path for '', else its segment. */
-function placeOf(segment: string) {
-  return segment === '' ? { index: true as const } : { path: segment };
-}
+import { placeOf } from './placeOf';
 
 /**
  * The dashboard's route subtree (docs/frontend/architecture.md §2, ADR 0016). Definitions only: the

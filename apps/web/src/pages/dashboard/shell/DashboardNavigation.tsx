@@ -1,33 +1,6 @@
-import { useCopy } from '@shared/copy';
-import {
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from '@shared/design-system';
-import { Link, useMatch } from 'react-router';
-import type { DashboardPageName, NavItem } from '../navigation';
-import { NAVIGATION_ICONS } from './navigationIcons';
-
-/** One page's link, marked as the page shown while its path is the current one. */
-function NavigationItem({ name, to, end }: { name: DashboardPageName; to: string; end: boolean }) {
-  const copy = useCopy();
-  const Icon = NAVIGATION_ICONS[name];
-  const isActive = useMatch({ path: to, end }) !== null;
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        asChild
-        icon={<Icon aria-hidden />}
-        label={copy.dashboard.pages[name]}
-        isActive={isActive}
-      >
-        <Link to={to} />
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-}
+import { SidebarGroup, SidebarMenu } from '@shared/design-system';
+import type { NavItem } from '../navigation';
+import { NavigationItem } from './NavigationItem';
 
 /**
  * A branch's pages in the sidebar, below its path (`base`): the branch's own page is current on its

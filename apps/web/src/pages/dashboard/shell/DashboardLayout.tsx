@@ -9,7 +9,7 @@ import { useState, type ReactNode } from 'react';
 import { Outlet } from 'react-router';
 import { PageHeaderSlot } from './PageHeaderSlot';
 import { TopBar } from './TopBar';
-import { DashboardLanguageToggle } from './toggles';
+import { DashboardLanguageToggle } from './DashboardLanguageToggle';
 
 /**
  * The dashboard's shell (ADR 0016): the sidebar, named `label`, with its `header`, the navigation

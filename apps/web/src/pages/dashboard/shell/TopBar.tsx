@@ -4,7 +4,8 @@ import { SidebarTrigger } from '@shared/design-system';
 import { DASHBOARD_PATHS } from '@shared/routing';
 import { useSession } from '@shared/session';
 import type { Ref } from 'react';
-import { DashboardLanguageToggle, DashboardThemeToggle } from './toggles';
+import { DashboardLanguageToggle } from './DashboardLanguageToggle';
+import { DashboardThemeToggle } from './DashboardThemeToggle';
 
 /**
  * The dashboard's top bar: the drawer's trigger on a phone, the page's title and controls (`slot`,
