@@ -3,10 +3,12 @@ import type { z } from 'zod';
 
 import { toFieldErrors } from '../core/index.ts';
 import {
+  createAmenitySchema,
   createAreaSchema,
   createGovernorateSchema,
   LOOKUP_NAME_MAX_LENGTH,
   orderSchema,
+  updateAmenitySchema,
   updateAreaSchema,
   updateGovernorateSchema,
 } from './requests.ts';
@@ -69,6 +71,40 @@ describe('updateAreaSchema', () => {
   it('never moves an area to another governorate', () => {
     expect(updateAreaSchema.parse({ governorateId: 3, nameEn: 'Rafah' })).toEqual({
       nameEn: 'Rafah',
+    });
+  });
+});
+
+describe('createAmenitySchema', () => {
+  const coffee = { nameAr: 'مشروبات ساخنة', nameEn: 'Hot drinks', icon: 'coffee' };
+
+  it('requires both names, an icon from the list and the filter flag', () => {
+    expect(createAmenitySchema.parse({ ...coffee, isFilterable: false })).toEqual({
+      ...coffee,
+      isFilterable: false,
+    });
+    expect(fieldErrors(createAmenitySchema, {})).toEqual({
+      nameAr: ['required'],
+      nameEn: ['required'],
+      icon: ['invalid_choice'],
+      isFilterable: ['required'],
+    });
+  });
+
+  it('refuses an icon outside the list', () => {
+    expect(
+      fieldErrors(createAmenitySchema, { ...coffee, icon: 'printer', isFilterable: true }),
+    ).toEqual({
+      icon: ['invalid_choice'],
+    });
+  });
+});
+
+describe('updateAmenitySchema', () => {
+  it('never changes the key', () => {
+    expect(updateAmenitySchema.parse({ key: 'tea', icon: 'zap', isActive: false })).toEqual({
+      icon: 'zap',
+      isActive: false,
     });
   });
 });

@@ -18,6 +18,8 @@ import {
   type GoogleIdentity,
 } from './modules/auth/index.ts';
 import {
+  createAmenitiesController,
+  createAmenitiesService,
   createAreasController,
   createAreasService,
   createGovernoratesController,
@@ -170,6 +172,7 @@ export function createApi({
   const lookups = createLookupsService();
   const governorates = createGovernoratesService({ runInTransaction, audit: writeAudit });
   const areas = createAreasService({ runInTransaction, audit: writeAudit });
+  const amenities = createAmenitiesService({ runInTransaction, audit: writeAudit });
   const spaces = createSpacesService();
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const auth = createAuthService({
@@ -209,6 +212,7 @@ export function createApi({
     createLookupsAdminRouter({
       governorates: createGovernoratesController(governorates),
       areas: createAreasController(areas),
+      amenities: createAmenitiesController(amenities),
     }),
   );
   api.use('/admin', requireAuth(), requireRole('ADMIN'), admin);

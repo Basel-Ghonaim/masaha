@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { textSchema } from '../core/index.ts';
+import { AMENITY_ICON_KEYS } from './amenityIcons.ts';
 
 // The requests of the admin's lookup endpoints (docs/api/api-contract.md §5, Lookups).
 
@@ -40,6 +41,28 @@ export const updateAreaSchema = z.object({
   isActive: z.boolean().optional(),
 });
 export type UpdateAreaRequest = z.infer<typeof updateAreaSchema>;
+
+/**
+ * A new amenity, placed last. Its key is derived from the English name when it is added, and never
+ * changes afterwards.
+ */
+export const createAmenitySchema = z.object({
+  nameAr: lookupName,
+  nameEn: lookupName,
+  icon: z.enum(AMENITY_ICON_KEYS),
+  isFilterable: z.boolean(),
+});
+export type CreateAmenityRequest = z.infer<typeof createAmenitySchema>;
+
+/** Edits an amenity, retires it (`isActive: false`) or restores it; what is absent is kept. */
+export const updateAmenitySchema = z.object({
+  nameAr: lookupName.optional(),
+  nameEn: lookupName.optional(),
+  icon: z.enum(AMENITY_ICON_KEYS).optional(),
+  isFilterable: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateAmenityRequest = z.infer<typeof updateAmenitySchema>;
 
 /** A list's new order: every id of the list, each once, first to last. */
 export const orderSchema = z.object({ ids: z.array(id) });

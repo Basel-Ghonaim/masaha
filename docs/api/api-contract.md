@@ -57,7 +57,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 ```
 
 **Exceptions**, lists a screen shows whole, so they are answered whole, without `page` or `meta`:
-- the admin's lookup lists (`GET /admin/governorates`): bounded catalogues of tens of rows, shown grouped (§5, *Lookups*);
+- the admin's lookup lists (`GET /admin/governorates`, `GET /admin/amenities`): bounded catalogues of tens of rows, shown grouped (§5, *Lookups*);
 - planned: the public directory's `GET /spaces`, the whole filtered set ([plan](../plans/v1-mvp.md#public-directory)).
 
 ## 5. Endpoints
@@ -185,6 +185,15 @@ The bilingual lookup lists the admin keeps ([data-model › Lookups](../architec
 AdminGovernorate = { id: number, nameAr: string, nameEn: string, isActive: boolean }
 AdminArea = { id: number, governorateId: number, nameAr: string, nameEn: string, isActive: boolean }
 AdminGovernorateWithAreas = AdminGovernorate & { areas: AdminArea[] }
+
+AdminAmenity = {
+  id: number,
+  key: string,                 // snake_case, derived from nameEn when it is added; never changes
+  nameAr: string, nameEn: string,
+  icon: AmenityIconKey,        // one of AMENITY_ICON_KEYS (@masaha/shared/lookups)
+  isActive: boolean,           // false: retired, its links to spaces kept
+  isFilterable: boolean        // offered in the directory's filter
+}
 ```
 
 #### `GET /admin/governorates` · 🛡
@@ -219,6 +228,24 @@ AdminGovernorateWithAreas = AdminGovernorate & { areas: AdminArea[] }
 - **Body:** `{ nameAr?, nameEn?, isActive? }`; what is absent is kept.
 - **200:** `AdminArea`. Audited `area.edited`, `area.hidden` or `area.restored`.
 - **Errors:** `validation` (422); `not_found` (404); `conflict` (409), with `errors.nameAr = ["not_unique"]`.
+
+#### `GET /admin/amenities` · 🛡
+- **200:** `AdminAmenity[]`: every amenity, retired ones included, in order. Not paginated (§4).
+
+#### `POST /admin/amenities` · 🛡
+- **Body:** `{ nameAr, nameEn, icon, isFilterable }`; `icon` is one of the shared icon keys (`invalid_choice`).
+- **201:** `AdminAmenity`, active and placed last. Its key is `nameEn` in snake_case: accents dropped, lowercased, every run of other characters than `a–z` and `0–9` one `_` ("Hot drinks" → `hot_drinks`). Audited `amenity.added`, with `key` in `after`.
+- **Errors:** `validation` (422), with `errors.nameEn = ["invalid_format"]` for an English name that yields no key; `conflict` (409), with `errors.nameEn = ["not_unique"]`, when another amenity, a retired one included, has the key.
+
+#### `PATCH /admin/amenities/:id` · 🛡
+- **Body:** `{ nameAr?, nameEn?, icon?, isFilterable?, isActive? }`; what is absent is kept. The key never changes, whatever the new English name.
+- **200:** `AdminAmenity`. Audited `amenity.edited` (names, `icon`, `isFilterable`), `amenity.hidden` or `amenity.restored`.
+- **Errors:** `validation` (422); `not_found` (404).
+
+#### `PUT /admin/amenities/order` · 🛡
+- **Body:** `{ ids: number[] }`: every amenity's id, retired ones included, each once, first to last.
+- **204:** as for the governorates' order.
+- **Errors:** `validation` (422); `conflict` (409), with no code, when the ids are not exactly the current amenities.
 
 ## 6. Domain error codes (initial)
 

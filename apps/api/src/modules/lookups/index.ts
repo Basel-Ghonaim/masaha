@@ -1,3 +1,5 @@
+export { createAmenitiesController } from './amenities/amenities.controller.ts';
+export { createAmenitiesService, type AmenitiesService } from './amenities/amenities.service.ts';
 export { createAreasController } from './areas/areas.controller.ts';
 export { createAreasService, type AreasService } from './areas/areas.service.ts';
 export { createGovernoratesController } from './governorates/governorates.controller.ts';
