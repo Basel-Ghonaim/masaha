@@ -1,20 +1,9 @@
 import { useCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import type { FormFailureView } from '../types/FormFailureView';
+import { clock } from '../services/clock';
+import { isolated } from '../services/isolated';
 import { useRetryCountdown } from './useRetryCountdown';
-
-// A value inserted into a sentence, isolated left to right so it never reorders the sentence around
-// it (docs/frontend/design-system/foundation.md §8).
-function isolated(value: string): string {
-  return `\u2066${value}\u2069`;
-}
-
-// The wait as a clock: minutes and seconds.
-function clock(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const rest = String(seconds % 60).padStart(2, '0');
-  return isolated(`${String(minutes)}:${rest}`);
-}
 
 /**
  * Reads a form's failure into what the form shows (docs/frontend/architecture.md §3):
