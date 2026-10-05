@@ -30,6 +30,7 @@ function renderApp(path: string) {
           { path: '/dashboard/spaces/:spaceId/desk', element: <p>The front desk</p> },
           { path: '/dashboard/admin', element: <p>The admin overview</p> },
           { path: '/login', element: <p>The sign-in page</p> },
+          { path: '/reset-password', element: <p>The reset page</p> },
           {
             path: '/change-password',
             element: (
@@ -97,6 +98,23 @@ describe('PasswordChangeGate', () => {
     expect(await screen.findByText('The change page')).toBeInTheDocument();
     expect(where(router)).toBe('/change-password');
   });
+
+  it.each(['/reset-password', '/reset-password/'])(
+    'lets a reset link at %s through, its token never copied into a return URL',
+    async (path) => {
+      signIn({ mustChangePassword: true });
+
+      const router = renderApp(`${path}#token=link-token`);
+
+      expect(await screen.findByText('The reset page')).toBeInTheDocument();
+      const { pathname, search, hash } = router.state.location;
+      expect({ pathname, search, hash }).toEqual({
+        pathname: path,
+        search: '',
+        hash: '#token=link-token',
+      });
+    },
+  );
 
   it.each([
     ['a guest', () => undefined],
