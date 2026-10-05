@@ -43,4 +43,24 @@ export const AUTH = {
     signInInstead: 'سجّل الدخول بهذا البريد',
     ownerNote: 'تدير مساحة عمل؟ حسابات أصحاب المساحات ينشئها فريق مساحة.',
   },
+  forgotPassword: {
+    title: 'نسيت كلمة المرور',
+    description: 'أدخل البريد الذي سجّلت به، وسنرسل إليه رابطًا لتعيين كلمة مرور جديدة.',
+    submit: 'أرسل رابط الاستعادة',
+    failed: 'تعذّر إرسال الرابط',
+    sentTitle: 'تفقّد بريدك الإلكتروني',
+    sentMessage:
+      'إذا كان هذا البريد مسجّلًا لدينا، ستصلك رسالة فيها رابط لتعيين كلمة مرور جديدة. الرابط صالح لمدة ساعة. تفقّد مجلد الرسائل غير المرغوب فيها.',
+    sentTo: ({ email }: { email: string }) => `أُرسلت إلى ${email}`,
+    resend: 'أعد الإرسال',
+    resendIn: ({ wait }: { wait: string }) => `أعد الإرسال بعد ${wait}`,
+    resendFailed: 'تعذّرت إعادة إرسال الرابط',
+    enterEmailAgain: 'أدخل بريدك الإلكتروني من جديد',
+    linkOpenTitle: 'فتحت رابط الاستعادة',
+    linkOpenDescription: ({ email }: { email: string }) =>
+      `للحساب ${email}. عيّن كلمة المرور الجديدة، أو اطلب رابطًا جديدًا.`,
+    noEmailAccess: 'لا يمكنك الوصول إلى بريدك؟',
+    contactUs: 'تواصل معنا',
+    backToSignIn: 'العودة إلى تسجيل الدخول',
+  },
 } satisfies Catalogue['auth'];

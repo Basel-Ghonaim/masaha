@@ -76,6 +76,19 @@ export const siteRoutes: RouteObject[] = [
               };
             },
           },
+          {
+            path: SITE_PATHS.forgotPassword,
+            lazy: async () => {
+              const { ForgotPasswordPage } = await import('./auth/ForgotPasswordPage');
+              return {
+                element: (
+                  <RequireGuest>
+                    <ForgotPasswordPage />
+                  </RequireGuest>
+                ),
+              };
+            },
+          },
         ],
       },
     ],
