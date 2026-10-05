@@ -1,6 +1,6 @@
 import { useCopy } from '@shared/copy';
-import { useSignOut, type SessionUser } from '@shared/session';
-import type { SignOutFailureView } from '../types/SignOutFailureView';
+import type { SessionUser } from '@shared/session';
+import { useSignOutAction } from './useSignOutAction';
 
 // A value inserted into a sentence, isolated so it never reorders the sentence around it
 // (docs/frontend/design-system/foundation.md §8).
@@ -14,7 +14,7 @@ function isolated(value: string): string {
  */
 export function useAccount(user: SessionUser) {
   const copy = useCopy();
-  const { signOut, isPending, error } = useSignOut();
+  const signOut = useSignOutAction();
   const name = user.name.trim();
 
   return {
@@ -27,17 +27,6 @@ export function useAccount(user: SessionUser) {
     /** The account button's accessible name. */
     menuLabel: copy.users.menu({ name: isolated(name) }),
     sectionLabel: copy.users.section,
-    signOutLabel: copy.users.signOut,
-    signOut: () => {
-      void signOut();
-    },
-    isPending,
-    failure:
-      error === null
-        ? null
-        : ({
-            title: copy.users.signOutFailed,
-            message: copy.errors[error.code ?? error.type],
-          } satisfies SignOutFailureView),
+    ...signOut,
   };
 }

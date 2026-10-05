@@ -1,4 +1,4 @@
-import { RequireGuest, RouteErrorState } from '@shared/routing';
+import { RequireGuest, RequirePasswordChange, RouteErrorState } from '@shared/routing';
 import type { RouteObject } from 'react-router';
 import { SITE_PATHS } from './navigation';
 
@@ -72,6 +72,36 @@ export const siteRoutes: RouteObject[] = [
                   <RequireGuest>
                     <RegisterPage />
                   </RequireGuest>
+                ),
+              };
+            },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    // The forced password change: the focus shell, whose short header offers only signing out.
+    lazy: async () => {
+      const [{ FocusLayout }, { SignOutButton }] = await Promise.all([
+        import('./shell/FocusLayout'),
+        import('@features/users'),
+      ]);
+      return { element: <FocusLayout actions={<SignOutButton />} /> };
+    },
+    children: [
+      {
+        ErrorBoundary: RouteErrorState,
+        children: [
+          {
+            path: SITE_PATHS.changePassword,
+            lazy: async () => {
+              const { ChangePasswordPage } = await import('./auth/ChangePasswordPage');
+              return {
+                element: (
+                  <RequirePasswordChange>
+                    <ChangePasswordPage />
+                  </RequirePasswordChange>
                 ),
               };
             },

@@ -4,18 +4,25 @@ export const SIGN_IN_PATH = '/login';
 /** The query parameter that carries the page to return to after signing in. */
 const RETURN_PARAMETER = 'next';
 
-/** The sign-in page, carrying the page the guest asked for so they return to it. */
-export function signInPath({
-  pathname,
-  search,
-  hash,
-}: {
-  pathname: string;
-  search: string;
-  hash: string;
-}): string {
+/** Where a temporary password is changed, before any other page (docs/frontend/architecture.md §2). */
+export const CHANGE_PASSWORD_PATH = '/change-password';
+
+type Place = { pathname: string; search: string; hash: string };
+
+/** `path`, carrying `place` as the page to return to. */
+function returningTo(path: string, { pathname, search, hash }: Place): string {
   const parameters = new URLSearchParams({ [RETURN_PARAMETER]: `${pathname}${search}${hash}` });
-  return `${SIGN_IN_PATH}?${parameters.toString()}`;
+  return `${path}?${parameters.toString()}`;
+}
+
+/** The sign-in page, carrying the page the guest asked for so they return to it. */
+export function signInPath(place: Place): string {
+  return returningTo(SIGN_IN_PATH, place);
+}
+
+/** The password change, carrying the page the user asked for so they go on to it once it is done. */
+export function changePasswordPath(place: Place): string {
+  return returningTo(CHANGE_PASSWORD_PATH, place);
 }
 
 // A stand-in origin to resolve the return URL against: whatever leaves it leaves the site.

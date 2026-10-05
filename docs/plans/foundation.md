@@ -1,6 +1,6 @@
 # Plan — Application foundation
 
-> **Status:** Active · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built, the backend architecture they are built on, and the first public deployment. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
@@ -8,7 +8,7 @@
 **Goal:** the web app talks to a real API backed by PostgreSQL. A user can register, sign in, stay signed in across reloads, and land in the right shell for their role, in Arabic or English, light or dark, locally and at the public address.
 
 **Finished when:**
-- F-1 to F-7 (F-5 as F-5a and F-5b, F-5b as F-5b1 to F-5b3, F-5b3 as F-5b3a to F-5b3c), F-3b and A-1 to A-3 are merged;
+- F-1 to F-7 (F-5 as F-5a and F-5b, F-5b as F-5b1 to F-5b3, F-5b3 as F-5b3a to F-5b3c, F-5b3c as F-5b3c1 and F-5b3c2), F-3b and A-1 to A-3 are merged;
 - CI runs every lane, including `test:api` against a real PostgreSQL;
 - the *Entities* section of `data-model.md`, `architecture/system-overview.md` and the catalogue part of `localisation.md` *Mechanism* are written (deferred documents).
 
@@ -317,10 +317,14 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
 - **F-5b3b — Google sign-in**:
   - sign in with Google, the "accounts linked" toast (the Google response's `linked`), which also says the account's password was removed and can be set again by the reset email, and the `GOOGLE_LINK_NOT_ALLOWED` state;
   - the Google client ID on the web.
-- **F-5b3c — Forgot, reset and the forced change**:
-  - forgot password;
-  - reset password: the page reads the token from the URL fragment (`/reset-password#token=…`), removes it from the address bar, then checks it;
-  - the forced password change, before any other page.
+- **F-5b3c — Forgot, reset and the forced change**, split in its plan step (2026-10-05) into two Work Items, each its own conversation and PR:
+- **F-5b3c1 — The forced password change, and the recovery session on the API** (`feat/forced-change-recovery-session`):
+  - the forced password change, before any other page: the gate on every route, the change page and its form in `features/users`, and the session's `passwordChanged`;
+  - the recovery session on the API ([ADR 0017](../architecture/decisions/0017-recovery-session.md)): a request opens it for every address alike, checking a link binds the link to it, the reset reads the link from it, and another link is asked for through it, without an email. It changes the recovery's contract before the web has recovery pages, so nothing breaks.
+- **F-5b3c2 — The recovery pages**:
+  - forgot password, and the link sent, with the resend;
+  - reset password: the page reads the token from the URL fragment (`/reset-password#token=…`), removes it from the address bar, then checks it, which binds it to the recovery session; the page holds it no longer;
+  - each page follows the recovery's position on a reload.
 - **F-6 — Shells and preferences**, split in its plan step (2026-10-03) into three Work Items, each its own conversation and PR:
 - **F-6a — Preferences** (`feat/preferences`, its own plan step on 2026-10-02), built: `shared/preferences` (language and theme, writing the pre-paint keys).
 - **F-6b — The layout tree and the site shell** (`feat/site-shell`):

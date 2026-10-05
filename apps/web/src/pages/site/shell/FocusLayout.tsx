@@ -1,13 +1,15 @@
 import { useCopy } from '@shared/copy';
+import type { ReactNode } from 'react';
 import { Link, Outlet } from 'react-router';
 import { SITE_PATHS } from '../navigation';
 import { SiteLanguageToggle, SiteThemeToggle } from './toggles';
 
 /**
  * The shell of the pages that ask for one thing, such as signing in: the short header (the wordmark,
- * the language and the theme) and the page, centred from a tablet up. No footer.
+ * and the language and the theme unless the route gives other `actions`) and the page, centred from
+ * a tablet up. No footer.
  */
-export function FocusLayout() {
+export function FocusLayout({ actions }: { actions?: ReactNode }) {
   const copy = useCopy();
 
   return (
@@ -18,8 +20,12 @@ export function FocusLayout() {
             {copy.site.wordmark}
           </Link>
           <div className="ms-auto flex items-center gap-2">
-            <SiteLanguageToggle />
-            <SiteThemeToggle />
+            {actions ?? (
+              <>
+                <SiteLanguageToggle />
+                <SiteThemeToggle />
+              </>
+            )}
           </div>
         </div>
       </header>

@@ -80,6 +80,23 @@ export function onSessionEnded(listener: () => void): () => void {
   };
 }
 
+/**
+ * The password of user `userId` was changed: their session goes on with the access token the
+ * server renewed, and no change pending. Only that user's session, still held, is changed: a
+ * sign-out answered first stays signed out, and another user who signed in meanwhile keeps their
+ * own token. The session is the same one, so no listener is told.
+ */
+export function passwordChanged(userId: number, accessToken: string): void {
+  const session = store.getState();
+  if (session.status !== 'authenticated' || session.user.id !== userId) {
+    return;
+  }
+  store.setState(
+    { status: 'authenticated', accessToken, user: { ...session.user, mustChangePassword: false } },
+    true,
+  );
+}
+
 export function markRestoring(): void {
   store.setState({ status: 'restoring', user: null, accessToken: null }, true);
 }

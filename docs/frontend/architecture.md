@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email) and `features/users` (its account menu), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell with the sign-in and register pages, and the status states, the four route guards and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), and Axios only inside `shared/api`, are enforced by lint; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email) and `features/users` (its account menu, its sign-out button and the forced password change's form), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell with the sign-in, register and forced password change pages, and the status states, the four route guards, the password change's gate and its guard, and the landing rule in `shared/routing` (§2); the rest of the layout tree, the `dashboard` group (§2), the dashboard-only rule (§3) and the rest are not yet implemented · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -33,7 +33,7 @@
 ### The layout tree
 
 ```
-RootLayout (app)                 ScrollRestoration; a last-resort error state with no shell
+RootLayout (app)                 ScrollRestoration; the password change's gate; a last-resort error state with no shell
 ├── site
 │   ├── SiteLayout               full header + footer
 │   │   ├── public/*             home, directory, space details, about, the site's 404
@@ -51,7 +51,7 @@ RootLayout (app)                 ScrollRestoration; a last-resort error state wi
 - **Each level adds one thing** around its `<Outlet/>`.
 - **Each domain owns its own shell**, and places the status states inside it.
 - **A layout is built with its first consumer.**
-  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`, with sign-in and register.
+  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`, with sign-in and register, and the forced change, for which the route gives the header sign-out as its only action.
   - Not built yet: `AccountLayout`, with the first account screen; `DashboardLayout`, with the dashboard shell (F-6c2).
 
 ### The two groups
@@ -78,7 +78,7 @@ pages/
     space/          the screens of the space in the URL (OWNER, RECEPTION)
 ```
 
-Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and in `auth/` the sign-in and register pages. The `dashboard` group, the rest of `auth/`, `account/` and the space details page are not built yet.
+Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and in `auth/` the sign-in, register and forced password change pages. The `dashboard` group, the rest of `auth/`, `account/` and the space details page are not built yet.
 
 - **Lazy loading.**
   - A group's `index.ts` exports **route definitions only**. Their components load through React Router's `lazy`, so a visitor to the site never downloads dashboard code.
@@ -100,19 +100,21 @@ Built so far: `app/` (without `dashboardRoutes`), and in `pages/site` its `index
 
 ### Landing and guards
 
-**Built:** the four guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). `RequireGuest` guards `/login` and `/register`; `RequireAuth` and `RequireRole` have no route yet, and come with the account and dashboard pages, and the dashboard's shell brings the first use of `RequireSpaceRole` (F-6c2).
+**Built:** the four guards in `shared/routing`, each made to wrap its route's page and to read the session (§4). `RequireGuest` guards `/login` and `/register`; `RequireAuth` and `RequireRole` have no route yet, and come with the account and dashboard pages, and the dashboard's shell brings the first use of `RequireSpaceRole` (F-6c2). Beside them, the password change's gate and its guard (below).
 
 | Guard | Lets through | Otherwise |
 |---|---|---|
 | `RequireAuth` | a signed-in user | a guest goes to sign-in |
 | `RequireRole roles={[…]}` | a signed-in user with one of the global roles | a guest goes to sign-in; another role sees `ForbiddenState`, a 403, in place |
 | `RequireGuest` | a guest (the auth pages) | a signed-in user goes on to the return URL, else `/`: also right after signing in or registering there, so the landing has this one owner |
+| `RequirePasswordChange` | a signed-in user with a temporary password to change (`/change-password`) | once the change clears it, the user goes on where they land (`landingPath`, below): the page the gate carried in `next`, else by their role, so the landing after the change has this one owner; a guest, such as one who has just signed out there, goes to sign-in |
 | `RequireSpaceRole roles={[…]}` | a signed-in user whose active link at the `:spaceId` in the URL has one of the roles, `OWNER` or `RECEPTION`, read from the session's links, never the global role | a guest goes to sign-in; a `:spaceId` that is not a positive integer gets `NotFoundState`, a 404; a space with no active link, or a role the route does not allow, gets `ForbiddenState`, a 403; both in place |
 
+- **The password change's gate,** `PasswordChangeGate`, is mounted once, in `RootLayout`, so it holds every route, the site's and the dashboard's. A signed-in user whose account has a temporary password to change (`mustChangePassword`) goes to `/change-password`, carrying the page they asked for in `next` (`changePasswordPath`). The change page itself is exempt, and so is signing out, which its short header offers: once the session ends, the gate holds nothing. While no such session is held, during the restore included, it lets every route through, so public pages never wait. The server refuses every other endpoint meanwhile ([security.md](../backend/security.md#passwords)); the gate is for usability.
 - **While the session is restored,** every guard shows the design system's `Spinner`, centred. **While it is `unreachable`,** the offline state (no answer came back) or the general error (an answer that is not a verdict), whose "Try again", and the connection coming back when offline, re-run the restore.
 - **The return URL** travels as `?next=` on `/login` (`signInPath`). It is read back with `safeReturnUrl`, which accepts only a path on this site, so a crafted link cannot send a user elsewhere.
 
-**Built, with no user yet:** the landing below, `landingPath` in `shared/routing/landing/`. The sign-in pages and `/dashboard` switch to it with the dashboard's shell (F-6c2), where it replaces `RequireGuest`'s return URL or `/`.
+**Built:** the landing below, `landingPath` in `shared/routing/landing/`. Its first user is `RequirePasswordChange`, after a forced change. The sign-in pages and `/dashboard` switch to it with the dashboard's shell (F-6c2), where it replaces `RequireGuest`'s return URL or `/`.
 
 **Not built yet** (F-6c2): the switcher.
 
@@ -190,7 +192,7 @@ features/<capability>/
 
 ### What a feature exports
 
-**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. `features/auth` exports `SignInForm` and `RegisterForm`; `features/users` exports `AccountMenu` and `AccountMenuSection`.
+**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. `features/auth` exports `SignInForm` and `RegisterForm`; `features/users` exports `AccountMenu`, `AccountMenuSection`, `SignOutButton` and `ForcedPasswordChangeForm`.
 
 - **One capability, several places.** Ask who owns the variation (a screen is not a capability):
   - **the places show the capability's own fact differently:** the feature exports the UI, with props or as two components (the account in a header's menu, and in a phone menu's section);
@@ -234,6 +236,7 @@ A feature's wire types, its requests and the server's answers, come from `@masah
   - **The refresh** is single-flight: the restore and the transport's 401 (§7) share one request. On success the store holds the new session before the promise resolves, and the transport reads the token from its getter. The same refusals end the session; any other failure leaves it as it was and rejects, so only the request that needed it fails, and the next 401 refreshes again. A refresh that succeeds after the session has ended, because a sign-out was answered first, drops its answer and rejects as `canceled`: it never brings a signed-out session back.
   - **A listener's failure is its own:** each listener of the two events below runs on its own, and an error it throws is logged with `console.error`. It never undoes the session's change, and never stops the other listeners.
   - **Sign-out** is the server's: the session ends here only once `POST /auth/logout` succeeds. A failed request clears nothing, because the refresh cookie would still be valid; `useSignOut()` exposes its pending and error state, and the user retries.
+  - **A password change** answers with a new access token only, so `passwordChanged(userId, accessToken)` renews the token and clears `mustChangePassword`, keeping the rest of the session. `features/users` records who started the change and calls it from its mutation's own callback. It changes only that user's session, while it is still held: a sign-out answered first stays signed out, and another user who signed in meanwhile keeps their own token. It tells no listener: the session is the same one.
   - **Two events** let the composition root react without the session importing anything: `onSessionEstablished(listener)`, with the source (`signIn`, or `restore` for a restore and a refresh), and `onSessionEnded(listener)`, when a session that was held ends. Bootstrap connects them (`app/session.ts`):
     - a session that ends clears the QueryClient, so the next user never sees the last one's data;
     - a sign-in makes the account's language the interface's; a restore or a refresh never does, so the user's later choice on this device wins.

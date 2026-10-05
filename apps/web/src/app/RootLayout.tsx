@@ -1,12 +1,17 @@
-import { RouteErrorState } from '@shared/routing';
+import { PasswordChangeGate, RouteErrorState } from '@shared/routing';
 import { Outlet, ScrollRestoration } from 'react-router';
 
-/** The root of every route: it restores the scroll position, and each domain's shell sits below. */
+/**
+ * The root of every route: it restores the scroll position, holds every route behind a pending
+ * password change, and each domain's shell sits below.
+ */
 export function RootLayout() {
   return (
     <>
       <ScrollRestoration />
-      <Outlet />
+      <PasswordChangeGate>
+        <Outlet />
+      </PasswordChangeGate>
     </>
   );
 }

@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-02 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
 
 ## Conventions
@@ -33,6 +33,7 @@ Summaries only: the schema owns the fields.
 - **User** — an account with one global role (`USER` / `OWNER` / `ADMIN`, [ADR 0002](decisions/0002-authorization-model.md)), a unique email, a language, and `mustChangePassword` for accounts created by someone else (new owners, new reception accounts, admin recovery). It signs in with a password, Google (a unique Google subject), or both, never neither: a Google-only account has no password ([security.md](../backend/security.md#sign-in-methods)). There is no phone login, so no phone. Suspended, never deleted.
 - **RefreshToken** — one row per token, stored hashed, rotated with a link to its replacement. The tokens rotated from one sign-in form a family, its session, named by the id of its first token, so a reused token ends its own session and no other ([security.md](../backend/security.md)). Cascades from its user.
 - **PasswordResetToken** — a single-use reset token, stored hashed, with an expiry. Cascades from its user.
+- **PasswordRecovery** — where a person stands in recovering a password, found by the hash of the key in the browser's recovery cookie ([ADR 0017](decisions/0017-recovery-session.md)). It is opened for every address alike, so it names its account only when one may sign in, and stores the address only masked and as a digest, never in clear. It counts its resends and when the last link was asked for, and may hold the reset link checked in its browser, with which it ends. It cascades from its user and from that link.
 - **RateLimit** — a fixed-window counter: a key, its hits and when its window ends. The rate limits and the reset email's caps share it ([security.md](../backend/security.md#rate-limits-fixed-window)). It belongs to no user. Its key is a digest, not anonymous data: an address or an email can be found again by hashing the candidates.
 
 ### Lookups
