@@ -14,5 +14,6 @@ export {
   getSession,
   onSessionEnded,
   onSessionEstablished,
+  passwordChanged,
   useSession,
 } from './store';
