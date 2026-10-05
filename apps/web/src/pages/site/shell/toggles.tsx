@@ -1,7 +1,6 @@
 import { CATALOGUES, useCopy } from '@shared/copy';
 import { LanguageToggle, ThemeToggle, type LanguageToggleProps } from '@shared/design-system';
-import { setLanguage, setTheme, usePreferences } from '@shared/preferences';
-import { otherLanguage } from './otherLanguage';
+import { otherLanguage, setLanguage, setTheme, usePreferences } from '@shared/preferences';
 
 /** The layer's language toggle, wired to the preferences: it offers the other language. */
 export function SiteLanguageToggle(props: Omit<LanguageToggleProps, 'lang' | 'label' | 'onClick'>) {

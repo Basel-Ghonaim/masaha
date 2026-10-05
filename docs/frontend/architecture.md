@@ -241,7 +241,7 @@ A feature's wire types, its requests and the server's answers, come from `@masah
     - a session that ends clears the QueryClient, so the next user never sees the last one's data;
     - a sign-in makes the account's language the interface's; a restore or a refresh never does, so the user's later choice on this device wins.
 - `features/auth`: sign-in, register, password forms and their error wording.
-- `shared/preferences` (Zustand), **built**: the language, the theme choice and the theme shown. No UI; F-6 builds the settings select and the top-bar toggles on it.
+- `shared/preferences` (Zustand), **built**: the language, the theme choice and the theme shown. No UI: each shell wires its own toggles to it, and `otherLanguage` names the language a two-language toggle offers.
   - **Derived, never listed.** The languages are those with a catalogue (`CATALOGUES`); the themes are those the design system exports (`THEMES`). Adding either touches no preferences code.
   - **Theme choice:** a theme, or `system`, which stores nothing and follows the device's `prefers-color-scheme` live while it is the choice. The top-bar toggle sets the opposite of the theme shown, as an explicit choice.
   - **Persisted** as plain strings at the keys the pre-paint script reads ([localisation.md › Mechanism](localisation.md#mechanism)), never in Zustand's own `persist` format. Each change writes `lang`, `dir` and `data-theme` on `<html>`, and reaches every open tab through the `storage` event.
