@@ -2,7 +2,7 @@ import type { RegisterRequest } from '@masaha/shared/auth';
 import type { AppError } from '@shared/errors';
 import { establishSession, type Session } from '@shared/session';
 import { useMutation } from '@tanstack/react-query';
-import { createAuthRepository } from '../repository/authRepository';
+import { createAuthRepository } from '../../repository/authRepository';
 
 const repository = createAuthRepository();
 

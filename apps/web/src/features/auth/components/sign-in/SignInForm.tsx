@@ -2,7 +2,7 @@ import { useCopy } from '@shared/copy';
 import { Button, Field, Input, LogInIcon } from '@shared/design-system';
 import { FormFailure, PasswordInput } from '@shared/forms';
 import type { ReactNode } from 'react';
-import { useSignInForm } from '../hooks/useSignInForm';
+import { useSignInForm } from '../../hooks/sign-in/useSignInForm';
 
 export type SignInFormProps = {
   /** The way to a forgotten password, under the password field. */

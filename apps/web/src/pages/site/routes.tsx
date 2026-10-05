@@ -76,6 +76,27 @@ export const siteRoutes: RouteObject[] = [
               };
             },
           },
+          {
+            path: SITE_PATHS.forgotPassword,
+            lazy: async () => {
+              const { ForgotPasswordPage } = await import('./auth/ForgotPasswordPage');
+              return {
+                element: (
+                  <RequireGuest>
+                    <ForgotPasswordPage />
+                  </RequireGuest>
+                ),
+              };
+            },
+          },
+          {
+            // No guard: a signed-in person may open a reset link from their email. Wrapped by no
+            // guard, its token never travels into a return URL.
+            path: SITE_PATHS.resetPassword,
+            lazy: async () => ({
+              Component: (await import('./auth/ResetPasswordPage')).ResetPasswordPage,
+            }),
+          },
         ],
       },
     ],

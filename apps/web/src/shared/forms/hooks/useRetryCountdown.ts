@@ -1,8 +1,11 @@
 import type { AppError } from '@shared/errors';
 import { useEffect, useState } from 'react';
 
+/** What the count needs of a failure: its type and the wait it asked for. */
+type Wait = Pick<AppError, 'type' | 'retryAfterSeconds'>;
+
 /** The wait a failure asks for: a refusal for too many attempts, with its `Retry-After`. */
-function waitOf(failure: AppError | null): number {
+function waitOf(failure: Wait | null): number {
   return failure?.type === 'rate_limit' ? (failure.retryAfterSeconds ?? 0) : 0;
 }
 
@@ -12,7 +15,7 @@ function waitOf(failure: AppError | null): number {
  * starts its own count, so the failure is the one the form holds, the same object from one render to
  * the next.
  */
-export function useRetryCountdown(failure: AppError | null): number {
+export function useRetryCountdown(failure: Wait | null): number {
   const [counted, setCounted] = useState(failure);
   const [left, setLeft] = useState(() => waitOf(failure));
 

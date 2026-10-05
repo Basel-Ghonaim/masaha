@@ -2,7 +2,7 @@ import { useCopy } from '@shared/copy';
 import { Button, Field, Input } from '@shared/design-system';
 import { FormFailure, PasswordInput, PasswordRules } from '@shared/forms';
 import { useId, type ReactNode } from 'react';
-import { useRegisterForm } from '../hooks/useRegisterForm';
+import { useRegisterForm } from '../../hooks/register/useRegisterForm';
 
 export type RegisterFormProps = {
   /** The way to sign in instead, under the email field when the address already has an account. */

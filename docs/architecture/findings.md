@@ -345,3 +345,11 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 **Evidence:** in one full `test:component` run on F-6c2, "lists the owner’s eleven pages, the overview marked as the page shown" (`apps/web/src/pages/dashboard/routes.component.test.tsx`) failed after about 1.1 s with `Unable to find role="navigation" and name "Space dashboard"`: the lazily loaded space shell was not on screen within the default wait. The file passed three times alone, and the whole lane passed when run again.
 
 **Resolves when:** the test waits for the lazy shell in a way that holds under a full run, proven by repeated full runs.
+
+## 29. Two folders cannot each run the web against their own API
+
+**Status:** Open · **Date:** 2026-10-05
+
+**Evidence:** the web's dev server listens on port 5320 and forwards `/api` to `http://localhost:3320`, both fixed in `apps/web/vite.config.ts` ([setup › Commands](../development/setup.md#commands)). Each folder's API reads its own `apps/api/.env`, whose `CORS_ORIGIN` names `http://localhost:5320`, and the password routes, refresh and logout refuse a request whose `Origin` is not that one ([security.md](../backend/security.md#tokens-and-cookies)). So a second folder, such as the `masaha-b` worktree, cannot run its web and its API beside the first: its API on another port is never reached by its web's proxy, and its web on another port is refused by its API. On F-5b3c2, port 5320 was already taken by another dev server; the recovery pages were checked by hand with Vite on 5330 and the API started with a one-off `CORS_ORIGIN=http://localhost:5330`, both outside any script or document.
+
+**Resolves when:** a folder can run its web and its API on ports of its own, set in its own environment, and setup.md says how.

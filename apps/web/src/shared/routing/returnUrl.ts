@@ -7,6 +7,12 @@ const RETURN_PARAMETER = 'next';
 /** Where a temporary password is changed, before any other page (docs/frontend/architecture.md §2). */
 export const CHANGE_PASSWORD_PATH = '/change-password';
 
+/**
+ * Where a reset link opens, its token in the fragment (docs/frontend/architecture.md §2). No guard
+ * wraps it and the gate lets it through, so the fragment never travels into a return URL.
+ */
+export const RESET_PASSWORD_PATH = '/reset-password';
+
 type Place = { pathname: string; search: string; hash: string };
 
 /** `path`, carrying `place` as the page to return to. */

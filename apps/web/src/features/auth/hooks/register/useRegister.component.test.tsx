@@ -1,10 +1,10 @@
 import { getSession, onSessionEstablished } from '@shared/session';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
-import type { FakeAnswer } from '../../../test/fakeAdapter';
-import { aSession, deferred } from '../../../test/fakeSession';
-import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
-import { queryWrapper } from '../../../test/queryWrapper';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../../test/fakeSession';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { queryWrapper } from '../../../../test/queryWrapper';
 import { useRegister } from './useRegister';
 
 const REQUEST = {

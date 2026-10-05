@@ -1,11 +1,11 @@
 import { getSession } from '@shared/session';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FakeAnswer } from '../../../test/fakeAdapter';
-import { aSession, deferred } from '../../../test/fakeSession';
-import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { startPreferences } from '../../../test/startPreferences';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../../test/fakeSession';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { queryWrapper } from '../../../../test/queryWrapper';
+import { startPreferences } from '../../../../test/startPreferences';
 import { useSignInForm } from './useSignInForm';
 
 type Form = ReturnType<typeof useSignInForm>;
