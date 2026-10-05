@@ -1,10 +1,16 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { FakeAnswer } from '../../../test/fakeAdapter';
-import { aSession } from '../../../test/fakeSession';
-import { bodyOf, fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { startPreferences } from '../../../test/startPreferences';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { aSession } from '../../../../test/fakeSession';
+import {
+  bodyOf,
+  fakeTransport,
+  ok,
+  refused,
+  restoreTransport,
+} from '../../../../test/fakeTransport';
+import { queryWrapper } from '../../../../test/queryWrapper';
+import { startPreferences } from '../../../../test/startPreferences';
 import { useRegisterForm } from './useRegisterForm';
 
 type Form = ReturnType<typeof useRegisterForm>;
