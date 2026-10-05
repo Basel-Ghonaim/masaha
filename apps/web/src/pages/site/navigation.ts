@@ -1,4 +1,5 @@
 import type { Catalogue } from '@shared/copy';
+import { CHANGE_PASSWORD_PATH } from '@shared/routing';
 
 /** The anchor of the about page's contact section. */
 export const CONTACT_ANCHOR = 'contact';
@@ -15,6 +16,8 @@ export const SITE_PATHS = {
   signIn: '/login',
   register: '/register',
   forgotPassword: '/forgot-password',
+  /** Where shared/routing sends a user with a temporary password to change. */
+  changePassword: CHANGE_PASSWORD_PATH,
 } as const;
 
 type SiteLink = {

@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { returnUrlOf, safeReturnUrl, signInPath } from './returnUrl';
+import { changePasswordPath, returnUrlOf, safeReturnUrl, signInPath } from './returnUrl';
 
 describe('signInPath', () => {
   it('carries the whole requested page, query and fragment included, in `next`', () => {
     const path = signInPath({ pathname: '/me/favorites', search: '?page=2', hash: '#top' });
 
     expect(path).toBe('/login?next=%2Fme%2Ffavorites%3Fpage%3D2%23top');
+  });
+});
+
+describe('changePasswordPath', () => {
+  it('carries the whole requested page, query and fragment included, in `next`', () => {
+    const path = changePasswordPath({ pathname: '/spaces', search: '?area=3', hash: '#map' });
+
+    expect(path).toBe('/change-password?next=%2Fspaces%3Farea%3D3%23map');
   });
 });
 
