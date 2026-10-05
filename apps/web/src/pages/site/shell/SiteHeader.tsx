@@ -1,6 +1,7 @@
 import { AccountMenu } from '@features/users';
 import { useCopy } from '@shared/copy';
 import { Button, LogInIcon } from '@shared/design-system';
+import { DASHBOARD_PATHS } from '@shared/routing';
 import { useSession } from '@shared/session';
 import { Link, NavLink } from 'react-router';
 import { SITE_LINKS, SITE_PATHS } from '../navigation';
@@ -42,7 +43,11 @@ export function SiteHeader() {
           <SiteLanguageToggle className="hidden md:inline-flex" />
           <SiteThemeToggle />
           {user ? (
-            <AccountMenu user={user} className="hidden md:inline-flex" />
+            <AccountMenu
+              user={user}
+              dashboardPath={DASHBOARD_PATHS.home}
+              className="hidden md:inline-flex"
+            />
           ) : (
             <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
               <Link to={SITE_PATHS.signIn}>

@@ -12,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@shared/design-system';
+import { DASHBOARD_PATHS } from '@shared/routing';
 import { useSession } from '@shared/session';
 import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
@@ -71,7 +72,7 @@ export function SiteMenu() {
               </Button>
             )}
           </nav>
-          {user && <AccountMenuSection user={user} />}
+          {user && <AccountMenuSection user={user} dashboardPath={DASHBOARD_PATHS.home} />}
         </SheetBody>
         <SheetFooter>
           <SiteLanguageToggle className="self-start" />

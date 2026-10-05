@@ -1,6 +1,7 @@
 export { DASHBOARD_PATHS, spaceDeskPath, spaceOverviewPath } from './dashboardPaths';
 export { classifyRouteError, type RouteErrorKind } from './states/classifyRouteError';
 export { ForbiddenState } from './states/ForbiddenState';
+export { hasDashboard } from './landing/hasDashboard';
 export { landingPath } from './landing/landingPath';
 export { rememberSpace } from './landing/lastSpace';
 export { NotFoundState } from './states/NotFoundState';

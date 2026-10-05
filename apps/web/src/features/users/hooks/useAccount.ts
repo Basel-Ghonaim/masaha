@@ -1,4 +1,5 @@
 import { useCopy } from '@shared/copy';
+import { hasDashboard } from '@shared/routing';
 import type { SessionUser } from '@shared/session';
 import { useSignOutAction } from './useSignOutAction';
 
@@ -9,8 +10,9 @@ function isolated(value: string): string {
 }
 
 /**
- * The signed-in user's account, ready to render: the names the menu shows, the avatar's initial, and
- * the server-confirmed sign-out with its pending state and its failure as text.
+ * The signed-in user's account, ready to render: the names the menu shows, the avatar's initial,
+ * whether it leads to the dashboard, and the server-confirmed sign-out with its pending state and its
+ * failure as text.
  */
 export function useAccount(user: SessionUser) {
   const copy = useCopy();
@@ -27,6 +29,9 @@ export function useAccount(user: SessionUser) {
     /** The account button's accessible name. */
     menuLabel: copy.users.menu({ name: isolated(name) }),
     sectionLabel: copy.users.section,
+    /** Whether the user has a dashboard to go to (the landing rule's `hasDashboard`). */
+    showsDashboard: hasDashboard(user),
+    dashboardLabel: copy.users.dashboard,
     ...signOut,
   };
 }

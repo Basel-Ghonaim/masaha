@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../test/fakeAdapter';
 import { aSession, deferred } from '../../../test/fakeSession';
@@ -9,10 +10,14 @@ import { AccountMenuSection } from './AccountMenuSection';
 
 const USER = aSession({ name: 'Sara Ahmad' }).user;
 
-/** Renders the section, answered by `answer`; returns it. */
-function renderSection(answer: () => FakeAnswer | Promise<FakeAnswer>) {
+/** Renders the section for `user`, answered by `answer`, inside a router; returns it. */
+function renderSection(answer: () => FakeAnswer | Promise<FakeAnswer>, user = USER) {
   fakeTransport(answer);
-  render(<AccountMenuSection user={USER} />);
+  render(
+    <MemoryRouter>
+      <AccountMenuSection user={user} dashboardPath="/dashboard" />
+    </MemoryRouter>,
+  );
   return within(screen.getByRole('group', { name: 'Account' }));
 }
 
@@ -31,6 +36,13 @@ describe('AccountMenuSection', () => {
 
     expect(section.getByText('Sara Ahmad')).toBeInTheDocument();
     expect(section.getByRole('button', { name: 'Sign out' })).toBeEnabled();
+    expect(section.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+  });
+
+  it('leads the admin to the dashboard', () => {
+    const section = renderSection(() => ({ status: 204 }), { ...USER, role: 'ADMIN' });
+
+    expect(section.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard');
   });
 
   it('marks sign-out busy while the server answers', async () => {

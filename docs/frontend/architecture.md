@@ -192,7 +192,7 @@ features/<capability>/
 
 ### What a feature exports
 
-**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. `features/auth` exports `SignInForm` and `RegisterForm`; `features/users` exports `AccountMenu`, `AccountMenuSection`, `SignOutButton` and `ForcedPasswordChangeForm`.
+**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. `features/auth` exports `SignInForm` and `RegisterForm`; `features/users` exports `AccountMenu`, `CompactAccountMenu` (the avatar alone, for the dashboard's top bar) and `AccountMenuSection`, which lead the admin and anyone with an active link to `/dashboard`, a path the page passes; it also exports `SignOutButton` and `ForcedPasswordChangeForm`.
 
 - **One capability, several places.** Ask who owns the variation (a screen is not a capability):
   - **the places show the capability's own fact differently:** the feature exports the UI, with props or as two components (the account in a header's menu, and in a phone menu's section);

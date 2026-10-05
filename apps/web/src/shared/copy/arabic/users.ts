@@ -3,6 +3,7 @@ import type { Catalogue } from '../shape';
 export const USERS = {
   menu: ({ name }: { name: string }) => `قائمة الحساب: ${name}`,
   section: 'الحساب',
+  dashboard: 'لوحة التحكم',
   signOut: 'تسجيل الخروج',
   signOutFailed: 'تعذّر تسجيل الخروج',
   passwordChange: {

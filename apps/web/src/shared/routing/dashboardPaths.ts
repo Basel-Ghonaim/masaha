@@ -4,6 +4,8 @@
  * it too.
  */
 export const DASHBOARD_PATHS = {
+  /** Redirects each user to their own dashboard (the landing rule). */
+  home: '/dashboard',
   admin: '/dashboard/admin',
   space: '/dashboard/spaces/:spaceId',
   spaceDesk: '/dashboard/spaces/:spaceId/desk',
