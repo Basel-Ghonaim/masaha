@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarText,
   SidebarTrigger,
   TriangleAlertIcon,
   UsersIcon,
@@ -26,6 +27,7 @@ type SidebarSamples = {
   product: string;
   area: string;
   groupLabel: string;
+  railText: string;
   items: { overview: string; attendance: string; members: string; reports: string };
   reportsBadge: string;
   signOut: string;
@@ -56,6 +58,9 @@ export function SidebarSection({ samples }: { samples: SidebarSamples }) {
               <span className="text-caption text-muted-foreground">{samples.area}</span>
             </SidebarHeader>
             <SidebarContent>
+              <SidebarText className="px-3 text-caption text-muted-foreground">
+                {samples.railText}
+              </SidebarText>
               <SidebarGroup>
                 <SidebarGroupLabel>{samples.groupLabel}</SidebarGroupLabel>
                 <SidebarMenu>

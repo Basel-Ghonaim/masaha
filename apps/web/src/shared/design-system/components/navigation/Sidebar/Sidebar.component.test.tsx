@@ -12,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarText,
   SidebarTrigger,
 } from '.';
 import { SearchIcon, UsersIcon } from '../../../icons';
@@ -43,6 +44,7 @@ function OwnerShell() {
       <Sidebar label="Owner dashboard">
         <SidebarHeader mark={<span aria-hidden>M</span>}>Masaha</SidebarHeader>
         <SidebarContent>
+          <SidebarText>Focus Hub</SidebarText>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton href="/overview" icon={<SearchIcon />} label="Overview" />
@@ -93,6 +95,18 @@ describe('Sidebar', () => {
     await userEvent.hover(within(nav).getByRole('link', { name: 'Overview' }));
 
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Overview');
+  });
+
+  it('keeps SidebarText for assistive technology only on the rail', () => {
+    renderShell(800);
+
+    expect(screen.getByText('Focus Hub')).toHaveClass('sr-only');
+  });
+
+  it('shows SidebarText on a desktop', () => {
+    renderShell(1280);
+
+    expect(screen.getByText('Focus Hub')).not.toHaveClass('sr-only');
   });
 
   it('shows no tooltip on a desktop, where the label is visible', async () => {

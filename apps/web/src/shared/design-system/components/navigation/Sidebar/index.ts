@@ -10,6 +10,7 @@ export {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarText,
   SidebarTrigger,
   type SidebarHeaderProps,
   type SidebarMenuButtonProps,
