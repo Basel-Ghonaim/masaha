@@ -18,6 +18,8 @@
 
 **Inside a module:** a `shared/` module or a feature groups its files into folders by role (`guards/`, `states/`, `services/`, `hooks/`, …) once it holds more than one role, so its roles read from its tree and its surface stays one file: inner folders have no `index.ts`, and the module's `index.ts` stays its only entry. Its core (its model, its store, a helper every role uses) may stay at the root, a module with a single role stays flat, and tests stay beside the files they prove. The design-system layer, whose layout [foundation §3](design-system/foundation.md#3-architecture) owns, and the copy's language folders are exempt.
 
+**One responsibility per file** holds in a module and a page group alike (§3 › Capability layout); a page group groups its files into role folders too, such as `pages/dashboard/shell/`.
+
 ## 2. Page groups
 
 **Two domains, one application** ([ADR 0011](../architecture/decisions/0011-one-web-app.md)): the **site** and the **dashboard**, one page group each.
@@ -168,7 +170,7 @@ features/<capability>/
 ```
 
 - **A folder the capability does not need is absent, not empty.** `features/auth` has no `services/` or `types/`.
-- **One exported unit per file, named after it:** `hooks/useSignIn.ts`, `repository/authRepository.ts`. No file groups several hooks.
+- **One component, one hook, one responsibility per file, internal ones included,** named after what it holds: `hooks/useSignIn.ts`, `components/SpaceName.tsx`, `repository/authRepository.ts`. A file's name tells what it holds, so a reader never hunts inside a file. No file groups several hooks or components, a component used only inside its capability stays out of `index.ts`, and a pure helper sits in `services/`, never in `components/`.
 - **The data layer is the repository:** the interface `AuthRepository { login, register }` and its factory `createAuthRepository()`, whose calls go through the app's one client (`api`, §7); a hook makes it once, at module level. `shared/session` names its own the same way (§4).
 - **Names inside `hooks/`:** `useXQuery` for a read, `useX` for a write (a verb and the resource: `useSignIn`, `useRegister`), `useXForm` for a form. The query keys live in `hooks/queryKeys.ts`, scoped as §7 says.
 - **Folders by role** (§1). Inner folders have no `index.ts`, and tests sit beside their files.

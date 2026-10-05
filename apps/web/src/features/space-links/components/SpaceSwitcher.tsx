@@ -14,41 +14,8 @@ import {
 } from '@shared/design-system';
 import { Link } from 'react-router';
 import { useSpaceSwitcher } from '../hooks/useSpaceSwitcher';
-
-type Choice = ReturnType<typeof useSpaceSwitcher>['spaces'][number];
-
-/** A space's name, marked when it is not in the interface's language. */
-function SpaceName({ space, className }: { space: Choice; className?: string }) {
-  return (
-    <span lang={space.nameLanguage} dir={space.nameDir} className={className}>
-      {space.name}
-    </span>
-  );
-}
-
-/** The space's mark, its initial on a square, and beside it the name and area (not on the rail). */
-function SpaceHead({ space, fallback }: { space: Choice | undefined; fallback: string }) {
-  return (
-    <>
-      <span
-        aria-hidden
-        className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground"
-      >
-        {space?.initial}
-      </span>
-      <SidebarText className="flex min-w-0 flex-1 flex-col text-start">
-        {space ? (
-          <>
-            <SpaceName space={space} className="truncate text-label" />
-            <span className="truncate text-caption text-muted-foreground">{space.area}</span>
-          </>
-        ) : (
-          <span className="truncate text-label">{fallback}</span>
-        )}
-      </SidebarText>
-    </>
-  );
-}
+import { SpaceHead } from './SpaceHead';
+import { SpaceName } from './SpaceName';
 
 /**
  * The dashboard sidebar's header for a space: the space in the URL (`spaceId`), its name and area.
