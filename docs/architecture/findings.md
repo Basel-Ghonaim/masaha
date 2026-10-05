@@ -337,3 +337,11 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 **Evidence:** the build gathers the dashboard's own modules into one `dashboard` chunk, leaving out what it shares with the site ([architecture §3](../frontend/architecture.md#3-capabilities-features)). What only the dashboard uses besides, today TanStack Query's `useQuery` and `publicSpacePath`, has no chunk of its own, so the bundler places it in the chunk of the space shell's lazy import (`SpaceLayout`). That chunk imports the `dashboard` chunk, and the `dashboard` chunk imports it back. Nothing breaks today, because every use across the two chunks happens inside a function. A dashboard module that used one of those imports at load time (a module-level `queryOptions(…)`, for example) would fail with a reference error when the space shell is the first dashboard page opened. `check:build` still classifies both chunks as dashboard code.
 
 **Resolves when:** the build gives what only the dashboard uses a place that does not import the dashboard's chunk back (a second chunk group, for example), proven by the manifest, or a dashboard module first needs such an import at load time.
+
+## 28. A dashboard routes test can time out under load
+
+**Status:** Open · **Date:** 2026-10-05
+
+**Evidence:** in one full `test:component` run on F-6c2, "lists the owner’s eleven pages, the overview marked as the page shown" (`apps/web/src/pages/dashboard/routes.component.test.tsx`) failed after about 1.1 s with `Unable to find role="navigation" and name "Space dashboard"`: the lazily loaded space shell was not on screen within the default wait. The file passed three times alone, and the whole lane passed when run again.
+
+**Resolves when:** the test waits for the lazy shell in a way that holds under a full run, proven by repeated full runs.
