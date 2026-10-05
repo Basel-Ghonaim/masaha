@@ -1,6 +1,6 @@
 import { AppError } from '@shared/errors';
 import { afterEach, describe, expect, it } from 'vitest';
-import { sentPosition } from '../../../test/fakeRecovery';
+import { MASKED_EMAIL, sentPosition } from '../../../test/fakeRecovery';
 import { bodyOf, fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
 import { createRecoveryRepository } from './recoveryRepository';
 
@@ -38,6 +38,26 @@ describe('recoveryRepository', () => {
 
     expect(requests[0]).toMatchObject({ method: 'get', url: '/auth/password/recovery' });
     expect(position).toEqual({ step: 'request' });
+  });
+
+  it('checks a link with a POST of its token to /auth/password/reset/check, resolving to the position', async () => {
+    const position = { step: 'password', email: MASKED_EMAIL } as const;
+    const requests = fakeTransport(() => ok(position));
+
+    const checked = await repository.checkLink({ token: 'link-token' });
+
+    expect(requests[0]).toMatchObject({ method: 'post', url: '/auth/password/reset/check' });
+    expect(bodyOf(requests[0])).toEqual({ token: 'link-token' });
+    expect(checked).toEqual(position);
+  });
+
+  it('sets the password with a POST of the password alone to /auth/password/reset, resolving with nothing', async () => {
+    const requests = fakeTransport(() => ({ status: 204 }));
+
+    await expect(repository.resetPassword({ password: 'gaza2026x' })).resolves.toBeUndefined();
+
+    expect(requests[0]).toMatchObject({ method: 'post', url: '/auth/password/reset' });
+    expect(bodyOf(requests[0])).toEqual({ password: 'gaza2026x' });
   });
 
   it('rejects a refused resend with an AppError carrying its type and code', async () => {

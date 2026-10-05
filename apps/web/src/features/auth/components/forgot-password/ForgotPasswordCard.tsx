@@ -14,13 +14,19 @@ export type ForgotPasswordCardProps = {
   signInLink: ReactNode;
   /** Masaha's contact, for someone who cannot reach their email. */
   contactLink: ReactNode;
+  /** On to the new password, once a link is open in this browser. */
+  resetPasswordLink: ReactNode;
 };
 
 /**
  * The forgotten password: the step the server holds, from `useForgotPasswordFlow` (the email form, the
  * link sent with its resend, or a link already open), and the ways out at its foot.
  */
-export function ForgotPasswordCard({ signInLink, contactLink }: ForgotPasswordCardProps) {
+export function ForgotPasswordCard({
+  signInLink,
+  contactLink,
+  resetPasswordLink,
+}: ForgotPasswordCardProps) {
   const copy = useCopy();
   const words = copy.auth.forgotPassword;
   const view = useForgotPasswordFlow();
@@ -60,7 +66,7 @@ export function ForgotPasswordCard({ signInLink, contactLink }: ForgotPasswordCa
       {view.kind === 'linkOpen' && (
         <>
           <StepHeader title={words.linkOpenTitle} description={view.description} />
-          <LinkOpen enterEmailAgain={view.enterEmailAgain} />
+          <LinkOpen resetPasswordLink={resetPasswordLink} enterEmailAgain={view.enterEmailAgain} />
         </>
       )}
       <CardFooter className="flex-col gap-2">

@@ -1,5 +1,5 @@
 import type { Catalogue } from '@shared/copy';
-import { CHANGE_PASSWORD_PATH } from '@shared/routing';
+import { CHANGE_PASSWORD_PATH, RESET_PASSWORD_PATH } from '@shared/routing';
 
 /** The anchor of the about page's contact section. */
 export const CONTACT_ANCHOR = 'contact';
@@ -16,6 +16,8 @@ export const SITE_PATHS = {
   signIn: '/login',
   register: '/register',
   forgotPassword: '/forgot-password',
+  /** Where a reset link opens, which shared/routing's gate lets through. */
+  resetPassword: RESET_PASSWORD_PATH,
   /** Where shared/routing sends a user with a temporary password to change. */
   changePassword: CHANGE_PASSWORD_PATH,
 } as const;

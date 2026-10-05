@@ -89,6 +89,14 @@ export const siteRoutes: RouteObject[] = [
               };
             },
           },
+          {
+            // No guard: a signed-in person may open a reset link from their email. Wrapped by no
+            // guard, its token never travels into a return URL.
+            path: SITE_PATHS.resetPassword,
+            lazy: async () => ({
+              Component: (await import('./auth/ResetPasswordPage')).ResetPasswordPage,
+            }),
+          },
         ],
       },
     ],

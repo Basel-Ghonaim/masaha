@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MASKED_EMAIL } from '../../../test/fakeRecovery';
 import { aSession } from '../../../test/fakeSession';
 import { fakeTransport, ok, restoreTransport } from '../../../test/fakeTransport';
 import { setSessionHint } from '../../../test/sessionHint';
@@ -68,6 +69,15 @@ describe('the forgot password page', () => {
     expect(main.getByRole('link', { name: 'Contact us' })).toHaveAttribute(
       'href',
       '/about#contact',
+    );
+  });
+
+  it('links on to the new password once a link is open in this browser', async () => {
+    renderSite('/forgot-password', { step: 'password', email: MASKED_EMAIL });
+
+    expect(await screen.findByRole('link', { name: 'Set a new password' })).toHaveAttribute(
+      'href',
+      '/reset-password',
     );
   });
 });

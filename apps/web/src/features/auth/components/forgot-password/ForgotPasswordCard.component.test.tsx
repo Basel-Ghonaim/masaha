@@ -18,6 +18,7 @@ function renderCard(read: () => FakeAnswer | Promise<FakeAnswer>) {
       <ForgotPasswordCard
         signInLink={<a href="/login">Back to sign in</a>}
         contactLink={<a href="/about#contact">Contact us</a>}
+        resetPasswordLink={<a href="/reset-password">Set a new password</a>}
       />
     </QueryClientProvider>,
   );
@@ -80,12 +81,13 @@ describe('ForgotPasswordCard', () => {
     expect(screen.queryByRole('button', { name: /^Resend/ })).not.toBeInTheDocument();
   });
 
-  it('offers a new link once one is open in this browser', async () => {
+  it('offers the open link’s next step, or a new link', async () => {
     renderAt({ step: 'password', email: MASKED_EMAIL });
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'You’ve opened a reset link' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Set a new password' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enter your email again' })).toBeEnabled();
   });
 

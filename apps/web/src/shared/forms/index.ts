@@ -4,6 +4,7 @@ export { PasswordRules, type PasswordRulesProps } from './components/PasswordRul
 export { clock } from './services/clock';
 export { isolated } from './services/isolated';
 export { usePasswordRules } from './hooks/usePasswordRules';
+export { useRefusalView, type Refusal } from './hooks/useRefusalView';
 export { useServerForm, type ServerForm, type ServerFormOptions } from './hooks/useServerForm';
 export type { FormFailureView } from './types/FormFailureView';
 export type { PasswordRulesView } from './types/PasswordRulesView';

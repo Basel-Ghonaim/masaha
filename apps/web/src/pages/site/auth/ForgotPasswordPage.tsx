@@ -6,7 +6,7 @@ import { SITE_PATHS } from '../navigation';
 
 /**
  * The forgotten password: the recovery's card, with the site's ways out: back to sign in, the
- * contact for someone who cannot reach their email.
+ * contact for someone who cannot reach their email, and on to the new password once a link is open.
  */
 export function ForgotPasswordPage() {
   const copy = useCopy();
@@ -22,6 +22,11 @@ export function ForgotPasswordPage() {
       contactLink={
         <Button asChild variant="link" size="sm" className="px-0">
           <Link to={SITE_PATHS.contact}>{words.contactUs}</Link>
+        </Button>
+      }
+      resetPasswordLink={
+        <Button asChild className="w-full">
+          <Link to={SITE_PATHS.resetPassword}>{words.continue}</Link>
         </Button>
       }
     />

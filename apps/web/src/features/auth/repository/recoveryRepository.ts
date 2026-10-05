@@ -1,4 +1,9 @@
-import type { ForgotPasswordRequest, RecoveryPosition } from '@masaha/shared/auth';
+import type {
+  ForgotPasswordRequest,
+  RecoveryPosition,
+  ResetCheckRequest,
+  ResetPasswordRequest,
+} from '@masaha/shared/auth';
 import { api } from '@shared/api';
 
 /**
@@ -12,6 +17,10 @@ export interface RecoveryRepository {
   resendLink: () => Promise<RecoveryPosition>;
   /** Where the recovery stands; `request` when there is none. */
   position: () => Promise<RecoveryPosition>;
+  /** Checks a link's token, which binds the link to the recovery: the last time the web holds it. */
+  checkLink: (request: ResetCheckRequest) => Promise<RecoveryPosition>;
+  /** Sets the new password with the link the recovery holds, and ends the recovery. */
+  resetPassword: (request: ResetPasswordRequest) => Promise<void>;
 }
 
 /** The recovery's calls, through the app's one client. */
@@ -20,5 +29,9 @@ export function createRecoveryRepository(): RecoveryRepository {
     requestLink: (request) => api.post<RecoveryPosition>('/auth/password/forgot', request),
     resendLink: () => api.post<RecoveryPosition>('/auth/password/resend'),
     position: () => api.get<RecoveryPosition>('/auth/password/recovery'),
+    checkLink: (request) => api.post<RecoveryPosition>('/auth/password/reset/check', request),
+    resetPassword: async (request) => {
+      await api.post<undefined>('/auth/password/reset', request);
+    },
   };
 }

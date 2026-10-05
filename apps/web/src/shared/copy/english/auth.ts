@@ -71,8 +71,27 @@ export const AUTH = {
     linkOpenTitle: 'You’ve opened a reset link',
     linkOpenDescription: ({ email }: { email: string }) =>
       `For ${email}. Set your new password, or ask for a new link.`,
+    continue: 'Set a new password',
     noEmailAccess: 'Can’t access your email?',
     contactUs: 'Contact us',
     backToSignIn: 'Back to sign in',
+  },
+  /** The reset link: the new password, the link no longer valid, and the password set. */
+  resetPassword: {
+    title: 'Set a new password',
+    /** The account's masked email, under the title. */
+    forAccount: ({ email }: { email: string }) => `For ${email}`,
+    newPassword: 'New password',
+    submit: 'Save password',
+    failed: 'Couldn’t save the password',
+    /** The link's check was answered without a verdict on the link, such as too many attempts. */
+    checkFailedTitle: 'Couldn’t check the link',
+    reopenLink: 'Open the link in your email again.',
+    invalidTitle: 'The link has expired or was already used',
+    invalidDescription: 'Reset links are valid for one hour and can be used once.',
+    requestNewLink: 'Request a new link',
+    doneTitle: 'Your password was changed, and you were signed out on all devices',
+    doneDescription: 'Sign in with your new password.',
+    signIn: 'Sign in',
   },
 } as const;
