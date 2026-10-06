@@ -34,7 +34,7 @@
 
 ## Passwords
 
-- bcrypt, cost 12, hashed outside database transactions, by the `users` module ([ADR 0013](../architecture/decisions/0013-identity-modules.md)). A sign-in for an unknown email, or for an account with no password, still spends one comparison, so its timing does not reveal which accounts exist.
+- bcrypt, cost 12, hashed outside database transactions, by the `users` module ([ADR 0013](../architecture/decisions/0013-identity-modules.md)): a sign-in compares the password first, then re-reads the hash under the session lock and opens the session only if it is still the one that matched. A sign-in for an unknown email, or for an account with no password, still spends one comparison, so its timing does not reveal which accounts exist.
 - Policy: at least 8 characters and at most 72 bytes in UTF-8 (bcrypt ignores every byte after the 72nd, and an Arabic letter takes two), with at least one letter and one digit.
 - The hash is excluded in the Prisma `select`, never only by the mapper.
 - Wrong credentials: generic `INVALID_CREDENTIALS`.
@@ -47,7 +47,7 @@
 - **Changing the password** (`/me/password`) asks for the current one, except during the forced change. The change counts as forced only when **both** the access token's claim and the account say a change is pending, so neither a stale token nor a flag set after the token was issued skips the check.
   - A wrong current password counts under a per-user failures limit ([Rate limits](#rate-limits-fixed-window)): a stolen 15-minute access token must not become unlimited guesses.
   - An account without a password (Google only) sets its first one through the reset email, which proves the inbox, never here: a stolen access token alone must not give a lasting password. It answers `PASSWORD_NOT_SET`.
-  - It writes only if the account still has the password it checked (a compare-and-set), ends every session of the user and any pending reset link, then opens a new session for the device that changed it: a new access token without `mustChangePassword`, and a new refresh cookie.
+  - It writes only if the account still has the password and the pending flag it checked (a compare-and-set, so it never overwrites a reset that landed meanwhile), ends every session of the user and any pending reset link, then opens a new session for the device that changed it: a new access token without `mustChangePassword`, and a new refresh cookie.
 - **Password reset** is a link sent by email, following the OWASP Forgot Password Cheat Sheet. It is a transactional email, not a notification ([overview › Not in v1](../project/overview.md#not-in-v1)).
   - **The token** is random (256 bits) and stored only as its SHA-256 hash. It is valid for 1 hour, and used once, by one atomic statement, so two concurrent resets cannot both succeed. A delivered link ends the earlier one: one live link per account. A link that is not sent (a cap, the relay) is withdrawn, so the one already in the inbox stays live.
   - **The request** opens a **recovery** in the browser ([ADR 0017](../architecture/decisions/0017-recovery-session.md)), ending the one it held. Its answer and its cookie are the same whether or not the email has an account ([the flow](../features/auth.md#behaviour-and-flows)). An unknown or suspended account gets no email, and a failed send is only logged.
@@ -107,6 +107,6 @@ The counters are stored in PostgreSQL, in the `rate_limits` table, so every inst
 
 - `helmet` defaults; CORS allows one origin from the environment with credentials; `trust proxy` set.
 - JSON body limit 16 kB; upload limit 5 MB per photo, JPEG/PNG/WebP only, content checked, re-encoded with sharp.
-- Online, a request or a response is limited to 4.5 MB ([ADR 0014](../architecture/decisions/0014-deployment.md)), below the photo limit. Photos are therefore resized on the client or uploaded directly to storage; the space-management slice settles which.
+- Online, a request or a response is limited to 4.5 MB ([ADR 0014](../architecture/decisions/0014-deployment.md)), below the photo limit. Photos are therefore resized on the client or uploaded directly to storage.
 - The server refuses to start without a reachable database; graceful shutdown on SIGTERM/SIGINT.
-- **The HTTP logger redacts** the `cookie`, `authorization` and `set-cookie` headers, and any field named like a password or a token, and **never logs request bodies**. It is built in `shared/http`, in the same Work Item as the first token (F-5a). The other logging rules are in [backend conventions §10](conventions.md#10-logging).
+- **The HTTP logger redacts** the `cookie`, `authorization` and `set-cookie` headers, and any field named like a password or a token, and **never logs request bodies**. It is built in `shared/http`. The other logging rules are in [backend conventions §10](conventions.md#10-logging).

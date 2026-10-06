@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), Axios only inside `shared/api`, and the dashboard-only rule (§3) are enforced by lint, and the dashboard-only rule by `check:build` too; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`, with the one Toaster) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell, and the status states, the four route guards, the password change's gate and its guard, and the landing rule in `shared/routing` (§2); so is the `dashboard` group's shell, with its navigation per role and a placeholder for each page (§2); the rest of the layout tree, the dashboard's other screens and the rest are not yet implemented · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), Axios only inside `shared/api`, and the dashboard-only rule (§3) are enforced by lint, and the dashboard-only rule by `check:build` too; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`, with the one Toaster) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell, and the status states, the four route guards, the password change's gate and its guard, and the landing rule in `shared/routing` (§2); so is the `dashboard` group's shell, with its navigation per role and a placeholder for each page (§2); the rest of the layout tree is not yet. What each capability built is its own document's ([`docs/features/`](../README.md#features--one-document-per-capability)) · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -46,16 +46,15 @@ RootLayout (app)                 ScrollRestoration; the password change's gate; 
 │   └── FocusLayout              short header (logo, language, theme), no footer
 │       └── auth/*               sign in, register, forgot/reset password, the forced change
 │                                (the forced change's short header: logo and sign out)
-└── dashboard
-    └── DashboardLayout          sidebar + top bar (ADR 0016)
-        ├── admin/*              AdminLayout: the admin's header and navigation
-        └── spaces/:spaceId/*    SpaceLayout: the space switcher, the navigation of the role there
+└── dashboard                    each branch's layout renders DashboardLayout: sidebar + top bar (ADR 0016)
+    ├── admin/*                  AdminLayout: the admin's header and navigation
+    └── spaces/:spaceId/*        SpaceLayout: the space switcher, the navigation of the role there
 ```
 
 - **Each level adds one thing** around its `<Outlet/>`.
 - **Each domain owns its own shell**, and places the status states inside it.
 - **A layout is built with its first consumer.**
-  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`, with sign-in, register, the forgotten password and the reset, and the forced change, for which the route gives the header sign-out as its only action; `DashboardLayout`, with the dashboard's two branches.
+  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`; `DashboardLayout`, inside each of the dashboard's two branches.
   - Not built yet: `AccountLayout`, with the first account screen.
 
 ### The two groups
@@ -84,11 +83,12 @@ pages/
 
 Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and the pages of `auth/`; in `pages/dashboard` its `index.ts`, `navigation.ts`, the shell, the `/dashboard` redirect and one `PlaceholderPage`, which titles each page from its navigation item until the page is built. The dashboard's other screens (`admin/`, `space/`), `account/` and the space details page are not built yet.
 
+- **The site's shell.** The header holds the wordmark, the site's links (home, the directory, about), the language and theme toggles, and sign-in, or the account once signed in. On a phone it shows the menu, the wordmark and the theme toggle, and the menu holds the rest.
+
 - **The dashboard's shell.**
   - The sidebar takes the design system's `Sidebar` form for each width. Its header is the space switcher ([`space-links`](../features/space-links.md)) in a space, and the wordmark with "Platform admin" for the admin; its foot links a space's public page (`publicSpacePath`, by its slug), and on a phone holds the language.
   - The top bar holds the drawer's trigger on a phone, the page's title, the language and theme toggles, and the account (`CompactAccountMenu`). **The page fills the title and its own controls** with `PageHeader`, which the shell places in the bar.
   - A space's navigation lists the pages the user's role at the space in the URL allows (the owner's eleven, reception's four); a space they hold no link to lists none. The owner's audit screen is not listed ([finding 14](../architecture/findings.md#14-the-owners-audit-screen-has-no-design)).
-  - The space branch's element remembers the space entered (`rememberSpace`), for the landing.
 
 - **Lazy loading.**
   - A group's `index.ts` exports **route definitions only**. Their components load through React Router's `lazy`, so a visitor to the site never downloads dashboard code.
@@ -96,7 +96,6 @@ Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the s
 - **The language and theme toggles.**
   - Their visual controls are the design system's `LanguageToggle` and `ThemeToggle`.
   - Each shell wires them to `shared/preferences` itself, in a line or two. There is no shared "connected toggle": `shared/preferences` stays without UI, and the two groups cannot import each other.
-  - The theme toggle sets the opposite of the theme shown (§4).
 - **The status states** live in `shared/routing`: `NotFoundState`, `ForbiddenState`, `RouteErrorState`, and a pure `classifyRouteError`. They are built; each shell shows the 404 and the general error, `RequireRole` the 403, and `RequireSpaceRole` the 404 and the 403.
   - They are route-level elements, built on the design system's `EmptyState`.
   - They take their actions as props. The site's 404 offers "Home" and "Browse spaces"; the dashboard's offers none, since its sidebar is the way on.
@@ -136,10 +135,6 @@ Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the s
   4. a user with no role and no links goes home, `/`;
   5. `/dashboard` itself redirects by the same rules.
 - **The last space** is remembered in the browser's `localStorage`, under a key that names the user (`rememberSpace`, which the space branch's shell calls), and read back only while the user still holds an active link to it. Storage that is unavailable remembers nothing, and the landing falls back to the oldest link.
-- **Failed guards:**
-  - a guest goes to sign-in, with the return URL;
-  - a signed-in user without access gets a clear 403 page, never a silent redirect;
-  - a `:spaceId` that is not a positive integer gets a 404; a space the user holds no active link to, whether it exists or not, gets a 403.
 
 ## 3. Capabilities (features)
 
@@ -190,8 +185,7 @@ features/<capability>/
   - **what belongs to the capability lives in the hook.** A sign-in's hook (`useSignIn`) hands the session it receives to `establishSession(session, { source: 'signIn' })` itself, in `useMutation`'s own callback, which runs even when the page has gone by the time the answer arrives;
   - **a capability's toast is its hook's too,** fired from the same callback with the design system's `toast`, after the session's change, and worded with `currentCopy()` read then: a sign-in may switch the interface to the account's language, and the toast speaks the language it lands in. The one `Toaster` is mounted in `app/` (§1);
   - **what belongs to the place lives in the page.** A feature takes no callback for it: the place reacts to the capability's own state, as `RequireGuest` reacts to the session and sends a signed-in user on (§2).
-- **The cache:** a sign-in clears nothing. Clearing happens when a session ends (§4).
-- **Tests, layer by layer** ([testing › A feature, layer by layer](../development/testing.md#a-feature-layer-by-layer)): the repository in the unit lane, and the hooks (with `renderHook`) and the components in the component lane, all through the transport (`setupApiClient`) with `fakeAdapter` on `apiClient`. No hook takes a parameter only a test passes.
+- **Tests, layer by layer:** [testing › A feature, layer by layer](../development/testing.md#a-feature-layer-by-layer).
 
 ### Where state lives
 
@@ -253,7 +247,7 @@ A feature's wire types, its requests and the server's answers, come from `@masah
   - **Sign-out** is the server's: the session ends here only once `POST /auth/logout` succeeds. A failed request clears nothing, because the refresh cookie would still be valid; `useSignOut()` exposes its pending and error state, and the user retries.
   - **A password change** answers with a new access token only, so `passwordChanged(userId, accessToken)` renews the token and clears `mustChangePassword`, keeping the rest of the session. It changes only that user's session, while it is still held: a sign-out answered first stays signed out, and another user who signed in meanwhile keeps their own token. It tells no listener: the session is the same one.
   - **Two events** let the composition root react without the session importing anything: `onSessionEstablished(listener)`, with the source (`signIn`, or `restore` for a restore and a refresh), and `onSessionEnded(listener)`, when a session that was held ends. Bootstrap connects them (`app/session.ts`):
-    - a session that ends clears the QueryClient, so the next user never sees the last one's data;
+    - a session that ends clears the QueryClient, so the next user never sees the last one's data; a sign-in clears nothing;
     - a sign-in makes the account's language the interface's; a restore or a refresh never does, so the user's later choice on this device wins.
 - `shared/preferences` (Zustand), **built**: the language, the theme choice and the theme shown. No UI: each shell wires its own toggles to it, and `otherLanguage` names the language a two-language toggle offers.
   - **Derived, never listed.** The languages are those with a catalogue (`CATALOGUES`); the themes are those the design system exports (`THEMES`). Adding either touches no preferences code.
@@ -267,7 +261,7 @@ One normaliser, `toAppError` in `shared/errors`, turns any failure (Axios, netwo
 
 - **The type:** the server's envelope type when it is one the contract defines ([api-contract §3](../api/api-contract.md#3-error-types)), else inferred from the status. With no answer, the client's own types: `network`, `timeout`, `canceled`, and `unknown` for anything else. Every type has a line in both catalogues.
 - **The domain code** is kept only when the client knows it, so `code ?? type` always has a line.
-- **`requestId`** is the server's request id ([api-contract §1](../api/api-contract.md#1-conventions)), from the envelope, else from the `X-Request-Id` header (a proxy's answer has no body), so it is present whenever the server answered. Error states show it, so a user's report can be matched to the log; no error state is built yet.
+- **`requestId`** is the server's request id ([api-contract §1](../api/api-contract.md#1-conventions)), from the envelope, else from the `X-Request-Id` header (a proxy's answer has no body), so it is present whenever the server answered. Every refusal read through `shared/forms` (`useRefusalView`, §3 › Forms) shows it when it has no domain code: a form's failure, and a section's or Google's failure area. So a user's report can be matched to the log. The route's status states do not show it.
 - **`retryAfterSeconds`** comes from `Retry-After`, in its delta-seconds form only.
 
 ## 6. Map

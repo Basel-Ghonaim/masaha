@@ -13,12 +13,13 @@ A bilingual (Arabic RTL / English), fully responsive web platform for coworking 
 
 ## Built
 
-This section lists a capability only once it is merged and working.
+This section lists a capability only once it is merged and working. Each line links the capability's document, which says what it does.
 
-### Authentication
-- Register with name, email and password, and sign in with email and password, or with Google, which links an existing account only where Google is the authority for its email ([security.md](../backend/security.md#sign-in-methods)).
-- Stay signed in across reloads, and sign out ([ADR 0003](../architecture/decisions/0003-session-model.md)).
-- Reset a forgotten password by an email link ([ADR 0017](../architecture/decisions/0017-recovery-session.md)), and change a temporary password before any other page. The admin's screen that issues a temporary password is not built yet.
+- [Auth](../features/auth.md): register, sign in with a password or with Google, stay signed in across reloads, and reset a forgotten password by an email link.
+- [Users](../features/users.md): the account menu, sign-out, and the change of a temporary password before any other page.
+- [Space links](../features/space-links.md): the spaces a user works at and the space switcher; the admin's spaces list, on the API.
+- [Lookups](../features/lookups.md): the admin's governorates and areas; the amenities and the public catalogue, on the API.
+- [Spaces](../features/spaces.md): the admin's, on the API only: add, edit, hide, delete and restore.
 
 ## Committed scope — v1
 

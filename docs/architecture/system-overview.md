@@ -1,6 +1,6 @@
 # System Overview
 
-> **Status:** Active · **Class:** Overview — how the parts fit together, with one request traced end to end; every rule it mentions is owned elsewhere and linked · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — how the built parts fit together, with one request traced end to end; every rule it mentions is owned elsewhere and linked · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** The map of the running system: its parts, how a request crosses them, and which document owns each. It owns no rule. The stack's choice is in [ADR 0001](decisions/0001-monorepo-and-stack.md).
 
 ## 1. The parts
@@ -36,7 +36,7 @@ The first request every signed-in visit makes, and the first that crosses every 
 6. **The `auth` module** (the orchestrator) has `sessions` rotate the token and builds the `Session` from `users`, [`space-links`](../features/space-links.md#behaviour-and-flows) and a new access token ([auth › Behaviour and flows](../features/auth.md#behaviour-and-flows)).
 7. **The database** holds what those modules read and write: the refresh tokens (`sessions`), the users (`users`) and the space links (`space-links`), each written only by its owner.
 8. **The answer** is the envelope with the `Session`, beside a new refresh cookie and the hint. A failure is the error envelope, with the request id in its body and its header.
-9. **Back in the web,** the transport unwraps the envelope, or turns the failure into an `AppError`. The session holds the user and the token, and the guards let the page through. A 401, or a 403 for a suspended account, ends the session; no answer, a timeout, a 5xx or another 403 (such as the refusal of a cross-site request, which keeps the cookies) leaves it `unreachable`, with a retry, so a cut connection never signs the user out.
+9. **Back in the web,** the transport unwraps the envelope, or turns the failure into an `AppError`. The session holds the user and the token, and the guards let the page through. Which failures end the session, and which leave it to a retry, is the session's ([frontend architecture §4](../frontend/architecture.md#4-session-and-preferences)).
 
 ## 3. Where to go next
 

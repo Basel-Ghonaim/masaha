@@ -1,6 +1,6 @@
 # Glossary
 
-> **Status:** Active · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** The canonical vocabulary. Code, documents and copy use these terms.
 
 | Term | Arabic | Meaning |
@@ -33,7 +33,7 @@
 | **Occupancy** | الإشغال | Open check-ins and visits relative to capacity: live, shown to the space's staff; over time, in the owner's statistics |
 | **Announcement** | إعلان | A time-bound notice from an owner shown on the space page |
 | **Data report** | بلاغ | A user's report that a space's information is wrong or outdated; it may be resolved with a note shown to the reporter |
-| **Stale** | قد تكون قديمة | A fact not updated or confirmed within its staleness threshold: 30 days for prices, 60 days for the other facts (both admin settings) |
+| **Stale** | قد تكون قديمة | A fact not updated or confirmed within its staleness threshold, one for prices and one for the other facts, both admin settings ([data-model](../architecture/data-model.md#derived-values-computed-not-stored)) |
 | **Governorate** | محافظة | One of the Gaza Strip's five governorates; the upper level of the place list |
 | **Area** | منطقة | A neighbourhood or town within a governorate; every space is in one. The admin hides an unreachable area without deleting it |
 | **Lookup** | قائمة ثابتة | An admin-managed bilingual list: governorates, areas, amenities |

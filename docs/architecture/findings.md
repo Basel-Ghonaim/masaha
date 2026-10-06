@@ -456,3 +456,19 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 **Evidence:** no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2; [conventions §2](../backend/conventions.md#2-layers)). `createUsersService` (`apps/api/src/modules/users/users.service.ts`) takes `passwords`, the hashing and the verification, defaulting to bcrypt; the composition root never passes it, and only `users.service.unit.test.ts` does, with a fake. It is beside the repository parameter the older services still take ([finding 31](#31-the-backend-documents-still-call-for-injecting-a-repository-only-tests-pass)), but it is not a repository, so the planned refactor of those services may not reach it.
 
 **Resolves when:** the service hashes through its own module's helpers with no such parameter, its logic unit-tested in pure helpers and the rest in the API lane, in an item allowed to change the API; or the owner accepts it.
+
+## 40. The platform's contact settings are outside the typed catalogue
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** settings are key–value rows whose keys are fixed in code, each value validated when read, through one typed catalogue ([data-model › Conventions](data-model.md#conventions), [conventions §9](../backend/conventions.md#settings-three-screens-three-owners)). The catalogue (`apps/api/src/modules/platform-settings/settingKeys.ts`) holds `newSpaceDefaults`, `stalenessDays` and `priceStalenessDays`. The seed (`apps/api/src/db/seed/seed.ts`) also writes `contactEmail` and `contactWhatsapp`, which no catalogue key names, so nothing validates them when they are read; nothing reads them yet.
+
+**Resolves when:** the slice that builds the public contact adds both keys to the catalogue, with their schemas; or the documents say the contact keys are kept another way.
+
+## 41. The request log does not name the space
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** the fields of every request log include the space on space routes ([conventions §10](../backend/conventions.md#10-logging)). The space routes exist since S2b-1 (the admin's `/admin/spaces/:spaceId`), but the request logger (`apps/api/src/shared/http/requestLogging.ts`) adds only the user and their role, once `requireAuth` has read them.
+
+**Resolves when:** the logger adds the space id on the routes that load a space's links, with a test; or the rule is narrowed to the `/manage` routes and waits for them.
