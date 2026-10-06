@@ -3,10 +3,10 @@ import { directionOf } from '@shared/localisation';
 
 /** A space as the switcher shows it, in the interface's language. */
 export function choiceOf(space: ManagedSpace, english: boolean, spaceId: number | undefined) {
-  // A space's English name is optional: the English interface then shows the Arabic one, marked as
-  // Arabic (docs/frontend/localisation.md › Content in two languages).
-  const name = (english ? space.nameEn : null) ?? space.nameAr;
-  const nameLanguage = english && space.nameEn === null ? ('ar' as const) : undefined;
+  // A space's Arabic name is optional: the Arabic interface then shows the English one, marked as
+  // English (docs/frontend/localisation.md › Content in two languages).
+  const name = (english ? null : space.nameAr) ?? space.nameEn;
+  const nameLanguage = !english && space.nameAr === null ? ('en' as const) : undefined;
   return {
     spaceId: space.spaceId,
     role: space.role,

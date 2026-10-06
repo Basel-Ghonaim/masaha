@@ -165,7 +165,7 @@ The spaces a signed-in user works at, as owner or reception ([ADR 0009](../archi
   ```ts
   ManagedSpace = {
     spaceId: number, role: "OWNER" | "RECEPTION",   // the caller's role at this space
-    slug: string, nameAr: string, nameEn: string | null,
+    slug: string, nameAr: string | null, nameEn: string,   // English required, Arabic optional
     area: { nameAr: string, nameEn: string }
   }
   ```

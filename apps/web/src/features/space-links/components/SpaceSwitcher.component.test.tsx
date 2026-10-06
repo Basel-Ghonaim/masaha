@@ -26,8 +26,8 @@ const NOOK: ManagedSpace = {
   spaceId: 3,
   role: 'RECEPTION',
   slug: 'nook',
-  nameAr: 'ركن',
-  nameEn: null,
+  nameAr: null,
+  nameEn: 'Nook',
   area: { nameAr: 'الرمال', nameEn: 'Al-Rimal' },
 };
 
@@ -123,19 +123,21 @@ describe('SpaceSwitcher', () => {
     const menu = within(await screen.findByRole('menu'));
     expect(menu.getByText('Your spaces')).toBeInTheDocument();
     const items = menu.getAllByRole('menuitem');
-    expect(items.map((item) => item.textContent)).toEqual(['Focus HubAn-Nasr', 'ركنAl-Rimal']);
+    expect(items.map((item) => item.textContent)).toEqual(['Focus HubAn-Nasr', 'NookAl-Rimal']);
     expect(items[0]).toHaveAttribute('aria-current', 'true');
     expect(items[1]).not.toHaveAttribute('aria-current');
   });
 
-  it('marks an Arabic name shown in the English interface as Arabic', async () => {
+  it('marks an English name shown in the Arabic interface as English', async () => {
+    startPreferences('ar');
+    stubScreenWidth(1280);
     const user = userEvent.setup();
     renderSwitcher('/spaces/7', () => ok([FOCUS, NOOK]));
-    await user.click(await screen.findByRole('button', { name: heard('Switch space: Focus Hub') }));
+    await user.click(await screen.findByRole('button', { name: heard('تبديل المساحة: فوكس هب') }));
 
-    const name = within(await screen.findByRole('menu')).getByText('ركن');
-    expect(name).toHaveAttribute('lang', 'ar');
-    expect(name).toHaveAttribute('dir', 'rtl');
+    const name = within(await screen.findByRole('menu')).getByText('Nook');
+    expect(name).toHaveAttribute('lang', 'en');
+    expect(name).toHaveAttribute('dir', 'ltr');
   });
 
   it('goes to the chosen space, by the link the page gives, and then shows it', async () => {
@@ -144,14 +146,14 @@ describe('SpaceSwitcher', () => {
 
     await user.click(await screen.findByRole('button', { name: heard('Switch space: Focus Hub') }));
     await user.click(
-      within(await screen.findByRole('menu')).getByRole('menuitem', { name: /ركن/ }),
+      within(await screen.findByRole('menu')).getByRole('menuitem', { name: /Nook/ }),
     );
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/spaces/3/reception');
     });
     expect(
-      await screen.findByRole('button', { name: heard('Switch space: ركن') }),
+      await screen.findByRole('button', { name: heard('Switch space: Nook') }),
     ).toBeInTheDocument();
   });
 

@@ -7,7 +7,7 @@ import { createSpaceLinksService } from './space-links.service.ts';
 
 const SPACES: SpaceRow[] = [
   { id: 7, slug: 'hub', nameAr: 'هب', nameEn: 'Hub', areaId: 4 },
-  { id: 3, slug: 'nook', nameAr: 'ركن', nameEn: null, areaId: 5 },
+  { id: 3, slug: 'nook', nameAr: null, nameEn: 'Nook', areaId: 5 },
   { id: 9, slug: 'loft', nameAr: 'لوفت', nameEn: 'Loft', areaId: 5 },
 ];
 const AREAS: AreaName[] = [
@@ -51,8 +51,8 @@ describe('mySpaces', () => {
         spaceId: 3,
         role: 'RECEPTION',
         slug: 'nook',
-        nameAr: 'ركن',
-        nameEn: null,
+        nameAr: null,
+        nameEn: 'Nook',
         area: { nameAr: 'النصر', nameEn: 'An-Nasr' },
       },
       {

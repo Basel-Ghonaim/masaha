@@ -5,8 +5,8 @@ import type { PrismaClient } from '../../generated/prisma/client.ts';
 export interface SpaceRow {
   id: number;
   slug: string;
-  nameAr: string;
-  nameEn: string | null;
+  nameAr: string | null;
+  nameEn: string;
   areaId: number;
 }
 

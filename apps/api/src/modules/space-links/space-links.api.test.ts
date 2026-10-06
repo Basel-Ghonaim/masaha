@@ -50,8 +50,8 @@ describe('GET /manage/spaces', () => {
   it('lists the caller’s active links’ spaces, with the role, the names and each one’s own area', async () => {
     const owner = await createAccount({ role: 'OWNER' });
     const hub = await createSpace('hub');
-    await prisma.space.update({ where: { id: hub.id }, data: { nameEn: 'Focus Hub' } });
     const nook = await createSpace('nook');
+    await prisma.space.update({ where: { id: nook.id }, data: { nameAr: null } });
     const { governorateId } = await prisma.area.findUniqueOrThrow({ where: { id: nook.areaId } });
     const rimal = await prisma.area.create({
       data: { governorateId, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
@@ -78,8 +78,8 @@ describe('GET /manage/spaces', () => {
           spaceId: nook.id,
           role: 'RECEPTION',
           slug: 'nook',
-          nameAr: 'فوكس هاب',
-          nameEn: null,
+          nameAr: null,
+          nameEn: 'Focus Hub',
           area: { nameAr: 'الرمال', nameEn: 'Al-Rimal' },
         },
       ],

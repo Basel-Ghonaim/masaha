@@ -12,8 +12,8 @@ const RECEPTION_AT_NOOK: ManagedSpace = {
   spaceId: 3,
   role: 'RECEPTION',
   slug: 'nook',
-  nameAr: 'ركن',
-  nameEn: null,
+  nameAr: null,
+  nameEn: 'Nook',
   area: { nameAr: 'النصر', nameEn: 'An-Nasr' },
 };
 

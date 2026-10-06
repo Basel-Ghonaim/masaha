@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
 
 ## Conventions
@@ -9,7 +9,7 @@
 - **Naming:** models PascalCase, fields camelCase, mapped to snake_case tables (plural) and columns with `@map` / `@@map`.
 - **Timestamps:** `createdAt`, `updatedAt` on every table, as `timestamptz`. The exceptions are the append-only `AuditLog` and `Payment`, which have `createdAt` only; a payment's one change, its void, carries its own time. Calendar dates (a subscription's start and end) are `date`.
 - **Soft delete:** `deletedAt` on `Space` and `Announcement`, and `archivedAt` on `Customer` (named as the desk sees it); `suspendedAt` on `User` ([ADR 0007](decisions/0007-soft-delete.md)). Purely dependent rows (managers, settings, occupancy, hours, shifts, prices, contacts, amenity links, photos, favourites, tokens) cascade from their parent; history (customers, packages, subscriptions, check-ins, visits, announcements, data reports, audit log) restricts deletion.
-- **Bilingual content:** paired fields such as `nameAr` / `nameEn`, `descriptionAr` / `descriptionEn`, `addressAr` / `addressEn`. Arabic required, English optional. A space's description is optional in both languages. Lookups (governorates, areas, amenities) require both.
+- **Bilingual content:** paired fields such as `nameAr` / `nameEn`, `descriptionAr` / `descriptionEn`, `addressAr` / `addressEn`. Arabic required, English optional. Two exceptions on a space: its **name** is English required, Arabic optional, because most spaces are known by an English name; its description and its landmark (`landmarkAr` / `landmarkEn`) are optional in both languages. Lookups (governorates, areas, amenities) require both.
 - **Areas are two-level:** governorate → area, covering the whole Gaza Strip. Each carries an admin-managed `isActive` flag: an area beyond reach is hidden and restored later without deleting anything. Amenities carry the same flag, so a retired amenity keeps its links.
 - **Prices:** every period (hour, day, week, month) is optional, so a missing period is a missing row. A price has an audience (general or student), an optional shift and an optional custom label (Arabic and English). Amounts are integers in agorot with a `currency` (`ILS`); display only in v1. Halls for rent and technical training are amenities, never prices.
 - **Shifts:** a space may define named shifts inside its one daily opening range (for example 08:00–16:00 and 16:00–22:00 inside 08:00–22:00). Most spaces have none. A price, a package, a subscription or a visit may name one. Shifts belong to the prices fact group.

@@ -29,7 +29,7 @@
 
 ## Content in two languages
 
-Space content has Arabic (required) and English (optional) fields. When English is missing, the English interface shows the Arabic text with `lang="ar" dir="rtl"` on that element.
+Space content has Arabic (required) and English (optional) fields, except a space's name, whose English is required and Arabic optional ([data-model.md](../architecture/data-model.md#conventions)). When one language is missing, the other interface shows the text it has, marked with its own `lang` and `dir` on that element: `lang="ar" dir="rtl"` for Arabic text in the English interface, `lang="en" dir="ltr"` for an English-only name in the Arabic interface.
 
 ## Mechanism
 
