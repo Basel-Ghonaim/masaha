@@ -1,6 +1,6 @@
 # Localisation
 
-> **Status:** Active · **Class:** Contract — rules to build against; the pre-paint script, the catalogue mechanism and the preferences store that sets the language are built, no formatter is yet · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the pre-paint script, the catalogue mechanism, the preferences store that sets the language and the plurals are built, no other formatter is yet · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** Languages, resolution, catalogues and formatting rules in `apps/web`. The reasoning is in [ADR 0006](../architecture/decisions/0006-localisation-approach.md); direction rules for components are in [design-system/foundation.md §8](design-system/foundation.md).
 
 ## Languages and resolution
@@ -23,7 +23,7 @@
 ## Formatting
 
 - `Intl` pinned to Western digits and the Gregorian calendar, in both languages. Every `Intl` formatter is given the locale `ar-u-nu-latn` for Arabic, never plain `ar`, which can produce Arabic-Indic digits.
-- Plurals via `Intl.PluralRules`. An Arabic counted line provides all six categories: `zero`, `one`, `two`, `few`, `many`, `other`. The first counted line brings Quick Tweets' Arabic plural test with it, which checks each form against sample counts.
+- Plurals via `Intl.PluralRules`. An Arabic counted line provides all six categories: `zero`, `one`, `two`, `few`, `many`, `other`. **Built** in `shared/copy` (`plural.ts`): a counted line is a function of its count that passes its forms to `arabicPlural` (all six) or `englishPlural` (`one`, `other`), and the rules pick the one the count takes. `plural.unit.test.ts` checks each category against sample counts.
 - Prices with currency `ILS`, rendered LTR inside RTL text.
 - Dates and times in the active language; time zone `Asia/Gaza`.
 
