@@ -7,8 +7,16 @@ import {
   RouteErrorState,
 } from '@shared/routing';
 import type { RouteObject } from 'react-router';
-import { ADMIN_NAV, SPACE_NAV } from './navigation';
+import { ADMIN_NAV, SPACE_NAV, type DashboardPageName } from './navigation';
 import { placeOf } from './placeOf';
+
+/** The admin's pages that have a screen, each loaded lazily; the others show their placeholder. */
+const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
+  lookups: async () => {
+    const { LookupsPage } = await import('./admin/LookupsPage');
+    return { element: <LookupsPage /> };
+  },
+};
 
 /**
  * The dashboard's route subtree (docs/frontend/architecture.md §2, ADR 0016). Definitions only: the
@@ -49,10 +57,12 @@ export const dashboardRoutes: RouteObject[] = [
         children: [
           ...ADMIN_NAV.map(({ name, segment }): RouteObject => ({
             ...placeOf(segment),
-            lazy: async () => {
-              const { PlaceholderPage } = await import('./PlaceholderPage');
-              return { element: <PlaceholderPage name={name} /> };
-            },
+            lazy:
+              ADMIN_PAGES[name] ??
+              (async () => {
+                const { PlaceholderPage } = await import('./PlaceholderPage');
+                return { element: <PlaceholderPage name={name} /> };
+              }),
           })),
           { path: '*', element: <NotFoundState /> },
         ],
