@@ -75,6 +75,7 @@ The model (roles, space scope, what each role may do) is owned by [ADR 0002](../
 - `requireAuth` → 401 without a valid token. `requireRole(...roles)` → 403.
 - Services call `can(actor, action, resource)`; the space scope and the role at the space (`OWNER` or `RECEPTION`) come from the user's active `SpaceManager` link, never from the global role or the client ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
 - Suspended users cannot log in or refresh.
+- **The admin edits a space's facts only while it is unverified,** with no active `OWNER` link; once an owner has joined, the owner does. Resolving its data reports follows the same rule. `can()` decides, from the links on the request ([conventions › Space access](conventions.md#space-access)).
 
 ## Rate limits (fixed window)
 

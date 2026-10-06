@@ -1,6 +1,6 @@
 # Backend Conventions
 
-> **Status:** Active · **Class:** Contract — rules to build against. **Built:** the shared errors, http and validation code, with `parseId`; `shared/auth` (the access tokens, `requireAuth`, `requireRole`, `signedIn`, `can()`, and the links loader without the refusal, `loadSpaceLinks`, on the admin's space routes); the audit writer (§6); the rate limiter; the level rule (§7), enforced by lint; the modules `sessions`, `users`, `space-links` (the session's links, the caller's spaces, and the admin's spaces list, composed with the spaces' owners), `auth`, `lookups`, `platform-settings` and `space-settings` minimally (the new-space defaults and the staleness thresholds; a space's settings row, created with it), and `spaces` (space summaries by ids, the admin's list page with its stale groups, and the admin's space: its creation, its read, its profile edit while it is unverified, hiding, soft delete and restore), with `runInTransaction` in `db/`; the logging of §10; the clock of §11; of §12, the composition root, the email port, the Google identity port and the rate limits in PostgreSQL; of §13, the idempotency key's name and the session lock. **Not yet built:** `optionalAuth` and the refusing space middleware of `/manage` (§8); the audit reader (§6); every other module; Gaza time (§11); the storage and scheduler ports (§12); the idempotent creates and the ledger's translation table (§13) · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against. **Built:** the shared errors, http and validation code, with `parseId`; `shared/auth` (the access tokens, `requireAuth`, `requireRole`, `signedIn`, `can()`, and the links loader without the refusal, `loadSpaceLinks`, on the admin's space routes); the audit writer (§6); the rate limiter; the level rule (§7), enforced by lint; the modules `sessions`, `users`, `space-links` (the session's links, the caller's spaces, and the admin's spaces list, composed with the spaces' owners), `auth`, `lookups`, `platform-settings` and `space-settings` minimally (the new-space defaults and the staleness thresholds; a space's settings row, created with it), and `spaces`, with `runInTransaction` in `db/`; the logging of §10; the clock of §11; of §12, the composition root, the email port, the Google identity port and the rate limits in PostgreSQL; of §13, the idempotency key's name and the session lock. **Not yet built:** `optionalAuth` and the refusing space middleware of `/manage` (§8); the audit reader (§6); every other module; Gaza time (§11); the storage and scheduler ports (§12); the idempotent creates and the ledger's translation table (§13) · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging, time, environments, idempotency and concurrency in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
 
 The backend is one application divided into **modules**, one per capability, arranged in **levels** (§7). Each module is built from the same **layers** (§2). **A screen is not a capability** (§7): placements follow the rule that consumes a value, never the screen that shows it.
@@ -226,7 +226,7 @@ How the rules of §7–§8 place the capabilities that are easy to misplace.
   - auto check-out at closing;
   - the visit rounding rule and its minutes;
   - the cap at the day price.
-- They are **copied** into a space's settings when the space is created. `spaces` does this in the same transaction, reading `platform-settings` and writing through `space-settings`, both below it.
+- They are **copied** into a space's settings when the space is created, in the same transaction ([spaces › How it composes the platform](../features/spaces.md#how-it-composes-the-platform)).
 - Changing a default never affects existing spaces.
 
 ### `space-settings`
@@ -278,9 +278,8 @@ A screen that shows or filters by values from several modules is composed by a m
 - **The admin's spaces list** (owners and verified status) and **the space owners list** → `space-links`.
   - The verified filter resolves to space ids in `space-links` first.
   - `spaces` then applies the hidden, stale and search filters and the pagination to those ids (§5).
-- **"Verified" on the write side.**
-  - The admin edits a space's facts only while it is unverified, and data reports follow the same rule.
-  - `spaces` never imports `space-links` for this. The space middleware resolves the links on the space routes (§8), and `can()` decides.
+- **"Verified" on the write side** ([security › Authorization](security.md#authorization)).
+  - `spaces` never imports `space-links` for it. The space middleware resolves the links on the space routes (§8), and `can()` decides.
   - `data-reports` sits above `space-links` and may call it directly for a report's space.
 - **Uncollected visits** (closed by the auto check-out and left unpaid) → `payments`, which owns the balance.
 - **The favourites' cards** (live status and prices) → `directory`, from the ids that `favorites` records. `favorites` never reads live status.

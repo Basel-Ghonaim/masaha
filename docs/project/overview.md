@@ -52,7 +52,7 @@ Who may do what at a space is decided in [ADR 0009](../architecture/decisions/00
 - Data reports about the space, resolved with an optional note. Audit log. Settings.
 
 ### Admin dashboard
-- Spaces (add, edit, hide). Owner accounts (create or upgrade, link to spaces).
+- Spaces (add, edit, hide, delete and restore). Owner accounts (create or upgrade, link to spaces).
 - Data reports (resolved with an optional note). Users (suspend, change role, issue a temporary password). Lookups (areas, amenities) in both languages. Audit log. Platform settings.
 
 ### Cross-cutting

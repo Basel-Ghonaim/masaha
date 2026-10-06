@@ -285,7 +285,7 @@ AdminSpace = {
   landmarkAr: string | null, landmarkEn: string | null,
   location: { lat: number, lng: number },
   isHidden: boolean,
-  isVerified: boolean,             // an active OWNER link: the owner edits it, the admin no longer does
+  isVerified: boolean,             // an active OWNER link (data-model › Derived values)
   updatedAt: Record<FactGroup, string>,   // FactGroup: "profile" | "hours" | "prices" | "amenities" | "contacts"; ISO 8601
   staleGroups: FactGroup[]          // older than the platform's thresholds (data-model › Derived values)
 }
@@ -293,7 +293,7 @@ AdminSpace = {
 
 #### `POST /admin/spaces` · 🛡
 - **Body:** the profile.
-- **201:** `AdminSpace`: a new space, unverified and shown, every fact group dated now. In one transaction, its settings are copied from the platform's new-space defaults ([conventions §9](../backend/conventions.md#new-space-defaults)); when they cannot be read, nothing is written. Audited `space.created`, with the profile and the slug in `after`.
+- **201:** `AdminSpace`: a new space, unverified and shown, every fact group dated now. Its settings are copied from the platform's new-space defaults ([spaces › Behaviour and flows](../features/spaces.md#behaviour-and-flows)). Audited `space.created`, with the profile and the slug in `after`.
 - **Errors:** `validation` (422), with `errors.nameEn = ["invalid_format"]` for an English name that yields no slug; `conflict` (409), with no code, when creations of the same name at once took the slug it chose three times over.
 
 #### `GET /admin/spaces` · 🛡
@@ -324,7 +324,7 @@ The endpoints on one space put its links on the request first, without refusing 
 
 #### `PATCH /admin/spaces/:spaceId` · 🛡
 - **Body:** any part of the profile; what is absent is kept, and an optional field is cleared with `null`. The slug never changes.
-- **200:** `AdminSpace`. Only while the space is unverified: once an owner has joined, its owner edits it (`can()`, `space.profile.update`). An edit that changes something dates the profile group now and is audited `space.profileEdited`, with `before` and `after` holding only the fields that changed (the pin as `lat` and `lng`). One that changes nothing writes nothing, its date included: it confirms nothing.
+- **200:** `AdminSpace`. Only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). An edit that changes something dates the profile group now and is audited `space.profileEdited`, with `before` and `after` holding only the fields that changed (the pin as `lat` and `lng`). One that changes nothing writes nothing, its date included: it confirms nothing.
 - **Errors:** `validation` (422); `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
 
 #### `PUT /admin/spaces/:spaceId/hidden` · 🛡
