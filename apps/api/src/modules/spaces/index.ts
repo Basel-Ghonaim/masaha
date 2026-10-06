@@ -4,6 +4,8 @@ export {
   type ListingQuery,
   type ListingService,
 } from './listing/listing.service.ts';
+export { createProfileController } from './profile/profile.controller.ts';
+export { createProfileService, type ProfileService } from './profile/profile.service.ts';
 export { createSpaceController } from './space/space.controller.ts';
 export { createSpaceService, type SpaceService } from './space/space.service.ts';
 export { createSpacesAdminRouter } from './spaces.admin.routes.ts';

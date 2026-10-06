@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
-import { createSpaceSchema } from './requests.ts';
+import { createSpaceSchema, updateSpaceProfileSchema } from './requests.ts';
 
 const SPACE = {
   nameEn: 'Focus Hub',
@@ -51,5 +51,18 @@ describe('createSpaceSchema', () => {
 
   it('refuses an empty text rather than taking it for none', () => {
     expect(errorsOf({ ...SPACE, nameAr: ' ' })).toEqual({ nameAr: ['too_short'] });
+  });
+});
+
+describe('updateSpaceProfileSchema', () => {
+  it('takes any part of the profile, and nothing', () => {
+    expect(updateSpaceProfileSchema.parse({})).toEqual({});
+    expect(updateSpaceProfileSchema.parse({ landmarkEn: null })).toEqual({ landmarkEn: null });
+  });
+
+  it('never clears a required field', () => {
+    expect(updateSpaceProfileSchema.safeParse({ nameEn: null }).success).toBe(false);
+    expect(updateSpaceProfileSchema.safeParse({ addressAr: null }).success).toBe(false);
+    expect(updateSpaceProfileSchema.safeParse({ location: null }).success).toBe(false);
   });
 });

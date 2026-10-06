@@ -266,7 +266,7 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 
 **Resolves when:** the slice that soft-deletes spaces decides it, for example by deactivating the space's links in the same transaction, with a test.
 
-*Resolved (2026-10-06, S2b-1):* a link to a soft-deleted space no longer counts. The session's links leave it out, as `GET /manage/spaces` does, both through `spaces`' own summaries, so the two lists agree. The link itself is left as it is. `auth.api.test.ts` proves the session's side, and `space-links.api.test.ts` the list's.
+*Resolved (2026-10-06, S2b-1):* a link to a soft-deleted space no longer counts. The session's links leave it out, as `GET /manage/spaces` does, both through `spaces`' own summaries, so the two lists agree. The link itself is left as it is. `auth.api.test.ts` proves the session's side, and `space-links.api.test.ts` the list's. Deleting a space writes nothing in `space_managers`, and the links loader of the space routes answers no links for a deleted space, so a restored space has its links again; `space.api.test.ts` proves it through the API.
 
 ## 19. The reset email's colours, fonts and styles are written outside the design system
 

@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -243,13 +243,12 @@ Built: `GET /manage/spaces`, the spaces the caller has an active link to, with t
 | GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | |
 
 #### Admin (`/admin/...`, 🛡)
-Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order ([api-contract §5](../api/api-contract.md#5-endpoints)).
+Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile edit while it is unverified, and hiding and showing, soft delete and restore of any space ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/admin/stats` | aggregate numbers only |
-| GET / POST | `/admin/spaces` | list with filters; create unverified space |
-| PATCH / DELETE | `/admin/spaces/:spaceId` | edit profile and facts while the space is unverified; hide or unhide and soft delete any space |
+| PUT / POST | `/admin/spaces/:spaceId/facts/...` | edit the facts (hours and shifts, prices, amenities, contacts) and confirm a group unchanged, while the space is unverified |
 | POST / DELETE | `/admin/spaces/:spaceId/managers[/:userId]` | link / unlink an owner |
 | POST | `/admin/owners` | create an OWNER account (temporary password, must change) |
 | GET / PATCH | `/admin/users[/:userId]` | search; suspend; change role |

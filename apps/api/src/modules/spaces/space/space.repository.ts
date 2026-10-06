@@ -43,6 +43,16 @@ export interface ProfileData {
 /** A created space, or its slug taken meanwhile by another creation. */
 export type SpaceCreation = { space: SpaceRecord } | { slugTaken: true };
 
+/** A space with its soft delete, as a change reads it under its lock. */
+export type LockedSpace = SpaceRecord & { deletedAt: Date | null };
+
+/** What a change of a space may set. */
+export type SpaceData = Partial<ProfileData> & {
+  profileUpdatedAt?: Date;
+  isHidden?: boolean;
+  deletedAt?: Date | null;
+};
+
 export function createSpaceRepository(db: PrismaClient = prisma) {
   return {
     /**
@@ -79,6 +89,26 @@ export function createSpaceRepository(db: PrismaClient = prisma) {
         if (isUniqueViolation(error, 'spaces_slug_key')) return { slugTaken: true };
         throw error;
       }
+    },
+
+    /** The space, unless it is soft-deleted (ADR 0007). */
+    findLive(id: number, tx: Tx = db): Promise<SpaceRecord | null> {
+      return tx.space.findFirst({ where: { id, deletedAt: null }, select: SPACE });
+    },
+
+    /**
+     * Locks the space's row until the transaction ends, so the state a change replaces is the one
+     * it read. The space, a soft-deleted one included, or nothing.
+     */
+    async lock(id: number, tx: Tx): Promise<LockedSpace | null> {
+      const rows = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM spaces WHERE id = ${id} FOR NO KEY UPDATE`;
+      if (rows.length === 0) return null;
+      return tx.space.findUnique({ where: { id }, select: { ...SPACE, deletedAt: true } });
+    },
+
+    update(id: number, data: SpaceData, tx: Tx): Promise<SpaceRecord> {
+      return tx.space.update({ where: { id }, data, select: SPACE });
     },
   };
 }

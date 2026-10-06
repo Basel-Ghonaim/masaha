@@ -48,3 +48,11 @@ const profile = {
 /** A new, unverified space, from its profile; the admin places its pin before saving. */
 export const createSpaceSchema = z.object(profile);
 export type CreateSpaceRequest = z.infer<typeof createSpaceSchema>;
+
+/** Edits the profile: what is absent is kept, and an optional field is cleared with `null`. */
+export const updateSpaceProfileSchema = createSpaceSchema.partial();
+export type UpdateSpaceProfileRequest = z.infer<typeof updateSpaceProfileSchema>;
+
+/** Hides the space from the public, or shows it again. */
+export const setSpaceHiddenSchema = z.object({ isHidden: z.boolean() });
+export type SetSpaceHiddenRequest = z.infer<typeof setSpaceHiddenSchema>;

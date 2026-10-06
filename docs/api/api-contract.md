@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -315,6 +315,30 @@ AdminSpace = {
   }
   ```
 - **Errors:** `validation` (422), for an unknown `status` (`invalid_choice`) or a page out of range.
+
+The endpoints on one space put its links on the request first, without refusing anyone ([conventions §8](../backend/conventions.md#space-access)); a `:spaceId` that names no space answers `not_found` (404).
+
+#### `GET /admin/spaces/:spaceId` · 🛡
+- **200:** `AdminSpace`, with `isVerified` from its links: what the edit screen shows, editable or read-only.
+- **Errors:** `not_found` (404), for a soft-deleted space too.
+
+#### `PATCH /admin/spaces/:spaceId` · 🛡
+- **Body:** any part of the profile; what is absent is kept, and an optional field is cleared with `null`. The slug never changes.
+- **200:** `AdminSpace`. Only while the space is unverified: once an owner has joined, its owner edits it (`can()`, `space.profile.update`). An edit that changes something dates the profile group now and is audited `space.profileEdited`, with `before` and `after` holding only the fields that changed (the pin as `lat` and `lng`). One that changes nothing writes nothing, its date included: it confirms nothing.
+- **Errors:** `validation` (422); `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
+
+#### `PUT /admin/spaces/:spaceId/hidden` · 🛡
+- **Body:** `{ isHidden: boolean }`.
+- **204:** the space is hidden from the public, or shown again, verified or not. Audited `space.hidden` or `space.unhidden` (`before` and `after`: `isHidden`); setting what it already is writes nothing.
+- **Errors:** `validation` (422); `not_found` (404), for a soft-deleted space too.
+
+#### `DELETE /admin/spaces/:spaceId` · 🛡
+- **204:** the space is soft-deleted, verified or not ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): it leaves every list and the public, and every link to it counts for nothing, kept as it is ([finding 18](../architecture/findings.md#18-whether-a-link-to-a-deleted-space-still-counts)). Audited `space.deleted` (`after`: `deletedAt`). Deleting a deleted space changes nothing.
+- **Errors:** `not_found` (404).
+
+#### `POST /admin/spaces/:spaceId/restore` · 🛡
+- **204:** a soft-deleted space comes back as it was, hidden or not, with its links. Audited `space.restored` (`before`: `deletedAt`). Restoring a space that is not deleted changes nothing.
+- **Errors:** `not_found` (404).
 
 ## 6. Domain error codes (initial)
 

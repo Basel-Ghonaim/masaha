@@ -47,6 +47,8 @@ import { createPlatformSettingsService } from './modules/platform-settings/index
 import { createSpaceSettingsService } from './modules/space-settings/index.ts';
 import {
   createListingService,
+  createProfileController,
+  createProfileService,
   createSpaceController,
   createSpaceService,
   createSpacesAdminRouter,
@@ -61,6 +63,7 @@ import { writeAudit } from './shared/audit/index.ts';
 import {
   createAccessTokens,
   createRequireAuth,
+  loadSpaceLinks,
   readAccessToken,
   requireRole,
 } from './shared/auth/index.ts';
@@ -199,6 +202,13 @@ export function createApi({
     spaceSettings,
     now: clock,
   });
+  const profile = createProfileService({
+    runInTransaction,
+    audit: writeAudit,
+    lookups,
+    platformSettings,
+    now: clock,
+  });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const adminSpaces = createAdminSpacesService({
     listing: createListingService({ platformSettings, now: clock }),
@@ -246,8 +256,19 @@ export function createApi({
       amenities: createAmenitiesController(amenities),
     }),
   );
+  // The space's links, without the refusal: can() reads whether the space is verified
+  // (conventions §8, Space access).
+  admin.use(
+    '/spaces/:spaceId',
+    loadSpaceLinks((spaceId) => spaceLinks.linksAt(spaceId)),
+  );
   admin.use(createSpaceLinksAdminRouter(createAdminSpacesController(adminSpaces)));
-  admin.use(createSpacesAdminRouter({ space: createSpaceController(space) }));
+  admin.use(
+    createSpacesAdminRouter({
+      space: createSpaceController(space),
+      profile: createProfileController(profile),
+    }),
+  );
   api.use('/admin', requireAuth(), requireRole('ADMIN'), admin);
   return api;
 }

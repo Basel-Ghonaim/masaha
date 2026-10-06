@@ -1,6 +1,7 @@
 import { prisma, type Tx } from '../../db/index.ts';
 import type { PrismaClient } from '../../generated/prisma/client.ts';
 import type { SpaceManagerRole } from '../../generated/prisma/enums.ts';
+import type { SpaceLink } from '../../shared/auth/index.ts';
 
 export interface ActiveLink {
   spaceId: number;
@@ -21,6 +22,14 @@ export function createSpaceLinksRepository(db: PrismaClient = prisma) {
         where: { userId, deactivatedAt: null },
         select: { spaceId: true, role: true },
         orderBy: [{ createdAt: 'asc' }, { spaceId: 'asc' }],
+      });
+    },
+
+    /** Every link to the space, deactivated ones included: what `can()` reads of it. */
+    findLinksAt(spaceId: number, tx: Tx = db): Promise<SpaceLink[]> {
+      return tx.spaceManager.findMany({
+        where: { spaceId },
+        select: { userId: true, role: true, deactivatedAt: true },
       });
     },
 

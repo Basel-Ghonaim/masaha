@@ -1,6 +1,7 @@
 import type { ManagedSpace } from '@masaha/shared/space-links';
 
 import type { Tx } from '../../db/index.ts';
+import type { SpaceLink } from '../../shared/auth/index.ts';
 import { createLookupsService, type LookupsService } from '../lookups/index.ts';
 import { createSpacesService, type SpacesService } from '../spaces/index.ts';
 import { toManagedSpace } from './space-links.mapper.ts';
@@ -40,6 +41,19 @@ export function createSpaceLinksService({
       );
       const live = new Set(summaries.map(({ id }) => id));
       return links.filter(({ spaceId }) => live.has(spaceId));
+    },
+
+    /**
+     * The links loader of the space routes (conventions §8, Space access): every link to the space,
+     * from which `can()` reads the caller's role there and whether the space is verified. A
+     * soft-deleted space has none: its links count for nothing (finding 18).
+     */
+    async linksAt(spaceId: number): Promise<SpaceLink[]> {
+      const [links, summaries] = await Promise.all([
+        repository.findLinksAt(spaceId),
+        spaces.summariesFor([spaceId]),
+      ]);
+      return summaries.length === 0 ? [] : links;
     },
 
     /**

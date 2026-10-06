@@ -41,7 +41,7 @@ export async function signIn(
   return { id: user.id, authorization: `Bearer ${token}` };
 }
 
-type Method = 'get' | 'post' | 'patch' | 'put';
+type Method = 'get' | 'post' | 'patch' | 'put' | 'delete';
 
 /** A request to `/api/v1/admin<path>`, as the caller, with a JSON body when one is given. */
 export async function adminRequest(

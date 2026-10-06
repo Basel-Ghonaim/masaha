@@ -23,6 +23,13 @@ function setup(links: ActiveLink[]) {
       calls.push(`links:${String(userId)}`);
       return Promise.resolve(links);
     },
+    // The links' user is 1 throughout: what these fakes know of a link is its space and role.
+    findLinksAt: (spaceId) =>
+      Promise.resolve(
+        links
+          .filter((link) => link.spaceId === spaceId)
+          .map(({ role }) => ({ userId: 1, role, deactivatedAt: null })),
+      ),
     findVerifiedSpaceIds: () => Promise.reject(new Error('not asked here')),
     findOwnerLinks: () => Promise.reject(new Error('not asked here')),
   };
@@ -42,6 +49,22 @@ function setup(links: ActiveLink[]) {
   };
   return { service: createSpaceLinksService({ repository, spaces, lookups }), calls };
 }
+
+describe('linksAt', () => {
+  it('answers the links of a space that is not deleted', async () => {
+    const { service } = setup([{ spaceId: 7, role: 'OWNER' }]);
+
+    await expect(service.linksAt(7)).resolves.toEqual([
+      { userId: 1, role: 'OWNER', deactivatedAt: null },
+    ]);
+  });
+
+  it('answers no links for a space with no summary, as a soft-deleted space has none', async () => {
+    const { service } = setup([{ spaceId: 42, role: 'OWNER' }]);
+
+    await expect(service.linksAt(42)).resolves.toEqual([]);
+  });
+});
 
 describe('activeLinksFor', () => {
   it('keeps the links in their order, leaving out one whose space has no summary', async () => {
