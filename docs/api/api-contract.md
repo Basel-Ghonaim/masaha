@@ -58,6 +58,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 
 **Exceptions**, lists a screen shows whole, so they are answered whole, without `page` or `meta`:
 - the admin's lookup lists (`GET /admin/governorates`, `GET /admin/amenities`): bounded catalogues of tens of rows, shown grouped (§5, *Lookups*);
+- the public catalogue of the lookups (`GET /lookups`), the same bounded lists, active rows only (§5, *Lookups (public)*);
 - planned: the public directory's `GET /spaces`, the whole filtered set ([plan](../plans/v1-mvp.md#public-directory)).
 
 ## 5. Endpoints
@@ -170,6 +171,19 @@ The spaces a signed-in user works at, as owner or reception ([ADR 0009](../archi
   }
   ```
 - **Errors:** `unauthorized` (401) without a valid access token; `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending.
+
+### Lookups (public)
+
+#### `GET /lookups` · 🌐
+- **200:** `LookupsCatalogue` (`@masaha/shared/lookups`): what a form or a filter may offer, in both languages. Not paginated (§4).
+
+  ```ts
+  LookupsCatalogue = {
+    governorates: { id, nameAr, nameEn, areas: { id, nameAr, nameEn }[] }[],   // active only, each list in order
+    amenities: { id, key, nameAr, nameEn, icon: AmenityIconKey, isFilterable: boolean }[]   // active only, in order
+  }
+  ```
+  A hidden governorate is left out with all its areas, whatever their own flags; a hidden area and a retired amenity are left out.
 
 ### Lookups (the admin)
 

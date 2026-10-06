@@ -22,9 +22,12 @@ import {
   createAmenitiesService,
   createAreasController,
   createAreasService,
+  createCatalogueController,
+  createCatalogueService,
   createGovernoratesController,
   createGovernoratesService,
   createLookupsAdminRouter,
+  createLookupsPublicRouter,
   createLookupsService,
 } from './modules/lookups/index.ts';
 import {
@@ -173,6 +176,7 @@ export function createApi({
   const governorates = createGovernoratesService({ runInTransaction, audit: writeAudit });
   const areas = createAreasService({ runInTransaction, audit: writeAudit });
   const amenities = createAmenitiesService({ runInTransaction, audit: writeAudit });
+  const catalogue = createCatalogueService();
   const spaces = createSpacesService();
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const auth = createAuthService({
@@ -201,6 +205,7 @@ export function createApi({
     createAuthRouter(createAuthController(auth, cookies, recoveryCookie), webOrigin),
   );
   api.use('/me', createUsersMeRouter(createUsersController(users, cookies), requireAuth));
+  api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
   api.use(
     '/manage/spaces',
     createSpaceLinksMeRouter(createSpaceLinksController(spaceLinks), requireAuth),

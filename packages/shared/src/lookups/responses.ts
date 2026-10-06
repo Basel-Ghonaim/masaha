@@ -36,3 +36,38 @@ export interface AdminAmenity {
   /** Offered in the directory's filter. */
   isFilterable: boolean;
 }
+
+// The public catalogue (GET /lookups): only what is active, in order, for the forms and the
+// directory's filters.
+
+/** An active area, as the forms offer it. */
+export interface CatalogueArea {
+  id: number;
+  nameAr: string;
+  nameEn: string;
+}
+
+/** An active governorate with its active areas, in order. */
+export interface CatalogueGovernorate {
+  id: number;
+  nameAr: string;
+  nameEn: string;
+  areas: CatalogueArea[];
+}
+
+/** An active amenity. */
+export interface CatalogueAmenity {
+  id: number;
+  key: string;
+  nameAr: string;
+  nameEn: string;
+  icon: AmenityIconKey;
+  /** Offered in the directory's filter. */
+  isFilterable: boolean;
+}
+
+/** The active lookups, both languages, each list in order. */
+export interface LookupsCatalogue {
+  governorates: CatalogueGovernorate[];
+  amenities: CatalogueAmenity[];
+}
