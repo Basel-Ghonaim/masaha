@@ -42,12 +42,9 @@ describe('useResendLinkForm', () => {
   it('offers the resend once the window has ended', async () => {
     const { result } = renderResend(1);
 
-    await waitFor(
-      () => {
-        expect(result.current.label).toBe('Resend');
-      },
-      { timeout: 2500 },
-    );
+    await waitFor(() => {
+      expect(result.current.label).toBe('Resend');
+    });
     expect(result.current.disabled).toBe(false);
   });
 
