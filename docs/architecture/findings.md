@@ -322,6 +322,8 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 
 **Resolves when:** the helper moves to `shared/auth`, beside `requireAuth`, and both controllers use it, in an item allowed to touch both modules.
 
+*Progress (2026-10-05, S2a-1):* the helper exists in `shared/auth` (`signedIn`), and the `lookups` controllers use it. The two old copies remain.
+
 ## 26. `npm run format -- --check` rewrites files
 
 **Status:** Open · **Date:** 2026-10-04
@@ -353,3 +355,19 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 **Evidence:** the web's dev server listens on port 5320 and forwards `/api` to `http://localhost:3320`, both fixed in `apps/web/vite.config.ts` ([setup › Commands](../development/setup.md#commands)). Each folder's API reads its own `apps/api/.env`, whose `CORS_ORIGIN` names `http://localhost:5320`, and the password routes, refresh and logout refuse a request whose `Origin` is not that one ([security.md](../backend/security.md#tokens-and-cookies)). So a second folder, such as the `masaha-b` worktree, cannot run its web and its API beside the first: its API on another port is never reached by its web's proxy, and its web on another port is refused by its API. On F-5b3c2, port 5320 was already taken by another dev server; the recovery pages were checked by hand with Vite on 5330 and the API started with a one-off `CORS_ORIGIN=http://localhost:5330`, both outside any script or document.
 
 **Resolves when:** a folder can run its web and its API on ports of its own, set in its own environment, and setup.md says how.
+
+## 30. A lookup's English name is not unique
+
+**Status:** Open · **Date:** 2026-10-05
+
+**Evidence:** the admin's lookups answer a duplicate name with 409 `not_unique` only where the database holds a unique key: a governorate's Arabic name, an area's Arabic name within its governorate, and an amenity's key, derived from its English name ([api-contract §5](../api/api-contract.md#5-endpoints), S2a-1). A governorate's or an area's English name, and an amenity's Arabic name, may repeat another's. So may an amenity's English name once it is edited, since only the key it yielded when the amenity was added is unique. A check in the service alone would race without a constraint, and the item changed no schema.
+
+**Resolves when:** a migration adds the missing unique keys (each English name as its Arabic one is keyed, and an amenity's Arabic name), and the endpoints answer them with `not_unique`; or the owner accepts the repeats.
+
+## 31. The backend documents still call for injecting a repository only tests pass
+
+**Status:** Open · **Date:** 2026-10-05
+
+**Evidence:** [conventions §2](../backend/conventions.md#2-layers) wires dependencies by factory functions with defaults, `createService(repo = createRepository(), …)`, so that "tests pass plain-object fakes"; [R8](../backend/conventions.md#8-module-rules) unit-tests service logic with such fakes; and [testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 3, says "inject the repository". The owner's rule is that no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2): a repository parameter that only tests pass breaks it. The older services (`users`, `sessions`, `space-links`, `spaces`, `lookups`' `areaNamesFor`) still follow §2. The admin's lookups services (S2a-1) no longer do: each creates its repository, its logic is unit-tested in pure helpers, and the services are proven by the API lane on the real database.
+
+**Resolves when:** a docs item aligns conventions §2 and R8 and testing §3 with the rule; the older services follow in the planned refactor.

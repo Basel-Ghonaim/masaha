@@ -1,7 +1,8 @@
 import type { Role, SpaceManagerRole } from '../../generated/prisma/enums.ts';
 
 // The permission table of ADR 0002 and ADR 0009: every protected action and the one rule that
-// decides it. Services call can(); no role check lives anywhere else.
+// decides it. Services call can() for actions on a resource; the one other role check is
+// requireRole, which guards the /admin prefix by the global role.
 
 /** Who is acting: the signed-in user, from the access token. */
 export interface Actor {

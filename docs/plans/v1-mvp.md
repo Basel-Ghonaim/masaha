@@ -242,6 +242,8 @@ Built: `GET /manage/spaces`, the spaces the caller has an active link to, with t
 | GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | |
 
 #### Admin (`/admin/...`, 🛡)
+Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order ([api-contract §5](../api/api-contract.md#5-endpoints)).
+
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/admin/stats` | aggregate numbers only |
@@ -252,7 +254,6 @@ Built: `GET /manage/spaces`, the spaces the caller has an active link to, with t
 | GET / PATCH | `/admin/users[/:userId]` | search; suspend; change role |
 | POST | `/admin/users/:userId/temporary-password` | recovery for a user who lost access to their email; must change at first sign-in |
 | GET / PATCH | `/admin/data-reports[/:id]` | read all; resolve (with an optional note) or dismiss those of unverified spaces |
-| CRUD | `/admin/governorates`, `/admin/areas`, `/admin/amenities` | bilingual lookups; hide and restore with the active flag |
 | GET | `/admin/audit-log` | |
 | GET / PATCH | `/admin/settings` | contact info, defaults |
 

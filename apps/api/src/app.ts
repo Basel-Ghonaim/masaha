@@ -17,7 +17,16 @@ import {
   type EmailSender,
   type GoogleIdentity,
 } from './modules/auth/index.ts';
-import { createLookupsService } from './modules/lookups/index.ts';
+import {
+  createAmenitiesController,
+  createAmenitiesService,
+  createAreasController,
+  createAreasService,
+  createGovernoratesController,
+  createGovernoratesService,
+  createLookupsAdminRouter,
+  createLookupsService,
+} from './modules/lookups/index.ts';
 import {
   createRecoveryCookie,
   createSessionCookies,
@@ -34,7 +43,13 @@ import {
   createUsersMeRouter,
   createUsersService,
 } from './modules/users/index.ts';
-import { createAccessTokens, createRequireAuth, readAccessToken } from './shared/auth/index.ts';
+import { writeAudit } from './shared/audit/index.ts';
+import {
+  createAccessTokens,
+  createRequireAuth,
+  readAccessToken,
+  requireRole,
+} from './shared/auth/index.ts';
 import { errorHandler, notFoundHandler } from './shared/errors/index.ts';
 import { requestLogger } from './shared/http/index.ts';
 import {
@@ -155,6 +170,9 @@ export function createApi({
   const sessions = createSessionsService({ now: clock });
   const users = createUsersService({ accessTokens, limiter, sessions, runInTransaction });
   const lookups = createLookupsService();
+  const governorates = createGovernoratesService({ runInTransaction, audit: writeAudit });
+  const areas = createAreasService({ runInTransaction, audit: writeAudit });
+  const amenities = createAmenitiesService({ runInTransaction, audit: writeAudit });
   const spaces = createSpacesService();
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const auth = createAuthService({
@@ -187,6 +205,17 @@ export function createApi({
     '/manage/spaces',
     createSpaceLinksMeRouter(createSpaceLinksController(spaceLinks), requireAuth),
   );
+
+  // The platform's routes: guarded once here, so no module's admin router can leave it out.
+  const admin = Router();
+  admin.use(
+    createLookupsAdminRouter({
+      governorates: createGovernoratesController(governorates),
+      areas: createAreasController(areas),
+      amenities: createAmenitiesController(amenities),
+    }),
+  );
+  api.use('/admin', requireAuth(), requireRole('ADMIN'), admin);
   return api;
 }
 
