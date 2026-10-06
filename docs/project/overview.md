@@ -1,6 +1,6 @@
 # Project Overview
 
-> **Status:** Active · **Last Updated:** 2026-09-29 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** What Masaha is, what is built today, what v1 is committed to, and what is explicitly not in v1. It names scope; it does not specify behaviour.
 
 ## What Masaha is
@@ -13,7 +13,12 @@ A bilingual (Arabic RTL / English), fully responsive web platform for coworking 
 
 ## Built
 
-Nothing yet. This section lists a capability only once it is merged and working.
+This section lists a capability only once it is merged and working.
+
+### Authentication
+- Register with name, email and password, and sign in with email and password, or with Google, which links an existing account only where Google is the authority for its email ([security.md](../backend/security.md#sign-in-methods)).
+- Stay signed in across reloads, and sign out ([ADR 0003](../architecture/decisions/0003-session-model.md)).
+- Reset a forgotten password by an email link ([ADR 0017](../architecture/decisions/0017-recovery-session.md)), and change a temporary password before any other page. The admin's screen that issues a temporary password is not built yet.
 
 ## Committed scope — v1
 
