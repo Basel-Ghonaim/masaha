@@ -48,7 +48,7 @@ All commands run from the repository root.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Starts the web app's Vite dev server at `http://localhost:5320` (it stops if the port is taken), forwarding `/api` to the API on port 3320, so the web and the API share one origin ([ADR 0014](../architecture/decisions/0014-deployment.md)) |
+| `npm run dev` | Starts the web app's Vite dev server at `http://localhost:5320` (it stops if the port is taken), forwarding `/api` to the API on port 3320, so the web and the API share one origin ([ADR 0014](../architecture/decisions/0014-deployment.md)). A folder can set other ports ([The web](#the-web)) |
 | `npm run build` | Builds every workspace, `packages/shared` first because the API compiles against its `dist` (`packages/shared/dist`, `apps/api/dist`, `apps/web/dist`) |
 | `npm run lint` | ESLint over the whole repository |
 | `npm run typecheck` | TypeScript in every workspace |
@@ -108,9 +108,19 @@ The seed only **creates what is missing**. It never changes an existing row, so 
 
 ## The web
 
-The web needs no settings to run. Its one optional setting is read at build time from `apps/web/.env` (copy [`apps/web/.env.example`](../../apps/web/.env.example); never committed). Vite reads it when it starts, so restart `npm run dev` after a change.
+The web needs no settings to run. Its optional settings are read from `apps/web/.env` (copy [`apps/web/.env.example`](../../apps/web/.env.example); never committed). Vite reads it when it starts, so restart `npm run dev` after a change.
+
+- `WEB_PORT` (default 5320) and `API_PROXY_TARGET` (default `http://localhost:3320`) set the development server's port and the API it forwards `/api` to. They carry no `VITE_` prefix, so they never reach the browser.
 
 - `VITE_GOOGLE_CLIENT_ID` turns on Google sign-in. It must be **the same client id** as the API's `GOOGLE_CLIENT_ID` (below), whose Google Cloud OAuth client lists `http://localhost:5320` as an authorised JavaScript origin. Without it, the sign-in and register pages show no Google button. A Google answer from a client whose id the API does not hold is refused as `GOOGLE_TOKEN_INVALID`.
+
+### Running a second folder
+
+A second folder, such as a worktree, runs its web and its API beside the first on ports of its own, each set in that folder's own `.env` files, never committed:
+- `apps/api/.env`: its `PORT`, and `CORS_ORIGIN` naming its web, for example `3321` and `http://localhost:5321`;
+- `apps/web/.env`: `WEB_PORT=5321` and `API_PROXY_TARGET=http://localhost:3321`.
+
+Google sign-in there also needs that origin listed on the OAuth client. When done, stop both servers and check that their ports are free: on Windows, a `tsx watch` API can survive Ctrl+C.
 
 ## The API
 
