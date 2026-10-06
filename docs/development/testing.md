@@ -54,4 +54,4 @@ A feature's logic lives in its hooks, and its components only render ([frontend 
 
 ## 5. CI gate
 
-GitHub Actions on every PR: `lint` · `typecheck` · `check:classes` · `test:unit` · `test:component` · `build` (then `check:build`) · `test:api` (with a PostgreSQL service). E2E runs locally before a release; the PR states whether it was run.
+GitHub Actions runs every lane and check on every PR, as [setup › CI](setup.md#ci) lists them. E2E runs locally before a release; the PR states whether it was run.

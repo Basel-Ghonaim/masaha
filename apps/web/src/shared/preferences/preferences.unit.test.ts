@@ -167,7 +167,11 @@ describe('another tab', () => {
 
     fake.otherTabWrites(null, null);
 
-    expect(getPreferences()).toMatchObject({ language: 'en', themeChoice: 'system', theme: 'light' });
+    expect(getPreferences()).toMatchObject({
+      language: 'en',
+      themeChoice: 'system',
+      theme: 'light',
+    });
   });
 
   it.each([
@@ -212,7 +216,11 @@ describe('blocked storage', () => {
     setLanguage('en');
     setTheme('light');
 
-    expect(getPreferences()).toMatchObject({ language: 'en', themeChoice: 'light', theme: 'light' });
+    expect(getPreferences()).toMatchObject({
+      language: 'en',
+      themeChoice: 'light',
+      theme: 'light',
+    });
     expect(fake.root).toMatchObject({ lang: 'en', dir: 'ltr', dataset: { theme: 'light' } });
   });
 });
