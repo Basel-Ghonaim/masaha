@@ -1,4 +1,5 @@
 import { getSession, onSessionEstablished } from '@shared/session';
+import { useQueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
@@ -66,14 +67,18 @@ describe('useSignIn', () => {
     expect(established).not.toHaveBeenCalled();
   });
 
-  it('still holds the session when the page unmounts before the answer', async () => {
+  it('still holds the session when the page unmounts before the answer, and keeps no password once it is answered', async () => {
     const answer = deferred<FakeAnswer>();
     fakeTransport(() => answer.promise);
     const sources = recordSessions();
-    const { result, unmount } = renderHook(() => useSignIn(), { wrapper: queryWrapper() });
+    const { result, unmount } = renderHook(
+      () => ({ submit: useSignIn(), mutations: useQueryClient().getMutationCache() }),
+      { wrapper: queryWrapper() },
+    );
+    const { mutations } = result.current;
 
     act(() => {
-      result.current.mutate(REQUEST);
+      result.current.submit.mutate(REQUEST);
     });
     unmount();
     answer.resolve(ok(aSession({}, 'token-late')));
@@ -82,5 +87,8 @@ describe('useSignIn', () => {
       expect(sources).toEqual(['signIn']);
     });
     expect(getSession()).toMatchObject({ status: 'authenticated', accessToken: 'token-late' });
+    await waitFor(() => {
+      expect(mutations.getAll()).toEqual([]);
+    });
   });
 });

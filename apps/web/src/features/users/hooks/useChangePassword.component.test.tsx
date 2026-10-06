@@ -1,5 +1,6 @@
 import { Toaster, toast } from '@shared/design-system';
 import { establishSession, getSession } from '@shared/session';
+import { useQueryClient } from '@tanstack/react-query';
 import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../test/fakeAdapter';
@@ -50,13 +51,17 @@ describe('useChangePassword', () => {
     });
   });
 
-  it('still renews the session when the page unmounts before the answer', async () => {
+  it('still renews the session when the page unmounts before the answer, and keeps no password once it is answered', async () => {
     const answer = deferred<FakeAnswer>();
     fakeTransport(() => answer.promise);
-    const { result, unmount } = renderHook(() => useChangePassword(), { wrapper: queryWrapper() });
+    const { result, unmount } = renderHook(
+      () => ({ change: useChangePassword(), mutations: useQueryClient().getMutationCache() }),
+      { wrapper: queryWrapper() },
+    );
+    const { mutations } = result.current;
 
     act(() => {
-      result.current.mutate(REQUEST);
+      result.current.change.mutate(REQUEST);
     });
     unmount();
     answer.resolve(ok({ accessToken: 'token-late' }));
@@ -66,6 +71,9 @@ describe('useChangePassword', () => {
         accessToken: 'token-late',
         user: { mustChangePassword: false },
       });
+    });
+    await waitFor(() => {
+      expect(mutations.getAll()).toEqual([]);
     });
   });
 

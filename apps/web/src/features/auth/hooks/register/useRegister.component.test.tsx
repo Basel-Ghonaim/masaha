@@ -1,5 +1,6 @@
 import { Toaster, toast } from '@shared/design-system';
 import { getSession, onSessionEstablished } from '@shared/session';
+import { useQueryClient } from '@tanstack/react-query';
 import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
@@ -75,14 +76,18 @@ describe('useRegister', () => {
     expect(established).not.toHaveBeenCalled();
   });
 
-  it('still holds the session when the page unmounts before the answer', async () => {
+  it('still holds the session when the page unmounts before the answer, and keeps no password once it is answered', async () => {
     const answer = deferred<FakeAnswer>();
     fakeTransport(() => answer.promise);
     const sources = recordSessions();
-    const { result, unmount } = renderHook(() => useRegister(), { wrapper: queryWrapper() });
+    const { result, unmount } = renderHook(
+      () => ({ submit: useRegister(), mutations: useQueryClient().getMutationCache() }),
+      { wrapper: queryWrapper() },
+    );
+    const { mutations } = result.current;
 
     act(() => {
-      result.current.mutate(REQUEST);
+      result.current.submit.mutate(REQUEST);
     });
     unmount();
     answer.resolve(ok(aSession({}, 'token-late-new'), 201));
@@ -91,5 +96,8 @@ describe('useRegister', () => {
       expect(sources).toEqual(['signIn']);
     });
     expect(getSession()).toMatchObject({ status: 'authenticated', accessToken: 'token-late-new' });
+    await waitFor(() => {
+      expect(mutations.getAll()).toEqual([]);
+    });
   });
 });
