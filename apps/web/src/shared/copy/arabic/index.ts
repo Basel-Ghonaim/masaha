@@ -3,6 +3,7 @@ import { AUTH } from './auth';
 import { DASHBOARD } from './dashboard';
 import { ERRORS } from './errors';
 import { FORMS } from './forms';
+import { LOOKUPS } from './lookups';
 import { PREFERENCES } from './preferences';
 import { SITE } from './site';
 import { SPACE_LINKS } from './spaceLinks';
@@ -17,6 +18,7 @@ export const ARABIC = {
   dashboard: DASHBOARD,
   errors: ERRORS,
   forms: FORMS,
+  lookups: LOOKUPS,
   preferences: PREFERENCES,
   site: SITE,
   spaceLinks: SPACE_LINKS,

@@ -164,6 +164,21 @@ describe("the dashboard's navigation", () => {
     expect(await topBarTitle()).toHaveTextContent('Overview');
   });
 
+  it('shows the admin the lookups page: its title in the top bar, and the governorates', async () => {
+    signIn({ role: 'ADMIN' });
+    fakeTransport(({ url }) =>
+      ok(
+        url === '/admin/governorates'
+          ? [{ id: 2, nameAr: 'محافظة غزة', nameEn: 'Gaza City', isActive: true, areas: [] }]
+          : [],
+      ),
+    );
+    renderDashboard('/dashboard/admin/lookups');
+
+    expect(await topBarTitle()).toHaveTextContent('Lookups');
+    expect(await screen.findByRole('heading', { name: 'Gaza City', level: 2 })).toBeInTheDocument();
+  });
+
   it('links each page below its branch', async () => {
     asOwner();
     renderDashboard('/dashboard/spaces/7');

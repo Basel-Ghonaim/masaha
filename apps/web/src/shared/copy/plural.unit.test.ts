@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { ARABIC } from './arabic';
+import { ENGLISH } from './english';
 import { arabicPlural, englishPlural } from './plural';
 
 // Each form names its own category, so a test reads which one a count takes.
@@ -38,5 +40,28 @@ describe('englishPlural', () => {
     [11, 'other'],
   ])('gives %i its %s form', (count, form) => {
     expect(englishPlural(count, { one: 'one', other: 'other' })).toBe(form);
+  });
+});
+
+describe('the count of areas, the first counted line', () => {
+  it.each([
+    [0, 'لا مناطق'],
+    [1, 'منطقة واحدة'],
+    [2, 'منطقتان'],
+    [3, '3 مناطق'],
+    [10, '10 مناطق'],
+    [11, '11 منطقة'],
+    [99, '99 منطقة'],
+    [100, '100 منطقة'],
+    [102, '102 منطقة'],
+  ])('reads %i in Arabic as «%s»', (count, line) => {
+    expect(ARABIC.lookups.governorates.areaCount({ count })).toBe(line);
+  });
+
+  it.each([
+    [1, '1 area'],
+    [11, '11 areas'],
+  ])('reads %i in English as "%s"', (count, line) => {
+    expect(ENGLISH.lookups.governorates.areaCount({ count })).toBe(line);
   });
 });
