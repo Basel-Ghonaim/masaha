@@ -292,7 +292,7 @@ TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004
   - `['me', …]` for the signed-in user's own;
   - `['public', …]` for the public site's;
   - `['admin', '<capability>', …]` for the admin's views of the platform's data, such as the lookups with their hidden rows: never the public's, whose lists leave those out.
-- **Invalidation:** each feature invalidates only its own keys. `desk`'s operations span several capabilities, so they invalidate the whole `['space', spaceId]` prefix, without importing the other features.
+- **Invalidation:** each feature invalidates only its own keys. `desk`'s operations span several capabilities, so they invalidate the whole `['space', spaceId]` prefix, without importing the other features. A write whose screen shows the list it changes returns that invalidation from its `onSuccess`, so it stays pending until the list has arrived again: its controls wait for the server's answer, and the next action starts from the server's list (the admin's lookups).
 - **Retries live in one place, the transport.** TanStack Query's own `retry` is off, for queries and mutations, so attempts never multiply:
   - a `GET`, so every query, is retried;
   - a mutation is retried only when it carries an idempotency key ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). The key is generated once per user action and reused on every retry of it;

@@ -17,5 +17,15 @@ export const LOOKUPS = {
   row: {
     /** The badge of a hidden governorate or area. */
     hidden: 'Hidden',
+    /** A row's switch: on while it is shown. */
+    shown: ({ name }: { name: string }) => `Shown: ${name}`,
+    moveUp: ({ name }: { name: string }) => `Move up: ${name}`,
+    moveDown: ({ name }: { name: string }) => `Move down: ${name}`,
+  },
+  /** An action on a row that failed, inside its governorate's card. */
+  failure: {
+    title: 'The change wasn’t saved',
+    /** An order set on a list that changed meanwhile, which is shown again as it now stands. */
+    orderChanged: 'The order changed meanwhile; the new order is shown. Try again.',
   },
 } as const;

@@ -1,5 +1,6 @@
 import type { AdminGovernorateWithAreas } from '@masaha/shared/lookups';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
@@ -29,7 +30,7 @@ const RAFAH: AdminGovernorateWithAreas = {
 };
 
 /** The section, with the governorates answered by `answer`. */
-function renderSection(answer: () => FakeAnswer | Promise<FakeAnswer>) {
+function renderSection(answer: Parameters<typeof fakeTransport>[0] = () => ok([GAZA, RAFAH])) {
   fakeTransport(answer);
   const Wrapper = queryWrapper();
   return render(
@@ -38,6 +39,9 @@ function renderSection(answer: () => FakeAnswer | Promise<FakeAnswer>) {
     </Wrapper>,
   );
 }
+
+/** A name with the Unicode isolates around its inserted values removed, as a reader hears it. */
+const heard = (expected: string) => (name: string) => name.replace(/[⁦-⁩]/g, '') === expected;
 
 /** A governorate's card, found by its heading. */
 async function cardOf(name: string) {
@@ -78,6 +82,74 @@ describe('GovernoratesSection', () => {
     expect(within(rafah).getAllByText('0 areas')).toHaveLength(1);
     expect(within(rafah).queryByRole('list')).not.toBeInTheDocument();
     expect(within(await cardOf('Gaza City')).getAllByText('Hidden')).toHaveLength(1);
+  });
+
+  it('names each row’s arrows and switch after it', async () => {
+    renderSection();
+
+    const gaza = await cardOf('Gaza City');
+    expect(
+      within(gaza).getByRole('button', { name: heard('Move up: Gaza City') }),
+    ).toBeInTheDocument();
+    expect(
+      within(gaza).getByRole('button', { name: heard('Move down: Al-Rimal') }),
+    ).toBeInTheDocument();
+    expect(within(gaza).getByRole('switch', { name: heard('Shown: Al-Rimal') })).toBeChecked();
+    expect(
+      within(gaza).getByRole('switch', { name: heard('Shown: Ash-Shuja’iyya') }),
+    ).not.toBeChecked();
+    expect(
+      within(await cardOf('Rafah')).getByRole('switch', { name: heard('Shown: Rafah') }),
+    ).not.toBeChecked();
+  });
+
+  it('shows a failed action inside its card, above the areas', async () => {
+    renderSection((request) =>
+      request.method === 'get' ? ok([GAZA, RAFAH]) : refused(404, { type: 'not_found' }),
+    );
+    const gaza = await cardOf('Gaza City');
+
+    await userEvent.click(within(gaza).getByRole('switch', { name: heard('Shown: Al-Rimal') }));
+
+    const alert = await within(gaza).findByRole('alert');
+    expect(alert).toHaveTextContent('The change wasn’t saved');
+    expect(alert.compareDocumentPosition(within(gaza).getByRole('list'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(within(await cardOf('Rafah')).queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps the keyboard on the row it moves: the arrow waits focused, then the focus follows the row', async () => {
+    let list = [GAZA, RAFAH];
+    const answered = deferred<FakeAnswer>();
+    renderSection((request) => (request.method === 'get' ? ok(list) : answered.promise));
+    const gaza = await cardOf('Gaza City');
+    const down = within(gaza).getByRole('button', { name: heard('Move down: Al-Rimal') });
+
+    down.focus();
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(down).toHaveAttribute('aria-disabled', 'true');
+    });
+    expect(down).toHaveFocus();
+
+    list = [{ ...GAZA, areas: [...GAZA.areas].reverse() }, RAFAH];
+    answered.resolve({ status: 204 });
+    await waitFor(() => {
+      expect(
+        within(gaza)
+          .getAllByRole('listitem')
+          .map((row) => row.firstElementChild?.textContent),
+      ).toEqual(['Ash-Shuja’iyyaالشجاعيةHidden', 'Al-Rimalالرمال']);
+    });
+    // Now last, the row's down arrow has nothing to do: the focus is on one of its controls.
+    await waitFor(() => {
+      expect(document.activeElement).not.toBe(document.body);
+    });
+    expect(document.activeElement?.getAttribute('aria-label')?.replace(/[⁦-⁩]/g, '')).toMatch(
+      /: Al-Rimal$/,
+    );
   });
 
   it('shows placeholders in a busy status named Loading while the list loads', async () => {

@@ -20,5 +20,12 @@ export const LOOKUPS = {
   },
   row: {
     hidden: 'مخفية',
+    shown: ({ name }: { name: string }) => `ظاهرة: ${name}`,
+    moveUp: ({ name }: { name: string }) => `تحريك لأعلى: ${name}`,
+    moveDown: ({ name }: { name: string }) => `تحريك لأسفل: ${name}`,
+  },
+  failure: {
+    title: 'لم يُحفظ التغيير',
+    orderChanged: 'تغيّر الترتيب في الأثناء، وعُرض الترتيب الجديد. حاول مرة أخرى.',
   },
 } satisfies Catalogue['lookups'];

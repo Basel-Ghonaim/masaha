@@ -1,24 +1,33 @@
+import type { AdminArea, AdminGovernorateWithAreas } from '@masaha/shared/lookups';
 import { Badge } from '@shared/design-system';
+import { useAreaRow } from '../../hooks/list/useAreaRow';
+import { RowControls } from './RowControls';
 
-/** An area in its governorate's card: its names, English first, and its badge when hidden. */
-export function AreaRow({
-  area,
-  hiddenLabel,
-}: {
-  area: { nameEn: string; nameAr: string; hidden: boolean };
-  hiddenLabel: string;
+/**
+ * An area in its governorate's card: its names, English first, its badge when hidden, and its
+ * controls, which wrap under the names on a narrow screen.
+ */
+export function AreaRow(props: {
+  governorate: AdminGovernorateWithAreas;
+  area: AdminArea;
+  index: number;
+  /** Its card waits out a 429. */
+  blocked: boolean;
 }) {
+  const row = useAreaRow(props);
+
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2">
       <span className="flex min-w-0 grow flex-wrap items-baseline gap-x-2">
-        <span lang="en" dir="auto" className={area.hidden ? 'text-muted-foreground' : undefined}>
-          {area.nameEn}
+        <span lang="en" dir="auto" className={row.hidden ? 'text-muted-foreground' : undefined}>
+          {row.nameEn}
         </span>
         <span lang="ar" dir="auto" className="text-caption text-muted-foreground">
-          {area.nameAr}
+          {row.nameAr}
         </span>
-        {area.hidden && <Badge variant="warning">{hiddenLabel}</Badge>}
+        {row.hidden && <Badge variant="warning">{row.hiddenLabel}</Badge>}
       </span>
+      <RowControls controls={row.controls} />
     </li>
   );
 }
