@@ -432,3 +432,19 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 **Evidence:** a space's fact groups are dated when the space is created (S2b-1), so a new space has hours, prices, amenities and contacts that are all "up to date" while it has none of them yet. The admin's spaces list shows such a space as fresh, and its "stale only" filter leaves it out, until each group has been empty for its threshold (30 days for the prices, 60 for the others). Staleness is computed only from the dates ([data-model › Derived values](data-model.md#derived-values-computed-not-stored)).
 
 **Resolves when:** the slice that builds the facts weighs whether an empty group counts as stale, missing, or fresh, and the list and the data model say so.
+
+## 37. Links between documents are checked by hand
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** the documents link each other by file and heading, and the capability documents add many such links ([documentation rules §8](documentation.md#8-link-integrity)). A heading renamed, or a section moved, breaks every link to it without any check failing: nothing in CI reads the links of `docs/`, `CLAUDE.md` or the skills. The feature documents' effort checked them by hand, with a search for each anchor.
+
+**Resolves when:** a link checker runs in CI over those files, files and headings both (a new dependency and a CI change, the owner's to approve); or the owner accepts the checks by hand.
+
+## 38. The findings are one file
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** this file is the largest document in `docs/` (about 7,600 words, 37 entries before this one), and a reader looking for one finding opens all of them. One file per finding would let a capability document link a finding that reads alone. Splitting it moves a record with many inbound links, from the documents, the plans and the code's comments, so it was kept out of the feature documents' effort.
+
+**Resolves when:** each finding moves to a file of its own in one folder, with every inbound link repointed in the same PR; or the owner accepts one file.

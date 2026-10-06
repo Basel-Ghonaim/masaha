@@ -4,16 +4,16 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
 
 ## Rules for this set
 
-- **One owner per fact.** If you would copy more than a sentence, link instead.
-- **Code is the source of truth** for what the system does; documents hold intent and the *why*.
-- **Claim only what is true.** Unbuilt things are never described as built; committed scope lives only in [project/overview.md](project/overview.md).
-- **Documents change in the same PR as the code** that changes them ([workflow §7](development/workflow.md)).
+Where each fact lives, what each kind of document may contain, and the classes are owned by [architecture/documentation.md](architecture/documentation.md); when a document is updated, by [workflow §7](development/workflow.md#7-documentation-update-triggers).
 
 ## The map
 
 ### `project/` — what the product is
 - [overview.md](project/overview.md) — what Masaha is, what is built, committed v1 scope, and *Not in v1*.
 - [glossary.md](project/glossary.md) — the canonical vocabulary (English and Arabic).
+
+### `features/` — one document per capability
+Read a capability's document first when changing it; it links the platform sections it uses ([the rules](architecture/documentation.md#5-capability-documents)).
 
 ### `architecture/` — how the system fits together
 - [system-overview.md](architecture/system-overview.md) — the running system's parts, and one request traced from the web to the database and back; it links to each part's owner.
@@ -36,6 +36,8 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
   - [0015](architecture/decisions/0015-idempotency-and-concurrency.md) idempotency and concurrency: idempotency keys, read committed, the database owns the ledger's rules
   - [0016](architecture/decisions/0016-dashboard-urls.md) dashboard URLs: the selected space is in the URL
   - [0017](architecture/decisions/0017-recovery-session.md) the recovery session: the server holds where a password recovery stands
+  - [0018](architecture/decisions/0018-capability-documents.md) capability documents own each capability's application of the platform
+- [documentation.md](architecture/documentation.md) — the documentation rules: one home per fact, what each kind of document owns, the classes, the capability documents' template, link integrity.
 - [shared-package.md](architecture/shared-package.md) — `packages/shared`, the web–API contract in code: its structure by capability and its rules.
 - [findings.md](architecture/findings.md) — recorded divergences from the intended design.
 
