@@ -1,7 +1,6 @@
 import type { AmenityIconKey } from '@masaha/shared/lookups';
-import { z } from 'zod';
 
-import { VisitRounding } from '../../generated/prisma/enums.ts';
+import type { NewSpaceDefaults } from '../../modules/platform-settings/index.ts';
 
 // The lookups every environment starts with: the owner's list of the Gaza Strip's governorates and
 // areas (confirmed 2026-09-28) and the amenity list, in both languages. Order is display order.
@@ -124,26 +123,6 @@ export const AMENITIES = [
     icon: 'graduation-cap',
   },
 ] as const satisfies readonly AmenitySeed[];
-
-/**
- * The defaults a new space's settings are copied from (docs/backend/conventions.md › New-space
- * defaults). The rounding minutes belong to the "up after N minutes" rule, and only to it.
- * Moves into the platform-settings key catalogue when that module is built.
- */
-export const newSpaceDefaultsSchema = z
-  .object({
-    autoCheckoutAtClosing: z.boolean(),
-    visitRounding: z.enum(VisitRounding),
-    visitRoundingMinutes: z.int().min(1).max(59).nullable(),
-    visitCapAtDayPrice: z.boolean(),
-  })
-  .refine(
-    ({ visitRounding, visitRoundingMinutes }) =>
-      (visitRounding === 'UP_AFTER_MINUTES') === (visitRoundingMinutes !== null),
-    { path: ['visitRoundingMinutes'], message: 'set exactly for the UP_AFTER_MINUTES rule' },
-  );
-
-export type NewSpaceDefaults = z.infer<typeof newSpaceDefaultsSchema>;
 
 /** Platform settings with a default. The contact settings have none: the admin sets them. */
 export const DEFAULT_SETTINGS = {

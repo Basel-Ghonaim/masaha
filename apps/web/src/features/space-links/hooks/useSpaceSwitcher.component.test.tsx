@@ -19,8 +19,8 @@ const NOOK: ManagedSpace = {
   spaceId: 3,
   role: 'RECEPTION',
   slug: 'nook',
-  nameAr: 'ركن',
-  nameEn: null,
+  nameAr: null,
+  nameEn: 'Nook',
   area: { nameAr: 'الرمال', nameEn: 'Al-Rimal' },
 };
 
@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 describe('useSpaceSwitcher', () => {
-  it('words each space in English, an Arabic-only name marked as Arabic', async () => {
+  it('words each space in English by its English name and area', async () => {
     const switcher = await switcherFor(7, [FOCUS, NOOK]);
 
     expect(switcher.spaces).toEqual([
@@ -53,33 +53,38 @@ describe('useSpaceSwitcher', () => {
         nameLanguage: undefined,
         nameDir: undefined,
         area: 'An-Nasr',
+        initial: 'F',
       }),
-      expect.objectContaining({
-        name: 'ركن',
-        nameLanguage: 'ar',
-        nameDir: 'rtl',
-        area: 'Al-Rimal',
-        initial: 'ر',
-      }),
+      expect.objectContaining({ name: 'Nook', nameLanguage: undefined, area: 'Al-Rimal' }),
     ]);
   });
 
-  it('words each space in Arabic by its Arabic name and area', async () => {
-    const switcher = await switcherFor(7, [FOCUS], 'ar');
+  it('words each space in Arabic, an English-only name marked as English', async () => {
+    const switcher = await switcherFor(7, [FOCUS, NOOK], 'ar');
 
-    expect(switcher.current).toMatchObject({
-      name: 'فوكس هب',
-      nameLanguage: undefined,
-      area: 'النصر',
-      initial: 'ف',
-    });
+    expect(switcher.spaces).toEqual([
+      expect.objectContaining({
+        name: 'فوكس هب',
+        nameLanguage: undefined,
+        nameDir: undefined,
+        area: 'النصر',
+        initial: 'ف',
+      }),
+      expect.objectContaining({
+        name: 'Nook',
+        nameLanguage: 'en',
+        nameDir: 'ltr',
+        area: 'الرمال',
+        initial: 'N',
+      }),
+    ]);
   });
 
   it('holds the space in the URL as the current one, named in the trigger', async () => {
     const switcher = await switcherFor(3, [FOCUS, NOOK]);
 
     expect(switcher.current?.spaceId).toBe(3);
-    expect(switcher.triggerLabel).toBe('Switch space: ⁨ركن⁩');
+    expect(switcher.triggerLabel).toBe('Switch space: ⁨Nook⁩');
     expect(switcher.canSwitch).toBe(true);
   });
 

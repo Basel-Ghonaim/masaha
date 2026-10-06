@@ -162,7 +162,7 @@ function roleAt(actor: Actor, space: SpaceResource): SpaceManagerRole | undefine
   return space.links.find((link) => link.userId === actor.id && link.deactivatedAt === null)?.role;
 }
 
-// A RECEPTION link never verifies a space (ADR 0009).
-function isVerified(space: SpaceResource): boolean {
+/** Whether the space has an active OWNER link; a RECEPTION link never verifies it (ADR 0009). */
+export function isVerified(space: SpaceResource): boolean {
   return space.links.some((link) => link.role === 'OWNER' && link.deactivatedAt === null);
 }

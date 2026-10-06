@@ -13,6 +13,8 @@ describe('the lookups service', () => {
         asked.push(ids);
         return Promise.resolve([rimal]);
       },
+      findAreaIdsOf: () => Promise.reject(new Error('not asked here')),
+      isActiveArea: () => Promise.reject(new Error('not asked here')),
     };
 
     await expect(createLookupsService({ repository }).areaNamesFor([4, 9])).resolves.toEqual([

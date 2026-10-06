@@ -20,6 +20,7 @@ export async function createSpace(slug = 'focus-hub') {
   return prisma.space.create({
     data: {
       slug,
+      nameEn: 'Focus Hub',
       nameAr: 'فوكس هاب',
       addressAr: 'غرب المزنر',
       areaId: area.id,

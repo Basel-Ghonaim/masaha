@@ -1,4 +1,4 @@
-export { ACTIONS, can } from './can.ts';
+export { ACTIONS, can, isVerified } from './can.ts';
 export type {
   Action,
   Actor,
@@ -18,3 +18,4 @@ export {
 } from './requireAuth.ts';
 export { requireRole } from './requireRole.ts';
 export { signedIn } from './signedIn.ts';
+export { loadSpaceLinks, spaceOf, type LinksLoader, type LoadedSpace } from './spaceLinks.ts';

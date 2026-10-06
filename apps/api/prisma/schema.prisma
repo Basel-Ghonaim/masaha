@@ -298,13 +298,16 @@ model Space {
   id                 Int       @id @default(autoincrement())
   /// Never reused, including after a soft delete.
   slug               String    @unique
-  nameAr             String    @map("name_ar")
-  nameEn             String?   @map("name_en")
+  /// Optional: most spaces are known by their English name (docs/architecture/data-model.md).
+  nameAr             String?   @map("name_ar")
+  nameEn             String    @map("name_en")
   descriptionAr      String?   @map("description_ar")
   descriptionEn      String?   @map("description_en")
   /// Free text with landmarks.
   addressAr          String    @map("address_ar")
   addressEn          String?   @map("address_en")
+  landmarkAr         String?   @map("landmark_ar")
+  landmarkEn         String?   @map("landmark_en")
   areaId             Int       @map("area_id")
   lat                Float
   lng                Float

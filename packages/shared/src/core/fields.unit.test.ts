@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { emailSchema, textSchema } from './fields.ts';
+import { emailSchema, paragraphSchema, textSchema } from './fields.ts';
 
 const name = textSchema(1, 100);
 
@@ -33,6 +33,36 @@ describe('textSchema', () => {
     expect(name.safeParse('   ').success).toBe(false);
     expect(name.safeParse('x'.repeat(101)).success).toBe(false);
     expect(name.safeParse('x'.repeat(100)).success).toBe(true);
+  });
+});
+
+describe('paragraphSchema', () => {
+  const description = paragraphSchema(1, 20);
+
+  it('keeps line breaks, as line feeds, and trims the whole', () => {
+    expect(description.parse(' Quiet\nDesks ')).toBe('Quiet\nDesks');
+    expect(description.parse('Quiet\r\nDesks')).toBe('Quiet\nDesks');
+    expect(description.parse('Cafe\u0301')).toBe('Caf\u00e9');
+  });
+
+  it.each([
+    ['a lone carriage return', 'Quiet\rDesks'],
+    ['a tab', 'Quiet\tDesks'],
+    ['a null', 'Quiet\u0000'],
+    ['a line separator', 'Quiet\u2028Desks'],
+    ['a paragraph separator', 'Quiet\u2029Desks'],
+    ['a bidirectional override', 'Quiet\u202E'],
+  ])('refuses %s', (_case, text) => {
+    expect(description.safeParse(text).error?.issues[0]).toMatchObject({
+      code: 'custom',
+      params: { code: 'invalid_format' },
+    });
+  });
+
+  it('holds the length after normalising the breaks', () => {
+    expect(description.safeParse(`${'x'.repeat(9)}\r\n${'x'.repeat(10)}`).success).toBe(true);
+    expect(description.safeParse('x'.repeat(21)).success).toBe(false);
+    expect(description.safeParse(' \n ').success).toBe(false);
   });
 });
 

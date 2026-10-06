@@ -15,7 +15,12 @@ export interface Passwords {
 }
 import { PASSWORD_CHANGE } from './users.limits.ts';
 import { toUserView } from './users.mapper.ts';
-import { createUsersRepository, type Account, type UsersRepository } from './users.repository.ts';
+import {
+  createUsersRepository,
+  type Account,
+  type UserName,
+  type UsersRepository,
+} from './users.repository.ts';
 
 interface Dependencies {
   accessTokens: AccessTokens;
@@ -223,6 +228,11 @@ export function createUsersService({
     },
 
     get,
+
+    /** The names of these users, in one query, for a list that names them (the spaces' owners). */
+    namesFor(ids: readonly number[], tx?: Tx): Promise<UserName[]> {
+      return repository.findNames(ids, tx);
+    },
 
     /** The account with this email, if there is one. */
     async findByEmail(email: string, tx?: Tx): Promise<Account | null> {

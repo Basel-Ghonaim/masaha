@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-01 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -201,13 +201,14 @@ Built: `POST /me/password`, the password change and the forced change at first s
 | GET | `/me/reports` | 👤 with the resolution note |
 
 #### Public directory
+Built: `GET /lookups`, the active governorates with their active areas and the active amenities ([api-contract §5](../api/api-contract.md#5-endpoints)).
+
 | Method | Path | Access | Notes |
 |---|---|---|---|
 | GET | `/spaces` | 🌐 | filters: `area`, `priceMin`, `priceMax`, `period`, `amenities` (the filterable ones), `studentPrices`, `openFriday`, `verified`, `availableNow` (live status `AVAILABLE`), `q`; sort. Returns the **whole filtered set in one request**, unpaginated (an exception to [api-contract §4](../api/api-contract.md#4-pagination); the directory holds tens of spaces): the map uses it, and with «الأقرب إليّ» the device sorts it by distance. Takes **no location** |
 | GET | `/spaces/:slug` | 🌐 | full public profile incl. announcements and freshness; never capacity |
 | GET | `/spaces/:slug/occupancy` | 🌐 | `{ status: "AVAILABLE" \| "FULL" \| "CLOSED" }`, never counts ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)) — verified spaces only |
 | POST | `/spaces/:slug/reports` | 👤 | report wrong information |
-| GET | `/lookups` | 🌐 | active governorates with their active areas, and active amenities, both languages |
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
@@ -242,13 +243,12 @@ Built: `GET /manage/spaces`, the spaces the caller has an active link to, with t
 | GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | |
 
 #### Admin (`/admin/...`, 🛡)
-Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order ([api-contract §5](../api/api-contract.md#5-endpoints)).
+Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile edit while it is unverified, and hiding and showing, soft delete and restore of any space ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/admin/stats` | aggregate numbers only |
-| GET / POST | `/admin/spaces` | list with filters; create unverified space |
-| PATCH / DELETE | `/admin/spaces/:spaceId` | edit profile and facts while the space is unverified; hide or unhide and soft delete any space |
+| PUT / POST | `/admin/spaces/:spaceId/facts/...` | edit the facts (hours and shifts, prices, amenities, contacts) and confirm a group unchanged, while the space is unverified |
 | POST / DELETE | `/admin/spaces/:spaceId/managers[/:userId]` | link / unlink an owner |
 | POST | `/admin/owners` | create an OWNER account (temporary password, must change) |
 | GET / PATCH | `/admin/users[/:userId]` | search; suspend; change role |

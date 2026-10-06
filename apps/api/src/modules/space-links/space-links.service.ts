@@ -1,6 +1,7 @@
 import type { ManagedSpace } from '@masaha/shared/space-links';
 
 import type { Tx } from '../../db/index.ts';
+import type { SpaceLink } from '../../shared/auth/index.ts';
 import { createLookupsService, type LookupsService } from '../lookups/index.ts';
 import { createSpacesService, type SpacesService } from '../spaces/index.ts';
 import { toManagedSpace } from './space-links.mapper.ts';
@@ -26,9 +27,33 @@ export function createSpaceLinksService({
   lookups = createLookupsService(),
 }: Dependencies = {}) {
   return {
-    /** Oldest first: with no space remembered, the dashboard opens the oldest (architecture.md §2). */
-    activeLinksFor(userId: number, tx?: Tx): Promise<ActiveLink[]> {
-      return repository.findActiveLinks(userId, tx);
+    /**
+     * The session's links, oldest first: with no space remembered, the dashboard opens the oldest
+     * (architecture.md §2). A link to a soft-deleted space counts for nothing, so it is left out;
+     * the link itself is kept, so restoring the space restores it (finding 18).
+     */
+    async activeLinksFor(userId: number, tx?: Tx): Promise<ActiveLink[]> {
+      const links = await repository.findActiveLinks(userId, tx);
+      if (links.length === 0) return [];
+      const summaries = await spaces.summariesFor(
+        links.map(({ spaceId }) => spaceId),
+        tx,
+      );
+      const live = new Set(summaries.map(({ id }) => id));
+      return links.filter(({ spaceId }) => live.has(spaceId));
+    },
+
+    /**
+     * The links loader of the space routes (conventions §8, Space access): every link to the space,
+     * from which `can()` reads the caller's role there and whether the space is verified. A
+     * soft-deleted space has none: its links count for nothing (finding 18).
+     */
+    async linksAt(spaceId: number): Promise<SpaceLink[]> {
+      const [links, summaries] = await Promise.all([
+        repository.findLinksAt(spaceId),
+        spaces.summariesFor([spaceId]),
+      ]);
+      return summaries.length === 0 ? [] : links;
     },
 
     /**

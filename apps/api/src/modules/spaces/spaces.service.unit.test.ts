@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { SpaceRow, SpacesRepository } from './spaces.repository.ts';
 import { createSpacesService } from './spaces.service.ts';
 
-const hub: SpaceRow = { id: 7, slug: 'hub', nameAr: 'هب', nameEn: null, areaId: 4 };
+const hub: SpaceRow = { id: 7, slug: 'hub', nameAr: null, nameEn: 'Hub', areaId: 4 };
 
 describe('the spaces service', () => {
   it('reads the summaries of the asked spaces from the repository, in one call', async () => {

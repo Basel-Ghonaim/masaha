@@ -167,7 +167,7 @@ Shells opened by an editor can start in a lowercase `c:\`, as this session's did
 
 ## 11. Nested writes in an interactive transaction trigger a `pg` deprecation warning
 
-**Status:** Open · **Date:** 2026-09-28
+**Status:** Resolved · **Date:** 2026-09-28
 
 **Evidence:** during F-3, a script that validated the schema against the owner's six reference spaces ran `prisma.$transaction(async (tx) => …)` with nested creates (`space.create` with `hours`, `prices`, `amenities` and `contacts`). Node printed:
 
@@ -176,6 +176,8 @@ Shells opened by an editor can start in a lowercase `c:\`, as this session's did
 The writes succeeded and rolled back correctly. The warning comes from Prisma's PostgreSQL adapter (`@prisma/adapter-pg` 7.10 on `pg` 8.23): inside an interactive transaction, all queries share one `pg` client, and the nested creates reach it while another query is still running. The API lane, which uses no interactive transactions yet, prints no such warning.
 
 **Resolves when:** before `pg` is upgraded to 9, either a Prisma release serialises the queries of an interactive transaction, or the features that write nested data in a transaction are proven to work with `pg` 9 (for example, the admin's space creation, the first such feature). Until then, a `pg` major upgrade is not taken without checking this.
+
+*Resolved (2026-10-06, S2b-1):* the admin's space creation, the first such feature, writes no nested data. In one transaction it writes the space, then its settings row through `space-settings`, then its audit entry, one statement after another. `createWithoutNestedWrites.api.test.ts` proves that this creation emits no such warning: `pg` warns once per process, so the test has a file of its own and watches the process's first creation. It proves nothing about nested writes themselves. On the versions in use (`@prisma/adapter-pg` 7.10, `pg` 8.23), a manual probe with the finding's own shape did not reproduce the warning either: a space created with its settings, hours, prices, amenities and contacts nested, in rolled-back interactive transactions, three in turn and two at once. The rule now lives in [conventions §8](../backend/conventions.md#transactions).
 
 ## 12. The admin's settings list a "default auto check-out" that the model has no place for
 
@@ -256,13 +258,15 @@ The writes succeeded and rolled back correctly. The warning comes from Prisma's 
 
 ## 18. Whether a link to a deleted space still counts
 
-**Status:** Open · **Date:** 2026-10-01
+**Status:** Resolved · **Date:** 2026-10-01
 
 **Evidence:** the session lists the user's active links: those not deactivated ([api-contract §5](../api/api-contract.md#session)). A space is soft-deleted (`deletedAt`), and its links are not touched, so a link to a deleted space still appears and would still open the dashboard. `space-links`' repository queries only its own table ([conventions §2](../backend/conventions.md#2-layers)); nothing deletes spaces yet.
 
 The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`) asks `spaces`, and leaves a soft-deleted space out. The session's links do not, and they feed `RequireSpaceRole` and the landing's fallback to the oldest link ([architecture.md › Landing and guards](../frontend/architecture.md#landing-and-guards)). The dashboard reads both: its guards and its navigation read the session's links, and its switcher reads `mySpaces`. So a user can land on, and open, a space their switcher does not list.
 
 **Resolves when:** the slice that soft-deletes spaces decides it, for example by deactivating the space's links in the same transaction, with a test.
+
+*Resolved (2026-10-06, S2b-1):* a link to a soft-deleted space no longer counts. The session's links leave it out, as `GET /manage/spaces` does, both through `spaces`' own summaries, so the two lists agree. The link itself is left as it is. `auth.api.test.ts` proves the session's side, and `space-links.api.test.ts` the list's. Deleting a space writes nothing in `space_managers`, and the links loader of the space routes answers no links for a deleted space, so a restored space has its links again; `space.api.test.ts` proves it through the API.
 
 ## 19. The reset email's colours, fonts and styles are written outside the design system
 
@@ -405,3 +409,11 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 **Evidence:** `apps/web/index.html` has no `<title>`, and no page sets `document.title`, so every tab and every history entry shows the page's address. A page without a title fails WCAG 2.4.2 (Page Titled, level A); the [accessibility baseline](../frontend/design-system/foundation.md#10-accessibility-baseline) does not list titles yet.
 
 **Resolves when:** every page has a title, in both languages, following the interface's language, with a default in `index.html`.
+
+## 36. A new space's empty fact groups count as fresh
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** a space's fact groups are dated when the space is created (S2b-1), so a new space has hours, prices, amenities and contacts that are all "up to date" while it has none of them yet. The admin's spaces list shows such a space as fresh, and its "stale only" filter leaves it out, until each group has been empty for its threshold (30 days for the prices, 60 for the others). Staleness is computed only from the dates ([data-model › Derived values](data-model.md#derived-values-computed-not-stored)).
+
+**Resolves when:** the slice that builds the facts weighs whether an empty group counts as stale, missing, or fresh, and the list and the data model say so.

@@ -22,9 +22,12 @@ import {
   createAmenitiesService,
   createAreasController,
   createAreasService,
+  createCatalogueController,
+  createCatalogueService,
   createGovernoratesController,
   createGovernoratesService,
   createLookupsAdminRouter,
+  createLookupsPublicRouter,
   createLookupsService,
 } from './modules/lookups/index.ts';
 import {
@@ -33,11 +36,24 @@ import {
   createSessionsService,
 } from './modules/sessions/index.ts';
 import {
+  createAdminSpacesController,
+  createAdminSpacesService,
+  createSpaceLinksAdminRouter,
   createSpaceLinksController,
   createSpaceLinksMeRouter,
   createSpaceLinksService,
 } from './modules/space-links/index.ts';
-import { createSpacesService } from './modules/spaces/index.ts';
+import { createPlatformSettingsService } from './modules/platform-settings/index.ts';
+import { createSpaceSettingsService } from './modules/space-settings/index.ts';
+import {
+  createListingService,
+  createProfileController,
+  createProfileService,
+  createSpaceController,
+  createSpaceService,
+  createSpacesAdminRouter,
+  createSpacesService,
+} from './modules/spaces/index.ts';
 import {
   createUsersController,
   createUsersMeRouter,
@@ -47,6 +63,7 @@ import { writeAudit } from './shared/audit/index.ts';
 import {
   createAccessTokens,
   createRequireAuth,
+  loadSpaceLinks,
   readAccessToken,
   requireRole,
 } from './shared/auth/index.ts';
@@ -173,8 +190,31 @@ export function createApi({
   const governorates = createGovernoratesService({ runInTransaction, audit: writeAudit });
   const areas = createAreasService({ runInTransaction, audit: writeAudit });
   const amenities = createAmenitiesService({ runInTransaction, audit: writeAudit });
+  const catalogue = createCatalogueService();
+  const platformSettings = createPlatformSettingsService();
+  const spaceSettings = createSpaceSettingsService();
   const spaces = createSpacesService();
+  const space = createSpaceService({
+    runInTransaction,
+    audit: writeAudit,
+    lookups,
+    platformSettings,
+    spaceSettings,
+    now: clock,
+  });
+  const profile = createProfileService({
+    runInTransaction,
+    audit: writeAudit,
+    lookups,
+    platformSettings,
+    now: clock,
+  });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
+  const adminSpaces = createAdminSpacesService({
+    listing: createListingService({ platformSettings, now: clock }),
+    lookups,
+    users,
+  });
   const auth = createAuthService({
     users,
     sessions,
@@ -201,6 +241,7 @@ export function createApi({
     createAuthRouter(createAuthController(auth, cookies, recoveryCookie), webOrigin),
   );
   api.use('/me', createUsersMeRouter(createUsersController(users, cookies), requireAuth));
+  api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
   api.use(
     '/manage/spaces',
     createSpaceLinksMeRouter(createSpaceLinksController(spaceLinks), requireAuth),
@@ -213,6 +254,19 @@ export function createApi({
       governorates: createGovernoratesController(governorates),
       areas: createAreasController(areas),
       amenities: createAmenitiesController(amenities),
+    }),
+  );
+  // The space's links, without the refusal: can() reads whether the space is verified
+  // (conventions §8, Space access).
+  admin.use(
+    '/spaces/:spaceId',
+    loadSpaceLinks((spaceId) => spaceLinks.linksAt(spaceId)),
+  );
+  admin.use(createSpaceLinksAdminRouter(createAdminSpacesController(adminSpaces)));
+  admin.use(
+    createSpacesAdminRouter({
+      space: createSpaceController(space),
+      profile: createProfileController(profile),
     }),
   );
   api.use('/admin', requireAuth(), requireRole('ADMIN'), admin);

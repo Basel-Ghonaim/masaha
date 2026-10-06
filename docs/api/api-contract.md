@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -58,6 +58,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 
 **Exceptions**, lists a screen shows whole, so they are answered whole, without `page` or `meta`:
 - the admin's lookup lists (`GET /admin/governorates`, `GET /admin/amenities`): bounded catalogues of tens of rows, shown grouped (§5, *Lookups*);
+- the public catalogue of the lookups (`GET /lookups`), the same bounded lists, active rows only (§5, *Lookups (public)*);
 - planned: the public directory's `GET /spaces`, the whole filtered set ([plan](../plans/v1-mvp.md#public-directory)).
 
 ## 5. Endpoints
@@ -77,7 +78,7 @@ SessionUser = {
   language: "ar" | "en",
   mustChangePassword: boolean,                         // a temporary password must be changed first
   hasPassword: boolean,                                // false for a Google-only account
-  spaces: { spaceId: number, role: "OWNER" | "RECEPTION" }[]   // the active links, oldest first
+  spaces: { spaceId: number, role: "OWNER" | "RECEPTION" }[]   // the active links, oldest first; none to a soft-deleted space
 }
 ```
 
@@ -165,11 +166,24 @@ The spaces a signed-in user works at, as owner or reception ([ADR 0009](../archi
   ```ts
   ManagedSpace = {
     spaceId: number, role: "OWNER" | "RECEPTION",   // the caller's role at this space
-    slug: string, nameAr: string, nameEn: string | null,
+    slug: string, nameAr: string | null, nameEn: string,   // English required, Arabic optional
     area: { nameAr: string, nameEn: string }
   }
   ```
 - **Errors:** `unauthorized` (401) without a valid access token; `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending.
+
+### Lookups (public)
+
+#### `GET /lookups` · 🌐
+- **200:** `LookupsCatalogue` (`@masaha/shared/lookups`): what a form or a filter may offer, in both languages. Not paginated (§4).
+
+  ```ts
+  LookupsCatalogue = {
+    governorates: { id, nameAr, nameEn, areas: { id, nameAr, nameEn }[] }[],   // active only, each list in order
+    amenities: { id, key, nameAr, nameEn, icon: AmenityIconKey, isFilterable: boolean }[]   // active only, in order
+  }
+  ```
+  A hidden governorate is left out with all its areas, whatever their own flags; a hidden area and a retired amenity are left out.
 
 ### Lookups (the admin)
 
@@ -246,6 +260,85 @@ AdminAmenity = {
 - **Body:** `{ ids: number[] }`: every amenity's id, retired ones included, each once, first to last.
 - **204:** as for the governorates' order.
 - **Errors:** `validation` (422); `conflict` (409), with no code, when the ids are not exactly the current amenities.
+
+### Spaces (the admin)
+
+The spaces the admin enters and keeps ([data-model › Spaces](../architecture/data-model.md#spaces)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, a space's owner included, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
+
+- **The profile** is a space's basics and location. Its texts are NFC-normalised, with no bidirectional controls and no control characters or line separators (`invalid_format`), except that a description keeps line breaks:
+  - `nameEn`, required, 1–80 characters; `nameAr`, optional, 1–80 ([data-model › Conventions](../architecture/data-model.md#conventions));
+  - `descriptionAr`, `descriptionEn`, optional, 1–1000, line breaks allowed;
+  - `areaId`: an area that is active, in a governorate that is active (`invalid_choice` otherwise, an unknown one included);
+  - `addressAr`, required, and `addressEn`, optional, 1–200; `landmarkAr`, `landmarkEn`, optional, 1–120;
+  - `location: { lat, lng }`, required: the map pin, inside the Gaza Strip's box (`GAZA_STRIP_BOUNDS`, `@masaha/shared/spaces`), else `errors.location = ["out_of_range"]`.
+
+  An optional text is absent or `null` when there is none; an empty one is `too_short`.
+- **The slug** is derived from `nameEn` when the space is created, and never changes: accents dropped, lowercased, every run of other characters than `a–z` and `0–9` one `-`: the base, at most 60 characters, then any suffix ("Focus Hub" → `focus-hub`). A slug any space holds, a soft-deleted one included, takes the smallest free suffix from 2 (`focus-hub-2`).
+- **Audit:** every change writes its entry in its own transaction ([conventions §6](../backend/conventions.md#6-audit)), named `space.<verb>`, with the space as both the entity and the entry's space.
+
+```ts
+AdminSpace = {
+  id: number, slug: string,
+  nameEn: string, nameAr: string | null,
+  descriptionAr: string | null, descriptionEn: string | null,
+  areaId: number, addressAr: string, addressEn: string | null,
+  landmarkAr: string | null, landmarkEn: string | null,
+  location: { lat: number, lng: number },
+  isHidden: boolean,
+  isVerified: boolean,             // an active OWNER link: the owner edits it, the admin no longer does
+  updatedAt: Record<FactGroup, string>,   // FactGroup: "profile" | "hours" | "prices" | "amenities" | "contacts"; ISO 8601
+  staleGroups: FactGroup[]          // older than the platform's thresholds (data-model › Derived values)
+}
+```
+
+#### `POST /admin/spaces` · 🛡
+- **Body:** the profile.
+- **201:** `AdminSpace`: a new space, unverified and shown, every fact group dated now. In one transaction, its settings are copied from the platform's new-space defaults ([conventions §9](../backend/conventions.md#new-space-defaults)); when they cannot be read, nothing is written. Audited `space.created`, with the profile and the slug in `after`.
+- **Errors:** `validation` (422), with `errors.nameEn = ["invalid_format"]` for an English name that yields no slug; `conflict` (409), with no code, when creations of the same name at once took the slug it chose three times over.
+
+#### `GET /admin/spaces` · 🛡
+- **Query:** `?q=&status=&governorateId=&areaId=&stale=&page=&limit=` (§4), each optional:
+  - `q`: part of either name, whatever the case (1–80 characters);
+  - `status`: `verified` or `unverified`, both leaving hidden spaces out, or `hidden`, verified or not;
+  - `governorateId`, `areaId`: the spaces of the governorate's areas, hidden ones included, or of one area; both together narrow to that area when it is one of the governorate's, else to none;
+  - `stale`: `true` keeps the spaces with at least one stale fact group.
+- **200:** `AdminSpaceRow[]` (`@masaha/shared/space-links`), by English name, with `meta`. A soft-deleted space is never listed. Every filter applies before the page is cut, so every page is full and the total right ([conventions §5](../backend/conventions.md#5-pagination)).
+
+  ```ts
+  AdminSpaceRow = {
+    id: number, slug: string, nameEn: string, nameAr: string | null,
+    area: { id: number, nameAr: string, nameEn: string },
+    state: "verified" | "unverified" | "hidden",   // hidden first, whatever its owners
+    owners: { id: number, name: string }[],         // its active OWNER links, oldest first
+    staleGroups: FactGroup[],
+    lastUpdatedAt: string                           // the latest of its fact groups' dates
+  }
+  ```
+- **Errors:** `validation` (422), for an unknown `status` (`invalid_choice`) or a page out of range.
+
+The endpoints on one space put its links on the request first, without refusing anyone ([conventions §8](../backend/conventions.md#space-access)); a `:spaceId` that names no space answers `not_found` (404).
+
+#### `GET /admin/spaces/:spaceId` · 🛡
+- **200:** `AdminSpace`, with `isVerified` from its links: what the edit screen shows, editable or read-only.
+- **Errors:** `not_found` (404), for a soft-deleted space too.
+
+#### `PATCH /admin/spaces/:spaceId` · 🛡
+- **Body:** any part of the profile; what is absent is kept, and an optional field is cleared with `null`. The slug never changes.
+- **200:** `AdminSpace`. Only while the space is unverified: once an owner has joined, its owner edits it (`can()`, `space.profile.update`). An edit that changes something dates the profile group now and is audited `space.profileEdited`, with `before` and `after` holding only the fields that changed (the pin as `lat` and `lng`). One that changes nothing writes nothing, its date included: it confirms nothing.
+- **Errors:** `validation` (422); `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
+
+#### `PUT /admin/spaces/:spaceId/hidden` · 🛡
+- **Body:** `{ isHidden: boolean }`.
+- **204:** the space is hidden from the public, or shown again, verified or not. Audited `space.hidden` or `space.unhidden` (`before` and `after`: `isHidden`); setting what it already is writes nothing.
+- **Errors:** `validation` (422); `not_found` (404), for a soft-deleted space too.
+
+#### `DELETE /admin/spaces/:spaceId` · 🛡
+- **204:** the space is soft-deleted, verified or not ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): it leaves every list and the public, and every link to it counts for nothing, kept as it is ([finding 18](../architecture/findings.md#18-whether-a-link-to-a-deleted-space-still-counts)). Audited `space.deleted` (`after`: `deletedAt`). Deleting a deleted space changes nothing.
+- **Errors:** `not_found` (404).
+
+#### `POST /admin/spaces/:spaceId/restore` · 🛡
+- **204:** a soft-deleted space comes back as it was, hidden or not, with its links. Audited `space.restored` (`before`: `deletedAt`). Restoring a space that is not deleted changes nothing.
+- **Errors:** `not_found` (404).
 
 ## 6. Domain error codes (initial)
 

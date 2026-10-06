@@ -22,3 +22,25 @@ export function textSchema(min: number, max: number) {
 
 /** Stored lowercased, so one address is one account. */
 export const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
+
+// A paragraph may break lines, and nothing else: a line feed is kept (a carriage return before it is
+// dropped, so every device's breaks are one), and every other control character and separator is
+// refused, as in one line of text.
+const PARAGRAPH_CONTROL_CHARACTERS = /(?!\n)[\p{Cc}\u2028\u2029]/u;
+
+/**
+ * Text of several lines, normalised and trimmed, within `min`–`max` characters: the rules of
+ * `textSchema`, except that line breaks are allowed (as `\n`).
+ */
+export function paragraphSchema(min: number, max: number) {
+  return z
+    .string()
+    .overwrite((text) => text.replace(/\r\n/g, '\n'))
+    .normalize('NFC')
+    .trim()
+    .min(min)
+    .max(max)
+    .refine((text) => !BIDI_CONTROLS.test(text) && !PARAGRAPH_CONTROL_CHARACTERS.test(text), {
+      params: { code: 'invalid_format' },
+    });
+}
