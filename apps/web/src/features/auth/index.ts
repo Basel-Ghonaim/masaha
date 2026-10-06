@@ -1,4 +1,8 @@
 export {
+  ContinueWithGoogle,
+  type ContinueWithGoogleProps,
+} from './components/google-sign-in/ContinueWithGoogle';
+export {
   ForgotPasswordCard,
   type ForgotPasswordCardProps,
 } from './components/forgot-password/ForgotPasswordCard';

@@ -1,3 +1,7 @@
+/** Google's token was not confirmed, or the request carried none it could read. */
+const GOOGLE_NOT_CONFIRMED =
+  'Google couldn’t confirm your account. Try again, or use your email and password.';
+
 /**
  * Signing in, registering and recovering a password: the pages, their forms, and what the forms say
  * about a field.
@@ -9,6 +13,25 @@ export const AUTH = {
     /** An example address, shown in the empty email field. */
     emailExample: 'name@example.com',
     password: 'Password',
+  },
+  /** Between Google's button and the email form. */
+  or: 'or',
+  /** Signing in with Google: its failures, and the toast once it links an existing account. */
+  google: {
+    failed: 'Couldn’t continue with Google',
+    /** Google's own line for a failure, where the general one says less. */
+    lines: {
+      GOOGLE_TOKEN_INVALID: GOOGLE_NOT_CONFIRMED,
+      GOOGLE_LINK_NOT_ALLOWED:
+        'An account with this email already exists. Sign in with its password, or reset it under “Forgot password”.',
+      service_unavailable:
+        'Google sign-in isn’t available right now. Use your email and password, or try again later.',
+      validation: GOOGLE_NOT_CONFIRMED,
+    },
+    scriptFailed: 'Google sign-in couldn’t load. Check your connection, then reload the page.',
+    linkedTitle: 'We linked your Google account to your account',
+    linkedDescription:
+      'Your account’s password was removed and you were signed out on other devices. To set a new password, use “Forgot password”.',
   },
   /** The forms' own words for a field's error code, where they know the rule behind it. */
   fieldErrors: {
@@ -48,6 +71,8 @@ export const AUTH = {
     /** Under the email field when the address already has an account. */
     signInInstead: 'Sign in with this email',
     ownerNote: 'Run a coworking space? Space owner accounts are created by the Masaha team.',
+    /** The toast once the account is created, with its name. */
+    welcome: ({ name }: { name: string }) => `Welcome ${name}, your account is ready`,
   },
   /** The forgotten password: asking for a reset link, and the link sent. */
   forgotPassword: {

@@ -1,6 +1,6 @@
 # Setup
 
-> **Status:** Active · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** How to install, run, check and test the repository locally, and what CI runs. Which lane proves a behaviour is owned by [testing.md](testing.md); how work is executed by [workflow.md](workflow.md).
 
 ## Prerequisites
@@ -104,6 +104,12 @@ It reads the admin's credentials and the contact from `apps/api/.env` (`SEED_ADM
 The seed only **creates what is missing**. It never changes an existing row, so running it again changes nothing, and the admin's later edits (a hidden area, a changed setting, the admin's password) survive. The data of real spaces is not seeded: it is entered through the admin screens.
 
 **Demo data (development only).** With `SEED_DEMO=true` and a `SEED_DEMO_PASSWORD` in `apps/api/.env`, the seed also adds one verified demo space (`masaha-demo`): an owner (`demo-owner@example.com`) and a reception account (`demo-reception@example.com`), both with that password; the space's hours, prices, shifts and packages; the four [subscription scenarios](../architecture/data-model.md#subscription-scenarios); people present now, visits (paid, uncollected, and unpaid on a customer) and payments (partial, voided, and a credit). Its dates are counted from the day it runs. It is created once: when the demo space exists, it changes nothing. It refuses to run with `NODE_ENV=production`.
+
+## The web
+
+The web needs no settings to run. Its one optional setting is read at build time from `apps/web/.env` (copy [`apps/web/.env.example`](../../apps/web/.env.example); never committed). Vite reads it when it starts, so restart `npm run dev` after a change.
+
+- `VITE_GOOGLE_CLIENT_ID` turns on Google sign-in. It must be **the same client id** as the API's `GOOGLE_CLIENT_ID` (below), whose Google Cloud OAuth client lists `http://localhost:5320` as an authorised JavaScript origin. Without it, the sign-in and register pages show no Google button. A Google answer from a client whose id the API does not hold is refused as `GOOGLE_TOKEN_INVALID`.
 
 ## The API
 

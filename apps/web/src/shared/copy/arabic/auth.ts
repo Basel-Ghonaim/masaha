@@ -1,11 +1,30 @@
 import type { Catalogue } from '../shape';
 
+const GOOGLE_NOT_CONFIRMED =
+  'لم يتمكّن Google من تأكيد حسابك. حاول مرة أخرى، أو استخدم البريد الإلكتروني وكلمة المرور.';
+
 export const AUTH = {
   fields: {
     name: 'الاسم',
     email: 'البريد الإلكتروني',
     emailExample: 'name@example.com',
     password: 'كلمة المرور',
+  },
+  or: 'أو',
+  google: {
+    failed: 'تعذّرت المتابعة باستخدام Google',
+    lines: {
+      GOOGLE_TOKEN_INVALID: GOOGLE_NOT_CONFIRMED,
+      GOOGLE_LINK_NOT_ALLOWED:
+        'يوجد حساب بهذا البريد الإلكتروني. سجّل الدخول بكلمة مروره، أو أعد تعيينها من «نسيت كلمة المرور».',
+      service_unavailable:
+        'الدخول باستخدام Google غير متاح الآن. استخدم البريد الإلكتروني وكلمة المرور، أو حاول لاحقًا.',
+      validation: GOOGLE_NOT_CONFIRMED,
+    },
+    scriptFailed: 'تعذّر تحميل الدخول باستخدام Google. تحقّق من اتصالك ثم أعد تحميل الصفحة.',
+    linkedTitle: 'ربطنا حساب Google بحسابك',
+    linkedDescription:
+      'حُذفت كلمة مرور حسابك وسُجّل خروجك من الأجهزة الأخرى. لتعيين كلمة مرور جديدة، استخدم «نسيت كلمة المرور».',
   },
   fieldErrors: {
     name: {
@@ -42,6 +61,7 @@ export const AUTH = {
     signIn: 'تسجيل الدخول',
     signInInstead: 'سجّل الدخول بهذا البريد',
     ownerNote: 'تدير مساحة عمل؟ حسابات أصحاب المساحات ينشئها فريق مساحة.',
+    welcome: ({ name }: { name: string }) => `أهلًا ${name}، تم إنشاء حسابك`,
   },
   forgotPassword: {
     title: 'نسيت كلمة المرور',

@@ -302,10 +302,6 @@
         "hintedAction": "نسخ رابط المساحة",
         "hint": "ينسخ عنوان صفحة المساحة العامة"
       },
-      "toaster": {
-        "label": "الإشعارات",
-        "closeLabel": "إغلاق الإشعار"
-      },
       "toast": {
         "title": "الإشعارات المؤقتة",
         "caption": "اضغط لعرض كل نوع، في الركن السفلي عند نهاية السطر",
@@ -1052,10 +1048,6 @@
         "openCaption": "Held open for review",
         "hintedAction": "Copy the space link",
         "hint": "Copies the address of the space's public page"
-      },
-      "toaster": {
-        "label": "Showcase notifications",
-        "closeLabel": "Close this notification"
       },
       "toast": {
         "title": "Toast notifications",

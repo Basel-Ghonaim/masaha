@@ -1,6 +1,6 @@
 # Plan — Application foundation
 
-> **Status:** Active · **Last Updated:** 2026-10-05 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** The work items that give Masaha a running API, a database, the technical design, localisation, authentication and the app shells — everything the features need before the first feature is built, the backend architecture they are built on, and the first public deployment. What each area *is* stays owned by its document (`backend/conventions.md`, `backend/security.md`, `api/api-contract.md`, `architecture/data-model.md`, `frontend/localisation.md`, `frontend/architecture.md`); *how* work runs is owned by [workflow.md](../development/workflow.md). This plan only orders the work and drafts each Work Item's contract.
 
 ## 1. Goal and finish line
@@ -314,7 +314,7 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - sign in, with the too-many-attempts state;
   - register, sending the interface language;
   - the focus shell, and the account in the site header.
-- **F-5b3b — Google sign-in**:
+- **F-5b3b — Google sign-in** (`feat/google-sign-in`), built:
   - sign in with Google, the "accounts linked" toast (the Google response's `linked`), which also says the account's password was removed and can be set again by the reset email, and the `GOOGLE_LINK_NOT_ALLOWED` state;
   - the Google client ID on the web.
 - **F-5b3c — Forgot, reset and the forced change**, split in its plan step (2026-10-05) into two Work Items, each its own conversation and PR:

@@ -1,6 +1,6 @@
 /**
  * The states a route can end in instead of its page: not found, forbidden, the general error and
- * offline; and the wait while the session is restored.
+ * offline; the wait while the session is restored; and the region the app's toasts appear in.
  */
 export const STATUS = {
   notFound: {
@@ -21,4 +21,9 @@ export const STATUS = {
   },
   retry: 'Try again',
   loading: 'Loading',
+  toasts: {
+    /** Names the region the toasts are announced in. */
+    label: 'Notifications',
+    close: 'Close notification',
+  },
 } as const;

@@ -1,4 +1,4 @@
-import { SignInForm } from '@features/auth';
+import { ContinueWithGoogle, SignInForm } from '@features/auth';
 import { useCopy } from '@shared/copy';
 import {
   Button,
@@ -12,11 +12,12 @@ import {
 import { Link, useLocation } from 'react-router';
 import { SITE_PATHS } from '../navigation';
 import { nextSearch } from './nextSearch';
+import { OrDivider } from './OrDivider';
 
 /**
- * Sign in: the card around the sign-in form, the ways to a forgotten password and to a new account,
- * and the way on without one. Once signed in, `RequireGuest` sends the user on to the page they came
- * for.
+ * Sign in: the card around Google sign-in and the sign-in form, the ways to a forgotten password
+ * and to a new account, and the way on without one. Once signed in, `RequireGuest` sends the user on
+ * to the page they came for.
  */
 export function SignInPage() {
   const copy = useCopy();
@@ -31,6 +32,7 @@ export function SignInPage() {
         <CardDescription>{copy.auth.signIn.description}</CardDescription>
       </CardHeader>
       <CardContent className="gap-4">
+        <ContinueWithGoogle divider={<OrDivider />} />
         <SignInForm
           forgotPasswordLink={
             <Button asChild variant="link" size="sm" className="px-0">
