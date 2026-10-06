@@ -14,10 +14,15 @@ const repository = createUsersRepository();
  * gone by the time the answer arrives. It records who started the change, so the token reaches
  * only that user's session, and says the password is saved. Where the user goes next is the place's,
  * which reacts to the session.
+ *
+ * The passwords are the mutation's variables, and a refusal's cause keeps the request that carried
+ * them, so the cache keeps neither once the mutation has no observer (`gcTime: 0`), instead of
+ * TanStack Query's five minutes.
  */
 export function useChangePassword() {
   return useMutation<PasswordChanged, AppError, ChangePasswordRequest, { userId?: number }>({
     mutationFn: repository.changePassword,
+    gcTime: 0,
     onMutate: () => ({ userId: getSession().user?.id }),
     onSuccess: ({ accessToken }, _request, started) => {
       if (started.userId !== undefined) {

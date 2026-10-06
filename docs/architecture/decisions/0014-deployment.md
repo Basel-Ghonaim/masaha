@@ -2,6 +2,7 @@
 
 > **Status:** Accepted · **Date:** 2026-10-01
 > Free-tier terms and limits checked on 2026-10-01 against the providers' official pages.
+> **Revised:** 2026-10-06 — each app's development port is its own, 5320 and 3320 unless the folder sets others, so a second folder runs beside the first; the decision is unchanged
 
 ## Context
 The graduation defence runs on the local environment: the database in Docker and the development servers. It works offline, which matters with Gaza's power and internet cuts.
@@ -18,7 +19,7 @@ The session model ([ADR 0003](0003-session-model.md)) needs the web and the API 
    - one thin entry.
 
    The same composition root assembles the application everywhere: a long-running server locally, a function on Vercel. No module, rule or API contract changes for the deployment.
-3. **Development runs from one origin too.** Each app has a fixed port of its own, and the web's development server forwards `/api` to the API. Cookies therefore behave locally exactly as they do online.
+3. **Development runs from one origin too.** Each app has a port of its own, 5320 and 3320 unless the folder sets others, and the web's development server forwards `/api` to the API. Cookies therefore behave locally exactly as they do online.
 4. **Every free-tier difference is listed below**, so none is lost when the project moves to a paid host with its own domain.
 
 The operative rules are owned by the [backend conventions §12](../../backend/conventions.md#12-environments) and [security.md](../../backend/security.md).

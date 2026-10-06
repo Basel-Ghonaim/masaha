@@ -2,11 +2,12 @@ import { pathToFileURL } from 'node:url';
 
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defaultClientConditions, defaultServerConditions } from 'vite';
+import { defaultClientConditions, defaultServerConditions, loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { DASHBOARD_CHUNK, isDashboardModule } from './scripts/dashboardOnly.ts';
+import { devServer } from './scripts/devServer.ts';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],
   // The zone aliases (@app, @pages, @features, @shared) are defined in tsconfig.app.json;
   // tsconfig.json repeats @shared/* only for the shadcn CLI.
@@ -35,13 +36,10 @@ export default defineConfig({
       },
     },
   },
-  // One origin in development too (ADR 0014): the web on its fixed port, failing rather than moving
-  // if the port is taken, and /api forwarded to the API on its own, so the cookies behave as online.
-  server: {
-    port: 5320,
-    strictPort: true,
-    proxy: { '/api': 'http://localhost:3320' },
-  },
+  // One origin in development too (ADR 0014): the web on the folder's port, failing rather than
+  // moving if the port is taken, and /api forwarded to the folder's API, so the cookies behave as
+  // online. Both are read from apps/web/.env; without the VITE_ prefix, they never reach the browser.
+  server: devServer(loadEnv(mode, import.meta.dirname, ['WEB_PORT', 'API_PROXY_TARGET'])),
   test: {
     // Every worker loads Vitest once, whatever the case of the drive letter it was started from
     // (finding 9).
@@ -74,4 +72,4 @@ export default defineConfig({
       },
     ],
   },
-});
+}));

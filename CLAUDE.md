@@ -49,6 +49,9 @@ Documentation captures the **intended** design and the **why**; the **code** is 
 2. the authoritative documents —
 3. project conventions and sensible defaults.
 
+A plugin's skills (such as Superpowers) rank below the documents and the project's skills; which are
+used, and when, is in [workflow §10](docs/development/workflow.md#10-ai-tooling).
+
 Any override must be **stated, never silent.**
 
 ## Authoritative documents
@@ -76,7 +79,7 @@ Node 24 (`.nvmrc`, enforced by `engine-strict`). Run from the root; details in `
 - `npm run test:unit` · `npm run test:component` · `npm run test:api` — test lanes, chosen by file suffix (`*.unit.test.ts`, `*.component.test.tsx`, `*.api.test.ts`); `test:api` needs the database up
 - `npm run db:up` · `db:down` · `db:migrate` · `db:reset` · `db:seed` · `db:studio` — local PostgreSQL in Docker (host port 5433) and Prisma; `db:seed` needs the `SEED_ADMIN_*` variables in `apps/api/.env`, and adds development demo data with `SEED_DEMO=true`
 - `npm run dev -w @masaha/api` — the API on port 3320 (copy `apps/api/.env.example` to `.env` first); `GET /health`
-- `npm run format` — Prettier (Markdown excluded)
+- `npm run format` — Prettier (Markdown excluded) · `npm run format:check` — the same files, checked without writing (CI runs it)
 
 ---
 

@@ -15,7 +15,8 @@ A runbook, not a source of truth: each step links to the section that owns its r
    - the files shared with the other worker, and the section each side owns ([workflow §9](../../../docs/development/workflow.md#9-parallel-work));
    - the decisions needed from the owner ([workflow §6](../../../docs/development/workflow.md#6-decision-authority));
    - the commit plan ([workflow §3, Commits](../../../docs/development/workflow.md#commits));
-   - the lanes to run ([testing §2](../../../docs/development/testing.md#2-lanes)).
+   - the lanes to run ([testing §2](../../../docs/development/testing.md#2-lanes));
+   - each behaviour's lane, its test and the break it catches, and a *Review Focus* list: the inputs no planned test exercises ([testing §3](../../../docs/development/testing.md#3-rules-that-bind-every-test)).
 5. After approval, cut the branch from the latest `main` ([workflow §3](../../../docs/development/workflow.md#3-git-lifecycle)):
    - worker A: `git switch -c <branch> origin/main`;
    - worker B: `git switch --no-track -c <branch> origin/main` ([workflow §9](../../../docs/development/workflow.md#9-parallel-work)).

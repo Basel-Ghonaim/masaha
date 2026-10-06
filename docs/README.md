@@ -55,7 +55,7 @@ The **map** of Masaha's documentation: every document and what it owns. It is na
 - [design/README.md](design/README.md) — the design archive (made in Claude Design, 2026-09-29): a screenshot of every frame and the clickable prototypes, kept as a frozen record. [SCREENS.md](design/SCREENS.md) maps the 32 screens of [foundation §13](frontend/design-system/foundation.md#13-screens-to-design-32) to it.
 
 ### `development/`
-- [workflow.md](development/workflow.md) — how work is executed, including two workers in parallel.
+- [workflow.md](development/workflow.md) — how work is executed, including two workers in parallel and the AI tooling.
 - [engineering-principles.md](development/engineering-principles.md) — code-design rules.
 - [testing.md](development/testing.md) — where each behaviour is proven.
 - [setup.md](development/setup.md) — install, run, check and test locally; what CI runs.

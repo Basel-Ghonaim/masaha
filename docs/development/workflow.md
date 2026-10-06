@@ -1,7 +1,7 @@
 # Workflow
 
-> **Status:** Active · **Last Updated:** 2026-10-03 · **Owner:** Basel Ghoneim
-> **Authority:** How work is executed on Masaha: task classes, the Git lifecycle, scope control, the Definition of Done, decision authority and stop rules. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
+> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Authority:** How work is executed on Masaha: task classes, the Git lifecycle, scope control, the Definition of Done, decision authority, stop rules and the AI tooling. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
 
 Masaha is built by **one developer (the owner)** with AI assistants. The workflow keeps the discipline of a team process — reviewable units, a clean history, gated decisions — without ceremony a solo project does not need.
 
@@ -69,6 +69,7 @@ Closes #n   (only when an Issue exists)
 - A unit's code, its tests and the documents that describe it go in the **same** commit. Not one commit per file or per layer (no separate "add tests" or "add docs" commit for the same unit), and not one commit for the whole branch. A typical Work Item has 3–6 commits.
 - Every commit builds and passes lint, typecheck and tests.
 - Stage **by path**; never `git add -A` or `git add .`. Run `git status` before each commit.
+- **Review fixes** on an unmerged PR fold into the commits they correct (fixup and autosquash), never into fix commits, and are reported in ONE "Review fixes" comment, with no replies in threads.
 - **No tool attribution** in any commit, PR, Issue or document.
 
 ## 4. Scope control
@@ -88,6 +89,7 @@ Closes #n   (only when an Issue exists)
 - [ ] UI checked in RTL and LTR, light and dark, phone and desktop.
 - [ ] Authorization enforced on the server for any protected action.
 - [ ] Triggered documentation updated **in the same PR** (§7), including any **deferred document** whose trigger this PR meets.
+- [ ] Every claim in the PR description names the test or command that proves it ([testing §3](testing.md#3-rules-that-bind-every-test)).
 - [ ] Atomic history, pushed, PR description complete.
 
 **Accepted** = the owner reviewed and merged. An AI only ever reaches *Done*.
@@ -127,6 +129,7 @@ Pure refactors that change no behaviour need no documentation update.
 | Separable work | Propose it as a new Work Item |
 | Something blocking the contract | Stop and escalate |
 | A behaviour no test lane can own | Stop and raise it |
+| A failure whose cause you have not found | Find the root cause before changing code; after three failed fixes, stop and escalate |
 | Anything unclear | Record, never absorb |
 
 ## 9. Parallel work
@@ -148,7 +151,45 @@ The owner may run two AI workers at the same time. These rules keep them from co
   - any other worktree whose item changes the schema gets databases of its own.
 - **Merging:**
   - one PR is merged at a time;
-  - before opening a PR, fetch and rebase on the latest `main`;
-  - whoever merges second rebases again, and resolves a conflict by keeping both sides.
+  - a PR is rebased on `main` only when GitHub shows a conflict, which is resolved by keeping both sides;
+  - a PR that is clean, and whose CI ran after `main`'s last change, is left ready for review.
 - **After each merge, in the main folder:** `git pull`. After a schema change, also regenerate the Prisma client and apply the new migrations to `masaha_dev` ([setup › Database](setup.md#database)). Without this step, the dev database once fell seven migrations behind the code merged from worktrees.
 - **After worker B's PR merges:** its worktree goes back to detached `origin/main`, and the owner deletes the merged local branch ([§6](#6-decision-authority)). If that merge, or any merge since, changed the schema, regenerate the Prisma client in the worktree and apply the migrations to `masaha_b_dev`.
+
+## 10. AI tooling
+
+The owner works with AI assistants in Claude Code. Their plugins are tools, not dependencies of the
+project: nothing in the repository needs them, and the rules they help apply are owned by the
+documents ([testing §3](testing.md#3-rules-that-bind-every-test), [§5](#5-definition-of-done-and-accepted),
+[§8](#8-stop-rules)).
+
+- **Superpowers** is optional and local: it is enabled per folder in the untracked
+  `.claude/settings.local.json`, never in the tracked `.claude/settings.json`.
+- **Precedence:** a plugin's skills rank below the project's skills
+  ([`.claude/skills/`](../../.claude/skills/)); the rest of the order is CLAUDE.md's
+  [*Decision precedence*](../../CLAUDE.md#decision-precedence). A session with no prompt follows this
+  section too.
+- **Used:**
+  - `test-driven-development`, with its `writing-good-tests.md`: how
+    [testing §3](testing.md#3-rules-that-bind-every-test)'s rules 5–7 are met (seen failing, name the
+    break, make the break), each test in its owning lane.
+  - `systematic-debugging`: for any failure or flake, the root cause first (§8). Diagnostic logs are
+    removed before a commit.
+  - `verification-before-completion`: every claim names the test or command that proves it (§5).
+  - `receiving-code-review`, adapted: each item of a fixes list is verified against the code, and
+    pushed back with reasons when it is wrong. The fixes follow [§3, Commits](#commits).
+  - `writing-plans`, in part, inside `start-work-item`'s plan mode: the file map, the interfaces
+    between tasks, no placeholders, and a *Review Focus* list. Not its header, its saved plan files,
+    full code in the plan, a commit per step, or its execution handoff.
+- **Not used:**
+  - `brainstorming`: the analysis round and the Work Item's prompt settle the decisions (§6).
+  - `executing-plans` and `subagent-driven-development`: they decide conflicts and carry on, against
+    §8, and exceed the prompts' subagent caps.
+  - `dispatching-parallel-agents`: each prompt caps its subagents.
+  - `requesting-code-review`: the review is an independent gate, never the author's own subagent.
+  - `using-git-worktrees`: the folders are fixed (§9).
+  - `finishing-a-development-branch`: merging and deleting branches are the owner's (§6);
+    `open-pr` opens the pull request.
+  - `writing-skills` and `diagnosing-superpowers`: only the owner invokes them.
+- **Review sessions** use no plugin skill. They may read `writing-good-tests.md`'s mutation check as
+  a lens on the tests.

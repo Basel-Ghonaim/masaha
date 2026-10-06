@@ -330,11 +330,13 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 
 ## 26. `npm run format -- --check` rewrites files
 
-**Status:** Open · **Date:** 2026-10-04
+**Status:** Resolved · **Date:** 2026-10-04
 
 **Evidence:** the root `format` script runs Prettier with `--write`, so `npm run format -- --check` passes both flags and rewrites every file it would only have reported. On F-5b3a it rewrote `apps/web/src/shared/preferences/preferences.unit.test.ts`, which is not Prettier-formatted on `main`, outside the item's scope; the file was restored by hand. A check that writes is a trap: it changes files the author never meant to touch.
 
 **Resolves when:** a separate script checks without writing (for example `format:check`, `prettier --check .`), and the documents point to it.
+
+**Resolution (2026-10-06, H-1):** `npm run format:check` runs `prettier --check .`, over the same files and ignores as `format`, and writes nothing. [Setup › Commands](../development/setup.md#commands) and CLAUDE.md point to it. On `main` it failed on one file, `preferences.unit.test.ts`, which H-1 formatted with Prettier and changed in no other way. CI runs it as a check of its own, so the repository cannot drift again.
 
 ## 27. Two dashboard chunks import each other
 
@@ -346,7 +348,7 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 
 ## 28. The tests that wait for a lazy page can time out under load
 
-**Status:** Open · **Date:** 2026-10-05
+**Status:** Resolved · **Date:** 2026-10-05
 
 **Evidence:** in one full `test:component` run on F-6c2, "lists the owner’s eleven pages, the overview marked as the page shown" (`apps/web/src/pages/dashboard/routes.component.test.tsx`) failed after about 1.1 s with `Unable to find role="navigation" and name "Space dashboard"`: the lazily loaded space shell was not on screen within the default wait. The file passed three times alone, and the whole lane passed when run again.
 
@@ -354,29 +356,40 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 
 **Resolves when:** the tests that wait for a lazy page or shell wait in a way that holds under load, proven by repeated full runs.
 
+**Resolution (2026-10-06, H-1):** the wait, not the page.
+1. **Cause.** Testing Library waits 1 s by default for what a test finds, and Vite's first transform of a lazily imported page or shell can take longer under a full run. Reproduced on `main` with the two files together: "shows its page to a guest" failed after 1057 ms.
+2. **Fix.** `componentSetup.ts` raises the wait once, for the component lane, to 3 s. It stays below Vitest's 5 s test timeout, so an element that never appears still fails with Testing Library's message and the screen it searched. No test sets its own timeout, and production is unchanged.
+3. **Proof.** The two files together passed 35/35. In a full run on a busy machine (598/598, 246 s), the slowest test that waits for a lazy page took 2003 ms in all, its wait included. Then two consecutive full runs of `test:component` passed, 598/598 each (249 s and 265 s).
+
 ## 29. Two folders cannot each run the web against their own API
 
-**Status:** Open · **Date:** 2026-10-05
+**Status:** Resolved · **Date:** 2026-10-05
 
 **Evidence:** the web's dev server listens on port 5320 and forwards `/api` to `http://localhost:3320`, both fixed in `apps/web/vite.config.ts` ([setup › Commands](../development/setup.md#commands)). Each folder's API reads its own `apps/api/.env`, whose `CORS_ORIGIN` names `http://localhost:5320`, and the password routes, refresh and logout refuse a request whose `Origin` is not that one ([security.md](../backend/security.md#tokens-and-cookies)). So a second folder, such as the `masaha-b` worktree, cannot run its web and its API beside the first: its API on another port is never reached by its web's proxy, and its web on another port is refused by its API. On F-5b3c2, port 5320 was already taken by another dev server; the recovery pages were checked by hand with Vite on 5330 and the API started with a one-off `CORS_ORIGIN=http://localhost:5330`, both outside any script or document. On 2026-10-06 (F-5b3b), dev servers left over from earlier runs kept the ports: a `tsx watch` API that survived Ctrl+C on Windows, and a Vite started for screenshots, held 3320 and 5320, so a fresh `npm run dev` failed on its port or reached a stale API still running with an old environment.
 
 **Resolves when:** a folder can run its web and its API on ports of its own, set in its own environment, and setup.md says how.
 
+**Resolution (2026-10-06, H-1):** the web's development server reads its port and its `/api` target from the folder's `apps/web/.env` (`WEB_PORT`, `API_PROXY_TARGET`, without the `VITE_` prefix, so neither reaches the browser), defaulting to 5320 and `http://localhost:3320`; a value that is not a port or an http address stops it, naming the key. The API already read `PORT` and `CORS_ORIGIN` from its own `apps/api/.env`. [Setup › Running a second folder](../development/setup.md#running-a-second-folder) says how, and [ADR 0014](decisions/0014-deployment.md) says each app's port is its own. The `masaha-b` worktree ran its web on 5322 against its API on 3322, with no scratch configuration, while another web and API held 5321 and 3321: a sign-in and the admin's governorates went through the web's proxy.
+
 ## 30. A lookup's English name is not unique
 
-**Status:** Open · **Date:** 2026-10-05
+**Status:** Accepted · **Date:** 2026-10-05 · **Accepted:** 2026-10-06
 
 **Evidence:** the admin's lookups answer a duplicate name with 409 `not_unique` only where the database holds a unique key: a governorate's Arabic name, an area's Arabic name within its governorate, and an amenity's key, derived from its English name ([api-contract §5](../api/api-contract.md#5-endpoints), S2a-1). A governorate's or an area's English name, and an amenity's Arabic name, may repeat another's. So may an amenity's English name once it is edited, since only the key it yielded when the amenity was added is unique. A check in the service alone would race without a constraint, and the item changed no schema.
 
 **Resolves when:** a migration adds the missing unique keys (each English name as its Arabic one is keyed, and an amenity's Arabic name), and the endpoints answer them with `not_unique`; or the owner accepts the repeats.
 
+**Resolution (2026-10-06, H-1):** the owner accepted the repeats. The lists are small, and the admin sees each one whole, so a repeated name is seen where it is made. No schema changes.
+
 ## 31. The backend documents still call for injecting a repository only tests pass
 
-**Status:** Open · **Date:** 2026-10-05
+**Status:** Resolved · **Date:** 2026-10-05
 
 **Evidence:** [conventions §2](../backend/conventions.md#2-layers) wires dependencies by factory functions with defaults, `createService(repo = createRepository(), …)`, so that "tests pass plain-object fakes"; [R8](../backend/conventions.md#8-module-rules) unit-tests service logic with such fakes; and [testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 3, says "inject the repository". The owner's rule is that no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2): a repository parameter that only tests pass breaks it. The older services (`users`, `sessions`, `space-links`, `spaces`, `lookups`' `areaNamesFor`) still follow §2. The admin's lookups services (S2a-1) no longer do: each creates its repository, its logic is unit-tested in pure helpers, and the services are proven by the API lane on the real database.
 
 **Resolves when:** a docs item aligns conventions §2 and R8 and testing §3 with the rule; the older services follow in the planned refactor.
+
+**Resolution (2026-10-06, H-1):** the documents now follow the rule. [Conventions §2](../backend/conventions.md#2-layers): a service creates its own repository, and the composition root passes only real dependencies (the transaction runner, the audit writer, lower modules' services, ports); the older services are named as still taking a repository, until the planned refactor. [R8](../backend/conventions.md#8-module-rules): logic worth unit-testing lives in pure helpers, and the API lane proves services on the real database. [Testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 3: a seam is a port or the platform's client, never a repository injected for tests.
 
 ## 32. The Google sign-in answer does not say whether it created the account
 
@@ -396,11 +409,13 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 
 ## 34. Passwords stay in the mutation cache after a sign-in, a registration or a password change
 
-**Status:** Open · **Date:** 2026-10-06
+**Status:** Resolved · **Date:** 2026-10-06
 
-**Evidence:** TanStack Query keeps a mutation's variables, and a refusal's error keeps the request that carried them (its cause's `config.data`), for the mutation's `gcTime`, five minutes by default, after it has no observer. `useSignIn` and `useRegister` (`features/auth`) and `useChangePassword` (`features/users`) send a password as their variables and set no `gcTime`, so the password stays in the page's memory for five minutes after the form has gone, and a sign-in clears no cache ([architecture §3](../frontend/architecture.md#react-query-in-a-feature)). `useCheckResetLink` and, since F-5b3b, `useGoogleSignIn` set `gcTime: 0` for the same reason.
+**Evidence:** TanStack Query keeps a mutation's variables, and a refusal's error keeps the request that carried them (its cause's `config.data`), for the mutation's `gcTime`, five minutes by default, after it has no observer. `useSignIn`, `useRegister` and `useResetPassword` (`features/auth`, the last found by H-1's review) and `useChangePassword` (`features/users`) send a password as their variables and set no `gcTime`, so the password stays in the page's memory for five minutes after the form has gone, and a sign-in clears no cache ([architecture §3](../frontend/architecture.md#react-query-in-a-feature)). `useCheckResetLink` and, since F-5b3b, `useGoogleSignIn` set `gcTime: 0` for the same reason.
 
-**Resolves when:** each of the three sets `gcTime: 0`, with a test that the cache holds no password once the mutation is answered and its page has gone.
+**Resolves when:** each of the four sets `gcTime: 0`, with a test that the cache holds no password once the mutation is answered and its page has gone.
+
+**Resolution (2026-10-06, H-1):** `useSignIn`, `useRegister`, `useResetPassword` and `useChangePassword` set `gcTime: 0`, each saying why, as `useGoogleSignIn` does. Each hook's test of a page that unmounts before the answer proves that the mutation cache is empty once the answer has arrived (`useResetPassword`'s is new); the four failed without `gcTime: 0`, the mutation still in the cache.
 
 ## 35. The web sets no document title
 

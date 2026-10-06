@@ -19,7 +19,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        task: [lint, typecheck, 'test:unit', 'test:component', 'check:classes', build]
+        task:
+          [lint, 'format:check', typecheck, 'test:unit', 'test:component', 'check:classes', build]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

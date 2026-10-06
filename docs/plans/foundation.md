@@ -29,8 +29,8 @@ F-1, F-2 and F-3 touch only `apps/api`, `packages/shared`, the database and docs
   - `docs/README.md`,
   - `docs/development/setup.md`,
   - `CLAUDE.md` *Commands*.
-- **Before opening a PR:** rebase on the latest `main`. Resolve any conflict in those files by keeping both sides. For the lockfile, run `npm install` after the rebase, never hand-edit it.
-- **Order:** merge order does not matter. Whoever merges second rebases.
+- **Rebasing:** only as [workflow §9](../development/workflow.md#9-parallel-work) says. For the lockfile, run `npm install` after a rebase, never hand-edit it.
+- **Order:** merge order does not matter.
 - **F-4 to F-6 wait** until WI-9 is merged: they use the design-system components and the showcase patterns.
 
 ## 3. How each Work Item is run
@@ -374,7 +374,7 @@ Drafted here; its full contract is written in its plan step. It comes right afte
 | Risk | Mitigation |
 |---|---|
 | Docker Desktop is heavy or unavailable on the machine | F-2 stops and proposes a native PostgreSQL install; nothing else changes |
-| The two parallel conversations conflict | Separate worktrees; rebase before PR; shared files listed in §2 |
+| The two parallel conversations conflict | Separate worktrees; rebase on a conflict ([workflow §9](../development/workflow.md#9-parallel-work)); shared files listed in §2 |
 | Prisma cannot express the partial unique indexes | Raw SQL in the migration, with integration tests proving them (F-3) |
 | Lifting localisation from Quick Tweets takes longer than expected | The two-day cap and the react-i18next fallback in ADR 0006 |
 | Power and internet outages | Commit and push at every complete unit; each item stays small |

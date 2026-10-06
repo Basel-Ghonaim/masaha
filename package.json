@@ -25,7 +25,8 @@
     "db:reset": "npm run db:reset -w @masaha/api",
     "db:seed": "npm run db:seed -w @masaha/api",
     "db:studio": "npm run db:studio -w @masaha/api",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

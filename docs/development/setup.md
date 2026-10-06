@@ -48,7 +48,7 @@ All commands run from the repository root.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Starts the web app's Vite dev server at `http://localhost:5320` (it stops if the port is taken), forwarding `/api` to the API on port 3320, so the web and the API share one origin ([ADR 0014](../architecture/decisions/0014-deployment.md)) |
+| `npm run dev` | Starts the web app's Vite dev server at `http://localhost:5320` (it stops if the port is taken), forwarding `/api` to the API on port 3320, so the web and the API share one origin ([ADR 0014](../architecture/decisions/0014-deployment.md)). A folder can set other ports ([The web](#the-web)) |
 | `npm run build` | Builds every workspace, `packages/shared` first because the API compiles against its `dist` (`packages/shared/dist`, `apps/api/dist`, `apps/web/dist`) |
 | `npm run lint` | ESLint over the whole repository |
 | `npm run typecheck` | TypeScript in every workspace |
@@ -58,6 +58,7 @@ All commands run from the repository root.
 | `npm run check:classes` | Fails on physical direction classes (`ml-`, `left-`, `text-left` …) anywhere in `apps/web/src`; use the logical form ([foundation §8](../frontend/design-system/foundation.md#8-direction-rtl--ltr)). Also fails on arbitrary-value classes (`text-[13px]`, `bg-[#fff]`, `bg-(--token)` …) outside `shared/design-system/`; use a token utility ([foundation §2](../frontend/design-system/foundation.md#2-principles)) |
 | `npm run check:build` | Run after `npm run build`: fails if `apps/web/dist` contains the development-only design-system showcase (its route path, or any of its fixture strings that the copy catalogues do not also write), or if the site's first download, read from the build's manifest, reaches the dashboard's code ([architecture §3](../frontend/architecture.md#3-capabilities-features)) |
 | `npm run format` | Prettier over the repository (Markdown is excluded) |
+| `npm run format:check` | The same files, checked without writing: fails naming each file `format` would change |
 
 A single workspace can be targeted with `-w`, for example `npm run test:unit -w @masaha/web`.
 
@@ -107,9 +108,19 @@ The seed only **creates what is missing**. It never changes an existing row, so 
 
 ## The web
 
-The web needs no settings to run. Its one optional setting is read at build time from `apps/web/.env` (copy [`apps/web/.env.example`](../../apps/web/.env.example); never committed). Vite reads it when it starts, so restart `npm run dev` after a change.
+The web needs no settings to run. Its optional settings are read from `apps/web/.env` (copy [`apps/web/.env.example`](../../apps/web/.env.example); never committed). Vite reads it when it starts, so restart `npm run dev` after a change.
+
+- `WEB_PORT` (default 5320) and `API_PROXY_TARGET` (default `http://localhost:3320`) set the development server's port and the API it forwards `/api` to. They carry no `VITE_` prefix, so they never reach the browser.
 
 - `VITE_GOOGLE_CLIENT_ID` turns on Google sign-in. It must be **the same client id** as the API's `GOOGLE_CLIENT_ID` (below), whose Google Cloud OAuth client lists `http://localhost:5320` as an authorised JavaScript origin. Without it, the sign-in and register pages show no Google button. A Google answer from a client whose id the API does not hold is refused as `GOOGLE_TOKEN_INVALID`.
+
+### Running a second folder
+
+A second folder, such as a worktree, runs its web and its API beside the first on ports of its own, each set in that folder's own `.env` files, never committed:
+- `apps/api/.env`: its `PORT`, and `CORS_ORIGIN` naming its web, for example `3321` and `http://localhost:5321`;
+- `apps/web/.env`: `WEB_PORT=5321` and `API_PROXY_TARGET=http://localhost:3321`.
+
+Google sign-in there also needs that origin listed on the OAuth client. When done, stop both servers and check that their ports are free: on Windows, a `tsx watch` API can survive Ctrl+C.
 
 ## The API
 
@@ -150,7 +161,7 @@ The tooling lives in `apps/api/test/`, outside `src`, so the build never contain
 
 ## CI
 
-GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) runs `lint`, `typecheck`, `test:unit`, `test:component`, `test:api`, `check:classes` and `build` as separate checks on every pull request and on `main`, using the Node version from `.nvmrc`. The `build` check then runs `check:build` on its output.
+GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) runs `lint`, `format:check`, `typecheck`, `test:unit`, `test:component`, `test:api`, `check:classes` and `build` as separate checks on every pull request and on `main`, using the Node version from `.nvmrc`. The `build` check then runs `check:build` on its output.
 
 `test:api` is its own job: it runs next to a `postgres:18-alpine` service container whose database is `masaha_test`, and sets `TEST_DATABASE_URL` to it.
 

@@ -1,9 +1,10 @@
 import { establishSession, getSession, restoreSession } from '@shared/session';
+import { useQueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { MASKED_EMAIL } from '../../../../test/fakeRecovery';
-import { aSession } from '../../../../test/fakeSession';
+import { aSession, deferred } from '../../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { setSessionHint } from '../../../../test/sessionHint';
@@ -53,6 +54,26 @@ describe('useResetPassword', () => {
       expect(result.current.position.data).toEqual({ step: 'request' });
     });
     expect(urls()).toEqual(['/auth/password/recovery', '/auth/password/reset']);
+  });
+
+  it('keeps no password once the reset is answered and its page has gone', async () => {
+    const answer = deferred<FakeAnswer>();
+    fakeTransport(() => answer.promise);
+    const { result, unmount } = renderHook(
+      () => ({ reset: useResetPassword(), mutations: useQueryClient().getMutationCache() }),
+      { wrapper: queryWrapper() },
+    );
+    const { mutations } = result.current;
+
+    act(() => {
+      result.current.reset.mutate(PASSWORD);
+    });
+    unmount();
+    answer.resolve({ status: 204 });
+
+    await waitFor(() => {
+      expect(mutations.getAll()).toEqual([]);
+    });
   });
 
   it('asks a guest’s browser nothing more once the password is set', async () => {
