@@ -78,7 +78,7 @@ SessionUser = {
   language: "ar" | "en",
   mustChangePassword: boolean,                         // a temporary password must be changed first
   hasPassword: boolean,                                // false for a Google-only account
-  spaces: { spaceId: number, role: "OWNER" | "RECEPTION" }[]   // the active links, oldest first
+  spaces: { spaceId: number, role: "OWNER" | "RECEPTION" }[]   // the active links, oldest first; none to a soft-deleted space
 }
 ```
 

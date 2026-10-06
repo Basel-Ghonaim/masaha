@@ -183,6 +183,26 @@ describe('POST /auth/login', () => {
     expect(refreshTokenOf(response)).toBeDefined();
   });
 
+  it('leaves a link to a soft-deleted space out of the session, and keeps the link', async () => {
+    const user = await createAccount();
+    const kept = await createSpace('kept');
+    const deleted = await createSpace('deleted');
+    await prisma.space.update({ where: { id: deleted.id }, data: { deletedAt: new Date() } });
+    for (const space of [kept, deleted]) {
+      await prisma.spaceManager.create({ data: { spaceId: space.id, userId: user.id } });
+    }
+
+    const response = await login();
+
+    expect(response.body).toMatchObject({
+      data: { user: { spaces: [{ spaceId: kept.id, role: 'OWNER' }] } },
+    });
+    expect(
+      (response.body as { data: { user: { spaces: unknown[] } } }).data.user.spaces,
+    ).toHaveLength(1);
+    expect(await prisma.spaceManager.count({ where: { spaceId: deleted.id } })).toBe(1);
+  });
+
   it('carries a pending temporary password in the user and the token', async () => {
     await createAccount({ mustChangePassword: true });
 

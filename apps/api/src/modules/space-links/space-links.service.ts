@@ -26,9 +26,20 @@ export function createSpaceLinksService({
   lookups = createLookupsService(),
 }: Dependencies = {}) {
   return {
-    /** Oldest first: with no space remembered, the dashboard opens the oldest (architecture.md §2). */
-    activeLinksFor(userId: number, tx?: Tx): Promise<ActiveLink[]> {
-      return repository.findActiveLinks(userId, tx);
+    /**
+     * The session's links, oldest first: with no space remembered, the dashboard opens the oldest
+     * (architecture.md §2). A link to a soft-deleted space counts for nothing, so it is left out;
+     * the link itself is kept, so restoring the space restores it (finding 18).
+     */
+    async activeLinksFor(userId: number, tx?: Tx): Promise<ActiveLink[]> {
+      const links = await repository.findActiveLinks(userId, tx);
+      if (links.length === 0) return [];
+      const summaries = await spaces.summariesFor(
+        links.map(({ spaceId }) => spaceId),
+        tx,
+      );
+      const live = new Set(summaries.map(({ id }) => id));
+      return links.filter(({ spaceId }) => live.has(spaceId));
     },
 
     /**

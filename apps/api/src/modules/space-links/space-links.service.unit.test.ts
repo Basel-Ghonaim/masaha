@@ -39,6 +39,29 @@ function setup(links: ActiveLink[]) {
   return { service: createSpaceLinksService({ repository, spaces, lookups }), calls };
 }
 
+describe('activeLinksFor', () => {
+  it('keeps the links in their order, leaving out one whose space has no summary', async () => {
+    const { service, calls } = setup([
+      { spaceId: 9, role: 'RECEPTION' },
+      { spaceId: 42, role: 'OWNER' },
+      { spaceId: 7, role: 'OWNER' },
+    ]);
+
+    await expect(service.activeLinksFor(1)).resolves.toEqual([
+      { spaceId: 9, role: 'RECEPTION' },
+      { spaceId: 7, role: 'OWNER' },
+    ]);
+    expect(calls).toEqual(['links:1', 'spaces:9,42,7']);
+  });
+
+  it('answers no links without asking spaces when the user has none', async () => {
+    const { service, calls } = setup([]);
+
+    await expect(service.activeLinksFor(1)).resolves.toEqual([]);
+    expect(calls).toEqual(['links:1']);
+  });
+});
+
 describe('mySpaces', () => {
   it('composes each link’s role with its own space and its own area, in the links’ order', async () => {
     const { service } = setup([
