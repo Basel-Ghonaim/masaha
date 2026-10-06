@@ -18,6 +18,7 @@ Read a capability's document first when changing it; it links the platform secti
 - [spaces.md](features/spaces.md) — a space's profile, freshness and life on the platform, as the admin keeps it (API only).
 - [space-links.md](features/space-links.md) — a user's links to spaces: the session's links, the caller's spaces, the space switcher, the admin's spaces list and the links loader.
 - [users.md](features/users.md) — the account: credentials, who may sign in, the password change and the forced change, the account menu and sign-out.
+- [auth.md](features/auth.md) — the sign-in flows: registration, sign-in with a password or with Google, refresh, sign-out and the forgotten password.
 
 ### `architecture/` — how the system fits together
 - [system-overview.md](architecture/system-overview.md) — the running system's parts, and one request traced from the web to the database and back; it links to each part's owner.

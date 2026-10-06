@@ -314,7 +314,7 @@ The application runs in two environments: a long-running server locally, and a f
   |---|---|---|
   | Storage | local disk | free object storage |
   | Google identity | Google's published keys, when `GOOGLE_CLIENT_ID` is set | the same. Tests inject a fake |
-  | Email | `log`: nothing is sent, and the link is written to the log (development only) | `smtp`: a single Gmail sender, through any SMTP relay ([security.md](security.md#passwords)) |
+  | Email | `log`: nothing is sent, and the link is written to the log (development only) | `smtp`: through an SMTP relay ([security.md](security.md#passwords)) |
   | Scheduler | an in-process timer started by `server.ts` | an internal, secret-protected endpoint that an external cron calls every few minutes. The slice that builds it adds its path to the API contract |
   | Clock | the system clock | the system clock. Tests inject a fixed one (§11) |
 - **No work runs after a response is sent**, in either environment. A function may be frozen as soon as it answers, so whatever a request must do is done before it responds. The one exception is the request's log line, written as the response finishes, synchronously and best effort (§10).

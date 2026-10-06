@@ -17,7 +17,7 @@ The account's settings (`GET` and `PATCH /me`), suspension, role changes and the
 
 - **Every signed-in user,** through the account menu and sign-out.
 - **A user with a temporary password,** through the forced change.
-- **`auth`,** which signs in, registers and links Google through it.
+- **[`auth`](auth.md),** which signs in, registers and links Google through it.
 - **[`space-links`](space-links.md),** which names the owners in the admin's spaces list.
 
 ## Responsibility boundary
