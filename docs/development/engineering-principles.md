@@ -1,6 +1,6 @@
 # Engineering Principles
 
-> **Status:** Active · **Last Updated:** 2026-09-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** Code-design rules for the whole repository. Rules are defaults, not laws: a deviation is allowed when it is deliberate and recorded (an ADR or a finding), never silent.
 
 ## 1. Mindset
@@ -29,7 +29,7 @@ Simplicity over cleverness · maintainability first · explicit over magic · de
 - **DTO → Mapper (pure function) → Entity** at every boundary.
 - **Repositories** own all Prisma access; services never import Prisma.
 - **One typed error shape** on each side: `AppError` on the server and on the client.
-- **Factory functions with injectable defaults** instead of classes and containers: `createService(repo = createRepository())`.
+- **Factory functions** instead of classes and containers: a service receives only its real dependencies and creates its own repository ([conventions §2](../backend/conventions.md#2-layers)).
 - **Request state** is modelled explicitly (`idle → loading → success | error`), which TanStack Query provides.
 - **Validation schemas are shared** from `packages/shared` between the form and the endpoint.
 

@@ -369,19 +369,23 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 
 ## 30. A lookup's English name is not unique
 
-**Status:** Open · **Date:** 2026-10-05
+**Status:** Accepted · **Date:** 2026-10-05 · **Accepted:** 2026-10-06
 
 **Evidence:** the admin's lookups answer a duplicate name with 409 `not_unique` only where the database holds a unique key: a governorate's Arabic name, an area's Arabic name within its governorate, and an amenity's key, derived from its English name ([api-contract §5](../api/api-contract.md#5-endpoints), S2a-1). A governorate's or an area's English name, and an amenity's Arabic name, may repeat another's. So may an amenity's English name once it is edited, since only the key it yielded when the amenity was added is unique. A check in the service alone would race without a constraint, and the item changed no schema.
 
 **Resolves when:** a migration adds the missing unique keys (each English name as its Arabic one is keyed, and an amenity's Arabic name), and the endpoints answer them with `not_unique`; or the owner accepts the repeats.
 
+**Resolution (2026-10-06, H-1):** the owner accepted the repeats. The lists are small, and the admin sees each one whole, so a repeated name is seen where it is made. No schema changes.
+
 ## 31. The backend documents still call for injecting a repository only tests pass
 
-**Status:** Open · **Date:** 2026-10-05
+**Status:** Resolved · **Date:** 2026-10-05
 
 **Evidence:** [conventions §2](../backend/conventions.md#2-layers) wires dependencies by factory functions with defaults, `createService(repo = createRepository(), …)`, so that "tests pass plain-object fakes"; [R8](../backend/conventions.md#8-module-rules) unit-tests service logic with such fakes; and [testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 3, says "inject the repository". The owner's rule is that no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2): a repository parameter that only tests pass breaks it. The older services (`users`, `sessions`, `space-links`, `spaces`, `lookups`' `areaNamesFor`) still follow §2. The admin's lookups services (S2a-1) no longer do: each creates its repository, its logic is unit-tested in pure helpers, and the services are proven by the API lane on the real database.
 
 **Resolves when:** a docs item aligns conventions §2 and R8 and testing §3 with the rule; the older services follow in the planned refactor.
+
+**Resolution (2026-10-06, H-1):** the documents now follow the rule. [Conventions §2](../backend/conventions.md#2-layers): a service creates its own repository, and the composition root passes only real dependencies (the transaction runner, the audit writer, lower modules' services, ports); the older services are named as still taking a repository, until the planned refactor. [R8](../backend/conventions.md#8-module-rules): logic worth unit-testing lives in pure helpers, and the API lane proves services on the real database. [Testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 3: a seam is a port or the platform's client, never a repository injected for tests.
 
 ## 32. The Google sign-in answer does not say whether it created the account
 

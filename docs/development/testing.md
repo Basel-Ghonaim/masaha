@@ -1,6 +1,6 @@
 # Testing
 
-> **Status:** Active · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof, not its style.
 
 ## 1. The assignment rule
@@ -30,7 +30,7 @@ A test file's suffix names its lane, and each lane's script runs only its own fi
 
 1. Deleting the test tooling leaves production complete.
 2. No production code exists only to serve a test.
-3. A seam sits at the unit that owns the dependency (inject the repository, not a global mock).
+3. A seam is a real dependency the code already receives: a port (the clock, email, Google's identity) or the platform's client. Never a repository injected for tests, and never a module replaced by a mock: a service's logic worth unit-testing lives in pure helpers, and the API lane proves the service on the real database ([conventions R8](../backend/conventions.md#8-module-rules)).
 4. If a test needs a production change, keep it only if production is better for it anyway.
 
 ### A feature, layer by layer

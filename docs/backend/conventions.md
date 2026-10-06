@@ -56,7 +56,7 @@ Inside a module, each layer calls only the one below it.
 | **Service** | Business rules, permission checks via `can()`, mapping to DTOs, audit entries (§6), calls to lower modules' services, transactions when it orchestrates (§8) | Importing Prisma or Express |
 | **Repository** | Prisma queries on the module's own tables only; applies soft-delete filters by default; each function accepts an optional `tx` (§8) | Rules |
 
-**Dependency injection** by factory functions with defaults: `createController(service = createService())` → `createService(repo = createRepository(), …lower modules' services)` → `createRepository(db = prisma)`. Tests pass plain-object fakes (R8).
+**Dependency injection** by factory functions. The composition root passes a service only its real dependencies: the transaction runner, the audit writer, lower modules' services and ports (R5), as in `createService({ runInTransaction, audit, …lower modules' services })`. A service creates its own repository: no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2). The older services (`users`, `sessions`, `space-links`, `spaces`, and `lookups`' area names) still take a repository, and follow in the planned refactor.
 
 ## 3. Validation
 
@@ -177,8 +177,8 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 - **R6 — The platform knows no domain.** `shared/` holds only errors, http, validation, auth (the access-token codec, the route guards and the pure `can()` table), the audit writer, jobs, storage and the rate limiter.
 - **R7 — Read models read, never write.** Read models may read other modules' tables with aggregate queries: `finance`, `overview` and the `audit` reader. They never write.
 - **R8 — Testing**, in the lanes of [testing.md](../development/testing.md):
-  - **Service logic** is unit-tested with plain-object fakes of the dependencies' public types. TypeScript is structural, so no interface files are written for this.
-  - **Every endpoint and every orchestrator** is proven by API integration tests on the real database.
+  - **Logic worth unit-testing** lives in pure helpers, unit-tested on their own.
+  - **Every service, endpoint and orchestrator** is proven by API integration tests on the real database.
 
 ### Transactions
 

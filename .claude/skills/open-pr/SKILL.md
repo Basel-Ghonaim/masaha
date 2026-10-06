@@ -11,7 +11,7 @@ A runbook, not a source of truth: each step links to the section that owns its r
 2. Truth check:
    - every comment and every document sentence states what holds now ([CLAUDE.md, "Claim only what is true"](../../../CLAUDE.md#non-negotiable-rules-every-task));
    - code and test names carry no roadmap notes ([engineering principles §8](../../../docs/development/engineering-principles.md#8-comments)).
-3. Run `git fetch origin` and rebase on `origin/main`. On a conflict, keep both sides ([workflow §9](../../../docs/development/workflow.md#9-parallel-work)). If `package-lock.json` changed, install again ([setup, Install](../../../docs/development/setup.md#install)).
+3. Run `git fetch origin`. Rebase on `origin/main` only as [workflow §9](../../../docs/development/workflow.md#9-parallel-work) says: when GitHub shows a conflict. If `package-lock.json` changed, install again ([setup, Install](../../../docs/development/setup.md#install)).
 4. Run every lane ([setup, Commands](../../../docs/development/setup.md#commands)). Record the counts, and what was NOT run, for Evidence ([workflow §3, PR description](../../../docs/development/workflow.md#pr-description)).
 5. UI changes: take screenshots in RTL and LTR, light and dark, phone and desktop ([workflow §5](../../../docs/development/workflow.md#5-definition-of-done-and-accepted)). Save them in the folder the prompt names.
 6. Push, then run `gh pr create --assignee @me`:
