@@ -1,10 +1,12 @@
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
+import type { SheetView } from '../../types/SheetView';
 import { useGovernoratesQuery } from './useGovernoratesQuery';
 
 /**
  * The governorates section, ready to render: its state (loading, failed, empty or the list), the
- * governorates in order, and the words of each state. Each card prepares its own governorate. A failure to load is read as any refusal is, with its line, its
+ * governorates in order, the words of each state, and the sheet that adds a governorate. Each card
+ * prepares its own governorate. A failure to load is read as any refusal is, with its line, its
  * request's reference and, for too many requests, the wait, during which the retry waits too.
  */
 export function useGovernoratesSection() {
@@ -26,6 +28,11 @@ export function useGovernoratesSection() {
           ? ('empty' as const)
           : ('ready' as const),
     governorates,
+    add: {
+      trigger: copy.lookups.governorates.add,
+      title: copy.lookups.sheet.addGovernorate,
+      closeLabel: copy.lookups.sheet.close,
+    } satisfies SheetView,
     label: copy.lookups.governorates.title,
     loadingLabel: copy.status.loading,
     empty: {

@@ -25,8 +25,8 @@ function targetOf({ kind, action }: Action): string {
 
 /**
  * One governorate's card, ready to render: its names, English first (the line most names are used
- * in), its count of areas, whether it is hidden, its controls, its areas in order, and the failure
- * of an action on it or its areas.
+ * in), its count of areas, whether it is hidden, its controls and its edit sheet, its areas in order,
+ * the sheet that adds an area, and the failure of an action on it or its areas.
  *
  * Nothing changes before the server answers: the governorate's controls wait while its own action is
  * pending, its arrows while any governorate's order is, so two orders never race, and every control of
@@ -35,7 +35,7 @@ function targetOf({ kind, action }: Action): string {
  */
 export function useGovernorateCard(governorate: AdminGovernorateWithAreas) {
   const copy = useCopy();
-  const { nameOf, controlsOf } = useRowViews();
+  const { nameOf, controlsOf, sheetOf, editOf } = useRowViews();
   const { data: governorates = [] } = useGovernoratesQuery();
   const setVisibility = useSetGovernorateVisibility();
   const order = useOrderGovernorates();
@@ -81,6 +81,12 @@ export function useGovernorateCard(governorate: AdminGovernorateWithAreas) {
     hiddenLabel: copy.lookups.row.hidden,
     failure,
     blocked,
+    edit: editOf(name, copy.lookups.sheet.editGovernorate),
+    addArea: sheetOf({
+      trigger: copy.lookups.areas.add,
+      title: copy.lookups.sheet.addArea,
+      description: governorate.nameEn,
+    }),
     controls: controlsOf(
       name,
       governorate.isActive,

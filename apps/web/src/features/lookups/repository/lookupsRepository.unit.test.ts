@@ -44,6 +44,27 @@ describe('the lookups repository', () => {
     });
   });
 
+  it('POSTs a new governorate’s names, and resolves to the governorate added', async () => {
+    const added = { id: 9, nameAr: 'محافظة جديدة', nameEn: 'New', isActive: true };
+    const requests = serve({ status: 201, data: { success: true, data: added } });
+
+    await expect(
+      createLookupsRepository().addGovernorate({ nameAr: 'محافظة جديدة', nameEn: 'New' }),
+    ).resolves.toEqual(added);
+    expect(requests[0]).toMatchObject({ method: 'post', url: '/admin/governorates' });
+    expect(bodyOf(requests[0])).toEqual({ nameAr: 'محافظة جديدة', nameEn: 'New' });
+  });
+
+  it('POSTs a new area with its governorate, and resolves to the area added', async () => {
+    const request = { governorateId: 2, nameAr: 'الدرج', nameEn: 'Ad-Daraj' };
+    const added = { id: 10, ...request, isActive: true };
+    const requests = serve({ status: 201, data: { success: true, data: added } });
+
+    await expect(createLookupsRepository().addArea(request)).resolves.toEqual(added);
+    expect(requests[0]).toMatchObject({ method: 'post', url: '/admin/areas' });
+    expect(bodyOf(requests[0])).toEqual(request);
+  });
+
   it('PATCHes a governorate with the fields to change, and resolves to it', async () => {
     const hidden = { id: 2, nameAr: 'محافظة غزة', nameEn: 'Gaza City', isActive: false };
     const requests = serve({ status: 200, data: { success: true, data: hidden } });

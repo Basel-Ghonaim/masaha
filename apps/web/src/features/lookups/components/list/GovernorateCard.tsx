@@ -10,13 +10,17 @@ import {
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
 import { useGovernorateCard } from '../../hooks/list/useGovernorateCard';
+import { AddAreaForm } from '../sheet/AddAreaForm';
+import { EditGovernorateForm } from '../sheet/EditGovernorateForm';
+import { LookupSheet } from '../sheet/LookupSheet';
 import { AreaRow } from './AreaRow';
 import { RowControls } from './RowControls';
 
 /**
  * A governorate's card: its names, English first, its count of areas, its badge when hidden and its
- * controls, which wrap under the names on a narrow screen, as an area's do; then the failure of an
- * action on it, and its areas. A hidden governorate's names are dimmed, not its surface.
+ * controls with its edit sheet, which wrap under the names on a narrow screen, as an area's do; then
+ * the failure of an action on it, its areas, and the sheet that adds one. A hidden governorate's
+ * names are dimmed, not its surface.
  */
 export function GovernorateCard({ governorate }: { governorate: AdminGovernorateWithAreas }) {
   const card = useGovernorateCard(governorate);
@@ -39,7 +43,11 @@ export function GovernorateCard({ governorate }: { governorate: AdminGovernorate
             <span>{card.countLine}</span>
           </CardDescription>
         </div>
-        <RowControls controls={card.controls} />
+        <RowControls controls={card.controls}>
+          <LookupSheet sheet={card.edit} variant="ghost">
+            {(close) => <EditGovernorateForm governorate={governorate} onSaved={close} />}
+          </LookupSheet>
+        </RowControls>
       </CardHeader>
       <CardContent>
         {card.failure && <FormFailure view={card.failure} />}
@@ -56,6 +64,11 @@ export function GovernorateCard({ governorate }: { governorate: AdminGovernorate
             ))}
           </ul>
         )}
+        <div>
+          <LookupSheet sheet={card.addArea} variant="outline">
+            {(close) => <AddAreaForm governorateId={governorate.id} onSaved={close} />}
+          </LookupSheet>
+        </div>
       </CardContent>
     </Card>
   );

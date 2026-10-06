@@ -1,15 +1,22 @@
 import { ArrowDownIcon, ArrowUpIcon, Button, Switch } from '@shared/design-system';
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { RowControlsView } from '../../types/RowControlsView';
 
 type Which = 'up' | 'down' | 'shown';
 
 /**
- * A row's controls, for a governorate or an area: its two arrows and its shown switch. A control that waits on the server stays in the focus order and ignores
+ * A row's controls, for a governorate or an area: its two arrows, its shown switch, then its edit
+ * sheet (`children`). A control that waits on the server stays in the focus order and ignores
  * presses, so the keyboard keeps its place; and when a move carries the row elsewhere and the focus
  * falls to the page, it comes back to the control pressed, or to the row's next one that can take it.
  */
-export function RowControls({ controls }: { controls: RowControlsView }) {
+export function RowControls({
+  controls,
+  children,
+}: {
+  controls: RowControlsView;
+  children: ReactNode;
+}) {
   const up = useRef<HTMLButtonElement>(null);
   const down = useRef<HTMLButtonElement>(null);
   const shown = useRef<HTMLButtonElement>(null);
@@ -78,6 +85,7 @@ export function RowControls({ controls }: { controls: RowControlsView }) {
           });
         }}
       />
+      {children}
     </div>
   );
 }

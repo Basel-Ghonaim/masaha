@@ -67,7 +67,8 @@ describe('GovernoratesSection', () => {
     expect(within(gaza).getByText('محافظة غزة')).toHaveAttribute('lang', 'ar');
     expect(within(gaza).getByText('2 areas')).toBeInTheDocument();
     const rows = within(gaza).getAllByRole('listitem');
-    expect(rows.map((row) => row.textContent)).toEqual([
+    // Each row's names, then its badge; its controls follow.
+    expect(rows.map((row) => row.firstElementChild?.textContent)).toEqual([
       'Al-Rimalالرمال',
       'Ash-Shuja’iyyaالشجاعيةHidden',
     ]);
@@ -172,11 +173,12 @@ describe('GovernoratesSection', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
-  it('says there are no governorates yet when the list is empty', async () => {
+  it('says there are no governorates yet when the list is empty, and offers to add one', async () => {
     renderSection(() => ok([]));
 
     expect(await screen.findByRole('heading', { name: 'No governorates yet' })).toBeInTheDocument();
     expect(screen.getByText('Add the first governorate, then its areas.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add governorate' })).toBeInTheDocument();
   });
 
   it('has no axe violations', async () => {

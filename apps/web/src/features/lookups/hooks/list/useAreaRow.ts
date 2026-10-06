@@ -10,7 +10,7 @@ import { useRowViews } from './useRowViews';
 
 /**
  * One area's row in its governorate's card, ready to render: its names, English first, whether it is
- * hidden and its controls. The row owns its own actions, so its last one stays held
+ * hidden, its controls and its edit sheet. The row owns its own actions, so its last one stays held
  * while the row is on screen, and its failure with it.
  *
  * Its controls wait while its own action is pending, while any order of its governorate's areas is
@@ -28,7 +28,7 @@ export function useAreaRow({
   blocked: boolean;
 }) {
   const copy = useCopy();
-  const { nameOf, controlsOf } = useRowViews();
+  const { nameOf, controlsOf, editOf } = useRowViews();
   const setVisibility = useSetAreaVisibility();
   const order = useOrderAreas();
   const governorateId = governorate.id;
@@ -49,6 +49,7 @@ export function useAreaRow({
     nameAr: area.nameAr,
     hidden: !area.isActive,
     hiddenLabel: copy.lookups.row.hidden,
+    edit: editOf(name, copy.lookups.sheet.editArea, governorate.nameEn),
     controls: controlsOf(
       name,
       area.isActive,

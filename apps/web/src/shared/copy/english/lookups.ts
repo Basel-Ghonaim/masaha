@@ -7,12 +7,16 @@ export const LOOKUPS = {
   governorates: {
     /** The section's name. */
     title: 'Governorates and areas',
+    add: 'Add governorate',
     /** A governorate's count of areas. */
     areaCount: ({ count }: { count: number }) =>
       englishPlural(count, { one: `${String(count)} area`, other: `${String(count)} areas` }),
     empty: 'No governorates yet',
     emptyHint: 'Add the first governorate, then its areas.',
     loadFailed: 'We couldn’t load the governorates',
+  },
+  areas: {
+    add: 'Add area',
   },
   row: {
     /** The badge of a hidden governorate or area. */
@@ -21,11 +25,37 @@ export const LOOKUPS = {
     shown: ({ name }: { name: string }) => `Shown: ${name}`,
     moveUp: ({ name }: { name: string }) => `Move up: ${name}`,
     moveDown: ({ name }: { name: string }) => `Move down: ${name}`,
+    edit: 'Edit',
+    /** The Edit button's name: the row it opens. */
+    editName: ({ name }: { name: string }) => `Edit: ${name}`,
   },
   /** An action on a row that failed, inside its governorate's card. */
   failure: {
     title: 'The change wasn’t saved',
     /** An order set on a list that changed meanwhile, which is shown again as it now stands. */
     orderChanged: 'The order changed meanwhile; the new order is shown. Try again.',
+  },
+  /** The side sheet that adds or edits a governorate or an area. */
+  sheet: {
+    addGovernorate: 'Add governorate',
+    editGovernorate: 'Edit governorate',
+    addArea: 'Add area',
+    editArea: 'Edit area',
+    nameAr: 'Name in Arabic',
+    nameEn: 'Name in English',
+    /** The switch, when editing: a new governorate or area is always active. */
+    active: 'Active',
+    activeHint: 'Hidden: not shown in filters and forms.',
+    save: 'Save',
+    close: 'Close',
+    saveFailed: 'We couldn’t save',
+    fieldErrors: {
+      nameAr: { too_short: 'Enter the Arabic name' },
+      nameEn: { too_short: 'Enter the English name' },
+      /** Another governorate, hidden or not, has the Arabic name. */
+      governorateTaken: 'Another governorate has this Arabic name',
+      /** Another area of the same governorate has the Arabic name. */
+      areaTaken: 'Another area of this governorate has this Arabic name',
+    },
   },
 } as const;

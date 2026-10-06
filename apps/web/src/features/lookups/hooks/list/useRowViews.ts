@@ -2,13 +2,14 @@ import { useCopy } from '@shared/copy';
 import { isolate, useLanguage } from '@shared/localisation';
 import type { Direction } from '../../services/moved';
 import type { RowControlsView } from '../../types/RowControlsView';
+import type { SheetView } from '../../types/SheetView';
 
 /** A row's place in its list, and what it waits on: its own action, its list's order, a 429. */
 export type RowState = { index: number; count: number; busy: boolean; listMoving: boolean };
 
 /**
- * What a governorate's row and an area's row share, worded: the name a control is called by, and the
- * controls. A governorate's card and each area's row build theirs from these.
+ * What a governorate's row and an area's row share, worded: the name a control is called by, the
+ * controls, and the sheets. A governorate's card and each area's row build theirs from these.
  */
 export function useRowViews() {
   const copy = useCopy();
@@ -50,5 +51,18 @@ export function useRowViews() {
     },
   });
 
-  return { nameOf, controlsOf };
+  // A sheet's own words; an area's sheet names its governorate, in its English name.
+  const sheetOf = (sheet: Omit<SheetView, 'closeLabel'>): SheetView => ({
+    ...sheet,
+    closeLabel: copy.lookups.sheet.close,
+  });
+  const editOf = (name: string, title: string, description?: string) =>
+    sheetOf({
+      trigger: copy.lookups.row.edit,
+      triggerName: copy.lookups.row.editName({ name }),
+      title,
+      ...(description !== undefined && { description }),
+    });
+
+  return { nameOf, controlsOf, sheetOf, editOf };
 }

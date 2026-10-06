@@ -1,11 +1,13 @@
 import type { AdminArea, AdminGovernorateWithAreas } from '@masaha/shared/lookups';
 import { Badge } from '@shared/design-system';
 import { useAreaRow } from '../../hooks/list/useAreaRow';
+import { EditAreaForm } from '../sheet/EditAreaForm';
+import { LookupSheet } from '../sheet/LookupSheet';
 import { RowControls } from './RowControls';
 
 /**
  * An area in its governorate's card: its names, English first, its badge when hidden, and its
- * controls, which wrap under the names on a narrow screen.
+ * controls with its edit sheet, which wrap under the names on a narrow screen.
  */
 export function AreaRow(props: {
   governorate: AdminGovernorateWithAreas;
@@ -27,7 +29,11 @@ export function AreaRow(props: {
         </span>
         {row.hidden && <Badge variant="warning">{row.hiddenLabel}</Badge>}
       </span>
-      <RowControls controls={row.controls} />
+      <RowControls controls={row.controls}>
+        <LookupSheet sheet={row.edit} variant="ghost">
+          {(close) => <EditAreaForm area={props.area} onSaved={close} />}
+        </LookupSheet>
+      </RowControls>
     </li>
   );
 }
