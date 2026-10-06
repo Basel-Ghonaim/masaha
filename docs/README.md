@@ -16,6 +16,7 @@ Where each fact lives, what each kind of document may contain, and the classes a
 Read a capability's document first when changing it; it links the platform sections it uses ([the rules](architecture/documentation.md#5-capability-documents)).
 - [lookups.md](features/lookups.md) — the governorates, areas and amenities: the admin's screen and the public catalogue.
 - [spaces.md](features/spaces.md) — a space's profile, freshness and life on the platform, as the admin keeps it (API only).
+- [space-links.md](features/space-links.md) — a user's links to spaces: the session's links, the caller's spaces, the space switcher, the admin's spaces list and the links loader.
 
 ### `architecture/` — how the system fits together
 - [system-overview.md](architecture/system-overview.md) — the running system's parts, and one request traced from the web to the database and back; it links to each part's owner.

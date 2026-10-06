@@ -161,7 +161,7 @@ The signed-in user's own account. Each endpoint needs the access token.
 The spaces a signed-in user works at, as owner or reception ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
 
 #### `GET /manage/spaces` · 👤
-- **200:** `ManagedSpace[]` (`@masaha/shared/space-links`), the spaces the caller holds an active link to, oldest link first, as the session's links are. A hidden space is included, since its owner still manages it; a soft-deleted one is left out. Never another user's spaces; an account with no links, the admin included, gets `[]`.
+- **200:** `ManagedSpace[]` (`@masaha/shared/space-links`), the spaces the caller holds an active link to, oldest link first, as the session's links are. A hidden space is included ([why](../features/space-links.md#decisions)); a soft-deleted one is left out. Never another user's spaces; an account with no links, the admin included, gets `[]`.
 
   ```ts
   ManagedSpace = {

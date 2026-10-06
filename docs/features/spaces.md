@@ -38,7 +38,7 @@ The other facts it will own (hours, shifts, prices, contacts, photos, amenities)
 
 **Read and edit.** The space is read with whether it is verified, from its links, so an edit screen can show it editable or read-only; what an edit writes and audits is the [contract](../api/api-contract.md#spaces-the-admin)'s.
 
-**Hide, delete, restore.** Each applies to any space, verified or not, under the space's row lock, and setting what the space already is writes nothing. A deleted space leaves every list and the public; its links are kept and count for nothing ([finding 18](../architecture/findings.md#18-whether-a-link-to-a-deleted-space-still-counts)). A restore brings it back as it was, hidden or not, with its links.
+**Hide, delete, restore.** Each changes the space under its row lock, verified or not; what each answers and leaves behind is the [contract](../api/api-contract.md#spaces-the-admin)'s, and a deleted space's links count for nothing ([space-links](space-links.md#decisions)).
 
 **Freshness.** A group is stale once its date is older than its threshold, prices by their own ([data model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)).
 
