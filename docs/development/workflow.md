@@ -89,6 +89,7 @@ Closes #n   (only when an Issue exists)
 - [ ] UI checked in RTL and LTR, light and dark, phone and desktop.
 - [ ] Authorization enforced on the server for any protected action.
 - [ ] Triggered documentation updated **in the same PR** (§7), including any **deferred document** whose trigger this PR meets.
+- [ ] Each fact has one home: no duplication, links rather than copies, and nothing claimed that is not built ([documentation rules](../architecture/documentation.md)).
 - [ ] Every claim in the PR description names the test or command that proves it ([testing §3](testing.md#3-rules-that-bind-every-test)).
 - [ ] Atomic history, pushed, PR description complete.
 
@@ -111,6 +112,7 @@ Update in the **same PR** as the code:
 | An endpoint, payload or error code | [api-contract.md](../api/api-contract.md) |
 | A model, relation or index | [data-model.md](../architecture/data-model.md) |
 | A shared mechanism (session, i18n, errors, design system) | its owning document |
+| A capability's behaviour, decisions or code map | its document in `docs/features/`, written with the capability's first stable core ([documentation rules §5](../architecture/documentation.md#5-capability-documents)) |
 | A decision meeting the ADR threshold | a new ADR in [decisions/](../architecture/decisions/) |
 | A feature becomes built | the *Built* section of [overview.md](../project/overview.md) |
 
@@ -118,7 +120,7 @@ Pure refactors that change no behaviour need no documentation update.
 
 **Deferred documents.** Some documents are committed but not yet written because what they describe does not exist yet. Their triggers are listed in the [documentation map](../README.md#deferred-documents). A PR that meets a trigger writes that document; the PR is not *Done* without it. Remove the row from the map once the document exists.
 
-**ADR threshold:** long-term impact, hard to reverse, affects several parts, and a real choice between alternatives. Format: *Context · Decision · Alternatives · Consequences*. The project stays in a foundation phase, so an ADR may be revised in place with a `> **Revised:** <date> — <what>` line.
+**ADR threshold:** long-term impact, hard to reverse, affects several parts, and a real choice between alternatives; and no document naturally owns the decision ([documentation rules §7](../architecture/documentation.md#7-adrs)). Format: *Context · Decision · Alternatives · Consequences*. The project stays in a foundation phase, so an ADR may be revised in place with a `> **Revised:** <date> — <what>` line.
 
 ## 8. Stop rules
 

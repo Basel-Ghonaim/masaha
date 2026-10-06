@@ -9,7 +9,7 @@ A runbook, not a source of truth: each step links to the section that owns its r
 
 1. Identify the worker and its folder: worker A in the main folder, worker B in the `masaha-b` worktree ([workflow §9](../../../docs/development/workflow.md#9-parallel-work)).
 2. Run `git fetch origin`. Check that the tree is clean and `HEAD` is at `origin/main`, detached for worker B ([workflow §9](../../../docs/development/workflow.md#9-parallel-work)). If a check fails, stop and report ([workflow §8](../../../docs/development/workflow.md#8-stop-rules)).
-3. Read `CLAUDE.md`, `docs/development/workflow.md` and `docs/README.md`, then the single owning document for the area, found through the map ([CLAUDE.md, Session checklist](../../../CLAUDE.md#session-checklist)).
+3. Read `CLAUDE.md`, `docs/development/workflow.md` and `docs/README.md`, then the single owning document for the area, found through the map ([CLAUDE.md, Session checklist](../../../CLAUDE.md#session-checklist)). For a capability, its document in `docs/features/` comes first, then the sections it links ([documentation rules §5](../../../docs/architecture/documentation.md#5-capability-documents)).
 4. Plan in plan mode; agree the contract before implementing ([workflow §2](../../../docs/development/workflow.md#2-work-item)). The plan names:
    - the files to touch;
    - the files shared with the other worker, and the section each side owns ([workflow §9](../../../docs/development/workflow.md#9-parallel-work));

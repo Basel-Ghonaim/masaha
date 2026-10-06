@@ -57,6 +57,8 @@ Any override must be **stated, never silent.**
 ## Authoritative documents
 
 - **Documentation map** → `docs/README.md`
+- **Documentation rules** (one home per fact, classes, the capability template) → `docs/architecture/documentation.md`
+- **Capabilities** (one document each; read it first) → `docs/features/`
 - **Product scope (v1 and Not in v1)** → `docs/project/overview.md`
 - **Workflow** (task classes, Git, Definition of Done, decision authority, stop rules) → `docs/development/workflow.md`
 - **Engineering principles** → `docs/development/engineering-principles.md`
