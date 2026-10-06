@@ -10,8 +10,8 @@ interface Dependencies {
 }
 
 /**
- * The bilingual lookup lists, as other modules read them: area names, for many areas at once, and
- * whether an area may take a space.
+ * The bilingual lookup lists, as other modules read them: area names, for many areas at once; a
+ * governorate's areas; and whether an area may take a space.
  */
 export function createLookupsService({
   repository = createLookupsRepository(),
@@ -20,6 +20,11 @@ export function createLookupsService({
     /** The names of these areas, in one query. */
     areaNamesFor(ids: readonly number[], tx?: Tx): Promise<AreaName[]> {
       return repository.findAreaNames(ids, tx);
+    },
+
+    /** The ids of the governorate's areas, hidden ones included: a filter by governorate. */
+    areaIdsOf(governorateId: number, tx?: Tx): Promise<number[]> {
+      return repository.findAreaIdsOf(governorateId, tx);
     },
 
     /**

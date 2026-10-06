@@ -24,10 +24,24 @@ export interface NewAccount {
   language?: Language;
 }
 
+/** A user's id and name, as another module lists them. */
+export interface UserName {
+  id: number;
+  name: string;
+}
+
 export function createUsersRepository(db: PrismaClient = prisma) {
   return {
     findById(id: number, tx: Tx = db): Promise<Account | null> {
       return tx.user.findUnique({ where: { id }, select: ACCOUNT });
+    },
+
+    /** The names of these users, in one query. */
+    findNames(ids: readonly number[], tx: Tx = db): Promise<UserName[]> {
+      return tx.user.findMany({
+        where: { id: { in: [...ids] } },
+        select: { id: true, name: true },
+      });
     },
 
     /** The account and its hash apart, for a password check only. */

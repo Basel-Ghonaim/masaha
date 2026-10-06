@@ -23,6 +23,8 @@ function setup(links: ActiveLink[]) {
       calls.push(`links:${String(userId)}`);
       return Promise.resolve(links);
     },
+    findVerifiedSpaceIds: () => Promise.reject(new Error('not asked here')),
+    findOwnerLinks: () => Promise.reject(new Error('not asked here')),
   };
   const spaces: SpacesService = {
     summariesFor: (ids) => {
@@ -35,6 +37,7 @@ function setup(links: ActiveLink[]) {
       calls.push(`areas:${ids.join(',')}`);
       return Promise.resolve(AREAS.filter(({ id }) => ids.includes(id)));
     },
+    areaIdsOf: () => Promise.reject(new Error('not asked here')),
     isActiveArea: () => Promise.reject(new Error('not asked here')),
   };
   return { service: createSpaceLinksService({ repository, spaces, lookups }), calls };

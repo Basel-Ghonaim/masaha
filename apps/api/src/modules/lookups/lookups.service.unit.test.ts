@@ -13,6 +13,7 @@ describe('the lookups service', () => {
         asked.push(ids);
         return Promise.resolve([rimal]);
       },
+      findAreaIdsOf: () => Promise.reject(new Error('not asked here')),
       isActiveArea: () => Promise.reject(new Error('not asked here')),
     };
 

@@ -36,6 +36,9 @@ import {
   createSessionsService,
 } from './modules/sessions/index.ts';
 import {
+  createAdminSpacesController,
+  createAdminSpacesService,
+  createSpaceLinksAdminRouter,
   createSpaceLinksController,
   createSpaceLinksMeRouter,
   createSpaceLinksService,
@@ -43,6 +46,7 @@ import {
 import { createPlatformSettingsService } from './modules/platform-settings/index.ts';
 import { createSpaceSettingsService } from './modules/space-settings/index.ts';
 import {
+  createListingService,
   createSpaceController,
   createSpaceService,
   createSpacesAdminRouter,
@@ -196,6 +200,11 @@ export function createApi({
     now: clock,
   });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
+  const adminSpaces = createAdminSpacesService({
+    listing: createListingService({ platformSettings, now: clock }),
+    lookups,
+    users,
+  });
   const auth = createAuthService({
     users,
     sessions,
@@ -237,6 +246,7 @@ export function createApi({
       amenities: createAmenitiesController(amenities),
     }),
   );
+  admin.use(createSpaceLinksAdminRouter(createAdminSpacesController(adminSpaces)));
   admin.use(createSpacesAdminRouter({ space: createSpaceController(space) }));
   api.use('/admin', requireAuth(), requireRole('ADMIN'), admin);
   return api;

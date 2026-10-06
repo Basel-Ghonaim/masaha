@@ -18,6 +18,12 @@ export function createLookupsRepository(db: PrismaClient = prisma) {
       });
     },
 
+    /** The ids of the governorate's areas, hidden ones included. */
+    async findAreaIdsOf(governorateId: number, tx: Tx = db): Promise<number[]> {
+      const rows = await tx.area.findMany({ where: { governorateId }, select: { id: true } });
+      return rows.map(({ id }) => id);
+    },
+
     /** Whether the area exists and is active, and so is its governorate. */
     async isActiveArea(id: number, tx: Tx = db): Promise<boolean> {
       const count = await tx.area.count({

@@ -1,18 +1,7 @@
 import type { AdminSpace } from '@masaha/shared/spaces';
 
-import { staleGroups, type GroupDates } from '../staleness.ts';
+import { groupDatesOf, staleGroups, type GroupDates } from '../staleness.ts';
 import type { SpaceRecord } from './space.repository.ts';
-
-/** Each fact group's date, from the space's columns. */
-export function groupDatesOf(space: SpaceRecord): GroupDates {
-  return {
-    profile: space.profileUpdatedAt,
-    hours: space.hoursUpdatedAt,
-    prices: space.pricesUpdatedAt,
-    amenities: space.amenitiesUpdatedAt,
-    contacts: space.contactsUpdatedAt,
-  };
-}
 
 /** The space as the admin sees it; `cutoffs` are the staleness cut-offs now. */
 export function toAdminSpace(

@@ -12,6 +12,26 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Each group's date, when it was last saved or confirmed. */
 export type GroupDates = Record<FactGroup, Date>;
 
+/** A space's freshness columns, one per group. */
+export interface FreshnessColumns {
+  profileUpdatedAt: Date;
+  hoursUpdatedAt: Date;
+  pricesUpdatedAt: Date;
+  amenitiesUpdatedAt: Date;
+  contactsUpdatedAt: Date;
+}
+
+/** Each group's date, from the space's columns. */
+export function groupDatesOf(space: FreshnessColumns): GroupDates {
+  return {
+    profile: space.profileUpdatedAt,
+    hours: space.hoursUpdatedAt,
+    prices: space.pricesUpdatedAt,
+    amenities: space.amenitiesUpdatedAt,
+    contacts: space.contactsUpdatedAt,
+  };
+}
+
 /** For each group, the date before which it is stale. */
 export function staleCutoffs(thresholds: StalenessThresholds, now: Date): GroupDates {
   const before = (days: number) => new Date(now.getTime() - days * DAY_MS);
