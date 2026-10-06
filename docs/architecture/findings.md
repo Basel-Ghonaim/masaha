@@ -340,13 +340,15 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 
 **Resolves when:** the build gives what only the dashboard uses a place that does not import the dashboard's chunk back (a second chunk group, for example), proven by the manifest, or a dashboard module first needs such an import at load time.
 
-## 28. A dashboard routes test can time out under load
+## 28. The tests that wait for a lazy page can time out under load
 
 **Status:** Open · **Date:** 2026-10-05
 
 **Evidence:** in one full `test:component` run on F-6c2, "lists the owner’s eleven pages, the overview marked as the page shown" (`apps/web/src/pages/dashboard/routes.component.test.tsx`) failed after about 1.1 s with `Unable to find role="navigation" and name "Space dashboard"`: the lazily loaded space shell was not on screen within the default wait. The file passed three times alone, and the whole lane passed when run again.
 
-**Resolves when:** the test waits for the lazy shell in a way that holds under a full run, proven by repeated full runs.
+On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: with `apps/web` as on `main`, running `routes.component.test.tsx` and `apps/web/src/pages/site/auth/authPages.component.test.tsx` together failed twice out of two, each time in the first test that waits for a lazy page, after about 1.1 s: "shows its page to a guest, in the focus shell" (`Unable to find role="main"`), with "lists the owner’s eleven pages" or "opens the drawer with the pages". The item's branch failed the same tests in the same way.
+
+**Resolves when:** the tests that wait for a lazy page or shell wait in a way that holds under load, proven by repeated full runs.
 
 ## 29. Two folders cannot each run the web against their own API
 
