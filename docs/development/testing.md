@@ -1,7 +1,7 @@
 # Testing
 
 > **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
-> **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof, not its style.
+> **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof and what makes a test a proof, not its style.
 
 ## 1. The assignment rule
 
@@ -32,6 +32,9 @@ A test file's suffix names its lane, and each lane's script runs only its own fi
 2. No production code exists only to serve a test.
 3. A seam is a real dependency the code already receives: a port (the clock, email, Google's identity) or the platform's client. Never a repository injected for tests, and never a module replaced by a mock: a service's logic worth unit-testing lives in pure helpers, and the API lane proves the service on the real database ([conventions R8](../backend/conventions.md#8-module-rules)).
 4. If a test needs a production change, keep it only if production is better for it anyway.
+5. **Seen failing.** A new test is seen failing, in its own lane, before the code that passes it. A test for code that already exists is proven by reverting that code once and seeing the test fail. A red test is never committed ([workflow §3](workflow.md#commits)).
+6. **Name the break.** Every test can name the production change that would make it fail. Its expectations are written by hand, never computed by the code under test.
+7. **Make the break.** For a security, transaction or ordering property, the author makes that change once, sees the test fail, and restores it.
 
 ### A feature, layer by layer
 

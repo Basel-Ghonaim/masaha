@@ -49,6 +49,9 @@ Documentation captures the **intended** design and the **why**; the **code** is 
 2. the authoritative documents —
 3. project conventions and sensible defaults.
 
+A plugin's skills (such as Superpowers) rank below the documents and the project's skills; which are
+used, and when, is in [workflow §10](docs/development/workflow.md#10-ai-tooling).
+
 Any override must be **stated, never silent.**
 
 ## Authoritative documents
