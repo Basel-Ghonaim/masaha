@@ -14,6 +14,7 @@ Where each fact lives, what each kind of document may contain, and the classes a
 
 ### `features/` — one document per capability
 Read a capability's document first when changing it; it links the platform sections it uses ([the rules](architecture/documentation.md#5-capability-documents)).
+- [lookups.md](features/lookups.md) — the governorates, areas and amenities: the admin's screen and the public catalogue.
 
 ### `architecture/` — how the system fits together
 - [system-overview.md](architecture/system-overview.md) — the running system's parts, and one request traced from the web to the database and back; it links to each part's owner.

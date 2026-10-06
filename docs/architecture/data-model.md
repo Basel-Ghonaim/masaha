@@ -38,7 +38,7 @@ Summaries only: the schema owns the fields.
 
 ### Lookups
 - **Governorate** and **Area** — the two-level place list, bilingual, ordered, with active flags. An area belongs to one governorate; a space belongs to one area.
-- **Amenity** — a bilingual yes/no feature with a stable `key` and an icon key from the shared list ([`lookups/amenityIcons.ts`](../../packages/shared/src/lookups/amenityIcons.ts)), ordered, with an active flag and a filter flag: the directory's filter leaves out what nearly every space has (Internet, stable power), which tells no space apart. Linked to spaces through **SpaceAmenity**.
+- **Amenity** — a bilingual yes/no feature with a stable `key` and an icon key from the shared list ([`lookups/amenityIcons.ts`](../../packages/shared/src/lookups/amenityIcons.ts)), ordered, with an active flag and a filter flag, off for what the directory's filter leaves out ([lookups › Decisions](../features/lookups.md#decisions)). Linked to spaces through **SpaceAmenity**.
 
 ### Spaces
 - **Space** — a listed coworking space: bilingual profile, area and map location, the admin's hide flag, soft delete, and one freshness timestamp per fact group.
