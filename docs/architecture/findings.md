@@ -352,7 +352,7 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 
 **Status:** Open · **Date:** 2026-10-05
 
-**Evidence:** the web's dev server listens on port 5320 and forwards `/api` to `http://localhost:3320`, both fixed in `apps/web/vite.config.ts` ([setup › Commands](../development/setup.md#commands)). Each folder's API reads its own `apps/api/.env`, whose `CORS_ORIGIN` names `http://localhost:5320`, and the password routes, refresh and logout refuse a request whose `Origin` is not that one ([security.md](../backend/security.md#tokens-and-cookies)). So a second folder, such as the `masaha-b` worktree, cannot run its web and its API beside the first: its API on another port is never reached by its web's proxy, and its web on another port is refused by its API. On F-5b3c2, port 5320 was already taken by another dev server; the recovery pages were checked by hand with Vite on 5330 and the API started with a one-off `CORS_ORIGIN=http://localhost:5330`, both outside any script or document.
+**Evidence:** the web's dev server listens on port 5320 and forwards `/api` to `http://localhost:3320`, both fixed in `apps/web/vite.config.ts` ([setup › Commands](../development/setup.md#commands)). Each folder's API reads its own `apps/api/.env`, whose `CORS_ORIGIN` names `http://localhost:5320`, and the password routes, refresh and logout refuse a request whose `Origin` is not that one ([security.md](../backend/security.md#tokens-and-cookies)). So a second folder, such as the `masaha-b` worktree, cannot run its web and its API beside the first: its API on another port is never reached by its web's proxy, and its web on another port is refused by its API. On F-5b3c2, port 5320 was already taken by another dev server; the recovery pages were checked by hand with Vite on 5330 and the API started with a one-off `CORS_ORIGIN=http://localhost:5330`, both outside any script or document. On 2026-10-06 (F-5b3b), dev servers left over from earlier runs kept the ports: a `tsx watch` API that survived Ctrl+C on Windows, and a Vite started for screenshots, held 3320 and 5320, so a fresh `npm run dev` failed on its port or reached a stale API still running with an old environment.
 
 **Resolves when:** a folder can run its web and its API on ports of its own, set in its own environment, and setup.md says how.
 
@@ -371,3 +371,35 @@ The two lists of a user's spaces now disagree. `GET /manage/spaces` (`mySpaces`)
 **Evidence:** [conventions §2](../backend/conventions.md#2-layers) wires dependencies by factory functions with defaults, `createService(repo = createRepository(), …)`, so that "tests pass plain-object fakes"; [R8](../backend/conventions.md#8-module-rules) unit-tests service logic with such fakes; and [testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 3, says "inject the repository". The owner's rule is that no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2): a repository parameter that only tests pass breaks it. The older services (`users`, `sessions`, `space-links`, `spaces`, `lookups`' `areaNamesFor`) still follow §2. The admin's lookups services (S2a-1) no longer do: each creates its repository, its logic is unit-tested in pure helpers, and the services are proven by the API lane on the real database.
 
 **Resolves when:** a docs item aligns conventions §2 and R8 and testing §3 with the rule; the older services follow in the planned refactor.
+
+## 32. The Google sign-in answer does not say whether it created the account
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** `POST /auth/google` answers `Session & { linked }` ([api-contract §5](../api/api-contract.md#5-endpoints)): `linked` says it has just joined Google to an existing account, but nothing says it has just created one. So the web welcomes an account registered by email ("Welcome Sara, your account is ready", [design 05-auth-flow](../design/SCREENS.md)) and cannot welcome one Google creates; F-5b3b changed no API and shows no welcome there.
+
+**Resolves when:** the answer says the account was created (a `created` flag beside `linked`) and the Google sign-in welcomes it as registration does; or the owner accepts no welcome after a first Google sign-in.
+
+## 33. The deployment's headers must let Google's sign-in work
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** Google sign-in on the web (F-5b3b) loads Google Identity Services' script from `https://accounts.google.com/gsi/client`, which draws its button in a frame from `accounts.google.com`, adds its own styles, and opens Google's window as a popup that answers the page. No header restricts this today: the web's pages carry no Content-Security-Policy and no Cross-Origin-Opener-Policy (the API's Helmet headers cover only the API's answers). A future CSP that does not allow Google's script, frames, styles and connections, or a `Cross-Origin-Opener-Policy: same-origin` on the web's pages, would break the sign-in without any test failing.
+
+**Resolves when:** the deployment's headers are written ([ADR 0014](decisions/0014-deployment.md)) with a CSP that allows `https://accounts.google.com/gsi/client` (script), `https://accounts.google.com/gsi/` (frame, connect, style), and a COOP of `same-origin-allow-popups` or none on the web's pages, as Google's own guidance lists them.
+
+## 34. Passwords stay in the mutation cache after a sign-in, a registration or a password change
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** TanStack Query keeps a mutation's variables, and a refusal's error keeps the request that carried them (its cause's `config.data`), for the mutation's `gcTime`, five minutes by default, after it has no observer. `useSignIn` and `useRegister` (`features/auth`) and `useChangePassword` (`features/users`) send a password as their variables and set no `gcTime`, so the password stays in the page's memory for five minutes after the form has gone, and a sign-in clears no cache ([architecture §3](../frontend/architecture.md#react-query-in-a-feature)). `useCheckResetLink` and, since F-5b3b, `useGoogleSignIn` set `gcTime: 0` for the same reason.
+
+**Resolves when:** each of the three sets `gcTime: 0`, with a test that the cache holds no password once the mutation is answered and its page has gone.
+
+## 35. The web sets no document title
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** `apps/web/index.html` has no `<title>`, and no page sets `document.title`, so every tab and every history entry shows the page's address. A page without a title fails WCAG 2.4.2 (Page Titled, level A); the [accessibility baseline](../frontend/design-system/foundation.md#10-accessibility-baseline) does not list titles yet.
+
+**Resolves when:** every page has a title, in both languages, following the interface's language, with a default in `index.html`.

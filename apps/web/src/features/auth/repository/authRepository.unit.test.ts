@@ -63,4 +63,27 @@ describe('authRepository', () => {
       errors: { email: ['not_unique'] },
     });
   });
+
+  it("signs in with a POST of Google's ID token and the language to /auth/google, resolving to the session and whether it linked", async () => {
+    const answer = { ...aSession({}, 'token-google'), linked: true };
+    const requests = fakeTransport(() => ok(answer));
+
+    const session = await repository.google({ idToken: 'google-id-token', language: 'ar' });
+
+    expect(requests[0]).toMatchObject({ method: 'post', url: '/auth/google' });
+    expect(bodyOf(requests[0])).toEqual({ idToken: 'google-id-token', language: 'ar' });
+    expect(session).toEqual(answer);
+  });
+
+  it('rejects a refused Google sign-in with an AppError carrying its type and code', async () => {
+    fakeTransport(() => refused(409, { type: 'conflict', code: 'GOOGLE_LINK_NOT_ALLOWED' }));
+
+    const failure = repository.google({ idToken: 'google-id-token' });
+
+    await expect(failure).rejects.toBeInstanceOf(AppError);
+    await expect(failure).rejects.toMatchObject({
+      type: 'conflict',
+      code: 'GOOGLE_LINK_NOT_ALLOWED',
+    });
+  });
 });

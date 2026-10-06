@@ -1,4 +1,4 @@
-import { RegisterForm } from '@features/auth';
+import { ContinueWithGoogle, RegisterForm } from '@features/auth';
 import { useCopy } from '@shared/copy';
 import {
   Button,
@@ -12,11 +12,12 @@ import {
 import { Link, useLocation } from 'react-router';
 import { SITE_PATHS } from '../navigation';
 import { nextSearch } from './nextSearch';
+import { OrDivider } from './OrDivider';
 
 /**
- * Register: the card around the register form, the way to sign in instead, and where space owners
- * get their accounts. Once the account is signed in, `RequireGuest` sends the user on to the page
- * they came for.
+ * Register: the card around Google sign-in and the register form, the way to sign in instead, and
+ * where space owners get their accounts. Once the account is signed in, `RequireGuest` sends the user
+ * on to the page they came for.
  */
 export function RegisterPage() {
   const copy = useCopy();
@@ -32,6 +33,7 @@ export function RegisterPage() {
         <CardDescription>{copy.auth.register.description}</CardDescription>
       </CardHeader>
       <CardContent className="gap-4">
+        <ContinueWithGoogle divider={<OrDivider />} />
         <RegisterForm
           signInLink={
             <Button asChild variant="link" size="sm" className="px-0">
