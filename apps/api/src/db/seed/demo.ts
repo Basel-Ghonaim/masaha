@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { Prisma, PrismaClient } from '../../generated/prisma/client.ts';
 import { hashPassword } from '../../modules/users/index.ts';
-import { newSpaceDefaultsSchema } from './lookups.ts';
+import { newSpaceDefaultsSchema } from '../../modules/platform-settings/index.ts';
 
 // Development-only demo data: one verified space with an owner and a reception account, its
 // packages, the four subscription scenarios of docs/architecture/data-model.md, and some visits and

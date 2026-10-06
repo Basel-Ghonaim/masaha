@@ -40,7 +40,14 @@ import {
   createSpaceLinksMeRouter,
   createSpaceLinksService,
 } from './modules/space-links/index.ts';
-import { createSpacesService } from './modules/spaces/index.ts';
+import { createPlatformSettingsService } from './modules/platform-settings/index.ts';
+import { createSpaceSettingsService } from './modules/space-settings/index.ts';
+import {
+  createSpaceController,
+  createSpaceService,
+  createSpacesAdminRouter,
+  createSpacesService,
+} from './modules/spaces/index.ts';
 import {
   createUsersController,
   createUsersMeRouter,
@@ -177,7 +184,17 @@ export function createApi({
   const areas = createAreasService({ runInTransaction, audit: writeAudit });
   const amenities = createAmenitiesService({ runInTransaction, audit: writeAudit });
   const catalogue = createCatalogueService();
+  const platformSettings = createPlatformSettingsService();
+  const spaceSettings = createSpaceSettingsService();
   const spaces = createSpacesService();
+  const space = createSpaceService({
+    runInTransaction,
+    audit: writeAudit,
+    lookups,
+    platformSettings,
+    spaceSettings,
+    now: clock,
+  });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const auth = createAuthService({
     users,
@@ -220,6 +237,7 @@ export function createApi({
       amenities: createAmenitiesController(amenities),
     }),
   );
+  admin.use(createSpacesAdminRouter({ space: createSpaceController(space) }));
   api.use('/admin', requireAuth(), requireRole('ADMIN'), admin);
   return api;
 }

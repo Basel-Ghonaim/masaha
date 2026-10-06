@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma } from '../prisma.ts';
-import { newSpaceDefaultsSchema } from './lookups.ts';
+import { newSpaceDefaultsSchema } from '../../modules/platform-settings/index.ts';
 import { seed, type SeedInput } from './seed.ts';
 
 const INPUT: SeedInput = {

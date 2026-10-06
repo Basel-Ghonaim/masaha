@@ -17,6 +17,14 @@ export function createLookupsRepository(db: PrismaClient = prisma) {
         select: { id: true, nameAr: true, nameEn: true },
       });
     },
+
+    /** Whether the area exists and is active, and so is its governorate. */
+    async isActiveArea(id: number, tx: Tx = db): Promise<boolean> {
+      const count = await tx.area.count({
+        where: { id, isActive: true, governorate: { isActive: true } },
+      });
+      return count === 1;
+    },
   };
 }
 

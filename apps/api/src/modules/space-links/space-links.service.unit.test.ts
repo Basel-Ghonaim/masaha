@@ -35,6 +35,7 @@ function setup(links: ActiveLink[]) {
       calls.push(`areas:${ids.join(',')}`);
       return Promise.resolve(AREAS.filter(({ id }) => ids.includes(id)));
     },
+    isActiveArea: () => Promise.reject(new Error('not asked here')),
   };
   return { service: createSpaceLinksService({ repository, spaces, lookups }), calls };
 }

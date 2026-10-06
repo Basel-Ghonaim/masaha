@@ -261,6 +261,41 @@ AdminAmenity = {
 - **204:** as for the governorates' order.
 - **Errors:** `validation` (422); `conflict` (409), with no code, when the ids are not exactly the current amenities.
 
+### Spaces (the admin)
+
+The spaces the admin enters and keeps ([data-model › Spaces](../architecture/data-model.md#spaces)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, a space's owner included, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
+
+- **The profile** is a space's basics and location. Its texts are NFC-normalised, with no bidirectional controls and no control characters or line separators (`invalid_format`), except that a description keeps line breaks:
+  - `nameEn`, required, 1–80 characters; `nameAr`, optional, 1–80 ([data-model › Conventions](../architecture/data-model.md#conventions));
+  - `descriptionAr`, `descriptionEn`, optional, 1–1000, line breaks allowed;
+  - `areaId`: an area that is active, in a governorate that is active (`invalid_choice` otherwise, an unknown one included);
+  - `addressAr`, required, and `addressEn`, optional, 1–200; `landmarkAr`, `landmarkEn`, optional, 1–120;
+  - `location: { lat, lng }`, required: the map pin, inside the Gaza Strip's box (`GAZA_STRIP_BOUNDS`, `@masaha/shared/spaces`), else `errors.location = ["out_of_range"]`.
+
+  An optional text is absent or `null` when there is none; an empty one is `too_short`.
+- **The slug** is derived from `nameEn` when the space is created, and never changes: accents dropped, lowercased, every run of other characters than `a–z` and `0–9` one `-`: the base, at most 60 characters, then any suffix ("Focus Hub" → `focus-hub`). A slug any space holds, a soft-deleted one included, takes the smallest free suffix from 2 (`focus-hub-2`).
+- **Audit:** every change writes its entry in its own transaction ([conventions §6](../backend/conventions.md#6-audit)), named `space.<verb>`, with the space as both the entity and the entry's space.
+
+```ts
+AdminSpace = {
+  id: number, slug: string,
+  nameEn: string, nameAr: string | null,
+  descriptionAr: string | null, descriptionEn: string | null,
+  areaId: number, addressAr: string, addressEn: string | null,
+  landmarkAr: string | null, landmarkEn: string | null,
+  location: { lat: number, lng: number },
+  isHidden: boolean,
+  isVerified: boolean,             // an active OWNER link: the owner edits it, the admin no longer does
+  updatedAt: Record<FactGroup, string>,   // FactGroup: "profile" | "hours" | "prices" | "amenities" | "contacts"; ISO 8601
+  staleGroups: FactGroup[]          // older than the platform's thresholds (data-model › Derived values)
+}
+```
+
+#### `POST /admin/spaces` · 🛡
+- **Body:** the profile.
+- **201:** `AdminSpace`: a new space, unverified and shown, every fact group dated now. In one transaction, its settings are copied from the platform's new-space defaults ([conventions §9](../backend/conventions.md#new-space-defaults)); when they cannot be read, nothing is written. Audited `space.created`, with the profile and the slug in `after`.
+- **Errors:** `validation` (422), with `errors.nameEn = ["invalid_format"]` for an English name that yields no slug; `conflict` (409), with no code, when creations of the same name at once took the slug it chose three times over.
+
 ## 6. Domain error codes (initial)
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
