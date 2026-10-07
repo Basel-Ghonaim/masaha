@@ -92,7 +92,7 @@ The photos and the owner's side are not built.
 
 ## Open findings
 
-None.
+- [43](../architecture/findings.md#43-two-races-around-a-spaces-facts): a save can land on a space verified a moment before, and a read can mix two states of the hours.
 
 ## History
 

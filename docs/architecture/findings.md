@@ -476,3 +476,21 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 **Resolves when:** the logger adds the space id on the routes that load a space's links, with a test; or the rule is narrowed to the `/manage` routes and waits for them.
 
 **Resolution (2026-10-07, S2b-2):** the request logger adds `spaceId` once the links loader has put the space on the request, as it adds the user once `requireAuth` has read them. A test of the admin's space read finds the space's id in the request's log line; it failed without it.
+
+## 42. A registration test failed once in a full component run
+
+**Status:** Open · **Date:** 2026-10-07
+
+**Evidence:** in one full `test:component` run on S2b-2's head, "welcomes the new account by its name" (`apps/web/src/features/auth/hooks/register/useRegister.component.test.tsx`) failed after 761 ms; the lane took 241 s. Its message was not kept. The file passed alone, and the whole lane passed when run again (599 tests). S2b-2 changed no web file. The failure came well inside the lane's 3 s wait for an element ([finding 28](#28-the-tests-that-wait-for-a-lazy-page-can-time-out-under-load)), so it was not that wait running out.
+
+**Resolves when:** the failure is reproduced (for example, the lane run repeatedly or under load) and its cause found and fixed; or repeated full runs show it does not recur.
+
+## 43. Two races around a space's facts
+
+**Status:** Open · **Date:** 2026-10-07
+
+**Evidence:** found by PR #48's review.
+1. **A save can land on a space verified a moment before.** A save of a space's facts or profile locks the space's row, then lets `can()` decide from the links that the links loader read before the lock (`apps/api/src/modules/spaces/facts/groupEdit.ts`). Creating an owner link (step 4) does not take that lock, so an owner link committed between the links loader and the lock lets one admin save land on a space that is now verified.
+2. **A read can mix two states of the hours.** The space's read (`space/space.service.ts`) reads the space and each fact group with separate statements, outside a transaction, while an hours save holds no lock against it: a read during that save can show the old week with the new shifts.
+
+**Resolves when:** step 4's linking takes the space's lock, so `can()` decides on the links as they are under it; and the read is consistent, in one statement or in one snapshot.
