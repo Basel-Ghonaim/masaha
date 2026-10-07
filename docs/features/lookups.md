@@ -7,13 +7,13 @@
 ## What it does
 
 - Holds the place list, governorate then area, which covers the Gaza Strip, and the amenities a space may offer, each in Arabic and English, in an order the admin sets, with an active flag. Nothing is deleted: a row is hidden and restored.
-- Lets the admin add, rename, hide, restore and order the governorates, the areas and the amenities, through the API. The web screen keeps the governorates and their areas.
+- Lets the admin add, rename, hide, restore and order the governorates, the areas and the amenities, on the dashboard's lookups page.
 - Answers the public catalogue: what a form or a filter may offer, active rows only.
 - Answers the modules above it: the names of a set of areas, whether an area may take a space, the ids of a governorate's areas, and which amenities are active.
 
 ## Who uses it
 
-- **The admin**, on the dashboard's lookups page, and through the API for the amenities.
+- **The admin**, on the dashboard's lookups page.
 - **Anyone,** through the public catalogue. No page of the site reads it yet.
 - **Other modules:** `spaces` checks a space's area and names it; `space-links` names the areas of the spaces it lists and resolves a governorate filter to its areas.
 
@@ -32,7 +32,7 @@
 
 ## Behaviour and flows
 
-**The admin's screen.** The lookups page sets `GovernoratesSection` under its title. The section shows every governorate, hidden ones included, as a card with its areas in order:
+**The admin's screen.** The lookups page sets two tabs under its title, "Governorates and areas" first, then "Amenities", with the page's hint under them; the tab shown is kept in the address (`?tab=amenities`), a missing or unknown one opening the first. Each tab holds one section; the panel left is unmounted, so its failures go with it, while a write already sent completes. `GovernoratesSection` shows every governorate, hidden ones included, as a card with its areas in order:
 - a sheet adds or renames a governorate or an area;
 - each row can be hidden or restored, and moved up or down its list;
 - the section shows its own loading, failure (with "Try again") and empty states.
@@ -59,7 +59,7 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **An amenity's key derives from its English name when it is added,** and never changes. 2026-10-06, #41.
 - **A new row is placed last.** 2026-10-06, #41.
 - **Internet and stable power are not filters** (`isFilterable` off). *Why:* nearly every space has them, so they tell no space apart. 2026-09-30, #16.
-- **The web exports one section** that owns its query, its states and its actions. *Why:* pages compose sections, side by side or under tabs. 2026-10-06, #43.
+- **The web exports one section per list** that owns its query, its states and its actions. *Why:* pages compose sections, side by side or under tabs. 2026-10-06, #43, #49.
 - **The admin's keys start `['admin', 'lookups', …]`.** *Why:* the admin sees hidden rows, which the public's lists leave out. 2026-10-06, #43.
 - **No optimistic update:** a write is pending until the list is fetched again. *Why:* the next action starts from the server's list. 2026-10-06, #43.
 - **A pending order holds every arrow of its list.** *Why:* two orders of one list would race. 2026-10-06, #43.
@@ -72,6 +72,7 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **A new amenity starts with no icon chosen, and its icon is required.** *Why:* a preselected icon would let the admin save the wrong one unnoticed; the choice is deliberate. 2026-10-07, #49.
 - **The amenities' hooks mirror the governorates', one per operation,** with no hook factory across the lists. *Why:* two lists are too few to generalise. 2026-10-07, #49.
 - **An amenity's two switches sit in its row, each pending on its own write; its arrows wait only on an order.** A governorate's or an area's arrows also wait on its switch; a new admin list copies the amenities'. *Why:* an order sends ids alone, so it cannot race a change of a flag. 2026-10-07, #49.
+- **The page's two sections sit under tabs, the tab kept in the address;** choosing one replaces the address, and the first tab takes no parameter. *Why:* a link or a reload opens the same tab, and Back leaves the page rather than stepping through tabs. The governorates' section needed no change to sit under a tab. 2026-10-07, #49.
 - **The amenities' actions have their own key prefix,** `['admin', 'lookups', 'amenity', …]`. *Why:* neither list reads the other's pending or failed actions. 2026-10-07, #49.
 
 ## Code map

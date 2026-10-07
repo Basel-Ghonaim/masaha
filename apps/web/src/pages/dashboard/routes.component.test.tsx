@@ -388,3 +388,84 @@ describe('the dashboard on a phone', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
+
+describe("the admin's lookups page", () => {
+  /** The admin, on the lookups page at `search`, with a governorate and an amenity to show. */
+  function openLookups(search: string) {
+    signIn({ role: 'ADMIN' });
+    fakeTransport(({ url }) =>
+      ok(
+        url === '/admin/governorates'
+          ? [{ id: 2, nameAr: 'محافظة غزة', nameEn: 'Gaza City', isActive: true, areas: [] }]
+          : url === '/admin/amenities'
+            ? [
+                {
+                  id: 4,
+                  key: 'internet',
+                  nameAr: 'إنترنت',
+                  nameEn: 'Internet',
+                  icon: 'wifi',
+                  isActive: true,
+                  isFilterable: false,
+                },
+              ]
+            : [],
+      ),
+    );
+    return renderDashboard(`/dashboard/admin/lookups${search}`);
+  }
+
+  it('opens the amenities’ tab from the address', async () => {
+    openLookups('?tab=amenities');
+
+    expect(await screen.findByRole('tab', { name: 'Amenities' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    const panel = screen.getByRole('tabpanel', { name: 'Amenities' });
+    expect(await within(panel).findByText('Internet')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Gaza City' })).not.toBeInTheDocument();
+  });
+
+  it.each(['', '?tab=elsewhere'])(
+    'opens the governorates’ tab when the address names no tab it has (%s)',
+    async (search) => {
+      openLookups(search);
+
+      expect(await screen.findByRole('tab', { name: 'Governorates and areas' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      const panel = screen.getByRole('tabpanel', { name: 'Governorates and areas' });
+      expect(
+        await within(panel).findByRole('heading', { name: 'Gaza City', level: 2 }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it('keeps the tab chosen in the address, and none for the first tab', async () => {
+    const router = openLookups('');
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Amenities' }));
+
+    expect(router.state.location.search).toBe('?tab=amenities');
+    expect(
+      await within(screen.getByRole('tabpanel', { name: 'Amenities' })).findByText('Internet'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Governorates and areas' }));
+
+    expect(router.state.location.search).toBe('');
+  });
+
+  it('names its tabs after the page, with its hint under them', async () => {
+    openLookups('');
+
+    expect(await screen.findByRole('tablist', { name: 'Lookups' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Hidden: not shown in filters and forms. Spaces already using it stay as they are. The order here is the display order.',
+      ),
+    ).toBeInTheDocument();
+  });
+});
