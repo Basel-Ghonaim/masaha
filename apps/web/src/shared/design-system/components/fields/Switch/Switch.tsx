@@ -7,7 +7,8 @@ export type SwitchProps = ComponentProps<typeof SwitchPrimitive.Root>;
 
 /**
  * An on/off setting that applies at once. The thumb starts at the start side and slides toward the
- * end, so it moves right in LTR and left in RTL. In a horizontal Field its label follows it.
+ * end, so it moves right in LTR and left in RTL. In a horizontal Field its label follows it. Marked
+ * `aria-disabled`, it waits but keeps its place in the focus order, and looks disabled.
  */
 export function Switch({
   className,
@@ -26,7 +27,7 @@ export function Switch({
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        'peer relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors after:absolute after:-inset-x-3 after:-inset-y-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive data-checked:bg-primary data-unchecked:bg-input',
+        'peer relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors after:absolute after:-inset-x-3 after:-inset-y-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:opacity-50 aria-invalid:border-destructive data-checked:bg-primary data-unchecked:bg-input',
         className,
       )}
       {...fieldProps}

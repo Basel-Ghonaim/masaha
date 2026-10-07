@@ -48,7 +48,6 @@ export function RowControls({
         type="button"
         variant="ghost"
         size="icon"
-        className="aria-disabled:opacity-50"
         aria-label={controls.up.label}
         disabled={controls.up.disabled}
         aria-disabled={controls.up.waiting || undefined}
@@ -63,7 +62,6 @@ export function RowControls({
         type="button"
         variant="ghost"
         size="icon"
-        className="aria-disabled:opacity-50"
         aria-label={controls.down.label}
         disabled={controls.down.disabled}
         aria-disabled={controls.down.waiting || undefined}
@@ -75,7 +73,7 @@ export function RowControls({
       </Button>
       <Switch
         ref={shown}
-        className="mx-2 aria-disabled:opacity-50"
+        className="mx-2"
         checked={controls.shown.checked}
         aria-label={controls.shown.label}
         aria-disabled={controls.shown.waiting || undefined}
