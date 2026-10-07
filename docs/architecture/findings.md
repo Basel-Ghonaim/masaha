@@ -432,3 +432,43 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 **Evidence:** a space's fact groups are dated when the space is created (S2b-1), so a new space has hours, prices, amenities and contacts that are all "up to date" while it has none of them yet. The admin's spaces list shows such a space as fresh, and its "stale only" filter leaves it out, until each group has been empty for its threshold (30 days for the prices, 60 for the others). Staleness is computed only from the dates ([data-model › Derived values](data-model.md#derived-values-computed-not-stored)).
 
 **Resolves when:** the slice that builds the facts weighs whether an empty group counts as stale, missing, or fresh, and the list and the data model say so.
+
+## 37. Links between documents are checked by hand
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** the documents link each other by file and heading, and the capability documents add many such links ([documentation rules §8](documentation.md#8-link-integrity)). A heading renamed, or a section moved, breaks every link to it without any check failing: nothing in CI reads the links of `docs/`, `CLAUDE.md` or the skills. The feature documents' effort checked them by hand, with a search for each anchor.
+
+**Resolves when:** a link checker runs in CI over those files, files and headings both (a new dependency and a CI change, the owner's to approve); or the owner accepts the checks by hand.
+
+## 38. The findings are one file
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** this file is the largest document in `docs/` (about 7,600 words, 37 entries before this one), and a reader looking for one finding opens all of them. One file per finding would let a capability document link a finding that reads alone. Splitting it moves a record with many inbound links, from the documents, the plans and the code's comments, so it was kept out of the feature documents' effort.
+
+**Resolves when:** each finding moves to a file of its own in one folder, with every inbound link repointed in the same PR; or the owner accepts one file.
+
+## 39. The users service takes a parameter only its unit test passes
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2; [conventions §2](../backend/conventions.md#2-layers)). `createUsersService` (`apps/api/src/modules/users/users.service.ts`) takes `passwords`, the hashing and the verification, defaulting to bcrypt; the composition root never passes it, and only `users.service.unit.test.ts` does, with a fake. It is beside the repository parameter the older services still take ([finding 31](#31-the-backend-documents-still-call-for-injecting-a-repository-only-tests-pass)), but it is not a repository, so the planned refactor of those services may not reach it.
+
+**Resolves when:** the service hashes through its own module's helpers with no such parameter, its logic unit-tested in pure helpers and the rest in the API lane, in an item allowed to change the API; or the owner accepts it.
+
+## 40. The platform's contact settings are outside the typed catalogue
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** settings are key–value rows whose keys are fixed in code, each value validated when read, through one typed catalogue ([data-model › Conventions](data-model.md#conventions), [conventions §9](../backend/conventions.md#settings-three-screens-three-owners)). The catalogue (`apps/api/src/modules/platform-settings/settingKeys.ts`) holds `newSpaceDefaults`, `stalenessDays` and `priceStalenessDays`. The seed (`apps/api/src/db/seed/seed.ts`) also writes `contactEmail` and `contactWhatsapp`, which no catalogue key names, so nothing validates them when they are read; nothing reads them yet.
+
+**Resolves when:** the slice that builds the public contact adds both keys to the catalogue, with their schemas; or the documents say the contact keys are kept another way.
+
+## 41. The request log does not name the space
+
+**Status:** Open · **Date:** 2026-10-06
+
+**Evidence:** the fields of every request log include the space on space routes ([conventions §10](../backend/conventions.md#10-logging)). The space routes exist since S2b-1 (the admin's `/admin/spaces/:spaceId`), but the request logger (`apps/api/src/shared/http/requestLogging.ts`) adds only the user and their role, once `requireAuth` has read them.
+
+**Resolves when:** the logger adds the space id on the routes that load a space's links, with a test; or the rule is narrowed to the `/manage` routes and waits for them.

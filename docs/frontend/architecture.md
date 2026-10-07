@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), Axios only inside `shared/api`, and the dashboard-only rule (§3) are enforced by lint, and the dashboard-only rule by `check:build` too; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), `features/auth` (§3: sign-in and registration by email and with Google, and the password recovery) and `features/users` (its account menu, its sign-out button and the forced password change's form), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`, with the one Toaster) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell with the sign-in, register, forgot and reset password and forced password change pages, and the status states, the four route guards, the password change's gate and its guard, and the landing rule in `shared/routing` (§2); so is the `dashboard` group's shell, with its navigation per role, the space switcher and a placeholder for each page (§2), and its first screen, the admin's lookups, with `features/lookups` (§3); the rest of the layout tree, the dashboard's other screens and the rest are not yet implemented · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the zones and the dependency rule (§1), Axios only inside `shared/api`, and the dashboard-only rule (§3) are enforced by lint, and the dashboard-only rule by `check:build` too; `shared/localisation`, `shared/copy`, `shared/preferences` (§4), `shared/errors` (§5), `shared/api` (§7), `shared/session` (§4), `shared/forms` (§3), and the catalogue registration, the transport's setup, the session's wiring, the one QueryClient and the provider composition (`providers.tsx`, with the one Toaster) in `app/` (§1), and the development-only `showcase` group (§2), are built; so are the root of the layout tree, the `site` group's shell, with its toggles and lazy pages, and its focus shell, and the status states, the four route guards, the password change's gate and its guard, and the landing rule in `shared/routing` (§2); so is the `dashboard` group's shell, with its navigation per role and a placeholder for each page (§2); the rest of the layout tree is not yet. What each capability built is its own document's ([`docs/features/`](../README.md#features--one-document-per-capability)) · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** The zones of `apps/web`, the dependency rule, the boundary between the public site and the dashboard, the capability layout, routing and role guards. Why the site and the dashboard are one application is in [ADR 0011](../architecture/decisions/0011-one-web-app.md); data and state choices are in [ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md); the design system is owned by [design-system/foundation.md](design-system/foundation.md); localisation by [localisation.md](localisation.md).
 
 ## 1. Four zones
@@ -29,6 +29,7 @@
 | `site` | public | `/`, `/spaces`, `/spaces/:slug`, `/about` | none |
 | | auth | `/login`, `/register`, `/forgot-password` | guests only |
 | | | `/reset-password` | none: a signed-in person may open a reset link from their email |
+| | | `/change-password` | a signed-in user with a temporary password to change (`RequirePasswordChange`) |
 | | account | `/me`, `/me/favorites`, `/me/reports` | signed in |
 | `dashboard` | admin, space | `/dashboard` (redirects, below), `/dashboard/admin/...`, `/dashboard/spaces/:spaceId/...` ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) | `admin/...`: ADMIN · `spaces/:spaceId/...`: an active link at that space, OWNER or RECEPTION (per route) |
 | `showcase` | | `/__showcase/…` | none; **development only**, not in the build |
@@ -45,16 +46,15 @@ RootLayout (app)                 ScrollRestoration; the password change's gate; 
 │   └── FocusLayout              short header (logo, language, theme), no footer
 │       └── auth/*               sign in, register, forgot/reset password, the forced change
 │                                (the forced change's short header: logo and sign out)
-└── dashboard
-    └── DashboardLayout          sidebar + top bar (ADR 0016)
-        ├── admin/*              AdminLayout: the admin's header and navigation
-        └── spaces/:spaceId/*    SpaceLayout: the space switcher, the navigation of the role there
+└── dashboard                    each branch's layout renders DashboardLayout: sidebar + top bar (ADR 0016)
+    ├── admin/*                  AdminLayout: the admin's header and navigation
+    └── spaces/:spaceId/*        SpaceLayout: the space switcher, the navigation of the role there
 ```
 
 - **Each level adds one thing** around its `<Outlet/>`.
 - **Each domain owns its own shell**, and places the status states inside it.
 - **A layout is built with its first consumer.**
-  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`, with sign-in, register, the forgotten password and the reset, and the forced change, for which the route gives the header sign-out as its only action; `DashboardLayout`, with the dashboard's two branches.
+  - Built: `RootLayout`; `SiteLayout`, with the site's header, footer and phone menu; `FocusLayout`; `DashboardLayout`, inside each of the dashboard's two branches.
   - Not built yet: `AccountLayout`, with the first account screen.
 
 ### The two groups
@@ -81,13 +81,14 @@ pages/
     space/          the screens of the space in the URL (OWNER, RECEPTION)
 ```
 
-Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and in `auth/` the sign-in, register, forgot and reset password and forced password change pages; in `pages/dashboard` its `index.ts`, `navigation.ts`, the shell, the `/dashboard` redirect and one `PlaceholderPage`, which titles each page from its navigation item until the page is built, and in `admin/` the lookups page. The dashboard's other screens (`admin/`, `space/`), `account/` and the space details page are not built yet.
+Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and the pages of `auth/`; in `pages/dashboard` its `index.ts`, `navigation.ts`, the shell, the `/dashboard` redirect and one `PlaceholderPage`, which titles each page from its navigation item until the page is built. The dashboard's other screens (`admin/`, `space/`), `account/` and the space details page are not built yet.
+
+- **The site's shell.** The header holds the wordmark, the site's links (home, the directory, about), the language and theme toggles, and sign-in, or the account once signed in. On a phone it shows the menu, the wordmark and the theme toggle, and the menu holds the rest.
 
 - **The dashboard's shell.**
-  - The sidebar takes the design system's `Sidebar` form for each width. Its header is the space switcher in a space, and the wordmark with "Platform admin" for the admin; its foot links a space's public page (`publicSpacePath`, by its slug), and on a phone holds the language.
+  - The sidebar takes the design system's `Sidebar` form for each width. Its header is the space switcher ([`space-links`](../features/space-links.md)) in a space, and the wordmark with "Platform admin" for the admin; its foot links a space's public page (`publicSpacePath`, by its slug), and on a phone holds the language.
   - The top bar holds the drawer's trigger on a phone, the page's title, the language and theme toggles, and the account (`CompactAccountMenu`). **The page fills the title and its own controls** with `PageHeader`, which the shell places in the bar.
   - A space's navigation lists the pages the user's role at the space in the URL allows (the owner's eleven, reception's four); a space they hold no link to lists none. The owner's audit screen is not listed ([finding 14](../architecture/findings.md#14-the-owners-audit-screen-has-no-design)).
-  - The space branch's element remembers the space entered (`rememberSpace`), for the landing.
 
 - **Lazy loading.**
   - A group's `index.ts` exports **route definitions only**. Their components load through React Router's `lazy`, so a visitor to the site never downloads dashboard code.
@@ -95,7 +96,6 @@ Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the s
 - **The language and theme toggles.**
   - Their visual controls are the design system's `LanguageToggle` and `ThemeToggle`.
   - Each shell wires them to `shared/preferences` itself, in a line or two. There is no shared "connected toggle": `shared/preferences` stays without UI, and the two groups cannot import each other.
-  - The theme toggle sets the opposite of the theme shown (§4).
 - **The status states** live in `shared/routing`: `NotFoundState`, `ForbiddenState`, `RouteErrorState`, and a pure `classifyRouteError`. They are built; each shell shows the 404 and the general error, `RequireRole` the 403, and `RequireSpaceRole` the 404 and the 403.
   - They are route-level elements, built on the design system's `EmptyState`.
   - They take their actions as props. The site's 404 offers "Home" and "Browse spaces"; the dashboard's offers none, since its sidebar is the way on.
@@ -103,7 +103,7 @@ Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the s
   - `RouteErrorState` shows **offline** for a failed lazy load or when the browser reports no connection, and the **general error** otherwise. "Try again" reloads the page, and so does the browser's `online` event: React Router keeps a failed lazy load for its route, so only a reload retries it.
 - **Guards sit visibly on each route** (`<RequireRole roles={['ADMIN']}>`), never inherited silently from the group.
 - The dashboard's **navigation config per role** belongs to the `dashboard` page group, because choosing what appears together is composition. Features stay role-agnostic: the page passes the scope (`mine` for an owner, `all` for the admin).
-- In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space in the URL**, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). The selected space is the `:spaceId` of the route, never client state; the space switcher only navigates ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)).
+- In the dashboard, `OWNER` and `RECEPTION` are the user's role **at the space in the URL**, never the global role ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). The selected space is the `:spaceId` of the route, never client state ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)).
 - UI hiding is for usability only; the server is the authority.
 - **`showcase`** is a development tool for the design-system layer ([foundation §3](design-system/foundation.md#3-architecture)). `app/router.tsx` mounts it only when `import.meta.env.DEV`, so a build leaves it out; `check:build` fails if any of it reaches the build.
 
@@ -119,14 +119,12 @@ Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the s
 | `RequirePasswordChange` | a signed-in user with a temporary password to change (`/change-password`) | once the change clears it, the user goes on where they land (`landingPath`, below): the page the gate carried in `next`, else by their role, so the landing after the change has this one owner; a guest, such as one who has just signed out there, goes to sign-in |
 | `RequireSpaceRole roles={[…]}` | a signed-in user whose active link at the `:spaceId` in the URL has one of the roles, `OWNER` or `RECEPTION`, read from the session's links, never the global role | a guest goes to sign-in; a `:spaceId` that is not a positive integer gets `NotFoundState`, a 404; a space with no active link, or a role the route does not allow, gets `ForbiddenState`, a 403; both in place |
 
-- **The password change's gate,** `PasswordChangeGate`, is mounted once, in `RootLayout`, so it holds every route, the site's and the dashboard's. A signed-in user whose account has a temporary password to change (`mustChangePassword`) goes to `/change-password`, carrying the page they asked for in `next` (`changePasswordPath`). The change page itself is exempt, and so is signing out, which its short header offers: once the session ends, the gate holds nothing. A reset link (`/reset-password`, `RESET_PASSWORD_PATH`) is exempt too: the reset settles a pending temporary password itself. While no such session is held, during the restore included, it lets every route through, so public pages never wait. The server refuses every other endpoint meanwhile ([security.md](../backend/security.md#passwords)); the gate is for usability.
+- **The password change's gate,** `PasswordChangeGate`, is mounted once, in `RootLayout`, so it holds every route, the site's and the dashboard's. A signed-in user whose account has a temporary password to change (`mustChangePassword`) goes to `/change-password`, carrying the page they asked for in `next` (`changePasswordPath`). The change page itself is exempt, and so is signing out, which its short header offers: once the session ends, the gate holds nothing. A reset link (`/reset-password`, `RESET_PASSWORD_PATH`) is exempt too: the reset settles a pending temporary password itself. While no such session is held, during the restore included, it lets every route through, so public pages never wait. The server enforces the change ([security › Passwords](../backend/security.md#passwords)); the gate is for usability.
 - **While the session is restored,** every guard shows the design system's `Spinner`, centred. **While it is `unreachable`,** the offline state (no answer came back) or the general error (an answer that is not a verdict), whose "Try again", and the connection coming back when offline, re-run the restore.
 - **The return URL** travels as `?next=` on `/login` (`signInPath`). It is read back with `returnUrlOf`, which accepts only a path on this site, so a crafted link cannot send a user elsewhere.
-- **A credential never travels into `next`.** A return URL carries the page's fragment, and a reset link carries its token there (`/reset-password#token=…`). So `/reset-password` is wrapped by no guard and the gate lets it through: its fragment never enters `next`. A guard added to it must drop the fragment first.
+- **A credential never travels into `next`.** A return URL carries the page's fragment, where a reset link carries its token ([security › Passwords](../backend/security.md#passwords)). So `/reset-password` is wrapped by no guard and the gate lets it through: its fragment never enters `next`. A guard added to it must drop the fragment first.
 
 **Built:** the landing below, `landingPath` in `shared/routing/landing/`. `RequireGuest` lands the user by it, `RequirePasswordChange` after a forced change, and `/dashboard` redirects by it.
-
-**Built:** the space switcher, `SpaceSwitcher` in `features/space-links` (§3), which the space's shell places in its sidebar header.
 
 - **Identifiers in URLs:** the dashboard uses a space's id (`/dashboard/spaces/:spaceId/...`); the public pages use its slug (`/spaces/:slug`).
 - **The dashboard's URL shape** ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)) lives in `shared/routing` (`dashboardPaths.ts`), not in the `dashboard` group: the space guard and the landing read it, and `shared/` never imports `pages/`.
@@ -137,18 +135,13 @@ Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the s
   4. a user with no role and no links goes home, `/`;
   5. `/dashboard` itself redirects by the same rules.
 - **The last space** is remembered in the browser's `localStorage`, under a key that names the user (`rememberSpace`, which the space branch's shell calls), and read back only while the user still holds an active link to it. Storage that is unavailable remembers nothing, and the landing falls back to the oldest link.
-- **Failed guards:**
-  - a guest goes to sign-in, with the return URL;
-  - a signed-in user without access gets a clear 403 page, never a silent redirect;
-  - a `:spaceId` that is not a positive integer gets a 404; a space the user holds no active link to, whether it exists or not, gets a 403.
-- **The space switcher** shows the space in the URL, its name and area. For anyone with more than one active link, whatever their role at each, it opens their spaces, and choosing one follows the link the page gives it. A URL whose space is none of theirs offers their spaces. While the spaces load it shows the design system's `Skeleton`; a failure offers to try again.
 
 ## 3. Capabilities (features)
 
 | Imported by | Capabilities |
 |---|---|
-| Any page group | `auth` · `directory` (the directory and the public profile) · `favorites` · `occupancy` · `announcements` · `data-reports` · `lookups` · `platform-settings` (the public contact) · `users` (the account's profile and settings; the admin's user screens) |
-| The dashboard only | `spaces` (owner and admin profile editing) · `space-settings` · `customers` · `subscriptions` (with their check-ins) · `packages` · `visits` · `payments` · `desk` (the front desk: check-in, check-out with payment, subscribe with payment; the customers list and file) · `finance` (finance and statistics, with the occupancy reports) · `overview` (the owner's and the admin's overview) · `staff` · `owners` (admin linking) · `audit` · `space-links` (the user's own spaces: the space switcher) |
+| Any page group | [`auth`](../features/auth.md) · `directory` (the directory and the public profile) · `favorites` · `occupancy` · `announcements` · `data-reports` · [`lookups`](../features/lookups.md) · `platform-settings` (the public contact) · [`users`](../features/users.md) |
+| The dashboard only | `spaces` (owner and admin profile editing) · `space-settings` · `customers` · `subscriptions` (with their check-ins) · `packages` · `visits` · `payments` · `desk` (the front desk: check-in, check-out with payment, subscribe with payment; the customers list and file) · `finance` (finance and statistics, with the occupancy reports) · `overview` (the owner's and the admin's overview) · `staff` · `owners` (admin linking) · `audit` · [`space-links`](../features/space-links.md) |
 
 **Names match the backend.** A capability carries the name of the backend module it calls ([backend conventions §7](../backend/conventions.md#7-modules)). A feature may be finer than its module only when it serves a different audience on different screens: `staff` (the owner's reception accounts) and `owners` (the admin's linking) are two features over the one `space-links` module. A sub-part with the same audience and the same screens stays inside its module's feature. Check-ins stay in `subscriptions`, for example, because a check-in changes the subscription's progress: split apart, one feature would have to import the other's query keys. What a feature exports is set below ([What a feature exports](#what-a-feature-exports)).
 
@@ -174,7 +167,7 @@ features/<capability>/
 - **A folder the capability does not need is absent, not empty.** `features/users` has no `services/`.
 - **One component, one hook, one responsibility per file, internal ones included,** named after what it holds: `hooks/sign-in/useSignIn.ts`, `components/SpaceName.tsx`, `repository/authRepository.ts`. A file's name tells what it holds, so a reader never hunts inside a file. No file groups several hooks or components, a component used only inside its capability stays out of `index.ts`, and a pure helper sits in `services/`, never in `components/`.
 - **One folder per operation.** A role folder (`hooks/`, `components/`) that holds more than one operation groups its files in one folder per operation, named after it in kebab-case (`hooks/sign-in/`, `components/register/`); what two or more operations share stays at the role folder's root. Inner folders have no `index.ts` (§1), and a test stays beside its file.
-- **The data layer is the repository:** the interface `AuthRepository { login, register, google }` and its factory `createAuthRepository()`, whose calls go through the app's one client (`api`, §7); a hook makes it once, at module level. `shared/session` names its own the same way (§4).
+- **The data layer is the repository:** an interface named for what it fetches (`AuthRepository`) and its factory (`createAuthRepository()`), whose calls go through the app's one client (`api`, §7); a hook makes it once, at module level. `shared/session` names its own the same way (§4).
 - **Names inside `hooks/`:** `useXQuery` for a read, `useX` for a write (a verb and the resource: `useSignIn`, `useRegister`), `useXForm` for a form. The query keys live in `hooks/queryKeys.ts`, scoped as §7 says.
 - **Folders by role** (§1). Inner folders have no `index.ts`, and tests sit beside their files.
 - **Growth:** a file that grows becomes a folder, with one file per resource, as a backend module's service does ([backend conventions › Growth](../backend/conventions.md#growth)).
@@ -189,11 +182,10 @@ features/<capability>/
 ### React Query in a feature
 
 - **Side effects:**
-  - **what belongs to the capability lives in the hook.** `useSignIn` and `useRegister` hand the session they receive to `establishSession(session, { source: 'signIn' })` themselves, in `useMutation`'s own callback, which runs even when the page has gone by the time the answer arrives;
-  - **a capability's toast is its hook's too,** fired from the same callback with the design system's `toast`, after the session's change, and worded with `currentCopy()` read then: a sign-in may switch the interface to the account's language, and the toast speaks the language it lands in. `useRegister` welcomes the new account, `useGoogleSignIn` says when Google has just been linked to an existing account and its password removed, and `useChangePassword` (`features/users`) says the password is saved. The one `Toaster` is mounted in `app/` (§1);
+  - **what belongs to the capability lives in the hook.** A sign-in's hook (`useSignIn`) hands the session it receives to `establishSession(session, { source: 'signIn' })` itself, in `useMutation`'s own callback, which runs even when the page has gone by the time the answer arrives;
+  - **a capability's toast is its hook's too,** fired from the same callback with the design system's `toast`, after the session's change, and worded with `currentCopy()` read then: a sign-in may switch the interface to the account's language, and the toast speaks the language it lands in. The one `Toaster` is mounted in `app/` (§1);
   - **what belongs to the place lives in the page.** A feature takes no callback for it: the place reacts to the capability's own state, as `RequireGuest` reacts to the session and sends a signed-in user on (§2).
-- **The cache:** a sign-in clears nothing. Clearing happens when a session ends (§4).
-- **Tests, layer by layer** ([testing › A feature, layer by layer](../development/testing.md#a-feature-layer-by-layer)): the repository in the unit lane, and the hooks (with `renderHook`) and the components in the component lane, all through the transport (`setupApiClient`) with `fakeAdapter` on `apiClient`. No hook takes a parameter only a test passes.
+- **Tests, layer by layer:** [testing › A feature, layer by layer](../development/testing.md#a-feature-layer-by-layer).
 
 ### Where state lives
 
@@ -207,12 +199,12 @@ features/<capability>/
 
 ### What a feature exports
 
-**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. `features/auth` exports `SignInForm`, `RegisterForm`, `ForgotPasswordCard`, `ResetPasswordCard` and `ContinueWithGoogle`, Google's own button with its failure area, which takes the page's divider and shows it, as itself, only when Google sign-in is configured (`VITE_GOOGLE_CLIENT_ID`, [setup › The web](../development/setup.md#the-web)); `features/users` exports `AccountMenu`, `CompactAccountMenu` (the avatar alone, for the dashboard's top bar) and `AccountMenuSection`, which lead the admin and anyone with an active link to `/dashboard`, a path the page passes; it also exports `SignOutButton` and `ForcedPasswordChangeForm`. `features/lookups` exports `GovernoratesSection`, the admin's governorates and their areas, which the lookups page sets under its title.
+**A feature exports UI first.** It exports a hook only when a higher layer needs the capability's data or actions to compose something the capability does not own. **Nothing internal leaves `index.ts`:** no repository, no keys, no form setup, no internal types. Outside sees only what the capability chooses to offer. Each capability's document lists its exports ([`docs/features/`](../README.md#features--one-document-per-capability)).
 
 - **One capability, several places.** Ask who owns the variation (a screen is not a capability):
   - **the places show the capability's own fact differently:** the feature exports the UI, with props or as two components (the account in a header's menu, and in a phone menu's section);
   - **a place mixes the capability with others, or arranges its own layout:** the feature exports small pieces or hooks, and the page composes.
-- **A section of one capability owns its own states.** A section that shows one capability's list whole, with its own query, such as `GovernoratesSection`, shows its own loading, failure (with "Try again") and empty states, as the space switcher does (§2), so a page can set several such sections side by side, under tabs, for example. What the page arranges around them, and a route's own states, stay the page's (§1).
+- **A section of one capability owns its own states.** A section that shows one capability's list whole, with its own query, such as `GovernoratesSection`, shows its own loading, failure (with "Try again") and empty states, as the space switcher does, so a page can set several such sections side by side, under tabs, for example. What the page arranges around them, and a route's own states, stay the page's (§1).
 - **A component that combines several capabilities never lives in one of them.** It lives in the page, which composes the card, the title and the links around a feature's form.
 - **Features know no routes.** No path is written inside a feature: links are props the page passes (`forgotPasswordLink`, `signInLink`).
 
@@ -220,7 +212,7 @@ A feature's wire types, its requests and the server's answers, come from `@masah
 
 ### Forms
 
-`shared/forms`, **built**, is the one place every form uses: react-hook-form over the schemas of `packages/shared` ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). Every form is one pattern, `useServerForm`, and a feature's form hook only passes it what is the feature's: the contract's schema, the default values, the fields in display order, the server call, the title of a refusal, and the form's own words for some codes. `useSignInForm` and `useRegisterForm` are such hooks; register adds the interface language to its call.
+`shared/forms`, **built**, is the one place every form uses: react-hook-form over the schemas of `packages/shared` ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). Every form is one pattern, `useServerForm`, and a feature's form hook only passes it what is the feature's: the contract's schema, the default values, the fields in display order, the server call, the title of a refusal, and the form's own words for some codes. `useSignInForm` is such a hook.
 
 - **The browser names a failure as the server does.**
   - The form's values are checked with `toFieldErrors`, the rule the API answers with (`packages/shared`, `core`).
@@ -244,7 +236,7 @@ A feature's wire types, its requests and the server's answers, come from `@masah
   - **What it holds:** the `SessionUser` and the access token exactly as the server sends them (the contract's types from `@masaha/shared`, no copy and no mapper), and the status. The token lives in memory only.
   - **The status:** `restoring`, `authenticated`, `anonymous`, or `unreachable` with its reason, `offline` (no answer, or a timeout) or `error` (an answer that is not a verdict).
   - **Read** in a component with `useSession(select)`, elsewhere with `getSession()`. The raw store is never exported; only the session's own functions write it.
-  - **The repository** (`repository/`) holds the server calls, `refresh` and `logout`, behind one interface (`SessionRepository`, made by `createSessionRepository()`), on the app's one client; beside it, the session hint. Sign-in, registration and Google are `features/auth`'s: they hand their answer to `establishSession(session, { source: 'signIn' })`.
+  - **The repository** (`repository/`) holds the server calls, `refresh` and `logout`, behind one interface (`SessionRepository`, made by `createSessionRepository()`), on the app's one client; beside it, the session hint.
   - **The restore** runs at bootstrap and never blocks a render: public pages show at once, and only the guards wait (§2).
     - no session hint (`masaha_session`): `anonymous` at once, with no request;
     - a hint and a successful refresh: `authenticated`;
@@ -253,11 +245,10 @@ A feature's wire types, its requests and the server's answers, come from `@masah
   - **The refresh** is single-flight: the restore and the transport's 401 (§7) share one request. On success the store holds the new session before the promise resolves, and the transport reads the token from its getter. The same refusals end the session; any other failure leaves it as it was and rejects, so only the request that needed it fails, and the next 401 refreshes again. A refresh that succeeds after the session has ended, because a sign-out was answered first, drops its answer and rejects as `canceled`: it never brings a signed-out session back.
   - **A listener's failure is its own:** each listener of the two events below runs on its own, and an error it throws is logged with `console.error`. It never undoes the session's change, and never stops the other listeners.
   - **Sign-out** is the server's: the session ends here only once `POST /auth/logout` succeeds. A failed request clears nothing, because the refresh cookie would still be valid; `useSignOut()` exposes its pending and error state, and the user retries.
-  - **A password change** answers with a new access token only, so `passwordChanged(userId, accessToken)` renews the token and clears `mustChangePassword`, keeping the rest of the session. `features/users` records who started the change and calls it from its mutation's own callback. It changes only that user's session, while it is still held: a sign-out answered first stays signed out, and another user who signed in meanwhile keeps their own token. It tells no listener: the session is the same one.
+  - **A password change** answers with a new access token only, so `passwordChanged(userId, accessToken)` renews the token and clears `mustChangePassword`, keeping the rest of the session. It changes only that user's session, while it is still held: a sign-out answered first stays signed out, and another user who signed in meanwhile keeps their own token. It tells no listener: the session is the same one.
   - **Two events** let the composition root react without the session importing anything: `onSessionEstablished(listener)`, with the source (`signIn`, or `restore` for a restore and a refresh), and `onSessionEnded(listener)`, when a session that was held ends. Bootstrap connects them (`app/session.ts`):
-    - a session that ends clears the QueryClient, so the next user never sees the last one's data;
+    - a session that ends clears the QueryClient, so the next user never sees the last one's data; a sign-in clears nothing;
     - a sign-in makes the account's language the interface's; a restore or a refresh never does, so the user's later choice on this device wins.
-- `features/auth`: sign-in, register, password forms and their error wording.
 - `shared/preferences` (Zustand), **built**: the language, the theme choice and the theme shown. No UI: each shell wires its own toggles to it, and `otherLanguage` names the language a two-language toggle offers.
   - **Derived, never listed.** The languages are those with a catalogue (`CATALOGUES`); the themes are those the design system exports (`THEMES`). Adding either touches no preferences code.
   - **Theme choice:** a theme, or `system`, which stores nothing and follows the device's `prefers-color-scheme` live while it is the choice. The top-bar toggle sets the opposite of the theme shown, as an explicit choice.
@@ -270,7 +261,7 @@ One normaliser, `toAppError` in `shared/errors`, turns any failure (Axios, netwo
 
 - **The type:** the server's envelope type when it is one the contract defines ([api-contract §3](../api/api-contract.md#3-error-types)), else inferred from the status. With no answer, the client's own types: `network`, `timeout`, `canceled`, and `unknown` for anything else. Every type has a line in both catalogues.
 - **The domain code** is kept only when the client knows it, so `code ?? type` always has a line.
-- **`requestId`** is the server's request id ([api-contract §1](../api/api-contract.md#1-conventions)), from the envelope, else from the `X-Request-Id` header (a proxy's answer has no body), so it is present whenever the server answered. Error states show it, so a user's report can be matched to the log; no error state is built yet.
+- **`requestId`** is the server's request id ([api-contract §1](../api/api-contract.md#1-conventions)), from the envelope, else from the `X-Request-Id` header (a proxy's answer has no body), so it is present whenever the server answered. Every refusal read through `shared/forms` (`useRefusalView`, §3 › Forms) shows it when it has no domain code: a form's failure, and a section's or Google's failure area. So a user's report can be matched to the log. The route's status states do not show it.
 - **`retryAfterSeconds`** comes from `Retry-After`, in its delta-seconds form only.
 
 ## 6. Map

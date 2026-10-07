@@ -98,11 +98,11 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
 `npm run db:seed` fills a database with what every environment starts with:
 - the lookups: the Gaza Strip's governorates and areas (the unreachable ones inactive) and the amenities, in both languages;
 - one `ADMIN` account;
-- the default settings: the staleness thresholds (60 days, and 30 for prices) and the new-space defaults (auto check-out at closing on, visits rounded up after 15 minutes, capped at the day price), plus the platform's contact email and WhatsApp when they are given.
+- the default settings ([their values](../architecture/data-model.md#operations)): the staleness thresholds and the new-space defaults, plus the platform's contact email and WhatsApp when they are given.
 
 It reads the admin's credentials and the contact from `apps/api/.env` (`SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, optionally `SEED_ADMIN_NAME`, `SEED_CONTACT_EMAIL`, `SEED_CONTACT_WHATSAPP`; see `.env.example`). They live only there, never in the repository. It stops, naming each one, when a required one is missing or invalid.
 
-The seed only **creates what is missing**. It never changes an existing row, so running it again changes nothing, and the admin's later edits (a hidden area, a changed setting, the admin's password) survive. The data of real spaces is not seeded: it is entered through the admin screens.
+The seed only **creates what is missing**. It never changes an existing row, so running it again changes nothing, and the admin's later edits (a hidden area, a changed setting, the admin's password) survive. The data of real spaces is not seeded: the admin enters it, through the API today ([spaces](../features/spaces.md)).
 
 **Demo data (development only).** With `SEED_DEMO=true` and a `SEED_DEMO_PASSWORD` in `apps/api/.env`, the seed also adds one verified demo space (`masaha-demo`): an owner (`demo-owner@example.com`) and a reception account (`demo-reception@example.com`), both with that password; the space's hours, prices, shifts and packages; the four [subscription scenarios](../architecture/data-model.md#subscription-scenarios); people present now, visits (paid, uncollected, and unpaid on a customer) and payments (partial, voided, and a credit). Its dates are counted from the day it runs. It is created once: when the demo space exists, it changes nothing. It refuses to run with `NODE_ENV=production`.
 
@@ -145,7 +145,7 @@ The API reads its settings from `apps/api/.env`, loaded by Node's `--env-file`. 
 | `npm run build -w @masaha/api` | Compiles `apps/api/src` to `apps/api/dist` (build `packages/shared` first, or run the root `build`) |
 | `npm run start -w @masaha/api` | Runs the built API from `dist`, with JSON logs |
 
-`GET /health` reports the API and the database (`{ status, db, timestamp }`): 200 with `db: "up"`, or 503 with `db: "down"` while the database is unreachable. Everything else lives under `/api/v1`.
+`GET /health` reports the API and the database ([api-contract §1](../api/api-contract.md#1-conventions)): 200 while the database is up, 503 while it is unreachable. Everything else lives under `/api/v1`.
 
 In development, tests and typechecking, the API reads `@masaha/shared` from its source through the package's `@masaha/source` export condition, so the shared package does not need building first. Only `build` and `start` use its `dist`.
 

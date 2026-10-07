@@ -57,7 +57,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 ```
 
 **Exceptions**, lists a screen shows whole, so they are answered whole, without `page` or `meta`:
-- the admin's lookup lists (`GET /admin/governorates`, `GET /admin/amenities`): bounded catalogues of tens of rows, shown grouped (§5, *Lookups*);
+- the admin's lookup lists (`GET /admin/governorates`, `GET /admin/amenities`) (§5, *Lookups*; why: [lookups › Decisions](../features/lookups.md#decisions));
 - the public catalogue of the lookups (`GET /lookups`), the same bounded lists, active rows only (§5, *Lookups (public)*);
 - planned: the public directory's `GET /spaces`, the whole filtered set ([plan](../plans/v1-mvp.md#public-directory)).
 
@@ -92,11 +92,11 @@ Every endpoint with a body may answer `validation` (422), and every endpoint may
 #### `POST /auth/login` · 🌐
 - **Body:** `{ email, password }`. The policy is not checked here.
 - **200:** `Session`.
-- **Errors:** `validation` (422); `unauthorized` (401) `INVALID_CREDENTIALS` for an unknown email, a wrong password or a Google-only account alike; `forbidden` (403) `ACCOUNT_SUSPENDED`, only once the password matches; `rate_limit` (429) after 10 failures for the address and email, or 50 for the address.
+- **Errors:** `validation` (422); `unauthorized` (401) `INVALID_CREDENTIALS` for an unknown email, a wrong password or a Google-only account alike; `forbidden` (403) `ACCOUNT_SUSPENDED`, only once the password matches; `rate_limit` (429) under the sign-in limits.
 
 #### `POST /auth/google` · 🌐
 - **Body:** `{ idToken, language? }`: a Google OpenID Connect ID token from Google's sign-in on the web, and the interface language for an account this creates.
-- **200:** `Session & { linked }`. The account is the one linked to this Google account; else the account with its email, linked now where Google is the authority for the address, with its password removed and its other sessions ended (`linked: true`, so the web can say so); else a new `USER` without a password ([security.md](../backend/security.md#sign-in-methods)).
+- **200:** `Session & { linked }`. The account linked to this Google account; else the account with its email, linked now where security allows it (`linked: true`); else a new `USER` without a password ([security.md](../backend/security.md#sign-in-methods)).
 - **Errors:** `validation` (422); `unauthorized` (401) `GOOGLE_TOKEN_INVALID` for a token that fails verification, or whose email's account is linked to another Google account; `conflict` (409) `GOOGLE_LINK_NOT_ALLOWED` when the email has an account and Google is not the authority for the address; `forbidden` (403) `ACCOUNT_SUSPENDED`; `service_unavailable` (503) while the API has no Google client id, or cannot load Google's keys; a 503 counts no failure.
 
 #### `POST /auth/refresh` · the refresh cookie
@@ -112,26 +112,26 @@ Every endpoint with a body may answer `validation` (422), and every endpoint may
 
 The reset link, its email and the recovery session are described in [security.md](../backend/security.md#passwords) ([ADR 0017](../architecture/decisions/0017-recovery-session.md)). These endpoints share the password limits ([security.md](../backend/security.md#rate-limits-fixed-window)).
 
-A request for a link opens a **recovery** in the browser, held by the server and found by the recovery cookie (`masaha_reset`, [security.md](../backend/security.md#tokens-and-cookies)). The endpoints that read or set that cookie refuse a cross-site request with `forbidden` (403), as refresh and logout do. They answer with where the caller stands (`@masaha/shared/auth`):
+They act on the browser's **recovery**, found by the recovery cookie (`masaha_reset`, [security.md](../backend/security.md#tokens-and-cookies); [the flow](../features/auth.md#behaviour-and-flows)). The endpoints that read or set that cookie refuse a cross-site request with `forbidden` (403), as refresh and logout do. They answer with where the caller stands (`@masaha/shared/auth`):
 
 ```ts
 RecoveryPosition =
   | { step: "request" }                         // no recovery in this browser
   | { step: "sent", email: string,              // a link was asked for; the email is masked: "s•••@example.com"
-      resendInSeconds: number,                  // until another link may be asked for: 60 after each link
-      canResend: boolean }                      // false once its 3 resends are spent
+      resendInSeconds: number,                  // until another link may be asked for
+      canResend: boolean }                      // false once its resends are spent
   | { step: "password", email: string }         // a link was checked in this browser; the account's email, masked
 ```
 
 #### `POST /auth/password/forgot` · 🌐 · sets the recovery cookie
 - **Body:** `{ email }`.
-- **202:** `RecoveryPosition` at `sent`, and the recovery cookie, the same for every address, whether or not it has an account. A recovery the browser held is ended. When the address has an account that may sign in, the reset email is sent, with a link valid for one hour.
+- **202:** `RecoveryPosition` at `sent`, and the recovery cookie, the same for every address, whether or not it has an account. A recovery the browser held is ended. When the address has an account that may sign in, the reset email is sent.
 - **Errors:** `validation` (422); `forbidden` (403) for a cross-site request; `rate_limit` (429).
 
 #### `POST /auth/password/resend` · the recovery cookie
 - **Body:** none. The address is the recovery's: any field is refused.
-- **202:** `RecoveryPosition` at `sent`, with the window started again, and the recovery cookie renewed for the new link's hour. When the recovery's address has an account that may sign in, another reset email is sent. The answer is the same either way.
-- **Errors:** `validation` (422) for a field in the body; `bad_request` (400) `RECOVERY_INVALID` without a recovery at `sent` (none, ended or expired); `bad_request` (400) `RESEND_LIMIT_REACHED` once its 3 resends are spent; `rate_limit` (429) inside the window, with `Retry-After` the seconds left; `forbidden` (403) for a cross-site request.
+- **202:** `RecoveryPosition` at `sent`, with the window started again, and the recovery cookie renewed for the new link's life. When the recovery's address has an account that may sign in, another reset email is sent. The answer is the same either way.
+- **Errors:** `validation` (422) for a field in the body; `bad_request` (400) `RECOVERY_INVALID` without a recovery at `sent` (none, ended or expired); `bad_request` (400) `RESEND_LIMIT_REACHED` once its resends are spent; `rate_limit` (429) inside the window, with `Retry-After` the seconds left; `forbidden` (403) for a cross-site request.
 
 #### `GET /auth/password/recovery` · the recovery cookie
 - **200:** `RecoveryPosition`; `request` without a recovery, or with one that has ended or expired. Never `not_found`.
@@ -139,7 +139,7 @@ RecoveryPosition =
 
 #### `POST /auth/password/reset/check` · 🌐 · sets the recovery cookie
 - **Body:** `{ token }`, read by the web from the link's fragment. It is the last time the web holds it.
-- **200:** `RecoveryPosition` at `password`, and the recovery cookie, now lasting as long as the link. The link is bound to the browser's recovery, or to a new one when the browser holds none (a link opened on another device), and a recovery elsewhere that held it ends. The token is neither used nor extended.
+- **200:** `RecoveryPosition` at `password`, and the recovery cookie, now lasting as long as the link. The link is bound to the browser's recovery, or to a new one when the browser holds none, and a recovery elsewhere that held it ends. The token is neither used nor extended.
 - **Errors:** `validation` (422) for a missing or empty token; `bad_request` (400) `RESET_TOKEN_INVALID`, the same for an unknown, expired or used link; `forbidden` (403) for a cross-site request; `rate_limit` (429).
 
 #### `POST /auth/password/reset` · the recovery cookie
@@ -153,15 +153,15 @@ The signed-in user's own account. Each endpoint needs the access token.
 
 #### `POST /me/password` · 👤, also while a temporary password is pending
 - **Body:** `{ currentPassword?, password }`. The new password follows the policy. `currentPassword` is required unless a temporary password is pending (the forced change), as both the access token and the account say.
-- **200:** `{ accessToken }`, and a new refresh cookie: every session of the user and any pending reset link ended, and this device's session goes on in a new one, with `mustChangePassword` settled ([security.md](../backend/security.md#passwords)).
-- **Errors:** `unauthorized` (401) without a valid access token; `validation` (422), with `currentPassword: ["required"]` when it is missing; `bad_request` (400) `CURRENT_PASSWORD_INCORRECT`, which is not a 401, so it never looks like an expired session, also when a reset changed the password meanwhile; `bad_request` (400) `PASSWORD_NOT_SET` for an account without a password, which sets one through the reset email; `forbidden` (403) `ACCOUNT_SUSPENDED`; `rate_limit` (429) after 10 wrong current passwords.
+- **200:** `{ accessToken }`, and a new refresh cookie: this device's session goes on in a new one ([security.md](../backend/security.md#passwords)).
+- **Errors:** `unauthorized` (401) without a valid access token; `validation` (422), with `currentPassword: ["required"]` when it is missing; `bad_request` (400) `CURRENT_PASSWORD_INCORRECT`, which is not a 401, so it never looks like an expired session, also when a reset changed the password meanwhile; `bad_request` (400) `PASSWORD_NOT_SET` for an account without a password, which sets one through the reset email; `forbidden` (403) `ACCOUNT_SUSPENDED`; `rate_limit` (429) under its failures limit.
 
 ### Managed spaces
 
 The spaces a signed-in user works at, as owner or reception ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
 
 #### `GET /manage/spaces` · 👤
-- **200:** `ManagedSpace[]` (`@masaha/shared/space-links`), the spaces the caller holds an active link to, oldest link first, as the session's links are. A hidden space is included, since its owner still manages it; a soft-deleted one is left out. Never another user's spaces; an account with no links, the admin included, gets `[]`.
+- **200:** `ManagedSpace[]` (`@masaha/shared/space-links`), the spaces the caller holds an active link to, oldest link first, as the session's links are. A hidden space is included ([why](../features/space-links.md#decisions)); a soft-deleted one is left out. Never another user's spaces; an account with no links, the admin included, gets `[]`.
 
   ```ts
   ManagedSpace = {
@@ -285,7 +285,7 @@ AdminSpace = {
   landmarkAr: string | null, landmarkEn: string | null,
   location: { lat: number, lng: number },
   isHidden: boolean,
-  isVerified: boolean,             // an active OWNER link: the owner edits it, the admin no longer does
+  isVerified: boolean,             // an active OWNER link (data-model › Derived values)
   updatedAt: Record<FactGroup, string>,   // FactGroup: "profile" | "hours" | "prices" | "amenities" | "contacts"; ISO 8601
   staleGroups: FactGroup[]          // older than the platform's thresholds (data-model › Derived values)
 }
@@ -293,7 +293,7 @@ AdminSpace = {
 
 #### `POST /admin/spaces` · 🛡
 - **Body:** the profile.
-- **201:** `AdminSpace`: a new space, unverified and shown, every fact group dated now. In one transaction, its settings are copied from the platform's new-space defaults ([conventions §9](../backend/conventions.md#new-space-defaults)); when they cannot be read, nothing is written. Audited `space.created`, with the profile and the slug in `after`.
+- **201:** `AdminSpace`: a new space, unverified and shown, every fact group dated now. Its settings are copied from the platform's new-space defaults ([spaces › Behaviour and flows](../features/spaces.md#behaviour-and-flows)). Audited `space.created`, with the profile and the slug in `after`.
 - **Errors:** `validation` (422), with `errors.nameEn = ["invalid_format"]` for an English name that yields no slug; `conflict` (409), with no code, when creations of the same name at once took the slug it chose three times over.
 
 #### `GET /admin/spaces` · 🛡
@@ -324,7 +324,7 @@ The endpoints on one space put its links on the request first, without refusing 
 
 #### `PATCH /admin/spaces/:spaceId` · 🛡
 - **Body:** any part of the profile; what is absent is kept, and an optional field is cleared with `null`. The slug never changes.
-- **200:** `AdminSpace`. Only while the space is unverified: once an owner has joined, its owner edits it (`can()`, `space.profile.update`). An edit that changes something dates the profile group now and is audited `space.profileEdited`, with `before` and `after` holding only the fields that changed (the pin as `lat` and `lng`). One that changes nothing writes nothing, its date included: it confirms nothing.
+- **200:** `AdminSpace`. Only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). An edit that changes something dates the profile group now and is audited `space.profileEdited`, with `before` and `after` holding only the fields that changed (the pin as `lat` and `lng`). One that changes nothing writes nothing, its date included: it confirms nothing.
 - **Errors:** `validation` (422); `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
 
 #### `PUT /admin/spaces/:spaceId/hidden` · 🛡

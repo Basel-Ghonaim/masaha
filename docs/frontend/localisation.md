@@ -7,7 +7,7 @@
 
 - Registered languages: `ar` (RTL), `en` (LTR). A language is registered by having a catalogue.
 - Resolution order: the stored choice → the browser's languages, matched on base language (`ar-EG` → `ar`) → `ar`.
-- Signed-in users: the account's language wins once the session restores.
+- Signed-in users: when the account's language becomes the interface's is the session's ([architecture §4](architecture.md#4-session-and-preferences)).
 - **Not in the URL.** Direction follows language and is never set separately.
 - `lang`, `dir` and `data-theme` are set on `<html>` **before first paint**.
 - The language switcher lists each language in its own words: «العربية», «English».
@@ -29,7 +29,7 @@
 
 ## Content in two languages
 
-Space content has Arabic (required) and English (optional) fields, except a space's name, whose English is required and Arabic optional ([data-model.md](../architecture/data-model.md#conventions)). When one language is missing, the other interface shows the text it has, marked with its own `lang` and `dir` on that element: `lang="ar" dir="rtl"` for Arabic text in the English interface, `lang="en" dir="ltr"` for an English-only name in the Arabic interface.
+Space content comes in Arabic and English, and which of them a field requires is the [data model](../architecture/data-model.md#conventions)'s. When one language is missing, the other interface shows the text it has, marked with its own `lang` and `dir` on that element: `lang="ar" dir="rtl"` for Arabic text in the English interface, `lang="en" dir="ltr"` for an English-only name in the Arabic interface.
 
 ## Mechanism
 

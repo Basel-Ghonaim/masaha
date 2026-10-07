@@ -1,6 +1,6 @@
 # Backend Conventions
 
-> **Status:** Active · **Class:** Contract — rules to build against. **Built:** the shared errors, http and validation code, with `parseId`; `shared/auth` (the access tokens, `requireAuth`, `requireRole`, `signedIn`, `can()`, and the links loader without the refusal, `loadSpaceLinks`, on the admin's space routes); the audit writer (§6); the rate limiter; the level rule (§7), enforced by lint; the modules `sessions`, `users`, `space-links` (the session's links, the caller's spaces, and the admin's spaces list, composed with the spaces' owners), `auth`, `lookups` (area names by ids, whether an area may take a space, the public catalogue, and its admin router: the governorates, their areas and the amenities), `platform-settings` and `space-settings` minimally (the new-space defaults and the staleness thresholds; a space's settings row, created with it), and `spaces` (space summaries by ids, the admin's list page with its stale groups, and the admin's space: its creation, its read, its profile edit while it is unverified, hiding, soft delete and restore), with `runInTransaction` in `db/`; the logging of §10; the clock of §11; of §12, the composition root, the email port, the Google identity port and the rate limits in PostgreSQL; of §13, the idempotency key's name and the session lock. **Not yet built:** `optionalAuth` and the refusing space middleware of `/manage` (§8); the audit reader (§6); every other module; Gaza time (§11); the storage and scheduler ports (§12); the idempotent creates and the ledger's translation table (§13) · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against. **Built:** the shared errors, http and validation code, with `parseId`; `shared/auth` (the access tokens, `requireAuth`, `requireRole`, `signedIn`, `can()`, and the links loader without the refusal, `loadSpaceLinks`, on the admin's space routes); the audit writer (§6); the rate limiter; the level rule (§7), enforced by lint; `runInTransaction` in `db/`; the modules `sessions`, and `platform-settings` and `space-settings` minimally (the new-space defaults and the staleness thresholds; a space's settings row, created with it), beside the capabilities documented in [`docs/features/`](../README.md#features--one-document-per-capability); the logging of §10; the clock of §11; of §12, the composition root, the email port, the Google identity port and the rate limits in PostgreSQL; of §13, the idempotency key's name and the session lock. **Not yet built:** `optionalAuth` and the refusing space middleware of `/manage` (§8); the audit reader (§6); every other module; Gaza time (§11); the storage and scheduler ports (§12); the idempotent creates and the ledger's translation table (§13) · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
 > **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging, time, environments, idempotency and concurrency in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
 
 The backend is one application divided into **modules**, one per capability, arranged in **levels** (§7). Each module is built from the same **layers** (§2). **A screen is not a capability** (§7): placements follow the rule that consumes a value, never the screen that shows it.
@@ -56,7 +56,7 @@ Inside a module, each layer calls only the one below it.
 | **Service** | Business rules, permission checks via `can()`, mapping to DTOs, audit entries (§6), calls to lower modules' services, transactions when it orchestrates (§8) | Importing Prisma or Express |
 | **Repository** | Prisma queries on the module's own tables only; applies soft-delete filters by default; each function accepts an optional `tx` (§8) | Rules |
 
-**Dependency injection** by factory functions. The composition root passes a service only its real dependencies: the transaction runner, the audit writer, lower modules' services and ports (R5), as in `createService({ runInTransaction, audit, …lower modules' services })`. A service creates its own repository: no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2). The older services (`users`, `sessions`, `space-links`, `spaces`, and `lookups`' area names) still take a repository, and follow in the planned refactor.
+**Dependency injection** by factory functions. The composition root passes a service only its real dependencies: the transaction runner, the audit writer, lower modules' services and ports (R5), as in `createService({ runInTransaction, audit, …lower modules' services })`. A service creates its own repository: no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2). The older services (`users`, `sessions`, `space-links`, `spaces`, and `lookups`' area names) still take a repository, and follow in the planned refactor; `users` also takes its password hashing as a parameter that only its unit test passes ([finding 39](../architecture/findings.md#39-the-users-service-takes-a-parameter-only-its-unit-test-passes)).
 
 ## 3. Validation
 
@@ -93,14 +93,14 @@ Inside a module, each layer calls only the one below it.
   - it knows no domain concept. The calling service names the action and the entity.
 - **Services audit their sensitive actions:**
   - space profile and fact changes;
-  - spaces created, hidden, unhidden and soft-deleted;
+  - spaces created, hidden, unhidden, soft-deleted and restored;
   - lookup changes: a governorate, area or amenity added, edited, hidden or restored;
   - data reports resolved or dismissed;
   - customer create, edit and archive; subscriptions created, corrected and ended;
   - check-in and check-out, for visits and subscriptions;
   - payments recorded and voided ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md));
   - space links: linking owners, adding and deactivating staff;
-  - role changes, suspensions and temporary passwords ([security.md](security.md#sign-in-methods));
+  - role changes, suspensions and temporary passwords ([security.md](security.md#passwords));
   - settings changes, for spaces and the platform.
 - **Reading is a module**, `audit` (L5, §7). It owns no table and has a `manage` and an `admin` router.
 - **Privacy is a default-deny allowlist.** The admin sees only the platform event types on the audit module's list, never an entry about a space's customers, visits, subscriptions or payments ([ADR 0002](../architecture/decisions/0002-authorization-model.md), [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). An event type not on the list stays hidden from the admin. The owner sees their space's entries.
@@ -141,17 +141,17 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 | Module | Level | Owns (only it writes) | Routers | Holds |
 |---|---|---|---|---|
 | `sessions` | L0 | `refresh_tokens`, `password_reset_tokens`, `password_recoveries` | — | Issue, rotate with the grace window, revoke all; the recovery sessions that hold a reset link ([ADR 0017](../architecture/decisions/0017-recovery-session.md)). Knows only a user id, and of an address only the masked form and the digest it is handed ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
-| `lookups` | L0 | `governorates`, `areas`, `amenities` | public, admin | The bilingual lookup lists |
+| [`lookups`](../features/lookups.md) | L0 | `governorates`, `areas`, `amenities` | public, admin | The bilingual lookup lists |
 | `platform-settings` | L0 | `settings` | public, admin | The typed key catalogue (§9) |
 | `space-settings` | L0 | `space_settings` | manage | A space's settings (§9) |
-| `users` | L1 | `users` | me, admin | Identity, hashing and verifying credentials, the temporary password and the forced change, suspension, the role ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
-| `spaces` | L1 | `spaces`, `space_hours`, `space_shifts`, `space_prices`, `space_contacts`, `space_photos`, `space_amenities` | manage, admin | The profile, hours, shifts, published prices, contacts, photos, amenities and freshness; hiding and soft delete; the pure cut-off time for auto check-out |
-| `space-links` | L2 | `space_managers` | me, manage, admin | The user's spaces and their role at each; staff (reception accounts); linking owners; the admin's spaces with their owners, and owners with their spaces (§9); the links loader for the space middleware (§8) |
+| [`users`](../features/users.md) | L1 | `users` | me, admin | Identity, hashing and verifying credentials, the temporary password and the forced change, suspension, the role ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
+| [`spaces`](../features/spaces.md) | L1 | `spaces`, `space_hours`, `space_shifts`, `space_prices`, `space_contacts`, `space_photos`, `space_amenities` | manage, admin | The profile, hours, shifts, published prices, contacts, photos, amenities and freshness; hiding and soft delete; the pure cut-off time for auto check-out |
+| [`space-links`](../features/space-links.md) | L2 | `space_managers` | me, manage, admin | The user's spaces and their role at each; staff (reception accounts); linking owners; the admin's spaces with their owners, and owners with their spaces (§9); the links loader for the space middleware (§8) |
 | `customers` | L2 | `customers` | manage | Create, edit, archive; search and pagination over given ids (§9) |
 | `packages` | L2 | `packages` | manage | The owner's subscription templates |
 | `announcements` | L2 | `announcements` | manage | Announcements, including closure notices |
 | `favorites` | L2 | `favorites` | me | A user's saved spaces (§9) |
-| `auth` | L3 | — | public | The sign-in flows, as orchestrator: register, sign in with a password or with Google, refresh, sign out, forgot and reset password ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
+| [`auth`](../features/auth.md) | L3 | — | public | The sign-in flows, as orchestrator: register, sign in with a password or with Google, refresh, sign out, forgot and reset password ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
 | `data-reports` | L3 | `data_reports` | me, manage, admin | Reports about a space's information (§9) |
 | `visits` | L3 | `visits` | manage | The pure visit charge; auto check-out of its own visits |
 | `subscriptions` | L3 | `subscriptions`, `check_ins`, `closure_extensions`, `subscription_extensions` | manage | Subscriptions, their check-ins and closure extensions; the pure progress and status; auto check-out of its own check-ins |
@@ -217,7 +217,7 @@ How the rules of §7–§8 place the capabilities that are easy to misplace.
 - **Personal settings** → `users`, plus `sessions` for signing out everywhere. The theme lives only in the browser.
 - **Space settings** → `space-settings`.
 - **Platform settings** → `platform-settings`:
-  - the key-value `Setting` table, with one typed key catalogue;
+  - the key-value `Setting` table, with one typed key catalogue: today the new-space defaults and the two staleness thresholds. The seed writes the platform's contact keys outside it ([finding 40](../architecture/findings.md#40-the-platforms-contact-settings-are-outside-the-typed-catalogue));
   - an admin router and a public router (the public contact);
   - values only, no rules. The module that consumes a value applies it.
 
@@ -226,14 +226,11 @@ How the rules of §7–§8 place the capabilities that are easy to misplace.
   - auto check-out at closing;
   - the visit rounding rule and its minutes;
   - the cap at the day price.
-- They are **copied** into a space's settings when the space is created. `spaces` does this in the same transaction, reading `platform-settings` and writing through `space-settings`, both below it.
+- They are **copied** into a space's settings when the space is created, in the same transaction ([spaces › How it composes the platform](../features/spaces.md#how-it-composes-the-platform)).
 - Changing a default never affects existing spaces.
 
 ### `space-settings`
-It owns the 1:1 `space_settings` table, which takes over from `Space`:
-- `autoCheckoutAtClosing`, `maxStayMinutes`;
-- `visitRounding`, `visitRoundingMinutes`, `visitCapAtDayPrice`, `visitStudentPrices`;
-- `reminderTemplate`.
+It owns the 1:1 `space_settings` table, which takes over from `Space` ([data-model › Spaces](../architecture/data-model.md#spaces); the schema owns the fields).
 
 The modules that apply them read them: visits and subscriptions (auto check-out), visits (the charge), finance (the reminder).
 
@@ -275,24 +272,21 @@ A screen that shows or filters by values from several modules is composed by a m
   - The status and payment filters resolve to customer ids first, from `subscriptions` and `payments`.
   - `customers` then applies the search and the pagination to those ids (§5).
   - The file adds each subscription's progress, the payments, the balance and the attendance.
-- **The admin's spaces list** (owners and verified status) and **the space owners list** → `space-links`.
-  - The verified filter resolves to space ids in `space-links` first.
-  - `spaces` then applies the hidden, stale and search filters and the pagination to those ids (§5).
-- **"Verified" on the write side.**
-  - The admin edits a space's facts only while it is unverified, and data reports follow the same rule.
-  - `spaces` never imports `space-links` for this. The space middleware resolves the links on the space routes (§8), and `can()` decides.
+- **The admin's spaces list** (owners and verified status) and **the space owners list** → `space-links` ([how the list is composed](../features/space-links.md#how-it-composes-the-platform)).
+- **"Verified" on the write side** ([security › Authorization](security.md#authorization)).
+  - `spaces` never imports `space-links` for it. The space middleware resolves the links on the space routes (§8), and `can()` decides.
   - `data-reports` sits above `space-links` and may call it directly for a report's space.
 - **Uncollected visits** (closed by the auto check-out and left unpaid) → `payments`, which owns the balance.
 - **The favourites' cards** (live status and prices) → `directory`, from the ids that `favorites` records. `favorites` never reads live status.
 
 ## 10. Logging
 
-Built: the redaction, the request id, the levels, and the user and their role on a signed-in request. The space joins the fields with the first space route.
+Built: the redaction, the request id, the levels, and the user and their role on a signed-in request. The space is not logged yet, although space routes exist ([finding 41](../architecture/findings.md#41-the-request-log-does-not-name-the-space)).
 
 **The request's line is best effort online.** pino-http writes it when the response finishes, after the answer. The logger writes it to stdout synchronously, so it leaves the process at once, but a function frozen in that instant can still lose it ([§12](#12-environments)).
 
 - **Redaction** is owned by [security.md](security.md#http-hardening): what the HTTP logger never writes.
-- **The request id.** Every request gets a UUID, generated by the server. It is written in the request's log lines, returned in the `X-Request-Id` response header and in the error envelope ([api-contract §2](../api/api-contract.md#2-response-envelope)), and the web shows it in its error states, so a user's report can be matched to the log.
+- **The request id.** Every request gets a UUID, generated by the server. It is written in the request's log lines, returned in the `X-Request-Id` response header and in the error envelope ([api-contract §2](../api/api-contract.md#2-response-envelope)), and the web shows it with a refusal that has no domain code ([frontend architecture §5](../frontend/architecture.md#5-errors)), so a user's report can be matched to the log.
 - **Fields** of every request log: the request id, the user, their role, the space (on space routes), the route, the status and the duration.
 - **Levels:** a 4xx response is logged at `warn`, a 5xx at `error`.
 
@@ -317,7 +311,7 @@ The application runs in two environments: a long-running server locally, and a f
   |---|---|---|
   | Storage | local disk | free object storage |
   | Google identity | Google's published keys, when `GOOGLE_CLIENT_ID` is set | the same. Tests inject a fake |
-  | Email | `log`: nothing is sent, and the link is written to the log (development only) | `smtp`: a single Gmail sender, through any SMTP relay ([security.md](security.md#passwords)) |
+  | Email | `log`: nothing is sent, and the link is written to the log (development only) | `smtp`: through an SMTP relay ([security.md](security.md#passwords)) |
   | Scheduler | an in-process timer started by `server.ts` | an internal, secret-protected endpoint that an external cron calls every few minutes. The slice that builds it adds its path to the API contract |
   | Clock | the system clock | the system clock. Tests inject a fixed one (§11) |
 - **No work runs after a response is sent**, in either environment. A function may be frozen as soon as it answers, so whatever a request must do is done before it responds. The one exception is the request's log line, written as the response finishes, synchronously and best effort (§10).
@@ -342,8 +336,7 @@ Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
 - **Rows are locked in one fixed order:** oldest first, then by id. One amount spread over several items ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)) locks and pays them in that order, so it cannot deadlock.
 - **The session lock.** Every transaction that writes a user's refresh tokens first locks that user's row (`FOR NO KEY UPDATE`, through `users`, which owns the row). Signing in, registering, Google sign-in, refresh, logout, a password change, a reset and a suspension's revocation all take it, so a new session and a revocation never interleave: whichever commits second sees the first.
   - **The order** is the user's row, then their tokens. A reset reads its recovery's owner first, without a lock, so it too takes the user's row before any token. Checking a reset link does the same before it binds the link to a recovery, so a password change that ends the link meanwhile is seen.
-  - **bcrypt stays outside every transaction.** A sign-in compares the password first, then re-reads the hash under the lock and opens the session only if it is still the one that matched.
-  - **A password change is a compare-and-set:** it writes only if the account still has the password and the pending flag it checked, so it never overwrites a reset that landed meanwhile.
+  - **bcrypt stays outside every transaction,** and a password change is a compare-and-set ([security › Passwords](security.md#passwords)).
   - API tests hold the row in a test transaction while each of these runs.
 
 ### The ledger's rules

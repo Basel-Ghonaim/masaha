@@ -30,6 +30,16 @@ Without an Issue, the Work Item's **contract lives in the PR description**:
 
 For a substantial item, agree the contract **before** implementing: agree → design → decompose → write the contract → implement.
 
+### Reading before work
+
+A Work Item reads what its task needs: never the whole set, never less than the essentials. In this order:
+
+1. **Always:** CLAUDE.md, this workflow, the [map](../README.md), and the open findings' titles and *Resolves when* lines (§4).
+2. **The capability's document first,** when the task changes a capability that has one, and only the sections it or the prompt links. A capability without a document yet (not at its stable core) is worked on from the prompt and the platform documents.
+3. **Every other document whose *read it when* line in the map matches the task.** The map owns when each document is read.
+
+Skipping a document the task needs is a defect, as reading the whole set is.
+
 ## 3. Git lifecycle
 
 `main` is always working. Work happens on short-lived branches cut from the latest `main`.
@@ -77,6 +87,7 @@ Closes #n   (only when an Issue exists)
 - Touch only the files the Work Item requires.
 - No drive-by refactoring or reformatting.
 - Unrelated problems found along the way are **recorded** in [findings](../architecture/findings.md), not fixed.
+- **Related findings.** At the start of a Work Item, read the open findings' titles and their *Resolves when* lines, not the whole file, and open in full only those that touch the item. The plan lists them under *Related findings*: for each, whether to fold it into this item, why, and its cost. The owner decides; a folded finding is resolved in the same PR, with its status changed and a resolution line.
 - Anything on the *Not in v1* list in [overview.md](../project/overview.md) is out of scope, always.
 
 ## 5. Definition of Done and Accepted
@@ -89,6 +100,7 @@ Closes #n   (only when an Issue exists)
 - [ ] UI checked in RTL and LTR, light and dark, phone and desktop.
 - [ ] Authorization enforced on the server for any protected action.
 - [ ] Triggered documentation updated **in the same PR** (§7), including any **deferred document** whose trigger this PR meets.
+- [ ] Each fact has one home: no duplication, links rather than copies, and nothing claimed that is not built ([documentation rules](../architecture/documentation.md)).
 - [ ] Every claim in the PR description names the test or command that proves it ([testing §3](testing.md#3-rules-that-bind-every-test)).
 - [ ] Atomic history, pushed, PR description complete.
 
@@ -111,6 +123,7 @@ Update in the **same PR** as the code:
 | An endpoint, payload or error code | [api-contract.md](../api/api-contract.md) |
 | A model, relation or index | [data-model.md](../architecture/data-model.md) |
 | A shared mechanism (session, i18n, errors, design system) | its owning document |
+| A capability's behaviour, decisions or code map | its document in `docs/features/`, written with the capability's first stable core ([documentation rules §5](../architecture/documentation.md#5-capability-documents)) |
 | A decision meeting the ADR threshold | a new ADR in [decisions/](../architecture/decisions/) |
 | A feature becomes built | the *Built* section of [overview.md](../project/overview.md) |
 
@@ -118,7 +131,7 @@ Pure refactors that change no behaviour need no documentation update.
 
 **Deferred documents.** Some documents are committed but not yet written because what they describe does not exist yet. Their triggers are listed in the [documentation map](../README.md#deferred-documents). A PR that meets a trigger writes that document; the PR is not *Done* without it. Remove the row from the map once the document exists.
 
-**ADR threshold:** long-term impact, hard to reverse, affects several parts, and a real choice between alternatives. Format: *Context · Decision · Alternatives · Consequences*. The project stays in a foundation phase, so an ADR may be revised in place with a `> **Revised:** <date> — <what>` line.
+**ADR threshold:** long-term impact, hard to reverse, affects several parts, and a real choice between alternatives; and no document naturally owns the decision ([documentation rules §7](../architecture/documentation.md#7-adrs)). Format: *Context · Decision · Alternatives · Consequences*. The project stays in a foundation phase, so an ADR may be revised in place with a `> **Revised:** <date> — <what>` line.
 
 ## 8. Stop rules
 

@@ -51,7 +51,7 @@ Strict mode. Prefer inference; use `satisfies` over annotations for literals; di
 |---|---|---|
 | Files | camelCase | `spaceMapper.ts` |
 | React components | PascalCase | `SpaceCard.tsx` |
-| Types and interfaces | PascalCase | `SpaceDto` |
+| Types and interfaces | PascalCase | `SpaceSummary` |
 | Constants | UPPER_SNAKE_CASE | `MAX_PAGE_SIZE` |
 | URL paths | kebab-case | `/space-owners` |
 | DB tables and columns | snake_case, mapped by Prisma `@map` | `space_managers.user_id` |

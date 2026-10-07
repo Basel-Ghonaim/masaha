@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-10-02
+> **Last Updated:** 2026-10-06
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -233,7 +233,7 @@ Each status also needs a **subtle** surface for badges and alerts (`success-subt
 
 - **Themes:** `light` and `dark`, each a complete resolution of every semantic key (**key parity**, checked by a test). The layer exports their names as `THEMES`, and the same test holds the list to the themes the token files define.
 - **Mechanism:** `data-theme` on `<html>`. Tailwind's `dark:` variant is redefined to read `[data-theme="dark"]` instead of shadcn's `.dark` class.
-- **Pre-paint script:** an inline script in `index.html` sets `data-theme`, `lang` and `dir` before first paint (no flash).
+- **Pre-paint script:** the theme is set before first paint, so there is no flash ([localisation › Before first paint](../localisation.md#before-first-paint)).
 - **Policy (owned by the app, not the layer):** follow the system preference until the user chooses. The explicit choice is stored and wins.
 - **Both themes are designed, not generated.** Claude Design delivers every key screen in both.
 
@@ -285,8 +285,9 @@ Tailwind breakpoints: `md` = 768, `lg` = 1024 (defaults).
 **Directory, at every width:** the list **or** the map, never side by side, switched by a «قائمة | خريطة» toggle. The list is the default, and the view is kept in the URL (`?view=map`).
 
 **Shells:**
-- **Public shell:** top header (logo, directory, language switch, theme toggle, sign-in / account menu), content, footer.
-- **Dashboard shell:** sidebar (items built from the role, the space switcher in its header), top bar (the page's title, language, theme, account menu), content; the frontend architecture owns it ([architecture §2](../architecture.md#2-page-groups)).
+- **Public shell:** a top header, the content, a footer.
+- **Dashboard shell:** a sidebar, a top bar, the content.
+- What each shell holds is the frontend architecture's ([architecture §2](../architecture.md#2-page-groups)).
 
 ---
 
