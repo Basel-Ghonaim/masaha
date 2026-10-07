@@ -48,6 +48,8 @@ import { createSpaceSettingsService } from './modules/space-settings/index.ts';
 import {
   createConfirmController,
   createConfirmService,
+  createHoursController,
+  createHoursService,
   createListingService,
   createProfileController,
   createProfileService,
@@ -213,6 +215,7 @@ export function createApi({
   });
   // The space's fact groups, each saved alone, through one save path.
   const facts = { runInTransaction, audit: writeAudit, platformSettings, now: clock };
+  const hours = createHoursService(facts);
   const confirm = createConfirmService(facts);
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const adminSpaces = createAdminSpacesService({
@@ -272,6 +275,7 @@ export function createApi({
     createSpacesAdminRouter({
       space: createSpaceController(space),
       profile: createProfileController(profile),
+      hours: createHoursController(hours),
       confirm: createConfirmController(confirm),
     }),
   );

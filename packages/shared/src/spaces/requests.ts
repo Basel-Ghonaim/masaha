@@ -56,3 +56,114 @@ export type UpdateSpaceProfileRequest = z.infer<typeof updateSpaceProfileSchema>
 /** Hides the space from the public, or shows it again. */
 export const setSpaceHiddenSchema = z.object({ isHidden: z.boolean() });
 export type SetSpaceHiddenRequest = z.infer<typeof setSpaceHiddenSchema>;
+
+// ─── The facts: each group is saved whole, alone (decision F1) ───────────────────────────────
+
+/** Minutes after midnight in a day: a time of day, 1440 the midnight that ends it. */
+export const DAY_MINUTES = 1440;
+export const SHIFT_NAME_MAX_LENGTH = 40;
+export const MAX_SHIFTS = 10;
+
+const minute = z.number().int().min(0).max(DAY_MINUTES);
+
+/** Within one day, a range closes after it opens (decision F4: none runs past midnight). */
+function closesAfterOpening<K extends string>(from: K, to: K) {
+  return (range: Record<K, number>) => range[from] < range[to];
+}
+
+/** A day's opening range, in minutes after midnight; 0–1440 is open around the clock. */
+const openingRange = z
+  .object({ opensMinute: minute, closesMinute: minute })
+  .refine(closesAfterOpening('opensMinute', 'closesMinute'), {
+    path: ['closesMinute'],
+    params: { code: 'out_of_range' },
+  });
+
+/** A named shift inside the opening hours; `id` names a shift the space already has. */
+const shift = z
+  .object({
+    id: id.optional(),
+    nameAr: textSchema(1, SHIFT_NAME_MAX_LENGTH),
+    nameEn: optional(textSchema(1, SHIFT_NAME_MAX_LENGTH)),
+    startsMinute: minute,
+    endsMinute: minute,
+  })
+  .refine(closesAfterOpening('startsMinute', 'endsMinute'), {
+    path: ['endsMinute'],
+    params: { code: 'out_of_range' },
+  });
+
+/** The positions of the items whose key an earlier item already has. */
+function repeats<T>(items: readonly T[], key: (item: T) => unknown): number[] {
+  const seen = new Set<unknown>();
+  return items.flatMap((item, index) => {
+    const value = key(item);
+    if (value === undefined) return [];
+    if (seen.has(value)) return [index];
+    seen.add(value);
+    return [];
+  });
+}
+
+/** Marks each repeated item `not_unique` on its field (the owner's answer A1). */
+function refuseRepeats<T>(
+  ctx: z.RefinementCtx,
+  list: string,
+  items: readonly T[],
+  field: (item: T) => string,
+  key: (item: T) => unknown,
+) {
+  for (const index of repeats(items, key)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: [list, index, field(items[index] as T)],
+      params: { code: 'not_unique' },
+      message: 'Repeats an earlier item',
+    });
+  }
+}
+
+/**
+ * The opening hours with the shifts, saved together (decision F3). `days[0]` is Sunday … `days[6]`
+ * Saturday, `null` when closed. The shifts' order is the order they are shown in; a shift keeps
+ * its `id`, a new one has none (decision F5). A shift lies inside the hours of at least one open
+ * day (decision D4), and its Arabic name is its own.
+ */
+export const updateSpaceHoursSchema = z
+  .object({
+    days: z.array(openingRange.nullable()).length(7),
+    shifts: z.array(shift).max(MAX_SHIFTS),
+  })
+  .superRefine(({ days, shifts }, ctx) => {
+    refuseRepeats(
+      ctx,
+      'shifts',
+      shifts,
+      () => 'nameAr',
+      (item) => item.nameAr,
+    );
+    refuseRepeats(
+      ctx,
+      'shifts',
+      shifts,
+      () => 'id',
+      (item) => item.id,
+    );
+    shifts.forEach((item, index) => {
+      const inside = days.some(
+        (day) =>
+          day !== null &&
+          day.opensMinute <= item.startsMinute &&
+          item.endsMinute <= day.closesMinute,
+      );
+      if (!inside) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['shifts', index],
+          params: { code: 'out_of_range' },
+          message: 'Outside the hours of every open day',
+        });
+      }
+    });
+  });
+export type UpdateSpaceHoursRequest = z.infer<typeof updateSpaceHoursSchema>;

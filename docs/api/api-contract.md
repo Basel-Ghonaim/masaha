@@ -276,6 +276,7 @@ The spaces the admin enters and keeps ([data-model › Spaces](../architecture/d
 - **The slug** is derived from `nameEn` when the space is created, and never changes: accents dropped, lowercased, every run of other characters than `a–z` and `0–9` one `-`: the base, at most 60 characters, then any suffix ("Focus Hub" → `focus-hub`). A slug any space holds, a soft-deleted one included, takes the smallest free suffix from 2 (`focus-hub-2`).
 - **Audit:** every change writes its entry in its own transaction ([conventions §6](../backend/conventions.md#6-audit)), named `space.<verb>`, with the space as both the entity and the entry's space.
 - **Freshness:** each fact group (`FactGroup`: `"profile" | "hours" | "prices" | "amenities" | "contacts"`) has its date, renewed when the group is saved or confirmed unchanged. The profile is dated when the space is created; any other group has no date, **missing**, until it is first saved ([data-model › Conventions](../architecture/data-model.md#conventions)).
+- **The facts** are saved one group at a time, each by a `PUT` that replaces the group whole and answers `AdminSpace`, only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). A save dates its group now, leaves the other groups' dates alone, and is audited `space.<group>Edited`, with the whole group in `before` and `after`; hours never saved are recorded as `{ days: [], shifts }`. A save that changes nothing writes nothing, its date included, unless the group is missing: its first save always dates it, even empty. A list's order is the order it is shown in. A row that repeats an earlier one is refused with `not_unique` on that row's field (`errors["shifts.1.nameAr"]`). Each answers `forbidden` (403), with no code, on a verified space, and `not_found` (404) for a soft-deleted space too.
 
 ```ts
 AdminSpace = {
@@ -289,7 +290,15 @@ AdminSpace = {
   isVerified: boolean,             // an active OWNER link (data-model › Derived values)
   updatedAt: Record<FactGroup, string | null>,   // ISO 8601; null while the group is missing (never the profile)
   staleGroups: FactGroup[],         // older than the platform's thresholds (data-model › Derived values)
-  missingGroups: FactGroup[]        // never saved
+  missingGroups: FactGroup[],       // never saved
+  hours: SpaceHours | null          // null until first saved
+}
+
+OpeningRange = { opensMinute: number, closesMinute: number }   // minutes after midnight, Asia/Gaza
+Shift = { id: number, nameAr: string, nameEn: string | null, startsMinute: number, endsMinute: number }
+SpaceHours = {
+  days: (OpeningRange | null)[],   // 7: Sunday (0) … Saturday (6); null = closed
+  shifts: Shift[]
 }
 ```
 
@@ -342,6 +351,13 @@ The endpoints on one space put its links on the request first, without refusing 
 #### `POST /admin/spaces/:spaceId/restore` · 🛡
 - **204:** a soft-deleted space comes back as it was, hidden or not, with its links. Audited `space.restored` (`before`: `deletedAt`). Restoring a space that is not deleted changes nothing.
 - **Errors:** `not_found` (404).
+
+#### `PUT /admin/spaces/:spaceId/hours` · 🛡
+- **Body:** `{ days, shifts }`, the hours and the shifts, saved together:
+  - `days`: exactly 7, Sunday first; each `null` (closed) or `{ opensMinute, closesMinute }`, integers with `0 ≤ opensMinute < closesMinute ≤ 1440` (`out_of_range` on `closesMinute`). A day open around the clock is `0`–`1440`; no range runs past midnight;
+  - `shifts`: at most 10, each `{ id?, nameAr, nameEn?, startsMinute, endsMinute }`: `nameAr` required and `nameEn` optional, 1–40 characters each, as the profile's texts; `startsMinute < endsMinute` within the day (`out_of_range` on `endsMinute`); inside the range of at least one open day (`errors["shifts.<i>"] = ["out_of_range"]`); an Arabic name or an `id` repeated is `not_unique`.
+- **200:** `AdminSpace`. A shift with an `id` is that shift, updated and keeping its id; one without is new; a shift left out is removed. Audited `space.hoursEdited` (`before` and `after`: `{ days, shifts }`).
+- **Errors:** `validation` (422), with `invalid_choice` on `shifts.<i>.id` for an id that is not one of the space's shifts; `conflict` (409), with no code, when a shift left out is still used by a price, a package, a subscription or a visit: nothing is written, and the price is changed first; `forbidden` (403); `not_found` (404).
 
 #### `POST /admin/spaces/:spaceId/{profile|hours|prices|amenities|contacts}/confirm` · 🛡
 - «المعلومات ما زالت صحيحة»: the group is confirmed unchanged. One path per group; any other answers `not_found` (404).

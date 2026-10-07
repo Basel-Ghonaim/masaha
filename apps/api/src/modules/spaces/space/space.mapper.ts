@@ -1,12 +1,13 @@
 import type { AdminSpace } from '@masaha/shared/spaces';
 
+import type { SpaceFacts } from '../facts/facts.ts';
 import { groupDatesOf, missingGroups, staleGroups, type GroupCutoffs } from '../staleness.ts';
 import type { SpaceRecord } from './space.repository.ts';
 
-/** The space as the admin sees it; `cutoffs` are the staleness cut-offs now. */
+/** The space as the admin sees it, with its facts; `cutoffs` are the staleness cut-offs now. */
 export function toAdminSpace(
   space: SpaceRecord,
-  { isVerified, cutoffs }: { isVerified: boolean; cutoffs: GroupCutoffs },
+  { isVerified, cutoffs, facts }: { isVerified: boolean; cutoffs: GroupCutoffs; facts: SpaceFacts },
 ): AdminSpace {
   const dates = groupDatesOf(space);
   return {
@@ -33,5 +34,6 @@ export function toAdminSpace(
     },
     staleGroups: staleGroups(dates, cutoffs),
     missingGroups: missingGroups(dates),
+    hours: facts.hours,
   };
 }

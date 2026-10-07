@@ -6,11 +6,11 @@
 
 ## What it does
 
-- Lets the admin create a space from its profile, its basics and its location; read it; edit the profile, as far as [security](../backend/security.md#authorization) allows; hide and show it again; delete it softly and restore it.
+- Lets the admin create a space from its profile, its basics and its location; read it; edit the profile and its facts, one group at a time (the hours with the shifts), as far as [security](../backend/security.md#authorization) allows; hide and show it again; delete it softly and restore it.
 - Dates each of the space's fact groups when it is saved or confirmed unchanged, and computes from those dates which groups are stale, which are missing, and when the space was last updated.
 - Answers the modules above it: the summaries of a set of spaces, and a page of the admin's spaces list over the ids it is given.
 
-The other facts it will own (hours, shifts, prices, contacts, photos, amenities) and the owner's side are not built.
+The other facts it will own (prices, contacts, photos, amenities) and the owner's side are not built.
 
 ## Who uses it
 
@@ -19,7 +19,7 @@ The other facts it will own (hours, shifts, prices, contacts, photos, amenities)
 
 ## Responsibility boundary
 
-- **Owns** the `spaces` table and its profile, the slug, the hide flag, the soft delete, the fact groups' dates and the staleness rule.
+- **Owns** the `spaces` table and its profile, the slug, the hide flag, the soft delete, the fact groups' dates and the staleness rule; the hours and the shifts.
 - **Leaves** whether a space is verified to `space-links`, whose links are on the request ([conventions › Space access](../backend/conventions.md#space-access)); `spaces` never imports `space-links`.
 - **Leaves** a space's settings to `space-settings`, the defaults and thresholds to `platform-settings`, and the areas to [`lookups`](lookups.md).
 - **Leaves** who may edit a profile to `can()` ([security › Authorization](../backend/security.md#authorization)).
@@ -42,6 +42,10 @@ The other facts it will own (hours, shifts, prices, contacts, photos, amenities)
 
 **Freshness.** A group is missing until it is first saved, and stale once its date is older than its threshold, prices by their own ([data model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)). The admin's "stale only" filter keeps both.
 
+**Save a group.** Each group is saved whole, alone, through one save path: under the space's lock, `can()` decides from the links whether the actor may, then the group is replaced, dated now and audited, in one transaction. A save that changes nothing writes nothing, unless the group is missing.
+
+**Hours.** The week and the shifts are saved together. The week is written first, then the shifts change: one named by its id is updated in place, one without an id is created, one left out is removed. A removed shift that a price (or a package, a subscription or a visit) still uses is refused by the database's key, and the transaction takes the week back. Shifts whose Arabic names move between them are first given a passing name no saved shift can hold.
+
 **Confirm.** A group confirmed unchanged has its date renewed and nothing else, under the space's lock, with its audit entry, on the same path and by the same `can()` rule as a save; a missing group has nothing to confirm (409).
 
 ## Decisions
@@ -60,11 +64,18 @@ The other facts it will own (hours, shifts, prices, contacts, photos, amenities)
 - **"Stale only" keeps the missing groups too,** and each row says which are missing. *Why:* both need the admin's attention. 2026-10-07, #PR.
 - **Every group can be confirmed, the profile included,** each on its own path (D1). *Why:* the edit screen confirms each section, the profile's two among them. 2026-10-07, #PR.
 - **Confirming a missing group is refused (409);** saving it empty records "none" (D2). *Why:* "still correct" says nothing of a group never entered. 2026-10-07, #PR.
+- **One `PUT` per group replaces it whole, and each group has its own confirm** (F1). *Why:* each section of the edit screen saves alone; one `PATCH` for every fact, the plan's draft, would date groups the admin never touched. 2026-10-07, #PR.
+- **The shifts are saved with the hours, and their freshness is the hours'** (F3). *Why:* the design places them there; the data model's "prices (with shifts)" was corrected. 2026-10-07, #PR.
+- **A day is closed or one range within it, 0–1,440 minutes; 0–1,440 is open around the clock** (F4). *Why:* a range past midnight would complicate live status and the auto check-out (step 7). 2026-10-07, #PR.
+- **A saved shift keeps its id; one still in use cannot be removed (409)** (F5). *Why:* packages, subscriptions and visits reference shifts; the database's keys refuse the delete, so `spaces` reads none of their tables. 2026-10-07, #PR.
+- **A shift lies inside the range of at least one open day** (D4). *Why:* requiring every open day would refuse an evening shift on a short Thursday. 2026-10-07, #PR.
+- **A repeated row is refused with 422, `not_unique` on its own field,** by the shared rules (the owner's answer A1). *Why:* a whole group under the lock can only repeat a row within itself, and the browser marks it before sending. 2026-10-07, #PR.
+- **A save that changes nothing writes nothing, unless the group is missing** (D3). *Why:* as the profile's edit; only a confirm renews a date unchanged. 2026-10-07, #PR.
 - **Every group changes through one save path:** the lock, `can()`, the change, the group's date and its audit entry, in one transaction. *Why:* the owner's endpoints (step 5) reuse it (S9). 2026-10-07, #PR.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group), `confirm/` (a group confirmed unchanged), `listing/` (the page the admin's list reads); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
+- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `confirm/` (a group confirmed unchanged), `listing/` (the page the admin's list reads); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
 - **Shared:** `packages/shared/src/spaces/`: the requests, the responses, the fact groups and the Gaza Strip's box.
 
 ## Open findings
@@ -75,4 +86,4 @@ None.
 
 - #36 — the summaries of a user's spaces.
 - #44 — the admin's spaces API: create, read, edit, hide, delete and restore, and the listing page.
-- #PR — the facts API: a group missing until saved, and each group confirmed.
+- #PR — the facts API: a group missing until saved, each group confirmed, the hours with the shifts.

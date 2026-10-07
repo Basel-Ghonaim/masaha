@@ -99,6 +99,7 @@ describe('POST /admin/spaces', () => {
       updatedAt: { profile: at, hours: null, prices: null, amenities: null, contacts: null },
       staleGroups: [],
       missingGroups: ['hours', 'prices', 'amenities', 'contacts'],
+      hours: null,
     });
   });
 

@@ -11,6 +11,7 @@ import {
   type LockedSpace,
 } from '../space/space.repository.ts';
 import { createSpaceView } from '../space/spaceView.ts';
+import { createFactsReader } from './facts.ts';
 
 /** What every group's service is given, and passes on to the save path. */
 export interface GroupEditDependencies {
@@ -54,6 +55,7 @@ export function createGroupEdit({
 }: GroupEditDependencies) {
   const repository = createSpaceRepository();
   const view = createSpaceView(now);
+  const readFacts = createFactsReader();
 
   return async function editGroup(
     actor: Actor,
@@ -73,7 +75,9 @@ export function createGroupEdit({
 
       const at = now();
       const change = await step(tx, current, at);
-      if (!change) return view(current, isVerified(space), thresholds);
+      if (!change) {
+        return view(current, isVerified(space), thresholds, await readFacts(space.id, tx));
+      }
 
       const updated = await repository.update(space.id, { [DATE_COLUMNS[group]]: at }, tx);
       await audit(
@@ -88,7 +92,7 @@ export function createGroupEdit({
         },
         tx,
       );
-      return view(updated, isVerified(space), thresholds);
+      return view(updated, isVerified(space), thresholds, await readFacts(space.id, tx));
     });
   };
 }
