@@ -9,11 +9,12 @@
 - Holds the place list, governorate then area, which covers the Gaza Strip, and the amenities a space may offer, each in Arabic and English, in an order the admin sets, with an active flag. Nothing is deleted: a row is hidden and restored.
 - Lets the admin add, rename, hide, restore and order the governorates, the areas and the amenities, on the dashboard's lookups page.
 - Answers the public catalogue: what a form or a filter may offer, active rows only.
+- Offers the one field that chooses a governorate or one of its areas, which the admin's spaces list sets in its filters.
 - Answers the modules above it: the names of a set of areas, whether an area may take a space, the ids of a governorate's areas, and which amenities are active.
 
 ## Who uses it
 
-- **The admin**, on the dashboard's lookups page.
+- **The admin**, on the dashboard's lookups page, and through the place field of the spaces list ([space-links](space-links.md)).
 - **Anyone,** through the public catalogue. No page of the site reads it yet.
 - **Other modules:** `spaces` checks a space's area and names it; `space-links` names the areas of the spaces it lists and resolves a governorate filter to its areas.
 
@@ -45,6 +46,8 @@
 
 Nothing changes before the server answers. A write stays pending until the list has been fetched again, and the next action starts from the server's list. While a list's order is pending, every arrow of that list waits, so two orders never race; a card waits out a 429 with every control. A failure stands until the next action on its row or list, whatever fails elsewhere: a governorate's or an area's shows in its governorate's card; an amenity's shows in its own row, and an order of the amenities' in their card, above the list. The amenities' card waits out a 429 on any of its rows or its list until that count ends, whatever fails after it. A 409 on an order means the list changed meanwhile: the list is fetched again, and the card says so. The screen fires no toasts.
 
+**The place field.** `GovernorateAreaSelect` offers "All areas", then each governorate followed by its areas, in order, named in the interface's language; each governorate's options are a group named after it, its areas indented. It reads the admin's lists, so hidden governorates and areas are offered too, marked "(hidden)". While they load, or once they have failed, one disabled option says so, and "All areas" stays. It takes its value and hands back the choice, a governorate's id or an area's, and sits in the Field of the list that sets it, which the page hands it to.
+
 **The public catalogue** answers what a form or a filter may offer, active rows only ([the contract](../api/api-contract.md#lookups-public)).
 
 ## Decisions
@@ -73,13 +76,15 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **The amenities' hooks mirror the governorates', one per operation,** with no hook factory across the lists. *Why:* two lists are too few to generalise. 2026-10-07, #49.
 - **An amenity's two switches sit in its row, each pending on its own write; its arrows wait only on an order.** A governorate's or an area's arrows also wait on its switch; a new admin list copies the amenities'. *Why:* an order sends ids alone, so it cannot race a change of a flag. 2026-10-07, #49.
 - **The page's two sections sit under tabs, the tab kept in the address;** choosing one replaces the address, and the first tab takes no parameter. *Why:* a link or a reload opens the same tab, and Back leaves the page rather than stepping through tabs. The governorates' section needed no change to sit under a tab. 2026-10-07, #49.
+- **The place field is exported as UI** that another capability's filter sets, its value and its choice passed by the page. *Why:* the governorates and their areas are this capability's fact, shown the same way wherever a place is chosen; the list that filters on it stays its own capability's. 2026-10-07, #50.
+- **The place field offers the admin's lists, hidden rows included and marked.** *Why:* a hidden governorate's or area's spaces still exist, and the admin must be able to find them; it also shares the lookups page's cache. 2026-10-07, #50.
 - **The amenities' actions have their own key prefix,** `['admin', 'lookups', 'amenity', …]`. *Why:* neither list reads the other's pending or failed actions. 2026-10-07, #49.
 
 ## Code map
 
 - **API:** `apps/api/src/modules/lookups/`, entry `index.ts`: a folder per list (`governorates/`, `areas/`, `amenities/`) and one for the public `catalogue/`; the pure rules beside them (the exact order, a lookup's change and its audit entries, the list order); the public and admin routers.
 - **Shared:** `packages/shared/src/lookups/`: the requests, the responses and the icon keys.
-- **Web:** `apps/web/src/features/lookups/`, entry `index.ts` (`GovernoratesSection`, `AmenitiesSection`), mounted by `pages/dashboard/admin/`; an amenity's icon through `components/AmenityIcon.tsx`.
+- **Web:** `apps/web/src/features/lookups/`, entry `index.ts` (`GovernoratesSection`, `AmenitiesSection`, `GovernorateAreaSelect`), mounted by `pages/dashboard/admin/`; an amenity's icon through `components/AmenityIcon.tsx`; the place field in `components/place/` and `hooks/place/`.
 
 ## Open findings
 
@@ -96,3 +101,4 @@ None.
 - #44 — the public catalogue, and what `spaces` and `space-links` read.
 - #45 — duplicate English names accepted.
 - #49 — the admin's amenities, and the icon drawn by its key.
+- #50 — the place field of the admin's spaces list.

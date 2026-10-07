@@ -110,4 +110,12 @@ export const LOOKUPS = {
     presentation: 'Presentation board',
     'graduation-cap': 'Graduation cap',
   } satisfies Record<AmenityIconKey, string>,
+  /** The one field that chooses a governorate or one of its areas, such as a list's filter. */
+  placeSelect: {
+    /** The option that chooses none. */
+    all: 'All areas',
+    /** A hidden governorate or area, still offered: its spaces still exist. */
+    hidden: ({ name }: { name: string }) => `${name} (hidden)`,
+    loadFailed: 'We couldn’t load the areas',
+  },
 } as const;
