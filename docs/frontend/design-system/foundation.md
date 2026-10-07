@@ -56,7 +56,8 @@ apps/web/src/shared/design-system/
   components/
     <category>/       one folder per category (below)
       <ComponentName>/  one folder per component (shadcn-sourced or hand-built), own index.ts
-  icons/              single wrapper over the icon library + mirroring rule
+  icons/              single wrapper over the icon library + mirroring rule; GlyphIcon, an icon by
+                      its glyph's name from a closed set (GlyphName), for data that names its icon
   lib/cn.ts           class-merge helper (lives inside the layer — the layer imports nothing from outside)
   lib/DirectionProvider.tsx  the reading direction for Radix and the icons (§8); not a visual component
   index.ts            the only public surface

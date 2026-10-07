@@ -237,6 +237,7 @@ export {
   EyeIcon,
   EyeOffIcon,
   FlagIcon,
+  GlyphIcon,
   GraduationCapIcon,
   IdCardIcon,
   InfoIcon,
@@ -266,6 +267,7 @@ export {
   WifiIcon,
   XIcon,
   ZapIcon,
+  type GlyphName,
   type IconProps,
 } from './icons';
 export { cn } from './lib/cn';

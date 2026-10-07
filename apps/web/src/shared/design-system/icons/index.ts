@@ -1,3 +1,4 @@
+export { GlyphIcon, type GlyphName } from './GlyphIcon';
 export type { IconProps } from './Icon';
 export {
   ArrowDownIcon,
