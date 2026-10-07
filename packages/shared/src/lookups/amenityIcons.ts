@@ -1,6 +1,6 @@
-// The icon keys an amenity may carry (docs/architecture/data-model.md › Amenity). Each is a Lucide
-// glyph name; the web will map each key to the design system's icon of that glyph in build step 2
-// (docs/architecture/findings.md, finding 10).
+// The icon keys an amenity may carry (docs/architecture/data-model.md › Amenity). Each is a glyph's
+// name that the web's design system draws (`GlyphIcon`); the web's typecheck refuses a key it cannot
+// draw (docs/features/lookups.md).
 export const AMENITY_ICON_KEYS = [
   'wifi',
   'zap',

@@ -22,6 +22,22 @@ export const LOOKUPS = {
   areas: {
     add: 'إضافة منطقة',
   },
+  amenities: {
+    title: 'المرافق',
+    description:
+      '«في الفلاتر» متوقف لما يتوفر في كل المساحات تقريبًا، لأنه لا يميّز مساحة عن أخرى.',
+    empty: 'لا مرافق بعد',
+    emptyHint: 'أضف أول مرفق.',
+    loadFailed: 'تعذّر تحميل المرافق',
+    row: {
+      notFiltered: 'ليس في الفلاتر',
+      inactive: 'غير نشط',
+      inFilters: 'في الفلاتر',
+      inFiltersName: ({ name }: { name: string }) => `في الفلاتر: ${name}`,
+      active: 'نشط',
+      activeName: ({ name }: { name: string }) => `نشط: ${name}`,
+    },
+  },
   row: {
     hidden: 'مخفية',
     shown: ({ name }: { name: string }) => `ظاهرة: ${name}`,
@@ -39,6 +55,12 @@ export const LOOKUPS = {
     editGovernorate: 'تعديل محافظة',
     addArea: 'إضافة منطقة',
     editArea: 'تعديل منطقة',
+    editAmenity: 'تعديل مرفق',
+    icon: 'الأيقونة',
+    inFilters: 'في الفلاتر',
+    inFiltersHint: 'يظهر ضمن فلاتر دليل المساحات.',
+    amenityActive: 'نشط',
+    amenityActiveHint: 'غير نشط: لا يظهر في النماذج والفلاتر، وتحتفظ به المساحات التي لديها.',
     nameAr: 'الاسم بالعربية',
     nameEn: 'الاسم بالإنجليزية',
     active: 'نشطة',
@@ -52,5 +74,15 @@ export const LOOKUPS = {
       governorateTaken: 'توجد محافظة أخرى بهذا الاسم العربي',
       areaTaken: 'توجد منطقة أخرى في هذه المحافظة بهذا الاسم العربي',
     },
+  },
+  icons: {
+    wifi: 'واي فاي',
+    zap: 'برق',
+    sun: 'شمس',
+    'plug-zap': 'قابس كهرباء',
+    coffee: 'فنجان قهوة',
+    users: 'أشخاص',
+    presentation: 'لوح عرض',
+    'graduation-cap': 'قبعة تخرّج',
   },
 } satisfies Catalogue['lookups'];

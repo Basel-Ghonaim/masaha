@@ -1,4 +1,4 @@
-import type { AdminGovernorateWithAreas } from '@masaha/shared/lookups';
+import type { AdminAmenity, AdminGovernorateWithAreas } from '@masaha/shared/lookups';
 import { apiClient, setupApiClient } from '@shared/api';
 import { AppError } from '@shared/errors';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -12,6 +12,16 @@ const GAZA: AdminGovernorateWithAreas = {
   nameEn: 'Gaza City',
   isActive: true,
   areas: [{ id: 5, governorateId: 2, nameAr: 'الرمال', nameEn: 'Al-Rimal', isActive: true }],
+};
+
+const WIFI: AdminAmenity = {
+  id: 4,
+  key: 'internet',
+  nameAr: 'إنترنت',
+  nameEn: 'Internet',
+  icon: 'wifi',
+  isActive: true,
+  isFilterable: false,
 };
 
 /** The app's one client, wired as bootstrap wires it, answering every request with `answer`. */
@@ -99,6 +109,32 @@ describe('the lookups repository', () => {
     await expect(createLookupsRepository().orderAreas(2, [6, 5])).resolves.toBeUndefined();
     expect(requests[0]).toMatchObject({ method: 'put', url: '/admin/governorates/2/areas/order' });
     expect(bodyOf(requests[0])).toEqual({ ids: [6, 5] });
+  });
+
+  it('GETs /admin/amenities and resolves to the unwrapped list', async () => {
+    const requests = serve({ status: 200, data: { success: true, data: [WIFI] } });
+
+    await expect(createLookupsRepository().amenities()).resolves.toEqual([WIFI]);
+    expect(requests[0]).toMatchObject({ method: 'get', url: '/admin/amenities' });
+  });
+
+  it('PATCHes an amenity with the fields to change, and resolves to it', async () => {
+    const off = { ...WIFI, isFilterable: true };
+    const requests = serve({ status: 200, data: { success: true, data: off } });
+
+    await expect(createLookupsRepository().editAmenity(4, { isFilterable: true })).resolves.toEqual(
+      off,
+    );
+    expect(requests[0]).toMatchObject({ method: 'patch', url: '/admin/amenities/4' });
+    expect(bodyOf(requests[0])).toEqual({ isFilterable: true });
+  });
+
+  it('PUTs the amenities’ order as their ids, and resolves to nothing on 204', async () => {
+    const requests = serve({ status: 204 });
+
+    await expect(createLookupsRepository().orderAmenities([7, 4])).resolves.toBeUndefined();
+    expect(requests[0]).toMatchObject({ method: 'put', url: '/admin/amenities/order' });
+    expect(bodyOf(requests[0])).toEqual({ ids: [7, 4] });
   });
 
   it('rejects a refusal as an AppError, with its type', async () => {

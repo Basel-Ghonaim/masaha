@@ -29,7 +29,6 @@ export function useRowViews() {
     shown: {
       checked: isActive,
       label: copy.lookups.row.shown({ name }),
-      disabled: false,
       waiting: busy,
       toggle,
     },

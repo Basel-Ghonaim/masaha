@@ -1,14 +1,16 @@
-import { ArrowDownIcon, ArrowUpIcon, Button, Switch } from '@shared/design-system';
+import { ArrowDownIcon, ArrowUpIcon, Button } from '@shared/design-system';
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { RowControlsView } from '../../types/RowControlsView';
+import { RowSwitch } from './RowSwitch';
 
 type Which = 'up' | 'down' | 'shown';
 
 /**
- * A row's controls, for a governorate or an area: its two arrows, its shown switch, then its edit
- * sheet (`children`). A control that waits on the server stays in the focus order and ignores
- * presses, so the keyboard keeps its place; and when a move carries the row elsewhere and the focus
- * falls to the page, it comes back to the control pressed, or to the row's next one that can take it.
+ * A row's controls, for a governorate, an area or an amenity: its two arrows, its other switches (an
+ * amenity's filter switch), its shown switch, then its edit sheet (`children`). A control that waits
+ * on the server stays in the focus order and ignores presses, so the keyboard keeps its place; and
+ * when a move carries the row elsewhere and the focus falls to the page, it comes back to the control
+ * pressed, or to the row's next one that can take it.
  */
 export function RowControls({
   controls,
@@ -42,7 +44,7 @@ export function RowControls({
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-1">
       <Button
         ref={up}
         type="button"
@@ -71,13 +73,19 @@ export function RowControls({
       >
         <ArrowDownIcon aria-hidden />
       </Button>
-      <Switch
+      {controls.switches?.map((control) => (
+        <RowSwitch
+          key={control.label}
+          control={control}
+          onToggle={(checked) => {
+            if (!control.waiting) control.toggle(checked);
+          }}
+        />
+      ))}
+      <RowSwitch
         ref={shown}
-        className="mx-2"
-        checked={controls.shown.checked}
-        aria-label={controls.shown.label}
-        aria-disabled={controls.shown.waiting || undefined}
-        onCheckedChange={(checked) => {
+        control={controls.shown}
+        onToggle={(checked) => {
           press('shown', () => {
             controls.shown.toggle(checked);
           });
