@@ -30,6 +30,16 @@ Without an Issue, the Work Item's **contract lives in the PR description**:
 
 For a substantial item, agree the contract **before** implementing: agree → design → decompose → write the contract → implement.
 
+### Reading before work
+
+A Work Item reads what its task needs: never the whole set, never less than the essentials. In this order:
+
+1. **Always:** CLAUDE.md, this workflow, the [map](../README.md), and the open findings' titles and *Resolves when* lines (§4).
+2. **The capability's document first,** when the task changes a capability that has one, and only the sections it or the prompt links. A capability without a document yet (not at its stable core) is worked on from the prompt and the platform documents.
+3. **Every other document whose *read it when* line in the map matches the task.** The map owns when each document is read.
+
+Skipping a document the task needs is a defect, as reading the whole set is.
+
 ## 3. Git lifecycle
 
 `main` is always working. Work happens on short-lived branches cut from the latest `main`.
@@ -77,6 +87,7 @@ Closes #n   (only when an Issue exists)
 - Touch only the files the Work Item requires.
 - No drive-by refactoring or reformatting.
 - Unrelated problems found along the way are **recorded** in [findings](../architecture/findings.md), not fixed.
+- **Related findings.** At the start of a Work Item, read the open findings' titles and their *Resolves when* lines, not the whole file, and open in full only those that touch the item. The plan lists them under *Related findings*: for each, whether to fold it into this item, why, and its cost. The owner decides; a folded finding is resolved in the same PR, with its status changed and a resolution line.
 - Anything on the *Not in v1* list in [overview.md](../project/overview.md) is out of scope, always.
 
 ## 5. Definition of Done and Accepted

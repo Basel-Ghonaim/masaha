@@ -46,7 +46,7 @@ Four kinds of fact keep their platform home even when one capability applies the
 | **Capability documents** (`docs/features/`) | One capability's application of the platform: what it does, its boundary, its flows, its decisions, its folders | A restated mechanism, a security rule, an endpoint's shape, an entity's fields, a file list |
 | **Records** (ADRs, findings, finished plans) | What was decided or found, at a date | Any edit but the three of §1 |
 | **Plans** | The order of a piece of work and its rationale | Anything described as built |
-| **The map** ([README.md](../README.md)) | Where each document is, and what it owns | Content, or a list of the code's files |
+| **The map** ([README.md](../README.md)) | Where each document is, what it owns and when to read it | Content, or a list of the code's files |
 
 ## 4. Classes
 
@@ -75,7 +75,7 @@ A document may declare its class in its header. **A declared class must be true.
   10. *History*: the PRs.
 - **A section appears only when its code exists.** A capability with no web feature has no web section.
 - **About 1,200 words at most,** so it can be read whole before a change.
-- **Read first.** A worker changing a capability reads its document first, then only the sections it links.
+- **Read first** when a task changes the capability ([workflow, Reading before work](../development/workflow.md#reading-before-work)).
 
 ## 6. Rules and intent, not inventories
 
@@ -96,7 +96,7 @@ The threshold and the format are [workflow §7](../development/workflow.md#7-doc
 
 ## 9. One entry point
 
-The [map](../README.md) is the entry point. It names every document and what it owns, and lists each capability document by name, because they are what a worker reads first. It never enumerates the code's files.
+The [map](../README.md) is the entry point. It names every document, what it owns and when to read it, and lists each capability document by name, because they are what a worker reads first. It never enumerates the code's files.
 
 ## 10. Not adopted
 
