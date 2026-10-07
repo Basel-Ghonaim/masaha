@@ -291,7 +291,8 @@ AdminSpace = {
   updatedAt: Record<FactGroup, string | null>,   // ISO 8601; null while the group is missing (never the profile)
   staleGroups: FactGroup[],         // older than the platform's thresholds (data-model › Derived values)
   missingGroups: FactGroup[],       // never saved
-  hours: SpaceHours | null          // null until first saved
+  hours: SpaceHours | null,         // null until first saved
+  prices: Price[]
 }
 
 OpeningRange = { opensMinute: number, closesMinute: number }   // minutes after midnight, Asia/Gaza
@@ -299,6 +300,13 @@ Shift = { id: number, nameAr: string, nameEn: string | null, startsMinute: numbe
 SpaceHours = {
   days: (OpeningRange | null)[],   // 7: Sunday (0) … Saturday (6); null = closed
   shifts: Shift[]
+}
+Price = {
+  period: "HOUR" | "DAY" | "WEEK" | "MONTH",    // PRICE_PERIODS
+  audience: "GENERAL" | "STUDENT",              // PRICE_AUDIENCES
+  shiftId: number | null,
+  labelAr: string | null, labelEn: string | null,   // a custom label
+  amountAgorot: number                          // whole agorot, ILS; display only
 }
 ```
 
@@ -358,6 +366,12 @@ The endpoints on one space put its links on the request first, without refusing 
   - `shifts`: at most 10, each `{ id?, nameAr, nameEn?, startsMinute, endsMinute }`: `nameAr` required and `nameEn` optional, 1–40 characters each, as the profile's texts; `startsMinute < endsMinute` within the day (`out_of_range` on `endsMinute`); inside the range of at least one open day (`errors["shifts.<i>"] = ["out_of_range"]`); an Arabic name or an `id` repeated is `not_unique`.
 - **200:** `AdminSpace`. A shift with an `id` is that shift, updated and keeping its id; one without is new; a shift left out is removed. Audited `space.hoursEdited` (`before` and `after`: `{ days, shifts }`).
 - **Errors:** `validation` (422), with `invalid_choice` on `shifts.<i>.id` for an id that is not one of the space's shifts; `conflict` (409), with no code, when a shift left out is still used by a price, a package, a subscription or a visit: nothing is written, and the price is changed first; `forbidden` (403); `not_found` (404).
+
+#### `PUT /admin/spaces/:spaceId/prices` · 🛡
+- **Body:** `{ prices }`, at most 40, each a `Price`: `period` and `audience` from their lists (`invalid_choice`); `shiftId` optional; `labelAr` and `labelEn` optional, 1–60 characters each, as the profile's texts, `labelEn` only with `labelAr` (`required` on `labelAr`); `amountAgorot` an integer from 0 to 10,000,000.
+- **One price per period, audience, shift and label**, a missing shift or label counting as one value ([data-model › Constraints](../architecture/data-model.md#constraints-worth-stating)): a repeat is `not_unique` on the field that would tell it apart, `labelAr` when it has a label, else `shiftId` when it has a shift, else `period`.
+- **200:** `AdminSpace`. Audited `space.pricesEdited` (`before` and `after`: `{ prices }`).
+- **Errors:** `validation` (422), with `invalid_choice` on `prices.<i>.shiftId` for a shift that is not one of the space's, as they are when the space's lock is taken; `forbidden` (403); `not_found` (404).
 
 #### `POST /admin/spaces/:spaceId/{profile|hours|prices|amenities|contacts}/confirm` · 🛡
 - «المعلومات ما زالت صحيحة»: the group is confirmed unchanged. One path per group; any other answers `not_found` (404).

@@ -167,3 +167,50 @@ export const updateSpaceHoursSchema = z
     });
   });
 export type UpdateSpaceHoursRequest = z.infer<typeof updateSpaceHoursSchema>;
+
+export const PRICE_PERIODS = ['HOUR', 'DAY', 'WEEK', 'MONTH'] as const;
+export const PRICE_AUDIENCES = ['GENERAL', 'STUDENT'] as const;
+export const PRICE_LABEL_MAX_LENGTH = 60;
+export const MAX_PRICES = 40;
+/** ₪100,000: the largest price, a guard against a slip of the keyboard. */
+export const PRICE_MAX_AGOROT = 10_000_000;
+
+const priceLabel = textSchema(1, PRICE_LABEL_MAX_LENGTH);
+
+/**
+ * A published price: a period and an audience, an optional shift of the space, and an optional
+ * custom label, its Arabic required with its English (docs/architecture/data-model.md › Prices).
+ * Amounts are whole agorot (display only in v1).
+ */
+const price = z
+  .object({
+    period: z.enum(PRICE_PERIODS),
+    audience: z.enum(PRICE_AUDIENCES),
+    shiftId: optional(id),
+    labelAr: optional(priceLabel),
+    labelEn: optional(priceLabel),
+    amountAgorot: z.number().int().min(0).max(PRICE_MAX_AGOROT),
+  })
+  .refine((item) => item.labelEn == null || item.labelAr != null, {
+    path: ['labelAr'],
+    params: { code: 'required' },
+  });
+
+/**
+ * The prices, whole, in the order they are shown in. One price per period, audience, shift and
+ * label, a missing shift or label counting as one value (the database's four keys): a repeat is
+ * named on the field that would tell it apart, the label, else the shift, else the period.
+ */
+export const updateSpacePricesSchema = z
+  .object({ prices: z.array(price).max(MAX_PRICES) })
+  .superRefine(({ prices }, ctx) => {
+    refuseRepeats(
+      ctx,
+      'prices',
+      prices,
+      (item) => (item.labelAr != null ? 'labelAr' : item.shiftId != null ? 'shiftId' : 'period'),
+      (item) =>
+        JSON.stringify([item.period, item.audience, item.shiftId ?? null, item.labelAr ?? null]),
+    );
+  });
+export type UpdateSpacePricesRequest = z.infer<typeof updateSpacePricesSchema>;

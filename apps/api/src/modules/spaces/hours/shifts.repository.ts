@@ -31,6 +31,12 @@ export function createShiftsRepository() {
       });
     },
 
+    /** The ids of the space's shifts: what a price may name. */
+    async idsOf(spaceId: number, tx: Tx): Promise<Set<number>> {
+      const rows = await tx.spaceShift.findMany({ where: { spaceId }, select: { id: true } });
+      return new Set(rows.map(({ id }) => id));
+    },
+
     /**
      * Removes these shifts of the space, or none when anything still uses one: a price, a package,
      * a subscription or a visit, whose foreign keys refuse the delete (data-model).

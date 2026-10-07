@@ -35,5 +35,6 @@ export function toAdminSpace(
     staleGroups: staleGroups(dates, cutoffs),
     missingGroups: missingGroups(dates),
     hours: facts.hours,
+    prices: facts.prices,
   };
 }

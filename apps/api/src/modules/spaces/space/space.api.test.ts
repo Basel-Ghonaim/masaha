@@ -88,6 +88,13 @@ describe.each([
     body: { days: [null, null, null, null, null, null, null], shifts: [] },
     status: 200,
   },
+  {
+    name: 'PUT /spaces/:spaceId/prices',
+    method: 'put',
+    rest: '/prices',
+    body: { prices: [] },
+    status: 200,
+  },
   ...(['profile', 'hours', 'prices', 'amenities', 'contacts'] as const).map(
     (group) =>
       ({
@@ -184,6 +191,7 @@ describe('GET /admin/spaces/:spaceId', () => {
       staleGroups: ['prices'],
       missingGroups: [],
       hours: null,
+      prices: [],
     });
   });
 

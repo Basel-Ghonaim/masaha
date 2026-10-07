@@ -1,5 +1,6 @@
 import type { FactGroup } from './factGroups.ts';
 import type { Location } from './gazaStrip.ts';
+import type { PRICE_AUDIENCES, PRICE_PERIODS } from './requests.ts';
 
 // The admin's spaces (docs/api/api-contract.md §5, Spaces (the admin)).
 
@@ -16,6 +17,18 @@ export interface Shift {
   nameEn: string | null;
   startsMinute: number;
   endsMinute: number;
+}
+
+/** A published price, in whole agorot, display only. */
+export interface Price {
+  period: (typeof PRICE_PERIODS)[number];
+  audience: (typeof PRICE_AUDIENCES)[number];
+  /** One of the space's shifts, or none. */
+  shiftId: number | null;
+  /** A custom label, beyond the standard rows; its English only with its Arabic. */
+  labelAr: string | null;
+  labelEn: string | null;
+  amountAgorot: number;
 }
 
 /** The opening hours with the shifts, as they are saved together. */
@@ -56,4 +69,6 @@ export interface AdminSpace {
   missingGroups: FactGroup[];
   /** The opening hours and the shifts; null until they are first saved. */
   hours: SpaceHours | null;
+  /** The published prices, in the order they are shown in. */
+  prices: Price[];
 }

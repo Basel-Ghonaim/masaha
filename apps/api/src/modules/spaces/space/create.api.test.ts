@@ -100,6 +100,7 @@ describe('POST /admin/spaces', () => {
       staleGroups: [],
       missingGroups: ['hours', 'prices', 'amenities', 'contacts'],
       hours: null,
+      prices: [],
     });
   });
 

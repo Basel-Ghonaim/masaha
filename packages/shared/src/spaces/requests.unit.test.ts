@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
-import { createSpaceSchema, updateSpaceHoursSchema, updateSpaceProfileSchema } from './requests.ts';
+import {
+  createSpaceSchema,
+  updateSpaceHoursSchema,
+  updateSpacePricesSchema,
+  updateSpaceProfileSchema,
+} from './requests.ts';
 
 const SPACE = {
   nameEn: 'Focus Hub',
@@ -154,5 +159,108 @@ describe('updateSpaceHoursSchema', () => {
     }));
 
     expect(hoursErrors({ days: DAYS, shifts })).toEqual({ shifts: ['too_long'] });
+  });
+});
+
+describe('updateSpacePricesSchema', () => {
+  const MONTH = {
+    period: 'MONTH',
+    audience: 'GENERAL',
+    shiftId: null,
+    labelAr: null,
+    labelEn: null,
+    amountAgorot: 30_000,
+  };
+
+  function pricesErrors(prices: object[]) {
+    const body = { prices };
+    const result = updateSpacePricesSchema.safeParse(body);
+    return result.success ? null : toFieldErrors(result.error.issues, body);
+  }
+
+  it('takes prices by period and audience, with an optional shift and an optional label', () => {
+    const prices = [
+      MONTH,
+      { ...MONTH, audience: 'STUDENT', amountAgorot: 25_000 },
+      { ...MONTH, shiftId: 4 },
+      { ...MONTH, labelAr: 'مكتب ثابت', labelEn: 'Fixed desk' },
+      { ...MONTH, shiftId: 4, labelAr: 'مكتب ثابت' },
+    ];
+
+    expect(updateSpacePricesSchema.parse({ prices })).toEqual({ prices });
+    expect(pricesErrors([])).toBeNull();
+  });
+
+  it('refuses an unknown period or audience', () => {
+    expect(pricesErrors([{ ...MONTH, period: 'YEAR', audience: 'CHILD' }])).toEqual({
+      'prices.0.period': ['invalid_choice'],
+      'prices.0.audience': ['invalid_choice'],
+    });
+  });
+
+  it('wants whole agorot from 0 to 10,000,000', () => {
+    expect(pricesErrors([{ ...MONTH, amountAgorot: 0 }])).toBeNull();
+    expect(pricesErrors([{ ...MONTH, amountAgorot: -1 }])).toEqual({
+      'prices.0.amountAgorot': ['out_of_range'],
+    });
+    expect(pricesErrors([{ ...MONTH, amountAgorot: 10_000_001 }])).toEqual({
+      'prices.0.amountAgorot': ['out_of_range'],
+    });
+    expect(pricesErrors([{ ...MONTH, amountAgorot: 12.5 }])).toEqual({
+      'prices.0.amountAgorot': ['invalid_format'],
+    });
+  });
+
+  it('wants the Arabic label of a price with an English one', () => {
+    expect(pricesErrors([{ ...MONTH, labelEn: 'Fixed desk' }])).toEqual({
+      'prices.0.labelAr': ['required'],
+    });
+  });
+
+  it('refuses a repeated price on the field that tells it apart: the label, else the shift, else the period', () => {
+    expect(pricesErrors([MONTH, { ...MONTH, amountAgorot: 1 }])).toEqual({
+      'prices.1.period': ['not_unique'],
+    });
+    expect(
+      pricesErrors([
+        { ...MONTH, shiftId: 4 },
+        { ...MONTH, shiftId: 4 },
+      ]),
+    ).toEqual({
+      'prices.1.shiftId': ['not_unique'],
+    });
+    expect(
+      pricesErrors([
+        { ...MONTH, labelAr: 'مكتب' },
+        { ...MONTH, labelAr: 'مكتب', labelEn: 'Desk' },
+      ]),
+    ).toEqual({ 'prices.1.labelAr': ['not_unique'] });
+    expect(
+      pricesErrors([
+        { ...MONTH, shiftId: 4, labelAr: 'مكتب' },
+        { ...MONTH, shiftId: 4, labelAr: 'مكتب' },
+      ]),
+    ).toEqual({ 'prices.1.labelAr': ['not_unique'] });
+  });
+
+  it('holds prices apart by any of the four: period, audience, shift and label', () => {
+    expect(
+      pricesErrors([
+        MONTH,
+        { ...MONTH, period: 'DAY' },
+        { ...MONTH, audience: 'STUDENT' },
+        { ...MONTH, shiftId: 4 },
+        { ...MONTH, labelAr: 'مكتب' },
+      ]),
+    ).toBeNull();
+  });
+
+  it('takes at most forty prices', () => {
+    const prices = Array.from({ length: 41 }, (_, i) => ({
+      ...MONTH,
+      labelAr: `سعر ${String(i)}`,
+    }));
+
+    expect(pricesErrors(prices)).toEqual({ prices: ['too_long'] });
   });
 });
