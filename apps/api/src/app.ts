@@ -46,9 +46,19 @@ import {
 import { createPlatformSettingsService } from './modules/platform-settings/index.ts';
 import { createSpaceSettingsService } from './modules/space-settings/index.ts';
 import {
+  createConfirmController,
+  createConfirmService,
+  createContactsController,
+  createContactsService,
+  createHoursController,
+  createHoursService,
   createListingService,
+  createPricesController,
+  createPricesService,
   createProfileController,
   createProfileService,
+  createSpaceAmenitiesController,
+  createSpaceAmenitiesService,
   createSpaceController,
   createSpaceService,
   createSpacesAdminRouter,
@@ -209,6 +219,13 @@ export function createApi({
     platformSettings,
     now: clock,
   });
+  // The space's fact groups, each saved alone, through one save path.
+  const facts = { runInTransaction, audit: writeAudit, platformSettings, now: clock };
+  const hours = createHoursService(facts);
+  const prices = createPricesService(facts);
+  const spaceAmenities = createSpaceAmenitiesService({ ...facts, lookups });
+  const contacts = createContactsService(facts);
+  const confirm = createConfirmService(facts);
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const adminSpaces = createAdminSpacesService({
     listing: createListingService({ platformSettings, now: clock }),
@@ -267,6 +284,11 @@ export function createApi({
     createSpacesAdminRouter({
       space: createSpaceController(space),
       profile: createProfileController(profile),
+      hours: createHoursController(hours),
+      prices: createPricesController(prices),
+      amenities: createSpaceAmenitiesController(spaceAmenities),
+      contacts: createContactsController(contacts),
+      confirm: createConfirmController(confirm),
     }),
   );
   api.use('/admin', requireAuth(), requireRole('ADMIN'), admin);

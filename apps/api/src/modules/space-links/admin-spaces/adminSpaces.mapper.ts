@@ -21,6 +21,7 @@ export function toAdminSpaceRow(
     state: space.isHidden ? 'hidden' : owners.length > 0 ? 'verified' : 'unverified',
     owners,
     staleGroups: space.staleGroups,
+    missingGroups: space.missingGroups,
     lastUpdatedAt: space.lastUpdatedAt.toISOString(),
   };
 }

@@ -427,11 +427,13 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 
 ## 36. A new space's empty fact groups count as fresh
 
-**Status:** Open · **Date:** 2026-10-06
+**Status:** Resolved · **Date:** 2026-10-06
 
 **Evidence:** a space's fact groups are dated when the space is created (S2b-1), so a new space has hours, prices, amenities and contacts that are all "up to date" while it has none of them yet. The admin's spaces list shows such a space as fresh, and its "stale only" filter leaves it out, until each group has been empty for its threshold (30 days for the prices, 60 for the others). Staleness is computed only from the dates ([data-model › Derived values](data-model.md#derived-values-computed-not-stored)).
 
 **Resolves when:** the slice that builds the facts weighs whether an empty group counts as stale, missing, or fresh, and the list and the data model say so.
+
+**Resolution (2026-10-07, S2b-2):** an empty group is **missing** until it is first saved, even empty. A migration made the dates of the hours, prices, amenities and contacts nullable, with no default, and cleared the date of every existing space's group that had no rows; a group with rows kept its date. A new space dates only its profile. The space and the list's rows name their missing groups, a missing group is never stale, and "stale only" keeps it ([data-model › Derived values](data-model.md#derived-values-computed-not-stored), [spaces › Decisions](../features/spaces.md#decisions)).
 
 ## 37. Links between documents are checked by hand
 
@@ -467,8 +469,28 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 
 ## 41. The request log does not name the space
 
-**Status:** Open · **Date:** 2026-10-06
+**Status:** Resolved · **Date:** 2026-10-06
 
 **Evidence:** the fields of every request log include the space on space routes ([conventions §10](../backend/conventions.md#10-logging)). The space routes exist since S2b-1 (the admin's `/admin/spaces/:spaceId`), but the request logger (`apps/api/src/shared/http/requestLogging.ts`) adds only the user and their role, once `requireAuth` has read them.
 
 **Resolves when:** the logger adds the space id on the routes that load a space's links, with a test; or the rule is narrowed to the `/manage` routes and waits for them.
+
+**Resolution (2026-10-07, S2b-2):** the request logger adds `spaceId` once the links loader has put the space on the request, as it adds the user once `requireAuth` has read them. A test of the admin's space read finds the space's id in the request's log line; it failed without it.
+
+## 42. A registration test failed once in a full component run
+
+**Status:** Open · **Date:** 2026-10-07
+
+**Evidence:** in one full `test:component` run on S2b-2's head, "welcomes the new account by its name" (`apps/web/src/features/auth/hooks/register/useRegister.component.test.tsx`) failed after 761 ms; the lane took 241 s. Its message was not kept. The file passed alone, and the whole lane passed when run again (599 tests). S2b-2 changed no web file. The failure came well inside the lane's 3 s wait for an element ([finding 28](#28-the-tests-that-wait-for-a-lazy-page-can-time-out-under-load)), so it was not that wait running out.
+
+**Resolves when:** the failure is reproduced (for example, the lane run repeatedly or under load) and its cause found and fixed; or repeated full runs show it does not recur.
+
+## 43. Two races around a space's facts
+
+**Status:** Open · **Date:** 2026-10-07
+
+**Evidence:** found by PR #48's review.
+1. **A save can land on a space verified a moment before.** A save of a space's facts or profile locks the space's row, then lets `can()` decide from the links that the links loader read before the lock (`apps/api/src/modules/spaces/facts/groupEdit.ts`). Creating an owner link (step 4) does not take that lock, so an owner link committed between the links loader and the lock lets one admin save land on a space that is now verified.
+2. **A read can mix two states of the hours.** The space's read (`space/space.service.ts`) reads the space and each fact group with separate statements, outside a transaction, while an hours save holds no lock against it: a read during that save can show the old week with the new shifts.
+
+**Resolves when:** step 4's linking takes the space's lock, so `can()` decides on the links as they are under it; and the read is consistent, in one statement or in one snapshot.

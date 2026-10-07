@@ -1,3 +1,5 @@
+import { Writable } from 'node:stream';
+
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -7,12 +9,15 @@ import { createSpace } from '../../../../test/factories.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings, signInOwnerOf } from '../../../../test/spaces.ts';
 import { prisma } from '../../../db/index.ts';
+import { createLogger } from '../../../shared/http/index.ts';
 
 const NOW = new Date('2026-10-06T09:00:00.000Z');
 const app = createTestApp({ clock: () => NOW });
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 let admin: { id: number; authorization: string };
+/** An active amenity, created before each request of the endpoints' matrix. */
+let amenityId: number;
 
 beforeEach(async () => {
   await resetDatabase(prisma);
@@ -78,11 +83,59 @@ describe.each([
     body: undefined,
     status: 204,
   },
-] as const)('$name', ({ method, rest, body, status }) => {
-  it('answers the ADMIN', async () => {
-    const space = await createSpace();
+  {
+    name: 'PUT /spaces/:spaceId/hours',
+    method: 'put',
+    rest: '/hours',
+    body: { days: [null, null, null, null, null, null, null], shifts: [] },
+    status: 200,
+  },
+  {
+    name: 'PUT /spaces/:spaceId/prices',
+    method: 'put',
+    rest: '/prices',
+    body: { prices: [{ period: 'MONTH', audience: 'GENERAL', amountAgorot: 30_000 }] },
+    status: 200,
+  },
+  {
+    name: 'PUT /spaces/:spaceId/amenities',
+    method: 'put',
+    rest: '/amenities',
+    // An active amenity's id, created before each request: a body that writes.
+    body: () => ({ amenityIds: [amenityId] }),
+    status: 200,
+  },
+  {
+    name: 'PUT /spaces/:spaceId/contacts',
+    method: 'put',
+    rest: '/contacts',
+    body: { contacts: [{ type: 'PHONE', value: '0599123456' }] },
+    status: 200,
+  },
+  ...(['profile', 'hours', 'prices', 'amenities', 'contacts'] as const).map(
+    (group) =>
+      ({
+        name: `POST /spaces/:spaceId/${group}/confirm`,
+        method: 'post',
+        rest: `/${group}/confirm`,
+        body: undefined,
+        status: 200,
+      }) as const,
+  ),
+] as const)('$name', ({ method, rest, body: bodyOf, status }) => {
+  // Every body writes when it gets through, so a refused caller's "changing nothing" can fail.
+  const body = () => (typeof bodyOf === 'function' ? bodyOf() : bodyOf);
 
-    const response = await adminRequest(app, admin, method, path(space.id, rest), body);
+  beforeEach(async () => {
+    ({ id: amenityId } = await prisma.amenity.create({
+      data: { key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'internet' },
+    }));
+  });
+
+  it('answers the ADMIN', async () => {
+    const space = await spaceDated(1);
+
+    const response = await adminRequest(app, admin, method, path(space.id, rest), body());
 
     expect(response.status).toBe(status);
   });
@@ -99,7 +152,7 @@ describe.each([
       code: 'PASSWORD_CHANGE_REQUIRED',
     },
   ] as const)('refuses $caller with $status, changing nothing', async (refusal) => {
-    const space = await createSpace();
+    const space = await spaceDated(1);
     const caller = {
       'a guest': () => Promise.resolve(undefined),
       'a USER': () => signIn('USER'),
@@ -115,7 +168,7 @@ describe.each([
       signedIn ?? 'guest',
       method,
       path(space.id, rest),
-      body,
+      body(),
     );
 
     expect(response.status).toBe(refusal.status);
@@ -129,7 +182,21 @@ describe.each([
       nameEn: 'Focus Hub',
       isHidden: false,
       deletedAt: null,
+      profileUpdatedAt: space.profileUpdatedAt,
+      hoursUpdatedAt: space.hoursUpdatedAt,
+      pricesUpdatedAt: space.pricesUpdatedAt,
+      amenitiesUpdatedAt: space.amenitiesUpdatedAt,
+      contactsUpdatedAt: space.contactsUpdatedAt,
     });
+    expect(
+      await Promise.all([
+        prisma.spaceHours.count(),
+        prisma.spaceShift.count(),
+        prisma.spacePrice.count(),
+        prisma.spaceAmenity.count(),
+        prisma.spaceContact.count(),
+      ]),
+    ).toEqual([0, 0, 0, 0, 0]);
   });
 });
 
@@ -157,6 +224,11 @@ describe('GET /admin/spaces/:spaceId', () => {
       isVerified: false,
       updatedAt: { profile: at, hours: at, prices: at, amenities: at, contacts: at },
       staleGroups: ['prices'],
+      missingGroups: [],
+      hours: null,
+      prices: [],
+      amenityIds: [],
+      contacts: [],
     });
   });
 
@@ -192,6 +264,31 @@ describe('GET /admin/spaces/:spaceId', () => {
 
     expect(response.status).toBe(404);
     expect(errorOf(response).type).toBe('not_found');
+  });
+
+  it('names the space in the request’s log line (conventions §10)', async () => {
+    const lines: string[] = [];
+    const logged = createTestApp({
+      clock: () => NOW,
+      logger: createLogger(
+        'info',
+        new Writable({
+          write(chunk: Buffer, _encoding, done) {
+            lines.push(chunk.toString());
+            done();
+          },
+        }),
+      ),
+    });
+    const space = await createSpace();
+
+    const response = await adminRequest(logged, admin, 'get', path(space.id));
+
+    const id = String(response.headers['x-request-id']);
+    const line = lines
+      .map((text) => JSON.parse(text) as { req?: { id?: string }; spaceId?: number })
+      .find((entry) => entry.req?.id === id);
+    expect(line).toMatchObject({ userId: admin.id, role: 'ADMIN', spaceId: space.id });
   });
 });
 

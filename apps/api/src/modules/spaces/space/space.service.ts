@@ -7,6 +7,7 @@ import { AppError } from '../../../shared/errors/index.ts';
 import type { LookupsService } from '../../lookups/index.ts';
 import type { PlatformSettingsService } from '../../platform-settings/index.ts';
 import type { SpaceSettingsService } from '../../space-settings/index.ts';
+import { createFactsReader, NO_FACTS } from '../facts/facts.ts';
 import { profileValues, toProfileData } from '../profile.ts';
 import { nextSlug, slugBase } from '../slug.ts';
 import { createSpaceRepository, type LockedSpace, type SpaceData } from './space.repository.ts';
@@ -51,6 +52,7 @@ export function createSpaceService({
 }: Dependencies) {
   const repository = createSpaceRepository();
   const view = createSpaceView(now);
+  const readFacts = createFactsReader();
 
   /**
    * Applies the change `toggle` decides for the space as it is, under its lock, with its audit
@@ -80,14 +82,18 @@ export function createSpaceService({
   }
 
   return {
-    /** The space, with whether it is verified, from its links; 404 once it is soft-deleted. */
+    /**
+     * The space with its facts, and whether it is verified, from its links; 404 once it is
+     * soft-deleted.
+     */
     async get(space: LoadedSpace): Promise<AdminSpace> {
-      const [thresholds, found] = await Promise.all([
+      const [thresholds, found, facts] = await Promise.all([
         platformSettings.stalenessThresholds(),
         repository.findLive(space.id),
+        readFacts(space.id),
       ]);
       if (!found) throw AppError.notFound(undefined, 'Space not found');
-      return view(found, isVerified(space), thresholds);
+      return view(found, isVerified(space), thresholds, facts);
     },
 
     /** Hides the space from the public, or shows it again. */
@@ -183,7 +189,7 @@ export function createSpaceService({
             );
             return creation.space;
           });
-          return view(space, false, thresholds);
+          return view(space, false, thresholds, NO_FACTS);
         } catch (error) {
           if (!(error instanceof SlugTaken)) throw error;
           if (attempt === CREATE_ATTEMPTS) {

@@ -1,12 +1,13 @@
 import type { AdminSpace } from '@masaha/shared/spaces';
 
-import { groupDatesOf, staleGroups, type GroupDates } from '../staleness.ts';
+import type { SpaceFacts } from '../facts/facts.ts';
+import { groupDatesOf, missingGroups, staleGroups, type GroupCutoffs } from '../staleness.ts';
 import type { SpaceRecord } from './space.repository.ts';
 
-/** The space as the admin sees it; `cutoffs` are the staleness cut-offs now. */
+/** The space as the admin sees it, with its facts; `cutoffs` are the staleness cut-offs now. */
 export function toAdminSpace(
   space: SpaceRecord,
-  { isVerified, cutoffs }: { isVerified: boolean; cutoffs: GroupDates },
+  { isVerified, cutoffs, facts }: { isVerified: boolean; cutoffs: GroupCutoffs; facts: SpaceFacts },
 ): AdminSpace {
   const dates = groupDatesOf(space);
   return {
@@ -25,12 +26,17 @@ export function toAdminSpace(
     isHidden: space.isHidden,
     isVerified,
     updatedAt: {
-      profile: dates.profile.toISOString(),
-      hours: dates.hours.toISOString(),
-      prices: dates.prices.toISOString(),
-      amenities: dates.amenities.toISOString(),
-      contacts: dates.contacts.toISOString(),
+      profile: dates.profile?.toISOString() ?? null,
+      hours: dates.hours?.toISOString() ?? null,
+      prices: dates.prices?.toISOString() ?? null,
+      amenities: dates.amenities?.toISOString() ?? null,
+      contacts: dates.contacts?.toISOString() ?? null,
     },
     staleGroups: staleGroups(dates, cutoffs),
+    missingGroups: missingGroups(dates),
+    hours: facts.hours,
+    prices: facts.prices,
+    amenityIds: facts.amenityIds,
+    contacts: facts.contacts,
   };
 }

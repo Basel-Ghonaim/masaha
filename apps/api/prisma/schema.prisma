@@ -313,14 +313,15 @@ model Space {
   lng                Float
   isHidden           Boolean   @default(false) @map("is_hidden")
   deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(3)
-  // Freshness per fact group: set when the group is saved or confirmed unchanged.
-  /// Name, description, address, area, location and photos.
+  // Freshness per fact group: set when the group is saved or confirmed unchanged. A group that can
+  // be empty is null, missing, until it is first saved (docs/architecture/data-model.md).
+  /// Name, description, address, area, location and photos; set when the space is created.
   profileUpdatedAt   DateTime  @default(now()) @map("profile_updated_at") @db.Timestamptz(3)
-  hoursUpdatedAt     DateTime  @default(now()) @map("hours_updated_at") @db.Timestamptz(3)
-  /// Prices and shifts.
-  pricesUpdatedAt    DateTime  @default(now()) @map("prices_updated_at") @db.Timestamptz(3)
-  amenitiesUpdatedAt DateTime  @default(now()) @map("amenities_updated_at") @db.Timestamptz(3)
-  contactsUpdatedAt  DateTime  @default(now()) @map("contacts_updated_at") @db.Timestamptz(3)
+  /// The opening hours and the shifts.
+  hoursUpdatedAt     DateTime? @map("hours_updated_at") @db.Timestamptz(3)
+  pricesUpdatedAt    DateTime? @map("prices_updated_at") @db.Timestamptz(3)
+  amenitiesUpdatedAt DateTime? @map("amenities_updated_at") @db.Timestamptz(3)
+  contactsUpdatedAt  DateTime? @map("contacts_updated_at") @db.Timestamptz(3)
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -449,7 +450,7 @@ model SpaceHours {
 }
 
 /// An optional named shift inside the opening range, in minutes after midnight (Asia/Gaza).
-/// Part of the prices fact group.
+/// Part of the hours fact group, saved with the hours.
 model SpaceShift {
   id           Int      @id @default(autoincrement())
   spaceId      Int      @map("space_id")

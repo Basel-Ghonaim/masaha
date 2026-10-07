@@ -61,6 +61,11 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
         areaId: area.id,
         lat: 31.5205,
         lng: 34.4535,
+        // Each of its fact groups is saved below, so each is dated; none is missing.
+        hoursUpdatedAt: now,
+        pricesUpdatedAt: now,
+        amenitiesUpdatedAt: now,
+        contactsUpdatedAt: now,
         settings: { create: settings },
         occupancy: { create: { capacity: 40 } },
         managers: {

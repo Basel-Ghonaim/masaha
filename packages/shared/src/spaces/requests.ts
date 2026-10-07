@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { paragraphSchema, textSchema } from '../core/index.ts';
+import { CONTACT_TYPES, normaliseContact } from './contacts.ts';
 import { isInGazaStrip } from './gazaStrip.ts';
 
 // The requests of the admin's space endpoints (docs/api/api-contract.md §5, Spaces (the admin)).
@@ -56,3 +57,215 @@ export type UpdateSpaceProfileRequest = z.infer<typeof updateSpaceProfileSchema>
 /** Hides the space from the public, or shows it again. */
 export const setSpaceHiddenSchema = z.object({ isHidden: z.boolean() });
 export type SetSpaceHiddenRequest = z.infer<typeof setSpaceHiddenSchema>;
+
+// ─── The facts: each group is saved whole, alone (decision F1) ───────────────────────────────
+
+/** Minutes after midnight in a day: a time of day, 1440 the midnight that ends it. */
+export const DAY_MINUTES = 1440;
+export const SHIFT_NAME_MAX_LENGTH = 40;
+export const MAX_SHIFTS = 10;
+
+const minute = z.number().int().min(0).max(DAY_MINUTES);
+
+/** Within one day, a range closes after it opens (decision F4: none runs past midnight). */
+function closesAfterOpening<K extends string>(from: K, to: K) {
+  return (range: Record<K, number>) => range[from] < range[to];
+}
+
+/** A day's opening range, in minutes after midnight; 0–1440 is open around the clock. */
+const openingRange = z
+  .object({ opensMinute: minute, closesMinute: minute })
+  .refine(closesAfterOpening('opensMinute', 'closesMinute'), {
+    path: ['closesMinute'],
+    params: { code: 'out_of_range' },
+  });
+
+/** A named shift inside the opening hours; `id` names a shift the space already has. */
+const shift = z
+  .object({
+    id: id.optional(),
+    nameAr: textSchema(1, SHIFT_NAME_MAX_LENGTH),
+    nameEn: optional(textSchema(1, SHIFT_NAME_MAX_LENGTH)),
+    startsMinute: minute,
+    endsMinute: minute,
+  })
+  .refine(closesAfterOpening('startsMinute', 'endsMinute'), {
+    path: ['endsMinute'],
+    params: { code: 'out_of_range' },
+  });
+
+/** The positions of the items whose key an earlier item already has. */
+function repeats<T>(items: readonly T[], key: (item: T) => unknown): number[] {
+  const seen = new Set<unknown>();
+  return items.flatMap((item, index) => {
+    const value = key(item);
+    if (value === undefined) return [];
+    if (seen.has(value)) return [index];
+    seen.add(value);
+    return [];
+  });
+}
+
+/**
+ * Marks each repeated item `not_unique` on its field, or on the item itself when it is a plain
+ * value (the owner's answer A1).
+ */
+function refuseRepeats<T>(
+  ctx: z.RefinementCtx,
+  list: string,
+  items: readonly T[],
+  field: ((item: T) => string) | null,
+  key: (item: T) => unknown,
+) {
+  for (const index of repeats(items, key)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: field ? [list, index, field(items[index] as T)] : [list, index],
+      params: { code: 'not_unique' },
+      message: 'Repeats an earlier item',
+    });
+  }
+}
+
+/**
+ * The opening hours with the shifts, saved together (decision F3). `days[0]` is Sunday … `days[6]`
+ * Saturday, `null` when closed. The shifts' order is the order they are shown in; a shift keeps
+ * its `id`, a new one has none (decision F5). A shift lies inside the hours of at least one open
+ * day (decision D4), and its Arabic name is its own.
+ */
+export const updateSpaceHoursSchema = z
+  .object({
+    days: z.array(openingRange.nullable()).length(7),
+    shifts: z.array(shift).max(MAX_SHIFTS),
+  })
+  .superRefine(({ days, shifts }, ctx) => {
+    refuseRepeats(
+      ctx,
+      'shifts',
+      shifts,
+      () => 'nameAr',
+      (item) => item.nameAr,
+    );
+    refuseRepeats(
+      ctx,
+      'shifts',
+      shifts,
+      () => 'id',
+      (item) => item.id,
+    );
+    shifts.forEach((item, index) => {
+      const inside = days.some(
+        (day) =>
+          day !== null &&
+          day.opensMinute <= item.startsMinute &&
+          item.endsMinute <= day.closesMinute,
+      );
+      if (!inside) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['shifts', index],
+          params: { code: 'out_of_range' },
+          message: 'Outside the hours of every open day',
+        });
+      }
+    });
+  });
+export type UpdateSpaceHoursRequest = z.infer<typeof updateSpaceHoursSchema>;
+
+export const PRICE_PERIODS = ['HOUR', 'DAY', 'WEEK', 'MONTH'] as const;
+export const PRICE_AUDIENCES = ['GENERAL', 'STUDENT'] as const;
+export const PRICE_LABEL_MAX_LENGTH = 60;
+export const MAX_PRICES = 40;
+/** ₪100,000: the largest price, a guard against a slip of the keyboard. */
+export const PRICE_MAX_AGOROT = 10_000_000;
+
+const priceLabel = textSchema(1, PRICE_LABEL_MAX_LENGTH);
+
+/**
+ * A published price: a period and an audience, an optional shift of the space, and an optional
+ * custom label, its Arabic required with its English (docs/architecture/data-model.md › Prices).
+ * Amounts are whole agorot (display only in v1).
+ */
+const price = z
+  .object({
+    period: z.enum(PRICE_PERIODS),
+    audience: z.enum(PRICE_AUDIENCES),
+    shiftId: optional(id),
+    labelAr: optional(priceLabel),
+    labelEn: optional(priceLabel),
+    amountAgorot: z.number().int().min(0).max(PRICE_MAX_AGOROT),
+  })
+  .refine((item) => item.labelEn == null || item.labelAr != null, {
+    path: ['labelAr'],
+    params: { code: 'required' },
+  });
+
+/**
+ * The prices, whole, in the order they are shown in. One price per period, audience, shift and
+ * label, a missing shift or label counting as one value (the database's four keys): a repeat is
+ * named on the field that would tell it apart, the label, else the shift, else the period.
+ */
+export const updateSpacePricesSchema = z
+  .object({ prices: z.array(price).max(MAX_PRICES) })
+  .superRefine(({ prices }, ctx) => {
+    refuseRepeats(
+      ctx,
+      'prices',
+      prices,
+      (item) => (item.labelAr != null ? 'labelAr' : item.shiftId != null ? 'shiftId' : 'period'),
+      (item) =>
+        JSON.stringify([item.period, item.audience, item.shiftId ?? null, item.labelAr ?? null]),
+    );
+  });
+export type UpdateSpacePricesRequest = z.infer<typeof updateSpacePricesSchema>;
+
+export const MAX_AMENITIES = 100;
+
+/**
+ * The space's amenities, as a set of ids. Whether each may be linked is the server's to check: an
+ * amenity added must be active, and one already linked stays, retired or not (decision F7).
+ */
+export const updateSpaceAmenitiesSchema = z
+  .object({ amenityIds: z.array(id).max(MAX_AMENITIES) })
+  .superRefine(({ amenityIds }, ctx) => {
+    refuseRepeats(ctx, 'amenityIds', amenityIds, null, (amenityId) => amenityId);
+  });
+export type UpdateSpaceAmenitiesRequest = z.infer<typeof updateSpaceAmenitiesSchema>;
+
+export const CONTACT_VALUE_MAX_LENGTH = 200;
+export const MAX_CONTACTS = 20;
+
+/** A contact, its value validated and stored in its type's one form (decision F6). */
+const contact = z
+  .object({
+    type: z.enum(CONTACT_TYPES),
+    value: z.string().max(CONTACT_VALUE_MAX_LENGTH),
+  })
+  .transform(({ type, value }, ctx) => {
+    const stored = normaliseContact(type, value);
+    if (stored !== null) return { type, value: stored };
+    ctx.addIssue({
+      code: 'custom',
+      path: ['value'],
+      params: { code: 'invalid_format' },
+      message: `Not a valid ${type.toLowerCase()} contact`,
+    });
+    return z.NEVER;
+  });
+
+/**
+ * The contacts, whole, in the order they are shown in. A contact that repeats an earlier one once
+ * both are stored alike is `not_unique`.
+ */
+export const updateSpaceContactsSchema = z
+  .object({ contacts: z.array(contact).max(MAX_CONTACTS) })
+  .superRefine(({ contacts }, ctx) => {
+    refuseRepeats(
+      ctx,
+      'contacts',
+      contacts,
+      () => 'value',
+      (item) => `${item.type} ${item.value}`,
+    );
+  });
+export type UpdateSpaceContactsRequest = z.infer<typeof updateSpaceContactsSchema>;

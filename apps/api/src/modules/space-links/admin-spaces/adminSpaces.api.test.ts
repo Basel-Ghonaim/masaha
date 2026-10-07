@@ -28,14 +28,19 @@ interface SpaceOptions {
   area?: number;
   isHidden?: boolean;
   deleted?: boolean;
-  /** How many days ago each group was dated; now by default. */
-  ages?: Partial<Record<'profile' | 'hours' | 'prices' | 'amenities' | 'contacts', number>>;
+  /** How many days ago each group was dated, or null for a group never saved; now by default. */
+  ages?: Partial<Record<'hours' | 'prices' | 'amenities' | 'contacts', number | null>> & {
+    profile?: number;
+  };
 }
 
-/** A space named `nameEn`, every group dated now unless aged. */
+/** A space named `nameEn`, every group dated now unless aged or missing. */
 async function space(nameEn: string, options: SpaceOptions = {}) {
   const { nameAr, area = areaId, isHidden = false, deleted = false, ages = {} } = options;
-  const at = (group: keyof NonNullable<SpaceOptions['ages']>) => daysAgo(ages[group] ?? 0);
+  const at = (group: 'hours' | 'prices' | 'amenities' | 'contacts') => {
+    const age = ages[group];
+    return age === null ? null : daysAgo(age ?? 0);
+  };
   return prisma.space.create({
     data: {
       slug: nameEn.toLowerCase().replaceAll(' ', '-'),
@@ -47,7 +52,7 @@ async function space(nameEn: string, options: SpaceOptions = {}) {
       lng: 34.45,
       isHidden,
       deletedAt: deleted ? NOW : null,
-      profileUpdatedAt: at('profile'),
+      profileUpdatedAt: daysAgo(ages.profile ?? 0),
       hoursUpdatedAt: at('hours'),
       pricesUpdatedAt: at('prices'),
       amenitiesUpdatedAt: at('amenities'),
@@ -115,8 +120,11 @@ describe('GET /admin/spaces', () => {
     }
   });
 
-  it('lists each space with its area, its state, its active owners, its stale groups and its last update', async () => {
-    const focus = await space('Focus Hub', { nameAr: 'فوكس هب', ages: { prices: 31, hours: 2 } });
+  it('lists each space with its area, its state, its active owners, its stale and missing groups and its last update', async () => {
+    const focus = await space('Focus Hub', {
+      nameAr: 'فوكس هب',
+      ages: { prices: 31, hours: 2, amenities: null },
+    });
     await link(focus.id, 'Maha', { day: '2026-03-01' });
     await link(focus.id, 'Ahmad', { day: '2026-02-01' });
     await link(focus.id, 'Layla', { role: 'RECEPTION' });
@@ -140,6 +148,7 @@ describe('GET /admin/spaces', () => {
           { id: idOf('Maha'), name: 'Maha' },
         ],
         staleGroups: ['prices'],
+        missingGroups: ['amenities'],
         lastUpdatedAt: NOW.toISOString(),
       },
     ]);
@@ -207,23 +216,35 @@ describe('GET /admin/spaces', () => {
     ).toEqual([]);
   });
 
-  it('keeps the stale spaces only, by the platform’s thresholds', async () => {
+  it('keeps the spaces with a stale or a missing group only, by the platform’s thresholds', async () => {
     await prisma.setting.update({ where: { key: 'priceStalenessDays' }, data: { value: 10 } });
     await space('Fresh Hub', { ages: { prices: 9, profile: 59 } });
     await space('Old Prices', { ages: { prices: 11 } });
     await space('Old Contacts', { ages: { contacts: 61 } });
+    await space('No Hours', { ages: { hours: null } });
 
     const response = await list('?stale=true');
 
     expect(
-      (dataOf(response) as { nameEn: string; staleGroups: string[] }[]).map(
-        ({ nameEn, staleGroups }) => [nameEn, staleGroups],
-      ),
+      (
+        dataOf(response) as { nameEn: string; staleGroups: string[]; missingGroups: string[] }[]
+      ).map(({ nameEn, staleGroups, missingGroups }) => [nameEn, staleGroups, missingGroups]),
     ).toEqual([
-      ['Old Contacts', ['contacts']],
-      ['Old Prices', ['prices']],
+      ['No Hours', [], ['hours']],
+      ['Old Contacts', ['contacts'], []],
+      ['Old Prices', ['prices'], []],
     ]);
   });
+
+  it.each(['prices', 'amenities', 'contacts'] as const)(
+    'keeps a space whose %s are missing, as stale only',
+    async (group) => {
+      await space('Fresh Hub');
+      await space('Missing Hub', { ages: { [group]: null } });
+
+      expect(await namesListed('?stale=true')).toEqual(['Missing Hub']);
+    },
+  );
 
   it('filters by verified before it pages: full pages and the right total', async () => {
     // Verified and unverified spaces interleaved by name, so a page filtered after it was fetched

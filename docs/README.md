@@ -15,7 +15,7 @@ Where each fact lives, what each kind of document may contain, and the classes a
 ### `features/` — one document per capability
 Each owns one capability's flows, decisions and code map, and links the platform sections it uses ([the rules](architecture/documentation.md#5-capability-documents)) · read it first when your task changes that capability, then only the sections it links.
 - [lookups.md](features/lookups.md) — the governorates, areas and amenities: the admin's screen and the public catalogue.
-- [spaces.md](features/spaces.md) — a space's profile, freshness and life on the platform, as the admin keeps it (API only).
+- [spaces.md](features/spaces.md) — a space's profile and facts, their freshness and its life on the platform, as the admin keeps it (API only).
 - [space-links.md](features/space-links.md) — a user's links to spaces: the session's links, the caller's spaces, the space switcher, the admin's spaces list and the links loader.
 - [users.md](features/users.md) — the account: credentials, who may sign in, the password change and the forced change, the account menu and sign-out.
 - [auth.md](features/auth.md) — the sign-in flows: registration, sign-in with a password or with Google, refresh, sign-out and the forgotten password.

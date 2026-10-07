@@ -6,9 +6,10 @@ import type { PlatformSettingsService } from '../../platform-settings/index.ts';
 import {
   groupDatesOf,
   lastUpdate,
+  missingGroups,
   staleGroups,
   staleCutoffs,
-  type GroupDates,
+  type GroupCutoffs,
 } from '../staleness.ts';
 import {
   createListingRepository,
@@ -16,7 +17,9 @@ import {
   type ListingFilter,
 } from './listing.repository.ts';
 
-/** A listed space, with what `spaces` decides of it: its stale groups and its last update. */
+/**
+ * A listed space, with what `spaces` decides of it: its stale and missing groups and its last update.
+ */
 export interface ListedSpace {
   id: number;
   slug: string;
@@ -25,6 +28,7 @@ export interface ListedSpace {
   areaId: number;
   isHidden: boolean;
   staleGroups: FactGroup[];
+  missingGroups: FactGroup[];
   lastUpdatedAt: Date;
 }
 
@@ -37,7 +41,7 @@ interface Dependencies {
   now: () => Date;
 }
 
-function toListedSpace(space: ListedSpaceRecord, cutoffs: GroupDates): ListedSpace {
+function toListedSpace(space: ListedSpaceRecord, cutoffs: GroupCutoffs): ListedSpace {
   const dates = groupDatesOf(space);
   return {
     id: space.id,
@@ -47,6 +51,7 @@ function toListedSpace(space: ListedSpaceRecord, cutoffs: GroupDates): ListedSpa
     areaId: space.areaId,
     isHidden: space.isHidden,
     staleGroups: staleGroups(dates, cutoffs),
+    missingGroups: missingGroups(dates),
     lastUpdatedAt: lastUpdate(dates),
   };
 }

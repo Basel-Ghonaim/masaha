@@ -11,7 +11,7 @@ interface Dependencies {
 
 /**
  * The bilingual lookup lists, as other modules read them: area names, for many areas at once; a
- * governorate's areas; and whether an area may take a space.
+ * governorate's areas; whether an area may take a space; and which amenities may be added to one.
  */
 export function createLookupsService({
   repository = createLookupsRepository(),
@@ -33,6 +33,11 @@ export function createLookupsService({
      */
     isActiveArea(id: number, tx?: Tx): Promise<boolean> {
       return repository.isActiveArea(id, tx);
+    },
+
+    /** Of these amenity ids, those a space may gain: the active amenities' (a retired one may not). */
+    activeAmenityIds(ids: readonly number[], tx?: Tx): Promise<number[]> {
+      return repository.findActiveAmenityIds(ids, tx);
     },
   };
 }

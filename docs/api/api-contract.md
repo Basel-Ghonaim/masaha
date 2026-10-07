@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-07 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -275,6 +275,8 @@ The spaces the admin enters and keeps ([data-model › Spaces](../architecture/d
   An optional text is absent or `null` when there is none; an empty one is `too_short`.
 - **The slug** is derived from `nameEn` when the space is created, and never changes: accents dropped, lowercased, every run of other characters than `a–z` and `0–9` one `-`: the base, at most 60 characters, then any suffix ("Focus Hub" → `focus-hub`). A slug any space holds, a soft-deleted one included, takes the smallest free suffix from 2 (`focus-hub-2`).
 - **Audit:** every change writes its entry in its own transaction ([conventions §6](../backend/conventions.md#6-audit)), named `space.<verb>`, with the space as both the entity and the entry's space.
+- **Freshness:** each fact group (`FactGroup`: `"profile" | "hours" | "prices" | "amenities" | "contacts"`) has its date, renewed when the group is saved or confirmed unchanged. The profile is dated when the space is created; any other group has no date, **missing**, until it is first saved ([data-model › Conventions](../architecture/data-model.md#conventions)).
+- **The facts** are saved one group at a time, each by a `PUT` that replaces the group whole and answers `AdminSpace`, only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). A save dates its group now, leaves the other groups' dates alone, and is audited `space.<group>Edited`, with the whole group in `before` and `after`; hours never saved are recorded as `{ days: [], shifts }`. A save that changes nothing writes nothing, its date included, unless the group is missing: its first save always dates it, even empty. A list's order is the order it is shown in. A row that repeats an earlier one is refused with `not_unique` on that row's field (`errors["shifts.1.nameAr"]`). Each answers `forbidden` (403), with no code, on a verified space, and `not_found` (404) for a soft-deleted space too.
 
 ```ts
 AdminSpace = {
@@ -286,14 +288,37 @@ AdminSpace = {
   location: { lat: number, lng: number },
   isHidden: boolean,
   isVerified: boolean,             // an active OWNER link (data-model › Derived values)
-  updatedAt: Record<FactGroup, string>,   // FactGroup: "profile" | "hours" | "prices" | "amenities" | "contacts"; ISO 8601
-  staleGroups: FactGroup[]          // older than the platform's thresholds (data-model › Derived values)
+  updatedAt: Record<FactGroup, string | null>,   // ISO 8601; null while the group is missing (never the profile)
+  staleGroups: FactGroup[],         // older than the platform's thresholds (data-model › Derived values)
+  missingGroups: FactGroup[],       // never saved
+  hours: SpaceHours | null,         // null until first saved
+  prices: Price[],
+  amenityIds: number[],             // by id; retired amenities included
+  contacts: Contact[]
+}
+
+OpeningRange = { opensMinute: number, closesMinute: number }   // minutes after midnight, Asia/Gaza
+Shift = { id: number, nameAr: string, nameEn: string | null, startsMinute: number, endsMinute: number }
+SpaceHours = {
+  days: (OpeningRange | null)[],   // 7: Sunday (0) … Saturday (6); null = closed
+  shifts: Shift[]
+}
+Price = {
+  period: "HOUR" | "DAY" | "WEEK" | "MONTH",    // PRICE_PERIODS
+  audience: "GENERAL" | "STUDENT",              // PRICE_AUDIENCES
+  shiftId: number | null,
+  labelAr: string | null, labelEn: string | null,   // a custom label
+  amountAgorot: number                          // whole agorot, ILS; display only
+}
+Contact = {
+  type: "WHATSAPP" | "PHONE" | "EMAIL" | "INSTAGRAM" | "FACEBOOK" | "TIKTOK" | "WEBSITE",   // CONTACT_TYPES
+  value: string                                 // in its type's stored form
 }
 ```
 
 #### `POST /admin/spaces` · 🛡
 - **Body:** the profile.
-- **201:** `AdminSpace`: a new space, unverified and shown, every fact group dated now. Its settings are copied from the platform's new-space defaults ([spaces › Behaviour and flows](../features/spaces.md#behaviour-and-flows)). Audited `space.created`, with the profile and the slug in `after`.
+- **201:** `AdminSpace`: a new space, unverified and shown, its profile dated now and its other fact groups missing. Its settings are copied from the platform's new-space defaults ([spaces › Behaviour and flows](../features/spaces.md#behaviour-and-flows)). Audited `space.created`, with the profile and the slug in `after`.
 - **Errors:** `validation` (422), with `errors.nameEn = ["invalid_format"]` for an English name that yields no slug; `conflict` (409), with no code, when creations of the same name at once took the slug it chose three times over.
 
 #### `GET /admin/spaces` · 🛡
@@ -301,7 +326,7 @@ AdminSpace = {
   - `q`: part of either name, whatever the case (1–80 characters);
   - `status`: `verified` or `unverified`, both leaving hidden spaces out, or `hidden`, verified or not;
   - `governorateId`, `areaId`: the spaces of the governorate's areas, hidden ones included, or of one area; both together narrow to that area when it is one of the governorate's, else to none;
-  - `stale`: `true` keeps the spaces with at least one stale fact group.
+  - `stale`: `true` keeps the spaces with at least one stale or missing fact group.
 - **200:** `AdminSpaceRow[]` (`@masaha/shared/space-links`), by English name, with `meta`. A soft-deleted space is never listed. Every filter applies before the page is cut, so every page is full and the total right ([conventions §5](../backend/conventions.md#5-pagination)).
 
   ```ts
@@ -311,6 +336,7 @@ AdminSpace = {
     state: "verified" | "unverified" | "hidden",   // hidden first, whatever its owners
     owners: { id: number, name: string }[],         // its active OWNER links, oldest first
     staleGroups: FactGroup[],
+    missingGroups: FactGroup[],
     lastUpdatedAt: string                           // the latest of its fact groups' dates
   }
   ```
@@ -339,6 +365,34 @@ The endpoints on one space put its links on the request first, without refusing 
 #### `POST /admin/spaces/:spaceId/restore` · 🛡
 - **204:** a soft-deleted space comes back as it was, hidden or not, with its links. Audited `space.restored` (`before`: `deletedAt`). Restoring a space that is not deleted changes nothing.
 - **Errors:** `not_found` (404).
+
+#### `PUT /admin/spaces/:spaceId/hours` · 🛡
+- **Body:** `{ days, shifts }`, the hours and the shifts, saved together:
+  - `days`: exactly 7, Sunday first; each `null` (closed) or `{ opensMinute, closesMinute }`, integers with `0 ≤ opensMinute < closesMinute ≤ 1440` (`out_of_range` on `closesMinute`). A day open around the clock is `0`–`1440`; no range runs past midnight;
+  - `shifts`: at most 10, each `{ id?, nameAr, nameEn?, startsMinute, endsMinute }`: `nameAr` required and `nameEn` optional, 1–40 characters each, as the profile's texts; `startsMinute < endsMinute` within the day (`out_of_range` on `endsMinute`); inside the range of at least one open day (`errors["shifts.<i>"] = ["out_of_range"]`); an Arabic name or an `id` repeated is `not_unique`.
+- **200:** `AdminSpace`. A shift with an `id` is that shift, updated and keeping its id; one without is new; a shift left out is removed. Audited `space.hoursEdited` (`before` and `after`: `{ days, shifts }`).
+- **Errors:** `validation` (422), with `invalid_choice` on `shifts.<i>.id` for an id that is not one of the space's shifts; `conflict` (409), with no code, when a shift left out is still used by a price, a package, a subscription or a visit: nothing is written, and the price is changed first; `forbidden` (403); `not_found` (404).
+
+#### `PUT /admin/spaces/:spaceId/prices` · 🛡
+- **Body:** `{ prices }`, at most 40, each a `Price`: `period` and `audience` from their lists (`invalid_choice`); `shiftId` optional; `labelAr` and `labelEn` optional, 1–60 characters each, as the profile's texts, `labelEn` only with `labelAr` (`required` on `labelAr`); `amountAgorot` an integer from 0 to 10,000,000.
+- **One price per period, audience, shift and label**, a missing shift or label counting as one value ([data-model › Constraints](../architecture/data-model.md#constraints-worth-stating)): a repeat is `not_unique` on the field that would tell it apart, `labelAr` when it has a label, else `shiftId` when it has a shift, else `period`.
+- **200:** `AdminSpace`. Audited `space.pricesEdited` (`before` and `after`: `{ prices }`).
+- **Errors:** `validation` (422), with `invalid_choice` on `prices.<i>.shiftId` for a shift that is not one of the space's, as they are when the space's lock is taken; `forbidden` (403); `not_found` (404).
+
+#### `PUT /admin/spaces/:spaceId/amenities` · 🛡
+- **Body:** `{ amenityIds }`, at most 100 ids, a set: an id repeated is `not_unique` (`errors["amenityIds.<i>"]`).
+- **200:** `AdminSpace`, its amenities exactly these. An amenity added must be active; one the space already has stays, retired or not, until it is left out ([data-model › Conventions](../architecture/data-model.md#conventions)). Audited `space.amenitiesEdited` (`before` and `after`: `{ amenityIds }`, by id).
+- **Errors:** `validation` (422), with `invalid_choice` on `amenityIds.<i>` for an amenity added that is retired or does not exist; `forbidden` (403); `not_found` (404).
+
+#### `PUT /admin/spaces/:spaceId/contacts` · 🛡
+- **Body:** `{ contacts }`, at most 20, each `{ type, value }`: `type` from its list (`invalid_choice`); `value` at most 200 characters, valid for its type and stored in its one form ([data-model › Conventions](../architecture/data-model.md#conventions)), else `invalid_format` on `contacts.<i>.value`. A contact that repeats an earlier one once both are in their stored form is `not_unique`.
+- **200:** `AdminSpace`, the contacts in their stored form. Audited `space.contactsEdited` (`before` and `after`: `{ contacts }`).
+- **Errors:** `validation` (422); `forbidden` (403); `not_found` (404).
+
+#### `POST /admin/spaces/:spaceId/{profile|hours|prices|amenities|contacts}/confirm` · 🛡
+- «المعلومات ما زالت صحيحة»: the group is confirmed unchanged. One path per group; any other answers `not_found` (404).
+- **200:** `AdminSpace`, the group dated now and nothing else changed. Only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). Audited `space.<group>Confirmed` (`profileConfirmed`, `hoursConfirmed`, …), with the group's date in `before` and `after` (`{ hoursUpdatedAt }`).
+- **Errors:** `conflict` (409), with no code, for a missing group: there is nothing to confirm until it is saved, even empty; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
 
 ## 6. Domain error codes (initial)
 

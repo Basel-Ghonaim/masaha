@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-07 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -216,8 +216,9 @@ Built: `GET /manage/spaces`, the spaces the caller has an active link to, with t
 
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | profile, hours, shifts, prices, amenities, contacts, capacity (private) |
-| POST | `/manage/spaces/:spaceId/facts/:group/confirm` | 🏢 | «المعلومات ما زالت صحيحة»: resets that group's freshness date |
+| GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | the profile and the facts (read), the profile (edit), capacity (private) |
+| PUT | `/manage/spaces/:spaceId/:group` | 🏢 | the facts, one group at a time (`hours` with the shifts, `prices`, `amenities`, `contacts`), on the same logic as the admin's ([api-contract §5](../api/api-contract.md#spaces-the-admin)) |
+| POST | `/manage/spaces/:spaceId/:group/confirm` | 🏢 | «المعلومات ما زالت صحيحة»: resets that group's freshness date, as the admin's confirm does ([api-contract §5](../api/api-contract.md#spaces-the-admin)) |
 | GET | `/manage/spaces/:spaceId/occupancy` | 🧾 | the live numbers for the space's staff: `{ capacity, present }`; the statistics are under finance (🏢) |
 | PUT / DELETE | `/manage/spaces/:spaceId/status-override` | 🧾 | set a state until a time (30 min, 1 h, 2 h or closing time), or clear it |
 | POST / DELETE | `/manage/spaces/:spaceId/photos[/:photoId]` | 🏢 | upload, remove, reorder |
@@ -243,12 +244,11 @@ Built: `GET /manage/spaces`, the spaces the caller has an active link to, with t
 | GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | |
 
 #### Admin (`/admin/...`, 🛡)
-Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile edit while it is unverified, and hiding and showing, soft delete and restore of any space ([api-contract §5](../api/api-contract.md#5-endpoints)).
+Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile and facts edits, a group at a time, and the confirming of a group unchanged while it is unverified, and hiding and showing, soft delete and restore of any space ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/admin/stats` | aggregate numbers only |
-| PUT / POST | `/admin/spaces/:spaceId/facts/...` | edit the facts (hours and shifts, prices, amenities, contacts) and confirm a group unchanged, while the space is unverified |
 | POST / DELETE | `/admin/spaces/:spaceId/managers[/:userId]` | link / unlink an owner |
 | POST | `/admin/owners` | create an OWNER account (temporary password, must change) |
 | GET / PATCH | `/admin/users[/:userId]` | search; suspend; change role |
