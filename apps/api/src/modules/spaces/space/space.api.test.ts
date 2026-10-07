@@ -1,3 +1,5 @@
+import { Writable } from 'node:stream';
+
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -7,6 +9,7 @@ import { createSpace } from '../../../../test/factories.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings, signInOwnerOf } from '../../../../test/spaces.ts';
 import { prisma } from '../../../db/index.ts';
+import { createLogger } from '../../../shared/http/index.ts';
 
 const NOW = new Date('2026-10-06T09:00:00.000Z');
 const app = createTestApp({ clock: () => NOW });
@@ -192,6 +195,31 @@ describe('GET /admin/spaces/:spaceId', () => {
 
     expect(response.status).toBe(404);
     expect(errorOf(response).type).toBe('not_found');
+  });
+
+  it('names the space in the request’s log line (conventions §10)', async () => {
+    const lines: string[] = [];
+    const logged = createTestApp({
+      clock: () => NOW,
+      logger: createLogger(
+        'info',
+        new Writable({
+          write(chunk: Buffer, _encoding, done) {
+            lines.push(chunk.toString());
+            done();
+          },
+        }),
+      ),
+    });
+    const space = await createSpace();
+
+    const response = await adminRequest(logged, admin, 'get', path(space.id));
+
+    const id = String(response.headers['x-request-id']);
+    const line = lines
+      .map((text) => JSON.parse(text) as { req?: { id?: string }; spaceId?: number })
+      .find((entry) => entry.req?.id === id);
+    expect(line).toMatchObject({ userId: admin.id, role: 'ADMIN', spaceId: space.id });
   });
 });
 

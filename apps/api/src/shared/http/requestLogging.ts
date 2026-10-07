@@ -53,10 +53,14 @@ export function requestLogger(logger: Logger) {
       res.setHeader('X-Request-Id', id);
       return id;
     },
-    // The signed-in user and their role, once requireAuth has read them (conventions §10).
+    // The signed-in user and their role, once requireAuth has read them, and the space, once the
+    // links loader has put it on the request (conventions §10).
     customProps: (req) => {
-      const { auth } = req as Request;
-      return auth ? { userId: auth.userId, role: auth.role } : {};
+      const { auth, space } = req as Request;
+      return {
+        ...(auth && { userId: auth.userId, role: auth.role }),
+        ...(space && { spaceId: space.id }),
+      };
     },
     customLogLevel: (_req, res, error) => {
       if (error || res.statusCode >= 500) return 'error';

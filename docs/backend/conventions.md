@@ -281,7 +281,7 @@ A screen that shows or filters by values from several modules is composed by a m
 
 ## 10. Logging
 
-Built: the redaction, the request id, the levels, and the user and their role on a signed-in request. The space is not logged yet, although space routes exist ([finding 41](../architecture/findings.md#41-the-request-log-does-not-name-the-space)).
+Built: the redaction, the request id, the levels, the user and their role on a signed-in request, and the space on the routes that load its links.
 
 **The request's line is best effort online.** pino-http writes it when the response finishes, after the answer. The logger writes it to stdout synchronously, so it leaves the process at once, but a function frozen in that instant can still lose it ([§12](#12-environments)).
 
