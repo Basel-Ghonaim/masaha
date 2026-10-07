@@ -1,5 +1,12 @@
+export { createSpaceAmenitiesController } from './amenities/amenities.controller.ts';
+export {
+  createSpaceAmenitiesService,
+  type SpaceAmenitiesService,
+} from './amenities/amenities.service.ts';
 export { createConfirmController } from './confirm/confirm.controller.ts';
 export { createConfirmService, type ConfirmService } from './confirm/confirm.service.ts';
+export { createContactsController } from './contacts/contacts.controller.ts';
+export { createContactsService, type ContactsService } from './contacts/contacts.service.ts';
 export { createHoursController } from './hours/hours.controller.ts';
 export { createHoursService, type HoursService } from './hours/hours.service.ts';
 export {

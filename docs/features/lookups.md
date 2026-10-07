@@ -9,7 +9,7 @@
 - Holds the place list, governorate then area, which covers the Gaza Strip, and the amenities a space may offer, each in Arabic and English, in an order the admin sets, with an active flag. Nothing is deleted: a row is hidden and restored.
 - Lets the admin add, rename, hide, restore and order the governorates, the areas and the amenities, through the API. The web screen keeps the governorates and their areas.
 - Answers the public catalogue: what a form or a filter may offer, active rows only.
-- Answers the modules above it: the names of a set of areas, whether an area may take a space, and the ids of a governorate's areas.
+- Answers the modules above it: the names of a set of areas, whether an area may take a space, the ids of a governorate's areas, and which amenities are active.
 
 ## Who uses it
 

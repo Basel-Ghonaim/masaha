@@ -1,6 +1,6 @@
 # Project Overview
 
-> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-07 · **Owner:** Basel Ghoneim
 > **Authority:** What Masaha is, what is built today, what v1 is committed to, and what is explicitly not in v1. It names scope; it does not specify behaviour.
 
 ## What Masaha is
@@ -19,7 +19,7 @@ This section lists a capability only once it is merged and working. Each line li
 - [Users](../features/users.md): the account menu, sign-out, and the change of a temporary password before any other page.
 - [Space links](../features/space-links.md): the spaces a user works at and the space switcher; the admin's spaces list, on the API.
 - [Lookups](../features/lookups.md): the admin's governorates and areas; the amenities and the public catalogue, on the API.
-- [Spaces](../features/spaces.md): the admin's, on the API only: add, edit, hide, delete and restore.
+- [Spaces](../features/spaces.md): the admin's, on the API only: add, edit the profile and the facts (hours and shifts, prices, amenities, contacts), confirm them, hide, delete and restore.
 
 ## Committed scope — v1
 

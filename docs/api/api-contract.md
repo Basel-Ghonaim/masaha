@@ -292,7 +292,9 @@ AdminSpace = {
   staleGroups: FactGroup[],         // older than the platform's thresholds (data-model › Derived values)
   missingGroups: FactGroup[],       // never saved
   hours: SpaceHours | null,         // null until first saved
-  prices: Price[]
+  prices: Price[],
+  amenityIds: number[],             // by id; retired amenities included
+  contacts: Contact[]
 }
 
 OpeningRange = { opensMinute: number, closesMinute: number }   // minutes after midnight, Asia/Gaza
@@ -307,6 +309,10 @@ Price = {
   shiftId: number | null,
   labelAr: string | null, labelEn: string | null,   // a custom label
   amountAgorot: number                          // whole agorot, ILS; display only
+}
+Contact = {
+  type: "WHATSAPP" | "PHONE" | "EMAIL" | "INSTAGRAM" | "FACEBOOK" | "TIKTOK" | "WEBSITE",   // CONTACT_TYPES
+  value: string                                 // in its type's stored form
 }
 ```
 
@@ -372,6 +378,16 @@ The endpoints on one space put its links on the request first, without refusing 
 - **One price per period, audience, shift and label**, a missing shift or label counting as one value ([data-model › Constraints](../architecture/data-model.md#constraints-worth-stating)): a repeat is `not_unique` on the field that would tell it apart, `labelAr` when it has a label, else `shiftId` when it has a shift, else `period`.
 - **200:** `AdminSpace`. Audited `space.pricesEdited` (`before` and `after`: `{ prices }`).
 - **Errors:** `validation` (422), with `invalid_choice` on `prices.<i>.shiftId` for a shift that is not one of the space's, as they are when the space's lock is taken; `forbidden` (403); `not_found` (404).
+
+#### `PUT /admin/spaces/:spaceId/amenities` · 🛡
+- **Body:** `{ amenityIds }`, at most 100 ids, a set: an id repeated is `not_unique` (`errors["amenityIds.<i>"]`).
+- **200:** `AdminSpace`, its amenities exactly these. An amenity added must be active; one the space already has stays, retired or not, until it is left out ([data-model › Conventions](../architecture/data-model.md#conventions)). Audited `space.amenitiesEdited` (`before` and `after`: `{ amenityIds }`, by id).
+- **Errors:** `validation` (422), with `invalid_choice` on `amenityIds.<i>` for an amenity added that is retired or does not exist; `forbidden` (403); `not_found` (404).
+
+#### `PUT /admin/spaces/:spaceId/contacts` · 🛡
+- **Body:** `{ contacts }`, at most 20, each `{ type, value }`: `type` from its list (`invalid_choice`); `value` at most 200 characters, valid for its type and stored in its one form ([data-model › Conventions](../architecture/data-model.md#conventions)), else `invalid_format` on `contacts.<i>.value`. A contact that repeats an earlier one once both are in their stored form is `not_unique`.
+- **200:** `AdminSpace`, the contacts in their stored form. Audited `space.contactsEdited` (`before` and `after`: `{ contacts }`).
+- **Errors:** `validation` (422); `forbidden` (403); `not_found` (404).
 
 #### `POST /admin/spaces/:spaceId/{profile|hours|prices|amenities|contacts}/confirm` · 🛡
 - «المعلومات ما زالت صحيحة»: the group is confirmed unchanged. One path per group; any other answers `not_found` (404).

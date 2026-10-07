@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { toFieldErrors } from '../core/index.ts';
 import {
   createSpaceSchema,
+  updateSpaceAmenitiesSchema,
   updateSpaceHoursSchema,
   updateSpacePricesSchema,
   updateSpaceProfileSchema,
@@ -262,5 +263,30 @@ describe('updateSpacePricesSchema', () => {
     }));
 
     expect(pricesErrors(prices)).toEqual({ prices: ['too_long'] });
+  });
+});
+
+describe('updateSpaceAmenitiesSchema', () => {
+  function amenityErrors(amenityIds: unknown[]) {
+    const body = { amenityIds };
+    const result = updateSpaceAmenitiesSchema.safeParse(body);
+    return result.success ? null : toFieldErrors(result.error.issues, body);
+  }
+
+  it('takes a set of amenity ids, none among them', () => {
+    expect(updateSpaceAmenitiesSchema.parse({ amenityIds: [3, 1] })).toEqual({
+      amenityIds: [3, 1],
+    });
+    expect(amenityErrors([])).toBeNull();
+  });
+
+  it('refuses an id repeated, at its repeat', () => {
+    expect(amenityErrors([3, 1, 3])).toEqual({ 'amenityIds.2': ['not_unique'] });
+  });
+
+  it('takes at most a hundred', () => {
+    expect(amenityErrors(Array.from({ length: 101 }, (_, i) => i + 1))).toEqual({
+      amenityIds: ['too_long'],
+    });
   });
 });

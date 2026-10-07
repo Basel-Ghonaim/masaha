@@ -16,6 +16,8 @@ const app = createTestApp({ clock: () => NOW });
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 let admin: { id: number; authorization: string };
+/** An active amenity, created before each request of the endpoints' matrix. */
+let amenityId: number;
 
 beforeEach(async () => {
   await resetDatabase(prisma);
@@ -92,7 +94,22 @@ describe.each([
     name: 'PUT /spaces/:spaceId/prices',
     method: 'put',
     rest: '/prices',
-    body: { prices: [] },
+    body: { prices: [{ period: 'MONTH', audience: 'GENERAL', amountAgorot: 30_000 }] },
+    status: 200,
+  },
+  {
+    name: 'PUT /spaces/:spaceId/amenities',
+    method: 'put',
+    rest: '/amenities',
+    // An active amenity's id, created before each request: a body that writes.
+    body: () => ({ amenityIds: [amenityId] }),
+    status: 200,
+  },
+  {
+    name: 'PUT /spaces/:spaceId/contacts',
+    method: 'put',
+    rest: '/contacts',
+    body: { contacts: [{ type: 'PHONE', value: '0599123456' }] },
     status: 200,
   },
   ...(['profile', 'hours', 'prices', 'amenities', 'contacts'] as const).map(
@@ -105,11 +122,20 @@ describe.each([
         status: 200,
       }) as const,
   ),
-] as const)('$name', ({ method, rest, body, status }) => {
+] as const)('$name', ({ method, rest, body: bodyOf, status }) => {
+  // Every body writes when it gets through, so a refused caller's "changing nothing" can fail.
+  const body = () => (typeof bodyOf === 'function' ? bodyOf() : bodyOf);
+
+  beforeEach(async () => {
+    ({ id: amenityId } = await prisma.amenity.create({
+      data: { key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'internet' },
+    }));
+  });
+
   it('answers the ADMIN', async () => {
     const space = await spaceDated(1);
 
-    const response = await adminRequest(app, admin, method, path(space.id, rest), body);
+    const response = await adminRequest(app, admin, method, path(space.id, rest), body());
 
     expect(response.status).toBe(status);
   });
@@ -142,7 +168,7 @@ describe.each([
       signedIn ?? 'guest',
       method,
       path(space.id, rest),
-      body,
+      body(),
     );
 
     expect(response.status).toBe(refusal.status);
@@ -162,6 +188,15 @@ describe.each([
       amenitiesUpdatedAt: space.amenitiesUpdatedAt,
       contactsUpdatedAt: space.contactsUpdatedAt,
     });
+    expect(
+      await Promise.all([
+        prisma.spaceHours.count(),
+        prisma.spaceShift.count(),
+        prisma.spacePrice.count(),
+        prisma.spaceAmenity.count(),
+        prisma.spaceContact.count(),
+      ]),
+    ).toEqual([0, 0, 0, 0, 0]);
   });
 });
 
@@ -192,6 +227,8 @@ describe('GET /admin/spaces/:spaceId', () => {
       missingGroups: [],
       hours: null,
       prices: [],
+      amenityIds: [],
+      contacts: [],
     });
   });
 

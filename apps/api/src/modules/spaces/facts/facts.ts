@@ -1,6 +1,8 @@
-import type { Price, SpaceHours } from '@masaha/shared/spaces';
+import type { Contact, Price, SpaceHours } from '@masaha/shared/spaces';
 
 import type { Tx } from '../../../db/index.ts';
+import { createSpaceAmenitiesRepository } from '../amenities/amenities.repository.ts';
+import { createContactsRepository } from '../contacts/contacts.repository.ts';
 import { createHoursRepository } from '../hours/hours.repository.ts';
 import { createShiftsRepository } from '../hours/shifts.repository.ts';
 import { createPricesRepository } from '../prices/prices.repository.ts';
@@ -9,16 +11,20 @@ import { createPricesRepository } from '../prices/prices.repository.ts';
 export interface SpaceFacts {
   hours: SpaceHours | null;
   prices: Price[];
+  amenityIds: number[];
+  contacts: Contact[];
 }
 
 /** A new space's facts: none of its groups has been saved. */
-export const NO_FACTS: SpaceFacts = { hours: null, prices: [] };
+export const NO_FACTS: SpaceFacts = { hours: null, prices: [], amenityIds: [], contacts: [] };
 
 /** Reads every fact group of a space, with `tx` inside a transaction. */
 export function createFactsReader() {
   const hours = createHoursRepository();
   const shifts = createShiftsRepository();
   const prices = createPricesRepository();
+  const amenities = createSpaceAmenitiesRepository();
+  const contacts = createContactsRepository();
 
   // One query at a time: a transaction's connection runs one statement at once (finding 11).
   return async function readFacts(spaceId: number, tx?: Tx): Promise<SpaceFacts> {
@@ -27,6 +33,8 @@ export function createFactsReader() {
     return {
       hours: days ? { days, shifts: shiftList } : null,
       prices: await prices.listFor(spaceId, tx),
+      amenityIds: await amenities.listFor(spaceId, tx),
+      contacts: await contacts.listFor(spaceId, tx),
     };
   };
 }

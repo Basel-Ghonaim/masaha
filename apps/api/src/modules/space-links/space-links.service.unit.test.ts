@@ -46,6 +46,7 @@ function setup(links: ActiveLink[]) {
     },
     areaIdsOf: () => Promise.reject(new Error('not asked here')),
     isActiveArea: () => Promise.reject(new Error('not asked here')),
+    activeAmenityIds: () => Promise.reject(new Error('not asked here')),
   };
   return { service: createSpaceLinksService({ repository, spaces, lookups }), calls };
 }

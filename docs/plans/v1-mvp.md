@@ -216,7 +216,8 @@ Built: `GET /manage/spaces`, the spaces the caller has an active link to, with t
 
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | profile, hours, shifts, prices, amenities, contacts, capacity (private) |
+| GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | the profile and the facts (read), the profile (edit), capacity (private) |
+| PUT | `/manage/spaces/:spaceId/:group` | 🏢 | the facts, one group at a time (`hours` with the shifts, `prices`, `amenities`, `contacts`), on the same logic as the admin's ([api-contract §5](../api/api-contract.md#spaces-the-admin)) |
 | POST | `/manage/spaces/:spaceId/:group/confirm` | 🏢 | «المعلومات ما زالت صحيحة»: resets that group's freshness date, as the admin's confirm does ([api-contract §5](../api/api-contract.md#spaces-the-admin)) |
 | GET | `/manage/spaces/:spaceId/occupancy` | 🧾 | the live numbers for the space's staff: `{ capacity, present }`; the statistics are under finance (🏢) |
 | PUT / DELETE | `/manage/spaces/:spaceId/status-override` | 🧾 | set a state until a time (30 min, 1 h, 2 h or closing time), or clear it |
@@ -243,12 +244,11 @@ Built: `GET /manage/spaces`, the spaces the caller has an active link to, with t
 | GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | |
 
 #### Admin (`/admin/...`, 🛡)
-Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile edit and the confirming of a fact group unchanged while it is unverified, and hiding and showing, soft delete and restore of any space ([api-contract §5](../api/api-contract.md#5-endpoints)).
+Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile and facts edits, a group at a time, and the confirming of a group unchanged while it is unverified, and hiding and showing, soft delete and restore of any space ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/admin/stats` | aggregate numbers only |
-| PUT | `/admin/spaces/:spaceId/:group` | edit the facts, one group at a time (`hours` with the shifts, `prices`, `amenities`, `contacts`), while the space is unverified |
 | POST / DELETE | `/admin/spaces/:spaceId/managers[/:userId]` | link / unlink an owner |
 | POST | `/admin/owners` | create an OWNER account (temporary password, must change) |
 | GET / PATCH | `/admin/users[/:userId]` | search; suspend; change role |

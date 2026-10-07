@@ -15,6 +15,7 @@ describe('the lookups service', () => {
       },
       findAreaIdsOf: () => Promise.reject(new Error('not asked here')),
       isActiveArea: () => Promise.reject(new Error('not asked here')),
+      findActiveAmenityIds: () => Promise.reject(new Error('not asked here')),
     };
 
     await expect(createLookupsService({ repository }).areaNamesFor([4, 9])).resolves.toEqual([

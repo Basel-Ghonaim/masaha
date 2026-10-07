@@ -1,3 +1,4 @@
+import type { ContactType } from './contacts.ts';
 import type { FactGroup } from './factGroups.ts';
 import type { Location } from './gazaStrip.ts';
 import type { PRICE_AUDIENCES, PRICE_PERIODS } from './requests.ts';
@@ -29,6 +30,12 @@ export interface Price {
   labelAr: string | null;
   labelEn: string | null;
   amountAgorot: number;
+}
+
+/** A way to reach the space, its value in its type's one stored form. */
+export interface Contact {
+  type: ContactType;
+  value: string;
 }
 
 /** The opening hours with the shifts, as they are saved together. */
@@ -71,4 +78,8 @@ export interface AdminSpace {
   hours: SpaceHours | null;
   /** The published prices, in the order they are shown in. */
   prices: Price[];
+  /** The ids of its amenities, retired ones included. */
+  amenityIds: number[];
+  /** In the order they are shown in. */
+  contacts: Contact[];
 }

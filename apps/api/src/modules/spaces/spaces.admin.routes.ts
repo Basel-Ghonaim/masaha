@@ -2,6 +2,8 @@ import {
   createSpaceSchema,
   FACT_GROUPS,
   setSpaceHiddenSchema,
+  updateSpaceAmenitiesSchema,
+  updateSpaceContactsSchema,
   updateSpaceHoursSchema,
   updateSpacePricesSchema,
   updateSpaceProfileSchema,
@@ -9,7 +11,9 @@ import {
 import { Router } from 'express';
 
 import { validate } from '../../shared/validation/index.ts';
+import type { SpaceAmenitiesController } from './amenities/amenities.controller.ts';
 import type { ConfirmController } from './confirm/confirm.controller.ts';
+import type { ContactsController } from './contacts/contacts.controller.ts';
 import type { HoursController } from './hours/hours.controller.ts';
 import type { PricesController } from './prices/prices.controller.ts';
 import type { ProfileController } from './profile/profile.controller.ts';
@@ -25,12 +29,16 @@ export function createSpacesAdminRouter({
   profile,
   hours,
   prices,
+  amenities,
+  contacts,
   confirm,
 }: {
   space: SpaceController;
   profile: ProfileController;
   hours: HoursController;
   prices: PricesController;
+  amenities: SpaceAmenitiesController;
+  contacts: ContactsController;
   confirm: ConfirmController;
 }): Router {
   const router = Router();
@@ -42,6 +50,8 @@ export function createSpacesAdminRouter({
   router.post('/spaces/:spaceId/restore', space.restore);
   router.put('/spaces/:spaceId/hours', validate(updateSpaceHoursSchema), hours.update);
   router.put('/spaces/:spaceId/prices', validate(updateSpacePricesSchema), prices.update);
+  router.put('/spaces/:spaceId/amenities', validate(updateSpaceAmenitiesSchema), amenities.update);
+  router.put('/spaces/:spaceId/contacts', validate(updateSpaceContactsSchema), contacts.update);
   // One route per group, so a group that does not exist is not found.
   for (const group of FACT_GROUPS) {
     router.post(`/spaces/:spaceId/${group}/confirm`, confirm.confirm(group));

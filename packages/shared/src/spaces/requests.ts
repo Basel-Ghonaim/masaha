@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { paragraphSchema, textSchema } from '../core/index.ts';
+import { CONTACT_TYPES, normaliseContact } from './contacts.ts';
 import { isInGazaStrip } from './gazaStrip.ts';
 
 // The requests of the admin's space endpoints (docs/api/api-contract.md §5, Spaces (the admin)).
@@ -105,18 +106,21 @@ function repeats<T>(items: readonly T[], key: (item: T) => unknown): number[] {
   });
 }
 
-/** Marks each repeated item `not_unique` on its field (the owner's answer A1). */
+/**
+ * Marks each repeated item `not_unique` on its field, or on the item itself when it is a plain
+ * value (the owner's answer A1).
+ */
 function refuseRepeats<T>(
   ctx: z.RefinementCtx,
   list: string,
   items: readonly T[],
-  field: (item: T) => string,
+  field: ((item: T) => string) | null,
   key: (item: T) => unknown,
 ) {
   for (const index of repeats(items, key)) {
     ctx.addIssue({
       code: 'custom',
-      path: [list, index, field(items[index] as T)],
+      path: field ? [list, index, field(items[index] as T)] : [list, index],
       params: { code: 'not_unique' },
       message: 'Repeats an earlier item',
     });
@@ -214,3 +218,54 @@ export const updateSpacePricesSchema = z
     );
   });
 export type UpdateSpacePricesRequest = z.infer<typeof updateSpacePricesSchema>;
+
+export const MAX_AMENITIES = 100;
+
+/**
+ * The space's amenities, as a set of ids. Whether each may be linked is the server's to check: an
+ * amenity added must be active, and one already linked stays, retired or not (decision F7).
+ */
+export const updateSpaceAmenitiesSchema = z
+  .object({ amenityIds: z.array(id).max(MAX_AMENITIES) })
+  .superRefine(({ amenityIds }, ctx) => {
+    refuseRepeats(ctx, 'amenityIds', amenityIds, null, (amenityId) => amenityId);
+  });
+export type UpdateSpaceAmenitiesRequest = z.infer<typeof updateSpaceAmenitiesSchema>;
+
+export const CONTACT_VALUE_MAX_LENGTH = 200;
+export const MAX_CONTACTS = 20;
+
+/** A contact, its value validated and stored in its type's one form (decision F6). */
+const contact = z
+  .object({
+    type: z.enum(CONTACT_TYPES),
+    value: z.string().max(CONTACT_VALUE_MAX_LENGTH),
+  })
+  .transform(({ type, value }, ctx) => {
+    const stored = normaliseContact(type, value);
+    if (stored !== null) return { type, value: stored };
+    ctx.addIssue({
+      code: 'custom',
+      path: ['value'],
+      params: { code: 'invalid_format' },
+      message: `Not a valid ${type.toLowerCase()} contact`,
+    });
+    return z.NEVER;
+  });
+
+/**
+ * The contacts, whole, in the order they are shown in. A contact that repeats an earlier one once
+ * both are stored alike is `not_unique`.
+ */
+export const updateSpaceContactsSchema = z
+  .object({ contacts: z.array(contact).max(MAX_CONTACTS) })
+  .superRefine(({ contacts }, ctx) => {
+    refuseRepeats(
+      ctx,
+      'contacts',
+      contacts,
+      () => 'value',
+      (item) => `${item.type} ${item.value}`,
+    );
+  });
+export type UpdateSpaceContactsRequest = z.infer<typeof updateSpaceContactsSchema>;

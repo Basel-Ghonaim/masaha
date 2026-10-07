@@ -36,5 +36,7 @@ export function toAdminSpace(
     missingGroups: missingGroups(dates),
     hours: facts.hours,
     prices: facts.prices,
+    amenityIds: facts.amenityIds,
+    contacts: facts.contacts,
   };
 }

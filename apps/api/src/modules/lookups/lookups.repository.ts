@@ -31,6 +31,15 @@ export function createLookupsRepository(db: PrismaClient = prisma) {
       });
       return count === 1;
     },
+
+    /** Of these amenity ids, those of active amenities. */
+    async findActiveAmenityIds(ids: readonly number[], tx: Tx = db): Promise<number[]> {
+      const rows = await tx.amenity.findMany({
+        where: { id: { in: [...ids] }, isActive: true },
+        select: { id: true },
+      });
+      return rows.map(({ id }) => id);
+    },
   };
 }
 
