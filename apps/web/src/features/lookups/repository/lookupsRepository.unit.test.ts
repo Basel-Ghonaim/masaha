@@ -118,6 +118,20 @@ describe('the lookups repository', () => {
     expect(requests[0]).toMatchObject({ method: 'get', url: '/admin/amenities' });
   });
 
+  it('POSTs a new amenity’s names, icon and filter flag, and resolves to the amenity added', async () => {
+    const request = {
+      nameAr: 'إنترنت',
+      nameEn: 'Internet',
+      icon: 'wifi' as const,
+      isFilterable: false,
+    };
+    const requests = serve({ status: 201, data: { success: true, data: WIFI } });
+
+    await expect(createLookupsRepository().addAmenity(request)).resolves.toEqual(WIFI);
+    expect(requests[0]).toMatchObject({ method: 'post', url: '/admin/amenities' });
+    expect(bodyOf(requests[0])).toEqual(request);
+  });
+
   it('PATCHes an amenity with the fields to change, and resolves to it', async () => {
     const off = { ...WIFI, isFilterable: true };
     const requests = serve({ status: 200, data: { success: true, data: off } });

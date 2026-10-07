@@ -24,6 +24,7 @@ export const LOOKUPS = {
     title: 'Amenities',
     /** The card's line under its title. */
     description: '“In filters” is off for what nearly every space has: it tells no space apart.',
+    add: 'Add amenity',
     empty: 'No amenities yet',
     emptyHint: 'Add the first amenity.',
     loadFailed: 'We couldn’t load the amenities',
@@ -63,6 +64,7 @@ export const LOOKUPS = {
     editGovernorate: 'Edit governorate',
     addArea: 'Add area',
     editArea: 'Edit area',
+    addAmenity: 'Add amenity',
     editAmenity: 'Edit amenity',
     /** An amenity's icon, chosen from a grid. */
     icon: 'Icon',
@@ -82,11 +84,19 @@ export const LOOKUPS = {
     saveFailed: 'We couldn’t save',
     fieldErrors: {
       nameAr: { too_short: 'Enter the Arabic name' },
-      nameEn: { too_short: 'Enter the English name' },
+      nameEn: {
+        too_short: 'Enter the English name',
+        /** A new amenity's English name that yields no key. */
+        invalid_format: 'Use Latin letters or digits in the English name',
+      },
+      /** A new amenity's icon, still to choose. */
+      icon: { invalid_choice: 'Choose an icon' },
       /** Another governorate, hidden or not, has the Arabic name. */
       governorateTaken: 'Another governorate has this Arabic name',
       /** Another area of the same governorate has the Arabic name. */
       areaTaken: 'Another area of this governorate has this Arabic name',
+      /** Another amenity, retired or not, has the key this English name yields. */
+      amenityTaken: 'Another amenity has this English name',
     },
   },
   /** Each amenity icon's name, as its option in the grid is called. */

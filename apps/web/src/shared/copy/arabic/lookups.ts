@@ -26,6 +26,7 @@ export const LOOKUPS = {
     title: 'المرافق',
     description:
       '«في الفلاتر» متوقف لما يتوفر في كل المساحات تقريبًا، لأنه لا يميّز مساحة عن أخرى.',
+    add: 'إضافة مرفق',
     empty: 'لا مرافق بعد',
     emptyHint: 'أضف أول مرفق.',
     loadFailed: 'تعذّر تحميل المرافق',
@@ -55,6 +56,7 @@ export const LOOKUPS = {
     editGovernorate: 'تعديل محافظة',
     addArea: 'إضافة منطقة',
     editArea: 'تعديل منطقة',
+    addAmenity: 'إضافة مرفق',
     editAmenity: 'تعديل مرفق',
     icon: 'الأيقونة',
     inFilters: 'في الفلاتر',
@@ -70,9 +72,14 @@ export const LOOKUPS = {
     saveFailed: 'تعذّر الحفظ',
     fieldErrors: {
       nameAr: { too_short: 'أدخل الاسم بالعربية' },
-      nameEn: { too_short: 'أدخل الاسم بالإنجليزية' },
+      nameEn: {
+        too_short: 'أدخل الاسم بالإنجليزية',
+        invalid_format: 'استخدم حروفًا لاتينية أو أرقامًا في الاسم الإنجليزي',
+      },
+      icon: { invalid_choice: 'اختر أيقونة' },
       governorateTaken: 'توجد محافظة أخرى بهذا الاسم العربي',
       areaTaken: 'توجد منطقة أخرى في هذه المحافظة بهذا الاسم العربي',
+      amenityTaken: 'يوجد مرفق آخر بهذا الاسم الإنجليزي',
     },
   },
   icons: {

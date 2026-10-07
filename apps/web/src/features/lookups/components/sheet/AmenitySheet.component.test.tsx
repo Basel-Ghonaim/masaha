@@ -111,6 +111,35 @@ describe('the amenity’s sheet', () => {
     );
   });
 
+  it('adds an amenity with empty names, no icon chosen, in the filters, and no Active switch', async () => {
+    await renderSection();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add amenity' }));
+
+    const sheet = await screen.findByRole('dialog', { name: 'Add amenity' });
+    expect(within(sheet).getByRole('textbox', { name: 'Name in Arabic' })).toHaveValue('');
+    expect(within(sheet).getByRole('textbox', { name: 'Name in English' })).toHaveValue('');
+    const icons = within(sheet).getByRole('radiogroup', { name: 'Icon' });
+    expect(within(icons).queryByRole('radio', { checked: true })).not.toBeInTheDocument();
+    expect(within(sheet).getByRole('switch', { name: 'In filters' })).toBeChecked();
+    expect(within(sheet).queryByRole('switch', { name: 'Active' })).not.toBeInTheDocument();
+  });
+
+  it('asks for an icon when none is chosen, the grid taking the focus', async () => {
+    await renderSection();
+    await userEvent.click(screen.getByRole('button', { name: 'Add amenity' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Add amenity' });
+
+    await userEvent.type(within(sheet).getByRole('textbox', { name: 'Name in Arabic' }), 'شاي');
+    await userEvent.type(within(sheet).getByRole('textbox', { name: 'Name in English' }), 'Tea');
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+    await within(sheet).findByText('Choose an icon');
+    const icons = within(sheet).getByRole('radiogroup', { name: 'Icon' });
+    expect(icons).toHaveAccessibleDescription('Choose an icon');
+    expect(within(icons).getByRole('radio', { name: 'Wi-Fi' })).toHaveFocus();
+  });
+
   it('has no accessibility violations while open', async () => {
     await renderSection();
     const sheet = await editInternet();

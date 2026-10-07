@@ -1,14 +1,16 @@
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
+import type { SheetView } from '../../types/SheetView';
 import { useAmenitiesQuery } from './useAmenitiesQuery';
 import { useAmenityListFailure } from './useAmenityListFailure';
 
 /**
  * The amenities section, ready to render: its state (loading, failed, empty or the list), the
- * amenities in order, retired ones included, the words of each state, the failure of an order, and
- * whether every row waits out a 429 (`blocked`). Each row prepares its own amenity, and its own
- * failure. A failure to load is read as any refusal is, with its line, its request's reference and,
- * for too many requests, the wait, during which the retry waits too.
+ * amenities in order, retired ones included, the words of each state, the sheet that adds an
+ * amenity, the failure of an order, and whether every row waits out a 429 (`blocked`). Each row
+ * prepares its own amenity, and its own failure. A failure to load is read as any refusal is, with
+ * its line, its request's reference and, for too many requests, the wait, during which the retry
+ * waits too.
  */
 export function useAmenitiesSection() {
   const copy = useCopy();
@@ -30,6 +32,11 @@ export function useAmenitiesSection() {
           ? ('empty' as const)
           : ('ready' as const),
     amenities,
+    add: {
+      trigger: copy.lookups.amenities.add,
+      title: copy.lookups.sheet.addAmenity,
+      closeLabel: copy.lookups.sheet.close,
+    } satisfies SheetView,
     title: copy.lookups.amenities.title,
     description: copy.lookups.amenities.description,
     loadingLabel: copy.status.loading,

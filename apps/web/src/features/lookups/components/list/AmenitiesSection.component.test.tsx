@@ -204,6 +204,25 @@ describe('AmenitiesSection', () => {
     expect(screen.getByText('Add the first amenity.')).toBeInTheDocument();
   });
 
+  it.each([
+    { state: 'loading', answer: () => deferred<FakeAnswer>().promise },
+    { state: 'failed', answer: () => refused(403, { type: 'forbidden' }) },
+    { state: 'empty', answer: () => ok([]) },
+    { state: 'ready', answer: () => ok([INTERNET, HALLS]) },
+  ])('offers one add button in its header while $state', async ({ answer }) => {
+    renderSection(answer);
+
+    const section = screen.getByRole('region', { name: 'Amenities' });
+    await waitFor(() => {
+      expect(within(section).getAllByRole('button', { name: 'Add amenity' })).toHaveLength(1);
+    });
+    expect(
+      within(section)
+        .getByRole('button', { name: 'Add amenity' })
+        .compareDocumentPosition(within(section).getByRole('heading', { name: 'Amenities' })),
+    ).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+  });
+
   it('has no accessibility violations', async () => {
     const { container } = renderSection();
     await rows();

@@ -3,6 +3,7 @@ import type {
   AdminArea,
   AdminGovernorate,
   AdminGovernorateWithAreas,
+  CreateAmenityRequest,
   CreateAreaRequest,
   CreateGovernorateRequest,
   UpdateAmenityRequest,
@@ -29,6 +30,8 @@ export interface LookupsRepository {
   orderAreas(governorateId: number, ids: number[]): Promise<undefined>;
   /** Every amenity, retired ones included, in order. */
   amenities(): Promise<AdminAmenity[]>;
+  /** Adds an amenity, active and placed last; the server derives its key from its English name. */
+  addAmenity(request: CreateAmenityRequest): Promise<AdminAmenity>;
   /** Edits an amenity, retires it or restores it; what is absent is kept, and its key never changes. */
   editAmenity(id: number, request: UpdateAmenityRequest): Promise<AdminAmenity>;
   /** Sets the amenities' order: every amenity's id, retired ones included, first to last. */
@@ -47,6 +50,7 @@ export function createLookupsRepository(): LookupsRepository {
     orderAreas: (governorateId, ids) =>
       api.put<undefined>(`/admin/governorates/${String(governorateId)}/areas/order`, { ids }),
     amenities: () => api.get<AdminAmenity[]>('/admin/amenities'),
+    addAmenity: (request) => api.post<AdminAmenity>('/admin/amenities', request),
     editAmenity: (id, request) =>
       api.patch<AdminAmenity>(`/admin/amenities/${String(id)}`, request),
     orderAmenities: (ids) => api.put<undefined>('/admin/amenities/order', { ids }),

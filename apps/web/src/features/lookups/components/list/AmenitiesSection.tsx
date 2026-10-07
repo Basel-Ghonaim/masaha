@@ -9,13 +9,17 @@ import {
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
 import { useAmenitiesSection } from '../../hooks/list/useAmenitiesSection';
+import { AddAmenityForm } from '../sheet/AddAmenityForm';
+import { LookupSheet } from '../sheet/LookupSheet';
 import { AmenitiesLoading } from './AmenitiesLoading';
 import { AmenityRow } from './AmenityRow';
 
 /**
- * The admin's amenities: one card with its title and its line, then the failure of an order, and one
- * row per amenity, in order, retired ones included, each with its own failure. Self-contained, with its own
- * loading, failed and empty states, so a page can set it beside the other lookup lists.
+ * The admin's amenities: one card with its title, its line and the sheet that adds an amenity, then
+ * the failure of an order, and one row per amenity, in order, retired ones included, each with its
+ * own failure. Self-contained, with its own loading, failed and empty states, so a page can set it
+ * beside the other lookup lists. The add button sits in the header whatever the state, so the sheet
+ * that adds the first amenity keeps its button, and the focus returns to it.
  */
 export function AmenitiesSection() {
   const section = useAmenitiesSection();
@@ -23,11 +27,16 @@ export function AmenitiesSection() {
   return (
     <section aria-label={section.title}>
       <Card>
-        <CardHeader className="flex flex-col gap-1">
-          <CardTitle>
-            <h2>{section.title}</h2>
-          </CardTitle>
-          <CardDescription>{section.description}</CardDescription>
+        <CardHeader className="flex flex-wrap items-start gap-x-4 gap-y-2">
+          <div className="flex min-w-0 grow basis-60 flex-col gap-1">
+            <CardTitle>
+              <h2>{section.title}</h2>
+            </CardTitle>
+            <CardDescription>{section.description}</CardDescription>
+          </div>
+          <LookupSheet sheet={section.add} variant="primary">
+            {(close) => <AddAmenityForm onSaved={close} />}
+          </LookupSheet>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {section.status === 'loading' && <AmenitiesLoading label={section.loadingLabel} />}

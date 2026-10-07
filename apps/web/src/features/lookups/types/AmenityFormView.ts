@@ -29,7 +29,7 @@ export type AmenityFormView = {
   labels: { nameAr: string; nameEn: string; save: string };
   icon: {
     label: string;
-    /** The icon chosen. */
+    /** The icon chosen, or '' while none is. */
     value: string;
     options: { value: AmenityIconKey; label: string }[];
     disabled: boolean;
