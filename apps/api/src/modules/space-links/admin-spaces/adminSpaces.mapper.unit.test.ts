@@ -11,6 +11,7 @@ const SPACE: ListedSpace = {
   areaId: 4,
   isHidden: false,
   staleGroups: ['prices'],
+  missingGroups: ['contacts'],
   lastUpdatedAt: new Date('2026-10-01T09:00:00Z'),
 };
 const AREA = { id: 4, nameAr: 'النصر', nameEn: 'An-Nasr' };
@@ -27,6 +28,7 @@ describe('toAdminSpaceRow', () => {
       state: 'verified',
       owners: [AHMAD],
       staleGroups: ['prices'],
+      missingGroups: ['contacts'],
       lastUpdatedAt: '2026-10-01T09:00:00.000Z',
     });
   });

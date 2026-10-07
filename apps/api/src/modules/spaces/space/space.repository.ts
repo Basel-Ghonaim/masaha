@@ -46,12 +46,20 @@ export type SpaceCreation = { space: SpaceRecord } | { slugTaken: true };
 /** A space with its soft delete, as a change reads it under its lock. */
 export type LockedSpace = SpaceRecord & { deletedAt: Date | null };
 
+/** A fact group's date column, set when the group is saved or confirmed. */
+export type GroupDateColumn =
+  | 'profileUpdatedAt'
+  | 'hoursUpdatedAt'
+  | 'pricesUpdatedAt'
+  | 'amenitiesUpdatedAt'
+  | 'contactsUpdatedAt';
+
 /** What a change of a space may set. */
-export type SpaceData = Partial<ProfileData> & {
-  profileUpdatedAt?: Date;
-  isHidden?: boolean;
-  deletedAt?: Date | null;
-};
+export type SpaceData = Partial<ProfileData> &
+  Partial<Record<GroupDateColumn, Date>> & {
+    isHidden?: boolean;
+    deletedAt?: Date | null;
+  };
 
 export function createSpaceRepository(db: PrismaClient = prisma) {
   return {
@@ -68,23 +76,21 @@ export function createSpaceRepository(db: PrismaClient = prisma) {
     },
 
     /**
-     * A new space, alone: its settings are written by their own module, after it (finding 11).
-     * Every fact group is dated `now`.
+     * A new space, alone: its settings are written by their own module, after it (finding 11). Its
+     * profile is dated `now`; its other groups have no date, missing until each is first saved.
      */
     async create(
       data: ProfileData & { slug: string },
       now: Date,
       tx: Tx = db,
     ): Promise<SpaceCreation> {
-      const dates = {
-        profileUpdatedAt: now,
-        hoursUpdatedAt: now,
-        pricesUpdatedAt: now,
-        amenitiesUpdatedAt: now,
-        contactsUpdatedAt: now,
-      };
       try {
-        return { space: await tx.space.create({ data: { ...data, ...dates }, select: SPACE }) };
+        return {
+          space: await tx.space.create({
+            data: { ...data, profileUpdatedAt: now },
+            select: SPACE,
+          }),
+        };
       } catch (error) {
         if (isUniqueViolation(error, 'spaces_slug_key')) return { slugTaken: true };
         throw error;

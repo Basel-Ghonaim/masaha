@@ -1,3 +1,5 @@
+export { createConfirmController } from './confirm/confirm.controller.ts';
+export { createConfirmService, type ConfirmService } from './confirm/confirm.service.ts';
 export {
   createListingService,
   type ListedSpace,

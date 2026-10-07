@@ -1,6 +1,6 @@
 import { prisma } from '../../../db/index.ts';
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.ts';
-import type { GroupDates } from '../staleness.ts';
+import type { GroupCutoffs } from '../staleness.ts';
 
 const LISTED = {
   id: true,
@@ -24,8 +24,8 @@ export interface ListingFilter {
   ids?: { in: readonly number[] } | { notIn: readonly number[] };
   isHidden?: boolean;
   areaIds?: readonly number[];
-  /** A space with at least one group older than its cut-off. */
-  staleBefore?: GroupDates;
+  /** A space with at least one group older than its cut-off, or never saved. */
+  staleBefore?: GroupCutoffs;
   /** Part of either name, whatever the case. */
   q?: string;
 }
@@ -51,9 +51,13 @@ function whereOf({
       OR: [
         { profileUpdatedAt: { lt: staleBefore.profile } },
         { hoursUpdatedAt: { lt: staleBefore.hours } },
+        { hoursUpdatedAt: null },
         { pricesUpdatedAt: { lt: staleBefore.prices } },
+        { pricesUpdatedAt: null },
         { amenitiesUpdatedAt: { lt: staleBefore.amenities } },
+        { amenitiesUpdatedAt: null },
         { contactsUpdatedAt: { lt: staleBefore.contacts } },
+        { contactsUpdatedAt: null },
       ],
     });
   }

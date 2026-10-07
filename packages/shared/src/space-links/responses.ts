@@ -33,6 +33,8 @@ export interface AdminSpaceRow {
   owners: { id: number; name: string }[];
   /** The fact groups older than the platform's thresholds. */
   staleGroups: FactGroup[];
+  /** The fact groups never saved. */
+  missingGroups: FactGroup[];
   /** The latest of its fact groups' dates (ISO 8601). */
   lastUpdatedAt: string;
 }

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { lastUpdate, staleCutoffs, staleGroups, type GroupDates } from './staleness.ts';
+import {
+  lastUpdate,
+  missingGroups,
+  staleCutoffs,
+  staleGroups,
+  type GroupDates,
+} from './staleness.ts';
 
 const NOW = new Date('2026-10-06T12:00:00Z');
 const THRESHOLDS = { stalenessDays: 60, priceStalenessDays: 30 };
@@ -50,10 +56,34 @@ describe('staleGroups', () => {
   it('holds a group dated exactly at its cut-off fresh', () => {
     expect(staleGroups(dated(0, { hours: daysAgo(60), prices: daysAgo(30) }), cutoffs)).toEqual([]);
   });
+
+  it('never counts a missing group as stale: it is missing', () => {
+    expect(staleGroups(dated(61, { hours: null, contacts: null }), cutoffs)).toEqual([
+      'profile',
+      'prices',
+      'amenities',
+    ]);
+  });
+});
+
+describe('missingGroups', () => {
+  it('lists the groups never saved, in the groups’ order', () => {
+    expect(missingGroups(dated(0, { contacts: null, hours: null }))).toEqual(['hours', 'contacts']);
+  });
+
+  it('finds none when every group has a date', () => {
+    expect(missingGroups(dated(90))).toEqual([]);
+  });
 });
 
 describe('lastUpdate', () => {
   it('is the latest of the groups’ dates', () => {
     expect(lastUpdate(dated(90, { contacts: daysAgo(3), hours: daysAgo(10) }))).toEqual(daysAgo(3));
+  });
+
+  it('leaves the missing groups out', () => {
+    expect(
+      lastUpdate(dated(90, { hours: null, prices: null, amenities: null, contacts: null })),
+    ).toEqual(daysAgo(90));
   });
 });

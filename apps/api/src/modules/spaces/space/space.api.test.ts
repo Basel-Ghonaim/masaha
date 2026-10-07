@@ -81,9 +81,19 @@ describe.each([
     body: undefined,
     status: 204,
   },
+  ...(['profile', 'hours', 'prices', 'amenities', 'contacts'] as const).map(
+    (group) =>
+      ({
+        name: `POST /spaces/:spaceId/${group}/confirm`,
+        method: 'post',
+        rest: `/${group}/confirm`,
+        body: undefined,
+        status: 200,
+      }) as const,
+  ),
 ] as const)('$name', ({ method, rest, body, status }) => {
   it('answers the ADMIN', async () => {
-    const space = await createSpace();
+    const space = await spaceDated(1);
 
     const response = await adminRequest(app, admin, method, path(space.id, rest), body);
 
@@ -102,7 +112,7 @@ describe.each([
       code: 'PASSWORD_CHANGE_REQUIRED',
     },
   ] as const)('refuses $caller with $status, changing nothing', async (refusal) => {
-    const space = await createSpace();
+    const space = await spaceDated(1);
     const caller = {
       'a guest': () => Promise.resolve(undefined),
       'a USER': () => signIn('USER'),
@@ -132,6 +142,11 @@ describe.each([
       nameEn: 'Focus Hub',
       isHidden: false,
       deletedAt: null,
+      profileUpdatedAt: space.profileUpdatedAt,
+      hoursUpdatedAt: space.hoursUpdatedAt,
+      pricesUpdatedAt: space.pricesUpdatedAt,
+      amenitiesUpdatedAt: space.amenitiesUpdatedAt,
+      contactsUpdatedAt: space.contactsUpdatedAt,
     });
   });
 });
@@ -160,6 +175,7 @@ describe('GET /admin/spaces/:spaceId', () => {
       isVerified: false,
       updatedAt: { profile: at, hours: at, prices: at, amenities: at, contacts: at },
       staleGroups: ['prices'],
+      missingGroups: [],
     });
   });
 

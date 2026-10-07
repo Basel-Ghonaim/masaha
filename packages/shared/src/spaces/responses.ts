@@ -22,8 +22,13 @@ export interface AdminSpace {
   isHidden: boolean;
   /** An owner has joined: the owner edits its profile and facts, and the admin no longer does. */
   isVerified: boolean;
-  /** When each fact group was last saved or confirmed (ISO 8601). */
-  updatedAt: Record<FactGroup, string>;
+  /**
+   * When each fact group was last saved or confirmed (ISO 8601); null while it has never been saved
+   * (the profile always has a date).
+   */
+  updatedAt: Record<FactGroup, string | null>;
   /** The groups older than the platform's thresholds, in the order of `FACT_GROUPS`. */
   staleGroups: FactGroup[];
+  /** The groups never saved, in the order of `FACT_GROUPS`. */
+  missingGroups: FactGroup[];
 }

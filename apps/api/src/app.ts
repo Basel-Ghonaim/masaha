@@ -46,6 +46,8 @@ import {
 import { createPlatformSettingsService } from './modules/platform-settings/index.ts';
 import { createSpaceSettingsService } from './modules/space-settings/index.ts';
 import {
+  createConfirmController,
+  createConfirmService,
   createListingService,
   createProfileController,
   createProfileService,
@@ -209,6 +211,9 @@ export function createApi({
     platformSettings,
     now: clock,
   });
+  // The space's fact groups, each saved alone, through one save path.
+  const facts = { runInTransaction, audit: writeAudit, platformSettings, now: clock };
+  const confirm = createConfirmService(facts);
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const adminSpaces = createAdminSpacesService({
     listing: createListingService({ platformSettings, now: clock }),
@@ -267,6 +272,7 @@ export function createApi({
     createSpacesAdminRouter({
       space: createSpaceController(space),
       profile: createProfileController(profile),
+      confirm: createConfirmController(confirm),
     }),
   );
   api.use('/admin', requireAuth(), requireRole('ADMIN'), admin);

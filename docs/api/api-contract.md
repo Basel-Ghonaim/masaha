@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-07 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -275,6 +275,7 @@ The spaces the admin enters and keeps ([data-model › Spaces](../architecture/d
   An optional text is absent or `null` when there is none; an empty one is `too_short`.
 - **The slug** is derived from `nameEn` when the space is created, and never changes: accents dropped, lowercased, every run of other characters than `a–z` and `0–9` one `-`: the base, at most 60 characters, then any suffix ("Focus Hub" → `focus-hub`). A slug any space holds, a soft-deleted one included, takes the smallest free suffix from 2 (`focus-hub-2`).
 - **Audit:** every change writes its entry in its own transaction ([conventions §6](../backend/conventions.md#6-audit)), named `space.<verb>`, with the space as both the entity and the entry's space.
+- **Freshness:** each fact group (`FactGroup`: `"profile" | "hours" | "prices" | "amenities" | "contacts"`) has its date, renewed when the group is saved or confirmed unchanged. The profile is dated when the space is created; any other group has no date, **missing**, until it is first saved ([data-model › Conventions](../architecture/data-model.md#conventions)).
 
 ```ts
 AdminSpace = {
@@ -286,14 +287,15 @@ AdminSpace = {
   location: { lat: number, lng: number },
   isHidden: boolean,
   isVerified: boolean,             // an active OWNER link (data-model › Derived values)
-  updatedAt: Record<FactGroup, string>,   // FactGroup: "profile" | "hours" | "prices" | "amenities" | "contacts"; ISO 8601
-  staleGroups: FactGroup[]          // older than the platform's thresholds (data-model › Derived values)
+  updatedAt: Record<FactGroup, string | null>,   // ISO 8601; null while the group is missing (never the profile)
+  staleGroups: FactGroup[],         // older than the platform's thresholds (data-model › Derived values)
+  missingGroups: FactGroup[]        // never saved
 }
 ```
 
 #### `POST /admin/spaces` · 🛡
 - **Body:** the profile.
-- **201:** `AdminSpace`: a new space, unverified and shown, every fact group dated now. Its settings are copied from the platform's new-space defaults ([spaces › Behaviour and flows](../features/spaces.md#behaviour-and-flows)). Audited `space.created`, with the profile and the slug in `after`.
+- **201:** `AdminSpace`: a new space, unverified and shown, its profile dated now and its other fact groups missing. Its settings are copied from the platform's new-space defaults ([spaces › Behaviour and flows](../features/spaces.md#behaviour-and-flows)). Audited `space.created`, with the profile and the slug in `after`.
 - **Errors:** `validation` (422), with `errors.nameEn = ["invalid_format"]` for an English name that yields no slug; `conflict` (409), with no code, when creations of the same name at once took the slug it chose three times over.
 
 #### `GET /admin/spaces` · 🛡
@@ -301,7 +303,7 @@ AdminSpace = {
   - `q`: part of either name, whatever the case (1–80 characters);
   - `status`: `verified` or `unverified`, both leaving hidden spaces out, or `hidden`, verified or not;
   - `governorateId`, `areaId`: the spaces of the governorate's areas, hidden ones included, or of one area; both together narrow to that area when it is one of the governorate's, else to none;
-  - `stale`: `true` keeps the spaces with at least one stale fact group.
+  - `stale`: `true` keeps the spaces with at least one stale or missing fact group.
 - **200:** `AdminSpaceRow[]` (`@masaha/shared/space-links`), by English name, with `meta`. A soft-deleted space is never listed. Every filter applies before the page is cut, so every page is full and the total right ([conventions §5](../backend/conventions.md#5-pagination)).
 
   ```ts
@@ -311,6 +313,7 @@ AdminSpace = {
     state: "verified" | "unverified" | "hidden",   // hidden first, whatever its owners
     owners: { id: number, name: string }[],         // its active OWNER links, oldest first
     staleGroups: FactGroup[],
+    missingGroups: FactGroup[],
     lastUpdatedAt: string                           // the latest of its fact groups' dates
   }
   ```
@@ -339,6 +342,11 @@ The endpoints on one space put its links on the request first, without refusing 
 #### `POST /admin/spaces/:spaceId/restore` · 🛡
 - **204:** a soft-deleted space comes back as it was, hidden or not, with its links. Audited `space.restored` (`before`: `deletedAt`). Restoring a space that is not deleted changes nothing.
 - **Errors:** `not_found` (404).
+
+#### `POST /admin/spaces/:spaceId/{profile|hours|prices|amenities|contacts}/confirm` · 🛡
+- «المعلومات ما زالت صحيحة»: the group is confirmed unchanged. One path per group; any other answers `not_found` (404).
+- **200:** `AdminSpace`, the group dated now and nothing else changed. Only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). Audited `space.<group>Confirmed` (`profileConfirmed`, `hoursConfirmed`, …), with the group's date in `before` and `after` (`{ hoursUpdatedAt }`).
+- **Errors:** `conflict` (409), with no code, for a missing group: there is nothing to confirm until it is saved, even empty; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
 
 ## 6. Domain error codes (initial)
 

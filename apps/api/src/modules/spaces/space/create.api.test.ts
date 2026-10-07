@@ -72,7 +72,7 @@ describe('POST /admin/spaces', () => {
     expect(await prisma.space.count()).toBe(1);
   });
 
-  it('creates an unverified, shown space, every group dated now, with its slug from the English name', async () => {
+  it('creates an unverified, shown space, its profile dated now and its other groups missing, with its slug from the English name', async () => {
     const response = await create({
       nameAr: 'فوكس هب',
       descriptionEn: 'Quiet desks.\nA corner for calls.',
@@ -96,8 +96,9 @@ describe('POST /admin/spaces', () => {
       location: { lat: 31.5205, lng: 34.4535 },
       isHidden: false,
       isVerified: false,
-      updatedAt: { profile: at, hours: at, prices: at, amenities: at, contacts: at },
+      updatedAt: { profile: at, hours: null, prices: null, amenities: null, contacts: null },
       staleGroups: [],
+      missingGroups: ['hours', 'prices', 'amenities', 'contacts'],
     });
   });
 

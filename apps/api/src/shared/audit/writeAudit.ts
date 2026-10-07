@@ -1,7 +1,11 @@
 import type { Tx } from '../../db/index.ts';
 
+/** One value an entry records: JSON, so a list, such as a space's prices, is recorded whole. */
+export type AuditValue =
+  string | number | boolean | null | readonly AuditValue[] | { readonly [key: string]: AuditValue };
+
 /** The values an entry records of its entity, before and after the change. */
-export type AuditValues = Readonly<Record<string, string | number | boolean | null>>;
+export type AuditValues = Readonly<Record<string, AuditValue>>;
 
 /** One audited action. The calling service names the action and the entity; the writer knows none. */
 export interface AuditEntry {
