@@ -1,5 +1,5 @@
 import { SidebarText } from '@shared/design-system';
-import type { SpaceChoice } from '../types/SpaceChoice';
+import type { SpaceChoice } from '../../types/SpaceChoice';
 import { SpaceName } from './SpaceName';
 
 /** The space's mark, its initial on a square, and beside it the name and area (not on the rail). */

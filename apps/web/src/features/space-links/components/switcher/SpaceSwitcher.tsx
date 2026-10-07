@@ -13,7 +13,7 @@ import {
   TriangleAlertIcon,
 } from '@shared/design-system';
 import { Link } from 'react-router';
-import { useSpaceSwitcher } from '../hooks/useSpaceSwitcher';
+import { useSpaceSwitcher } from '../../hooks/switcher/useSpaceSwitcher';
 import { SpaceHead } from './SpaceHead';
 import { SpaceName } from './SpaceName';
 
