@@ -18,7 +18,7 @@ This section lists a capability only once it is merged and working. Each line li
 - [Auth](../features/auth.md): register, sign in with a password or with Google, stay signed in across reloads, and reset a forgotten password by an email link.
 - [Users](../features/users.md): the account menu, sign-out, and the change of a temporary password before any other page.
 - [Space links](../features/space-links.md): the spaces a user works at and the space switcher; the admin's spaces list, on the API.
-- [Lookups](../features/lookups.md): the admin's governorates and areas; the amenities and the public catalogue, on the API.
+- [Lookups](../features/lookups.md): the admin's governorates and areas, and amenities; the public catalogue, on the API.
 - [Spaces](../features/spaces.md): the admin's, on the API only: add, edit the profile and the facts (hours and shifts, prices, amenities, contacts), confirm them, hide, delete and restore.
 
 ## Committed scope — v1

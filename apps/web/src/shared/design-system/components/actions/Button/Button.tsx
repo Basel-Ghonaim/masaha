@@ -7,9 +7,10 @@ import { cn } from '../../../lib/cn';
 // A filled variant's hover mixes its fill toward the foreground rather than fading it: fading
 // primary to 90% leaves its label below AA in the light theme, while mixing toward the foreground
 // raises the contrast with the label in both themes. The outline variant is edged like a card,
-// so the edge stays visible in the dark theme, where the plain border is faint.
+// so the edge stays visible in the dark theme, where the plain border is faint. A button marked
+// `aria-disabled`, which waits but keeps its place in the focus order, looks disabled too.
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-(--radius-control) border border-transparent text-label whitespace-nowrap transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-(--radius-control) border border-transparent text-label whitespace-nowrap transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 aria-disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {

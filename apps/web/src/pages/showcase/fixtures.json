@@ -1179,7 +1179,7 @@
         "more": ["As a spreadsheet file", "As a printable page"]
       },
       "tabs": {
-        "title": "Tabs",
+        "title": "Tabs between views",
         "defaultCaption": "Default: pills on a phone, a segmented control from the tablet up",
         "statusLabel": "Filter members by status",
         "statuses": [

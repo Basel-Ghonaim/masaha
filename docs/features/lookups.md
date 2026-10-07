@@ -1,19 +1,19 @@
 # Lookups
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-07 · **Owner:** Basel Ghoneim
 > **Authority:** The `lookups` capability: the bilingual lists of governorates, areas and amenities, the admin's screen that keeps them, and the public catalogue. Its endpoints are owned by the [API contract](../api/api-contract.md#lookups-public); its entities by the [data model](../architecture/data-model.md#lookups).
 > **Scope:** the API module `lookups` (L0); `@masaha/shared/lookups`; the web feature `features/lookups`, for the admin.
 
 ## What it does
 
 - Holds the place list, governorate then area, which covers the Gaza Strip, and the amenities a space may offer, each in Arabic and English, in an order the admin sets, with an active flag. Nothing is deleted: a row is hidden and restored.
-- Lets the admin add, rename, hide, restore and order the governorates, the areas and the amenities, through the API. The web screen keeps the governorates and their areas.
+- Lets the admin add, rename, hide, restore and order the governorates, the areas and the amenities, on the dashboard's lookups page.
 - Answers the public catalogue: what a form or a filter may offer, active rows only.
 - Answers the modules above it: the names of a set of areas, whether an area may take a space, the ids of a governorate's areas, and which amenities are active.
 
 ## Who uses it
 
-- **The admin**, on the dashboard's lookups page, and through the API for the amenities.
+- **The admin**, on the dashboard's lookups page.
 - **Anyone,** through the public catalogue. No page of the site reads it yet.
 - **Other modules:** `spaces` checks a space's area and names it; `space-links` names the areas of the spaces it lists and resolves a governorate filter to its areas.
 
@@ -21,7 +21,7 @@
 
 - **Owns** the `governorates`, `areas` and `amenities` tables, the order of each list, and the amenity icon keys ([`@masaha/shared/lookups`](../architecture/shared-package.md)).
 - **Leaves** a space's own amenities to `spaces`, and "publicly listed", which reads both flags of a space's area, to the [data model](../architecture/data-model.md#derived-values-computed-not-stored).
-- **Leaves** the icons themselves to the design system, which does not import the keys.
+- **Leaves** the icons themselves to the design system, which draws each by its glyph's name and does not import the keys.
 
 ## How it composes the platform
 
@@ -32,12 +32,18 @@
 
 ## Behaviour and flows
 
-**The admin's screen.** The lookups page sets `GovernoratesSection` under its title. The section shows every governorate, hidden ones included, as a card with its areas in order:
+**The admin's screen.** The lookups page sets two tabs under its title, "Governorates and areas" first, then "Amenities", with the page's hint under them; the tab shown is kept in the address (`?tab=amenities`), a missing or unknown one opening the first. Each tab holds one section; the panel left is unmounted, so its failures go with it, while a write already sent completes. `GovernoratesSection` shows every governorate, hidden ones included, as a card with its areas in order:
 - a sheet adds or renames a governorate or an area;
 - each row can be hidden or restored, and moved up or down its list;
 - the section shows its own loading, failure (with "Try again") and empty states.
 
-Nothing changes before the server answers. A write stays pending until the list has been fetched again, and the next action starts from the server's list. While a list's order is pending, every arrow of that list waits, so two orders never race; a card waits out a 429 with every control. A row's failure shows in its card until the next action on that row or list. A 409 on an order means the list changed meanwhile: the list is fetched again, and the card says so. The screen fires no toasts.
+`AmenitiesSection` shows every amenity, retired ones included, in order, in one card:
+- each row shows the amenity's icon, its name in the interface's language with the other as its second line, and a badge when the directory's filter leaves it out or it is retired;
+- each row has two switches, "In filters" and "Active", each named after its amenity with its words beside it, its arrows, and Edit;
+- a sheet adds or edits an amenity: its names, its icon, chosen from a grid of the eight, and both its flags; a new one is in the filters until switched off, and its key, which the server derives from its English name, is never shown;
+- the section shows its own loading, failure (with "Try again") and empty states.
+
+Nothing changes before the server answers. A write stays pending until the list has been fetched again, and the next action starts from the server's list. While a list's order is pending, every arrow of that list waits, so two orders never race; a card waits out a 429 with every control. A failure stands until the next action on its row or list, whatever fails elsewhere: a governorate's or an area's shows in its governorate's card; an amenity's shows in its own row, and an order of the amenities' in their card, above the list. The amenities' card waits out a 429 on any of its rows or its list until that count ends, whatever fails after it. A 409 on an order means the list changed meanwhile: the list is fetched again, and the card says so. The screen fires no toasts.
 
 **The public catalogue** answers what a form or a filter may offer, active rows only ([the contract](../api/api-contract.md#lookups-public)).
 
@@ -53,22 +59,31 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **An amenity's key derives from its English name when it is added,** and never changes. 2026-10-06, #41.
 - **A new row is placed last.** 2026-10-06, #41.
 - **Internet and stable power are not filters** (`isFilterable` off). *Why:* nearly every space has them, so they tell no space apart. 2026-09-30, #16.
-- **The web exports one section** that owns its query, its states and its actions. *Why:* pages compose sections, side by side or under tabs. 2026-10-06, #43.
+- **The web exports one section per list** that owns its query, its states and its actions. *Why:* pages compose sections, side by side or under tabs. 2026-10-06, #43, #49.
 - **The admin's keys start `['admin', 'lookups', …]`.** *Why:* the admin sees hidden rows, which the public's lists leave out. 2026-10-06, #43.
 - **No optimistic update:** a write is pending until the list is fetched again. *Why:* the next action starts from the server's list. 2026-10-06, #43.
 - **A pending order holds every arrow of its list.** *Why:* two orders of one list would race. 2026-10-06, #43.
-- **A row's failure stays in its card** until the next action there; a 409 on an order fetches the list again; no toasts. 2026-10-06, #43, #45.
+- **A governorate's or an area's failure stays in its card** until the next action there; a 409 on an order fetches the list again; no toasts, the amenities' included. 2026-10-06, #43, #45, #49.
+- **An amenity's failure shows in its row; an order's, above the list.** *Why:* the amenities have no card per row, so a failure shown once for the list would not name its amenity, and a later failure elsewhere would hide it. 2026-10-07, #49.
 - **The public catalogue** is the active governorates with their active areas, and the active amenities, in order and unpaginated. *Why:* a bounded catalogue that forms and filters offer whole. 2026-10-06, #44.
+- **An amenity's icon is drawn by its key, as a glyph's name** (the design system's `GlyphIcon`), and the web's typecheck refuses a key the design system cannot draw. *Why:* the directory can draw the same icons without importing this feature, and the design system still knows nothing of amenities ([finding 10](../architecture/findings.md#10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet), resolved). 2026-10-07, #49.
+- **An amenity shows its name in the interface's language first,** the other as its second line. *Why:* amenities are common words; the governorates' English-first rule was made for place names. 2026-10-07, #49.
+- **An amenity's icon is chosen from a visible grid,** a radio group of the eight, each named. *Why:* one of a set, along the arrow keys; filter chips are for filters. 2026-10-07, #49.
+- **A new amenity starts with no icon chosen, and its icon is required.** *Why:* a preselected icon would let the admin save the wrong one unnoticed; the choice is deliberate. 2026-10-07, #49.
+- **The amenities' hooks mirror the governorates', one per operation,** with no hook factory across the lists. *Why:* two lists are too few to generalise. 2026-10-07, #49.
+- **An amenity's two switches sit in its row, each pending on its own write; its arrows wait only on an order.** A governorate's or an area's arrows also wait on its switch; a new admin list copies the amenities'. *Why:* an order sends ids alone, so it cannot race a change of a flag. 2026-10-07, #49.
+- **The page's two sections sit under tabs, the tab kept in the address;** choosing one replaces the address, and the first tab takes no parameter. *Why:* a link or a reload opens the same tab, and Back leaves the page rather than stepping through tabs. The governorates' section needed no change to sit under a tab. 2026-10-07, #49.
+- **The amenities' actions have their own key prefix,** `['admin', 'lookups', 'amenity', …]`. *Why:* neither list reads the other's pending or failed actions. 2026-10-07, #49.
 
 ## Code map
 
 - **API:** `apps/api/src/modules/lookups/`, entry `index.ts`: a folder per list (`governorates/`, `areas/`, `amenities/`) and one for the public `catalogue/`; the pure rules beside them (the exact order, a lookup's change and its audit entries, the list order); the public and admin routers.
 - **Shared:** `packages/shared/src/lookups/`: the requests, the responses and the icon keys.
-- **Web:** `apps/web/src/features/lookups/`, entry `index.ts` (`GovernoratesSection`), mounted by `pages/dashboard/admin/`.
+- **Web:** `apps/web/src/features/lookups/`, entry `index.ts` (`GovernoratesSection`, `AmenitiesSection`), mounted by `pages/dashboard/admin/`; an amenity's icon through `components/AmenityIcon.tsx`.
 
 ## Open findings
 
-- [10](../architecture/findings.md#10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet): the map from an icon key to its icon is not built.
+None.
 
 ## History
 
@@ -80,3 +95,4 @@ Nothing changes before the server answers. A write stays pending until the list 
 - #43 — the admin's governorates screen.
 - #44 — the public catalogue, and what `spaces` and `space-links` read.
 - #45 — duplicate English names accepted.
+- #49 — the admin's amenities, and the icon drawn by its key.

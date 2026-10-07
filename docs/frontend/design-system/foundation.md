@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-10-06
+> **Last Updated:** 2026-10-07
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -56,7 +56,8 @@ apps/web/src/shared/design-system/
   components/
     <category>/       one folder per category (below)
       <ComponentName>/  one folder per component (shadcn-sourced or hand-built), own index.ts
-  icons/              single wrapper over the icon library + mirroring rule
+  icons/              single wrapper over the icon library + mirroring rule; GlyphIcon, an icon by
+                      its glyph's name from a closed set (GlyphName), for data that names its icon
   lib/cn.ts           class-merge helper (lives inside the layer — the layer imports nothing from outside)
   lib/DirectionProvider.tsx  the reading direction for Radix and the icons (§8); not a visual component
   index.ts            the only public surface
@@ -356,7 +357,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 
 | Component | Source | Notes / variants |
 |---|---|---|
-| Button | shadcn | primary, secondary, outline, ghost, destructive, link · sizes sm/md/lg/icon · loading state |
+| Button | shadcn | primary, secondary, outline, ghost, destructive, link · sizes sm/md/lg/icon · loading state · `aria-disabled` (waiting, kept in the focus order) looks disabled |
 | DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side |
 
 ### `fields`
@@ -366,7 +367,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Input, Textarea | shadcn | with error state; `dir` prop for LTR values; Input holds start and end icons and a button (`InputAction`) inside its box |
 | Field | hand-built | Label + control + helper + error, wiring ids and `aria-describedby`; an end slot on the label row; shown disabled with its control |
 | Select / Combobox | shadcn | Area filter, amenity filter (multi-select) · Combobox is a Popover holding cmdk's search and list (shadcn's current `combobox` is built on Base UI, which the layer does not use): `single` closes on a choice, `multiple` stays open · its trigger is drawn like Select's and shows the caller's summary («الحالة: 2 محدّدة»); outside a Field that text names it; `empty` shows a placeholder muted, as on DatePicker's trigger · the search, list and empty text are props (cmdk's default list label is replaced); the search row shows its focus by its divider turning `ring`, not an outline · a chosen option is `aria-checked` with a check at its end, because cmdk keeps `aria-selected` for the highlighted one |
-| Checkbox, RadioGroup, Switch | shadcn | |
+| Checkbox, RadioGroup, Switch | shadcn | Switch: `aria-disabled` (waiting, kept in the focus order) looks disabled |
 | Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
 | ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)) |
 
