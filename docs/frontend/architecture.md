@@ -81,7 +81,7 @@ pages/
     space/          the screens of the space in the URL (OWNER, RECEPTION)
 ```
 
-Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and the pages of `auth/`; in `pages/dashboard` its `index.ts`, `navigation.ts`, the shell, the `/dashboard` redirect, one `PlaceholderPage`, which titles each page from its navigation item until the page is built, and in `admin/` the lookups page ([lookups](../features/lookups.md)). The dashboard's other screens (the rest of `admin/`, and `space/`), `account/` and the space details page are not built yet.
+Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and the pages of `auth/`; in `pages/dashboard` its `index.ts`, `navigation.ts`, the shell, the `/dashboard` redirect, one `PlaceholderPage`, which titles each page from its navigation item until the page is built, and in `admin/` the lookups page ([lookups](../features/lookups.md)) and the spaces page, which composes [space-links](../features/space-links.md)' list with [spaces](../features/spaces.md)' row actions and the [lookups](../features/lookups.md)' place field. The dashboard's other screens (the rest of `admin/`, and `space/`), `account/` and the space details page are not built yet.
 
 - **The site's shell.** The header holds the wordmark, the site's links (home, the directory, about), the language and theme toggles, and sign-in, or the account once signed in. On a phone it shows the menu, the wordmark and the theme toggle, and the menu holds the rest.
 
