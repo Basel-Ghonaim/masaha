@@ -26,6 +26,6 @@ A runbook, not a source of truth: each step links to the section that owns its r
 7. Wait for CI to pass on the pushed head and for GitHub to show `CLEAN` ([workflow §2, Phases](../../../docs/development/workflow.md#phases), phase 5). Then follow `final-report`.
 8. After review fixes:
    - fold the fixes into their commits, and report them as [workflow §3, Commits](../../../docs/development/workflow.md#commits) says;
-   - repeat steps 4, 6 and 7;
+   - repeat step 4, push with `git push --force-with-lease` (the pull request is open, so step 6 does not run again), then step 7;
    - update the PR description to the final state ([workflow §5](../../../docs/development/workflow.md#5-definition-of-done-and-accepted)).
 9. Stop. Never merge, and never create an Issue ([workflow §6](../../../docs/development/workflow.md#6-decision-authority), [workflow §2](../../../docs/development/workflow.md#2-work-item)).
