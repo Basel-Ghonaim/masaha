@@ -1,12 +1,12 @@
 # Engineering Principles
 
-> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
 > **Authority:** Code-design rules for the whole repository. Rules are defaults, not laws: a deviation is allowed when it is deliberate and recorded (an ADR or a finding), never silent.
 
 ## 1. Mindset
 
 Simplicity over cleverness · maintainability first · explicit over magic · design for change.
-**Put the boundary in now; build the generalisation at the second instance.** No registries, strategy layers or abstractions until a second real case exists.
+**Put the boundary in now; build the generalisation at the second instance.** No registries, strategy layers or abstractions until a second real case exists, and no parameter, option or callback that no caller passes.
 
 ## 2. SOLID, in checkable form
 
