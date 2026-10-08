@@ -52,6 +52,7 @@ A substantial item runs these seven phases, in order; a trivial one (§1) goes s
    - the breaks made;
    - the problems met and how they were solved;
    - **anything that behaved unexpectedly,** even unsolved;
+   - the early conflict check (§9, [*Conflicts*](#conflicts));
    - any departure from the prompt, with its reason.
 7. **Review.** The owner and the analyst read the report and the branch. A separate review conversation opens when the PR:
    - touches more than about 25 files;
@@ -180,15 +181,18 @@ Pure refactors that change no behaviour need no documentation update.
 
 The owner may run two AI workers at the same time. These rules keep them from colliding. **Who works on what at a given moment is never recorded** in a document: it changes too often.
 
-- **Two workers:**
-  - **worker A** works in the main folder and carries the critical path;
-  - **worker B** works in one long-lived git worktree, `masaha-b`, and carries items that neither block nor wait for worker A;
+- **Two workers, one layer each:**
+  - **worker A** works in the main folder and builds the web;
+  - **worker B** works in one long-lived git worktree, `masaha-b`, and builds the API, with the schema, the migrations and the seed;
   - one Work Item is one fresh conversation, for either worker. Fixes and rebases for the same PR stay in its conversation; a new conversation is for a new Work Item.
+- **A narrow licence in the other layer,** declared in the plan and approved. For A, for example, a field in a shared schema or a small fix in the API that the screen needs. For B, what breaks in the web when a shared type changes, and the catalogue entries of the error codes it adds ([localisation › Catalogues](../frontend/localisation.md#catalogues)). **A never writes a migration; B never builds a page.**
+- **The contract is the API worker's.** `packages/shared` and the [API contract](../api/api-contract.md) are the contract between the two layers; a change the web needs there is declared in A's plan.
+- **Two items in flight never work in the same layer.** The build map may change shape to keep it so ([v1-mvp › Ordering notes](../plans/v1-mvp.md#ordering-notes)).
 - **Worker B's branches:** between items, its worktree is detached at `origin/main`. Each item cuts its own branch with `git switch --no-track -c <branch> origin/main`. `--no-track` means a plain `git push` can never target `main`. The first push is `git push -u origin <branch>`.
 - **Files:**
   - every Work Item's prompt names the other worker's files;
-  - a file both items need is declared in the plan first and edited minimally, and each side keeps to its own section;
-  - new dependencies on both sides at once are avoided, because `package-lock.json` would conflict.
+  - a file both items need is declared in the plan first and edited minimally, and each side keeps to its own section.
+- **Dependencies:** either worker may add one, declared in its plan (§6), but never both at once. A conflict in `package-lock.json` is never merged by hand: after the rebase, `npm install` regenerates it.
 - **Databases:** the API test lane empties every table before each file ([setup › The API test lane](setup.md#the-api-test-lane)), so two workers never share a database. All live in the shared container ([setup › Database](setup.md#database)), and each folder points at its own through its `apps/api/.env`:
   - worker A uses `masaha_dev` and `masaha_test`;
   - worker B uses `masaha_b_dev` and `masaha_b_test`;
@@ -199,6 +203,12 @@ The owner may run two AI workers at the same time. These rules keep them from co
   - a PR that is clean, and whose CI ran after `main`'s last change, is left ready for review.
 - **After each merge, in the main folder:** `git pull`. After a schema change, also regenerate the Prisma client and apply the new migrations to `masaha_dev` ([setup › Database](setup.md#database)). Without this step, the dev database once fell seven migrations behind the code merged from worktrees.
 - **After worker B's PR merges:** its worktree goes back to detached `origin/main`, and the owner deletes the merged local branch ([§6](#6-decision-authority)). If that merge, or any merge since, changed the schema, regenerate the Prisma client in the worktree and apply the migrations to `masaha_b_dev`.
+
+### Conflicts
+
+- **Early.** At each report, the worker checks its pushed head against every other open PR's head with `git merge-tree --write-tree` ([phase 6](#phases)), and the analyst reads the result. A conflict found then decides the merge order: the branch that merges second takes its rebase with its last push, not as a round of its own after it.
+- **The fast path,** an exception to [phase 4](#phases). A conflict only in documents is resolved by a rebase that keeps both sides, `format:check` alone, and one push, with no lanes: CI runs them. Its target is ten minutes. A conflict in code adds lint and typecheck.
+- **Apart by design.** Each layer appends to its own part of a capability document's *Decisions* and *History* ([documentation rules §5](../architecture/documentation.md#5-capability-documents)), and each prompt gives its worker its own range of finding numbers.
 
 ## 10. AI tooling
 
