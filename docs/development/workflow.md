@@ -1,7 +1,7 @@
 # Workflow
 
-> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
-> **Authority:** How work is executed on Masaha: task classes, the Git lifecycle, scope control, the Definition of Done, decision authority, stop rules and the AI tooling. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
+> **Status:** Active · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
+> **Authority:** How work is executed on Masaha: task classes, a Work Item's phases, the Git lifecycle, scope control, the Definition of Done, decision authority, stop rules and the AI tooling. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
 
 Masaha is built by **one developer (the owner)** with AI assistants. The workflow keeps the discipline of a team process — reviewable units, a clean history, gated decisions — without ceremony a solo project does not need.
 
@@ -28,7 +28,38 @@ Without an Issue, the Work Item's **contract lives in the PR description**:
 - **Acceptance criteria** — a checklist.
 - **Out of scope** — what it deliberately does not do.
 
-For a substantial item, agree the contract **before** implementing: agree → design → decompose → write the contract → implement.
+### Phases
+
+A substantial item runs these seven phases, in order; a trivial one (§1) goes straight to its PR. The skills in [`.claude/skills/`](../../.claude/skills/) walk through them.
+
+1. **Before the prompt** (the owner, with an analyst). The task is explained, its open decisions settled, and the related findings to fold chosen (§4). The prompt carries the task in brief, what to read, the settled decisions, the folded findings, the boundaries with the other worker (§9), and where to save the plan and the report. The prompt names those folders; no document or skill does.
+2. **Plan,** in plan mode: a complete plan with every decision taken. It contains:
+   - the contract (scope, acceptance criteria, out of scope);
+   - a **Stronger decisions** section: any decision of the prompt or of the documents, an ADR's included, within the item's scope, that the worker can make stronger, each with its reason, its cost and a recommendation;
+   - the related findings, each folded or not (§4);
+   - the files, the other layer's included (§9);
+   - each test with the break it catches ([testing §3](testing.md#3-rules-that-bind-every-test)), and a *Review Focus* list: the inputs no planned test exercises;
+   - the commits (§3) and the verification (phase 4);
+   - the decisions it needs from the owner (§6).
+
+   **Saving it.** Plan mode cannot write files, so the worker leaves it with a short summary. The owner's approval of that exit means "save the plan", not "build it". The worker writes the plan to the file the prompt names, before any branch is cut or file edited, and **stops** until the reply comes.
+3. **Implement** the approved plan. Every new test is seen failing first ([testing §3](testing.md#3-rules-that-bind-every-test)).
+4. **Verify locally, before any push.** Every lane, once, one at a time, on the head; `build` and `check:build`; a real run (the browser for the web, real requests for the API). Servers started for the run are stopped afterwards and their ports checked free ([setup › Running a second folder](setup.md#running-a-second-folder)). **The exception:** a change with no code (documents and skills only) runs `format:check` and the link check by hand ([documentation rules §8](../architecture/documentation.md#8-link-integrity)), and nothing else. Anything not run is said, with why.
+5. **Pull request:** push, open it (§3), and wait for CI to pass on the pushed head and for GitHub to show `CLEAN`.
+6. **Report,** only after phase 5. It is saved to the file the prompt names and summarised in the conversation. It gives:
+   - the head and the commits;
+   - what was run and what was not;
+   - the breaks made;
+   - the problems met and how they were solved;
+   - **anything that behaved unexpectedly,** even unsolved;
+   - any departure from the prompt, with its reason.
+7. **Review.** The owner and the analyst read the report and the branch. A separate review conversation opens when the PR:
+   - touches more than about 25 files;
+   - touches authorization or security, a transaction, or the schema;
+   - adds a dependency;
+   - or changes CI or the build checks.
+
+   Otherwise the analyst reviews it. Fixes stay in the worker's conversation (§3, *Commits*; §9).
 
 ### Reading before work
 
@@ -44,7 +75,7 @@ Skipping a document the task needs is a defect, as reading the whole set is.
 
 `main` is always working. Work happens on short-lived branches cut from the latest `main`.
 
-**Branch → Implement → Self-review → Push → PR → Owner review → Merge → Delete branch**
+**Branch → Implement → Self-review and verify locally → Push → PR → CI and `CLEAN` → Report → Owner review → Merge → Delete branch**, as the [phases](#phases) describe.
 
 ### Formats
 
@@ -77,7 +108,7 @@ Closes #n   (only when an Issue exists)
 ### Commits
 - **One commit = one complete, working unit of change** that can be described in one sentence (for example, "add the icon wrapper with RTL mirroring").
 - A unit's code, its tests and the documents that describe it go in the **same** commit. Not one commit per file or per layer (no separate "add tests" or "add docs" commit for the same unit), and not one commit for the whole branch. A typical Work Item has 3–6 commits.
-- Every commit builds and passes lint, typecheck and tests.
+- Lint and typecheck run on each commit; the lanes run once, on the head ([phase 4](#phases)).
 - Stage **by path**; never `git add -A` or `git add .`. Run `git status` before each commit.
 - **Review fixes** on an unmerged PR fold into the commits they correct (fixup and autosquash), never into fix commits, and are reported in ONE "Review fixes" comment, with no replies in threads.
 - **No tool attribution** in any commit, PR, Issue or document.
