@@ -1,6 +1,6 @@
 # Documentation Rules
 
-> **Status:** Active · **Class:** Contract — rules every document in `docs/` follows · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules every document in `docs/` follows · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
 > **Authority:** Where each kind of fact lives, what each category of document owns and must not contain, the document classes, the capability documents' shape, and link integrity. The map of the documents is [README.md](../README.md); *when* a document is updated is owned by [workflow §7](../development/workflow.md#7-documentation-update-triggers). Why the capability documents exist is in [ADR 0018](decisions/0018-capability-documents.md).
 
 ## 1. One home per fact
@@ -74,6 +74,7 @@ A document may declare its class in its header. **A declared class must be true.
   9. *Open findings*: links;
   10. *History*: the PRs.
 - **A section appears only when its code exists.** A capability with no web feature has no web section.
+- ***Decisions* and *History* by layer.** Each has an **API** part and a **Web** part, so the two workers append in different places ([workflow §9](../development/workflow.md#conflicts)); a part appears only when its layer's code exists. Not yet applied: the documents written before 2026-10-08 are aligned in one later item.
 - **About 1,200 words at most,** so it can be read whole before a change.
 - **Read first** when a task changes the capability ([workflow, Reading before work](../development/workflow.md#reading-before-work)).
 

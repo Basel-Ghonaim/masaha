@@ -1,7 +1,7 @@
 # Workflow
 
-> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
-> **Authority:** How work is executed on Masaha: task classes, the Git lifecycle, scope control, the Definition of Done, decision authority, stop rules and the AI tooling. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
+> **Status:** Active · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
+> **Authority:** How work is executed on Masaha: task classes, a Work Item's phases, the Git lifecycle, scope control, the Definition of Done, decision authority, stop rules and the AI tooling. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
 
 Masaha is built by **one developer (the owner)** with AI assistants. The workflow keeps the discipline of a team process — reviewable units, a clean history, gated decisions — without ceremony a solo project does not need.
 
@@ -28,7 +28,39 @@ Without an Issue, the Work Item's **contract lives in the PR description**:
 - **Acceptance criteria** — a checklist.
 - **Out of scope** — what it deliberately does not do.
 
-For a substantial item, agree the contract **before** implementing: agree → design → decompose → write the contract → implement.
+### Phases
+
+A substantial item runs these seven phases, in order; a trivial one (§1) goes straight to its PR. The skills in [`.claude/skills/`](../../.claude/skills/) walk through them.
+
+1. **Before the prompt** (the owner, with an analyst). The task is explained, its open decisions settled, and the related findings to fold chosen (§4). The prompt carries the task in brief, what to read, the settled decisions, the folded findings, the boundaries with the other worker (§9), and where to save the plan and the report. The prompt names those folders; no document or skill does.
+2. **Plan,** in plan mode: a complete plan with every decision taken. It contains:
+   - the contract (scope, acceptance criteria, out of scope);
+   - a **Stronger decisions** section: any decision of the prompt or of the documents, an ADR's included, within the item's scope, that the worker can make stronger, each with its reason, its cost and a recommendation;
+   - the related findings, each folded or not (§4);
+   - the files, the other layer's included (§9);
+   - each test with the break it catches ([testing §3](testing.md#3-rules-that-bind-every-test)), and a *Review Focus* list: the inputs no planned test exercises;
+   - the commits (§3) and the verification (phase 4);
+   - the decisions it needs from the owner (§6).
+
+   **Saving it.** Plan mode cannot write files, so the worker leaves it with a short summary. The owner's approval of that exit means "save the plan", not "build it". The worker writes the plan to the file the prompt names, before any branch is cut or file edited, and **stops** until the reply comes.
+3. **Implement** the approved plan. Every new test is seen failing first ([testing §3](testing.md#3-rules-that-bind-every-test)).
+4. **Verify locally, before any push.** Every lane, once, one at a time, on the head; `build` and `check:build`; a real run (the browser for the web, real requests for the API). Servers started for the run are stopped afterwards and their ports checked free ([setup › Running a second folder](setup.md#running-a-second-folder)). **The exception:** a change with no code (documents and skills only) runs `format:check` and the link check by hand ([documentation rules §8](../architecture/documentation.md#8-link-integrity)), and nothing else. Anything not run is said, with why.
+5. **Pull request:** push, open it (§3), and wait for CI to pass on the pushed head and for GitHub to show `CLEAN`.
+6. **Report,** only after phase 5. It is saved to the file the prompt names and summarised in the conversation. It gives:
+   - the head and the commits;
+   - what was run and what was not;
+   - the breaks made;
+   - the problems met and how they were solved;
+   - **anything that behaved unexpectedly,** even unsolved;
+   - the early conflict check (§9, [*Conflicts*](#conflicts));
+   - any departure from the prompt, with its reason.
+7. **Review.** The owner and the analyst read the report and the branch. A separate review conversation opens when the PR:
+   - touches more than about 25 files;
+   - touches authorization or security, a transaction, or the schema;
+   - adds a dependency;
+   - or changes CI or the build checks.
+
+   Otherwise the analyst reviews it. Fixes stay in the worker's conversation (§3, *Commits*; §9).
 
 ### Reading before work
 
@@ -44,7 +76,7 @@ Skipping a document the task needs is a defect, as reading the whole set is.
 
 `main` is always working. Work happens on short-lived branches cut from the latest `main`.
 
-**Branch → Implement → Self-review → Push → PR → Owner review → Merge → Delete branch**
+**Branch → Implement → Self-review and verify locally → Push → PR → CI and `CLEAN` → Report → Owner review → Merge → Delete branch**, as the [phases](#phases) describe.
 
 ### Formats
 
@@ -77,7 +109,7 @@ Closes #n   (only when an Issue exists)
 ### Commits
 - **One commit = one complete, working unit of change** that can be described in one sentence (for example, "add the icon wrapper with RTL mirroring").
 - A unit's code, its tests and the documents that describe it go in the **same** commit. Not one commit per file or per layer (no separate "add tests" or "add docs" commit for the same unit), and not one commit for the whole branch. A typical Work Item has 3–6 commits.
-- Every commit builds and passes lint, typecheck and tests.
+- Lint and typecheck run on each commit; the lanes run once, on the head ([phase 4](#phases)).
 - Stage **by path**; never `git add -A` or `git add .`. Run `git status` before each commit.
 - **Review fixes** on an unmerged PR fold into the commits they correct (fixup and autosquash), never into fix commits, and are reported in ONE "Review fixes" comment, with no replies in threads.
 - **No tool attribution** in any commit, PR, Issue or document.
@@ -149,15 +181,18 @@ Pure refactors that change no behaviour need no documentation update.
 
 The owner may run two AI workers at the same time. These rules keep them from colliding. **Who works on what at a given moment is never recorded** in a document: it changes too often.
 
-- **Two workers:**
-  - **worker A** works in the main folder and carries the critical path;
-  - **worker B** works in one long-lived git worktree, `masaha-b`, and carries items that neither block nor wait for worker A;
+- **Two workers, one layer each:**
+  - **worker A** works in the main folder and builds the web;
+  - **worker B** works in one long-lived git worktree, `masaha-b`, and builds the API, with the schema, the migrations and the seed;
   - one Work Item is one fresh conversation, for either worker. Fixes and rebases for the same PR stay in its conversation; a new conversation is for a new Work Item.
+- **A narrow licence in the other layer,** declared in the plan and approved. For A, for example, a field in a shared schema or a small fix in the API that the screen needs. For B, what breaks in the web when a shared type changes, and the catalogue entries of the error codes it adds ([localisation › Catalogues](../frontend/localisation.md#catalogues)). **A never writes a migration; B never builds a page.**
+- **The contract is the API worker's.** `packages/shared` and the [API contract](../api/api-contract.md) are the contract between the two layers; a change the web needs there is declared in A's plan.
+- **Two items in flight never work in the same layer.** The build map may change shape to keep it so ([v1-mvp › Ordering notes](../plans/v1-mvp.md#ordering-notes)).
 - **Worker B's branches:** between items, its worktree is detached at `origin/main`. Each item cuts its own branch with `git switch --no-track -c <branch> origin/main`. `--no-track` means a plain `git push` can never target `main`. The first push is `git push -u origin <branch>`.
 - **Files:**
   - every Work Item's prompt names the other worker's files;
-  - a file both items need is declared in the plan first and edited minimally, and each side keeps to its own section;
-  - new dependencies on both sides at once are avoided, because `package-lock.json` would conflict.
+  - a file both items need is declared in the plan first and edited minimally, and each side keeps to its own section.
+- **Dependencies:** either worker may add one, declared in its plan (§6), but never both at once. A conflict in `package-lock.json` is never merged by hand: after the rebase, `npm install` regenerates it.
 - **Databases:** the API test lane empties every table before each file ([setup › The API test lane](setup.md#the-api-test-lane)), so two workers never share a database. All live in the shared container ([setup › Database](setup.md#database)), and each folder points at its own through its `apps/api/.env`:
   - worker A uses `masaha_dev` and `masaha_test`;
   - worker B uses `masaha_b_dev` and `masaha_b_test`;
@@ -168,6 +203,12 @@ The owner may run two AI workers at the same time. These rules keep them from co
   - a PR that is clean, and whose CI ran after `main`'s last change, is left ready for review.
 - **After each merge, in the main folder:** `git pull`. After a schema change, also regenerate the Prisma client and apply the new migrations to `masaha_dev` ([setup › Database](setup.md#database)). Without this step, the dev database once fell seven migrations behind the code merged from worktrees.
 - **After worker B's PR merges:** its worktree goes back to detached `origin/main`, and the owner deletes the merged local branch ([§6](#6-decision-authority)). If that merge, or any merge since, changed the schema, regenerate the Prisma client in the worktree and apply the migrations to `masaha_b_dev`.
+
+### Conflicts
+
+- **Early.** At each report, the worker checks its pushed head against every other open PR's head with `git merge-tree --write-tree` ([phase 6](#phases)), and the analyst reads the result. A conflict found then decides the merge order: the branch that merges second takes its rebase with its last push, not as a round of its own after it.
+- **The fast path,** an exception to [phase 4](#phases). A conflict only in documents is resolved by a rebase that keeps both sides, `format:check` alone, and one push, with no lanes: CI runs them. Its target is ten minutes. A conflict in code adds lint and typecheck.
+- **Apart by design.** Each layer appends to its own part of a capability document's *Decisions* and *History* ([documentation rules §5](../architecture/documentation.md#5-capability-documents)), and each prompt gives its worker its own range of finding numbers.
 
 ## 10. AI tooling
 
@@ -191,9 +232,10 @@ documents ([testing §3](testing.md#3-rules-that-bind-every-test), [§5](#5-defi
   - `verification-before-completion`: every claim names the test or command that proves it (§5).
   - `receiving-code-review`, adapted: each item of a fixes list is verified against the code, and
     pushed back with reasons when it is wrong. The fixes follow [§3, Commits](#commits).
-  - `writing-plans`, in part, inside `start-work-item`'s plan mode: the file map, the interfaces
-    between tasks, no placeholders, and a *Review Focus* list. Not its header, its saved plan files,
-    full code in the plan, a commit per step, or its execution handoff.
+  - `writing-plans`, in part, inside `write-plan`: the file map, the interfaces between tasks, no
+    placeholders, and a *Review Focus* list. Not its header, its plan files' location (the plan is
+    saved where the prompt says, [§2, phase 2](#phases)), full code in the plan, a commit per step,
+    or its execution handoff.
 - **Not used:**
   - `brainstorming`: the analysis round and the Work Item's prompt settle the decisions (§6).
   - `executing-plans` and `subagent-driven-development`: they decide conflicts and carry on, against
