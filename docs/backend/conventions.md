@@ -56,7 +56,7 @@ Inside a module, each layer calls only the one below it.
 | **Service** | Business rules, permission checks via `can()`, mapping to DTOs, audit entries (§6), calls to lower modules' services, transactions when it orchestrates (§8) | Importing Prisma or Express |
 | **Repository** | Prisma queries on the module's own tables only; applies soft-delete filters by default; each function accepts an optional `tx` (§8) | Rules |
 
-**Dependency injection** by factory functions. The composition root passes a service only its real dependencies: the transaction runner, the audit writer, lower modules' services and ports (R5), as in `createService({ runInTransaction, audit, …lower modules' services })`. A service creates its own repository: no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2). The older services (`users`, `sessions`, `space-links`, and `lookups`' area names) still take a repository, and follow in the planned refactor; `users` also takes its password hashing as a parameter that only its unit test passes ([finding 39](../architecture/findings.md#39-the-users-service-takes-a-parameter-only-its-unit-test-passes)).
+**Dependency injection** by factory functions. The composition root passes a service only its real dependencies: the transaction runner, the audit writer, lower modules' services and ports (R5), as in `createService({ runInTransaction, audit, …lower modules' services })`. A service creates its own repository: no parameter exists only for tests ([testing §3](../development/testing.md#3-rules-that-bind-every-test), rule 2). The older services (`users`, `sessions`, `space-links`, and `lookups`' area names) still take a repository, and follow in the planned refactor; `users` also takes its password hashing as a parameter that only its unit test passes ([finding 39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md)).
 
 ## 3. Validation
 
@@ -104,7 +104,7 @@ Inside a module, each layer calls only the one below it.
   - settings changes, for spaces and the platform.
 - **Reading is a module**, `audit` (L5, §7). It owns no table and has a `manage` and an `admin` router.
 - **Privacy is a default-deny allowlist.** The admin sees only the platform event types on the audit module's list, never an entry about a space's customers, visits, subscriptions or payments ([ADR 0002](../architecture/decisions/0002-authorization-model.md), [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). An event type not on the list stays hidden from the admin. The owner sees their space's entries.
-- The owner's audit screen is in v1 scope ([overview.md](../project/overview.md)) but has no design yet ([finding 14](../architecture/findings.md#14-the-owners-audit-screen-has-no-design)).
+- The owner's audit screen is in v1 scope ([overview.md](../project/overview.md)) but has no design yet ([finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md)).
 
 ## 7. Modules
 
@@ -185,7 +185,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 - `runInTransaction` lives in `db/`, next to the Prisma client, and is the one way to open a transaction. The orchestrator's service receives it by injection, like any dependency.
 - The orchestrator opens the transaction and passes `tx` to each lower module's service it calls. Repository functions accept an optional `tx` and use it when it is given.
 - A module called inside an orchestrator's transaction never opens its own.
-- Inside an interactive transaction, write one statement at a time, never a nested create ([finding 11](../architecture/findings.md#11-nested-writes-in-an-interactive-transaction-trigger-a-pg-deprecation-warning)); before `pg`'s major version is upgraded, its guard, `createWithoutNestedWrites.api.test.ts`, is checked.
+- Inside an interactive transaction, write one statement at a time, never a nested create ([finding 11](../architecture/findings/11-nested-writes-in-an-interactive-transaction-trigger-a-pg-deprecation-warning.md)); before `pg`'s major version is upgraded, its guard, `createWithoutNestedWrites.api.test.ts`, is checked.
 
 ### Space access
 
@@ -217,7 +217,7 @@ How the rules of §7–§8 place the capabilities that are easy to misplace.
 - **Personal settings** → `users`, plus `sessions` for signing out everywhere. The theme lives only in the browser.
 - **Space settings** → `space-settings`.
 - **Platform settings** → `platform-settings`:
-  - the key-value `Setting` table, with one typed key catalogue: today the new-space defaults and the two staleness thresholds. The seed writes the platform's contact keys outside it ([finding 40](../architecture/findings.md#40-the-platforms-contact-settings-are-outside-the-typed-catalogue));
+  - the key-value `Setting` table, with one typed key catalogue: today the new-space defaults and the two staleness thresholds. The seed writes the platform's contact keys outside it ([finding 40](../architecture/findings/40-the-platforms-contact-settings-are-outside-the-typed-catalogue.md));
   - an admin router and a public router (the public contact);
   - values only, no rules. The module that consumes a value applies it.
 

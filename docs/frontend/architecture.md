@@ -88,7 +88,7 @@ Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the s
 - **The dashboard's shell.**
   - The sidebar takes the design system's `Sidebar` form for each width. Its header is the space switcher ([`space-links`](../features/space-links.md)) in a space, and the wordmark with "Platform admin" for the admin; its foot links a space's public page (`publicSpacePath`, by its slug), and on a phone holds the language.
   - The top bar holds the drawer's trigger on a phone, the page's title, the language and theme toggles, and the account (`CompactAccountMenu`). **The page fills the title and its own controls** with `PageHeader`, which the shell places in the bar.
-  - A space's navigation lists the pages the user's role at the space in the URL allows (the owner's eleven, reception's four); a space they hold no link to lists none. The owner's audit screen is not listed ([finding 14](../architecture/findings.md#14-the-owners-audit-screen-has-no-design)).
+  - A space's navigation lists the pages the user's role at the space in the URL allows (the owner's eleven, reception's four); a space they hold no link to lists none. The owner's audit screen is not listed ([finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md)).
 
 - **Lazy loading.**
   - A group's `index.ts` exports **route definitions only**. Their components load through React Router's `lazy`, so a visitor to the site never downloads dashboard code.
@@ -147,7 +147,7 @@ Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the s
 
 **The dashboard-only rule:** `pages/site` never imports a dashboard-only capability, so the site never pulls dashboard code in. The dashboard may import any capability. The list above lives in code once, `apps/web/scripts/dashboardOnly.ts`, and two checks hold the rule ([ADR 0011](../architecture/decisions/0011-one-web-app.md)):
 - **lint** refuses a dashboard-only capability in `pages/site`, as it refuses one page group in another (§1);
-- **the build** puts the dashboard's code (the `dashboard` group, its route definitions aside, and the dashboard-only capabilities) in one chunk of its own, loaded lazily; what only the dashboard uses besides, such as TanStack Query's `useQuery`, lands in a chunk the dashboard loads beside it ([finding 27](../architecture/findings.md#27-two-dashboard-chunks-import-each-other)). `check:build` reads the build's manifest: the site's first download, its entry and every chunk the entry imports statically, must not reach the dashboard's chunk, nor a chunk made from a dashboard module. The group's route definitions (`index.ts`, `routes.tsx`, `navigation.ts`, `placeOf.ts`) are in the first download by design, so they hold paths, guards and lazy imports only.
+- **the build** puts the dashboard's code (the `dashboard` group, its route definitions aside, and the dashboard-only capabilities) in one chunk of its own, loaded lazily; what only the dashboard uses besides, such as TanStack Query's `useQuery`, lands in a chunk the dashboard loads beside it ([finding 27](../architecture/findings/27-two-dashboard-chunks-import-each-other.md)). `check:build` reads the build's manifest: the site's first download, its entry and every chunk the entry imports statically, must not reach the dashboard's chunk, nor a chunk made from a dashboard module. The group's route definitions (`index.ts`, `routes.tsx`, `navigation.ts`, `placeOf.ts`) are in the first download by design, so they hold paths, guards and lazy imports only.
 
 ### Capability layout
 

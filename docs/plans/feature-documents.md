@@ -13,7 +13,7 @@
 
 **Non-goals.**
 - No code changes, and no change to what any rule says: facts move or are deleted as duplicates, never reworded into new rules.
-- Records are not rewritten: the plans in this folder, [findings](../architecture/findings.md) and the [ADRs](../architecture/decisions/) keep their text; only a link whose target moves is repointed (decision 9).
+- Records are not rewritten: the plans in this folder, [findings](../architecture/findings/README.md) and the [ADRs](../architecture/decisions/) keep their text; only a link whose target moves is repointed (decision 9).
 - No document for `sessions`, `platform-settings`, `space-settings`, the page groups or the dashboard shell (decision 2).
 - Not adopted: live status in an issue tracker, a version number per document, "constitutional documents", an onboarding document for agents (decision 6).
 
@@ -37,13 +37,13 @@ The owner decided these before this plan (2026-10-06). The strategy document wil
    *Why:* it moves the home of every capability decision and changes the ADR rule, which is long-term, affects every document, and was a real choice against keeping capability facts in the platform documents ([workflow §7, ADR threshold](../development/workflow.md#7-documentation-update-triggers)).
 8. **Security stays whole.** Every rule whose reason is security stays in [security.md](../backend/security.md). A capability's document owns its flow, its experience and its other decisions, and links security.md.
    *Why:* a security review reads one document. Spreading the rules by capability would hide how they fit together, and the threat model is the platform's, not a capability's.
-9. **Records are exempt from moves.** Plans, [findings.md](../architecture/findings.md) and the ADRs record what happened or was decided at a date. Capability documents link them; they are not rewritten, and only a link whose target moves is repointed.
+9. **Records are exempt from moves.** Plans, [findings.md](../architecture/findings/README.md) and the ADRs record what happened or was decided at a date. Capability documents link them; they are not rewritten, and only a link whose target moves is repointed.
    *Why:* rewriting a record changes history. A record that repeats a fact repeats it as of its date, which is not a second home.
 10. **The long *Built:* status lines** in the headers of the contract documents (for example [frontend architecture](../frontend/architecture.md)) are cut to the platform. What a capability built is its document's.
     *Why:* each line grows with every PR, repeats the overview's *Built* list, and makes a rule document carry a changelog.
 11. **Links are checked by hand** in this effort, and a finding records the need for a link checker.
     *Why:* a checker is a new dependency and a CI change, a separate decision ([workflow §6](../development/workflow.md#6-decision-authority)); this effort must not wait for it.
-12. **One file per finding is deferred.** A finding records it; [findings.md](../architecture/findings.md) is the largest document in the set.
+12. **One file per finding is deferred.** A finding records it; [findings.md](../architecture/findings/README.md) is the largest document in the set.
     *Why:* splitting it is a move of a record with many inbound links, separable from this effort ([workflow §8](../development/workflow.md#8-stop-rules)).
 13. **The triggers.** [Workflow §7](../development/workflow.md#7-documentation-update-triggers) gains the capability-document row (decision 5). The [Definition of Done](../development/workflow.md#5-definition-of-done-and-accepted) gains one documentation check: a single home, no duplication, links rather than copies, nothing claimed that is not built. The `start-work-item` skill reads the capability's document first. CLAUDE.md's list of authoritative documents gains the strategy and `docs/features/`.
     *Why:* a rule no trigger enforces decays within a few PRs; these four are the places every Work Item already passes through.
@@ -215,7 +215,7 @@ The inventories found these. Each is corrected in the step that touches its sect
 11. Engineering-principles' naming example is `SpaceDto`, which the shared package's R7 forbids.
 12. Conventions §10 says the space joins the log fields with the first space route. The space routes exist, and the log carries only the user and role.
 13. Setup says real spaces are entered through the admin's screens. Only the API exists.
-14. Conventions §2 says no parameter exists only for tests. The users service takes a `passwords` parameter that only its unit test passes (near [finding 31](../architecture/findings.md#31-the-backend-documents-still-call-for-injecting-a-repository-only-tests-pass)).
+14. Conventions §2 says no parameter exists only for tests. The users service takes a `passwords` parameter that only its unit test passes (near [finding 31](../architecture/findings/31-the-backend-documents-still-call-for-injecting-a-repository-only-tests-pass.md)).
 15. Conventions §9's composed read omits that a governorate filter is resolved to areas first, by `lookups` (CO-6).
 
 ## 5. The decisions index
@@ -259,7 +259,7 @@ Decisions already owned by another document stay there; the capability document 
 | AU20 | No Google client id: no button, no divider, no script | — | #42 | true, `hooks/google-sign-in/useGoogleButton.ts` |
 | AU21 | Google's failures in their own area above the button; closing its window shows nothing | both failure areas alike | #42† | re-checked in the auth step |
 | AU22 | A "linked" toast and a welcome toast, each fired by its hook after the session changes | — | #42 | true, `useGoogleSignIn.ts`, `useRegister.ts` |
-| AU23 | Mutations carrying credentials keep nothing in the cache | passwords never stay ([finding 34](../architecture/findings.md#34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change)) | #45 | true, the four auth mutations |
+| AU23 | Mutations carrying credentials keep nothing in the cache | passwords never stay ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)) | #45 | true, the four auth mutations |
 
 Obsolete, not recorded: keeping the "Forgot password?" link while it led to a 404 (#35), since the page was built in #40.
 
@@ -289,7 +289,7 @@ The account settings page (`GET` and `PATCH /me`) is not built (#36). It is not 
 | SL2 | A hidden space is listed; a deleted one is not | an owner still manages a hidden space | #36† | true, `space-links.service.ts` |
 | SL3 | Names in both languages with the area's; a retired area still names its spaces | — | #36 | true, `modules/lookups/lookups.service.ts` |
 | SL4 | The list is composed from three modules, one query each | the module levels | #36 | true, `space-links.service.ts` |
-| SL5 | A link to a deleted space counts for nothing, in the session's links too; deleting writes nothing in the links | the delete stays reversible | #44† | **changed** from #36, which left [finding 18](../architecture/findings.md#18-whether-a-link-to-a-deleted-space-still-counts) open; true now, `space-links.service.ts` |
+| SL5 | A link to a deleted space counts for nothing, in the session's links too; deleting writes nothing in the links | the delete stays reversible | #44† | **changed** from #36, which left [finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md) open; true now, `space-links.service.ts` |
 | SL6 | The web reads under `['me','spaces']` | the key scopes | #36 | true, `features/space-links/hooks/queryKeys.ts` |
 | SL7 | `space-links` is dashboard-only | — | #39† | true, `apps/web/scripts/dashboardOnly.ts` |
 | SL8 | The switcher lives in this capability: name and area, the other spaces, navigation on a choice, skeleton, retry | — | #39† | true, `features/space-links/index.ts` |
@@ -310,7 +310,7 @@ The account settings page (`GET` and `PATCH /me`) is not built (#36). It is not 
 | LK4 | An order is the whole list of a scope, in one transaction, exact or 409, safe to repeat | — | #41† | true, `modules/lookups/exactOrder.ts` |
 | LK5 | Hide and restore are `isActive` in the same edit; hiding a governorate leaves its areas alone | — | #41† | true, `lookupChange.ts` |
 | LK6 | No new domain codes: a duplicate is 409 `not_unique` on the field | the existing keys suffice | #41† | true |
-| LK7 | Duplicate English names are allowed | small lists, seen whole ([finding 30](../architecture/findings.md#30-a-lookups-english-name-is-not-unique), accepted) | #45 | true |
+| LK7 | Duplicate English names are allowed | small lists, seen whole ([finding 30](../architecture/findings/30-a-lookups-english-name-is-not-unique.md), accepted) | #45 | true |
 | LK8 | An amenity's key derives from its English name at creation and never changes | — | #41† | true, `modules/lookups/amenities/` |
 | LK9 | A new row is placed last | — | #41† | true, `listOrder.ts` |
 | LK10 | The web exports one section that owns its query, states and actions | pages compose sections | #43† | true, `features/lookups/index.ts` |
@@ -321,7 +321,7 @@ The account settings page (`GET` and `PATCH /me`) is not built (#36). It is not 
 | LK15 | The public catalogue: active governorates with their active areas, and active amenities, in order, unpaginated | a bounded catalogue | #44† | true, `app.ts` |
 
 Not recorded:
-- the key-to-icon map in `features/lookups` (#27), which is not built ([finding 10](../architecture/findings.md#10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet));
+- the key-to-icon map in `features/lookups` (#27), which is not built ([finding 10](../architecture/findings/10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet.md));
 - the amenities tab (#43's next item), which is planned, not built.
 
 ### `spaces`

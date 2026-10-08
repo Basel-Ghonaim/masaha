@@ -1,6 +1,6 @@
 # Space Links
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-07 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
 > **Authority:** The `space-links` capability: a user's links to spaces and their role at each ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)), as the session, the caller's own list, the space switcher, the admin's spaces list and the links loader use them. Its endpoints are owned by the [API contract](../api/api-contract.md#managed-spaces); the `SpaceManager` entity and "verified" by the [data model](../architecture/data-model.md#spaces).
 > **Scope:** the API module `space-links` (L2); `@masaha/shared/space-links`; the web feature `features/space-links`, dashboard-only.
 
@@ -52,17 +52,23 @@ Staff (reception accounts) and linking owners are not built.
 
 ## Decisions
 
+### API decisions
+
 - **The caller's spaces are open to any signed-in user:** the active links with the role at each, oldest first. *Why:* the path names no space, so no space middleware applies. 2026-10-04, #36.
 - **A hidden space is listed; a deleted one is not.** *Why:* an owner still manages a hidden space. 2026-10-04, #36.
 - **Names come in both languages, with the area's;** a retired area still names its spaces. 2026-10-04, #36.
 - **The list is composed from three modules, one query each.** *Why:* the module levels, and no N+1. 2026-10-04, #36.
-- **A link to a deleted space counts for nothing,** in the session's links too; deleting a space writes nothing in the links. *Why:* the delete stays reversible, and a restored space has its links again. It replaced #36's open question, under which the two lists disagreed ([finding 18](../architecture/findings.md#18-whether-a-link-to-a-deleted-space-still-counts)). 2026-10-06, #44.
+- **A link to a deleted space counts for nothing,** in the session's links too; deleting a space writes nothing in the links. *Why:* the delete stays reversible, and a restored space has its links again. It replaced #36's open question, under which the two lists disagreed ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). 2026-10-06, #44.
+- **The admin's spaces list is composed here:** the verified and governorate filters resolve to ids first, then `spaces` filters and pages; each row carries its owners, its stale groups and its last update. *Why:* every page full, and the total right. 2026-10-06, #44.
+- **The list's states are lowercase, like its filter.** *Why:* one vocabulary. 2026-10-06, #44.
+- **The links loader runs without its refusal on the admin's space routes,** and gives no links for a deleted space. *Why:* `can()` reads whether a space is verified there too. 2026-10-06, #44.
+
+### Web decisions
+
 - **The web reads under `['me', 'spaces']`.** *Why:* the user's own data, in its key scope. 2026-10-04, #36.
 - **`space-links` is dashboard-only** on the web. 2026-10-05, #39.
 - **The switcher lives in this capability:** name and area, the other spaces, navigation on a choice, a skeleton, a retry. 2026-10-05, #39.
 - **An English-only name shows marked `lang="en"` in the Arabic interface.** *Why:* the space name's language rule ([localisation › Content in two languages](../frontend/localisation.md#content-in-two-languages)). 2026-10-06, #44.
-- **The admin's spaces list is composed here:** the verified and governorate filters resolve to ids first, then `spaces` filters and pages; each row carries its owners, its stale groups and its last update. *Why:* every page full, and the total right. 2026-10-06, #44.
-- **The list's states are lowercase, like its filter.** *Why:* one vocabulary. 2026-10-06, #44.
 - **The admin's list on the web is one section with two slots, filled by the page:** each row's actions and the place field. *Why:* the page mixes three capabilities, so it composes them, and no feature imports another ([architecture §3](../frontend/architecture.md#what-a-feature-exports)); the edit screen and the owner's screens can reuse the seam. 2026-10-07, #50.
 - **The list's filters and page live in the address,** each read by the contract's own rule, an invalid one falling back to its default; a filter replaces the address and returns to the first page, the pages are links. *Why:* a reload, a link or Back shows the same list, and Back leaves the page rather than stepping through filters, as the lookups' tab does. 2026-10-07, #50.
 - **The list's page size is the contract's 20,** and the web does not send it. 2026-10-07, #50.
@@ -72,7 +78,6 @@ Staff (reception accounts) and linking owners are not built.
 - **The search field keeps what was typed;** it changes only when the address reads another search. *Why:* the address's search is trimmed, so a field reset to it after a pause ate the space before the next word (#50's review). 2026-10-08, #50.
 - **When the row that held the focus leaves, the focus moves to the list.** *Why:* a deleted space's row takes its menu with it, and the focus would otherwise fall to the page's start. 2026-10-07, #50.
 - **The admin's list reads under `['admin', 'space-links', 'spaces', request]`,** and the admin's writes on a space refresh the admin scope whole ([spaces › Decisions](spaces.md#decisions)). *Why:* the admin's scope, and no feature names another's keys. 2026-10-07, #50.
-- **The links loader runs without its refusal on the admin's space routes,** and gives no links for a deleted space. *Why:* `can()` reads whether a space is verified there too. 2026-10-06, #44.
 
 ## Code map
 
@@ -82,13 +87,21 @@ Staff (reception accounts) and linking owners are not built.
 
 ## Open findings
 
-- [25](../architecture/findings.md#25-the-signed-in-claims-are-read-by-a-helper-written-twice): its controller keeps its own copy of the signed-in helper.
+- [25](../architecture/findings/25-the-signed-in-claims-are-read-by-a-helper-written-twice.md): its controller keeps its own copy of the signed-in helper.
 
 ## History
+
+### API history
 
 - #25 — the session's active links.
 - #34 — the shared package split by capability.
 - #36 — the caller's spaces.
-- #39 — the space switcher.
 - #44 — the admin's spaces list, the links loader on the admin's routes, and links to deleted spaces.
+- #48 — the missing fact groups on the admin list's rows.
+
+### Web history
+
+- #36 — the caller's spaces.
+- #39 — the space switcher.
+- #44 — an English-only name marked as English in the Arabic interface.
 - #50 — the admin's spaces list on the web.

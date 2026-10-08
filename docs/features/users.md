@@ -1,6 +1,6 @@
 # Users
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
 > **Authority:** The `users` capability: the account, its credentials, who may sign in, the password change and the forced change, the account menu and sign-out. Its endpoints are owned by the [API contract](../api/api-contract.md#me); the `User` entity by the [data model](../architecture/data-model.md#users-and-sessions); every password and sign-in rule by [security.md](../backend/security.md#passwords).
 > **Scope:** the API module `users` (L1); `@masaha/shared/users`; the web feature `features/users`.
 
@@ -43,14 +43,19 @@ The account's settings (`GET` and `PATCH /me`), suspension, role changes and the
 
 ## Decisions
 
+### API decisions
+
 - **`users` owns `User`;** the session's user extends it. *Why:* a lower level must not read a higher one's types. 2026-10-04, #34.
+
+### Web decisions
+
 - **The account menu belongs to `users`,** prepared by one hook. *Why:* the account is this capability's. 2026-10-05, #35.
 - **The forced change's form is `users`',** because `/me/password` is. *Why:* the endpoint's owner owns the form. 2026-10-05, #38.
 - **Sign-out is one action, also offered alone;** the change page's header shows the wordmark and sign-out only. *Why:* the design's screen 18. 2026-10-05, #38.
 - **A compact account menu sits in the dashboard's top bar.** *Why:* the design draws it. 2026-10-05, #39.
 - **The menus lead to the dashboard** for the admin or a user with active links. 2026-10-05, #39.
 - **A "password saved" toast follows the forced change.** 2026-10-06, #42.
-- **The change keeps no password in the cache.** *Why:* passwords never stay in memory after the form ([finding 34](../architecture/findings.md#34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change)). 2026-10-06, #45.
+- **The change keeps no password in the cache.** *Why:* passwords never stay in memory after the form ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)). 2026-10-06, #45.
 
 Owned by security.md and linked: the change's limit and its double check of a pending change, and a Google-only account's first password through the reset email ([security › Passwords](../backend/security.md#passwords)); Google's linking rule ([security › Sign-in methods](../backend/security.md#sign-in-methods)). Owned by the session and linked: sign-out ends the session only once the server agrees ([architecture §4](../frontend/architecture.md#4-session-and-preferences)).
 
@@ -62,14 +67,20 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 
 ## Open findings
 
-- [25](../architecture/findings.md#25-the-signed-in-claims-are-read-by-a-helper-written-twice): its controller keeps its own copy of the signed-in helper.
-- [39](../architecture/findings.md#39-the-users-service-takes-a-parameter-only-its-unit-test-passes): the service takes its password hashing as a parameter only its unit test passes.
+- [25](../architecture/findings/25-the-signed-in-claims-are-read-by-a-helper-written-twice.md): its controller keeps its own copy of the signed-in helper.
+- [39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md): the service takes its password hashing as a parameter only its unit test passes.
 
 ## History
+
+### API history
 
 - #25 — the module: identity, credentials, the password change and the forced change.
 - #31 — two racing first Google sign-ins make one account.
 - #34 — `User` in `@masaha/shared/users`.
+- #35 — the password policy's rules for a checklist.
+
+### Web history
+
 - #35 — the account menu and sign-out on the site.
 - #38 — the forced password change's page and form.
 - #39 — the compact menu in the dashboard.

@@ -75,7 +75,7 @@ apps/web/src/shared/design-system/
 | `overlays` | holds the caller's content above the page | Dialog · AlertDialog · Sheet · Popover · Tooltip |
 | `navigation` | moves between places | Breadcrumb · Tabs · Pagination · Sidebar |
 
-A new component goes in the category of its role: the removable filter tag ([finding 8](../../architecture/findings.md#8-the-stress-tests-applied-filter-tag-has-no-component)) in `display`, charts in `data`. A new category is added only when a role fits none of these.
+A new component goes in the category of its role: the removable filter tag ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) in `display`, charts in `data`. A new category is added only when a role fits none of these.
 
 **Rules:**
 - **Public surface:** consumers import from `@shared/design-system` only, never from inside a component folder.
@@ -318,7 +318,7 @@ When a shadcn component is added, it is adapted before it is used:
 
 ### Adapting the CLI's output
 
-A copy also needs these steps, which the contract above does not cover ([finding 2](../../architecture/findings.md#2-copied-shadcn-components-need-more-than-the-contract-lists)):
+A copy also needs these steps, which the contract above does not cover ([finding 2](../../architecture/findings/2-copied-shadcn-components-need-more-than-the-contract-lists.md)):
 
 - **Source and place.** Take the source from `npx shadcn add <name> --dry-run --view`, so the CLI never installs a package. Move it into its category folder: write it to `components/<category>/<Name>/<Name>.tsx` beside its `index.ts`, the category chosen by its role (§3). Drop `"use client"`.
 - **Merge through the layer's `cn`.** `import { cn } from "cn"` becomes `../../../lib/cn`. The `cn` package is never installed: it lacks the text styles and shadows (§3).
@@ -369,7 +369,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Select / Combobox | shadcn | Area filter, amenity filter (multi-select) · Combobox is a Popover holding cmdk's search and list (shadcn's current `combobox` is built on Base UI, which the layer does not use): `single` closes on a choice, `multiple` stays open · its trigger is drawn like Select's and shows the caller's summary («الحالة: 2 محدّدة»); outside a Field that text names it; `empty` shows a placeholder muted, as on DatePicker's trigger · the search, list and empty text are props (cmdk's default list label is replaced); the search row shows its focus by its divider turning `ring`, not an outline · a chosen option is `aria-checked` with a check at its end, because cmdk keeps `aria-selected` for the highlighted one |
 | Checkbox, RadioGroup, Switch | shadcn | Switch: `aria-disabled` (waiting, kept in the focus order) looks disabled |
 | Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
-| ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)) |
+| ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings/7-the-stress-tests-filter-chips-have-no-component.md)) |
 
 ### `display`
 

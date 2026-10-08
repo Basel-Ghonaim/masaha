@@ -1,6 +1,6 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-07 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
 > **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the row actions of the admin's spaces list.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
@@ -44,7 +44,7 @@ The photos and the owner's side are not built.
 
 **On the web.** `SpaceActionsMenu` is a row's menu in the admin's spaces list: **Hide**, or **Show** for a hidden space, then **Delete**.
 - **Hide and Show** apply at once. The action stays pending until the list has arrived again, then a toast says what changed, by the space's name.
-- **Delete** asks first, in a dialog that opens on Cancel, its title naming the space. Confirmed, the space is deleted; once the list has arrived again, a toast says so with **Undo** for ten seconds, which restores that space, even once its row or the page has gone, and once the list has arrived again a toast says it is restored. Once that restore has settled, the cache keeps no action of the row. It is the only way the interface restores a space ([finding 44](../architecture/findings.md#44-no-screen-restores-a-deleted-space-once-its-toast-has-gone)).
+- **Delete** asks first, in a dialog that opens on Cancel, its title naming the space. Confirmed, the space is deleted; once the list has arrived again, a toast says so with **Undo** for ten seconds, which restores that space, even once its row or the page has gone, and once the list has arrived again a toast says it is restored. Once that restore has settled, the cache keeps no action of the row. It is the only way the interface restores a space ([finding 44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)).
 - **While an action waits,** the row's menu button stays, busy, and keeps the focus; its items wait. The dialog returns the focus to that button.
 - **A failure** shows in a toast that names the action and the space, with the refusal's line and, without a domain code, the request's reference; it stays until it is closed. A 429 on any action, the Undo's restore included, records until when the server refuses, the later of two; until then every row's items wait, and `SpaceActionsHold` shows the wait above the list, whatever fails after it. The time is kept apart from the rows, so a change of filter or page keeps the wait, and a page opened during it counts the time left; once it has passed, it is cleared.
 - **A name** in a toast or the dialog's title is set apart, marked as English when an English-only name sits in an Arabic sentence; the menu button's name is one string, so its space's name is isolated there instead.
@@ -65,6 +65,8 @@ The photos and the owner's side are not built.
 
 ## Decisions
 
+### API decisions
+
 - **The English name is required, the Arabic optional.** *Why:* most spaces are known by an English name. 2026-10-06, #44.
 - **The slug comes from the English name,** with the smallest free suffix, deleted spaces counted, and never changes. *Why:* a slug is a public URL, never reused. 2026-10-06, #44.
 - **The location is required, inside the Gaza Strip's box with a margin.** *Why:* spaces at the edges must pass. 2026-10-06, #44.
@@ -75,7 +77,7 @@ The photos and the owner's side are not built.
 - **The landmark is an optional pair of languages.** *Why:* the owner's answer. 2026-10-06, #44.
 - **Descriptions keep their line breaks.** *Why:* the create form needs paragraphs. 2026-10-06, #44.
 - **"Last update" is the latest of the groups' dates.** 2026-10-06, #44.
-- **A group that can be empty is missing until its first save, never fresh while empty** (F2). *Why:* a new space was shown as up to date with no hours, prices, amenities or contacts ([finding 36](../architecture/findings.md#36-a-new-spaces-empty-fact-groups-count-as-fresh)). Spaces that had rows kept their dates. 2026-10-07, #48.
+- **A group that can be empty is missing until its first save, never fresh while empty** (F2). *Why:* a new space was shown as up to date with no hours, prices, amenities or contacts ([finding 36](../architecture/findings/36-a-new-spaces-empty-fact-groups-count-as-fresh.md)). Spaces that had rows kept their dates. 2026-10-07, #48.
 - **"Stale only" keeps the missing groups too,** and each row says which are missing. *Why:* both need the admin's attention. 2026-10-07, #48.
 - **Every group can be confirmed, the profile included,** each on its own path (D1). *Why:* the edit screen confirms each section, the profile's two among them. 2026-10-07, #48.
 - **Confirming a missing group is refused (409);** saving it empty records "none" (D2). *Why:* "still correct" says nothing of a group never entered. 2026-10-07, #48.
@@ -92,16 +94,19 @@ The photos and the owner's side are not built.
 - **Only an active amenity can be added; a retired one already linked stays until it is removed** (F7). *Why:* a retired amenity keeps its links (data-model). 2026-10-07, #48.
 - **Each group's lists and amounts are capped** (D8), at the sizes the [contract](../api/api-contract.md#spaces-the-admin)'s request bodies give. *Why:* bounded forms, and a guard against a slip of the keyboard. 2026-10-07, #48.
 - **A new space has no hours until they are saved;** the Saturday–Thursday template is the form's starting point, not data (D9). *Why:* a stored template would date hours nobody entered. 2026-10-07, #48.
+- **Every group changes through one save path, the profile's edit included:** the lock, `can()`, the change, the group's date and its audit entry, in one transaction. *Why:* the owner's endpoints (step 5) reuse it (S9). 2026-10-07, #48.
+
+### Web decisions
+
 - **The web's row actions are this capability's,** set by the page in the admin's list's slot ([space-links](space-links.md#decisions)) (L1). *Why:* hiding and deleting a space are its life on the platform; the list is `space-links`' read. 2026-10-07, #50.
 - **An admin's write on a space fetches the whole admin scope again,** and stays pending until it has arrived. *Why:* the list it changes is another capability's, whose keys this one does not name; the front desk refreshes a space's scope the same way ([architecture §7](../frontend/architecture.md#7-server-state)). 2026-10-07, #50.
 - **Each action ends in a toast that names its space:** hidden, shown again, deleted with an Undo (L2), and restored once the Undo succeeds (the owner's alternative 2). *Why:* the design's feedback, a first for the admin's screens, the lookups keeping none; the restored toast confirms the Undo even once the page has changed. 2026-10-07, #50.
-- **The Undo restores that space for ten seconds,** even once its row or the page has gone, and is the only restore in the interface. *Why:* long enough to reach from the keyboard; a later restore has no screen ([finding 44](../architecture/findings.md#44-no-screen-restores-a-deleted-space-once-its-toast-has-gone)). 2026-10-07, #50.
+- **The Undo restores that space for ten seconds,** even once its row or the page has gone, and is the only restore in the interface. *Why:* long enough to reach from the keyboard; a later restore has no screen ([finding 44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)). 2026-10-07, #50.
 - **Delete asks first, and its line says only what is true:** "It leaves the site and this list. You can undo it right after." *Why:* the design's "can be restored" holds only through the toast. The confirmation is destructive, as the design system marks a removal. 2026-10-07, #50.
 - **A failure's toast names the action and the space, and stays until it is closed;** while a 429 counts down on any row, every row's items wait, and the wait shows above the list (L5). *Why:* a table has no room for a failure in its row, a toast outlives the row a delete removes, and a disabled item shows its reason beside it ([foundation §10](../frontend/design-system/foundation.md#10-accessibility-baseline)). 2026-10-07, #50.
 - **A 429's wait is one time, kept in the query cache under the admin's scope (`['admin', 'spaces', 'hold']`),** set by any action's 429 to now plus its wait, the later of two, read as the time left, and cleared once it has passed; each action still leaves the cache with its row (`gcTime: 0`). *Why:* the server holds the window, and the cache keeps its last answer ([architecture › Where state lives](../frontend/architecture.md#where-state-lives)), cleared with the rest of the user's data when the session ends. Read from the failed actions, the wait lifted as soon as a change of filter or page unmounted their rows, and a page opened later counted the whole wait again (the owner's decision after #50's review). 2026-10-08, #50.
 - **A space's name in a toast or the dialog's title carries its language;** in the menu button's name, a string, it is isolated. *Why:* an English-only name in an Arabic sentence ([localisation › Content in two languages](../frontend/localisation.md#content-in-two-languages)). 2026-10-07, #50.
 - **No Edit, Add or owners' items yet** (L7). *Why:* no entry point leads nowhere; they arrive with their screens. 2026-10-07, #50.
-- **Every group changes through one save path, the profile's edit included:** the lock, `can()`, the change, the group's date and its audit entry, in one transaction. *Why:* the owner's endpoints (step 5) reuse it (S9). 2026-10-07, #48.
 
 ## Code map
 
@@ -111,12 +116,17 @@ The photos and the owner's side are not built.
 
 ## Open findings
 
-- [43](../architecture/findings.md#43-two-races-around-a-spaces-facts): a save can land on a space verified a moment before, and a read can mix two states of the hours.
-- [44](../architecture/findings.md#44-no-screen-restores-a-deleted-space-once-its-toast-has-gone): no screen restores a deleted space once its toast has gone.
+- [43](../architecture/findings/43-two-races-around-a-spaces-facts.md): a save can land on a space verified a moment before, and a read can mix two states of the hours.
+- [44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md): no screen restores a deleted space once its toast has gone.
 
 ## History
+
+### API history
 
 - #36 — the summaries of a user's spaces.
 - #44 — the admin's spaces API: create, read, edit, hide, delete and restore, and the listing page.
 - #48 — the facts API: a group missing until saved, each group confirmed, the hours with the shifts, the prices, the amenities and the contacts.
+
+### Web history
+
 - #50 — the web's row actions: hide, show, delete and its Undo.

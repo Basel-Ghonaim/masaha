@@ -15,7 +15,7 @@ import { retryAfterSeconds } from './retryAfter';
 
 // The contract's status for each type (docs/api/api-contract.md §3), read backwards: an answer without
 // the envelope, such as a proxy's 502, is typed by its status alone. The API holds the same table
-// (docs/architecture/findings.md, finding 24).
+// (docs/architecture/findings/24-the-status-of-each-error-type-is-written-twice.md).
 const TYPE_BY_STATUS: Readonly<Partial<Record<number, ErrorType>>> = {
   400: 'bad_request',
   401: 'unauthorized',

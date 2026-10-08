@@ -1,6 +1,6 @@
 # Lookups
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-07 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
 > **Authority:** The `lookups` capability: the bilingual lists of governorates, areas and amenities, the admin's screen that keeps them, and the public catalogue. Its endpoints are owned by the [API contract](../api/api-contract.md#lookups-public); its entities by the [data model](../architecture/data-model.md#lookups).
 > **Scope:** the API module `lookups` (L0); `@masaha/shared/lookups`; the web feature `features/lookups`, for the admin.
 
@@ -52,24 +52,29 @@ Nothing changes before the server answers. A write stays pending until the list 
 
 ## Decisions
 
+### API decisions
+
 - **The amenity icon keys live in `packages/shared`,** and the design system does not import them. *Why:* the key is a contract between the client and the server. 2026-10-02, #27.
 - **The admin's guard is mounted once, on `/admin`;** the lookups services call no `can()`. *Why:* a new admin router cannot forget the guard. 2026-10-06, #41.
 - **The lists are not paginated.** *Why:* they are bounded catalogues of tens of rows, shown whole and grouped. 2026-10-06, #41.
 - **An order is the whole list of its scope,** applied in one transaction, exact or 409, and safe to repeat. *Why:* a missing, extra or repeated id means the list changed since it was read. 2026-10-06, #41.
 - **Hiding and restoring are `isActive` in the same edit;** hiding a governorate leaves its areas' own flags alone. 2026-10-06, #41.
 - **No new domain codes:** a duplicate is 409 with `not_unique` on the field. *Why:* the existing codes suffice. 2026-10-06, #41.
-- **Duplicate English names are allowed.** *Why:* the lists are small and seen whole, so a repeat is seen where it is made ([finding 30](../architecture/findings.md#30-a-lookups-english-name-is-not-unique), accepted). 2026-10-06, #45.
+- **Duplicate English names are allowed.** *Why:* the lists are small and seen whole, so a repeat is seen where it is made ([finding 30](../architecture/findings/30-a-lookups-english-name-is-not-unique.md), accepted). 2026-10-06, #45.
 - **An amenity's key derives from its English name when it is added,** and never changes. 2026-10-06, #41.
 - **A new row is placed last.** 2026-10-06, #41.
 - **Internet and stable power are not filters** (`isFilterable` off). *Why:* nearly every space has them, so they tell no space apart. 2026-09-30, #16.
+- **The public catalogue** is the active governorates with their active areas, and the active amenities, in order and unpaginated. *Why:* a bounded catalogue that forms and filters offer whole. 2026-10-06, #44.
+
+### Web decisions
+
 - **The web exports one section per list** that owns its query, its states and its actions. *Why:* pages compose sections, side by side or under tabs. 2026-10-06, #43, #49.
 - **The admin's keys start `['admin', 'lookups', …]`.** *Why:* the admin sees hidden rows, which the public's lists leave out. 2026-10-06, #43.
 - **No optimistic update:** a write is pending until the list is fetched again. *Why:* the next action starts from the server's list. 2026-10-06, #43.
 - **A pending order holds every arrow of its list.** *Why:* two orders of one list would race. 2026-10-06, #43.
 - **A governorate's or an area's failure stays in its card** until the next action there; a 409 on an order fetches the list again; no toasts, the amenities' included. 2026-10-06, #43, #45, #49.
 - **An amenity's failure shows in its row; an order's, above the list.** *Why:* the amenities have no card per row, so a failure shown once for the list would not name its amenity, and a later failure elsewhere would hide it. 2026-10-07, #49.
-- **The public catalogue** is the active governorates with their active areas, and the active amenities, in order and unpaginated. *Why:* a bounded catalogue that forms and filters offer whole. 2026-10-06, #44.
-- **An amenity's icon is drawn by its key, as a glyph's name** (the design system's `GlyphIcon`), and the web's typecheck refuses a key the design system cannot draw. *Why:* the directory can draw the same icons without importing this feature, and the design system still knows nothing of amenities ([finding 10](../architecture/findings.md#10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet), resolved). 2026-10-07, #49.
+- **An amenity's icon is drawn by its key, as a glyph's name** (the design system's `GlyphIcon`), and the web's typecheck refuses a key the design system cannot draw. *Why:* the directory can draw the same icons without importing this feature, and the design system still knows nothing of amenities ([finding 10](../architecture/findings/10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet.md), resolved). 2026-10-07, #49.
 - **An amenity shows its name in the interface's language first,** the other as its second line. *Why:* amenities are common words; the governorates' English-first rule was made for place names. 2026-10-07, #49.
 - **An amenity's icon is chosen from a visible grid,** a radio group of the eight, each named. *Why:* one of a set, along the arrow keys; filter chips are for filters. 2026-10-07, #49.
 - **A new amenity starts with no icon chosen, and its icon is required.** *Why:* a preselected icon would let the admin save the wrong one unnoticed; the choice is deliberate. 2026-10-07, #49.
@@ -92,13 +97,18 @@ None.
 
 ## History
 
+### API history
+
 - #16 — the amenities' filter flag.
 - #27 — the amenity icon keys in `packages/shared`.
 - #34 — the shared package split by capability.
 - #36 — area names for the caller's spaces.
 - #41 — the admin's lookups API.
-- #43 — the admin's governorates screen.
 - #44 — the public catalogue, and what `spaces` and `space-links` read.
 - #45 — duplicate English names accepted.
+
+### Web history
+
+- #43 — the admin's governorates screen.
 - #49 — the admin's amenities, and the icon drawn by its key.
 - #50 — the place field of the admin's spaces list.

@@ -50,8 +50,8 @@ Each step names its goal and points to what supports it:
   - [ADR 0007](../architecture/decisions/0007-soft-delete.md) (soft delete) and [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md) (access to a space);
   - conventions §9: [new-space defaults](../backend/conventions.md#new-space-defaults) and [composed reads](../backend/conventions.md#composed-reads) (the admin's spaces list).
 - **Closes:**
-  - [finding 10](../architecture/findings.md#10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet): the amenity icons, which the admin's amenity form offers;
-  - [finding 11](../architecture/findings.md#11-nested-writes-in-an-interactive-transaction-trigger-a-pg-deprecation-warning): the first nested write, the admin's space creation.
+  - [finding 10](../architecture/findings/10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet.md): the amenity icons, which the admin's amenity form offers;
+  - [finding 11](../architecture/findings/11-nested-writes-in-an-interactive-transaction-trigger-a-pg-deprecation-warning.md): the first nested write, the admin's space creation.
 - **Settles:** the map: the admin places a space's pin.
 
 ### 3. Public directory
@@ -97,7 +97,7 @@ Each step names its goal and points to what supports it:
   - conventions §9: [the front desk](../backend/conventions.md#the-front-desk-desk), [occupancy](../backend/conventions.md#occupancy-the-spaces-state-now) and [composed reads](../backend/conventions.md#composed-reads) (uncollected visits);
   - conventions [§11](../backend/conventions.md#11-time) (time) and [§13](../backend/conventions.md#13-idempotency-and-concurrency) (idempotency and concurrency);
   - data-model.md: [derived values](../architecture/data-model.md#derived-values-computed-not-stored).
-- **Closes:** [finding 15](../architecture/findings.md#15-the-payments-migration-predates-adr-0015): the first payment is written at a visit's check-out.
+- **Closes:** [finding 15](../architecture/findings/15-the-payments-migration-predates-adr-0015.md): the first payment is written at a visit's check-out.
 - **Settles:** the auto check-out scheduling mechanism, within ADR 0014.
 
 ### 8. Customers and subscriptions
@@ -124,7 +124,7 @@ Each step names its goal and points to what supports it:
   - [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 18 Announcements, 23 Data reports;
   - [admin](../design/SCREENS.md#admin-8): 28 Data reports.
 - **Supported by:** [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md); conventions §9: [data reports](../backend/conventions.md#data-reports) and [composed reads](../backend/conventions.md#composed-reads) (the favourites' cards).
-- **Closes:** [finding 8](../architecture/findings.md#8-the-stress-tests-applied-filter-tag-has-no-component), at the start of the step: the removable filter tag.
+- **Closes:** [finding 8](../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md), at the start of the step: the removable filter tag.
 
 ### 11. Finance, audit and settings
 
@@ -136,7 +136,7 @@ Each step names its goal and points to what supports it:
   - conventions [§6](../backend/conventions.md#6-audit) (audit), [§8](../backend/conventions.md#8-module-rules) (R7, read models) and §9 [settings](../backend/conventions.md#settings-three-screens-three-owners);
   - [ADR 0014](../architecture/decisions/0014-deployment.md) (the response size limit);
   - [overview.md](../project/overview.md#dashboard--owner-and-reception) (what drops first if time is short).
-- **Closes:** [finding 14](../architecture/findings.md#14-the-owners-audit-screen-has-no-design): the owner's audit screen.
+- **Closes:** [finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md): the owner's audit screen.
 - **Settles:** charts and CSV exports.
 
 ### 12. Overviews

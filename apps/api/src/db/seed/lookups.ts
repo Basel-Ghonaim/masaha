@@ -87,9 +87,11 @@ interface AmenitySeed {
   readonly isFilterable?: boolean;
 }
 
-// Icon keys come from the shared list; the web will map each key to the design system's icon of
-// that glyph in build step 2 (docs/architecture/findings.md, finding 10). The directory filter
-// offers every amenity except those nearly every space has (isFilterable: false).
+// Icon keys come from the shared list: each is a glyph's name that the web's design system draws
+// (`GlyphIcon`), and the web's typecheck refuses a key it cannot draw
+// (docs/architecture/findings/10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet.md).
+// The directory filter offers every amenity except those nearly every space has
+// (isFilterable: false).
 export const AMENITIES = [
   // One entry: no fiber or fast distinction.
   { key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi', isFilterable: false },

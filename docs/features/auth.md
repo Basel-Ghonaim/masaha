@@ -1,6 +1,6 @@
 # Auth
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
 > **Authority:** The `auth` capability: the sign-in flows, as an orchestrator with no data of its own: registration, sign-in with a password or with Google, refresh, sign-out, and the forgotten password's recovery. Its endpoints are owned by the [API contract](../api/api-contract.md#session); every rule whose reason is security by [security.md](../backend/security.md); the recovery session's design by [ADR 0017](../architecture/decisions/0017-recovery-session.md).
 > **Scope:** the API module `auth` (L3), with its email and Google ports; `@masaha/shared/auth`; the web feature `features/auth`.
 
@@ -43,11 +43,16 @@
 
 ## Decisions
 
+### API decisions
+
 - **Two racing first Google sign-ins make one account:** the second reads the first's again. *Why:* a CI race answered 401. 2026-10-03, #31.
 - **The recovery is a session the server holds,** behind an `HttpOnly` cookie, its row in `sessions` ([ADR 0017](../architecture/decisions/0017-recovery-session.md)). *Why:* the browser holds no credential, and a reload keeps the step. 2026-10-05, #38.
 - **Checking a link in a browser with no recovery opens one there.** *Why:* most people open the email on another device. 2026-10-05, #38.
 - **The check names the account, masked.** *Why:* the person sees whose password they set before sending it. 2026-10-03, #25; masked since 2026-10-05, #38.
 - **The email goes from a single Gmail account with an app password,** through `nodemailer` and any SMTP relay. *Why:* without a domain of its own, no domain-verified provider is possible ([ADR 0014](../architecture/decisions/0014-deployment.md)), and Gmail's own mail passes DMARC; another account or relay changes configuration, not code. 2026-10-03, #25.
+
+### Web decisions
+
 - **The recovery pages read their step from the server;** nothing in storage; a failed read offers a retry. *Why:* a reload or another tab keeps the step. 2026-10-05, #40.
 - **Only the check holds the reset token,** in memory, dropped on any answer. *Why:* no copy after a verdict. 2026-10-05, #40.
 - **After a reset, this browser's session is refreshed once;** a 401 ends it. *Why:* the reset may have been this account's, or another's. 2026-10-05, #40.
@@ -57,7 +62,7 @@
 - **No Google client id: no button, no divider, no script.** 2026-10-06, #42.
 - **Google's failures show in their own area above the button;** closing its window shows nothing. *Why:* both failure areas read alike. 2026-10-06, #42.
 - **A "linked" toast and a welcome toast,** each fired by its hook after the session changes. 2026-10-06, #42.
-- **Mutations that carry a credential keep nothing in the cache.** *Why:* passwords never stay in memory ([finding 34](../architecture/findings.md#34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change)). 2026-10-06, #45.
+- **Mutations that carry a credential keep nothing in the cache.** *Why:* passwords never stay in memory ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)). 2026-10-06, #45.
 
 Owned by security.md and linked: Google's linking rule ([Sign-in methods](../backend/security.md#sign-in-methods)); the registration and Google limits ([Rate limits](../backend/security.md#rate-limits-fixed-window)); the same answer to every request for a link, another link without an email, the reset's refusal of a token in its body, what a reset ends, the email's caps and no greeting by name ([Passwords](../backend/security.md#passwords)). Owned by the routing and linked: the guards of `/forgot-password` and `/reset-password`, and `RequireGuest` as the landing's one owner ([architecture › Landing and guards](../frontend/architecture.md#landing-and-guards)).
 
@@ -69,18 +74,23 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 
 ## Open findings
 
-- [16](../architecture/findings.md#16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists): the forgotten password's timing.
-- [22](../architecture/findings.md#22-the-reset-emails-words-live-outside-the-webs-copy-catalogue): the email's words outside the copy catalogue.
-- [32](../architecture/findings.md#32-the-google-sign-in-answer-does-not-say-whether-it-created-the-account): no welcome after a first Google sign-in.
-- [33](../architecture/findings.md#33-the-deployments-headers-must-let-googles-sign-in-work): the deployment's headers and Google's sign-in.
+- [16](../architecture/findings/16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists.md): the forgotten password's timing.
+- [22](../architecture/findings/22-the-reset-emails-words-live-outside-the-webs-copy-catalogue.md): the email's words outside the copy catalogue.
+- [32](../architecture/findings/32-the-google-sign-in-answer-does-not-say-whether-it-created-the-account.md): no welcome after a first Google sign-in.
+- [33](../architecture/findings/33-the-deployments-headers-must-let-googles-sign-in-work.md): the deployment's headers and Google's sign-in.
 
 ## History
+
+### API history
 
 - #25 — the authentication API: register, sign-in, Google, refresh, sign-out, the reset by email.
 - #31 — a racing first Google sign-in.
 - #34 — the shared package split by capability.
-- #35 — the sign-in and register forms.
 - #38 — the recovery session.
+
+### Web history
+
+- #35 — the sign-in and register forms.
 - #40 — the recovery pages.
 - #42 — Google sign-in on the web.
 - #45 — no credential kept in the cache.

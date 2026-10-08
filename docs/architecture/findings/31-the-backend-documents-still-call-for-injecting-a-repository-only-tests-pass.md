@@ -1,0 +1,9 @@
+# 31. The backend documents still call for injecting a repository only tests pass
+
+**Status:** Resolved · **Date:** 2026-10-05
+
+**Evidence:** [conventions §2](../../backend/conventions.md#2-layers) wires dependencies by factory functions with defaults, `createService(repo = createRepository(), …)`, so that "tests pass plain-object fakes"; [R8](../../backend/conventions.md#8-module-rules) unit-tests service logic with such fakes; and [testing §3](../../development/testing.md#3-rules-that-bind-every-test), rule 3, says "inject the repository". The owner's rule is that no parameter exists only for tests ([testing §3](../../development/testing.md#3-rules-that-bind-every-test), rule 2): a repository parameter that only tests pass breaks it. The older services (`users`, `sessions`, `space-links`, `spaces`, `lookups`' `areaNamesFor`) still follow §2. The admin's lookups services (S2a-1) no longer do: each creates its repository, its logic is unit-tested in pure helpers, and the services are proven by the API lane on the real database.
+
+**Resolves when:** a docs item aligns conventions §2 and R8 and testing §3 with the rule; the older services follow in the planned refactor.
+
+**Resolution (2026-10-06, H-1):** the documents now follow the rule. [Conventions §2](../../backend/conventions.md#2-layers): a service creates its own repository, and the composition root passes only real dependencies (the transaction runner, the audit writer, lower modules' services, ports); the older services are named as still taking a repository, until the planned refactor. [R8](../../backend/conventions.md#8-module-rules): logic worth unit-testing lives in pure helpers, and the API lane proves services on the real database. [Testing §3](../../development/testing.md#3-rules-that-bind-every-test), rule 3: a seam is a port or the platform's client, never a repository injected for tests.
