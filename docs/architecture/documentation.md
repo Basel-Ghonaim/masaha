@@ -74,7 +74,7 @@ A document may declare its class in its header. **A declared class must be true.
   9. *Open findings*: links;
   10. *History*: the PRs.
 - **A section appears only when its code exists.** A capability with no web feature has no web section.
-- ***Decisions* and *History* by layer.** Each has an **API** part and a **Web** part, so the two workers append in different places ([workflow §9](../development/workflow.md#conflicts)); a part appears only when its layer's code exists. Not yet applied: the documents written before 2026-10-08 are aligned in one later item.
+- ***Decisions* and *History* by layer.** Each has an **API** part and a **Web** part, so the two workers append in different places ([workflow §9](../development/workflow.md#conflicts)); a part appears only when its layer's code exists. The parts are headed *API decisions*, *Web decisions*, *API history* and *Web history*, so each has an anchor of its own. A decision that rules both layers, or `packages/shared`, goes to the API part, since the contract is the API worker's ([workflow §9](../development/workflow.md#9-parallel-work)); a PR that changed both layers is listed in both histories, each line saying what that layer got.
 - **About 1,200 words at most,** so it can be read whole before a change.
 - **Read first** when a task changes the capability ([workflow, Reading before work](../development/workflow.md#reading-before-work)).
 

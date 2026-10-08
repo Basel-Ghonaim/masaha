@@ -1,6 +1,6 @@
 # Users
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
 > **Authority:** The `users` capability: the account, its credentials, who may sign in, the password change and the forced change, the account menu and sign-out. Its endpoints are owned by the [API contract](../api/api-contract.md#me); the `User` entity by the [data model](../architecture/data-model.md#users-and-sessions); every password and sign-in rule by [security.md](../backend/security.md#passwords).
 > **Scope:** the API module `users` (L1); `@masaha/shared/users`; the web feature `features/users`.
 
@@ -43,7 +43,12 @@ The account's settings (`GET` and `PATCH /me`), suspension, role changes and the
 
 ## Decisions
 
+### API decisions
+
 - **`users` owns `User`;** the session's user extends it. *Why:* a lower level must not read a higher one's types. 2026-10-04, #34.
+
+### Web decisions
+
 - **The account menu belongs to `users`,** prepared by one hook. *Why:* the account is this capability's. 2026-10-05, #35.
 - **The forced change's form is `users`',** because `/me/password` is. *Why:* the endpoint's owner owns the form. 2026-10-05, #38.
 - **Sign-out is one action, also offered alone;** the change page's header shows the wordmark and sign-out only. *Why:* the design's screen 18. 2026-10-05, #38.
@@ -67,9 +72,15 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 
 ## History
 
+### API history
+
 - #25 — the module: identity, credentials, the password change and the forced change.
 - #31 — two racing first Google sign-ins make one account.
 - #34 — `User` in `@masaha/shared/users`.
+- #35 — the password policy's rules for a checklist.
+
+### Web history
+
 - #35 — the account menu and sign-out on the site.
 - #38 — the forced password change's page and form.
 - #39 — the compact menu in the dashboard.

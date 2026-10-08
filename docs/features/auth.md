@@ -1,6 +1,6 @@
 # Auth
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
 > **Authority:** The `auth` capability: the sign-in flows, as an orchestrator with no data of its own: registration, sign-in with a password or with Google, refresh, sign-out, and the forgotten password's recovery. Its endpoints are owned by the [API contract](../api/api-contract.md#session); every rule whose reason is security by [security.md](../backend/security.md); the recovery session's design by [ADR 0017](../architecture/decisions/0017-recovery-session.md).
 > **Scope:** the API module `auth` (L3), with its email and Google ports; `@masaha/shared/auth`; the web feature `features/auth`.
 
@@ -43,11 +43,16 @@
 
 ## Decisions
 
+### API decisions
+
 - **Two racing first Google sign-ins make one account:** the second reads the first's again. *Why:* a CI race answered 401. 2026-10-03, #31.
 - **The recovery is a session the server holds,** behind an `HttpOnly` cookie, its row in `sessions` ([ADR 0017](../architecture/decisions/0017-recovery-session.md)). *Why:* the browser holds no credential, and a reload keeps the step. 2026-10-05, #38.
 - **Checking a link in a browser with no recovery opens one there.** *Why:* most people open the email on another device. 2026-10-05, #38.
 - **The check names the account, masked.** *Why:* the person sees whose password they set before sending it. 2026-10-03, #25; masked since 2026-10-05, #38.
 - **The email goes from a single Gmail account with an app password,** through `nodemailer` and any SMTP relay. *Why:* without a domain of its own, no domain-verified provider is possible ([ADR 0014](../architecture/decisions/0014-deployment.md)), and Gmail's own mail passes DMARC; another account or relay changes configuration, not code. 2026-10-03, #25.
+
+### Web decisions
+
 - **The recovery pages read their step from the server;** nothing in storage; a failed read offers a retry. *Why:* a reload or another tab keeps the step. 2026-10-05, #40.
 - **Only the check holds the reset token,** in memory, dropped on any answer. *Why:* no copy after a verdict. 2026-10-05, #40.
 - **After a reset, this browser's session is refreshed once;** a 401 ends it. *Why:* the reset may have been this account's, or another's. 2026-10-05, #40.
@@ -76,11 +81,16 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 
 ## History
 
+### API history
+
 - #25 — the authentication API: register, sign-in, Google, refresh, sign-out, the reset by email.
 - #31 — a racing first Google sign-in.
 - #34 — the shared package split by capability.
-- #35 — the sign-in and register forms.
 - #38 — the recovery session.
+
+### Web history
+
+- #35 — the sign-in and register forms.
 - #40 — the recovery pages.
 - #42 — Google sign-in on the web.
 - #45 — no credential kept in the cache.
