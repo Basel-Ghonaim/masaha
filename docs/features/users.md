@@ -50,7 +50,7 @@ The account's settings (`GET` and `PATCH /me`), suspension, role changes and the
 - **A compact account menu sits in the dashboard's top bar.** *Why:* the design draws it. 2026-10-05, #39.
 - **The menus lead to the dashboard** for the admin or a user with active links. 2026-10-05, #39.
 - **A "password saved" toast follows the forced change.** 2026-10-06, #42.
-- **The change keeps no password in the cache.** *Why:* passwords never stay in memory after the form ([finding 34](../architecture/findings.md#34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change)). 2026-10-06, #45.
+- **The change keeps no password in the cache.** *Why:* passwords never stay in memory after the form ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)). 2026-10-06, #45.
 
 Owned by security.md and linked: the change's limit and its double check of a pending change, and a Google-only account's first password through the reset email ([security › Passwords](../backend/security.md#passwords)); Google's linking rule ([security › Sign-in methods](../backend/security.md#sign-in-methods)). Owned by the session and linked: sign-out ends the session only once the server agrees ([architecture §4](../frontend/architecture.md#4-session-and-preferences)).
 
@@ -62,8 +62,8 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 
 ## Open findings
 
-- [25](../architecture/findings.md#25-the-signed-in-claims-are-read-by-a-helper-written-twice): its controller keeps its own copy of the signed-in helper.
-- [39](../architecture/findings.md#39-the-users-service-takes-a-parameter-only-its-unit-test-passes): the service takes its password hashing as a parameter only its unit test passes.
+- [25](../architecture/findings/25-the-signed-in-claims-are-read-by-a-helper-written-twice.md): its controller keeps its own copy of the signed-in helper.
+- [39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md): the service takes its password hashing as a parameter only its unit test passes.
 
 ## History
 

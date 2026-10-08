@@ -359,7 +359,7 @@ The endpoints on one space put its links on the request first, without refusing 
 - **Errors:** `validation` (422); `not_found` (404), for a soft-deleted space too.
 
 #### `DELETE /admin/spaces/:spaceId` · 🛡
-- **204:** the space is soft-deleted, verified or not ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): it leaves every list and the public, and every link to it counts for nothing, kept as it is ([finding 18](../architecture/findings.md#18-whether-a-link-to-a-deleted-space-still-counts)). Audited `space.deleted` (`after`: `deletedAt`). Deleting a deleted space changes nothing.
+- **204:** the space is soft-deleted, verified or not ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): it leaves every list and the public, and every link to it counts for nothing, kept as it is ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). Audited `space.deleted` (`after`: `deletedAt`). Deleting a deleted space changes nothing.
 - **Errors:** `not_found` (404).
 
 #### `POST /admin/spaces/:spaceId/restore` · 🛡

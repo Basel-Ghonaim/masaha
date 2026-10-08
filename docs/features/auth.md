@@ -57,7 +57,7 @@
 - **No Google client id: no button, no divider, no script.** 2026-10-06, #42.
 - **Google's failures show in their own area above the button;** closing its window shows nothing. *Why:* both failure areas read alike. 2026-10-06, #42.
 - **A "linked" toast and a welcome toast,** each fired by its hook after the session changes. 2026-10-06, #42.
-- **Mutations that carry a credential keep nothing in the cache.** *Why:* passwords never stay in memory ([finding 34](../architecture/findings.md#34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change)). 2026-10-06, #45.
+- **Mutations that carry a credential keep nothing in the cache.** *Why:* passwords never stay in memory ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)). 2026-10-06, #45.
 
 Owned by security.md and linked: Google's linking rule ([Sign-in methods](../backend/security.md#sign-in-methods)); the registration and Google limits ([Rate limits](../backend/security.md#rate-limits-fixed-window)); the same answer to every request for a link, another link without an email, the reset's refusal of a token in its body, what a reset ends, the email's caps and no greeting by name ([Passwords](../backend/security.md#passwords)). Owned by the routing and linked: the guards of `/forgot-password` and `/reset-password`, and `RequireGuest` as the landing's one owner ([architecture › Landing and guards](../frontend/architecture.md#landing-and-guards)).
 
@@ -69,10 +69,10 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 
 ## Open findings
 
-- [16](../architecture/findings.md#16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists): the forgotten password's timing.
-- [22](../architecture/findings.md#22-the-reset-emails-words-live-outside-the-webs-copy-catalogue): the email's words outside the copy catalogue.
-- [32](../architecture/findings.md#32-the-google-sign-in-answer-does-not-say-whether-it-created-the-account): no welcome after a first Google sign-in.
-- [33](../architecture/findings.md#33-the-deployments-headers-must-let-googles-sign-in-work): the deployment's headers and Google's sign-in.
+- [16](../architecture/findings/16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists.md): the forgotten password's timing.
+- [22](../architecture/findings/22-the-reset-emails-words-live-outside-the-webs-copy-catalogue.md): the email's words outside the copy catalogue.
+- [32](../architecture/findings/32-the-google-sign-in-answer-does-not-say-whether-it-created-the-account.md): no welcome after a first Google sign-in.
+- [33](../architecture/findings/33-the-deployments-headers-must-let-googles-sign-in-work.md): the deployment's headers and Google's sign-in.
 
 ## History
 

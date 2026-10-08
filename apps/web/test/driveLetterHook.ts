@@ -6,7 +6,8 @@ import { registerHooks } from 'node:module';
 // On Windows, a Vitest started from a lowercase drive (c:\…, as npm does from such a working
 // directory) loads its runtime from file:///c:/…, while Vite resolves the test files' `vitest` import
 // through the native realpath to file:///C:/…. Node caches modules by URL, so the worker would hold
-// two Vitests and the test files would see no runner (docs/architecture/findings.md, finding 9).
+// two Vitests and the test files would see no runner
+// (docs/architecture/findings/9-every-vitest-lane-fails-when-the-working-directorys-drive-letter-is-lowercase.md).
 // Uppercasing the drive letter gives both spellings one URL. Elsewhere no URL has a drive letter.
 //
 // Remove this hook, and its twin, when Vitest's own guard compares paths case-insensitively or

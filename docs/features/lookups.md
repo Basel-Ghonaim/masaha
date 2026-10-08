@@ -58,7 +58,7 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **An order is the whole list of its scope,** applied in one transaction, exact or 409, and safe to repeat. *Why:* a missing, extra or repeated id means the list changed since it was read. 2026-10-06, #41.
 - **Hiding and restoring are `isActive` in the same edit;** hiding a governorate leaves its areas' own flags alone. 2026-10-06, #41.
 - **No new domain codes:** a duplicate is 409 with `not_unique` on the field. *Why:* the existing codes suffice. 2026-10-06, #41.
-- **Duplicate English names are allowed.** *Why:* the lists are small and seen whole, so a repeat is seen where it is made ([finding 30](../architecture/findings.md#30-a-lookups-english-name-is-not-unique), accepted). 2026-10-06, #45.
+- **Duplicate English names are allowed.** *Why:* the lists are small and seen whole, so a repeat is seen where it is made ([finding 30](../architecture/findings/30-a-lookups-english-name-is-not-unique.md), accepted). 2026-10-06, #45.
 - **An amenity's key derives from its English name when it is added,** and never changes. 2026-10-06, #41.
 - **A new row is placed last.** 2026-10-06, #41.
 - **Internet and stable power are not filters** (`isFilterable` off). *Why:* nearly every space has them, so they tell no space apart. 2026-09-30, #16.
@@ -69,7 +69,7 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **A governorate's or an area's failure stays in its card** until the next action there; a 409 on an order fetches the list again; no toasts, the amenities' included. 2026-10-06, #43, #45, #49.
 - **An amenity's failure shows in its row; an order's, above the list.** *Why:* the amenities have no card per row, so a failure shown once for the list would not name its amenity, and a later failure elsewhere would hide it. 2026-10-07, #49.
 - **The public catalogue** is the active governorates with their active areas, and the active amenities, in order and unpaginated. *Why:* a bounded catalogue that forms and filters offer whole. 2026-10-06, #44.
-- **An amenity's icon is drawn by its key, as a glyph's name** (the design system's `GlyphIcon`), and the web's typecheck refuses a key the design system cannot draw. *Why:* the directory can draw the same icons without importing this feature, and the design system still knows nothing of amenities ([finding 10](../architecture/findings.md#10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet), resolved). 2026-10-07, #49.
+- **An amenity's icon is drawn by its key, as a glyph's name** (the design system's `GlyphIcon`), and the web's typecheck refuses a key the design system cannot draw. *Why:* the directory can draw the same icons without importing this feature, and the design system still knows nothing of amenities ([finding 10](../architecture/findings/10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet.md), resolved). 2026-10-07, #49.
 - **An amenity shows its name in the interface's language first,** the other as its second line. *Why:* amenities are common words; the governorates' English-first rule was made for place names. 2026-10-07, #49.
 - **An amenity's icon is chosen from a visible grid,** a radio group of the eight, each named. *Why:* one of a set, along the arrow keys; filter chips are for filters. 2026-10-07, #49.
 - **A new amenity starts with no icon chosen, and its icon is required.** *Why:* a preselected icon would let the admin save the wrong one unnoticed; the choice is deliberate. 2026-10-07, #49.

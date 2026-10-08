@@ -17,7 +17,7 @@ Four kinds of fact keep their platform home even when one capability applies the
 - **The contract and the data.** Endpoints, payloads and codes are the [API contract](../api/api-contract.md)'s; entities, derived values and constraints the [data model](data-model.md)'s.
 - **Cross-cutting lists** that one reader needs whole, such as the audited actions ([conventions §6](../backend/conventions.md#6-audit)).
 
-**Records are exempt.** An ADR, a finding or a plan records what was decided or found at a date; a fact it repeats is repeated as of that date, not given a second home. A record changes in three ways only: a link whose target moves is repointed; an ADR gains a dated *Revised* line ([workflow §7](../development/workflow.md#7-documentation-update-triggers)); a finding gains its status and a dated resolution ([findings](findings.md)).
+**Records are exempt.** An ADR, a finding or a plan records what was decided or found at a date; a fact it repeats is repeated as of that date, not given a second home. A record changes in three ways only: a link whose target moves is repointed; an ADR gains a dated *Revised* line ([workflow §7](../development/workflow.md#7-documentation-update-triggers)); a finding gains its status and a dated resolution ([findings](findings/README.md)).
 
 ## 2. One owner per kind of fact
 
@@ -35,7 +35,7 @@ Four kinds of fact keep their platform home even when one capability applies the
 | Where a behaviour is tested | [testing.md](../development/testing.md) | |
 | A capability's flows, experience, decisions and code map | its document in `docs/features/` | the map, the overview's *Built* list |
 | A decision that meets the ADR threshold | an ADR in [decisions/](decisions/) | the document that applies it |
-| A divergence between the design and the code | [findings.md](findings.md) | the document it concerns |
+| A divergence between the design and the code | [findings/](findings/README.md) | the document it concerns |
 | The order of a piece of work and its reasons | a plan in `docs/plans/` | |
 
 ## 3. What each category owns
@@ -92,7 +92,7 @@ The threshold and the format are [workflow §7](../development/workflow.md#7-doc
 
 - Links are relative, and point to a heading when the fact sits under one.
 - **A move updates every link to the moved text in the same PR,** records' links included (§1).
-- Links are checked by hand, with a search for each anchor ([finding 37](findings.md#37-links-between-documents-are-checked-by-hand)).
+- Links are checked by hand, with a search for each anchor ([finding 37](findings/37-links-between-documents-are-checked-by-hand.md)).
 - A document never cites a path outside the repository.
 
 ## 9. One entry point

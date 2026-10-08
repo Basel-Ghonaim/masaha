@@ -229,7 +229,7 @@ Its contract was settled in its plan step (2026-09-30) and built on `feat/space-
 - **New-space defaults** ([conventions §9](../backend/conventions.md#new-space-defaults)):
   - the `platform-settings` keys for auto check-out at closing, the visit rounding rule and its minutes, and the cap at the day price, seeded;
   - the seed creates its demo space's settings by copying them.
-- **Documents:** data-model.md's entities, constraints and `Setting` keys, and [finding 12](../architecture/findings.md#12-the-admins-settings-list-a-default-auto-check-out-that-the-model-has-no-place-for) resolved.
+- **Documents:** data-model.md's entities, constraints and `Setting` keys, and [finding 12](../architecture/findings/12-the-admins-settings-list-a-default-auto-check-out-that-the-model-has-no-place-for.md) resolved.
 
 **Acceptance criteria**
 - [ ] On a fresh empty database every migration applies and the seed runs clean, and the new migrations apply on top of F-3b's with the data moved.
@@ -246,7 +246,7 @@ Its contract was settled in its plan step (2026-09-30) and built on `feat/space-
 
 Documentation only. The owner and an analyst decided every open cross-cutting topic, and A-3 records them in their owning documents (2026-10-01):
 - **Deployment:** [ADR 0014](../architecture/decisions/0014-deployment.md), with its rules in [conventions §12](../backend/conventions.md#12-environments) and [security.md](../backend/security.md); built by F-5 (the development ports and proxy) and F-7.
-- **Idempotency and concurrency, and payments: database triggers or services:** [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md), with its rules in [conventions §13](../backend/conventions.md#13-idempotency-and-concurrency) and [finding 15](../architecture/findings.md#15-the-payments-migration-predates-adr-0015).
+- **Idempotency and concurrency, and payments: database triggers or services:** [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md), with its rules in [conventions §13](../backend/conventions.md#13-idempotency-and-concurrency) and [finding 15](../architecture/findings/15-the-payments-migration-predates-adr-0015.md).
 - **Dashboard routes and guards:** [ADR 0016](../architecture/decisions/0016-dashboard-urls.md), with the landing and the guards in [architecture.md §2](../frontend/architecture.md#landing-and-guards).
 - **Time:** [conventions §11](../backend/conventions.md#11-time).
 - **Errors and logging:** [conventions §4](../backend/conventions.md#4-errors) and [§10](../backend/conventions.md#10-logging), the redaction in [security.md](../backend/security.md#http-hardening).
@@ -295,7 +295,7 @@ Drafted briefly here; each gets its full contract in its plan step, once the des
   - the idempotency key's name ([conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)): the Prisma field `requestId` becomes `idempotencyKey`, still mapped to `request_id`, so no migration; the seed and the tests that use it follow.
   - Proven by the unit and API lanes. It has no screen.
 - **F-5b — Authentication on the web**, split in its plan step (2026-10-03) into three Work Items, so the platform exists before any feature uses it, each its own conversation and PR:
-  - after F-5a, and after [finding 9](../architecture/findings.md#9-every-vitest-lane-fails-when-the-working-directorys-drive-letter-is-lowercase)'s fix, which changes the Vitest configuration;
+  - after F-5a, and after [finding 9](../architecture/findings/9-every-vitest-lane-fails-when-the-working-directorys-drive-letter-is-lowercase.md)'s fix, which changes the Vitest configuration;
   - its web dependencies are proposed in each item's plan step: none is in §4.
 - **F-5b1 — The web transport, errors and server state** (`feat/web-transport`):
   - the development ports and proxy ([ADR 0014](../architecture/decisions/0014-deployment.md)), with `setup.md`, `.env.example` and `CLAUDE.md` *Commands*:

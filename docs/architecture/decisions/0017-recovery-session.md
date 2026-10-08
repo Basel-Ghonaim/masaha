@@ -24,4 +24,4 @@ The endpoints are owned by the [API contract](../../api/api-contract.md#the-forg
 ## Consequences
 - A second credential, the recovery's key, exists beside the link. It is only ever in an `HttpOnly`, same-site cookie, and the flow ends with less exposure than it began with: the token leaves the web at the check.
 - The recovery is stored by the module that owns the other tokens. It keeps only a masked address and a digest of the address, never the address itself.
-- The reset email is still sent before the answer, because no work may run after a response ([ADR 0014](0014-deployment.md)). So the timing can still tell whether an account exists ([finding 16](../findings.md#16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists)).
+- The reset email is still sent before the answer, because no work may run after a response ([ADR 0014](0014-deployment.md)). So the timing can still tell whether an account exists ([finding 16](../findings/16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists.md)).

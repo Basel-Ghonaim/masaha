@@ -227,7 +227,7 @@ Each item also meets the same bar:
 ### WI-8 — Data and dates · `feat/ds-data` · L
 
 - **Components:** Table · DataTable · Combobox (single and multi) · Calendar · DatePicker · ToggleGroup (filter chips).
-- **ToggleGroup** (added by the owner in WI-7, [finding 7](../../architecture/findings.md#7-the-stress-tests-filter-chips-have-no-component)):
+- **ToggleGroup** (added by the owner in WI-7, [finding 7](../../architecture/findings/7-the-stress-tests-filter-chips-have-no-component.md)):
   - on Radix's ToggleGroup, from the approved `radix-ui` package;
   - chips as in the Admin › Data reports phone filter sheet: `radius-pill`, several selectable at once, a check and the `accent` pair when selected;
   - arrow keys follow the direction.

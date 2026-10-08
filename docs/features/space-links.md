@@ -56,7 +56,7 @@ Staff (reception accounts) and linking owners are not built.
 - **A hidden space is listed; a deleted one is not.** *Why:* an owner still manages a hidden space. 2026-10-04, #36.
 - **Names come in both languages, with the area's;** a retired area still names its spaces. 2026-10-04, #36.
 - **The list is composed from three modules, one query each.** *Why:* the module levels, and no N+1. 2026-10-04, #36.
-- **A link to a deleted space counts for nothing,** in the session's links too; deleting a space writes nothing in the links. *Why:* the delete stays reversible, and a restored space has its links again. It replaced #36's open question, under which the two lists disagreed ([finding 18](../architecture/findings.md#18-whether-a-link-to-a-deleted-space-still-counts)). 2026-10-06, #44.
+- **A link to a deleted space counts for nothing,** in the session's links too; deleting a space writes nothing in the links. *Why:* the delete stays reversible, and a restored space has its links again. It replaced #36's open question, under which the two lists disagreed ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). 2026-10-06, #44.
 - **The web reads under `['me', 'spaces']`.** *Why:* the user's own data, in its key scope. 2026-10-04, #36.
 - **`space-links` is dashboard-only** on the web. 2026-10-05, #39.
 - **The switcher lives in this capability:** name and area, the other spaces, navigation on a choice, a skeleton, a retry. 2026-10-05, #39.
@@ -82,7 +82,7 @@ Staff (reception accounts) and linking owners are not built.
 
 ## Open findings
 
-- [25](../architecture/findings.md#25-the-signed-in-claims-are-read-by-a-helper-written-twice): its controller keeps its own copy of the signed-in helper.
+- [25](../architecture/findings/25-the-signed-in-claims-are-read-by-a-helper-written-twice.md): its controller keeps its own copy of the signed-in helper.
 
 ## History
 
