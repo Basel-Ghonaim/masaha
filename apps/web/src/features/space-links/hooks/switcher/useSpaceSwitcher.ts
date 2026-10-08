@@ -1,7 +1,7 @@
 import { useCopy } from '@shared/copy';
 import { isolate, useLanguage } from '@shared/localisation';
-import { choiceOf } from '../services/choiceOf';
-import { useMySpacesQuery } from './useMySpacesQuery';
+import { choiceOf } from '../../services/choiceOf';
+import { useMySpacesQuery } from '../useMySpacesQuery';
 
 /**
  * The space switcher, ready to render, for the space in the URL (`spaceId`; none when the URL names

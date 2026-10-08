@@ -81,7 +81,7 @@ pages/
     space/          the screens of the space in the URL (OWNER, RECEPTION)
 ```
 
-Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and the pages of `auth/`; in `pages/dashboard` its `index.ts`, `navigation.ts`, the shell, the `/dashboard` redirect, one `PlaceholderPage`, which titles each page from its navigation item until the page is built, and in `admin/` the lookups page ([lookups](../features/lookups.md)). The dashboard's other screens (the rest of `admin/`, and `space/`), `account/` and the space details page are not built yet.
+Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the site shell with `FocusLayout`, the placeholder public pages, and the pages of `auth/`; in `pages/dashboard` its `index.ts`, `navigation.ts`, the shell, the `/dashboard` redirect, one `PlaceholderPage`, which titles each page from its navigation item until the page is built, and in `admin/` the lookups page ([lookups](../features/lookups.md)) and the spaces page, which composes [space-links](../features/space-links.md)' list with [spaces](../features/spaces.md)' row actions and the [lookups](../features/lookups.md)' place field. The dashboard's other screens (the rest of `admin/`, and `space/`), `account/` and the space details page are not built yet.
 
 - **The site's shell.** The header holds the wordmark, the site's links (home, the directory, about), the language and theme toggles, and sign-in, or the account once signed in. On a phone it shows the menu, the wordmark and the theme toggle, and the menu holds the rest.
 
@@ -283,7 +283,7 @@ TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004
   - `['me', …]` for the signed-in user's own;
   - `['public', …]` for the public site's;
   - `['admin', '<capability>', …]` for the admin's views of the platform's data, such as the lookups with their hidden rows: never the public's, whose lists leave those out.
-- **Invalidation:** each feature invalidates only its own keys. `desk`'s operations span several capabilities, so they invalidate the whole `['space', spaceId]` prefix, without importing the other features. A write whose screen shows the list it changes returns that invalidation from its `onSuccess`, so it stays pending until the list has arrived again: its controls wait for the server's answer, and the next action starts from the server's list (the admin's lookups).
+- **Invalidation:** each feature invalidates only its own keys. `desk`'s operations span several capabilities, so they invalidate the whole `['space', spaceId]` prefix, without importing the other features. So does an admin's write whose screen shows another capability's list: it invalidates the whole `['admin']` scope (the admin's actions on a space, whose list is `space-links`'). A write whose screen shows the list it changes returns that invalidation from its `onSuccess`, so it stays pending until the list has arrived again: its controls wait for the server's answer, and the next action starts from the server's list (the admin's lookups).
 - **Retries live in one place, the transport.** TanStack Query's own `retry` is off, for queries and mutations, so attempts never multiply:
   - a `GET`, so every query, is retried;
   - a mutation is retried only when it carries an idempotency key ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). The key is generated once per user action and reused on every retry of it;

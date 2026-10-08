@@ -92,4 +92,9 @@ export const LOOKUPS = {
     presentation: 'لوح عرض',
     'graduation-cap': 'قبعة تخرّج',
   },
+  placeSelect: {
+    all: 'كل المناطق',
+    hidden: ({ name }: { name: string }) => `${name} (مخفية)`,
+    loadFailed: 'تعذّر تحميل المناطق',
+  },
 } satisfies Catalogue['lookups'];

@@ -1,4 +1,5 @@
-import type { ManagedSpace, SessionSpaceLink } from '@masaha/shared/space-links';
+import type { PaginationMeta } from '@masaha/shared/core';
+import type { AdminSpaceRow, ManagedSpace, SessionSpaceLink } from '@masaha/shared/space-links';
 import { createQueryClient } from '@shared/api';
 import { establishSession, restoreSession, type SessionUser } from '@shared/session';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -7,7 +8,8 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { aSession } from '../../test/fakeSession';
-import { fakeTransport, ok, restoreTransport } from '../../test/fakeTransport';
+import type { FakeAnswer } from '../../test/fakeAdapter';
+import { fakeTransport, ok, refused, restoreTransport } from '../../test/fakeTransport';
 import { stubScreenWidth } from '../../test/screenWidth';
 import { setSessionHint } from '../../test/sessionHint';
 import { startPreferences } from '../../test/startPreferences';
@@ -466,6 +468,114 @@ describe("the admin's lookups page", () => {
       screen.getByText(
         'Hidden: not shown in filters and forms. Spaces already using it stay as they are. The order here is the display order.',
       ),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("the admin's spaces page", () => {
+  const PALM: AdminSpaceRow = {
+    id: 9,
+    slug: 'palm-hub',
+    nameEn: 'Palm Hub',
+    nameAr: null,
+    area: { id: 21, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
+    state: 'hidden',
+    owners: [],
+    staleGroups: [],
+    missingGroups: ['hours'],
+    lastUpdatedAt: '2026-09-20T08:00:00Z',
+  };
+  const META: PaginationMeta = {
+    currentPage: 1,
+    limit: 20,
+    totalPages: 1,
+    totalRecords: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
+
+  /** A list's answer: `rows` as page `currentPage` of `totalPages`. */
+  const listOf = (rows: AdminSpaceRow[], currentPage = 1, totalPages = 1): FakeAnswer => ({
+    status: 200,
+    data: {
+      success: true,
+      data: rows,
+      meta: { ...META, currentPage, totalPages, totalRecords: rows.length * totalPages },
+    },
+  });
+
+  /**
+   * The admin, on the spaces page at `search`; the list is answered by `list` from its request's
+   * query, and every write is answered by `write`.
+   */
+  function openSpaces(
+    search: string,
+    list: (query: Record<string, unknown>) => FakeAnswer = () => listOf([PALM]),
+    write: () => FakeAnswer = () => ({ status: 204 }),
+  ) {
+    signIn({ role: 'ADMIN' });
+    fakeTransport((request) =>
+      request.method !== 'get'
+        ? write()
+        : request.url === '/admin/spaces'
+          ? list(request.params as Record<string, unknown>)
+          : ok(
+              request.url === '/admin/governorates'
+                ? [{ id: 2, nameAr: 'محافظة غزة', nameEn: 'Gaza City', isActive: true, areas: [] }]
+                : [],
+            ),
+    );
+    renderDashboard(`/dashboard/admin/spaces${search}`);
+  }
+
+  it('shows the list under its title, each row with its menu, and the place field of the lookups', async () => {
+    openSpaces('');
+
+    expect(await topBarTitle()).toHaveTextContent('Spaces');
+    const table = await screen.findByRole('table', { name: 'Spaces' });
+    expect(await within(table).findByText('Palm Hub')).toBeInTheDocument();
+    await userEvent.click(within(table).getByRole('button', { name: heard('Actions: Palm Hub') }));
+    expect(await screen.findByRole('menuitem', { name: 'Show' })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Governorate / area' }));
+    expect(await screen.findByRole('option', { name: 'Gaza City' })).toBeInTheDocument();
+  });
+
+  it('keeps every menu waiting out a 429 through a change of filter, then of page', async () => {
+    const FOCUS: AdminSpaceRow = { ...PALM, id: 7, nameEn: 'Focus Hub', state: 'verified' };
+    const WHITE: AdminSpaceRow = { ...PALM, id: 12, nameEn: 'White Space', state: 'verified' };
+    openSpaces(
+      '',
+      (query) =>
+        query.status !== 'verified'
+          ? listOf([PALM])
+          : query.page === 2
+            ? listOf([WHITE], 2, 2)
+            : listOf([FOCUS], 1, 2),
+      () => refused(429, { type: 'rate_limit' }, { 'retry-after': '30' }),
+    );
+    const table = await screen.findByRole('table', { name: 'Spaces' });
+    await userEvent.click(
+      await within(table).findByRole('button', { name: heard('Actions: Palm Hub') }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Show' }));
+    await screen.findByText(/Try again in/, { selector: '[data-slot=alert-description]' });
+
+    // Palm Hub's row, the one refused, leaves with the filter; then the page changes.
+    await userEvent.click(screen.getByRole('combobox', { name: 'Status' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Verified' }));
+    await within(table).findByText('Focus Hub');
+    await userEvent.click(screen.getByRole('link', { name: 'Next' }));
+    await within(table).findByText('White Space');
+
+    await userEvent.click(
+      within(table).getByRole('button', { name: heard('Actions: White Space') }),
+    );
+    for (const item of within(await screen.findByRole('menu')).getAllByRole('menuitem')) {
+      expect(item).toHaveAttribute('aria-disabled', 'true');
+    }
+    expect(
+      screen.getByText(/Try again in/, { selector: '[data-slot=alert-description]' }),
     ).toBeInTheDocument();
   });
 });

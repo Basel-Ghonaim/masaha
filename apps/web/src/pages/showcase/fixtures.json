@@ -1234,7 +1234,7 @@
         "more": "Pages left out of the path"
       },
       "pagination": {
-        "title": "Pagination",
+        "title": "Page navigation",
         "caption": "Page numbers from the tablet up; Previous, a summary and Next on a phone",
         "label": "Pages of the members list",
         "previous": "Earlier",
@@ -1440,7 +1440,7 @@
         ]
       },
       "table": {
-        "title": "Tables",
+        "title": "Plain tables",
         "caption": "A muted header row, dense rows, and the accent on the hovered row"
       },
       "dataTable": {

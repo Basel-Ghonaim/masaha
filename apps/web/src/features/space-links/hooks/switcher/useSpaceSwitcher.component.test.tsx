@@ -1,9 +1,9 @@
 import type { ManagedSpace } from '@masaha/shared/space-links';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { startPreferences } from '../../../test/startPreferences';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { queryWrapper } from '../../../../test/queryWrapper';
+import { startPreferences } from '../../../../test/startPreferences';
 import { useSpaceSwitcher } from './useSpaceSwitcher';
 
 const FOCUS: ManagedSpace = {

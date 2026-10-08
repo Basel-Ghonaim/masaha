@@ -12,6 +12,10 @@ import { placeOf } from './placeOf';
 
 /** The admin's pages that have a screen, each loaded lazily; the others show their placeholder. */
 const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
+  spaces: async () => {
+    const { SpacesPage } = await import('./admin/SpacesPage');
+    return { element: <SpacesPage /> };
+  },
   lookups: async () => {
     const { LookupsPage } = await import('./admin/LookupsPage');
     return { element: <LookupsPage /> };

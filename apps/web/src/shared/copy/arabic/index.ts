@@ -7,6 +7,7 @@ import { LOOKUPS } from './lookups';
 import { PREFERENCES } from './preferences';
 import { SITE } from './site';
 import { SPACE_LINKS } from './spaceLinks';
+import { SPACES } from './spaces';
 import { STATUS } from './status';
 import { TERMS } from './terms';
 import { USERS } from './users';
@@ -22,6 +23,7 @@ export const ARABIC = {
   preferences: PREFERENCES,
   site: SITE,
   spaceLinks: SPACE_LINKS,
+  spaces: SPACES,
   status: STATUS,
   terms: TERMS,
   users: USERS,

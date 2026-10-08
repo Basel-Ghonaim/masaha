@@ -496,3 +496,20 @@ On S2a-2 (2026-10-06) it is no longer the one file, nor only under a full run: w
 2. **A read can mix two states of the hours.** The space's read (`space/space.service.ts`) reads the space and each fact group with separate statements, outside a transaction, while an hours save holds no lock against it: a read during that save can show the old week with the new shifts.
 
 **Resolves when:** step 4's linking takes the space's lock, so `can()` decides on the links as they are under it; and the read is consistent, in one statement or in one snapshot.
+
+## 44. No screen restores a deleted space once its toast has gone
+
+**Status:** Open · **Date:** 2026-10-07
+
+**Evidence:** the admin's spaces list deletes a space softly (S2b-3a), and the toast that follows offers an Undo for ten seconds, which restores it ([spaces › Decisions](../features/spaces.md#decisions)). Once that toast has gone, nothing in the interface restores the space: the list never shows a deleted one, no screen lists them, and `POST /admin/spaces/:spaceId/restore` is reached only through the API ([api-contract §5](../api/api-contract.md#spaces-the-admin)). A space deleted by mistake and noticed later needs the API.
+
+**Resolves when:** a screen lists the deleted spaces and restores one (not among v1's committed screens: the owner's to decide), or the owner accepts that a restore after the toast goes through the API.
+
+## 45. The data table's library reaches the site's first download
+
+**Status:** Open · **Date:** 2026-10-07 · **Corrected:** 2026-10-08
+
+**Evidence:** the admin's spaces page (S2b-3a) is the first screen built on the design system's `DataTable`, so TanStack Table enters the build. The site's entry imports the design system through its one entry (`shared/design-system/index.ts`), which re-exports `DataTable`, and the web package declares no `sideEffects`, so the bundler keeps the table as a static import of the entry: it lands in the chunk of the platform modules the entry imports (`api-*.js`), which grew from 440,110 to 509,718 bytes (minified) with the page. Every visitor of the public site downloads it, though only the dashboard draws a table. This PR triggers it; the entry and the missing `sideEffects` were already there. `check:build` passes, since it refuses only the dashboard group's and the dashboard-only capabilities' modules in the first download ([architecture §3](../frontend/architecture.md#3-capabilities-features)), and the design system is neither.
+
+**Resolves when:** a `sideEffects` declaration in the web package, or a separate entry for the design system's data components, keeps the table out of the site's first download, proven by the manifest. The fix waits for S2b-3b, which brings Leaflet into the build too.
+
