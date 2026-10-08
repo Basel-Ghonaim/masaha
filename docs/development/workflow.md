@@ -232,9 +232,10 @@ documents ([testing §3](testing.md#3-rules-that-bind-every-test), [§5](#5-defi
   - `verification-before-completion`: every claim names the test or command that proves it (§5).
   - `receiving-code-review`, adapted: each item of a fixes list is verified against the code, and
     pushed back with reasons when it is wrong. The fixes follow [§3, Commits](#commits).
-  - `writing-plans`, in part, inside `start-work-item`'s plan mode: the file map, the interfaces
-    between tasks, no placeholders, and a *Review Focus* list. Not its header, its saved plan files,
-    full code in the plan, a commit per step, or its execution handoff.
+  - `writing-plans`, in part, inside `write-plan`: the file map, the interfaces between tasks, no
+    placeholders, and a *Review Focus* list. Not its header, its plan files' location (the plan is
+    saved where the prompt says, [§2, phase 2](#phases)), full code in the plan, a commit per step,
+    or its execution handoff.
 - **Not used:**
   - `brainstorming`: the analysis round and the Work Item's prompt settle the decisions (§6).
   - `executing-plans` and `subagent-driven-development`: they decide conflicts and carry on, against

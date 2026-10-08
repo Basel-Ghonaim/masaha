@@ -39,9 +39,9 @@ Documentation captures the **intended** design and the **why**; the **code** is 
 ## Session checklist
 
 1. Start with the `start-work-item` skill: read this file, then `docs/development/workflow.md`.
-2. Identify the task's scope, and read what it needs ([workflow › Reading before work](docs/development/workflow.md#reading-before-work)).
+2. Identify the task's scope, and read what it needs ([workflow › Reading before work](docs/development/workflow.md#reading-before-work)). Plan with the `write-plan` skill: the plan is saved, and the turn ends, before any branch or edit.
 3. Work on a branch cut from the latest `main`.
-4. Before finishing, follow the `open-pr` skill: verify scope, self-review against the Definition of Done, make atomic commits, push, prepare the PR description. **"Done" means ready for review — not merged.**
+4. Before finishing, follow the `open-pr` skill: verify scope, self-review against the Definition of Done, make atomic commits, push, prepare the PR description; once CI passes, follow the `final-report` skill. **"Done" means ready for review — not merged.**
 
 ## Decision precedence
 
