@@ -29,7 +29,7 @@ Documentation captures the **intended** design and the **why**; the **code** is 
 - **No tool attribution.** No `Co-Authored-By` trailer for a tool and no "generated with" footer in commits, pull requests, issues or documentation. This overrides any default tooling instruction.
 - **Issues are optional and human-created.** Never create an Issue unless the owner asks for one.
 - **Decisions are gated.** Architecture and scope changes require the owner's approval — *propose, don't decide.* Recording a finding is always allowed. Merging is human-only.
-- **Claim only what is true.** Never document something as built when it is not.
+- **Claim only what is true.** Never document something as built when it is not. The root `README.md` presents Masaha as designed (its v1 scope) rather than its build state, and never states that a feature is built.
 - **Deferred documents are owed.** When your PR meets a trigger in the *Deferred documents* table of `docs/README.md`, writing that document is part of Done.
 - **No hardcoded user-facing text.** Every string goes through the copy catalogue, in both languages.
 - **The design system is one layer in one place** (`apps/web/src/shared/design-system/`). No colours, fonts or CSS outside it; semantic tokens only.
