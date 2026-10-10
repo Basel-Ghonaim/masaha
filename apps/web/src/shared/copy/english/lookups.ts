@@ -118,4 +118,8 @@ export const LOOKUPS = {
     hidden: ({ name }: { name: string }) => `${name} (hidden)`,
     loadFailed: 'We couldn’t load the areas',
   },
+  /** The field that chooses one area for a space, its areas grouped under their governorates. */
+  areaSelect: {
+    placeholder: 'Choose an area',
+  },
 } as const;
