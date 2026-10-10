@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run --project unit",
     "test:api": "vitest run --project api",
+    "check:links": "node scripts/checkLinks.ts",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset && prisma db seed",
