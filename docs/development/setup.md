@@ -1,6 +1,6 @@
 # Setup
 
-> **Status:** Active · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
 > **Authority:** How to install, run, check and test the repository locally, and what CI runs. Which lane proves a behaviour is owned by [testing.md](testing.md); how work is executed by [workflow.md](workflow.md).
 
 ## Prerequisites
@@ -119,6 +119,8 @@ The web needs no settings to run. Its optional settings are read from `apps/web/
 A second folder, such as a worktree, runs its web and its API beside the first on ports of its own, each set in that folder's own `.env` files, never committed:
 - `apps/api/.env`: its `PORT`, and `CORS_ORIGIN` naming its web, for example `3321` and `http://localhost:5321`;
 - `apps/web/.env`: `WEB_PORT=5321` and `API_PROXY_TARGET=http://localhost:3321`.
+
+The database container is shared by every folder: in a second folder, never run `npm run db:up` (it recreates the container bound to that folder, [finding 48](../architecture/findings/48-db-up-from-another-folder-recreates-the-shared-container.md)); run `docker start masaha-postgres-1`.
 
 Google sign-in there also needs that origin listed on the OAuth client. When done, stop both servers and check that their ports are free: on Windows, a `tsx watch` API can survive Ctrl+C.
 
