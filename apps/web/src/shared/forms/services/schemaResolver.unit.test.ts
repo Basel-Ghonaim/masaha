@@ -1,5 +1,6 @@
 import { loginSchema, registerSchema } from '@masaha/shared/auth';
 import { FIELD_ERROR_CODES } from '@masaha/shared/core';
+import { createSpaceSchema } from '@masaha/shared/spaces';
 import type { FieldErrors, FieldValues, ResolverOptions } from 'react-hook-form';
 import { describe, expect, it } from 'vitest';
 import { schemaResolver, type FormSchema } from './schemaResolver';
@@ -68,5 +69,58 @@ describe('schemaResolver over the shared schemas', () => {
     const result = await resolve(loginSchema, { email: '  Sara@Example.COM ', password: 'x' });
 
     expect(result).toEqual({ values: { email: 'sara@example.com', password: 'x' }, errors: {} });
+  });
+});
+
+describe('schemaResolver with a preparation of the values', () => {
+  // A space's profile as its form holds it: every field as text, the pin's coordinates included.
+  const PROFILE = {
+    nameEn: 'Focus Hub',
+    nameAr: '',
+    areaId: 11,
+    addressAr: 'شارع النصر',
+    location: '',
+  };
+  // Blank text is no value, and the coordinates' text is read as a point.
+  const prepare = (values: FieldValues) => {
+    const input = Object.fromEntries(
+      Object.entries(values).filter(
+        ([, value]) => typeof value !== 'string' || value.trim() !== '',
+      ),
+    );
+    if (typeof input.location === 'string') {
+      const [lat, lng] = input.location.split(',').map(Number);
+      input.location = { lat, lng };
+    }
+    return input;
+  };
+
+  it('reads each code from the prepared input, not from the fields', async () => {
+    const { errors } = await schemaResolver(createSpaceSchema, prepare)(
+      PROFILE,
+      undefined,
+      OPTIONS,
+    );
+
+    // Unprepared, the blank Arabic name would be too short and the blank pin malformed.
+    expect(typesOf(errors)).toEqual({ location: 'required' });
+  });
+
+  it('gives the form the parsed values of the prepared input', async () => {
+    const result = await schemaResolver(createSpaceSchema, prepare)(
+      { ...PROFILE, location: '31.52, 34.45' },
+      undefined,
+      OPTIONS,
+    );
+
+    expect(result).toEqual({
+      values: {
+        nameEn: 'Focus Hub',
+        areaId: 11,
+        addressAr: 'شارع النصر',
+        location: { lat: 31.52, lng: 34.45 },
+      },
+      errors: {},
+    });
   });
 });

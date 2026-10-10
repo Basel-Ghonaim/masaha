@@ -5,14 +5,15 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deferred } from '../../../test/fakeSession';
 import { startPreferences } from '../../../test/startPreferences';
-import { useServerForm } from './useServerForm';
+import { useServerForm, type ServerFormOptions } from './useServerForm';
 
 type Values = { email: string; password: string };
 
-/** A sign-in form whose server call is `submit`, filled with `values`. */
+/** A sign-in form whose server call is `submit`, filled with `values`, with `options` added. */
 function renderForm(
   submit: (request: LoginRequest) => Promise<unknown>,
   values: Values = { email: '', password: '' },
+  options: Partial<ServerFormOptions<Values, LoginRequest>> = {},
 ) {
   return renderHook(() =>
     useServerForm<Values, LoginRequest>({
@@ -22,6 +23,7 @@ function renderForm(
       submit,
       failureTitle: 'Couldn’t sign in',
       fieldLines: { password: { too_short: 'Enter your password' } },
+      ...options,
     }),
   );
 }
@@ -89,6 +91,44 @@ describe('useServerForm', () => {
       expect(submit).toHaveBeenCalledWith({ email: 'sara@example.com', password: 'gaza2026' });
     });
     expect(result.current.failure).toBeNull();
+  });
+
+  it('sends what the form prepares from its values, parsed', async () => {
+    const submit = vi.fn(() => Promise.resolve());
+    const { result } = renderForm(
+      submit,
+      { email: 'Sara', password: 'gaza2026' },
+      { prepare: (values) => ({ ...values, email: `${values.email}@example.com` }) },
+    );
+
+    act(() => {
+      result.current.submit();
+    });
+
+    await waitFor(() => {
+      expect(submit).toHaveBeenCalledWith({ email: 'sara@example.com', password: 'gaza2026' });
+    });
+  });
+
+  it("words a refusal that lands on no field with the form's own line for it", async () => {
+    const { result } = renderForm(
+      () => Promise.reject(refusal({ type: 'conflict', status: 409, requestId: 'req-1' })),
+      FILLED,
+      { failureLines: { conflict: 'Someone else did the same just now. Send it again.' } },
+    );
+
+    act(() => {
+      result.current.submit();
+    });
+
+    await waitFor(() => {
+      expect(result.current.failure).toEqual({
+        kind: 'refused',
+        title: 'Couldn’t sign in',
+        message: 'Someone else did the same just now. Send it again.',
+        reference: `Reference: ${String.fromCodePoint(0x2066)}req-1${String.fromCodePoint(0x2069)}`,
+      });
+    });
   });
 
   it('is pending, with the fields disabled, while the server answers', async () => {

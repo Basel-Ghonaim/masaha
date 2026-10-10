@@ -213,7 +213,9 @@ A feature's wire types, its requests and the server's answers, come from `@masah
 
 ### Forms
 
-`shared/forms`, **built**, is the one place every form uses: react-hook-form over the schemas of `packages/shared` ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). Every form is one pattern, `useServerForm`, and a feature's form hook only passes it what is the feature's: the contract's schema, the default values, the fields in display order, the server call, the title of a refusal, and the form's own words for some codes. `useSignInForm` is such a hook.
+`shared/forms`, **built**, is the one place every form uses: react-hook-form over the schemas of `packages/shared` ([ADR 0004](../architecture/decisions/0004-frontend-data-and-state.md)). Every form is one pattern, `useServerForm`, and a feature's form hook only passes it what is the feature's: the contract's schema, the default values, the fields in display order, the server call, the title of a refusal, and the form's own words for some codes. `useSignInForm` is such a hook. Two more are passed only when a form needs them:
+- **`prepare`** builds the schema's input from the fields' values, when a field holds what the contract reads otherwise: an optional text left blank, which is no value rather than one too short, or a point typed as text. Each field's code is read from that input, so a field it leaves out is `required`.
+- **`failureLines`** are the form's own words for a refusal that lands on no field, by `code ?? type`, where the form knows its cause (a 409 the contract explains, for example).
 
 - **The browser names a failure as the server does.**
   - The form's values are checked with `toFieldErrors`, the rule the API answers with (`packages/shared`, `core`).
