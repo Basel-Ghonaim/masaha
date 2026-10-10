@@ -1,6 +1,6 @@
 # Workflow
 
-> **Status:** Active · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
 > **Authority:** How work is executed on Masaha: task classes, a Work Item's phases, the Git lifecycle, scope control, the Definition of Done, decision authority, stop rules and the AI tooling. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
 
 Masaha is built by **one developer (the owner)** with AI assistants. The workflow keeps the discipline of a team process — reviewable units, a clean history, gated decisions — without ceremony a solo project does not need.
@@ -38,6 +38,7 @@ A substantial item runs these seven phases, in order; a trivial one (§1) goes s
    - a **Stronger decisions** section: any decision of the prompt or of the documents, an ADR's included, within the item's scope, that the worker can make stronger, each with its reason, its cost and a recommendation;
    - the related findings, each folded or not (§4);
    - the files, the other layer's included (§9);
+   - for an item that builds or changes a screen, the **design issues** it finds: a mistake in the design, with a better solution from the design system's components and tokens, built only once the reply approves them;
    - each test with the break it catches ([testing §3](testing.md#3-rules-that-bind-every-test)), and a *Review Focus* list: the inputs no planned test exercises;
    - the commits (§3) and the verification (phase 4);
    - the decisions it needs from the owner (§6).
