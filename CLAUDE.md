@@ -5,7 +5,7 @@
 
 ## Project mission
 
-**Masaha (مساحة)** is a bilingual (Arabic RTL / English) web platform for coworking spaces in the Gaza Strip: a public directory with live availability, one role-based dashboard for space owners, their reception staff and the platform admin, and a small account area for users. It is a graduation project (Al-Quds Open University, Gaza) built by one developer in four months, where engineering quality is part of the deliverable.
+**Masaha (مساحة)** is a bilingual (Arabic RTL / English) web platform for coworking spaces in the Gaza Strip: a public directory with live availability, one role-based dashboard for space owners, their reception staff and the platform admin, and a small account area for users. It is built by one developer, where engineering quality is part of the product.
 
 Monorepo: `apps/web` (React 19 + TypeScript + Vite), `apps/api` (Express 5 + Prisma + PostgreSQL), `packages/shared` (validation schemas and types used by both).
 

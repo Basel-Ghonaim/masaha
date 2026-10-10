@@ -3,9 +3,10 @@
 > **Status:** Accepted · **Date:** 2026-10-01
 > Free-tier terms and limits checked on 2026-10-01 against the providers' official pages.
 > **Revised:** 2026-10-06 — each app's development port is its own, 5320 and 3320 unless the folder sets others, so a second folder runs beside the first; the decision is unchanged
+> **Revised:** 2026-10-10 — the context names the demonstration on the local environment, in general terms; the decision is unchanged
 
 ## Context
-The graduation defence runs on the local environment: the database in Docker and the development servers. It works offline, which matters with Gaza's power and internet cuts.
+The demonstration runs on the local environment: the database in Docker and the development servers. It works offline, which matters with Gaza's power and internet cuts.
 
 The project also needs a public deployment as a portfolio showcase. It must cost nothing, use no purchased domain, and behave like the real product.
 

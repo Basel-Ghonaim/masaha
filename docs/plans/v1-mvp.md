@@ -1,11 +1,11 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
 
-The project started on 27 September 2026 and ends with the report and the defence by **16 January 2027**, its only fixed date. Every phase before it is a target: the phases follow one another by what they produce, not by weeks.
+The project started on 27 September 2026 and has **16 January 2027** as v1's target date, its only fixed date. Every phase before it is a target: the phases follow one another by what they produce, not by weeks.
 
 | Phase | Output | State |
 |---|---|---|
@@ -17,7 +17,7 @@ The project started on 27 September 2026 and ends with the report and the defenc
 | 5. Technical design | Prisma schema, permission table, API contract finalised; F-3b updates them for the scope change once the dashboard screens are reviewed ([foundation.md](foundation.md)) | ✅ |
 | 6. Build | The steps of the [build map](#sequence-inside-the-build) | In progress |
 | 7. Test and evaluate | Functional tests, occupancy scenarios on seeded data, usability test with students and freelancers | To come |
-| 8. Report and defence | Final report, presentation, rehearsal; by 16 January 2027 | To come |
+| 8. Report and presentation | Final report, presentation, rehearsal; by 16 January 2027 | To come |
 
 **Scope change (2026-09-29):** the owner and reception dashboard enlarges the build. The final date does not move.
 
