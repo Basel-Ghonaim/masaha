@@ -34,6 +34,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [43. Two races around a space's facts](43-two-races-around-a-spaces-facts.md)
 - [44. No screen restores a deleted space once its toast has gone](44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)
 - [46. The deployment's headers must let the map's tiles load](46-the-deployments-headers-must-let-the-maps-tiles-load.md)
+- [47. A dashboard test reads the top bar's title before the chosen page has loaded](47-a-dashboard-test-reads-the-top-bars-title-before-the-chosen-page-has-loaded.md)
 - [48. `db:up` from another folder recreates the shared container](48-db-up-from-another-folder-recreates-the-shared-container.md)
 
 ## Accepted
