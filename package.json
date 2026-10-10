@@ -19,6 +19,7 @@
     "test:api": "npm run test:api --workspaces --if-present",
     "check:classes": "npm run check:classes -w @masaha/web",
     "check:build": "npm run check:build -w @masaha/web",
+    "check:links": "npm run check:links -w @masaha/api",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:migrate": "npm run db:migrate -w @masaha/api",

@@ -20,7 +20,16 @@ jobs:
       fail-fast: false
       matrix:
         task:
-          [lint, 'format:check', typecheck, 'test:unit', 'test:component', 'check:classes', build]
+          [
+            lint,
+            'format:check',
+            typecheck,
+            'test:unit',
+            'test:component',
+            'check:classes',
+            'check:links',
+            build,
+          ]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

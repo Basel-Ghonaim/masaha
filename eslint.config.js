@@ -313,7 +313,7 @@ export default defineConfig([
   },
   {
     // Tests may compose the application they test: the root is open to them.
-    files: ['apps/api/**/*.test.ts'],
+    files: ['apps/api/src/**/*.test.ts', 'apps/api/test/**/*.test.ts'],
     rules: { 'boundaries/dependencies': ['error', apiDependencies({ guardRoot: false })] },
   },
   {
