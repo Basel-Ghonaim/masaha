@@ -30,8 +30,8 @@ live status pulled from the space itself. Owners get a dashboard to run the spac
 
 يعتمد الطلاب والمستقلّون والعاملون عن بُعد في غزة على مساحات العمل المشترك من أجل الكهرباء
 والإنترنت. لكن معلومات هذه المساحات متفرّقة بين منشورات التواصل الاجتماعي والسماع، وتتقادم سريعًا:
-هل هي ممتلئة الآن؟ كم يكلّف اليوم؟ هل تفتح يوم الجمعة؟ يجيب مساحة عن ذلك كله في مكان واحد — دليل
-حقيقي بالعربية والإنجليزية، مع الفلاتر والخريطة و«القريب منّي»، والحالة المباشرة مأخوذة من
+هل هي ممتلئة الآن؟ كم يكلّف اليوم؟ هل تفتح يوم الجمعة؟ تجيب مساحة عن ذلك كله في مكان واحد — دليل
+حقيقي بالعربية والإنجليزية، مع الفلاتر والخريطة و«الأقرب إليّ»، والحالة المباشرة مأخوذة من
 المساحة نفسها. ويحصل أصحاب المساحات على لوحة تحكّم لإدارة مساحتهم يومًا بيوم.
 
 </div>
@@ -39,7 +39,7 @@ live status pulled from the space itself. Owners get a dashboard to run the spac
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/hero-dark.webp">
-    <img src="docs/assets/readme/hero-light.webp" alt="Masaha's home page in Arabic and light theme on a desktop beside the same page in English and dark theme on a phone" width="900">
+    <img src="docs/assets/readme/hero-light.webp" alt="Masaha's home page in Arabic on a desktop, beside the same page in English on a phone" width="900">
   </picture>
 </p>
 
@@ -56,8 +56,8 @@ Report wrong information, save favourites, and if you own a space, reach Masaha 
 <div dir="rtl" lang="ar">
 
 **الزوار.** الدليل على شكل قائمة أو خريطة. بحث وفلاتر بحسب المنطقة والسعر والمرافق المميّزة وأسعار
-الطلاب والفتح يوم الجمعة والموثّق والمتاح الآن، وترتيب يشمل «الأقرب إليّ». يستخدم «القريب منّي» موقع
-الجهاز، ولا يُرسل هذا الموقع إلى مساحة أبدًا — تكفي منطقة أو نقطة على الخريطة. وتعرض صفحة المساحة
+الطلاب والفتح يوم الجمعة والمساحات الموثّقة والمتاحة الآن، وترتيب يشمل «الأقرب إليّ»، الذي يستخدم موقع
+الجهاز ولا يُرسله إلى مساحة أبدًا — وتكفي بدلًا منه منطقة أو نقطة على الخريطة. وتعرض صفحة المساحة
 الصور والأسعار (للعرض فقط) والمرافق وساعات العمل والتواصل والإعلانات والحالة المباشرة: متاح أو
 ممتلئ أو مغلق الآن، حالة لا عدد. وتظهر كل المساحات سواء انضمّ صاحبها أم لا. أبلغ عن معلومة خاطئة،
 واحفظ مساحاتك المفضّلة، وإن كنت صاحب مساحة فتواصل مع مساحة بالبريد أو واتساب.
@@ -74,11 +74,11 @@ by the closure days; data reports and an audit log.
 
 <div dir="rtl" lang="ar">
 
-**الأصحاب والاستقبال.** لوحة واحدة لإدارة المساحة: مكتب الاستقبال (تسجيل حضور وخروج المشتركين
+**أصحاب المساحات والاستقبال.** لوحة واحدة لإدارة المساحة: مكتب الاستقبال (تسجيل حضور وخروج المشتركين
 والزوّار، واحتساب الزيارة عند الخروج، والخروج التلقائي، والزيارات غير المحصّلة)؛ الزبائن مع الفلترة
 بحسب نوع الاشتراك والحالة والدفع؛ الاشتراكات والباقات بحدود اختيارية وفوترة ثابتة أو بحسب الاستخدام؛
 الدفعات والديون مسجّلة يدويًا مع الدفعات الجزئية والأرصدة وإلغاء الدفعة؛ المالية والإحصاءات؛ حسابات
-الاستقبال التي يضيفها الصاحب؛ ملفّ المساحة والأسعار والباقات؛ الإعلانات، ومنها إعلان الإغلاق الذي
+الاستقبال التي يضيفها صاحب المساحة؛ ملفّ المساحة والأسعار والباقات؛ الإعلانات، ومنها إعلان الإغلاق الذي
 يمدّد كل اشتراك فعّال بأيام الإغلاق؛ البلاغات وسجلّ التدقيق.
 
 </div>
@@ -89,7 +89,7 @@ and amenities, the audit log and the platform settings.
 
 <div dir="rtl" lang="ar">
 
-**المدير.** المنصّة: المساحات (إضافة وتعديل وإخفاء وحذف واسترجاع)، وحسابات الأصحاب مربوطة
+**المدير.** المنصّة: المساحات (إضافة وتعديل وإخفاء وحذف واسترجاع)، وحسابات أصحاب المساحات مربوطة
 بالمساحات، والبلاغات مع ملاحظة الحلّ، والمستخدمون وأدوارهم، وقوائم المناطق والمرافق بكلا اللغتين،
 وسجلّ التدقيق وإعدادات المنصّة.
 
@@ -101,7 +101,7 @@ The public site, in Arabic: the directory as a list and as a map, and a space pa
 
 | List | Map |
 |:--:|:--:|
-| ![The directory as a list, in Arabic, light theme](docs/assets/readme/directory-light.webp) | ![The directory as a map with real OpenStreetMap tiles and pins on Gaza areas](docs/assets/readme/directory-map.webp) |
+| ![The directory as a list, in Arabic, light theme](docs/assets/readme/directory-light.webp) | ![The directory as a map: the Gaza Strip on OpenStreetMap tiles, with a pin on each space](docs/assets/readme/directory-map.webp) |
 | The directory, as a list | The same directory, on the map |
 
 | Home (light) | Home (dark) |
@@ -111,7 +111,7 @@ The public site, in Arabic: the directory as a list and as a map, and a space pa
 
 | Space page | Owner's overview |
 |:--:|:--:|
-| ![A space page with prices, amenities and live status](docs/assets/readme/space-light.webp) | ![The owner's dashboard overview](docs/assets/readme/owner-light.webp) |
+| ![A space page with its photos, live status and contacts](docs/assets/readme/space-light.webp) | ![The owner's dashboard overview](docs/assets/readme/owner-light.webp) |
 | A space page | The owner's overview |
 
 | Front desk | Home on a phone |
@@ -155,11 +155,9 @@ From the running build — the sign-in and register screens, and the admin's das
 
 ## Bilingual, both directions, accessible
 
-The whole interface exists in Arabic and English — the customer-facing screens with an Arabic
-paragraph under each English one here, the interface itself through one typed copy catalogue with no
-user-facing string in a component. Arabic is right-to-left, English left-to-right, and the layouts use
-logical directions only, so one component serves both; a repository check fails on any physical
-direction class. Fonts, contrast and focus are part of the design system, and accessibility is tested
+Every screen exists in Arabic and English, from one typed copy catalogue: no user-facing string lives
+in a component. Arabic is right-to-left, English left-to-right, and the layouts use logical directions
+only, so one component serves both; a repository check fails on any physical direction class. Fonts, contrast and focus are part of the design system, and accessibility is tested
 with `axe` in the component lane.
 
 ![Switching the language flips the direction from Arabic to English, then the theme to dark](docs/assets/readme/masaha.gif)
@@ -204,11 +202,11 @@ dev server forwards `/api` to the API. The map of the parts, and one request tra
 - **Decisions are recorded** as Architectural Decision Records, one per decision, in
   [`docs/architecture/decisions/`](docs/architecture/decisions/) — the *why* behind the stack, the
   session, the data and the design system.
-- **Four test lanes** — unit, component, API integration and the shared package — with each behaviour
-  proven where it belongs, and a test seen failing before it passes
-  ([`docs/development/testing.md`](docs/development/testing.md)).
-- **CI checks every pull request**: lint, format, typecheck, the test lanes, the class checks and the
-  build ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+- **Four test lanes** — unit (the shared package's included), component, API integration and an
+  end-to-end smoke — with each behaviour proven where it belongs, and a test seen failing before it
+  passes ([`docs/development/testing.md`](docs/development/testing.md)).
+- **CI checks every pull request**: lint, format, typecheck, the unit, component and API lanes, the
+  class checks and the build ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 - **One design system, one layer** (`apps/web/src/shared/design-system/`): semantic tokens only, no
   colour, font or CSS outside it, and a check that fails on arbitrary values
   ([`foundation.md`](docs/frontend/design-system/foundation.md)).
@@ -217,18 +215,26 @@ dev server forwards `/api` to the API. The map of the parts, and one request tra
 
 ## Run it locally
 
-Prerequisites: **Node 24** (the version in `.nvmrc`) and **Docker Desktop**. Then, from the root:
+Prerequisites: **Node 24** (the version in `.nvmrc`) and **Docker Desktop**, running. Then:
 
 ```bash
+git clone https://github.com/Basel-Ghonaim/masaha.git && cd masaha
 npm ci                                   # installs every workspace and generates the Prisma client
 cp apps/api/.env.example apps/api/.env   # then set JWT_SECRET, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD
 npm run db:up                            # PostgreSQL in Docker, on host port 5433
-npm run db:migrate && npm run db:seed    # schema + the lookups, the admin and the settings
-npm run dev                              # web on http://localhost:5320, forwarding /api to the API
+npm run db:migrate && npm run db:seed    # the schema; the lookups, the admin and the settings
+npm run dev -w @masaha/api               # the API on http://localhost:3320; leave it running
 ```
 
-The full walkthrough — the API on its own, the environment variables, the test lanes and what CI runs
-— is in [`docs/development/setup.md`](docs/development/setup.md).
+Then, in a second terminal, from the same folder:
+
+```bash
+npm run dev                              # the web on http://localhost:5320, forwarding /api to the API
+```
+
+Open `http://localhost:5320` and sign in with the admin you seeded. The full walkthrough — the
+environment variables, the test lanes and what CI runs — is in
+[`docs/development/setup.md`](docs/development/setup.md).
 
 ## Repository structure
 
@@ -237,7 +243,7 @@ apps/web/         the SPA: the public site and the dashboard, one React app
 apps/api/         the API: an Express modular monolith over PostgreSQL through Prisma
 packages/shared/  the web–API contract in code: request schemas and types
 docs/             the map, the decisions, the capability documents and the plans
-.github/          CI: lint, format, typecheck, the test lanes and the build checks
+.github/          CI: lint, format, typecheck, three test lanes and the build checks
 ```
 
 ## Documentation
