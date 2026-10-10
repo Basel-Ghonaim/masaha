@@ -1,5 +1,6 @@
 import type { AdminSpaceRow } from '@masaha/shared/space-links';
-import { Badge, DataTable, createDataTableColumnHelper } from '@shared/design-system';
+import { Badge } from '@shared/design-system';
+import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useAdminSpacesList } from '../../hooks/admin-list/useAdminSpacesList';
 import type { AdminSpaceRowView } from '../../types/AdminSpaceRowView';
