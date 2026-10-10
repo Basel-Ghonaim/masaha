@@ -1,0 +1,99 @@
+/*
+ * The map's stylesheet (docs/frontend/design-system/foundation.md §3): Leaflet's own rules, then
+ * the layer's, which draw the map's frame, its controls and its pin from the semantic tokens. Only
+ * shared/map imports it, from the module it loads lazily, so it arrives with the map and never in the
+ * site's first download.
+ */
+@import 'leaflet/dist/leaflet.css';
+
+/*
+ * The frame. Leaflet stacks its panes and controls up to z-index 1000: isolated, they stay inside
+ * the map, under the dashboard's sticky bar and every overlay.
+ */
+.leaflet-container {
+  isolation: isolate;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  font-family: inherit;
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+}
+
+.leaflet-container:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* The zoom buttons, drawn as the layer's outline buttons. */
+.leaflet-bar {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  box-shadow: var(--elevation-raised);
+  overflow: hidden;
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  width: var(--control-height);
+  height: var(--control-height);
+  border-bottom: 1px solid var(--border);
+  background-color: var(--card);
+  color: var(--card-foreground);
+  line-height: var(--control-height);
+}
+
+.leaflet-bar a:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.leaflet-bar a:last-child {
+  border-bottom: none;
+}
+
+.leaflet-bar a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.leaflet-bar a.leaflet-disabled {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+}
+
+/* The attribution, always visible, on the card's colours. */
+.leaflet-container .leaflet-control-attribution {
+  background: var(--card);
+  color: var(--muted-foreground);
+  padding: 0 calc(var(--spacing) * 1.5);
+}
+
+.leaflet-control-attribution a {
+  color: var(--foreground);
+  text-decoration: underline;
+}
+
+/* The pin: a drop on the primary colour, its point on the place. */
+.map-pin {
+  background: none;
+  border: none;
+}
+
+.map-pin span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: calc(var(--spacing) * 0.75) solid var(--primary-foreground);
+  border-radius: 50% 50% 50% 0;
+  background: var(--primary);
+  box-shadow: var(--elevation-floating);
+  transform: rotate(-45deg);
+}
+
+.map-pin:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 50%;
+}

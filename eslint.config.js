@@ -44,6 +44,28 @@ const zoneEntries = (types) => [
     : []),
 ];
 
+// The libraries only the design-system layer imports, and those only shared/map imports.
+const LAYER_ONLY_IMPORTS = {
+  group: [
+    'radix-ui',
+    '@radix-ui/*',
+    'lucide-react',
+    'class-variance-authority',
+    'sonner',
+    'cmdk',
+    'react-day-picker',
+    'react-day-picker/*',
+    '@tanstack/react-table',
+    '@tanstack/table-core',
+  ],
+  message:
+    'Only the design-system layer imports this package. Use what @shared/design-system exports.',
+};
+const MAP_ONLY_IMPORTS = {
+  group: ['leaflet', 'leaflet/*', 'react-leaflet', 'react-leaflet/*', '@react-leaflet/*'],
+  message: 'Only shared/map imports this package. Use what @shared/map exports.',
+};
+
 // The API's elements. The first pattern that matches a file decides its type.
 const API_BOUNDARY_SETTINGS = {
   // Absolute, so imports resolve whatever directory ESLint runs from (the level rule's unit test runs
@@ -249,7 +271,7 @@ export default defineConfig([
         { type: 'feature', pattern: 'apps/web/src/features/*', capture: ['capability'] },
         // Before shared, whose pattern also matches it: the first matching element wins.
         { type: 'design-system', pattern: 'apps/web/src/shared/design-system' },
-        { type: 'shared', pattern: 'apps/web/src/shared/*' },
+        { type: 'shared', pattern: 'apps/web/src/shared/*', capture: ['module'] },
       ],
     },
     rules: {
@@ -271,6 +293,14 @@ export default defineConfig([
             {
               from: { element: { type: ['feature', 'shared'] } },
               allow: { to: zoneEntries(['shared', 'design-system']) },
+            },
+            // The map's stylesheet is the layer's, but only the map loads it, with its lazy part
+            // (docs/frontend/design-system/foundation.md §3).
+            {
+              from: { element: { type: 'shared', captured: { module: 'map' } } },
+              allow: {
+                to: { element: { type: 'design-system', fileInternalPath: 'leaflet.css' } },
+              },
             },
             // The dashboard-only rule (ADR 0011, docs/frontend/architecture.md §3): the site never
             // imports a capability only the dashboard uses, so it never pulls dashboard code in.
@@ -329,34 +359,19 @@ export default defineConfig([
   {
     // Radix primitives, the icon library, variant utilities, the toast library and every other
     // third-party UI library the layer wraps are imported only inside the design-system layer
-    // (docs/frontend/design-system/foundation.md §3). Everything else uses what the layer exports.
+    // (docs/frontend/design-system/foundation.md §3), and Leaflet only inside shared/map
+    // (docs/frontend/architecture.md §6). Everything else uses what they export.
     files: ['apps/web/src/**/*.{ts,tsx}'],
-    ignores: ['apps/web/src/shared/design-system/**'],
+    ignores: ['apps/web/src/shared/design-system/**', 'apps/web/src/shared/map/**'],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: [
-                'radix-ui',
-                '@radix-ui/*',
-                'lucide-react',
-                'class-variance-authority',
-                'sonner',
-                'cmdk',
-                'react-day-picker',
-                'react-day-picker/*',
-                '@tanstack/react-table',
-                '@tanstack/table-core',
-              ],
-              message:
-                'Only the design-system layer imports this package. Use what @shared/design-system exports.',
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': ['error', { patterns: [LAYER_ONLY_IMPORTS, MAP_ONLY_IMPORTS] }],
     },
+  },
+  {
+    // shared/map wraps Leaflet, and is held to the layer's libraries as everything else is. The same
+    // rule, so this block replaces the one above for its files.
+    files: ['apps/web/src/shared/map/**/*.{ts,tsx}'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [LAYER_ONLY_IMPORTS] }] },
   },
   {
     // Axios is imported only inside shared/api, the one transport (docs/frontend/architecture.md §1).

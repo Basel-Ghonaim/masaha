@@ -7,7 +7,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 
 ## How a finding is kept
 
-- **One file per finding,** in this folder, named after its heading's anchor: `# 27. Two dashboard chunks import each other` is `27-two-dashboard-chunks-import-each-other.md`. A new finding takes the next number.
+- **One file per finding,** in this folder, named after its heading's anchor: `# 27. Two dashboard chunks import each other` is `27-two-dashboard-chunks-import-each-other.md`. A new finding takes the next free number in the range its Work Item's prompt gives, so two workers never take the same one ([workflow §9, Conflicts](../../development/workflow.md#conflicts)).
 - **This index** lists each finding once, under the group of its status, by its number and its title only. Its *Resolves when* line lives in its own file.
 - **A change of status** edits the finding's status line and moves it to its group here, in the same commit.
 
@@ -33,6 +33,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [42. A registration test failed once in a full component run](42-a-registration-test-failed-once-in-a-full-component-run.md)
 - [43. Two races around a space's facts](43-two-races-around-a-spaces-facts.md)
 - [44. No screen restores a deleted space once its toast has gone](44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)
+- [46. The deployment's headers must let the map's tiles load](46-the-deployments-headers-must-let-the-maps-tiles-load.md)
 - [48. `db:up` from another folder recreates the shared container](48-db-up-from-another-folder-recreates-the-shared-container.md)
 
 ## Accepted

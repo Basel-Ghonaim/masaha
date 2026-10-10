@@ -28,6 +28,21 @@ describe("the design-system layer's entries", { timeout: 60_000 }, () => {
     expect(await verdicts(FEATURE, importing('@shared/design-system/data'))).toEqual([]);
   });
 
+  it("allows the map's stylesheet to shared/map", async () => {
+    expect(
+      await verdicts(
+        'apps/web/src/shared/map/components/probe.ts',
+        `import '@shared/design-system/leaflet.css';\n`,
+      ),
+    ).toEqual([]);
+  });
+
+  it("refuses the map's stylesheet to anything else", async () => {
+    expect(await verdicts(FEATURE, `import '@shared/design-system/leaflet.css';\n`)).toEqual([
+      'feature → design-system (leaflet.css)',
+    ]);
+  });
+
   it('still refuses a file inside the layer', async () => {
     expect(
       await verdicts(FEATURE, importing('@shared/design-system/components/data/DataTable')),

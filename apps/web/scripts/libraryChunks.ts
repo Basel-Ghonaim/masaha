@@ -1,4 +1,4 @@
-// The heavy libraries only some dashboard pages use, each built into a chunk of its own, named here:
+// The heavy libraries only some pages use, each built into a chunk of its own, named here:
 // vite.config.ts makes the chunks, and check:build refuses each of them in the site's first download
 // (finding 45). The one list both read.
 

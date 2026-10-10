@@ -21,6 +21,7 @@ describe("the library chunks' patterns", () => {
     '/repo/node_modules/@tanstack/react-query/build/modern/index.js',
     '/repo/node_modules/react/index.js',
     '/repo/apps/web/src/shared/design-system/components/data/DataTable/DataTable.tsx',
+    '/repo/apps/web/src/shared/map/components/LeafletPointPicker.tsx',
   ])('leave %s to the other chunks', (id) => {
     expect(chunksOf(id)).toEqual([]);
   });

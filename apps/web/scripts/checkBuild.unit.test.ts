@@ -3,6 +3,7 @@ import {
   dashboardProblems,
   findForbidden,
   firstDownload,
+  firstDownloadCss,
   libraryProblems,
   showcaseOnly,
   stringsIn,
@@ -78,6 +79,22 @@ describe('firstDownload', () => {
       '_runtime.js',
       'index.html',
     ]);
+  });
+});
+
+describe('firstDownloadCss', () => {
+  it("holds the stylesheets of the entry and its static imports, never a lazy chunk's", () => {
+    const manifest: Record<string, ManifestChunk> = {
+      'index.html': { isEntry: true, imports: ['_react.js'], css: ['assets/index.css'] },
+      '_react.js': { css: ['assets/react.css'] },
+      'src/shared/map/components/LeafletPointPicker.tsx': {
+        src: 'src/shared/map/components/LeafletPointPicker.tsx',
+        imports: ['_react.js'],
+        css: ['assets/LeafletPointPicker.css'],
+      },
+    };
+
+    expect(firstDownloadCss(manifest).sort()).toEqual(['assets/index.css', 'assets/react.css']);
   });
 });
 

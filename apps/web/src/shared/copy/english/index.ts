@@ -3,6 +3,7 @@ import { DASHBOARD } from './dashboard';
 import { ERRORS } from './errors';
 import { FORMS } from './forms';
 import { LOOKUPS } from './lookups';
+import { MAP } from './map';
 import { PREFERENCES } from './preferences';
 import { SITE } from './site';
 import { SPACE_LINKS } from './spaceLinks';
@@ -26,6 +27,7 @@ export const ENGLISH = {
   errors: ERRORS,
   forms: FORMS,
   lookups: LOOKUPS,
+  map: MAP,
   preferences: PREFERENCES,
   site: SITE,
   spaceLinks: SPACE_LINKS,

@@ -54,7 +54,17 @@ function readCatalogueSource(directory: string) {
 const MANIFEST = 'dist/.vite/manifest.json';
 
 /** A chunk as Vite's build manifest describes it. */
-export type ManifestChunk = { name?: string; src?: string; isEntry?: boolean; imports?: string[] };
+export type ManifestChunk = {
+  name?: string;
+  src?: string;
+  isEntry?: boolean;
+  imports?: string[];
+  css?: string[];
+};
+
+// Leaflet's stylesheet, by the rule only it writes: it loads with the map, never in the first
+// download (docs/frontend/design-system/foundation.md §3).
+const LEAFLET_CSS = '.leaflet-container';
 
 /** The manifest's keys of the first download's chunks: each entry and its static imports, deeply. */
 export function firstDownload(manifest: Record<string, ManifestChunk>): string[] {
@@ -67,6 +77,11 @@ export function firstDownload(manifest: Record<string, ManifestChunk>): string[]
     }
   }
   return [...reached];
+}
+
+/** The stylesheets of the first download: each of its chunks' own (Vite's `css`). */
+export function firstDownloadCss(manifest: Record<string, ManifestChunk>): string[] {
+  return [...new Set(firstDownload(manifest).flatMap((key) => manifest[key]?.css ?? []))];
 }
 
 /** Whether a chunk holds dashboard code: the dashboard's chunk, or a chunk made from its module. */
@@ -156,6 +171,11 @@ function main() {
   }
   const libraries = LIBRARY_CHUNKS.map(({ name }) => name);
   const libraryFaults = manifest ? libraryProblems(manifest, libraries) : [];
+  for (const file of manifest ? firstDownloadCss(manifest) : []) {
+    if (readFileSync(join(dist, file), 'utf8').includes(LEAFLET_CSS)) {
+      libraryFaults.push(`${file} holds Leaflet's stylesheet in the site's first download.`);
+    }
+  }
   for (const problem of libraryFaults) {
     console.error(problem);
   }
@@ -184,11 +204,13 @@ The site's first download must not reach the dashboard (ADR 0011): look for a st
   if (libraryFaults.length > 0) {
     console.error(
       `
-Each of ${libraries.join(', ')} must be a chunk of its own, out of the site's first download (finding 45): look for a static import of what uses it outside the pages that need it, or a group in scripts/libraryChunks.ts that no longer matches its library.`,
+Each heavy library (${libraries.join(', ')}) must be a chunk of its own, and it and Leaflet's stylesheet must stay out of the site's first download (finding 45): look for a static import of what uses them outside the pages that need them, or a group in scripts/libraryChunks.ts that no longer matches its library.`,
     );
     process.exitCode = 1;
   } else if (manifest) {
-    console.log(`No ${libraries.join(' or ')} in the site's first download.`);
+    console.log(
+      `No ${libraries.join(' or ')}, nor Leaflet's stylesheet, in the site's first download.`,
+    );
   }
 }
 
