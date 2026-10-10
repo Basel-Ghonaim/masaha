@@ -1,6 +1,6 @@
 # Documentation Rules
 
-> **Status:** Active · **Class:** Contract — rules every document in `docs/` follows · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules every document in `docs/` follows · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
 > **Authority:** Where each kind of fact lives, what each category of document owns and must not contain, the document classes, the capability documents' shape, and link integrity. The map of the documents is [README.md](../README.md); *when* a document is updated is owned by [workflow §7](../development/workflow.md#7-documentation-update-triggers). Why the capability documents exist is in [ADR 0018](decisions/0018-capability-documents.md).
 
 ## 1. One home per fact
@@ -92,7 +92,7 @@ The threshold and the format are [workflow §7](../development/workflow.md#7-doc
 
 - Links are relative, and point to a heading when the fact sits under one.
 - **A move updates every link to the moved text in the same PR,** records' links included (§1).
-- Links are checked by hand, with a search for each anchor ([finding 37](findings/37-links-between-documents-are-checked-by-hand.md)).
+- `npm run check:links` checks, in CI, every relative link, image path and anchor of the Markdown files, and every document path cited in a source file ([finding 37](findings/37-links-between-documents-are-checked-by-hand.md)). A heading cited in a comment, written `docs/x.md › heading`, is not checked. External links are not checked.
 - A document never cites a path outside the repository.
 
 ## 9. One entry point
