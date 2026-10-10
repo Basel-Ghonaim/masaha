@@ -1,4 +1,5 @@
 import type { PaginationMeta } from '@masaha/shared/core';
+import type { LookupsCatalogue } from '@masaha/shared/lookups';
 import type { AdminSpaceRow, ManagedSpace, SessionSpaceLink } from '@masaha/shared/space-links';
 import { createQueryClient } from '@shared/api';
 import { establishSession, restoreSession, type SessionUser } from '@shared/session';
@@ -6,7 +7,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { aSession } from '../../test/fakeSession';
 import type { FakeAnswer } from '../../test/fakeAdapter';
 import { fakeTransport, ok, refused, restoreTransport } from '../../test/fakeTransport';
@@ -472,6 +473,61 @@ describe("the admin's lookups page", () => {
   });
 });
 
+describe("the admin's add-space page", () => {
+  const CATALOGUE: LookupsCatalogue = {
+    governorates: [
+      {
+        id: 1,
+        nameAr: 'غزة',
+        nameEn: 'Gaza',
+        areas: [{ id: 11, nameAr: 'الرمال', nameEn: 'Al-Rimal' }],
+      },
+    ],
+    amenities: [],
+  };
+
+  // The add page and the list it returns to load lazily, and their first transform in this lane,
+  // cold, takes seconds even alone: done before the test, so its waits measure the routes, not Vite
+  // (finding 28).
+  beforeAll(async () => {
+    await Promise.all([import('./admin/AddSpacePage'), import('./admin/SpacesPage')]);
+  });
+
+  /** Pastes `text` into the field labelled `label`: typing key by key is the form's own tests'. */
+  async function fill(user: ReturnType<typeof userEvent.setup>, label: string, text: string) {
+    await user.click(screen.getByLabelText(label));
+    await user.paste(text);
+  }
+
+  it('offers the public catalogue’s areas, and returns to the list once the space is added', async () => {
+    const user = userEvent.setup();
+    signIn({ role: 'ADMIN' });
+    const requests = fakeTransport((request) =>
+      request.method === 'post'
+        ? ok({ id: 7, slug: 'focus-hub', nameEn: 'Focus Hub', nameAr: null }, 201)
+        : request.url === '/lookups'
+          ? ok(CATALOGUE)
+          : ok([]),
+    );
+    const router = renderDashboard('/dashboard/admin/spaces/new');
+
+    await screen.findByLabelText('Name in English');
+    await fill(user, 'Name in English', 'Focus Hub');
+    await user.click(screen.getByRole('combobox', { name: 'Area' }));
+    await user.click(await screen.findByRole('option', { name: 'Al-Rimal' }));
+    await fill(user, 'Address in Arabic', 'شارع النصر');
+    await fill(user, 'Coordinates', '31.52, 34.45');
+    await user.click(screen.getByRole('button', { name: 'Add space' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/dashboard/admin/spaces');
+    });
+    expect(requests.find(({ method }) => method === 'post')).toMatchObject({
+      url: '/admin/spaces',
+    });
+  });
+});
+
 describe("the admin's spaces page", () => {
   const PALM: AdminSpaceRow = {
     id: 9,
@@ -539,6 +595,31 @@ describe("the admin's spaces page", () => {
     await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('combobox', { name: 'Governorate / area' }));
     expect(await screen.findByRole('option', { name: 'Gaza City' })).toBeInTheDocument();
+  });
+
+  it('leads from "Add space", above the list, to the add page, which adds no page to the sidebar', async () => {
+    openSpaces('');
+
+    await userEvent.click(await screen.findByRole('link', { name: 'Add space' }));
+
+    // The add page loads lazily: its title replaces the list's in the top bar.
+    expect(
+      await within(screen.getByRole('banner')).findByRole('heading', {
+        level: 1,
+        name: 'Add space',
+      }),
+    ).toBeInTheDocument();
+    expect(await pagesIn('Platform admin')).toEqual(ADMIN_PAGES);
+    expect(
+      within(screen.getByRole('navigation', { name: 'Platform admin' })).getByRole('link', {
+        name: 'Spaces',
+      }),
+    ).toHaveAttribute('aria-current', 'page');
+    const trail = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(trail).getByRole('link', { name: 'Spaces' })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/spaces',
+    );
   });
 
   it('keeps every menu waiting out a 429 through a change of filter, then of page', async () => {

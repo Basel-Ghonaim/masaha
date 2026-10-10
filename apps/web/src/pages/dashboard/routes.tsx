@@ -7,7 +7,7 @@ import {
   RouteErrorState,
 } from '@shared/routing';
 import type { RouteObject } from 'react-router';
-import { ADMIN_NAV, SPACE_NAV, type DashboardPageName } from './navigation';
+import { ADMIN_ADD_SPACE_PATH, ADMIN_NAV, SPACE_NAV, type DashboardPageName } from './navigation';
 import { placeOf } from './placeOf';
 
 /** The admin's pages that have a screen, each loaded lazily; the others show their placeholder. */
@@ -68,6 +68,13 @@ export const dashboardRoutes: RouteObject[] = [
                 return { element: <PlaceholderPage name={name} /> };
               }),
           })),
+          {
+            path: ADMIN_ADD_SPACE_PATH,
+            lazy: async () => {
+              const { AddSpacePage } = await import('./admin/AddSpacePage');
+              return { element: <AddSpacePage /> };
+            },
+          },
           { path: '*', element: <NotFoundState /> },
         ],
       },

@@ -13,4 +13,9 @@ export const LIBRARY_CHUNKS: readonly LibraryChunk[] = [
     name: 'data-table',
     test: /[\\/]node_modules[\\/](?:@tanstack[\\/](?:react-table|table-core|react-store|store)|use-sync-external-store)[\\/]/,
   },
+  // Leaflet and React Leaflet, under shared/map's point picker.
+  {
+    name: 'leaflet',
+    test: /[\\/]node_modules[\\/](?:leaflet|react-leaflet|@react-leaflet[\\/][^\\/]+)[\\/]/,
+  },
 ];

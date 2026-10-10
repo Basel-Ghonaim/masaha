@@ -78,7 +78,7 @@ Node 24 (`.nvmrc`, enforced by `engine-strict`). Run from the root; details in `
 - `npm run dev` — web dev server on `http://localhost:5320`, forwarding `/api` to the API on 3320; the design-system showcase is at `/__showcase`
 - `npm run build` · `npm run lint` · `npm run typecheck` · `npm run check:classes` (no physical direction classes; no arbitrary values outside the design system)
 - `npm run check:links` — every relative link, image path and anchor of the Markdown files, and every `docs/….md` path cited in a source file, resolves
-- `npm run check:build` — after a build: fails if the development-only showcase reached it, or the site's first download reaches dashboard code or a heavy library (TanStack Table)
+- `npm run check:build` — after a build: fails if the development-only showcase reached it, or the site's first download reaches dashboard code or a heavy library (TanStack Table, Leaflet)
 - `npm run test:unit` · `npm run test:component` · `npm run test:api` — test lanes, chosen by file suffix (`*.unit.test.ts`, `*.component.test.tsx`, `*.api.test.ts`); `test:api` needs the database up
 - `npm run db:up` · `db:down` · `db:migrate` · `db:reset` · `db:seed` · `db:studio` — local PostgreSQL in Docker (host port 5433) and Prisma; `db:seed` needs the `SEED_ADMIN_*` variables in `apps/api/.env`, and adds development demo data with `SEED_DEMO=true`
 - `npm run dev -w @masaha/api` — the API on port 3320 (copy `apps/api/.env.example` to `.env` first); `GET /health`

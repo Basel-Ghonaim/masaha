@@ -13,6 +13,9 @@ describe("the library chunks' patterns", () => {
     ['/repo/node_modules/@tanstack/store/dist/esm/index.js', 'data-table'],
     ['/repo/node_modules/@tanstack/react-store/dist/esm/index.js', 'data-table'],
     ['/repo/node_modules/use-sync-external-store/shim/with-selector.js', 'data-table'],
+    [String.raw`C:\repo\node_modules\leaflet\dist\leaflet-src.js`, 'leaflet'],
+    ['/repo/node_modules/react-leaflet/lib/MapContainer.js', 'leaflet'],
+    ['/repo/node_modules/@react-leaflet/core/lib/context.js', 'leaflet'],
   ])('place %s in one library chunk', (id, chunk) => {
     expect(chunksOf(id)).toEqual([chunk]);
   });
