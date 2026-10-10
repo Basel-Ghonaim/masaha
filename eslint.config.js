@@ -32,6 +32,18 @@ const levelElements = (root) =>
 /** The @masaha/shared paths open to the given levels: core and those levels' capabilities. */
 const sharedPaths = (levels) => ['core', ...levels.flatMap((level) => MODULE_LEVELS[level])];
 
+// The design-system layer's public entries (docs/frontend/design-system/foundation.md §3): its one
+// surface, and the entry of its data components that carry a heavy library (finding 45).
+const LAYER_ENTRIES = ['index.ts', 'data.ts'];
+
+/** The web zones of `types` a zone may import, each only through its entries. */
+const zoneEntries = (types) => [
+  { element: { type: types, fileInternalPath: 'index.ts' } },
+  ...(types.includes('design-system')
+    ? [{ element: { type: 'design-system', fileInternalPath: LAYER_ENTRIES } }]
+    : []),
+];
+
 // The API's elements. The first pattern that matches a file decides its type.
 const API_BOUNDARY_SETTINGS = {
   // Absolute, so imports resolve whatever directory ESLint runs from (the level rule's unit test runs
@@ -212,7 +224,8 @@ export default defineConfig([
   },
   {
     // The four zones of apps/web and their one-way dependency rule (docs/frontend/architecture.md §1).
-    // Another zone is entered only through its index.ts barrel. Sibling imports (feature → feature,
+    // Another zone is entered only through its index.ts barrel, the design-system layer also through
+    // its data components' entry (LAYER_ENTRIES). Sibling imports (feature → feature,
     // page group → page group) are refused because no policy allows them. The design-system layer
     // is the shared module that imports nothing outside itself (docs/frontend/design-system/
     // foundation.md §3), so no policy lets it import anything; its imports of its own files are
@@ -249,33 +262,15 @@ export default defineConfig([
           policies: [
             {
               from: { element: { type: 'app' } },
-              allow: {
-                to: {
-                  element: {
-                    type: ['page', 'feature', 'shared', 'design-system'],
-                    fileInternalPath: 'index.ts',
-                  },
-                },
-              },
+              allow: { to: zoneEntries(['page', 'feature', 'shared', 'design-system']) },
             },
             {
               from: { element: { type: 'page' } },
-              allow: {
-                to: {
-                  element: {
-                    type: ['feature', 'shared', 'design-system'],
-                    fileInternalPath: 'index.ts',
-                  },
-                },
-              },
+              allow: { to: zoneEntries(['feature', 'shared', 'design-system']) },
             },
             {
               from: { element: { type: ['feature', 'shared'] } },
-              allow: {
-                to: {
-                  element: { type: ['shared', 'design-system'], fileInternalPath: 'index.ts' },
-                },
-              },
+              allow: { to: zoneEntries(['shared', 'design-system']) },
             },
             // The dashboard-only rule (ADR 0011, docs/frontend/architecture.md §3): the site never
             // imports a capability only the dashboard uses, so it never pulls dashboard code in.

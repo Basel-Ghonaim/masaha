@@ -3,6 +3,7 @@ import {
   dashboardProblems,
   findForbidden,
   firstDownload,
+  libraryProblems,
   showcaseOnly,
   stringsIn,
   type ManifestChunk,
@@ -123,6 +124,33 @@ describe('dashboardProblems', () => {
 
     expect(dashboardProblems(manifest)).toEqual([
       `No "dashboard" chunk in the build: the dashboard's code is not split from the site's.`,
+    ]);
+  });
+});
+
+describe('libraryProblems', () => {
+  const site: Record<string, ManifestChunk> = {
+    'index.html': { isEntry: true, imports: ['_react.js'] },
+    '_react.js': {},
+    '_table.js': { name: 'data-table', imports: ['_react.js'] },
+    '_dashboard.js': { name: 'dashboard', imports: ['_react.js', '_table.js'] },
+  };
+
+  it('finds nothing when only lazy imports reach a library', () => {
+    expect(libraryProblems(site, ['data-table'])).toEqual([]);
+  });
+
+  it("names a library's chunk when the first download imports it", () => {
+    const manifest = { ...site, '_react.js': { imports: ['_table.js'] } };
+
+    expect(libraryProblems(manifest, ['data-table'])).toEqual([
+      "_table.js is data-table's chunk in the site's first download.",
+    ]);
+  });
+
+  it('fails when the build has no chunk for a library, so the check never holds nothing', () => {
+    expect(libraryProblems(site, ['data-table', 'leaflet'])).toEqual([
+      'No "leaflet" chunk in the build: its library is not split from the rest.',
     ]);
   });
 });

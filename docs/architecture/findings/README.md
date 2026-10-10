@@ -33,7 +33,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [42. A registration test failed once in a full component run](42-a-registration-test-failed-once-in-a-full-component-run.md)
 - [43. Two races around a space's facts](43-two-races-around-a-spaces-facts.md)
 - [44. No screen restores a deleted space once its toast has gone](44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)
-- [45. The data table's library reaches the site's first download](45-the-data-tables-library-reaches-the-sites-first-download.md)
 - [48. `db:up` from another folder recreates the shared container](48-db-up-from-another-folder-recreates-the-shared-container.md)
 
 ## Accepted
@@ -65,3 +64,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [37. Links between documents are checked by hand](37-links-between-documents-are-checked-by-hand.md)
 - [38. The findings are one file](38-the-findings-are-one-file.md)
 - [41. The request log does not name the space](41-the-request-log-does-not-name-the-space.md)
+- [45. The data table's library reaches the site's first download](45-the-data-tables-library-reaches-the-sites-first-download.md)

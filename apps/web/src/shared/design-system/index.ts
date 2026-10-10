@@ -1,5 +1,6 @@
-// The design-system layer's only public surface: consumers import from @shared/design-system,
-// never from inside it (docs/frontend/design-system/foundation.md §3).
+// The design-system layer's public surface: consumers import from @shared/design-system, never from
+// inside it (docs/frontend/design-system/foundation.md §3). The data components that carry a heavy
+// library have an entry of their own, ./data.ts, so only the pages that draw them download it.
 export {
   Alert,
   AlertAction,
@@ -67,14 +68,6 @@ export {
   DialogTrigger,
   type DialogContentProps,
 } from './components/overlays/Dialog';
-export {
-  DataTable,
-  createDataTableColumnHelper,
-  type DataTableColumn,
-  type DataTableColumnMeta,
-  type DataTableProps,
-  type DataTableSorting,
-} from './components/data/DataTable';
 export {
   DatePicker,
   DatePickerContent,

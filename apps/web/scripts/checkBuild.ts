@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { DASHBOARD_CHUNK, isDashboardModule } from './dashboardOnly.ts';
+import { LIBRARY_CHUNKS } from './libraryChunks.ts';
 
 // The design-system showcase is development-only (docs/frontend/architecture.md §2). If any of it
 // reached the build, its route path or one of its fixture strings would be in dist/. Fixture
@@ -91,6 +92,28 @@ export function dashboardProblems(manifest: Record<string, ManifestChunk>): stri
     .map((key) => `${key} is dashboard code in the site's first download.`);
 }
 
+/**
+ * What is wrong with the heavy libraries' place in the build (finding 45): each chunk of the first
+ * download that is one of `names`, or, for a name the build has no chunk of, that the check has
+ * nothing to hold, so a group that stopped matching never passes unseen.
+ */
+export function libraryProblems(
+  manifest: Record<string, ManifestChunk>,
+  names: readonly string[],
+): string[] {
+  const chunks = Object.values(manifest);
+  const missing = names
+    .filter((name) => !chunks.some((chunk) => chunk.name === name))
+    .map((name) => `No "${name}" chunk in the build: its library is not split from the rest.`);
+  const reached = firstDownload(manifest).flatMap((key) => {
+    const name = manifest[key]?.name;
+    return name !== undefined && names.includes(name)
+      ? [`${key} is ${name}'s chunk in the site's first download.`]
+      : [];
+  });
+  return [...missing, ...reached];
+}
+
 /** The forbidden strings that a build file contains. */
 export function findForbidden(content: string, forbidden: readonly string[]): string[] {
   const decoded = decodeEscapes(content);
@@ -131,6 +154,11 @@ function main() {
   for (const problem of problems) {
     console.error(problem);
   }
+  const libraries = LIBRARY_CHUNKS.map(({ name }) => name);
+  const libraryFaults = manifest ? libraryProblems(manifest, libraries) : [];
+  for (const problem of libraryFaults) {
+    console.error(problem);
+  }
 
   if (hits > 0) {
     console.error(
@@ -151,6 +179,16 @@ The site's first download must not reach the dashboard (ADR 0011): look for a st
     process.exitCode = 1;
   } else {
     console.log("No dashboard code in the site's first download.");
+  }
+
+  if (libraryFaults.length > 0) {
+    console.error(
+      `
+Each of ${libraries.join(', ')} must be a chunk of its own, out of the site's first download (finding 45): look for a static import of what uses it outside the pages that need it, or a group in scripts/libraryChunks.ts that no longer matches its library.`,
+    );
+    process.exitCode = 1;
+  } else if (manifest) {
+    console.log(`No ${libraries.join(' or ')} in the site's first download.`);
   }
 }
 

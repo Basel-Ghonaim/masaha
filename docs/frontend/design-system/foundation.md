@@ -60,7 +60,8 @@ apps/web/src/shared/design-system/
                       its glyph's name from a closed set (GlyphName), for data that names its icon
   lib/cn.ts           class-merge helper (lives inside the layer — the layer imports nothing from outside)
   lib/DirectionProvider.tsx  the reading direction for Radix and the icons (§8); not a visual component
-  index.ts            the only public surface
+  index.ts            the public surface
+  data.ts             the second entry: the data components that carry a heavy library (DataTable)
 ```
 
 **Categories.** A component's category is its **primary role for the user**: what the user does with it or gets from it, never its form. Each component has exactly one. A component that takes another's form is still classed by its role: Select's list floats, and Sidebar becomes a drawer on a phone, but they are a field and navigation.
@@ -78,7 +79,7 @@ apps/web/src/shared/design-system/
 A new component goes in the category of its role: the removable filter tag ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) in `display`, charts in `data`. A new category is added only when a role fits none of these.
 
 **Rules:**
-- **Public surface:** consumers import from `@shared/design-system` only, never from inside a component folder.
+- **Public surface:** consumers import from `@shared/design-system`, never from inside a component folder. The one exception is a second entry, `@shared/design-system/data`, for the data components that carry a heavy library (`DataTable`, over TanStack Table): only the pages that draw them import it, so the library stays out of the site's first download, which `check:build` verifies ([finding 45](../../architecture/findings/45-the-data-tables-library-reaches-the-sites-first-download.md)). Lint allows these entries alone.
 - **Closure:** the layer imports nothing from outside itself (no features, pages, app, or other `shared/` modules).
 - **Class merging:** `cn` (`lib/cn.ts`) joins classes; when two set the same thing, the later wins. It is configured with the layer's text styles and shadows, which tailwind-merge would otherwise misread (`text-body` as a colour, so `cn('text-body', 'text-primary')` would drop it). Every component, copied ones included, merges through it; the layer exports it for pages and features too.
 - **shadcn/ui** is configured (`apps/web/components.json`: style `radix-vega`, `rtl: true`, every alias inside the layer) to copy components into `components/`. With `rtl: true` the CLI writes logical classes. The CLI reads the aliases from `apps/web/tsconfig.json`, which repeats `@shared/*` for it. Once copied, a component is ours and follows this contract (§11).
