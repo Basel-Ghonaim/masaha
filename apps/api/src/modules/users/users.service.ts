@@ -9,6 +9,7 @@ import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
 import { createSessionsService, type SessionsService } from '../sessions/index.ts';
 import { hashPassword, verifyPassword } from './password.ts';
+import { temporaryPassword } from './temporaryPassword.ts';
 
 /** bcrypt, as the users module uses it. */
 export interface Passwords {
@@ -74,6 +75,19 @@ const googleName = textSchema(1, NAME_MAX_LENGTH);
 export interface VerifiedCredentials {
   account: Account;
   confirm(tx: Tx): Promise<Account>;
+}
+
+/** A temporary password, shown once to hand over, and its hash, to store. */
+export interface TemporaryPassword {
+  password: string;
+  hash: string;
+}
+
+/** An account someone else creates, with a temporary password. */
+export interface CreatedAccount {
+  name: string;
+  email: string;
+  role: Role;
 }
 
 /** A changed password: the device's session goes on with these, and every other one has ended. */
@@ -295,6 +309,44 @@ export function createUsersService({
     /** The account with this email, if there is one. */
     async findByEmail(email: string, tx?: Tx): Promise<Account | null> {
       return (await repository.findByEmail(email, tx))?.account ?? null;
+    },
+
+    /**
+     * A new temporary password and its hash (docs/backend/security.md › Passwords), before the
+     * transaction that stores it opens: bcrypt stays outside every transaction.
+     */
+    async issueTemporaryPassword(): Promise<TemporaryPassword> {
+      const password = temporaryPassword();
+      return { password, hash: await passwords.hash(password) };
+    },
+
+    /**
+     * An account created by someone else, with a temporary password to change at its first
+     * sign-in, audited `user.created`; the password is in no entry. Nothing when the email already
+     * has an account, which then ends the caller's transaction.
+     */
+    async createWithTemporaryPassword(
+      { name, email, role }: CreatedAccount,
+      passwordHash: string,
+      actorId: number,
+      tx: Tx,
+    ): Promise<Account | null> {
+      const created = await repository.create(
+        { name, email, passwordHash, role, mustChangePassword: true },
+        tx,
+      );
+      if (!('account' in created)) return null;
+      await audit(
+        {
+          actorId,
+          action: 'user.created',
+          entityType: 'user',
+          entityId: created.account.id,
+          after: { name, email, role, mustChangePassword: true },
+        },
+        tx,
+      );
+      return created.account;
     },
 
     /** Hashes a new password, before the transaction that sets it opens. */

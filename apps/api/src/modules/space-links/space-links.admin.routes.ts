@@ -1,4 +1,5 @@
 import {
+  addOwnerSchema,
   adminSpacesQuerySchema,
   adminUsersQuerySchema,
   linkOwnerSchema,
@@ -17,10 +18,10 @@ export interface SpaceLinksAdminControllers {
 }
 
 /**
- * The admin's spaces list, at /admin/spaces, users list, at /admin/users, and a space's owners, at
- * /admin/spaces/:spaceId/owners (docs/api/api-contract.md §5, Spaces (the admin), Owners (the
- * admin) and Users (the admin)). The composition root mounts it under /admin, behind requireAuth
- * and requireRole('ADMIN'), after the links loader of the space routes.
+ * The admin's spaces list, at /admin/spaces, users list, at /admin/users, and owners, at
+ * /admin/owners and /admin/spaces/:spaceId/owners (docs/api/api-contract.md §5, Spaces (the
+ * admin), Owners (the admin) and Users (the admin)). The composition root mounts it under /admin,
+ * behind requireAuth and requireRole('ADMIN'), after the links loader of the space routes.
  */
 export function createSpaceLinksAdminRouter({
   adminOwners,
@@ -30,6 +31,7 @@ export function createSpaceLinksAdminRouter({
   const router = Router();
   router.get('/spaces', validate(adminSpacesQuerySchema, 'query'), adminSpaces.list);
   router.get('/users', validate(adminUsersQuerySchema, 'query'), adminUsers.list);
+  router.post('/owners', validate(addOwnerSchema), adminOwners.add);
   router.post('/spaces/:spaceId/owners', validate(linkOwnerSchema), adminOwners.link);
   router.delete('/spaces/:spaceId/owners/:userId', adminOwners.unlink);
   return router;

@@ -22,6 +22,9 @@ export interface NewAccount {
   passwordHash: string | null;
   googleSubject?: string;
   language?: Language;
+  role?: Role;
+  /** A temporary password, set by someone else, to be changed first. */
+  mustChangePassword?: boolean;
 }
 
 /** A user's id and name, as another module lists them. */

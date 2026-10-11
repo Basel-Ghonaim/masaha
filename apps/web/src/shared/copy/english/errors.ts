@@ -37,6 +37,8 @@ export const ERRORS = {
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:
     'This person works at this space’s reception. Its owner deactivates that link first.',
+  EMAIL_HAS_ACCOUNT: 'This email already has an account. Upgrade it to an owner to link it.',
+  ALREADY_OWNER: 'This person is already an owner. Link them to the space instead.',
   CURRENT_PASSWORD_INCORRECT: 'The current password is incorrect.',
   GOOGLE_TOKEN_INVALID: 'We couldn’t sign you in with Google. Try again or use your email.',
   RESET_TOKEN_INVALID: 'The link has expired or was already used.',

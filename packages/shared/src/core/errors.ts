@@ -51,6 +51,8 @@ export const DOMAIN_ERROR_CODES = [
   'SPACE_NOT_MANAGED',
   'ACCOUNT_IS_ADMIN',
   'RECEPTION_LINK_ACTIVE',
+  'EMAIL_HAS_ACCOUNT',
+  'ALREADY_OWNER',
   // customers
   'PHONE_TAKEN',
   // the check-in (visits, subscriptions)

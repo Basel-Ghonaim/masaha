@@ -40,6 +40,13 @@ export interface AdminSpaceRow {
   lastUpdatedAt: string;
 }
 
+/** An owner added (POST /admin/owners). */
+export interface AddedOwner {
+  userId: number;
+  /** The new account's temporary password, shown once; `null` for an account upgraded. */
+  temporaryPassword: string | null;
+}
+
 /** One row of the admin's users list (GET /admin/users). */
 export interface AdminUserRow {
   id: number;

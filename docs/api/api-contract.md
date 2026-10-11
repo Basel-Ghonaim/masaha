@@ -401,7 +401,21 @@ A space's owners, as the admin links them ([ADR 0009](../architecture/decisions/
 - **One space at a time.** A link is made, or ended, for one person at one space; the admin links owners only, never reception.
 - **The global role follows the links.** A person's first active owner link makes them an `OWNER`, and the end of their last one a `USER` again; a soft-deleted space's link still counts here, as deleting a space writes nothing in its links. Each such change ends every session of the person ([security › Tokens and cookies](../backend/security.md#tokens-and-cookies)). A link or an end that leaves the role as it is ends no session.
 - **Ending is deactivating:** the link is kept, deactivated, and linking again reactivates that same row.
-- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)): `space.ownerLinked` (`after: { userId }`; a deactivated reception row that becomes an owner's has `before: { role: "RECEPTION" }` and `after: { userId, role: "OWNER" }`) and `space.ownerUnlinked` (`before: { userId }`), with the space as both the entity and the entry's space; a change of role, `user.roleChanged` (`before` and `after`: `{ role }`), with the person as the entity.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)): `user.created` for an account the admin creates (`after`: `{ name, email, role, mustChangePassword }`, never the password); `space.ownerLinked` (`after: { userId }`; a deactivated reception row that becomes an owner's has `before: { role: "RECEPTION" }` and `after: { userId, role: "OWNER" }`) and `space.ownerUnlinked` (`before: { userId }`), with the space as both the entity and the entry's space; a change of role, `user.roleChanged` (`before` and `after`: `{ role }`), with the person as the entity.
+
+#### `POST /admin/owners` · 🛡
+- **Body:** `{ name, email, spaceId, upgradeExisting? }`. The name as at registration (1–100 characters); the email trimmed and lowercased; `spaceId` the one space it is linked to.
+- **201:** `AddedOwner` (`@masaha/shared/space-links`), with `Cache-Control: no-store`; all of it is written, or nothing:
+  - **an email with no account:** a new account, an `OWNER` with a temporary password to change at its first sign-in ([security › Passwords](../backend/security.md#passwords)), linked to the space, which is verified;
+  - **an email with an account, and `upgradeExisting: true`:** that account is linked as above, keeping its name and its password, with no temporary password. The flag allows an upgrade; it does not require one.
+
+  ```ts
+  AddedOwner = {
+    userId: number,
+    temporaryPassword: string | null   // the new account's, in this answer only, never again; null for an upgrade
+  }
+  ```
+- **Errors**, a refusal writing nothing: `validation` (422), with `errors.spaceId = ["invalid_choice"]` for a soft-deleted or unknown space; for an email with an account, in this order: `conflict` (409) `ACCOUNT_IS_ADMIN`, `conflict` (409) `ACCOUNT_SUSPENDED`, `conflict` (409) `ALREADY_OWNER` for an owner, who is linked instead, `conflict` (409) `EMAIL_HAS_ACCOUNT` without `upgradeExisting` (also when another creation took the email meanwhile), and `conflict` (409) `RECEPTION_LINK_ACTIVE`.
 
 #### `POST /admin/spaces/:spaceId/owners` · 🛡
 - **Body:** `{ userId }`: a user, who becomes an owner, or an owner, who owns one more space.
@@ -440,4 +454,4 @@ The accounts, as the admin reads them ([data-model › Users and sessions](../ar
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER`.

@@ -6,14 +6,14 @@
 
 ## What it does
 
-- Holds the accounts: creates one at registration or at a first Google sign-in, links Google to an existing one, hashes and verifies passwords, and refuses a suspended account.
+- Holds the accounts: creates one at registration, at a first Google sign-in, or as an account the admin creates, with a temporary password, links Google to an existing one, hashes and verifies passwords, and refuses a suspended account.
 - Changes a password, and settles a temporary one in the forced change.
 - Answers the account's view (`User`) for the session, and the names of a set of users for a list.
 - Answers a page of the accounts for the admin's users list, filtered by name or email, role and state, each with how it signs in.
 - Changes the global role when `space-links` finds that a person's owner links give another, ending every session of theirs.
 - On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, and the forced password change's form.
 
-The account's settings (`GET` and `PATCH /me`), suspension, the admin's role changes and the temporary passwords that an owner or the admin creates are not built.
+The account's settings (`GET` and `PATCH /me`), suspension, the admin's role changes, the temporary passwords of the owner's reception accounts and the admin's recovery are not built.
 
 ## Who uses it
 
@@ -48,6 +48,7 @@ The account's settings (`GET` and `PATCH /me`), suspension, the admin's role cha
 ### API decisions
 
 - **`users` owns `User`;** the session's user extends it. *Why:* a lower level must not read a higher one's types. 2026-10-04, #34.
+- **An account created by someone else gets its temporary password here,** generated and hashed before the transaction that stores it, and is audited `user.created` without it. *Why:* the temporary password and the hashing are this module's; bcrypt stays outside every transaction ([security › Passwords](../backend/security.md#passwords)). 2026-10-11, #60.
 - **A role change is made here, under the session lock its caller took,** ending every session of the person and audited `user.roleChanged`. *Why:* the role and the sessions' end are this module's; `space-links` only decides that the links give another role ([security › Tokens and cookies](../backend/security.md#tokens-and-cookies)). 2026-10-11, #60.
 - **The admin's users list filters and pages the accounts here,** newest first, whatever the case of the search; whether an account has a password is read without its hash. *Why:* every filter is the account's own ([conventions §5](../backend/conventions.md#5-pagination)), and the hash is selected only to check a password ([security › Passwords](../backend/security.md#passwords)). 2026-10-11, #60.
 
@@ -65,7 +66,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 
 ## Code map
 
-- **API:** `apps/api/src/modules/users/`, entry `index.ts`: the service, its `me` router, the password hashing and its limits.
+- **API:** `apps/api/src/modules/users/`, entry `index.ts`: the service, its `me` router, the password hashing and its limits, and the temporary password's pure rule (`temporaryPassword.ts`).
 - **Shared:** `packages/shared/src/users/`: the account, the change's request and answer, and the password policy.
 - **Web:** `apps/web/src/features/users/`, entry `index.ts`: `AccountMenu`, `AccountMenuSection`, `CompactAccountMenu`, `SignOutButton`, `ForcedPasswordChangeForm`. Mounted by `pages/site/shell/`, `pages/site/auth/` and `pages/dashboard/shell/`.
 
@@ -82,7 +83,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #31 — two racing first Google sign-ins make one account.
 - #34 — `User` in `@masaha/shared/users`.
 - #35 — the password policy's rules for a checklist.
-- #60 — the page of accounts for the admin's users list; the role change that follows an owner's links.
+- #60 — the page of accounts for the admin's users list; the role change that follows an owner's links; the accounts the admin creates with a temporary password.
 
 ### Web history
 

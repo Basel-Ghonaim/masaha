@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { Writable } from 'node:stream';
 
+import type { AddedOwner } from '@masaha/shared/space-links';
+import bcrypt from 'bcrypt';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -16,6 +19,7 @@ import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings } from '../../../../test/spaces.ts';
 import { prisma, type Tx } from '../../../db/index.ts';
 import type { Role } from '../../../generated/prisma/enums.ts';
+import { createLogger } from '../../../shared/http/index.ts';
 
 const NOW = new Date('2026-10-11T09:00:00.000Z');
 const app = createTestApp({ clock: () => NOW });
@@ -378,5 +382,217 @@ describe('DELETE /admin/spaces/:spaceId/owners/:userId', () => {
 
     expect((await Promise.all(pending)).map(({ status }) => status)).toEqual([204, 204]);
     expect(await role(owner.id)).toBe('USER');
+  });
+});
+
+describe('POST /admin/owners', () => {
+  const NEW = { name: 'Nour Salem', email: 'Nour@Example.com' };
+
+  function add(body: object, on = app) {
+    return adminRequest(on, admin, 'post', '/owners', { spaceId, ...body });
+  }
+
+  const account = (email = 'nour@example.com') =>
+    prisma.user.findUnique({
+      where: { email },
+      select: { id: true, name: true, role: true, mustChangePassword: true, passwordHash: true },
+    });
+
+  it.each(REFUSED_CALLERS)('refuses a $caller with $status', async ({ caller, ...refusal }) => {
+    const response = await adminRequest(app, caller, 'post', '/owners', { spaceId, ...NEW });
+
+    expect(response.status).toBe(refusal.status);
+    expect(errorOf(response).code).toBe(refusal.code);
+    expect(await account()).toBeNull();
+  });
+
+  it('creates an owner’s account with a temporary password, answered once, and verifies the space', async () => {
+    const response = await add(NEW);
+
+    expect(response.status).toBe(201);
+    expect(response.headers['cache-control']).toBe('no-store');
+    const { userId, temporaryPassword } = dataOf(response) as AddedOwner;
+    expect(temporaryPassword).toMatch(/^[A-HJ-NP-Za-km-np-z2-9]{12}$/);
+    const created = await account();
+    expect(created).toMatchObject({
+      id: userId,
+      name: 'Nour Salem',
+      role: 'OWNER',
+      mustChangePassword: true,
+    });
+    expect(await bcrypt.compare(temporaryPassword ?? '', created?.passwordHash ?? '')).toBe(true);
+    expect(await links(userId)).toEqual([{ spaceId, role: 'OWNER', deactivatedAt: null }]);
+    expect(await verified()).toBe(true);
+    expect(await entries()).toEqual([
+      {
+        action: 'user.created',
+        entityType: 'user',
+        before: null,
+        after: {
+          name: 'Nour Salem',
+          email: 'nour@example.com',
+          role: 'OWNER',
+          mustChangePassword: true,
+        },
+      },
+      { action: 'space.ownerLinked', entityType: 'space', before: null, after: { userId } },
+    ]);
+  });
+
+  it('writes the temporary password in no log line and no audit entry', async () => {
+    const lines: string[] = [];
+    const logged = createTestApp({
+      clock: () => NOW,
+      logger: createLogger(
+        'trace',
+        new Writable({
+          write(chunk: Buffer, _encoding, done) {
+            lines.push(chunk.toString());
+            done();
+          },
+        }),
+      ),
+    });
+
+    const response = await add(NEW, logged);
+
+    const { temporaryPassword } = dataOf(response) as AddedOwner;
+    expect(temporaryPassword).toEqual(expect.any(String));
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.join('')).not.toContain(temporaryPassword);
+    expect(JSON.stringify(await auditEntries())).not.toContain(temporaryPassword);
+  });
+
+  it('refuses an email that has an account, writing nothing, then upgrades it when asked', async () => {
+    const user = await prisma.user.create({
+      data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'own-hash' },
+    });
+    await session(user.id);
+
+    const refused = await add(NEW);
+
+    expect(refused.status).toBe(409);
+    expect(errorOf(refused).code).toBe('EMAIL_HAS_ACCOUNT');
+    expect(await links(user.id)).toEqual([]);
+    expect(await entries()).toEqual([]);
+
+    const upgraded = await add({ ...NEW, upgradeExisting: true });
+
+    expect(upgraded.status).toBe(201);
+    expect(dataOf(upgraded)).toEqual({ userId: user.id, temporaryPassword: null });
+    expect(await account()).toEqual({
+      id: user.id,
+      name: 'Nour',
+      role: 'OWNER',
+      mustChangePassword: false,
+      passwordHash: 'own-hash',
+    });
+    expect(await links(user.id)).toEqual([{ spaceId, role: 'OWNER', deactivatedAt: null }]);
+    expect(await sessions(user.id)).toBe(0);
+    expect((await entries()).map(({ action }) => action)).toEqual([
+      'space.ownerLinked',
+      'user.roleChanged',
+    ]);
+  });
+
+  it('creates the account when the upgrade is allowed but the email has none', async () => {
+    const response = await add({ ...NEW, upgradeExisting: true });
+
+    expect(response.status).toBe(201);
+    expect((dataOf(response) as AddedOwner).temporaryPassword).not.toBeNull();
+  });
+
+  // Each refusal comes before the one that asks for the upgrade, whether it was asked or not.
+  it.each(
+    (
+      [
+        ['an admin', { role: 'ADMIN' }, 'ACCOUNT_IS_ADMIN'],
+        ['a suspended account', { suspendedAt: NOW }, 'ACCOUNT_SUSPENDED'],
+        ['an owner already, who is linked instead', { role: 'OWNER' }, 'ALREADY_OWNER'],
+      ] as const
+    ).flatMap(([who, data, code]) =>
+      [true, false].map((upgradeExisting) => [who, upgradeExisting, data, code] as const),
+    ),
+  )('refuses %s with 409, the upgrade asked: %s', async (_case, upgradeExisting, data, code) => {
+    const user = await prisma.user.create({
+      data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x', ...data },
+    });
+
+    const response = await add({ ...NEW, upgradeExisting });
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe(code);
+    expect(await links(user.id)).toEqual([]);
+    expect(await entries()).toEqual([]);
+  });
+
+  it('asks for the upgrade of the space’s reception before it refuses the link', async () => {
+    const user = await prisma.user.create({
+      data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
+    });
+    await prisma.spaceManager.create({ data: { spaceId, userId: user.id, role: 'RECEPTION' } });
+
+    const response = await add(NEW);
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('EMAIL_HAS_ACCOUNT');
+  });
+
+  it('refuses an email another creation took while this one waited for the space', async () => {
+    let pending: ReturnType<typeof add> | undefined;
+    // The add found no account and waits for the space's lock; meanwhile an account with its
+    // email is committed.
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
+      pending = add(NEW);
+      // Long enough for its read of the email and its hash, outside any transaction.
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await tx.user.create({
+        data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
+      });
+    });
+    const response = await pending;
+
+    expect(response?.status).toBe(409);
+    expect(response && errorOf(response).code).toBe('EMAIL_HAS_ACCOUNT');
+    expect(await prisma.spaceManager.count()).toBe(0);
+    expect(await entries()).toEqual([]);
+  });
+
+  it('refuses the upgrade of the space’s active reception', async () => {
+    const user = await prisma.user.create({
+      data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
+    });
+    await prisma.spaceManager.create({ data: { spaceId, userId: user.id, role: 'RECEPTION' } });
+
+    const response = await add({ ...NEW, upgradeExisting: true });
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('RECEPTION_LINK_ACTIVE');
+    expect(await role(user.id)).toBe('USER');
+  });
+
+  it('refuses a soft-deleted or unknown space on its field, and creates no account', async () => {
+    await prisma.space.update({ where: { id: spaceId }, data: { deletedAt: NOW } });
+
+    for (const id of [spaceId, 999_999]) {
+      const response = await add({ ...NEW, spaceId: id });
+
+      expect(response.status).toBe(422);
+      expect(errorOf(response).errors).toEqual({ spaceId: ['invalid_choice'] });
+    }
+    expect(await account()).toBeNull();
+    expect(await entries()).toEqual([]);
+  });
+
+  it('refuses a body without a name, a valid email or a space', async () => {
+    const response = await adminRequest(app, admin, 'post', '/owners', { email: 'nour' });
+
+    expect(response.status).toBe(422);
+    expect(Object.keys(errorOf(response).errors ?? {}).sort()).toEqual([
+      'email',
+      'name',
+      'spaceId',
+    ]);
   });
 });

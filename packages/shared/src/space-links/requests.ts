@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { paginationQuerySchema, textSchema } from '../core/index.ts';
+import { emailSchema, paginationQuerySchema, textSchema } from '../core/index.ts';
 import { SPACE_NAME_MAX_LENGTH } from '../spaces/index.ts';
 import { NAME_MAX_LENGTH } from '../users/index.ts';
 
@@ -50,6 +50,19 @@ export const adminUsersQuerySchema = paginationQuerySchema.extend({
 export type AdminUsersQuery = z.infer<typeof adminUsersQuerySchema>;
 
 // The admin's owners (docs/api/api-contract.md §5, Owners (the admin)).
+
+/**
+ * A new owner, linked to one space: a new account, with a temporary password, or, with
+ * `upgradeExisting`, the account the email already has, which keeps its name and password.
+ */
+export const addOwnerSchema = z.object({
+  name: textSchema(1, NAME_MAX_LENGTH),
+  email: emailSchema,
+  spaceId: bodyId,
+  upgradeExisting: z.boolean().optional(),
+});
+
+export type AddOwnerRequest = z.infer<typeof addOwnerSchema>;
 
 /** A person linked to the space as its owner: a user becomes one, an owner owns one more space. */
 export const linkOwnerSchema = z.object({ userId: bodyId });

@@ -17,6 +17,7 @@ const SECRET_FIELDS = [
   'password',
   'currentPassword',
   'newPassword',
+  'temporaryPassword',
   'token',
   'accessToken',
   'refreshToken',
