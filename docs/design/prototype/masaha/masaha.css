@@ -54,3 +54,8 @@ a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=bre
    between 768 and 1023, where the rail leaves about 640 px. The bundle has no `lg:table-cell`
    (below 768 DataTable draws cards, so the original never needed it). */
 @media(min-width:1024px){.lg-col{display:table-cell}}
+/* A1/AD-011: the editor's sections land below the bars; below lg the chips row is a second bar.
+   It is sticky under the top bar, whose height the page sets on it (61 px on a phone). */
+.section-anchor{scroll-margin-top:5rem}
+@media(max-width:1023px){.section-anchor{scroll-margin-top:8.5rem}}
+.section-chips{position:sticky;top:3.5rem;z-index:5;background:var(--background);padding-block:.5rem;scrollbar-width:thin}

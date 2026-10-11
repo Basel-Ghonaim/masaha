@@ -15,14 +15,14 @@ function MiniSelect({ label, value, onChange, options, className }) {
   );
 }
 
-function PricesSection({ space, confirmable }) {
-  const stale = pageParams.get('demo') !== 'fresh';
+function PricesSection({ space, meta = {} }) {
+  const stale = !meta.missing && (meta.days != null ? meta.days > 30 : pageParams.get('demo') !== 'fresh');
   const rows = [['hour', 'all', 'none', '', 3], ['day', 'all', 'none', '', 15], ['week', 'all', 'none', '', 90], ['month', 'all', 'none', '', 300], ['month', 'students', 'none', '', 250]].map(([period, audience, shift, label, amount], i) => ({ id: 'r' + i, period, audience, shift, label, amount: String(amount) }));
-  const sec = useSection('prices', { rows });
+  const sec = useSection('prices', { rows: meta.missing ? [] : rows }, meta.missing);
   const setRow = (id, p) => sec.set({ rows: sec.v.rows.map((r) => (r.id === id ? { ...r, ...p } : r)) });
   const bad = (r) => r.amount !== '' && !(Number(r.amount) > 0);
   return (
-    <ProfileSection id="prices" title={tr('الأسعار', 'Prices')} updated={stale ? tr('قبل 34 يومًا', '34 days ago') : tr('قبل 3 أيام', '3 days ago')} sec={sec}
+    <ProfileSection id="prices" title={tr('الأسعار', 'Prices')} updated={meta.updated || (stale ? tr('قبل 34 يومًا', '34 days ago') : tr('قبل 3 أيام', '3 days ago'))} sec={sec}
       description={tr('للعرض فقط · الدفع في المساحة', 'Display only · Pay at the space')}
       validate={(v) => (v.rows.some(bad) ? tr('أدخل مبلغًا صحيحًا أكبر من صفر.', 'Enter a valid amount above zero.') : null)}
 >
@@ -45,15 +45,16 @@ function PricesSection({ space, confirmable }) {
   );
 }
 
-function AmenitiesSection({ space }) {
+function AmenitiesSection({ space, meta = {}, manage }) {
   const all = window.MASAHA.allAmenities;
-  const sec = useSection('amenities', { list: space.amenities.slice() });
+  const sec = useSection('amenities', { list: meta.missing ? [] : space.amenities.slice() }, meta.missing);
   const toggle = (id, on) => sec.set({ list: on ? [...sec.v.list, id] : sec.v.list.filter((x) => x !== id) });
   return (
-    <ProfileSection id="amenities" title={tr('المرافق', 'Amenities')} updated={tr('قبل 20 يومًا', '20 days ago')} sec={sec}>
+    <ProfileSection id="amenities" title={tr('المرافق', 'Amenities')} updated={meta.updated || tr('قبل 20 يومًا', '20 days ago')} sec={sec}>
       <div className="grid gap-2 md:grid-cols-2">
         {all.map((a) => <QField key={a.id} label={a.name} orientation="horizontal"><QCheckbox checked={sec.v.list.includes(a.id)} onCheckedChange={(on) => toggle(a.id, !!on)} /></QField>)}
       </div>
+      {manage && <p className="text-body-sm text-muted-foreground">{tr('مرفق ليس في القائمة؟ ', 'An amenity not on the list? ')}<a href={manage}>{tr('إدارة قائمة المرافق', 'Manage the amenities list')}</a></p>}
     </ProfileSection>
   );
 }
@@ -62,11 +63,11 @@ const CONTACT_TYPES = () => [['whatsapp', tr('واتساب', 'WhatsApp')], ['jaw
 const LTR_TYPES = ['whatsapp', 'jawwal', 'ooredoo', 'email', 'instagram', 'facebook', 'tiktok', 'website'];
 const placeholderFor = { whatsapp: '+970 59 000 0000', jawwal: '+970 59 000 0000', ooredoo: '+970 56 000 0000', email: 'name@example.com', instagram: 'username', facebook: 'page', tiktok: 'username', website: 'https://example.com' };
 
-function ContactsSection({ space }) {
-  const sec = useSection('contacts', { list: space.contacts.map((c, i) => ({ id: 'c' + i, ...c })) });
+function ContactsSection({ space, meta = {} }) {
+  const sec = useSection('contacts', { list: meta.missing ? [] : space.contacts.map((c, i) => ({ id: 'c' + i, ...c })) }, meta.missing);
   const setC = (id, p) => sec.set({ list: sec.v.list.map((c) => (c.id === id ? { ...c, ...p } : c)) });
   return (
-    <ProfileSection id="contacts" title={tr('التواصل', 'Contacts')} updated={tr('قبل 75 يومًا', '75 days ago')} sec={sec}
+    <ProfileSection id="contacts" title={tr('التواصل', 'Contacts')} updated={meta.updated || tr('قبل 75 يومًا', '75 days ago')} sec={sec}
       validate={(v) => (v.list.some((c) => !c.value.trim()) ? tr('املأ كل وسيلة تواصل أو احذفها.', 'Fill in each contact or remove it.') : null)}>
       <ul className="flex flex-col gap-3">
         {sec.v.list.map((c) => (

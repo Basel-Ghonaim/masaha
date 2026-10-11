@@ -1,17 +1,32 @@
-const { Card: PCard, CardHeader: PCardHeader, CardTitle: PCardTitle, CardDescription: PCardDescription, CardAction: PCardAction, CardContent: PCardContent, CardFooter: PCardFooter, Button: PButton, Badge: PBadge, Field: PField, Input: PInput, Textarea: PTextarea, Select: PSelect, SelectTrigger: PSelectTrigger, SelectValue: PSelectValue, SelectContent: PSelectContent, SelectItem: PSelectItem, SelectGroup: PSelectGroup, SelectLabel: PSelectLabel, Switch: PSwitch, Alert: PAlert, AlertDescription: PAlertDescription, XIcon: PX, toast: ptoast } = window.MasahaDesignSystem;
+const { Card: PCard, CardHeader: PCardHeader, CardTitle: PCardTitle, CardDescription: PCardDescription, CardAction: PCardAction, CardContent: PCardContent, CardFooter: PCardFooter, Button: PButton, Badge: PBadge, Field: PField, Input: PInput, Textarea: PTextarea, Select: PSelect, SelectTrigger: PSelectTrigger, SelectValue: PSelectValue, SelectContent: PSelectContent, SelectItem: PSelectItem, SelectGroup: PSelectGroup, SelectLabel: PSelectLabel, Separator: PSeparator, Switch: PSwitch, Alert: PAlert, AlertDescription: PAlertDescription, XIcon: PX, toast: ptoast } = window.MasahaDesignSystem;
+
+// A1: the space's five fact groups — the profile, the hours with the shifts, the prices, the
+// amenities, the contacts — are what the server saves, dates and confirms, one at a time; the
+// photos are no fact group. The editor's sections follow them, one name each, in the cards and
+// in the navigation alike.
+const FACT_GROUPS = ['profile', 'hours', 'prices', 'amenities', 'contacts'];
+
+// "N days ago", through the Arabic plural forms.
+const ago = (n) => (n <= 0 ? tr('اليوم', 'today') : n === 1 ? tr('أمس', 'yesterday') : n === 2 ? tr('قبل يومين', '2 days ago') : n <= 10 ? tr(`قبل ${n} أيام`, `${n} days ago`) : tr(`قبل ${n} يومًا`, `${n} days ago`));
 
 // Each section saves on its own; dirty sections register so leaving the page warns.
+// A group never saved is `missing`: it has no date and nothing to confirm until its first save.
 const dirtySet = new Set();
 window.addEventListener('beforeunload', (e) => { if (dirtySet.size) { e.preventDefault(); e.returnValue = ''; } });
-function useSection(id, initial) {
+function useSection(id, initial, missingAtFirst) {
   const [v, setV] = React.useState(initial);
   const [saved, setSaved] = React.useState(initial);
   const [updated, setUpdated] = React.useState(null);
+  const [missing, setMissing] = React.useState(!!missingAtFirst);
   const dirty = JSON.stringify(v) !== JSON.stringify(saved);
   React.useEffect(() => { dirty ? dirtySet.add(id) : dirtySet.delete(id); window.dispatchEvent(new Event('masaha-dirty')); }, [dirty]);
-  const save = () => { setSaved(v); setUpdated(tr('الآن', 'just now')); ptoast.success(tr('حُفظ القسم', 'Section saved')); };
-  return { v, setV, set: (p) => setV((x) => ({ ...x, ...p })), dirty, save, reset: () => setV(saved), updated, touch: () => { setUpdated(tr('الآن', 'just now')); ptoast.success(tr('أكّدنا أن المعلومات ما زالت صحيحة', 'Confirmed as still correct')); } };
+  const save = () => { setSaved(v); setUpdated(tr('الآن', 'just now')); setMissing(false); ptoast.success(tr('حُفظ القسم', 'Section saved')); };
+  return { v, setV, set: (p) => setV((x) => ({ ...x, ...p })), dirty, missing, save, reset: () => setV(saved), updated, touch: () => { setUpdated(tr('الآن', 'just now')); ptoast.success(tr('أكّدنا أن المعلومات ما زالت صحيحة', 'Confirmed as still correct')); } };
 }
+
+// A section's title is an h2, so the navigation's anchors land on headings (SH-017). The
+// vendored CardTitle draws a div, so the heading goes inside it, as the code does.
+const SectionTitle = ({ children }) => <PCardTitle><h2>{children}</h2></PCardTitle>;
 
 // `validate` answers one line for the section's Alert, or { field: line } for the fields
 // themselves (then `children` is a function of those errors, and the first takes the focus).
@@ -28,10 +43,10 @@ function ProfileSection({ id, title, description, updated, sec, children, valida
   };
   const fieldErrors = err && typeof err === 'object' ? err : {};
   return (
-    <PCard id={id} className="scroll-mt-20">
+    <PCard id={id} className="section-anchor">
       <PCardHeader>
-        <PCardTitle>{title}</PCardTitle>
-        <PCardDescription>{description ? <>{description} · </> : null}{tr('آخر تحديث', 'Updated')} {sec.updated || updated}</PCardDescription>
+        <SectionTitle>{title}</SectionTitle>
+        <PCardDescription>{description ? <>{description} · </> : null}{sec.missing ? tr('لم تُضف بعد', 'Not added yet') : <>{tr('آخر تحديث', 'Updated')} {sec.updated || updated}</>}</PCardDescription>
         {sec.dirty && <PCardAction><PBadge variant="warning">{tr('تغييرات غير محفوظة', 'Unsaved changes')}</PBadge></PCardAction>}
       </PCardHeader>
       <form ref={form} onSubmit={submit} noValidate className="flex flex-col gap-(--card-padding)">
@@ -43,7 +58,7 @@ function ProfileSection({ id, title, description, updated, sec, children, valida
         <PCardFooter className="flex flex-wrap gap-2">
           <PButton type="submit" loading={busy}>{tr('حفظ', 'Save')}</PButton>
           {sec.dirty && <PButton type="button" variant="ghost" onClick={() => { sec.reset(); setErr(null); }}>{tr('تجاهل التغييرات', 'Discard changes')}</PButton>}
-          {!sec.dirty && (footerExtra !== undefined ? footerExtra : <PButton type="button" variant="ghost" onClick={sec.touch}>{tr('المعلومات ما زالت صحيحة', 'Still correct')}</PButton>)}
+          {!sec.dirty && !sec.missing && (footerExtra !== undefined ? footerExtra : <PButton type="button" variant="ghost" onClick={sec.touch}>{tr('المعلومات ما زالت صحيحة', 'Still correct')}</PButton>)}
         </PCardFooter>
       </form>
     </PCard>
@@ -148,33 +163,94 @@ const sampleProfile = (space) => ({
   coords: space.lat != null ? fmtCoords(space) : ''
 });
 
-function BasicsSection({ space }) {
-  const p = sampleProfile(space);
-  const sec = useSection('basics', { nameAr: p.nameAr, nameEn: p.nameEn, descAr: p.descAr, descEn: p.descEn });
+// «المساحة»: the profile group — the basics and the location as two blocks of one section,
+// with one date, one footer and one confirm, as `PATCH` saves them. The blocks keep their own
+// anchors (#basics, #location), which a report's «تعديل الحقل» and the owner's links target.
+function SpaceSection({ space, meta = {} }) {
+  const sec = useSection('profile', sampleProfile(space));
   return (
-    <ProfileSection id="basics" title={tr('الأساسيات', 'Basics')} updated={tr('قبل أسبوعين', '2 weeks ago')} sec={sec} validate={(v) => errorsOf(basicsErrors(v))}>
-      {(errors) => <BasicsFields v={sec.v} set={sec.set} errors={errors} />}
+    <ProfileSection id="profile" title={tr('المساحة', 'The space')} updated={meta.updated || tr('قبل أسبوعين', '2 weeks ago')} sec={sec} validate={(v) => errorsOf({ ...basicsErrors(v), ...locationErrors(v) })}>
+      {(errors) => <>
+        <section id="basics" aria-labelledby="basics-title" className="section-anchor flex flex-col gap-4">
+          <h3 id="basics-title" className="text-label">{tr('الأساسيات', 'Basics')}</h3>
+          <BasicsFields v={sec.v} set={sec.set} errors={errors} />
+        </section>
+        <PSeparator />
+        <section id="location" aria-labelledby="location-title" className="section-anchor flex flex-col gap-4">
+          <h3 id="location-title" className="text-label">{tr('الموقع', 'Location')}</h3>
+          <LocationFields v={sec.v} set={sec.set} errors={errors} />
+        </section>
+      </>}
     </ProfileSection>
   );
 }
 
-function LocationSection({ space }) {
-  const p = sampleProfile(space);
-  const sec = useSection('location', { area: p.area, addrAr: p.addrAr, addrEn: p.addrEn, landmarkAr: p.landmarkAr, landmarkEn: p.landmarkEn, coords: p.coords, nameEn: p.nameEn });
-  return (
-    <ProfileSection id="location" title={tr('الموقع', 'Location')} updated={tr('قبل شهر', 'a month ago')} sec={sec} validate={(v) => errorsOf(locationErrors(v))}>
-      {(errors) => <LocationFields v={sec.v} set={sec.set} errors={errors} />}
-    </ProfileSection>
-  );
+// The section in view: the last whose top has passed under the bars. A chosen chip is marked at
+// once, before the scroll it starts has settled.
+function useCurrentSection(ids) {
+  const [current, setCurrent] = React.useState(ids[0]);
+  const hold = React.useRef(0);
+  React.useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      if (Date.now() < hold.current) return;
+      const line = (window.innerWidth >= 1024 ? 96 : 150);
+      let c = ids[0];
+      for (const id of ids) { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top <= line) c = id; }
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) c = ids[ids.length - 1];
+      setCurrent(c);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update); };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
+  }, [ids.join()]);
+  return [current, (id) => { hold.current = Date.now() + 900; setCurrent(id); }];
+}
+
+// A1/AD-011: the sections' map at every width — a sticky list from lg, and below it a row of
+// chips under the top bar, scrolling sideways; both mark the section in view. `wideOnly` drops
+// it below lg (a read-only page, whose sections are short).
+function SectionNav({ sections, wideOnly }) {
+  const wide = useIsDesktop();
+  const [current, choose] = useCurrentSection(sections.map(([id]) => id));
+  const row = React.useRef(null);
+  React.useEffect(() => {
+    if (wide || !row.current) return;
+    const bar = document.querySelector('[data-slot=sidebar-inset] > header');
+    const place = () => { if (row.current && bar) row.current.style.top = bar.offsetHeight + 'px'; };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [wide]);
+  React.useEffect(() => {
+    const chip = row.current && row.current.querySelector('[aria-current]');
+    if (chip) chip.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [current, wide]);
+  if (!wide && wideOnly) return null;
+  const item = ([id, label]) => {
+    const on = current === id;
+    return (
+      <PButton key={id} variant={on ? 'secondary' : wide ? 'ghost' : 'outline'} size="sm" className={wide ? 'w-full justify-start' : 'shrink-0 rounded-full'} aria-current={on ? 'location' : undefined} asChild>
+        <a href={'#' + id} onClick={() => choose(id)}>{label}</a>
+      </PButton>
+    );
+  };
+  return wide
+    ? <nav aria-label={tr('أقسام الملف', 'Profile sections')} className="profile-toc lg:col-span-3 lg:flex lg:flex-col lg:gap-1">{sections.map(item)}</nav>
+    : <nav ref={row} aria-label={tr('أقسام الملف', 'Profile sections')} className="section-chips flex gap-2 overflow-x-auto">{sections.map(item)}</nav>;
 }
 
 const DAYS = () => window.MASAHA.weekOrder;
 const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 
-function HoursSection() {
+function HoursSection({ meta = {} }) {
   const init = { days: Object.fromEntries(DAYS().map(([k]) => [k, k === 'fri' ? { open: false, from: '08:00', to: '18:00' } : { open: true, from: '08:00', to: '18:00' }])), shifts: [{ ar: 'الوردية الصباحية', en: 'Morning shift', from: '08:00', to: '13:00' }, { ar: 'الوردية المسائية', en: 'Evening shift', from: '13:00', to: '18:00' }] };
-  if (pageParams.get('demo') === 'shifterror') init.shifts[1].to = '19:30';
-  const sec = useSection('hours', init);
+  if (meta.missing) init.shifts = [];
+  else if (pageParams.get('demo') === 'shifterror') init.shifts[1].to = '19:30';
+  const sec = useSection('hours', init, meta.missing);
   const setDay = (k, p) => sec.set({ days: { ...sec.v.days, [k]: { ...sec.v.days[k], ...p } } });
   const copyAll = (k) => { const d = sec.v.days[k]; sec.set({ days: Object.fromEntries(DAYS().map(([x]) => [x, x === 'fri' ? sec.v.days.fri : { ...d }])) }); };
   const openDays = Object.values(sec.v.days).filter((d) => d.open);
@@ -183,7 +259,7 @@ function HoursSection() {
   const shiftBad = (s) => toMin(s.from) < minFrom || toMin(s.to) > maxTo || toMin(s.to) <= toMin(s.from);
   const setShift = (i, p) => sec.set({ shifts: sec.v.shifts.map((s, j) => (j === i ? { ...s, ...p } : s)) });
   return (
-    <ProfileSection id="hours" title={tr('ساعات العمل', 'Opening hours')} updated={tr('قبل أسبوع', 'a week ago')} sec={sec}
+    <ProfileSection id="hours" title={tr('ساعات العمل', 'Opening hours')} updated={meta.updated || tr('قبل أسبوع', 'a week ago')} sec={sec}
       validate={(v) => (v.shifts.some(shiftBad) ? tr('كل وردية يجب أن تكون داخل ساعات العمل.', 'Each shift must sit inside the opening hours.') : null)}>
       <ul className="flex flex-col divide-y rounded-lg border border-border">
         {DAYS().map(([k, name]) => {
@@ -230,4 +306,4 @@ function HoursSection() {
   );
 }
 
-Object.assign(window, { useSection, ProfileSection, BasicsSection, LocationSection, HoursSection, dirtySet, Optional, BasicsFields, LocationFields, AreaSelect, parseCoords, fmtCoords, coordsError, errorsOf, basicsErrors, locationErrors, sampleProfile });
+Object.assign(window, { FACT_GROUPS, ago, useSection, ProfileSection, SectionTitle, SpaceSection, SectionNav, HoursSection, dirtySet, Optional, BasicsFields, LocationFields, AreaSelect, parseCoords, fmtCoords, coordsError, errorsOf, basicsErrors, locationErrors, sampleProfile });
