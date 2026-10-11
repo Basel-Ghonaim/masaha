@@ -2,6 +2,21 @@
 
 Generated from `prototype/Flows - states.html`, in board order. Each row: the frame label, the prototype URL (open it with the static server, see README), the viewport, and its screenshot. Frames that repeat an earlier frame point to the same screenshot.
 
+## URL parameters added in the fix phase
+
+The frames below are the design board's. These parameters were added or renamed while the
+shared layer's decisions were applied (`CHANGES.md`), and work on every page of their group.
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `?publicstate=open` | the owner's and reception's pages | the public-state panel, open. Renamed from `?status=open`, which is also a list filter on three pages |
+| `?override=<minutes>` | the same | the state set to Full by hand for that long; `?override=full:84` and `?override=closed:30` name the state |
+| `?state=offline` · `?state=403` · `?state=404` | every dashboard page | the route's own states, inside the shell, with no actions — the sidebar is the way on |
+| `?state=error` | every dashboard page | «تعذّر تحميل …» in place of the content, with «إعادة المحاولة» |
+| `?state=loading` | every list page | the list's skeleton rows |
+| `?state=ratelimit` | the settings pages | the «محاولات كثيرة» warning, which any endpoint may answer |
+| `?fail=<action>` | the action's page | that action failing: inside its dialog or sheet, which stays open and keeps the input, or as a toast with «إعادة المحاولة» on a page. Actions: `visit`, `pay`, `checkout`, `warn`, `void`, `save` |
+
 ## 01 · Flow
 
 | Frame | Prototype URL | Viewport | Screenshot |
@@ -375,14 +390,14 @@ Generated from `prototype/Flows - states.html`, in board order. Each row: the fr
 
 | Frame | Prototype URL | Viewport | Screenshot |
 |---|---|---|---|
-| Step 1 · customer — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 1440×1000 | [24-new-customer-subscription-sheet/01-step-1-customer-desktop-1440.webp](screens/24-new-customer-subscription-sheet/01-step-1-customer-desktop-1440.webp) |
-| Step 1 · customer — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 390×844 | [24-new-customer-subscription-sheet/02-step-1-customer-phone-390.webp](screens/24-new-customer-subscription-sheet/02-step-1-customer-phone-390.webp) |
-| Step 2 · package + partial payment — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 1440×1000 | [24-new-customer-subscription-sheet/03-step-2-package-partial-payment-desktop-1440.webp](screens/24-new-customer-subscription-sheet/03-step-2-package-partial-payment-desktop-1440.webp) |
-| Step 2 · package + partial payment — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 390×844 | [24-new-customer-subscription-sheet/04-step-2-package-partial-payment-phone-390.webp](screens/24-new-customer-subscription-sheet/04-step-2-package-partial-payment-phone-390.webp) |
-| Step 2 · «مخصّص» — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 1440×1000 | [24-new-customer-subscription-sheet/05-step-2-desktop-1440.webp](screens/24-new-customer-subscription-sheet/05-step-2-desktop-1440.webp) |
-| Step 2 · «مخصّص» — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 390×844 | [24-new-customer-subscription-sheet/06-step-2-phone-390.webp](screens/24-new-customer-subscription-sheet/06-step-2-phone-390.webp) |
-| Renewal with an unpaid September — desktop 1440 | `Customers.html?role=reception&renew=m6` | 1440×1000 | [24-new-customer-subscription-sheet/07-renewal-with-an-unpaid-september-desktop-1440.webp](screens/24-new-customer-subscription-sheet/07-renewal-with-an-unpaid-september-desktop-1440.webp) |
-| Renewal with an unpaid September — phone 390 | `Customers.html?role=reception&renew=m6` | 390×844 | [24-new-customer-subscription-sheet/08-renewal-with-an-unpaid-september-phone-390.webp](screens/24-new-customer-subscription-sheet/08-renewal-with-an-unpaid-september-phone-390.webp) |
+| Step 1 · customer — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 1440×1000 | [24-new-customer-membership-sheet/01-step-1-customer-desktop-1440.webp](screens/24-new-customer-subscription-sheet/01-step-1-customer-desktop-1440.webp) |
+| Step 1 · customer — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 390×844 | [24-new-customer-membership-sheet/02-step-1-customer-phone-390.webp](screens/24-new-customer-subscription-sheet/02-step-1-customer-phone-390.webp) |
+| Step 2 · package + partial payment — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 1440×1000 | [24-new-customer-membership-sheet/03-step-2-package-partial-payment-desktop-1440.webp](screens/24-new-customer-subscription-sheet/03-step-2-package-partial-payment-desktop-1440.webp) |
+| Step 2 · package + partial payment — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 390×844 | [24-new-customer-membership-sheet/04-step-2-package-partial-payment-phone-390.webp](screens/24-new-customer-subscription-sheet/04-step-2-package-partial-payment-phone-390.webp) |
+| Step 2 · «مخصّص» — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 1440×1000 | [24-new-customer-membership-sheet/05-step-2-desktop-1440.webp](screens/24-new-customer-subscription-sheet/05-step-2-desktop-1440.webp) |
+| Step 2 · «مخصّص» — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 390×844 | [24-new-customer-membership-sheet/06-step-2-phone-390.webp](screens/24-new-customer-subscription-sheet/06-step-2-phone-390.webp) |
+| Renewal with an unpaid September — desktop 1440 | `Customers.html?role=reception&renew=m6` | 1440×1000 | [24-new-customer-membership-sheet/07-renewal-with-an-unpaid-september-desktop-1440.webp](screens/24-new-customer-subscription-sheet/07-renewal-with-an-unpaid-september-desktop-1440.webp) |
+| Renewal with an unpaid September — phone 390 | `Customers.html?role=reception&renew=m6` | 390×844 | [24-new-customer-membership-sheet/08-renewal-with-an-unpaid-september-phone-390.webp](screens/24-new-customer-subscription-sheet/08-renewal-with-an-unpaid-september-phone-390.webp) |
 
 ## 25 · Receive payment «استلام دفعة»
 
@@ -414,8 +429,8 @@ Generated from `prototype/Flows - states.html`, in board order. Each row: the fr
 
 | Frame | Prototype URL | Viewport | Screenshot |
 |---|---|---|---|
-| Memberships · partly paid — desktop 1440 | `Customer file.html?id=m6` | 1440×1000 | [27-customer-file/01-memberships-partly-paid-desktop-1440.webp](screens/27-customer-file/01-memberships-partly-paid-desktop-1440.webp) |
-| Memberships · partly paid — phone 390 | `Customer file.html?id=m6` | 390×844 | [27-customer-file/02-memberships-partly-paid-phone-390.webp](screens/27-customer-file/02-memberships-partly-paid-phone-390.webp) |
+| Subscriptions · partly paid — desktop 1440 | `Customer file.html?id=m6` | 1440×1000 | [27-customer-file/01-memberships-partly-paid-desktop-1440.webp](screens/27-customer-file/01-memberships-partly-paid-desktop-1440.webp) |
+| Subscriptions · partly paid — phone 390 | `Customer file.html?id=m6` | 390×844 | [27-customer-file/02-memberships-partly-paid-phone-390.webp](screens/27-customer-file/02-memberships-partly-paid-phone-390.webp) |
 | Attendance statement · usage-based — desktop 1440 | `Customer file.html?id=m4&tab=att` | 1440×1000 | [27-customer-file/03-attendance-statement-usage-based-desktop-1440.webp](screens/27-customer-file/03-attendance-statement-usage-based-desktop-1440.webp) |
 | Attendance statement · usage-based — phone 390 | `Customer file.html?id=m4&tab=att` | 390×844 | [27-customer-file/04-attendance-statement-usage-based-phone-390.webp](screens/27-customer-file/04-attendance-statement-usage-based-phone-390.webp) |
 | Payments · voided shown struck (owner) — desktop 1440 | `Customer file.html?id=m6&tab=pays` | 1440×1000 | [27-customer-file/05-payments-voided-shown-struck-owner-desktop-1440.webp](screens/27-customer-file/05-payments-voided-shown-struck-owner-desktop-1440.webp) |
@@ -456,16 +471,16 @@ Generated from `prototype/Flows - states.html`, in board order. Each row: the fr
 |---|---|---|---|
 | Overview · money row + «34 اليوم · 27 الآن» — desktop 1440 | `Owner overview.html` | 1440×1000 | [29-owner-overview-kept/01-overview-desktop-1440.webp](screens/29-owner-overview-kept/01-overview-desktop-1440.webp) |
 | Overview · money row + «34 اليوم · 27 الآن» — phone 390 | `Owner overview.html` | 390×844 | [29-owner-overview-kept/02-overview-phone-390.webp](screens/29-owner-overview-kept/02-overview-phone-390.webp) |
-| «ضبط الحالة» open — desktop 1440 | `Desk.html?status=open` | 1440×1000 | [31-batch-3a-fixes/03-open-desktop-1440.webp](screens/31-batch-3a-fixes/03-open-desktop-1440.webp) |
-| «ضبط الحالة» open — phone 390 | `Desk.html?status=open` | 390×844 | [31-batch-3a-fixes/04-open-phone-390.webp](screens/31-batch-3a-fixes/04-open-phone-390.webp) |
+| «ضبط الحالة» open — desktop 1440 | `Desk.html?publicstate=open` | 1440×1000 | [31-batch-3a-fixes/03-open-desktop-1440.webp](screens/31-batch-3a-fixes/03-open-desktop-1440.webp) |
+| «ضبط الحالة» open — phone 390 | `Desk.html?publicstate=open` | 390×844 | [31-batch-3a-fixes/04-open-phone-390.webp](screens/31-batch-3a-fixes/04-open-phone-390.webp) |
 | Override active · «ممتلئ يدويًا · 1:24 متبقية» — desktop 1440 | `Desk.html?override=full:84` | 1440×1000 | [31-batch-3a-fixes/05-override-active-1-24-desktop-1440.webp](screens/31-batch-3a-fixes/05-override-active-1-24-desktop-1440.webp) |
 | Override active · «ممتلئ يدويًا · 1:24 متبقية» — phone 390 | `Desk.html?override=full:84` | 390×844 | [31-batch-3a-fixes/06-override-active-1-24-phone-390.webp](screens/31-batch-3a-fixes/06-override-active-1-24-phone-390.webp) |
 | Override · «مغلق الآن» manually — desktop 1440 | `Desk.html?role=reception&override=closed:30` | 1440×1000 | [31-batch-3a-fixes/07-override-manually-desktop-1440.webp](screens/31-batch-3a-fixes/07-override-manually-desktop-1440.webp) |
 | Override · «مغلق الآن» manually — phone 390 | `Desk.html?role=reception&override=closed:30` | 390×844 | [31-batch-3a-fixes/08-override-manually-phone-390.webp](screens/31-batch-3a-fixes/08-override-manually-phone-390.webp) |
 | Outside opening hours · control disabled — desktop 1440 | `Desk.html?hours=closed` | 1440×1000 | [31-batch-3a-fixes/09-outside-opening-hours-control-disabled-desktop-1440.webp](screens/31-batch-3a-fixes/09-outside-opening-hours-control-disabled-desktop-1440.webp) |
 | Outside opening hours · control disabled — phone 390 | `Desk.html?hours=closed` | 390×844 | [31-batch-3a-fixes/10-outside-opening-hours-control-disabled-phone-390.webp](screens/31-batch-3a-fixes/10-outside-opening-hours-control-disabled-phone-390.webp) |
-| End membership (confirm) — desktop 1440 | `Customer file.html?id=m1&end=1` | 1440×1000 | [31-batch-3a-fixes/11-end-membership-confirm-desktop-1440.webp](screens/31-batch-3a-fixes/11-end-membership-confirm-desktop-1440.webp) |
-| End membership (confirm) — phone 390 | `Customer file.html?id=m1&end=1` | 390×844 | [31-batch-3a-fixes/12-end-membership-confirm-phone-390.webp](screens/31-batch-3a-fixes/12-end-membership-confirm-phone-390.webp) |
+| End subscription (confirm) — desktop 1440 | `Customer file.html?id=m1&end=1` | 1440×1000 | [31-batch-3a-fixes/11-end-membership-confirm-desktop-1440.webp](screens/31-batch-3a-fixes/11-end-membership-confirm-desktop-1440.webp) |
+| End subscription (confirm) — phone 390 | `Customer file.html?id=m1&end=1` | 390×844 | [31-batch-3a-fixes/12-end-membership-confirm-phone-390.webp](screens/31-batch-3a-fixes/12-end-membership-confirm-phone-390.webp) |
 | Credit · «له رصيد 18 ₪» — desktop 1440 | `Customer file.html?id=m15` | 1440×1000 | [31-batch-3a-fixes/13-credit-18-desktop-1440.webp](screens/31-batch-3a-fixes/13-credit-18-desktop-1440.webp) |
 | Credit · «له رصيد 18 ₪» — phone 390 | `Customer file.html?id=m15` | 390×844 | [31-batch-3a-fixes/14-credit-18-phone-390.webp](screens/31-batch-3a-fixes/14-credit-18-phone-390.webp) |
 | Customers · «له رصيد» filter — desktop 1440 | `Customers.html?pay=credit` | 1440×1000 | [31-batch-3a-fixes/15-customers-filter-desktop-1440.webp](screens/31-batch-3a-fixes/15-customers-filter-desktop-1440.webp) |

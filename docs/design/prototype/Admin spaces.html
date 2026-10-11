@@ -37,7 +37,7 @@ function Spaces({ theme, setTheme }) {
   const areaOpts = govs.flatMap((g) => [['g:' + g.id, g.name], ...g.areas.map((a) => ['a:' + a.id, '— ' + a.name])]);
   const rows = list.filter((s) => (!q.trim() || s.name.toLowerCase().includes(q.trim().toLowerCase())) && (gov === 'all' || gov === 'g:' + s.gov || gov === 'a:' + s.area) && (status === 'all' || s.status === status) && (!stale || AD.staleGroups(s).length));
   const upd = (id, p) => setList((l) => l.map((x) => (x.id === id ? { ...x, ...p } : x)));
-  const toggleHide = (s) => { const hidden = s.status !== 'hidden'; upd(s.id, { status: hidden ? 'hidden' : s.owners.length ? 'verified' : 'unverified' }); toast(hidden ? tr(`أُخفيت ${s.name} من الموقع`, `${s.name} hidden from the site`) : tr(`أصبحت ${s.name} ظاهرة`, `${s.name} is visible again`)); };
+  const toggleHide = (s) => { const hidden = s.status !== 'hidden'; upd(s.id, { status: hidden ? 'hidden' : s.owners.length ? 'verified' : 'unverified' }); toast(hidden ? tr(`أُخفيت ${s.name} من الموقع`, `${s.name} hidden from the site`) : tr(`أصبحت ${s.name} ظاهرة`, `${s.name} is visible again`), { action: { label: tr('تراجع', 'Undo'), onClick: () => toggleHide({ ...s, status: hidden ? 'hidden' : s.status }) } }); };
   const fresh = (s) => { const g = AD.staleGroups(s); return g.length ? <Badge variant="warning"><span>{tr('قديمة:', 'Stale:')} {g.map((x) => AD.GROUP[x]).join(tr('، ', ', '))}</span></Badge> : <Badge variant="success">{tr('محدّثة', 'Up to date')}</Badge>; };
   const owners = (s) => s.owners.length ? s.owners.map(ownerName).join(tr('، ', ', ')) : <span className="text-muted-foreground">—</span>;
   const actions = (s) => (
@@ -58,26 +58,31 @@ function Spaces({ theme, setTheme }) {
     { id: 'area', header: tr('المنطقة', 'Area'), cell: ({ row }) => AD.areaName(row.original) },
     { id: 'status', header: tr('الحالة', 'Status'), cell: ({ row }) => <SpaceStatus s={row.original} /> },
     { id: 'owners', header: tr('المالك', 'Owner'), cell: ({ row }) => owners(row.original) },
-    { id: 'fresh', header: tr('الحداثة', 'Freshness'), cell: ({ row }) => fresh(row.original) },
-    { id: 'last', header: tr('آخر تحديث', 'Last update'), cell: ({ row }) => AD.fmt(row.original.last) },
+    // SH-007: seven columns do not fit the 768 rail, so these two wait for 1024.
+    { id: 'fresh', header: tr('الحداثة', 'Freshness'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => fresh(row.original) },
+    { id: 'last', header: tr('آخر تحديث', 'Last update'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => AD.fmt(row.original.last) },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
-  const addBtn = <Button asChild><a href="Admin space edit.html?new=1">{tr('إضافة مساحة', 'Add space')}</a></Button>;
+  const paged = usePaged(rows);
+    const addBtn = <Button asChild><a href="Admin space edit.html?new=1">{tr('إضافة مساحة', 'Add space')}</a></Button>;
   const free = AD.owners.filter((o) => !link || !link.owners.includes(o.id));
   return (
-    <AdminShell current="spaces" title={tr('المساحات', 'Spaces')} theme={theme} setTheme={setTheme} actions={addBtn}>
-      <DataTable label={tr('المساحات', 'Spaces')} columns={columns} data={rows} getRowId={(r) => r.id}
-        summary={<span>{tr('عدد المساحات', 'Spaces')}: <Num>{rows.length}</Num></span>}
+    <AdminShell current="spaces" title={tr('المساحات', 'Spaces')} theme={theme} setTheme={setTheme}>
+      <DataTable label={tr('المساحات', 'Spaces')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
+        summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-3">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Field label={tr('بحث', 'Search')}><Input role="searchbox" placeholder={tr('اسم المساحة', 'Space name')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} /></Field>
-            <FilterSheet active={[gov !== 'all', status !== 'all', stale].filter(Boolean).length} onClear={() => { setGov('all'); setStatus('all'); setStale(false); }}>
+            <FilterSheet count={rows.length} active={[gov !== 'all', status !== 'all', stale].filter(Boolean).length} onClear={() => { setGov('all'); setStatus('all'); setStale(false); }}>
             <Field label={tr('المحافظة / المنطقة', 'Governorate / area')}><Select value={gov} onValueChange={setGov}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل المناطق', 'All areas')}</SelectItem>{areaOpts.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></Field>
             <Field label={tr('الحالة', 'Status')}><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الحالات', 'All statuses')}</SelectItem>{Object.entries(AD.STATUS).map(([k, [l]]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
             <Field label={tr('بيانات قديمة فقط', 'Stale data only')} orientation="horizontal"><Switch checked={stale} onCheckedChange={setStale} /></Field>
             </FilterSheet>
           </div>
-          <div className="md:hidden">{addBtn}</div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <ResultCount>{tr('عدد المساحات', 'Spaces')}: <Num>{rows.length}</Num></ResultCount>
+            {addBtn}
+          </div>
         </div>}
         renderCard={(s) => (
           <div className="flex items-start justify-between gap-3">
@@ -101,13 +106,13 @@ function Spaces({ theme, setTheme }) {
       <AlertDialog open={!!unlink} onOpenChange={(o) => !o && setUnlink(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('فك ربط', 'Unlink')} {unlink && ownerName(unlink.o)}؟</AlertDialogTitle><AlertDialogDescription>{unlink && unlink.s.owners.length === 1 ? tr('هو آخر مالك لهذه المساحة، فستصبح المساحة غير موثّقة ويعدّلها فريق مساحة.', 'They’re the last owner, so the space will become unverified and the Masaha team will edit it.') : tr('يبقى المالكون الآخرون.', 'The other owners stay.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { const s = unlink.s; const left = s.owners.filter((x) => x !== unlink.o); upd(s.id, { owners: left, status: left.length ? s.status : 'unverified' }); toast(left.length ? tr('فُك الربط', 'Unlinked') : tr('فُك الربط · المساحة غير موثّقة', 'Unlinked · space unverified')); }}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { const s = unlink.s; const left = s.owners.filter((x) => x !== unlink.o); upd(s.id, { owners: left, status: left.length ? s.status : 'unverified' }); toast(left.length ? tr('فُك الربط', 'Unlinked') : tr('فُك الربط · المساحة غير موثّقة', 'Unlinked · space unverified')); }}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <AlertDialog open={!!del} onOpenChange={(o) => !o && setDel(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('حذف', 'Delete')} <span lang="en">{del && del.name}</span>؟</AlertDialogTitle><AlertDialogDescription>{tr('تختفي من الموقع ومن هذه القائمة، وتبقى في قاعدة البيانات ويمكن استرجاعها.', 'It disappears from the site and this list; it stays in the database and can be restored.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { const s = del; setList((l) => l.filter((x) => x.id !== s.id)); toast(tr('حُذفت المساحة', 'Space deleted'), { action: { label: tr('تراجع', 'Undo'), onClick: () => setList((l) => [...l, s]) } }); }}>{tr('حذف', 'Delete')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { const s = del; setList((l) => l.filter((x) => x.id !== s.id)); toast(tr('حُذفت المساحة', 'Space deleted'), { action: { label: tr('تراجع', 'Undo'), onClick: () => setList((l) => [...l, s]) } }); }}>{tr('حذف', 'Delete')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </AdminShell>

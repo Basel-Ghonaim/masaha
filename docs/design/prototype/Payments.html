@@ -54,7 +54,8 @@ function PaymentsInner({ theme, setTheme }) {
   };
   const exportCsv = () => downloadCSV('masaha-payments', [tr('التاريخ', 'Date'), tr('الوقت', 'Time'), tr('الاسم', 'Name'), tr('عن', 'For'), tr('المبلغ', 'Amount'), tr('الطريقة', 'Method'), tr('سجّلها', 'Recorded by'), tr('ملغاة', 'Voided')], rows.map((r) => [r.date, r.time, r.who, r.item, r.amount, DESK.methodLabel[r.method], DESK.by(r.by), r.voided || '']));
   const Amt = ({ r }) => r.voided ? <span className="flex flex-col"><span className="strike text-muted-foreground"><Money n={r.amount} /></span><span className="text-caption text-muted-foreground">{tr('ألغاها', 'Voided by')} {DESK.by(r.voidedBy)}: {r.voided}</span></span> : <span className="text-label"><Money n={r.amount} /></span>;
-  const columns = [
+  const paged = usePaged(rows);
+    const columns = [
     { id: 'date', header: tr('التاريخ والوقت', 'Date and time'), cell: ({ row }) => <span>{DESK.fmtDate(row.original.date)} · <Num>{row.original.time}</Num></span> },
     { id: 'who', header: tr('الزبون', 'Customer'), cell: ({ row }) => row.original.customerId ? <a className="text-foreground" href={'Customer file.html?id=' + row.original.customerId}>{row.original.who}</a> : row.original.who },
     { id: 'item', header: tr('البند', 'Item'), cell: ({ row }) => row.original.type === 'visit' ? <Badge variant="neutral">{row.original.item}</Badge> : row.original.item },
@@ -64,19 +65,19 @@ function PaymentsInner({ theme, setTheme }) {
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{!row.original.voided && <Button size="sm" variant="ghost" onClick={() => setVoiding(row.original)}>{tr('إلغاء الدفعة', 'Void payment')}</Button>}</div> }
   ];
   return (
-    <OwnerShell current="payments" title={tr('الدفعات', 'Payments')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={<CsvButton onClick={exportCsv} />}>
-      <DataTable label={tr('سجل الدفعات', 'Payments ledger')} columns={columns} data={rows} getRowId={(r) => r.id} loading={st === 'loading'}
-        summary={<span className="flex flex-wrap gap-x-4 gap-y-1"><span className="text-label">{tr('المجموع', 'Total')} <Money n={sum()} /></span><span>{DESK.methodLabel.cash} <Money n={sum('cash')} /></span><span>{DESK.methodLabel.transfer} <Money n={sum('transfer')} /></span><span><Num>{live.length}</Num> {tr('دفعة', 'payments')}</span></span>}
+    <OwnerShell current="payments" title={tr('الدفعات', 'Payments')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={[{ key: 'csv', label: tr('تصدير CSV', 'Export CSV'), onClick: exportCsv }]}>
+      <DataTable label={tr('سجل الدفعات', 'Payments ledger')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={st === 'loading'}
+        summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-3">
-          <FilterSheet active={[staff, method, type].filter((x) => x !== 'all').length} onClear={() => { setStaff('all'); setMethod('all'); setType('all'); }}><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <FilterSheet count={rows.length} active={[staff, method, type].filter((x) => x !== 'all').length} onClear={() => { setStaff('all'); setMethod('all'); setType('all'); }}><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <RangePicker value={range} onChange={setRange} />
             <Pick label={tr('الموظف', 'Staff')} value={staff} onChange={setStaff} options={[['all', tr('كل الموظفين', 'All staff')], [DESK.AHMAD, DESK.by(DESK.AHMAD)], [DESK.SAMI, DESK.by(DESK.SAMI)]]} />
             <Pick label={tr('الطريقة', 'Method')} value={method} onChange={setMethod} options={[['all', tr('كل الطرق', 'All methods')], ['cash', DESK.methodLabel.cash], ['transfer', DESK.methodLabel.transfer]]} />
-            <Pick label={tr('النوع', 'Type')} value={type} onChange={setType} options={[['all', tr('كل الأنواع', 'All types')], ['visit', tr('زيارات', 'Visits')], ['sub', tr('اشتراكات', 'Memberships')]]} />
+            <Pick label={tr('النوع', 'Type')} value={type} onChange={setType} options={[['all', tr('كل الأنواع', 'All types')], ['visit', tr('زيارات', 'Visits')], ['sub', tr('اشتراكات', 'Subscriptions')]]} />
           </div></FilterSheet>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Field label={tr('إظهار الملغاة', 'Show voided')} orientation="horizontal"><Switch checked={showVoid} onCheckedChange={setShowVoid} /></Field>
-            <span className="md:hidden"><CsvButton onClick={exportCsv} /></span>
+            <ResultCount><span className="flex flex-wrap gap-x-4 gap-y-1"><span className="text-label">{tr('المجموع', 'Total')} <Money n={sum()} /></span><span>{DESK.methodLabel.cash} <Money n={sum('cash')} /></span><span>{DESK.methodLabel.transfer} <Money n={sum('transfer')} /></span><span><Num>{live.length}</Num> {tr('دفعة', 'payments')}</span></span></ResultCount>
           </div>
         </div>}
         renderCard={(r) => (
@@ -94,7 +95,8 @@ function PaymentsInner({ theme, setTheme }) {
         <DialogContent closeLabel={tr('إغلاق', 'Close')}>
           <DialogHeader><DialogTitle>{tr('إلغاء الدفعة', 'Void payment')}</DialogTitle>{voiding && <DialogDescription><Money n={voiding.amount} /> · {voiding.who} · {DESK.fmtDate(voiding.date)} · {DESK.methodLabel[voiding.method]}. {tr('تبقى ظاهرة مشطوبة مع السبب، ولا تُحسب في الدخل.', 'It stays visible, struck through, with the reason, and isn’t counted as income.')}</DialogDescription>}</DialogHeader>
           <Field label={tr('السبب', 'Reason')} error={err}><Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
-          <DialogFooter><Button variant="destructive" onClick={doVoid}>{tr('إلغاء الدفعة', 'Void payment')}</Button><Button variant="ghost" onClick={() => setVoiding(null)}>{tr('رجوع', 'Back')}</Button></DialogFooter>
+          <ActionAlert for="void" />
+          <DialogFooter><ActionButton actionKey="void" variant="destructive" onAction={doVoid}>{tr('إلغاء الدفعة', 'Void payment')}</ActionButton><Button variant="ghost" onClick={() => setVoiding(null)}>{tr('رجوع', 'Back')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </OwnerShell>

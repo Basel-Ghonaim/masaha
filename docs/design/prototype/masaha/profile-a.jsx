@@ -15,7 +15,8 @@ function useSection(id, initial) {
 
 function ProfileSection({ id, title, description, updated, sec, children, validate, footerExtra }) {
   const [err, setErr] = React.useState(null);
-  const submit = (e) => { e.preventDefault(); const m = validate ? validate(sec.v) : null; setErr(m); if (!m) sec.save(); };
+  const { busy, run } = useActionRun('save');
+    const submit = (e) => { e.preventDefault(); const m = validate ? validate(sec.v) : null; setErr(m); if (!m) run(() => sec.save()); };
   return (
     <PCard id={id} className="scroll-mt-20">
       <PCardHeader>
@@ -23,13 +24,14 @@ function ProfileSection({ id, title, description, updated, sec, children, valida
         <PCardDescription>{description ? <>{description} · </> : null}{tr('آخر تحديث', 'Updated')} {sec.updated || updated}</PCardDescription>
         {sec.dirty && <PCardAction><PBadge variant="warning">{tr('تغييرات غير محفوظة', 'Unsaved changes')}</PBadge></PCardAction>}
       </PCardHeader>
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={submit} noValidate className="flex flex-col gap-(--card-padding)">
         <PCardContent className="flex flex-col gap-5">
           {err && <PAlert variant="destructive"><PAlertDescription>{err}</PAlertDescription></PAlert>}
+                      <ActionAlert for="save" />
           {children}
         </PCardContent>
         <PCardFooter className="flex flex-wrap gap-2">
-          <PButton type="submit" disabled={!sec.dirty}>{tr('حفظ', 'Save')}</PButton>
+          <PButton type="submit" loading={busy}>{tr('حفظ', 'Save')}</PButton>
           {sec.dirty && <PButton type="button" variant="ghost" onClick={() => { sec.reset(); setErr(null); }}>{tr('تجاهل التغييرات', 'Discard changes')}</PButton>}
           {!sec.dirty && (footerExtra !== undefined ? footerExtra : <PButton type="button" variant="ghost" onClick={sec.touch}>{tr('المعلومات ما زالت صحيحة', 'Still correct')}</PButton>)}
         </PCardFooter>

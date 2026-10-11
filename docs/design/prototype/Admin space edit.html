@@ -66,7 +66,7 @@ function ReadOnlyView() {
 function Edit({ theme, setTheme }) {
   const title = isNew ? tr('إضافة مساحة', 'Add space') : space.name;
   return (
-    <AdminShell current="spaces" title={isNew ? tr('إضافة مساحة', 'Add space') : tr('تعديل مساحة', 'Edit space')} theme={theme} setTheme={setTheme}>
+    <AdminShell current="spaces" title={title} theme={theme} setTheme={setTheme}>
       <Breadcrumb label={tr('مسار التنقل', 'Breadcrumb')}>
         <BreadcrumbList>
           <BreadcrumbItem><BreadcrumbLink href="Admin spaces.html">{tr('المساحات', 'Spaces')}</BreadcrumbLink></BreadcrumbItem>
@@ -74,7 +74,7 @@ function Edit({ theme, setTheme }) {
           <BreadcrumbItem><BreadcrumbPage><span lang="en">{title}</span></BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <div className="flex flex-wrap items-center gap-3"><h2 lang={isNew ? undefined : 'en'} className="text-heading-1">{title}</h2>{!isNew && <SpaceStatus s={meta} />}</div>
+      {!isNew && <div className="flex flex-wrap items-center gap-3"><SpaceStatus s={meta} /></div>}
       {readOnly ? (
         <Alert variant="info"><AlertTitle>{tr('يعدّلها المالك', 'The owner edits it')}</AlertTitle><AlertDescription>{tr('هذه مساحة موثّقة وتظهر هنا للقراءة فقط. لتصحيح معلومة، راجع بلاغاتها أو فك ربط المالك.', 'This is a verified space, shown read-only. To correct something, check its reports or unlink the owner.')}</AlertDescription></Alert>
       ) : (

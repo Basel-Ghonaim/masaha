@@ -60,7 +60,10 @@ function FavoritesScreen() {
         </Alert>
       )}
       {(state === 'ready' || state === 'empty') && (ids.length ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="flex flex-col gap-3">
+          {/* SH-021: the display-only note, once for the whole list. */}
+          <p className="text-caption text-muted-foreground">{DISPLAY_ONLY()}</p>
+          <div className="grid gap-4 md:grid-cols-2">
           {ids.map((id) => {
             if (id.startsWith('hidden:')) {
               const name = HIDDEN_NAMES[id.slice(7)];
@@ -77,6 +80,7 @@ function FavoritesScreen() {
             const s = M.spaces.find((x) => x.id === id);
             return <FavCard key={id} space={s} km={near.coords ? M.distanceKm(near.coords, s) : null} onRemove={() => remove(id, s.name)} />;
           })}
+          </div>
         </div>
       ) : (
         <Card>

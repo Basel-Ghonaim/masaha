@@ -55,7 +55,8 @@ function useNearMe() {
   return { loc, coords: loc.status === 'granted' ? loc.coords : null, request, startPick, placePin, clear };
 }
 
-const Ltr = ({ children }) => <span dir="ltr">{children}</span>;
+// SH-007 (and DI-7): an always-LTR value never breaks mid-number inside Arabic text.
+const Ltr = ({ children }) => <span dir="ltr" className="num-iso">{children}</span>;
 const Money = ({ amount }) => <Ltr>{LANG === 'en' ? `₪${amount}` : `${amount} ₪`}</Ltr>;
 const fmtKm = (km) => (km < 10 ? km.toFixed(1) : Math.round(km)).toString();
 const Distance = ({ km }) => <span>{tr("على بعد ", "About ")}<Ltr>{fmtKm(km)}</Ltr>{tr(" كم تقريبًا", " km away")}</span>;
@@ -76,27 +77,189 @@ const signOut = () => { setUser(null); location.href = carryParams('Home.html?au
 const firstName = (u) => u.name.trim().split(' ')[0];
 const ACCOUNT_LINKS = () => [
   { id: 'favorites', label: tr('المفضّلة', 'Favourites'), href: 'Favorites.html' },
-  { id: 'reports', label: tr('بلاغاتي', 'My reports'), href: 'Reports.html' },
-  { id: 'settings', label: tr('الإعدادات', 'Settings'), href: 'Settings.html' }
+  { id: 'reports', label: tr('بلاغاتي', 'My reports'), href: 'Reports.html' }
 ];
+// The dashboard a user can reach. The demo user is a plain user unless ?auth=linked.
+const dashboardHref = (user) => (user && user.method === 'linked' ? 'Owner overview.html' : null);
 const authQ = () => (pageParams.get('auth') ? '?auth=' + pageParams.get('auth') : '');
 
-function UserMenu({ user, current }) {
-  const { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, Avatar, AvatarFallback } = window.MasahaDesignSystem;
+// P4: the one account menu. `area` is the side it is opened from, so it offers the other one.
+// On a phone in the dashboard it also carries the theme and the language, which the bar has no room for.
+function AccountMenuContent({ user, current, area = 'site', onSignOut, theme, setTheme }) {
+  const { DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } = window.MasahaDesignSystem;
+  const dash = dashboardHref(user);
+  const onPhone = !useIsTablet();
+  return (
+    <DropdownMenuContent align="end" className="min-w-56">
+      <DropdownMenuLabel>
+        <span className="flex flex-col">
+          <span>{user.name}{user.role ? ' · ' + user.role : ''}</span>
+          <span dir="ltr" className="text-caption text-muted-foreground">{user.email}</span>
+        </span>
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      {area === 'site'
+        ? dash && <DropdownMenuItem asChild><a href={dash}>{tr('لوحة التحكم', 'Dashboard')}</a></DropdownMenuItem>
+        : <DropdownMenuItem asChild><a href="Home.html">{tr('الموقع العام', 'Public site')}</a></DropdownMenuItem>}
+      <DropdownMenuItem asChild><a href={'Settings.html' + authQ()} aria-current={current === 'settings' ? 'page' : undefined}>{tr('إعدادات حسابي', 'Account settings')}</a></DropdownMenuItem>
+      {area === 'site' && ACCOUNT_LINKS().map((l) => (
+        <DropdownMenuItem key={l.id} asChild><a href={l.href + authQ()} aria-current={current === l.id ? 'page' : undefined}>{l.label}</a></DropdownMenuItem>
+      ))}
+      {area === 'dashboard' && onPhone && setTheme && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTheme(theme === 'light' ? 'dark' : 'light'); }}>
+            {theme === 'light' ? tr('المظهر الداكن', 'Dark theme') : tr('المظهر الفاتح', 'Light theme')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={switchLang}>{LANG === 'en' ? 'العربية' : 'English'}</DropdownMenuItem>
+        </>
+      )}
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onSelect={onSignOut || signOut}><LogOutIcon />{tr('تسجيل الخروج', 'Sign out')}</DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+}
+
+// P1: the page's own actions, in one place. Secondary first, the primary last.
+// From 768 they sit in the top bar beside the title; below it they fold into a «⋯» menu there.
+// A list's "add" is not one of these: it belongs at the end of the row above its list.
+function PageActions({ actions }) {
+  const { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, EllipsisIcon } = window.MasahaDesignSystem;
+  const wide = useIsTablet();
+  // `bottom`: on a phone this action is the shell's fixed bottom bar, so it is not repeated here.
+  const list = (actions || []).filter(Boolean).filter((a) => wide || !a.bottom);
+  if (!list.length) return null;
+  if (wide) {
+    return (
+      <span className="flex flex-wrap items-center gap-2">
+        {list.map((a) => (a.href
+          ? <Button key={a.key} variant={a.variant || 'outline'} size="sm" asChild><a href={a.href}>{a.icon}{a.label}</a></Button>
+          : <Button key={a.key} variant={a.variant || 'outline'} size="sm" onClick={a.onClick}>{a.icon}{a.label}</Button>))}
+      </span>
+    );
+  }
   return (
     <DropdownMenu dir={DIR}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="hidden md:inline-flex" aria-label={tr('قائمة الحساب', 'Account menu') + ' — ' + user.name}>
-          <Avatar size="sm" aria-hidden="true"><AvatarFallback>{user.name[0]}</AvatarFallback></Avatar>{firstName(user)}
-        </Button>
+        <Button variant="ghost" size="icon" aria-label={tr('إجراءات الصفحة', 'Page actions')}><EllipsisIcon /></Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel><span className="flex flex-col"><span>{user.name}</span><span dir="ltr" className="text-caption text-muted-foreground">{user.email}</span></span></DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {ACCOUNT_LINKS().map((l) => <DropdownMenuItem key={l.id} asChild><a href={l.href + authQ()} aria-current={current === l.id ? 'page' : undefined}>{l.label}</a></DropdownMenuItem>)}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={signOut}><LogOutIcon />{tr('تسجيل الخروج', 'Sign out')}</DropdownMenuItem>
+        {list.map((a) => (a.href
+          ? <DropdownMenuItem key={a.key} asChild><a href={a.href}>{a.icon}{a.label}</a></DropdownMenuItem>
+          : <DropdownMenuItem key={a.key} onSelect={a.onClick}>{a.icon}{a.label}</DropdownMenuItem>))}
       </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// P7: the states a route can be in, rather than the page's own data. The dashboard shows
+// them inside its shell with no actions, since the sidebar is the way on; the site offers
+// its way back. `?state=offline|403|404` reaches them from any page.
+const ROUTE_STATES = () => ({
+  offline: { icon: 'alert', title: tr('لا يوجد اتصال بالإنترنت', 'No internet connection'), text: tr('ستظهر البيانات عند عودة الاتصال.', 'The data will appear when you’re back online.'), retry: true },
+  403: { icon: 'alert', title: tr('لا تملك صلاحية هذه الصفحة', 'You don’t have access to this page'), text: tr('إن كنت تظن أن هذا خطأ، تواصل مع صاحب المساحة أو الإدارة.', 'If you think this is a mistake, ask the space’s owner or the admin.') },
+  404: { icon: 'search', title: tr('الصفحة غير موجودة', 'Page not found'), text: tr('ربما تغيّر الرابط أو حُذفت الصفحة.', 'The link may have changed or the page was removed.') }
+});
+const routeState = () => ROUTE_STATES()[pageParams.get('state')] || null;
+
+// P8: every action says it is working, it worked, or it failed.
+// Working is live: the button waits about three quarters of a second with its `loading`
+// state, so a second tap is impossible and a slow check-in cannot become a double one.
+// Failing is a frame, as on the auth pages: ?fail=<key> fails that action, ?state=ratelimit
+// shows the 429 line. Neither can be reached by clicking in a prototype with no server.
+const ACTION_MS = 700;
+const actionFails = (key) => key !== undefined && pageParams.get('fail') === String(key);
+const RATE_LIMIT_LINE = tr('محاولات كثيرة، حاول بعد 15 دقيقة', 'Too many attempts, try again in 15 minutes');
+
+// `success` is what changed; leave it out where the result shows in the row it changed —
+// a switch, a reorder (P8, amended). The front desk is exempt: a check-in, a check-out and
+// every money action always say so, and money says how much.
+// For a form, whose submit validates first: validate, then `run` the action.
+function useActionRun(actionKey) {
+  const { toast } = window.MasahaDesignSystem;
+  const [busy, setBusy] = React.useState(false);
+  const run = (fn, success) => {
+    if (busy) return;
+    setBusy(true);
+    setTimeout(() => {
+      setBusy(false);
+      if (actionFails(actionKey)) {
+        toast.error(tr('تعذّر إتمام العملية', 'Couldn’t complete that'), { action: { label: tr('إعادة المحاولة', 'Try again'), onClick: () => run(fn, success) } });
+        return;
+      }
+      if (fn) fn();
+      if (success) toast.success(success);
+    }, ACTION_MS);
+  };
+  return { busy, run };
+}
+
+function ActionButton({ actionKey, success, onAction, children, ...rest }) {
+  const { Button } = window.MasahaDesignSystem;
+  const { busy, run } = useActionRun(actionKey);
+  return <Button {...rest} loading={busy} onClick={() => run(onAction, success)}>{children}</Button>;
+}
+
+// The failure of an action taken in a dialog or a sheet shows inside it, which stays open
+// and keeps what was typed.
+function ActionAlert({ for: key, children }) {
+  const { Alert, AlertTitle, AlertDescription } = window.MasahaDesignSystem;
+  if (!actionFails(key)) return null;
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>{tr('تعذّر إتمام العملية', 'Couldn’t complete that')}</AlertTitle>
+      <AlertDescription>{children || tr('لم يصل الطلب. بياناتك كما هي — حاول مرة أخرى.', 'The request didn’t get through. Your input is kept — try again.')}</AlertDescription>
+    </Alert>
+  );
+}
+
+// Every endpoint may answer 429, so the warning is not the auth pages' alone.
+function RateLimitNote() {
+  const { Alert, AlertTitle } = window.MasahaDesignSystem;
+  if (pageParams.get('state') !== 'ratelimit') return null;
+  return <Alert variant="warning"><AlertTitle>{RATE_LIMIT_LINE}</AlertTitle></Alert>;
+}
+
+// P7: «تعذّر تحميل …» in place of the content, with a way to try again — the shape the
+// Directory already used, now on every dashboard page through its shell.
+function LoadError({ what }) {
+  const { Alert, AlertTitle, AlertDescription, AlertAction, Button } = window.MasahaDesignSystem;
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>{what || tr('تعذّر تحميل محتوى الصفحة', 'Couldn’t load this page')}</AlertTitle>
+      <AlertDescription>{tr('قد يكون الاتصال ضعيفًا. حاول مرة أخرى.', 'The connection may be weak. Try again.')}</AlertDescription>
+      <AlertAction><Button variant="outline" size="sm" onClick={() => location.reload()}>{tr('إعادة المحاولة', 'Try again')}</Button></AlertAction>
+    </Alert>
+  );
+}
+
+function RouteState({ state }) {
+  const { EmptyState, Button, SearchXIcon, CircleAlertIcon } = window.MasahaDesignSystem;
+  return (
+    <div className="flex flex-1 items-center justify-center px-4 py-10">
+      <EmptyState icon={state.icon === 'search' ? <SearchXIcon /> : <CircleAlertIcon />} title={state.title} titleAs="h1" description={state.text}>
+        {state.retry && <Button onClick={() => location.reload()}>{tr('إعادة المحاولة', 'Try again')}</Button>}
+      </EmptyState>
+    </div>
+  );
+}
+
+// SH-018: the first focusable element of every shell, seen only once it has focus.
+function SkipLink({ target = 'main' }) {
+  return <Button variant="link" className="skip-link" asChild><a href={'#' + target}>{tr('تخطَّ إلى المحتوى', 'Skip to content')}</a></Button>;
+}
+
+function UserMenu({ user, current }) {
+  const { DropdownMenu, DropdownMenuTrigger, Avatar, AvatarFallback } = window.MasahaDesignSystem;
+  return (
+    <DropdownMenu dir={DIR}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" aria-label={tr('قائمة الحساب', 'Account menu') + ' — ' + user.name}>
+          <Avatar size="sm" aria-hidden="true"><AvatarFallback>{user.name[0]}</AvatarFallback></Avatar>
+          <span className="hidden md:inline-flex">{firstName(user)}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <AccountMenuContent user={user} current={current} area="site" />
     </DropdownMenu>
   );
 }
@@ -108,6 +271,7 @@ function SiteHeader({ current, theme, setTheme }) {
   return (
     <header className="border-b border-border bg-background">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 md:px-8">
+        <SkipLink />
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden" aria-label={tr("القائمة", "Menu")}><MenuIcon /></Button>
@@ -123,19 +287,9 @@ function SiteHeader({ current, theme, setTheme }) {
                 ))}
                 {!user && <Button variant="ghost" className="w-full justify-start" asChild><a href="Sign in.html"><LogInIcon />{tr("تسجيل الدخول", "Sign in")}</a></Button>}
               </nav>
-              {user && (
-                <nav aria-label={tr('الحساب', 'Account')} className="mt-4 flex flex-col gap-1 border-t border-border pt-4">
-                  <p className="px-3 pb-2 text-label">{user.name}</p>
-                  {ACCOUNT_LINKS().map((l) => (
-                    <Button key={l.id} variant={current === l.id ? 'secondary' : 'ghost'} className="w-full justify-start" asChild>
-                      <a href={l.href + authQ()} aria-current={current === l.id ? 'page' : undefined}>{l.label}</a>
-                    </Button>
-                  ))}
-                  <Button variant="ghost" className="w-full justify-start" onClick={signOut}><LogOutIcon />{tr('تسجيل الخروج', 'Sign out')}</Button>
-                </nav>
-              )}
             </SheetBody>
-            <div className="p-4"><LanguageToggle lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} /></div>
+            {/* SH-005: the language stays in the header, where a non-Arabic reader sees it; the theme moves here. */}
+            <div className="p-4"><ThemeToggle theme={theme} onThemeChange={setTheme} label={themeLabel} /></div>
           </SheetContent>
         </Sheet>
         <a href="Home.html" className="text-heading-3 text-primary">{tr("مساحة", "Masaha")}</a>
@@ -147,8 +301,8 @@ function SiteHeader({ current, theme, setTheme }) {
           ))}
         </nav>
         <div className="ms-auto flex items-center gap-2">
-          <LanguageToggle lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} className="hidden md:inline-flex" />
-          <ThemeToggle theme={theme} onThemeChange={setTheme} label={themeLabel} />
+          <LanguageToggle lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} />
+          <ThemeToggle theme={theme} onThemeChange={setTheme} label={themeLabel} className="hidden md:inline-flex" />
           {user ? <UserMenu user={user} current={current} /> : <Button variant="outline" size="sm" className="hidden md:inline-flex" asChild><a href="Sign in.html"><LogInIcon />{tr("تسجيل الدخول", "Sign in")}</a></Button>}
         </div>
       </div>
@@ -195,7 +349,7 @@ function SpacePrices({ space }) {
   return (
     <dl className="grid grid-cols-4 gap-2">
       {cells.map((c) => c.amount == null ? (
-        <div key={c.key} className="flex flex-col rounded-md border border-border px-2 py-1">
+        <div key={c.key} className="flex flex-col rounded-md px-2 py-1">
           <dt className="text-caption text-muted-foreground">{c.label}</dt>
           <dd className="text-label text-muted-foreground"><span aria-hidden="true">—</span><span className="sr-only">{tr("غير متوفر", "Not offered")}</span></dd>
         </div>
@@ -209,12 +363,16 @@ function SpacePrices({ space }) {
   );
 }
 
+// SH-021: the display-only note is the same on every card, so it is said once in the
+// list's header line (`DISPLAY_ONLY`). The card keeps what is its own: when the prices were
+// last updated, and the badge when they may have changed since.
+const DISPLAY_ONLY = () => tr("الأسعار للعرض فقط · الدفع في المساحة", "Prices are display only · Pay at the space");
+
 function PriceMeta({ space }) {
   if (M.priceHidden(space)) return null;
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
-      <span>{tr("للعرض فقط · الدفع في المساحة", "Display only · Pay at the space")}</span>
-      <span>{tr("· آخر تحديث ", "· Updated ")}{space.updated}</span>
+      <span>{tr("آخر تحديث ", "Updated ")}{space.updated}</span>
       {space.stale && <Badge variant="warning">{tr("قد يكون تغيّر", "May have changed")}</Badge>}
     </div>
   );
@@ -271,7 +429,7 @@ function SpaceCardSkeleton() {
 // One Toaster per page; shows a toast handed over from the auth pages (or ?toast= for the board).
 const TOAST_KEY = 'masaha:toast';
 const DEMO_TOASTS = { welcome: tr("أهلًا سارة، تم إنشاء حسابك", "Welcome Sara, your account is ready"), linked: tr("ربطنا حساب Google بحسابك", "We linked your Google account to your account") };
-function PageToaster() {
+function PageToaster({ bottomBar }) {
   const { Toaster, toast } = window.MasahaDesignSystem;
   React.useEffect(() => {
     let list = [];
@@ -280,13 +438,15 @@ function PageToaster() {
     if (demo) list = demo.split(',').map((k) => DEMO_TOASTS[k]).filter(Boolean);
     list.forEach((m, i) => setTimeout(() => toast.success(m, { duration: demo ? Infinity : 5000 }), 300 + i * 150));
   }, []);
-  return <Toaster label={tr("الإشعارات", "Notifications")} closeLabel={tr("إغلاق الإشعار", "Close notification")} position="bottom-center" />;
+  // P8: on a page with a fixed bottom bar the toast sits above it, so feedback never
+    // covers the next action. (The layer's own offset is SH-012, worker A's.)
+    return <Toaster label={tr("الإشعارات", "Notifications")} closeLabel={tr("إغلاق الإشعار", "Close notification")} position="bottom-center" mobileOffset={{ bottom: '5.5rem' }} offset={{ bottom: bottomBar ? '5.5rem' : '1.5rem' }} />;
 }
 const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON.stringify(msgs)); } catch (e) {} };
 
 const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
 
-Object.assign(window, { getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
+Object.assign(window, { DISPLAY_ONLY, AccountMenuContent, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
 
 // DS date picker with long localized dates («3 أكتوبر 2026»). value/onChange use ISO yyyy-mm-dd.
 const isoLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -330,25 +490,93 @@ function useIsTablet() {
   React.useEffect(() => { const m = matchMedia(q); const h = () => setOn(m.matches); m.addEventListener('change', h); return () => m.removeEventListener('change', h); }, []);
   return on;
 }
-function FilterSheet({ children, active = 0, onClear }) {
-  const { Button, Badge, Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } = window.MasahaDesignSystem;
-  const wide = useIsTablet();
-  const [open, setOpen] = React.useState(false);
-  if (wide) return children;
+// P5: the one filter bar. `at` is where it stops being a sheet — 768 everywhere, except the
+// Directory, which keeps the desktop sidebar it already had and so switches at 1024.
+// `wide` is what the caller wants above that: the filters drawn `inline` (the default, every
+// list), the `sheet` kept because there is nowhere else (the Directory's map), or `none`
+// because they live elsewhere there (the Directory's list view, where the sidebar has them).
+// The footer is the Directory's: the primary says how many results, the ghost clears.
+function FilterSheet({ children, active = 0, onClear, count, at = 'md', wide: wideAs = 'inline', description, open: openProp, onOpenChange }) {
+  const { Button, Badge, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter } = window.MasahaDesignSystem;
+    const desktop = useIsDesktop();
+  const tablet = useIsTablet();
+  const isWide = at === 'lg' ? desktop : tablet;
+  const [ownOpen, setOwnOpen] = React.useState(pageParams.get('sheet') === 'filters');
+  const open = openProp === undefined ? ownOpen : openProp;
+  const setOpen = onOpenChange || setOwnOpen;
+  if (isWide && wideAs === 'inline') return children;
+  if (isWide && wideAs === 'none') return null;
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)}>{tr('الفلاتر', 'Filters')}{active > 0 && <Badge variant="primary"><span dir="ltr">{active}</span></Badge>}</Button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" closeLabel={tr('إغلاق', 'Close')}>
-          <SheetHeader><SheetTitle>{tr('الفلاتر', 'Filters')}</SheetTitle></SheetHeader>
+          <SheetHeader><SheetTitle>{tr('الفلاتر', 'Filters')}</SheetTitle>{description && <SheetDescription>{description}</SheetDescription>}</SheetHeader>
           <SheetBody className="flex flex-col gap-4 py-2">{children}</SheetBody>
-          <SheetFooter className="flex flex-row gap-2">
-            {onClear && <Button variant="ghost" className="flex-1" onClick={onClear}>{tr('مسح الفلاتر', 'Clear filters')}</Button>}
-            <Button className="flex-1" onClick={() => setOpen(false)}>{tr('عرض النتائج', 'Show results')}</Button>
+          <SheetFooter className="flex flex-col gap-2">
+            <Button size="lg" className="w-full" onClick={() => setOpen(false)}>{count === undefined ? tr('عرض النتائج', 'Show results') : resultsLabel(count)}</Button>
+            {onClear && <Button variant="ghost" className="w-full" disabled={active === 0} onClick={onClear}>{tr('مسح الفلاتر', 'Clear filters')}</Button>}
           </SheetFooter>
         </SheetContent>
       </Sheet>
     </>
   );
 }
-Object.assign(window, { TimeInput, FilterSheet, useIsTablet });
+const resultsLabel = (n) => tr(`عرض ${n} نتيجة`, `Show ${n} result${n === 1 ? '' : 's'}`);
+
+// P5: the result count belongs by the toolbar, where the user looks after filtering,
+// not only after the list.
+const ResultCount = ({ children }) => <p className="text-body-sm text-muted-foreground" aria-live="polite">{children}</p>;
+
+// P6: every list pages — 20 a page (API contract §4), the summary «1–20 من 312», and on a
+// phone Previous and Next around that summary instead of the page numbers.
+const PAGE_SIZE = 20;
+function usePaged(rows, pageSize = PAGE_SIZE) {
+  const { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis, PaginationSummary } = window.MasahaDesignSystem;
+  const [page, setPage] = React.useState(1);
+  const total = rows.length;
+  const last = Math.max(1, Math.ceil(total / pageSize));
+  const current = Math.min(page, last);
+  const from = total ? (current - 1) * pageSize + 1 : 0;
+  const to = Math.min(current * pageSize, total);
+  // Reset to the first page whenever the filtered set shrinks past the current one.
+  React.useEffect(() => { if (page > last) setPage(1); }, [last]);
+
+  const summary = <span>{tr('عرض', 'Showing')} <Ltr>{from}</Ltr>–<Ltr>{to}</Ltr> {tr('من', 'of')} <Ltr>{total}</Ltr></span>;
+  const step = (n) => (e) => { e.preventDefault(); setPage(n); };
+  // Up to five numbers around the current page; the rest is an ellipsis.
+  const first = Math.max(1, Math.min(current - 2, last - 4));
+  const numbers = [];
+  for (let n = first; n <= Math.min(last, first + 4); n++) numbers.push(n);
+
+  // A short list keeps its steps, marked aria-disabled, so every list reads the same way.
+  const nav = (
+    <Pagination label={tr('صفحات القائمة', 'List pages')}>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious asChild disabled={current === 1}>
+            <button type="button" onClick={current === 1 ? undefined : step(current - 1)}>{tr('السابق', 'Previous')}</button>
+          </PaginationPrevious>
+        </PaginationItem>
+        {numbers[0] > 1 && <PaginationItem><PaginationEllipsis label={tr('صفحات سابقة', 'Earlier pages')} /></PaginationItem>}
+        {numbers.map((n) => (
+          <PaginationItem key={n}>
+            <PaginationLink asChild isActive={n === current}>
+              <button type="button" onClick={step(n)}><Ltr>{n}</Ltr></button>
+            </PaginationLink>
+          </PaginationItem>
+        ))}
+        {numbers[numbers.length - 1] < last && <PaginationItem><PaginationEllipsis label={tr('صفحات تالية', 'Later pages')} /></PaginationItem>}
+        <PaginationSummary>{tr('صفحة', 'Page')} <Ltr>{current}</Ltr> {tr('من', 'of')} <Ltr>{last}</Ltr></PaginationSummary>
+        <PaginationItem>
+          <PaginationNext asChild disabled={current === last}>
+            <button type="button" onClick={current === last ? undefined : step(current + 1)}>{tr('التالي', 'Next')}</button>
+          </PaginationNext>
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+
+  return { rows: rows.slice((current - 1) * pageSize, current * pageSize), summary, nav, total, page: current };
+}
+Object.assign(window, { TimeInput, FilterSheet, useIsTablet, usePaged, ResultCount, resultsLabel, PAGE_SIZE });

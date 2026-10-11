@@ -39,7 +39,7 @@ function ProfileCard({ user }) {
   return (
     <Card>
       <CardHeader><CardTitle>{tr('الملف الشخصي', 'Profile')}</CardTitle></CardHeader>
-      <form onSubmit={save} noValidate>
+      <form onSubmit={save} noValidate className="flex flex-col gap-(--card-padding)">
         <CardContent className="flex flex-col gap-4">
           <Field label={tr('الاسم', 'Name')} error={error}><Input autoComplete="name" value={name} disabled={loading} onChange={(e) => setName(e.target.value)} /></Field>
           <Field label={tr('البريد الإلكتروني', 'Email')} helper={<>{tr('لتغيير البريد', 'To change your email,')} <a href="About.html#owners">{tr('تواصل معنا', 'contact us')}</a></>}>

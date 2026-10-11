@@ -3,15 +3,12 @@ const { Button: AccButton } = window.MasahaDesignSystem;
 // Page shell for /me/* — same header/footer; a small account nav under the title.
 function AccountShell({ current, title, description, theme, setTheme, children }) {
   const user = getUser();
-  const links = [
-    { id: 'favorites', label: tr('المفضّلة', 'Favourites'), href: 'Favorites.html' },
-    { id: 'reports', label: tr('بلاغاتي', 'My reports'), href: 'Reports.html' },
-    { id: 'settings', label: tr('الإعدادات', 'Settings'), href: 'Settings.html' }
-  ];
+  // P4: the same three items the account menu offers, in the page's own navigation.
+  const links = [...ACCOUNT_LINKS(), { id: 'settings', label: tr('الإعدادات', 'Settings'), href: 'Settings.html' }];
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <SiteHeader current={current} theme={theme} setTheme={setTheme} />
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-10">
+      <main id="main" className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-10">
         <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
           {/* Phones: horizontal tabs. Desktop: start-side vertical nav beside the content. */}
           <nav aria-label={tr('الحساب', 'Account')} className="account-nav flex flex-wrap gap-1 border-b border-border pb-2 lg:col-span-3 lg:flex-col lg:pb-0">

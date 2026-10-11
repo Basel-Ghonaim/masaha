@@ -41,3 +41,16 @@ html[lang=en] .text-body{line-height:1.6}
 .strike{text-decoration:line-through}
 .chart-tick{min-width:0;white-space:nowrap;overflow:visible}@media(max-width:767px){.tick-alt{visibility:hidden}}
 .legend-swatch{display:inline-block;width:.75rem;height:.75rem;flex-shrink:0}
+/* SH-018: the skip link — the first focusable element of every shell, seen only on focus.
+   `focus:not-sr-only` is not in the prebuilt bundle, so the pair is written out here. */
+.skip-link:not(:focus){position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.skip-link:focus{position:absolute;z-index:var(--z-modal);inset-block-start:.5rem;inset-inline-start:.5rem;background:var(--background)}
+/* SH-020: line 1 makes every <a> primary, which also reaches menu items and breadcrumb links
+   inside the design system's own surfaces. There an anchor takes the surface's colour. */
+a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=breadcrumb-link],[data-slot=breadcrumb-link],a[data-slot=sidebar-menu-button],[data-slot=sidebar-menu-button] a{color:inherit}
+/* The top bar's minimum height; `min-h-14` is used by both shells but is not in the bundle. */
+.min-h-14{min-height:3.5rem}
+/* SH-007: a table of more than five columns names a column priority — the rest are dropped
+   between 768 and 1023, where the rail leaves about 640 px. The bundle has no `lg:table-cell`
+   (below 768 DataTable draws cards, so the original never needed it). */
+@media(min-width:1024px){.lg-col{display:table-cell}}

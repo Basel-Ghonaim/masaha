@@ -64,17 +64,22 @@ function Owners({ theme, setTheme }) {
   const St = ({ o }) => <Badge variant={o.status === 'active' ? 'success' : 'neutral'}>{o.status === 'active' ? tr('نشط', 'Active') : tr('موقوف', 'Suspended')}</Badge>;
   const columns = [
     { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
-    { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <span dir="ltr">{row.original.email}</span> },
+    { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <Ltr>{row.original.email}</Ltr> },
     { id: 'spaces', header: tr('المساحات المرتبطة', 'Linked spaces'), cell: ({ row }) => chips(row.original) },
     { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <St o={row.original} /> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
-  const addBtn = <Button onClick={openAdd}>{tr('إضافة مالك', 'Add owner')}</Button>;
+  const paged = usePaged(list);
+    const addBtn = <Button onClick={openAdd}>{tr('إضافة مالك', 'Add owner')}</Button>;
   return (
-    <AdminShell current="owners" title={tr('أصحاب المساحات', 'Space owners')} theme={theme} setTheme={setTheme} actions={addBtn}>
+    <AdminShell current="owners" title={tr('أصحاب المساحات', 'Space owners')} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('ربط مالك بمساحة يجعلها موثّقة؛ بعدها يعدّلها المالك ويرى تشغيلها وحده.', 'Linking an owner makes a space verified; from then on the owner edits it and alone sees its operations.')}</p>
-      <DataTable label={tr('أصحاب المساحات', 'Space owners')} columns={columns} data={list} getRowId={(r) => r.id}
-        toolbar={<div className="md:hidden">{addBtn}</div>}
+      <DataTable label={tr('أصحاب المساحات', 'Space owners')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
+        summary={paged.summary} pagination={paged.nav}
+        toolbar={<div className="flex flex-wrap items-center justify-between gap-3">
+          <ResultCount>{tr('عدد أصحاب المساحات', 'Space owners')}: <Num>{list.length}</Num></ResultCount>
+          {addBtn}
+        </div>}
         renderCard={(o) => (<div className="flex items-start justify-between gap-3"><div className="flex min-w-0 flex-col gap-2"><span className="text-label">{o.name}</span><span dir="ltr" className="self-start text-caption text-muted-foreground">{o.email}</span>{chips(o)}<span><St o={o} /></span></div>{actions(o)}</div>)}
         empty={<EmptyState icon={<UsersIcon />} title={tr('لا يوجد أصحاب مساحات', 'No space owners')} description={tr('أضف مالكًا واربطه بمساحته لتصبح موثّقة.', 'Add an owner and link their space to verify it.')}>{addBtn}</EmptyState>} />
       <Sheet open={!!sheet} onOpenChange={(o) => !o && setSheet(null)}>
@@ -103,7 +108,7 @@ function Owners({ theme, setTheme }) {
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('فك ربط', 'Unlink')} {unlink && unlink.o.name} {tr('من', 'from')} <span lang="en">{unlink && spaceName(unlink.sid)}</span>؟</AlertDialogTitle>
             <AlertDialogDescription>{unlink && lastOwner(unlink.sid, list) ? tr('ستصبح المساحة غير موثّقة: تختفي حالتها المباشرة ويعدّلها فريق مساحة.', 'The space will become unverified: its live status disappears and the Masaha team edits it.') : tr('يبقى المالكون الآخرون مرتبطين.', 'The other owners stay linked.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={doUnlink}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={doUnlink}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </AdminShell>

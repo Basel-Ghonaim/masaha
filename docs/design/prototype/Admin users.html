@@ -46,30 +46,37 @@ function Users({ theme, setTheme }) {
       </DropdownMenuContent>
     </DropdownMenu>
   );
+  const paged = usePaged(rows);
   const columns = [
     { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
-    { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <span dir="ltr">{row.original.email}</span> },
+    { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <Ltr>{row.original.email}</Ltr> },
     { id: 'role', header: tr('الدور', 'Role'), cell: ({ row }) => AD.ROLE[row.original.role] },
-    { id: 'method', header: tr('طريقة الدخول', 'Sign-in method'), cell: ({ row }) => AD.METHOD[row.original.method] },
-    { id: 'joined', header: tr('انضم', 'Joined'), cell: ({ row }) => AD.fmt(row.original.joined, true) },
+    // SH-007: seven columns do not fit the 768 rail, so these two wait for 1024.
+    { id: 'method', header: tr('طريقة الدخول', 'Sign-in method'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => AD.METHOD[row.original.method] },
+    { id: 'joined', header: tr('انضم', 'Joined'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => AD.fmt(row.original.joined, true) },
     { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <St u={row.original} /> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
   return (
     <AdminShell current="users" title={tr('المستخدمون', 'Users')} theme={theme} setTheme={setTheme}>
-      <DataTable label={tr('المستخدمون', 'Users')} columns={columns} data={rows} getRowId={(r) => r.id}
-        summary={<span>{tr('العدد', 'Count')}: <Num>{rows.length}</Num></span>}
-        toolbar={<div className="grid gap-3 md:grid-cols-3">
-          <Field label={tr('بحث', 'Search')}><Input role="searchbox" placeholder={tr('الاسم أو البريد', 'Name or email')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} /></Field>
-          <Field label={tr('الدور', 'Role')}><Select value={role} onValueChange={setRole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الأدوار', 'All roles')}</SelectItem>{Object.entries(AD.ROLE).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
-          <Field label={tr('الحالة', 'Status')}><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الحالات', 'All statuses')}</SelectItem><SelectItem value="active">{tr('نشط', 'Active')}</SelectItem><SelectItem value="suspended">{tr('موقوف', 'Suspended')}</SelectItem></SelectContent></Select></Field>
+      <DataTable label={tr('المستخدمون', 'Users')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
+        summary={paged.summary} pagination={paged.nav}
+        toolbar={<div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end">
+            <Field label={tr('بحث', 'Search')} className="md:flex-1"><Input role="searchbox" placeholder={tr('الاسم أو البريد', 'Name or email')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} /></Field>
+            <FilterSheet active={[role, status].filter((x) => x !== 'all').length} count={rows.length} onClear={() => { setRole('all'); setStatus('all'); }}>
+              <Field label={tr('الدور', 'Role')}><Select value={role} onValueChange={setRole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الأدوار', 'All roles')}</SelectItem>{Object.entries(AD.ROLE).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
+              <Field label={tr('الحالة', 'Status')}><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الحالات', 'All statuses')}</SelectItem><SelectItem value="active">{tr('نشط', 'Active')}</SelectItem><SelectItem value="suspended">{tr('موقوف', 'Suspended')}</SelectItem></SelectContent></Select></Field>
+            </FilterSheet>
+          </div>
+          <ResultCount>{tr('العدد', 'Count')}: <Num>{rows.length}</Num></ResultCount>
         </div>}
         renderCard={(u) => (<div className="flex items-start justify-between gap-3"><div className="flex min-w-0 flex-col gap-1"><span className="text-label">{u.name}</span><span dir="ltr" className="self-start text-caption text-muted-foreground">{u.email}</span><span className="text-caption text-muted-foreground">{AD.ROLE[u.role]} · {AD.METHOD[u.method]} · {AD.fmt(u.joined, true)}</span><span><St u={u} /></span></div>{actions(u)}</div>)}
         empty={<EmptyState icon={<SearchXIcon />} title={tr('لا يوجد مستخدمون يطابقون البحث', 'No users match')} />} />
       <AlertDialog open={!!susp} onOpenChange={(o) => !o && setSusp(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('إيقاف', 'Suspend')} {susp && susp.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('تنتهي كل جلساته فورًا ولا يستطيع الدخول حتى يُلغى الإيقاف.', 'All their sessions end right away and they can’t sign in until unsuspended.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { upd(susp.id, { status: 'suspended' }); toast(tr(`أُوقف ${susp.name} · انتهت الجلسات`, `${susp.name} suspended · sessions ended`)); }}>{tr('إيقاف', 'Suspend')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { upd(susp.id, { status: 'suspended' }); toast(tr(`أُوقف ${susp.name} · انتهت الجلسات`, `${susp.name} suspended · sessions ended`)); }}>{tr('إيقاف', 'Suspend')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={!!roleDlg} onOpenChange={(o) => !o && setRoleDlg(null)}>
@@ -82,7 +89,7 @@ function Users({ theme, setTheme }) {
       <AlertDialog open={!!tp} onOpenChange={(o) => !o && setTp(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('إصدار كلمة مرور مؤقتة لـ', 'Issue a temporary password for')} {tp && tp.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('لاستعادة الحساب عبر واتساب بعد التأكد من هويته. تُلغى كلمة مروره الحالية، ويُطلب منه تغييرها عند الدخول التالي.', 'For account recovery over WhatsApp once you’ve confirmed who they are. Their current password stops working and they must change it at the next sign-in.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { setPass({ name: tp.name, email: tp.email, pw: tempPass() }); }}>{tr('إصدار', 'Issue')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction onClick={() => { setPass({ name: tp.name, email: tp.email, pw: tempPass() }); }}>{tr('إصدار', 'Issue')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <TempPassDialog info={pass} onClose={() => setPass(null)} line={tr('أرسلها له عبر واتساب؛ سيُطلب منه تغييرها عند الدخول التالي.', 'Send it over WhatsApp; they’ll be asked to change it at the next sign-in.')} />

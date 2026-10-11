@@ -36,7 +36,7 @@ window.DESK = (function () {
     { id: 'm3', name: T('يوسف أبو شعبان', 'Yousef Abu Shaaban'), phone: '+970 56 000 1003', subs: [S('s3', 'alt', '2026-09-15', '2026-10-14', { used: { week: 2 }, pays: [['2026-09-15', '09:20', 50, 'cash', A], ['2026-09-29', '12:10', 50, 'transfer', SM]] })] },
     { id: 'm4', name: T('نور الهدى سالم', 'Nour Al-Huda Salem'), phone: '+970 59 000 1004', subs: [S('s4', 'custom', '2026-09-20', '2026-10-19', { terms: { hoursPerDay: 3 }, billing: { type: 'usage', unit: 'hour', rate: 3 }, used: { hours: 21 }, note: T('تدفع كل أسبوع', 'Pays every week'), pays: [['2026-09-29', '09:15', 30, 'cash', SM]] })] },
     { id: 'm5', name: T('أحمد الشوا', 'Ahmad Al-Shawa'), phone: '+970 59 000 1005', subs: [S('s5', 'month', '2026-08-27', '2026-09-26', { pays: [['2026-08-27', '08:40', 300, 'cash', A]] })] },
-    { id: 'm6', name: T('رهف قديح', 'Rahaf Qudaih'), phone: '+970 59 000 1006', student: true, subs: [S('s6', 'month-st', '2026-09-01', '2026-09-30', { debtLabel: T('اشتراك سبتمبر', 'the September membership'), pays: [['2026-09-01', '09:05', 100, 'cash', A], ['2026-09-15', '11:20', 50, 'transfer', SM, T('سُجّلت مرتين بالخطأ', 'Recorded twice by mistake'), null, A]] })] },
+    { id: 'm6', name: T('رهف قديح', 'Rahaf Qudaih'), phone: '+970 59 000 1006', student: true, subs: [S('s6', 'month-st', '2026-09-01', '2026-09-30', { debtLabel: T('اشتراك سبتمبر', 'the September subscription'), pays: [['2026-09-01', '09:05', 100, 'cash', A], ['2026-09-15', '11:20', 50, 'transfer', SM, T('سُجّلت مرتين بالخطأ', 'Recorded twice by mistake'), null, A]] })] },
     { id: 'm7', name: T('خالد النجار', 'Khaled Al-Najjar'), phone: '+970 56 000 1007', subs: [S('s7', 'week', '2026-09-28', '2026-10-04', { pays: [['2026-09-28', '09:00', 90, 'cash', A]] })] },
     { id: 'm8', name: T('سلمى الريس', 'Salma Al-Rayyes'), phone: '+970 59 000 1008', subs: [S('s8', '20h', '2026-09-20', '2026-10-19', { used: { hours: 12 }, pays: [['2026-09-20', '10:30', 50, 'cash', SM]] })] },
     { id: 'm9', name: T('عمر حلس', 'Omar Hilles'), phone: '+970 59 000 1009', subs: [S('s9', 'month', '2026-09-02', '2026-10-01', { pays: [['2026-09-02', '08:15', 300, 'transfer', A]] })] },
@@ -54,7 +54,24 @@ window.DESK = (function () {
     customers.push({ id: 'f' + i, name: n, phone: '+970 59 000 2' + String(i).padStart(3, '0'), subs: [S('sf' + i, i % 4 === 3 ? 'month-st' : 'month', from, to, { pays: [[from, '08:30', i % 4 === 3 ? 250 : 300, i % 2 ? 'transfer' : 'cash', i % 3 ? SM : A]] })] });
   });
 
-  // Present now: 19 subscribers + 8 visits = 27.
+  // P6: the list pages 20 at a time, so it needs more than one page. Deterministic, built
+    // from one name pool, so every run shows the same 61 customers.
+    const day = (n) => { const d = new Date(TODAY + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+    const FIRST = [T('محمد', 'Mohammed'), T('أحمد', 'Ahmad'), T('سالم', 'Salem'), T('ليلى', 'Laila'), T('هنا', 'Hana'), T('عمر', 'Omar'), T('رشا', 'Rasha'), T('باسل', 'Basel'), T('دعاء', 'Doaa'), T('وليد', 'Waleed'), T('سلمى', 'Salma')];
+    const LAST = [T('أبو سمرة', 'Abu Samra'), T('شاهين', 'Shaheen'), T('الفرا', 'Al-Farra'), T('قديح', 'Qudaih'), T('مطر', 'Matar'), T('العطار', 'Al-Attar')];
+    for (let i = 0; customers.length < 61; i++) {
+      const kind = ['month', 'month-st', 'week'][i % 3];
+      // The subscription started in the past — a payment is never dated ahead of today — and
+      // runs its length from there, so some are still active and some have expired.
+      const started = -((i * 7) % 50) - 1;
+      const from = day(started);
+      const to = day(started + (kind === 'week' ? 6 : 29));
+      customers.push({ id: 'g' + i, name: FIRST[i % FIRST.length] + ' ' + LAST[i % LAST.length],
+        phone: '+970 5' + (6 + (i % 4)) + ' 000 3' + String(i).padStart(3, '0'),
+        subs: [S('sg' + i, kind, from, to, { pays: [[from, '08:' + String(10 + (i % 45)).padStart(2, '0'), kind === 'week' ? 90 : kind === 'month-st' ? 250 : 300, i % 2 ? 'transfer' : 'cash', i % 3 ? SM : A]] })] });
+    }
+
+    // Present now: 19 subscribers + 8 visits = 27.
   const subPresent = [['m1', '08:05'], ['m2', '08:30'], ['m4', '10:30'], ['m7', '09:10'], ['m9', '09:40'], ['m11', '08:47']];
   const fTimes = ['07:58', '08:12', '08:20', '08:31', '08:55', '09:02', '09:18', '09:33', '09:50', '10:15', '10:44', '11:06', '11:48'];
   fTimes.forEach((t, i) => subPresent.push(['f' + i, t]));
@@ -79,6 +96,17 @@ window.DESK = (function () {
   const olderVisits = [['2026-09-28', '17:20', 12, 'cash', SM, T('يزن حمّاد', 'Yazan Hammad')], ['2026-09-28', '13:05', 15, 'cash', A, T('نادين سرور', 'Nadine Srour')], ['2026-09-27', '16:40', 9, 'transfer', SM, T('عبد الله الحايك', 'Abdullah Al-Hayek')], ['2026-09-26', '12:15', 6, 'cash', SM, T('سجى أبو حصيرة', 'Saja Abu Hasira')], ['2026-09-24', '15:30', 15, 'cash', A, T('معاذ البيطار', 'Muath Al-Bitar')]];
   olderVisits.forEach(([date, time, amount, method, who, name], i) => visitPays.push({ id: 'ov' + i, name, date, time, amount, method, by: who }));
   visitPays.push({ id: 'ovx', name: T('وسيم عودة', 'Wassim Odeh'), date: '2026-09-27', time: '11:00', amount: 15, method: 'cash', by: SM, voided: T('الزبون لم يبقَ، أُعيد المبلغ', 'The customer didn’t stay; refunded'), voidedBy: A });
+
+  // P6: a month of visit payments behind today, so the ledger is a real ledger — 312 rows in
+  // all. A visit is the desk's commonest payment, so that is where the volume belongs.
+  const vday = (n) => { const d = new Date(TODAY + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const VNAMES = [T('إسراء نصار', 'Israa Nassar'), T('محمود الهمص', 'Mahmoud Al-Hams'), T('تسنيم أبو جزر', 'Tasneem Abu Jazar'), T('عدي برهوم', 'Oday Barhoum'), T('رهف الكحلوت', 'Rahaf Al-Kahlout'), T('سامر الريس', 'Samer Al-Rayyes'), T('بيسان قشطة', 'Bisan Qishta'), T('نادر صبح', 'Nader Sobh')];
+  const VAMOUNTS = [3, 6, 9, 12, 15];
+  for (let v = 0; v < 240; v++) {
+    visitPays.push({ id: 'gv' + v, name: VNAMES[v % VNAMES.length], date: vday(-Math.floor(v / 8) - 1),
+      time: String(8 + (v % 9)).padStart(2, '0') + ':' + String((v * 7) % 60).padStart(2, '0'),
+      amount: VAMOUNTS[v % VAMOUNTS.length], method: v % 3 ? 'cash' : 'transfer', by: v % 2 ? SM : A });
+  }
 
   // Attendance statements (per customer, newest first): [date, in, out|null]
   const attendance = {
@@ -149,7 +177,7 @@ window.DESK = (function () {
     return parts.join(' · ') || T('بدون شروط إضافية', 'No extra terms');
   };
 
-  const statusBadge = { active: ['success', T('نشط', 'Active')], soon: ['warning', T('ينتهي قريبًا', 'Ending soon')], expired: ['neutral', T('منتهٍ', 'Expired')], none: ['neutral', T('بدون اشتراك', 'No membership')] };
+  const statusBadge = { active: ['success', T('نشط', 'Active')], soon: ['warning', T('ينتهي قريبًا', 'Ending soon')], expired: ['neutral', T('منتهٍ', 'Expired')], none: ['neutral', T('بدون اشتراك', 'No subscription')] };
   const payBadge = { paid: ['success', T('مدفوع', 'Paid')], partial: ['warning', T('مدفوع جزئيًا', 'Partly paid')], unpaid: ['destructive', T('غير مدفوع', 'Unpaid')] };
   const methodLabel = { cash: T('نقدًا', 'Cash'), transfer: T('تحويل', 'Transfer') };
 

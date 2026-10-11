@@ -38,7 +38,8 @@ function MineInner({ theme, setTheme }) {
   const rows = pageParams.get('state') === 'empty' ? [] : rowsFor(DESK.SAMI);
   const live = rows.filter((r) => !r.voided);
   const sum = (m) => live.filter((r) => !m || r.method === m).reduce((a, r) => a + r.amount, 0);
-  const columns = [
+  const paged = usePaged(rows);
+    const columns = [
     { id: 'time', header: tr('الوقت', 'Time'), cell: ({ row }) => <Num>{row.original.time}</Num> },
     { id: 'who', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.who}</span> },
     { id: 'item', header: tr('عن', 'For'), cell: ({ row }) => row.original.item },
@@ -53,7 +54,8 @@ function MineInner({ theme, setTheme }) {
         <StatCard label={tr('تحويل', 'Transfer')} value={<Money n={sum('transfer')} />} helper={tr('وصلت إلى حساب المساحة', 'Received in the space’s account')} />
         <StatCard label={tr('المجموع', 'Total')} value={<Money n={sum()} />} helper={<><Num>{live.length}</Num> {tr('دفعات', 'payments')}</>} />
       </div>
-      <DataTable label={tr('دفعاتي اليوم', 'My payments today')} columns={columns} data={rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
+      <DataTable label={tr('دفعاتي اليوم', 'My payments today')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
+        summary={paged.summary} pagination={paged.nav}
         renderCard={(r) => (<div className="flex items-start justify-between gap-3"><div className="flex flex-col gap-1"><span className="text-label">{r.who}</span><span className="text-caption text-muted-foreground"><Num>{r.time}</Num> · {r.item} · {DESK.methodLabel[r.method]}</span></div><span className="text-label"><Money n={r.amount} /></span></div>)}
         empty={<EmptyState icon={<CircleCheckIcon />} title={tr('لم تسجّل أي دفعة اليوم', 'You haven’t recorded any payments today')} />} />
     </OwnerShell>
