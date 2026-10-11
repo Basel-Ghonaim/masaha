@@ -1,6 +1,6 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
 > **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the add-space page and the row actions of the admin's spaces list.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
@@ -38,7 +38,7 @@ The photos and the owner's side are not built.
 
 **Create.** The area must be active, in an active governorate. In one transaction: the slug is chosen, the space is written unverified and shown, its profile dated now and its other fact groups missing, its settings copied from the defaults, and its audit entry written. When the defaults cannot be read, nothing is written. Two creations that chose the same slug at once: the later one tries again with the slugs as they are then, three attempts in all, then answers 409.
 
-**Read and edit.** The space is read with whether it is verified, from its links, so an edit screen can show it editable or read-only; what an edit writes and audits is the [contract](../api/api-contract.md#spaces-the-admin)'s.
+**Read and edit.** The space is read with whether it is verified, from its links, so an edit screen can show it editable or read-only; it is read whole under the space's share lock, so a save in progress is never read half done. An edit decides on the links as they are under the space's lock; what it writes and audits is the [contract](../api/api-contract.md#spaces-the-admin)'s.
 
 **Hide, delete, restore.** Each changes the space under its row lock, verified or not; what each answers and leaves behind is the [contract](../api/api-contract.md#spaces-the-admin)'s, and a deleted space's links count for nothing ([space-links](space-links.md#decisions)).
 
@@ -102,6 +102,8 @@ The photos and the owner's side are not built.
 - **Each group's lists and amounts are capped** (D8), at the sizes the [contract](../api/api-contract.md#spaces-the-admin)'s request bodies give. *Why:* bounded forms, and a guard against a slip of the keyboard. 2026-10-07, #48.
 - **A new space has no hours until they are saved;** the Saturday–Thursday template is the form's starting point, not data (D9). *Why:* a stored template would date hours nobody entered. 2026-10-07, #48.
 - **Every group changes through one save path, the profile's edit included:** the lock, `can()`, the change, the group's date and its audit entry, in one transaction. *Why:* the owner's endpoints (step 5) reuse it (S9). 2026-10-07, #48.
+- **A save decides on the links read again under the space's lock,** not on those the loader read before it. *Why:* an owner linked between the two would let the admin's save land on a space just verified ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)). 2026-10-11, #60.
+- **The space's read is one consistent state, under the space's lock in share mode** (the owner's choice, S1). *Why:* a read during an hours save could show the old week with the new shifts (finding 43); a lock keeps one isolation level ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)), and unlike a snapshot, a test can prove it. 2026-10-11, #60.
 
 ### Web decisions
 
@@ -143,6 +145,7 @@ The photos and the owner's side are not built.
 - #36 — the summaries of a user's spaces.
 - #44 — the admin's spaces API: create, read, edit, hide, delete and restore, and the listing page.
 - #48 — the facts API: a group missing until saved, each group confirmed, the hours with the shifts, the prices, the amenities and the contacts.
+- #60 — a save decides on the links under the space's lock, and the read is consistent (finding 43).
 
 ### Web history
 

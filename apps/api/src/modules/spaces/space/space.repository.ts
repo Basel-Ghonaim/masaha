@@ -97,11 +97,6 @@ export function createSpaceRepository(db: PrismaClient = prisma) {
       }
     },
 
-    /** The space, unless it is soft-deleted (ADR 0007). */
-    findLive(id: number, tx: Tx = db): Promise<SpaceRecord | null> {
-      return tx.space.findFirst({ where: { id, deletedAt: null }, select: SPACE });
-    },
-
     /**
      * Locks the space's row until the transaction ends, so the state a change replaces is the one
      * it read. The space, a soft-deleted one included, or nothing.
@@ -111,6 +106,18 @@ export function createSpaceRepository(db: PrismaClient = prisma) {
         SELECT id FROM spaces WHERE id = ${id} FOR NO KEY UPDATE`;
       if (rows.length === 0) return null;
       return tx.space.findUnique({ where: { id }, select: { ...SPACE, deletedAt: true } });
+    },
+
+    /**
+     * Locks the space's row in share mode until the transaction ends: no change of the space, its
+     * facts or its links commits meanwhile, since each takes the lock above, and other reads still
+     * share it. The space, unless it is soft-deleted, or nothing.
+     */
+    async lockShared(id: number, tx: Tx): Promise<SpaceRecord | null> {
+      const rows = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM spaces WHERE id = ${id} FOR SHARE`;
+      if (rows.length === 0) return null;
+      return tx.space.findFirst({ where: { id, deletedAt: null }, select: SPACE });
     },
 
     update(id: number, data: SpaceData, tx: Tx): Promise<SpaceRecord> {

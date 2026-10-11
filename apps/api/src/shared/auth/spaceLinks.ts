@@ -1,5 +1,6 @@
 import type { Request, RequestHandler } from 'express';
 
+import type { Tx } from '../../db/index.ts';
 import { AppError } from '../errors/index.ts';
 import { parseId } from '../validation/index.ts';
 import type { SpaceLink, SpaceResource } from './can.ts';
@@ -7,6 +8,12 @@ import type { SpaceLink, SpaceResource } from './can.ts';
 /** The space a route names, with its links: what `can()` reads of it. */
 export interface LoadedSpace extends SpaceResource {
   readonly id: number;
+  /**
+   * Its links read again with `tx`. Every link change takes the space's lock, so a change that
+   * decides under that lock reads them here, and a link committed after the loader ran counts
+   * (finding 43).
+   */
+  linksUnder(tx: Tx): Promise<readonly SpaceLink[]>;
 }
 
 declare module 'express-serve-static-core' {
@@ -16,8 +23,8 @@ declare module 'express-serve-static-core' {
   }
 }
 
-/** Every link to the space, deactivated ones included, read from the database. */
-export type LinksLoader = (spaceId: number) => Promise<readonly SpaceLink[]>;
+/** Every link to the space, deactivated ones included, read from the database, with `tx` if given. */
+export type LinksLoader = (spaceId: number, tx?: Tx) => Promise<readonly SpaceLink[]>;
 
 /**
  * The links loader without the refusal (docs/backend/conventions.md §8, Space access): it puts the
@@ -28,7 +35,7 @@ export type LinksLoader = (spaceId: number) => Promise<readonly SpaceLink[]>;
 export function loadSpaceLinks(loader: LinksLoader): RequestHandler {
   return async (req, _res, next) => {
     const id = parseId(req.params.spaceId);
-    req.space = { id, links: await loader(id) };
+    req.space = { id, links: await loader(id), linksUnder: (tx) => loader(id, tx) };
     next();
   };
 }

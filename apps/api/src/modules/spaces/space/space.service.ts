@@ -84,16 +84,19 @@ export function createSpaceService({
   return {
     /**
      * The space with its facts, and whether it is verified, from its links; 404 once it is
-     * soft-deleted.
+     * soft-deleted. All of it is read under the space's share lock, so a save in progress is read
+     * whole or not at all, never half (finding 43).
      */
     async get(space: LoadedSpace): Promise<AdminSpace> {
-      const [thresholds, found, facts] = await Promise.all([
-        platformSettings.stalenessThresholds(),
-        repository.findLive(space.id),
-        readFacts(space.id),
-      ]);
-      if (!found) throw AppError.notFound(undefined, 'Space not found');
-      return view(found, isVerified(space), thresholds, facts);
+      // Read before the transaction opens: inside it, a read without `tx` waits on a second
+      // connection while the transaction holds one.
+      const thresholds = await platformSettings.stalenessThresholds();
+      return runInTransaction(async (tx) => {
+        const found = await repository.lockShared(space.id, tx);
+        if (!found) throw AppError.notFound(undefined, 'Space not found');
+        const verified = isVerified({ links: await space.linksUnder(tx) });
+        return view(found, verified, thresholds, await readFacts(space.id, tx));
+      });
     },
 
     /** Hides the space from the public, or shows it again. */

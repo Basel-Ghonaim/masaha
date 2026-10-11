@@ -43,9 +43,10 @@ export type GroupStep = (tx: Tx, space: LockedSpace, at: Date) => Promise<GroupC
 /**
  * The one way a space's fact group changes, whether it is saved or confirmed (decision F1): in one
  * transaction, the space is locked, so the state a change replaces is the one it read, and a
- * soft-deleted one is not found; `can()` decides from the space's links whether the actor may
- * (the admin while it is unverified, else its owner, decision S9); then the change, the group's new
- * date and its audit entry, `space.<group><verb>`. One logic, whichever router calls it.
+ * soft-deleted one is not found; `can()` decides from the space's links, read under the lock,
+ * whether the actor may (the admin while it is unverified, else its owner, decision S9); then the
+ * change, the group's new date and its audit entry, `space.<group><verb>`. One logic, whichever
+ * router calls it.
  */
 export function createGroupEdit({
   runInTransaction,
@@ -70,13 +71,16 @@ export function createGroupEdit({
     return runInTransaction(async (tx) => {
       const current = await repository.lock(space.id, tx);
       if (!current || current.deletedAt) throw AppError.notFound(undefined, 'Space not found');
+      // The links as they are under the lock, which every link change takes: one committed after
+      // the loader read them still decides (finding 43).
+      const locked = { links: await space.linksUnder(tx) };
       const action = group === 'profile' ? 'space.profile.update' : 'space.facts.update';
-      if (!can(actor, action, space)) throw AppError.forbidden();
+      if (!can(actor, action, locked)) throw AppError.forbidden();
 
       const at = now();
       const change = await step(tx, current, at);
       if (!change) {
-        return view(current, isVerified(space), thresholds, await readFacts(space.id, tx));
+        return view(current, isVerified(locked), thresholds, await readFacts(space.id, tx));
       }
 
       const updated = await repository.update(space.id, { [DATE_COLUMNS[group]]: at }, tx);
@@ -92,7 +96,7 @@ export function createGroupEdit({
         },
         tx,
       );
-      return view(updated, isVerified(space), thresholds, await readFacts(space.id, tx));
+      return view(updated, isVerified(locked), thresholds, await readFacts(space.id, tx));
     });
   };
 }

@@ -277,7 +277,7 @@ export function createApi({
   // (conventions §8, Space access).
   admin.use(
     '/spaces/:spaceId',
-    loadSpaceLinks((spaceId) => spaceLinks.linksAt(spaceId)),
+    loadSpaceLinks((spaceId, tx) => spaceLinks.linksAt(spaceId, tx)),
   );
   admin.use(createSpaceLinksAdminRouter(createAdminSpacesController(adminSpaces)));
   admin.use(

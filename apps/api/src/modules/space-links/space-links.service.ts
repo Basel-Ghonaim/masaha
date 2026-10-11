@@ -46,13 +46,13 @@ export function createSpaceLinksService({
     /**
      * The links loader of the space routes (conventions §8, Space access): every link to the space,
      * from which `can()` reads the caller's role there and whether the space is verified. A
-     * soft-deleted space has none: its links count for nothing (finding 18).
+     * soft-deleted space has none: its links count for nothing (finding 18). With `tx`, under the
+     * space's lock, it reads them as every link change leaves them (finding 43).
      */
-    async linksAt(spaceId: number): Promise<SpaceLink[]> {
-      const [links, summaries] = await Promise.all([
-        repository.findLinksAt(spaceId),
-        spaces.summariesFor([spaceId]),
-      ]);
+    async linksAt(spaceId: number, tx?: Tx): Promise<SpaceLink[]> {
+      // One query at a time inside a transaction: its connection runs one statement at once.
+      const links = await repository.findLinksAt(spaceId, tx);
+      const summaries = await spaces.summariesFor([spaceId], tx);
       return summaries.length === 0 ? [] : links;
     },
 
