@@ -1,8 +1,9 @@
-import type { ChangePasswordRequest, PasswordChanged } from '@masaha/shared/users';
+import type { ChangePasswordRequest, HandoverRequest, PasswordChanged } from '@masaha/shared/users';
 import type { Request, Response } from 'express';
 
 import { AppError } from '../../shared/errors/index.ts';
-import { sendSuccess } from '../../shared/http/index.ts';
+import { sendNoContent, sendSuccess } from '../../shared/http/index.ts';
+import { parseId } from '../../shared/validation/index.ts';
 import type { SessionCookies } from '../sessions/index.ts';
 import type { UsersService } from './users.service.ts';
 
@@ -23,6 +24,13 @@ export function createUsersController(users: UsersService, cookies: SessionCooki
       );
       cookies.set(res, refreshToken);
       sendSuccess(res, { accessToken } satisfies PasswordChanged);
+    },
+
+    recordHandover: async (req: Request, res: Response) => {
+      const { userId } = signedIn(req);
+      const { channel } = req.body as HandoverRequest;
+      await users.recordHandover(userId, parseId(req.params.userId), channel);
+      sendNoContent(res);
     },
   };
 }

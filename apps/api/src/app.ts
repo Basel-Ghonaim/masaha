@@ -69,6 +69,7 @@ import {
   createSpacesService,
 } from './modules/spaces/index.ts';
 import {
+  createUsersAdminRouter,
   createUsersController,
   createUsersMeRouter,
   createUsersService,
@@ -275,7 +276,8 @@ export function createApi({
     AUTH_PATH,
     createAuthRouter(createAuthController(auth, cookies, recoveryCookie), webOrigin),
   );
-  api.use('/me', createUsersMeRouter(createUsersController(users, cookies), requireAuth));
+  const usersController = createUsersController(users, cookies);
+  api.use('/me', createUsersMeRouter(usersController, requireAuth));
   api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
   api.use(
     '/manage/spaces',
@@ -304,6 +306,7 @@ export function createApi({
       adminUsers: createAdminUsersController(adminUsers),
     }),
   );
+  admin.use(createUsersAdminRouter(usersController));
   admin.use(
     createSpacesAdminRouter({
       space: createSpaceController(space),

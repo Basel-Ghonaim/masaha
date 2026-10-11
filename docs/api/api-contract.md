@@ -450,8 +450,13 @@ The accounts, as the admin reads them ([data-model › Users and sessions](../ar
   ```
 - **Errors:** `validation` (422), for an unknown `role` or `state` (`invalid_choice`) or a page out of range.
 
+#### `POST /admin/users/:userId/temporary-password/handover` · 🛡
+- **Body:** `{ channel }`: how the temporary password just shown was handed over, `"WHATSAPP"`, `"IN_PERSON"` or `"OTHER"` (`HANDOVER_CHANNELS`, `@masaha/shared/users`). The web asks it after the password is shown, for an account the admin created; the admin's own temporary password (planned) uses it too.
+- **204:** audited `user.temporaryPasswordHandedOver` (`after: { channel }`), with the account as the entity, as the entry of the password it follows. Only while that temporary password is still pending; a second handover is a second entry.
+- **Errors:** `validation` (422), with `invalid_choice` on `channel`; `conflict` (409) `TEMPORARY_PASSWORD_NOT_PENDING` once the account has no temporary password to change; `not_found` (404) for an unknown account.
+
 ## 6. Domain error codes (initial)
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING`.

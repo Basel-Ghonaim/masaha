@@ -1,5 +1,10 @@
 import { textSchema, type Language } from '@masaha/shared/core';
-import { NAME_MAX_LENGTH, type ChangePasswordRequest, type User } from '@masaha/shared/users';
+import {
+  NAME_MAX_LENGTH,
+  type ChangePasswordRequest,
+  type HandoverChannel,
+  type User,
+} from '@masaha/shared/users';
 
 import { createRunInTransaction, type RunInTransaction, type Tx } from '../../db/index.ts';
 import type { Role } from '../../generated/prisma/enums.ts';
@@ -347,6 +352,35 @@ export function createUsersService({
         tx,
       );
       return created.account;
+    },
+
+    /**
+     * Records how the account's temporary password was handed over, after it was shown (the
+     * owner's A5): audited `user.temporaryPasswordHandedOver`, the account as the entity, as the
+     * entry of the password it follows. Only while that password is still pending; an unknown
+     * account is 404.
+     */
+    recordHandover(actorId: number, userId: number, channel: HandoverChannel): Promise<void> {
+      return runInTransaction(async (tx) => {
+        const account = await lockAccount(userId, tx);
+        if (!account) throw AppError.notFound(undefined, 'Account not found');
+        if (!account.mustChangePassword) {
+          throw AppError.conflict(
+            'TEMPORARY_PASSWORD_NOT_PENDING',
+            'No temporary password pending',
+          );
+        }
+        await audit(
+          {
+            actorId,
+            action: 'user.temporaryPasswordHandedOver',
+            entityType: 'user',
+            entityId: userId,
+            after: { channel },
+          },
+          tx,
+        );
+      });
     },
 
     /** Hashes a new password, before the transaction that sets it opens. */

@@ -49,4 +49,6 @@ export const ERRORS = {
     'An account with this email already exists. Sign in with its password, or reset the password, to continue.',
   PASSWORD_NOT_SET:
     'This account has no password yet. Set one from the link we email you under “Forgot password”.',
+  TEMPORARY_PASSWORD_NOT_PENDING:
+    'This account has no temporary password waiting to be changed, so there is no handover to record.',
 } as const satisfies Record<AppErrorType | DomainErrorCode, string>;
