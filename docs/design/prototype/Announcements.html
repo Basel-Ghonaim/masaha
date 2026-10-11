@@ -135,7 +135,7 @@ function AnnInner({ theme, setTheme }) {
   const count = (s) => list.filter((a) => statusOf(a) === s).length;
   const newBtn = <Button onClick={() => setEdit({ type: 'general' })}>{tr('إعلان جديد', 'New announcement')}</Button>;
   return (
-    <OwnerShell current="announcements" title={tr('الإعلانات', 'Announcements')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={newBtn}>
+    <OwnerShell current="announcements" title={tr('الإعلانات', 'Announcements')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList aria-label={tr('حالة الإعلان', 'Announcement status')}>
@@ -144,7 +144,7 @@ function AnnInner({ theme, setTheme }) {
             <TabsTrigger value="ended">{tr('منتهية', 'Ended')} (<Num>{count('ended')}</Num>)</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="md:hidden">{newBtn}</div>
+        <div>{newBtn}</div>
       </div>
       {shown.length ? (
         <div className="flex max-w-4xl flex-col gap-4">

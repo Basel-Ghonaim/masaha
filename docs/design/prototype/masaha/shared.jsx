@@ -119,6 +119,38 @@ function AccountMenuContent({ user, current, area = 'site', onSignOut, theme, se
   );
 }
 
+// P1: the page's own actions, in one place. Secondary first, the primary last.
+// From 768 they sit in the top bar beside the title; below it they fold into a «⋯» menu there.
+// A list's "add" is not one of these: it belongs at the end of the row above its list.
+function PageActions({ actions }) {
+  const { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, EllipsisIcon } = window.MasahaDesignSystem;
+  const wide = useIsTablet();
+  // `bottom`: on a phone this action is the shell's fixed bottom bar, so it is not repeated here.
+  const list = (actions || []).filter(Boolean).filter((a) => wide || !a.bottom);
+  if (!list.length) return null;
+  if (wide) {
+    return (
+      <span className="flex flex-wrap items-center gap-2">
+        {list.map((a) => (a.href
+          ? <Button key={a.key} variant={a.variant || 'outline'} size="sm" asChild><a href={a.href}>{a.icon}{a.label}</a></Button>
+          : <Button key={a.key} variant={a.variant || 'outline'} size="sm" onClick={a.onClick}>{a.icon}{a.label}</Button>))}
+      </span>
+    );
+  }
+  return (
+    <DropdownMenu dir={DIR}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label={tr('إجراءات الصفحة', 'Page actions')}><EllipsisIcon /></Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {list.map((a) => (a.href
+          ? <DropdownMenuItem key={a.key} asChild><a href={a.href}>{a.icon}{a.label}</a></DropdownMenuItem>
+          : <DropdownMenuItem key={a.key} onSelect={a.onClick}>{a.icon}{a.label}</DropdownMenuItem>))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 // SH-018: the first focusable element of every shell, seen only once it has focus.
 function SkipLink({ target = 'main' }) {
   return <Button variant="link" className="skip-link" asChild><a href={'#' + target}>{tr('تخطَّ إلى المحتوى', 'Skip to content')}</a></Button>;
@@ -315,7 +347,7 @@ const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON
 
 const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
 
-Object.assign(window, { AccountMenuContent, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
+Object.assign(window, { AccountMenuContent, PageActions, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
 
 // DS date picker with long localized dates («3 أكتوبر 2026»). value/onChange use ISO yyyy-mm-dd.
 const isoLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);

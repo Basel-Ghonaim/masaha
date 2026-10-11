@@ -148,7 +148,7 @@ function FinanceInner({ theme, setTheme }) {
     else downloadCSV('masaha-occupancy', [tr('اليوم', 'Day'), '08', '09', '10', '11', '12', '13', '14', '15', '16', '17'], DESK.WEEKDAYS.filter(([k]) => DESK.heat[k]).map(([k, l]) => [l, ...DESK.heat[k]]));
   };
   return (
-    <OwnerShell current="finance" title={tr('المالية والتقارير', 'Finance & reports')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
+    <OwnerShell current="finance" title={tr('المالية والتقارير', 'Finance & reports')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={[{ key: 'csv', label: tr('تصدير CSV', 'Export CSV'), onClick: exportCsv }]}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList aria-label={tr('التقارير', 'Reports')}>
@@ -157,10 +157,7 @@ function FinanceInner({ theme, setTheme }) {
             <TabsTrigger value="occupancy">{tr('الإشغال', 'Occupancy')}</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="flex flex-col gap-2 md:flex-row md:items-end">
-          <FilterSheet><div className="md:w-72"><RangePicker value={range} onChange={setRange} /></div></FilterSheet>
-          <CsvButton onClick={exportCsv} />
-        </div>
+        <FilterSheet><div className="md:w-72"><RangePicker value={range} onChange={setRange} /></div></FilterSheet>
       </div>
       {tab === 'income' && <p className="text-caption text-muted-foreground">{tr('الدخل = المبالغ المقبوضة فعليًا، بدون الدفعات الملغاة.', 'Income = amounts actually collected, excluding voided payments.')}</p>}
       {tab === 'income' ? <IncomeTab /> : tab === 'debts' ? <DebtsTab /> : <OccupancyTab />}

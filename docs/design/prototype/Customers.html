@@ -77,7 +77,7 @@ function CustomersInner({ theme, setTheme }) {
   const add = () => desk.open('sheet', { mode: 'new' });
   const archBal = arch ? DESK.balance(arch) : 0;
   return (
-    <OwnerShell current="customers" title={tr('الزبائن', 'Customers')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={<Button onClick={add}>{tr('زبون جديد', 'New customer')}</Button>}>
+    <OwnerShell current="customers" title={tr('الزبائن', 'Customers')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <DataTable label={tr('زبائن المساحة', 'Customers of the space')} columns={columns} data={list} getRowId={(r) => r.id} loading={st === 'loading'}
         summary={<span>{tr('عدد الزبائن', 'Customers')}: <Num>{list.length}</Num></span>}
         toolbar={<div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
@@ -87,7 +87,7 @@ function CustomersInner({ theme, setTheme }) {
           <Filter label={tr('الحالة', 'Status')} value={status} onChange={setStatus} options={[['all', tr('كل الحالات', 'All statuses')], ...['active', 'soon', 'expired', 'none'].map((k) => [k, DESK.statusBadge[k][1]])]} />
           <Filter label={tr('الدفع', 'Payment')} value={pay} onChange={setPay} options={[['all', tr('كل حالات الدفع', 'All payment states')], ['owes', tr('عليه دين', 'Owes money')], ['credit', tr('له رصيد', 'In credit')], ['settled', tr('مسدّد', 'Settled')]]} />
           </FilterSheet>
-          <Button className="md:hidden" onClick={add}>{tr('زبون جديد', 'New customer')}</Button>
+          <div className="flex flex-1 justify-end"><Button onClick={add}>{tr('زبون جديد', 'New customer')}</Button></div>
         </div>}
         renderCard={(c) => (
           <div className="flex items-start justify-between gap-3">

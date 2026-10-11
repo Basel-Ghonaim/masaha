@@ -64,7 +64,7 @@ function PaymentsInner({ theme, setTheme }) {
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{!row.original.voided && <Button size="sm" variant="ghost" onClick={() => setVoiding(row.original)}>{tr('إلغاء الدفعة', 'Void payment')}</Button>}</div> }
   ];
   return (
-    <OwnerShell current="payments" title={tr('الدفعات', 'Payments')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={<CsvButton onClick={exportCsv} />}>
+    <OwnerShell current="payments" title={tr('الدفعات', 'Payments')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={[{ key: 'csv', label: tr('تصدير CSV', 'Export CSV'), onClick: exportCsv }]}>
       <DataTable label={tr('سجل الدفعات', 'Payments ledger')} columns={columns} data={rows} getRowId={(r) => r.id} loading={st === 'loading'}
         summary={<span className="flex flex-wrap gap-x-4 gap-y-1"><span className="text-label">{tr('المجموع', 'Total')} <Money n={sum()} /></span><span>{DESK.methodLabel.cash} <Money n={sum('cash')} /></span><span>{DESK.methodLabel.transfer} <Money n={sum('transfer')} /></span><span><Num>{live.length}</Num> {tr('دفعة', 'payments')}</span></span>}
         toolbar={<div className="flex flex-col gap-3">
@@ -74,10 +74,7 @@ function PaymentsInner({ theme, setTheme }) {
             <Pick label={tr('الطريقة', 'Method')} value={method} onChange={setMethod} options={[['all', tr('كل الطرق', 'All methods')], ['cash', DESK.methodLabel.cash], ['transfer', DESK.methodLabel.transfer]]} />
             <Pick label={tr('النوع', 'Type')} value={type} onChange={setType} options={[['all', tr('كل الأنواع', 'All types')], ['visit', tr('زيارات', 'Visits')], ['sub', tr('اشتراكات', 'Memberships')]]} />
           </div></FilterSheet>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Field label={tr('إظهار الملغاة', 'Show voided')} orientation="horizontal"><Switch checked={showVoid} onCheckedChange={setShowVoid} /></Field>
-            <span className="md:hidden"><CsvButton onClick={exportCsv} /></span>
-          </div>
+          <Field label={tr('إظهار الملغاة', 'Show voided')} orientation="horizontal"><Switch checked={showVoid} onCheckedChange={setShowVoid} /></Field>
         </div>}
         renderCard={(r) => (
           <div className="flex items-start justify-between gap-3">

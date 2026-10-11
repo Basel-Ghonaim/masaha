@@ -156,7 +156,7 @@ function FileInner({ theme, setTheme }) {
   const msg = tr(`مرحبًا ${c.name.split(' ')[0]}، تذكير من Focus Hub: عليك ${DESK.money(bal)}${ds && ds.debtLabel ? ' من ' + ds.debtLabel : ''}. يمكنك الدفع في المساحة. شكرًا.`, `Hi ${c.name.split(' ')[0]}, a reminder from Focus Hub: you owe ${DESK.money(bal)}${ds && ds.debtLabel ? ' for ' + ds.debtLabel : ''}. You can pay at the space. Thank you.`);
   const wa = 'https://wa.me/' + c.phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(msg);
   return (
-    <OwnerShell current="customers" title={tr('ملف الزبون', 'Customer file')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
+    <OwnerShell current="customers" title={c.name} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <Breadcrumb label={tr('مسار التنقل', 'Breadcrumb')}>
         <BreadcrumbList>
           <BreadcrumbItem><BreadcrumbLink href={roleQ('Customers.html')}>{tr('الزبائن', 'Customers')}</BreadcrumbLink></BreadcrumbItem>
@@ -166,7 +166,6 @@ function FileInner({ theme, setTheme }) {
       </Breadcrumb>
       <Card>
         <CardHeader>
-          <CardTitle className="text-heading-2">{c.name}</CardTitle>
           <CardDescription className="flex flex-wrap items-center gap-2">{c.phone && <span dir="ltr">{c.phone}</span>}{here && <Badge variant="info"><span>{tr('حاضر منذ', 'Here since')} <Num>{here.since}</Num></span></Badge>}<StatusBadge c={c} /></CardDescription>
           <CardAction className="flex flex-col items-end gap-1">
             <span className="text-caption text-muted-foreground">{tr('الرصيد', 'Balance')}</span>

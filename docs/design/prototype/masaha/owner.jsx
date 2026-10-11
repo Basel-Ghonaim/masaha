@@ -211,6 +211,7 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
         <header className="sticky top-0 z-10 flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-background px-4 py-2 md:px-8">
           <SidebarTrigger label={tr('القائمة', 'Menu')} />
           <h1 className="text-heading-3">{title}</h1>
+          <PageActions actions={actions} />
           <span className="hidden items-center gap-2 lg:flex"><PublicStateBadge state={base} ov={ov} /><StatusControl ov={ov} /></span>
           <div className="ms-auto flex items-center gap-1">
             <OLang lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} className="hidden md:inline-flex" />
@@ -220,7 +221,6 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
           <span className="flex w-full flex-wrap items-center gap-2 lg:hidden"><PublicStateBadge state={base} ov={ov} /><StatusControl ov={ov} /></span>
         </header>
         <main id="main" className={'flex flex-1 flex-col gap-6 px-4 py-6 md:px-8 ' + (bottomAction ? 'pb-28 md:pb-6' : '')}>
-          {actions && <div className="hidden flex-wrap justify-end gap-2 md:flex">{actions}</div>}
           {children}
         </main>
         {bottomAction && <div className="fixed inset-x-0 bottom-0 z-10 flex gap-2 border-t border-border bg-background px-4 py-3 md:hidden">{bottomAction}</div>}

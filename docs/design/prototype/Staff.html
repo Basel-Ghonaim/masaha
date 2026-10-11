@@ -79,10 +79,10 @@ function StaffInner({ theme, setTheme }) {
   ];
   const addBtn = <Button onClick={() => { setAdd(true); setErr({}); }}>{tr('إضافة موظف', 'Add staff member')}</Button>;
   return (
-    <OwnerShell current="staff" title={tr('الموظفون', 'Staff')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={addBtn}>
+    <OwnerShell current="staff" title={tr('الموظفون', 'Staff')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('موظفو الاستقبال يرون المكتب والزبائن والإعلانات ودفعاتهم اليومية فقط، بدون أرقام الدخل.', 'Reception staff see the desk, customers, announcements and their own payments today — no income figures.')}</p>
       <DataTable label={tr('الموظفون', 'Staff')} columns={columns} data={list} getRowId={(r) => r.id}
-        toolbar={<div className="md:hidden">{addBtn}</div>}
+        toolbar={<div className="flex justify-end">{addBtn}</div>}
         renderCard={(s) => (
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-1">

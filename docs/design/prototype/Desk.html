@@ -156,12 +156,9 @@ function DeskSearch() {
     <section aria-label={tr('البحث عن زبون', 'Find a customer')} className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex-1"><Input role="searchbox" size="lg" aria-label={tr('ابحث بالاسم أو آخر أرقام الجوال', 'Search by name or last digits of the mobile')} placeholder={tr('الاسم أو آخر أرقام الجوال', 'Name or last digits of the mobile')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} autoFocus /></div>
-        <div className="hidden flex-wrap gap-2 md:flex">
-          <Button onClick={() => desk.open('visit')}><LogInIcon />{tr('تسجيل زيارة', 'Check in a visit')}</Button>
-          <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'new' })}>{tr('زبون جديد', 'New customer')}</Button>
-          <Button variant="outline" onClick={() => desk.open('pay', {})}>{tr('استلام دفعة', 'Receive payment')}</Button>
-        </div>
-        <Button variant="outline" className="md:hidden" onClick={() => desk.open('sheet', { mode: 'new' })}>{tr('زبون جديد', 'New customer')}</Button>
+        {/* P1: «زبون جديد» is this page's add, so it stays beside the search at every width.
+            Check-in and «استلام دفعة» are page actions, in the top bar and the bottom bar. */}
+        <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'new' })}>{tr('زبون جديد', 'New customer')}</Button>
       </div>
       {term && (results.length ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-live="polite">{results.map((c) => <CustomerCard key={c.id} c={c} />)}</div>
@@ -186,12 +183,15 @@ function DeskScreen() {
 function DeskInner({ theme, setTheme }) {
   const desk = useDesk();
   const [tab, setTab] = React.useState(pageParams.get('tab') === 'log' ? 'log' : 'now');
-  const bottom = <>
-    <Button className="flex-1" onClick={() => desk.open('visit')}><LogInIcon />{tr('تسجيل زيارة', 'Check in a visit')}</Button>
-    <Button variant="outline" className="flex-1" onClick={() => desk.open('pay', {})}>{tr('استلام دفعة', 'Receive payment')}</Button>
-  </>;
+  // P1, amended: the bottom bar holds only the action that is the page's purpose and is
+  // used all day. «استلام دفعة» joins the other page actions in the top bar.
+  const bottom = <Button className="w-full" onClick={() => desk.open('visit')}><LogInIcon />{tr('تسجيل زيارة', 'Check in a visit')}</Button>;
+  const pageActions = [
+    { key: 'pay', label: tr('استلام دفعة', 'Receive payment'), onClick: () => desk.open('pay', {}) },
+    { key: 'visit', label: tr('تسجيل زيارة', 'Check in a visit'), icon: <LogInIcon />, variant: 'primary', bottom: true, onClick: () => desk.open('visit') }
+  ];
   return (
-    <OwnerShell current="desk" title={tr('مكتب الاستقبال', 'Front desk')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} bottomAction={bottom}>
+    <OwnerShell current="desk" title={tr('مكتب الاستقبال', 'Front desk')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={pageActions} bottomAction={bottom}>
       <DeskSearch />
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList aria-label={tr('الحضور', 'Attendance')}>

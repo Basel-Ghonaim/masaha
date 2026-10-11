@@ -56,9 +56,10 @@ function AdminShell({ current, title, theme, setTheme, actions, children }) {
         </div>
       </ASidebar>
       <ASInset>
-        <header className="sticky top-0 z-10 flex min-h-14 items-center gap-3 border-b border-border bg-background px-4 py-2 md:px-8">
+        <header className="sticky top-0 z-10 flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-background px-4 py-2 md:px-8">
           <ASTrigger label={tr('القائمة', 'Menu')} />
           <h1 className="text-heading-3">{title}</h1>
+          <PageActions actions={actions} />
           <div className="ms-auto flex items-center gap-1">
             <ALang lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} className="hidden md:inline-flex" />
             <ATheme theme={theme} onThemeChange={setTheme} label={theme === 'light' ? tr('المظهر الداكن', 'Dark theme') : tr('المظهر الفاتح', 'Light theme')} className="hidden md:inline-flex" />
@@ -75,7 +76,6 @@ function AdminShell({ current, title, theme, setTheme, actions, children }) {
           </div>
         </header>
         <main id="main" className="flex flex-1 flex-col gap-6 px-4 py-6 md:px-8">
-          {actions && <div className="hidden flex-wrap justify-end gap-2 md:flex">{actions}</div>}
           {children}
         </main>
       </ASInset>

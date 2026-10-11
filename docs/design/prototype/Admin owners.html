@@ -71,10 +71,10 @@ function Owners({ theme, setTheme }) {
   ];
   const addBtn = <Button onClick={openAdd}>{tr('إضافة مالك', 'Add owner')}</Button>;
   return (
-    <AdminShell current="owners" title={tr('أصحاب المساحات', 'Space owners')} theme={theme} setTheme={setTheme} actions={addBtn}>
+    <AdminShell current="owners" title={tr('أصحاب المساحات', 'Space owners')} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('ربط مالك بمساحة يجعلها موثّقة؛ بعدها يعدّلها المالك ويرى تشغيلها وحده.', 'Linking an owner makes a space verified; from then on the owner edits it and alone sees its operations.')}</p>
       <DataTable label={tr('أصحاب المساحات', 'Space owners')} columns={columns} data={list} getRowId={(r) => r.id}
-        toolbar={<div className="md:hidden">{addBtn}</div>}
+        toolbar={<div className="flex justify-end">{addBtn}</div>}
         renderCard={(o) => (<div className="flex items-start justify-between gap-3"><div className="flex min-w-0 flex-col gap-2"><span className="text-label">{o.name}</span><span dir="ltr" className="self-start text-caption text-muted-foreground">{o.email}</span>{chips(o)}<span><St o={o} /></span></div>{actions(o)}</div>)}
         empty={<EmptyState icon={<UsersIcon />} title={tr('لا يوجد أصحاب مساحات', 'No space owners')} description={tr('أضف مالكًا واربطه بمساحته لتصبح موثّقة.', 'Add an owner and link their space to verify it.')}>{addBtn}</EmptyState>} />
       <Sheet open={!!sheet} onOpenChange={(o) => !o && setSheet(null)}>

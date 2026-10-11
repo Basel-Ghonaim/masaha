@@ -65,7 +65,7 @@ function Spaces({ theme, setTheme }) {
   const addBtn = <Button asChild><a href="Admin space edit.html?new=1">{tr('إضافة مساحة', 'Add space')}</a></Button>;
   const free = AD.owners.filter((o) => !link || !link.owners.includes(o.id));
   return (
-    <AdminShell current="spaces" title={tr('المساحات', 'Spaces')} theme={theme} setTheme={setTheme} actions={addBtn}>
+    <AdminShell current="spaces" title={tr('المساحات', 'Spaces')} theme={theme} setTheme={setTheme}>
       <DataTable label={tr('المساحات', 'Spaces')} columns={columns} data={rows} getRowId={(r) => r.id}
         summary={<span>{tr('عدد المساحات', 'Spaces')}: <Num>{rows.length}</Num></span>}
         toolbar={<div className="flex flex-col gap-3">
@@ -77,7 +77,7 @@ function Spaces({ theme, setTheme }) {
             <Field label={tr('بيانات قديمة فقط', 'Stale data only')} orientation="horizontal"><Switch checked={stale} onCheckedChange={setStale} /></Field>
             </FilterSheet>
           </div>
-          <div className="md:hidden">{addBtn}</div>
+          <div className="flex justify-end">{addBtn}</div>
         </div>}
         renderCard={(s) => (
           <div className="flex items-start justify-between gap-3">
