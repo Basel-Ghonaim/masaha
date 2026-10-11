@@ -106,7 +106,7 @@ function HoursSection() {
           const d = sec.v.days[k];
           return (
             <li key={k} className="flex flex-col gap-2 px-3 py-3 md:flex-row md:items-center md:gap-4">
-              <div className="flex items-center justify-between gap-3 md:w-44">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-label">{name}</span>
                 <PSwitch checked={d.open} onCheckedChange={(o) => setDay(k, { open: o })} aria-label={tr('مفتوحة يوم ', 'Open on ') + name} />
               </div>

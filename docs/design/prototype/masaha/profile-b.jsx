@@ -92,7 +92,7 @@ function PhotosSection() {
       <ul className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {sec.v.list.map((n, i) => (
           <li key={n} className="flex flex-col gap-2 rounded-lg border border-border p-2">
-            <div className="relative flex h-28 items-center justify-center rounded-md bg-muted text-caption text-muted-foreground" role="img" aria-label={tr('صورة ', 'Photo ') + n}>
+            <div className="relative flex items-center justify-center rounded-md bg-muted text-caption text-muted-foreground" role="img" aria-label={tr('صورة ', 'Photo ') + n}>
               {tr('صورة', 'Photo')} {n}
               {i === 0 && <span className="photo-cover"><QBadge variant="primary">{tr('الغلاف', 'Cover')}</QBadge></span>}
             </div>

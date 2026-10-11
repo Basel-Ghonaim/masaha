@@ -83,3 +83,13 @@ What survives between 768 and 1023, for the web to repeat when it builds these t
 - The vendored bundle has **no `PageHeader`** and **no `SidebarText`**. `SidebarHeader`'s `mark`
   prop already does what SH-006 asks for: it stays visible when the sidebar collapses while its
   children turn `sr-only`.
+
+## Batch 2a — the admin's space editor (2026-10-11)
+
+Reviewed as AD-001…AD-012 (with AD-002's creation form); decided in `DECISIONS_ADMIN.md` as the
+first of two items. The owner's Space profile shares the editor (O1) and inherits what changes in
+it; its own differences are batch 5's.
+
+| Decision | What changed | Where |
+|---|---|---|
+| **E8** | The two checks fix 1 ran by hand are committed: a Babel parse of every module and inline script, and a check for classes no stylesheet defines. The check keeps the classes already dead **by file**, so the same class anywhere else still fails; they are the five of fix 1's DI-9 outside the editor and the Wordmark's two unstyled markers. The editor's own two, `md:w-44` and `h-28`, are dropped from it, which changes nothing on screen. `README.md` says how to run them and what they cannot see, the class check's blind spots included | new `scripts/check-parse.mjs`, `scripts/check-classes.mjs`, `README.md`, `masaha/profile-a.jsx`, `profile-b.jsx` |

@@ -25,6 +25,7 @@ screenshots, is what a feature is built from. Two things follow:
 | `prototype/` | The clickable HTML prototypes: 39 pages, the board (`Flows - states.html`), sample data and copy. Fully offline (React, Babel, fonts and the design-system bundle are vendored) |
 | `prototype/BRIEF.md` | The product brief the screens were designed against — a record, so it is not updated as the design changes |
 | `CHANGES.md` | Every decision applied to the living design: what changed, where, and when |
+| `scripts/` | The two checks run on the prototype before each commit (below) |
 
 ## How to open the prototypes
 
@@ -36,6 +37,21 @@ npx serve .            # or: python -m http.server 8080
 ```
 
 Then open `Flows - states.html` (the whole board) or any page directly. States are URL parameters, for example `Desk.html?role=reception&dialog=checkout&pid=pv0`, `Finance.html?theme=dark&tab=debts`, `Customers.html?lang=en`. `INDEX.md` lists every one.
+
+## Checking the prototype
+
+`docs/design/` is outside ESLint and Prettier and no test lane owns it, so two scripts stand in,
+run from the repository's root with Node alone: `node docs/design/scripts/check-parse.mjs` parses
+every `.jsx` module and every page's inline script with the vendored Babel, and fails on a syntax
+error, which would blank the page; `node docs/design/scripts/check-classes.mjs` fails on a class
+that no stylesheet defines, which the prebuilt `_ds_bundle.css` makes silently dead (the few
+already dead are listed in the script by file, so the same class anywhere else still fails). The
+class check reads only class names written literally in `class="…"` or `className="…"`: a class
+chosen in a condition, built by `cn(…)`, passed in another prop or named as an object key is not
+seen. **What they cannot see:** anything that happens once the page runs, a block drawn twice, a
+missing gap, a section in the wrong place — the
+Directory's filters were drawn twice and passed both, and a 420-page load matrix too. Those need
+the pages opened in a browser, at 390, 768 and 1440, and looked at.
 
 ## Rules for implementing from this archive (Claude Code)
 
