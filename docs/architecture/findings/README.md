@@ -36,6 +36,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [48. `db:up` from another folder recreates the shared container](48-db-up-from-another-folder-recreates-the-shared-container.md)
 - [49. A lost answer to adding an owner loses its temporary password](49-a-lost-answer-to-adding-an-owner-loses-its-temporary-password.md)
 - [50. An owner whose only spaces are deleted stays an owner](50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md)
+- [51. An access token outlives the end of its session](51-an-access-token-outlives-the-end-of-its-session.md)
 
 ## Accepted
 

@@ -3,6 +3,7 @@
 > **Status:** Accepted, **partly superseded by [ADR 0009](0009-space-scoped-reception-role.md)** (rule 2's single `SpaceManager.role` value, and rule 7) · **Date:** 2026-09-26
 > **Revised:** 2026-09-28 — who keeps a space's public data now depends on whether the space is verified (rule 4); capacity is owner-only ([ADR 0008](0008-live-status-not-counts.md)); the permission table is built in `apps/api/src/shared/auth/can.ts`.
 > **Revised:** 2026-09-29 — a space has `OWNER` and `RECEPTION` links; the reception role, its permissions and the extended admin privacy rule are decided in [ADR 0009](0009-space-scoped-reception-role.md). The body below is left as first written.
+> **Revised:** 2026-10-11 — rule 6: the access token no longer carries the role; the guard reads it from the account on every request ([ADR 0003](0003-session-model.md), revised).
 
 ## Context
 Masaha has three kinds of users. Owners must manage only their own spaces; the admin manages the platform but must not see members' personal data. A receptionist role was considered and deferred. Future roles (staff) and multi-manager spaces should not require a redesign.

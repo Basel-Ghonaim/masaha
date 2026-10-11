@@ -196,7 +196,6 @@ export function createApi({
     path: `${API_BASE}${AUTH_PATH}${PASSWORD_PATH}`,
   });
 
-  const requireAuth = createRequireAuth(accessTokens);
   const runInTransaction = createRunInTransaction();
 
   const sessions = createSessionsService({ now: clock });
@@ -207,6 +206,8 @@ export function createApi({
     sessions,
     runInTransaction,
   });
+  // The guard reads the account on every signed-in request (ADR 0003, revised).
+  const requireAuth = createRequireAuth(accessTokens, (userId) => users.signedInAccount(userId));
   const lookups = createLookupsService();
   const governorates = createGovernoratesService({ runInTransaction, audit: writeAudit });
   const areas = createAreasService({ runInTransaction, audit: writeAudit });

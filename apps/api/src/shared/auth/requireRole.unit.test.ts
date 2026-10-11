@@ -2,10 +2,10 @@ import type { Request, Response } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AppError } from '../errors/index.ts';
-import type { AccessClaims } from './accessToken.ts';
+import type { SignedIn } from './requireAuth.ts';
 import { requireRole } from './requireRole.ts';
 
-function run(guard: ReturnType<typeof requireRole>, auth?: AccessClaims) {
+function run(guard: ReturnType<typeof requireRole>, auth?: SignedIn) {
   const next = vi.fn();
   try {
     void guard({ auth } as Request, {} as Response, next);
@@ -15,10 +15,10 @@ function run(guard: ReturnType<typeof requireRole>, auth?: AccessClaims) {
   return { error: undefined, next };
 }
 
-const claims = (role: AccessClaims['role']): AccessClaims => ({
+const claims = (role: SignedIn['role']): SignedIn => ({
   userId: 7,
   role,
-  mustChangePassword: false,
+  tokenPendingChange: false,
 });
 
 describe('requireRole', () => {

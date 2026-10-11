@@ -5,7 +5,7 @@ import { createAccessTokens } from './accessToken.ts';
 
 const SECRET = 'a-test-secret-of-at-least-32-characters';
 const tokens = createAccessTokens(SECRET);
-const claims = { userId: 7, role: 'OWNER', mustChangePassword: false } as const;
+const claims = { userId: 7, mustChangePassword: false } as const;
 
 function sign(payload: Record<string, unknown>, alg = 'HS256', secret = SECRET) {
   return new SignJWT(payload)
@@ -35,12 +35,12 @@ describe('createAccessTokens', () => {
     const token = await tokens.sign(claims);
     const altered = `${token.slice(0, -2)}xx`;
     const foreign = await createAccessTokens('another-secret-of-at-least-32-chars').sign(claims);
-    const expired = await new SignJWT({ role: 'USER', mustChangePassword: false })
+    const expired = await new SignJWT({ mustChangePassword: false })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject('7')
       .setExpirationTime(Math.floor(Date.now() / 1000) - 1)
       .sign(new TextEncoder().encode(SECRET));
-    const hs512 = await sign({ role: 'USER', mustChangePassword: false }, 'HS512');
+    const hs512 = await sign({ mustChangePassword: false }, 'HS512');
 
     for (const bad of [altered, foreign, expired, hs512, 'not-a-token']) {
       expect(await tokens.verify(bad)).toBeUndefined();
@@ -48,9 +48,18 @@ describe('createAccessTokens', () => {
   });
 
   it('refuses a token whose claims are not ours', async () => {
-    expect(
-      await tokens.verify(await sign({ role: 'ROOT', mustChangePassword: false })),
-    ).toBeUndefined();
-    expect(await tokens.verify(await sign({ role: 'USER' }))).toBeUndefined();
+    expect(await tokens.verify(await sign({ mustChangePassword: 'no' }))).toBeUndefined();
+    expect(await tokens.verify(await sign({}))).toBeUndefined();
+  });
+
+  it('carries who and the pending claim, and no role', async () => {
+    const [, payload = ''] = (await tokens.sign(claims)).split('.');
+
+    expect(JSON.parse(Buffer.from(payload, 'base64url').toString())).toEqual({
+      sub: '7',
+      mustChangePassword: false,
+      iat: expect.any(Number) as number,
+      exp: expect.any(Number) as number,
+    });
   });
 });

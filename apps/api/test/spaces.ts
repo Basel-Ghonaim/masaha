@@ -52,10 +52,6 @@ export async function signInOwnerOf(
     },
   });
   await prisma.spaceManager.create({ data: { spaceId, userId: user.id, role: 'OWNER' } });
-  const token = await accessTokens.sign({
-    userId: user.id,
-    role: 'OWNER',
-    mustChangePassword: false,
-  });
+  const token = await accessTokens.sign({ userId: user.id, mustChangePassword: false });
   return { id: user.id, authorization: `Bearer ${token}` };
 }

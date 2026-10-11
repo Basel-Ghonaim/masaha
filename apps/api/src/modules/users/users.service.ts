@@ -9,7 +9,7 @@ import {
 import { createRunInTransaction, type RunInTransaction, type Tx } from '../../db/index.ts';
 import type { Role } from '../../generated/prisma/enums.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
-import type { AccessClaims, AccessTokens } from '../../shared/auth/index.ts';
+import type { AccessClaims, AccessTokens, SignedInAccount } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
 import { createSessionsService, type SessionsService } from '../sessions/index.ts';
@@ -141,15 +141,22 @@ export function createUsersService({
 
   /** What the access token says of the account (docs/backend/security.md › Tokens and cookies). */
   function accessClaims(account: Account): AccessClaims {
-    return {
-      userId: account.id,
-      role: account.role,
-      mustChangePassword: account.mustChangePassword,
-    };
+    return { userId: account.id, mustChangePassword: account.mustChangePassword };
   }
 
   return {
     accessClaims,
+
+    /**
+     * The account as requireAuth reads it on every signed-in request, by its primary key (ADR 0003,
+     * revised): its role, its pending change and its suspension now. Nothing when there is none.
+     */
+    async signedInAccount(id: number): Promise<SignedInAccount | null> {
+      const account = await repository.findById(id);
+      if (!account) return null;
+      const { role, mustChangePassword } = account;
+      return { role, mustChangePassword, suspended: !maySignIn(account) };
+    },
     maySignIn,
     assertMaySignIn,
     lockAccount,

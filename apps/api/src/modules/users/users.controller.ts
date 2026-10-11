@@ -10,11 +10,11 @@ import type { UsersService } from './users.service.ts';
 export function createUsersController(users: UsersService, cookies: SessionCookies) {
   return {
     changePassword: async (req: Request, res: Response) => {
-      const { userId, mustChangePassword } = signedIn(req);
+      const { userId, tokenPendingChange } = signedIn(req);
       const { accessToken, refreshToken } = await users.changePassword(
         userId,
         req.body as ChangePasswordRequest,
-        { pendingChange: mustChangePassword },
+        { pendingChange: tokenPendingChange },
       );
       cookies.set(res, refreshToken);
       sendSuccess(res, { accessToken } satisfies PasswordChanged);

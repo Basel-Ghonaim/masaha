@@ -4,7 +4,11 @@ import { createPrismaClient } from '../src/db/index.ts';
 import { assertTestDatabase } from './assert-test-database.ts';
 import { currentDatabase } from './current-database.ts';
 
-/** Runs once before the API lane: checks the test database, then applies every migration to it. */
+/**
+ * Runs once before the API lane: checks the test database, applies every migration to it, then drops
+ * the audit trigger a killed run of the governorates tests may have left (`whileAuditRefused`), so
+ * no file starts with every audit entry refused.
+ */
 export default async function setup(): Promise<void> {
   const url = process.env.TEST_DATABASE_URL;
   if (!url) {
@@ -33,4 +37,12 @@ export default async function setup(): Promise<void> {
     env: { ...process.env, DATABASE_URL: url },
     stdio: 'inherit',
   });
+
+  const cleanup = createPrismaClient(url);
+  try {
+    await cleanup.$executeRawUnsafe('DROP TRIGGER IF EXISTS refuse_audit ON audit_logs');
+    await cleanup.$executeRawUnsafe('DROP FUNCTION IF EXISTS refuse_audit()');
+  } finally {
+    await cleanup.$disconnect();
+  }
 }
