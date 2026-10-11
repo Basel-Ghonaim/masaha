@@ -86,7 +86,7 @@ function AdminShell({ current, title, theme, setTheme, actions, loadError, child
   );
 }
 
-const PrivacyNote = () => <p className="rounded-lg bg-muted p-3 text-body-sm text-muted-foreground">{tr('بيانات تشغيل المساحة خاصة بإدارتها', 'A space’s operating data is private to its management')} — {tr('الزبائن والزيارات والاشتراكات والدفعات والمالية.', 'customers, visits, memberships, payments and finance.')}</p>;
+const PrivacyNote = () => <p className="rounded-lg bg-muted p-3 text-body-sm text-muted-foreground">{tr('بيانات تشغيل المساحة خاصة بإدارتها', 'A space’s operating data is private to its management')} — {tr('الزبائن والزيارات والاشتراكات والدفعات والمالية.', 'customers, visits, subscriptions, payments and finance.')}</p>;
 const SpaceStatus = ({ s }) => { const [l, v] = AD.STATUS[s.status]; return <ABadge variant={v}>{l}</ABadge>; };
 const Num = ({ children }) => { const f = [].concat(children); const text = f.every((c) => typeof c === 'string' || typeof c === 'number'); return <span dir="ltr" className="num-iso">{text ? f.join('') : children}</span>; };
 // Shared once-only temporary password dialog.

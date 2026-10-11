@@ -29,7 +29,7 @@
 <script type="text/babel">
 const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, StatCard, Tabs, TabsList, TabsTrigger, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState, CircleCheckIcon } = window.MasahaDesignSystem;
 const monthName = (ym) => new Date(ym + '-15T12:00:00').toLocaleDateString(tr('ar-EG', 'en-GB'), { month: 'short' });
-const SUBS = tr('اشتراكات', 'Memberships'), VISITS = tr('زيارات', 'Visits');
+const SUBS = tr('اشتراكات', 'Subscriptions'), VISITS = tr('زيارات', 'Visits');
 
 function IncomeTab() {
   const rows = DESK.ledger();

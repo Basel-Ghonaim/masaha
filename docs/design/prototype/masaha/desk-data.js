@@ -36,7 +36,7 @@ window.DESK = (function () {
     { id: 'm3', name: T('يوسف أبو شعبان', 'Yousef Abu Shaaban'), phone: '+970 56 000 1003', subs: [S('s3', 'alt', '2026-09-15', '2026-10-14', { used: { week: 2 }, pays: [['2026-09-15', '09:20', 50, 'cash', A], ['2026-09-29', '12:10', 50, 'transfer', SM]] })] },
     { id: 'm4', name: T('نور الهدى سالم', 'Nour Al-Huda Salem'), phone: '+970 59 000 1004', subs: [S('s4', 'custom', '2026-09-20', '2026-10-19', { terms: { hoursPerDay: 3 }, billing: { type: 'usage', unit: 'hour', rate: 3 }, used: { hours: 21 }, note: T('تدفع كل أسبوع', 'Pays every week'), pays: [['2026-09-29', '09:15', 30, 'cash', SM]] })] },
     { id: 'm5', name: T('أحمد الشوا', 'Ahmad Al-Shawa'), phone: '+970 59 000 1005', subs: [S('s5', 'month', '2026-08-27', '2026-09-26', { pays: [['2026-08-27', '08:40', 300, 'cash', A]] })] },
-    { id: 'm6', name: T('رهف قديح', 'Rahaf Qudaih'), phone: '+970 59 000 1006', student: true, subs: [S('s6', 'month-st', '2026-09-01', '2026-09-30', { debtLabel: T('اشتراك سبتمبر', 'the September membership'), pays: [['2026-09-01', '09:05', 100, 'cash', A], ['2026-09-15', '11:20', 50, 'transfer', SM, T('سُجّلت مرتين بالخطأ', 'Recorded twice by mistake'), null, A]] })] },
+    { id: 'm6', name: T('رهف قديح', 'Rahaf Qudaih'), phone: '+970 59 000 1006', student: true, subs: [S('s6', 'month-st', '2026-09-01', '2026-09-30', { debtLabel: T('اشتراك سبتمبر', 'the September subscription'), pays: [['2026-09-01', '09:05', 100, 'cash', A], ['2026-09-15', '11:20', 50, 'transfer', SM, T('سُجّلت مرتين بالخطأ', 'Recorded twice by mistake'), null, A]] })] },
     { id: 'm7', name: T('خالد النجار', 'Khaled Al-Najjar'), phone: '+970 56 000 1007', subs: [S('s7', 'week', '2026-09-28', '2026-10-04', { pays: [['2026-09-28', '09:00', 90, 'cash', A]] })] },
     { id: 'm8', name: T('سلمى الريس', 'Salma Al-Rayyes'), phone: '+970 59 000 1008', subs: [S('s8', '20h', '2026-09-20', '2026-10-19', { used: { hours: 12 }, pays: [['2026-09-20', '10:30', 50, 'cash', SM]] })] },
     { id: 'm9', name: T('عمر حلس', 'Omar Hilles'), phone: '+970 59 000 1009', subs: [S('s9', 'month', '2026-09-02', '2026-10-01', { pays: [['2026-09-02', '08:15', 300, 'transfer', A]] })] },
@@ -177,7 +177,7 @@ window.DESK = (function () {
     return parts.join(' · ') || T('بدون شروط إضافية', 'No extra terms');
   };
 
-  const statusBadge = { active: ['success', T('نشط', 'Active')], soon: ['warning', T('ينتهي قريبًا', 'Ending soon')], expired: ['neutral', T('منتهٍ', 'Expired')], none: ['neutral', T('بدون اشتراك', 'No membership')] };
+  const statusBadge = { active: ['success', T('نشط', 'Active')], soon: ['warning', T('ينتهي قريبًا', 'Ending soon')], expired: ['neutral', T('منتهٍ', 'Expired')], none: ['neutral', T('بدون اشتراك', 'No subscription')] };
   const payBadge = { paid: ['success', T('مدفوع', 'Paid')], partial: ['warning', T('مدفوع جزئيًا', 'Partly paid')], unpaid: ['destructive', T('غير مدفوع', 'Unpaid')] };
   const methodLabel = { cash: T('نقدًا', 'Cash'), transfer: T('تحويل', 'Transfer') };
 

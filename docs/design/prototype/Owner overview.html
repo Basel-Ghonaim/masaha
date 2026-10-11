@@ -132,8 +132,8 @@ function OverviewScreen() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>{tr('اشتراكات تنتهي هذا الأسبوع', 'Memberships ending this week')}</CardTitle>
-            <CardDescription><Num>{ending.length}</Num> {tr('اشتراكات', 'memberships')}</CardDescription>
+            <CardTitle>{tr('اشتراكات تنتهي هذا الأسبوع', 'Subscriptions ending this week')}</CardTitle>
+            <CardDescription><Num>{ending.length}</Num> {tr('اشتراكات', 'subscriptions')}</CardDescription>
             <CardAction><Button variant="link" size="sm" asChild><a href="Customers.html?status=soon">{tr('عرض الكل', 'View all')}</a></Button></CardAction>
           </CardHeader>
           <CardContent className="p-0">

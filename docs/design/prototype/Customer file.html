@@ -31,8 +31,8 @@ const c = DESK.findCustomer(pageParams.get('id') || 'm6');
 
 function SubsTab({ bump }) {
   const [ending, setEnding] = React.useState(pageParams.get('end') ? c.subs[0] : null);
-  const endNow = () => { const s = ending; s.to = DESK.TODAY; setEnding(null); bump(); window.MasahaDesignSystem.toast.success(tr('انتهى الاشتراك اليوم', 'Membership ended today'), { description: s.name }); };
-  if (!c.subs.length) return <Card><EmptyState icon={<UsersIcon />} title={tr('لا توجد اشتراكات', 'No memberships')} description={tr('هذا الزبون يأتي بزيارات فقط.', 'This customer only comes for visits.')} /></Card>;
+  const endNow = () => { const s = ending; s.to = DESK.TODAY; setEnding(null); bump(); window.MasahaDesignSystem.toast.success(tr('انتهى الاشتراك اليوم', 'Subscription ended today'), { description: s.name }); };
+  if (!c.subs.length) return <Card><EmptyState icon={<UsersIcon />} title={tr('لا توجد اشتراكات', 'No subscriptions')} description={tr('هذا الزبون يأتي بزيارات فقط.', 'This customer only comes for visits.')} /></Card>;
   return (
     <div className="flex flex-col gap-4">
       {c.subs.map((s, i) => { const [pv, pl] = DESK.payBadge[DESK.payStatus(s, c)]; const [sv, sl] = DESK.statusBadge[DESK.subStatus(s)]; return (
@@ -51,18 +51,18 @@ function SubsTab({ bump }) {
             <ul className="flex flex-col gap-1 text-body-sm text-muted-foreground">{DESK.progress(s, c).map((l, k) => <li key={k}>{l}</li>)}</ul>
             {s.note && <p className="text-body-sm">{tr('ملاحظة:', 'Note:')} {s.note}</p>}
           </CardContent>
-          {i === 0 && DESK.subStatus(s) !== 'expired' && s.to !== DESK.TODAY && <CardFooter><Button variant="ghost" size="sm" onClick={() => setEnding(s)}>{tr('إنهاء الاشتراك', 'End membership')}</Button></CardFooter>}
+          {i === 0 && DESK.subStatus(s) !== 'expired' && s.to !== DESK.TODAY && <CardFooter><Button variant="ghost" size="sm" onClick={() => setEnding(s)}>{tr('إنهاء الاشتراك', 'End subscription')}</Button></CardFooter>}
         </Card>
       ); })}
       <AlertDialog open={!!ending} onOpenChange={(o) => !o && setEnding(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{tr('إنهاء الاشتراك اليوم؟', 'End the membership today?')}</AlertDialogTitle>
+            <AlertDialogTitle>{tr('إنهاء الاشتراك اليوم؟', 'End the subscription today?')}</AlertDialogTitle>
             <AlertDialogDescription>{ending && <>{ending.name} · {tr('يصبح تاريخ النهاية', 'The end date becomes')} {DESK.fmtDate(DESK.TODAY, true)} {tr('بدل', 'instead of')} {DESK.fmtDate(ending.to, true)}. {tr('المبالغ المدفوعة والمستحقة لا تتغيّر.', 'Amounts paid and due don’t change.')}</>}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={endNow}>{tr('إنهاء الاشتراك', 'End membership')}</AlertDialogAction>
+            <AlertDialogAction variant="destructive" onClick={endNow}>{tr('إنهاء الاشتراك', 'End subscription')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -177,14 +177,14 @@ function FileInner({ theme, setTheme }) {
           {here ? <Button variant="outline" onClick={() => desk.open('checkout', { presentId: here.id })}><LogOutIcon />{tr('خروج', 'Check out')}</Button> : <Button onClick={() => desk.tapCheckIn(c.id)}><LogInIcon />{tr('حضور', 'Check in')}</Button>}
           <Button variant={bal > 0 ? 'secondary' : 'outline'} onClick={() => desk.open('pay', { customerId: c.id })}>{tr('استلام دفعة', 'Receive payment')}</Button>
           {s && <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</Button>}
-          <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New membership')}</Button>
+          <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New subscription')}</Button>
           {c.phone && bal > 0 && <Button variant="ghost" asChild><a href={wa} target="_blank" rel="noopener">{tr('تذكير على واتساب', 'WhatsApp reminder')}</a></Button>}
         </CardFooter>
       </Card>
       {c.phone && bal > 0 && <p className="-mt-3 text-caption text-muted-foreground">{tr('يفتح واتساب برسالة جاهزة، وترسلها أنت.', 'Opens WhatsApp with a ready message; you send it yourself.')}</p>}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList aria-label={tr('ملف الزبون', 'Customer file')}>
-          <TabsTrigger value="subs">{tr('الاشتراكات', 'Memberships')}</TabsTrigger>
+          <TabsTrigger value="subs">{tr('الاشتراكات', 'Subscriptions')}</TabsTrigger>
           <TabsTrigger value="att">{tr('الحضور', 'Attendance')}</TabsTrigger>
           <TabsTrigger value="pays">{tr('الدفعات', 'Payments')}</TabsTrigger>
         </TabsList>

@@ -129,7 +129,7 @@ function PackagesInner({ theme, setTheme }) {
   const [list, setList] = React.useState(pageParams.get('state') === 'empty' ? [] : INIT);
   const [edit, setEdit] = React.useState(pageParams.get('sheet') === 'new' ? {} : pageParams.get('edit') ? INIT.find((p) => p.id === pageParams.get('edit')) : null);
   const save = (p) => { setList((l) => (p.id ? l.map((x) => (x.id === p.id ? p : x)) : [...l, { ...p, id: 'p' + Date.now() }])); setEdit(null); toast.success(tr('حُفظت الباقة', 'Package saved'), { description: p.name }); };
-  const toggle = (p, on) => { setList((l) => l.map((x) => (x.id === p.id ? { ...x, active: on } : x))); toast(on ? tr('الباقة مفعّلة في المكتب', 'Package available at the desk') : tr('أُوقفت الباقة — الاشتراكات الحالية لا تتأثر', 'Package paused — current memberships aren’t affected'), { description: p.name }); };
+  const toggle = (p, on) => { setList((l) => l.map((x) => (x.id === p.id ? { ...x, active: on } : x))); toast(on ? tr('الباقة مفعّلة في المكتب', 'Package available at the desk') : tr('أُوقفت الباقة — الاشتراكات الحالية لا تتأثر', 'Package paused — current subscriptions aren’t affected'), { description: p.name }); };
   return (
     <OwnerShell current="packages" title={tr('الباقات والأسعار', 'Packages & prices')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <section className="flex flex-col gap-3" aria-labelledby="pub">
@@ -143,7 +143,7 @@ function PackagesInner({ theme, setTheme }) {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-col gap-1">
             <h2 id="priv" className="text-heading-2">{tr('الباقات الخاصة', 'Private packages')}</h2>
-            <p className="text-body-sm text-muted-foreground">{tr('لا تظهر للزوار. تُختار عند إنشاء اشتراك في مكتب الاستقبال.', 'Not shown to visitors. Chosen when creating a membership at the front desk.')}</p>
+            <p className="text-body-sm text-muted-foreground">{tr('لا تظهر للزوار. تُختار عند إنشاء اشتراك في مكتب الاستقبال.', 'Not shown to visitors. Chosen when creating a subscription at the front desk.')}</p>
           </div>
           <Button onClick={() => setEdit({})}>{tr('باقة جديدة', 'New package')}</Button>
         </div>

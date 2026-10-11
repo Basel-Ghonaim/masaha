@@ -73,7 +73,7 @@ function PaymentsInner({ theme, setTheme }) {
             <RangePicker value={range} onChange={setRange} />
             <Pick label={tr('الموظف', 'Staff')} value={staff} onChange={setStaff} options={[['all', tr('كل الموظفين', 'All staff')], [DESK.AHMAD, DESK.by(DESK.AHMAD)], [DESK.SAMI, DESK.by(DESK.SAMI)]]} />
             <Pick label={tr('الطريقة', 'Method')} value={method} onChange={setMethod} options={[['all', tr('كل الطرق', 'All methods')], ['cash', DESK.methodLabel.cash], ['transfer', DESK.methodLabel.transfer]]} />
-            <Pick label={tr('النوع', 'Type')} value={type} onChange={setType} options={[['all', tr('كل الأنواع', 'All types')], ['visit', tr('زيارات', 'Visits')], ['sub', tr('اشتراكات', 'Memberships')]]} />
+            <Pick label={tr('النوع', 'Type')} value={type} onChange={setType} options={[['all', tr('كل الأنواع', 'All types')], ['visit', tr('زيارات', 'Visits')], ['sub', tr('اشتراكات', 'Subscriptions')]]} />
           </div></FilterSheet>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Field label={tr('إظهار الملغاة', 'Show voided')} orientation="horizontal"><Switch checked={showVoid} onCheckedChange={setShowVoid} /></Field>

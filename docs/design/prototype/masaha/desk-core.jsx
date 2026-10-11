@@ -80,7 +80,7 @@ function DeskProvider({ children, initial }) {
       c.subs.unshift(sub);
       bump(); close();
       const left = sub.billing.type === 'fixed' ? sub.billing.amount - (payNow ? payNow.amount : 0) : null;
-      toast.success(tr('حُفظ الاشتراك', 'Membership saved') + (left > 0 ? tr(` · المتبقي ${$(left)}`, ` · ${$(left)} left`) : ''), { description: c.name });
+      toast.success(tr('حُفظ الاشتراك', 'Subscription saved') + (left > 0 ? tr(` · المتبقي ${$(left)}`, ` · ${$(left)} left`) : ''), { description: c.name });
       return c;
     },
     // P9: a settled customer is archived at once and can be put back from the toast.
@@ -142,7 +142,7 @@ function CustomerCard({ c }) {
       </DK.CardHeader>
       <DK.CardContent className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-label">{s ? s.name : tr('بدون اشتراك', 'No membership')}</span>
+          <span className="text-label">{s ? s.name : tr('بدون اشتراك', 'No subscription')}</span>
           {s && <StatusBadge c={c} />}
           <BalanceBadge c={c} />
         </div>
@@ -153,7 +153,7 @@ function CustomerCard({ c }) {
           : <DK.Button size="sm" onClick={() => desk.tapCheckIn(c.id)}><DK.LogInIcon />{tr('حضور', 'Check in')}</DK.Button>}
         <DK.Button size="sm" variant={D.balance(c) > 0 ? 'secondary' : 'outline'} onClick={() => desk.open('pay', { customerId: c.id })}>{tr('دفع', 'Pay')}</DK.Button>
         {s && <DK.Button size="sm" variant="outline" onClick={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</DK.Button>}
-        <DK.Button size="sm" variant="outline" onClick={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New membership')}</DK.Button>
+        <DK.Button size="sm" variant="outline" onClick={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New subscription')}</DK.Button>
         <DK.Button size="sm" variant="ghost" asChild><a href={roleQ('Customer file.html?id=' + c.id)}>{tr('ملف الزبون', 'Customer file')}</a></DK.Button>
       </DK.CardFooter>
     </DK.Card>
@@ -201,8 +201,8 @@ function WarnDialog({ dlg, onClose }) {
   const c = dlg && D.findCustomer(dlg.customerId);
   const texts = {
     here: (w) => [tr('حاضر الآن', 'Already here'), <>{tr('مسجّل حضوره منذ', 'Checked in since')} <Num>{w.since}</Num>.</>],
-    nosub: () => [tr('لا يوجد اشتراك', 'No membership'), tr('يمكنك تسجيله كزيارة، أو إضافة اشتراك.', 'Check them in as a visit, or add a membership.')],
-    expired: (w) => [tr('انتهى الاشتراك', 'Membership ended'), <>{w.sub.name} · {tr('انتهى في', 'ended')} {D.fmtDate(w.sub.to)}.</>],
+    nosub: () => [tr('لا يوجد اشتراك', 'No subscription'), tr('يمكنك تسجيله كزيارة، أو إضافة اشتراك.', 'Check them in as a visit, or add a subscription.')],
+    expired: (w) => [tr('انتهى الاشتراك', 'Subscription ended'), <>{w.sub.name} · {tr('انتهى في', 'ended')} {D.fmtDate(w.sub.to)}.</>],
     notday: (w) => [tr('اليوم ليس من أيامه', 'Today isn’t one of their days'), D.progress(w.sub, c).find((l) => l.startsWith(tr('أيامه', 'Days')))],
     hours: (w) => [tr('تجاوز ساعات اليوم', 'Over today’s hours'), D.progress(w.sub, c).find((l) => l.startsWith(tr('ساعات اليوم', 'Today')))],
     full: () => [tr('المساحة ممتلئة', 'The space is full'), <><Num>{`${D.present.length}/${D.capacity}`}</Num> · {tr('ستبقى حالتها للزوار «ممتلئ».', 'Visitors keep seeing «Full».')}</>]
@@ -221,7 +221,7 @@ function WarnDialog({ dlg, onClose }) {
             {ids.includes('here') ? <DK.Button onClick={() => desk.open('checkout', { presentId: dlg.warnings[0].presentId })}><DK.LogOutIcon />{tr('تسجيل خروج', 'Check out')}</DK.Button>
               : asVisit ? <>
                 <ActionButton actionKey="warn" onAction={() => desk.checkInVisit(c.name, !!c.student, null)}>{tr('تسجيل كزيارة', 'Check in as a visit')}</ActionButton>
-                <DK.Button variant="outline" onClick={() => desk.open('sheet', { mode: ids.includes('expired') ? 'renew' : 'subscribe', customerId: c.id })}>{ids.includes('expired') ? tr('تجديد', 'Renew') : tr('اشتراك جديد', 'New membership')}</DK.Button>
+                <DK.Button variant="outline" onClick={() => desk.open('sheet', { mode: ids.includes('expired') ? 'renew' : 'subscribe', customerId: c.id })}>{ids.includes('expired') ? tr('تجديد', 'Renew') : tr('اشتراك جديد', 'New subscription')}</DK.Button>
               </> : <ActionButton actionKey="warn" onAction={() => desk.checkInSub(c.id)}>{tr('تسجيل على أي حال', 'Check in anyway')}</ActionButton>}
             <DK.Button variant="ghost" onClick={onClose}>{tr('رجوع', 'Back')}</DK.Button>
           </DK.DialogFooter>
@@ -275,7 +275,7 @@ function CheckoutDialog({ dlg, onClose }) {
     const lines = s ? D.progress(s, c) : [];
     subBlock = (
       <div className="flex flex-col gap-2 rounded-lg bg-muted p-3">
-        <span className="text-label">{s ? s.name : tr('بدون اشتراك', 'No membership')}</span>
+        <span className="text-label">{s ? s.name : tr('بدون اشتراك', 'No subscription')}</span>
         <ul className="flex flex-col gap-1 text-body-sm">{lines.map((l, i) => <li key={i}>{l}</li>)}</ul>
         {s && s.billing.type === 'usage' && <p className="text-body-sm">{tr('اليوم', 'Today')} <Num>{Math.ceil(mins / 60)}</Num> {tr('س', 'h')} · {tr('المستحق حتى الآن', 'Due so far')} <Money n={D.due(s, c)} /></p>}
       </div>

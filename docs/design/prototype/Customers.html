@@ -29,7 +29,7 @@
 const { DirectionProvider, Button, Badge, DataTable, EmptyState, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, SearchIcon, UsersIcon, EllipsisVerticalIcon } = window.MasahaDesignSystem;
 const st = pageParams.get('state');
 if (st === 'empty') DESK.customers.length = 0;
-const kindLabel = { month: tr('شهري', 'Monthly'), week: tr('أسبوعي', 'Weekly'), package: tr('باقة', 'Package'), custom: tr('مخصّص', 'Custom'), none: tr('بدون اشتراك', 'No membership') };
+const kindLabel = { month: tr('شهري', 'Monthly'), week: tr('أسبوعي', 'Weekly'), package: tr('باقة', 'Package'), custom: tr('مخصّص', 'Custom'), none: tr('بدون اشتراك', 'No subscription') };
 const kindOf = (c) => { const s = DESK.currentSub(c); return s ? DESK.subKind(s) : 'none'; };
 const renew = pageParams.get('renew');
 const initial = renew ? { kind: 'sheet', mode: 'renew', customerId: renew } : pageParams.get('sheet') === 'new' ? { kind: 'sheet', mode: 'new' } : null;
@@ -59,7 +59,7 @@ function CustomersInner({ theme, setTheme }) {
         <DropdownMenuItem asChild><a href={roleQ('Customer file.html?id=' + c.id)}>{tr('ملف الزبون', 'Customer file')}</a></DropdownMenuItem>
         <DropdownMenuItem onSelect={() => desk.open('pay', { customerId: c.id })}>{tr('استلام دفعة', 'Receive payment')}</DropdownMenuItem>
         {DESK.currentSub(c) && <DropdownMenuItem onSelect={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</DropdownMenuItem>}
-        <DropdownMenuItem onSelect={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New membership')}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New subscription')}</DropdownMenuItem>
         {/* P9: settled → archive at once with «تراجع»; owing → a dialog that names the debt. */}
         {IS_OWNER && <><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => (DESK.balance(c) > 0 ? setArch(c) : desk.archive(c.id))}>{tr('أرشفة', 'Archive')}</DropdownMenuItem></>}
       </DropdownMenuContent>
@@ -70,7 +70,7 @@ function CustomersInner({ theme, setTheme }) {
     { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + row.original.id)}>{row.original.name}</a> },
     // SH-007: seven columns; the mobile and the end date wait for 1024 beside the rail.
     { id: 'phone', header: tr('الجوال', 'Mobile'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => row.original.phone ? <Ltr>{row.original.phone}</Ltr> : <span className="text-muted-foreground">—</span> },
-    { id: 'sub', header: tr('الاشتراك الحالي', 'Current membership'), cell: ({ row }) => sub(row.original) ? sub(row.original).name : <span className="text-muted-foreground">—</span> },
+    { id: 'sub', header: tr('الاشتراك الحالي', 'Current subscription'), cell: ({ row }) => sub(row.original) ? sub(row.original).name : <span className="text-muted-foreground">—</span> },
     { id: 'to', header: tr('صالح حتى', 'Valid until'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => sub(row.original) ? DESK.fmtDate(sub(row.original).to) : <span className="text-muted-foreground">—</span> },
     { id: 'status', header: tr('الحالة', 'Status'), cell: ({ row }) => <StatusBadge c={row.original} /> },
     { id: 'bal', header: tr('الرصيد', 'Balance'), cell: ({ row }) => DESK.balance(row.original) > 0 || DESK.credit(row.original) > 0 ? <BalanceBadge c={row.original} /> : <span className="text-body-sm text-muted-foreground">{tr('مسدّد', 'Settled')}</span> },
@@ -86,7 +86,7 @@ function CustomersInner({ theme, setTheme }) {
         toolbar={<div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
           <Input role="searchbox" aria-label={tr('ابحث بالاسم أو آخر أرقام الجوال', 'Search by name or last digits')} placeholder={tr('الاسم أو آخر أرقام الجوال', 'Name or last digits of the mobile')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} className="md:max-w-xs" />
           <FilterSheet count={list.length} active={[kind, status, pay].filter((x) => x !== 'all').length} onClear={() => { setKind('all'); setStatus('all'); setPay('all'); }}>
-          <Filter label={tr('نوع الاشتراك', 'Membership type')} value={kind} onChange={setKind} options={[['all', tr('كل الأنواع', 'All types')], ['month', kindLabel.month], ['week', kindLabel.week], ['package', kindLabel.package], ['custom', kindLabel.custom], ['none', kindLabel.none]]} />
+          <Filter label={tr('نوع الاشتراك', 'Subscription type')} value={kind} onChange={setKind} options={[['all', tr('كل الأنواع', 'All types')], ['month', kindLabel.month], ['week', kindLabel.week], ['package', kindLabel.package], ['custom', kindLabel.custom], ['none', kindLabel.none]]} />
           <Filter label={tr('الحالة', 'Status')} value={status} onChange={setStatus} options={[['all', tr('كل الحالات', 'All statuses')], ...['active', 'soon', 'expired', 'none'].map((k) => [k, DESK.statusBadge[k][1]])]} />
           <Filter label={tr('الدفع', 'Payment')} value={pay} onChange={setPay} options={[['all', tr('كل حالات الدفع', 'All payment states')], ['owes', tr('عليه دين', 'Owes money')], ['credit', tr('له رصيد', 'In credit')], ['settled', tr('مسدّد', 'Settled')]]} />
           </FilterSheet>
@@ -100,13 +100,13 @@ function CustomersInner({ theme, setTheme }) {
             <div className="flex min-w-0 flex-col gap-1">
               <a className="self-start text-label text-foreground" href={roleQ('Customer file.html?id=' + c.id)}>{c.name}</a>
               {c.phone && <span dir="ltr" className="self-start text-caption text-muted-foreground">{c.phone}</span>}
-              <span className="text-caption text-muted-foreground">{sub(c) ? <>{sub(c).name} · {tr('حتى', 'until')} {DESK.fmtDate(sub(c).to)}</> : tr('بدون اشتراك', 'No membership')}</span>
+              <span className="text-caption text-muted-foreground">{sub(c) ? <>{sub(c).name} · {tr('حتى', 'until')} {DESK.fmtDate(sub(c).to)}</> : tr('بدون اشتراك', 'No subscription')}</span>
               <span className="flex flex-wrap gap-2"><StatusBadge c={c} /><BalanceBadge c={c} /></span>
             </div>
             {actions(c)}
           </div>
         )}
-        empty={<EmptyState icon={<UsersIcon />} title={DESK.customers.length ? tr('لا يوجد زبائن يطابقون البحث', 'No customers match') : tr('لا يوجد زبائن بعد', 'No customers yet')} description={DESK.customers.length ? tr('جرّب اسمًا أو رقمًا آخر، أو غيّر الفلاتر.', 'Try another name or number, or change the filters.') : tr('يُضاف الزبون عند أول اشتراك، أو عندما يخرج زائر بدون دفع.', 'Customers are added with their first membership, or when a visitor leaves without paying.')}>
+        empty={<EmptyState icon={<UsersIcon />} title={DESK.customers.length ? tr('لا يوجد زبائن يطابقون البحث', 'No customers match') : tr('لا يوجد زبائن بعد', 'No customers yet')} description={DESK.customers.length ? tr('جرّب اسمًا أو رقمًا آخر، أو غيّر الفلاتر.', 'Try another name or number, or change the filters.') : tr('يُضاف الزبون عند أول اشتراك، أو عندما يخرج زائر بدون دفع.', 'Customers are added with their first subscription, or when a visitor leaves without paying.')}>
           {!DESK.customers.length && <Button onClick={add}>{tr('زبون جديد', 'New customer')}</Button>}
         </EmptyState>} />
       <AlertDialog open={!!arch} onOpenChange={(o) => !o && setArch(null)}>

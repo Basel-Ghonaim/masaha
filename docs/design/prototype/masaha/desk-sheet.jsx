@@ -69,14 +69,14 @@ function SubscriptionSheet({ dlg, onClose }) {
       : { id: 's' + Date.now(), pkg: pk, name: P.name, from: start, to: end, terms: { totalDays: P.totalDays, daysPerWeek: P.daysPerWeek, hourBalance: P.hourBalance }, used: {}, billing: { type: 'fixed', amount: dueAmt }, manual };
     desk.saveSubscription({ customerId: c && c.id, name: name.trim(), phone }, sub, payNow ? { amount: paidNow, method } : null);
   };
-  const title = dlg.mode === 'renew' ? tr('تجديد الاشتراك', 'Renew membership') : c ? tr('اشتراك جديد', 'New membership') : tr('زبون جديد', 'New customer');
+  const title = dlg.mode === 'renew' ? tr('تجديد الاشتراك', 'Renew subscription') : c ? tr('اشتراك جديد', 'New subscription') : tr('زبون جديد', 'New customer');
 
   return (
     <DS5.Sheet open onOpenChange={(o) => !o && onClose()}>
       <DS5.SheetContent side="end" closeLabel={tr('إغلاق', 'Close')}>
         <DS5.SheetHeader>
           <DS5.SheetTitle>{title}</DS5.SheetTitle>
-          <DS5.SheetDescription>{tr('الخطوة', 'Step')} <Num>{step}</Num> {tr('من', 'of')} <Num>2</Num> · {step === 1 ? tr('بيانات الزبون', 'Customer') : tr('الاشتراك', 'Membership')}{c && step === 2 ? ' · ' + c.name : ''}</DS5.SheetDescription>
+          <DS5.SheetDescription>{tr('الخطوة', 'Step')} <Num>{step}</Num> {tr('من', 'of')} <Num>2</Num> · {step === 1 ? tr('بيانات الزبون', 'Customer') : tr('الاشتراك', 'Subscription')}{c && step === 2 ? ' · ' + c.name : ''}</DS5.SheetDescription>
         </DS5.SheetHeader>
         <form onSubmit={step === 1 ? (e) => { e.preventDefault(); next(); } : save} noValidate className="flex min-h-0 flex-1 flex-col">
           <DS5.SheetBody className="flex flex-col gap-5 py-2">
@@ -146,7 +146,7 @@ function SubscriptionSheet({ dlg, onClose }) {
                       <DS5.ToggleGroupItem value="pm">{D5.SHIFTS.pm}</DS5.ToggleGroupItem>
                     </DS5.ToggleGroup>
                   </DS5.Field>
-                  <DS5.Field label={tr('اسم الاشتراك', 'Membership name')} labelEnd={<Opt />}><DS5.Input placeholder={tr('مخصّص', 'Custom')} value={cu.title} onChange={(e) => setC({ title: e.target.value })} /></DS5.Field>
+                  <DS5.Field label={tr('اسم الاشتراك', 'Subscription name')} labelEnd={<Opt />}><DS5.Input placeholder={tr('مخصّص', 'Custom')} value={cu.title} onChange={(e) => setC({ title: e.target.value })} /></DS5.Field>
                   <DS5.Field label={tr('ملاحظة', 'Note')} labelEnd={<Opt />}><DS5.Textarea rows={2} value={cu.note} onChange={(e) => setC({ note: e.target.value })} /></DS5.Field>
                 </div>
               )}
@@ -168,7 +168,7 @@ function SubscriptionSheet({ dlg, onClose }) {
           <DS5.SheetFooter className="flex flex-row gap-2">
             {step === 1 ? <DS5.Button type="submit" className="w-full">{tr('التالي', 'Next')}<DS5.ArrowEndIcon /></DS5.Button> : <>
               <DS5.Button type="button" variant="outline" onClick={() => setStep(1)}><DS5.ArrowStartIcon />{tr('السابق', 'Back')}</DS5.Button>
-              <DS5.Button type="submit" className="flex-1">{tr('حفظ الاشتراك', 'Save membership')}</DS5.Button>
+              <DS5.Button type="submit" className="flex-1">{tr('حفظ الاشتراك', 'Save subscription')}</DS5.Button>
             </>}
           </DS5.SheetFooter>
         </form>

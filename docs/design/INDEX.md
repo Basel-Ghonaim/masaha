@@ -390,14 +390,14 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 
 | Frame | Prototype URL | Viewport | Screenshot |
 |---|---|---|---|
-| Step 1 · customer — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 1440×1000 | [24-new-customer-subscription-sheet/01-step-1-customer-desktop-1440.webp](screens/24-new-customer-subscription-sheet/01-step-1-customer-desktop-1440.webp) |
-| Step 1 · customer — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 390×844 | [24-new-customer-subscription-sheet/02-step-1-customer-phone-390.webp](screens/24-new-customer-subscription-sheet/02-step-1-customer-phone-390.webp) |
-| Step 2 · package + partial payment — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 1440×1000 | [24-new-customer-subscription-sheet/03-step-2-package-partial-payment-desktop-1440.webp](screens/24-new-customer-subscription-sheet/03-step-2-package-partial-payment-desktop-1440.webp) |
-| Step 2 · package + partial payment — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 390×844 | [24-new-customer-subscription-sheet/04-step-2-package-partial-payment-phone-390.webp](screens/24-new-customer-subscription-sheet/04-step-2-package-partial-payment-phone-390.webp) |
-| Step 2 · «مخصّص» — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 1440×1000 | [24-new-customer-subscription-sheet/05-step-2-desktop-1440.webp](screens/24-new-customer-subscription-sheet/05-step-2-desktop-1440.webp) |
-| Step 2 · «مخصّص» — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 390×844 | [24-new-customer-subscription-sheet/06-step-2-phone-390.webp](screens/24-new-customer-subscription-sheet/06-step-2-phone-390.webp) |
-| Renewal with an unpaid September — desktop 1440 | `Customers.html?role=reception&renew=m6` | 1440×1000 | [24-new-customer-subscription-sheet/07-renewal-with-an-unpaid-september-desktop-1440.webp](screens/24-new-customer-subscription-sheet/07-renewal-with-an-unpaid-september-desktop-1440.webp) |
-| Renewal with an unpaid September — phone 390 | `Customers.html?role=reception&renew=m6` | 390×844 | [24-new-customer-subscription-sheet/08-renewal-with-an-unpaid-september-phone-390.webp](screens/24-new-customer-subscription-sheet/08-renewal-with-an-unpaid-september-phone-390.webp) |
+| Step 1 · customer — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 1440×1000 | [24-new-customer-membership-sheet/01-step-1-customer-desktop-1440.webp](screens/24-new-customer-subscription-sheet/01-step-1-customer-desktop-1440.webp) |
+| Step 1 · customer — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 390×844 | [24-new-customer-membership-sheet/02-step-1-customer-phone-390.webp](screens/24-new-customer-subscription-sheet/02-step-1-customer-phone-390.webp) |
+| Step 2 · package + partial payment — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 1440×1000 | [24-new-customer-membership-sheet/03-step-2-package-partial-payment-desktop-1440.webp](screens/24-new-customer-subscription-sheet/03-step-2-package-partial-payment-desktop-1440.webp) |
+| Step 2 · package + partial payment — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 390×844 | [24-new-customer-membership-sheet/04-step-2-package-partial-payment-phone-390.webp](screens/24-new-customer-subscription-sheet/04-step-2-package-partial-payment-phone-390.webp) |
+| Step 2 · «مخصّص» — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 1440×1000 | [24-new-customer-membership-sheet/05-step-2-desktop-1440.webp](screens/24-new-customer-subscription-sheet/05-step-2-desktop-1440.webp) |
+| Step 2 · «مخصّص» — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 390×844 | [24-new-customer-membership-sheet/06-step-2-phone-390.webp](screens/24-new-customer-subscription-sheet/06-step-2-phone-390.webp) |
+| Renewal with an unpaid September — desktop 1440 | `Customers.html?role=reception&renew=m6` | 1440×1000 | [24-new-customer-membership-sheet/07-renewal-with-an-unpaid-september-desktop-1440.webp](screens/24-new-customer-subscription-sheet/07-renewal-with-an-unpaid-september-desktop-1440.webp) |
+| Renewal with an unpaid September — phone 390 | `Customers.html?role=reception&renew=m6` | 390×844 | [24-new-customer-membership-sheet/08-renewal-with-an-unpaid-september-phone-390.webp](screens/24-new-customer-subscription-sheet/08-renewal-with-an-unpaid-september-phone-390.webp) |
 
 ## 25 · Receive payment «استلام دفعة»
 
@@ -429,8 +429,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 
 | Frame | Prototype URL | Viewport | Screenshot |
 |---|---|---|---|
-| Memberships · partly paid — desktop 1440 | `Customer file.html?id=m6` | 1440×1000 | [27-customer-file/01-memberships-partly-paid-desktop-1440.webp](screens/27-customer-file/01-memberships-partly-paid-desktop-1440.webp) |
-| Memberships · partly paid — phone 390 | `Customer file.html?id=m6` | 390×844 | [27-customer-file/02-memberships-partly-paid-phone-390.webp](screens/27-customer-file/02-memberships-partly-paid-phone-390.webp) |
+| Subscriptions · partly paid — desktop 1440 | `Customer file.html?id=m6` | 1440×1000 | [27-customer-file/01-memberships-partly-paid-desktop-1440.webp](screens/27-customer-file/01-memberships-partly-paid-desktop-1440.webp) |
+| Subscriptions · partly paid — phone 390 | `Customer file.html?id=m6` | 390×844 | [27-customer-file/02-memberships-partly-paid-phone-390.webp](screens/27-customer-file/02-memberships-partly-paid-phone-390.webp) |
 | Attendance statement · usage-based — desktop 1440 | `Customer file.html?id=m4&tab=att` | 1440×1000 | [27-customer-file/03-attendance-statement-usage-based-desktop-1440.webp](screens/27-customer-file/03-attendance-statement-usage-based-desktop-1440.webp) |
 | Attendance statement · usage-based — phone 390 | `Customer file.html?id=m4&tab=att` | 390×844 | [27-customer-file/04-attendance-statement-usage-based-phone-390.webp](screens/27-customer-file/04-attendance-statement-usage-based-phone-390.webp) |
 | Payments · voided shown struck (owner) — desktop 1440 | `Customer file.html?id=m6&tab=pays` | 1440×1000 | [27-customer-file/05-payments-voided-shown-struck-owner-desktop-1440.webp](screens/27-customer-file/05-payments-voided-shown-struck-owner-desktop-1440.webp) |
@@ -479,8 +479,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Override · «مغلق الآن» manually — phone 390 | `Desk.html?role=reception&override=closed:30` | 390×844 | [31-batch-3a-fixes/08-override-manually-phone-390.webp](screens/31-batch-3a-fixes/08-override-manually-phone-390.webp) |
 | Outside opening hours · control disabled — desktop 1440 | `Desk.html?hours=closed` | 1440×1000 | [31-batch-3a-fixes/09-outside-opening-hours-control-disabled-desktop-1440.webp](screens/31-batch-3a-fixes/09-outside-opening-hours-control-disabled-desktop-1440.webp) |
 | Outside opening hours · control disabled — phone 390 | `Desk.html?hours=closed` | 390×844 | [31-batch-3a-fixes/10-outside-opening-hours-control-disabled-phone-390.webp](screens/31-batch-3a-fixes/10-outside-opening-hours-control-disabled-phone-390.webp) |
-| End membership (confirm) — desktop 1440 | `Customer file.html?id=m1&end=1` | 1440×1000 | [31-batch-3a-fixes/11-end-membership-confirm-desktop-1440.webp](screens/31-batch-3a-fixes/11-end-membership-confirm-desktop-1440.webp) |
-| End membership (confirm) — phone 390 | `Customer file.html?id=m1&end=1` | 390×844 | [31-batch-3a-fixes/12-end-membership-confirm-phone-390.webp](screens/31-batch-3a-fixes/12-end-membership-confirm-phone-390.webp) |
+| End subscription (confirm) — desktop 1440 | `Customer file.html?id=m1&end=1` | 1440×1000 | [31-batch-3a-fixes/11-end-membership-confirm-desktop-1440.webp](screens/31-batch-3a-fixes/11-end-membership-confirm-desktop-1440.webp) |
+| End subscription (confirm) — phone 390 | `Customer file.html?id=m1&end=1` | 390×844 | [31-batch-3a-fixes/12-end-membership-confirm-phone-390.webp](screens/31-batch-3a-fixes/12-end-membership-confirm-phone-390.webp) |
 | Credit · «له رصيد 18 ₪» — desktop 1440 | `Customer file.html?id=m15` | 1440×1000 | [31-batch-3a-fixes/13-credit-18-desktop-1440.webp](screens/31-batch-3a-fixes/13-credit-18-desktop-1440.webp) |
 | Credit · «له رصيد 18 ₪» — phone 390 | `Customer file.html?id=m15` | 390×844 | [31-batch-3a-fixes/14-credit-18-phone-390.webp](screens/31-batch-3a-fixes/14-credit-18-phone-390.webp) |
 | Customers · «له رصيد» filter — desktop 1440 | `Customers.html?pay=credit` | 1440×1000 | [31-batch-3a-fixes/15-customers-filter-desktop-1440.webp](screens/31-batch-3a-fixes/15-customers-filter-desktop-1440.webp) |
