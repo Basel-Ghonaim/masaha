@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { paginationQuerySchema, textSchema } from '../core/index.ts';
 import { SPACE_NAME_MAX_LENGTH } from '../spaces/index.ts';
+import { NAME_MAX_LENGTH } from '../users/index.ts';
 
 // The admin's spaces list (docs/api/api-contract.md §5, Spaces (the admin)).
 
@@ -25,3 +26,23 @@ export const adminSpacesQuerySchema = paginationQuerySchema.extend({
 });
 
 export type AdminSpacesQuery = z.infer<typeof adminSpacesQuerySchema>;
+
+// The admin's users list (docs/api/api-contract.md §5, Users (the admin)).
+
+/** A global role, as the users list filters by it: lowercase, like the spaces list's states. */
+export const USER_ROLE_FILTERS = ['user', 'owner', 'admin'] as const;
+
+/** Whether an account may sign in. */
+export const ACCOUNT_STATES = ['active', 'suspended'] as const;
+
+/**
+ * `?q=&role=&state=&page=&limit=`. `q` searches the name and the email; `role=owner` is the owners
+ * page.
+ */
+export const adminUsersQuerySchema = paginationQuerySchema.extend({
+  q: textSchema(1, NAME_MAX_LENGTH).optional(),
+  role: z.enum(USER_ROLE_FILTERS).optional(),
+  state: z.enum(ACCOUNT_STATES).optional(),
+});
+
+export type AdminUsersQuery = z.infer<typeof adminUsersQuerySchema>;

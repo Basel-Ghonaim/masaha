@@ -1,6 +1,6 @@
 # Users
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
 > **Authority:** The `users` capability: the account, its credentials, who may sign in, the password change and the forced change, the account menu and sign-out. Its endpoints are owned by the [API contract](../api/api-contract.md#me); the `User` entity by the [data model](../architecture/data-model.md#users-and-sessions); every password and sign-in rule by [security.md](../backend/security.md#passwords).
 > **Scope:** the API module `users` (L1); `@masaha/shared/users`; the web feature `features/users`.
 
@@ -9,6 +9,7 @@
 - Holds the accounts: creates one at registration or at a first Google sign-in, links Google to an existing one, hashes and verifies passwords, and refuses a suspended account.
 - Changes a password, and settles a temporary one in the forced change.
 - Answers the account's view (`User`) for the session, and the names of a set of users for a list.
+- Answers a page of the accounts for the admin's users list, filtered by name or email, role and state, each with how it signs in.
 - On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, and the forced password change's form.
 
 The account's settings (`GET` and `PATCH /me`), suspension, role changes and the temporary passwords that an owner or the admin creates are not built.
@@ -18,7 +19,7 @@ The account's settings (`GET` and `PATCH /me`), suspension, role changes and the
 - **Every signed-in user,** through the account menu and sign-out.
 - **A user with a temporary password,** through the forced change.
 - **[`auth`](auth.md),** which signs in, registers and links Google through it.
-- **[`space-links`](space-links.md),** which names the owners in the admin's spaces list.
+- **[`space-links`](space-links.md),** which names the owners in the admin's spaces list, and composes the admin's users list from its page of accounts.
 
 ## Responsibility boundary
 
@@ -46,6 +47,7 @@ The account's settings (`GET` and `PATCH /me`), suspension, role changes and the
 ### API decisions
 
 - **`users` owns `User`;** the session's user extends it. *Why:* a lower level must not read a higher one's types. 2026-10-04, #34.
+- **The admin's users list filters and pages the accounts here,** newest first, whatever the case of the search; whether an account has a password is read without its hash. *Why:* every filter is the account's own ([conventions §5](../backend/conventions.md#5-pagination)), and the hash is selected only to check a password ([security › Passwords](../backend/security.md#passwords)). 2026-10-11, #60.
 
 ### Web decisions
 
@@ -78,6 +80,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #31 — two racing first Google sign-ins make one account.
 - #34 — `User` in `@masaha/shared/users`.
 - #35 — the password policy's rules for a checklist.
+- #60 — the page of accounts for the admin's users list.
 
 ### Web history
 

@@ -1,5 +1,7 @@
 export { createAdminSpacesController } from './admin-spaces/adminSpaces.controller.ts';
 export { createAdminSpacesService } from './admin-spaces/adminSpaces.service.ts';
+export { createAdminUsersController } from './admin-users/adminUsers.controller.ts';
+export { createAdminUsersService } from './admin-users/adminUsers.service.ts';
 export { createSpaceLinksAdminRouter } from './space-links.admin.routes.ts';
 export { createSpaceLinksController } from './space-links.controller.ts';
 export { createSpaceLinksMeRouter } from './space-links.routes.ts';

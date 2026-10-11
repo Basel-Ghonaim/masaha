@@ -18,9 +18,17 @@ import { toUserView } from './users.mapper.ts';
 import {
   createUsersRepository,
   type Account,
+  type AccountsFilter,
+  type ListedAccount,
   type UserName,
   type UsersRepository,
 } from './users.repository.ts';
+
+/** An account as the admin's users list shows it, with how it signs in. */
+export type AccountListing = Omit<ListedAccount, 'googleSubject'> & {
+  hasPassword: boolean;
+  hasGoogle: boolean;
+};
 
 interface Dependencies {
   accessTokens: AccessTokens;
@@ -228,6 +236,31 @@ export function createUsersService({
     },
 
     get,
+
+    /**
+     * One page of the accounts the filter keeps, newest first, each with how it signs in, for the
+     * admin's users list; the total counts every account the filter keeps (conventions §5).
+     */
+    async page(
+      filter: AccountsFilter,
+      { page, limit }: { page: number; limit: number },
+    ): Promise<{ rows: AccountListing[]; total: number }> {
+      const { rows, total } = await repository.findPage(filter, {
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+      const withPassword = new Set(
+        rows.length === 0 ? [] : await repository.findWithPassword(rows.map(({ id }) => id)),
+      );
+      return {
+        rows: rows.map(({ googleSubject, ...account }) => ({
+          ...account,
+          hasPassword: withPassword.has(account.id),
+          hasGoogle: googleSubject !== null,
+        })),
+        total,
+      };
+    },
 
     /** The names of these users, in one query, for a list that names them (the spaces' owners). */
     namesFor(ids: readonly number[], tx?: Tx): Promise<UserName[]> {

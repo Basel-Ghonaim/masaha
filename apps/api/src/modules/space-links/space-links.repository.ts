@@ -43,6 +43,15 @@ export function createSpaceLinksRepository(db: PrismaClient = prisma) {
       return rows.map(({ spaceId }) => spaceId);
     },
 
+    /** The active OWNER links of these users, oldest first. */
+    findOwnerLinksOf(userIds: readonly number[], tx: Tx = db): Promise<OwnerLink[]> {
+      return tx.spaceManager.findMany({
+        where: { userId: { in: [...userIds] }, role: 'OWNER', deactivatedAt: null },
+        select: { spaceId: true, userId: true },
+        orderBy: [{ createdAt: 'asc' }, { spaceId: 'asc' }],
+      });
+    },
+
     /** The active OWNER links of these spaces, oldest first. */
     findOwnerLinks(spaceIds: readonly number[], tx: Tx = db): Promise<OwnerLink[]> {
       return tx.spaceManager.findMany({

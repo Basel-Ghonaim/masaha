@@ -32,6 +32,7 @@ function setup(links: ActiveLink[]) {
       ),
     findVerifiedSpaceIds: () => Promise.reject(new Error('not asked here')),
     findOwnerLinks: () => Promise.reject(new Error('not asked here')),
+    findOwnerLinksOf: () => Promise.reject(new Error('not asked here')),
   };
   const spaces: SpacesService = {
     summariesFor: (ids) => {

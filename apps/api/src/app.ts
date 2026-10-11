@@ -38,6 +38,8 @@ import {
 import {
   createAdminSpacesController,
   createAdminSpacesService,
+  createAdminUsersController,
+  createAdminUsersService,
   createSpaceLinksAdminRouter,
   createSpaceLinksController,
   createSpaceLinksMeRouter,
@@ -232,6 +234,7 @@ export function createApi({
     lookups,
     users,
   });
+  const adminUsers = createAdminUsersService({ users, spaces });
   const auth = createAuthService({
     users,
     sessions,
@@ -279,7 +282,12 @@ export function createApi({
     '/spaces/:spaceId',
     loadSpaceLinks((spaceId, tx) => spaceLinks.linksAt(spaceId, tx)),
   );
-  admin.use(createSpaceLinksAdminRouter(createAdminSpacesController(adminSpaces)));
+  admin.use(
+    createSpaceLinksAdminRouter({
+      adminSpaces: createAdminSpacesController(adminSpaces),
+      adminUsers: createAdminUsersController(adminUsers),
+    }),
+  );
   admin.use(
     createSpacesAdminRouter({
       space: createSpaceController(space),

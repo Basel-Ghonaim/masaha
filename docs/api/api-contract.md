@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-07 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -393,6 +393,30 @@ The endpoints on one space put its links on the request first, without refusing 
 - «المعلومات ما زالت صحيحة»: the group is confirmed unchanged. One path per group; any other answers `not_found` (404).
 - **200:** `AdminSpace`, the group dated now and nothing else changed. Only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). Audited `space.<group>Confirmed` (`profileConfirmed`, `hoursConfirmed`, …), with the group's date in `before` and `after` (`{ hoursUpdatedAt }`).
 - **Errors:** `conflict` (409), with no code, for a missing group: there is nothing to confirm until it is saved, even empty; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
+
+### Users (the admin)
+
+The accounts, as the admin reads them ([data-model › Users and sessions](../architecture/data-model.md#users-and-sessions)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
+
+#### `GET /admin/users` · 🛡
+- **Query:** `?q=&role=&state=&page=&limit=` (§4), each optional:
+  - `q`: part of the name or the email, whatever the case (1–100 characters);
+  - `role`: `user`, `owner` or `admin`, the global role; `role=owner` is the owners page;
+  - `state`: `active` or `suspended`.
+- **200:** `AdminUserRow[]` (`@masaha/shared/space-links`), newest first, with `meta`. Every filter applies before the page is cut ([conventions §5](../backend/conventions.md#5-pagination)).
+
+  ```ts
+  AdminUserRow = {
+    id: number, name: string, email: string,
+    role: "USER" | "OWNER" | "ADMIN",             // OWNER follows the person's active owner links (ADR 0009)
+    isSuspended: boolean,
+    signIn: { password: boolean, google: boolean },
+    joinedAt: string,                             // when the account was created
+    spaces: { id: number, nameEn: string, nameAr: string | null }[]   // its active OWNER links, oldest first;
+                                                  // none to a soft-deleted space
+  }
+  ```
+- **Errors:** `validation` (422), for an unknown `role` or `state` (`invalid_choice`) or a page out of range.
 
 ## 6. Domain error codes (initial)
 

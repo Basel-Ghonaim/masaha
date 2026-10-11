@@ -1,6 +1,6 @@
 # Space Links
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
 > **Authority:** The `space-links` capability: a user's links to spaces and their role at each ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)), as the session, the caller's own list, the space switcher, the admin's spaces list and the links loader use them. Its endpoints are owned by the [API contract](../api/api-contract.md#managed-spaces); the `SpaceManager` entity and "verified" by the [data model](../architecture/data-model.md#spaces).
 > **Scope:** the API module `space-links` (L2); `@masaha/shared/space-links`; the web feature `features/space-links`, dashboard-only.
 
@@ -11,13 +11,14 @@
 - Shows the space switcher in a space's dashboard.
 - Composes the admin's spaces list: its filters, its owners and its verified state; and shows it on the dashboard's spaces page, with its filters kept in the address.
 - Loads a space's links for the routes on one space, so `can()` knows the caller's role there and whether the space is verified.
+- Composes the admin's users list, on the API: its filters, and the spaces each person owns; the owners page is that list filtered to the owners.
 
 Staff (reception accounts) and linking owners are not built.
 
 ## Who uses it
 
 - **Every signed-in user with links,** through the switcher and the session's links, which the dashboard's guards and landing read.
-- **The admin,** through the spaces list, on the dashboard's spaces page, and the admin's routes on one space.
+- **The admin,** through the spaces list, on the dashboard's spaces page, the admin's routes on one space, and the users list.
 - **`auth`,** which puts the links in every `Session` it builds.
 
 ## Responsibility boundary
@@ -32,6 +33,7 @@ Staff (reception accounts) and linking owners are not built.
 - **The caller's spaces** use the `me` router at `/manage/spaces`, behind `requireAuth` only: the path names no space, so the space middleware does not run.
 - **The links loader** is `shared/auth`'s, wired with this module's links. On the admin's space routes it runs without its refusal ([conventions › Space access](../backend/conventions.md#space-access)).
 - **The admin's spaces list** is a composed read ([conventions › Composed reads](../backend/conventions.md#composed-reads)). Each filter on another module's value is resolved to ids first: the verified state from the links, here, and a governorate to its areas, by `lookups`. `spaces` then applies its own filters (hidden, stale, the area, the search) to those ids and pages ([conventions §5](../backend/conventions.md#5-pagination)). The page's owners, their names (from `users`) and its areas' names follow, one query per module.
+- **The admin's users list** is a composed read too: every filter is the account's own, so `users` filters and pages its accounts; the page's active owner links follow, and their spaces' names from `spaces`, which leaves a soft-deleted space out, one query per module.
 - **The web** reads through the transport and TanStack Query, the caller's spaces under the user's own key scope and the admin's list under the admin's ([architecture §7](../frontend/architecture.md#7-server-state)); the dashboard-only rule keeps it out of the site's download ([architecture §3](../frontend/architecture.md#3-capabilities-features)).
 - **The admin's list on the web** is one section that the spaces page sets, with two slots it fills from other capabilities: each row's actions, from [`spaces`](spaces.md), and the place field, from [`lookups`](lookups.md) ([architecture › What a feature exports](../frontend/architecture.md#what-a-feature-exports)). Its filters and page live in the address ([architecture › Where state lives](../frontend/architecture.md#where-state-lives)).
 
@@ -42,6 +44,8 @@ Staff (reception accounts) and linking owners are not built.
 **The switcher** sits in the space's sidebar header. It shows the space in the URL, its name and area. For anyone with more than one active link, whatever their role at each, it opens their spaces, and choosing one follows the link the page gives it. A URL whose space is none of theirs offers their spaces. While the spaces load it shows a skeleton; a failure offers to try again, and a failed refetch keeps the list already loaded. The space's shell also reads the list for the space's slug, which its public page link needs.
 
 **The admin's list** is composed as above, one page at a time; its rows are the [contract](../api/api-contract.md#spaces-the-admin)'s.
+
+**The admin's users list** is composed as above, newest first, one page at a time; each row carries how the account signs in, when it joined, and the spaces of its active owner links, oldest first ([the contract](../api/api-contract.md#users-the-admin)).
 
 **The admin's list on the web.** `AdminSpacesList` shows the search and the filters, then the page's spaces: a table from 768 px (the name, the area, the state, the owners, the freshness, the last update and the row's actions), with the count the filters keep and the pages under it; on a phone, a card per space with the same facts, the search in view and the other filters in a bottom sheet behind a "Filters" button that counts them.
 - **The filters:** part of a name, typed and written once typing pauses; one "Governorate / area" field; the state; and "Stale data only". Each applies at once and returns to the first page.
@@ -62,6 +66,8 @@ Staff (reception accounts) and linking owners are not built.
 - **The admin's spaces list is composed here:** the verified and governorate filters resolve to ids first, then `spaces` filters and pages; each row carries its owners, its stale groups and its last update. *Why:* every page full, and the total right. 2026-10-06, #44.
 - **The list's states are lowercase, like its filter.** *Why:* one vocabulary. 2026-10-06, #44.
 - **The links loader runs without its refusal on the admin's space routes,** and gives no links for a deleted space. *Why:* `can()` reads whether a space is verified there too. 2026-10-06, #44.
+- **The owners page is a view of the users list,** `GET /admin/users?role=owner`, with no list of its own (the owner's A6). *Why:* one list, one search and one state filter for every account. 2026-10-11, #60.
+- **The users list is composed here, `users` filtering and paging its own accounts first,** newest first; each row adds how it signs in and when it joined (the owner's S2). *Why:* every filter is the account's own, so the page is cut before the links are read; the users screen shows both columns, so the users item adds actions only. 2026-10-11, #60.
 
 ### Web decisions
 
@@ -81,7 +87,7 @@ Staff (reception accounts) and linking owners are not built.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/space-links/`, entry `index.ts`: the links, the caller's spaces and the loader in the module's root service, with its `me` router; `admin-spaces/` for the admin's list and its router.
+- **API:** `apps/api/src/modules/space-links/`, entry `index.ts`: the links, the caller's spaces and the loader in the module's root service, with its `me` router; `admin-spaces/` for the admin's list and its router; `admin-users/` for the admin's users list, on the same router.
 - **Shared:** `packages/shared/src/space-links/`: the caller's spaces, the admin's list query and its rows.
 - **Web:** `apps/web/src/features/space-links/`, entry `index.ts`: `SpaceSwitcher` (`components/switcher/`, `hooks/switcher/`), and `useMySpacesQuery` for the shell's public link, mounted by `pages/dashboard/shell/`; `AdminSpacesList` (`components/admin-list/`, `hooks/admin-list/`, with the pure address, row, date and page rules in `services/`), mounted by `pages/dashboard/admin/`.
 
@@ -98,6 +104,7 @@ Staff (reception accounts) and linking owners are not built.
 - #36 — the caller's spaces.
 - #44 — the admin's spaces list, the links loader on the admin's routes, and links to deleted spaces.
 - #48 — the missing fact groups on the admin list's rows.
+- #60 — the admin's users list.
 
 ### Web history
 
