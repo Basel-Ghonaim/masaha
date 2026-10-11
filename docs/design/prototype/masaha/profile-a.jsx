@@ -20,6 +20,7 @@ function useSection(id, initial, missingAtFirst) {
   const [missing, setMissing] = React.useState(!!missingAtFirst);
   const dirty = JSON.stringify(v) !== JSON.stringify(saved);
   React.useEffect(() => { dirty ? dirtySet.add(id) : dirtySet.delete(id); window.dispatchEvent(new Event('masaha-dirty')); }, [dirty]);
+  React.useEffect(() => { window.dispatchEvent(new CustomEvent('masaha-group', { detail: { id, missing } })); }, [missing]);
   const save = () => { setSaved(v); setUpdated(tr('الآن', 'just now')); setMissing(false); ptoast.success(tr('حُفظ القسم', 'Section saved')); };
   return { v, setV, set: (p) => setV((x) => ({ ...x, ...p })), dirty, missing, save, reset: () => setV(saved), updated, touch: () => { setUpdated(tr('الآن', 'just now')); ptoast.success(tr('أكّدنا أن المعلومات ما زالت صحيحة', 'Confirmed as still correct')); } };
 }
@@ -185,6 +186,40 @@ function SpaceSection({ space, meta = {} }) {
   );
 }
 
+// A2: what a space still lacks, at the head of its editor — the five groups, each a link to its
+// section, «تمّت» or «لم تُضف بعد» (warning, as A8 sets for missing). A section's first save ticks
+// its line; once nothing is missing the list goes.
+function MissingChecklist({ names, missing: initial }) {
+  const [missing, setMissing] = React.useState(initial);
+  React.useEffect(() => {
+    const on = (e) => setMissing((m) => (e.detail.missing ? (m.includes(e.detail.id) ? m : [...m, e.detail.id]) : m.filter((g) => g !== e.detail.id)));
+    window.addEventListener('masaha-group', on);
+    return () => window.removeEventListener('masaha-group', on);
+  }, []);
+  if (!missing.length) return null;
+  return (
+    <PCard id="missing" aria-labelledby="missing-title">
+      <PCardHeader>
+        <PCardTitle><h2 id="missing-title">{tr('ما زال ناقصًا', 'Still missing')}</h2></PCardTitle>
+        <PCardDescription>{tr('احفظ كل قسم مرة على الأقل، فارغًا إن لم يكن له ما يُضاف.', 'Save each section at least once — empty, if it has nothing to add.')}</PCardDescription>
+      </PCardHeader>
+      <PCardContent>
+        <ul className="flex flex-col divide-y">
+          {FACT_GROUPS.map((g) => {
+            const gone = missing.includes(g);
+            return (
+              <li key={g} className="flex items-center justify-between gap-3 py-2">
+                <a href={'#' + g} className="text-body">{names[g]}</a>
+                <PBadge variant={gone ? 'warning' : 'success'}>{gone ? tr('لم تُضف بعد', 'Not added yet') : tr('تمّت', 'Done')}</PBadge>
+              </li>
+            );
+          })}
+        </ul>
+      </PCardContent>
+    </PCard>
+  );
+}
+
 // The section in view: the last whose top has passed under the bars. A chosen chip is marked at
 // once, before the scroll it starts has settled.
 function useCurrentSection(ids) {
@@ -306,4 +341,4 @@ function HoursSection({ meta = {} }) {
   );
 }
 
-Object.assign(window, { FACT_GROUPS, ago, useSection, ProfileSection, SectionTitle, SpaceSection, SectionNav, HoursSection, dirtySet, Optional, BasicsFields, LocationFields, AreaSelect, parseCoords, fmtCoords, coordsError, errorsOf, basicsErrors, locationErrors, sampleProfile });
+Object.assign(window, { FACT_GROUPS, ago, useSection, ProfileSection, SectionTitle, SpaceSection, SectionNav, MissingChecklist, HoursSection, dirtySet, Optional, BasicsFields, LocationFields, AreaSelect, parseCoords, fmtCoords, coordsError, errorsOf, basicsErrors, locationErrors, sampleProfile });

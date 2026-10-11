@@ -54,7 +54,7 @@ function AddSpace({ theme, setTheme }) {
       const name = LANG === 'ar' && v.nameAr.trim() ? v.nameAr.trim() : v.nameEn.trim();
       try { sessionStorage.setItem(NEW_SPACE_KEY, JSON.stringify(v)); } catch (err) {}
       handOffToast(tr(`أُضيفت ${name}`, `${name} added`));
-      location.href = carryParams('Admin space edit.html?id=new&created=1');
+      location.href = carryParams('Admin space edit.html?id=new');
     }, 700);
   };
   const title = tr('إضافة مساحة', 'Add space');

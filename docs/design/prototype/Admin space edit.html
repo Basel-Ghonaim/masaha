@@ -108,6 +108,7 @@ function Edit({ theme, setTheme }) {
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
         <SectionNav sections={SECTIONS()} />
         {readOnly ? <ReadOnlyView /> : <div className="flex min-w-0 flex-col gap-6 lg:col-span-9">
+          <MissingChecklist names={Object.fromEntries(SECTIONS())} missing={missingGroups} />
           <SpaceSection space={space} meta={groupMeta('profile')} />
           <HoursSection meta={groupMeta('hours')} />
           <PricesSection space={space} meta={groupMeta('prices')} />

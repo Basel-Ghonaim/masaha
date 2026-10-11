@@ -16,6 +16,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?state=loading` | every list page | the list's skeleton rows |
 | `?state=ratelimit` | the settings pages | the «محاولات كثيرة» warning, which any endpoint may answer |
 | `?fail=<action>` | the action's page | that action failing: inside its dialog or sheet, which stays open and keeps the input, or as a toast with «إعادة المحاولة» on a page. Actions: `visit`, `pay`, `checkout`, `warn`, `void`, `save`, and `add` on `Admin space add.html` (its failure above the submit) |
+| `Admin space edit.html?id=new` | the admin's editor | the space «إضافة مساحة» has just created, its profile as typed there (a sample one when opened directly), its four other groups missing under «ما زال ناقصًا» |
+| `Admin space edit.html?id=white` · `?id=palm` | the same | a space with one group never saved (the hours, the prices): «ما زال ناقصًا» and «لم تُضف بعد» |
 | `Admin space edit.html?new=1` | the old address of «إضافة مساحة» | now leads to `Admin space add.html`, the creation form of its own (AD-002), its other parameters kept |
 
 ## 01 · Flow
