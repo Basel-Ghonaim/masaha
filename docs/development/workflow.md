@@ -1,6 +1,6 @@
 # Workflow
 
-> **Status:** Active · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
 > **Authority:** How work is executed on Masaha: task classes, a Work Item's phases, the Git lifecycle, scope control, the Definition of Done, decision authority, stop rules and the AI tooling. Code-design rules are owned by [engineering-principles.md](engineering-principles.md); where a behaviour is tested is owned by [testing.md](testing.md).
 
 Masaha is built by **one developer (the owner)** with AI assistants. The workflow keeps the discipline of a team process — reviewable units, a clean history, gated decisions — without ceremony a solo project does not need.
@@ -201,7 +201,8 @@ The owner may run two AI workers at the same time. These rules keep them from co
 - **Merging:**
   - one PR is merged at a time;
   - a PR is rebased on `main` only when GitHub shows a conflict, which is resolved by keeping both sides;
-  - a PR that is clean, and whose CI ran after `main`'s last change, is left ready for review.
+  - a PR that is clean, and whose CI ran after `main`'s last change or after a merge apart (below), is left ready for review;
+  - **a merge apart:** a merge into `main` that deletes or renames no file and changes none of the PR's files calls for no rebase and no new CI run; the PR stays ready. `git diff --name-status <old main> <new main>` shows it.
 - **After each merge, in the main folder:** `git pull`. After a schema change, also regenerate the Prisma client and apply the new migrations to `masaha_dev` ([setup › Database](setup.md#database)). Without this step, the dev database once fell seven migrations behind the code merged from worktrees.
 - **After worker B's PR merges:** its worktree goes back to detached `origin/main`, and the owner deletes the merged local branch ([§6](#6-decision-authority)). If that merge, or any merge since, changed the schema, regenerate the Prisma client in the worktree and apply the migrations to `masaha_b_dev`.
 
