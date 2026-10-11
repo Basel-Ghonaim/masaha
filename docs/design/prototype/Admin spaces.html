@@ -64,7 +64,7 @@ function Spaces({ theme, setTheme }) {
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
   const paged = usePaged(rows);
-    const addBtn = <Button asChild><a href="Admin space edit.html?new=1">{tr('إضافة مساحة', 'Add space')}</a></Button>;
+    const addBtn = <Button asChild><a href="Admin space add.html">{tr('إضافة مساحة', 'Add space')}</a></Button>;
   const free = AD.owners.filter((o) => !link || !link.owners.includes(o.id));
   return (
     <AdminShell current="spaces" title={tr('المساحات', 'Spaces')} theme={theme} setTheme={setTheme}>

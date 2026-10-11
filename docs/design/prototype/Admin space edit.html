@@ -28,12 +28,21 @@
 <script type="text/babel">
 const { DirectionProvider, Card, CardHeader, CardContent, Alert, AlertTitle, AlertDescription, Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator, Separator } = window.MasahaDesignSystem;
 const M = window.MASAHA;
-const isNew = pageParams.get('new') === '1';
+// AD-002: adding a space is a form of its own; the old address of the "new" state leads there.
+const toAdd = pageParams.get('new') === '1';
+if (toAdd) { const q = new URLSearchParams(location.search); q.delete('new'); location.replace('Admin space add.html' + (q.toString() ? '?' + q : '') + location.hash); }
 const id = pageParams.get('id') || 'golden';
-const meta = AD.spaces.find((s) => s.id === id) || AD.spaces.find((s) => s.id === 'golden');
+// `?id=new`: the space the creation form has just made, its profile as typed there (a sample one
+// when the page is opened directly). Its four other groups are missing.
+const isNew = id === 'new';
+const typed = (() => { try { return JSON.parse(sessionStorage.getItem('masaha:new-space')); } catch (e) { return null; } })();
+const created = typed || { nameAr: 'سكاي هب', nameEn: 'Sky Hub', descAr: '', descEn: '', area: 'rimal', addrAr: 'الرمال، شارع عمر المختار، عمارة 7', addrEn: '', landmarkAr: '', landmarkEn: '', coords: '31.52500, 34.45000' };
+const meta = isNew
+  ? { id: 'new', name: created.nameEn, status: 'unverified', missing: FACT_GROUPS.slice(1), upd: {}, last: AD.TODAY, owners: [] }
+  : AD.spaces.find((s) => s.id === id) || AD.spaces.find((s) => s.id === 'golden');
 const base = M.spaces.find((s) => s.id === id) || M.spaces.find((s) => s.id === 'golden');
 const space = isNew
-  ? { ...base, id: 'new', name: '', nameAr: '', contacts: [], amenities: [], lat: null, lng: null }
+  ? { id: 'new', name: created.nameEn, nameAr: created.nameAr, profile: created, contacts: [], amenities: [] }
   : { ...base, name: meta.name, nameAr: base.nameAr || '', contacts: base.contacts || [], amenities: base.amenities || [] };
 const readOnly = !isNew && meta.status === 'verified';
 // A1: one name per section, in the cards and in the navigation alike.
@@ -42,7 +51,7 @@ const SECTIONS = () => [['profile', tr('المساحة', 'The space')], ['hours'
 // Each group's date, and whether it was ever saved, from the sample data (`missing` also lists
 // the pin and the photos, which are no fact group). The profile is dated when the space is created.
 const daysSince = (iso) => Math.round((new Date(AD.TODAY + 'T12:00:00') - new Date(iso + 'T12:00:00')) / 864e5);
-const missingGroups = isNew ? FACT_GROUPS.slice(1) : (meta.missing || []).filter((g) => FACT_GROUPS.includes(g));
+const missingGroups = (meta.missing || []).filter((g) => FACT_GROUPS.includes(g));
 const groupMeta = (g) => {
   if (missingGroups.includes(g)) return { missing: true };
   const days = g === 'profile' ? daysSince(meta.last) : meta.upd[g];
@@ -80,7 +89,7 @@ function ReadOnlyView() {
 }
 
 function Edit({ theme, setTheme }) {
-  const title = isNew ? tr('إضافة مساحة', 'Add space') : space.name;
+  const title = space.name;
   return (
     <AdminShell current="spaces" title={title} theme={theme} setTheme={setTheme}>
       <Breadcrumb label={tr('مسار التنقل', 'Breadcrumb')}>
@@ -90,7 +99,7 @@ function Edit({ theme, setTheme }) {
           <BreadcrumbItem><BreadcrumbPage><span lang="en">{title}</span></BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      {!isNew && <div className="flex flex-wrap items-center gap-3"><SpaceStatus s={meta} /></div>}
+      <div className="flex flex-wrap items-center gap-3"><SpaceStatus s={meta} /></div>
       {readOnly ? (
         <Alert variant="info"><AlertTitle>{tr('يعدّلها المالك', 'The owner edits it')}</AlertTitle><AlertDescription>{tr('هذه مساحة موثّقة وتظهر هنا للقراءة فقط. لتصحيح معلومة، راجع بلاغاتها أو فك ربط المالك.', 'This is a verified space, shown read-only. To correct something, check its reports or unlink the owner.')}</AlertDescription></Alert>
       ) : (
@@ -112,7 +121,7 @@ function Edit({ theme, setTheme }) {
   );
 }
 function Screen() { const [theme, setTheme] = useTheme(); return <Edit theme={theme} setTheme={setTheme} />; }
-ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+if (!toAdd) ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
 </script>
 </body>
 </html>

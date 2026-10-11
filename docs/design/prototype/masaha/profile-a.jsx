@@ -155,7 +155,7 @@ function LocationFields({ v, set, errors = {} }) {
 }
 
 // The editor's sample profile: Focus Hub's texts on every space, as the archive's known limits say.
-const sampleProfile = (space) => ({
+const sampleProfile = (space) => space.profile || ({
   nameAr: space.nameAr || '', nameEn: space.name || '',
   descAr: 'مساحة عمل هادئة للعمل الفردي والدراسة، فيها طاولات مشتركة وزاوية للمكالمات.', descEn: 'A quiet space for solo work and study, with shared desks and a corner for calls.',
   area: space.area || '', addrAr: 'النصر، شارع النصر، عمارة 12، الطابق الثالث', addrEn: 'An-Nasr, An-Nasr Street, Building 12, 3rd floor',

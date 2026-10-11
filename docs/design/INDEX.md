@@ -15,7 +15,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?state=error` | every dashboard page | «تعذّر تحميل …» in place of the content, with «إعادة المحاولة» |
 | `?state=loading` | every list page | the list's skeleton rows |
 | `?state=ratelimit` | the settings pages | the «محاولات كثيرة» warning, which any endpoint may answer |
-| `?fail=<action>` | the action's page | that action failing: inside its dialog or sheet, which stays open and keeps the input, or as a toast with «إعادة المحاولة» on a page. Actions: `visit`, `pay`, `checkout`, `warn`, `void`, `save` |
+| `?fail=<action>` | the action's page | that action failing: inside its dialog or sheet, which stays open and keeps the input, or as a toast with «إعادة المحاولة» on a page. Actions: `visit`, `pay`, `checkout`, `warn`, `void`, `save`, and `add` on `Admin space add.html` (its failure above the submit) |
+| `Admin space edit.html?new=1` | the old address of «إضافة مساحة» | now leads to `Admin space add.html`, the creation form of its own (AD-002), its other parameters kept |
 
 ## 01 · Flow
 
@@ -641,8 +642,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Edit unverified · banner — phone 390 | `Admin space edit.html?id=golden` | 390×844 | [43-admin-spaces/12-edit-unverified-banner-phone-390.webp](screens/43-admin-spaces/12-edit-unverified-banner-phone-390.webp) |
 | Verified · read-only — desktop 1440 | `Admin space edit.html?id=focus` | 1440×1000 | [43-admin-spaces/13-verified-read-only-desktop-1440.webp](screens/43-admin-spaces/13-verified-read-only-desktop-1440.webp) |
 | Verified · read-only — phone 390 | `Admin space edit.html?id=focus` | 390×844 | [43-admin-spaces/14-verified-read-only-phone-390.webp](screens/43-admin-spaces/14-verified-read-only-phone-390.webp) |
-| Add space — desktop 1440 | `Admin space edit.html?new=1` | 1440×1000 | [43-admin-spaces/15-add-space-desktop-1440.webp](screens/43-admin-spaces/15-add-space-desktop-1440.webp) |
-| Add space — phone 390 | `Admin space edit.html?new=1` | 390×844 | [43-admin-spaces/16-add-space-phone-390.webp](screens/43-admin-spaces/16-add-space-phone-390.webp) |
+| Add space — desktop 1440 | `Admin space add.html` | 1440×1000 | [43-admin-spaces/15-add-space-desktop-1440.webp](screens/43-admin-spaces/15-add-space-desktop-1440.webp) |
+| Add space — phone 390 | `Admin space add.html` | 390×844 | [43-admin-spaces/16-add-space-phone-390.webp](screens/43-admin-spaces/16-add-space-phone-390.webp) |
 
 ## 44 · Admin — owners «أصحاب المساحات»
 
