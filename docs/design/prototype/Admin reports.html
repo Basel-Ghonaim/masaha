@@ -41,18 +41,25 @@ function Reports({ theme, setTheme }) {
     { id: 'space', header: tr('المساحة', 'Space'), cell: ({ row }) => <span lang="en" className="text-label">{spaceOf(row.original).name}</span> },
     { id: 'field', header: tr('الحقل', 'Field'), cell: ({ row }) => AD.FIELD[row.original.field] },
     { id: 'msg', header: tr('البلاغ', 'Report'), cell: ({ row }) => <span className="line-clamp-2 text-body-sm">{row.original.msg}</span> },
-    { id: 'who', header: tr('المُبلِّغ', 'Reporter'), cell: ({ row }) => row.original.who },
-    { id: 'date', header: tr('التاريخ', 'Date'), cell: ({ row }) => AD.fmt(row.original.date) },
+    // SH-007: eight columns are the most of any table here, so three wait for 1024.
+    { id: 'who', header: tr('المُبلِّغ', 'Reporter'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => row.original.who },
+    { id: 'date', header: tr('التاريخ', 'Date'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => AD.fmt(row.original.date) },
     { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <Badge variant={S[row.original.status][1]}>{S[row.original.status][0]}</Badge> },
-    { id: 'by', header: tr('يعالجه', 'Handled by'), cell: ({ row }) => <By r={row.original} /> },
+    { id: 'by', header: tr('يعالجه', 'Handled by'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => <By r={row.original} /> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end"><Button size="sm" variant="outline" onClick={() => setOpen(row.original)}>{AD.handledBy(row.original) === 'admin' ? tr('فتح', 'Open') : tr('عرض', 'View')}</Button></div> }
   ];
-  const ro = open && AD.handledBy(open) === 'owner';
+  const paged = usePaged(rows);
+    const ro = open && AD.handledBy(open) === 'owner';
   return (
     <AdminShell current="reports" title={tr('بلاغات البيانات', 'Data reports')} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('الإدارة تعالج بلاغات المساحات غير الموثّقة. بلاغات المساحات الموثّقة يعالجها مالكها وتظهر هنا للاطلاع.', 'The admin handles reports on unverified spaces. Reports on verified spaces are handled by their owner and shown here for reference.')}</p>
-      <DataTable label={tr('بلاغات البيانات', 'Data reports')} columns={columns} data={rows} getRowId={(r) => r.id}
-        toolbar={<ToggleGroup type="single" value={st} onValueChange={(v) => v && setSt(v)} aria-label={tr('تصفية حسب الحالة', 'Filter by status')}><ToggleGroupItem value="all">{tr('الكل', 'All')}</ToggleGroupItem>{Object.entries(S).map(([k, [l]]) => <ToggleGroupItem key={k} value={k}>{l}</ToggleGroupItem>)}</ToggleGroup>}
+      <DataTable label={tr('بلاغات البيانات', 'Data reports')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+        summary={paged.summary} pagination={paged.nav}
+        toolbar={<div className="flex flex-col gap-3">
+          {/* P5: one status filter of four or fewer choices stays chips. */}
+          <ToggleGroup type="single" value={st} onValueChange={(v) => v && setSt(v)} aria-label={tr('تصفية حسب الحالة', 'Filter by status')}><ToggleGroupItem value="all">{tr('الكل', 'All')}</ToggleGroupItem>{Object.entries(S).map(([k, [l]]) => <ToggleGroupItem key={k} value={k}>{l}</ToggleGroupItem>)}</ToggleGroup>
+          <ResultCount>{tr('عدد البلاغات', 'Reports')}: <Num>{rows.length}</Num></ResultCount>
+        </div>}
         renderCard={(r) => (<div className="flex flex-col gap-2"><div className="flex items-center justify-between gap-2"><span className="text-label"><span lang="en">{spaceOf(r).name}</span> · {AD.FIELD[r.field]}</span><Badge variant={S[r.status][1]}>{S[r.status][0]}</Badge></div><p className="line-clamp-2 text-body-sm">{r.msg}</p><div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-caption text-muted-foreground">{r.who} · {AD.fmt(r.date)} <By r={r} /></span><Button size="sm" variant="outline" onClick={() => setOpen(r)}>{AD.handledBy(r) === 'admin' ? tr('فتح', 'Open') : tr('عرض', 'View')}</Button></div></div>)}
         empty={<EmptyState icon={<TriangleAlertIcon />} title={tr('لا توجد بلاغات بهذه الحالة', 'No reports with this status')} />} />
       <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)}>

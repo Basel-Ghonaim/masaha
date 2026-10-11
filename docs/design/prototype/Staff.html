@@ -70,19 +70,25 @@ function StaffInner({ theme, setTheme }) {
   const MonthLink = ({ s }) => <a href={'Payments.html?staff=' + encodeURIComponent(s.key)}><Money n={s.month} /></a>;
   const columns = [
     { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
-    { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <span dir="ltr">{row.original.email}</span> },
+    // SH-007: seven columns; the email and the last sign-in wait for 1024.
+    { id: 'email', header: tr('البريد', 'Email'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => <Ltr>{row.original.email}</Ltr> },
     { id: 'role', header: tr('الدور', 'Role'), cell: () => tr('الاستقبال', 'Reception') },
     { id: 'status', header: tr('الحالة', 'Status'), cell: ({ row }) => <StatusB s={row.original} /> },
     { id: 'last', header: tr('آخر دخول', 'Last sign-in'), cell: ({ row }) => row.original.last },
     { id: 'month', header: tr('مقبوضاته هذا الشهر', 'Collected this month'), cell: ({ row }) => <MonthLink s={row.original} /> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
-  const addBtn = <Button onClick={() => { setAdd(true); setErr({}); }}>{tr('إضافة موظف', 'Add staff member')}</Button>;
+  const paged = usePaged(list);
+    const addBtn = <Button onClick={() => { setAdd(true); setErr({}); }}>{tr('إضافة موظف', 'Add staff member')}</Button>;
   return (
     <OwnerShell current="staff" title={tr('الموظفون', 'Staff')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('موظفو الاستقبال يرون المكتب والزبائن والإعلانات ودفعاتهم اليومية فقط، بدون أرقام الدخل.', 'Reception staff see the desk, customers, announcements and their own payments today — no income figures.')}</p>
-      <DataTable label={tr('الموظفون', 'Staff')} columns={columns} data={list} getRowId={(r) => r.id}
-        toolbar={<div className="flex justify-end">{addBtn}</div>}
+      <DataTable label={tr('الموظفون', 'Staff')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+        summary={paged.summary} pagination={paged.nav}
+        toolbar={<div className="flex flex-wrap items-center justify-between gap-3">
+          <ResultCount>{tr('عدد الموظفين', 'Staff')}: <Num>{list.length}</Num></ResultCount>
+          {addBtn}
+        </div>}
         renderCard={(s) => (
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-1">

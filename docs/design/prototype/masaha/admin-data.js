@@ -72,6 +72,17 @@ window.ADMIN = (function () {
     ]
   };
   const B = T('باسل', 'Basel');
+  // P6: the platform's two long lists page like the others — 84 users and 240 audit lines,
+  // generated deterministically from the same pools as the rows written out above.
+  const aday = (n) => { const d = new Date(TODAY + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const UFIRST = [T('سامي', 'Sami'), T('هالة', 'Hala'), T('رامي', 'Rami'), T('جميلة', 'Jamila'), T('إياد', 'Eyad'), T('ندى', 'Nada'), T('مازن', 'Mazen')];
+  const ULAST = [T('أبو زيد', 'Abu Zaid'), T('الطويل', 'Al-Taweel'), T('حمودة', 'Hammouda'), T('سكيك', 'Skaik'), T('الزعانين', 'Al-Zaanin')];
+  for (let i = 0; users.length < 84; i++) {
+    users.push({ id: 'gu' + i, name: UFIRST[i % UFIRST.length] + ' ' + ULAST[i % ULAST.length],
+      email: 'user' + (i + 1) + '@example.com', role: 'user', method: ['email', 'google', 'both'][i % 3],
+      joined: aday(-(i % 180) - 1), status: i % 11 === 7 ? 'suspended' : 'active' });
+  }
+
   const audit = [
     ['2026-09-29', '10:42', B, 'temp_password', T('نور سالم', 'Nour Salem'), T('صدرت عبر واتساب · يُطلب التغيير عند الدخول', 'Issued via WhatsApp · change forced at sign-in')],
     ['2026-09-28', '16:05', B, 'space_hidden', 'Palm Hub', T('مغلقة نهائيًا حسب اتصال هاتفي', 'Permanently closed, per phone call')],
@@ -82,6 +93,21 @@ window.ADMIN = (function () {
     ['2026-09-10', '08:40', B, 'settings_changed', T('عتبة حداثة الأسعار', 'Price freshness threshold'), T('30 يومًا (كانت 45)', '30 days (was 45)')],
     ['2026-09-03', '17:15', B, 'lookup_changed', T('إنترنت', 'Internet'), T('لا يظهر في الفلاتر', 'Removed from filters')]
   ];
+  // The log is the longest list the admin reads, and the one a reviewer scrolls furthest.
+  const AUDIT_FILL = [
+    ['lookup_changed', T('تل الهوا', 'Tal Al-Hawa'), T('ظاهرة ← كانت مخفية', 'Shown ← was hidden')],
+    ['settings_changed', T('حدّ قِدَم الأسعار', 'Price staleness threshold'), T('14 يومًا ← 21 يومًا', '14 days ← 21 days')],
+    ['space_hidden', 'White Space', T('بطلب من المالك', 'At the owner’s request')],
+    ['role_changed', T('هالة أبو زيد', 'Hala Abu Zaid'), T('مالك ← مستخدم', 'Owner ← user')],
+    ['temp_password', T('رامي حمودة', 'Rami Hammouda'), T('يُطلب التغيير عند الدخول', 'Change forced at sign-in')],
+    ['owner_linked', T('ندى سكيك ← ZM Hub', 'Nada Skaik → ZM Hub'), T('أصبحت المساحة موثّقة', 'The space became verified')],
+    ['user_suspended', T('مازن الزعانين', 'Mazen Al-Zaanin'), T('بلاغات مسيئة · انتهت الجلسات', 'Abusive reports · sessions ended')]
+  ];
+  for (let i = 0; audit.length < 240; i++) {
+    const [action, target, note] = AUDIT_FILL[i % AUDIT_FILL.length];
+    audit.push([aday(-Math.floor(i / 4) - 2), String(8 + (i % 9)).padStart(2, '0') + ':' + String((i * 13) % 60).padStart(2, '0'), B, action, target, note]);
+  }
+
   const ACTION = { space_hidden: T('إخفاء مساحة', 'Space hidden'), owner_linked: T('ربط مالك', 'Owner linked'), role_changed: T('تغيير دور', 'Role changed'), user_suspended: T('إيقاف مستخدم', 'User suspended'), temp_password: T('كلمة مرور مؤقتة', 'Temporary password'), lookup_changed: T('تعديل قائمة', 'Lookup changed'), settings_changed: T('تعديل الإعدادات', 'Settings changed') };
   const fmt = (iso, y) => new Date(iso + 'T12:00:00').toLocaleDateString(T('ar-EG', 'en-GB'), { day: 'numeric', month: 'short', ...(y ? { year: 'numeric' } : {}), numberingSystem: 'latn' });
   const areaName = (s) => { const g = M.governorates.find((x) => x.id === s.gov); const a = g && g.areas.find((x) => x.id === s.area); return a ? a.name : T('الشيخ رضوان', 'Sheikh Radwan'); };

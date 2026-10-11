@@ -133,7 +133,9 @@ function AnnInner({ theme, setTheme }) {
   const save = (v) => { setList((l) => (v.id ? l.map((x) => (x.id === v.id ? v : x)) : [{ ...v, id: 'a' + Date.now(), by: IS_OWNER ? A : S }, ...l])); setEdit(null); toast.success(v.id ? tr('حُفظ الإعلان', 'Announcement saved') : tr('نُشر الإعلان', 'Announcement published')); };
   const extend = (id, ext) => { setList((l) => l.map((x) => (x.id === id ? { ...x, extended: ext } : x))); setEdit((e) => e && { ...e, extended: ext }); };
   const count = (s) => list.filter((a) => statusOf(a) === s).length;
-  const newBtn = <Button onClick={() => setEdit({ type: 'general' })}>{tr('إعلان جديد', 'New announcement')}</Button>;
+  // P6: the ended tab is the one that grows without bound, so this list pages too.
+    const paged = usePaged(shown);
+    const newBtn = <Button onClick={() => setEdit({ type: 'general' })}>{tr('إعلان جديد', 'New announcement')}</Button>;
   return (
     <OwnerShell current="announcements" title={tr('الإعلانات', 'Announcements')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -148,7 +150,7 @@ function AnnInner({ theme, setTheme }) {
       </div>
       {shown.length ? (
         <div className="flex max-w-4xl flex-col gap-4">
-          {shown.map((a) => { const [tl, tv] = TYPES()[a.type]; const [sl, sv] = STAT()[statusOf(a)]; return (
+          {paged.rows.map((a) => { const [tl, tv] = TYPES()[a.type]; const [sl, sv] = STAT()[statusOf(a)]; return (
             <Card key={a.id}>
               <CardHeader>
                 <CardTitle className="flex flex-wrap items-center gap-2"><Badge variant={tv}>{tl}</Badge>{titleOf(a)}</CardTitle>
@@ -162,8 +164,12 @@ function AnnInner({ theme, setTheme }) {
               <CardFooter><Button size="sm" variant="outline" onClick={() => setEdit(a)}>{statusOf(a) === 'ended' ? tr('عرض', 'View') : tr('تعديل', 'Edit')}</Button></CardFooter>
             </Card>
           ); })}
-        </div>
-      ) : <Card><EmptyState icon={<CircleAlertIcon />} title={tab === 'active' ? tr('لا توجد إعلانات نشطة', 'No active announcements') : tab === 'scheduled' ? tr('لا توجد إعلانات مجدولة', 'No scheduled announcements') : tr('لا توجد إعلانات منتهية', 'No ended announcements')} description={tr('أعلن عن إغلاق، أو انقطاع، أو عرض، أو فعالية ليراه الزوار في صفحة المساحة.', 'Announce a closure, outage, offer or event for visitors to see on the space page.')}>{newBtn}</EmptyState></Card>}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <ResultCount>{paged.summary}</ResultCount>
+                {paged.nav}
+              </div>
+            </div>
+          ) : <Card><EmptyState icon={<CircleAlertIcon />} title={tab === 'active' ? tr('لا توجد إعلانات نشطة', 'No active announcements') : tab === 'scheduled' ? tr('لا توجد إعلانات مجدولة', 'No scheduled announcements') : tr('لا توجد إعلانات منتهية', 'No ended announcements')} description={tr('أعلن عن إغلاق، أو انقطاع، أو عرض، أو فعالية ليراه الزوار في صفحة المساحة.', 'Announce a closure, outage, offer or event for visitors to see on the space page.')}>{newBtn}</EmptyState></Card>}
       <AnnSheet item={edit} onClose={() => setEdit(null)} onSave={save} onExtend={extend} />
     </OwnerShell>
   );

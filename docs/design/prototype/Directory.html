@@ -171,11 +171,7 @@ function DirectoryScreen() {
   const ready = state === 'ready';
   const picking = near.loc.status === 'picking';
 
-  const filtersButton = (className) => (
-    <Button variant="outline" className={className} onClick={() => setSheetOpen(true)}>{tr("الفلاتر", "Filters")}{count > 0 && <Badge variant="primary">{count}</Badge>}</Button>
-  );
-
-  return (
+    return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <SiteHeader current="directory" theme={theme} setTheme={setTheme} />
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 md:px-8">
@@ -195,7 +191,11 @@ function DirectoryScreen() {
         <div className="flex flex-col gap-2 md:flex-row md:items-center">
           <Input role="searchbox" aria-label={tr("ابحث عن مساحة", "Search for a space")} placeholder={tr("اسم المساحة أو المنطقة", "Space name or area")} startIcon={<SearchIcon />} className="md:flex-1" value={f.q} onChange={(e) => set({ q: e.target.value })} />
           <div className="flex items-center gap-2">
-            {filtersButton(view === 'list' ? 'flex-1 md:flex-none lg:hidden' : 'flex-1 md:flex-none')}
+            {/* P5: the one filter sheet. In list view the sidebar takes over from 1024; the map has
+                            no sidebar, so there the sheet stays at every width. */}
+            <FilterSheet at="lg" always={view === 'map'} open={sheetOpen} onOpenChange={setSheetOpen} active={count} count={results.length} onClear={clear} description={tr("تُطبَّق فورًا على النتائج", "Applied to the results right away")}>
+              <FiltersForm f={f} set={set} />
+            </FilterSheet>
             {view === 'list' && (
               <div className="flex-1 md:w-48 md:flex-none">
                 <Select value={sort} onValueChange={chooseSort}>
@@ -212,20 +212,6 @@ function DirectoryScreen() {
           </div>
         </div>
         {!picking && <LocationStatus near={near} showIdle={view === 'list'} onPickOnMap={pickOnMap} onChooseArea={chooseArea} />}
-
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetContent side={isDesktop ? 'end' : 'bottom'} closeLabel={tr("إغلاق الفلاتر", "Close filters")}>
-            <SheetHeader>
-              <SheetTitle>{tr("الفلاتر", "Filters")}</SheetTitle>
-              <SheetDescription>{tr("تُطبَّق فورًا على النتائج", "Applied to the results right away")}</SheetDescription>
-            </SheetHeader>
-            <SheetBody className="py-2"><FiltersForm f={f} set={set} /></SheetBody>
-            <SheetFooter>
-              <SheetClose asChild><Button size="lg" className="w-full">{results.length ? tr(`عرض ${countLabel(results.length)}`, `Show ${countLabel(results.length)}`) : tr("لا توجد نتائج", "No results")}</Button></SheetClose>
-              <Button variant="ghost" className="w-full" onClick={clear} disabled={count === 0}>{tr("مسح الفلاتر", "Clear filters")}</Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
 
         {state === 'error' && (
           <Alert variant="destructive">

@@ -67,27 +67,32 @@ function CustomersInner({ theme, setTheme }) {
   const sub = (c) => DESK.currentSub(c);
   const columns = [
     { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + row.original.id)}>{row.original.name}</a> },
-    { id: 'phone', header: tr('الجوال', 'Mobile'), cell: ({ row }) => row.original.phone ? <span dir="ltr">{row.original.phone}</span> : <span className="text-muted-foreground">—</span> },
+    // SH-007: seven columns; the mobile and the end date wait for 1024 beside the rail.
+    { id: 'phone', header: tr('الجوال', 'Mobile'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => row.original.phone ? <Ltr>{row.original.phone}</Ltr> : <span className="text-muted-foreground">—</span> },
     { id: 'sub', header: tr('الاشتراك الحالي', 'Current membership'), cell: ({ row }) => sub(row.original) ? sub(row.original).name : <span className="text-muted-foreground">—</span> },
-    { id: 'to', header: tr('صالح حتى', 'Valid until'), cell: ({ row }) => sub(row.original) ? DESK.fmtDate(sub(row.original).to) : <span className="text-muted-foreground">—</span> },
+    { id: 'to', header: tr('صالح حتى', 'Valid until'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => sub(row.original) ? DESK.fmtDate(sub(row.original).to) : <span className="text-muted-foreground">—</span> },
     { id: 'status', header: tr('الحالة', 'Status'), cell: ({ row }) => <StatusBadge c={row.original} /> },
     { id: 'bal', header: tr('الرصيد', 'Balance'), cell: ({ row }) => DESK.balance(row.original) > 0 || DESK.credit(row.original) > 0 ? <BalanceBadge c={row.original} /> : <span className="text-body-sm text-muted-foreground">{tr('مسدّد', 'Settled')}</span> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
-  const add = () => desk.open('sheet', { mode: 'new' });
+  const paged = usePaged(list);
+    const add = () => desk.open('sheet', { mode: 'new' });
   const archBal = arch ? DESK.balance(arch) : 0;
   return (
     <OwnerShell current="customers" title={tr('الزبائن', 'Customers')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
-      <DataTable label={tr('زبائن المساحة', 'Customers of the space')} columns={columns} data={list} getRowId={(r) => r.id} loading={st === 'loading'}
-        summary={<span>{tr('عدد الزبائن', 'Customers')}: <Num>{list.length}</Num></span>}
+      <DataTable label={tr('زبائن المساحة', 'Customers of the space')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={st === 'loading'}
+        summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
           <Input role="searchbox" aria-label={tr('ابحث بالاسم أو آخر أرقام الجوال', 'Search by name or last digits')} placeholder={tr('الاسم أو آخر أرقام الجوال', 'Name or last digits of the mobile')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} className="md:max-w-xs" />
-          <FilterSheet active={[kind, status, pay].filter((x) => x !== 'all').length} onClear={() => { setKind('all'); setStatus('all'); setPay('all'); }}>
+          <FilterSheet count={list.length} active={[kind, status, pay].filter((x) => x !== 'all').length} onClear={() => { setKind('all'); setStatus('all'); setPay('all'); }}>
           <Filter label={tr('نوع الاشتراك', 'Membership type')} value={kind} onChange={setKind} options={[['all', tr('كل الأنواع', 'All types')], ['month', kindLabel.month], ['week', kindLabel.week], ['package', kindLabel.package], ['custom', kindLabel.custom], ['none', kindLabel.none]]} />
           <Filter label={tr('الحالة', 'Status')} value={status} onChange={setStatus} options={[['all', tr('كل الحالات', 'All statuses')], ...['active', 'soon', 'expired', 'none'].map((k) => [k, DESK.statusBadge[k][1]])]} />
           <Filter label={tr('الدفع', 'Payment')} value={pay} onChange={setPay} options={[['all', tr('كل حالات الدفع', 'All payment states')], ['owes', tr('عليه دين', 'Owes money')], ['credit', tr('له رصيد', 'In credit')], ['settled', tr('مسدّد', 'Settled')]]} />
           </FilterSheet>
-          <div className="flex flex-1 justify-end"><Button onClick={add}>{tr('زبون جديد', 'New customer')}</Button></div>
+          <div className="flex flex-1 items-center justify-end gap-3">
+            <ResultCount>{tr('عدد الزبائن', 'Customers')}: <Num>{list.length}</Num></ResultCount>
+            <Button onClick={add}>{tr('زبون جديد', 'New customer')}</Button>
+          </div>
         </div>}
         renderCard={(c) => (
           <div className="flex items-start justify-between gap-3">

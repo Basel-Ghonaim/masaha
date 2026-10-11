@@ -33,7 +33,8 @@ function Audit({ theme, setTheme }) {
   const [actor, setActor] = React.useState('all'); const [action, setAction] = React.useState('all');
   const rows = ROWS.filter((r) => inRange(r.date, range) && (actor === 'all' || r.actor === actor) && (action === 'all' || r.action === action));
   const Act = ({ r }) => <Badge variant={VARIANT[r.action]}>{AD.ACTION[r.action]}</Badge>;
-  const columns = [
+  const paged = usePaged(rows);
+    const columns = [
     { id: 't', header: tr('الوقت', 'Time'), cell: ({ row }) => <span>{AD.fmt(row.original.date)} · <Num>{row.original.time}</Num></span> },
     { id: 'actor', header: tr('المنفّذ', 'Actor'), cell: ({ row }) => row.original.actor },
     { id: 'action', header: tr('الإجراء', 'Action'), cell: ({ row }) => <Act r={row.original} /> },
@@ -43,11 +44,17 @@ function Audit({ theme, setTheme }) {
   return (
     <AdminShell current="audit" title={tr('سجل التدقيق', 'Audit log')} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('أحداث المنصة فقط. أحداث تشغيل المساحات (الزبائن والدفعات) يراها مالك المساحة فقط.', 'Platform events only. Space operations events (customers and payments) are seen only by the space owner.')}</p>
-      <DataTable label={tr('سجل التدقيق', 'Audit log')} columns={columns} data={rows} getRowId={(r) => r.id}
-        toolbar={<div className="grid gap-3 md:grid-cols-3">
-          <RangePicker value={range} onChange={setRange} />
-          <Field label={tr('المنفّذ', 'Actor')}><Select value={actor} onValueChange={setActor}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('الكل', 'All')}</SelectItem><SelectItem value={AD.admin.name}>{AD.admin.name}</SelectItem></SelectContent></Select></Field>
-          <Field label={tr('نوع الإجراء', 'Action type')}><Select value={action} onValueChange={setAction}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الإجراءات', 'All actions')}</SelectItem>{Object.entries(AD.ACTION).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
+      <DataTable label={tr('سجل التدقيق', 'Audit log')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+        summary={paged.summary} pagination={paged.nav}
+        toolbar={<div className="flex flex-col gap-3">
+          <FilterSheet active={[actor, action].filter((x) => x !== 'all').length} count={rows.length} onClear={() => { setActor('all'); setAction('all'); }}>
+            <div className="grid gap-3 md:grid-cols-3">
+              <RangePicker value={range} onChange={setRange} />
+              <Field label={tr('المنفّذ', 'Actor')}><Select value={actor} onValueChange={setActor}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('الكل', 'All')}</SelectItem><SelectItem value={AD.admin.name}>{AD.admin.name}</SelectItem></SelectContent></Select></Field>
+              <Field label={tr('نوع الإجراء', 'Action type')}><Select value={action} onValueChange={setAction}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الإجراءات', 'All actions')}</SelectItem>{Object.entries(AD.ACTION).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
+            </div>
+          </FilterSheet>
+          <ResultCount>{tr('الأحداث', 'Events')}: <Num>{rows.length}</Num></ResultCount>
         </div>}
         renderCard={(r) => (<div className="flex flex-col gap-1"><div className="flex items-center justify-between gap-2"><Act r={r} /><span className="text-caption text-muted-foreground">{AD.fmt(r.date)} · <Num>{r.time}</Num></span></div><span className="text-label">{r.target}</span><span className="text-body-sm text-muted-foreground">{r.details}</span><span className="text-caption text-muted-foreground">{r.actor}</span></div>)}
         empty={<EmptyState icon={<SearchXIcon />} title={tr('لا توجد أحداث تطابق الفلاتر', 'No events match the filters')} />} />

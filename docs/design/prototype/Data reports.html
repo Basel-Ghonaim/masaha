@@ -78,22 +78,29 @@ function DRInner({ theme, setTheme }) {
   const rows = list.filter((r) => st === 'all' || r.status === st);
   const decide = (r, status, reply) => { setList((l) => l.map((x) => (x.id === r.id ? { ...x, status, reply } : x))); setOpen(null); toast.success(status === 'fixed' ? tr('عُلّم «تم التصحيح»', 'Marked «Corrected»') : tr('عُلّم «لم يُعتمد»', 'Marked «Not accepted»'), { description: reply ? tr('أُرسل الرد لصاحب البلاغ', 'The reply is shown to the reporter') : undefined }); };
   const F = FIELDS(), S = STAT();
-  const columns = [
+  const paged = usePaged(rows);
+    const columns = [
     { id: 'field', header: tr('الحقل', 'Field'), cell: ({ row }) => <span className="text-label">{F[row.original.field][0]}</span> },
     { id: 'msg', header: tr('البلاغ', 'Report'), cell: ({ row }) => <span className="line-clamp-2 text-body-sm">{row.original.msg}</span> },
     { id: 'who', header: tr('المُبلِّغ', 'Reporter'), cell: ({ row }) => row.original.who },
-    { id: 'date', header: tr('التاريخ', 'Date'), cell: ({ row }) => DESK.fmtDate(row.original.date) },
+    // SH-007: six columns; the date is the one the owner needs least beside the rail.
+    { id: 'date', header: tr('التاريخ', 'Date'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => DESK.fmtDate(row.original.date) },
     { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <Badge variant={S[row.original.status][1]}>{S[row.original.status][0]}</Badge> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end"><Button size="sm" variant="outline" onClick={() => setOpen(row.original)}>{tr('فتح', 'Open')}</Button></div> }
   ];
   return (
     <OwnerShell current="data-reports" title={tr('بلاغات البيانات', 'Data reports')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('بلاغات الزوار عن معلومات خاطئة في صفحة المساحة.', 'Visitors’ reports about wrong information on the space page.')}</p>
-      <DataTable label={tr('بلاغات البيانات', 'Data reports')} columns={columns} data={rows} getRowId={(r) => r.id}
-        toolbar={<ToggleGroup type="single" value={st} onValueChange={(v) => v && setSt(v)} aria-label={tr('تصفية حسب الحالة', 'Filter by status')}>
-          <ToggleGroupItem value="all">{tr('الكل', 'All')}</ToggleGroupItem>
-          {Object.entries(S).map(([k, [l]]) => <ToggleGroupItem key={k} value={k}>{l}</ToggleGroupItem>)}
-        </ToggleGroup>}
+      <DataTable label={tr('بلاغات البيانات', 'Data reports')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+        summary={paged.summary} pagination={paged.nav}
+        toolbar={<div className="flex flex-col gap-3">
+          {/* P5: one status filter of four or fewer choices stays chips. */}
+          <ToggleGroup type="single" value={st} onValueChange={(v) => v && setSt(v)} aria-label={tr('تصفية حسب الحالة', 'Filter by status')}>
+            <ToggleGroupItem value="all">{tr('الكل', 'All')}</ToggleGroupItem>
+            {Object.entries(S).map(([k, [l]]) => <ToggleGroupItem key={k} value={k}>{l}</ToggleGroupItem>)}
+          </ToggleGroup>
+          <ResultCount>{tr('عدد البلاغات', 'Reports')}: <Num>{rows.length}</Num></ResultCount>
+        </div>}
         renderCard={(r) => (
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2"><span className="text-label">{F[r.field][0]}</span><Badge variant={S[r.status][1]}>{S[r.status][0]}</Badge></div>

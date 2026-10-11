@@ -50,3 +50,7 @@ html[lang=en] .text-body{line-height:1.6}
 a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=breadcrumb-link],[data-slot=breadcrumb-link],a[data-slot=sidebar-menu-button],[data-slot=sidebar-menu-button] a{color:inherit}
 /* The top bar's minimum height; `min-h-14` is used by both shells but is not in the bundle. */
 .min-h-14{min-height:3.5rem}
+/* SH-007: a table of more than five columns names a column priority — the rest are dropped
+   between 768 and 1023, where the rail leaves about 640 px. The bundle has no `lg:table-cell`
+   (below 768 DataTable draws cards, so the original never needed it). */
+@media(min-width:1024px){.lg-col{display:table-cell}}

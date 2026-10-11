@@ -157,7 +157,7 @@ function FinanceInner({ theme, setTheme }) {
             <TabsTrigger value="occupancy">{tr('الإشغال', 'Occupancy')}</TabsTrigger>
           </TabsList>
         </Tabs>
-        <FilterSheet><div className="md:w-72"><RangePicker value={range} onChange={setRange} /></div></FilterSheet>
+        <FilterSheet active={1} onClear={() => setRange({ from: dayDate(DESK.MONTHS[DESK.MONTHS.length - 1].from), to: dayDate(DESK.TODAY) })}><div className="md:w-72"><RangePicker value={range} onChange={setRange} /></div></FilterSheet>
       </div>
       {tab === 'income' && <p className="text-caption text-muted-foreground">{tr('الدخل = المبالغ المقبوضة فعليًا، بدون الدفعات الملغاة.', 'Income = amounts actually collected, excluding voided payments.')}</p>}
       {tab === 'income' ? <IncomeTab /> : tab === 'debts' ? <DebtsTab /> : <OccupancyTab />}

@@ -55,7 +55,8 @@ function useNearMe() {
   return { loc, coords: loc.status === 'granted' ? loc.coords : null, request, startPick, placePin, clear };
 }
 
-const Ltr = ({ children }) => <span dir="ltr">{children}</span>;
+// SH-007 (and DI-7): an always-LTR value never breaks mid-number inside Arabic text.
+const Ltr = ({ children }) => <span dir="ltr" className="num-iso">{children}</span>;
 const Money = ({ amount }) => <Ltr>{LANG === 'en' ? `₪${amount}` : `${amount} ₪`}</Ltr>;
 const fmtKm = (km) => (km < 10 ? km.toFixed(1) : Math.round(km)).toString();
 const Distance = ({ km }) => <span>{tr("على بعد ", "About ")}<Ltr>{fmtKm(km)}</Ltr>{tr(" كم تقريبًا", " km away")}</span>;
@@ -391,25 +392,89 @@ function useIsTablet() {
   React.useEffect(() => { const m = matchMedia(q); const h = () => setOn(m.matches); m.addEventListener('change', h); return () => m.removeEventListener('change', h); }, []);
   return on;
 }
-function FilterSheet({ children, active = 0, onClear }) {
-  const { Button, Badge, Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } = window.MasahaDesignSystem;
-  const wide = useIsTablet();
-  const [open, setOpen] = React.useState(false);
-  if (wide) return children;
+// P5: the one filter bar. `at` is where the filters go inline — 768 everywhere, except the
+// Directory, which keeps the desktop sidebar it already had and so switches at 1024.
+// The footer is the Directory's: the primary says how many results, the ghost clears.
+function FilterSheet({ children, active = 0, onClear, count, at = 'md', always = false, description, open: openProp, onOpenChange }) {
+  const { Button, Badge, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter } = window.MasahaDesignSystem;
+    const desktop = useIsDesktop();
+  const tablet = useIsTablet();
+  const wide = (at === 'lg' ? desktop : tablet) && !always;
+  const [ownOpen, setOwnOpen] = React.useState(pageParams.get('sheet') === 'filters');
+    const open = openProp === undefined ? ownOpen : openProp;
+    const setOpen = onOpenChange || setOwnOpen;
+    if (wide) return children;
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)}>{tr('الفلاتر', 'Filters')}{active > 0 && <Badge variant="primary"><span dir="ltr">{active}</span></Badge>}</Button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" closeLabel={tr('إغلاق', 'Close')}>
-          <SheetHeader><SheetTitle>{tr('الفلاتر', 'Filters')}</SheetTitle></SheetHeader>
+          <SheetHeader><SheetTitle>{tr('الفلاتر', 'Filters')}</SheetTitle>{description && <SheetDescription>{description}</SheetDescription>}</SheetHeader>
           <SheetBody className="flex flex-col gap-4 py-2">{children}</SheetBody>
-          <SheetFooter className="flex flex-row gap-2">
-            {onClear && <Button variant="ghost" className="flex-1" onClick={onClear}>{tr('مسح الفلاتر', 'Clear filters')}</Button>}
-            <Button className="flex-1" onClick={() => setOpen(false)}>{tr('عرض النتائج', 'Show results')}</Button>
+          <SheetFooter className="flex flex-col gap-2">
+            <Button size="lg" className="w-full" onClick={() => setOpen(false)}>{count === undefined ? tr('عرض النتائج', 'Show results') : resultsLabel(count)}</Button>
+            {onClear && <Button variant="ghost" className="w-full" disabled={active === 0} onClick={onClear}>{tr('مسح الفلاتر', 'Clear filters')}</Button>}
           </SheetFooter>
         </SheetContent>
       </Sheet>
     </>
   );
 }
-Object.assign(window, { TimeInput, FilterSheet, useIsTablet });
+const resultsLabel = (n) => tr(`عرض ${n} نتيجة`, `Show ${n} result${n === 1 ? '' : 's'}`);
+
+// P5: the result count belongs by the toolbar, where the user looks after filtering,
+// not only after the list.
+const ResultCount = ({ children }) => <p className="text-body-sm text-muted-foreground" aria-live="polite">{children}</p>;
+
+// P6: every list pages — 20 a page (API contract §4), the summary «1–20 من 312», and on a
+// phone Previous and Next around that summary instead of the page numbers.
+const PAGE_SIZE = 20;
+function usePaged(rows, pageSize = PAGE_SIZE) {
+  const { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis, PaginationSummary } = window.MasahaDesignSystem;
+  const [page, setPage] = React.useState(1);
+  const total = rows.length;
+  const last = Math.max(1, Math.ceil(total / pageSize));
+  const current = Math.min(page, last);
+  const from = total ? (current - 1) * pageSize + 1 : 0;
+  const to = Math.min(current * pageSize, total);
+  // Reset to the first page whenever the filtered set shrinks past the current one.
+  React.useEffect(() => { if (page > last) setPage(1); }, [last]);
+
+  const summary = <span>{tr('عرض', 'Showing')} <Ltr>{from}</Ltr>–<Ltr>{to}</Ltr> {tr('من', 'of')} <Ltr>{total}</Ltr></span>;
+  const step = (n) => (e) => { e.preventDefault(); setPage(n); };
+  // Up to five numbers around the current page; the rest is an ellipsis.
+  const first = Math.max(1, Math.min(current - 2, last - 4));
+  const numbers = [];
+  for (let n = first; n <= Math.min(last, first + 4); n++) numbers.push(n);
+
+  // A short list keeps its steps, marked aria-disabled, so every list reads the same way.
+  const nav = (
+    <Pagination label={tr('صفحات القائمة', 'List pages')}>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious asChild disabled={current === 1}>
+            <button type="button" onClick={current === 1 ? undefined : step(current - 1)}>{tr('السابق', 'Previous')}</button>
+          </PaginationPrevious>
+        </PaginationItem>
+        {numbers[0] > 1 && <PaginationItem><PaginationEllipsis label={tr('صفحات سابقة', 'Earlier pages')} /></PaginationItem>}
+        {numbers.map((n) => (
+          <PaginationItem key={n}>
+            <PaginationLink asChild isActive={n === current}>
+              <button type="button" onClick={step(n)}><Ltr>{n}</Ltr></button>
+            </PaginationLink>
+          </PaginationItem>
+        ))}
+        {numbers[numbers.length - 1] < last && <PaginationItem><PaginationEllipsis label={tr('صفحات تالية', 'Later pages')} /></PaginationItem>}
+        <PaginationSummary>{tr('صفحة', 'Page')} <Ltr>{current}</Ltr> {tr('من', 'of')} <Ltr>{last}</Ltr></PaginationSummary>
+        <PaginationItem>
+          <PaginationNext asChild disabled={current === last}>
+            <button type="button" onClick={current === last ? undefined : step(current + 1)}>{tr('التالي', 'Next')}</button>
+          </PaginationNext>
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+
+  return { rows: rows.slice((current - 1) * pageSize, current * pageSize), summary, nav, total, page: current };
+}
+Object.assign(window, { TimeInput, FilterSheet, useIsTablet, usePaged, ResultCount, resultsLabel, PAGE_SIZE });

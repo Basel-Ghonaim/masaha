@@ -65,7 +65,8 @@ function PresentList() {
     { id: 'kind', header: tr('النوع', 'Type'), cell: ({ row }) => <KindBadge p={row.original} /> },
     { id: 'since', header: tr('منذ', 'Since'), cell: ({ row }) => <Num>{row.original.since}</Num> },
     { id: 'dur', header: tr('المدة', 'Duration'), cell: ({ row }) => durLabel(mins(row.original)) },
-    { id: 'detail', header: tr('الاستخدام', 'Usage'), cell: ({ row }) => <span className="text-body-sm"><Detail p={row.original} /></span> },
+    // SH-007: six columns; the usage line is the one that can wait for 1024.
+    { id: 'detail', header: tr('الاستخدام', 'Usage'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => <span className="text-body-sm"><Detail p={row.original} /></span> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{out(row.original)}</div> }
   ];
   return (
@@ -133,9 +134,11 @@ function LogTab() {
     { id: 'd', header: tr('المدة', 'Duration'), cell: ({ row }) => durLabel(mins(row.original)) },
     { id: 'how', header: tr('طريقة الانتهاء', 'Ended'), cell: ({ row }) => how(row.original) }
   ];
-  const label = date.toLocaleDateString(tr('ar-EG', 'en-GB'), { weekday: 'long', day: 'numeric', month: 'long', numberingSystem: 'latn' });
+  const paged = usePaged(rows);
+    const label = date.toLocaleDateString(tr('ar-EG', 'en-GB'), { weekday: 'long', day: 'numeric', month: 'long', numberingSystem: 'latn' });
   return (
-    <DataTable label={tr('سجل الحضور', 'Attendance log')} columns={columns} data={rows} getRowId={(r) => r.id}
+    <DataTable label={tr('سجل الحضور', 'Attendance log')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+      summary={paged.summary} pagination={paged.nav}
       toolbar={<div className="md:max-w-xs"><Field label={tr('التاريخ', 'Date')}>
         <DatePicker open={open} onOpenChange={setOpen}>
           <DatePickerTrigger>{label}</DatePickerTrigger>
