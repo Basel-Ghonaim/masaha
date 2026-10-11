@@ -1,6 +1,19 @@
-# Masaha — design archive
+# Masaha — the design
 
-The final Masaha screen designs (made in Claude Design, 2026-09-29), kept as a self-contained, offline archive after the Claude Design project was deleted. The design system itself lives in the code (`apps/web/src/shared/design-system/`); the designs were built with a synced copy of it.
+The Masaha screen designs: made in Claude Design (2026-09-29), and **maintained here by hand**
+since that project was deleted. The design system itself lives in the code
+(`apps/web/src/shared/design-system/`); the designs were built with a synced copy of it, vendored
+under `prototype/_ds/`.
+
+**The prototype is the living design.** It is no longer a frozen archive: design reviews take it
+apart, the owner decides, and the decisions are applied to `prototype/` — so the prototype, not the
+screenshots, is what a feature is built from. Two things follow:
+
+- **The design as delivered** is at the tag `design-2026-09-29`, and nothing here is expected to
+  match it any more. [CHANGES.md](CHANGES.md) lists every decision applied since, with its date.
+- **The screenshots in `screens/` are from before the fix phase.** They are regenerated once, at
+  the end of it. Until then they show the design as delivered, and `prototype/` shows it as it is;
+  where they disagree, the prototype is right.
 
 ## What is here
 
@@ -10,7 +23,8 @@ The final Masaha screen designs (made in Claude Design, 2026-09-29), kept as a s
 | `INDEX.md` | Every frame of the design board (483 frames in 52 sections), in order: label, prototype URL with its state parameters, viewport, screenshot |
 | `screens/` | A full-page screenshot of every distinct frame (437 WebP images), one folder per board section. Sections whose frames all repeat earlier ones have no folder; `INDEX.md` links each frame to its file |
 | `prototype/` | The clickable HTML prototypes: 39 pages, the board (`Flows - states.html`), sample data and copy. Fully offline (React, Babel, fonts and the design-system bundle are vendored) |
-| `prototype/BRIEF.md` | The product brief the screens were designed against |
+| `prototype/BRIEF.md` | The product brief the screens were designed against — a record, so it is not updated as the design changes |
+| `CHANGES.md` | Every decision applied to the living design: what changed, where, and when |
 
 ## How to open the prototypes
 
@@ -26,7 +40,7 @@ Then open `Flows - states.html` (the whole board) or any page directly. States a
 ## Rules for implementing from this archive (Claude Code)
 
 1. **The prototype is a specification, not code to copy.** It is a single-file React prototype with inline Babel. Rebuild each screen with Masaha's design-system components, the four zones, TanStack Query and the typed copy catalogues, following the docs. Never import or paste prototype code or its CSS.
-2. **Read the source, not only the pictures.** `prototype/masaha/*.jsx` holds the exact structure, states and conditions of each screen; the screenshots show the result.
+2. **Read the source, not only the pictures.** `prototype/masaha/*.jsx` holds the exact structure, states and conditions of each screen; the screenshots show the result **as it was delivered**, which the fix phase has moved on from ([CHANGES.md](CHANGES.md)).
    - `i18n.js`: the Arabic and English copy used on the screens; the starting point for catalogue lines (review wording against the glossary).
    - `data.js`, `details-data.js`, `desk-data.js`, `owner-data.js`, `admin-data.js`: sample data only; the real rules live in `docs/architecture/data-model.md`.
 3. **Neither wins automatically.** The design owns behaviour and look; the docs (ADRs, data-model, foundation) own the rules. Every conflict between a screen and the docs is recorded and decided.

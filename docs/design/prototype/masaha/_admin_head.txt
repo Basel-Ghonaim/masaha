@@ -12,7 +12,7 @@
 <script src="masaha/i18n.js"></script>
 <script src="_vendor/react.js"></script>
 <script src="_vendor/react-dom.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="_vendor/babel.min.js"></script>
 <script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
 <script src="masaha/data.js"></script>
 <script src="masaha/details-data.js"></script>
