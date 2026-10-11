@@ -21,7 +21,7 @@ function useSection(id, initial, missingAtFirst) {
   const dirty = JSON.stringify(v) !== JSON.stringify(saved);
   React.useEffect(() => { dirty ? dirtySet.add(id) : dirtySet.delete(id); window.dispatchEvent(new Event('masaha-dirty')); }, [dirty]);
   React.useEffect(() => { window.dispatchEvent(new CustomEvent('masaha-group', { detail: { id, missing } })); }, [missing]);
-  const save = () => { setSaved(v); setUpdated(tr('الآن', 'just now')); setMissing(false); ptoast.success(tr('حُفظ القسم', 'Section saved')); };
+  const save = (next) => { const value = next || v; setV(value); setSaved(value); setUpdated(tr('الآن', 'just now')); setMissing(false); ptoast.success(tr('حُفظ القسم', 'Section saved')); };
   return { v, setV, set: (p) => setV((x) => ({ ...x, ...p })), dirty, missing, save, reset: () => setV(saved), updated, touch: () => { setUpdated(tr('الآن', 'just now')); ptoast.success(tr('أكّدنا أن المعلومات ما زالت صحيحة', 'Confirmed as still correct')); } };
 }
 
@@ -31,7 +31,7 @@ const SectionTitle = ({ children }) => <PCardTitle><h2>{children}</h2></PCardTit
 
 // `validate` answers one line for the section's Alert, or { field: line } for the fields
 // themselves (then `children` is a function of those errors, and the first takes the focus).
-function ProfileSection({ id, title, description, updated, sec, children, validate, footerExtra }) {
+function ProfileSection({ id, title, description, updated, stale, headerAction, sec, children, validate, footerExtra }) {
   const [err, setErr] = React.useState(null);
   const form = React.useRef(null);
   const { busy, run } = useActionRun('save');
@@ -43,17 +43,24 @@ function ProfileSection({ id, title, description, updated, sec, children, valida
     if (!m) run(() => sec.save());
   };
   const fieldErrors = err && typeof err === 'object' ? err : {};
+  // On a phone the header has no room beside the title: its action leads the content instead.
+  const wide = useIsTablet();
   return (
     <PCard id={id} className="section-anchor">
       <PCardHeader>
         <SectionTitle>{title}</SectionTitle>
-        <PCardDescription>{description ? <>{description} · </> : null}{sec.missing ? tr('لم تُضف بعد', 'Not added yet') : <>{tr('آخر تحديث', 'Updated')} {sec.updated || updated}</>}</PCardDescription>
-        {sec.dirty && <PCardAction><PBadge variant="warning">{tr('تغييرات غير محفوظة', 'Unsaved changes')}</PBadge></PCardAction>}
+        <PCardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          {description ? <span>{description} ·</span> : null}
+          {sec.missing ? <span>{tr('لم تُضف بعد', 'Not added yet')}</span> : <span>{tr('آخر تحديث', 'Updated')} {sec.updated || updated}</span>}
+          {stale && !sec.missing && !sec.updated && <PBadge variant="warning">{tr('قديمة', 'Out of date')}</PBadge>}
+        </PCardDescription>
+        {((wide && headerAction) || sec.dirty) && <PCardAction className="flex flex-wrap items-center justify-end gap-2">{wide && headerAction}{sec.dirty && <PBadge variant="warning">{tr('تغييرات غير محفوظة', 'Unsaved changes')}</PBadge>}</PCardAction>}
       </PCardHeader>
       <form ref={form} onSubmit={submit} noValidate className="flex flex-col gap-(--card-padding)">
         <PCardContent className="flex flex-col gap-5">
           {typeof err === 'string' && <PAlert variant="destructive"><PAlertDescription>{err}</PAlertDescription></PAlert>}
           <ActionAlert for="save" />
+          {!wide && headerAction && <div className="flex flex-wrap items-center gap-2">{headerAction}</div>}
           {typeof children === 'function' ? children(fieldErrors) : children}
         </PCardContent>
         <PCardFooter className="flex flex-wrap gap-2">
@@ -281,64 +288,146 @@ function SectionNav({ sections, wideOnly }) {
 const DAYS = () => window.MASAHA.weekOrder;
 const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 
+// The hours and the prices share what is saved: a price may name a saved shift only (S7), and a
+// shift a saved price uses cannot be removed (DI-13). Each section publishes what it saved.
+const editorStore = { shifts: [], usedShifts: [] };
+const publish = (key, value) => { editorStore[key] = value; window.dispatchEvent(new Event('masaha-store')); };
+function useStored(key) {
+  const [value, setValue] = React.useState(editorStore[key]);
+  React.useEffect(() => { const on = () => setValue(editorStore[key]); window.addEventListener('masaha-store', on); return () => window.removeEventListener('masaha-store', on); }, []);
+  return value;
+}
+
+// A time of day typed as digits. An end may be 24:00, the day's own end (DI-15): a day open until
+// midnight closes at minute 1,440, which the shared TimeInput, capped at 23:59, cannot hold.
+function ClockInput({ value, onChange, end, ...rest }) {
+  const [txt, setTxt] = React.useState(value || '');
+  React.useEffect(() => setTxt(value || ''), [value]);
+  const shape = (raw) => { const d = raw.replace(/\D/g, '').slice(0, 4); return d.length > 2 ? d.slice(0, 2) + ':' + d.slice(2) : d; };
+  const commit = () => {
+    const d = txt.replace(/\D/g, ''); if (!d) return;
+    let h = Number(d.length <= 2 ? d : d.slice(0, d.length - 2)), m = Number(d.length <= 2 ? 0 : d.slice(-2));
+    if (end && h >= 24) { h = 24; m = 0; } else { h = Math.min(23, h); m = Math.min(59, m); }
+    const v = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); setTxt(v); onChange(v);
+  };
+  const valid = (v) => { if (!/^\d{2}:\d{2}$/.test(v)) return false; const [h, m] = v.split(':').map(Number); return m < 60 && (h < 24 || (end && h === 24 && m === 0)); };
+  const enter = (e) => { if (e.key !== 'Enter') return; e.preventDefault(); commit(); const form = e.currentTarget.form; setTimeout(() => form && form.requestSubmit()); };
+  return <PInput {...rest} type="text" inputMode="numeric" dir="ltr" placeholder="08:00" maxLength={5} value={txt} onChange={(e) => { const v = shape(e.target.value); setTxt(v); if (valid(v)) onChange(v); }} onBlur={commit} onKeyDown={enter} />;
+}
+
+const SHIFT_LIMIT = 10;
+const LimitNote = ({ children }) => <span className="text-caption text-muted-foreground">{children}</span>;
+const dayRange = (d) => [toMin(d.from), toMin(d.to)];
+const rangeText = (d) => d.from + '–' + d.to;
+
+// AD-009 and S2: the server takes a shift that lies inside at least one open day. So the error is
+// a shift that fits none; the open days it does not fit are named under it, as a helper.
+function shiftCheck(shift, days) {
+  const from = toMin(shift.from), to = toMin(shift.to);
+  if (!(to > from)) return { error: tr('النهاية بعد البداية', 'The end comes after the start') };
+  const open = DAYS().filter(([k]) => days[k].open);
+  if (!open.length) return { error: tr('لا يوم مفتوح بعد', 'No day is open yet') };
+  const outside = open.filter(([k]) => { const [o, c] = dayRange(days[k]); return from < o || to > c; });
+  if (outside.length === open.length) return { error: tr('خارج ساعات كل يوم مفتوح', 'Outside the hours of every open day') };
+  // One or two days are named with their hours; more, by name alone.
+  if (outside.length) return { helper: tr('لا تنطبق: ', 'Doesn’t apply on ') + outside.map(([k, n]) => (outside.length > 2 ? n : n + ' (' + rangeText(days[k]) + ')')).join(tr('، ', ', ')) };
+  return {};
+}
+
+const SAMPLE_SHIFTS = () => [{ id: 'am', ar: 'الوردية الصباحية', en: 'Morning shift', from: '08:00', to: '13:00' }, { id: 'pm', ar: 'الوردية المسائية', en: 'Evening shift', from: '13:00', to: '18:00' }];
+
 function HoursSection({ meta = {} }) {
-  const init = { days: Object.fromEntries(DAYS().map(([k]) => [k, k === 'fri' ? { open: false, from: '08:00', to: '18:00' } : { open: true, from: '08:00', to: '18:00' }])), shifts: [{ ar: 'الوردية الصباحية', en: 'Morning shift', from: '08:00', to: '13:00' }, { ar: 'الوردية المسائية', en: 'Evening shift', from: '13:00', to: '18:00' }] };
+  const used = useStored('usedShifts');
+  const init = { days: Object.fromEntries(DAYS().map(([k]) => [k, { open: k !== 'fri', from: '08:00', to: '18:00' }])), shifts: SAMPLE_SHIFTS() };
   if (meta.missing) init.shifts = [];
   else if (pageParams.get('demo') === 'shifterror') init.shifts[1].to = '19:30';
   const sec = useSection('hours', init, meta.missing);
+  React.useEffect(() => { publish('shifts', meta.missing ? [] : init.shifts); }, []);
   const setDay = (k, p) => sec.set({ days: { ...sec.v.days, [k]: { ...sec.v.days[k], ...p } } });
-  const copyAll = (k) => { const d = sec.v.days[k]; sec.set({ days: Object.fromEntries(DAYS().map(([x]) => [x, x === 'fri' ? sec.v.days.fri : { ...d }])) }); };
-  const openDays = Object.values(sec.v.days).filter((d) => d.open);
-  const minFrom = openDays.length ? Math.min(...openDays.map((d) => toMin(d.from))) : 0;
-  const maxTo = openDays.length ? Math.max(...openDays.map((d) => toMin(d.to))) : 0;
-  const shiftBad = (s) => toMin(s.from) < minFrom || toMin(s.to) > maxTo || toMin(s.to) <= toMin(s.from);
-  const setShift = (i, p) => sec.set({ shifts: sec.v.shifts.map((s, j) => (j === i ? { ...s, ...p } : s)) });
+  const setShift = (i, p) => sec.set({ shifts: sec.v.shifts.map((x, j) => (j === i ? { ...x, ...p } : x)) });
+  const first = DAYS().find(([k]) => sec.v.days[k].open);
+  // From the first open day, in the week's order, to every open day; closed days stay closed.
+  const copyAll = () => { const d = sec.v.days[first[0]]; sec.set({ days: Object.fromEntries(DAYS().map(([k]) => [k, sec.v.days[k].open ? { ...sec.v.days[k], from: d.from, to: d.to } : sec.v.days[k]])) }); };
+  const dayError = (d) => (d.open && toMin(d.to) <= toMin(d.from) ? tr('بعد البداية', 'After the start') : undefined);
+  const hoursErrors = (v) => {
+    const out = {};
+    DAYS().forEach(([k]) => { if (dayError(v.days[k])) out['day-' + k] = dayError(v.days[k]); });
+    v.shifts.forEach((x, i) => {
+      if (!x.ar.trim()) out['shift-' + i + '-ar'] = tr('أدخل اسم الوردية بالعربية', 'Enter the shift’s Arabic name');
+      else if (v.shifts.findIndex((y) => y.ar.trim() === x.ar.trim()) < i) out['shift-' + i + '-ar'] = tr('اسم وردية مكرّر', 'A repeated shift name');
+      const c = shiftCheck(x, v.days);
+      if (c.error) out['shift-' + i + '-to'] = c.error;
+    });
+    return errorsOf(out);
+  };
+  // R2: a saved shift keeps its id — a new one takes its id at its first save and keeps it, in the
+  // section too, so a price naming it protects it and still names it after the next save.
+  const save = () => {
+    const value = { ...sec.v, shifts: sec.v.shifts.map((x) => (x.id ? x : { ...x, id: 'n' + Math.random().toString(36).slice(2, 7) })) };
+    sec.save(value);
+    publish('shifts', value.shifts);
+  };
   return (
-    <ProfileSection id="hours" title={tr('ساعات العمل', 'Opening hours')} updated={meta.updated || tr('قبل أسبوع', 'a week ago')} sec={sec}
-      validate={(v) => (v.shifts.some(shiftBad) ? tr('كل وردية يجب أن تكون داخل ساعات العمل.', 'Each shift must sit inside the opening hours.') : null)}>
-      <ul className="flex flex-col divide-y rounded-lg border border-border">
-        {DAYS().map(([k, name]) => {
-          const d = sec.v.days[k];
-          return (
-            <li key={k} className="flex flex-col gap-2 px-3 py-3 md:flex-row md:items-center md:gap-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-label">{name}</span>
-                <PSwitch checked={d.open} onCheckedChange={(o) => setDay(k, { open: o })} aria-label={tr('مفتوحة يوم ', 'Open on ') + name} />
-              </div>
-              {d.open ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <TimeInput aria-label={tr('من', 'From')} value={d.from} onChange={(v) => setDay(k, { from: v })} className="w-24" />
-                  <span className="text-muted-foreground" aria-hidden="true">–</span>
-                  <TimeInput aria-label={tr('إلى', 'To')} value={d.to} onChange={(v) => setDay(k, { to: v })} className="w-24" />
-                  {k === 'sat' && <PButton type="button" variant="link" size="sm" onClick={() => copyAll('sat')}>{tr('نسخ إلى كل الأيام', 'Copy to all days')}</PButton>}
+    <ProfileSection id="hours" title={tr('ساعات العمل', 'Opening hours')} updated={meta.updated || tr('قبل أسبوع', 'a week ago')} stale={meta.stale} sec={{ ...sec, save }}
+      headerAction={first && <PButton type="button" variant="outline" size="sm" onClick={copyAll}>{tr('نسخ إلى كل الأيام', 'Copy to all days')}</PButton>}
+      validate={hoursErrors}>
+      {(errors) => <>
+        <p className="text-caption text-muted-foreground">{first ? tr(`«نسخ إلى كل الأيام» ينسخ ساعات ${first[1]} إلى كل يوم مفتوح.`, `“Copy to all days” copies ${first[1]}’s hours to every open day.`) : tr('افتح يومًا واحدًا على الأقل.', 'Open at least one day.')}</p>
+        <ul className="flex flex-col divide-y rounded-lg border border-border">
+          {DAYS().map(([k, name]) => {
+            const d = sec.v.days[k];
+            return (
+              <li key={k} className="flex flex-col gap-3 px-3 py-3 md:flex-row md:items-end md:gap-4">
+                <div className="day-name flex items-center justify-between gap-3 md:self-center">
+                  <span className="text-label">{name}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-body-sm text-muted-foreground" aria-hidden="true">{d.open ? tr('مفتوحة', 'Open') : tr('مغلقة', 'Closed')}</span>
+                    <PSwitch checked={d.open} onCheckedChange={(o) => setDay(k, { open: o })} aria-label={tr('مفتوحة يوم ', 'Open on ') + name} />
+                  </span>
                 </div>
-              ) : <span className="text-body-sm text-muted-foreground">{tr('مغلقة', 'Closed')}</span>}
-            </li>
-          );
-        })}
-      </ul>
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <span className="text-label">{tr('الورديات', 'Shifts')}</span>
-          <span className="text-caption text-muted-foreground">{tr('اختيارية، وتكون داخل ساعات العمل.', 'Optional, and inside the opening hours.')}</span>
-        </div>
-        {sec.v.shifts.map((s, i) => (
-          <div key={i} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-12 md:items-end">
-            <div className="md:col-span-4"><PField label={tr('الاسم بالعربية', 'Name in Arabic')}><PInput lang="ar" dir="rtl" value={s.ar} onChange={(e) => setShift(i, { ar: e.target.value })} /></PField></div>
-            <div className="md:col-span-3"><PField label={tr('الاسم بالإنجليزية', 'Name in English')}><PInput lang="en" dir="ltr" value={s.en} onChange={(e) => setShift(i, { en: e.target.value })} /></PField></div>
-            <div className="md:col-span-4"><PField label={tr('من – إلى', 'From – to')} error={shiftBad(s) ? tr('خارج ساعات العمل', 'Outside opening hours') : undefined}>
-              <div className="flex items-center gap-2">
-                <TimeInput aria-label={tr('من', 'From')} value={s.from} onChange={(v) => setShift(i, { from: v })} />
-                <TimeInput aria-label={tr('إلى', 'To')} value={s.to} onChange={(v) => setShift(i, { to: v })} />
-              </div>
-            </PField></div>
-            <div className="md:col-span-1 md:flex md:justify-end"><PButton type="button" variant="ghost" size="icon" aria-label={tr('حذف الوردية', 'Remove shift')} onClick={() => sec.set({ shifts: sec.v.shifts.filter((_, j) => j !== i) })}><PX /></PButton></div>
+                {d.open && <div className="grid grid-cols-2 gap-3">
+                  <PField label={tr('من', 'From')}><ClockInput value={d.from} onChange={(v) => setDay(k, { from: v })} className="w-24" /></PField>
+                  <PField label={tr('إلى', 'To')} error={dayError(d)}><ClockInput end value={d.to} onChange={(v) => setDay(k, { to: v })} className="w-24" /></PField>
+                </div>}
+              </li>
+            );
+          })}
+        </ul>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-label">{tr('الورديات', 'Shifts')}</h3>
+            <span className="text-caption text-muted-foreground">{tr('اختيارية. تقع كل وردية داخل ساعات يوم مفتوح واحد على الأقل.', 'Optional. Each shift lies inside the hours of at least one open day.')}</span>
           </div>
-        ))}
-        <PButton type="button" variant="outline" className="self-start" onClick={() => sec.set({ shifts: [...sec.v.shifts, { ar: '', en: '', from: '08:00', to: '13:00' }] })}>{tr('إضافة وردية', 'Add shift')}</PButton>
-      </div>
+          {sec.v.shifts.length > 0 && <ul className="flex flex-col gap-3">
+            {sec.v.shifts.map((x, i) => {
+              const c = shiftCheck(x, sec.v.days);
+              const inUse = !!x.id && used.includes(x.id);
+              return (
+                <li key={x.id || 'k' + i} className="flex flex-col gap-3 rounded-lg border border-border p-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <PField label={tr('الاسم بالعربية', 'Name in Arabic')} error={errors['shift-' + i + '-ar']}><PInput lang="ar" dir="rtl" value={x.ar} onChange={(e) => setShift(i, { ar: e.target.value })} /></PField>
+                    <PField label={tr('الاسم بالإنجليزية', 'Name in English')} labelEnd={<Optional />}><PInput lang="en" dir="ltr" value={x.en} onChange={(e) => setShift(i, { en: e.target.value })} /></PField>
+                  </div>
+                  <div className="grid items-start gap-3 md:grid-cols-2">
+                    <PField label={tr('من', 'From')}><ClockInput value={x.from} onChange={(v) => setShift(i, { from: v })} /></PField>
+                    <PField label={tr('إلى', 'To')} error={c.error} helper={c.helper}><ClockInput end value={x.to} onChange={(v) => setShift(i, { to: v })} /></PField>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PButton type="button" variant="ghost" size="sm" disabled={inUse} onClick={() => sec.set({ shifts: sec.v.shifts.filter((_, j) => j !== i) })}><PX />{tr('حذف الوردية', 'Remove shift')}</PButton>
+                    {inUse && <LimitNote>{tr('يستخدمها سعر — غيّره في الأسعار أولًا', 'A price uses it — change that price first')}</LimitNote>}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>}
+          <div className="flex flex-wrap items-center gap-3">
+            <PButton type="button" variant="outline" disabled={sec.v.shifts.length >= SHIFT_LIMIT} onClick={() => sec.set({ shifts: [...sec.v.shifts, { id: null, ar: '', en: '', from: '08:00', to: '13:00' }] })}>{tr('إضافة وردية', 'Add shift')}</PButton>
+            {sec.v.shifts.length >= SHIFT_LIMIT && <LimitNote>{tr('الحد 10 ورديات', 'Up to 10 shifts')}</LimitNote>}
+          </div>
+        </div>
+      </>}
     </ProfileSection>
   );
 }
 
-Object.assign(window, { FACT_GROUPS, ago, useSection, ProfileSection, SectionTitle, SpaceSection, SectionNav, MissingChecklist, HoursSection, dirtySet, Optional, BasicsFields, LocationFields, AreaSelect, parseCoords, fmtCoords, coordsError, errorsOf, basicsErrors, locationErrors, sampleProfile });
+Object.assign(window, { FACT_GROUPS, ago, SAMPLE_SHIFTS, publish, useStored, LimitNote, latinDigits, useSection, ProfileSection, SectionTitle, SpaceSection, SectionNav, MissingChecklist, HoursSection, dirtySet, Optional, BasicsFields, LocationFields, AreaSelect, parseCoords, fmtCoords, coordsError, errorsOf, basicsErrors, locationErrors, sampleProfile });

@@ -59,3 +59,12 @@ a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=bre
 .section-anchor{scroll-margin-top:5rem}
 @media(max-width:1023px){.section-anchor{scroll-margin-top:8.5rem}}
 .section-chips{position:sticky;top:3.5rem;z-index:5;background:var(--background);padding-block:.5rem;scrollbar-width:thin}
+/* AD-007: a day's name and its switch keep one width beside the times from 768 (`md:w-44` is not in the bundle). */
+@media(min-width:768px){.day-name{flex:0 0 11rem}}
+/* AD-008: a price row's controls line up at their tops when one carries an error or a second line. */
+.price-row>td{vertical-align:top}
+/* AD-006: a contact's remove button sits level with its value, under the label row, from 768. */
+@media(min-width:768px){.contact-remove{padding-top:1.75rem}}
+/* AD-008: the prices' table keeps to its card — fixed columns, so a field's own width cannot widen it. */
+.price-table table{table-layout:fixed;width:100%}.price-table .w-period{width:18%}.price-table .w-audience{width:20%}.price-table .w-shift{width:25%}.price-table .w-label{width:17%}.price-table .w-amount{width:12%}.price-table .w-remove{width:3rem}
+.price-table th,.price-table td{padding-inline:.25rem;white-space:normal}.price-table th:first-child,.price-table td:first-child{padding-inline-start:.75rem}

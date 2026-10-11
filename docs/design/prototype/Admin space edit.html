@@ -55,7 +55,8 @@ const missingGroups = (meta.missing || []).filter((g) => FACT_GROUPS.includes(g)
 const groupMeta = (g) => {
   if (missingGroups.includes(g)) return { missing: true };
   const days = g === 'profile' ? daysSince(meta.last) : meta.upd[g];
-  return { days, updated: ago(days) };
+  // DI-14: older than its threshold — 30 days for the prices, 60 for the others (the platform's).
+  return { days, updated: ago(days), stale: days > (g === 'prices' ? AD.LIMIT.prices : AD.LIMIT.other) };
 };
 
 // Verified space: values as text, nothing editable — the same sections under the same names.
