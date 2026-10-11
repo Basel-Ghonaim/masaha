@@ -56,9 +56,9 @@ function AdminShell({ current, title, theme, setTheme, actions, children }) {
         </div>
       </ASidebar>
       <ASInset>
-        <header className="sticky top-0 z-10 flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-background px-4 py-2 md:px-8">
+        <header className="sticky top-0 z-10 flex min-h-14 flex-wrap items-center gap-x-2 gap-y-2 border-b border-border bg-background px-4 py-2 md:gap-x-3 md:px-8">
           <ASTrigger label={tr('القائمة', 'Menu')} />
-          <h1 className="text-heading-3">{title}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-heading-3">{title}</h1>
           <PageActions actions={actions} />
           <div className="ms-auto flex items-center gap-1">
             <ALang lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} className="hidden md:inline-flex" />

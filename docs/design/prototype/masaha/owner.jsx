@@ -49,7 +49,12 @@ const INSIDE_HOURS = pageParams.get('hours') !== 'closed';
 function useOverride() {
   const demo = pageParams.get('override');
   const [ov, setOv] = React.useState(() => {
-    if (demo) { const [st, m] = demo.split(':'); return { state: st, until: Date.now() + Number(m || 84) * 60000 }; }
+    if (demo) {
+          // A bare number is the old format («?override=30»); it means Full for that many minutes.
+          const [a, b] = demo.split(':');
+          const [st, m] = /^\d+$/.test(a) ? ['full', a] : [a, b];
+          return { state: STATE_WORD()[st] ? st : 'full', until: Date.now() + Number(m || 84) * 60000 };
+        }
     try { const v = JSON.parse(sessionStorage.getItem(OVERRIDE_KEY)); return v && v.until > Date.now() ? v : null; } catch (e) { return null; }
   });
   const [, tick] = React.useReducer((x) => x + 1, 0);
@@ -60,6 +65,10 @@ function useOverride() {
 }
 const hmLeft = (s) => { const m = Math.ceil(s / 60); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); };
 
+// The state's own colours, as Badge draws them, so one control can be read at a glance.
+const STATE_SKIN = { open: 'border-success bg-success-subtle text-success-subtle-foreground', full: 'border-warning bg-warning-subtle text-warning-subtle-foreground', closed: 'border-border bg-secondary text-secondary-foreground' };
+
+// Read-only, for a page that reports the state without offering to change it.
 function PublicStateBadge({ state, ov }) {
   const W = STATE_WORD();
   if (ov && ov.active) {
@@ -70,20 +79,39 @@ function PublicStateBadge({ state, ov }) {
   return <OBadge variant={v}><span>{tr('يظهر للزوار:', 'Visitors see:')} {w}</span></OBadge>;
 }
 
-function StatusControl({ ov }) {
+// P2: one control. Its label is what visitors see, in the state's colour; it opens the panel
+// that changes it, which also holds the way back to the automatic state.
+function PublicStateControl({ state, ov }) {
   const { Popover, PopoverTrigger, PopoverContent, ToggleGroup, ToggleGroupItem } = window.MasahaDesignSystem;
-  const [open, setOpen] = React.useState(pageParams.get('status') === 'open');
+  const [open, setOpen] = React.useState(pageParams.get('publicstate') === 'open');
   const [st, setSt] = React.useState(ov.state || 'full');
+  const wide = useIsTablet();
   const W = STATE_WORD();
+  const shown = ov.active ? ov.state : state;
   const opts = [[30, tr('30 د', '30 min')], [60, tr('ساعة', '1 hour')], [120, tr('ساعتين', '2 hours')], [minsToClose(), tr('حتى الإغلاق', 'Until closing')]];
-  const apply = (m) => { ov.set(st, m); setOpen(false); window.MasahaDesignSystem.toast(tr(`تظهر المساحة «${W[st][1]}» للزوار`, `Visitors now see «${W[st][1]}»`)); };
+  const apply = (m) => { ov.set(st, m); setOpen(false); window.MasahaDesignSystem.toast.success(tr(`تظهر المساحة «${W[st][1]}» للزوار`, `Visitors now see «${W[st][1]}»`)); };
+  // The decision asks for a short form on a phone «inside the one top-bar row». With P1's «⋯»
+    // also in the bar, 390 fits the state word but not the countdown without eating the page
+    // title, so the countdown moves one tap away, into the panel and the control's name.
+    const left = ov.active ? hmLeft(ov.left) : null;
+    const label = wide
+      ? <>{tr('يظهر للزوار:', 'Visitors see:')} {W[shown][1]}{ov.active && <> {tr('يدويًا', 'manually')} · <Num>{left}</Num></>}</>
+      : <>{W[shown][1]}</>;
+    const name = ov.active
+      ? tr(`يظهر للزوار: ${W[shown][1]} يدويًا، ${left} متبقية — غيّرها`, `Visitors see: ${W[shown][1]} manually, ${left} left — change it`)
+      : tr(`يظهر للزوار: ${W[shown][1]} — غيّرها`, `Visitors see: ${W[shown][1]} — change it`);
   return (
     <span className="flex flex-wrap items-center gap-2">
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild><OButton variant="outline" size="sm" disabled={!INSIDE_HOURS}>{tr('ضبط الحالة', 'Set status')}<OChevDown /></OButton></PopoverTrigger>
+        <PopoverTrigger asChild>
+          <OButton variant="outline" size="sm" className={STATE_SKIN[shown]} disabled={!INSIDE_HOURS} aria-label={name}>
+            {label}{wide && <OChevDown />}
+          </OButton>
+        </PopoverTrigger>
         <PopoverContent align="start" className="flex w-72 flex-col gap-4">
           <div className="flex flex-col gap-2">
             <span className="text-label">{tr('الحالة التي يراها الزوار', 'What visitors see')}</span>
+                        {ov.active && <p className="text-caption text-muted-foreground">{tr('الآن:', 'Now:')} {W[shown][1]} {tr('يدويًا', 'manually')} · <Num>{left}</Num> {tr('متبقية', 'left')}</p>}
             <ToggleGroup type="single" value={st} onValueChange={(v) => v && setSt(v)}>
               {['open', 'full', 'closed'].map((k) => <ToggleGroupItem key={k} value={k}>{W[k][1]}</ToggleGroupItem>)}
             </ToggleGroup>
@@ -92,10 +120,10 @@ function StatusControl({ ov }) {
             <span className="text-label">{tr('لمدة', 'For')}</span>
             <div className="grid grid-cols-2 gap-2">{opts.map(([m, l]) => <OButton key={l} variant="outline" size="sm" onClick={() => apply(m)}>{l}</OButton>)}</div>
           </div>
+          {ov.active && <OButton variant="ghost" size="sm" onClick={() => { ov.set(null); setOpen(false); }}><OX />{tr('العودة للحالة التلقائية', 'Back to the automatic state')}</OButton>}
           <p className="text-caption text-muted-foreground">{ov.active ? tr('يحلّ محل الضبط الحالي. ', 'Replaces the current setting. ') : ''}{tr('بعدها تعود الحالة تلقائيًا حسب الحضور.', 'After that the state follows attendance again.')}</p>
         </PopoverContent>
       </Popover>
-      {ov.active && <OButton variant="ghost" size="sm" onClick={() => ov.set(null)}><OX />{tr('إلغاء', 'Cancel')}</OButton>}
       {!INSIDE_HOURS && <span className="text-caption text-muted-foreground">{tr('متاح خلال ساعات العمل فقط', 'Only during opening hours')}</span>}
     </span>
   );
@@ -208,18 +236,17 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
         </div>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-background px-4 py-2 md:px-8">
+        <header className="sticky top-0 z-10 flex min-h-14 flex-wrap items-center gap-x-2 gap-y-2 border-b border-border bg-background px-4 py-2 md:gap-x-3 md:px-8">
           <SidebarTrigger label={tr('القائمة', 'Menu')} />
-          <h1 className="text-heading-3">{title}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-heading-3">{title}</h1>
           <PageActions actions={actions} />
-          <span className="hidden items-center gap-2 lg:flex"><PublicStateBadge state={base} ov={ov} /><StatusControl ov={ov} /></span>
+          <PublicStateControl state={base} ov={ov} />
           <div className="ms-auto flex items-center gap-1">
             <OLang lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} className="hidden md:inline-flex" />
             <OTheme theme={theme} onThemeChange={setTheme} label={theme === 'light' ? tr('المظهر الداكن', 'Dark theme') : tr('المظهر الفاتح', 'Light theme')} className="hidden md:inline-flex" />
             <OwnerUserMenu theme={theme} setTheme={setTheme} />
           </div>
-          <span className="flex w-full flex-wrap items-center gap-2 lg:hidden"><PublicStateBadge state={base} ov={ov} /><StatusControl ov={ov} /></span>
-        </header>
+                  </header>
         <main id="main" className={'flex flex-1 flex-col gap-6 px-4 py-6 md:px-8 ' + (bottomAction ? 'pb-28 md:pb-6' : '')}>
           {children}
         </main>
@@ -232,4 +259,4 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
 
 // Numbers and ratios stay LTR and isolated inside Arabic text ("27 / 40").
 const Num = ({ children }) => { const f = [].concat(children); const text = f.every((c) => typeof c === 'string' || typeof c === 'number'); return <span dir="ltr" className="num-iso">{text ? f.join('') : children}</span>; };
-Object.assign(window, { OwnerShell, PublicStateBadge, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF });
+Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF });

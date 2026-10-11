@@ -456,8 +456,8 @@ Generated from `prototype/Flows - states.html`, in board order. Each row: the fr
 |---|---|---|---|
 | Overview · money row + «34 اليوم · 27 الآن» — desktop 1440 | `Owner overview.html` | 1440×1000 | [29-owner-overview-kept/01-overview-desktop-1440.webp](screens/29-owner-overview-kept/01-overview-desktop-1440.webp) |
 | Overview · money row + «34 اليوم · 27 الآن» — phone 390 | `Owner overview.html` | 390×844 | [29-owner-overview-kept/02-overview-phone-390.webp](screens/29-owner-overview-kept/02-overview-phone-390.webp) |
-| «ضبط الحالة» open — desktop 1440 | `Desk.html?status=open` | 1440×1000 | [31-batch-3a-fixes/03-open-desktop-1440.webp](screens/31-batch-3a-fixes/03-open-desktop-1440.webp) |
-| «ضبط الحالة» open — phone 390 | `Desk.html?status=open` | 390×844 | [31-batch-3a-fixes/04-open-phone-390.webp](screens/31-batch-3a-fixes/04-open-phone-390.webp) |
+| «ضبط الحالة» open — desktop 1440 | `Desk.html?publicstate=open` | 1440×1000 | [31-batch-3a-fixes/03-open-desktop-1440.webp](screens/31-batch-3a-fixes/03-open-desktop-1440.webp) |
+| «ضبط الحالة» open — phone 390 | `Desk.html?publicstate=open` | 390×844 | [31-batch-3a-fixes/04-open-phone-390.webp](screens/31-batch-3a-fixes/04-open-phone-390.webp) |
 | Override active · «ممتلئ يدويًا · 1:24 متبقية» — desktop 1440 | `Desk.html?override=full:84` | 1440×1000 | [31-batch-3a-fixes/05-override-active-1-24-desktop-1440.webp](screens/31-batch-3a-fixes/05-override-active-1-24-desktop-1440.webp) |
 | Override active · «ممتلئ يدويًا · 1:24 متبقية» — phone 390 | `Desk.html?override=full:84` | 390×844 | [31-batch-3a-fixes/06-override-active-1-24-phone-390.webp](screens/31-batch-3a-fixes/06-override-active-1-24-phone-390.webp) |
 | Override · «مغلق الآن» manually — desktop 1440 | `Desk.html?role=reception&override=closed:30` | 1440×1000 | [31-batch-3a-fixes/07-override-manually-desktop-1440.webp](screens/31-batch-3a-fixes/07-override-manually-desktop-1440.webp) |

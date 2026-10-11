@@ -37,6 +37,4 @@ Then open `Flows - states.html` (the whole board) or any page directly. States a
 - **Navigation icons are placeholders.** Claude Design only had part of the icon set; the final icons are chosen in code (F-6).
 - **Sample data is illustrative.** Some admin frames reuse text from another space (for example Golden Hub's edit form shows Focus Hub's description).
 - **The Google button loads the Roboto font from Google Fonts;** offline it falls back to the system font.
-- **Three older frames render with an error** and are superseded by later ones:
-  - `Desk.html?role=reception&override=30` and `Owner overview.html?override=120`: the old override format. Use `Desk.html?override=full:84` or `closed:30`.
-  - `Announcements.html?tab=ended&edit=a4`: the later announcement frames cover it.
+- **One older frame renders with an error:** `Announcements.html?tab=ended&edit=a4`, which the later announcement frames cover.
