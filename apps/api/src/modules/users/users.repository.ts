@@ -1,6 +1,6 @@
 import { prisma, type Tx } from '../../db/index.ts';
 import { Prisma, type PrismaClient } from '../../generated/prisma/client.ts';
-import type { Language } from '../../generated/prisma/enums.ts';
+import type { Language, Role } from '../../generated/prisma/enums.ts';
 
 // The account, without its password hash: the hash is selected only to check a password
 // (docs/backend/security.md › Passwords).
@@ -22,12 +22,49 @@ export interface NewAccount {
   passwordHash: string | null;
   googleSubject?: string;
   language?: Language;
+  role?: Role;
+  /** A temporary password, set by someone else, to be changed first. */
+  mustChangePassword?: boolean;
 }
 
 /** A user's id and name, as another module lists them. */
 export interface UserName {
   id: number;
   name: string;
+}
+
+/** What the admin's list filters the accounts by, each optional. */
+export interface AccountsFilter {
+  /** Part of the name or the email, whatever the case. */
+  q?: string;
+  role?: Role;
+  suspended?: boolean;
+}
+
+// An account as the admin's list shows it: still never its password hash.
+const LISTED = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  suspendedAt: true,
+  createdAt: true,
+  googleSubject: true,
+} as const satisfies Prisma.UserSelect;
+
+export type ListedAccount = Prisma.UserGetPayload<{ select: typeof LISTED }>;
+
+function accountsWhere({ q, role, suspended }: AccountsFilter): Prisma.UserWhereInput {
+  return {
+    ...(q !== undefined && {
+      OR: [
+        { name: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ],
+    }),
+    ...(role && { role }),
+    ...(suspended !== undefined && { suspendedAt: suspended ? { not: null } : null }),
+  };
 }
 
 export function createUsersRepository(db: PrismaClient = prisma) {
@@ -42,6 +79,34 @@ export function createUsersRepository(db: PrismaClient = prisma) {
         where: { id: { in: [...ids] } },
         select: { id: true, name: true },
       });
+    },
+
+    /** One page of the accounts the filter keeps, newest first, and how many it keeps in all. */
+    async findPage(
+      filter: AccountsFilter,
+      { skip, take }: { skip: number; take: number },
+    ): Promise<{ rows: ListedAccount[]; total: number }> {
+      const where = accountsWhere(filter);
+      const [rows, total] = await Promise.all([
+        db.user.findMany({
+          where,
+          select: LISTED,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take,
+        }),
+        db.user.count({ where }),
+      ]);
+      return { rows, total };
+    },
+
+    /** Which of these users have a password, without reading any hash. */
+    async findWithPassword(ids: readonly number[]): Promise<number[]> {
+      const rows = await db.user.findMany({
+        where: { id: { in: [...ids] }, passwordHash: { not: null } },
+        select: { id: true },
+      });
+      return rows.map(({ id }) => id);
     },
 
     /** The account and its hash apart, for a password check only. */
@@ -135,6 +200,11 @@ export function createUsersRepository(db: PrismaClient = prisma) {
         data: { passwordHash, mustChangePassword: false },
       });
       return count === 1 ? tx.user.findUnique({ where: { id }, select: ACCOUNT }) : null;
+    },
+
+    /** Sets the global role. */
+    async setRole(id: number, role: Role, tx: Tx): Promise<void> {
+      await tx.user.update({ where: { id }, data: { role }, select: { id: true } });
     },
 
     async hasPassword(id: number, tx: Tx = db): Promise<boolean> {

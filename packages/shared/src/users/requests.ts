@@ -16,3 +16,13 @@ export const changePasswordSchema = z.object({
   password: passwordSchema,
 });
 export type ChangePasswordRequest = z.infer<typeof changePasswordSchema>;
+
+/** How a temporary password reached its person: on WhatsApp, in person, or another way. */
+export const HANDOVER_CHANNELS = ['WHATSAPP', 'IN_PERSON', 'OTHER'] as const;
+
+export type HandoverChannel = (typeof HANDOVER_CHANNELS)[number];
+
+/** How the temporary password just shown was handed over, for the audit (the owner's A5). */
+export const handoverSchema = z.object({ channel: z.enum(HANDOVER_CHANNELS) });
+
+export type HandoverRequest = z.infer<typeof handoverSchema>;

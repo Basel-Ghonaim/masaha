@@ -1,24 +1,28 @@
 # Users
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
-> **Authority:** The `users` capability: the account, its credentials, who may sign in, the password change and the forced change, the account menu and sign-out. Its endpoints are owned by the [API contract](../api/api-contract.md#me); the `User` entity by the [data model](../architecture/data-model.md#users-and-sessions); every password and sign-in rule by [security.md](../backend/security.md#passwords).
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
+> **Authority:** The `users` capability: the account, its credentials, who may sign in, the password change and the forced change, the accounts the admin reads and creates, a temporary password's handover, the account menu and sign-out. Its endpoints are owned by the API contract: [*Me*](../api/api-contract.md#me) and [*Users (the admin)*](../api/api-contract.md#users-the-admin); the `User` entity by the [data model](../architecture/data-model.md#users-and-sessions); every password and sign-in rule by [security.md](../backend/security.md#passwords).
 > **Scope:** the API module `users` (L1); `@masaha/shared/users`; the web feature `features/users`.
 
 ## What it does
 
-- Holds the accounts: creates one at registration or at a first Google sign-in, links Google to an existing one, hashes and verifies passwords, and refuses a suspended account.
+- Holds the accounts: creates one at registration, at a first Google sign-in, or as an account the admin creates, with a temporary password, links Google to an existing one, hashes and verifies passwords, and refuses a suspended account.
 - Changes a password, and settles a temporary one in the forced change.
 - Answers the account's view (`User`) for the session, and the names of a set of users for a list.
+- Answers a page of the accounts for the admin's users list, filtered by name or email, role and state, each with how it signs in.
+- Records how a temporary password was handed over, in the audit, for the admin.
+- Changes the global role when `space-links` finds that a person's owner links give another, ending every session of theirs.
 - On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, and the forced password change's form.
 
-The account's settings (`GET` and `PATCH /me`), suspension, role changes and the temporary passwords that an owner or the admin creates are not built.
+The account's settings (`GET` and `PATCH /me`), suspension, the admin's role changes, the temporary passwords of the owner's reception accounts and the admin's recovery are not built.
 
 ## Who uses it
 
 - **Every signed-in user,** through the account menu and sign-out.
 - **A user with a temporary password,** through the forced change.
+- **The admin,** who records how a temporary password was handed over.
 - **[`auth`](auth.md),** which signs in, registers and links Google through it.
-- **[`space-links`](space-links.md),** which names the owners in the admin's spaces list.
+- **[`space-links`](space-links.md),** which names the owners in the admin's spaces list, composes the admin's users list from its page of accounts, and changes a person's role as their owner links give it.
 
 ## Responsibility boundary
 
@@ -46,6 +50,10 @@ The account's settings (`GET` and `PATCH /me`), suspension, role changes and the
 ### API decisions
 
 - **`users` owns `User`;** the session's user extends it. *Why:* a lower level must not read a higher one's types. 2026-10-04, #34.
+- **An account created by someone else gets its temporary password here,** generated and hashed before the transaction that stores it, and is audited `user.created` without it. *Why:* the temporary password and the hashing are this module's; bcrypt stays outside every transaction ([security › Passwords](../backend/security.md#passwords)). 2026-10-11, #60.
+- **A temporary password's handover is a small call of its own, after the password is shown,** audited on the account, and only while that password is pending (the owner's D3 and S7). *Why:* the admin's dialog asks the channel once the password has been copied (A5), and the admin's own temporary password (the users item) reuses it as it is. 2026-10-11, #60.
+- **A role change is made here, under the session lock its caller took,** ending every session of the person and audited `user.roleChanged`. *Why:* the role and the sessions' end are this module's; `space-links` only decides that the links give another role ([security › Tokens and cookies](../backend/security.md#tokens-and-cookies)). 2026-10-11, #60.
+- **The admin's users list filters and pages the accounts here,** newest first, whatever the case of the search; whether an account has a password is read without its hash. *Why:* every filter is the account's own ([conventions §5](../backend/conventions.md#5-pagination)), and the hash is selected only to check a password ([security › Passwords](../backend/security.md#passwords)). 2026-10-11, #60.
 
 ### Web decisions
 
@@ -61,13 +69,12 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 
 ## Code map
 
-- **API:** `apps/api/src/modules/users/`, entry `index.ts`: the service, its `me` router, the password hashing and its limits.
-- **Shared:** `packages/shared/src/users/`: the account, the change's request and answer, and the password policy.
+- **API:** `apps/api/src/modules/users/`, entry `index.ts`: the service, its `me` and `admin` routers, the password hashing and its limits, and the temporary password's pure rule.
+- **Shared:** `packages/shared/src/users/`: the account, the change's request and answer, the password policy, and the handover's request.
 - **Web:** `apps/web/src/features/users/`, entry `index.ts`: `AccountMenu`, `AccountMenuSection`, `CompactAccountMenu`, `SignOutButton`, `ForcedPasswordChangeForm`. Mounted by `pages/site/shell/`, `pages/site/auth/` and `pages/dashboard/shell/`.
 
 ## Open findings
 
-- [25](../architecture/findings/25-the-signed-in-claims-are-read-by-a-helper-written-twice.md): its controller keeps its own copy of the signed-in helper.
 - [39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md): the service takes its password hashing as a parameter only its unit test passes.
 
 ## History
@@ -78,6 +85,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #31 — two racing first Google sign-ins make one account.
 - #34 — `User` in `@masaha/shared/users`.
 - #35 — the password policy's rules for a checklist.
+- #60 — the page of accounts for the admin's users list; the role change that follows an owner's links; the accounts the admin creates with a temporary password, and its handover.
 
 ### Web history
 

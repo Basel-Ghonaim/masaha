@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-07 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -359,7 +359,7 @@ The endpoints on one space put its links on the request first, without refusing 
 - **Errors:** `validation` (422); `not_found` (404), for a soft-deleted space too.
 
 #### `DELETE /admin/spaces/:spaceId` · 🛡
-- **204:** the space is soft-deleted, verified or not ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): it leaves every list and the public, and every link to it counts for nothing, kept as it is ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). Audited `space.deleted` (`after`: `deletedAt`). Deleting a deleted space changes nothing.
+- **204:** the space is soft-deleted, verified or not ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): it leaves every list and the public, and every link to it counts for nothing for access and in the lists, kept as it is; a person's global role still counts it ([Owners (the admin)](#owners-the-admin)) ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). Audited `space.deleted` (`after`: `deletedAt`). Deleting a deleted space changes nothing.
 - **Errors:** `not_found` (404).
 
 #### `POST /admin/spaces/:spaceId/restore` · 🛡
@@ -394,8 +394,69 @@ The endpoints on one space put its links on the request first, without refusing 
 - **200:** `AdminSpace`, the group dated now and nothing else changed. Only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). Audited `space.<group>Confirmed` (`profileConfirmed`, `hoursConfirmed`, …), with the group's date in `before` and `after` (`{ hoursUpdatedAt }`).
 - **Errors:** `conflict` (409), with no code, for a missing group: there is nothing to confirm until it is saved, even empty; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
 
+### Owners (the admin)
+
+A space's owners, as the admin links them ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)): a space with an active owner link is verified ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
+
+- **One space at a time.** A link is made, or ended, for one person at one space; the admin links owners only, never reception.
+- **The global role follows the links.** A person's first active owner link makes them an `OWNER`, and the end of their last one a `USER` again; a soft-deleted space's link still counts here, as deleting a space writes nothing in its links. Each such change ends every session of the person ([security › Tokens and cookies](../backend/security.md#tokens-and-cookies)). A link or an end that leaves the role as it is ends no session.
+- **Ending is deactivating:** the link is kept, deactivated, and linking again reactivates that same row.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)): `user.created` for an account the admin creates (`after`: `{ name, email, role, mustChangePassword }`, never the password); `space.ownerLinked` (`after: { userId }`; a deactivated reception row that becomes an owner's has `before: { role: "RECEPTION" }` and `after: { userId, role: "OWNER" }`) and `space.ownerUnlinked` (`before: { userId }`), with the space as both the entity and the entry's space; a change of role, `user.roleChanged` (`before` and `after`: `{ role }`), with the person as the entity.
+
+#### `POST /admin/owners` · 🛡
+- **Body:** `{ name, email, spaceId, upgradeExisting? }`. The name as at registration (1–100 characters); the email trimmed and lowercased; `spaceId` the one space it is linked to.
+- **201:** `AddedOwner` (`@masaha/shared/space-links`), with `Cache-Control: no-store`; all of it is written, or nothing:
+  - **an email with no account:** a new account, an `OWNER` with a temporary password to change at its first sign-in ([security › Passwords](../backend/security.md#passwords)), linked to the space, which is verified;
+  - **an email with an account, and `upgradeExisting: true`:** that account is linked as above, keeping its name and its password, with no temporary password. The flag allows an upgrade; it does not require one.
+
+  ```ts
+  AddedOwner = {
+    userId: number,
+    temporaryPassword: string | null   // the new account's, in this answer only, never again; null for an upgrade
+  }
+  ```
+- **Errors**, a refusal writing nothing: `validation` (422), with `errors.spaceId = ["invalid_choice"]` for a soft-deleted or unknown space; for an email with an account, in this order: `conflict` (409) `ACCOUNT_IS_ADMIN`, `conflict` (409) `ACCOUNT_SUSPENDED`, `conflict` (409) `ALREADY_OWNER` for an owner, who is linked instead, `conflict` (409) `EMAIL_HAS_ACCOUNT` without `upgradeExisting` (also when another creation took the email meanwhile), and `conflict` (409) `RECEPTION_LINK_ACTIVE`.
+
+#### `POST /admin/spaces/:spaceId/owners` · 🛡
+- **Body:** `{ userId }`: a user, who becomes an owner, or an owner, who owns one more space.
+- **204:** the person is the space's owner; the space is verified. A person already the space's active owner: nothing is written.
+- **Errors:** `validation` (422), with `errors.userId = ["invalid_choice"]` for an unknown person; `conflict` (409) `ACCOUNT_IS_ADMIN` for an admin; `conflict` (409) `ACCOUNT_SUSPENDED` for a suspended account; `conflict` (409) `RECEPTION_LINK_ACTIVE` for a person with an active reception link at this space, which its owner deactivates first; `not_found` (404) for a soft-deleted or unknown space. A refusal writes nothing.
+
+#### `DELETE /admin/spaces/:spaceId/owners/:userId` · 🛡
+- **204:** the person's owner link to the space is ended; the last one leaves the space unverified, its facts the admin's again ([security › Authorization](../backend/security.md#authorization)). Without an active owner link of the person there, nothing is written: a reception link is never ended here.
+- **Errors:** `not_found` (404) for a soft-deleted or unknown space.
+
+### Users (the admin)
+
+The accounts, as the admin reads them ([data-model › Users and sessions](../architecture/data-model.md#users-and-sessions)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
+
+#### `GET /admin/users` · 🛡
+- **Query:** `?q=&role=&state=&page=&limit=` (§4), each optional:
+  - `q`: part of the name or the email, whatever the case (1–100 characters);
+  - `role`: `user`, `owner` or `admin`, the global role; `role=owner` is the owners page;
+  - `state`: `active` or `suspended`.
+- **200:** `AdminUserRow[]` (`@masaha/shared/space-links`), newest first, with `meta`. Every filter applies before the page is cut ([conventions §5](../backend/conventions.md#5-pagination)).
+
+  ```ts
+  AdminUserRow = {
+    id: number, name: string, email: string,
+    role: "USER" | "OWNER" | "ADMIN",             // OWNER follows the person's active owner links (ADR 0009)
+    isSuspended: boolean,
+    signIn: { password: boolean, google: boolean },
+    joinedAt: string,                             // when the account was created
+    spaces: { id: number, nameEn: string, nameAr: string | null }[]   // its active OWNER links, oldest first;
+                                                  // none to a soft-deleted space
+  }
+  ```
+- **Errors:** `validation` (422), for an unknown `role` or `state` (`invalid_choice`) or a page out of range.
+
+#### `POST /admin/users/:userId/temporary-password/handover` · 🛡
+- **Body:** `{ channel }`: how the temporary password just shown was handed over, `"WHATSAPP"`, `"IN_PERSON"` or `"OTHER"` (`HANDOVER_CHANNELS`, `@masaha/shared/users`). The web asks it after the password is shown, for an account the admin created; the admin's own temporary password (planned) uses it too.
+- **204:** audited `user.temporaryPasswordHandedOver` (`after: { channel }`), with the account as the entity, as the entry of the password it follows. Only while that temporary password is still pending; a second handover is a second entry.
+- **Errors:** `validation` (422), with `invalid_choice` on `channel`; `conflict` (409) `TEMPORARY_PASSWORD_NOT_PENDING` once the account has no temporary password to change; `not_found` (404) for an unknown account.
+
 ## 6. Domain error codes (initial)
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `OWNER_ALREADY_LINKED` · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING`.

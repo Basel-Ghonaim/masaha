@@ -36,8 +36,12 @@ import {
   createSessionsService,
 } from './modules/sessions/index.ts';
 import {
+  createAdminOwnersController,
+  createAdminOwnersService,
   createAdminSpacesController,
   createAdminSpacesService,
+  createAdminUsersController,
+  createAdminUsersService,
   createSpaceLinksAdminRouter,
   createSpaceLinksController,
   createSpaceLinksMeRouter,
@@ -65,6 +69,7 @@ import {
   createSpacesService,
 } from './modules/spaces/index.ts';
 import {
+  createUsersAdminRouter,
   createUsersController,
   createUsersMeRouter,
   createUsersService,
@@ -195,7 +200,13 @@ export function createApi({
   const runInTransaction = createRunInTransaction();
 
   const sessions = createSessionsService({ now: clock });
-  const users = createUsersService({ accessTokens, limiter, sessions, runInTransaction });
+  const users = createUsersService({
+    accessTokens,
+    limiter,
+    audit: writeAudit,
+    sessions,
+    runInTransaction,
+  });
   const lookups = createLookupsService();
   const governorates = createGovernoratesService({ runInTransaction, audit: writeAudit });
   const areas = createAreasService({ runInTransaction, audit: writeAudit });
@@ -232,6 +243,14 @@ export function createApi({
     lookups,
     users,
   });
+  const adminUsers = createAdminUsersService({ users, spaces });
+  const adminOwners = createAdminOwnersService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    users,
+    now: clock,
+  });
   const auth = createAuthService({
     users,
     sessions,
@@ -257,7 +276,8 @@ export function createApi({
     AUTH_PATH,
     createAuthRouter(createAuthController(auth, cookies, recoveryCookie), webOrigin),
   );
-  api.use('/me', createUsersMeRouter(createUsersController(users, cookies), requireAuth));
+  const usersController = createUsersController(users, cookies);
+  api.use('/me', createUsersMeRouter(usersController, requireAuth));
   api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
   api.use(
     '/manage/spaces',
@@ -277,9 +297,16 @@ export function createApi({
   // (conventions §8, Space access).
   admin.use(
     '/spaces/:spaceId',
-    loadSpaceLinks((spaceId) => spaceLinks.linksAt(spaceId)),
+    loadSpaceLinks((spaceId, tx) => spaceLinks.linksAt(spaceId, tx)),
   );
-  admin.use(createSpaceLinksAdminRouter(createAdminSpacesController(adminSpaces)));
+  admin.use(
+    createSpaceLinksAdminRouter({
+      adminOwners: createAdminOwnersController(adminOwners),
+      adminSpaces: createAdminSpacesController(adminSpaces),
+      adminUsers: createAdminUsersController(adminUsers),
+    }),
+  );
+  admin.use(createUsersAdminRouter(usersController));
   admin.use(
     createSpacesAdminRouter({
       space: createSpaceController(space),

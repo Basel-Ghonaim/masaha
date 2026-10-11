@@ -1,12 +1,20 @@
 import { textSchema, type Language } from '@masaha/shared/core';
-import { NAME_MAX_LENGTH, type ChangePasswordRequest, type User } from '@masaha/shared/users';
+import {
+  NAME_MAX_LENGTH,
+  type ChangePasswordRequest,
+  type HandoverChannel,
+  type User,
+} from '@masaha/shared/users';
 
 import { createRunInTransaction, type RunInTransaction, type Tx } from '../../db/index.ts';
+import type { Role } from '../../generated/prisma/enums.ts';
+import type { AuditWriter } from '../../shared/audit/index.ts';
 import type { AccessClaims, AccessTokens } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
 import { createSessionsService, type SessionsService } from '../sessions/index.ts';
 import { hashPassword, verifyPassword } from './password.ts';
+import { temporaryPassword } from './temporaryPassword.ts';
 
 /** bcrypt, as the users module uses it. */
 export interface Passwords {
@@ -18,13 +26,22 @@ import { toUserView } from './users.mapper.ts';
 import {
   createUsersRepository,
   type Account,
+  type AccountsFilter,
+  type ListedAccount,
   type UserName,
   type UsersRepository,
 } from './users.repository.ts';
 
+/** An account as the admin's users list shows it, with how it signs in. */
+export type AccountListing = Omit<ListedAccount, 'googleSubject'> & {
+  hasPassword: boolean;
+  hasGoogle: boolean;
+};
+
 interface Dependencies {
   accessTokens: AccessTokens;
   limiter: Limiter;
+  audit: AuditWriter;
   repository?: UsersRepository;
   sessions?: SessionsService;
   runInTransaction?: RunInTransaction;
@@ -65,6 +82,19 @@ export interface VerifiedCredentials {
   confirm(tx: Tx): Promise<Account>;
 }
 
+/** A temporary password, shown once to hand over, and its hash, to store. */
+export interface TemporaryPassword {
+  password: string;
+  hash: string;
+}
+
+/** An account someone else creates, with a temporary password. */
+export interface CreatedAccount {
+  name: string;
+  email: string;
+  role: Role;
+}
+
 /** A changed password: the device's session goes on with these, and every other one has ended. */
 export interface PasswordChange {
   accessToken: string;
@@ -78,6 +108,7 @@ export interface PasswordChange {
 export function createUsersService({
   accessTokens,
   limiter,
+  audit,
   repository = createUsersRepository(),
   sessions = createSessionsService(),
   runInTransaction = createRunInTransaction(),
@@ -229,6 +260,52 @@ export function createUsersService({
 
     get,
 
+    /**
+     * Changes the account's global role, under its session lock, which the caller took
+     * (`lockAccount`): every session of the user ends, so no session goes on with the old role
+     * (docs/backend/security.md › Tokens and cookies), and the change is audited.
+     */
+    async changeRole(account: Account, role: Role, actorId: number, tx: Tx): Promise<void> {
+      await repository.setRole(account.id, role, tx);
+      await sessions.revokeAll(account.id, tx);
+      await audit(
+        {
+          actorId,
+          action: 'user.roleChanged',
+          entityType: 'user',
+          entityId: account.id,
+          before: { role: account.role },
+          after: { role },
+        },
+        tx,
+      );
+    },
+
+    /**
+     * One page of the accounts the filter keeps, newest first, each with how it signs in, for the
+     * admin's users list; the total counts every account the filter keeps (conventions §5).
+     */
+    async page(
+      filter: AccountsFilter,
+      { page, limit }: { page: number; limit: number },
+    ): Promise<{ rows: AccountListing[]; total: number }> {
+      const { rows, total } = await repository.findPage(filter, {
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+      const withPassword = new Set(
+        rows.length === 0 ? [] : await repository.findWithPassword(rows.map(({ id }) => id)),
+      );
+      return {
+        rows: rows.map(({ googleSubject, ...account }) => ({
+          ...account,
+          hasPassword: withPassword.has(account.id),
+          hasGoogle: googleSubject !== null,
+        })),
+        total,
+      };
+    },
+
     /** The names of these users, in one query, for a list that names them (the spaces' owners). */
     namesFor(ids: readonly number[], tx?: Tx): Promise<UserName[]> {
       return repository.findNames(ids, tx);
@@ -237,6 +314,73 @@ export function createUsersService({
     /** The account with this email, if there is one. */
     async findByEmail(email: string, tx?: Tx): Promise<Account | null> {
       return (await repository.findByEmail(email, tx))?.account ?? null;
+    },
+
+    /**
+     * A new temporary password and its hash (docs/backend/security.md › Passwords), before the
+     * transaction that stores it opens: bcrypt stays outside every transaction.
+     */
+    async issueTemporaryPassword(): Promise<TemporaryPassword> {
+      const password = temporaryPassword();
+      return { password, hash: await passwords.hash(password) };
+    },
+
+    /**
+     * An account created by someone else, with a temporary password to change at its first
+     * sign-in, audited `user.created`; the password is in no entry. Nothing when the email already
+     * has an account, which then ends the caller's transaction.
+     */
+    async createWithTemporaryPassword(
+      { name, email, role }: CreatedAccount,
+      passwordHash: string,
+      actorId: number,
+      tx: Tx,
+    ): Promise<Account | null> {
+      const created = await repository.create(
+        { name, email, passwordHash, role, mustChangePassword: true },
+        tx,
+      );
+      if (!('account' in created)) return null;
+      await audit(
+        {
+          actorId,
+          action: 'user.created',
+          entityType: 'user',
+          entityId: created.account.id,
+          after: { name, email, role, mustChangePassword: true },
+        },
+        tx,
+      );
+      return created.account;
+    },
+
+    /**
+     * Records how the account's temporary password was handed over, after it was shown (the
+     * owner's A5): audited `user.temporaryPasswordHandedOver`, the account as the entity, as the
+     * entry of the password it follows. Only while that password is still pending; an unknown
+     * account is 404.
+     */
+    recordHandover(actorId: number, userId: number, channel: HandoverChannel): Promise<void> {
+      return runInTransaction(async (tx) => {
+        const account = await lockAccount(userId, tx);
+        if (!account) throw AppError.notFound(undefined, 'Account not found');
+        if (!account.mustChangePassword) {
+          throw AppError.conflict(
+            'TEMPORARY_PASSWORD_NOT_PENDING',
+            'No temporary password pending',
+          );
+        }
+        await audit(
+          {
+            actorId,
+            action: 'user.temporaryPasswordHandedOver',
+            entityType: 'user',
+            entityId: userId,
+            after: { channel },
+          },
+          tx,
+        );
+      });
     },
 
     /** Hashes a new password, before the transaction that sets it opens. */

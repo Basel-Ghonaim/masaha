@@ -31,14 +31,20 @@ describe('createLogger', () => {
     });
   });
 
-  it.each(['password', 'currentPassword', 'token', 'accessToken', 'refreshToken', 'idToken'])(
-    'redacts a field named %s at any depth the API logs',
-    (field) => {
-      const { lines, logger } = capture();
+  it.each([
+    'password',
+    'currentPassword',
+    'newPassword',
+    'temporaryPassword',
+    'token',
+    'accessToken',
+    'refreshToken',
+    'idToken',
+  ])('redacts a field named %s at any depth the API logs', (field) => {
+    const { lines, logger } = capture();
 
-      logger.info({ [field]: 's1', body: { [field]: 's2' }, a: { b: { [field]: 's3' } } });
+    logger.info({ [field]: 's1', body: { [field]: 's2' }, a: { b: { [field]: 's3' } } });
 
-      expect(lines[0]).not.toMatch(/s1|s2|s3/);
-    },
-  );
+    expect(lines[0]).not.toMatch(/s1|s2|s3/);
+  });
 });

@@ -23,7 +23,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [22. The reset email's words live outside the web's copy catalogue](22-the-reset-emails-words-live-outside-the-webs-copy-catalogue.md)
 - [23. No per-address ceiling for signed-in requests](23-no-per-address-ceiling-for-signed-in-requests.md)
 - [24. The status of each error type is written twice](24-the-status-of-each-error-type-is-written-twice.md)
-- [25. The signed-in claims are read by a helper written twice](25-the-signed-in-claims-are-read-by-a-helper-written-twice.md)
 - [27. Two dashboard chunks import each other](27-two-dashboard-chunks-import-each-other.md)
 - [32. The Google sign-in answer does not say whether it created the account](32-the-google-sign-in-answer-does-not-say-whether-it-created-the-account.md)
 - [33. The deployment's headers must let Google's sign-in work](33-the-deployments-headers-must-let-googles-sign-in-work.md)
@@ -31,11 +30,12 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [39. The users service takes a parameter only its unit test passes](39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md)
 - [40. The platform's contact settings are outside the typed catalogue](40-the-platforms-contact-settings-are-outside-the-typed-catalogue.md)
 - [42. A registration test failed once in a full component run](42-a-registration-test-failed-once-in-a-full-component-run.md)
-- [43. Two races around a space's facts](43-two-races-around-a-spaces-facts.md)
 - [44. No screen restores a deleted space once its toast has gone](44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)
 - [46. The deployment's headers must let the map's tiles load](46-the-deployments-headers-must-let-the-maps-tiles-load.md)
 - [47. A dashboard test reads the top bar's title before the chosen page has loaded](47-a-dashboard-test-reads-the-top-bars-title-before-the-chosen-page-has-loaded.md)
 - [48. `db:up` from another folder recreates the shared container](48-db-up-from-another-folder-recreates-the-shared-container.md)
+- [49. A lost answer to adding an owner loses its temporary password](49-a-lost-answer-to-adding-an-owner-loses-its-temporary-password.md)
+- [50. An owner whose only spaces are deleted stays an owner](50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md)
 
 ## Accepted
 
@@ -57,6 +57,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [12. The admin's settings list a "default auto check-out" that the model has no place for](12-the-admins-settings-list-a-default-auto-check-out-that-the-model-has-no-place-for.md)
 - [13. Two documents still say "member" for the renamed customer](13-two-documents-still-say-member-for-the-renamed-customer.md)
 - [18. Whether a link to a deleted space still counts](18-whether-a-link-to-a-deleted-space-still-counts.md)
+- [25. The signed-in claims are read by a helper written twice](25-the-signed-in-claims-are-read-by-a-helper-written-twice.md)
 - [26. `npm run format -- --check` rewrites files](26-npm-run-format------check-rewrites-files.md)
 - [28. The tests that wait for a lazy page can time out under load](28-the-tests-that-wait-for-a-lazy-page-can-time-out-under-load.md)
 - [29. Two folders cannot each run the web against their own API](29-two-folders-cannot-each-run-the-web-against-their-own-api.md)
@@ -66,4 +67,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [37. Links between documents are checked by hand](37-links-between-documents-are-checked-by-hand.md)
 - [38. The findings are one file](38-the-findings-are-one-file.md)
 - [41. The request log does not name the space](41-the-request-log-does-not-name-the-space.md)
+- [43. Two races around a space's facts](43-two-races-around-a-spaces-facts.md)
 - [45. The data table's library reaches the site's first download](45-the-data-tables-library-reaches-the-sites-first-download.md)

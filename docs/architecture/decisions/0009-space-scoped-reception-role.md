@@ -2,6 +2,7 @@
 
 > **Status:** Accepted · **Date:** 2026-09-29
 > Partly supersedes [ADR 0002](0002-authorization-model.md): its rule 2 (one `SpaceManager.role` value) and rule 7 (the receptionist uses the owner's account).
+> **Revised:** 2026-10-11 — rule 2's `OWNER` follows the active owner links both ways, each change ending the person's sessions; a link that leaves the role as it is ends none. The admin's role change offers `USER` or `ADMIN` only.
 
 ## Context
 ADR 0002 deferred a receptionist role: the front desk was to use the owner's account, with the audit log recording every action. Reviewing the screen designs (2026-09-29) showed that this no longer holds. Payments are now recorded at the desk ([ADR 0010](0010-manual-payment-ledger.md)), so the owner needs to know who received each payment (shift handover, collections per staff member), and front-desk staff must not see finance, void payments or edit the space. ADR 0002 left room for this: a new `SpaceManager.role` value and new rows in the permission table.

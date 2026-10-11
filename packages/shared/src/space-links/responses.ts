@@ -1,4 +1,5 @@
 import type { FactGroup } from '../spaces/index.ts';
+import type { Role } from '../users/index.ts';
 import type { SPACE_STATES } from './requests.ts';
 
 /** One of the user's active links to a space, and their role there (ADR 0009). */
@@ -37,4 +38,27 @@ export interface AdminSpaceRow {
   missingGroups: FactGroup[];
   /** The latest of its fact groups' dates (ISO 8601). */
   lastUpdatedAt: string;
+}
+
+/** An owner added (POST /admin/owners). */
+export interface AddedOwner {
+  userId: number;
+  /** The new account's temporary password, shown once; `null` for an account upgraded. */
+  temporaryPassword: string | null;
+}
+
+/** One row of the admin's users list (GET /admin/users). */
+export interface AdminUserRow {
+  id: number;
+  name: string;
+  email: string;
+  /** The global role; `OWNER` follows the person's active owner links (ADR 0009). */
+  role: Role;
+  isSuspended: boolean;
+  /** How the account signs in: a password, Google, or both. */
+  signIn: { password: boolean; google: boolean };
+  /** When the account was created (ISO 8601). */
+  joinedAt: string;
+  /** The spaces of its active owner links, oldest first; a soft-deleted space's is left out. */
+  spaces: { id: number; nameEn: string; nameAr: string | null }[];
 }

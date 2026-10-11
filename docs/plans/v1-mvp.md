@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -245,15 +245,13 @@ Built: `GET /manage/spaces`, the spaces the caller has an active link to, with t
 | GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | |
 
 #### Admin (`/admin/...`, 🛡)
-Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile and facts edits, a group at a time, and the confirming of a group unchanged while it is unverified, and hiding and showing, soft delete and restore of any space ([api-contract §5](../api/api-contract.md#5-endpoints)).
+Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile and facts edits, a group at a time, and the confirming of a group unchanged while it is unverified, and hiding and showing, soft delete and restore of any space; the users, `GET /admin/users`, the list with its search and its role and state filters, which the owners page reads filtered to the owners; the owners, `/admin/owners`, added with a new account or an upgraded one, and `/admin/spaces/:spaceId/owners`, linked and unlinked one space at a time; and a temporary password's handover, `/admin/users/:userId/temporary-password/handover` ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/admin/stats` | aggregate numbers only |
-| POST / DELETE | `/admin/spaces/:spaceId/managers[/:userId]` | link / unlink an owner |
-| POST | `/admin/owners` | create an OWNER account (temporary password, must change) |
-| GET / PATCH | `/admin/users[/:userId]` | search; suspend; change role |
-| POST | `/admin/users/:userId/temporary-password` | recovery for a user who lost access to their email; must change at first sign-in |
+| PATCH | `/admin/users/:userId` | suspend; change role: `USER` or `ADMIN`, while `OWNER` follows the owner links ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)) |
+| POST | `/admin/users/:userId/temporary-password` | recovery for a user who lost access to their email; must change at first sign-in; its handover is recorded by the built `…/temporary-password/handover` |
 | GET / PATCH | `/admin/data-reports[/:id]` | read all; resolve (with an optional note) or dismiss those of unverified spaces |
 | GET | `/admin/audit-log` | |
 | GET / PATCH | `/admin/settings` | contact info, defaults |

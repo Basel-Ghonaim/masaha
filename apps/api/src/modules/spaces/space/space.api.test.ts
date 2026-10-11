@@ -266,6 +266,44 @@ describe('GET /admin/spaces/:spaceId', () => {
     expect(errorOf(response).type).toBe('not_found');
   });
 
+  it('waits for a change in progress and answers it whole: its week, its shift and its owner (finding 43)', async () => {
+    const space = await createSpace();
+    const owner = await prisma.user.create({
+      data: { email: 'owner@example.com', name: 'Ahmad', passwordHash: 'x' },
+    });
+    let pending: ReturnType<typeof adminRequest> | undefined;
+    // A save in progress holds the space's lock, as every change of its facts or links does, and
+    // commits its rows only after the read has started.
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${space.id} FOR NO KEY UPDATE`;
+      await tx.spaceHours.createMany({
+        data: [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
+          spaceId: space.id,
+          dayOfWeek,
+          isClosed: false,
+          opensMinute: 480,
+          closesMinute: 1080,
+        })),
+      });
+      await tx.spaceShift.create({
+        data: { spaceId: space.id, nameAr: 'صباحية', startsMinute: 480, endsMinute: 780 },
+      });
+      await tx.spaceManager.create({ data: { spaceId: space.id, userId: owner.id } });
+      pending = adminRequest(app, admin, 'get', path(space.id));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    });
+    const response = await pending;
+
+    expect(response?.status).toBe(200);
+    expect(dataOf(response as request.Response)).toMatchObject({
+      isVerified: true,
+      hours: {
+        days: Array.from({ length: 7 }, () => ({ opensMinute: 480, closesMinute: 1080 })),
+        shifts: [{ nameAr: 'صباحية', nameEn: null, startsMinute: 480, endsMinute: 780 }],
+      },
+    });
+  });
+
   it('names the space in the request’s log line (conventions §10)', async () => {
     const lines: string[] = [];
     const logged = createTestApp({
