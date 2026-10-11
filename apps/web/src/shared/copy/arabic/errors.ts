@@ -28,7 +28,8 @@ export const ERRORS = {
   CHECK_IN_ALREADY_CLOSED: 'سُجّل الخروج لهذا الحضور بالفعل.',
   SPACE_CAPACITY_NOT_SET: 'حدّد سعة المساحة أولًا.',
   OUTSIDE_OPENING_HOURS: 'سُجّل هذا الحضور خارج ساعات عمل المساحة.',
-  OWNER_ALREADY_LINKED: 'صاحب المساحة هذا مرتبط بها بالفعل.',
+  ACCOUNT_IS_ADMIN: 'لا يمكن لحساب أدمن أن يكون صاحب مساحة.',
+  RECEPTION_LINK_ACTIVE: 'هذا الشخص يعمل في استقبال هذه المساحة. يوقف صاحبها ذلك الربط أولًا.',
   CURRENT_PASSWORD_INCORRECT: 'كلمة المرور الحالية غير صحيحة.',
   GOOGLE_TOKEN_INVALID:
     'تعذّر تسجيل الدخول باستخدام Google، حاول مرة أخرى أو استخدم البريد الإلكتروني.',

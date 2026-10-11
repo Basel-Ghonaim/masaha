@@ -134,7 +134,6 @@ The photos and the owner's side are not built.
 
 ## Open findings
 
-- [43](../architecture/findings/43-two-races-around-a-spaces-facts.md): a save can land on a space verified a moment before, and a read can mix two states of the hours.
 - [44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md): no screen restores a deleted space once its toast has gone.
 - [46](../architecture/findings/46-the-deployments-headers-must-let-the-maps-tiles-load.md): the deployment's headers must let the add page's map tiles load.
 

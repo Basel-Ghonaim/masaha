@@ -10,16 +10,17 @@
 - Changes a password, and settles a temporary one in the forced change.
 - Answers the account's view (`User`) for the session, and the names of a set of users for a list.
 - Answers a page of the accounts for the admin's users list, filtered by name or email, role and state, each with how it signs in.
+- Changes the global role when `space-links` finds that a person's owner links give another, ending every session of theirs.
 - On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, and the forced password change's form.
 
-The account's settings (`GET` and `PATCH /me`), suspension, role changes and the temporary passwords that an owner or the admin creates are not built.
+The account's settings (`GET` and `PATCH /me`), suspension, the admin's role changes and the temporary passwords that an owner or the admin creates are not built.
 
 ## Who uses it
 
 - **Every signed-in user,** through the account menu and sign-out.
 - **A user with a temporary password,** through the forced change.
 - **[`auth`](auth.md),** which signs in, registers and links Google through it.
-- **[`space-links`](space-links.md),** which names the owners in the admin's spaces list, and composes the admin's users list from its page of accounts.
+- **[`space-links`](space-links.md),** which names the owners in the admin's spaces list, composes the admin's users list from its page of accounts, and changes a person's role as their owner links give it.
 
 ## Responsibility boundary
 
@@ -47,6 +48,7 @@ The account's settings (`GET` and `PATCH /me`), suspension, role changes and the
 ### API decisions
 
 - **`users` owns `User`;** the session's user extends it. *Why:* a lower level must not read a higher one's types. 2026-10-04, #34.
+- **A role change is made here, under the session lock its caller took,** ending every session of the person and audited `user.roleChanged`. *Why:* the role and the sessions' end are this module's; `space-links` only decides that the links give another role ([security › Tokens and cookies](../backend/security.md#tokens-and-cookies)). 2026-10-11, #60.
 - **The admin's users list filters and pages the accounts here,** newest first, whatever the case of the search; whether an account has a password is read without its hash. *Why:* every filter is the account's own ([conventions §5](../backend/conventions.md#5-pagination)), and the hash is selected only to check a password ([security › Passwords](../backend/security.md#passwords)). 2026-10-11, #60.
 
 ### Web decisions
@@ -80,7 +82,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #31 — two racing first Google sign-ins make one account.
 - #34 — `User` in `@masaha/shared/users`.
 - #35 — the password policy's rules for a checklist.
-- #60 — the page of accounts for the admin's users list.
+- #60 — the page of accounts for the admin's users list; the role change that follows an owner's links.
 
 ### Web history
 

@@ -1,3 +1,5 @@
+export { createAdminOwnersController } from './admin-owners/adminOwners.controller.ts';
+export { createAdminOwnersService } from './admin-owners/adminOwners.service.ts';
 export { createAdminSpacesController } from './admin-spaces/adminSpaces.controller.ts';
 export { createAdminSpacesService } from './admin-spaces/adminSpaces.service.ts';
 export { createAdminUsersController } from './admin-users/adminUsers.controller.ts';

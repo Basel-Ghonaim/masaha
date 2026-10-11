@@ -49,7 +49,8 @@ export const DOMAIN_ERROR_CODES = [
   'RESEND_LIMIT_REACHED',
   // space-links
   'SPACE_NOT_MANAGED',
-  'OWNER_ALREADY_LINKED',
+  'ACCOUNT_IS_ADMIN',
+  'RECEPTION_LINK_ACTIVE',
   // customers
   'PHONE_TAKEN',
   // the check-in (visits, subscriptions)

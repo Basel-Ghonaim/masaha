@@ -34,7 +34,9 @@ export const ERRORS = {
   CHECK_IN_ALREADY_CLOSED: 'This check-in is already closed.',
   SPACE_CAPACITY_NOT_SET: 'Set the space’s capacity first.',
   OUTSIDE_OPENING_HOURS: 'This check-in is outside the space’s opening hours.',
-  OWNER_ALREADY_LINKED: 'This owner is already linked to the space.',
+  ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
+  RECEPTION_LINK_ACTIVE:
+    'This person works at this space’s reception. Its owner deactivates that link first.',
   CURRENT_PASSWORD_INCORRECT: 'The current password is incorrect.',
   GOOGLE_TOKEN_INVALID: 'We couldn’t sign you in with Google. Try again or use your email.',
   RESET_TOKEN_INVALID: 'The link has expired or was already used.',

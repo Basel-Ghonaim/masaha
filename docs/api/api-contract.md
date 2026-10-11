@@ -359,7 +359,7 @@ The endpoints on one space put its links on the request first, without refusing 
 - **Errors:** `validation` (422); `not_found` (404), for a soft-deleted space too.
 
 #### `DELETE /admin/spaces/:spaceId` · 🛡
-- **204:** the space is soft-deleted, verified or not ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): it leaves every list and the public, and every link to it counts for nothing, kept as it is ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). Audited `space.deleted` (`after`: `deletedAt`). Deleting a deleted space changes nothing.
+- **204:** the space is soft-deleted, verified or not ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): it leaves every list and the public, and every link to it counts for nothing for access and in the lists, kept as it is; a person's global role still counts it ([Owners (the admin)](#owners-the-admin)) ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). Audited `space.deleted` (`after`: `deletedAt`). Deleting a deleted space changes nothing.
 - **Errors:** `not_found` (404).
 
 #### `POST /admin/spaces/:spaceId/restore` · 🛡
@@ -394,6 +394,24 @@ The endpoints on one space put its links on the request first, without refusing 
 - **200:** `AdminSpace`, the group dated now and nothing else changed. Only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). Audited `space.<group>Confirmed` (`profileConfirmed`, `hoursConfirmed`, …), with the group's date in `before` and `after` (`{ hoursUpdatedAt }`).
 - **Errors:** `conflict` (409), with no code, for a missing group: there is nothing to confirm until it is saved, even empty; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
 
+### Owners (the admin)
+
+A space's owners, as the admin links them ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)): a space with an active owner link is verified ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
+
+- **One space at a time.** A link is made, or ended, for one person at one space; the admin links owners only, never reception.
+- **The global role follows the links.** A person's first active owner link makes them an `OWNER`, and the end of their last one a `USER` again; a soft-deleted space's link still counts here, as deleting a space writes nothing in its links. Each such change ends every session of the person ([security › Tokens and cookies](../backend/security.md#tokens-and-cookies)). A link or an end that leaves the role as it is ends no session.
+- **Ending is deactivating:** the link is kept, deactivated, and linking again reactivates that same row.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)): `space.ownerLinked` (`after: { userId }`; a deactivated reception row that becomes an owner's has `before: { role: "RECEPTION" }` and `after: { userId, role: "OWNER" }`) and `space.ownerUnlinked` (`before: { userId }`), with the space as both the entity and the entry's space; a change of role, `user.roleChanged` (`before` and `after`: `{ role }`), with the person as the entity.
+
+#### `POST /admin/spaces/:spaceId/owners` · 🛡
+- **Body:** `{ userId }`: a user, who becomes an owner, or an owner, who owns one more space.
+- **204:** the person is the space's owner; the space is verified. A person already the space's active owner: nothing is written.
+- **Errors:** `validation` (422), with `errors.userId = ["invalid_choice"]` for an unknown person; `conflict` (409) `ACCOUNT_IS_ADMIN` for an admin; `conflict` (409) `ACCOUNT_SUSPENDED` for a suspended account; `conflict` (409) `RECEPTION_LINK_ACTIVE` for a person with an active reception link at this space, which its owner deactivates first; `not_found` (404) for a soft-deleted or unknown space. A refusal writes nothing.
+
+#### `DELETE /admin/spaces/:spaceId/owners/:userId` · 🛡
+- **204:** the person's owner link to the space is ended; the last one leaves the space unverified, its facts the admin's again ([security › Authorization](../backend/security.md#authorization)). Without an active owner link of the person there, nothing is written: a reception link is never ended here.
+- **Errors:** `not_found` (404) for a soft-deleted or unknown space.
+
 ### Users (the admin)
 
 The accounts, as the admin reads them ([data-model › Users and sessions](../architecture/data-model.md#users-and-sessions)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
@@ -422,4 +440,4 @@ The accounts, as the admin reads them ([data-model › Users and sessions](../ar
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `OWNER_ALREADY_LINKED` · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE`.

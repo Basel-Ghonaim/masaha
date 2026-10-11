@@ -2,6 +2,8 @@ import { textSchema, type Language } from '@masaha/shared/core';
 import { NAME_MAX_LENGTH, type ChangePasswordRequest, type User } from '@masaha/shared/users';
 
 import { createRunInTransaction, type RunInTransaction, type Tx } from '../../db/index.ts';
+import type { Role } from '../../generated/prisma/enums.ts';
+import type { AuditWriter } from '../../shared/audit/index.ts';
 import type { AccessClaims, AccessTokens } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
@@ -33,6 +35,7 @@ export type AccountListing = Omit<ListedAccount, 'googleSubject'> & {
 interface Dependencies {
   accessTokens: AccessTokens;
   limiter: Limiter;
+  audit: AuditWriter;
   repository?: UsersRepository;
   sessions?: SessionsService;
   runInTransaction?: RunInTransaction;
@@ -86,6 +89,7 @@ export interface PasswordChange {
 export function createUsersService({
   accessTokens,
   limiter,
+  audit,
   repository = createUsersRepository(),
   sessions = createSessionsService(),
   runInTransaction = createRunInTransaction(),
@@ -236,6 +240,27 @@ export function createUsersService({
     },
 
     get,
+
+    /**
+     * Changes the account's global role, under its session lock, which the caller took
+     * (`lockAccount`): every session of the user ends, so no session goes on with the old role
+     * (docs/backend/security.md › Tokens and cookies), and the change is audited.
+     */
+    async changeRole(account: Account, role: Role, actorId: number, tx: Tx): Promise<void> {
+      await repository.setRole(account.id, role, tx);
+      await sessions.revokeAll(account.id, tx);
+      await audit(
+        {
+          actorId,
+          action: 'user.roleChanged',
+          entityType: 'user',
+          entityId: account.id,
+          before: { role: account.role },
+          after: { role },
+        },
+        tx,
+      );
+    },
 
     /**
      * One page of the accounts the filter keeps, newest first, each with how it signs in, for the

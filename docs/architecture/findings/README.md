@@ -31,11 +31,11 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [39. The users service takes a parameter only its unit test passes](39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md)
 - [40. The platform's contact settings are outside the typed catalogue](40-the-platforms-contact-settings-are-outside-the-typed-catalogue.md)
 - [42. A registration test failed once in a full component run](42-a-registration-test-failed-once-in-a-full-component-run.md)
-- [43. Two races around a space's facts](43-two-races-around-a-spaces-facts.md)
 - [44. No screen restores a deleted space once its toast has gone](44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)
 - [46. The deployment's headers must let the map's tiles load](46-the-deployments-headers-must-let-the-maps-tiles-load.md)
 - [47. A dashboard test reads the top bar's title before the chosen page has loaded](47-a-dashboard-test-reads-the-top-bars-title-before-the-chosen-page-has-loaded.md)
 - [48. `db:up` from another folder recreates the shared container](48-db-up-from-another-folder-recreates-the-shared-container.md)
+- [50. An owner whose only spaces are deleted stays an owner](50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md)
 
 ## Accepted
 
@@ -66,4 +66,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [37. Links between documents are checked by hand](37-links-between-documents-are-checked-by-hand.md)
 - [38. The findings are one file](38-the-findings-are-one-file.md)
 - [41. The request log does not name the space](41-the-request-log-does-not-name-the-space.md)
+- [43. Two races around a space's facts](43-two-races-around-a-spaces-facts.md)
 - [45. The data table's library reaches the site's first download](45-the-data-tables-library-reaches-the-sites-first-download.md)

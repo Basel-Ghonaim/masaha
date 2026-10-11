@@ -36,6 +36,8 @@ import {
   createSessionsService,
 } from './modules/sessions/index.ts';
 import {
+  createAdminOwnersController,
+  createAdminOwnersService,
   createAdminSpacesController,
   createAdminSpacesService,
   createAdminUsersController,
@@ -197,7 +199,13 @@ export function createApi({
   const runInTransaction = createRunInTransaction();
 
   const sessions = createSessionsService({ now: clock });
-  const users = createUsersService({ accessTokens, limiter, sessions, runInTransaction });
+  const users = createUsersService({
+    accessTokens,
+    limiter,
+    audit: writeAudit,
+    sessions,
+    runInTransaction,
+  });
   const lookups = createLookupsService();
   const governorates = createGovernoratesService({ runInTransaction, audit: writeAudit });
   const areas = createAreasService({ runInTransaction, audit: writeAudit });
@@ -235,6 +243,13 @@ export function createApi({
     users,
   });
   const adminUsers = createAdminUsersService({ users, spaces });
+  const adminOwners = createAdminOwnersService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    users,
+    now: clock,
+  });
   const auth = createAuthService({
     users,
     sessions,
@@ -284,6 +299,7 @@ export function createApi({
   );
   admin.use(
     createSpaceLinksAdminRouter({
+      adminOwners: createAdminOwnersController(adminOwners),
       adminSpaces: createAdminSpacesController(adminSpaces),
       adminUsers: createAdminUsersController(adminUsers),
     }),

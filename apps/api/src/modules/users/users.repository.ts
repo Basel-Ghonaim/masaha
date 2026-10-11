@@ -199,6 +199,11 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return count === 1 ? tx.user.findUnique({ where: { id }, select: ACCOUNT }) : null;
     },
 
+    /** Sets the global role. */
+    async setRole(id: number, role: Role, tx: Tx): Promise<void> {
+      await tx.user.update({ where: { id }, data: { role }, select: { id: true } });
+    },
+
     async hasPassword(id: number, tx: Tx = db): Promise<boolean> {
       return (await tx.user.count({ where: { id, passwordHash: { not: null } } })) === 1;
     },

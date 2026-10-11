@@ -8,6 +8,8 @@ import { NAME_MAX_LENGTH } from '../users/index.ts';
 
 // The largest id an Int column holds.
 const id = z.coerce.number().int().positive().max(2_147_483_647);
+// An id in a JSON body, where it is a number already.
+const bodyId = z.number().int().positive().max(2_147_483_647);
 
 /** A space's state in the admin's list: hidden first, else whether an owner has joined. */
 export const SPACE_STATES = ['verified', 'unverified', 'hidden'] as const;
@@ -46,3 +48,10 @@ export const adminUsersQuerySchema = paginationQuerySchema.extend({
 });
 
 export type AdminUsersQuery = z.infer<typeof adminUsersQuerySchema>;
+
+// The admin's owners (docs/api/api-contract.md §5, Owners (the admin)).
+
+/** A person linked to the space as its owner: a user becomes one, an owner owns one more space. */
+export const linkOwnerSchema = z.object({ userId: bodyId });
+
+export type LinkOwnerRequest = z.infer<typeof linkOwnerSchema>;

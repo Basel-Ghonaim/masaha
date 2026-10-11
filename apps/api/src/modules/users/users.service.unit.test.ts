@@ -56,6 +56,7 @@ function setup(repository: Partial<Record<keyof UsersRepository, unknown>> = {})
   const users = createUsersService({
     accessTokens: { sign: () => Promise.resolve('access') } as unknown as AccessTokens,
     limiter: createLimiter(counter, () => new Date()),
+    audit: () => Promise.reject(new Error('not asked here')),
     repository: {
       lock: () => Promise.resolve(true),
       findById: () => Promise.resolve(sara),

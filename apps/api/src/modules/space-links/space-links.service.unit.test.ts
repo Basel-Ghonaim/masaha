@@ -18,7 +18,8 @@ const AREAS: AreaName[] = [
 /** The service over fakes that know `SPACES` and `AREAS`, with a record of what each was asked. */
 function setup(links: ActiveLink[]) {
   const calls: string[] = [];
-  const repository: SpaceLinksRepository = {
+  // Only what these tests ask of it; the service's other reads are the API lane's.
+  const repository = {
     findActiveLinks: (userId) => {
       calls.push(`links:${String(userId)}`);
       return Promise.resolve(links);
@@ -32,13 +33,13 @@ function setup(links: ActiveLink[]) {
       ),
     findVerifiedSpaceIds: () => Promise.reject(new Error('not asked here')),
     findOwnerLinks: () => Promise.reject(new Error('not asked here')),
-    findOwnerLinksOf: () => Promise.reject(new Error('not asked here')),
-  };
+  } satisfies Partial<SpaceLinksRepository> as unknown as SpaceLinksRepository;
   const spaces: SpacesService = {
     summariesFor: (ids) => {
       calls.push(`spaces:${ids.join(',')}`);
       return Promise.resolve(SPACES.filter(({ id }) => ids.includes(id)));
     },
+    lock: () => Promise.reject(new Error('not asked here')),
   };
   const lookups: LookupsService = {
     areaNamesFor: (ids) => {
