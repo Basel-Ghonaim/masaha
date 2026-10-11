@@ -178,7 +178,7 @@ function DirectoryScreen() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h1 className="text-heading-1">{tr("مساحات العمل", "Workspaces")}</h1>
-            <p className="text-body-sm text-muted-foreground" aria-live="polite">{ready ? tr(`${countLabel(results.length)} في ${M.govName(f.gov)}`, `${countLabel(results.length)} in ${M.govName(f.gov)}`) : '\u00a0'}</p>
+            <p className="text-body-sm text-muted-foreground" aria-live="polite">{ready ? tr(`${countLabel(results.length)} في ${M.govName(f.gov)} · ${DISPLAY_ONLY()}`, `${countLabel(results.length)} in ${M.govName(f.gov)} · ${DISPLAY_ONLY()}`) : '\u00a0'}</p>
           </div>
           <Tabs value={view} onValueChange={changeView}>
             <TabsList aria-label={tr("طريقة العرض", "View")}>

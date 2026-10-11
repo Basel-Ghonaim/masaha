@@ -108,7 +108,7 @@ function Owners({ theme, setTheme }) {
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('فك ربط', 'Unlink')} {unlink && unlink.o.name} {tr('من', 'from')} <span lang="en">{unlink && spaceName(unlink.sid)}</span>؟</AlertDialogTitle>
             <AlertDialogDescription>{unlink && lastOwner(unlink.sid, list) ? tr('ستصبح المساحة غير موثّقة: تختفي حالتها المباشرة ويعدّلها فريق مساحة.', 'The space will become unverified: its live status disappears and the Masaha team edits it.') : tr('يبقى المالكون الآخرون مرتبطين.', 'The other owners stay linked.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={doUnlink}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={doUnlink}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </AdminShell>

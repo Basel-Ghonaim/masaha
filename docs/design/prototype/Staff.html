@@ -133,7 +133,7 @@ function StaffInner({ theme, setTheme }) {
       <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('إيقاف', 'Suspend')} {confirm && confirm.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('ينتهي دخوله فورًا، ويبقى سجله ودفعاته.', 'Their access ends right away; their record and payments are kept.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => setStatus(confirm, 'suspended')}>{tr('إيقاف', 'Suspend')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => setStatus(confirm, 'suspended')}>{tr('إيقاف', 'Suspend')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </OwnerShell>

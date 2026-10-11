@@ -53,7 +53,10 @@ function HomeScreen() {
 
         <section className="flex flex-col gap-4" aria-labelledby="spaces-title" aria-busy={state === 'loading'}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 id="spaces-title" className="text-heading-2">{title}</h2>
+            <div className="flex flex-col gap-1">
+              <h2 id="spaces-title" className="text-heading-2">{title}</h2>
+              <p className="text-caption text-muted-foreground">{DISPLAY_ONLY()}</p>
+            </div>
             <div className="flex items-center gap-2">
               {!nearest && <NearMeButton near={near} />}
               <Button variant="link" asChild><a href={allHref}>{tr("عرض الكل", "View all")}<ChevronEndIcon /></a></Button>

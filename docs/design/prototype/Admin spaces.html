@@ -37,7 +37,7 @@ function Spaces({ theme, setTheme }) {
   const areaOpts = govs.flatMap((g) => [['g:' + g.id, g.name], ...g.areas.map((a) => ['a:' + a.id, '— ' + a.name])]);
   const rows = list.filter((s) => (!q.trim() || s.name.toLowerCase().includes(q.trim().toLowerCase())) && (gov === 'all' || gov === 'g:' + s.gov || gov === 'a:' + s.area) && (status === 'all' || s.status === status) && (!stale || AD.staleGroups(s).length));
   const upd = (id, p) => setList((l) => l.map((x) => (x.id === id ? { ...x, ...p } : x)));
-  const toggleHide = (s) => { const hidden = s.status !== 'hidden'; upd(s.id, { status: hidden ? 'hidden' : s.owners.length ? 'verified' : 'unverified' }); toast(hidden ? tr(`أُخفيت ${s.name} من الموقع`, `${s.name} hidden from the site`) : tr(`أصبحت ${s.name} ظاهرة`, `${s.name} is visible again`)); };
+  const toggleHide = (s) => { const hidden = s.status !== 'hidden'; upd(s.id, { status: hidden ? 'hidden' : s.owners.length ? 'verified' : 'unverified' }); toast(hidden ? tr(`أُخفيت ${s.name} من الموقع`, `${s.name} hidden from the site`) : tr(`أصبحت ${s.name} ظاهرة`, `${s.name} is visible again`), { action: { label: tr('تراجع', 'Undo'), onClick: () => toggleHide({ ...s, status: hidden ? 'hidden' : s.status }) } }); };
   const fresh = (s) => { const g = AD.staleGroups(s); return g.length ? <Badge variant="warning"><span>{tr('قديمة:', 'Stale:')} {g.map((x) => AD.GROUP[x]).join(tr('، ', ', '))}</span></Badge> : <Badge variant="success">{tr('محدّثة', 'Up to date')}</Badge>; };
   const owners = (s) => s.owners.length ? s.owners.map(ownerName).join(tr('، ', ', ')) : <span className="text-muted-foreground">—</span>;
   const actions = (s) => (
@@ -106,13 +106,13 @@ function Spaces({ theme, setTheme }) {
       <AlertDialog open={!!unlink} onOpenChange={(o) => !o && setUnlink(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('فك ربط', 'Unlink')} {unlink && ownerName(unlink.o)}؟</AlertDialogTitle><AlertDialogDescription>{unlink && unlink.s.owners.length === 1 ? tr('هو آخر مالك لهذه المساحة، فستصبح المساحة غير موثّقة ويعدّلها فريق مساحة.', 'They’re the last owner, so the space will become unverified and the Masaha team will edit it.') : tr('يبقى المالكون الآخرون.', 'The other owners stay.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { const s = unlink.s; const left = s.owners.filter((x) => x !== unlink.o); upd(s.id, { owners: left, status: left.length ? s.status : 'unverified' }); toast(left.length ? tr('فُك الربط', 'Unlinked') : tr('فُك الربط · المساحة غير موثّقة', 'Unlinked · space unverified')); }}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { const s = unlink.s; const left = s.owners.filter((x) => x !== unlink.o); upd(s.id, { owners: left, status: left.length ? s.status : 'unverified' }); toast(left.length ? tr('فُك الربط', 'Unlinked') : tr('فُك الربط · المساحة غير موثّقة', 'Unlinked · space unverified')); }}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <AlertDialog open={!!del} onOpenChange={(o) => !o && setDel(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('حذف', 'Delete')} <span lang="en">{del && del.name}</span>؟</AlertDialogTitle><AlertDialogDescription>{tr('تختفي من الموقع ومن هذه القائمة، وتبقى في قاعدة البيانات ويمكن استرجاعها.', 'It disappears from the site and this list; it stays in the database and can be restored.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { const s = del; setList((l) => l.filter((x) => x.id !== s.id)); toast(tr('حُذفت المساحة', 'Space deleted'), { action: { label: tr('تراجع', 'Undo'), onClick: () => setList((l) => [...l, s]) } }); }}>{tr('حذف', 'Delete')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { const s = del; setList((l) => l.filter((x) => x.id !== s.id)); toast(tr('حُذفت المساحة', 'Space deleted'), { action: { label: tr('تراجع', 'Undo'), onClick: () => setList((l) => [...l, s]) } }); }}>{tr('حذف', 'Delete')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </AdminShell>

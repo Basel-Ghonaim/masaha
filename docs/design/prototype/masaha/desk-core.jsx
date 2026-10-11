@@ -83,10 +83,18 @@ function DeskProvider({ children, initial }) {
       toast.success(tr('حُفظ الاشتراك', 'Membership saved') + (left > 0 ? tr(` · المتبقي ${$(left)}`, ` · ${$(left)} left`) : ''), { description: c.name });
       return c;
     },
+    // P9: a settled customer is archived at once and can be put back from the toast.
     archive(cid) {
       const i = D.customers.findIndex((c) => c.id === cid); const c = D.customers[i];
       D.customers.splice(i, 1); bump();
       toast(tr(`أُرشف ${c.name}`, `${c.name} archived`), { action: { label: tr('تراجع', 'Undo'), onClick: () => { D.customers.splice(i, 0, c); bump(); } } });
+    },
+    // A customer who owes is archived only after the dialog that names the debt, so there is
+    // no undo after it: the confirmation was the decision.
+    archiveOwing(cid) {
+      const i = D.customers.findIndex((c) => c.id === cid); const c = D.customers[i];
+      D.customers.splice(i, 1); bump();
+      toast.success(tr(`أُرشف ${c.name} · عليه ${$(D.balance(c))}`, `${c.name} archived · owes ${$(D.balance(c))}`));
     }
   };
   return (
@@ -215,7 +223,7 @@ function WarnDialog({ dlg, onClose }) {
                 <ActionButton actionKey="warn" onAction={() => desk.checkInVisit(c.name, !!c.student, null)}>{tr('تسجيل كزيارة', 'Check in as a visit')}</ActionButton>
                 <DK.Button variant="outline" onClick={() => desk.open('sheet', { mode: ids.includes('expired') ? 'renew' : 'subscribe', customerId: c.id })}>{ids.includes('expired') ? tr('تجديد', 'Renew') : tr('اشتراك جديد', 'New membership')}</DK.Button>
               </> : <ActionButton actionKey="warn" onAction={() => desk.checkInSub(c.id)}>{tr('تسجيل على أي حال', 'Check in anyway')}</ActionButton>}
-            <DK.Button variant="ghost" onClick={onClose}>{tr('إلغاء', 'Cancel')}</DK.Button>
+            <DK.Button variant="ghost" onClick={onClose}>{tr('رجوع', 'Back')}</DK.Button>
           </DK.DialogFooter>
         </>}
       </DK.DialogContent>

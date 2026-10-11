@@ -60,7 +60,8 @@ function CustomersInner({ theme, setTheme }) {
         <DropdownMenuItem onSelect={() => desk.open('pay', { customerId: c.id })}>{tr('استلام دفعة', 'Receive payment')}</DropdownMenuItem>
         {DESK.currentSub(c) && <DropdownMenuItem onSelect={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</DropdownMenuItem>}
         <DropdownMenuItem onSelect={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New membership')}</DropdownMenuItem>
-        {IS_OWNER && <><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => setArch(c)}>{tr('أرشفة', 'Archive')}</DropdownMenuItem></>}
+        {/* P9: settled → archive at once with «تراجع»; owing → a dialog that names the debt. */}
+        {IS_OWNER && <><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => (DESK.balance(c) > 0 ? setArch(c) : desk.archive(c.id))}>{tr('أرشفة', 'Archive')}</DropdownMenuItem></>}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -113,12 +114,12 @@ function CustomersInner({ theme, setTheme }) {
           <AlertDialogHeader>
             <AlertDialogTitle>{tr('أرشفة', 'Archive')} {arch && arch.name}؟</AlertDialogTitle>
             <AlertDialogDescription>
-              {archBal > 0 ? <>{tr('عليه', 'They owe')} <Money n={archBal} /> {tr('غير مسدّدة. يبقى المبلغ في سجله ويمكنك استرجاعه لاحقًا.', 'unpaid. The amount stays in their record and you can restore them later.')}</> : tr('لن يظهر في القائمة ولا في البحث. يبقى سجله محفوظًا.', 'They won’t appear in the list or search. Their record is kept.')}
+              {tr('عليه', 'They owe')} <Money n={archBal} /> {tr('غير مسدّدة. يبقى المبلغ في سجله، ولن يظهر في القائمة ولا في البحث.', 'unpaid. The amount stays in their record, and they won’t appear in the list or search.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => desk.archive(arch.id)}>{archBal > 0 ? tr('أرشفة رغم الدين', 'Archive anyway') : tr('أرشفة', 'Archive')}</AlertDialogAction>
+            <AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => desk.archiveOwing(arch.id)}>{tr('أرشفة رغم الدين', 'Archive anyway')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -86,7 +86,7 @@ function ExtendCard({ a, onDone }) {
       <AlertDialog open={ask} onOpenChange={setAsk}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr(`تمديد ${affected} اشتراكًا بـ ${d} أيام؟`, `Extend ${affected} memberships by ${d} days?`)}</AlertDialogTitle><AlertDialogDescription>{tr('لا يمكن تطبيقه مرة أخرى على هذا الإغلاق.', 'It can’t be applied again for this closure.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { onDone({ count: affected, days: d, by: A, on: DESK.TODAY }); toast.success(tr(`تم تمديد ${affected} اشتراكًا بـ ${d} أيام · أحمد`, `${affected} memberships extended by ${d} days · Ahmad`)); }}>{tr('تمديد', 'Extend')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction onClick={() => { onDone({ count: affected, days: d, by: A, on: DESK.TODAY }); toast.success(tr(`تم تمديد ${affected} اشتراكًا بـ ${d} أيام · أحمد`, `${affected} memberships extended by ${d} days · Ahmad`)); }}>{tr('تمديد', 'Extend')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </Card>

@@ -349,7 +349,7 @@ function SpacePrices({ space }) {
   return (
     <dl className="grid grid-cols-4 gap-2">
       {cells.map((c) => c.amount == null ? (
-        <div key={c.key} className="flex flex-col rounded-md border border-border px-2 py-1">
+        <div key={c.key} className="flex flex-col rounded-md px-2 py-1">
           <dt className="text-caption text-muted-foreground">{c.label}</dt>
           <dd className="text-label text-muted-foreground"><span aria-hidden="true">—</span><span className="sr-only">{tr("غير متوفر", "Not offered")}</span></dd>
         </div>
@@ -363,12 +363,16 @@ function SpacePrices({ space }) {
   );
 }
 
+// SH-021: the display-only note is the same on every card, so it is said once in the
+// list's header line (`DISPLAY_ONLY`). The card keeps what is its own: when the prices were
+// last updated, and the badge when they may have changed since.
+const DISPLAY_ONLY = () => tr("الأسعار للعرض فقط · الدفع في المساحة", "Prices are display only · Pay at the space");
+
 function PriceMeta({ space }) {
   if (M.priceHidden(space)) return null;
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
-      <span>{tr("للعرض فقط · الدفع في المساحة", "Display only · Pay at the space")}</span>
-      <span>{tr("· آخر تحديث ", "· Updated ")}{space.updated}</span>
+      <span>{tr("آخر تحديث ", "Updated ")}{space.updated}</span>
       {space.stale && <Badge variant="warning">{tr("قد يكون تغيّر", "May have changed")}</Badge>}
     </div>
   );
@@ -442,7 +446,7 @@ const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON
 
 const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
 
-Object.assign(window, { AccountMenuContent, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
+Object.assign(window, { DISPLAY_ONLY, AccountMenuContent, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
 
 // DS date picker with long localized dates («3 أكتوبر 2026»). value/onChange use ISO yyyy-mm-dd.
 const isoLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);

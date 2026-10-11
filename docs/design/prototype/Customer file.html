@@ -62,7 +62,7 @@ function SubsTab({ bump }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel>
-            <AlertDialogAction onClick={endNow}>{tr('إنهاء الاشتراك', 'End membership')}</AlertDialogAction>
+            <AlertDialogAction variant="destructive" onClick={endNow}>{tr('إنهاء الاشتراك', 'End membership')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

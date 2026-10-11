@@ -76,7 +76,7 @@ function Users({ theme, setTheme }) {
       <AlertDialog open={!!susp} onOpenChange={(o) => !o && setSusp(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('إيقاف', 'Suspend')} {susp && susp.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('تنتهي كل جلساته فورًا ولا يستطيع الدخول حتى يُلغى الإيقاف.', 'All their sessions end right away and they can’t sign in until unsuspended.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { upd(susp.id, { status: 'suspended' }); toast(tr(`أُوقف ${susp.name} · انتهت الجلسات`, `${susp.name} suspended · sessions ended`)); }}>{tr('إيقاف', 'Suspend')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { upd(susp.id, { status: 'suspended' }); toast(tr(`أُوقف ${susp.name} · انتهت الجلسات`, `${susp.name} suspended · sessions ended`)); }}>{tr('إيقاف', 'Suspend')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={!!roleDlg} onOpenChange={(o) => !o && setRoleDlg(null)}>
@@ -89,7 +89,7 @@ function Users({ theme, setTheme }) {
       <AlertDialog open={!!tp} onOpenChange={(o) => !o && setTp(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('إصدار كلمة مرور مؤقتة لـ', 'Issue a temporary password for')} {tp && tp.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('لاستعادة الحساب عبر واتساب بعد التأكد من هويته. تُلغى كلمة مروره الحالية، ويُطلب منه تغييرها عند الدخول التالي.', 'For account recovery over WhatsApp once you’ve confirmed who they are. Their current password stops working and they must change it at the next sign-in.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => { setPass({ name: tp.name, email: tp.email, pw: tempPass() }); }}>{tr('إصدار', 'Issue')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction onClick={() => { setPass({ name: tp.name, email: tp.email, pw: tempPass() }); }}>{tr('إصدار', 'Issue')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <TempPassDialog info={pass} onClose={() => setPass(null)} line={tr('أرسلها له عبر واتساب؛ سيُطلب منه تغييرها عند الدخول التالي.', 'Send it over WhatsApp; they’ll be asked to change it at the next sign-in.')} />
