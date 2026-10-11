@@ -76,27 +76,65 @@ const signOut = () => { setUser(null); location.href = carryParams('Home.html?au
 const firstName = (u) => u.name.trim().split(' ')[0];
 const ACCOUNT_LINKS = () => [
   { id: 'favorites', label: tr('المفضّلة', 'Favourites'), href: 'Favorites.html' },
-  { id: 'reports', label: tr('بلاغاتي', 'My reports'), href: 'Reports.html' },
-  { id: 'settings', label: tr('الإعدادات', 'Settings'), href: 'Settings.html' }
+  { id: 'reports', label: tr('بلاغاتي', 'My reports'), href: 'Reports.html' }
 ];
+// The dashboard a user can reach. The demo user is a plain user unless ?auth=linked.
+const dashboardHref = (user) => (user && user.method === 'linked' ? 'Owner overview.html' : null);
 const authQ = () => (pageParams.get('auth') ? '?auth=' + pageParams.get('auth') : '');
 
+// P4: the one account menu. `area` is the side it is opened from, so it offers the other one.
+// On a phone in the dashboard it also carries the theme and the language, which the bar has no room for.
+function AccountMenuContent({ user, current, area = 'site', onSignOut, theme, setTheme }) {
+  const { DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } = window.MasahaDesignSystem;
+  const dash = dashboardHref(user);
+  const onPhone = !useIsTablet();
+  return (
+    <DropdownMenuContent align="end" className="min-w-56">
+      <DropdownMenuLabel>
+        <span className="flex flex-col">
+          <span>{user.name}{user.role ? ' · ' + user.role : ''}</span>
+          <span dir="ltr" className="text-caption text-muted-foreground">{user.email}</span>
+        </span>
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      {area === 'site'
+        ? dash && <DropdownMenuItem asChild><a href={dash}>{tr('لوحة التحكم', 'Dashboard')}</a></DropdownMenuItem>
+        : <DropdownMenuItem asChild><a href="Home.html">{tr('الموقع العام', 'Public site')}</a></DropdownMenuItem>}
+      <DropdownMenuItem asChild><a href={'Settings.html' + authQ()} aria-current={current === 'settings' ? 'page' : undefined}>{tr('إعدادات حسابي', 'Account settings')}</a></DropdownMenuItem>
+      {area === 'site' && ACCOUNT_LINKS().map((l) => (
+        <DropdownMenuItem key={l.id} asChild><a href={l.href + authQ()} aria-current={current === l.id ? 'page' : undefined}>{l.label}</a></DropdownMenuItem>
+      ))}
+      {area === 'dashboard' && onPhone && setTheme && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTheme(theme === 'light' ? 'dark' : 'light'); }}>
+            {theme === 'light' ? tr('المظهر الداكن', 'Dark theme') : tr('المظهر الفاتح', 'Light theme')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={switchLang}>{LANG === 'en' ? 'العربية' : 'English'}</DropdownMenuItem>
+        </>
+      )}
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onSelect={onSignOut || signOut}><LogOutIcon />{tr('تسجيل الخروج', 'Sign out')}</DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+}
+
+// SH-018: the first focusable element of every shell, seen only once it has focus.
+function SkipLink({ target = 'main' }) {
+  return <Button variant="link" className="skip-link" asChild><a href={'#' + target}>{tr('تخطَّ إلى المحتوى', 'Skip to content')}</a></Button>;
+}
+
 function UserMenu({ user, current }) {
-  const { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, Avatar, AvatarFallback } = window.MasahaDesignSystem;
+  const { DropdownMenu, DropdownMenuTrigger, Avatar, AvatarFallback } = window.MasahaDesignSystem;
   return (
     <DropdownMenu dir={DIR}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="hidden md:inline-flex" aria-label={tr('قائمة الحساب', 'Account menu') + ' — ' + user.name}>
-          <Avatar size="sm" aria-hidden="true"><AvatarFallback>{user.name[0]}</AvatarFallback></Avatar>{firstName(user)}
+        <Button variant="ghost" size="sm" aria-label={tr('قائمة الحساب', 'Account menu') + ' — ' + user.name}>
+          <Avatar size="sm" aria-hidden="true"><AvatarFallback>{user.name[0]}</AvatarFallback></Avatar>
+          <span className="hidden md:inline-flex">{firstName(user)}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel><span className="flex flex-col"><span>{user.name}</span><span dir="ltr" className="text-caption text-muted-foreground">{user.email}</span></span></DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {ACCOUNT_LINKS().map((l) => <DropdownMenuItem key={l.id} asChild><a href={l.href + authQ()} aria-current={current === l.id ? 'page' : undefined}>{l.label}</a></DropdownMenuItem>)}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={signOut}><LogOutIcon />{tr('تسجيل الخروج', 'Sign out')}</DropdownMenuItem>
-      </DropdownMenuContent>
+      <AccountMenuContent user={user} current={current} area="site" />
     </DropdownMenu>
   );
 }
@@ -108,6 +146,7 @@ function SiteHeader({ current, theme, setTheme }) {
   return (
     <header className="border-b border-border bg-background">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 md:px-8">
+        <SkipLink />
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden" aria-label={tr("القائمة", "Menu")}><MenuIcon /></Button>
@@ -123,19 +162,9 @@ function SiteHeader({ current, theme, setTheme }) {
                 ))}
                 {!user && <Button variant="ghost" className="w-full justify-start" asChild><a href="Sign in.html"><LogInIcon />{tr("تسجيل الدخول", "Sign in")}</a></Button>}
               </nav>
-              {user && (
-                <nav aria-label={tr('الحساب', 'Account')} className="mt-4 flex flex-col gap-1 border-t border-border pt-4">
-                  <p className="px-3 pb-2 text-label">{user.name}</p>
-                  {ACCOUNT_LINKS().map((l) => (
-                    <Button key={l.id} variant={current === l.id ? 'secondary' : 'ghost'} className="w-full justify-start" asChild>
-                      <a href={l.href + authQ()} aria-current={current === l.id ? 'page' : undefined}>{l.label}</a>
-                    </Button>
-                  ))}
-                  <Button variant="ghost" className="w-full justify-start" onClick={signOut}><LogOutIcon />{tr('تسجيل الخروج', 'Sign out')}</Button>
-                </nav>
-              )}
             </SheetBody>
-            <div className="p-4"><LanguageToggle lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} /></div>
+            {/* SH-005: the language stays in the header, where a non-Arabic reader sees it; the theme moves here. */}
+            <div className="p-4"><ThemeToggle theme={theme} onThemeChange={setTheme} label={themeLabel} /></div>
           </SheetContent>
         </Sheet>
         <a href="Home.html" className="text-heading-3 text-primary">{tr("مساحة", "Masaha")}</a>
@@ -147,8 +176,8 @@ function SiteHeader({ current, theme, setTheme }) {
           ))}
         </nav>
         <div className="ms-auto flex items-center gap-2">
-          <LanguageToggle lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} className="hidden md:inline-flex" />
-          <ThemeToggle theme={theme} onThemeChange={setTheme} label={themeLabel} />
+          <LanguageToggle lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} />
+          <ThemeToggle theme={theme} onThemeChange={setTheme} label={themeLabel} className="hidden md:inline-flex" />
           {user ? <UserMenu user={user} current={current} /> : <Button variant="outline" size="sm" className="hidden md:inline-flex" asChild><a href="Sign in.html"><LogInIcon />{tr("تسجيل الدخول", "Sign in")}</a></Button>}
         </div>
       </div>
@@ -286,7 +315,7 @@ const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON
 
 const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
 
-Object.assign(window, { getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
+Object.assign(window, { AccountMenuContent, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
 
 // DS date picker with long localized dates («3 أكتوبر 2026»). value/onChange use ISO yyyy-mm-dd.
 const isoLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);

@@ -1,0 +1,35 @@
+# Changes to the living design
+
+The prototype in `prototype/` is the **living design**: since the Claude Design project was deleted
+it is fixed and improved by hand, and `README.md` says what that means for the archive. The design
+as it was delivered on 2026-09-29 stays at the tag `design-2026-09-29`.
+
+Every applied decision gets one line here: what changed, where, and when. Decisions are settled
+before the work, from the design reviews; this file is the record of what was built, not where the
+decision was made.
+
+## Batch 1 — the shared layer (2026-10-11)
+
+Reviewed as SH-001…SH-022; the decisions marked *prototype* are applied here. The **design system**
+items (SH-012, SH-017, SH-022) and the `foundation.md` rule changes belong to the web, not to this
+archive.
+
+| Decision | What changed | Where |
+|---|---|---|
+| **P3** | The owner's eleven navigation items are grouped by what people do — اليوم · المال · المساحة · الفريق والإعدادات — and the admin's eight into المساحات · المنصة, with `SidebarGroupLabel`, which goes `sr-only` on the 768 rail | `masaha/owner.jsx`, `masaha/admin.jsx` |
+| **P4** | One account menu in every shell: the name and role, the email, the way between the site and the dashboard, «إعدادات حسابي», the site's favourites and «بلاغاتي», and — on a phone in the dashboard — the theme and the language. The site's phone header now shows the avatar, and the drawer's second account list is gone | `masaha/shared.jsx` (`AccountMenuContent`), `owner.jsx`, `admin.jsx`, `account.jsx` |
+| **SH-005** | The language toggle is in the site's phone header, where a non-Arabic reader meets it; the theme moved into the drawer. Both dashboard shells, which had no phone language toggle at all, now carry both in the drawer's foot | `masaha/shared.jsx`, `owner.jsx`, `admin.jsx` |
+| **SH-006** | The 768 rail shows the space's mark as the switcher's trigger, named «تبديل المساحة — Focus Hub» with a tooltip; the admin's rail shows the «م» mark. The name beside it is dropped only where the rail has no room, and the button keeps its `aria-label` | `masaha/owner.jsx`, `masaha/admin.jsx` |
+| **SH-018** | A «تخطَّ إلى المحتوى» link is the first focusable element of every shell, seen only on focus, leading to `main` | `masaha/shared.jsx` (`SkipLink`), the four shells, `masaha.css` |
+| **SH-020** | Menu items take the menu's own colour. The cause was the archive's own `a{color:var(--primary)}`, which also reached the row-action menus and the breadcrumbs, so it is scoped once rather than patched per menu | `masaha/masaha.css` |
+| **DI-2** | `min-h-14` and `md:inline` were used by both shells but are not in the prebuilt bundle, so the top bar had no minimum height and the account name never appeared from 768 | `masaha/masaha.css`, `owner.jsx`, `admin.jsx` |
+
+### Notes for the web worker
+
+- The prebuilt `_ds_bundle.css` only holds the utility classes the original prototype used, so a
+  class added by hand can be silently dead. Three rules were written into `masaha.css` for that
+  reason (the skip link, the menu colour, `min-h-14`); none of them is a new colour, size or font,
+  and none is needed in the code, where Tailwind compiles from source.
+- The vendored bundle has **no `PageHeader`** and **no `SidebarText`**. `SidebarHeader`'s `mark`
+  prop already does what SH-006 asks for: it stays visible when the sidebar collapses while its
+  children turn `sr-only`.

@@ -9,6 +9,7 @@ const EMAIL_RE = /^\S+@\S+\.\S+$/;
 function AuthShell({ theme, setTheme, children }) {
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
+      <SkipLink />
       <header className="flex h-14 items-center justify-between border-b border-border px-4 md:px-8">
         <a href="Home.html" className="text-heading-3 text-primary">{tr("مساحة", "Masaha")}</a>
         <div className="flex items-center gap-2">
@@ -16,7 +17,7 @@ function AuthShell({ theme, setTheme, children }) {
           <AThemeToggle theme={theme} onThemeChange={setTheme} label={theme === 'light' ? tr("المظهر الداكن", "Dark theme") : tr("المظهر الفاتح", "Light theme")} />
         </div>
       </header>
-      <main className="flex flex-1 flex-col px-4 py-6 md:items-center md:justify-center md:px-8 md:py-16">{children}</main>
+      <main id="main" className="flex flex-1 flex-col px-4 py-6 md:items-center md:justify-center md:px-8 md:py-16">{children}</main>
       <PageToaster />
     </div>
   );

@@ -1,38 +1,58 @@
-const { SidebarProvider: ASP, Sidebar: ASidebar, SidebarHeader: ASHeader, SidebarContent: ASContent, SidebarGroup: ASGroup, SidebarMenu: ASMenu, SidebarMenuItem: ASItem, SidebarMenuButton: ASButton, SidebarInset: ASInset, SidebarTrigger: ASTrigger, DropdownMenu: ADd, DropdownMenuTrigger: ADdT, DropdownMenuContent: ADdC, DropdownMenuItem: ADdI, DropdownMenuLabel: ADdL, DropdownMenuSeparator: ADdS, Avatar: AAv, AvatarFallback: AAvF, Button: AB, Badge: ABadge, LanguageToggle: ALang, ThemeToggle: ATheme, InfoIcon: AInfo, EyeIcon: AEye, UsersIcon: AUsers, ChevronsUpDownIcon: AChev, TriangleAlertIcon: ATri, SearchIcon: ASearch, CalendarIcon: ACal, EllipsisIcon: AEll, LogOutIcon: ALogOut } = window.MasahaDesignSystem;
+const { SidebarProvider: ASP, Sidebar: ASidebar, SidebarHeader: ASHeader, SidebarContent: ASContent, SidebarFooter: ASFooter, SidebarGroup: ASGroup, SidebarGroupLabel: ASGroupLabel, SidebarMenu: ASMenu, SidebarMenuItem: ASItem, SidebarMenuButton: ASButton, SidebarInset: ASInset, SidebarTrigger: ASTrigger, DropdownMenu: ADd, DropdownMenuTrigger: ADdT, DropdownMenuContent: ADdC, DropdownMenuItem: ADdI, DropdownMenuLabel: ADdL, DropdownMenuSeparator: ADdS, Tooltip: ATip, TooltipTrigger: ATipT, TooltipContent: ATipC, Avatar: AAv, AvatarFallback: AAvF, Button: AB, Badge: ABadge, LanguageToggle: ALang, ThemeToggle: ATheme, InfoIcon: AInfo, EyeIcon: AEye, UsersIcon: AUsers, ChevronsUpDownIcon: AChev, TriangleAlertIcon: ATri, SearchIcon: ASearch, CalendarIcon: ACal, EllipsisIcon: AEll, LogOutIcon: ALogOut } = window.MasahaDesignSystem;
 const AD = window.ADMIN;
 
+// P3: the spaces the platform lists, then the platform itself.
 const ADMIN_NAV = () => [
-  { id: 'overview', label: tr('نظرة عامة', 'Overview'), href: 'Admin overview.html', icon: <AInfo /> },
-  { id: 'spaces', label: tr('المساحات', 'Spaces'), href: 'Admin spaces.html', icon: <AEye /> },
-  { id: 'owners', label: tr('أصحاب المساحات', 'Space owners'), href: 'Admin owners.html', icon: <AChev /> },
-  { id: 'reports', label: tr('بلاغات البيانات', 'Data reports'), href: 'Admin reports.html', icon: <ATri />, badge: AD.reports.filter((r) => r.status === 'new' && AD.handledBy(r) === 'admin').length },
-  { id: 'users', label: tr('المستخدمون', 'Users'), href: 'Admin users.html', icon: <AUsers /> },
-  { id: 'lookups', label: tr('القوائم', 'Lookups'), href: 'Admin lookups.html', icon: <ASearch /> },
-  { id: 'audit', label: tr('سجل التدقيق', 'Audit log'), href: 'Admin audit.html', icon: <ACal /> },
-  { id: 'settings', label: tr('الإعدادات', 'Settings'), href: 'Admin settings.html', icon: <AEll /> }
+  { items: [{ id: 'overview', label: tr('نظرة عامة', 'Overview'), href: 'Admin overview.html', icon: <AInfo /> }] },
+  { label: tr('المساحات', 'Spaces'), items: [
+    { id: 'spaces', label: tr('المساحات', 'Spaces'), href: 'Admin spaces.html', icon: <AEye /> },
+    { id: 'owners', label: tr('أصحاب المساحات', 'Space owners'), href: 'Admin owners.html', icon: <AChev /> },
+    { id: 'reports', label: tr('بلاغات البيانات', 'Data reports'), href: 'Admin reports.html', icon: <ATri />, badge: AD.reports.filter((r) => r.status === 'new' && AD.handledBy(r) === 'admin').length }
+  ] },
+  { label: tr('المنصة', 'The platform'), items: [
+    { id: 'users', label: tr('المستخدمون', 'Users'), href: 'Admin users.html', icon: <AUsers /> },
+    { id: 'lookups', label: tr('القوائم', 'Lookups'), href: 'Admin lookups.html', icon: <ASearch /> },
+    { id: 'audit', label: tr('سجل التدقيق', 'Audit log'), href: 'Admin audit.html', icon: <ACal /> },
+    { id: 'settings', label: tr('الإعدادات', 'Settings'), href: 'Admin settings.html', icon: <AEll /> }
+  ] }
 ];
+
+// SH-006: the platform's mark stays on the 768 rail, as the space's does in the owner's shell.
+const AdminMark = () => (
+  <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground" aria-hidden="true">{tr('م', 'M')}</span>
+);
 
 function AdminShell({ current, title, theme, setTheme, actions, children }) {
   const u = AD.admin;
+  const rail = useIsTablet() && !useIsDesktop();
+  const brand = tr('مساحة — إدارة المنصة', 'Masaha — platform admin');
   return (
     <ASP className="bg-background text-foreground">
+      <SkipLink />
       <ASidebar label={tr('لوحة إدارة المنصة', 'Platform admin')}>
         <div className="sidebar-stick">
-          <ASHeader>
-            <div className="flex w-full items-center gap-3 p-2">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground" aria-hidden="true">{tr('م', 'M')}</span>
-              <span className="flex min-w-0 flex-1 flex-col"><span className="truncate text-label">{tr('مساحة', 'Masaha')}</span><span className="truncate text-caption text-muted-foreground">{tr('إدارة المنصة', 'Platform admin')}</span></span>
-            </div>
+          <ASHeader mark={rail ? <ATip><ATipT asChild><span><AdminMark /></span></ATipT><ATipC>{brand}</ATipC></ATip> : <AdminMark />}>
+            <span className="flex min-w-0 flex-1 flex-col"><span className="truncate text-label">{tr('مساحة', 'Masaha')}</span><span className="truncate text-caption text-muted-foreground">{tr('إدارة المنصة', 'Platform admin')}</span></span>
           </ASHeader>
           <ASContent>
-            <ASGroup>
-              <ASMenu>
-                {ADMIN_NAV().map((n) => (
-                  <ASItem key={n.id}><ASButton href={n.href} icon={n.icon} label={n.label} isActive={current === n.id} badge={n.badge || undefined} badgeLabel={n.badge ? tr('بلاغات بانتظار الإدارة', 'reports waiting for the admin') : undefined} /></ASItem>
-                ))}
-              </ASMenu>
-            </ASGroup>
+            {ADMIN_NAV().map((g, i) => (
+              <ASGroup key={g.label || i}>
+                {g.label && <ASGroupLabel>{g.label}</ASGroupLabel>}
+                <ASMenu>
+                  {g.items.map((n) => (
+                    <ASItem key={n.id}><ASButton href={n.href} icon={n.icon} label={n.label} isActive={current === n.id} badge={n.badge || undefined} badgeLabel={n.badge ? tr('بلاغات بانتظار الإدارة', 'reports waiting for the admin') : undefined} /></ASItem>
+                  ))}
+                </ASMenu>
+              </ASGroup>
+            ))}
           </ASContent>
+          <ASFooter>
+            {/* SH-005: a phone has no room for the toggles in the bar, so the drawer's foot carries both. */}
+            <div className="flex items-center gap-1 md:hidden">
+              <ALang lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} />
+              <ATheme theme={theme} onThemeChange={setTheme} label={theme === 'light' ? tr('المظهر الداكن', 'Dark theme') : tr('المظهر الفاتح', 'Light theme')} />
+            </div>
+          </ASFooter>
         </div>
       </ASidebar>
       <ASInset>
@@ -41,18 +61,20 @@ function AdminShell({ current, title, theme, setTheme, actions, children }) {
           <h1 className="text-heading-3">{title}</h1>
           <div className="ms-auto flex items-center gap-1">
             <ALang lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} className="hidden md:inline-flex" />
-            <ATheme theme={theme} onThemeChange={setTheme} label={theme === 'light' ? tr('المظهر الداكن', 'Dark theme') : tr('المظهر الفاتح', 'Light theme')} />
+            <ATheme theme={theme} onThemeChange={setTheme} label={theme === 'light' ? tr('المظهر الداكن', 'Dark theme') : tr('المظهر الفاتح', 'Light theme')} className="hidden md:inline-flex" />
             <ADd dir={DIR}>
-              <ADdT asChild><AB variant="ghost" size="sm" aria-label={tr('قائمة الحساب', 'Account menu') + ' — ' + u.name}><AAv size="sm" aria-hidden="true"><AAvF>{u.name[0]}</AAvF></AAv><span className="hidden md:inline">{u.name}</span></AB></ADdT>
-              <ADdC align="end">
-                <ADdL><span className="flex flex-col"><span>{u.name} · {tr('أدمن', 'Admin')}</span><span dir="ltr" className="text-caption text-muted-foreground">{u.email}</span></span></ADdL>
-                <ADdS />
-                <ADdI onSelect={() => { location.href = carryParams('Home.html?auth=0'); }}><ALogOut />{tr('تسجيل الخروج', 'Sign out')}</ADdI>
-              </ADdC>
+              <ADdT asChild><AB variant="ghost" size="sm" aria-label={tr('قائمة الحساب', 'Account menu') + ' — ' + u.name}><AAv size="sm" aria-hidden="true"><AAvF>{u.name[0]}</AAvF></AAv><span className="hidden md:inline-flex">{u.name}</span></AB></ADdT>
+              <AccountMenuContent
+                user={{ ...u, role: tr('أدمن', 'Admin') }}
+                area="dashboard"
+                theme={theme}
+                setTheme={setTheme}
+                onSignOut={() => { location.href = carryParams('Home.html?auth=0'); }}
+              />
             </ADd>
           </div>
         </header>
-        <main className="flex flex-1 flex-col gap-6 px-4 py-6 md:px-8">
+        <main id="main" className="flex flex-1 flex-col gap-6 px-4 py-6 md:px-8">
           {actions && <div className="hidden flex-wrap justify-end gap-2 md:flex">{actions}</div>}
           {children}
         </main>
