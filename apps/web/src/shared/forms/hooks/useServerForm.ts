@@ -17,6 +17,7 @@ import { applyServerError } from '../services/applyServerError';
 import { fieldMessage, type FieldLines } from '../services/fieldMessage';
 import { schemaResolver, type FormSchema } from '../services/schemaResolver';
 import { useFormFailure } from './useFormFailure';
+import type { FailureLines } from './useRefusalView';
 
 export type ServerFormOptions<Values extends FieldValues, Request> = {
   /** The contract's schema from packages/shared: the browser checks with the rule the server uses. */
@@ -30,6 +31,14 @@ export type ServerFormOptions<Values extends FieldValues, Request> = {
   failureTitle: string;
   /** The form's own words for some codes of some fields, where it knows the rule behind them. */
   fieldLines?: Partial<Record<Path<Values>, FieldLines>>;
+  /**
+   * Builds the schema's input from the fields' values, when a field holds what the contract reads
+   * otherwise: an optional text left blank, which is no value, or a point typed as text. Each
+   * field's code is read from that input.
+   */
+  prepare?: (values: Values) => unknown;
+  /** The form's own words for a refusal that lands on no field, by its `code ?? type`. */
+  failureLines?: FailureLines;
 };
 
 export type ServerForm<Values extends FieldValues, Request> = {
@@ -68,9 +77,11 @@ export function useServerForm<Values extends FieldValues, Request>({
   submit,
   failureTitle,
   fieldLines = {},
+  prepare,
+  failureLines,
 }: ServerFormOptions<Values, Request>): ServerForm<Values, Request> {
   const copy = useCopy();
-  const [resolver] = useState(() => schemaResolver<Values, Request>(schema));
+  const [resolver] = useState(() => schemaResolver<Values, Request>(schema, prepare));
   const form = useForm<Values, unknown, Request>({ defaultValues, resolver });
   const [refusal, setRefusal] = useState<AppError | null>(null);
   // The first field a refusal names, focused once the fields are enabled again.
@@ -94,6 +105,7 @@ export function useServerForm<Values extends FieldValues, Request>({
 
   const { view, blocked } = useFormFailure(refusal, {
     title: failureTitle,
+    lines: failureLines,
     retry: () => {
       sendAgain();
     },

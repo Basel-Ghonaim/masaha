@@ -6,14 +6,17 @@ import type {
   CreateAmenityRequest,
   CreateAreaRequest,
   CreateGovernorateRequest,
+  LookupsCatalogue,
   UpdateAmenityRequest,
   UpdateAreaRequest,
   UpdateGovernorateRequest,
 } from '@masaha/shared/lookups';
 import { api } from '@shared/api';
 
-/** The admin's lookup lists on the server (docs/api/api-contract.md §5, Lookups). */
+/** The lookup lists on the server: the public catalogue and the admin's lists (docs/api/api-contract.md §5, Lookups). */
 export interface LookupsRepository {
+  /** The public catalogue: the active governorates with their active areas, and the active amenities. */
+  catalogue(): Promise<LookupsCatalogue>;
   /** Every governorate, hidden ones included, each with all its areas, both lists in order. */
   governorates(): Promise<AdminGovernorateWithAreas[]>;
   /** Adds a governorate, active and placed last. */
@@ -40,6 +43,7 @@ export interface LookupsRepository {
 
 export function createLookupsRepository(): LookupsRepository {
   return {
+    catalogue: () => api.get<LookupsCatalogue>('/lookups'),
     governorates: () => api.get<AdminGovernorateWithAreas[]>('/admin/governorates'),
     addGovernorate: (request) => api.post<AdminGovernorate>('/admin/governorates', request),
     editGovernorate: (id, request) =>

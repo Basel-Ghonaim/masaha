@@ -1,5 +1,6 @@
 import type { SessionSpaceLink } from '@masaha/shared/space-links';
 import type { Catalogue } from '@shared/copy';
+import { DASHBOARD_PATHS } from '@shared/routing';
 
 /** A dashboard page, named as the catalogue names its title. */
 export type DashboardPageName = keyof Catalogue['dashboard']['pages'];
@@ -31,6 +32,13 @@ export const SPACE_NAV: readonly SpaceNavItem[] = [
   { name: 'staff', segment: 'staff', roles: OWNER },
   { name: 'settings', segment: 'settings', roles: OWNER },
 ];
+
+/**
+ * The admin's spaces list and its add page, by path. The add page is reached from the list and
+ * belongs to it: it is never a sidebar item, so the list's item stays current there.
+ */
+export const ADMIN_SPACES_PATH = `${DASHBOARD_PATHS.admin}/spaces`;
+export const ADMIN_ADD_SPACE_PATH = `${ADMIN_SPACES_PATH}/new`;
 
 /** The platform's pages, in the sidebar's order, all the admin's. */
 export const ADMIN_NAV: readonly NavItem[] = [

@@ -25,4 +25,8 @@ export const DASHBOARD = {
     lookups: 'القوائم',
     audit: 'سجل التدقيق',
   },
+  addSpace: {
+    title: 'إضافة مساحة',
+    trail: 'مسار التنقل',
+  },
 } satisfies Catalogue['dashboard'];

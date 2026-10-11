@@ -1,3 +1,4 @@
+import type { CreateSpaceRequest } from '@masaha/shared/spaces';
 import { apiClient, setupApiClient } from '@shared/api';
 import { AppError } from '@shared/errors';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -22,6 +23,21 @@ afterEach(() => {
 });
 
 describe('the spaces repository', () => {
+  it('POSTs a new space’s profile to /admin/spaces, and resolves to the space created', async () => {
+    const request: CreateSpaceRequest = {
+      nameEn: 'Focus Hub',
+      areaId: 11,
+      addressAr: 'شارع النصر',
+      location: { lat: 31.52, lng: 34.45 },
+    };
+    const created = { id: 7, slug: 'focus-hub', ...request };
+    const requests = serve({ status: 201, data: { success: true, data: created } });
+
+    await expect(createSpacesRepository().create(request)).resolves.toEqual(created);
+    expect(requests[0]).toMatchObject({ method: 'post', url: '/admin/spaces' });
+    expect(JSON.parse(String(requests[0]?.data))).toEqual(request);
+  });
+
   it.each([true, false])('PUTs { isHidden: %s } to the space’s hidden flag', async (isHidden) => {
     const requests = serve({ status: 204 });
 

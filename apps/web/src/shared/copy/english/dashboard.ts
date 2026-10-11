@@ -30,4 +30,10 @@ export const DASHBOARD = {
     lookups: 'Lookups',
     audit: 'Audit log',
   },
+  /** The admin's add-space page, reached from the spaces list: never a sidebar item. */
+  addSpace: {
+    title: 'Add space',
+    /** Names the trail back to the spaces list. */
+    trail: 'Breadcrumb',
+  },
 } as const;

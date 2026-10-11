@@ -3,6 +3,8 @@ import {
   dashboardProblems,
   findForbidden,
   firstDownload,
+  firstDownloadCss,
+  libraryProblems,
   showcaseOnly,
   stringsIn,
   type ManifestChunk,
@@ -80,6 +82,22 @@ describe('firstDownload', () => {
   });
 });
 
+describe('firstDownloadCss', () => {
+  it("holds the stylesheets of the entry and its static imports, never a lazy chunk's", () => {
+    const manifest: Record<string, ManifestChunk> = {
+      'index.html': { isEntry: true, imports: ['_react.js'], css: ['assets/index.css'] },
+      '_react.js': { css: ['assets/react.css'] },
+      'src/shared/map/components/LeafletPointPicker.tsx': {
+        src: 'src/shared/map/components/LeafletPointPicker.tsx',
+        imports: ['_react.js'],
+        css: ['assets/LeafletPointPicker.css'],
+      },
+    };
+
+    expect(firstDownloadCss(manifest).sort()).toEqual(['assets/index.css', 'assets/react.css']);
+  });
+});
+
 describe('dashboardProblems', () => {
   const site: Record<string, ManifestChunk> = {
     'index.html': { isEntry: true, imports: ['_react.js'] },
@@ -123,6 +141,33 @@ describe('dashboardProblems', () => {
 
     expect(dashboardProblems(manifest)).toEqual([
       `No "dashboard" chunk in the build: the dashboard's code is not split from the site's.`,
+    ]);
+  });
+});
+
+describe('libraryProblems', () => {
+  const site: Record<string, ManifestChunk> = {
+    'index.html': { isEntry: true, imports: ['_react.js'] },
+    '_react.js': {},
+    '_table.js': { name: 'data-table', imports: ['_react.js'] },
+    '_dashboard.js': { name: 'dashboard', imports: ['_react.js', '_table.js'] },
+  };
+
+  it('finds nothing when only lazy imports reach a library', () => {
+    expect(libraryProblems(site, ['data-table'])).toEqual([]);
+  });
+
+  it("names a library's chunk when the first download imports it", () => {
+    const manifest = { ...site, '_react.js': { imports: ['_table.js'] } };
+
+    expect(libraryProblems(manifest, ['data-table'])).toEqual([
+      "_table.js is data-table's chunk in the site's first download.",
+    ]);
+  });
+
+  it('fails when the build has no chunk for a library, so the check never holds nothing', () => {
+    expect(libraryProblems(site, ['data-table', 'leaflet'])).toEqual([
+      'No "leaflet" chunk in the build: its library is not split from the rest.',
     ]);
   });
 });

@@ -97,4 +97,7 @@ export const LOOKUPS = {
     hidden: ({ name }: { name: string }) => `${name} (مخفية)`,
     loadFailed: 'تعذّر تحميل المناطق',
   },
+  areaSelect: {
+    placeholder: 'اختر المنطقة',
+  },
 } satisfies Catalogue['lookups'];

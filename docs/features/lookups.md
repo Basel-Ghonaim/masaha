@@ -1,6 +1,6 @@
 # Lookups
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
 > **Authority:** The `lookups` capability: the bilingual lists of governorates, areas and amenities, the admin's screen that keeps them, and the public catalogue. Its endpoints are owned by the [API contract](../api/api-contract.md#lookups-public); its entities by the [data model](../architecture/data-model.md#lookups).
 > **Scope:** the API module `lookups` (L0); `@masaha/shared/lookups`; the web feature `features/lookups`, for the admin.
 
@@ -9,13 +9,13 @@
 - Holds the place list, governorate then area, which covers the Gaza Strip, and the amenities a space may offer, each in Arabic and English, in an order the admin sets, with an active flag. Nothing is deleted: a row is hidden and restored.
 - Lets the admin add, rename, hide, restore and order the governorates, the areas and the amenities, on the dashboard's lookups page.
 - Answers the public catalogue: what a form or a filter may offer, active rows only.
-- Offers the one field that chooses a governorate or one of its areas, which the admin's spaces list sets in its filters.
+- Offers the one field that chooses a governorate or one of its areas, which the admin's spaces list sets in its filters, and the field that chooses one area for a space, which the add-space form sets.
 - Answers the modules above it: the names of a set of areas, whether an area may take a space, the ids of a governorate's areas, and which amenities are active.
 
 ## Who uses it
 
-- **The admin**, on the dashboard's lookups page, and through the place field of the spaces list ([space-links](space-links.md)).
-- **Anyone,** through the public catalogue. No page of the site reads it yet.
+- **The admin**, on the dashboard's lookups page, through the place field of the spaces list ([space-links](space-links.md)), and through the area field of the add-space form ([spaces](spaces.md)).
+- **Anyone,** through the public catalogue. No page of the site reads it yet; the admin's area field does.
 - **Other modules:** `spaces` checks a space's area and names it; `space-links` names the areas of the spaces it lists and resolves a governorate filter to its areas.
 
 ## Responsibility boundary
@@ -48,7 +48,9 @@ Nothing changes before the server answers. A write stays pending until the list 
 
 **The place field.** `GovernorateAreaSelect` offers "All areas", then each governorate followed by its areas, in order, named in the interface's language; each governorate's options are a group named after it, its areas indented. It reads the admin's lists, so hidden governorates and areas are offered too, marked "(hidden)". While they load, or once they have failed, one disabled option says so, and "All areas" stays. It takes its value and hands back the choice, a governorate's id or an area's, and sits in the Field of the list that sets it, which the page hands it to.
 
-**The public catalogue** answers what a form or a filter may offer, active rows only ([the contract](../api/api-contract.md#lookups-public)).
+**The area field.** `AreaSelect` offers one area, each governorate a group named after it with its areas under it, in order, named in the interface's language, and asks to choose one until it holds one. It reads the public catalogue, so only an area that may take a space is offered: no hidden area, nor one of a hidden governorate. While the catalogue loads, or once it has failed, one disabled option says so. It takes the area's id and hands back the one chosen, sits in the Field of the form that sets it, which the page hands it to, and lends that form its trigger, so a refusal can focus it.
+
+**The public catalogue** answers what a form or a filter may offer, active rows only ([the contract](../api/api-contract.md#lookups-public)). The web reads it under `['public', 'lookups', 'catalogue']`.
 
 ## Decisions
 
@@ -84,12 +86,15 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **The place field is exported as UI** that another capability's filter sets, its value and its choice passed by the page. *Why:* the governorates and their areas are this capability's fact, shown the same way wherever a place is chosen; the list that filters on it stays its own capability's. 2026-10-07, #50.
 - **The place field offers the admin's lists, hidden rows included and marked.** *Why:* a hidden governorate's or area's spaces still exist, and the admin must be able to find them; it also shares the lookups page's cache. 2026-10-07, #50.
 - **The amenities' actions have their own key prefix,** `['admin', 'lookups', 'amenity', …]`. *Why:* neither list reads the other's pending or failed actions. 2026-10-07, #49.
+- **A space's area is chosen with a field of its own, not an option on the place field** (D4). *Why:* a filter and a choice are different jobs: the filter offers a governorate, all areas and hidden places, while a space takes one area that may take a space, which the creation refuses otherwise. 2026-10-10, #57.
+- **The area field reads the public catalogue,** under the public scope, never the admin's lists. *Why:* it offers what a space may take, the catalogue's own definition; the admin's writes on the lookups do not refresh it, so an area hidden in the last 30 seconds may still be offered, and the server refuses it on the field. 2026-10-10, #57.
+- **The area field's governorates are groups with a visible name,** its areas under them, with no helper naming the governorate. *Why:* the design's helper named one governorate of a list that held one; the grouped list names each as the area is chosen (design issue 4). 2026-10-10, #57.
 
 ## Code map
 
 - **API:** `apps/api/src/modules/lookups/`, entry `index.ts`: a folder per list (`governorates/`, `areas/`, `amenities/`) and one for the public `catalogue/`; the pure rules beside them (the exact order, a lookup's change and its audit entries, the list order); the public and admin routers.
 - **Shared:** `packages/shared/src/lookups/`: the requests, the responses and the icon keys.
-- **Web:** `apps/web/src/features/lookups/`, entry `index.ts` (`GovernoratesSection`, `AmenitiesSection`, `GovernorateAreaSelect`), mounted by `pages/dashboard/admin/`; an amenity's icon through `components/AmenityIcon.tsx`; the place field in `components/place/` and `hooks/place/`.
+- **Web:** `apps/web/src/features/lookups/`, entry `index.ts` (`GovernoratesSection`, `AmenitiesSection`, `GovernorateAreaSelect`, `AreaSelect`), mounted by `pages/dashboard/admin/`; an amenity's icon through `components/AmenityIcon.tsx`; the place field in `components/place/` and `hooks/place/`; the area field, with the public catalogue's query, in `components/area/` and `hooks/area/`.
 
 ## Open findings
 
@@ -112,3 +117,4 @@ None.
 - #43 — the admin's governorates screen.
 - #49 — the admin's amenities, and the icon drawn by its key.
 - #50 — the place field of the admin's spaces list.
+- #57 — the area field of the add-space form, from the public catalogue.

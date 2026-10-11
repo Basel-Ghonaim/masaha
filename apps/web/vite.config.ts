@@ -6,6 +6,7 @@ import { defaultClientConditions, defaultServerConditions, loadEnv } from 'vite'
 import { defineConfig } from 'vitest/config';
 import { DASHBOARD_CHUNK, isDashboardModule } from './scripts/dashboardOnly.ts';
 import { devServer } from './scripts/devServer.ts';
+import { LIBRARY_CHUNKS } from './scripts/libraryChunks.ts';
 
 export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],
@@ -31,6 +32,13 @@ export default defineConfig(({ mode }) => ({
               test: isDashboardModule,
               includeDependenciesRecursively: false,
             },
+            // Each heavy library in a chunk of its own, so check:build can hold it out of the site's
+            // first download (finding 45); React and the rest it imports stay where they are.
+            ...LIBRARY_CHUNKS.map(({ name, test }) => ({
+              name,
+              test,
+              includeDependenciesRecursively: false,
+            })),
           ],
         },
       },

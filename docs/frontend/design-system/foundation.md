@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-10-07
+> **Last Updated:** 2026-10-10
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -60,7 +60,10 @@ apps/web/src/shared/design-system/
                       its glyph's name from a closed set (GlyphName), for data that names its icon
   lib/cn.ts           class-merge helper (lives inside the layer — the layer imports nothing from outside)
   lib/DirectionProvider.tsx  the reading direction for Radix and the icons (§8); not a visual component
-  index.ts            the only public surface
+  index.ts            the public surface
+  data.ts             the second entry: the data components that carry a heavy library (DataTable)
+  leaflet.css         the map's stylesheet: Leaflet's own, then its frame, controls and pin on the
+                      semantic tokens; imported by shared/map only
 ```
 
 **Categories.** A component's category is its **primary role for the user**: what the user does with it or gets from it, never its form. Each component has exactly one. A component that takes another's form is still classed by its role: Select's list floats, and Sidebar becomes a drawer on a phone, but they are a field and navigation.
@@ -78,13 +81,14 @@ apps/web/src/shared/design-system/
 A new component goes in the category of its role: the removable filter tag ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) in `display`, charts in `data`. A new category is added only when a role fits none of these.
 
 **Rules:**
-- **Public surface:** consumers import from `@shared/design-system` only, never from inside a component folder.
+- **Public surface:** consumers import from `@shared/design-system`, never from inside a component folder. The one exception is a second entry, `@shared/design-system/data`, for the data components that carry a heavy library (`DataTable`, over TanStack Table): only the pages that draw them import it, so the library stays out of the site's first download, which `check:build` verifies ([finding 45](../../architecture/findings/45-the-data-tables-library-reaches-the-sites-first-download.md)). Lint allows these entries alone.
 - **Closure:** the layer imports nothing from outside itself (no features, pages, app, or other `shared/` modules).
 - **Class merging:** `cn` (`lib/cn.ts`) joins classes; when two set the same thing, the later wins. It is configured with the layer's text styles and shadows, which tailwind-merge would otherwise misread (`text-body` as a colour, so `cn('text-body', 'text-primary')` would drop it). Every component, copied ones included, merges through it; the layer exports it for pages and features too.
 - **shadcn/ui** is configured (`apps/web/components.json`: style `radix-vega`, `rtl: true`, every alias inside the layer) to copy components into `components/`. With `rtl: true` the CLI writes logical classes. The CLI reads the aliases from `apps/web/tsconfig.json`, which repeats `@shared/*` for it. Once copied, a component is ours and follows this contract (§11).
 - **Radix primitives, the icon library and variant utilities** (`class-variance-authority`) are imported **only** inside the layer.
 - **No CSS files outside the layer.** Pages and features use Tailwind for layout only (grid, flex, gap, spacing, sizing).
 - **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
+- **The map's stylesheet** (`leaflet.css`) is the other exception. Leaflet's own stylesheet comes first. Then it gives the map its frame (border, radius, focus outline), its zoom buttons and attribution (the card's colours), and the pin (`.map-pin`, on `primary`), all on the semantic tokens. It also isolates the map, so Leaflet's stacked panes stay under the sticky bar and the overlays. Only `shared/map` imports it, from the part it loads lazily, so it arrives with the map and never in the site's first download ([architecture §6](../architecture.md#6-map)). Lint allows that import alone.
 
 **Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library, `cva`, Sonner, cmdk, react-day-picker or TanStack Table outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
 

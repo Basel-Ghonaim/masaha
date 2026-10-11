@@ -7,8 +7,16 @@ import { useQueryClient } from '@tanstack/react-query';
  * The promise settles once the lists have arrived, so a mutation that returns it stays pending until
  * then. A fetch already under way is left to finish, so another row's write never cancels the one
  * its own action waits on.
+ *
+ * Only the lists a page shows are fetched, unless `includeInactive`: a write made on a page that
+ * shows no admin list, as the add page, fetches the lists it left too, so the page it returns to
+ * opens on them.
  */
-export function useRefreshAdmin() {
+export function useRefreshAdmin({ includeInactive = false }: { includeInactive?: boolean } = {}) {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: ['admin'] }, { cancelRefetch: false });
+  return () =>
+    queryClient.invalidateQueries(
+      { queryKey: ['admin'], refetchType: includeInactive ? 'all' : 'active' },
+      { cancelRefetch: false },
+    );
 }

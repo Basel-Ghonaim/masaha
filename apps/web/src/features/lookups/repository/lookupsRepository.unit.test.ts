@@ -1,4 +1,8 @@
-import type { AdminAmenity, AdminGovernorateWithAreas } from '@masaha/shared/lookups';
+import type {
+  AdminAmenity,
+  AdminGovernorateWithAreas,
+  LookupsCatalogue,
+} from '@masaha/shared/lookups';
 import { apiClient, setupApiClient } from '@shared/api';
 import { AppError } from '@shared/errors';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -52,6 +56,25 @@ describe('the lookups repository', () => {
       baseURL: '/api/v1',
       url: '/admin/governorates',
     });
+  });
+
+  it('GETs the public catalogue, /lookups, and resolves to it unwrapped', async () => {
+    const catalogue: LookupsCatalogue = {
+      governorates: [
+        {
+          id: 2,
+          nameAr: 'محافظة غزة',
+          nameEn: 'Gaza City',
+          areas: [{ id: 5, nameAr: 'الرمال', nameEn: 'Al-Rimal' }],
+        },
+      ],
+      amenities: [],
+    };
+    const requests = serve({ status: 200, data: { success: true, data: catalogue } });
+
+    await expect(createLookupsRepository().catalogue()).resolves.toEqual(catalogue);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ method: 'get', baseURL: '/api/v1', url: '/lookups' });
   });
 
   it('POSTs a new governorate’s names, and resolves to the governorate added', async () => {

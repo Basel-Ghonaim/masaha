@@ -1,7 +1,7 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
-> **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the row actions of the admin's spaces list.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
+> **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the add-space page and the row actions of the admin's spaces list.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
 ## What it does
@@ -9,13 +9,13 @@
 - Lets the admin create a space from its profile, its basics and its location; read it; edit the profile and its facts, one group at a time (the hours with the shifts, the prices, the amenities, the contacts), and confirm each group unchanged, as far as [security](../backend/security.md#authorization) allows; hide and show it again; delete it softly and restore it.
 - Dates each of the space's fact groups when it is saved or confirmed unchanged, and computes from those dates which groups are stale, which are missing, and when the space was last updated.
 - Answers the modules above it: the summaries of a set of spaces, and a page of the admin's spaces list over the ids it is given.
-- On the web, gives each row of the admin's spaces list its menu: hide the space or show it again, and delete it, with an Undo that restores it.
+- On the web, adds a space from its basics and its location, its pin placed on a map; and gives each row of the admin's spaces list its menu: hide the space or show it again, and delete it, with an Undo that restores it.
 
 The photos and the owner's side are not built.
 
 ## Who uses it
 
-- **The admin,** through the API, and the row menu of the dashboard's spaces list.
+- **The admin,** through the API, the dashboard's add-space page, and the row menu of the dashboard's spaces list.
 - **`space-links`,** which names the spaces of a user's links from the summaries, and composes the admin's spaces list on the listing page.
 
 ## Responsibility boundary
@@ -32,7 +32,7 @@ The photos and the owner's side are not built.
 - Every change is audited by the audit writer, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the names the [contract](../api/api-contract.md#spaces-the-admin) gives.
 - Staleness reads the platform's thresholds and the one clock ([conventions §11](../backend/conventions.md#11-time)).
 - The list's filters are resolved to ids by the module above before `spaces` pages ([conventions §5](../backend/conventions.md#5-pagination)).
-- **The web** writes through the transport and TanStack Query; a write fetches the whole admin scope again, since the list it changes is [`space-links`](space-links.md)' ([architecture §7](../frontend/architecture.md#7-server-state)). The page sets the row menu in that list's slot, and the 429's wait above it ([architecture › What a feature exports](../frontend/architecture.md#what-a-feature-exports)). The dashboard-only rule keeps it out of the site's download ([architecture §3](../frontend/architecture.md#3-capabilities-features)).
+- **The web** writes through the transport and TanStack Query; a write fetches the whole admin scope again, since the list it changes is [`space-links`](space-links.md)' ([architecture §7](../frontend/architecture.md#7-server-state)). The page sets the row menu in that list's slot, and the 429's wait above it ([architecture › What a feature exports](../frontend/architecture.md#what-a-feature-exports)); on the add page, it sets the area field of [`lookups`](lookups.md) in the form's slot. The form follows `shared/forms` ([architecture › Forms](../frontend/architecture.md#forms)), preparing its values for the schema, and places the pin with `shared/map`'s point picker ([architecture §6](../frontend/architecture.md#6-map)). The dashboard-only rule keeps it out of the site's download ([architecture §3](../frontend/architecture.md#3-capabilities-features)).
 
 ## Behaviour and flows
 
@@ -42,7 +42,14 @@ The photos and the owner's side are not built.
 
 **Hide, delete, restore.** Each changes the space under its row lock, verified or not; what each answers and leaves behind is the [contract](../api/api-contract.md#spaces-the-admin)'s, and a deleted space's links count for nothing ([space-links](space-links.md#decisions)).
 
-**On the web.** `SpaceActionsMenu` is a row's menu in the admin's spaces list: **Hide**, or **Show** for a hidden space, then **Delete**.
+**Adding a space on the web.** `AddSpaceForm` is the add-space page's form, which the spaces list's "Add space" leads to: two sections, *Basics* (the names and the descriptions) and *Location* (the area, the addresses, the landmarks and the pin), then one "Add space".
+- **The fields:** each pair in its two languages, the Arabic at the start, each text in its own language and direction; every field that may stay empty is marked "Optional". The area is the field the page hands in, from [`lookups`](lookups.md); it takes the grid's first column.
+- **The pin:** a map of the Gaza Strip ([architecture §6](../frontend/architecture.md#6-map)) holds no pin until one is placed; a click places it and a drag moves it. Under it, the pin's coordinates are one value with it: the map writes them, and coordinates typed or pasted ("31.52, 34.45", Arabic digits included) move the pin. They are the keyboard's way to place it, and the way when the map cannot load.
+- **Checked in the browser** by the contract's schema: a blank optional field is no value, an empty required one is asked for in the form's own words, and coordinates that name no point, or a point outside the Strip's box, are refused on their field and nothing is sent.
+- **Sent once.** The server's field errors land on their fields, the first taking the focus; a 409 (two creations of one name at once) says so and asks to add it again; a 429 counts down and holds the submit.
+- **Once created,** the admin's lists are fetched again, the spaces list the page left included, a toast says "{name} added", and the page returns to the list.
+
+**The row actions on the web.** `SpaceActionsMenu` is a row's menu in the admin's spaces list: **Hide**, or **Show** for a hidden space, then **Delete**.
 - **Hide and Show** apply at once. The action stays pending until the list has arrived again, then a toast says what changed, by the space's name.
 - **Delete** asks first, in a dialog that opens on Cancel, its title naming the space. Confirmed, the space is deleted; once the list has arrived again, a toast says so with **Undo** for ten seconds, which restores that space, even once its row or the page has gone, and once the list has arrived again a toast says it is restored. Once that restore has settled, the cache keeps no action of the row. It is the only way the interface restores a space ([finding 44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)).
 - **While an action waits,** the row's menu button stays, busy, and keeps the focus; its items wait. The dialog returns the focus to that button.
@@ -106,18 +113,28 @@ The photos and the owner's side are not built.
 - **A failure's toast names the action and the space, and stays until it is closed;** while a 429 counts down on any row, every row's items wait, and the wait shows above the list (L5). *Why:* a table has no room for a failure in its row, a toast outlives the row a delete removes, and a disabled item shows its reason beside it ([foundation §10](../frontend/design-system/foundation.md#10-accessibility-baseline)). 2026-10-07, #50.
 - **A 429's wait is one time, kept in the query cache under the admin's scope (`['admin', 'spaces', 'hold']`),** set by any action's 429 to now plus its wait, the later of two, read as the time left, and cleared once it has passed; each action still leaves the cache with its row (`gcTime: 0`). *Why:* the server holds the window, and the cache keeps its last answer ([architecture › Where state lives](../frontend/architecture.md#where-state-lives)), cleared with the rest of the user's data when the session ends. Read from the failed actions, the wait lifted as soon as a change of filter or page unmounted their rows, and a page opened later counted the whole wait again (the owner's decision after #50's review). 2026-10-08, #50.
 - **A space's name in a toast or the dialog's title carries its language;** in the menu button's name, a string, it is isolated. *Why:* an English-only name in an Arabic sentence ([localisation › Content in two languages](../frontend/localisation.md#content-in-two-languages)). 2026-10-07, #50.
-- **No Edit, Add or owners' items yet** (L7). *Why:* no entry point leads nowhere; they arrive with their screens. 2026-10-07, #50.
+- **No Edit or owners' items yet** (L7). *Why:* no entry point leads nowhere; they arrive with their screens. "Add space" arrived with its page (#57). 2026-10-07, #50.
+- **A space is added in one form with one submit:** its basics and its location, sent as one creation (D1). *Why:* a space does not exist before it is created, so the design's save per section belongs to the edit screen. 2026-10-10, #57.
+- **Once added, the page returns to the list, and a toast names the space** (D2). The creation fetches the admin's lists the add page left, and waits for them, so the list opens already holding the new space. *Why:* as #50's actions say what they did; the edit screen, where the facts follow, is not built, so the list is where the new space is seen; a list fetched only once shown would first show its old rows (#57's review). 2026-10-10, #57.
+- **The two sections are this capability's, made for the edit screen to reuse,** with nothing only the edit would use (D3). *Why:* the edit screen shows the same fields, each section saved alone. 2026-10-10, #57.
+- **The area is one active area, from the field `lookups` offers,** which the page sets in the form (D4). *Why:* the areas are that capability's fact, and no feature imports another ([architecture § What a feature exports](../frontend/architecture.md#what-a-feature-exports)). 2026-10-10, #57.
+- **Field errors land on their fields, checked first in the browser by the contract's schema; a 409 is said plainly, a 429 counts down** (D5). *Why:* one rule in both apps, and the general conflict line's "refresh" would lose the form. 2026-10-10, #57.
+- **The pin is placed on a real map, and has no place until the admin gives it one** (D6, D7). *Why:* a pin set by default would pass unseen, wrong. 2026-10-10, #57.
+- **The coordinates are a field of their own, one value with the pin,** and read Arabic digits and the Arabic comma. *Why:* the keyboard's way to place the pin, the way when the map cannot load (D8), and how an admin pastes a place from a map application. 2026-10-10, #57.
+- **Every field that may stay empty says so; the landmark is asked in both languages,** like the addresses. *Why:* the design marked the landmark alone, and showed one landmark where the contract has two (design issues 1 and 2). 2026-10-10, #57.
+- **The page's title is in the top bar, with a trail back to the list; "Add space" sits above the list, at its end, at every width.** *Why:* the design drew the title twice, and the button in two places; on a phone the top bar is full (design issues 5 and 7). 2026-10-10, #57.
 
 ## Code map
 
 - **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/`, `contacts/`, `confirm/` (a group confirmed unchanged), `listing/` (the page the admin's list reads); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
 - **Shared:** `packages/shared/src/spaces/`: the requests (the profile and each fact group, with their rules), the responses, the contacts' forms, the fact groups and the Gaza Strip's box; the phone rule in `core`.
-- **Web:** `apps/web/src/features/spaces/`, entry `index.ts` (`SpaceActionsMenu`, `SpaceActionsHold`), mounted by `pages/dashboard/admin/`: a folder per operation in `hooks/` and `components/` (`hide/`, `delete/` with the Undo's restore, `menu/`, `hold/`), the toasts in `components/toast/`, and the space's name and a line cut around it in `services/`.
+- **Web:** `apps/web/src/features/spaces/`, entry `index.ts` (`AddSpaceForm` with its `AreaField` slot, `SpaceActionsMenu`, `SpaceActionsHold`), mounted by `pages/dashboard/admin/`: a folder per operation in `hooks/` and `components/` (`add/`, `hide/`, `delete/` with the Undo's restore, `menu/`, `hold/`), the profile's two sections in `components/profile/`, the toasts in `components/toast/`, and in `services/` the profile the schema reads from the form, the space's name and a line cut around it.
 
 ## Open findings
 
 - [43](../architecture/findings/43-two-races-around-a-spaces-facts.md): a save can land on a space verified a moment before, and a read can mix two states of the hours.
 - [44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md): no screen restores a deleted space once its toast has gone.
+- [46](../architecture/findings/46-the-deployments-headers-must-let-the-maps-tiles-load.md): the deployment's headers must let the add page's map tiles load.
 
 ## History
 
@@ -130,3 +147,4 @@ The photos and the owner's side are not built.
 ### Web history
 
 - #50 — the web's row actions: hide, show, delete and its Undo.
+- #57 — the add-space page: the basics and the location, the pin on a map, and the list's "Add space".
