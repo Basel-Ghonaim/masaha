@@ -44,7 +44,7 @@ function Audit({ theme, setTheme }) {
   return (
     <AdminShell current="audit" title={tr('سجل التدقيق', 'Audit log')} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('أحداث المنصة فقط. أحداث تشغيل المساحات (الزبائن والدفعات) يراها مالك المساحة فقط.', 'Platform events only. Space operations events (customers and payments) are seen only by the space owner.')}</p>
-      <DataTable label={tr('سجل التدقيق', 'Audit log')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+      <DataTable label={tr('سجل التدقيق', 'Audit log')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-3">
           <FilterSheet active={[actor, action].filter((x) => x !== 'all').length} count={rows.length} onClear={() => { setActor('all'); setAction('all'); }}>

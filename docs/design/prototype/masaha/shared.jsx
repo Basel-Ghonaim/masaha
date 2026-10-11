@@ -152,6 +152,98 @@ function PageActions({ actions }) {
   );
 }
 
+// P7: the states a route can be in, rather than the page's own data. The dashboard shows
+// them inside its shell with no actions, since the sidebar is the way on; the site offers
+// its way back. `?state=offline|403|404` reaches them from any page.
+const ROUTE_STATES = () => ({
+  offline: { icon: 'alert', title: tr('لا يوجد اتصال بالإنترنت', 'No internet connection'), text: tr('ستظهر البيانات عند عودة الاتصال.', 'The data will appear when you’re back online.'), retry: true },
+  403: { icon: 'alert', title: tr('لا تملك صلاحية هذه الصفحة', 'You don’t have access to this page'), text: tr('إن كنت تظن أن هذا خطأ، تواصل مع صاحب المساحة أو الإدارة.', 'If you think this is a mistake, ask the space’s owner or the admin.') },
+  404: { icon: 'search', title: tr('الصفحة غير موجودة', 'Page not found'), text: tr('ربما تغيّر الرابط أو حُذفت الصفحة.', 'The link may have changed or the page was removed.') }
+});
+const routeState = () => ROUTE_STATES()[pageParams.get('state')] || null;
+
+// P8: every action says it is working, it worked, or it failed.
+// Working is live: the button waits about three quarters of a second with its `loading`
+// state, so a second tap is impossible and a slow check-in cannot become a double one.
+// Failing is a frame, as on the auth pages: ?fail=<key> fails that action, ?state=ratelimit
+// shows the 429 line. Neither can be reached by clicking in a prototype with no server.
+const ACTION_MS = 700;
+const actionFails = (key) => key !== undefined && pageParams.get('fail') === String(key);
+const RATE_LIMIT_LINE = tr('محاولات كثيرة، حاول بعد 15 دقيقة', 'Too many attempts, try again in 15 minutes');
+
+// `success` is what changed; leave it out where the result shows in the row it changed —
+// a switch, a reorder (P8, amended). The front desk is exempt: a check-in, a check-out and
+// every money action always say so, and money says how much.
+// For a form, whose submit validates first: validate, then `run` the action.
+function useActionRun(actionKey) {
+  const { toast } = window.MasahaDesignSystem;
+  const [busy, setBusy] = React.useState(false);
+  const run = (fn, success) => {
+    if (busy) return;
+    setBusy(true);
+    setTimeout(() => {
+      setBusy(false);
+      if (actionFails(actionKey)) {
+        toast.error(tr('تعذّر إتمام العملية', 'Couldn’t complete that'), { action: { label: tr('إعادة المحاولة', 'Try again'), onClick: () => run(fn, success) } });
+        return;
+      }
+      if (fn) fn();
+      if (success) toast.success(success);
+    }, ACTION_MS);
+  };
+  return { busy, run };
+}
+
+function ActionButton({ actionKey, success, onAction, children, ...rest }) {
+  const { Button } = window.MasahaDesignSystem;
+  const { busy, run } = useActionRun(actionKey);
+  return <Button {...rest} loading={busy} onClick={() => run(onAction, success)}>{children}</Button>;
+}
+
+// The failure of an action taken in a dialog or a sheet shows inside it, which stays open
+// and keeps what was typed.
+function ActionAlert({ for: key, children }) {
+  const { Alert, AlertTitle, AlertDescription } = window.MasahaDesignSystem;
+  if (!actionFails(key)) return null;
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>{tr('تعذّر إتمام العملية', 'Couldn’t complete that')}</AlertTitle>
+      <AlertDescription>{children || tr('لم يصل الطلب. بياناتك كما هي — حاول مرة أخرى.', 'The request didn’t get through. Your input is kept — try again.')}</AlertDescription>
+    </Alert>
+  );
+}
+
+// Every endpoint may answer 429, so the warning is not the auth pages' alone.
+function RateLimitNote() {
+  const { Alert, AlertTitle } = window.MasahaDesignSystem;
+  if (pageParams.get('state') !== 'ratelimit') return null;
+  return <Alert variant="warning"><AlertTitle>{RATE_LIMIT_LINE}</AlertTitle></Alert>;
+}
+
+// P7: «تعذّر تحميل …» in place of the content, with a way to try again — the shape the
+// Directory already used, now on every dashboard page through its shell.
+function LoadError({ what }) {
+  const { Alert, AlertTitle, AlertDescription, AlertAction, Button } = window.MasahaDesignSystem;
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>{what || tr('تعذّر تحميل محتوى الصفحة', 'Couldn’t load this page')}</AlertTitle>
+      <AlertDescription>{tr('قد يكون الاتصال ضعيفًا. حاول مرة أخرى.', 'The connection may be weak. Try again.')}</AlertDescription>
+      <AlertAction><Button variant="outline" size="sm" onClick={() => location.reload()}>{tr('إعادة المحاولة', 'Try again')}</Button></AlertAction>
+    </Alert>
+  );
+}
+
+function RouteState({ state }) {
+  const { EmptyState, Button, SearchXIcon, CircleAlertIcon } = window.MasahaDesignSystem;
+  return (
+    <div className="flex flex-1 items-center justify-center px-4 py-10">
+      <EmptyState icon={state.icon === 'search' ? <SearchXIcon /> : <CircleAlertIcon />} title={state.title} titleAs="h1" description={state.text}>
+        {state.retry && <Button onClick={() => location.reload()}>{tr('إعادة المحاولة', 'Try again')}</Button>}
+      </EmptyState>
+    </div>
+  );
+}
+
 // SH-018: the first focusable element of every shell, seen only once it has focus.
 function SkipLink({ target = 'main' }) {
   return <Button variant="link" className="skip-link" asChild><a href={'#' + target}>{tr('تخطَّ إلى المحتوى', 'Skip to content')}</a></Button>;
@@ -333,7 +425,7 @@ function SpaceCardSkeleton() {
 // One Toaster per page; shows a toast handed over from the auth pages (or ?toast= for the board).
 const TOAST_KEY = 'masaha:toast';
 const DEMO_TOASTS = { welcome: tr("أهلًا سارة، تم إنشاء حسابك", "Welcome Sara, your account is ready"), linked: tr("ربطنا حساب Google بحسابك", "We linked your Google account to your account") };
-function PageToaster() {
+function PageToaster({ bottomBar }) {
   const { Toaster, toast } = window.MasahaDesignSystem;
   React.useEffect(() => {
     let list = [];
@@ -342,13 +434,15 @@ function PageToaster() {
     if (demo) list = demo.split(',').map((k) => DEMO_TOASTS[k]).filter(Boolean);
     list.forEach((m, i) => setTimeout(() => toast.success(m, { duration: demo ? Infinity : 5000 }), 300 + i * 150));
   }, []);
-  return <Toaster label={tr("الإشعارات", "Notifications")} closeLabel={tr("إغلاق الإشعار", "Close notification")} position="bottom-center" />;
+  // P8: on a page with a fixed bottom bar the toast sits above it, so feedback never
+    // covers the next action. (The layer's own offset is SH-012, worker A's.)
+    return <Toaster label={tr("الإشعارات", "Notifications")} closeLabel={tr("إغلاق الإشعار", "Close notification")} position="bottom-center" mobileOffset={{ bottom: '5.5rem' }} offset={{ bottom: bottomBar ? '5.5rem' : '1.5rem' }} />;
 }
 const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON.stringify(msgs)); } catch (e) {} };
 
 const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
 
-Object.assign(window, { AccountMenuContent, PageActions, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
+Object.assign(window, { AccountMenuContent, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
 
 // DS date picker with long localized dates («3 أكتوبر 2026»). value/onChange use ISO yyyy-mm-dd.
 const isoLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);

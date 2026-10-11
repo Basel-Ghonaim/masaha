@@ -141,7 +141,8 @@ function PaymentsTab({ bump }) {
         <DialogContent closeLabel={tr('إغلاق', 'Close')}>
           <DialogHeader><DialogTitle>{tr('إلغاء الدفعة', 'Void payment')}</DialogTitle>{target && <DialogDescription><Money n={target.amount} /> · {DESK.fmtDate(target.date)} · {DESK.methodLabel[target.method]}. {tr('تبقى ظاهرة مشطوبة مع السبب.', 'It stays visible, struck through, with the reason.')}</DialogDescription>}</DialogHeader>
           <Field label={tr('السبب', 'Reason')} error={err}><Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
-          <DialogFooter><Button variant="destructive" onClick={doVoid}>{tr('إلغاء الدفعة', 'Void payment')}</Button><Button variant="ghost" onClick={() => setVoiding(null)}>{tr('رجوع', 'Back')}</Button></DialogFooter>
+          <ActionAlert for="void" />
+          <DialogFooter><ActionButton actionKey="void" variant="destructive" onAction={doVoid}>{tr('إلغاء الدفعة', 'Void payment')}</ActionButton><Button variant="ghost" onClick={() => setVoiding(null)}>{tr('رجوع', 'Back')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

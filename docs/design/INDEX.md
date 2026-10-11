@@ -2,6 +2,21 @@
 
 Generated from `prototype/Flows - states.html`, in board order. Each row: the frame label, the prototype URL (open it with the static server, see README), the viewport, and its screenshot. Frames that repeat an earlier frame point to the same screenshot.
 
+## URL parameters added in the fix phase
+
+The frames below are the design board's. These parameters were added or renamed while the
+shared layer's decisions were applied (`CHANGES.md`), and work on every page of their group.
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `?publicstate=open` | the owner's and reception's pages | the public-state panel, open. Renamed from `?status=open`, which is also a list filter on three pages |
+| `?override=<minutes>` | the same | the state set to Full by hand for that long; `?override=full:84` and `?override=closed:30` name the state |
+| `?state=offline` · `?state=403` · `?state=404` | every dashboard page | the route's own states, inside the shell, with no actions — the sidebar is the way on |
+| `?state=error` | every dashboard page | «تعذّر تحميل …» in place of the content, with «إعادة المحاولة» |
+| `?state=loading` | every list page | the list's skeleton rows |
+| `?state=ratelimit` | the settings pages | the «محاولات كثيرة» warning, which any endpoint may answer |
+| `?fail=<action>` | the action's page | that action failing: inside its dialog or sheet, which stays open and keeps the input, or as a toast with «إعادة المحاولة» on a page. Actions: `visit`, `pay`, `checkout`, `warn`, `void`, `save` |
+
 ## 01 · Flow
 
 | Frame | Prototype URL | Viewport | Screenshot |

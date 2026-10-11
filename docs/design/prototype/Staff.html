@@ -83,7 +83,7 @@ function StaffInner({ theme, setTheme }) {
   return (
     <OwnerShell current="staff" title={tr('الموظفون', 'Staff')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('موظفو الاستقبال يرون المكتب والزبائن والإعلانات ودفعاتهم اليومية فقط، بدون أرقام الدخل.', 'Reception staff see the desk, customers, announcements and their own payments today — no income figures.')}</p>
-      <DataTable label={tr('الموظفون', 'Staff')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+      <DataTable label={tr('الموظفون', 'Staff')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-wrap items-center justify-between gap-3">
           <ResultCount>{tr('عدد الموظفين', 'Staff')}: <Num>{list.length}</Num></ResultCount>

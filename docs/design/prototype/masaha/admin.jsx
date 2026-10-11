@@ -22,9 +22,11 @@ const AdminMark = () => (
   <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-label text-primary-foreground" aria-hidden="true">{tr('م', 'M')}</span>
 );
 
-function AdminShell({ current, title, theme, setTheme, actions, children }) {
+function AdminShell({ current, title, theme, setTheme, actions, loadError, children }) {
   const u = AD.admin;
   const rail = useIsTablet() && !useIsDesktop();
+    const route = routeState();
+      const failed = pageParams.get('state') === 'error';
   const brand = tr('مساحة — إدارة المنصة', 'Masaha — platform admin');
   return (
     <ASP className="bg-background text-foreground">
@@ -76,7 +78,7 @@ function AdminShell({ current, title, theme, setTheme, actions, children }) {
           </div>
         </header>
         <main id="main" className="flex flex-1 flex-col gap-6 px-4 py-6 md:px-8">
-          {children}
+          {route ? <RouteState state={route} /> : failed ? <LoadError what={loadError} /> : children}
         </main>
       </ASInset>
       <PageToaster />

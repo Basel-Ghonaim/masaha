@@ -200,11 +200,13 @@ function OwnerUserMenu({ theme, setTheme }) {
 }
 
 // state: the automatic public state; a manual override turns it to Full while it runs.
-function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAction, actions, children }) {
+function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAction, actions, loadError, children }) {
   const ov = useOverride();
   const base = INSIDE_HOURS ? state : 'closed';
   // The 768–1023 rail: the sidebar collapses to icons there, so the switcher needs its tooltip.
   const rail = useIsTablet() && !useIsDesktop();
+    const route = routeState();
+      const failed = pageParams.get('state') === 'error';
   return (
     <SidebarProvider className="bg-background text-foreground">
       <SkipLink />
@@ -248,11 +250,11 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
           </div>
                   </header>
         <main id="main" className={'flex flex-1 flex-col gap-6 px-4 py-6 md:px-8 ' + (bottomAction ? 'pb-28 md:pb-6' : '')}>
-          {children}
+          {route ? <RouteState state={route} /> : failed ? <LoadError what={loadError} /> : children}
         </main>
-        {bottomAction && <div className="fixed inset-x-0 bottom-0 z-10 flex gap-2 border-t border-border bg-background px-4 py-3 md:hidden">{bottomAction}</div>}
+        {bottomAction && !route && <div className="fixed inset-x-0 bottom-0 z-10 flex gap-2 border-t border-border bg-background px-4 py-3 md:hidden">{bottomAction}</div>}
       </SidebarInset>
-      <PageToaster />
+      <PageToaster bottomBar={!!bottomAction && !route} />
     </SidebarProvider>
   );
 }

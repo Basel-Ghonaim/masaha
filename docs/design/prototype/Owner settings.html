@@ -37,8 +37,8 @@ function SettingsCard({ title, description, card, children, onSave }) {
   return (
     <Card>
       <CardHeader><CardTitle>{title}</CardTitle>{description && <CardDescription>{description}</CardDescription>}{card.dirty && <CardAction><Badge variant="warning">{tr('تغييرات غير محفوظة', 'Unsaved changes')}</Badge></CardAction>}</CardHeader>
-      <CardContent className="flex flex-col gap-5">{children}</CardContent>
-      <CardFooter className="flex flex-wrap gap-2"><Button disabled={!card.dirty} onClick={onSave || card.save}>{tr('حفظ', 'Save')}</Button>{card.dirty && <Button variant="ghost" onClick={card.reset}>{tr('تجاهل', 'Discard')}</Button>}</CardFooter>
+      <CardContent className="flex flex-col gap-5"><RateLimitNote /><ActionAlert for="save" />{children}</CardContent>
+      <CardFooter className="flex flex-wrap gap-2"><ActionButton actionKey="save" onAction={onSave || card.save}>{tr('حفظ', 'Save')}</ActionButton>{card.dirty && <Button variant="ghost" onClick={card.reset}>{tr('تجاهل التغييرات', 'Discard changes')}</Button>}</CardFooter>
     </Card>
   );
 }

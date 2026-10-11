@@ -74,7 +74,7 @@ function Owners({ theme, setTheme }) {
   return (
     <AdminShell current="owners" title={tr('أصحاب المساحات', 'Space owners')} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('ربط مالك بمساحة يجعلها موثّقة؛ بعدها يعدّلها المالك ويرى تشغيلها وحده.', 'Linking an owner makes a space verified; from then on the owner edits it and alone sees its operations.')}</p>
-      <DataTable label={tr('أصحاب المساحات', 'Space owners')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+      <DataTable label={tr('أصحاب المساحات', 'Space owners')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-wrap items-center justify-between gap-3">
           <ResultCount>{tr('عدد أصحاب المساحات', 'Space owners')}: <Num>{list.length}</Num></ResultCount>

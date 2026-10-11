@@ -137,7 +137,7 @@ function LogTab() {
   const paged = usePaged(rows);
     const label = date.toLocaleDateString(tr('ar-EG', 'en-GB'), { weekday: 'long', day: 'numeric', month: 'long', numberingSystem: 'latn' });
   return (
-    <DataTable label={tr('سجل الحضور', 'Attendance log')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+    <DataTable label={tr('سجل الحضور', 'Attendance log')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
       summary={paged.summary} pagination={paged.nav}
       toolbar={<div className="md:max-w-xs"><Field label={tr('التاريخ', 'Date')}>
         <DatePicker open={open} onOpenChange={setOpen}>

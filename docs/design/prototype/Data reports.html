@@ -91,7 +91,7 @@ function DRInner({ theme, setTheme }) {
   return (
     <OwnerShell current="data-reports" title={tr('بلاغات البيانات', 'Data reports')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('بلاغات الزوار عن معلومات خاطئة في صفحة المساحة.', 'Visitors’ reports about wrong information on the space page.')}</p>
-      <DataTable label={tr('بلاغات البيانات', 'Data reports')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+      <DataTable label={tr('بلاغات البيانات', 'Data reports')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-3">
           {/* P5: one status filter of four or fewer choices stays chips. */}

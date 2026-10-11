@@ -68,7 +68,7 @@ function Spaces({ theme, setTheme }) {
   const free = AD.owners.filter((o) => !link || !link.owners.includes(o.id));
   return (
     <AdminShell current="spaces" title={tr('المساحات', 'Spaces')} theme={theme} setTheme={setTheme}>
-      <DataTable label={tr('المساحات', 'Spaces')} columns={columns} data={paged.rows} getRowId={(r) => r.id}
+      <DataTable label={tr('المساحات', 'Spaces')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-3">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

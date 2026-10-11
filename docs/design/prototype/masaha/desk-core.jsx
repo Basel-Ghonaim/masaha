@@ -49,7 +49,7 @@ function DeskProvider({ children, initial }) {
           let c = D.customers.find((x) => x.phone === phone);
           if (!c) { c = { id: 'c' + Date.now(), name: debt.name || p.name, phone, subs: [] }; D.customers.unshift(c); }
           D.unpaid.unshift({ id: 'u' + Date.now(), customerId: c.id, date: D.TODAY, in: p.since, out: D.NOW, amount: left, how: 'left' });
-          toast(tr(`سُجّل خروج ${p.name} · عليه ${$(left)}`, `${p.name} checked out · owes ${$(left)}`));
+          toast.success(tr(`سُجّل خروج ${p.name} · عليه ${$(left)}`, `${p.name} checked out · owes ${$(left)}`));
         } else toast.success(tr(`سُجّل خروج ${p.name} · دُفع ${$(received)}`, `${p.name} checked out · paid ${$(received)}`));
       } else {
         const c = D.findCustomer(p.customerId); const s = D.currentSub(c);
@@ -161,7 +161,8 @@ function VisitDialog({ open, onClose }) {
   const desk = useDesk();
   const [name, setName] = React.useState(''); const [student, setStudent] = React.useState(false); const [shift, setShift] = React.useState(''); const [err, setErr] = React.useState();
   React.useEffect(() => { if (open) { setName(pageParams.get('vname') || ''); setStudent(false); setShift(''); setErr(); } }, [open]);
-  const submit = (e) => { e.preventDefault(); if (!name.trim()) return setErr(tr('أدخل الاسم', 'Enter the name')); desk.checkInVisit(name.trim(), student, shift || null); };
+  const { busy, run } = useActionRun('visit');
+    const submit = (e) => { e.preventDefault(); if (!name.trim()) return setErr(tr('أدخل الاسم', 'Enter the name')); run(() => desk.checkInVisit(name.trim(), student, shift || null)); };
   return (
     <DK.Dialog open={!!open} onOpenChange={(o) => !o && onClose()}>
       <DK.DialogContent closeLabel={tr('إغلاق', 'Close')}>
@@ -179,7 +180,8 @@ function VisitDialog({ open, onClose }) {
               <DK.ToggleGroupItem value="pm">{D.SHIFTS.pm}</DK.ToggleGroupItem>
             </DK.ToggleGroup>
           </DK.Field>
-          <DK.DialogFooter><DK.Button type="submit"><DK.LogInIcon />{desk.full() ? tr('تسجيل على أي حال', 'Check in anyway') : tr('تسجيل الزيارة', 'Check in')}</DK.Button></DK.DialogFooter>
+          <ActionAlert for="visit" />
+          <DK.DialogFooter><DK.Button type="submit" loading={busy}><DK.LogInIcon />{desk.full() ? tr('تسجيل على أي حال', 'Check in anyway') : tr('تسجيل الزيارة', 'Check in')}</DK.Button></DK.DialogFooter>
         </form>
       </DK.DialogContent>
     </DK.Dialog>
@@ -210,9 +212,9 @@ function WarnDialog({ dlg, onClose }) {
           <DK.DialogFooter className="flex flex-wrap gap-2">
             {ids.includes('here') ? <DK.Button onClick={() => desk.open('checkout', { presentId: dlg.warnings[0].presentId })}><DK.LogOutIcon />{tr('تسجيل خروج', 'Check out')}</DK.Button>
               : asVisit ? <>
-                <DK.Button onClick={() => desk.checkInVisit(c.name, !!c.student, null)}>{tr('تسجيل كزيارة', 'Check in as a visit')}</DK.Button>
+                <ActionButton actionKey="warn" onAction={() => desk.checkInVisit(c.name, !!c.student, null)}>{tr('تسجيل كزيارة', 'Check in as a visit')}</ActionButton>
                 <DK.Button variant="outline" onClick={() => desk.open('sheet', { mode: ids.includes('expired') ? 'renew' : 'subscribe', customerId: c.id })}>{ids.includes('expired') ? tr('تجديد', 'Renew') : tr('اشتراك جديد', 'New membership')}</DK.Button>
-              </> : <DK.Button onClick={() => desk.checkInSub(c.id)}>{tr('تسجيل على أي حال', 'Check in anyway')}</DK.Button>}
+              </> : <ActionButton actionKey="warn" onAction={() => desk.checkInSub(c.id)}>{tr('تسجيل على أي حال', 'Check in anyway')}</ActionButton>}
             <DK.Button variant="ghost" onClick={onClose}>{tr('إلغاء', 'Cancel')}</DK.Button>
           </DK.DialogFooter>
         </>}
@@ -318,14 +320,15 @@ function CheckoutDialog({ dlg, onClose }) {
           </>}
           {subBlock}
         </div>
+        <ActionAlert for="checkout" />
         <DK.DialogFooter className="flex flex-wrap gap-2">
           {ch ? (debtMode ? <>
-            <DK.Button onClick={() => finish(true)}>{tr('تأكيد الخروج بدون دفع', 'Confirm check-out without paying')}</DK.Button>
+            <ActionButton actionKey="checkout" onAction={() => finish(true)}>{tr('تأكيد الخروج بدون دفع', 'Confirm check-out without paying')}</ActionButton>
             <DK.Button variant="ghost" onClick={() => setDebtMode(false)}>{tr('رجوع', 'Back')}</DK.Button>
           </> : <>
-            <DK.Button onClick={() => finish(false)}>{tr('خروج ودفع', 'Check out and pay')}</DK.Button>
+            <ActionButton actionKey="checkout" onAction={() => finish(false)}>{tr('خروج ودفع', 'Check out and pay')}</ActionButton>
             <DK.Button variant="outline" onClick={() => setDebtMode(true)}>{tr('خروج بدون دفع', 'Check out without paying')}</DK.Button>
-          </>) : <DK.Button onClick={() => finish()}><DK.LogOutIcon />{tr('تسجيل خروج', 'Check out')}</DK.Button>}
+          </>) : <ActionButton actionKey="checkout" onAction={() => finish()}><DK.LogOutIcon />{tr('تسجيل خروج', 'Check out')}</ActionButton>}
         </DK.DialogFooter>
       </DK.DialogContent>
     </DK.Dialog>
@@ -344,7 +347,8 @@ function PayDialog({ dlg, onClose }) {
   React.useEffect(() => { if (c) setAmount(String(leftOf(item) || '')); }, [cid, item]);
   const term = q.trim(); const digits = term.replace(/\D/g, '');
   const results = term ? D.customers.filter((x) => x.name.includes(term) || (digits.length >= 3 && x.phone.replace(/\D/g, '').endsWith(digits))).slice(0, 6) : D.customers.filter((x) => D.balance(x) > 0).slice(0, 6);
-  const submit = (e) => { e.preventDefault(); const n = Number(amount); if (!(n > 0)) return setErr(tr('أدخل مبلغًا أكبر من صفر', 'Enter an amount above zero')); if (n > leftOf(item)) return setErr(tr(`أكبر من المتبقي (${$(leftOf(item))})`, `More than what’s left (${$(leftOf(item))})`)); desk.pay(c.id, n, method, note, item === 'auto' ? null : item); };
+  const { busy, run } = useActionRun('pay');
+    const submit = (e) => { e.preventDefault(); const n = Number(amount); if (!(n > 0)) return setErr(tr('أدخل مبلغًا أكبر من صفر', 'Enter an amount above zero')); if (n > leftOf(item)) return setErr(tr(`أكبر من المتبقي (${$(leftOf(item))})`, `More than what’s left (${$(leftOf(item))})`)); run(() => desk.pay(c.id, n, method, note, item === 'auto' ? null : item)); };
   return (
     <DK.Dialog open={!!dlg} onOpenChange={(o) => !o && onClose()}>
       <DK.DialogContent closeLabel={tr('إغلاق', 'Close')}>
@@ -382,8 +386,9 @@ function PayDialog({ dlg, onClose }) {
               <MethodToggle value={method} onChange={setMethod} />
             </div>
             <DK.Field label={tr('ملاحظة', 'Note')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>}><DK.Input value={note} onChange={(e) => setNote(e.target.value)} /></DK.Field>
+            <ActionAlert for="pay" />
             <DK.DialogFooter className="flex flex-wrap gap-2">
-              <DK.Button type="submit">{tr('تسجيل الدفعة', 'Record payment')}</DK.Button>
+              <DK.Button type="submit" loading={busy}>{tr('تسجيل الدفعة', 'Record payment')}</DK.Button>
               {!dlg.customerId && <DK.Button type="button" variant="ghost" onClick={() => setCid(null)}>{tr('زبون آخر', 'Another customer')}</DK.Button>}
             </DK.DialogFooter>
           </form>
