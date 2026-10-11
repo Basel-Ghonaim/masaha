@@ -40,6 +40,14 @@ archive.
 | **SH-020** | Menu items take the menu's own colour. The cause was the archive's own `a{color:var(--primary)}`, which also reached the row-action menus and the breadcrumbs, so it is scoped once rather than patched per menu | `masaha/masaha.css` |
 | **DI-2** | `min-h-14` and `md:inline` were used by both shells but are not in the prebuilt bundle, so the top bar had no minimum height and the account name never appeared from 768 | `masaha/masaha.css`, `owner.jsx`, `admin.jsx` |
 
+### Review fixes (2026-10-11)
+
+| Fix | What changed | Where |
+|---|---|---|
+| **F1** | A card's save footer touched the last field above it. `Card` spaces its own children with `gap-(--card-padding)`, but a `<form>` wrapping the content and the footer swallowed that, so every `ProfileSection` card and the account's profile card had a 0 px gap where every other card had 20. The form takes the Card's layout back | `masaha/profile-a.jsx`, `Settings.html` |
+| **F2** | The Directory drew its filters twice from 1024 — inline in the toolbar and again in the sidebar — a regression of P5. `FilterSheet`'s `always` flag becomes **`wide`**, which says what the caller wants above the breakpoint: `inline` (the default, every list), `sheet` (the Directory's map, which has nowhere else), or `none` (the Directory's list view, whose sidebar holds them) | `masaha/shared.jsx`, `Directory.html` |
+| **X1** | `npx serve`, which `README.md` recommends, redirected `X.html?…` to `X` and dropped the query, so no URL in `INDEX.md` opened its state and `role`, `auth` and `id` were lost while navigating. `serve.json` turns its clean URLs off | new `prototype/serve.json` |
+
 ### SH-007 — each table's column priority
 
 What survives between 768 and 1023, for the web to repeat when it builds these tables.

@@ -191,9 +191,9 @@ function DirectoryScreen() {
         <div className="flex flex-col gap-2 md:flex-row md:items-center">
           <Input role="searchbox" aria-label={tr("ابحث عن مساحة", "Search for a space")} placeholder={tr("اسم المساحة أو المنطقة", "Space name or area")} startIcon={<SearchIcon />} className="md:flex-1" value={f.q} onChange={(e) => set({ q: e.target.value })} />
           <div className="flex items-center gap-2">
-            {/* P5: the one filter sheet. In list view the sidebar takes over from 1024; the map has
-                            no sidebar, so there the sheet stays at every width. */}
-            <FilterSheet at="lg" always={view === 'map'} open={sheetOpen} onOpenChange={setSheetOpen} active={count} count={results.length} onClear={clear} description={tr("تُطبَّق فورًا على النتائج", "Applied to the results right away")}>
+            {/* P5: the one filter sheet. From 1024 the list view's filters are in the sidebar, so the
+                            toolbar draws none; the map has no sidebar, so there the sheet stays at every width. */}
+            <FilterSheet at="lg" wide={view === 'map' ? 'sheet' : 'none'} open={sheetOpen} onOpenChange={setSheetOpen} active={count} count={results.length} onClear={clear} description={tr("تُطبَّق فورًا على النتائج", "Applied to the results right away")}>
               <FiltersForm f={f} set={set} />
             </FilterSheet>
             {view === 'list' && (

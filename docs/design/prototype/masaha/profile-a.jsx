@@ -24,7 +24,7 @@ function ProfileSection({ id, title, description, updated, sec, children, valida
         <PCardDescription>{description ? <>{description} · </> : null}{tr('آخر تحديث', 'Updated')} {sec.updated || updated}</PCardDescription>
         {sec.dirty && <PCardAction><PBadge variant="warning">{tr('تغييرات غير محفوظة', 'Unsaved changes')}</PBadge></PCardAction>}
       </PCardHeader>
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={submit} noValidate className="flex flex-col gap-(--card-padding)">
         <PCardContent className="flex flex-col gap-5">
           {err && <PAlert variant="destructive"><PAlertDescription>{err}</PAlertDescription></PAlert>}
                       <ActionAlert for="save" />

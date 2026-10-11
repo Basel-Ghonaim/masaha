@@ -490,18 +490,22 @@ function useIsTablet() {
   React.useEffect(() => { const m = matchMedia(q); const h = () => setOn(m.matches); m.addEventListener('change', h); return () => m.removeEventListener('change', h); }, []);
   return on;
 }
-// P5: the one filter bar. `at` is where the filters go inline — 768 everywhere, except the
+// P5: the one filter bar. `at` is where it stops being a sheet — 768 everywhere, except the
 // Directory, which keeps the desktop sidebar it already had and so switches at 1024.
+// `wide` is what the caller wants above that: the filters drawn `inline` (the default, every
+// list), the `sheet` kept because there is nowhere else (the Directory's map), or `none`
+// because they live elsewhere there (the Directory's list view, where the sidebar has them).
 // The footer is the Directory's: the primary says how many results, the ghost clears.
-function FilterSheet({ children, active = 0, onClear, count, at = 'md', always = false, description, open: openProp, onOpenChange }) {
+function FilterSheet({ children, active = 0, onClear, count, at = 'md', wide: wideAs = 'inline', description, open: openProp, onOpenChange }) {
   const { Button, Badge, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter } = window.MasahaDesignSystem;
     const desktop = useIsDesktop();
   const tablet = useIsTablet();
-  const wide = (at === 'lg' ? desktop : tablet) && !always;
+  const isWide = at === 'lg' ? desktop : tablet;
   const [ownOpen, setOwnOpen] = React.useState(pageParams.get('sheet') === 'filters');
-    const open = openProp === undefined ? ownOpen : openProp;
-    const setOpen = onOpenChange || setOwnOpen;
-    if (wide) return children;
+  const open = openProp === undefined ? ownOpen : openProp;
+  const setOpen = onOpenChange || setOwnOpen;
+  if (isWide && wideAs === 'inline') return children;
+  if (isWide && wideAs === 'none') return null;
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)}>{tr('الفلاتر', 'Filters')}{active > 0 && <Badge variant="primary"><span dir="ltr">{active}</span></Badge>}</Button>
