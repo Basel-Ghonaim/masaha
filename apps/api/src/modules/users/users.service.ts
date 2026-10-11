@@ -42,6 +42,8 @@ interface Dependencies {
   accessTokens: AccessTokens;
   limiter: Limiter;
   audit: AuditWriter;
+  /** The one clock (conventions §11): when an account is suspended. */
+  now: () => Date;
   repository?: UsersRepository;
   sessions?: SessionsService;
   runInTransaction?: RunInTransaction;
@@ -95,6 +97,25 @@ export interface CreatedAccount {
   role: Role;
 }
 
+/** An account locked with every active admin's row: what a change that may remove an admin reads. */
+export interface LockedAmongAdmins {
+  account: Account;
+  /** The active admins other than this account, counted under the lock. */
+  otherActiveAdmins: number;
+}
+
+/** An admin acts on another person's account only (D2): never suspends or demotes themselves. */
+export function assertNotOwnAccount(actorId: number, userId: number): void {
+  if (actorId === userId) throw AppError.conflict('OWN_ACCOUNT', 'Not on one’s own account');
+}
+
+/** The platform keeps an active admin (D2): a change may not remove the last one. */
+export function assertKeepsAnAdmin({ account, otherActiveAdmins }: LockedAmongAdmins): void {
+  if (account.role === 'ADMIN' && !account.suspendedAt && otherActiveAdmins === 0) {
+    throw AppError.conflict('LAST_ADMIN', 'The last active admin');
+  }
+}
+
 /** A changed password: the device's session goes on with these, and every other one has ended. */
 export interface PasswordChange {
   accessToken: string;
@@ -109,6 +130,7 @@ export function createUsersService({
   accessTokens,
   limiter,
   audit,
+  now,
   repository = createUsersRepository(),
   sessions = createSessionsService(),
   runInTransaction = createRunInTransaction(),
@@ -130,6 +152,20 @@ export function createUsersService({
    */
   async function lockAccount(id: number, tx: Tx): Promise<Account | null> {
     return (await repository.lock(id, tx)) ? repository.findById(id, tx) : null;
+  }
+
+  /**
+   * Takes the user's session lock with every active admin's row, by id, in one statement
+   * (conventions §13), and reads the account under it. A change that may remove an admin takes it,
+   * so two admins acting on each other at once count each other's change. Nothing when the account
+   * does not exist.
+   */
+  async function lockForAdminChange(id: number, tx: Tx): Promise<LockedAmongAdmins | null> {
+    const locked = await repository.lockWithActiveAdmins(id, tx);
+    if (!locked.includes(id)) return null;
+    const account = await repository.findById(id, tx);
+    if (!account) return null;
+    return { account, otherActiveAdmins: locked.filter((other) => other !== id).length };
   }
 
   /** The account, or a 401 when it no longer exists. */
@@ -160,6 +196,7 @@ export function createUsersService({
     maySignIn,
     assertMaySignIn,
     lockAccount,
+    lockForAdminChange,
 
     /** A new USER with a password. A taken email is EMAIL_TAKEN. */
     async register({ name, email, password, language }: Registration): Promise<Account> {
@@ -390,6 +427,38 @@ export function createUsersService({
       });
     },
 
+    /**
+     * Suspends the account, or restores it (D1, D4), under the admin-set lock: never the actor's own,
+     * never the last active admin. A suspension ends every session and pending reset link; the links
+     * to spaces stay. The same state again writes nothing. Audited `user.suspended` or
+     * `user.unsuspended`; an unknown account is 404.
+     */
+    async setSuspended(actorId: number, userId: number, isSuspended: boolean): Promise<void> {
+      assertNotOwnAccount(actorId, userId);
+      await runInTransaction(async (tx) => {
+        const locked = await lockForAdminChange(userId, tx);
+        if (!locked) throw AppError.notFound(undefined, 'Account not found');
+        if (!maySignIn(locked.account) === isSuspended) return;
+        if (isSuspended) assertKeepsAnAdmin(locked);
+        await repository.setSuspendedAt(userId, isSuspended ? now() : null, tx);
+        if (isSuspended) {
+          await sessions.revokeAll(userId, tx);
+          await sessions.endResetTokens(userId, tx);
+        }
+        await audit(
+          {
+            actorId,
+            action: isSuspended ? 'user.suspended' : 'user.unsuspended',
+            entityType: 'user',
+            entityId: userId,
+            before: { isSuspended: !isSuspended },
+            after: { isSuspended },
+          },
+          tx,
+        );
+      });
+    },
+
     /** Hashes a new password, before the transaction that sets it opens. */
     hashPassword(password: string): Promise<string> {
       return passwords.hash(password);
@@ -441,7 +510,11 @@ export function createUsersService({
             mustChangePassword: account.mustChangePassword,
           };
           const { changed, issued } = await runInTransaction(async (tx) => {
-            // The update takes the session lock; it applies only to the password that was checked.
+            // The session lock first, so a suspension that committed meanwhile is seen and no
+            // session opens for it; the update applies only to the password that was checked.
+            const locked = await lockAccount(userId, tx);
+            if (!locked) throw AppError.unauthorized(undefined, 'Account not found');
+            assertMaySignIn(locked);
             const changed = await repository.setPasswordIf(userId, passwordHash, expected, tx);
             if (!changed) {
               throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Password changed meanwhile');

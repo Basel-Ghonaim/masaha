@@ -185,6 +185,26 @@ export function createUsersRepository(db: PrismaClient = prisma) {
     },
 
     /**
+     * Locks the user's row and every active admin's, in one statement, by id (conventions §13): the
+     * session lock, with the rows a change that may remove an admin counts. Under read committed, a
+     * row that a change committed meanwhile made no longer an active admin drops out of the set when
+     * its lock is granted. The ids locked, the user's among them when it exists.
+     */
+    async lockWithActiveAdmins(id: number, tx: Tx): Promise<number[]> {
+      const rows = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM users
+        WHERE id = ${id} OR (role = 'ADMIN' AND suspended_at IS NULL)
+        ORDER BY id
+        FOR NO KEY UPDATE`;
+      return rows.map((row) => row.id);
+    },
+
+    /** Suspends the account at `at`, or restores it with `null`. */
+    async setSuspendedAt(id: number, at: Date | null, tx: Tx): Promise<void> {
+      await tx.user.update({ where: { id }, data: { suspendedAt: at }, select: { id: true } });
+    },
+
+    /**
      * Sets the password only if the account still has the hash and the pending flag it was checked
      * against: a compare-and-set, so a reset that landed meanwhile is never overwritten. The account
      * after the change, or nothing when it had changed.

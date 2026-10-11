@@ -50,7 +50,7 @@ Staff (reception accounts) are not built.
 
 **Adding an owner.** An email with no account gets one, an `OWNER` with a temporary password, answered once, linked to the chosen space in the same transaction. An email with an account is refused, so the admin learns of it, and upgraded only when sent again with the upgrade asked: it keeps its name and password. An admin, a suspended account, an owner already (linked instead) and the space's active reception are refused.
 
-**Linking and unlinking an owner.** Linking makes a user an owner, or gives an owner one more space; the space is verified. Ending a link deactivates it; the last one leaves the space unverified and the person a user again. An admin, a suspended account and the space's active reception are refused; what each answers is the [contract](../api/api-contract.md#owners-the-admin)'s.
+**Linking and unlinking an owner.** Linking makes a user an owner, or gives an owner one more space; the space is verified. A suspension keeps the owner's links, so their space stays verified, and the admin edits it only after unlinking them ([security › Authorization](../backend/security.md#authorization)). Ending a link deactivates it; the last one leaves the space unverified and the person a user again. An admin, a suspended account and the space's active reception are refused; what each answers is the [contract](../api/api-contract.md#owners-the-admin)'s.
 
 **The admin's users list** is composed as above, newest first, one page at a time; each row carries how the account signs in, when it joined, and the spaces of its active owner links, oldest first ([the contract](../api/api-contract.md#users-the-admin)).
 

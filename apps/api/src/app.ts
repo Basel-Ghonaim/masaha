@@ -203,6 +203,7 @@ export function createApi({
     accessTokens,
     limiter,
     audit: writeAudit,
+    now: clock,
     sessions,
     runInTransaction,
   });

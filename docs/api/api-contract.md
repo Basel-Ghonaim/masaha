@@ -428,7 +428,7 @@ A space's owners, as the admin links them ([ADR 0009](../architecture/decisions/
 
 ### Users (the admin)
 
-The accounts, as the admin reads them ([data-model › Users and sessions](../architecture/data-model.md#users-and-sessions)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
+The accounts, as the admin reads and changes them ([data-model › Users and sessions](../architecture/data-model.md#users-and-sessions)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
 
 #### `GET /admin/users` · 🛡
 - **Query:** `?q=&role=&state=&page=&limit=` (§4), each optional:
@@ -455,8 +455,13 @@ The accounts, as the admin reads them ([data-model › Users and sessions](../ar
 - **204:** audited `user.temporaryPasswordHandedOver` (`after: { channel }`), with the account as the entity, as the entry of the password it follows. Only while that temporary password is still pending; a second handover is a second entry.
 - **Errors:** `validation` (422), with `invalid_choice` on `channel`; `conflict` (409) `TEMPORARY_PASSWORD_NOT_PENDING` once the account has no temporary password to change; `not_found` (404) for an unknown account.
 
+#### `PUT /admin/users/:userId/suspended` · 🛡
+- **Body:** `{ isSuspended: boolean }`.
+- **204:** the account is suspended, or restored. A suspension ends every session of the account and every pending reset link, and its unexpired access tokens are refused from its next request ([security.md](../backend/security.md#authorization)); its links to spaces are kept, so a suspended owner's space stays verified. A restore ends nothing. Audited `user.suspended` or `user.unsuspended` (`before` and `after`: `{ isSuspended }`), with the account as the entity; setting what it already is writes nothing.
+- **Errors**, a refusal writing nothing: `validation` (422); `conflict` (409) `OWN_ACCOUNT` for the admin's own account; `conflict` (409) `LAST_ADMIN` when it would leave the platform with no active admin, which only a change made meanwhile by another admin can cause; `not_found` (404) for an unknown account.
+
 ## 6. Domain error codes (initial)
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN`.

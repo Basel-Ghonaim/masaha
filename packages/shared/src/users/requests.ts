@@ -26,3 +26,8 @@ export type HandoverChannel = (typeof HANDOVER_CHANNELS)[number];
 export const handoverSchema = z.object({ channel: z.enum(HANDOVER_CHANNELS) });
 
 export type HandoverRequest = z.infer<typeof handoverSchema>;
+
+/** The admin suspends an account, or restores it. */
+export const setSuspendedSchema = z.object({ isSuspended: z.boolean() });
+
+export type SetSuspendedRequest = z.infer<typeof setSuspendedSchema>;

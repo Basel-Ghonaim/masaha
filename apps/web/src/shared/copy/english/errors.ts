@@ -51,4 +51,6 @@ export const ERRORS = {
     'This account has no password yet. Set one from the link we email you under “Forgot password”.',
   TEMPORARY_PASSWORD_NOT_PENDING:
     'This account has no temporary password waiting to be changed, so there is no handover to record.',
+  OWN_ACCOUNT: 'You can’t do this to your own account.',
+  LAST_ADMIN: 'The platform must keep at least one active admin.',
 } as const satisfies Record<AppErrorType | DomainErrorCode, string>;

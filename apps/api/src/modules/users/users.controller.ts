@@ -1,4 +1,9 @@
-import type { ChangePasswordRequest, HandoverRequest, PasswordChanged } from '@masaha/shared/users';
+import type {
+  ChangePasswordRequest,
+  HandoverRequest,
+  PasswordChanged,
+  SetSuspendedRequest,
+} from '@masaha/shared/users';
 import type { Request, Response } from 'express';
 
 import { signedIn } from '../../shared/auth/index.ts';
@@ -24,6 +29,13 @@ export function createUsersController(users: UsersService, cookies: SessionCooki
       const { userId } = signedIn(req);
       const { channel } = req.body as HandoverRequest;
       await users.recordHandover(userId, parseId(req.params.userId), channel);
+      sendNoContent(res);
+    },
+
+    setSuspended: async (req: Request, res: Response) => {
+      const { userId } = signedIn(req);
+      const { isSuspended } = req.body as SetSuspendedRequest;
+      await users.setSuspended(userId, parseId(req.params.userId), isSuspended);
       sendNoContent(res);
     },
   };

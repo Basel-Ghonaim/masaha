@@ -1,4 +1,4 @@
-import { handoverSchema } from '@masaha/shared/users';
+import { handoverSchema, setSuspendedSchema } from '@masaha/shared/users';
 import { Router } from 'express';
 
 import { validate } from '../../shared/validation/index.ts';
@@ -15,5 +15,6 @@ export function createUsersAdminRouter(controller: UsersController): Router {
     validate(handoverSchema),
     controller.recordHandover,
   );
+  router.put('/users/:userId/suspended', validate(setSuspendedSchema), controller.setSuspended);
   return router;
 }
