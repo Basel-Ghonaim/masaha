@@ -75,7 +75,6 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 
 ## Open findings
 
-- [25](../architecture/findings/25-the-signed-in-claims-are-read-by-a-helper-written-twice.md): its controller keeps its own copy of the signed-in helper.
 - [39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md): the service takes its password hashing as a parameter only its unit test passes.
 
 ## History

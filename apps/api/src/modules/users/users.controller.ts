@@ -1,17 +1,11 @@
 import type { ChangePasswordRequest, HandoverRequest, PasswordChanged } from '@masaha/shared/users';
 import type { Request, Response } from 'express';
 
-import { AppError } from '../../shared/errors/index.ts';
+import { signedIn } from '../../shared/auth/index.ts';
 import { sendNoContent, sendSuccess } from '../../shared/http/index.ts';
 import { parseId } from '../../shared/validation/index.ts';
 import type { SessionCookies } from '../sessions/index.ts';
 import type { UsersService } from './users.service.ts';
-
-/** The signed-in user's claims. Their routes always run behind requireAuth. */
-function signedIn(req: Request) {
-  if (!req.auth) throw AppError.unauthorized();
-  return req.auth;
-}
 
 export function createUsersController(users: UsersService, cookies: SessionCookies) {
   return {

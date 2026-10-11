@@ -109,7 +109,7 @@ Staff (reception accounts) are not built.
 
 ## Open findings
 
-- [25](../architecture/findings/25-the-signed-in-claims-are-read-by-a-helper-written-twice.md): its controller keeps its own copy of the signed-in helper.
+- [50](../architecture/findings/50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md): an owner whose only spaces are deleted stays an owner.
 
 ## History
 
