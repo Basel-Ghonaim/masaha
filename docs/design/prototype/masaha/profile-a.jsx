@@ -1,4 +1,4 @@
-const { Card: PCard, CardHeader: PCardHeader, CardTitle: PCardTitle, CardDescription: PCardDescription, CardAction: PCardAction, CardContent: PCardContent, CardFooter: PCardFooter, Button: PButton, Badge: PBadge, Field: PField, Input: PInput, Textarea: PTextarea, Select: PSelect, SelectTrigger: PSelectTrigger, SelectValue: PSelectValue, SelectContent: PSelectContent, SelectItem: PSelectItem, Switch: PSwitch, Alert: PAlert, AlertDescription: PAlertDescription, XIcon: PX, toast: ptoast } = window.MasahaDesignSystem;
+const { Card: PCard, CardHeader: PCardHeader, CardTitle: PCardTitle, CardDescription: PCardDescription, CardAction: PCardAction, CardContent: PCardContent, CardFooter: PCardFooter, Button: PButton, Badge: PBadge, Field: PField, Input: PInput, Textarea: PTextarea, Select: PSelect, SelectTrigger: PSelectTrigger, SelectValue: PSelectValue, SelectContent: PSelectContent, SelectItem: PSelectItem, SelectGroup: PSelectGroup, SelectLabel: PSelectLabel, Switch: PSwitch, Alert: PAlert, AlertDescription: PAlertDescription, XIcon: PX, toast: ptoast } = window.MasahaDesignSystem;
 
 // Each section saves on its own; dirty sections register so leaving the page warns.
 const dirtySet = new Set();
@@ -13,10 +13,20 @@ function useSection(id, initial) {
   return { v, setV, set: (p) => setV((x) => ({ ...x, ...p })), dirty, save, reset: () => setV(saved), updated, touch: () => { setUpdated(tr('الآن', 'just now')); ptoast.success(tr('أكّدنا أن المعلومات ما زالت صحيحة', 'Confirmed as still correct')); } };
 }
 
+// `validate` answers one line for the section's Alert, or { field: line } for the fields
+// themselves (then `children` is a function of those errors, and the first takes the focus).
 function ProfileSection({ id, title, description, updated, sec, children, validate, footerExtra }) {
   const [err, setErr] = React.useState(null);
+  const form = React.useRef(null);
   const { busy, run } = useActionRun('save');
-    const submit = (e) => { e.preventDefault(); const m = validate ? validate(sec.v) : null; setErr(m); if (!m) run(() => sec.save()); };
+  const submit = (e) => {
+    e.preventDefault();
+    const m = validate ? validate(sec.v) : null;
+    setErr(m);
+    if (m && typeof m === 'object') setTimeout(() => { const bad = form.current.querySelector('[aria-invalid="true"]'); if (bad) bad.focus(); });
+    if (!m) run(() => sec.save());
+  };
+  const fieldErrors = err && typeof err === 'object' ? err : {};
   return (
     <PCard id={id} className="scroll-mt-20">
       <PCardHeader>
@@ -24,11 +34,11 @@ function ProfileSection({ id, title, description, updated, sec, children, valida
         <PCardDescription>{description ? <>{description} · </> : null}{tr('آخر تحديث', 'Updated')} {sec.updated || updated}</PCardDescription>
         {sec.dirty && <PCardAction><PBadge variant="warning">{tr('تغييرات غير محفوظة', 'Unsaved changes')}</PBadge></PCardAction>}
       </PCardHeader>
-      <form onSubmit={submit} noValidate className="flex flex-col gap-(--card-padding)">
+      <form ref={form} onSubmit={submit} noValidate className="flex flex-col gap-(--card-padding)">
         <PCardContent className="flex flex-col gap-5">
-          {err && <PAlert variant="destructive"><PAlertDescription>{err}</PAlertDescription></PAlert>}
-                      <ActionAlert for="save" />
-          {children}
+          {typeof err === 'string' && <PAlert variant="destructive"><PAlertDescription>{err}</PAlertDescription></PAlert>}
+          <ActionAlert for="save" />
+          {typeof children === 'function' ? children(fieldErrors) : children}
         </PCardContent>
         <PCardFooter className="flex flex-wrap gap-2">
           <PButton type="submit" loading={busy}>{tr('حفظ', 'Save')}</PButton>
@@ -40,46 +50,120 @@ function ProfileSection({ id, title, description, updated, sec, children, valida
   );
 }
 
-const Bi = ({ children }) => <div className="grid gap-4 md:grid-cols-2">{children}</div>;
+// #57's fields, which the creation form and the editor's «المساحة» share (D3): every field that
+// may stay empty says so, the landmark is asked in both languages, the area is one field over the
+// whole catalogue, and the pin is one value with its coordinates.
+const Optional = () => <span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>;
+
+// The contract's box (GAZA_STRIP_BOUNDS); the map's own is only the drawing's extent.
+const STRIP = { south: 31.18, north: 31.64, west: 34.17, east: 34.62 };
+const fmtCoords = ({ lat, lng }) => lat.toFixed(5) + ', ' + lng.toFixed(5);
+// Arabic digits, the Arabic decimal mark and the Arabic comma are read as an admin pastes them.
+const latinDigits = (t) => t.replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/٫/g, '.').replace(/،/g, ',');
+function parseCoords(text) {
+  const m = latinDigits(text || '').trim().match(/^(-?\d+(?:\.\d+)?)\s*(?:,|\s)\s*(-?\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  return { lat: Number(m[1]), lng: Number(m[2]) };
+}
+function coordsError(text) {
+  if (!(text || '').trim()) return tr('ضع الدبوس على الخريطة أو أدخل إحداثياته', 'Place the pin on the map, or enter its coordinates');
+  const p = parseCoords(text);
+  if (!p) return tr('أدخل الإحداثيات: خط العرض ثم خط الطول', 'Enter the coordinates as the latitude, then the longitude');
+  if (p.lat < STRIP.south || p.lat > STRIP.north || p.lng < STRIP.west || p.lng > STRIP.east) return tr('هذه النقطة خارج قطاع غزة', 'This point is outside the Gaza Strip');
+  return null;
+}
+const errorsOf = (o) => { const e = Object.fromEntries(Object.entries(o).filter(([, m]) => m)); return Object.keys(e).length ? e : null; };
+const basicsErrors = (v) => ({ nameEn: !v.nameEn.trim() && tr('أدخل الاسم بالإنجليزية', 'Enter the English name') });
+const locationErrors = (v) => ({ area: !v.area && tr('اختر المنطقة', 'Choose the area'), addrAr: !v.addrAr.trim() && tr('أدخل العنوان بالعربية', 'Enter the Arabic address'), coords: coordsError(v.coords) });
+
+// What a space may take: the active governorates and their active areas (the public catalogue).
+function areaCatalogue() {
+  const AD = window.ADMIN;
+  if (!AD) return window.MASAHA.governorates.filter((g) => g.areas.length);
+  return AD.lookups.govs.filter((g) => g.active).map((g) => ({ id: g.id, name: tr(g.ar, g.en), areas: g.areas.filter((a) => a.active).map((a) => ({ id: a.id, name: tr(a.ar, a.en) })) })).filter((g) => g.areas.length);
+}
+function AreaSelect({ value, onChange }) {
+  return (
+    <PSelect value={value || ''} onValueChange={onChange}>
+      <PSelectTrigger><PSelectValue placeholder={tr('اختر المنطقة', 'Choose an area')} /></PSelectTrigger>
+      <PSelectContent>
+        {areaCatalogue().map((g) => (
+          <PSelectGroup key={g.id}>
+            <PSelectLabel>{g.name}</PSelectLabel>
+            {g.areas.map((a) => <PSelectItem key={a.id} value={a.id}>{a.name}</PSelectItem>)}
+          </PSelectGroup>
+        ))}
+      </PSelectContent>
+    </PSelect>
+  );
+}
+
+function BasicsFields({ v, set, errors = {} }) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <PField label={tr('الاسم بالعربية', 'Name in Arabic')} labelEnd={<Optional />}><PInput lang="ar" dir="rtl" autoComplete="off" value={v.nameAr} onChange={(e) => set({ nameAr: e.target.value })} /></PField>
+      <PField label={tr('الاسم بالإنجليزية', 'Name in English')} error={errors.nameEn}><PInput lang="en" dir="ltr" autoComplete="off" value={v.nameEn} onChange={(e) => set({ nameEn: e.target.value })} /></PField>
+      <PField label={tr('الوصف بالعربية', 'Description in Arabic')} labelEnd={<Optional />}><PTextarea lang="ar" dir="rtl" rows={3} value={v.descAr} onChange={(e) => set({ descAr: e.target.value })} /></PField>
+      <PField label={tr('الوصف بالإنجليزية', 'Description in English')} labelEnd={<Optional />}><PTextarea lang="en" dir="ltr" rows={3} value={v.descEn} onChange={(e) => set({ descEn: e.target.value })} /></PField>
+    </div>
+  );
+}
+
+// The pin has no place until it is given one (#57's D6, D7): a tap places it, and the
+// coordinates under the map are the same value, the keyboard's way to place it.
+function LocationFields({ v, set, errors = {} }) {
+  const pin = parseCoords(v.coords);
+  const pinSpace = pin ? [{ id: 'pin', name: v.nameEn || tr('المساحة', 'The space'), verified: false, lat: pin.lat, lng: pin.lng }] : [];
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <PField label={tr('المنطقة', 'Area')} error={errors.area}><AreaSelect value={v.area} onChange={(a) => set({ area: a })} /></PField>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <PField label={tr('العنوان بالعربية', 'Address in Arabic')} error={errors.addrAr}><PInput lang="ar" dir="rtl" autoComplete="off" value={v.addrAr} onChange={(e) => set({ addrAr: e.target.value })} /></PField>
+        <PField label={tr('العنوان بالإنجليزية', 'Address in English')} labelEnd={<Optional />}><PInput lang="en" dir="ltr" autoComplete="off" value={v.addrEn} onChange={(e) => set({ addrEn: e.target.value })} /></PField>
+        <PField label={tr('علامة مميزة بالعربية', 'Landmark in Arabic')} labelEnd={<Optional />}><PInput lang="ar" dir="rtl" autoComplete="off" value={v.landmarkAr} onChange={(e) => set({ landmarkAr: e.target.value })} /></PField>
+        <PField label={tr('علامة مميزة بالإنجليزية', 'Landmark in English')} labelEnd={<Optional />}><PInput lang="en" dir="ltr" autoComplete="off" value={v.landmarkEn} onChange={(e) => set({ landmarkEn: e.target.value })} /></PField>
+      </div>
+      <div className="flex flex-col gap-2">
+        <p className="text-label">{tr('الموقع على الخريطة', 'Pin on the map')}</p>
+        <SpaceMap spaces={pinSpace} selectedId="pin" onSelect={() => {}} picking onPick={(c) => set({ coords: fmtCoords(c) })} label={tr('خريطة قطاع غزة: اضغط لوضع دبوس المساحة', 'Map of the Gaza Strip: click to place the space’s pin')} className="h-64" />
+        <p className="text-caption text-muted-foreground">{tr('اضغط على الخريطة لوضع الدبوس عند مدخل المساحة، واضغط مرة أخرى لنقله. أو أدخل إحداثياته.', 'Tap the map to place the pin at the space’s entrance, and tap again to move it. Or enter its coordinates.')}</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <PField label={tr('الإحداثيات', 'Coordinates')} error={errors.coords} helper={<>{tr('خط العرض ثم خط الطول، كما تنسخهما الخريطة: ', 'Latitude, then longitude, as a map copies them: ')}<Ltr>31.52, 34.45</Ltr></>}>
+          <PInput dir="ltr" autoComplete="off" spellCheck={false} value={v.coords} onChange={(e) => set({ coords: e.target.value })} />
+        </PField>
+      </div>
+    </div>
+  );
+}
+
+// The editor's sample profile: Focus Hub's texts on every space, as the archive's known limits say.
+const sampleProfile = (space) => ({
+  nameAr: space.nameAr || '', nameEn: space.name || '',
+  descAr: 'مساحة عمل هادئة للعمل الفردي والدراسة، فيها طاولات مشتركة وزاوية للمكالمات.', descEn: 'A quiet space for solo work and study, with shared desks and a corner for calls.',
+  area: space.area || '', addrAr: 'النصر، شارع النصر، عمارة 12، الطابق الثالث', addrEn: 'An-Nasr, An-Nasr Street, Building 12, 3rd floor',
+  landmarkAr: 'قرب مفترق العيون', landmarkEn: 'Near Al-Oyoun junction',
+  coords: space.lat != null ? fmtCoords(space) : ''
+});
 
 function BasicsSection({ space }) {
-  const sec = useSection('basics', { nameAr: space.nameAr, nameEn: space.name, descAr: 'مساحة عمل هادئة للعمل الفردي والدراسة، فيها طاولات مشتركة وزاوية للمكالمات.', descEn: 'A quiet space for solo work and study, with shared desks and a corner for calls.' });
+  const p = sampleProfile(space);
+  const sec = useSection('basics', { nameAr: p.nameAr, nameEn: p.nameEn, descAr: p.descAr, descEn: p.descEn });
   return (
-    <ProfileSection id="basics" title={tr('الأساسيات', 'Basics')} updated={tr('قبل أسبوعين', '2 weeks ago')} sec={sec} validate={(v) => (!v.nameAr.trim() || !v.nameEn.trim() ? tr('أدخل الاسم بالعربية والإنجليزية.', 'Enter the name in Arabic and English.') : null)}>
-      <Bi>
-        <PField label={tr('الاسم بالعربية', 'Name in Arabic')}><PInput lang="ar" dir="rtl" value={sec.v.nameAr} onChange={(e) => sec.set({ nameAr: e.target.value })} /></PField>
-        <PField label={tr('الاسم بالإنجليزية', 'Name in English')}><PInput lang="en" dir="ltr" value={sec.v.nameEn} onChange={(e) => sec.set({ nameEn: e.target.value })} /></PField>
-      </Bi>
-      <Bi>
-        <PField label={tr('الوصف بالعربية', 'Description in Arabic')}><PTextarea lang="ar" dir="rtl" rows={3} value={sec.v.descAr} onChange={(e) => sec.set({ descAr: e.target.value })} /></PField>
-        <PField label={tr('الوصف بالإنجليزية', 'Description in English')}><PTextarea lang="en" dir="ltr" rows={3} value={sec.v.descEn} onChange={(e) => sec.set({ descEn: e.target.value })} /></PField>
-      </Bi>
+    <ProfileSection id="basics" title={tr('الأساسيات', 'Basics')} updated={tr('قبل أسبوعين', '2 weeks ago')} sec={sec} validate={(v) => errorsOf(basicsErrors(v))}>
+      {(errors) => <BasicsFields v={sec.v} set={sec.set} errors={errors} />}
     </ProfileSection>
   );
 }
 
 function LocationSection({ space }) {
-  const M = window.MASAHA;
-  const sec = useSection('location', { area: space.area, addrAr: 'النصر، شارع النصر، عمارة 12، الطابق الثالث', addrEn: 'An-Nasr, An-Nasr Street, Building 12, 3rd floor', landmark: tr('قرب مفترق العيون', 'Near Al-Oyoun junction'), lat: space.lat, lng: space.lng });
-  const areas = M.governorates[0].areas;
+  const p = sampleProfile(space);
+  const sec = useSection('location', { area: p.area, addrAr: p.addrAr, addrEn: p.addrEn, landmarkAr: p.landmarkAr, landmarkEn: p.landmarkEn, coords: p.coords, nameEn: p.nameEn });
   return (
-    <ProfileSection id="location" title={tr('الموقع', 'Location')} updated={tr('قبل شهر', 'a month ago')} sec={sec}>
-      <PField label={tr('المنطقة', 'Area')} helper={M.govName('gaza')}>
-        <PSelect value={sec.v.area} onValueChange={(a) => sec.set({ area: a })}>
-          <PSelectTrigger className="md:max-w-xs"><PSelectValue /></PSelectTrigger>
-          <PSelectContent>{areas.map((a) => <PSelectItem key={a.id} value={a.id}>{a.name}</PSelectItem>)}</PSelectContent>
-        </PSelect>
-      </PField>
-      <Bi>
-        <PField label={tr('العنوان بالعربية', 'Address in Arabic')}><PInput lang="ar" dir="rtl" value={sec.v.addrAr} onChange={(e) => sec.set({ addrAr: e.target.value })} /></PField>
-        <PField label={tr('العنوان بالإنجليزية', 'Address in English')}><PInput lang="en" dir="ltr" value={sec.v.addrEn} onChange={(e) => sec.set({ addrEn: e.target.value })} /></PField>
-      </Bi>
-      <PField label={tr('علامة مميزة', 'Landmark')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>}><PInput value={sec.v.landmark} onChange={(e) => sec.set({ landmark: e.target.value })} /></PField>
-      <div className="flex flex-col gap-2">
-        <span className="text-label">{tr('الموقع على الخريطة', 'Pin on the map')}</span>
-        <SpaceMap spaces={[{ ...space, lat: sec.v.lat, lng: sec.v.lng }]} selectedId={space.id} onSelect={() => {}} picking onPick={(c) => sec.set(c)} label={tr('اضغط لتحريك الدبوس', 'Tap to move the pin')} className="h-64" />
-        <p className="text-caption text-muted-foreground">{tr('اضغط على الخريطة لتحريك الدبوس إلى مدخل المساحة.', 'Tap the map to move the pin to the space’s entrance.')}</p>
-      </div>
+    <ProfileSection id="location" title={tr('الموقع', 'Location')} updated={tr('قبل شهر', 'a month ago')} sec={sec} validate={(v) => errorsOf(locationErrors(v))}>
+      {(errors) => <LocationFields v={sec.v} set={sec.set} errors={errors} />}
     </ProfileSection>
   );
 }
@@ -146,4 +230,4 @@ function HoursSection() {
   );
 }
 
-Object.assign(window, { useSection, ProfileSection, BasicsSection, LocationSection, HoursSection, dirtySet, Bi });
+Object.assign(window, { useSection, ProfileSection, BasicsSection, LocationSection, HoursSection, dirtySet, Optional, BasicsFields, LocationFields, AreaSelect, parseCoords, fmtCoords, coordsError, errorsOf, basicsErrors, locationErrors, sampleProfile });
