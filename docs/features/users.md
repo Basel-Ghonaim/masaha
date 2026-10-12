@@ -13,16 +13,16 @@
 - Records how a temporary password was handed over, in the audit, for the admin.
 - Suspends an account and restores it, for the admin: a suspension ends its sessions at once and keeps its links.
 - Reads the account for the guard on every signed-in request, so a suspension, a role change and a pending password change hold from the account's next request.
-- Changes the global role when `space-links` finds that a person's owner links give another, ending every session of theirs.
+- Changes the global role when `space-links` finds that a person's owner links give another, or the admin's role change allows it, ending every session of theirs.
 - On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, and the forced password change's form.
 
-The account's settings (`GET` and `PATCH /me`), the admin's role changes, the temporary passwords of the owner's reception accounts and the admin's recovery are not built.
+The account's settings (`GET` and `PATCH /me`), the temporary passwords of the owner's reception accounts and the admin's recovery are not built.
 
 ## Who uses it
 
 - **Every signed-in user,** through the account menu and sign-out.
 - **A user with a temporary password,** through the forced change.
-- **The admin,** who suspends and restores accounts, and records how a temporary password was handed over.
+- **The admin,** who suspends and restores accounts, changes their role through `space-links`, and records how a temporary password was handed over.
 - **[`auth`](auth.md),** which signs in, registers and links Google through it.
 - **[`space-links`](space-links.md),** which names the owners in the admin's spaces list, composes the admin's users list from its page of accounts, and changes a person's role as their owner links give it.
 
@@ -92,7 +92,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #34 — `User` in `@masaha/shared/users`.
 - #35 — the password policy's rules for a checklist.
 - #60 — the page of accounts for the admin's users list; the role change that follows an owner's links; the accounts the admin creates with a temporary password, and its handover.
-- The users item — the account read by the guard on every signed-in request; suspension and restore.
+- The users item — the account read by the guard on every signed-in request; suspension and restore; the role change's lock and its write, for `space-links`.
 
 ### Web history
 

@@ -245,12 +245,11 @@ Built: `GET /manage/spaces`, the spaces the caller has an active link to, with t
 | GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | |
 
 #### Admin (`/admin/...`, 🛡)
-Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile and facts edits, a group at a time, and the confirming of a group unchanged while it is unverified, and hiding and showing, soft delete and restore of any space; the users, `GET /admin/users`, the list with its search and its role and state filters, which the owners page reads filtered to the owners; the owners, `/admin/owners`, added with a new account or an upgraded one, and `/admin/spaces/:spaceId/owners`, linked and unlinked one space at a time; a temporary password's handover, `/admin/users/:userId/temporary-password/handover`; and suspension, `/admin/users/:userId/suspended` ([api-contract §5](../api/api-contract.md#5-endpoints)).
+Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile and facts edits, a group at a time, and the confirming of a group unchanged while it is unverified, and hiding and showing, soft delete and restore of any space; the users, `GET /admin/users`, the list with its search and its role and state filters, which the owners page reads filtered to the owners; the owners, `/admin/owners`, added with a new account or an upgraded one, and `/admin/spaces/:spaceId/owners`, linked and unlinked one space at a time; a temporary password's handover, `/admin/users/:userId/temporary-password/handover`; suspension, `/admin/users/:userId/suspended`; and the role change, `/admin/users/:userId/role` ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/admin/stats` | aggregate numbers only |
-| PUT | `/admin/users/:userId/role` | change role: `USER` or `ADMIN`, while `OWNER` follows the owner links ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)) |
 | POST | `/admin/users/:userId/temporary-password` | recovery for a user who lost access to their email; must change at first sign-in; its handover is recorded by the built `…/temporary-password/handover` |
 | GET / PATCH | `/admin/data-reports[/:id]` | read all; resolve (with an optional note) or dismiss those of unverified spaces |
 | GET | `/admin/audit-log` | |

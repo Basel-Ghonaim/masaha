@@ -38,6 +38,8 @@ import {
 import {
   createAdminOwnersController,
   createAdminOwnersService,
+  createAdminRolesController,
+  createAdminRolesService,
   createAdminSpacesController,
   createAdminSpacesService,
   createAdminUsersController,
@@ -246,6 +248,7 @@ export function createApi({
     users,
   });
   const adminUsers = createAdminUsersService({ users, spaces });
+  const adminRoles = createAdminRolesService({ runInTransaction, users });
   const adminOwners = createAdminOwnersService({
     runInTransaction,
     audit: writeAudit,
@@ -304,6 +307,7 @@ export function createApi({
   admin.use(
     createSpaceLinksAdminRouter({
       adminOwners: createAdminOwnersController(adminOwners),
+      adminRoles: createAdminRolesController(adminRoles),
       adminSpaces: createAdminSpacesController(adminSpaces),
       adminUsers: createAdminUsersController(adminUsers),
     }),

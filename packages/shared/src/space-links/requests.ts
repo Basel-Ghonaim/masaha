@@ -68,3 +68,13 @@ export type AddOwnerRequest = z.infer<typeof addOwnerSchema>;
 export const linkOwnerSchema = z.object({ userId: bodyId });
 
 export type LinkOwnerRequest = z.infer<typeof linkOwnerSchema>;
+
+/** The global roles the admin gives; `OWNER` follows the person's owner links (ADR 0009). */
+export const ADMIN_ROLE_CHOICES = ['USER', 'ADMIN'] as const;
+
+export type AdminRoleChoice = (typeof ADMIN_ROLE_CHOICES)[number];
+
+/** A person's global role, as the admin changes it. */
+export const changeRoleSchema = z.object({ role: z.enum(ADMIN_ROLE_CHOICES) });
+
+export type ChangeRoleRequest = z.infer<typeof changeRoleSchema>;

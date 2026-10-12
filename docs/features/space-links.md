@@ -14,6 +14,7 @@
 - Composes the admin's users list, on the API: its filters, and the spaces each person owns; the owners page is that list filtered to the owners.
 - Adds an owner for the admin, on the API: a new account with a temporary password, or an existing one upgraded on purpose, linked to one space.
 - Links a space's owners for the admin, and ends their links, one space at a time, on the API; the person's global role follows their owner links.
+- Changes a person's global role for the admin, between `USER` and `ADMIN`, on the API, while they hold no active link.
 
 Staff (reception accounts) are not built.
 
@@ -52,6 +53,8 @@ Staff (reception accounts) are not built.
 
 **Linking and unlinking an owner.** Linking makes a user an owner, or gives an owner one more space; the space is verified. A suspension keeps the owner's links, so their space stays verified, and the admin edits it only after unlinking them ([security › Authorization](../backend/security.md#authorization)). Ending a link deactivates it; the last one leaves the space unverified and the person a user again. An admin, a suspended account and the space's active reception are refused; what each answers is the [contract](../api/api-contract.md#owners-the-admin)'s.
 
+**The admin's role change** makes a person an admin or a user again. `OWNER` follows the links, so a person holding any active link, owner or reception, is refused until their links end. The change takes the person's lock with every active admin's row ([conventions › Concurrency](../backend/conventions.md#concurrency)), then counts their links under it; `users` writes the role, ends their sessions and audits it.
+
 **The admin's users list** is composed as above, newest first, one page at a time; each row carries how the account signs in, when it joined, and the spaces of its active owner links, oldest first ([the contract](../api/api-contract.md#users-the-admin)).
 
 **The admin's list on the web.** `AdminSpacesList` shows the search and the filters, then the page's spaces: a table from 768 px (the name, the area, the state, the owners, the freshness, the last update and the row's actions), with the count the filters keep and the pages under it; on a phone, a card per space with the same facts, the search in view and the other filters in a bottom sheet behind a "Filters" button that counts them.
@@ -84,6 +87,8 @@ Staff (reception accounts) are not built.
 - **A person with an active reception link at the space is refused, not moved** (D5). *Why:* the reception link is the owner's to end; no silent change of role at a space. 2026-10-11, #60.
 - **Every link change takes the space's lock, then the person's** (S5). *Why:* a save on the space decides on the links as they are ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)), and two ends of one person's links at once each count what the other left. 2026-10-11, #60.
 - **The users list is composed here, `users` filtering and paging its own accounts first,** newest first; each row adds how it signs in and when it joined (the owner's S2). *Why:* every filter is the account's own, so the page is cut before the links are read; the users screen shows both columns, so the users item adds actions only. 2026-10-11, #60.
+- **The admin's role change is composed here,** because only the links tell whether a role may change; `users` writes it (D1, D3). It offers `USER` or `ADMIN`, and refuses a person with any active link, owner or reception, a soft-deleted space's included, with `ACCOUNT_HAS_LINKS`. *Why:* an admin is never linked (`ACCOUNT_IS_ADMIN`), the `OWNER` follows the links ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)), and no change happens silently at a space. 2026-10-11, the users item.
+- **A role change takes the person's lock with every active admin's row, and counts the links under it;** it takes no space's lock. *Why:* every link change takes the person's lock, so a link made meanwhile counts, and two admins demoting each other at once cannot leave none ([conventions › Concurrency](../backend/conventions.md#concurrency)). 2026-10-11, the users item.
 
 ### Web decisions
 
@@ -103,7 +108,7 @@ Staff (reception accounts) are not built.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/space-links/`, entry `index.ts`: the links, the caller's spaces and the loader in the module's root service, with its `me` router; `admin-spaces/` for the admin's list and its router; `admin-users/` for the admin's users list and `admin-owners/` for adding, linking and unlinking, on the same router, with the pure rule of the role the links give beside them.
+- **API:** `apps/api/src/modules/space-links/`, entry `index.ts`: the links, the caller's spaces and the loader in the module's root service, with its `me` router; `admin-spaces/` for the admin's list and its router; `admin-users/` for the admin's users list, `admin-owners/` for adding, linking and unlinking, and `admin-roles/` for the role change, on the same router, with the pure rule of the role the links give beside them.
 - **Shared:** `packages/shared/src/space-links/`: the caller's spaces, the admin's list query and its rows, the users list's query and its rows, and the owner's add and link requests and the added owner.
 - **Web:** `apps/web/src/features/space-links/`, entry `index.ts`: `SpaceSwitcher` (`components/switcher/`, `hooks/switcher/`), and `useMySpacesQuery` for the shell's public link, mounted by `pages/dashboard/shell/`; `AdminSpacesList` (`components/admin-list/`, `hooks/admin-list/`, with the pure address, row, date and page rules in `services/`), mounted by `pages/dashboard/admin/`.
 
@@ -121,6 +126,7 @@ Staff (reception accounts) are not built.
 - #44 — the admin's spaces list, the links loader on the admin's routes, and links to deleted spaces.
 - #48 — the missing fact groups on the admin list's rows.
 - #60 — the admin's users list; adding, linking and unlinking owners, with the role that follows the links.
+- The users item — the admin's role change.
 
 ### Web history
 
