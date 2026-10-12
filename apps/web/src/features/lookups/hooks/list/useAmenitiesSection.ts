@@ -38,7 +38,6 @@ export function useAmenitiesSection() {
       closeLabel: copy.lookups.sheet.close,
     } satisfies SheetView,
     title: copy.lookups.amenities.title,
-    description: copy.lookups.amenities.description,
     loadingLabel: copy.status.loading,
     empty: {
       title: copy.lookups.amenities.empty,

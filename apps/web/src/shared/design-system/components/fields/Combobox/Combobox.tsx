@@ -60,7 +60,7 @@ function toList(value: string | string[] | undefined): string[] {
 }
 
 /**
- * A choice from a list that can be searched, such as the area or amenity filters. Compose it from
+ * A choice from a list that can be searched, such as the area filter. Compose it from
  * ComboboxTrigger, ComboboxContent and ComboboxItem. The trigger shows whatever summary it is given
  * («المنطقة: الكل», «الحالة: 2 محدّدة»), so every word stays with the caller.
  */

@@ -1,6 +1,6 @@
 # Lookups
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
 > **Authority:** The `lookups` capability: the bilingual lists of governorates, areas and amenities, the admin's screen that keeps them, and the public catalogue. Its endpoints are owned by the [API contract](../api/api-contract.md#lookups-public); its entities by the [data model](../architecture/data-model.md#lookups).
 > **Scope:** the API module `lookups` (L0); `@masaha/shared/lookups`; the web feature `features/lookups`, for the admin.
 
@@ -39,9 +39,10 @@
 - the section shows its own loading, failure (with "Try again") and empty states.
 
 `AmenitiesSection` shows every amenity, retired ones included, in order, in one card:
-- each row shows the amenity's icon, its name in the interface's language with the other as its second line, and a badge when the directory's filter leaves it out or it is retired;
-- each row has two switches, "In filters" and "Active", each named after its amenity with its words beside it, its arrows, and Edit;
-- a sheet adds or edits an amenity: its names, its icon, chosen from a grid of the eight, and both its flags; a new one is in the filters until switched off, and its key, which the server derives from its English name, is never shown;
+- the card holds its title and "Add amenity", with no line under the title;
+- each row shows the amenity's icon, its name in the interface's language with the other as its second line, and a badge when it is retired;
+- each row has its "Active" switch, named after its amenity with its word beside it, its arrows, and Edit;
+- a sheet adds or edits an amenity: its names, its icon, chosen from a grid of the eight, and, when editing, its "Active" switch; its key, which the server derives from its English name, is never shown;
 - the section shows its own loading, failure (with "Try again") and empty states.
 
 Nothing changes before the server answers. A write stays pending until the list has been fetched again, and the next action starts from the server's list. While a list's order is pending, every arrow of that list waits, so two orders never race; a card waits out a 429 with every control. A failure stands until the next action on its row or list, whatever fails elsewhere: a governorate's or an area's shows in its governorate's card; an amenity's shows in its own row, and an order of the amenities' in their card, above the list. The amenities' card waits out a 429 on any of its rows or its list until that count ends, whatever fails after it. A 409 on an order means the list changed meanwhile: the list is fetched again, and the card says so. The screen fires no toasts.
@@ -65,7 +66,7 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **Duplicate English names are allowed.** *Why:* the lists are small and seen whole, so a repeat is seen where it is made ([finding 30](../architecture/findings/30-a-lookups-english-name-is-not-unique.md), accepted). 2026-10-06, #45.
 - **An amenity's key derives from its English name when it is added,** and never changes. 2026-10-06, #41.
 - **A new row is placed last.** 2026-10-06, #41.
-- **Internet and stable power are not filters** (`isFilterable` off). *Why:* nearly every space has them, so they tell no space apart. 2026-09-30, #16.
+- **No amenity is a filter:** the amenities carry no filter flag, and the directory filters on none (the owner's decision, D1). *Why:* every space claims fast internet and stable power, and nobody looks for a space by its hot drinks; an amenity is told on the space's page. It supersedes #16's "Internet and stable power are not filters". 2026-10-12, #64.
 - **The public catalogue** is the active governorates with their active areas, and the active amenities, in order and unpaginated. *Why:* a bounded catalogue that forms and filters offer whole. 2026-10-06, #44.
 
 ### Web decisions
@@ -81,7 +82,8 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **An amenity's icon is chosen from a visible grid,** a radio group of the eight, each named. *Why:* one of a set, along the arrow keys; filter chips are for filters. 2026-10-07, #49.
 - **A new amenity starts with no icon chosen, and its icon is required.** *Why:* a preselected icon would let the admin save the wrong one unnoticed; the choice is deliberate. 2026-10-07, #49.
 - **The amenities' hooks mirror the governorates', one per operation,** with no hook factory across the lists. *Why:* two lists are too few to generalise. 2026-10-07, #49.
-- **An amenity's two switches sit in its row, each pending on its own write; its arrows wait only on an order.** A governorate's or an area's arrows also wait on its switch; a new admin list copies the amenities'. *Why:* an order sends ids alone, so it cannot race a change of a flag. 2026-10-07, #49.
+- **An amenity's switch sits in its row, pending on its own write; its arrows wait only on an order.** A governorate's or an area's arrows also wait on its switch; a new admin list copies the amenities'. *Why:* an order sends ids alone, so it cannot race a change of a flag. 2026-10-07, #49; one switch since #64.
+- **The amenities' card has no line under its title** (design issue 1). *Why:* its line explained only the filter switch, which went with the filter. 2026-10-12, #64.
 - **The page's two sections sit under tabs, the tab kept in the address;** choosing one replaces the address, and the first tab takes no parameter. *Why:* a link or a reload opens the same tab, and Back leaves the page rather than stepping through tabs. The governorates' section needed no change to sit under a tab. 2026-10-07, #49.
 - **The place field is exported as UI** that another capability's filter sets, its value and its choice passed by the page. *Why:* the governorates and their areas are this capability's fact, shown the same way wherever a place is chosen; the list that filters on it stays its own capability's. 2026-10-07, #50.
 - **The place field offers the admin's lists, hidden rows included and marked.** *Why:* a hidden governorate's or area's spaces still exist, and the admin must be able to find them; it also shares the lookups page's cache. 2026-10-07, #50.
@@ -111,6 +113,7 @@ None.
 - #41 — the admin's lookups API.
 - #44 — the public catalogue, and what `spaces` and `space-links` read.
 - #45 — duplicate English names accepted.
+- #64 — no amenity filter: the flag dropped.
 
 ### Web history
 
@@ -118,3 +121,4 @@ None.
 - #49 — the admin's amenities, and the icon drawn by its key.
 - #50 — the place field of the admin's spaces list.
 - #57 — the area field of the add-space form, from the public catalogue.
+- #64 — no amenity filter: the switch, its badge and the card's line removed.

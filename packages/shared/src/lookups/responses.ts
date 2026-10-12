@@ -33,8 +33,6 @@ export interface AdminAmenity {
   nameEn: string;
   icon: AmenityIconKey;
   isActive: boolean;
-  /** Offered in the directory's filter. */
-  isFilterable: boolean;
 }
 
 // The public catalogue (GET /lookups): only what is active, in order, for the forms and the
@@ -62,8 +60,6 @@ export interface CatalogueAmenity {
   nameAr: string;
   nameEn: string;
   icon: AmenityIconKey;
-  /** Offered in the directory's filter. */
-  isFilterable: boolean;
 }
 
 /** The active lookups, both languages, each list in order. */

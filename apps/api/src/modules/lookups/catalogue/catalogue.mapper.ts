@@ -23,6 +23,5 @@ export function toCatalogueAmenity(amenity: CatalogueAmenityRow): CatalogueAmeni
     nameEn: amenity.nameEn,
     // Written only from AMENITY_ICON_KEYS: by the seed, typed by it, and by the validated requests.
     icon: amenity.icon as AmenityIconKey,
-    isFilterable: amenity.isFilterable,
   };
 }

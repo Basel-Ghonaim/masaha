@@ -271,21 +271,18 @@ model Area {
 }
 
 model Amenity {
-  id           Int      @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   /// snake_case, stable; code refers to amenities by key.
-  key          String   @unique
-  nameAr       String   @map("name_ar")
-  nameEn       String   @map("name_en")
+  key       String   @unique
+  nameAr    String   @map("name_ar")
+  nameEn    String   @map("name_en")
   /// A key from the fixed set the web maps to an icon.
-  icon         String
-  sortOrder    Int      @default(0) @map("sort_order")
+  icon      String
+  sortOrder Int      @default(0) @map("sort_order")
   /// An inactive amenity is retired: hidden from forms, its space links kept.
-  isActive     Boolean  @default(true) @map("is_active")
-  /// Offered in the directory's filter; false for what nearly every space has (Internet, stable
-  /// power), which tells no space apart.
-  isFilterable Boolean  @default(true) @map("is_filterable")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   spaces SpaceAmenity[]
 

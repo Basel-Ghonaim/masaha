@@ -11,6 +11,5 @@ export function toAdminAmenity(amenity: AmenityRow): AdminAmenity {
     // Written only from AMENITY_ICON_KEYS: by the seed, typed by it, and by the validated requests.
     icon: amenity.icon as AmenityIconKey,
     isActive: amenity.isActive,
-    isFilterable: amenity.isFilterable,
   };
 }

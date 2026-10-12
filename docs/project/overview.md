@@ -1,6 +1,6 @@
 # Project Overview
 
-> **Status:** Active · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
 > **Authority:** What Masaha is, what is built today, what v1 is committed to, and what is explicitly not in v1. It names scope; it does not specify behaviour.
 
 ## What Masaha is
@@ -32,7 +32,7 @@ Global roles `USER` · `OWNER` · `ADMIN`. At a space, a user is `OWNER` or `REC
 - The rules are owned by [security.md](../backend/security.md).
 
 ### Public site
-- Directory of spaces: the list **or** the map, one at a time, the list by default; search and filters (area, price, the amenities that tell spaces apart, student prices, open on Friday, verified, available now); sort, including nearest to me.
+- Directory of spaces: the list **or** the map, one at a time, the list by default; search and filters (area, price, student prices, open on Friday, verified, available now); sort, including nearest to me.
 - Near me: the device's location, never sent to Masaha, with an area or a pin on the map as fallbacks ([the rule](../frontend/design-system/foundation.md#13-screens-to-design-32), under *Directory*). Home shows the nearest spaces when a location is in use, otherwise the spaces available now.
 - Space page: photos, prices (display only), amenities, hours, contact, announcements, live status — available, full or closed now, never a seat count (verified spaces) — and "last updated" per fact.
 - Verified / unverified spaces: every space is listed whether or not its owner has joined.

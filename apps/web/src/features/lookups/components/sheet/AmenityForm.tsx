@@ -6,7 +6,7 @@ import { LookupNameFields } from './LookupNameFields';
 
 /**
  * An amenity's form, inside its sheet: the failure, the Arabic and English names, the icon, the
- * filter switch, the Active switch when editing, and Save at the sheet's foot.
+ * Active switch when editing, and Save at the sheet's foot.
  */
 export function AmenityForm({ form }: { form: AmenityFormView }) {
   return (
@@ -15,13 +15,6 @@ export function AmenityForm({ form }: { form: AmenityFormView }) {
         {form.failure && <FormFailure view={form.failure} />}
         <LookupNameFields form={form} />
         <AmenityIconField icon={form.icon} error={form.errors.icon} />
-        <Field orientation="horizontal" label={form.filter.label} helper={form.filter.hint}>
-          <Switch
-            checked={form.filter.checked}
-            disabled={form.filter.disabled}
-            onCheckedChange={form.filter.toggle}
-          />
-        </Field>
         {form.active && (
           <Field orientation="horizontal" label={form.active.label} helper={form.active.hint}>
             <Switch

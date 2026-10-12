@@ -16,13 +16,9 @@ export type SwitchControl = Omit<Control, 'disabled'> & {
   toggle: (checked: boolean) => void;
 };
 
-/**
- * A row's controls, ready to render: its two arrows, its other switches when it has some (an
- * amenity's filter switch), and its shown switch, each named.
- */
+/** A row's controls, ready to render: its two arrows and its shown switch, each named. */
 export type RowControlsView = {
   shown: SwitchControl;
-  switches?: SwitchControl[];
   up: Control & { move: () => void };
   down: Control & { move: () => void };
 };

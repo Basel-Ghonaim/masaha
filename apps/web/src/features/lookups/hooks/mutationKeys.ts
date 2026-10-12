@@ -18,8 +18,8 @@ export function rowActionKindOf(key: readonly unknown[] | undefined): RowActionK
   return key?.[ROW_ACTIONS.length] as RowActionKind | undefined;
 }
 
-/** The actions on an amenity's row: retiring or restoring it, its filter flag, and moving it. */
-export type AmenityActionKind = 'amenityVisibility' | 'amenityFilter' | 'amenityOrder';
+/** The actions on an amenity's row: retiring or restoring it, and moving it. */
+export type AmenityActionKind = 'amenityVisibility' | 'amenityOrder';
 
 /**
  * The prefix of every amenity action's key, apart from the governorates' so neither list reads the

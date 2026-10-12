@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
 
 ## Conventions
@@ -38,7 +38,7 @@ Summaries only: the schema owns the fields.
 
 ### Lookups
 - **Governorate** and **Area** — the two-level place list, bilingual, ordered, with active flags. An area belongs to one governorate; a space belongs to one area.
-- **Amenity** — a bilingual yes/no feature with a stable `key` and an icon key from the shared list ([`lookups/amenityIcons.ts`](../../packages/shared/src/lookups/amenityIcons.ts)), ordered, with an active flag and a filter flag, off for what the directory's filter leaves out ([lookups › Decisions](../features/lookups.md#decisions)). Linked to spaces through **SpaceAmenity**.
+- **Amenity** — a bilingual yes/no feature with a stable `key` and an icon key from the shared list ([`lookups/amenityIcons.ts`](../../packages/shared/src/lookups/amenityIcons.ts)), ordered, with an active flag; no amenity is a filter ([lookups › Decisions](../features/lookups.md#decisions)). Linked to spaces through **SpaceAmenity**.
 
 ### Spaces
 - **Space** — a listed coworking space: bilingual profile, area and map location, the admin's hide flag, soft delete, and one freshness timestamp per fact group.

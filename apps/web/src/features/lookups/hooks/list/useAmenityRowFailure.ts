@@ -6,7 +6,7 @@ import type { AmenityAction } from '../../types/AmenityAction';
 import { AMENITY_ACTIONS, amenityActionKindOf } from '../mutationKeys';
 
 /**
- * The failure of the last action on one amenity's row, either of its switches, shown with that row so
+ * The failure of the last action on one amenity's row, its switch, shown with that row so
  * it names its amenity by where it is. It stands until the next action on that row, whatever fails
  * elsewhere; an order's failure is the list's (`useAmenityListFailure`).
  */

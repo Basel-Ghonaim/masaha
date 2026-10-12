@@ -17,7 +17,6 @@ const INTERNET: AdminAmenity = {
   nameEn: 'Internet',
   icon: 'wifi',
   isActive: true,
-  isFilterable: false,
 };
 const HALLS: AdminAmenity = {
   id: 6,
@@ -26,7 +25,6 @@ const HALLS: AdminAmenity = {
   nameEn: 'Halls for rent',
   icon: 'presentation',
   isActive: false,
-  isFilterable: true,
 };
 
 /** The section, with the amenities answered by `answer`. */
@@ -59,16 +57,18 @@ afterEach(() => {
 });
 
 describe('AmenitiesSection', () => {
-  it('shows each amenity with its icon, its English name first, then its Arabic name and its badges', async () => {
+  it('shows each amenity with its icon, its English name first, then its Arabic name and its badge', async () => {
     renderSection();
 
     const [internet, halls] = await rows();
     expect(screen.getByRole('heading', { name: 'Amenities', level: 2 })).toBeInTheDocument();
-    // Each row's icon, names and badges come first; its controls follow.
+    // Each row's icon, names and badge come first; its controls follow.
     expect([internet, halls].map((row) => row?.firstElementChild?.textContent)).toEqual([
-      'InternetإنترنتNot in filters',
+      'Internetإنترنت',
       'Halls for rentقاعات للإيجارInactive',
     ]);
+    // No amenity is a filter: no line, badge or switch says so.
+    expect(screen.queryByText(/filter/i)).not.toBeInTheDocument();
     expect(internet?.querySelector('svg.lucide-wifi')).toHaveAttribute('aria-hidden', 'true');
     expect(within(internet as HTMLElement).getByText('إنترنت')).toHaveAttribute('lang', 'ar');
     expect(within(internet as HTMLElement).getByText('Internet')).toHaveAttribute('lang', 'en');
@@ -80,20 +80,20 @@ describe('AmenitiesSection', () => {
 
     const section = await screen.findByRole('region', { name: 'المرافق' });
     const [internet] = within(await within(section).findByRole('list')).getAllByRole('listitem');
-    expect(internet?.firstElementChild?.textContent).toBe('إنترنتInternetليس في الفلاتر');
+    expect(internet?.firstElementChild?.textContent).toBe('إنترنتInternet');
   });
 
-  it('names each switch and arrow after its amenity, with each switch’s words beside it', async () => {
+  it('names its one switch and its arrows after its amenity, with the switch’s words beside it', async () => {
     renderSection();
 
     const [internet, halls] = (await rows()) as [HTMLElement, HTMLElement];
-    const inFilters = within(internet).getByRole('switch', { name: heard('In filters: Internet') });
-    expect(inFilters).not.toBeChecked();
+    expect(within(internet).getAllByRole('switch')).toEqual([
+      within(internet).getByRole('switch', { name: heard('Active: Internet') }),
+    ]);
     expect(within(internet).getByRole('switch', { name: heard('Active: Internet') })).toBeChecked();
     expect(
       within(halls).getByRole('switch', { name: heard('Active: Halls for rent') }),
     ).not.toBeChecked();
-    expect(within(internet).getByText('In filters')).toBeVisible();
     expect(within(internet).getByText('Active')).toBeVisible();
     expect(
       within(internet).getByRole('button', { name: heard('Move up: Internet') }),
@@ -108,11 +108,11 @@ describe('AmenitiesSection', () => {
 
   it('turns a switch by its words too', async () => {
     const { requests } = renderSection((request) =>
-      request.method === 'get' ? ok([INTERNET, HALLS]) : ok({ ...INTERNET, isFilterable: true }),
+      request.method === 'get' ? ok([INTERNET, HALLS]) : ok({ ...INTERNET, isActive: false }),
     );
     const [internet] = (await rows()) as [HTMLElement];
 
-    await userEvent.click(within(internet).getByText('In filters'));
+    await userEvent.click(within(internet).getByText('Active'));
 
     await waitFor(() => {
       expect(requests.some(({ method }) => method === 'patch')).toBe(true);
@@ -125,20 +125,20 @@ describe('AmenitiesSection', () => {
       request.method === 'get' ? ok([INTERNET, HALLS]) : answered.promise,
     );
     const [internet] = (await rows()) as [HTMLElement];
-    const inFilters = within(internet).getByRole('switch', { name: heard('In filters: Internet') });
+    const active = within(internet).getByRole('switch', { name: heard('Active: Internet') });
 
-    inFilters.focus();
+    active.focus();
     await userEvent.keyboard(' ');
     await waitFor(() => {
-      expect(inFilters).toHaveAttribute('aria-disabled', 'true');
+      expect(active).toHaveAttribute('aria-disabled', 'true');
     });
-    expect(inFilters).toHaveFocus();
+    expect(active).toHaveFocus();
     await userEvent.keyboard(' ');
 
     expect(requests.filter(({ method }) => method === 'patch')).toHaveLength(1);
-    answered.resolve(ok({ ...INTERNET, isFilterable: true }));
+    answered.resolve(ok({ ...INTERNET, isActive: false }));
     await waitFor(() => {
-      expect(inFilters).not.toHaveAttribute('aria-disabled');
+      expect(active).not.toHaveAttribute('aria-disabled');
     });
   });
 

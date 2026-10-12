@@ -14,7 +14,7 @@ type Action = {
 };
 
 /**
- * What an action acts on: a row, for either of its switches, or the list, for an order. The next
+ * What an action acts on: a row, for its switch, or the list, for an order. The next
  * action on the same row or list replaces its failure; an action elsewhere leaves it standing.
  */
 function targetOf({ kind, action }: Action): string {

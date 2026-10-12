@@ -409,7 +409,6 @@ describe("the admin's lookups page", () => {
                   nameEn: 'Internet',
                   icon: 'wifi',
                   isActive: true,
-                  isFilterable: false,
                 },
               ]
             : [],

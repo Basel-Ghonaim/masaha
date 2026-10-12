@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -180,7 +180,7 @@ The spaces a signed-in user works at, as owner or reception ([ADR 0009](../archi
   ```ts
   LookupsCatalogue = {
     governorates: { id, nameAr, nameEn, areas: { id, nameAr, nameEn }[] }[],   // active only, each list in order
-    amenities: { id, key, nameAr, nameEn, icon: AmenityIconKey, isFilterable: boolean }[]   // active only, in order
+    amenities: { id, key, nameAr, nameEn, icon: AmenityIconKey }[]   // active only, in order
   }
   ```
   A hidden governorate is left out with all its areas, whatever their own flags; a hidden area and a retired amenity are left out.
@@ -205,8 +205,7 @@ AdminAmenity = {
   key: string,                 // snake_case, derived from nameEn when it is added; never changes
   nameAr: string, nameEn: string,
   icon: AmenityIconKey,        // one of AMENITY_ICON_KEYS (@masaha/shared/lookups)
-  isActive: boolean,           // false: retired, its links to spaces kept
-  isFilterable: boolean        // offered in the directory's filter
+  isActive: boolean            // false: retired, its links to spaces kept
 }
 ```
 
@@ -247,13 +246,13 @@ AdminAmenity = {
 - **200:** `AdminAmenity[]`: every amenity, retired ones included, in order. Not paginated (§4).
 
 #### `POST /admin/amenities` · 🛡
-- **Body:** `{ nameAr, nameEn, icon, isFilterable }`; `icon` is one of the shared icon keys (`invalid_choice`).
+- **Body:** `{ nameAr, nameEn, icon }`; `icon` is one of the shared icon keys (`invalid_choice`).
 - **201:** `AdminAmenity`, active and placed last. Its key is `nameEn` in snake_case: accents dropped, lowercased, every run of other characters than `a–z` and `0–9` one `_` ("Hot drinks" → `hot_drinks`). Audited `amenity.added`, with `key` in `after`.
 - **Errors:** `validation` (422), with `errors.nameEn = ["invalid_format"]` for an English name that yields no key; `conflict` (409), with `errors.nameEn = ["not_unique"]`, when another amenity, a retired one included, has the key.
 
 #### `PATCH /admin/amenities/:id` · 🛡
-- **Body:** `{ nameAr?, nameEn?, icon?, isFilterable?, isActive? }`; what is absent is kept. The key never changes, whatever the new English name.
-- **200:** `AdminAmenity`. Audited `amenity.edited` (names, `icon`, `isFilterable`), `amenity.hidden` or `amenity.restored`.
+- **Body:** `{ nameAr?, nameEn?, icon?, isActive? }`; what is absent is kept. The key never changes, whatever the new English name.
+- **200:** `AdminAmenity`. Audited `amenity.edited` (names, `icon`), `amenity.hidden` or `amenity.restored`.
 - **Errors:** `validation` (422); `not_found` (404).
 
 #### `PUT /admin/amenities/order` · 🛡

@@ -24,7 +24,6 @@ const DRINKS: AdminAmenity = {
   nameEn: 'Hot drinks',
   icon: 'coffee',
   isActive: true,
-  isFilterable: true,
 };
 
 /** The form beside the list it adds to, the server answering the list with [] and a write with `write`. */
@@ -62,11 +61,11 @@ afterEach(() => {
 });
 
 describe('useAddAmenityForm', () => {
-  it('starts with no icon chosen, in the filters, and with no Active switch', async () => {
+  it('starts with no icon chosen, and with no switch', async () => {
     const { result } = await renderForm(() => ok(DRINKS, 201));
 
     expect(result.current.form.icon.value).toBe('');
-    expect(result.current.form.filter.checked).toBe(true);
+    expect(result.current.form).not.toHaveProperty('filter');
     expect(result.current.form.active).toBeUndefined();
   });
 
@@ -92,7 +91,7 @@ describe('useAddAmenityForm', () => {
     });
   });
 
-  it('adds the amenity with its names, icon and filter flag, and closes the sheet once the list is fetched again', async () => {
+  it('adds the amenity with its names and icon, and closes the sheet once the list is fetched again', async () => {
     const listHeld = deferred<FakeAnswer>();
     let lists = 0;
     const onSaved = vi.fn();
@@ -112,7 +111,6 @@ describe('useAddAmenityForm', () => {
 
     act(() => {
       result.current.form.icon.choose('coffee');
-      result.current.form.filter.toggle(false);
     });
     act(() => {
       result.current.form.submit();
@@ -125,7 +123,6 @@ describe('useAddAmenityForm', () => {
       nameAr: 'مشروبات ساخنة',
       nameEn: 'Hot drinks',
       icon: 'coffee',
-      isFilterable: false,
     });
     expect(onSaved).not.toHaveBeenCalled();
 
