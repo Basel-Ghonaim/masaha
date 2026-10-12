@@ -2,6 +2,7 @@
   const M = window.MASAHA;
   const d = {
     focus: {
+      ownAmenities: [{ ar: 'زاوية مكالمات', en: 'Call corner' }],
       priceRows: [{ period: 'hour', audience: 'general', amount: 3 }, { period: 'day', audience: 'general', amount: 15 }, { period: 'week', audience: 'general', amount: 90 }, { period: 'week', audience: 'general', label: ['أسبوع الامتحانات', 'Exam week'], amount: 70 }, { period: 'month', audience: 'general', amount: 300 }],
       fresh: { profile: 2, hours: 7, amenities: 20, contacts: 20 },
       about: tr("مساحة عمل هادئة للعمل الفردي والدراسة، فيها طاولات مشتركة وزاوية للمكالمات.", "A quiet space for solo work and study, with shared desks and a corner for calls."),
@@ -12,6 +13,7 @@
       announcements: [{ title: tr("ورشة تعريفية عن العمل الحر يوم الأحد الساعة 11:00", "Intro workshop on freelancing, Sunday at 11:00"), date: tr("قبل يومين", "2 days ago") }]
     },
     branch: {
+      ownAmenities: [{ ar: 'خزائن شخصية', en: 'Personal lockers' }],
       fresh: { profile: 3, hours: 12, amenities: 12, contacts: 30 },
       about: tr("مساحة بدوامين، صباحي ومسائي، مع قاعات صغيرة للإيجار للاجتماعات والتدريب.", "A space with two shifts, morning and evening, and small rooms for rent for meetings and training."),
       address: tr("الرمال، شارع الشهداء، الطابق الأول", "Al-Rimal, Al-Shuhada Street, 1st floor"), landmark: tr("مقابل حديقة الجندي المجهول", "Opposite the Unknown Soldier Park"),
@@ -23,6 +25,7 @@
       announcements: []
     },
     numberone: {
+      ownAmenities: [{ ar: 'مكتبة كتب تقنية' }],
       priceRows: [{ period: 'hour', audience: 'general', amount: 3 }, { period: 'day', audience: 'general', amount: 15 }, { period: 'week', audience: 'general', amount: 90 }, { period: 'month', audience: 'general', amount: 300 }, { period: 'day', audience: 'student', amount: 12 }, { period: 'month', audience: 'student', amount: 250 }],
       fresh: { profile: 9, hours: 9, amenities: 30, contacts: 65 },
       about: tr("مساحة للطلاب والعاملين عن بعد، فيها أسعار شهرية مخفّضة للطلاب ودورات تقنية قصيرة.", "A space for students and remote workers, with reduced monthly student prices and short tech courses."),
@@ -53,6 +56,8 @@
       amenities: ['internet', 'power', 'solar', 'meeting', 'rental'], contacts: [{ type: 'whatsapp', value: '+970 59 000 0007' }, { type: 'email', value: 'white@example.com' }], announcements: []
     }
   };
+  // H4: `ownAmenities`, a space's own («مرافق إضافية»): Arabic name required, English optional — Number
+  // One's has the Arabic only, so the English interface shows how that reads.
   // U9: `priceRows` where a space publishes more than its four general prices; the others are read
   // from `prices` and `shiftPrices`.
   M.spaces.forEach((s) => Object.assign(s, d[s.id]));

@@ -323,15 +323,21 @@ function PricesSection({ space }) {
   );
 }
 
+// H4 (the owner, 2026-10-12): a space's own amenities show exactly as the common ones — one list,
+// one style, after the common ones, no second section. Every amenity takes the same neutral mark: the
+// vendored bundle has no amenity icons, and one mark keeps the two kinds alike. An own amenity with
+// an Arabic name only shows it in the English interface too, marked as Arabic.
 function AmenitiesSection({ space }) {
-  const list = SM.allAmenities.filter((a) => space.amenities.includes(a.id));
+  const common = SM.allAmenities.filter((a) => space.amenities.includes(a.id)).map((a) => ({ key: a.id, name: a.name }));
+  const own = (space.ownAmenities || []).map((o) => ({ key: 'own:' + o.ar, name: LANG === 'en' && o.en ? o.en : o.ar, lang: LANG === 'en' && !o.en ? 'ar' : undefined }));
+  const list = common.concat(own);
   if (!list.length) return null;
   return (
     <Section id="amenities" title={tr("المرافق", "Amenities")} meta={<Freshness space={space} group="amenities" />}>
       <ul className="flex flex-wrap gap-2">
         {list.map((a) => (
-          <li key={a.id} className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-body-sm">
-            <SCheckIcon className="size-4 text-primary" aria-hidden="true" />{a.name}
+          <li key={a.key} className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-body-sm">
+            <SCheckIcon className="size-4 text-primary" aria-hidden="true" /><span lang={a.lang} dir={a.lang ? 'rtl' : undefined}>{a.name}</span>
           </li>
         ))}
       </ul>
