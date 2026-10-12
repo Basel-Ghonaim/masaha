@@ -13,6 +13,7 @@ const FOCUS: AdminSpaceRow = {
   area: { id: 11, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
   isVerified: true,
   isHidden: false,
+  deletedAt: null,
   owners: [
     { id: 3, name: 'Ahmad' },
     { id: 4, name: 'مها' },

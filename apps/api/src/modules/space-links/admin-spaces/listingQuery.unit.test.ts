@@ -34,6 +34,21 @@ describe('listingQueryOf', () => {
     expect(listingQueryOf({ ...PAGE, status: 'hidden' }, {})).toEqual({ isHidden: true });
   });
 
+  it('keeps the soft-deleted spaces only, hidden or not, verified or not, for deleted', () => {
+    expect(listingQueryOf({ ...PAGE, status: 'deleted' }, { verifiedIds: [3] })).toEqual({
+      deleted: true,
+    });
+  });
+
+  it('applies the place, the search and "stale only" to the deleted spaces too', () => {
+    expect(
+      listingQueryOf(
+        { ...PAGE, status: 'deleted', areaId: 5, q: 'hub', stale: true },
+        { governorateAreaIds: [4, 5] },
+      ),
+    ).toEqual({ deleted: true, areaIds: [5], q: 'hub', staleOnly: true });
+  });
+
   it('keeps the governorate’s areas, or the one area asked', () => {
     expect(listingQueryOf(PAGE, { governorateAreaIds: [4, 5] })).toEqual({ areaIds: [4, 5] });
     expect(listingQueryOf({ ...PAGE, areaId: 9 }, {})).toEqual({ areaIds: [9] });

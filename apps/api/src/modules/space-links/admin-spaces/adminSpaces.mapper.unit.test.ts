@@ -10,6 +10,7 @@ const SPACE: ListedSpace = {
   nameAr: null,
   areaId: 4,
   isHidden: false,
+  deletedAt: null,
   staleGroups: ['prices'],
   missingGroups: ['contacts'],
   lastUpdatedAt: new Date('2026-10-01T09:00:00Z'),
@@ -27,6 +28,7 @@ describe('toAdminSpaceRow', () => {
       area: AREA,
       isVerified: true,
       isHidden: false,
+      deletedAt: null,
       owners: [AHMAD],
       staleGroups: ['prices'],
       missingGroups: ['contacts'],
@@ -44,6 +46,17 @@ describe('toAdminSpaceRow', () => {
     expect({ isHidden: row.isHidden, isVerified: row.isVerified }).toEqual({
       isHidden: true,
       isVerified: true,
+    });
+  });
+
+  it('dates a deleted space’s deletion, and keeps its owners', () => {
+    const row = toAdminSpaceRow({ ...SPACE, deletedAt: new Date('2026-10-12T10:30:00Z') }, AREA, [
+      AHMAD,
+    ]);
+
+    expect({ deletedAt: row.deletedAt, owners: row.owners }).toEqual({
+      deletedAt: '2026-10-12T10:30:00.000Z',
+      owners: [AHMAD],
     });
   });
 });

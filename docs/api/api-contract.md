@@ -328,10 +328,10 @@ Contact = {
 #### `GET /admin/spaces` · 🛡
 - **Query:** `?q=&status=&governorateId=&areaId=&stale=&page=&limit=` (§4), each optional:
   - `q`: part of either name, whatever the case (1–80 characters);
-  - `status`: `verified` or `unverified`, both leaving hidden spaces out, or `hidden`, verified or not;
+  - `status`: `verified` or `unverified`, both leaving hidden spaces out; `hidden`, verified or not; or `deleted`, the soft-deleted spaces only, hidden or not, verified or not;
   - `governorateId`, `areaId`: the spaces of the governorate's areas, hidden ones included, or of one area; both together narrow to that area when it is one of the governorate's, else to none;
   - `stale`: `true` keeps the spaces with at least one stale or missing fact group.
-- **200:** `AdminSpaceRow[]` (`@masaha/shared/space-links`), by English name, with `meta`. A soft-deleted space is never listed. Every filter applies before the page is cut, so every page is full and the total right ([conventions §5](../backend/conventions.md#5-pagination)).
+- **200:** `AdminSpaceRow[]` (`@masaha/shared/space-links`), by English name, with `meta`. A soft-deleted space is listed under `status=deleted` only, with its owners, whose links count there though nowhere else ([space-links › Decisions](../features/space-links.md#decisions)). Every filter applies before the page is cut, so every page is full and the total right ([conventions §5](../backend/conventions.md#5-pagination)).
 
   ```ts
   AdminSpaceRow = {
@@ -339,6 +339,7 @@ Contact = {
     area: { id: number, nameAr: string, nameEn: string },
     isVerified: boolean,                            // an active OWNER link (data-model › Derived values)
     isHidden: boolean,
+    deletedAt: string | null,                       // when it was soft-deleted; null for a live space
     owners: { id: number, name: string }[],         // its active OWNER links, oldest first
     staleGroups: FactGroup[],
     missingGroups: FactGroup[],
@@ -364,7 +365,7 @@ The endpoints on one space put its links on the request first, without refusing 
 - **Errors:** `validation` (422); `not_found` (404), for a soft-deleted space too.
 
 #### `DELETE /admin/spaces/:spaceId` · 🛡
-- **204:** the space is soft-deleted, verified or not ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): it leaves every list and the public, and every link to it counts for nothing for access and in the lists, kept as it is; a person's global role still counts it ([Owners (the admin)](#owners-the-admin)) ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). Audited `space.deleted` (`after`: `deletedAt`). Deleting a deleted space changes nothing.
+- **204:** the space is soft-deleted, verified or not ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): it leaves the public and every list but the admin's deleted spaces (`GET /admin/spaces?status=deleted`), and every link to it counts for nothing for access and in the other lists, kept as it is; a person's global role still counts it ([Owners (the admin)](#owners-the-admin)) ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). Audited `space.deleted` (`after`: `deletedAt`). Deleting a deleted space changes nothing.
 - **Errors:** `not_found` (404).
 
 #### `POST /admin/spaces/:spaceId/restore` · 🛡

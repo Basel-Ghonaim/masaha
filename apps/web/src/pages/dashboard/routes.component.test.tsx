@@ -536,6 +536,7 @@ describe("the admin's spaces page", () => {
     area: { id: 21, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
     isVerified: false,
     isHidden: true,
+    deletedAt: null,
     owners: [],
     staleGroups: [],
     missingGroups: ['hours'],

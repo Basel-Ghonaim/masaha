@@ -22,6 +22,7 @@ const ROW: AdminSpaceRow = {
   area: { id: 11, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
   isVerified: false,
   isHidden: false,
+  deletedAt: null,
   owners: [],
   staleGroups: [],
   missingGroups: ['hours'],

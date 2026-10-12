@@ -1,13 +1,14 @@
-import type { AdminSpaceRow, SpaceStatus } from '@masaha/shared/space-links';
+import type { AdminSpaceRow } from '@masaha/shared/space-links';
 import type { FactGroup } from '@masaha/shared/spaces';
 import type { Catalogue } from '@shared/copy';
 import { isolate } from '@shared/localisation';
 import type { AdminSpaceRowView, BadgeView } from '../types/AdminSpaceRowView';
+import type { ListStatus } from './filtersOf';
 import { updatedOn } from './updatedOn';
 
 // A verified space is confirmed by its owner; an unverified one is not yet, as a missing group is
 // not yet entered; a hidden one needs the admin's eye, as a stale group does.
-const STATE_VARIANTS: Record<SpaceStatus, BadgeView['variant']> = {
+const STATE_VARIANTS: Record<ListStatus, BadgeView['variant']> = {
   verified: 'success',
   unverified: 'neutral',
   hidden: 'warning',
@@ -17,7 +18,7 @@ const STATE_VARIANTS: Record<SpaceStatus, BadgeView['variant']> = {
  * A row's one badge: hidden first, whatever its owners, else whether it is verified. The badge stays
  * one until the list shows a state's two facts apart.
  */
-function stateOf({ isHidden, isVerified }: AdminSpaceRow): SpaceStatus {
+function stateOf({ isHidden, isVerified }: AdminSpaceRow): ListStatus {
   return isHidden ? 'hidden' : isVerified ? 'verified' : 'unverified';
 }
 

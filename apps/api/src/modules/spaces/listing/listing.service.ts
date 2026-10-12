@@ -27,6 +27,8 @@ export interface ListedSpace {
   nameAr: string | null;
   areaId: number;
   isHidden: boolean;
+  /** When it was soft-deleted, or `null` for a live space. */
+  deletedAt: Date | null;
   staleGroups: FactGroup[];
   missingGroups: FactGroup[];
   lastUpdatedAt: Date;
@@ -50,6 +52,7 @@ function toListedSpace(space: ListedSpaceRecord, cutoffs: GroupCutoffs): ListedS
     nameAr: space.nameAr,
     areaId: space.areaId,
     isHidden: space.isHidden,
+    deletedAt: space.deletedAt,
     staleGroups: staleGroups(dates, cutoffs),
     missingGroups: missingGroups(dates),
     lastUpdatedAt: lastUpdate(dates),

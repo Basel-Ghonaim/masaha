@@ -1,7 +1,6 @@
-import type { SpaceStatus } from '@masaha/shared/space-links';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { filtersOf, paramsOf, requestOf } from '../../services/filtersOf';
+import { filtersOf, paramsOf, requestOf, type ListStatus } from '../../services/filtersOf';
 import type { AdminSpacesFilters } from '../../types/AdminSpacesFilters';
 import type { PlaceFilter } from '../../types/PlaceFilter';
 
@@ -74,7 +73,7 @@ export function useAdminSpacesFilters() {
     filters,
     request: requestOf(filters),
     search: { text, change: setText },
-    chooseStatus: (status: SpaceStatus | undefined) => {
+    chooseStatus: (status: ListStatus | undefined) => {
       apply({ status });
     },
     choosePlace: (place: PlaceFilter) => {

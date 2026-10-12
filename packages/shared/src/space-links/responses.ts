@@ -27,7 +27,9 @@ export interface AdminSpaceRow {
   /** While an owner is linked (an active OWNER link). */
   isVerified: boolean;
   isHidden: boolean;
-  /** Its active owners, oldest link first. */
+  /** When it was soft-deleted (ISO 8601), or `null` for a live space. */
+  deletedAt: string | null;
+  /** Its active owners, oldest link first, a deleted space's included. */
   owners: { id: number; name: string }[];
   /** The fact groups older than the platform's thresholds. */
   staleGroups: FactGroup[];

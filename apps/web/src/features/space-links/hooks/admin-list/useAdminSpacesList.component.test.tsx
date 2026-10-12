@@ -22,6 +22,7 @@ const FOCUS: AdminSpaceRow = {
   area: { id: 11, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
   isVerified: true,
   isHidden: false,
+  deletedAt: null,
   owners: [{ id: 3, name: 'Ahmad' }],
   staleGroups: [],
   missingGroups: [],
@@ -248,7 +249,7 @@ describe('useAdminSpacesList', () => {
     expect(result.current.list.pagination?.next.search).toBe('?page=2');
   });
 
-  it('offers every state as a filter, and the count of filters applied for the phone’s button', async () => {
+  it('offers the three states it shows as filters, and the count of filters applied for the phone’s button', async () => {
     const { result } = renderList('/s?status=hidden&stale=true', () => page([FOCUS]));
 
     await waitFor(() => {

@@ -9,7 +9,7 @@
 - Gives the session a user's active links, with the role at each, oldest first.
 - Lists the spaces the caller works at, with their names, area and role there.
 - Shows the space switcher in a space's dashboard.
-- Composes the admin's spaces list: its filters, its owners and its verified state; and shows it on the dashboard's spaces page, with its filters kept in the address.
+- Composes the admin's spaces list: its filters, its owners and its verified state, and on the API the soft-deleted spaces as a list of their own; and shows it on the dashboard's spaces page, with its filters kept in the address.
 - Loads a space's links for the routes on one space, so `can()` knows the caller's role there and whether the space is verified.
 - Composes the admin's users list, on the API: its filters, and the spaces each person owns; the owners page is that list filtered to the owners.
 - Adds an owner for the admin, on the API: a new account with a temporary password, or an existing one upgraded on purpose, linked to one space.
@@ -35,7 +35,7 @@ Staff (reception accounts) are not built.
 
 - **The caller's spaces** use the `me` router at `/manage/spaces`, behind `requireAuth` only: the path names no space, so the space middleware does not run.
 - **The links loader** is `shared/auth`'s, wired with this module's links. On the admin's space routes it runs without its refusal ([conventions › Space access](../backend/conventions.md#space-access)).
-- **The admin's spaces list** is a composed read ([conventions › Composed reads](../backend/conventions.md#composed-reads)). Each filter on another module's value is resolved to ids first: the verified state from the links, here, and a governorate to its areas, by `lookups`. `spaces` then applies its own filters (hidden, stale, the area, the search) to those ids and pages ([conventions §5](../backend/conventions.md#5-pagination)). The page's owners, their names (from `users`) and its areas' names follow, one query per module.
+- **The admin's spaces list** is a composed read ([conventions › Composed reads](../backend/conventions.md#composed-reads)). Each filter on another module's value is resolved to ids first: the verified state from the links, here, and a governorate to its areas, by `lookups`. `spaces` then applies its own filters (deleted, hidden, stale, the area, the search) to those ids and pages ([conventions §5](../backend/conventions.md#5-pagination)). The page's owners, their names (from `users`) and its areas' names follow, one query per module.
 - **A link change** is one transaction: it takes the space's lock through `spaces`; for an existing account, then the person's session lock through `users` (a new account's row is inserted under the space's lock), then counts the person's owner links and asks `users` to change the role when they give another ([conventions §13](../backend/conventions.md#concurrency)).
 - **The admin's users list** is a composed read too: every filter is the account's own, so `users` filters and pages its accounts; the page's active owner links follow, and their spaces' names from `spaces`, which leaves a soft-deleted space out, one query per module.
 - **The web** reads through the transport and TanStack Query, the caller's spaces under the user's own key scope and the admin's list under the admin's ([architecture §7](../frontend/architecture.md#7-server-state)); the dashboard-only rule keeps it out of the site's download ([architecture §3](../frontend/architecture.md#3-capabilities-features)).
@@ -47,7 +47,7 @@ Staff (reception accounts) are not built.
 
 **The switcher** sits in the space's sidebar header. It shows the space in the URL, its name and area. For anyone with more than one active link, whatever their role at each, it opens their spaces, and choosing one follows the link the page gives it. A URL whose space is none of theirs offers their spaces. While the spaces load it shows a skeleton; a failure offers to try again, and a failed refetch keeps the list already loaded. The space's shell also reads the list for the space's slug, which its public page link needs.
 
-**The admin's list** is composed as above, one page at a time; its rows are the [contract](../api/api-contract.md#spaces-the-admin)'s.
+**The admin's list** is composed as above, one page at a time; its rows are the [contract](../api/api-contract.md#spaces-the-admin)'s. Its `deleted` status lists the soft-deleted spaces alone, with the same filters, order and pages, each row naming its owners and when it was deleted, so a screen can restore one (`POST …/restore`) once the delete's Undo has gone; every other status leaves them out. The web does not offer it yet.
 
 **Adding an owner.** An email with no account gets one, an `OWNER` with a temporary password, answered once, linked to the chosen space in the same transaction. An email with an account is refused, so the admin learns of it, and upgraded only when sent again with the upgrade asked: it keeps its name and password. An admin, a suspended account, an owner already (linked instead) and the space's active reception are refused.
 
@@ -72,7 +72,7 @@ Staff (reception accounts) are not built.
 - **A hidden space is listed; a deleted one is not.** *Why:* an owner still manages a hidden space. 2026-10-04, #36.
 - **Names come in both languages, with the area's;** a retired area still names its spaces. 2026-10-04, #36.
 - **The list is composed from three modules, one query each.** *Why:* the module levels, and no N+1. 2026-10-04, #36.
-- **A link to a deleted space counts for nothing, for access and in the lists,** the session's links included; deleting a space writes nothing in the links. The global role is the one exception (below). *Why:* the delete stays reversible, and a restored space has its links again. It replaced #36's open question, under which the two lists disagreed ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). 2026-10-06, #44.
+- **A link to a deleted space counts for nothing, for access and in the lists,** the session's links included; deleting a space writes nothing in the links. The global role and the admin's deleted spaces are the exceptions (below). *Why:* the delete stays reversible, and a restored space has its links again. It replaced #36's open question, under which the two lists disagreed ([finding 18](../architecture/findings/18-whether-a-link-to-a-deleted-space-still-counts.md)). 2026-10-06, #44.
 - **The admin's spaces list is composed here:** the verified and governorate filters resolve to ids first, then `spaces` filters and pages; each row carries its owners, its stale groups and its last update. *Why:* every page full, and the total right. 2026-10-06, #44.
 - **The list's states are lowercase, like its filter.** *Why:* one vocabulary. 2026-10-06, #44.
 - **The links loader runs without its refusal on the admin's space routes,** and gives no links for a deleted space. *Why:* `can()` reads whether a space is verified there too. 2026-10-06, #44.
@@ -89,7 +89,10 @@ Staff (reception accounts) are not built.
 - **The users list is composed here, `users` filtering and paging its own accounts first,** newest first; each row adds how it signs in and when it joined (the owner's S2). *Why:* every filter is the account's own, so the page is cut before the links are read; the users screen shows both columns, so the users item adds actions only. 2026-10-11, #60.
 - **The admin's role change is composed here,** because only the links tell whether a role may change; `users` writes it (D1, D3). It offers `USER` or `ADMIN`, and refuses a person with any active link, owner or reception, a soft-deleted space's included, with `ACCOUNT_HAS_LINKS`. *Why:* an admin is never linked (`ACCOUNT_IS_ADMIN`), the `OWNER` follows the links ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)), and no change happens silently at a space. 2026-10-11, the users item.
 - **A role change takes the person's lock with every active admin's row, and counts the links under it;** it takes no space's lock. *Why:* every link change takes the person's lock, so a link made meanwhile counts, and two admins demoting each other at once cannot leave none ([conventions › Concurrency](../backend/conventions.md#concurrency)). 2026-10-11, the users item.
-- **A row carries its state as facts apart, `isVerified` and `isHidden`,** as `AdminSpace` does; the lowercase vocabulary is the status filter's alone (`SPACE_STATUSES`). *Why:* a state is two facts (the owner's A3): a hidden space keeps its verification, which the screen shows beside it. It replaced the row's one `state`, hidden first. 2026-10-12, the deleted-spaces item.
+- **A row carries its state as facts apart, `isVerified`, `isHidden` and `deletedAt`,** as `AdminSpace` does; the lowercase vocabulary is the status filter's alone (`SPACE_STATUSES`). *Why:* a state is two facts (the owner's A3): a hidden space keeps its verification, which the screen shows beside it. It replaced the row's one `state`, hidden first. 2026-10-12, the deleted-spaces item.
+- **`status=deleted` lists the soft-deleted spaces alone,** hidden or not, verified or not, with the search, the place, stale only, the order and the pages of the others; every other status, and none, leaves them out (the owner's A3). *Why:* a space deleted by mistake can be restored once its toast has gone ([finding 44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)); one list, filtered before the page is cut. 2026-10-12, the deleted-spaces item.
+- **A deleted space's row names its owners, and is verified by them,** the second exception to "a link to a deleted space counts for nothing". *Why:* its links are kept as they are, and the way out of [finding 50](../architecture/findings/50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md), restore then unlink, needs to know whose space it was; the row says what a restore brings back. 2026-10-12, the deleted-spaces item.
+- **The row dates a deletion (`deletedAt`), `null` for a live space** (the owner's choice over a flag). *Why:* the screen shows a deleted row as deleted on that day. 2026-10-12, the deleted-spaces item.
 
 ### Web decisions
 
@@ -107,6 +110,7 @@ Staff (reception accounts) are not built.
 - **When the row that held the focus leaves, the focus moves to the list.** *Why:* a deleted space's row takes its menu with it, and the focus would otherwise fall to the page's start. 2026-10-07, #50.
 - **The admin's list reads under `['admin', 'space-links', 'spaces', request]`,** and the admin's writes on a space refresh the admin scope whole ([spaces › Decisions](spaces.md#decisions)). *Why:* the admin's scope, and no feature names another's keys. 2026-10-07, #50.
 - **The row's badge stays one, hidden first, else verified or unverified,** read from the row's facts. *Why:* the list looks as it did until A3's screen shows the two facts apart. 2026-10-12, the deleted-spaces item.
+- **The list keeps its own statuses, the contract's but `deleted`,** read from the address and offered in the filter; `?status=deleted` falls back to all. *Why:* the deleted spaces' screen (A3) is not built, and their rows would offer Hide and Delete. 2026-10-12, the deleted-spaces item.
 
 ## Code map
 
@@ -129,7 +133,7 @@ Staff (reception accounts) are not built.
 - #48 — the missing fact groups on the admin list's rows.
 - #60 — the admin's users list; adding, linking and unlinking owners, with the role that follows the links.
 - The users item — the admin's role change.
-- The deleted-spaces item — a row's state as facts apart.
+- The deleted-spaces item — a row's state as facts apart, and the soft-deleted spaces listed under `status=deleted`.
 
 ### Web history
 
@@ -137,4 +141,4 @@ Staff (reception accounts) are not built.
 - #39 — the space switcher.
 - #44 — an English-only name marked as English in the Arabic interface.
 - #50 — the admin's spaces list on the web.
-- The deleted-spaces item — the row's badge read from its facts.
+- The deleted-spaces item — the row's badge read from its facts; the list's own statuses, without `deleted`.

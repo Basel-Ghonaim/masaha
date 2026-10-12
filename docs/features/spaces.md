@@ -8,7 +8,7 @@
 
 - Lets the admin create a space from its profile, its basics and its location; read it; edit the profile and its facts, one group at a time (the hours with the shifts, the prices, the amenities, the contacts), and confirm each group unchanged, as far as [security](../backend/security.md#authorization) allows; hide and show it again; delete it softly and restore it.
 - Dates each of the space's fact groups when it is saved or confirmed unchanged, and computes from those dates which groups are stale, which are missing, and when the space was last updated.
-- Answers the modules above it: the summaries of a set of spaces, and a page of the admin's spaces list over the ids it is given.
+- Answers the modules above it: the summaries of a set of spaces, and a page of the admin's spaces list over the ids it is given, of the soft-deleted spaces when asked.
 - On the web, adds a space from its basics and its location, its pin placed on a map; and gives each row of the admin's spaces list its menu: hide the space or show it again, and delete it, with an Undo that restores it.
 
 The photos and the owner's side are not built.
@@ -152,6 +152,7 @@ The photos and the owner's side are not built.
 - #48 — the facts API: a group missing until saved, each group confirmed, the hours with the shifts, the prices, the amenities and the contacts.
 - #60 — a save decides on the links under the space's lock, and the read is consistent (finding 43).
 - #64 — a space's own amenities, in the amenities group; no price of zero.
+- The deleted-spaces item — the listing page of the soft-deleted spaces, with when each was deleted.
 
 ### Web history
 
