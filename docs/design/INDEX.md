@@ -28,6 +28,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 |---|---|---|
 | `?area=nasr,rimal` | `Directory.html` | the place filter: a list of areas, from any governorate (U1). `?gov=` and the amenity filter's `?am=` are gone; an old link still opens, unfiltered by them |
 | `?period=day&priceMin=10&priceMax=20` | `Directory.html` | the price filter (U5): the range on that period's price; the period alone filters nothing (S1). `?priceMin=50&priceMax=20` shows the range's error on its field |
+| `?photos=loading` · `?photos=failed` | Home, `Directory.html`, `Favorites.html` | every card's cover frame waiting for its photo, or showing the space's mark where the photo did not load (U12, S5) |
+| `?auth=1` | Home, `Directory.html` | a signed-in visitor: the heart over each card's photo, saving a space where the comparing happens (PU-014) |
 
 ## 01 · Flow
 

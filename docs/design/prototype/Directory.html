@@ -212,6 +212,8 @@ function DirectoryScreen() {
   const [theme, setTheme] = useTheme();
   const isDesktop = useIsDesktop();
   const isTablet = useIsTablet();
+  const user = getUser();
+  const favs = useFavourites();
   const near = useNearMe();
   const [state, setState] = React.useState(pageParams.get('state') || 'ready');
   const [f, setF] = React.useState(initialFilters);
@@ -293,7 +295,7 @@ function DirectoryScreen() {
         </div>
         {/* U2 and P5: the count by the toolbar, «الأقرب إليّ» beside it in both views, its one state line under them. */}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <ResultCount>{ready ? `${countLabel(results.length)} ${placeLine(f.areas)} · ${DISPLAY_ONLY()}` : '\u00a0'}</ResultCount>
+          <ResultCount>{ready ? `${countLabel(results.length)} ${placeLine(f.areas)}` : '\u00a0'}</ResultCount>
           {!picking && <NearMeButton near={near} on={sortingByDistance} onToggle={toggleNear} />}
         </div>
         {!picking && <LocationStatus near={near} sorting={sortingByDistance} onStop={() => setSort('updated')} onPickOnMap={pickOnMap} onChooseArea={chooseArea} />}
@@ -317,11 +319,11 @@ function DirectoryScreen() {
                 <CardContent><FiltersForm f={f} set={set} /></CardContent>
               </Card>
             </aside>
-            <section aria-label={tr("النتائج", "Results")} aria-busy={state === 'loading'} className="grid gap-4 md:grid-cols-2 lg:col-span-9">
+            <section aria-label={tr("النتائج", "Results")} aria-busy={state === 'loading'} className="grid gap-4 md:grid-cols-2 lg:col-span-9 xl:grid-cols-3">
               {state === 'loading' && [0, 1, 2, 3].map((i) => <SpaceCardSkeleton key={i} />)}
               {ready && (results.length
-                ? results.map((r) => <SpaceCard key={r.s.id} space={r.s} km={r.km} />)
-                : <Card className="md:col-span-2"><NoResults onClear={clear} /></Card>)}
+                ? results.map((r) => <SpaceCard key={r.s.id} space={r.s} km={r.km} action={user && <HeartButton space={r.s} on={favs.has(r.s)} onToggle={favs.toggle} />} />)
+                : <Card className="md:col-span-2 xl:col-span-3"><NoResults onClear={clear} /></Card>)}
             </section>
           </div>
         )}

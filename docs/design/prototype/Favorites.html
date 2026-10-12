@@ -31,10 +31,7 @@ const HIDDEN_NAMES = { palm: 'Palm Hub' };
 
 function FavCard({ space, km, onRemove }) {
   return (
-    <div className="relative h-full">
-      <SpaceCard space={space} km={km} reserveEnd />
-      <Button variant="outline" size="icon" className="fav-remove bg-card text-primary" aria-pressed="true" aria-label={tr('إزالة ' + spaceName(space) + ' من المفضّلة', 'Remove ' + spaceName(space) + ' from favourites')} onClick={onRemove}><HeartIcon filled /></Button>
-    </div>
+    <SpaceCard space={space} km={km} action={<HeartButton space={space} on onToggle={onRemove} />} />
   );
 }
 
@@ -50,8 +47,8 @@ function FavoritesScreen() {
   };
   const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1000); };
   return (
-    <AccountShell current="favorites" title={tr('المفضّلة', 'Favourites')} description={tr('المساحات التي حفظتها، بحالتها وأسعارها الحالية.', 'The spaces you saved, with their current status and prices.')} theme={theme} setTheme={setTheme}>
-      {state === 'loading' && <div className="grid gap-4 md:grid-cols-2">{[0, 1, 2].map((i) => <SpaceCardSkeleton key={i} />)}</div>}
+    <AccountShell current="favorites" title={tr('المفضّلة', 'Favourites')} description={tr('المساحات التي حفظتها، بحالتها الآن.', 'The spaces you saved, with their status now.')} theme={theme} setTheme={setTheme}>
+      {state === 'loading' && <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{[0, 1, 2].map((i) => <SpaceCardSkeleton key={i} />)}</div>}
       {state === 'error' && (
         <Alert variant="destructive">
           <AlertTitle>{tr('تعذّر تحميل المفضّلة', 'Couldn’t load your favourites')}</AlertTitle>
@@ -61,9 +58,7 @@ function FavoritesScreen() {
       )}
       {(state === 'ready' || state === 'empty') && (ids.length ? (
         <div className="flex flex-col gap-3">
-          {/* SH-021: the display-only note, once for the whole list. */}
-          <p className="text-caption text-muted-foreground">{DISPLAY_ONLY()}</p>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {ids.map((id) => {
             if (id.startsWith('hidden:')) {
               const name = HIDDEN_NAMES[id.slice(7)];

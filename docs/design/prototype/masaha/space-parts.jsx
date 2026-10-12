@@ -5,14 +5,6 @@ const SM = window.MASAHA;
 const todayKey = () => ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
 const liveStatus = (s) => (s.closure ? 'closed' : s.status);
 
-function HeartIcon({ filled }) {
-  return (
-    <svg viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5" aria-hidden="true">
-      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-    </svg>
-  );
-}
-
 // Photo stand-in: real photos come from the space; no stock imagery.
 function PhotoTile({ n, className }) {
   return <div className={'flex items-center justify-center rounded-lg bg-muted text-caption text-muted-foreground ' + (className || '')} role="img" aria-label={tr(`صورة ${n}`, `Photo ${n}`)}>{tr("صورة ", "Photo ")}{n}</div>;
@@ -333,4 +325,4 @@ function AnnouncementsSection({ space }) {
   );
 }
 
-Object.assign(window, { HeartIcon, Gallery, StatusContactCard, ContactButton, AboutSection, HoursSection, PricesSection, AmenitiesSection, LocationSection, AnnouncementsSection, liveStatus, directionsHref });
+Object.assign(window, { Gallery, StatusContactCard, ContactButton, AboutSection, HoursSection, PricesSection, AmenitiesSection, LocationSection, AnnouncementsSection, liveStatus, directionsHref });

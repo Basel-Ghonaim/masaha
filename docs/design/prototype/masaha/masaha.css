@@ -95,3 +95,18 @@ a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=bre
 .map-crosshair::before{left:50%;top:0;bottom:0;width:2px;margin-left:-1px}
 .map-crosshair::after{top:50%;left:0;right:0;height:2px;margin-top:-1px}
 .map-grab{cursor:grab;touch-action:none}.map-pan-now{transition:none}
+/* U12: the card's cover keeps its box before the photo arrives — 2:1 on a phone (design issue 2:
+   striking, not tall), 16:9 from 768. */
+.cover-ratio{aspect-ratio:2/1}@media(min-width:768px){.cover-ratio{aspect-ratio:16/9}}
+/* U12: the drawn stand-in for a cover photo, tinted from the layer's tokens so it has a photo's
+   weight in both themes. The product shows the space's own photo here. */
+.cover-art{position:absolute;inset:0;width:100%;height:100%}
+.tone-primary{--tone:var(--primary)}.tone-info{--tone:var(--info)}.tone-success{--tone:var(--success)}.tone-warning{--tone:var(--warning)}
+.cover-art .wall{fill:color-mix(in oklch,var(--tone) 20%,var(--card))}
+.cover-art .window{fill:color-mix(in oklch,var(--tone) 8%,var(--card))}
+.cover-art .mullion{stroke:color-mix(in oklch,var(--tone) 45%,var(--card));stroke-width:4}
+.cover-art .floor{fill:color-mix(in oklch,var(--tone) 38%,var(--card))}
+.cover-art .wood{fill:color-mix(in oklch,var(--foreground) 55%,var(--card))}
+.cover-art .paper{fill:var(--card)}
+.cover-art .lamp{fill:var(--warning)}
+.cover-art .leaf{fill:var(--success)}

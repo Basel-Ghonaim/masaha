@@ -31,6 +31,8 @@ function HomeScreen() {
   const [state, setState] = React.useState(pageParams.get('state') || 'ready');
   const near = useNearMe();
   const toPick = () => { location.href = carryParams('Directory.html?view=map&pick=1'); };
+  const user = getUser();
+  const favs = useFavourites();
   // U1: Home no longer narrows the Strip to one governorate.
   const areas = M.governorates.flatMap((g) => g.areas.map((a) => ({ a, g, n: M.spaces.filter((s) => s.area === a.id).length }))).filter((x) => x.n > 0);
   const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1200); };
@@ -59,7 +61,6 @@ function HomeScreen() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-col gap-1">
               <h2 id="spaces-title" className="text-heading-2">{title}</h2>
-              <p className="text-caption text-muted-foreground">{DISPLAY_ONLY()}</p>
             </div>
             <div className="flex items-center gap-2">
               <NearMeButton near={near} on={!!near.coords} />
@@ -80,7 +81,7 @@ function HomeScreen() {
             </Alert>
           )}
           {(state === 'ready' || state === 'empty') && (items.length ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{items.map(({ s, km }) => <SpaceCard key={s.id} space={s} km={km} />)}</div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{items.map(({ s, km }) => <SpaceCard key={s.id} space={s} km={km} action={user && <HeartButton space={s} on={favs.has(s)} onToggle={favs.toggle} />} />)}</div>
           ) : (
             <Card>
               <EmptyState icon={<SearchIcon />} title={tr("لا توجد مساحات متاحة الآن", "No spaces available right now")} titleAs="h3" description={tr("قد تكون المساحات ممتلئة أو مغلقة في هذا الوقت. تصفّح كل المساحات لمعرفة ساعات عملها.", "Spaces may be full or closed at this time. Browse all spaces to see their hours.")}>
