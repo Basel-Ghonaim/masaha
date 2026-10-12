@@ -46,7 +46,11 @@ function MapLegend() {
 // `focus`: a point of the map to bring to `focusAt` (fractions of the map's box) — the selected space
 // above the phone's sheet (U6), or the visitor's location on «مركّز على موقعي». The illustration
 // moves under it as a tiled map would.
-function SpaceMap({ spaces, selectedId, onSelect, user, userSource, picking, onPick, label, className, children, static: isStatic, focus, focusAt = { x: 0.5, y: 0.5 }, offset: offsetProp, onOffset, legend }) {
+// `pickAtCentre` (U7): while picking, a fixed crosshair marks the map's centre; the map moves under it
+// by drag or by the arrow keys, and `children({ confirmCentre })` offers «ثبّت الموقع هنا», which
+// places the pin there. A tap still places it where tapped. Without it (the editor's pin map),
+// picking stays tap-to-place.
+function SpaceMap({ spaces, selectedId, onSelect, user, userSource, picking, onPick, label, className, children, static: isStatic, focus, focusAt = { x: 0.5, y: 0.5 }, offset: offsetProp, onOffset, pickAtCentre, legend }) {
   const box = React.useRef(null);
   const layer = React.useRef(null);
   const [ownOffset, setOwnOffset] = React.useState({ x: 0, y: 0 });
@@ -57,15 +61,44 @@ function SpaceMap({ spaces, selectedId, onSelect, user, userSource, picking, onP
     setOffset({ x: (at.x - f.x) * r.width, y: (at.y - f.y) * r.height });
   };
   React.useEffect(() => { if (focus) centreOn(focus, focusAt); }, [focus && focus.lat, focus && focus.lng, focusAt.y]);
+  const centred = picking && pickAtCentre;
+  const clamp = (o) => { const r = box.current.getBoundingClientRect(); return { x: Math.max(-r.width / 2, Math.min(r.width / 2, o.x)), y: Math.max(-r.height / 2, Math.min(r.height / 2, o.y)) }; };
+  const confirmCentre = () => {
+    const r = box.current.getBoundingClientRect(), b = window.MASAHA.bounds;
+    const fx = (r.width / 2 - offset.x) / r.width, fy = (r.height / 2 - offset.y) / r.height;
+    onPick({ lng: b.west + fx * (b.east - b.west), lat: b.north - fy * (b.north - b.south) });
+  };
+  // The arrows move the map in the direction they point, whatever the page's direction.
+  const STEP = 40;
+  const onKey = (e) => {
+    const d = { ArrowUp: [0, STEP], ArrowDown: [0, -STEP], ArrowLeft: [STEP, 0], ArrowRight: [-STEP, 0] }[e.key];
+    if (!centred || !d) return;
+    e.preventDefault();
+    setOffset(clamp({ x: offset.x + d[0], y: offset.y + d[1] }));
+  };
+  // A drag moves the map; a tap without one places the pin where tapped.
+  const drag = React.useRef(null);
+  const onDown = (e) => { if (centred) drag.current = { x: e.clientX, y: e.clientY, o: offset, moved: false }; };
+  const onMove = (e) => {
+    const g = drag.current;
+    if (!g) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if (!g.moved && Math.hypot(dx, dy) < 6) return;
+    g.moved = true;
+    setOffset(clamp({ x: g.o.x + dx, y: g.o.y + dy }));
+  };
+  const onUp = () => { setTimeout(() => { drag.current = null; }, 0); };
   const pick = (e) => {
-    if (!picking) return;
+    if (!picking || (drag.current && drag.current.moved)) return;
     const r = layer.current.getBoundingClientRect(), b = window.MASAHA.bounds;
     onPick({ lng: b.west + ((e.clientX - r.left) / r.width) * (b.east - b.west), lat: b.north - ((e.clientY - r.top) / r.height) * (b.north - b.south) });
   };
   const moved = offset.x || offset.y;
   return (
-    <div ref={box} role="region" aria-label={label} className={'relative isolate overflow-hidden rounded-xl border bg-muted ' + (picking ? 'border-primary ' : 'border-border ') + (className || '')}>
-      <div className="map-pan absolute inset-0" style={moved ? { transform: `translate(${offset.x}px, ${offset.y}px)` } : undefined}>
+    <div ref={box} role="region" aria-label={label} aria-describedby={centred ? 'map-pick-keys' : undefined} tabIndex={centred ? 0 : undefined} onKeyDown={onKey} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+      className={'relative isolate overflow-hidden rounded-xl border bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ' + (picking ? 'border-primary ' : 'border-border ') + (centred ? 'map-grab ' : '') + (className || '')}>
+      {centred && <span id="map-pick-keys" className="sr-only">{tr("الأسهم تحرّك الخريطة تحت العلامة في الوسط.", "The arrow keys move the map under the mark in the centre.")}</span>}
+      <div className={'map-pan absolute inset-0' + (drag.current && drag.current.moved ? ' map-pan-now' : '')} style={moved ? { transform: `translate(${offset.x}px, ${offset.y}px)` } : undefined}>
         <MapIllustration />
         <div dir="ltr" ref={layer} className={'absolute inset-0' + (picking ? ' cursor-crosshair' : '')} onClick={pick}>
           {user && userSource === 'gps' && <span className="map-accuracy absolute size-16 rounded-full" style={project(user)} aria-hidden="true"></span>}
@@ -88,6 +121,7 @@ function SpaceMap({ spaces, selectedId, onSelect, user, userSource, picking, onP
           })}
         </div>
       </div>
+      {centred && <span className="map-crosshair" aria-hidden="true"></span>}
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between gap-4 p-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           {/* U6: the legend inside the map, by the location control, so it is always in view. */}
@@ -96,7 +130,7 @@ function SpaceMap({ spaces, selectedId, onSelect, user, userSource, picking, onP
               use, this only brings it back into view. Hidden while picking (U7). */}
           {user && !picking && !isStatic && <MapButton variant="outline" size="sm" className="pointer-events-auto bg-card shadow-floating" onClick={() => centreOn(user)}>{tr("مركّز على موقعي", "Centre on my location")}</MapButton>}
         </div>
-        {children && <div className="pointer-events-auto md:max-w-sm">{children}</div>}
+        {children && <div className="pointer-events-auto md:max-w-sm" onPointerDown={(e) => e.stopPropagation()}>{typeof children === 'function' ? children({ confirmCentre }) : children}</div>}
       </div>
     </div>
   );

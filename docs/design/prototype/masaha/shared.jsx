@@ -19,6 +19,9 @@ function useIsDesktop() {
 const GAZA_STRIP = { north: 31.60, south: 31.22, west: 34.20, east: 34.57 };
 const MAX_ACCURACY_M = 2000;
 const LOC_KEY = 'masaha:near-me';
+function savedLoc() {
+  try { const s = JSON.parse(sessionStorage.getItem(LOC_KEY)); return s && s.coords ? s : null; } catch (e) { return null; }
+}
 function initialLoc() {
   const p = pageParams.get('loc');
   if (p === 'granted') return { status: 'granted', source: 'gps', coords: M.demoUser };
@@ -26,8 +29,7 @@ function initialLoc() {
   if (p === 'denied' || p === 'imprecise' || p === 'picking' || p === 'locating') return { status: p };
   if (p) return { status: 'idle' };
   if (pageParams.get('pick') === '1') return { status: 'picking' };
-  try { const s = JSON.parse(sessionStorage.getItem(LOC_KEY)); if (s && s.coords) return s; } catch (e) {}
-  return { status: 'idle' };
+  return savedLoc() || { status: 'idle' };
 }
 function useNearMe() {
   const [loc, setLoc] = React.useState(initialLoc);
@@ -48,11 +50,15 @@ function useNearMe() {
       { timeout: 8000, maximumAge: 300000, enableHighAccuracy: true }
     );
   }, []);
-  const startPick = React.useCallback(() => setLoc({ status: 'picking' }), []);
+  // U7: «رجوع» returns to the location from before picking, whatever it was; only «مسح موقعي» clears one.
+  // Arriving to pick from another page (Home's «تغيير الموقع»), the location before is this tab's saved one.
+  const before = React.useRef(loc.status === 'picking' && !pageParams.get('loc') ? savedLoc() : null);
+  const startPick = React.useCallback(() => setLoc((l) => { before.current = l.status === 'granted' ? l : null; return { status: 'picking' }; }), []);
+  const cancelPick = React.useCallback(() => setLoc(before.current || { status: 'idle' }), []);
   const placePin = React.useCallback((coords) => setLoc({ status: 'granted', source: 'manual', coords }), []);
   const clear = React.useCallback(() => setLoc({ status: 'idle' }), []);
   React.useEffect(() => { if (pageParams.get('near') === '1' && !pageParams.get('loc') && loc.status === 'idle') request(); }, []);
-  return { loc, coords: loc.status === 'granted' ? loc.coords : null, request, startPick, placePin, clear };
+  return { loc, coords: loc.status === 'granted' ? loc.coords : null, request, startPick, cancelPick, placePin, clear };
 }
 
 // SH-007 (and DI-7): an always-LTR value never breaks mid-number inside Arabic text.

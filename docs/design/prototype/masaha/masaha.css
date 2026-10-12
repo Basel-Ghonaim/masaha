@@ -89,3 +89,9 @@ a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=bre
 @media(pointer:coarse){.space-pin{width:2.75rem;height:2.75rem}}
 .map-pan{transition:transform var(--duration-medium,.25s) var(--easing-standard,ease)}
 @media(prefers-reduced-motion:reduce){.map-pan{transition:none}}
+/* U7: placing a pin by hand — a fixed crosshair at the map's centre; the map moves under it. */
+.map-crosshair{position:absolute;top:50%;left:50%;z-index:5;width:2.5rem;height:2.5rem;margin:-1.25rem 0 0 -1.25rem;pointer-events:none}
+.map-crosshair::before,.map-crosshair::after{content:"";position:absolute;background:var(--primary);border-radius:1px;box-shadow:0 0 0 1px var(--card)}
+.map-crosshair::before{left:50%;top:0;bottom:0;width:2px;margin-left:-1px}
+.map-crosshair::after{top:50%;left:0;right:0;height:2px;margin-top:-1px}
+.map-grab{cursor:grab;touch-action:none}.map-pan-now{transition:none}
