@@ -33,7 +33,7 @@ function FavCard({ space, km, onRemove }) {
   return (
     <div className="relative h-full">
       <SpaceCard space={space} km={km} reserveEnd />
-      <Button variant="outline" size="icon" className="fav-remove bg-card text-primary" aria-pressed="true" aria-label={tr('إزالة ' + space.name + ' من المفضّلة', 'Remove ' + space.name + ' from favourites')} onClick={onRemove}><HeartIcon filled /></Button>
+      <Button variant="outline" size="icon" className="fav-remove bg-card text-primary" aria-pressed="true" aria-label={tr('إزالة ' + spaceName(space) + ' من المفضّلة', 'Remove ' + spaceName(space) + ' from favourites')} onClick={onRemove}><HeartIcon filled /></Button>
     </div>
   );
 }
@@ -78,7 +78,7 @@ function FavoritesScreen() {
               );
             }
             const s = M.spaces.find((x) => x.id === id);
-            return <FavCard key={id} space={s} km={near.coords ? M.distanceKm(near.coords, s) : null} onRemove={() => remove(id, s.name)} />;
+            return <FavCard key={id} space={s} km={near.coords ? M.distanceKm(near.coords, s) : null} onRemove={() => remove(id, spaceName(s))} />;
           })}
           </div>
         </div>

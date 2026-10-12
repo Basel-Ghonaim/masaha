@@ -24,8 +24,8 @@ function Gallery({ space }) {
   const n = space.photos || 0;
   if (!n) {
     return (
-      <div className="flex gallery-h flex-col items-center justify-center gap-2 rounded-xl bg-muted" role="img" aria-label={tr(`لا توجد صور لـ ${space.name}`, `No photos of ${space.name}`)}>
-        <span className="text-display text-muted-foreground" aria-hidden="true">{space.name[0]}</span>
+      <div className="flex gallery-h flex-col items-center justify-center gap-2 rounded-xl bg-muted" role="img" aria-label={tr(`لا توجد صور لـ ${spaceName(space)}`, `No photos of ${spaceName(space)}`)}>
+        <span className="text-display text-muted-foreground" aria-hidden="true">{spaceName(space)[0]}</span>
         <span className="text-caption text-muted-foreground">{tr("لا توجد صور بعد", "No photos yet")}</span>
       </div>
     );
@@ -52,7 +52,7 @@ function Gallery({ space }) {
       <SDialog open={open} onOpenChange={setOpen}>
         <SDialogContent closeLabel={tr("إغلاق", "Close")} className="sm:max-w-3xl">
           <SDialogHeader>
-            <SDialogTitle>{tr("صور ", "Photos of ")}{LANG === 'en' ? space.name : space.nameAr}</SDialogTitle>
+            <SDialogTitle>{tr("صور ", "Photos of ")}<SpaceName space={space} /></SDialogTitle>
             <SDialogDescription><span dir="ltr">{i + 1} / {n}</span></SDialogDescription>
           </SDialogHeader>
           <PhotoTile n={i + 1} className="lightbox-h" />

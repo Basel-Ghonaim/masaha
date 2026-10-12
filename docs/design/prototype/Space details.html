@@ -67,7 +67,7 @@ function ReportDialog({ open, onOpenChange, space }) {
       <DialogContent closeLabel={tr("إغلاق", "Close")}>
         <DialogHeader>
           <DialogTitle>{tr("الإبلاغ عن معلومة غير صحيحة", "Report wrong information")}</DialogTitle>
-          <DialogDescription>{tr("عن ", "About ")}{space.name}{tr(". يراجع فريق مساحة البلاغ ويحدّث الصفحة.", ". The Masaha team reviews reports and updates the page.")}</DialogDescription>
+          <DialogDescription>{tr("عن ", "About ")}<SpaceName space={space} />{tr(". يراجع فريق مساحة البلاغ ويحدّث الصفحة.", ". The Masaha team reviews reports and updates the page.")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
           <Field label={tr("ما المعلومة غير الصحيحة؟", "What’s wrong?")} error={tried && !topic ? tr("اختر نوع المعلومة", "Choose what’s wrong") : undefined}>
@@ -133,7 +133,7 @@ function SpaceDetailsScreen() {
   const [signIn, setSignIn] = React.useState(pageParams.get('dialog') === 'signin' ? 'fav' : false);
   const [report, setReport] = React.useState(pageParams.get('dialog') === 'report');
   const [platform, setPlatform] = React.useState(false);
-  React.useEffect(() => { if (space) document.title = `${space.name} — ${tr('مساحة', 'Masaha')}`; }, []);
+  React.useEffect(() => { if (space) document.title = `${spaceName(space)} — ${tr('مساحة', 'Masaha')}`; }, []);
 
   const crumbs = (
     <Breadcrumb label={tr("مسار التنقل", "Breadcrumb")}>
@@ -141,7 +141,7 @@ function SpaceDetailsScreen() {
         <BreadcrumbItem><BreadcrumbLink href="Home.html">{tr("الرئيسية", "Home")}</BreadcrumbLink></BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem><BreadcrumbLink href={directoryHref()}>{tr("المساحات", "Spaces")}</BreadcrumbLink></BreadcrumbItem>
-        {space && state !== 'notfound' && <><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage>{space.name}</BreadcrumbPage></BreadcrumbItem></>}
+        {space && state !== 'notfound' && <><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage><SpaceName space={space} /></BreadcrumbPage></BreadcrumbItem></>}
       </BreadcrumbList>
     </Breadcrumb>
   );
@@ -205,10 +205,10 @@ function SpaceDetailsScreen() {
             <Gallery space={space} />
             <header className="flex flex-col gap-1">
               <div className="flex items-center justify-between gap-3">
-                <h1 className="min-w-0 text-heading-1">{LANG === 'en' ? space.name : space.nameAr}</h1>
+                <h1 className="min-w-0 text-heading-1"><SpaceName space={space} /></h1>
                 <Button variant="outline" size="icon" aria-pressed={fav} aria-label={fav ? tr("إزالة من المفضلة", "Remove from favourites") : tr("حفظ في المفضلة", "Save to favourites")} onClick={toggleFav} className={fav ? 'text-primary' : ''}><HeartIcon filled={fav} /></Button>
               </div>
-              {LANG === 'en' ? <p lang="ar" dir="rtl" className="self-start text-body text-muted-foreground">{space.nameAr}</p> : <p lang="en" dir="ltr" className="self-start text-body text-muted-foreground">{space.name}</p>}
+              {otherName(space) && (LANG === 'en' ? <p lang="ar" dir="rtl" className="self-start text-body text-muted-foreground">{otherName(space)}</p> : <p lang="en" dir="ltr" className="self-start text-body text-muted-foreground">{otherName(space)}</p>)}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
                 <span>{areaLine(space)}</span>
                 {space.verified && <span className="inline-flex items-center gap-1 text-primary"><CircleCheckIcon className="size-4" aria-hidden="true" />{tr("موثّقة", "Verified")}</span>}

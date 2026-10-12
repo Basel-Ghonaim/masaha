@@ -44,7 +44,7 @@ function ReportItem({ r }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle><a href={spaceHref(s)} className="text-foreground">{s.name}</a></CardTitle>
+        <CardTitle><a href={spaceHref(s)} className="text-foreground"><SpaceName space={s} /></a></CardTitle>
         <CardDescription>{r.field} · {tr('أُرسل', 'Sent')} {r.sent}</CardDescription>
         <CardAction><Badge variant={st.variant}>{st.label}</Badge></CardAction>
       </CardHeader>

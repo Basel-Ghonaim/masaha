@@ -61,6 +61,13 @@ const Money = ({ amount }) => <Ltr>{LANG === 'en' ? `₪${amount}` : `${amount} 
 const fmtKm = (km) => (km < 10 ? km.toFixed(1) : Math.round(km)).toString();
 const Distance = ({ km }) => <span>{tr("على بعد ", "About ")}<Ltr>{fmtKm(km)}</Ltr>{tr(" كم تقريبًا", " km away")}</span>;
 const spaceHref = (s) => `Space details.html?id=${s.id}`;
+
+// U3: one name for a space. In Arabic its Arabic name when it has one, else its English name (the
+// required one); in English its English name. The other name appears only under the space page's h1.
+const spaceName = (s) => (LANG === 'en' ? s.name : s.nameAr || s.name);
+const otherName = (s) => (LANG === 'en' ? s.nameAr || null : s.nameAr ? s.name : null);
+// An English-only name inside the Arabic interface is marked as English.
+const SpaceName = ({ space }) => (LANG === 'ar' && !space.nameAr && !/[\u0600-\u06FF]/.test(space.name) ? <span lang="en">{space.name}</span> : spaceName(space));
 const locPass = () => (pageParams.get('loc') === 'granted' ? '&loc=granted' : '');
 
 // Signed-in user (demo): sessionStorage after sign-in, or ?auth=1 | google | linked for board frames.
@@ -396,7 +403,7 @@ function SpaceCard({ space, km, reserveEnd }) {
     <a href={spaceHref(space)} className="block h-full rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
       <Card className="h-full transition-colors hover:bg-accent">
         <CardHeader className={reserveEnd ? 'pe-16' : undefined}>
-          <CardTitle>{space.name}</CardTitle>
+          <CardTitle><SpaceName space={space} /></CardTitle>
           <CardDescription>{areaLine(space)}</CardDescription>
           {reserveEnd ? <div className="pt-1"><LiveStatus space={space} /></div> : <CardAction><LiveStatus space={space} /></CardAction>}
         </CardHeader>
@@ -446,7 +453,7 @@ const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON
 
 const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
 
-Object.assign(window, { DISPLAY_ONLY, AccountMenuContent, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
+Object.assign(window, { DISPLAY_ONLY, AccountMenuContent, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, spaceName, otherName, SpaceName, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
 
 // DS date picker with long localized dates («3 أكتوبر 2026»). value/onChange use ISO yyyy-mm-dd.
 const isoLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);

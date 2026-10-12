@@ -55,10 +55,10 @@ function SpaceMap({ spaces, selectedId, onSelect, user, userSource, picking, onP
         {spaces.map((s) => {
           const on = s.id === selectedId;
           return (
-            <button key={s.id} type="button" tabIndex={picking ? -1 : undefined} onClick={(e) => { if (picking) return; e.stopPropagation(); onSelect(s.id); }} aria-pressed={on} aria-label={`${s.name} — ${window.statusWord(s)}`}
+            <button key={s.id} type="button" tabIndex={picking ? -1 : undefined} onClick={(e) => { if (picking) return; e.stopPropagation(); onSelect(s.id); }} aria-pressed={on} aria-label={`${spaceName(s)} — ${window.statusWord(s)}`}
               className={'map-pin absolute flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 text-caption shadow-floating focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ' + (on ? 'z-10 border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground')}
               style={project(s)}>
-              <span className={'size-2.5 rounded-full ' + dotClass(s)} aria-hidden="true"></span>{s.name}
+              <span className={'size-2.5 rounded-full ' + dotClass(s)} aria-hidden="true"></span><SpaceName space={s} />
             </button>
           );
         })}

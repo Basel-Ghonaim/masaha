@@ -51,6 +51,9 @@ const clearedFilters = (f) => ({ ...f, q: '', gov: 'gaza', areas: [], availableO
 const activeCount = (f) => f.areas.length + (f.gov !== 'gaza' ? 1 : 0) + (f.availableOnly ? 1 : 0) + (f.verifiedOnly ? 1 : 0) + (f.period ? 1 : 0) + f.amenities.length + f.others.length;
 const countLabel = (n) => n === 0 ? tr("لا توجد مساحات", "No spaces") : n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : LANG === 'en' ? `${n} spaces` : n <= 10 ? `${n} مساحات` : `${n} مساحة`;
 
+// U3: the search matches both names of a space and its area's, in either language.
+const matches = (s, q) => { const a = M.findArea(s.area) || {}; return [s.name, s.nameAr, a.ar, a.en].some((t) => t && t.toLowerCase().includes(q)); };
+
 function applyFilters(f, sort, coords) {
   const q = f.q.trim().toLowerCase();
   const list = M.spaces.filter((s) =>
@@ -61,13 +64,13 @@ function applyFilters(f, sort, coords) {
     (!f.period || s.prices[f.period] != null) &&
     f.amenities.every((a) => s.amenities.includes(a)) &&
     f.others.every((o) => s.others.includes(o)) &&
-    (!q || s.name.toLowerCase().includes(q) || M.areaName(s.area).includes(q))
+    (!q || matches(s, q))
   ).map((s) => ({ s, km: coords ? M.distanceKm(coords, s) : null }));
   const by = {
     distance: (a, b) => a.km - b.km,
     updated: (a, b) => a.s.updatedDays - b.s.updatedDays,
     price: (a, b) => M.minPrice(a.s, f.period) - M.minPrice(b.s, f.period),
-    name: (a, b) => a.s.name.localeCompare(b.s.name)
+    name: (a, b) => spaceName(a.s).localeCompare(spaceName(b.s), LANG)
   };
   return list.sort(by[sort] || by.updated);
 }
@@ -123,7 +126,7 @@ function CompactSpaceCard({ item, onClose }) {
   return (
     <Card className="shadow-overlay">
       <CardHeader>
-        <CardTitle>{s.name}</CardTitle>
+        <CardTitle><SpaceName space={s} /></CardTitle>
         <CardDescription>{areaLine(s)}</CardDescription>
         <CardAction><Button variant="ghost" size="icon" aria-label={tr("إغلاق", "Close")} onClick={onClose}><XIcon /></Button></CardAction>
       </CardHeader>
