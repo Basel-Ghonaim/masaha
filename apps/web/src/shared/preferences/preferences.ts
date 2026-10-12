@@ -1,16 +1,10 @@
 import { CATALOGUES, type Language } from '@shared/copy';
 import { THEMES, type Theme } from '@shared/design-system';
 import { directionOf, FALLBACK_LANGUAGE, type LanguageSource } from '@shared/localisation';
+import { storage, STORAGE_KEYS } from '@shared/storage';
 import { useStore } from 'zustand';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { browserPlatform, type Platform, type StorageChange } from './platform';
-
-/**
- * Where the choices persist, each as a plain string. The pre-paint script in index.html reads the
- * same keys before the bundle loads, and a test holds the two to the same keys and values
- * (docs/frontend/localisation.md#mechanism).
- */
-export const PREFERENCE_KEYS = { language: 'masaha.language', theme: 'masaha.theme' } as const;
 
 /** Every theme the design system defines, and `system`: follow the device, live, storing nothing. */
 export const THEME_CHOICES = [...THEMES, 'system'] as const;
@@ -44,26 +38,13 @@ function isTheme(value: string | null): value is Theme {
   return THEMES.some((theme) => theme === value);
 }
 
-/** A stored value, or null when there is none or storage cannot be read. */
-function stored({ storage }: Platform, key: string): string | null {
-  try {
-    return storage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-/** Persists a choice. Blocked storage loses it on reload, but the page still applies it now. */
-function persist(write: () => void): void {
-  try {
-    write();
-  } catch {
-    // Nothing to do: the choice holds for this page.
-  }
-}
-
-function storedThemeChoice(platform: Platform): ThemeChoice {
-  const theme = stored(platform, PREFERENCE_KEYS.theme);
+/**
+ * The stored theme, else `system`. Each choice persists as a plain string at its key, which the
+ * pre-paint script in index.html reads before the bundle loads; a test holds the two to the same
+ * keys and values (docs/frontend/localisation.md#mechanism).
+ */
+function storedThemeChoice(): ThemeChoice {
+  const theme = storage.read(STORAGE_KEYS.theme);
   return isTheme(theme) ? theme : 'system';
 }
 
@@ -90,7 +71,7 @@ export function setupPreferences(platform: Platform = browserPlatform()): void {
   const store = createStore<Preferences>()(() => ({
     // The fallback is typed as a Language, so removing its catalogue fails the typecheck here.
     language: isLanguage(language) ? language : FALLBACK_LANGUAGE,
-    ...themeState(platform, storedThemeChoice(platform)),
+    ...themeState(platform, storedThemeChoice()),
   }));
 
   paint(platform, store.getState());
@@ -109,14 +90,14 @@ export function setupPreferences(platform: Platform = browserPlatform()): void {
   // Another tab changed a choice. Its value is read back from storage (a cleared key reports null)
   // and applied here without being written again.
   const onStorage = ({ key }: StorageChange) => {
-    if (key === null || key === PREFERENCE_KEYS.language) {
-      const language = stored(platform, PREFERENCE_KEYS.language);
+    if (key === null || key === STORAGE_KEYS.language) {
+      const language = storage.read(STORAGE_KEYS.language);
       if (isLanguage(language)) {
         store.setState({ language });
       }
     }
-    if (key === null || key === PREFERENCE_KEYS.theme) {
-      store.setState(themeState(platform, storedThemeChoice(platform)));
+    if (key === null || key === STORAGE_KEYS.theme) {
+      store.setState(themeState(platform, storedThemeChoice()));
     }
   };
 
@@ -144,25 +125,24 @@ export function usePreferences<T>(select: (preferences: Preferences) => T): T {
   return useStore(active().store, select);
 }
 
-/** Stores the language and applies it, with its direction. */
+/**
+ * Stores the language and applies it, with its direction. Blocked storage loses it on reload, but
+ * the page still applies it now.
+ */
 export function setLanguage(language: Language): void {
-  const { store, platform } = active();
-  persist(() => {
-    platform.storage.setItem(PREFERENCE_KEYS.language, language);
-  });
+  const { store } = active();
+  storage.write(STORAGE_KEYS.language, language);
   store.setState({ language });
 }
 
 /** Stores a theme and applies it; `system` removes the stored theme and follows the device. */
 export function setTheme(themeChoice: ThemeChoice): void {
   const { store, platform } = active();
-  persist(() => {
-    if (themeChoice === 'system') {
-      platform.storage.removeItem(PREFERENCE_KEYS.theme);
-    } else {
-      platform.storage.setItem(PREFERENCE_KEYS.theme, themeChoice);
-    }
-  });
+  if (themeChoice === 'system') {
+    storage.remove(STORAGE_KEYS.theme);
+  } else {
+    storage.write(STORAGE_KEYS.theme, themeChoice);
+  }
   store.setState(themeState(platform, themeChoice));
 }
 

@@ -1,13 +1,14 @@
 import { Toaster, toast } from '@shared/design-system';
 import { getSession, onSessionEstablished } from '@shared/session';
 import { useQueryClient } from '@tanstack/react-query';
-import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { aSession, deferred } from '../../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { startPreferences } from '../../../../test/startPreferences';
+import { findToast } from '../../../../test/findToast';
 import { useRegister } from './useRegister';
 
 const REQUEST = {
@@ -44,7 +45,7 @@ describe('useRegister', () => {
 
     await act(() => result.current.mutateAsync({ ...REQUEST, language: 'en' }));
 
-    expect(await screen.findByText(/^Welcome \S*Sara\S*, your account is ready$/)).toBeVisible();
+    expect(await findToast(/^Welcome \S*Sara\S*, your account is ready$/)).toBeVisible();
   });
 
   it("holds the new account's session, as a sign-in", async () => {

@@ -1,6 +1,6 @@
 # Localisation
 
-> **Status:** Active · **Class:** Contract — rules to build against; the pre-paint script, the catalogue mechanism, the preferences store that sets the language and the plurals are built, no other formatter is yet · **Last Updated:** 2026-10-06 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; the pre-paint script, the catalogue mechanism, the preferences store that sets the language and the plurals are built, no other formatter is yet · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
 > **Authority:** Languages, resolution, catalogues and formatting rules in `apps/web`. The reasoning is in [ADR 0006](../architecture/decisions/0006-localisation-approach.md); direction rules for components are in [design-system/foundation.md §8](design-system/foundation.md).
 
 ## Languages and resolution
@@ -41,7 +41,7 @@ An inline script in `apps/web/index.html` runs before the stylesheet and sets th
 - `lang`: the stored choice, else the first of `navigator.languages` whose base language is registered, else `ar`.
 - `dir`: from the language.
 
-The choices are stored in `localStorage` as plain strings: `masaha.theme` (a theme the design system defines: `light` | `dark`) and `masaha.language` (a registered language: `ar` | `en`). An unknown value, or storage that cannot be read, falls through to the next source. The preferences store ([architecture.md §4](architecture.md#4-session-and-preferences)) is the only writer of these keys, and the app's writer of the three attributes after the first paint (the development-only showcase sets its own):
+The choices are stored in `localStorage`, through `shared/storage`, which declares their keys ([architecture.md §4](architecture.md#4-session-and-preferences)), as plain strings: `masaha.theme` (a theme the design system defines: `light` | `dark`) and `masaha.language` (a registered language: `ar` | `en`). An unknown value, or storage that cannot be read, falls through to the next source. The preferences store ([architecture.md §4](architecture.md#4-session-and-preferences)) is the only writer of these keys, and the app's writer of the three attributes after the first paint (the development-only showcase sets its own):
 
 - choosing a language or a theme stores it under its key;
 - choosing to follow the device removes `masaha.theme`, so the script follows `prefers-color-scheme` on the next load, as the store does live;

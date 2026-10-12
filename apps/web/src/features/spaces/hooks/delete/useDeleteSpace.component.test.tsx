@@ -9,6 +9,7 @@ import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { deferred } from '../../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
+import { findToast } from '../../../../test/findToast';
 import { useDeleteSpace } from './useDeleteSpace';
 
 type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
@@ -16,9 +17,9 @@ type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
 const PALM = { spaceId: 9, name: { text: 'Palm Hub' } };
 const FOCUS = { spaceId: 7, name: { text: 'Focus Hub' } };
 
-/** The toast whose title reads `text`, as a reader hears it. */
+/** The toast whose title reads `text`, as a reader hears it, once it shows. */
 const toastTitled = (text: string) =>
-  screen.findByText(
+  findToast(
     (_content, element) =>
       element?.hasAttribute('data-title') === true && element.textContent === text,
   );

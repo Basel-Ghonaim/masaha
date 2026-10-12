@@ -5,6 +5,7 @@ import { setLanguage, setTheme } from '@shared/preferences';
 import { useQueryClient } from '@tanstack/react-query';
 import { act, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { findToast } from '../test/findToast';
 import { bootstrap } from './bootstrap';
 import { AppProviders } from './providers';
 
@@ -73,7 +74,7 @@ describe('the toasts', () => {
     });
 
     expect(screen.getByRole('region', { name: 'الإشعارات' })).toBeInTheDocument();
-    expect(await screen.findByText('حُفظ')).toBeVisible();
+    expect(await findToast('حُفظ')).toBeVisible();
     act(() => {
       toast.dismiss();
     });

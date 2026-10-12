@@ -1,22 +1,13 @@
 import type { SessionSpaceLink } from '@masaha/shared/space-links';
 import type { SessionUser } from '@shared/session';
-
-/** One key per user, so two accounts on one device never land on each other's space. */
-function keyFor(userId: number): string {
-  return `masaha.lastSpace.${String(userId)}`;
-}
+import { storage, STORAGE_KEYS } from '@shared/storage';
 
 /**
- * Remembers the space the user opened last, for the landing, in the browser's `localStorage`.
- * Reaching it throws when the browser blocks storage, so it is reached here, inside the catch:
- * storage that is unavailable remembers nothing.
+ * Remembers the space the user opened last, for the landing. Storage that is unavailable remembers
+ * nothing, and the landing falls back to the oldest link.
  */
 export function rememberSpace(userId: number, spaceId: number): void {
-  try {
-    localStorage.setItem(keyFor(userId), String(spaceId));
-  } catch {
-    // Storage is blocked or full: the landing falls back to the oldest link.
-  }
+  storage.write(STORAGE_KEYS.lastSpace(userId), String(spaceId));
 }
 
 /**
@@ -24,11 +15,6 @@ export function rememberSpace(userId: number, spaceId: number): void {
  * the user no longer holds an active link there, or when storage is unavailable.
  */
 export function lastSpace(user: SessionUser): SessionSpaceLink | undefined {
-  let remembered: string | null;
-  try {
-    remembered = localStorage.getItem(keyFor(user.id));
-  } catch {
-    return undefined;
-  }
+  const remembered = storage.read(STORAGE_KEYS.lastSpace(user.id));
   return user.spaces.find(({ spaceId }) => String(spaceId) === remembered);
 }

@@ -2,7 +2,6 @@ export { otherLanguage } from './otherLanguage';
 export type { Platform } from './platform';
 export {
   getPreferences,
-  PREFERENCE_KEYS,
   preferencesLanguage,
   setLanguage,
   setTheme,

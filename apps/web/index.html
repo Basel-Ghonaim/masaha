@@ -3,10 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Shown until the app sets each page's title, in the fallback's language (lang="ar" above). -->
+    <title>مساحة</title>
     <script>
       // Resolves the theme, language and direction before first paint, so a reload never flashes
       // (docs/frontend/localisation.md#mechanism). The attributes on <html> above are the fallback
-      // when this script cannot run. The app's preferences store must write the same keys.
+      // when this script cannot run. It reads the keys shared/storage declares, which the app's
+      // preferences store writes.
       ((window, document) => {
         const LANGUAGES = ['ar', 'en'];
         const stored = (key, allowed) => {

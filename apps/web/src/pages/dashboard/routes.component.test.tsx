@@ -115,9 +115,12 @@ async function pagesIn(navigation: string) {
     : [];
 }
 
-/** The page's title, in the top bar. */
-async function topBarTitle() {
-  return within(await screen.findByRole('banner')).findByRole('heading', { level: 1 });
+/**
+ * The page's title `name`, in the top bar. A page chosen in the app loads lazily, and the bar shows
+ * the page before it until then, so the title is found by its name, never read at once.
+ */
+async function topBarTitle(name: string) {
+  return within(await screen.findByRole('banner')).findByRole('heading', { level: 1, name });
 }
 
 /** The heading named `name` in the main landmark, where a status state shows. */
@@ -147,7 +150,7 @@ describe("the dashboard's navigation", () => {
         name: 'Overview',
       }),
     ).toHaveAttribute('aria-current', 'page');
-    expect(await topBarTitle()).toHaveTextContent('Overview');
+    expect(await topBarTitle('Overview')).toBeInTheDocument();
   });
 
   it('lists reception’s four pages at its space, the front desk among them', async () => {
@@ -155,7 +158,7 @@ describe("the dashboard's navigation", () => {
     renderDashboard('/dashboard/spaces/7/desk');
 
     expect(await pagesIn('Space dashboard')).toEqual(RECEPTION_PAGES);
-    expect(await topBarTitle()).toHaveTextContent('Front desk');
+    expect(await topBarTitle('Front desk')).toBeInTheDocument();
   });
 
   it('lists the admin’s eight pages under the platform’s own header', async () => {
@@ -164,7 +167,7 @@ describe("the dashboard's navigation", () => {
 
     expect(await pagesIn('Platform admin')).toEqual(ADMIN_PAGES);
     expect(screen.getByText('Masaha')).toBeInTheDocument();
-    expect(await topBarTitle()).toHaveTextContent('Overview');
+    expect(await topBarTitle('Overview')).toBeInTheDocument();
   });
 
   it('shows the admin the lookups page: its title in the top bar, and the governorates', async () => {
@@ -178,7 +181,7 @@ describe("the dashboard's navigation", () => {
     );
     renderDashboard('/dashboard/admin/lookups');
 
-    expect(await topBarTitle()).toHaveTextContent('Lookups');
+    expect(await topBarTitle('Lookups')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Gaza City', level: 2 })).toBeInTheDocument();
   });
 
@@ -220,7 +223,7 @@ describe("the dashboard's guards", () => {
     asReception();
     renderDashboard('/dashboard/spaces/7/my-payments');
 
-    expect(await topBarTitle()).toHaveTextContent('My payments today');
+    expect(await topBarTitle('My payments today')).toBeInTheDocument();
   });
 
   it('refuses the owner reception’s payments today with the 403', async () => {
@@ -306,7 +309,7 @@ describe('/dashboard', () => {
       ],
     });
     const visit = renderDashboard('/dashboard/spaces/3/desk');
-    expect(await topBarTitle()).toHaveTextContent('Front desk');
+    expect(await topBarTitle('Front desk')).toBeInTheDocument();
     visit.dispose();
 
     const router = renderDashboard('/dashboard');
@@ -322,7 +325,7 @@ describe('entering a space', () => {
     asOwner();
     renderDashboard('/dashboard/spaces/7/customers');
 
-    await topBarTitle();
+    await topBarTitle('Customers');
     expect(window.localStorage.getItem('masaha.lastSpace.1')).toBe('7');
   });
 
@@ -369,7 +372,7 @@ describe('the dashboard on a phone', () => {
       within(await screen.findByRole('menu')).getByRole('menuitem', { name: /Nook/ }),
     );
 
-    expect(await topBarTitle()).toHaveTextContent('Front desk');
+    expect(await topBarTitle('Front desk')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
@@ -387,7 +390,7 @@ describe('the dashboard on a phone', () => {
     expect(drawer.getByRole('button', { name: 'العربية' })).toBeInTheDocument();
     await user.click(drawer.getByRole('link', { name: 'Customers' }));
 
-    expect(await topBarTitle()).toHaveTextContent('Customers');
+    expect(await topBarTitle('Customers')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
@@ -586,7 +589,7 @@ describe("the admin's spaces page", () => {
   it('shows the list under its title, each row with its menu, and the place field of the lookups', async () => {
     openSpaces('');
 
-    expect(await topBarTitle()).toHaveTextContent('Spaces');
+    expect(await topBarTitle('Spaces')).toBeInTheDocument();
     const table = await screen.findByRole('table', { name: 'Spaces' });
     expect(await within(table).findByText('Palm Hub')).toBeInTheDocument();
     await userEvent.click(within(table).getByRole('button', { name: heard('Actions: Palm Hub') }));

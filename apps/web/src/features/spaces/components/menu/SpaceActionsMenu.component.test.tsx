@@ -15,6 +15,7 @@ import {
   restoreTransport,
 } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
+import { findToast } from '../../../../test/findToast';
 import { SpaceActionsHold } from '../hold/SpaceActionsHold';
 import { SpaceActionsMenu } from './SpaceActionsMenu';
 
@@ -47,9 +48,9 @@ function renderMenus(
   return { writes };
 }
 
-/** The toast whose title reads `text`, as a reader hears it. */
+/** The toast whose title reads `text`, as a reader hears it, once it shows. */
 const toastTitled = (text: string) =>
-  screen.findByText(
+  findToast(
     (_content, element) =>
       element?.hasAttribute('data-title') === true && element.textContent === text,
   );

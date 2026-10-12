@@ -1,4 +1,5 @@
 import type { Platform } from '@shared/preferences';
+import { blockLocalStorage, stubLocalStorage } from './fakeStorage';
 
 type Browser = {
   /** What storage holds when the page loads. */
@@ -10,7 +11,11 @@ type Browser = {
   storageThrows?: boolean;
 };
 
-/** A stand-in browser for the preferences store, for the unit lane, which runs in Node. */
+/**
+ * A stand-in browser for the preferences store, for the unit lane, which runs in Node. Its storage
+ * is the global `localStorage`, stubbed as `fakeStorage` does, since the store reaches it through
+ * shared/storage: restore it with `vi.unstubAllGlobals()`.
+ */
 export function fakePlatform({
   stored = {},
   lang = '',
@@ -18,27 +23,16 @@ export function fakePlatform({
   storageThrows = false,
 }: Browser = {}) {
   const storage = new Map(Object.entries(stored));
+  if (storageThrows) {
+    blockLocalStorage();
+  } else {
+    stubLocalStorage(storage);
+  }
   const root: Platform['root'] = { lang, dir: '', dataset: {} };
   const deviceListeners = new Set<() => void>();
   const storageListeners = new Set<(event: { key: string | null }) => void>();
   const device = { dark: prefersDark };
-  const reach = () => {
-    if (storageThrows) {
-      throw new Error('SecurityError');
-    }
-    return storage;
-  };
-
   const platform: Platform = {
-    storage: {
-      getItem: (key) => reach().get(key) ?? null,
-      setItem: (key, value) => {
-        reach().set(key, value);
-      },
-      removeItem: (key) => {
-        reach().delete(key);
-      },
-    },
     root,
     prefersDark: {
       get matches() {

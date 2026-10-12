@@ -1,6 +1,6 @@
 # Testing
 
-> **Status:** Active · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
 > **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof and what makes a test a proof, not its style.
 
 ## 1. The assignment rule
@@ -46,7 +46,7 @@ A feature's logic lives in its hooks, and its components only render ([frontend 
 | `hooks/` | Component, with `renderHook`, through the same fake adapter | The hook's own logic: the session held as a sign-in, even when the page unmounts first, the failure's view, what a form adds to its call, the pending state. Not the path or the body: the repository's test owns them |
 | `components/` | Component | What rendering decides: each state shown, the labels, the accessible names and descriptions, the focus, what is disabled |
 
-**The seams are the platform's** (rule 3): a test sets the fake adapter on the one client, and a cookie, such as the session hint, through the browser's `document`. No hook or service takes a parameter only a test passes (rule 2), and no module is replaced with `vi.mock`.
+**The seams are the platform's** (rule 3): a test sets the fake adapter on the one client, a cookie, such as the session hint, through the browser's `document`, and the browser's storage through the global `localStorage` that `shared/storage` reaches (`src/test/fakeStorage.ts`, which can also block it). No hook or service takes a parameter only a test passes (rule 2), and no module is replaced with `vi.mock`.
 
 ## 4. What must always be tested
 
