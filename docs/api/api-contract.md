@@ -46,6 +46,8 @@
 | `server` | 500 | Unexpected error |
 | `service_unavailable` | 503 | A dependency is unavailable or not configured: the database, or Google sign-in |
 
+In code, the statuses are `ERROR_STATUSES` (`@masaha/shared/core`), which both apps read.
+
 **Field-error codes:** `required`, `too_short`, `too_long`, `invalid_format`, `out_of_range`, `not_unique`, `invalid_choice`.
 
 ## 4. Pagination

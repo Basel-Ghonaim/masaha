@@ -1,19 +1,25 @@
-import type { DomainErrorCode, ErrorType, FieldErrors } from '@masaha/shared/core';
+import {
+  ERROR_STATUSES,
+  type DomainErrorCode,
+  type ErrorType,
+  type FieldErrors,
+} from '@masaha/shared/core';
 
-// docs/api/api-contract.md §3. `message` is English for developers and logs, never shown to users.
-const ERROR_DEFINITIONS = {
-  bad_request: { status: 400, message: 'Malformed request' },
-  unauthorized: { status: 401, message: 'Authentication required' },
-  forbidden: { status: 403, message: 'Not permitted' },
-  not_found: { status: 404, message: 'Not found' },
-  conflict: { status: 409, message: 'Conflict' },
-  payload_too_large: { status: 413, message: 'Payload too large' },
-  unsupported_media_type: { status: 415, message: 'Unsupported media type' },
-  validation: { status: 422, message: 'Validation failed' },
-  rate_limit: { status: 429, message: 'Too many requests' },
-  server: { status: 500, message: 'Internal server error' },
-  service_unavailable: { status: 503, message: 'Service unavailable' },
-} as const satisfies Record<ErrorType, { status: number; message: string }>;
+// Each type's status is the shared table's (docs/api/api-contract.md §3). `message` is English for
+// developers and logs, never shown to users.
+const ERROR_MESSAGES = {
+  bad_request: 'Malformed request',
+  unauthorized: 'Authentication required',
+  forbidden: 'Not permitted',
+  not_found: 'Not found',
+  conflict: 'Conflict',
+  payload_too_large: 'Payload too large',
+  unsupported_media_type: 'Unsupported media type',
+  validation: 'Validation failed',
+  rate_limit: 'Too many requests',
+  server: 'Internal server error',
+  service_unavailable: 'Service unavailable',
+} as const satisfies Record<ErrorType, string>;
 
 /** What a 429 tells the client about the limit it reached, in its headers. */
 export interface RateLimitState {
@@ -36,10 +42,9 @@ export class AppError extends Error {
   rateLimitState: RateLimitState | undefined;
 
   constructor(type: ErrorType, code?: DomainErrorCode, message?: string, errors?: FieldErrors) {
-    const definition = ERROR_DEFINITIONS[type];
-    super(message ?? definition.message);
+    super(message ?? ERROR_MESSAGES[type]);
     this.type = type;
-    this.status = definition.status;
+    this.status = ERROR_STATUSES[type];
     this.code = code;
     this.errors = errors;
   }
@@ -90,12 +95,4 @@ export class AppError extends Error {
   static serviceUnavailable(code?: DomainErrorCode, message?: string) {
     return new AppError('service_unavailable', code, message);
   }
-}
-
-/** The error type for an HTTP status, when the contract defines one. */
-export function errorTypeForStatus(status: number): ErrorType | undefined {
-  const entry = Object.entries(ERROR_DEFINITIONS).find(
-    ([, definition]) => definition.status === status,
-  );
-  return entry?.[0] as ErrorType | undefined;
 }

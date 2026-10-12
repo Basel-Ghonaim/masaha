@@ -1,7 +1,7 @@
-import type { ErrorEnvelope } from '@masaha/shared/core';
+import { errorTypeOfStatus, type ErrorEnvelope } from '@masaha/shared/core';
 import type { ErrorRequestHandler, RequestHandler, Response } from 'express';
 
-import { AppError, errorTypeForStatus, type RateLimitState } from './appError.ts';
+import { AppError, type RateLimitState } from './appError.ts';
 
 /** Registered after every route: anything unmatched is a `not_found`. */
 export const notFoundHandler: RequestHandler = (req) => {
@@ -50,7 +50,7 @@ function toAppError(error: unknown): AppError {
   // Express's own middleware (the JSON parser) throws http-errors: malformed JSON (400), a body
   // over the limit (413), an unsupported charset or encoding (415). Their status is safe to show.
   if (isClientHttpError(error)) {
-    const type = errorTypeForStatus(error.status);
+    const type = errorTypeOfStatus(error.status);
     if (type) return new AppError(type);
   }
 

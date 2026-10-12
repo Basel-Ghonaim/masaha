@@ -17,6 +17,26 @@ export const ERROR_TYPES = [
 
 export type ErrorType = (typeof ERROR_TYPES)[number];
 
+/** The HTTP status of each error type (docs/api/api-contract.md §3), the one table both apps read. */
+export const ERROR_STATUSES = {
+  bad_request: 400,
+  unauthorized: 401,
+  forbidden: 403,
+  not_found: 404,
+  conflict: 409,
+  payload_too_large: 413,
+  unsupported_media_type: 415,
+  validation: 422,
+  rate_limit: 429,
+  server: 500,
+  service_unavailable: 503,
+} as const satisfies Record<ErrorType, number>;
+
+/** The error type of an HTTP status, when the contract gives one: the table read backwards. */
+export function errorTypeOfStatus(status: number): ErrorType | undefined {
+  return ERROR_TYPES.find((type) => ERROR_STATUSES[type] === status);
+}
+
 export const FIELD_ERROR_CODES = [
   'required',
   'too_short',
