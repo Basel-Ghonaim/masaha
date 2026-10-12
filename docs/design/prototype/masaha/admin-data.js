@@ -103,8 +103,14 @@ window.ADMIN = (function () {
     ['2026-09-28', '16:05', B, 'space_hidden', 'Palm Hub', T('مغلقة نهائيًا حسب اتصال هاتفي', 'Permanently closed, per phone call')],
     ['2026-09-27', '12:30', B, 'user_suspended', T('خالد النجار', 'Khaled Al-Najjar'), T('بلاغات مسيئة متكررة · انتهت الجلسات', 'Repeated abusive reports · sessions ended')],
     ['2026-09-25', '09:14', B, 'lookup_changed', T('الشجاعية', 'Ash-Shuja’iyya'), T('مخفية ← كانت ظاهرة', 'Hidden ← was shown')],
+    // DI-25: the acts 2b's screens perform — delete, restore, unlink, restore an account — are logged too.
+    ['2026-09-22', '15:40', B, 'owner_unlinked', T('ندى سكيك ← ZM Hub', 'Nada Skaik → ZM Hub'), T('أصبحت المساحة غير موثّقة · لم تعد مالكة', 'The space became unverified · no longer an owner')],
+    ['2026-09-12', '10:05', B, 'space_restored', 'White Space', T('حُذفت خطأً ثم استُرجعت', 'Deleted by mistake, then restored')],
+    ['2026-09-12', '10:02', B, 'space_deleted', 'White Space', T('حذف بالخطأ', 'Deleted by mistake')],
+    ['2026-09-05', '12:00', B, 'user_unsuspended', T('إياد الزعانين', 'Eyad Al-Zaanin'), T('بعد مراجعة البلاغات', 'After reviewing the reports')],
+    ['2026-08-14', '13:10', B, 'space_deleted', 'Olive Desk', T('أغلقت المساحة أبوابها', 'The space closed its doors')],
     ['2026-09-20', '11:50', B, 'owner_linked', T('يوسف ← Number One Hub', 'Yousef → Number One Hub'), T('أصبحت المساحة موثّقة', 'The space became verified')],
-    ['2026-09-18', '14:22', B, 'role_changed', T('يوسف', 'Yousef'), T('مستخدم ← مالك', 'User → Owner')],
+    ['2026-09-20', '11:50', B, 'role_changed', T('يوسف', 'Yousef'), T('مستخدم ← مالك، بربطه بمساحة', 'User → Owner, by linking a space')],
     ['2026-09-10', '08:40', B, 'settings_changed', T('عتبة حداثة الأسعار', 'Price freshness threshold'), T('30 يومًا (كانت 45)', '30 days (was 45)')],
     ['2026-09-03', '17:15', B, 'lookup_changed', T('إنترنت', 'Internet'), T('الاسم بالإنجليزية: Internet (كان Wi-Fi)', 'English name: Internet (was Wi-Fi)')]
   ];
@@ -113,9 +119,10 @@ window.ADMIN = (function () {
     ['lookup_changed', T('تل الهوا', 'Tal Al-Hawa'), T('ظاهرة ← كانت مخفية', 'Shown ← was hidden')],
     ['settings_changed', T('حدّ قِدَم الأسعار', 'Price staleness threshold'), T('14 يومًا ← 21 يومًا', '14 days ← 21 days')],
     ['space_hidden', 'White Space', T('بطلب من المالك', 'At the owner’s request')],
-    ['role_changed', T('هالة أبو زيد', 'Hala Abu Zaid'), T('مالك ← مستخدم', 'Owner ← user')],
+    ['role_changed', T('هالة أبو زيد', 'Hala Abu Zaid'), T('أدمن ← مستخدم', 'Admin → User')],
     ['temp_password', T('رامي حمودة', 'Rami Hammouda'), T('يُطلب التغيير عند الدخول', 'Change forced at sign-in')],
-    ['owner_linked', T('ندى سكيك ← ZM Hub', 'Nada Skaik → ZM Hub'), T('أصبحت المساحة موثّقة', 'The space became verified')],
+    // DI-29: a pair that stays linked — ZM Hub is unverified, so its link would contradict the list.
+    ['owner_linked', T('أحمد ← Focus Hub', 'Ahmad → Focus Hub'), T('أصبحت المساحة موثّقة', 'The space became verified')],
     ['user_suspended', T('مازن الزعانين', 'Mazen Al-Zaanin'), T('بلاغات مسيئة · انتهت الجلسات', 'Abusive reports · sessions ended')]
   ];
   for (let i = 0; audit.length < 240; i++) {
@@ -123,7 +130,7 @@ window.ADMIN = (function () {
     audit.push([aday(-Math.floor(i / 4) - 2), String(8 + (i % 9)).padStart(2, '0') + ':' + String((i * 13) % 60).padStart(2, '0'), B, action, target, note]);
   }
 
-  const ACTION = { space_hidden: T('إخفاء مساحة', 'Space hidden'), owner_linked: T('ربط مالك', 'Owner linked'), role_changed: T('تغيير دور', 'Role changed'), user_suspended: T('إيقاف مستخدم', 'User suspended'), temp_password: T('كلمة مرور مؤقتة', 'Temporary password'), lookup_changed: T('تعديل قائمة', 'Lookup changed'), settings_changed: T('تعديل الإعدادات', 'Settings changed') };
+  const ACTION = { space_hidden: T('إخفاء مساحة', 'Space hidden'), space_deleted: T('حذف مساحة', 'Space deleted'), space_restored: T('استرجاع مساحة', 'Space restored'), owner_linked: T('ربط مالك', 'Owner linked'), owner_unlinked: T('فك ربط مالك', 'Owner unlinked'), role_changed: T('تغيير دور', 'Role changed'), user_suspended: T('إيقاف مستخدم', 'User suspended'), user_unsuspended: T('استرجاع حساب', 'Account restored'), temp_password: T('كلمة مرور مؤقتة', 'Temporary password'), lookup_changed: T('تعديل قائمة', 'Lookup changed'), settings_changed: T('تعديل الإعدادات', 'Settings changed') };
   const fmt = (iso, y) => new Date(iso + 'T12:00:00').toLocaleDateString(T('ar-EG', 'en-GB'), { day: 'numeric', month: 'short', ...(y ? { year: 'numeric' } : {}), numberingSystem: 'latn' });
   // The admin's own catalogue holds every area; the public one only those its sample spaces use.
   const areaName = (s) => { for (const g of lookups.govs) { const a = g.areas.find((x) => x.id === s.area); if (a) return T(a.ar, a.en); } return T('الشيخ رضوان', 'Sheikh Radwan'); };
