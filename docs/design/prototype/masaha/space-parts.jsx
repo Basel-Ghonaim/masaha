@@ -246,28 +246,39 @@ function HoursSection({ space }) {
   );
 }
 
-function PriceGrid({ prices, student }) {
-  const cells = SM.periods.filter((p) => prices[p.id] != null);
+// U9 (PU-011): a price has an audience, an optional shift and an optional label, for any of the four
+// periods (data model › Prices). The page shows one grid per audience — «الأسعار», then «للطلاب» —
+// each of the periods that audience publishes; a label stands in for its period's name.
+const PERIOD_ORDER = ['hour', 'day', 'week', 'month'];
+function priceRowsOf(space) {
+  if (space.priceRows) return space.priceRows;
+  const rows = PERIOD_ORDER.filter((k) => space.prices[k] != null).map((k) => ({ period: k, audience: 'general', amount: space.prices[k] }));
+  if (space.shiftPrices) Object.entries(space.shiftPrices).forEach(([shift, ps]) => PERIOD_ORDER.forEach((k) => ps[k] != null && rows.push({ period: k, audience: 'general', shift, amount: ps[k] })));
+  return rows;
+}
+function PriceGrid({ rows }) {
   return (
-    <div className="flex flex-col gap-3">
-      <dl className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        {cells.map((p) => (
-          <div key={p.id} className="flex flex-col gap-1 rounded-lg bg-muted p-3">
-            <dt className="text-caption text-muted-foreground">{p.short}</dt>
-            <dd className="text-heading-3"><Money amount={prices[p.id]} /></dd>
-          </div>
-        ))}
-      </dl>
-      {student && (
-        <dl className="flex flex-col gap-2">
-          <dt className="text-label">{tr("للطلاب", "For students")}</dt>
-          <dd className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            <div className="flex flex-col gap-1 rounded-lg bg-muted p-3">
-              <span className="text-caption text-muted-foreground">{tr("شهر", "Month")}</span>
-              <span className="text-heading-3"><Money amount={student} /></span>
-            </div>
-          </dd>
-        </dl>
+    <dl className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      {rows.map((r, k) => (
+        <div key={k} className="flex flex-col gap-1 rounded-lg bg-muted p-3">
+          <dt className="text-caption text-muted-foreground">{r.label ? tr(r.label[0], r.label[1] || r.label[0]) : SM.periods.find((p) => p.id === r.period).short}</dt>
+          <dd className="text-heading-3"><Money amount={r.amount} /></dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+function AudienceGrids({ rows }) {
+  const general = rows.filter((r) => r.audience === 'general');
+  const student = rows.filter((r) => r.audience === 'student');
+  return (
+    <div className="flex flex-col gap-4">
+      {general.length > 0 && <PriceGrid rows={general} />}
+      {student.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-label">{tr("للطلاب", "For students")}</h3>
+          <PriceGrid rows={student} />
+        </div>
       )}
     </div>
   );
@@ -281,6 +292,7 @@ function PricesSection({ space }) {
       </Section>
     );
   }
+  const rows = priceRowsOf(space);
   // U4 and PU-020: «للعرض فقط · الدفع في المساحة» once on the page, here, beside the prices' age.
   const meta = <Freshness space={space} group="prices" lead={tr("للعرض فقط · الدفع في المساحة", "Display only · Pay at the space")} />;
   return (
@@ -291,21 +303,22 @@ function PricesSection({ space }) {
           <SAlertDescription>{tr("تأكّد من السعر مع المساحة قبل الذهاب.", "Check the price with the space before you go.")}</SAlertDescription>
         </SAlert>
       )}
-      {space.shifts && space.shiftPrices ? (
+      {space.shifts && rows.some((r) => r.shift) ? (
+        // A real tab set: each shift's prices are a panel of their own (PU-013 keeps `Tabs` for this).
         <STabs defaultValue="full">
           <STabsList aria-label={tr("الأسعار حسب الدوام", "Prices by shift")}>
             <STabsTrigger value="full">{tr("اليوم الكامل", "Full day")}</STabsTrigger>
             {space.shifts.map((s) => <STabsTrigger key={s.id} value={s.id}>{s.long}</STabsTrigger>)}
           </STabsList>
-          <STabsContent value="full" className="pt-3"><PriceGrid prices={space.prices} student={space.studentMonth} /></STabsContent>
+          <STabsContent value="full" className="pt-3"><AudienceGrids rows={rows.filter((r) => !r.shift)} /></STabsContent>
           {space.shifts.map((s) => (
             <STabsContent key={s.id} value={s.id} className="flex flex-col gap-3 pt-3">
               <p className="text-body-sm text-muted-foreground">{s.long} <span dir="ltr">{s.range[0]}–{s.range[1]}</span></p>
-              <PriceGrid prices={space.shiftPrices[s.id]} />
+              <AudienceGrids rows={rows.filter((r) => r.shift === s.id)} />
             </STabsContent>
           ))}
         </STabs>
-      ) : <PriceGrid prices={space.prices} student={space.studentMonth} />}
+      ) : <AudienceGrids rows={rows} />}
     </Section>
   );
 }

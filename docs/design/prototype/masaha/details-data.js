@@ -2,6 +2,7 @@
   const M = window.MASAHA;
   const d = {
     focus: {
+      priceRows: [{ period: 'hour', audience: 'general', amount: 3 }, { period: 'day', audience: 'general', amount: 15 }, { period: 'week', audience: 'general', amount: 90 }, { period: 'week', audience: 'general', label: ['أسبوع الامتحانات', 'Exam week'], amount: 70 }, { period: 'month', audience: 'general', amount: 300 }],
       fresh: { profile: 2, hours: 7, amenities: 20, contacts: 20 },
       about: tr("مساحة عمل هادئة للعمل الفردي والدراسة، فيها طاولات مشتركة وزاوية للمكالمات.", "A quiet space for solo work and study, with shared desks and a corner for calls."),
       address: tr("النصر، شارع النصر، عمارة 12، الطابق الثالث", "An-Nasr, An-Nasr Street, Building 12, 3rd floor"), landmark: tr("قرب مفترق العيون", "Near Al-Oyoun junction"),
@@ -22,6 +23,7 @@
       announcements: []
     },
     numberone: {
+      priceRows: [{ period: 'hour', audience: 'general', amount: 3 }, { period: 'day', audience: 'general', amount: 15 }, { period: 'week', audience: 'general', amount: 90 }, { period: 'month', audience: 'general', amount: 300 }, { period: 'day', audience: 'student', amount: 12 }, { period: 'month', audience: 'student', amount: 250 }],
       fresh: { profile: 9, hours: 9, amenities: 30, contacts: 65 },
       about: tr("مساحة للطلاب والعاملين عن بعد، فيها أسعار شهرية مخفّضة للطلاب ودورات تقنية قصيرة.", "A space for students and remote workers, with reduced monthly student prices and short tech courses."),
       address: tr("النصر، شارع العيون، الطابق الثاني", "An-Nasr, Al-Oyoun Street, 2nd floor"), landmark: tr("بجانب مكتبة النصر", "Next to An-Nasr Library"),
@@ -51,6 +53,8 @@
       amenities: ['internet', 'power', 'solar', 'meeting', 'rental'], contacts: [{ type: 'whatsapp', value: '+970 59 000 0007' }, { type: 'email', value: 'white@example.com' }], announcements: []
     }
   };
+  // U9: `priceRows` where a space publishes more than its four general prices; the others are read
+  // from `prices` and `shiftPrices`.
   M.spaces.forEach((s) => Object.assign(s, d[s.id]));
   M.allAmenities = [{ id: 'internet', name: tr("إنترنت", "Internet") }, { id: 'power', name: tr("كهرباء مستقرة", "Stable power") }].concat(M.amenities);
   M.channels = {
