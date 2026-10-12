@@ -322,11 +322,12 @@ model Space {
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  area          Area            @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  area          Area              @relation(fields: [areaId], references: [id], onDelete: Restrict)
   settings      SpaceSettings?
   occupancy     SpaceOccupancy?
   managers      SpaceManager[]
   amenities     SpaceAmenity[]
+  ownAmenities  SpaceOwnAmenity[]
   hours         SpaceHours[]
   shifts        SpaceShift[]
   prices        SpacePrice[]
@@ -425,6 +426,24 @@ model SpaceAmenity {
   @@id([spaceId, amenityId])
   @@index([amenityId])
   @@map("space_amenities")
+}
+
+/// An amenity the space offers beyond the platform's list, typed by it; part of the amenities fact
+/// group, saved with the links above, in its order. Nothing refers to one: it is written anew.
+model SpaceOwnAmenity {
+  id        Int      @id @default(autoincrement())
+  spaceId   Int      @map("space_id")
+  nameAr    String   @map("name_ar")
+  nameEn    String?  @map("name_en")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  // Its space_id prefix also serves the space's list.
+  @@unique([spaceId, nameAr])
+  @@map("space_own_amenities")
 }
 
 /// One opening range per day, in minutes after midnight (Asia/Gaza). Shifts sit inside it.

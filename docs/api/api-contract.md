@@ -293,8 +293,11 @@ AdminSpace = {
   hours: SpaceHours | null,         // null until first saved
   prices: Price[],
   amenityIds: number[],             // by id; retired amenities included
+  ownAmenities: OwnAmenity[],       // its own, beyond the platform's list, in order
   contacts: Contact[]
 }
+
+OwnAmenity = { nameAr: string, nameEn: string | null }   // typed by the space
 
 OpeningRange = { opensMinute: number, closesMinute: number }   // minutes after midnight, Asia/Gaza
 Shift = { id: number, nameAr: string, nameEn: string | null, startsMinute: number, endsMinute: number }
@@ -379,8 +382,10 @@ The endpoints on one space put its links on the request first, without refusing 
 - **Errors:** `validation` (422), with `invalid_choice` on `prices.<i>.shiftId` for a shift that is not one of the space's, as they are when the space's lock is taken; `forbidden` (403); `not_found` (404).
 
 #### `PUT /admin/spaces/:spaceId/amenities` · 🛡
-- **Body:** `{ amenityIds }`, at most 100 ids, a set: an id repeated is `not_unique` (`errors["amenityIds.<i>"]`).
-- **200:** `AdminSpace`, its amenities exactly these. An amenity added must be active; one the space already has stays, retired or not, until it is left out ([data-model › Conventions](../architecture/data-model.md#conventions)). Audited `space.amenitiesEdited` (`before` and `after`: `{ amenityIds }`, by id).
+- **Body:** `{ amenityIds, ownAmenities }`, the group whole, both required (`required`):
+  - `amenityIds`: the platform's amenities, at most 100 ids, a set: an id repeated is `not_unique` (`errors["amenityIds.<i>"]`);
+  - `ownAmenities`: the space's own, beyond the platform's list, at most 20, in the order they are shown in, each `{ nameAr, nameEn? }`, 1–60 characters each, as the profile's texts; an Arabic name repeated is `not_unique` (`errors["ownAmenities.<i>.nameAr"]`).
+- **200:** `AdminSpace`, its amenities exactly these, its own in their order. An amenity added must be active; one the space already has stays, retired or not, until it is left out ([data-model › Conventions](../architecture/data-model.md#conventions)). A new order of its own amenities is a change. Audited `space.amenitiesEdited` (`before` and `after`: `{ amenityIds, ownAmenities }`, the ids in order of id). Entries written before 2026-10-12 hold `{ amenityIds }` only.
 - **Errors:** `validation` (422), with `invalid_choice` on `amenityIds.<i>` for an amenity added that is retired or does not exist; `forbidden` (403); `not_found` (404).
 
 #### `PUT /admin/spaces/:spaceId/contacts` · 🛡

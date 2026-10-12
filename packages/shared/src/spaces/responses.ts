@@ -32,6 +32,12 @@ export interface Price {
   amountAgorot: number;
 }
 
+/** An amenity the space offers beyond the platform's list, typed by it. */
+export interface OwnAmenity {
+  nameAr: string;
+  nameEn: string | null;
+}
+
 /** A way to reach the space, its value in its type's one stored form. */
 export interface Contact {
   type: ContactType;
@@ -80,6 +86,8 @@ export interface AdminSpace {
   prices: Price[];
   /** The ids of its amenities, retired ones included. */
   amenityIds: number[];
+  /** Its own amenities, beyond the platform's list, in the order they are shown in. */
+  ownAmenities: OwnAmenity[];
   /** In the order they are shown in. */
   contacts: Contact[];
 }

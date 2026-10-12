@@ -21,7 +21,7 @@
 ## Responsibility boundary
 
 - **Owns** the `governorates`, `areas` and `amenities` tables, the order of each list, and the amenity icon keys ([`@masaha/shared/lookups`](../architecture/shared-package.md)).
-- **Leaves** a space's own amenities to `spaces`, and "publicly listed", which reads both flags of a space's area, to the [data model](../architecture/data-model.md#derived-values-computed-not-stored).
+- **Leaves** a space's amenities, its links to this list and its own amenities, to `spaces`, and "publicly listed", which reads both flags of a space's area, to the [data model](../architecture/data-model.md#derived-values-computed-not-stored).
 - **Leaves** the icons themselves to the design system, which draws each by its glyph's name and does not import the keys.
 
 ## How it composes the platform

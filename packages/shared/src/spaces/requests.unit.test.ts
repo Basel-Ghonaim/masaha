@@ -267,15 +267,18 @@ describe('updateSpacePricesSchema', () => {
 });
 
 describe('updateSpaceAmenitiesSchema', () => {
-  function amenityErrors(amenityIds: unknown[]) {
-    const body = { amenityIds };
+  /** The field errors of a body, or null when it passes. */
+  function bodyErrors(body: object) {
     const result = updateSpaceAmenitiesSchema.safeParse(body);
     return result.success ? null : toFieldErrors(result.error.issues, body);
   }
+  const amenityErrors = (amenityIds: unknown[]) => bodyErrors({ amenityIds, ownAmenities: [] });
+  const ownErrors = (ownAmenities: unknown[]) => bodyErrors({ amenityIds: [], ownAmenities });
 
   it('takes a set of amenity ids, none among them', () => {
-    expect(updateSpaceAmenitiesSchema.parse({ amenityIds: [3, 1] })).toEqual({
+    expect(updateSpaceAmenitiesSchema.parse({ amenityIds: [3, 1], ownAmenities: [] })).toEqual({
       amenityIds: [3, 1],
+      ownAmenities: [],
     });
     expect(amenityErrors([])).toBeNull();
   });
@@ -287,6 +290,54 @@ describe('updateSpaceAmenitiesSchema', () => {
   it('takes at most a hundred', () => {
     expect(amenityErrors(Array.from({ length: 101 }, (_, i) => i + 1))).toEqual({
       amenityIds: ['too_long'],
+    });
+  });
+
+  it('takes the space’s own amenities in their order, the English optional, both trimmed', () => {
+    expect(
+      updateSpaceAmenitiesSchema.parse({
+        amenityIds: [],
+        ownAmenities: [
+          { nameAr: ' طابعة ', nameEn: 'Printer' },
+          { nameAr: 'خزائن', nameEn: null },
+          { nameAr: 'مصلى' },
+        ],
+      }),
+    ).toEqual({
+      amenityIds: [],
+      ownAmenities: [
+        { nameAr: 'طابعة', nameEn: 'Printer' },
+        { nameAr: 'خزائن', nameEn: null },
+        { nameAr: 'مصلى' },
+      ],
+    });
+  });
+
+  it('requires the own amenities with the ids, so a body without them never empties them', () => {
+    expect(bodyErrors({ amenityIds: [] })).toEqual({ ownAmenities: ['required'] });
+  });
+
+  it('refuses an own amenity’s Arabic name repeated, at its repeat', () => {
+    expect(
+      ownErrors([{ nameAr: 'طابعة' }, { nameAr: 'خزائن' }, { nameAr: 'طابعة', nameEn: 'Printer' }]),
+    ).toEqual({ 'ownAmenities.2.nameAr': ['not_unique'] });
+  });
+
+  it('takes at most twenty own amenities, each name 1–60 characters of plain text', () => {
+    expect(
+      ownErrors(Array.from({ length: 21 }, (_, i) => ({ nameAr: `ميزة ${String(i)}` }))),
+    ).toEqual({ ownAmenities: ['too_long'] });
+    expect(ownErrors([{ nameAr: 'ا'.repeat(60), nameEn: 'a'.repeat(60) }])).toBeNull();
+    expect(
+      ownErrors([
+        { nameAr: 'ا'.repeat(61) },
+        { nameAr: '' },
+        { nameAr: 'طابعة', nameEn: 'Print\u202Eer' },
+      ]),
+    ).toEqual({
+      'ownAmenities.0.nameAr': ['too_long'],
+      'ownAmenities.1.nameAr': ['too_short'],
+      'ownAmenities.2.nameEn': ['invalid_format'],
     });
   });
 });

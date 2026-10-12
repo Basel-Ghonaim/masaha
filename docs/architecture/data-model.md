@@ -8,7 +8,7 @@
 - **IDs:** `Int @id @default(autoincrement())`. Public space URLs use a unique `slug`, never reused. Two tables are keyed by a natural string instead, because a row is only ever found by it: `Setting` (its key in the catalogue) and `RateLimit` (its counter's key).
 - **Naming:** models PascalCase, fields camelCase, mapped to snake_case tables (plural) and columns with `@map` / `@@map`.
 - **Timestamps:** `createdAt`, `updatedAt` on every table, as `timestamptz`. The exceptions are the append-only `AuditLog` and `Payment`, which have `createdAt` only; a payment's one change, its void, carries its own time. Calendar dates (a subscription's start and end) are `date`.
-- **Soft delete:** `deletedAt` on `Space` and `Announcement`, and `archivedAt` on `Customer` (named as the desk sees it); `suspendedAt` on `User` ([ADR 0007](decisions/0007-soft-delete.md)). Purely dependent rows (managers, settings, occupancy, hours, shifts, prices, contacts, amenity links, photos, favourites, tokens) cascade from their parent; history (customers, packages, subscriptions, check-ins, visits, announcements, data reports, audit log) restricts deletion.
+- **Soft delete:** `deletedAt` on `Space` and `Announcement`, and `archivedAt` on `Customer` (named as the desk sees it); `suspendedAt` on `User` ([ADR 0007](decisions/0007-soft-delete.md)). Purely dependent rows (managers, settings, occupancy, hours, shifts, prices, contacts, amenity links, own amenities, photos, favourites, tokens) cascade from their parent; history (customers, packages, subscriptions, check-ins, visits, announcements, data reports, audit log) restricts deletion.
 - **Bilingual content:** paired fields such as `nameAr` / `nameEn`, `descriptionAr` / `descriptionEn`, `addressAr` / `addressEn`. Arabic required, English optional. Two exceptions on a space: its **name** is English required, Arabic optional, because most spaces are known by an English name; its description and its landmark (`landmarkAr` / `landmarkEn`) are optional in both languages. Lookups (governorates, areas, amenities) require both.
 - **Areas are two-level:** governorate → area, covering the whole Gaza Strip. Each carries an admin-managed `isActive` flag: an area beyond reach is hidden and restored later without deleting anything. Amenities carry the same flag, so a retired amenity keeps its links.
 - **Prices:** every period (hour, day, week, month) is optional, so a missing period is a missing row. A price has an audience (general or student), an optional shift and an optional custom label (Arabic and English). Amounts are integers in agorot with a `currency` (`ILS`); display only in v1. Halls for rent and technical training are amenities, never prices.
@@ -48,6 +48,7 @@ Summaries only: the schema owns the fields.
 - **SpaceHours** — one row per day of the week: a closed flag, or one opening range.
 - **SpaceShift** — optional named shifts inside the opening range.
 - **SpacePrice** — optional price rows by period, audience, shift and label.
+- **SpaceOwnAmenity** — the space's own amenities, beyond the platform's list: short texts, Arabic required and English optional, in their order, an Arabic name once per space. Saved with the amenity links, as one fact group.
 - **SpaceContact** — the typed contact list.
 - **SpacePhoto** — ordered photos, by storage key.
 

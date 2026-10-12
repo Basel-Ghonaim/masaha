@@ -102,6 +102,7 @@ describe('POST /admin/spaces', () => {
       hours: null,
       prices: [],
       amenityIds: [],
+      ownAmenities: [],
       contacts: [],
     });
   });
