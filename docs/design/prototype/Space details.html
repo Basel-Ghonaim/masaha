@@ -23,7 +23,7 @@
 <script type="text/babel" src="masaha/map.jsx"></script>
 <script type="text/babel" src="masaha/space-parts.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Toaster, toast, Button, Card, CardHeader, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, EmptyState, Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Textarea, Skeleton, CircleCheckIcon, ChevronStartIcon, SearchXIcon } = window.MasahaDesignSystem;
+const { DirectionProvider, Toaster, toast, Button, Card, CardHeader, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Textarea, Skeleton, CircleCheckIcon, ChevronStartIcon, SearchXIcon } = window.MasahaDesignSystem;
 const M = window.MASAHA;
 
 const directoryHref = () => { try { return 'Directory.html' + (sessionStorage.getItem('masaha:dir-query') || ''); } catch (e) { return 'Directory.html'; } };
@@ -128,7 +128,7 @@ function SpaceDetailsScreen() {
   React.useEffect(() => { if (state === 'loading' && !pageParams.get('state')) setTimeout(() => setState('ready'), 900); }, []);
   const signedIn = pageParams.get('auth') === '1';
   const space = M.spaces.find((s) => s.id === (pageParams.get('id') || 'focus'));
-  if (space && pageParams.get('demo') === 'stale') Object.assign(space, { stale: true, updated: tr("قبل 40 يومًا", "40 days ago"), updatedDays: 40 });
+  if (space && pageParams.get('demo') === 'stale') Object.assign(space, { stale: true, updatedDays: 40 });
   const [fav, setFav] = React.useState(pageParams.get('fav') === '1');
   const [signIn, setSignIn] = React.useState(pageParams.get('dialog') === 'signin' ? 'fav' : false);
   const [report, setReport] = React.useState(pageParams.get('dialog') === 'report');
@@ -215,13 +215,13 @@ function SpaceDetailsScreen() {
                 {!space.photos && <span>{tr("لا توجد صور بعد", "No photos yet")}</span>}
               </div>
             </header>
+            {/* U4 (PU-009): the same relative age as every other fact on the page, from the profile's date,
+                and the notice's one action inside it. */}
             {!space.verified && (
-              <div className="flex flex-col gap-2">
-                <Alert variant="info">
-                  <AlertDescription>{tr("جمع فريق مساحة هذه المعلومات ولم تؤكدها إدارة المساحة بعد. آخر مراجعة: ", "The Masaha team collected this information; the space hasn’t confirmed it yet. Last reviewed ")}{space.lastReview}.</AlertDescription>
-                </Alert>
-                <Button variant="link" size="sm" className="self-start" onClick={() => setPlatform(true)}>{tr("هل تدير هذه المساحة؟ تواصل معنا", "Do you run this space? Contact us")}</Button>
-              </div>
+              <Alert variant="info">
+                <AlertDescription>{tr("جمع فريق مساحة هذه المعلومات ولم تؤكدها إدارة المساحة بعد · آخر تحديث للمعلومات ", "The Masaha team collected this information; the space hasn’t confirmed it yet · Information updated ")}{M.ago(space.fresh.profile)}</AlertDescription>
+                <AlertAction><Button variant="outline" size="sm" onClick={() => setPlatform(true)}>{tr("هل تدير هذه المساحة؟ تواصل معنا", "Do you run this space? Contact us")}</Button></AlertAction>
+              </Alert>
             )}
             <div className="lg:hidden"><StatusCard space={space} km={km} /></div>
           </div>

@@ -55,6 +55,7 @@ function Gallery({ space }) {
   );
 }
 
+// U4: the live status shows its state alone — it is derived now, so it is never dated (ADR 0008).
 function StatusLine({ space }) {
   if (!space.verified) {
     return (
@@ -69,8 +70,21 @@ function StatusLine({ space }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
       {badge}
-      <span className="text-caption text-muted-foreground">{tr("آخر تحديث ", "Updated ")}{space.closure ? space.closure.date : space.statusUpdated}</span>
+      <span className="text-caption text-muted-foreground">{tr("الحالة مباشرة الآن", "Live right now")}</span>
     </div>
+  );
+}
+
+// U4: each fact group says its own age, relative, and «قد يكون تغيّر» only once it is stale.
+const GROUP_UPDATED = () => ({ prices: tr("آخر تحديث للأسعار", "Prices updated"), hours: tr("آخر تحديث لساعات العمل", "Hours updated"), amenities: tr("آخر تحديث للمرافق", "Amenities updated"), contacts: tr("آخر تحديث للتواصل", "Contacts updated") });
+const factAge = (space, g) => (g === 'prices' ? space.updatedDays : space.fresh[g]);
+function Freshness({ space, group, lead }) {
+  const d = factAge(space, group);
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+      {lead}{lead && ' · '}{GROUP_UPDATED()[group]} {SM.ago(d)}
+      {SM.isStale(group, d) && <SBadge variant="warning">{tr("قد يكون تغيّر", "May have changed")}</SBadge>}
+    </span>
   );
 }
 
@@ -112,6 +126,7 @@ function StatusContactCard({ space, km }) {
           {km != null && <Distance km={km} />}
         </div>
         {space.contacts.length > 0 && <ContactList space={space} />}
+        {space.contacts.length > 0 && <p className="text-caption text-muted-foreground"><Freshness space={space} group="contacts" /></p>}
       </SCardContent>
     </SCard>
   );
@@ -137,7 +152,7 @@ const ContactList = ({ space }) => (
 );
 function ContactSection({ space }) {
   if (!space.contacts.length) return null;
-  return <Section id="contact" title={tr("التواصل", "Contact")}><ContactList space={space} /></Section>;
+  return <Section id="contact" title={tr("التواصل", "Contact")} meta={<Freshness space={space} group="contacts" />}><ContactList space={space} /></Section>;
 }
 
 function Section({ id, title, meta, children, action }) {
@@ -196,7 +211,7 @@ function HoursSection({ space }) {
   const canExpand = groups.length > 2;
   const rows = all ? SM.weekOrder.map(([k, name]) => ({ keys: [k], names: [name], range: space.hours[k] })) : groups;
   return (
-    <Section id="hours" title={tr("ساعات العمل", "Opening hours")} meta={tr(`آخر تحديث لساعات العمل ${space.hoursUpdated}`, `Hours updated ${space.hoursUpdated}`)}
+    <Section id="hours" title={tr("ساعات العمل", "Opening hours")} meta={<Freshness space={space} group="hours" />}
       action={canExpand && <SButton variant="link" size="sm" onClick={() => setAll(!all)} aria-expanded={all}>{all ? tr("عرض مختصر", "Show less") : tr("عرض كل الأيام", "Show all days")}</SButton>}>
       <SCard className="py-0">
         <STable>
@@ -266,13 +281,14 @@ function PricesSection({ space }) {
       </Section>
     );
   }
-  const meta = <>{tr("للعرض فقط · الدفع في المساحة · آخر تحديث ", "Display only · Pay at the space · Updated ")}{space.updated}</>;
+  // U4 and PU-020: «للعرض فقط · الدفع في المساحة» once on the page, here, beside the prices' age.
+  const meta = <Freshness space={space} group="prices" lead={tr("للعرض فقط · الدفع في المساحة", "Display only · Pay at the space")} />;
   return (
-    <Section id="prices" title={tr("الأسعار", "Prices")} meta={space.stale ? null : meta}>
+    <Section id="prices" title={tr("الأسعار", "Prices")} meta={space.stale ? tr("للعرض فقط · الدفع في المساحة", "Display only · Pay at the space") : meta}>
       {space.stale && (
         <SAlert variant="warning">
-          <SAlertTitle>{tr("قد تكون الأسعار تغيّرت — آخر تحديث ", "Prices may have changed — updated ")}{space.updated}</SAlertTitle>
-          <SAlertDescription>{tr("تأكّد من السعر مع المساحة قبل الذهاب. للعرض فقط · الدفع في المساحة.", "Check the price with the space before you go. Display only · Pay at the space.")}</SAlertDescription>
+          <SAlertTitle>{tr("قد تكون الأسعار تغيّرت — آخر تحديث ", "Prices may have changed — updated ")}{SM.ago(space.updatedDays)}</SAlertTitle>
+          <SAlertDescription>{tr("تأكّد من السعر مع المساحة قبل الذهاب.", "Check the price with the space before you go.")}</SAlertDescription>
         </SAlert>
       )}
       {space.shifts && space.shiftPrices ? (
@@ -298,7 +314,7 @@ function AmenitiesSection({ space }) {
   const list = SM.allAmenities.filter((a) => space.amenities.includes(a.id));
   if (!list.length) return null;
   return (
-    <Section id="amenities" title={tr("المرافق", "Amenities")}>
+    <Section id="amenities" title={tr("المرافق", "Amenities")} meta={<Freshness space={space} group="amenities" />}>
       <ul className="flex flex-wrap gap-2">
         {list.map((a) => (
           <li key={a.id} className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-body-sm">
