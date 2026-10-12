@@ -1,22 +1,23 @@
 import { api, createQueryClient } from '@shared/api';
 import { Toaster, toast } from '@shared/design-system';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { act, render, renderHook, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { deferred } from '../../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
+import { findToast } from '../../../../test/findToast';
 import { useSetSpaceHidden } from './useSetSpaceHidden';
 
 type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
 
 const PALM = { spaceId: 9, name: { text: 'Palm Hub' } };
 
-/** The toast whose title reads `text`, as a reader hears it. */
+/** The toast whose title reads `text`, as a reader hears it, once it shows. */
 const toastTitled = (text: string) =>
-  screen.findByText(
+  findToast(
     (_content, element) =>
       element?.hasAttribute('data-title') === true && element.textContent === text,
   );

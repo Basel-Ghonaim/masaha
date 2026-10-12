@@ -9,6 +9,7 @@ import { aSession, deferred } from '../../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { startPreferences } from '../../../../test/startPreferences';
+import { findToast } from '../../../../test/findToast';
 import { useGoogleSignIn } from './useGoogleSignIn';
 
 const REQUEST = { idToken: 'google-id-token', language: 'en' as const };
@@ -94,7 +95,7 @@ describe('useGoogleSignIn', () => {
 
     await act(() => result.current.mutateAsync(REQUEST));
 
-    expect(await screen.findByText('We linked your Google account to your account')).toBeVisible();
+    expect(await findToast('We linked your Google account to your account')).toBeVisible();
     expect(screen.getByText(/password was removed/)).toBeVisible();
   });
 
@@ -121,6 +122,6 @@ describe('useGoogleSignIn', () => {
 
     await act(() => result.current.mutateAsync(REQUEST));
 
-    expect(await screen.findByText('ربطنا حساب Google بحسابك')).toBeVisible();
+    expect(await findToast('ربطنا حساب Google بحسابك')).toBeVisible();
   });
 });

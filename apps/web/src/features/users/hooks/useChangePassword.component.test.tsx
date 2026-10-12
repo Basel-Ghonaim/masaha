@@ -1,13 +1,14 @@
 import { Toaster, toast } from '@shared/design-system';
 import { establishSession, getSession } from '@shared/session';
 import { useQueryClient } from '@tanstack/react-query';
-import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../test/fakeAdapter';
 import { aSession, deferred } from '../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
 import { queryWrapper } from '../../../test/queryWrapper';
 import { startPreferences } from '../../../test/startPreferences';
+import { findToast } from '../../../test/findToast';
 import { useChangePassword } from './useChangePassword';
 
 const REQUEST = { password: 'mine2026x' };
@@ -35,7 +36,7 @@ describe('useChangePassword', () => {
 
     await act(() => result.current.mutateAsync(REQUEST));
 
-    expect(await screen.findByText('Your new password is saved')).toBeVisible();
+    expect(await findToast('Your new password is saved')).toBeVisible();
   });
 
   it('goes on with the renewed token and no change pending once the change succeeds', async () => {
