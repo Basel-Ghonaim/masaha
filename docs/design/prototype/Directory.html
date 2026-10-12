@@ -22,7 +22,7 @@
 <script type="text/babel" src="masaha/location.jsx"></script>
 <script type="text/babel" src="masaha/map.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Input, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, ToggleGroup, ToggleGroupItem, Switch, Tabs, TabsList, TabsTrigger, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, SheetClose, Skeleton, Combobox, ComboboxTrigger, ComboboxContent, ComboboxGroup, ComboboxItem, SearchIcon, SearchXIcon, XIcon } = window.MasahaDesignSystem;
+const { DirectionProvider, Input, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, ToggleGroup, ToggleGroupItem, Switch, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, SheetClose, Skeleton, Combobox, ComboboxTrigger, ComboboxContent, ComboboxGroup, ComboboxItem, SearchIcon, SearchXIcon, XIcon } = window.MasahaDesignSystem;
 const M = window.MASAHA;
 
 const list = (k) => (pageParams.get(k) || '').split(',').filter(Boolean);
@@ -169,6 +169,27 @@ function NoResults({ onClear }) {
   );
 }
 
+// U6: on a phone the selected space is a small bottom sheet, not a card over half the map. It is
+// not modal: the map keeps panning behind it, and tapping another pin selects that one.
+function SelectedSheet({ item, onClose }) {
+  const { s, km } = item;
+  return (
+    <Sheet open modal={false} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="bottom" closeLabel={tr("إغلاق", "Close")} onInteractOutside={(e) => e.preventDefault()} onOpenAutoFocus={(e) => e.preventDefault()}>
+        <SheetHeader>
+          <SheetTitle><SpaceName space={s} /></SheetTitle>
+          <SheetDescription>{areaLine(s)}</SheetDescription>
+        </SheetHeader>
+        <SheetBody className="flex flex-col gap-2 pb-2">
+          <LiveStatus space={s} />
+          <SpaceMeta space={s} km={km} />
+        </SheetBody>
+        <SheetFooter><Button className="w-full" asChild><a href={spaceHref(s)}>{tr("عرض التفاصيل", "View details")}</a></Button></SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function CompactSpaceCard({ item, onClose }) {
   const { s, km } = item;
   return (
@@ -190,6 +211,7 @@ function CompactSpaceCard({ item, onClose }) {
 function DirectoryScreen() {
   const [theme, setTheme] = useTheme();
   const isDesktop = useIsDesktop();
+  const isTablet = useIsTablet();
   const near = useNearMe();
   const [state, setState] = React.useState(pageParams.get('state') || 'ready');
   const [f, setF] = React.useState(initialFilters);
@@ -228,6 +250,7 @@ function DirectoryScreen() {
   const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1200); };
   const ready = state === 'ready';
   const picking = near.loc.status === 'picking';
+  const phoneSheet = view === 'map' && !picking && !!selected && !isTablet;
 
     return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
@@ -237,16 +260,18 @@ function DirectoryScreen() {
           <div className="flex flex-col gap-1">
             <h1 className="text-heading-1">{tr("مساحات العمل", "Workspaces")}</h1>
           </div>
-          <Tabs value={view} onValueChange={changeView}>
-            <TabsList aria-label={tr("طريقة العرض", "View")}>
-              <TabsTrigger value="list">{tr("قائمة", "List")}</TabsTrigger>
-              <TabsTrigger value="map">{tr("خريطة", "Map")}</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {/* PU-013: two pressed states of one control, not a tab list with no panels. */}
+          <Field label={<span className="sr-only">{tr("طريقة العرض", "View")}</span>}>
+            <ToggleGroup type="single" value={view} onValueChange={(v) => v && changeView(v)}>
+              <ToggleGroupItem value="list">{tr("قائمة", "List")}</ToggleGroupItem>
+              <ToggleGroupItem value="map">{tr("خريطة", "Map")}</ToggleGroupItem>
+            </ToggleGroup>
+          </Field>
         </div>
 
-        <div className="flex flex-col gap-2 md:flex-row md:items-center">
-          <Input role="searchbox" aria-label={tr("ابحث عن مساحة", "Search for a space")} placeholder={tr("اسم المساحة أو المنطقة", "Space name or area")} startIcon={<SearchIcon />} className="md:flex-1" value={f.q} onChange={(e) => set({ q: e.target.value })} />
+        {/* On the map a phone has no sort, so the search and «الفلاتر» share one row, and the map leads. */}
+        <div className={'flex gap-2 md:flex-row md:items-center ' + (view === 'map' ? 'flex-row items-center' : 'flex-col')}>
+          <Input role="searchbox" aria-label={tr("ابحث عن مساحة", "Search for a space")} placeholder={tr("اسم المساحة أو المنطقة", "Space name or area")} startIcon={<SearchIcon />} className={view === 'map' ? 'min-w-0 flex-1' : 'md:flex-1'} value={f.q} onChange={(e) => set({ q: e.target.value })} />
           <div className="flex items-center gap-2">
             {/* P5: the one filter sheet. From 1024 the list view's filters are in the sidebar, so the
                             toolbar draws none; the map has no sidebar, so there the sheet stays at every width. */}
@@ -312,8 +337,9 @@ function DirectoryScreen() {
                 userSource={near.loc.source}
                 picking={picking}
                 onPick={(c) => { near.placePin(c); setSort('distance'); }}
-                onLocate={near.request}
-                locating={near.loc.status === 'locating'}
+                legend={<MapLegend />}
+                focus={phoneSheet ? selected.s : null}
+                focusAt={{ x: 0.5, y: 0.3 }}
                 label={tr("خريطة المساحات", "Map of spaces")}
                 className="map-canvas">
                 {picking ? (
@@ -324,11 +350,11 @@ function DirectoryScreen() {
                       <CardAction><Button variant="ghost" size="sm" onClick={near.clear}>{tr("إلغاء", "Cancel")}</Button></CardAction>
                     </CardHeader>
                   </Card>
-                ) : selected ? <CompactSpaceCard item={selected} onClose={() => setSelectedId(null)} />
+                ) : selected && isTablet ? <CompactSpaceCard item={selected} onClose={() => setSelectedId(null)} />
                   : ready && !results.length ? <Card className="shadow-overlay"><NoResults onClear={clear} /></Card> : null}
               </SpaceMap>
             )}
-            <MapLegend />
+            {phoneSheet && <SelectedSheet item={selected} onClose={() => setSelectedId(null)} />}
           </section>
         )}
       </main>

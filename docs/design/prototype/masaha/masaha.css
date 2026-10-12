@@ -1,11 +1,13 @@
 @layer base{a{color:var(--primary)}a:hover{opacity:.85}}
 body{margin:0}
 .map-canvas{height:calc(100svh - 17rem);min-height:26rem}
-.map-illustration .land{fill:var(--muted)}
-.map-illustration .sea{fill:var(--info-subtle)}
-.map-illustration .park{fill:var(--success-subtle)}
-.map-illustration .block{fill:var(--accent)}
-.map-illustration .road-edge{stroke:var(--border);stroke-width:9;fill:none;stroke-linecap:round}
+/* The map's drawing, tinted from the tokens so it holds its own beside the cards' covers in both
+   themes (a stand-in: the product's map is OpenStreetMap's). */
+.map-illustration .land{fill:color-mix(in oklch,var(--primary) 7%,var(--muted))}
+.map-illustration .sea{fill:color-mix(in oklch,var(--info) 32%,var(--card))}
+.map-illustration .park{fill:color-mix(in oklch,var(--success) 26%,var(--card))}
+.map-illustration .block{fill:color-mix(in oklch,var(--primary) 24%,var(--card))}
+.map-illustration .road-edge{stroke:color-mix(in oklch,var(--foreground) 16%,var(--card));stroke-width:9;fill:none;stroke-linecap:round}
 .map-illustration .road{stroke:var(--card);stroke-width:7;fill:none;stroke-linecap:round}
 .map-illustration .lane{stroke:var(--card);stroke-width:3;fill:none;stroke-linecap:round}
 .map-pin{transform:translate(-50%,-50%)}
@@ -71,3 +73,19 @@ a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=bre
 /* E6: a photo's tile, and its upload's progress (the bundle has no Progress, and no `h-28`). */
 .photo-thumb{height:7rem}
 .upload-bar{height:.375rem;overflow:hidden;border-radius:999px;background:var(--muted)}.upload-bar>span{display:block;height:100%;background:var(--primary);transition:width var(--duration-short,.15s)}
+/* U6 (PU-012): a space's pin is a dot with its state as a shape — filled, filled with a bar,
+   hollow, dashed hollow — the same marks as the legend. Its box is 24 px, 44 px on touch; the
+   name shows on the selected pin and on hover or focus; selected is a primary ring, never a fill. */
+.pin-mark{position:relative;display:block;flex:none;width:.875rem;height:.875rem;border-radius:999px;box-sizing:border-box}
+.pin-open{background:var(--success)}
+.pin-full{background:var(--warning)}.pin-full::after{content:"";position:absolute;inset-inline:.125rem;top:50%;height:2px;margin-top:-1px;border-radius:1px;background:var(--card)}
+.pin-closed{background:var(--card);border:2px solid var(--muted-foreground)}
+.pin-none{background:var(--card);border:2px dashed var(--muted-foreground)}
+.space-pin{display:flex;align-items:center;justify-content:center;width:1.5rem;height:1.5rem;border-radius:999px;background:transparent}
+.space-pin .pin-mark{box-shadow:0 0 0 2px var(--card),var(--elevation-floating)}
+.space-pin[data-selected] .pin-mark{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--primary),var(--elevation-raised)}
+.pin-name{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);display:none;white-space:nowrap;pointer-events:none}
+.space-pin:hover .pin-name,.space-pin:focus-visible .pin-name,.space-pin[data-selected] .pin-name{display:block}
+@media(pointer:coarse){.space-pin{width:2.75rem;height:2.75rem}}
+.map-pan{transition:transform var(--duration-medium,.25s) var(--easing-standard,ease)}
+@media(prefers-reduced-motion:reduce){.map-pan{transition:none}}

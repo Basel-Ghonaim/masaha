@@ -306,7 +306,7 @@ function AmenitiesSection({ space }) {
 function LocationSection({ space, user, userSource }) {
   return (
     <Section id="location" title={tr("الموقع", "Location")} action={<SButton variant="outline" size="sm" asChild><a href={directionsHref(space)} target="_blank" rel="noopener">{tr("الاتجاهات", "Directions")}</a></SButton>}>
-      <SpaceMap spaces={[space]} selectedId={space.id} onSelect={() => {}} user={user} userSource={userSource} label={tr(`موقع ${space.name} على الخريطة`, `${space.name} on the map`)} className="h-64" />
+      <SpaceMap static spaces={[space]} selectedId={space.id} user={user} userSource={userSource} label={tr(`موقع ${spaceName(space)} على الخريطة`, `${spaceName(space)} on the map`)} className="h-64" />
       <div className="flex flex-col gap-1 text-body-sm">
         <p>{space.address}</p>
         {space.landmark && <p className="text-muted-foreground">{space.landmark}</p>}
