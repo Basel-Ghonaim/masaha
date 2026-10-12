@@ -13,7 +13,7 @@ const ADMIN_NAV = () => [
     { id: 'users', label: tr('المستخدمون', 'Users'), href: 'Admin users.html', icon: <AUsers /> },
     { id: 'lookups', label: tr('القوائم', 'Lookups'), href: 'Admin lookups.html', icon: <ASearch /> },
     { id: 'audit', label: tr('سجل التدقيق', 'Audit log'), href: 'Admin audit.html', icon: <ACal /> },
-    { id: 'settings', label: tr('الإعدادات', 'Settings'), href: 'Admin settings.html', icon: <AEll /> }
+    { id: 'settings', label: tr('إعدادات المنصة', 'Platform settings'), href: 'Admin settings.html', icon: <AEll /> }
   ] }
 ];
 
