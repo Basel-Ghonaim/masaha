@@ -1,6 +1,6 @@
 # Space Links
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
 > **Authority:** The `space-links` capability: a user's links to spaces and their role at each ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)), as the session, the caller's own list, the space switcher, the admin's spaces list and users list, the admin's owners (added, linked and unlinked) and the links loader use them. Its endpoints are owned by the API contract: [*Managed spaces*](../api/api-contract.md#managed-spaces), [*Owners (the admin)*](../api/api-contract.md#owners-the-admin) and [*Users (the admin)*](../api/api-contract.md#users-the-admin); the `SpaceManager` entity and "verified" by the [data model](../architecture/data-model.md#spaces).
 > **Scope:** the API module `space-links` (L2); `@masaha/shared/space-links`; the web feature `features/space-links`, dashboard-only.
 
@@ -60,7 +60,7 @@ Staff (reception accounts) are not built.
 **The admin's list on the web.** `AdminSpacesList` shows the search and the filters, then the page's spaces: a table from 768 px (the name, the area, the state, the owners, the freshness, the last update and the row's actions), with the count the filters keep and the pages under it; on a phone, a card per space with the same facts, the search in view and the other filters in a bottom sheet behind a "Filters" button that counts them.
 - **The filters:** part of a name, typed and written once typing pauses; one "Governorate / area" field; the state; and "Stale data only". Each applies at once and returns to the first page.
 - **The address** keeps them, `?q=&status=&governorate=&area=&stale=true&page=`, so a reload, a link or Back shows the same list. Each is read by the contract's own rule, so a value the server would refuse falls back to its default; an area wins over a governorate; the defaults are left out. A filter replaces the address; the pages are links. A page past the last, as after deleting its last row, shows the last page. A governorate or an area the address names by a valid id that no place has leaves the place field blank and the list empty, and "Clear filters" recovers it.
-- **A row** names the space in the interface's language, an English-only name marked as English in the Arabic interface; its area; its state on a badge (verified, unverified, hidden); its owners, or for none a dash read aloud as "No owner"; its freshness, the stale groups and the missing ones on a badge each, or "Up to date"; and its last update, the day and the month, with the year when it is not this one, on Gaza's calendar.
+- **A row** names the space in the interface's language, an English-only name marked as English in the Arabic interface; its area; its state on a badge (verified, unverified, hidden), hidden first whatever its owners, from the row's facts; its owners, or for none a dash read aloud as "No owner"; its freshness, the stale groups and the missing ones on a badge each, or "Up to date"; and its last update, the day and the month, with the year when it is not this one, on Gaza's calendar.
 - **Its states:** placeholder rows while the first page loads; while another page or filter loads, the rows and the pages shown stay, the list marked busy, so a page chosen from the keyboard keeps the focus; a failure, with its reference and "Try again", which waits out a 429; "No spaces yet"; and, while a filter applies, "No spaces match the filters", with a button that clears them all. A failed refetch keeps the rows.
 - **The focus:** when the row that held it leaves the list, as a deleted space's does, the focus moves to the list rather than being lost.
 
@@ -89,6 +89,7 @@ Staff (reception accounts) are not built.
 - **The users list is composed here, `users` filtering and paging its own accounts first,** newest first; each row adds how it signs in and when it joined (the owner's S2). *Why:* every filter is the account's own, so the page is cut before the links are read; the users screen shows both columns, so the users item adds actions only. 2026-10-11, #60.
 - **The admin's role change is composed here,** because only the links tell whether a role may change; `users` writes it (D1, D3). It offers `USER` or `ADMIN`, and refuses a person with any active link, owner or reception, a soft-deleted space's included, with `ACCOUNT_HAS_LINKS`. *Why:* an admin is never linked (`ACCOUNT_IS_ADMIN`), the `OWNER` follows the links ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)), and no change happens silently at a space. 2026-10-11, the users item.
 - **A role change takes the person's lock with every active admin's row, and counts the links under it;** it takes no space's lock. *Why:* every link change takes the person's lock, so a link made meanwhile counts, and two admins demoting each other at once cannot leave none ([conventions › Concurrency](../backend/conventions.md#concurrency)). 2026-10-11, the users item.
+- **A row carries its state as facts apart, `isVerified` and `isHidden`,** as `AdminSpace` does; the lowercase vocabulary is the status filter's alone (`SPACE_STATUSES`). *Why:* a state is two facts (the owner's A3): a hidden space keeps its verification, which the screen shows beside it. It replaced the row's one `state`, hidden first. 2026-10-12, the deleted-spaces item.
 
 ### Web decisions
 
@@ -105,6 +106,7 @@ Staff (reception accounts) are not built.
 - **The search field keeps what was typed;** it changes only when the address reads another search. *Why:* the address's search is trimmed, so a field reset to it after a pause ate the space before the next word (#50's review). 2026-10-08, #50.
 - **When the row that held the focus leaves, the focus moves to the list.** *Why:* a deleted space's row takes its menu with it, and the focus would otherwise fall to the page's start. 2026-10-07, #50.
 - **The admin's list reads under `['admin', 'space-links', 'spaces', request]`,** and the admin's writes on a space refresh the admin scope whole ([spaces › Decisions](spaces.md#decisions)). *Why:* the admin's scope, and no feature names another's keys. 2026-10-07, #50.
+- **The row's badge stays one, hidden first, else verified or unverified,** read from the row's facts. *Why:* the list looks as it did until A3's screen shows the two facts apart. 2026-10-12, the deleted-spaces item.
 
 ## Code map
 
@@ -127,6 +129,7 @@ Staff (reception accounts) are not built.
 - #48 — the missing fact groups on the admin list's rows.
 - #60 — the admin's users list; adding, linking and unlinking owners, with the role that follows the links.
 - The users item — the admin's role change.
+- The deleted-spaces item — a row's state as facts apart.
 
 ### Web history
 
@@ -134,3 +137,4 @@ Staff (reception accounts) are not built.
 - #39 — the space switcher.
 - #44 — an English-only name marked as English in the Arabic interface.
 - #50 — the admin's spaces list on the web.
+- The deleted-spaces item — the row's badge read from its facts.

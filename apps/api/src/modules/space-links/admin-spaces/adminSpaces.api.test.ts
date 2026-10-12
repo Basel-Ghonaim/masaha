@@ -142,7 +142,8 @@ describe('GET /admin/spaces', () => {
         nameEn: 'Focus Hub',
         nameAr: 'فوكس هب',
         area: { id: areaId, nameAr: 'النصر', nameEn: 'An-Nasr' },
-        state: 'verified',
+        isVerified: true,
+        isHidden: false,
         owners: [
           { id: idOf('Ahmad'), name: 'Ahmad' },
           { id: idOf('Maha'), name: 'Maha' },

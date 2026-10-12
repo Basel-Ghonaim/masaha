@@ -20,8 +20,8 @@ import { SpaceActionsMenu } from './SpaceActionsMenu';
 
 type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
 
-const FOCUS = { id: 7, nameEn: 'Focus Hub', nameAr: 'فوكس', state: 'unverified' as const };
-const PALM = { id: 9, nameEn: 'Palm Hub', nameAr: null, state: 'hidden' as const };
+const FOCUS = { id: 7, nameEn: 'Focus Hub', nameAr: 'فوكس', isHidden: false };
+const PALM = { id: 9, nameEn: 'Palm Hub', nameAr: null, isHidden: true };
 
 /** A name with the Unicode isolates around its inserted values removed, as a reader hears it. */
 const heard = (expected: string) => (name: string) => name.replace(/[⁦-⁩]/g, '') === expected;

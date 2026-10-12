@@ -1,4 +1,4 @@
-import type { AdminSpaceRow, SpaceState } from '@masaha/shared/space-links';
+import type { AdminSpaceRow, SpaceStatus } from '@masaha/shared/space-links';
 import type { FactGroup } from '@masaha/shared/spaces';
 import type { Catalogue } from '@shared/copy';
 import { isolate } from '@shared/localisation';
@@ -7,15 +7,23 @@ import { updatedOn } from './updatedOn';
 
 // A verified space is confirmed by its owner; an unverified one is not yet, as a missing group is
 // not yet entered; a hidden one needs the admin's eye, as a stale group does.
-const STATE_VARIANTS: Record<SpaceState, BadgeView['variant']> = {
+const STATE_VARIANTS: Record<SpaceStatus, BadgeView['variant']> = {
   verified: 'success',
   unverified: 'neutral',
   hidden: 'warning',
 };
 
 /**
- * One row of the admin's spaces list in the interface's language. Its state and its stale and missing
- * groups are the server's; this only words them. A space's English name is required and its Arabic
+ * A row's one badge: hidden first, whatever its owners, else whether it is verified. The badge stays
+ * one until the list shows a state's two facts apart.
+ */
+function stateOf({ isHidden, isVerified }: AdminSpaceRow): SpaceStatus {
+  return isHidden ? 'hidden' : isVerified ? 'verified' : 'unverified';
+}
+
+/**
+ * One row of the admin's spaces list in the interface's language. Its state's facts and its stale and
+ * missing groups are the server's; this only words them. A space's English name is required and its Arabic
  * one optional, so the Arabic interface shows the English name when there is no other, marked as
  * English (docs/frontend/localisation.md › Content in two languages).
  */
@@ -42,6 +50,7 @@ export function rowView(
         ]
       : []),
   ];
+  const state = stateOf(row);
   const arabicName = english ? null : row.nameAr;
   // Each name isolated, so a name in one direction never reorders its neighbours.
   const owners =
@@ -57,7 +66,7 @@ export function rowView(
         ? { text: arabicName ?? row.nameEn }
         : { text: row.nameEn, lang: 'en', dir: 'ltr' },
     area: english ? row.area.nameEn : row.area.nameAr,
-    state: { label: lines.states[row.state], variant: STATE_VARIANTS[row.state] },
+    state: { label: lines.states[state], variant: STATE_VARIANTS[state] },
     owners,
     ownersLine: {
       shown: lines.owners({ owners: owners ?? '—' }),

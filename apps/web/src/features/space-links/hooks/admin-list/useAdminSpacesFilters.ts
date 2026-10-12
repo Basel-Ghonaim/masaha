@@ -1,4 +1,4 @@
-import type { SpaceState } from '@masaha/shared/space-links';
+import type { SpaceStatus } from '@masaha/shared/space-links';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { filtersOf, paramsOf, requestOf } from '../../services/filtersOf';
@@ -74,7 +74,7 @@ export function useAdminSpacesFilters() {
     filters,
     request: requestOf(filters),
     search: { text, change: setText },
-    chooseStatus: (status: SpaceState | undefined) => {
+    chooseStatus: (status: SpaceStatus | undefined) => {
       apply({ status });
     },
     choosePlace: (place: PlaceFilter) => {

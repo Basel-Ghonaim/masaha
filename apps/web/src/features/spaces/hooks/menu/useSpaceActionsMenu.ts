@@ -24,7 +24,7 @@ export function useSpaceActionsMenu(space: SpaceRef) {
   const [confirming, setConfirming] = useState(false);
   const busy = setHidden.isPending || remove.isPending;
   const action = { spaceId: space.id, name };
-  const hidden = space.state === 'hidden';
+  const hidden = space.isHidden;
 
   return {
     // An accessible name is one string, so the name in it is isolated rather than marked.

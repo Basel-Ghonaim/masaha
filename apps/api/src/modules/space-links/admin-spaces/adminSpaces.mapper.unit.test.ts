@@ -25,7 +25,8 @@ describe('toAdminSpaceRow', () => {
       nameEn: 'Focus Hub',
       nameAr: null,
       area: AREA,
-      state: 'verified',
+      isVerified: true,
+      isHidden: false,
       owners: [AHMAD],
       staleGroups: ['prices'],
       missingGroups: ['contacts'],
@@ -34,10 +35,15 @@ describe('toAdminSpaceRow', () => {
   });
 
   it('is unverified without an owner', () => {
-    expect(toAdminSpaceRow(SPACE, AREA, []).state).toBe('unverified');
+    expect(toAdminSpaceRow(SPACE, AREA, []).isVerified).toBe(false);
   });
 
-  it('is hidden while hidden, whatever its owners', () => {
-    expect(toAdminSpaceRow({ ...SPACE, isHidden: true }, AREA, [AHMAD]).state).toBe('hidden');
+  it('says a hidden space with an owner is both hidden and verified', () => {
+    const row = toAdminSpaceRow({ ...SPACE, isHidden: true }, AREA, [AHMAD]);
+
+    expect({ isHidden: row.isHidden, isVerified: row.isVerified }).toEqual({
+      isHidden: true,
+      isVerified: true,
+    });
   });
 });

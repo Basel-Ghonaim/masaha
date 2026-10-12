@@ -11,8 +11,10 @@ const id = z.coerce.number().int().positive().max(2_147_483_647);
 // An id in a JSON body, where it is a number already.
 const bodyId = z.number().int().positive().max(2_147_483_647);
 
-/** A space's state in the admin's list: hidden first, else whether an owner has joined. */
-export const SPACE_STATES = ['verified', 'unverified', 'hidden'] as const;
+/** The admin's list's status filter: whether an owner has joined, of the spaces shown, or hidden. */
+export const SPACE_STATUSES = ['verified', 'unverified', 'hidden'] as const;
+
+export type SpaceStatus = (typeof SPACE_STATUSES)[number];
 
 /**
  * `?q=&status=&governorateId=&areaId=&stale=&page=&limit=`. `q` searches the names in both
@@ -21,7 +23,7 @@ export const SPACE_STATES = ['verified', 'unverified', 'hidden'] as const;
  */
 export const adminSpacesQuerySchema = paginationQuerySchema.extend({
   q: textSchema(1, SPACE_NAME_MAX_LENGTH).optional(),
-  status: z.enum(SPACE_STATES).optional(),
+  status: z.enum(SPACE_STATUSES).optional(),
   governorateId: id.optional(),
   areaId: id.optional(),
   stale: z.stringbool().optional(),

@@ -534,7 +534,8 @@ describe("the admin's spaces page", () => {
     nameEn: 'Palm Hub',
     nameAr: null,
     area: { id: 21, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
-    state: 'hidden',
+    isVerified: false,
+    isHidden: true,
     owners: [],
     staleGroups: [],
     missingGroups: ['hours'],
@@ -622,8 +623,8 @@ describe("the admin's spaces page", () => {
   });
 
   it('keeps every menu waiting out a 429 through a change of filter, then of page', async () => {
-    const FOCUS: AdminSpaceRow = { ...PALM, id: 7, nameEn: 'Focus Hub', state: 'verified' };
-    const WHITE: AdminSpaceRow = { ...PALM, id: 12, nameEn: 'White Space', state: 'verified' };
+    const FOCUS: AdminSpaceRow = { ...PALM, id: 7, nameEn: 'Focus Hub', isHidden: false };
+    const WHITE: AdminSpaceRow = { ...PALM, id: 12, nameEn: 'White Space', isHidden: false };
     openSpaces(
       '',
       (query) =>

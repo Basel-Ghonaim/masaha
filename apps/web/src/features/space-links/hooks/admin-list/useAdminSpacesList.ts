@@ -1,4 +1,4 @@
-import { SPACE_STATES } from '@masaha/shared/space-links';
+import { SPACE_STATUSES } from '@masaha/shared/space-links';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
 import { useLanguage } from '@shared/localisation';
@@ -122,10 +122,10 @@ export function useAdminSpacesList() {
         value: filters.filters.status ?? 'all',
         options: [
           { value: 'all', label: lines.allStatuses },
-          ...SPACE_STATES.map((state) => ({ value: state, label: lines.states[state] })),
+          ...SPACE_STATUSES.map((state) => ({ value: state, label: lines.states[state] })),
         ],
         choose: (value: string) => {
-          filters.chooseStatus(SPACE_STATES.find((state) => state === value));
+          filters.chooseStatus(SPACE_STATUSES.find((state) => state === value));
         },
       },
       stale: {

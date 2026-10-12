@@ -337,7 +337,8 @@ Contact = {
   AdminSpaceRow = {
     id: number, slug: string, nameEn: string, nameAr: string | null,
     area: { id: number, nameAr: string, nameEn: string },
-    state: "verified" | "unverified" | "hidden",   // hidden first, whatever its owners
+    isVerified: boolean,                            // an active OWNER link (data-model › Derived values)
+    isHidden: boolean,
     owners: { id: number, name: string }[],         // its active OWNER links, oldest first
     staleGroups: FactGroup[],
     missingGroups: FactGroup[],
