@@ -184,7 +184,8 @@ const priceLabel = textSchema(1, PRICE_LABEL_MAX_LENGTH);
 /**
  * A published price: a period and an audience, an optional shift of the space, and an optional
  * custom label, its Arabic required with its English (docs/architecture/data-model.md › Prices).
- * Amounts are whole agorot (display only in v1).
+ * Amounts are whole agorot (display only in v1), above zero: no price is free, and a free event is
+ * an announcement.
  */
 const price = z
   .object({
@@ -193,7 +194,7 @@ const price = z
     shiftId: optional(id),
     labelAr: optional(priceLabel),
     labelEn: optional(priceLabel),
-    amountAgorot: z.number().int().min(0).max(PRICE_MAX_AGOROT),
+    amountAgorot: z.number().int().min(1).max(PRICE_MAX_AGOROT),
   })
   .refine((item) => item.labelEn == null || item.labelAr != null, {
     path: ['labelAr'],

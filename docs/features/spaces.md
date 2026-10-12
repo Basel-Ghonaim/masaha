@@ -109,6 +109,7 @@ The photos and the owner's side are not built.
 - **Every group changes through one save path, the profile's edit included:** the lock, `can()`, the change, the group's date and its audit entry, in one transaction. *Why:* the owner's endpoints (step 5) reuse it (S9). 2026-10-07, #48.
 - **A save decides on the links read again under the space's lock,** not on those the loader read before it. *Why:* an owner linked between the two would let the admin's save land on a space just verified ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)). 2026-10-11, #60.
 - **The space's read is one consistent state, under the space's lock in share mode** (the owner's choice, S1). *Why:* a read during an hours save could show the old week with the new shifts (finding 43); a lock keeps one isolation level ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)), and unlike a snapshot, a test can prove it. 2026-10-11, #60.
+- **Every price is above zero; a free event goes in the announcements** (the owner's decision). *Why:* a price of zero would list a space as free when only an event is; the announcements carry it. 2026-10-12, #64.
 
 ### Web decisions
 
@@ -150,7 +151,7 @@ The photos and the owner's side are not built.
 - #44 — the admin's spaces API: create, read, edit, hide, delete and restore, and the listing page.
 - #48 — the facts API: a group missing until saved, each group confirmed, the hours with the shifts, the prices, the amenities and the contacts.
 - #60 — a save decides on the links under the space's lock, and the read is consistent (finding 43).
-- #64 — a space's own amenities, in the amenities group.
+- #64 — a space's own amenities, in the amenities group; no price of zero.
 
 ### Web history
 

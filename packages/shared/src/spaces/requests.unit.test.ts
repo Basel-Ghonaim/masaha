@@ -199,8 +199,12 @@ describe('updateSpacePricesSchema', () => {
     });
   });
 
-  it('wants whole agorot from 0 to 10,000,000', () => {
-    expect(pricesErrors([{ ...MONTH, amountAgorot: 0 }])).toBeNull();
+  it('wants whole agorot from 1 to 10,000,000: no price is free', () => {
+    expect(pricesErrors([{ ...MONTH, amountAgorot: 1 }])).toBeNull();
+    expect(pricesErrors([{ ...MONTH, amountAgorot: 10_000_000 }])).toBeNull();
+    expect(pricesErrors([{ ...MONTH, amountAgorot: 0 }])).toEqual({
+      'prices.0.amountAgorot': ['out_of_range'],
+    });
     expect(pricesErrors([{ ...MONTH, amountAgorot: -1 }])).toEqual({
       'prices.0.amountAgorot': ['out_of_range'],
     });
