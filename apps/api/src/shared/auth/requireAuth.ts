@@ -1,12 +1,35 @@
 import type { Request, RequestHandler } from 'express';
 
+import type { Role } from '../../generated/prisma/enums.ts';
 import { AppError } from '../errors/index.ts';
 import type { AccessClaims, AccessTokens } from './accessToken.ts';
 
+/** The account as the guard reads it on every signed-in request. */
+export interface SignedInAccount {
+  role: Role;
+  mustChangePassword: boolean;
+  suspended: boolean;
+}
+
+/** The account with this id as it is now, or nothing when there is none. */
+export type AccountReader = (userId: number) => Promise<SignedInAccount | null>;
+
+/** Who is signed in, as requireAuth read them: the account's role now, and the token's claim. */
+export interface SignedIn {
+  userId: number;
+  /** The account's global role now, never the token's (ADR 0003, revised). */
+  role: Role;
+  /**
+   * Whether the token was signed while a temporary password was pending: the token's half of the
+   * forced change's double check (docs/backend/security.md › Passwords).
+   */
+  tokenPendingChange: boolean;
+}
+
 declare module 'express-serve-static-core' {
   interface Request {
-    /** The signed-in user, set by requireAuth from the access token. */
-    auth?: AccessClaims;
+    /** The signed-in user, set by requireAuth from the access token and the account. */
+    auth?: SignedIn;
   }
 }
 
@@ -31,18 +54,35 @@ export interface RequireAuthOptions {
 export type RequireAuth = (options?: RequireAuthOptions) => RequestHandler;
 
 /**
- * The guard of every signed-in route: 401 without a valid access token, and 403
- * PASSWORD_CHANGE_REQUIRED while the token says a temporary password must be changed.
+ * The guard of every signed-in route (docs/backend/security.md › Authorization). It reads the
+ * account by the token's id on every request, so a suspension, a role change or a temporary password
+ * takes effect at once (ADR 0003, revised): 401 without a valid access token, for an account that
+ * does not exist, for a suspended one, and for a token signed before a temporary password; then 403
+ * PASSWORD_CHANGE_REQUIRED while the token says a temporary password must be changed. The composition root wires the reader, as it
+ * wires the links loader: `shared/` imports no module.
  */
-export function createRequireAuth(tokens: AccessTokens): RequireAuth {
+export function createRequireAuth(tokens: AccessTokens, readAccount: AccountReader): RequireAuth {
   return ({ allowPendingPasswordChange = false } = {}) =>
     async (req, _res, next) => {
       const claims = await readAccessToken(req, tokens);
       if (!claims) throw AppError.unauthorized();
+      const account = await readAccount(claims.userId);
+      if (!account) throw AppError.unauthorized(undefined, 'Account not found');
+      // The suspension ended every session; a 401 makes the web's refresh find that out.
+      if (account.suspended) throw AppError.unauthorized(undefined, 'Account suspended');
+      // A change pending in the account but not in the token: the token was signed before a
+      // temporary password, whose issue ended every session. The same 401 ends this one.
+      if (account.mustChangePassword && !claims.mustChangePassword) {
+        throw AppError.unauthorized(undefined, 'Session ended by a temporary password');
+      }
       if (claims.mustChangePassword && !allowPendingPasswordChange) {
         throw AppError.forbidden('PASSWORD_CHANGE_REQUIRED');
       }
-      req.auth = claims;
+      req.auth = {
+        userId: claims.userId,
+        role: account.role,
+        tokenPendingChange: claims.mustChangePassword,
+      };
       next();
     };
 }

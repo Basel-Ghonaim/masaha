@@ -6,7 +6,7 @@
 ## 1. Conventions
 
 - Base path: `/api/v1`. JSON only. `GET /health` sits outside it (`{ status, db, timestamp }`, 200 or 503).
-- Auth: `Authorization: Bearer <accessToken>` on protected endpoints; the refresh token travels only as its cookie.
+- Auth: `Authorization: Bearer <accessToken>` on protected endpoints; the refresh token travels only as its cookie. A protected endpoint reads the account on every request: a token whose account does not exist or is suspended, or that was signed before the account's temporary password, answers `unauthorized` (401), and the role it acts with is the account's now ([security.md](../backend/security.md#authorization)).
 - The server **never sends display text** for the UI. It sends error `type`, an optional domain `code`, and field-error codes; the client translates ([ADR 0006](../architecture/decisions/0006-localisation-approach.md)).
 - **Request id:** every response carries an `X-Request-Id` header, a UUID the server generates for each request, and an error repeats it in the envelope (§2). It matches the request's log lines ([backend conventions §10](../backend/conventions.md#10-logging)). The server ignores any id the client sends.
 - **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Not built yet: the desk slices build the idempotency key.
@@ -154,7 +154,7 @@ The signed-in user's own account. Each endpoint needs the access token.
 #### `POST /me/password` · 👤, also while a temporary password is pending
 - **Body:** `{ currentPassword?, password }`. The new password follows the policy. `currentPassword` is required unless a temporary password is pending (the forced change), as both the access token and the account say.
 - **200:** `{ accessToken }`, and a new refresh cookie: this device's session goes on in a new one ([security.md](../backend/security.md#passwords)).
-- **Errors:** `unauthorized` (401) without a valid access token; `validation` (422), with `currentPassword: ["required"]` when it is missing; `bad_request` (400) `CURRENT_PASSWORD_INCORRECT`, which is not a 401, so it never looks like an expired session, also when a reset changed the password meanwhile; `bad_request` (400) `PASSWORD_NOT_SET` for an account without a password, which sets one through the reset email; `forbidden` (403) `ACCOUNT_SUSPENDED`; `rate_limit` (429) under its failures limit.
+- **Errors:** `unauthorized` (401) without a valid access token, for a suspended account, or for a token signed before the account's temporary password; `validation` (422), with `currentPassword: ["required"]` when it is missing; `bad_request` (400) `CURRENT_PASSWORD_INCORRECT`, which is not a 401, so it never looks like an expired session, also when a reset changed the password meanwhile; `bad_request` (400) `PASSWORD_NOT_SET` for an account without a password, which sets one through the reset email; `forbidden` (403) `ACCOUNT_SUSPENDED` for an account suspended while the change ran; `rate_limit` (429) under its failures limit.
 
 ### Managed spaces
 
@@ -428,7 +428,7 @@ A space's owners, as the admin links them ([ADR 0009](../architecture/decisions/
 
 ### Users (the admin)
 
-The accounts, as the admin reads them ([data-model › Users and sessions](../architecture/data-model.md#users-and-sessions)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
+The accounts, as the admin reads and changes them ([data-model › Users and sessions](../architecture/data-model.md#users-and-sessions)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
 
 #### `GET /admin/users` · 🛡
 - **Query:** `?q=&role=&state=&page=&limit=` (§4), each optional:
@@ -450,13 +450,34 @@ The accounts, as the admin reads them ([data-model › Users and sessions](../ar
   ```
 - **Errors:** `validation` (422), for an unknown `role` or `state` (`invalid_choice`) or a page out of range.
 
+#### `POST /admin/users/:userId/temporary-password` · 🛡
+- **Body:** none. The recovery of a person who lost their email ([security.md](../backend/security.md#passwords)).
+- **200:** `IssuedTemporaryPassword` (`@masaha/shared/users`), with `Cache-Control: no-store`: the account's password is replaced by a temporary one, to change at its next sign-in, and every session of the account and every pending reset link end. Issued again, it replaces the pending one. Audited `user.temporaryPasswordIssued` (`after: { mustChangePassword: true }`), with the account as the entity, never with the password; its handover follows, below.
+
+  ```ts
+  IssuedTemporaryPassword = {
+    temporaryPassword: string   // in this answer only, never again
+  }
+  ```
+- **Errors**, a refusal writing nothing: `conflict` (409) `OWN_ACCOUNT` for the admin's own account; `conflict` (409) `ACCOUNT_SUSPENDED` for a suspended account, restored first; `conflict` (409) `GOOGLE_ONLY_ACCOUNT` for an account without a password, whose way in is Google; `not_found` (404) for an unknown account.
+
 #### `POST /admin/users/:userId/temporary-password/handover` · 🛡
-- **Body:** `{ channel }`: how the temporary password just shown was handed over, `"WHATSAPP"`, `"IN_PERSON"` or `"OTHER"` (`HANDOVER_CHANNELS`, `@masaha/shared/users`). The web asks it after the password is shown, for an account the admin created; the admin's own temporary password (planned) uses it too.
+- **Body:** `{ channel }`: how the temporary password just shown was handed over, `"WHATSAPP"`, `"IN_PERSON"` or `"OTHER"` (`HANDOVER_CHANNELS`, `@masaha/shared/users`). The web asks it after the password is shown, for an account the admin created or a temporary password the admin issued.
 - **204:** audited `user.temporaryPasswordHandedOver` (`after: { channel }`), with the account as the entity, as the entry of the password it follows. Only while that temporary password is still pending; a second handover is a second entry.
 - **Errors:** `validation` (422), with `invalid_choice` on `channel`; `conflict` (409) `TEMPORARY_PASSWORD_NOT_PENDING` once the account has no temporary password to change; `not_found` (404) for an unknown account.
+
+#### `PUT /admin/users/:userId/role` · 🛡
+- **Body:** `{ role }`: `"USER"` or `"ADMIN"` (`ADMIN_ROLE_CHOICES`, `@masaha/shared/space-links`). `OWNER` is never given: it follows the person's active owner links ([Owners (the admin)](#owners-the-admin)).
+- **204:** the person's global role is the one asked, every session of theirs ended; the role the guard reads changes from their next request ([security.md](../backend/security.md#authorization)). Audited `user.roleChanged` (`before` and `after`: `{ role }`), with the person as the entity. Asking the role they already have writes nothing and ends no session.
+- **Errors**, a refusal writing nothing: `validation` (422), with `invalid_choice` on `role`; `conflict` (409) `OWN_ACCOUNT` for the admin's own account, whatever the role asked; `conflict` (409) `ACCOUNT_HAS_LINKS` for a person with any active link, owner or reception, a soft-deleted space's included: an owner is not made a user, and no linked person an admin, until the links end; `conflict` (409) `LAST_ADMIN` when it would leave the platform with no active admin, which only a change made meanwhile by another admin can cause; `not_found` (404) for an unknown account.
+
+#### `PUT /admin/users/:userId/suspended` · 🛡
+- **Body:** `{ isSuspended: boolean }`.
+- **204:** the account is suspended, or restored. A suspension ends every session of the account and every pending reset link, and its unexpired access tokens are refused from its next request ([security.md](../backend/security.md#authorization)); its links to spaces are kept, so a suspended owner's space stays verified. A restore ends nothing. Audited `user.suspended` or `user.unsuspended` (`before` and `after`: `{ isSuspended }`), with the account as the entity; setting what it already is writes nothing.
+- **Errors**, a refusal writing nothing: `validation` (422); `conflict` (409) `OWN_ACCOUNT` for the admin's own account; `conflict` (409) `LAST_ADMIN` when it would leave the platform with no active admin, which only a change made meanwhile by another admin can cause; `not_found` (404) for an unknown account.
 
 ## 6. Domain error codes (initial)
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT`.

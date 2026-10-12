@@ -1,5 +1,3 @@
-import { Router } from 'express';
-import { pino } from 'pino';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -11,26 +9,10 @@ import {
   PASSWORD,
 } from '../../../test/app.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
-import { createApp } from '../../app.ts';
 import { prisma } from '../../db/index.ts';
-import { createRequireAuth } from '../../shared/auth/index.ts';
-import { sendSuccess } from '../../shared/http/index.ts';
 
 const app = createTestApp();
 const NEW_PASSWORD = 'mine2026x';
-
-// A route behind the guard as every protected route uses it, with no exception for a pending
-// password: what a user with a temporary password cannot reach until they change it.
-const probe = Router();
-probe.get('/probe', createRequireAuth(accessTokens)(), (req, res) => {
-  sendSuccess(res, { userId: req.auth?.userId });
-});
-const protectedApp = createApp({
-  corsOrigin: 'http://localhost:5173',
-  logger: pino({ level: 'silent' }),
-  checkDatabase: () => Promise.resolve(true),
-  apiRouter: probe,
-});
 
 beforeEach(async () => {
   await resetDatabase(prisma);
@@ -56,8 +38,10 @@ function refresh(refreshToken: string) {
   return request(app).post('/api/v1/auth/refresh').set('Cookie', `masaha_refresh=${refreshToken}`);
 }
 
+// A route behind the guard as every protected route uses it, with no exception for a pending
+// password: what a user with a temporary password cannot reach until they change it.
 function reachProtected(accessToken: string) {
-  return request(protectedApp).get('/api/v1/probe').set('Authorization', `Bearer ${accessToken}`);
+  return request(app).get('/api/v1/manage/spaces').set('Authorization', `Bearer ${accessToken}`);
 }
 
 describe('POST /me/password: the forced change', () => {
@@ -81,10 +65,7 @@ describe('POST /me/password: the forced change', () => {
       data: { user: { id: user.id, mustChangePassword: false } },
     });
     const { accessToken: refreshed } = (renewed.body as { data: { accessToken: string } }).data;
-    expect((await reachProtected(refreshed)).body).toEqual({
-      success: true,
-      data: { userId: user.id },
-    });
+    expect((await reachProtected(refreshed)).body).toEqual({ success: true, data: [] });
 
     expect((await refresh(before.refreshToken)).status).toBe(401);
     expect((await signIn('sara@example.com', NEW_PASSWORD)).accessToken).toBeTruthy();
@@ -147,11 +128,7 @@ describe('POST /me/password: a Google-only account', () => {
     const user = await prisma.user.create({
       data: { email: 'google@example.com', name: 'G', googleSubject: 'g1' },
     });
-    const accessToken = await accessTokens.sign({
-      userId: user.id,
-      role: 'USER',
-      mustChangePassword: false,
-    });
+    const accessToken = await accessTokens.sign({ userId: user.id, mustChangePassword: false });
 
     const response = await changePassword(accessToken, { password: NEW_PASSWORD });
 
@@ -163,17 +140,12 @@ describe('POST /me/password: a Google-only account', () => {
   });
 });
 
+// A token signed before a temporary password (the account pending, the token not) never reaches
+// the change: the guard refuses it (requireAuth.api.test.ts).
 describe('POST /me/password: the skipped current password', () => {
-  it.each([
-    ['the token says a change is pending, the account no longer does', true, false],
-    ['the account says a change is pending, the token does not', false, true],
-  ])('is required when only %s', async (_case, claim, flag) => {
-    const user = await createAccount({ mustChangePassword: flag });
-    const accessToken = await accessTokens.sign({
-      userId: user.id,
-      role: 'USER',
-      mustChangePassword: claim,
-    });
+  it('is required when the token says a change is pending and the account no longer does', async () => {
+    const user = await createAccount({ mustChangePassword: false });
+    const accessToken = await accessTokens.sign({ userId: user.id, mustChangePassword: true });
 
     const response = await changePassword(accessToken, { password: NEW_PASSWORD });
 
@@ -241,7 +213,8 @@ describe('POST /me/password: refusals', () => {
       password: NEW_PASSWORD,
     });
 
-    expect(response.status).toBe(403);
-    expect(response.body).toMatchObject({ error: { code: 'ACCOUNT_SUSPENDED' } });
+    expect(response.status).toBe(401);
+    expect(response.body).toMatchObject({ error: { type: 'unauthorized' } });
+    expect(response.body).not.toHaveProperty('error.code');
   });
 });

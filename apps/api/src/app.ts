@@ -38,6 +38,8 @@ import {
 import {
   createAdminOwnersController,
   createAdminOwnersService,
+  createAdminRolesController,
+  createAdminRolesService,
   createAdminSpacesController,
   createAdminSpacesService,
   createAdminUsersController,
@@ -196,7 +198,6 @@ export function createApi({
     path: `${API_BASE}${AUTH_PATH}${PASSWORD_PATH}`,
   });
 
-  const requireAuth = createRequireAuth(accessTokens);
   const runInTransaction = createRunInTransaction();
 
   const sessions = createSessionsService({ now: clock });
@@ -204,9 +205,12 @@ export function createApi({
     accessTokens,
     limiter,
     audit: writeAudit,
+    now: clock,
     sessions,
     runInTransaction,
   });
+  // The guard reads the account on every signed-in request (ADR 0003, revised).
+  const requireAuth = createRequireAuth(accessTokens, (userId) => users.signedInAccount(userId));
   const lookups = createLookupsService();
   const governorates = createGovernoratesService({ runInTransaction, audit: writeAudit });
   const areas = createAreasService({ runInTransaction, audit: writeAudit });
@@ -244,6 +248,7 @@ export function createApi({
     users,
   });
   const adminUsers = createAdminUsersService({ users, spaces });
+  const adminRoles = createAdminRolesService({ runInTransaction, users });
   const adminOwners = createAdminOwnersService({
     runInTransaction,
     audit: writeAudit,
@@ -302,6 +307,7 @@ export function createApi({
   admin.use(
     createSpaceLinksAdminRouter({
       adminOwners: createAdminOwnersController(adminOwners),
+      adminRoles: createAdminRolesController(adminRoles),
       adminSpaces: createAdminSpacesController(adminSpaces),
       adminUsers: createAdminUsersController(adminUsers),
     }),

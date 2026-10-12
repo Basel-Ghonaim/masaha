@@ -2,6 +2,7 @@
 
 > **Status:** Accepted · **Date:** 2026-09-26
 > **Revised:** 2026-10-02 — a session is a family of refresh tokens, one row per rotation, not one row per session; a token reused after the grace window ends only its family.
+> **Revised:** 2026-10-11 — the guard reads the account by its id on every signed-in request, so a suspension, a role change or a temporary password takes effect at once; the access token carries who, and whether a temporary password was pending, no longer the role ([security.md](../../backend/security.md#tokens-and-cookies)).
 
 ## Context
 The SPA needs a session that survives reloads, resists XSS token theft, and lets the client know who the user is and their role. The model proven in Quick Tweets is reused. The open question was the extra request on every page load.

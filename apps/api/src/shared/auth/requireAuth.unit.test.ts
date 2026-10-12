@@ -3,10 +3,21 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { AppError } from '../errors/index.ts';
 import { createAccessTokens, type AccessClaims } from './accessToken.ts';
-import { createRequireAuth } from './requireAuth.ts';
+import { createRequireAuth, type SignedInAccount } from './requireAuth.ts';
 
 const tokens = createAccessTokens('a-test-secret-of-at-least-32-characters');
-const requireAuth = createRequireAuth(tokens);
+
+const active: SignedInAccount = { role: 'OWNER', mustChangePassword: false, suspended: false };
+
+/** The guard over an account reader that answers `account`, and the ids it was asked for. */
+function guardOver(account: SignedInAccount | null) {
+  const asked: number[] = [];
+  const requireAuth = createRequireAuth(tokens, (userId) => {
+    asked.push(userId);
+    return Promise.resolve(account);
+  });
+  return { requireAuth, asked };
+}
 
 function requestWith(authorization?: string) {
   return {
@@ -14,7 +25,11 @@ function requestWith(authorization?: string) {
   } as unknown as Request;
 }
 
-async function run(guard: ReturnType<typeof requireAuth>, req: Request) {
+async function bearer(claims: AccessClaims) {
+  return requestWith(`Bearer ${await tokens.sign(claims)}`);
+}
+
+async function run(guard: ReturnType<ReturnType<typeof createRequireAuth>>, req: Request) {
   const next = vi.fn();
   try {
     await guard(req, {} as Response, next);
@@ -24,47 +39,79 @@ async function run(guard: ReturnType<typeof requireAuth>, req: Request) {
   return { error: undefined, next };
 }
 
-const pending: AccessClaims = { userId: 3, role: 'USER', mustChangePassword: true };
-const settled: AccessClaims = { ...pending, mustChangePassword: false };
+const settled: AccessClaims = { userId: 3, mustChangePassword: false };
+const pending: AccessClaims = { userId: 3, mustChangePassword: true };
 
 describe('requireAuth', () => {
-  it('puts the claims of a valid bearer token on the request', async () => {
-    const req = requestWith(`Bearer ${await tokens.sign(settled)}`);
+  it('puts the account’s role now and the token’s pending claim on the request', async () => {
+    const { requireAuth, asked } = guardOver(active);
+    const req = await bearer(settled);
 
     const { error, next } = await run(requireAuth(), req);
 
     expect(error).toBeUndefined();
     expect(next).toHaveBeenCalledOnce();
-    expect(req.auth).toEqual(settled);
+    expect(asked).toEqual([3]);
+    expect(req.auth).toEqual({ userId: 3, role: 'OWNER', tokenPendingChange: false });
   });
 
   it.each([undefined, 'Bearer', 'Bearer not-a-token', 'Basic abc'])(
-    'answers 401 for the header %s',
+    'answers 401 for the header %s, without reading any account',
     async (header) => {
+      const { requireAuth, asked } = guardOver(active);
+
       const { error, next } = await run(requireAuth(), requestWith(header));
 
       expect(error?.type).toBe('unauthorized');
       expect(next).not.toHaveBeenCalled();
+      expect(asked).toEqual([]);
     },
   );
 
-  it('answers PASSWORD_CHANGE_REQUIRED while a temporary password is pending', async () => {
-    const { error, next } = await run(
-      requireAuth(),
-      requestWith(`Bearer ${await tokens.sign(pending)}`),
-    );
+  it('answers 401 when the token names no account', async () => {
+    const { error, next } = await run(guardOver(null).requireAuth(), await bearer(settled));
+
+    expect(error).toMatchObject({ type: 'unauthorized', code: undefined });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('answers 401, with no code, for a suspended account, even where a pending change is allowed', async () => {
+    const { requireAuth } = guardOver({ ...active, suspended: true });
+
+    for (const guard of [requireAuth(), requireAuth({ allowPendingPasswordChange: true })]) {
+      const { error, next } = await run(guard, await bearer(settled));
+
+      expect(error).toMatchObject({ type: 'unauthorized', code: undefined });
+      expect(next).not.toHaveBeenCalled();
+    }
+  });
+
+  it('answers PASSWORD_CHANGE_REQUIRED when the token says a change is pending', async () => {
+    const { error, next } = await run(guardOver(active).requireAuth(), await bearer(pending));
 
     expect(error).toBeInstanceOf(AppError);
     expect(error).toMatchObject({ type: 'forbidden', code: 'PASSWORD_CHANGE_REQUIRED' });
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('lets a pending password through the routes that allow it', async () => {
-    const req = requestWith(`Bearer ${await tokens.sign(pending)}`);
+  it('answers 401, with no code, when only the account says a change is pending, even where one is allowed', async () => {
+    const { requireAuth } = guardOver({ ...active, mustChangePassword: true });
+
+    for (const guard of [requireAuth(), requireAuth({ allowPendingPasswordChange: true })]) {
+      const { error, next } = await run(guard, await bearer(settled));
+
+      expect(error).toMatchObject({ type: 'unauthorized', code: undefined });
+      expect(next).not.toHaveBeenCalled();
+    }
+  });
+
+  it('lets a pending change through the routes that allow it', async () => {
+    const { requireAuth } = guardOver({ ...active, mustChangePassword: true });
+    const req = await bearer(pending);
 
     const { error } = await run(requireAuth({ allowPendingPasswordChange: true }), req);
 
     expect(error).toBeUndefined();
-    expect(req.auth).toEqual(pending);
+    expect(req.auth).toEqual({ userId: 3, role: 'OWNER', tokenPendingChange: true });
   });
 });

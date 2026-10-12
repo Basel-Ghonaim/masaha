@@ -18,6 +18,32 @@ beforeEach(async () => {
   await resetDatabase(prisma);
 });
 
+/** Drops the audit trigger and its function, if a run left them, or once a test is done. */
+async function dropAuditRefusal() {
+  await prisma.$executeRawUnsafe('DROP TRIGGER IF EXISTS refuse_audit ON audit_logs');
+  await prisma.$executeRawUnsafe('DROP FUNCTION IF EXISTS refuse_audit()');
+}
+
+/**
+ * Runs `call` while the database refuses every audit entry, as a failing insert would: the change
+ * it records must roll back with it. The lane runs one file at a time, so no other test sees it;
+ * whatever a killed run left is dropped first, and the trigger always goes with the test.
+ */
+async function whileAuditRefused<T>(call: () => Promise<T>): Promise<T> {
+  await dropAuditRefusal();
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE OR REPLACE FUNCTION refuse_audit() RETURNS trigger LANGUAGE plpgsql AS
+      $$ BEGIN RAISE EXCEPTION 'audit refused'; END $$`);
+    await prisma.$executeRawUnsafe(
+      'CREATE TRIGGER refuse_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION refuse_audit()',
+    );
+    return await call();
+  } finally {
+    await dropAuditRefusal();
+  }
+}
+
 function governorate(nameAr: string, nameEn: string, sortOrder: number, isActive = true) {
   return prisma.governorate.create({ data: { nameAr, nameEn, sortOrder, isActive } });
 }
@@ -217,13 +243,10 @@ describe('POST /admin/governorates', () => {
 
   it('rolls the governorate back when its audit entry cannot be written', async () => {
     const admin = await signIn('ADMIN');
-    // The token outlives its account, so the entry's actor no longer exists and its insert fails.
-    await prisma.user.delete({ where: { id: admin.id } });
 
-    const response = await adminRequest(app, admin, 'post', '/governorates', {
-      nameAr: 'رفح',
-      nameEn: 'Rafah',
-    });
+    const response = await whileAuditRefused(() =>
+      adminRequest(app, admin, 'post', '/governorates', { nameAr: 'رفح', nameEn: 'Rafah' }),
+    );
 
     expect(response.status).toBe(500);
     expect(await prisma.governorate.count()).toBe(0);
@@ -366,11 +389,10 @@ describe('PATCH /admin/governorates/:id', () => {
   it('rolls the change back when its audit entry cannot be written', async () => {
     const admin = await signIn('ADMIN');
     const rafah = await governorate('رفح', 'Rafah', 0);
-    await prisma.user.delete({ where: { id: admin.id } });
 
-    const response = await adminRequest(app, admin, 'patch', `/governorates/${String(rafah.id)}`, {
-      isActive: false,
-    });
+    const response = await whileAuditRefused(() =>
+      adminRequest(app, admin, 'patch', `/governorates/${String(rafah.id)}`, { isActive: false }),
+    );
 
     expect(response.status).toBe(500);
     expect(await prisma.governorate.findUnique({ where: { id: rafah.id } })).toMatchObject({

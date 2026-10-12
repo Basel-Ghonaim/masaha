@@ -9,7 +9,7 @@ import {
 import { createRunInTransaction, type RunInTransaction, type Tx } from '../../db/index.ts';
 import type { Role } from '../../generated/prisma/enums.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
-import type { AccessClaims, AccessTokens } from '../../shared/auth/index.ts';
+import type { AccessClaims, AccessTokens, SignedInAccount } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
 import { createSessionsService, type SessionsService } from '../sessions/index.ts';
@@ -42,6 +42,8 @@ interface Dependencies {
   accessTokens: AccessTokens;
   limiter: Limiter;
   audit: AuditWriter;
+  /** The one clock (conventions §11): when an account is suspended. */
+  now: () => Date;
   repository?: UsersRepository;
   sessions?: SessionsService;
   runInTransaction?: RunInTransaction;
@@ -95,6 +97,25 @@ export interface CreatedAccount {
   role: Role;
 }
 
+/** An account locked with every active admin's row: what a change that may remove an admin reads. */
+export interface LockedAmongAdmins {
+  account: Account;
+  /** The active admins other than this account, counted under the lock. */
+  otherActiveAdmins: number;
+}
+
+/** An admin acts on another person's account only (D2): never suspends or demotes themselves. */
+export function assertNotOwnAccount(actorId: number, userId: number): void {
+  if (actorId === userId) throw AppError.conflict('OWN_ACCOUNT', 'Not on one’s own account');
+}
+
+/** The platform keeps an active admin (D2): a change may not remove the last one. */
+export function assertKeepsAnAdmin({ account, otherActiveAdmins }: LockedAmongAdmins): void {
+  if (account.role === 'ADMIN' && !account.suspendedAt && otherActiveAdmins === 0) {
+    throw AppError.conflict('LAST_ADMIN', 'The last active admin');
+  }
+}
+
 /** A changed password: the device's session goes on with these, and every other one has ended. */
 export interface PasswordChange {
   accessToken: string;
@@ -109,6 +130,7 @@ export function createUsersService({
   accessTokens,
   limiter,
   audit,
+  now,
   repository = createUsersRepository(),
   sessions = createSessionsService(),
   runInTransaction = createRunInTransaction(),
@@ -132,6 +154,29 @@ export function createUsersService({
     return (await repository.lock(id, tx)) ? repository.findById(id, tx) : null;
   }
 
+  /**
+   * Takes the user's session lock with every active admin's row, by id, in one statement
+   * (conventions §13), and reads the account under it. A change that may remove an admin takes it,
+   * so two admins acting on each other at once count each other's change. Nothing when the account
+   * does not exist.
+   */
+  async function lockForAdminChange(id: number, tx: Tx): Promise<LockedAmongAdmins | null> {
+    const locked = await repository.lockWithActiveAdmins(id, tx);
+    if (!locked.includes(id)) return null;
+    const account = await repository.findById(id, tx);
+    if (!account) return null;
+    return { account, otherActiveAdmins: locked.filter((other) => other !== id).length };
+  }
+
+  /**
+   * A new temporary password and its hash (docs/backend/security.md › Passwords), before the
+   * transaction that stores it opens: bcrypt stays outside every transaction.
+   */
+  async function issueTemporaryPassword(): Promise<TemporaryPassword> {
+    const password = temporaryPassword();
+    return { password, hash: await passwords.hash(password) };
+  }
+
   /** The account, or a 401 when it no longer exists. */
   async function get(id: number, tx?: Tx): Promise<Account> {
     const account = await repository.findById(id, tx);
@@ -141,18 +186,26 @@ export function createUsersService({
 
   /** What the access token says of the account (docs/backend/security.md › Tokens and cookies). */
   function accessClaims(account: Account): AccessClaims {
-    return {
-      userId: account.id,
-      role: account.role,
-      mustChangePassword: account.mustChangePassword,
-    };
+    return { userId: account.id, mustChangePassword: account.mustChangePassword };
   }
 
   return {
     accessClaims,
+
+    /**
+     * The account as requireAuth reads it on every signed-in request, by its primary key (ADR 0003,
+     * revised): its role, its pending change and its suspension now. Nothing when there is none.
+     */
+    async signedInAccount(id: number): Promise<SignedInAccount | null> {
+      const account = await repository.findById(id);
+      if (!account) return null;
+      const { role, mustChangePassword } = account;
+      return { role, mustChangePassword, suspended: !maySignIn(account) };
+    },
     maySignIn,
     assertMaySignIn,
     lockAccount,
+    lockForAdminChange,
 
     /** A new USER with a password. A taken email is EMAIL_TAKEN. */
     async register({ name, email, password, language }: Registration): Promise<Account> {
@@ -316,14 +369,7 @@ export function createUsersService({
       return (await repository.findByEmail(email, tx))?.account ?? null;
     },
 
-    /**
-     * A new temporary password and its hash (docs/backend/security.md › Passwords), before the
-     * transaction that stores it opens: bcrypt stays outside every transaction.
-     */
-    async issueTemporaryPassword(): Promise<TemporaryPassword> {
-      const password = temporaryPassword();
-      return { password, hash: await passwords.hash(password) };
-    },
+    issueTemporaryPassword,
 
     /**
      * An account created by someone else, with a temporary password to change at its first
@@ -355,6 +401,42 @@ export function createUsersService({
     },
 
     /**
+     * The admin's recovery for a person who lost their email (D6, docs/backend/security.md ›
+     * Passwords): a temporary password, generated and hashed before the transaction, set under the
+     * account's session lock, to be changed at the next sign-in. Every session and pending reset link
+     * ends, as a reset does; issued again, it replaces the pending one. Refused for the actor's own
+     * account, a suspended one (restored first) and a Google-only one, which has no password to
+     * recover. Audited `user.temporaryPasswordIssued`, never with the password, which is answered
+     * once; an unknown account is 404.
+     */
+    async issueTemporaryPasswordFor(actorId: number, userId: number): Promise<string> {
+      assertNotOwnAccount(actorId, userId);
+      const temporary = await issueTemporaryPassword();
+      await runInTransaction(async (tx) => {
+        const account = await lockAccount(userId, tx);
+        if (!account) throw AppError.notFound(undefined, 'Account not found');
+        if (!maySignIn(account)) throw AppError.conflict('ACCOUNT_SUSPENDED', 'Account suspended');
+        if (!(await repository.findPasswordHash(userId, tx))) {
+          throw AppError.conflict('GOOGLE_ONLY_ACCOUNT', 'No password to replace');
+        }
+        await repository.setTemporaryPassword(userId, temporary.hash, tx);
+        await sessions.revokeAll(userId, tx);
+        await sessions.endResetTokens(userId, tx);
+        await audit(
+          {
+            actorId,
+            action: 'user.temporaryPasswordIssued',
+            entityType: 'user',
+            entityId: userId,
+            after: { mustChangePassword: true },
+          },
+          tx,
+        );
+      });
+      return temporary.password;
+    },
+
+    /**
      * Records how the account's temporary password was handed over, after it was shown (the
      * owner's A5): audited `user.temporaryPasswordHandedOver`, the account as the entity, as the
      * entry of the password it follows. Only while that password is still pending; an unknown
@@ -377,6 +459,38 @@ export function createUsersService({
             entityType: 'user',
             entityId: userId,
             after: { channel },
+          },
+          tx,
+        );
+      });
+    },
+
+    /**
+     * Suspends the account, or restores it (D1, D4), under the admin-set lock: never the actor's own,
+     * never the last active admin. A suspension ends every session and pending reset link; the links
+     * to spaces stay. The same state again writes nothing. Audited `user.suspended` or
+     * `user.unsuspended`; an unknown account is 404.
+     */
+    async setSuspended(actorId: number, userId: number, isSuspended: boolean): Promise<void> {
+      assertNotOwnAccount(actorId, userId);
+      await runInTransaction(async (tx) => {
+        const locked = await lockForAdminChange(userId, tx);
+        if (!locked) throw AppError.notFound(undefined, 'Account not found');
+        if (!maySignIn(locked.account) === isSuspended) return;
+        if (isSuspended) assertKeepsAnAdmin(locked);
+        await repository.setSuspendedAt(userId, isSuspended ? now() : null, tx);
+        if (isSuspended) {
+          await sessions.revokeAll(userId, tx);
+          await sessions.endResetTokens(userId, tx);
+        }
+        await audit(
+          {
+            actorId,
+            action: isSuspended ? 'user.suspended' : 'user.unsuspended',
+            entityType: 'user',
+            entityId: userId,
+            before: { isSuspended: !isSuspended },
+            after: { isSuspended },
           },
           tx,
         );
@@ -434,7 +548,11 @@ export function createUsersService({
             mustChangePassword: account.mustChangePassword,
           };
           const { changed, issued } = await runInTransaction(async (tx) => {
-            // The update takes the session lock; it applies only to the password that was checked.
+            // The session lock first, so a suspension that committed meanwhile is seen and no
+            // session opens for it; the update applies only to the password that was checked.
+            const locked = await lockAccount(userId, tx);
+            if (!locked) throw AppError.unauthorized(undefined, 'Account not found');
+            assertMaySignIn(locked);
             const changed = await repository.setPasswordIf(userId, passwordHash, expected, tx);
             if (!changed) {
               throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Password changed meanwhile');

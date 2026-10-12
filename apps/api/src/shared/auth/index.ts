@@ -13,8 +13,11 @@ export { createAccessTokens, type AccessClaims, type AccessTokens } from './acce
 export {
   createRequireAuth,
   readAccessToken,
+  type AccountReader,
   type RequireAuth,
   type RequireAuthOptions,
+  type SignedIn,
+  type SignedInAccount,
 } from './requireAuth.ts';
 export { requireRole } from './requireRole.ts';
 export { signedIn } from './signedIn.ts';

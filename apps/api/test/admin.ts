@@ -23,21 +23,25 @@ export const REFUSED_CALLERS = [
   },
 ] as const satisfies readonly { caller: Caller; status: number; type: string; code?: string }[];
 
-/** A new account for the caller, and the Authorization header of its access token. */
+/**
+ * A new account for the caller, and the Authorization header of its access token. A second account
+ * of the same caller in one test needs an email of its own.
+ */
 export async function signIn(
   caller: Exclude<Caller, 'guest'>,
+  email?: string,
 ): Promise<{ id: number; authorization: string }> {
   const pending = caller === 'ADMIN with a pending password change';
   const role: Role = pending ? 'ADMIN' : caller;
   const user = await prisma.user.create({
     data: {
-      email: `${pending ? 'pending' : role.toLowerCase()}@example.com`,
+      email: email ?? `${pending ? 'pending' : role.toLowerCase()}@example.com`,
       name: 'Sara',
       role,
       passwordHash: 'x',
     },
   });
-  const token = await accessTokens.sign({ userId: user.id, role, mustChangePassword: pending });
+  const token = await accessTokens.sign({ userId: user.id, mustChangePassword: pending });
   return { id: user.id, authorization: `Bearer ${token}` };
 }
 

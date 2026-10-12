@@ -11,7 +11,7 @@ A runbook, not a source of truth: each step links to the section that owns its r
 2. Truth check:
    - every comment and every document sentence states what holds now ([CLAUDE.md, "Claim only what is true"](../../../CLAUDE.md#non-negotiable-rules-every-task));
    - code and test names carry no roadmap notes ([engineering principles §8](../../../docs/development/engineering-principles.md#8-comments)).
-3. Run `git fetch origin`. Rebase on `origin/main` only as [workflow §9](../../../docs/development/workflow.md#9-parallel-work) says: when GitHub shows a conflict.
+3. Run `git fetch origin`. Rebase on `origin/main` only as [workflow §9](../../../docs/development/workflow.md#9-parallel-work) says: when GitHub shows a conflict. A merge apart calls for no new CI run ([§9, Merging](../../../docs/development/workflow.md#9-parallel-work)).
    - A conflict takes the fast path when it applies ([workflow §9, Conflicts](../../../docs/development/workflow.md#conflicts)).
    - A conflict in `package-lock.json` is regenerated, never merged by hand ([workflow §9, Dependencies](../../../docs/development/workflow.md#9-parallel-work)). If `package-lock.json` changed, install again ([setup, Install](../../../docs/development/setup.md#install)).
 4. Verify locally, before any push: phase 4 ([workflow §2, Phases](../../../docs/development/workflow.md#phases)), with its exception for a change with no code. For Evidence ([workflow §3, PR description](../../../docs/development/workflow.md#pr-description)), record:

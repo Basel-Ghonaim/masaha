@@ -66,7 +66,6 @@ describe('POST /auth/register', () => {
     });
     expect(await accessTokens.verify(accessToken)).toEqual({
       userId: expect.any(Number) as unknown,
-      role: 'USER',
       mustChangePassword: false,
     });
   });
