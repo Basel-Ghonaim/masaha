@@ -1,11 +1,11 @@
 import { CATALOGUES, type Language } from '@shared/copy';
 import { THEMES } from '@shared/design-system';
 import { directionOf } from '@shared/localisation';
-import { describe, expect, it, vi } from 'vitest';
+import { STORAGE_KEYS } from '@shared/storage';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakePlatform } from '../../test/fakePlatform';
 import {
   getPreferences,
-  PREFERENCE_KEYS,
   preferencesLanguage,
   setLanguage,
   setTheme,
@@ -14,6 +14,10 @@ import {
 } from './preferences';
 
 const LANGUAGES = Object.keys(CATALOGUES) as Language[];
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 /** Starts the store on a stand-in browser, as bootstrap starts it on the real one. */
 function start(browser: Parameters<typeof fakePlatform>[0] = {}) {
@@ -33,13 +37,13 @@ describe('the preferences at start', () => {
   });
 
   it.each(THEMES)('take a stored %s theme as the choice, over the device', (theme) => {
-    start({ stored: { [PREFERENCE_KEYS.theme]: theme }, prefersDark: theme === 'light' });
+    start({ stored: { [STORAGE_KEYS.theme]: theme }, prefersDark: theme === 'light' });
 
     expect(getPreferences()).toMatchObject({ themeChoice: theme, theme });
   });
 
   it('ignore a stored theme the design system does not define', () => {
-    start({ stored: { [PREFERENCE_KEYS.theme]: 'sepia' }, prefersDark: true });
+    start({ stored: { [STORAGE_KEYS.theme]: 'sepia' }, prefersDark: true });
 
     expect(getPreferences()).toMatchObject({ themeChoice: 'system', theme: 'dark' });
   });
@@ -81,13 +85,13 @@ describe('the theme choices', () => {
 
     setTheme(theme);
 
-    expect(fake.stored()).toEqual({ [PREFERENCE_KEYS.theme]: theme });
+    expect(fake.stored()).toEqual({ [STORAGE_KEYS.theme]: theme });
     expect(getPreferences()).toMatchObject({ themeChoice: theme, theme });
     expect(fake.root.dataset.theme).toBe(theme);
   });
 
   it('remove the stored theme for the device, and show the device theme', () => {
-    const fake = start({ stored: { [PREFERENCE_KEYS.theme]: 'light' }, prefersDark: true });
+    const fake = start({ stored: { [STORAGE_KEYS.theme]: 'light' }, prefersDark: true });
 
     setTheme('system');
 
@@ -117,7 +121,7 @@ describe('the theme choices', () => {
     fake.setDeviceDark(false);
     fake.setDeviceDark(true);
 
-    expect(fake.stored()).toEqual({ [PREFERENCE_KEYS.theme]: 'light' });
+    expect(fake.stored()).toEqual({ [STORAGE_KEYS.theme]: 'light' });
     expect(getPreferences()).toMatchObject({ themeChoice: 'light', theme: 'light' });
     expect(fake.root.dataset.theme).toBe('light');
   });
@@ -129,7 +133,7 @@ describe('the language', () => {
 
     setLanguage(language);
 
-    expect(fake.stored()).toEqual({ [PREFERENCE_KEYS.language]: language });
+    expect(fake.stored()).toEqual({ [STORAGE_KEYS.language]: language });
     expect(getPreferences().language).toBe(language);
     expect(fake.root).toMatchObject({ lang: language, dir: directionOf(language) });
   });
@@ -139,7 +143,7 @@ describe('another tab', () => {
   it('changes the language here', () => {
     const fake = start({ lang: 'ar' });
 
-    fake.otherTabWrites(PREFERENCE_KEYS.language, 'en');
+    fake.otherTabWrites(STORAGE_KEYS.language, 'en');
 
     expect(getPreferences().language).toBe('en');
     expect(fake.root).toMatchObject({ lang: 'en', dir: 'ltr' });
@@ -148,22 +152,22 @@ describe('another tab', () => {
   it('changes the theme here', () => {
     const fake = start({ prefersDark: false });
 
-    fake.otherTabWrites(PREFERENCE_KEYS.theme, 'dark');
+    fake.otherTabWrites(STORAGE_KEYS.theme, 'dark');
 
     expect(getPreferences()).toMatchObject({ themeChoice: 'dark', theme: 'dark' });
     expect(fake.root.dataset.theme).toBe('dark');
   });
 
   it('chooses the device here by removing the theme', () => {
-    const fake = start({ stored: { [PREFERENCE_KEYS.theme]: 'light' }, prefersDark: true });
+    const fake = start({ stored: { [STORAGE_KEYS.theme]: 'light' }, prefersDark: true });
 
-    fake.otherTabWrites(PREFERENCE_KEYS.theme, null);
+    fake.otherTabWrites(STORAGE_KEYS.theme, null);
 
     expect(getPreferences()).toMatchObject({ themeChoice: 'system', theme: 'dark' });
   });
 
   it('clearing storage follows the device and keeps the language', () => {
-    const fake = start({ lang: 'en', stored: { [PREFERENCE_KEYS.theme]: 'dark' } });
+    const fake = start({ lang: 'en', stored: { [STORAGE_KEYS.theme]: 'dark' } });
 
     fake.otherTabWrites(null, null);
 
@@ -175,10 +179,10 @@ describe('another tab', () => {
   });
 
   it.each([
-    { key: PREFERENCE_KEYS.language, value: 'fr' },
+    { key: STORAGE_KEYS.language, value: 'fr' },
     { key: 'another.key', value: 'dark' },
   ])('changes nothing here for $key = $value', ({ key, value }) => {
-    const fake = start({ lang: 'en', stored: { [PREFERENCE_KEYS.theme]: 'light' } });
+    const fake = start({ lang: 'en', stored: { [STORAGE_KEYS.theme]: 'light' } });
 
     fake.otherTabWrites(key, value);
 
@@ -187,9 +191,9 @@ describe('another tab', () => {
   });
 
   it('reads a theme it does not define as none stored, as a reload would', () => {
-    const fake = start({ stored: { [PREFERENCE_KEYS.theme]: 'light' }, prefersDark: true });
+    const fake = start({ stored: { [STORAGE_KEYS.theme]: 'light' }, prefersDark: true });
 
-    fake.otherTabWrites(PREFERENCE_KEYS.theme, 'sepia');
+    fake.otherTabWrites(STORAGE_KEYS.theme, 'sepia');
 
     expect(getPreferences()).toMatchObject({ themeChoice: 'system', theme: 'dark' });
   });
@@ -197,12 +201,12 @@ describe('another tab', () => {
   it('is not written back', () => {
     const fake = start({ lang: 'ar' });
 
-    fake.otherTabWrites(PREFERENCE_KEYS.language, 'en');
-    fake.otherTabWrites(PREFERENCE_KEYS.theme, 'dark');
+    fake.otherTabWrites(STORAGE_KEYS.language, 'en');
+    fake.otherTabWrites(STORAGE_KEYS.theme, 'dark');
 
     expect(fake.stored()).toEqual({
-      [PREFERENCE_KEYS.language]: 'en',
-      [PREFERENCE_KEYS.theme]: 'dark',
+      [STORAGE_KEYS.language]: 'en',
+      [STORAGE_KEYS.theme]: 'dark',
     });
   });
 });

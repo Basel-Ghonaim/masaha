@@ -1,6 +1,8 @@
 import type { QueryClient } from '@shared/api';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { blockLocalStorage } from '../test/fakeStorage';
 import { App } from './App';
 import { bootstrap } from './bootstrap';
 
@@ -29,5 +31,19 @@ describe('App', () => {
 
     // The page loads lazily, so the landmark arrives once its code has.
     expect(await screen.findByRole('main')).toBeInTheDocument();
+  });
+
+  it('starts, and still changes its language and theme, in a browser that blocks storage', async () => {
+    blockLocalStorage();
+    ({ queryClient } = bootstrap());
+    const user = userEvent.setup();
+    render(<App queryClient={queryClient} />);
+
+    await user.click(await screen.findByRole('button', { name: 'English' }));
+    await user.click(screen.getByRole('button', { name: 'Dark theme' }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute('lang', 'en');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
   });
 });

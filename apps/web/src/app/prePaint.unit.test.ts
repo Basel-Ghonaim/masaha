@@ -2,7 +2,7 @@ import { CATALOGUES, type Language } from '@shared/copy';
 import { THEMES } from '@shared/design-system';
 import { directionOf, FALLBACK_LANGUAGE } from '@shared/localisation';
 import { setLanguage, setTheme, setupPreferences } from '@shared/preferences';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import indexHtml from '../../index.html?raw';
 import { fakePlatform } from '../test/fakePlatform';
 
@@ -46,6 +46,11 @@ function prePaint({
   run(window, { documentElement: root });
   return { theme: root.dataset.theme, lang: root.lang, dir: root.dir };
 }
+
+// The app's side stubs the global localStorage, through fakePlatform.
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('pre-paint theme', () => {
   it.each([

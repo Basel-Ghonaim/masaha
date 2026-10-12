@@ -439,4 +439,34 @@ export default defineConfig([
       ],
     },
   },
+  {
+    // Browser storage is reached only inside shared/storage, which guards it and declares every key
+    // (docs/frontend/architecture.md §4). Tests stand in for the browser's storage, or read a raw
+    // key to prove its name.
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    ignores: [
+      'apps/web/src/shared/storage/**',
+      'apps/web/src/test/**',
+      'apps/web/src/**/*.test.{ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['localStorage', 'sessionStorage'].map((name) => ({
+          name,
+          message: 'Browser storage goes through @shared/storage.',
+        })),
+      ],
+      'no-restricted-properties': [
+        'error',
+        ...['window', 'globalThis', 'self'].flatMap((object) =>
+          ['localStorage', 'sessionStorage'].map((property) => ({
+            object,
+            property,
+            message: 'Browser storage goes through @shared/storage.',
+          })),
+        ),
+      ],
+    },
+  },
 ]);
