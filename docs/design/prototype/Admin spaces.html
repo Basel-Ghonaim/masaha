@@ -30,7 +30,7 @@ function Spaces({ theme, setTheme }) {
   const [list, setList] = React.useState(AD.spaces);
   const [q, setQ] = React.useState(''); const [gov, setGov] = React.useState('all'); const [status, setStatus] = React.useState('all'); const [stale, setStale] = React.useState(pageParams.get('stale') === '1');
   const [del, setDel] = React.useState(pageParams.get('del') ? AD.spaces.find((s) => s.id === pageParams.get('del')) : null);
-  const [unlink, setUnlink] = React.useState(pageParams.get('unlink') ? { s: AD.spaces.find((s) => s.id === pageParams.get('unlink')), o: 'o3' } : null);
+  const [unlink, setUnlink] = React.useState(() => { const s = AD.spaces.find((x) => x.id === pageParams.get('unlink')); return s && s.owners.length ? { s, o: s.owners[0] } : null; });
   const [link, setLink] = React.useState(pageParams.get('link') ? AD.spaces.find((s) => s.id === pageParams.get('link')) : null);
   const [pick, setPick] = React.useState('o4');
   const govs = M.governorates.filter((g) => !g.hidden);
