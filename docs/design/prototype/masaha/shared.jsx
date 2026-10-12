@@ -169,7 +169,7 @@ function PageActions({ actions }) {
 // them inside its shell with no actions, since the sidebar is the way on; the site offers
 // its way back. `?state=offline|403|404` reaches them from any page.
 const ROUTE_STATES = () => ({
-  offline: { icon: 'alert', title: tr('لا يوجد اتصال بالإنترنت', 'No internet connection'), text: tr('ستظهر البيانات عند عودة الاتصال.', 'The data will appear when you’re back online.'), retry: true },
+  offline: { icon: 'offline', title: tr('لا يوجد اتصال بالإنترنت', 'No internet connection'), text: tr('ستظهر البيانات عند عودة الاتصال.', 'The data will appear when you’re back online.'), retry: true },
   403: { icon: 'alert', title: tr('لا تملك صلاحية هذه الصفحة', 'You don’t have access to this page'), text: tr('إن كنت تظن أن هذا خطأ، تواصل مع صاحب المساحة أو الإدارة.', 'If you think this is a mistake, ask the space’s owner or the admin.') },
   404: { icon: 'search', title: tr('الصفحة غير موجودة', 'Page not found'), text: tr('ربما تغيّر الرابط أو حُذفت الصفحة.', 'The link may have changed or the page was removed.') }
 });
@@ -250,10 +250,20 @@ function RouteState({ state }) {
   const { EmptyState, Button, SearchXIcon, CircleAlertIcon } = window.MasahaDesignSystem;
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-10">
-      <EmptyState icon={state.icon === 'search' ? <SearchXIcon /> : <CircleAlertIcon />} title={state.title} titleAs="h1" description={state.text}>
+      <EmptyState icon={state.icon === 'search' ? <SearchXIcon /> : state.icon === 'offline' ? <WifiOffIcon /> : <CircleAlertIcon />} title={state.title} titleAs="h1" description={state.text}>
         {state.retry && <Button onClick={() => location.reload()}>{tr('إعادة المحاولة', 'Try again')}</Button>}
       </EmptyState>
     </div>
+  );
+}
+
+// PU-024 and S3: offline is not an error, so it has its own icon. The layer has none, so it is drawn
+// here, in the layer's stroke style (design issue 3: worker A's icon set).
+function WifiOffIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h.01" /><path d="M8.5 16.43a5 5 0 0 1 7 0" /><path d="M5 12.86a10 10 0 0 1 5.17-2.69" /><path d="M19 12.86a10 10 0 0 0-2-1.52" /><path d="M2 8.82a15 15 0 0 1 4.18-2.64" /><path d="M22 8.82a15 15 0 0 0-11.29-3.76" /><path d="m2 2 20 20" />
+    </svg>
   );
 }
 
@@ -330,7 +340,7 @@ function SiteFooter() {
         <p>{tr("مساحة — دليل مساحات العمل المشتركة في قطاع غزة", "Masaha — a directory of coworking spaces in the Gaza Strip")}</p>
         <div className="flex flex-wrap gap-4">
           <a href="About.html">{tr("عن مساحة", "About Masaha")}</a>
-          <a href="About.html#owners">{tr("تواصل معنا", "Contact us")}</a>
+          <a href="About.html#contact">{tr("تواصل معنا", "Contact us")}</a>
         </div>
       </div>
     </footer>
@@ -510,7 +520,7 @@ const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON
 
 const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
 
-Object.assign(window, { AccountMenuContent, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, spaceName, otherName, SpaceName, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpaceMeta, areaLine, SpaceCover, SpaceCard, SpaceCardSkeleton, useFavourites, HeartButton, HeartIcon, PRIVACY_LINE, PageToaster, handOffToast });
+Object.assign(window, { WifiOffIcon, AccountMenuContent, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, spaceName, otherName, SpaceName, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpaceMeta, areaLine, SpaceCover, SpaceCard, SpaceCardSkeleton, useFavourites, HeartButton, HeartIcon, PRIVACY_LINE, PageToaster, handOffToast });
 
 // DS date picker with long localized dates («3 أكتوبر 2026»). value/onChange use ISO yyyy-mm-dd.
 const isoLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
