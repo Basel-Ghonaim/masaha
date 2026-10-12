@@ -62,14 +62,14 @@ window.ADMIN = (function () {
       { id: 'khanyounis', ar: 'محافظة خان يونس', en: 'Khan Younis', active: true, areas: [{ id: 'ky', ar: 'خان يونس (المدينة)', en: 'Khan Younis (city)', active: true }, { id: 'mawasi', ar: 'المواصي', en: 'Al-Mawasi', active: true }, { id: 'suheila', ar: 'بني سهيلا', en: 'Bani Suheila', active: false }, { id: 'abasan', ar: 'عبسان', en: 'Abasan', active: false }, { id: 'qarara', ar: 'القرارة', en: 'Al-Qarara', active: false }, { id: 'khuzaa', ar: 'خزاعة', en: 'Khuza’a', active: false }] },
       { id: 'rafah', ar: 'محافظة رفح', en: 'Rafah', active: false, areas: [{ id: 'rafahcity', ar: 'رفح (المدينة)', en: 'Rafah (city)', active: false }, { id: 'sultan', ar: 'تل السلطان', en: 'Tel as-Sultan', active: false }] }
     ],    amenities: [
-      { id: 'internet', ar: 'إنترنت', en: 'Internet', icon: 'SearchIcon', filter: false, active: true },
-      { id: 'power', ar: 'كهرباء مستقرة', en: 'Stable power', icon: 'CircleCheckIcon', filter: false, active: true },
-      { id: 'solar', ar: 'طاقة شمسية', en: 'Solar power', icon: 'InfoIcon', filter: true, active: true },
-      { id: 'generator', ar: 'خط كهرباء مولّد', en: 'Generator power line', icon: 'TriangleAlertIcon', filter: true, active: true },
-      { id: 'drinks', ar: 'مشروبات ساخنة', en: 'Hot drinks', icon: 'CircleAlertIcon', filter: true, active: true },
-      { id: 'meeting', ar: 'قاعة اجتماعات', en: 'Meeting room', icon: 'UsersIcon', filter: true, active: true },
-      { id: 'rental', ar: 'قاعات للإيجار', en: 'Halls for rent', icon: 'CalendarIcon', filter: true, active: true },
-      { id: 'training', ar: 'دورات تدريبية تقنية', en: 'Technical training', icon: 'EyeIcon', filter: true, active: true }
+      { id: 'internet', ar: 'إنترنت', en: 'Internet', icon: 'SearchIcon', active: true },
+      { id: 'power', ar: 'كهرباء مستقرة', en: 'Stable power', icon: 'CircleCheckIcon', active: true },
+      { id: 'solar', ar: 'طاقة شمسية', en: 'Solar power', icon: 'InfoIcon', active: true },
+      { id: 'generator', ar: 'خط كهرباء مولّد', en: 'Generator power line', icon: 'TriangleAlertIcon', active: true },
+      { id: 'drinks', ar: 'مشروبات ساخنة', en: 'Hot drinks', icon: 'CircleAlertIcon', active: true },
+      { id: 'meeting', ar: 'قاعة اجتماعات', en: 'Meeting room', icon: 'UsersIcon', active: true },
+      { id: 'rental', ar: 'قاعات للإيجار', en: 'Halls for rent', icon: 'CalendarIcon', active: true },
+      { id: 'training', ar: 'دورات تدريبية تقنية', en: 'Technical training', icon: 'EyeIcon', active: true }
     ]
   };
   const B = T('باسل', 'Basel');
@@ -92,7 +92,7 @@ window.ADMIN = (function () {
     ['2026-09-20', '11:50', B, 'owner_linked', T('يوسف ← Number One Hub', 'Yousef → Number One Hub'), T('أصبحت المساحة موثّقة', 'The space became verified')],
     ['2026-09-18', '14:22', B, 'role_changed', T('يوسف', 'Yousef'), T('مستخدم ← مالك', 'User → Owner')],
     ['2026-09-10', '08:40', B, 'settings_changed', T('عتبة حداثة الأسعار', 'Price freshness threshold'), T('30 يومًا (كانت 45)', '30 days (was 45)')],
-    ['2026-09-03', '17:15', B, 'lookup_changed', T('إنترنت', 'Internet'), T('لا يظهر في الفلاتر', 'Removed from filters')]
+    ['2026-09-03', '17:15', B, 'lookup_changed', T('إنترنت', 'Internet'), T('الاسم بالإنجليزية: Internet (كان Wi-Fi)', 'English name: Internet (was Wi-Fi)')]
   ];
   // The log is the longest list the admin reads, and the one a reviewer scrolls furthest.
   const AUDIT_FILL = [
