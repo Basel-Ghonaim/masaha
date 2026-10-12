@@ -115,7 +115,7 @@ function Edit({ theme, setTheme }) {
           <PricesSection space={space} meta={groupMeta('prices')} />
           <AmenitiesSection space={space} meta={groupMeta('amenities')} manage="Admin lookups.html?tab=amenities" />
           <ContactsSection space={space} meta={groupMeta('contacts')} />
-          <PhotosSection />
+          <PhotosSection empty={isNew} />
           <PrivacyNote />
         </div>}
       </div>

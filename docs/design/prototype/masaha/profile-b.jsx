@@ -206,32 +206,118 @@ function ContactsSection({ space, meta = {} }) {
   );
 }
 
-function PhotosSection() {
-  const sec = useSection('photos', { list: [1, 2, 3, 4, 5] });
-  const move = (i, d) => { const l = sec.v.list.slice(); const j = i + d; [l[i], l[j]] = [l[j], l[i]]; sec.set({ list: l }); };
+// E6 (A1, O7): the photos are no fact group, so they have no date, no confirm and no save. Each
+// act is immediate: a chosen file uploads at once on its own tile, with its progress, and a failure
+// stays on that tile; removal asks first; reorder and cover apply at once and are announced.
+const PHOTO_LIMIT = 10;
+const MAX_BYTES = 5 * 1024 * 1024;
+function PhotosSection({ empty }) {
+  const { Card, CardHeader, CardDescription, CardContent, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, toast } = window.MasahaDesignSystem;
+  const [tiles, setTiles] = React.useState(empty ? [] : [1, 2, 3, 4, 5].map((n) => ({ id: 'p' + n, n, state: 'done' })));
+  const [leftOut, setLeftOut] = React.useState(0);
+  const [said, say] = React.useState('');
+  const [removing, setRemoving] = React.useState(null);
   const input = React.useRef(null);
+  const failNext = React.useRef(actionFails('upload'));
+  const next = React.useRef(empty ? 1 : 6);
+  const counted = tiles.filter((t) => t.state === 'done' || t.state === 'uploading').length;
+  const coverId = (tiles.find((t) => t.state === 'done') || {}).id;
+  const patch = (id, p) => setTiles((l) => l.map((t) => (t.id === id ? { ...t, ...p } : t)));
+  // The server's answer is a frame here: ?fail=upload fails the first upload as a lost connection.
+  const upload = (id) => {
+    patch(id, { state: 'uploading', progress: 0 });
+    let progress = 0;
+    const timer = setInterval(() => {
+      progress += 20;
+      if (progress < 100) { patch(id, { progress }); return; }
+      clearInterval(timer);
+      if (failNext.current) { failNext.current = false; patch(id, { state: 'failed' }); return; }
+      patch(id, { state: 'done' });
+    }, 160);
+  };
+  // A refused file takes no place: only the photos that can go up fill the room left.
+  const choose = (files) => {
+    let room = PHOTO_LIMIT - counted, out = 0;
+    const added = [];
+    Array.from(files).forEach((f) => {
+      const why = !/^image\/(jpeg|png)$/.test(f.type) ? tr('JPG أو PNG فقط', 'JPG or PNG only') : f.size > MAX_BYTES ? tr('أكبر من 5 ميغابايت', 'Larger than 5 MB') : null;
+      if (!why && room <= 0) { out++; return; }
+      if (!why) room--;
+      const n = next.current++;
+      added.push({ id: 'p' + n, n, url: why ? null : URL.createObjectURL(f), state: why ? 'rejected' : 'uploading', why, progress: 0 });
+    });
+    setLeftOut(out);
+    setTiles((l) => [...l, ...added]);
+    added.filter((t) => t.state === 'uploading').forEach((t) => upload(t.id));
+  };
+  const name = (t) => tr('صورة ', 'Photo ') + t.n;
+  const move = (i, d) => {
+    const l = tiles.slice(); const j = i + d; [l[i], l[j]] = [l[j], l[i]]; setTiles(l);
+    say(tr(`${name(l[j])} الآن في الموضع ${j + 1} من ${l.length}`, `${name(l[j])} is now at position ${j + 1} of ${l.length}`));
+  };
+  const cover = (i) => { const t = tiles[i]; setTiles([t, ...tiles.filter((x) => x.id !== t.id)]); say(tr(`${name(t)} هي الغلاف الآن`, `${name(t)} is the cover now`)); };
+  const drop = (id) => setTiles((l) => l.filter((x) => x.id !== id));
+  const full = counted >= PHOTO_LIMIT;
   return (
-    <ProfileSection id="photos" title={tr('الصور', 'Photos')} updated={tr('قبل شهرين', '2 months ago')} sec={sec}>
-      <p className="text-caption text-muted-foreground">{tr('حتى 10 صور · JPG أو PNG · حتى 5 ميغابايت لكل صورة. الصورة الأولى هي الغلاف.', 'Up to 10 photos · JPG or PNG · up to 5 MB each. The first photo is the cover.')}</p>
-      <ul className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {sec.v.list.map((n, i) => (
-          <li key={n} className="flex flex-col gap-2 rounded-lg border border-border p-2">
-            <div className="relative flex items-center justify-center rounded-md bg-muted text-caption text-muted-foreground" role="img" aria-label={tr('صورة ', 'Photo ') + n}>
-              {tr('صورة', 'Photo')} {n}
-              {i === 0 && <span className="photo-cover"><QBadge variant="primary">{tr('الغلاف', 'Cover')}</QBadge></span>}
-            </div>
-            <div className="flex flex-wrap items-center gap-1">
-              <QButton type="button" variant="ghost" size="icon" disabled={i === 0} aria-label={tr('تحريك للأمام', 'Move earlier')} onClick={() => move(i, -1)}><QUp /></QButton>
-              <QButton type="button" variant="ghost" size="icon" disabled={i === sec.v.list.length - 1} aria-label={tr('تحريك للخلف', 'Move later')} onClick={() => move(i, 1)}><QDown /></QButton>
-              {i !== 0 && <QButton type="button" variant="ghost" size="sm" onClick={() => sec.set({ list: [n, ...sec.v.list.filter((x) => x !== n)] })}>{tr('غلاف', 'Cover')}</QButton>}
-              <QButton type="button" variant="ghost" size="icon" className="ms-auto" aria-label={tr('حذف الصورة ', 'Delete photo ') + n} onClick={() => sec.set({ list: sec.v.list.filter((x) => x !== n) })}><QX /></QButton>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <input ref={input} type="file" accept="image/jpeg,image/png" multiple className="sr-only" onChange={(e) => { const add = Array.from(e.target.files || []).slice(0, 10 - sec.v.list.length).map((_, k) => Date.now() % 1000 + k); sec.set({ list: [...sec.v.list, ...add] }); }} />
-      <QButton type="button" variant="outline" className="self-start" disabled={sec.v.list.length >= 10} onClick={() => input.current.click()}>{tr('رفع صور', 'Upload photos')}</QButton>
-    </ProfileSection>
+    <Card id="photos" className="section-anchor">
+      <CardHeader>
+        <SectionTitle>{tr('الصور', 'Photos')}</SectionTitle>
+        <CardDescription>{tr('حتى 10 صور · JPG أو PNG · حتى 5 ميغابايت لكل صورة. الأولى هي الغلاف. كل تغيير يُحفظ فورًا.', 'Up to 10 photos · JPG or PNG · up to 5 MB each. The first is the cover. Every change is saved at once.')}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <p className="sr-only" aria-live="polite">{said}</p>
+        {tiles.length === 0 ? <p className="text-body-sm text-muted-foreground">{tr('لا صور بعد.', 'No photos yet.')}</p> : (
+          <ul className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            {tiles.map((t, i) => (
+              <li key={t.id} className="flex flex-col gap-2 rounded-lg border border-border p-2">
+                <div className="photo-thumb relative flex items-center justify-center overflow-hidden rounded-md bg-muted text-caption text-muted-foreground" role="img" aria-label={name(t)}>
+                  {t.url ? <img src={t.url} alt="" className="size-full object-cover" /> : name(t)}
+                  {t.id === coverId && <span className="photo-cover"><QBadge variant="primary">{tr('الغلاف', 'Cover')}</QBadge></span>}
+                </div>
+                {t.state === 'uploading' && <div className="flex flex-col gap-1">
+                  <div className="upload-bar" role="progressbar" aria-label={tr('رفع ', 'Uploading ') + name(t)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={t.progress}><span style={{ width: t.progress + '%' }} /></div>
+                  <span className="text-caption text-muted-foreground">{tr('جارٍ الرفع…', 'Uploading…')} <Ltr>{t.progress}%</Ltr></span>
+                </div>}
+                {t.state === 'failed' && <div className="flex flex-col gap-1">
+                  <p className="text-caption text-destructive">{tr('لم تُرفع: انقطع الاتصال.', 'Not uploaded: the connection dropped.')}</p>
+                  <div className="flex flex-wrap gap-1"><QButton type="button" variant="outline" size="sm" disabled={full} onClick={() => upload(t.id)}>{tr('إعادة المحاولة', 'Try again')}</QButton><QButton type="button" variant="ghost" size="sm" onClick={() => drop(t.id)}>{tr('إزالة', 'Remove')}</QButton></div>
+                </div>}
+                {t.state === 'rejected' && <div className="flex flex-col gap-1">
+                  <p className="text-caption text-destructive">{tr('لم تُرفع: ', 'Not uploaded: ')}{t.why}</p>
+                  <div><QButton type="button" variant="ghost" size="sm" onClick={() => drop(t.id)}>{tr('إزالة', 'Remove')}</QButton></div>
+                </div>}
+                {t.state === 'done' && <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1">
+                    <QButton type="button" variant="ghost" size="icon" disabled={i === 0} aria-label={tr('تحريك ', 'Move ') + name(t) + tr(' للأمام', ' earlier')} onClick={() => move(i, -1)}><QUp /></QButton>
+                    <QButton type="button" variant="ghost" size="icon" disabled={i === tiles.length - 1} aria-label={tr('تحريك ', 'Move ') + name(t) + tr(' للخلف', ' later')} onClick={() => move(i, 1)}><QDown /></QButton>
+                    <QButton type="button" variant="ghost" size="icon" className="ms-auto" aria-label={tr('حذف ', 'Delete ') + name(t)} onClick={() => setRemoving(t)}><QX /></QButton>
+                  </div>
+                  {t.id !== coverId && <QButton type="button" variant="ghost" size="sm" className="self-start" onClick={() => cover(i)}>{tr('اجعلها الغلاف', 'Make cover')}</QButton>}
+                </div>}
+              </li>
+            ))}
+          </ul>
+        )}
+        <input ref={input} type="file" accept="image/jpeg,image/png" multiple className="sr-only" tabIndex={-1} onChange={(e) => { choose(e.target.files || []); e.target.value = ''; }} />
+        {leftOut > 0 && <p className="text-caption text-destructive">{tr(`لم تُضف ${leftOut === 1 ? 'صورة واحدة' : leftOut === 2 ? 'صورتان' : leftOut + ' صور'}: الحد 10 صور.`, `${leftOut} left out: the limit is 10 photos.`)}</p>}
+        <div className="flex flex-wrap items-center gap-3">
+          <QButton type="button" variant="outline" disabled={full} onClick={() => input.current.click()}>{tr('رفع صور', 'Upload photos')}</QButton>
+          {full && <LimitNote>{tr('الحد 10 صور — احذف صورة لتضيف غيرها', 'Up to 10 photos — delete one to add another')}</LimitNote>}
+        </div>
+      </CardContent>
+      <AlertDialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tr('حذف ', 'Delete ')}{removing && name(removing)}{tr('؟', '?')}</AlertDialogTitle>
+            <AlertDialogDescription>{tr('تختفي من صفحة المساحة فورًا، ولا يمكن استرجاعها.', 'It leaves the space’s page at once, and cannot be brought back.')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => { drop(removing.id); toast.success(tr('حُذفت ', 'Deleted ') + name(removing)); }}>{tr('حذف', 'Delete')}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
   );
 }
 

@@ -68,3 +68,6 @@ a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=bre
 /* AD-008: the prices' table keeps to its card — fixed columns, so a field's own width cannot widen it. */
 .price-table table{table-layout:fixed;width:100%}.price-table .w-period{width:18%}.price-table .w-audience{width:20%}.price-table .w-shift{width:25%}.price-table .w-label{width:17%}.price-table .w-amount{width:12%}.price-table .w-remove{width:3rem}
 .price-table th,.price-table td{padding-inline:.25rem;white-space:normal}.price-table th:first-child,.price-table td:first-child{padding-inline-start:.75rem}
+/* E6: a photo's tile, and its upload's progress (the bundle has no Progress, and no `h-28`). */
+.photo-thumb{height:7rem}
+.upload-bar{height:.375rem;overflow:hidden;border-radius:999px;background:var(--muted)}.upload-bar>span{display:block;height:100%;background:var(--primary);transition:width var(--duration-short,.15s)}
