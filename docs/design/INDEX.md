@@ -34,6 +34,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Admin owners.html?sheet=add&email=nour@example.com` | the owners page | the add-owner sheet as the server leaves it after `EMAIL_HAS_ACCOUNT`: «سيُرقّى حسابه» and «ترقية وربط» |
 | `Admin reports.html?space=<id>` · `?field=<field>` | the admin's data reports | one space's reports, one field's, or both (A7); the verified space's «بلاغات <space>» link uses `?space=` |
 | `Admin space edit.html?id=golden&report=r1#report` | the admin's editor | the report «تعديل الحقل» carried there: above its section, with «تم التصحيح» (A8). Only an open report on an unverified space shows |
+| `Admin lookups.html?edit=area` | the lookups | the area sheet: the names and, since Gaza City has more than ten areas, «الترتيب» (AD-026); its switch is now only in the row (AD-025) |
 
 ### Batch 3 — the public site
 

@@ -71,15 +71,17 @@ window.ADMIN = (function () {
       { id: 'middle', ar: 'محافظة الوسطى', en: 'Middle Area', active: true, areas: [{ id: 'deir', ar: 'دير البلح', en: 'Deir al-Balah', active: true }, { id: 'nuseirat', ar: 'النصيرات', en: 'An-Nuseirat', active: true }, { id: 'bureij', ar: 'البريج', en: 'Al-Bureij', active: true }, { id: 'maghazi', ar: 'المغازي', en: 'Al-Maghazi', active: true }, { id: 'zawaida', ar: 'الزوايدة', en: 'Az-Zawaida', active: true }] },
       { id: 'khanyounis', ar: 'محافظة خان يونس', en: 'Khan Younis', active: true, areas: [{ id: 'ky', ar: 'خان يونس (المدينة)', en: 'Khan Younis (city)', active: true }, { id: 'mawasi', ar: 'المواصي', en: 'Al-Mawasi', active: true }, { id: 'suheila', ar: 'بني سهيلا', en: 'Bani Suheila', active: false }, { id: 'abasan', ar: 'عبسان', en: 'Abasan', active: false }, { id: 'qarara', ar: 'القرارة', en: 'Al-Qarara', active: false }, { id: 'khuzaa', ar: 'خزاعة', en: 'Khuza’a', active: false }] },
       { id: 'rafah', ar: 'محافظة رفح', en: 'Rafah', active: false, areas: [{ id: 'rafahcity', ar: 'رفح (المدينة)', en: 'Rafah (city)', active: false }, { id: 'sultan', ar: 'تل السلطان', en: 'Tel as-Sultan', active: false }] }
-    ],    amenities: [
-      { id: 'internet', ar: 'إنترنت', en: 'Internet', icon: 'SearchIcon', active: true },
-      { id: 'power', ar: 'كهرباء مستقرة', en: 'Stable power', icon: 'CircleCheckIcon', active: true },
-      { id: 'solar', ar: 'طاقة شمسية', en: 'Solar power', icon: 'InfoIcon', active: true },
-      { id: 'generator', ar: 'خط كهرباء مولّد', en: 'Generator power line', icon: 'TriangleAlertIcon', active: true },
-      { id: 'drinks', ar: 'مشروبات ساخنة', en: 'Hot drinks', icon: 'CircleAlertIcon', active: true },
-      { id: 'meeting', ar: 'قاعة اجتماعات', en: 'Meeting room', icon: 'UsersIcon', active: true },
-      { id: 'rental', ar: 'قاعات للإيجار', en: 'Halls for rent', icon: 'CalendarIcon', active: true },
-      { id: 'training', ar: 'دورات تدريبية تقنية', en: 'Technical training', icon: 'EyeIcon', active: true }
+    ],
+    // AD-027: each amenity carries one of the platform's eight icon keys (`AMENITY_ICON_KEYS`).
+    amenities: [
+      { id: 'internet', ar: 'إنترنت', en: 'Internet', icon: 'wifi', active: true },
+      { id: 'power', ar: 'كهرباء مستقرة', en: 'Stable power', icon: 'zap', active: true },
+      { id: 'solar', ar: 'طاقة شمسية', en: 'Solar power', icon: 'sun', active: true },
+      { id: 'generator', ar: 'خط كهرباء مولّد', en: 'Generator power line', icon: 'plug-zap', active: true },
+      { id: 'drinks', ar: 'مشروبات ساخنة', en: 'Hot drinks', icon: 'coffee', active: true },
+      { id: 'meeting', ar: 'قاعة اجتماعات', en: 'Meeting room', icon: 'users', active: true },
+      { id: 'rental', ar: 'قاعات للإيجار', en: 'Halls for rent', icon: 'presentation', active: true },
+      { id: 'training', ar: 'دورات تدريبية تقنية', en: 'Technical training', icon: 'graduation-cap', active: true }
     ]
   };
   const B = T('باسل', 'Basel');
