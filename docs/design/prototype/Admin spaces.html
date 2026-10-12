@@ -38,12 +38,18 @@ function Spaces({ theme, setTheme }) {
   // A3, as the contract's filter: verified and unverified leave hidden spaces out, hidden keeps them
   // whatever their verification, and a deleted space is listed only under «محذوفة».
   const inState = (s) => (status === 'deleted' ? !!s.deleted : !s.deleted && (status === 'all' || (status === 'hidden' ? s.hidden : !s.hidden && s.status === status)));
-  const rows = list.filter((s) => (!q.trim() || s.name.toLowerCase().includes(q.trim().toLowerCase())) && (gov === 'all' || gov === 'g:' + s.gov || gov === 'a:' + s.area) && inState(s) && (!stale || AD.staleGroups(s).length));
+  const rows = list.filter((s) => (!q.trim() || s.name.toLowerCase().includes(q.trim().toLowerCase())) && (gov === 'all' || gov === 'g:' + s.gov || gov === 'a:' + s.area) && inState(s) && (!stale || AD.staleGroups(s).length || AD.missingGroups(s).length));
   const upd = (id, p) => setList((l) => l.map((x) => (x.id === id ? { ...x, ...p } : x)));
   const toggleHide = (s) => { const hidden = !s.hidden; upd(s.id, { hidden }); toast(hidden ? tr(`أُخفيت ${s.name} من الموقع`, `${s.name} hidden from the site`) : tr(`أصبحت ${s.name} ظاهرة`, `${s.name} is visible again`), { action: { label: tr('تراجع', 'Undo'), onClick: () => toggleHide({ ...s, hidden }) } }); };
   // A3: a deleted space comes back at once, as it was — hidden or not, with its owners (S1).
   const restore = (s) => { upd(s.id, { deleted: undefined }); toast.success(tr(`استُرجعت ${s.name} — عادت كما كانت`, `${s.name} restored, as it was`)); };
-  const fresh = (s) => { if (s.deleted) return <span className="text-muted-foreground">—</span>; const g = AD.staleGroups(s); return g.length ? <Badge variant="warning"><span>{tr('قديمة:', 'Stale:')} {g.map((x) => AD.GROUP[x]).join(tr('، ', ', '))}</span></Badge> : <Badge variant="success">{tr('محدّثة', 'Up to date')}</Badge>; };
+  const fresh = (s) => {
+    if (s.deleted) return <span className="text-muted-foreground">—</span>;
+    const g = AD.staleGroups(s); const m = AD.missingGroups(s);
+    if (!g.length && !m.length) return <Badge variant="success">{tr('محدّثة', 'Up to date')}</Badge>;
+    // DI-22: «ناقصة» is `warning` everywhere for the admin (A8), as «قديمة» is.
+    return <span className="flex flex-wrap gap-2">{g.length > 0 && <Badge variant="warning"><span>{tr('قديمة:', 'Stale:')} {g.map((x) => AD.GROUP[x]).join(tr('، ', ', '))}</span></Badge>}{m.length > 0 && <Badge variant="warning"><span>{tr('ناقصة:', 'Missing:')} {m.map((x) => AD.GROUP[x]).join(tr('، ', ', '))}</span></Badge>}</span>;
+  };
   const State = ({ s }) => s.deleted ? <span className="text-body-sm text-muted-foreground">{tr('محذوفة', 'Deleted')} · {AD.fmt(s.deleted)}</span> : <SpaceStatus s={s} />;
   const owners = (s) => s.owners.length ? s.owners.map(ownerName).join(tr('، ', ', ')) : <span className="text-muted-foreground">—</span>;
   const actions = (s) => s.deleted ? <Button size="sm" variant="outline" onClick={() => restore(s)} aria-label={tr('استرجاع ', 'Restore ') + s.name}>{tr('استرجاع', 'Restore')}</Button> : (
@@ -84,10 +90,11 @@ function Spaces({ theme, setTheme }) {
             </FilterSheet>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* A7: a switch is not a filter field — «بيانات قديمة فقط» is a chip by the count. */}
+            {/* A7: a switch is not a filter field — the stale filter is a chip by the count, and (DI-26) its words
+                say that it keeps the missing groups too, as the contract's `stale=true` does. */}
             <div className="flex flex-wrap items-center gap-3">
               <ResultCount>{tr('عدد المساحات', 'Spaces')}: <Num>{rows.length}</Num></ResultCount>
-              <ToggleGroup type="multiple" value={stale ? ['stale'] : []} onValueChange={(v) => setStale(v.includes('stale'))} aria-label={tr('تصفية سريعة', 'Quick filter')}><ToggleGroupItem value="stale">{tr('بيانات قديمة فقط', 'Stale data only')}</ToggleGroupItem></ToggleGroup>
+              <ToggleGroup type="multiple" value={stale ? ['stale'] : []} onValueChange={(v) => setStale(v.includes('stale'))} aria-label={tr('تصفية سريعة', 'Quick filter')}><ToggleGroupItem value="stale">{tr('قديمة أو ناقصة', 'Stale or missing')}</ToggleGroupItem></ToggleGroup>
             </div>
             {addBtn}
           </div>

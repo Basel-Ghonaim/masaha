@@ -26,7 +26,6 @@
 const { DirectionProvider, Button, Badge, DataTable, EmptyState, ToggleGroup, ToggleGroupItem, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Combobox, ComboboxTrigger, ComboboxContent, ComboboxItem, Textarea, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Alert, AlertDescription, TriangleAlertIcon, ArrowEndIcon, toast } = window.MasahaDesignSystem;
 const spaceOf = (r) => AD.spaces.find((s) => s.id === r.space);
 const CURRENT = { prices: tr('ساعة 3 ₪ · يوم 15 ₪ · شهر 300 ₪', 'Hour ₪3 · Day ₪15 · Month ₪300'), location: tr('غزة، شارع النفق، قرب مسجد …', 'Gaza, An-Nafaq Street, near … mosque'), contacts: tr('واتساب +970 59 000 0000', 'WhatsApp +970 59 000 0000'), hours: tr('السبت – الخميس 08:00–18:00', 'Sat – Thu 08:00–18:00'), amenities: tr('إنترنت · كهرباء مستقرة · مشروبات ساخنة', 'Internet · Stable power · Hot drinks'), other: '—' };
-const SECTION = { prices: 'prices', hours: 'hours', contacts: 'contacts', location: 'location', amenities: 'amenities', other: 'basics' };
 function Reports({ theme, setTheme }) {
   const [list, setList] = React.useState(AD.reports);
   const [st, setSt] = React.useState(pageParams.get('status') || 'all');
@@ -34,12 +33,13 @@ function Reports({ theme, setTheme }) {
   const [space, setSpace] = React.useState(AD.spaces.some((s) => s.id === pageParams.get('space') && !s.deleted) ? pageParams.get('space') : 'all');
   const [field, setField] = React.useState(AD.FIELD[pageParams.get('field')] ? pageParams.get('field') : 'all');
   const [open, setOpen] = React.useState(pageParams.get('open') ? AD.reports.find((r) => r.id === pageParams.get('open')) : null);
-  const [reply, setReply] = React.useState('');
-  React.useEffect(() => { if (open) setReply(open.reply || ''); }, [open]);
+  const [reply, setReply] = React.useState(''); const [replyErr, setReplyErr] = React.useState(null);
+  React.useEffect(() => { if (open) { setReply(open.reply || ''); setReplyErr(null); } }, [open]);
   const rows = list.filter((r) => (st === 'all' || r.status === st) && (space === 'all' || r.space === space) && (field === 'all' || r.field === field));
   const spaceChoices = AD.spaces.filter((s) => !s.deleted);
   const chosenSpace = spaceChoices.find((s) => s.id === space);
-  const decide = (status) => { setList((l) => l.map((x) => (x.id === open.id ? { ...x, status, reply } : x))); setOpen(null); toast.success(status === 'fixed' ? tr('عُلّم «تم التصحيح»', 'Marked «Corrected»') : tr('عُلّم «لم يُعتمد»', 'Marked «Not accepted»')); };
+  // A8: the reply is all a reporter reads, so «لم يُعتمد» needs one; «تم التصحيح» may go without.
+  const decide = (status) => { if (status === 'rejected' && !reply.trim()) { setReplyErr(tr('اكتب السبب؛ هو ما سيقرؤه صاحب البلاغ', 'Write the reason; it’s what the reporter will read')); setTimeout(() => { const t = document.querySelector('[role=dialog] textarea'); if (t) t.focus(); }); return; } setList((l) => l.map((x) => (x.id === open.id ? { ...x, status, reply } : x))); setOpen(null); toast.success(status === 'fixed' ? tr('عُلّم «تم التصحيح»', 'Marked «Corrected»') : tr('عُلّم «لم يُعتمد»', 'Marked «Not accepted»')); };
   const S = AD.RSTAT;
   const By = ({ r }) => AD.handledBy(r) === 'admin' ? <Badge variant="info">{tr('الإدارة', 'Admin')}</Badge> : <Badge variant="neutral">{tr('المالك', 'Owner')}</Badge>;
   const columns = [
@@ -88,9 +88,9 @@ function Reports({ theme, setTheme }) {
               {ro && <Alert variant="info"><AlertDescription>{tr('مساحة موثّقة — يعالج المالك هذا البلاغ. للاطلاع فقط.', 'Verified space — its owner handles this report. For reference only.')}</AlertDescription></Alert>}
               <div className="flex flex-col gap-1 rounded-lg border border-border p-3"><span className="text-caption text-muted-foreground">{tr('البلاغ', 'The report')}</span><p className="text-body">{open.msg}</p></div>
               <div className="flex flex-col gap-1 rounded-lg bg-muted p-3"><span className="text-caption text-muted-foreground">{tr('القيمة الحالية في صفحة المساحة', 'Current value on the space page')}</span><p className="text-body">{CURRENT[open.field]}</p></div>
-              {!ro && <Button variant="outline" className="self-start" asChild><a href={'Admin space edit.html?id=' + open.space + '#' + SECTION[open.field]}>{tr('تعديل الحقل', 'Edit the field')}<ArrowEndIcon /></a></Button>}
+              {!ro && <Button variant="outline" className="self-start" asChild><a href={'Admin space edit.html?id=' + open.space + '&report=' + open.id + '#report'}>{tr('تعديل الحقل', 'Edit the field')}<ArrowEndIcon /></a></Button>}
               {ro ? (open.reply && <div className="flex flex-col gap-1 rounded-lg bg-muted p-3"><span className="text-caption text-muted-foreground">{tr('ردّ إدارة المساحة', 'Reply from the space')}</span><p className="text-body-sm">{open.reply}</p></div>)
-                : <Field label={tr('ردّ فريق مساحة', 'Reply from the Masaha team')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>} helper={tr('يظهر لصاحب البلاغ.', 'Shown to the person who reported it.')}><Textarea rows={3} value={reply} onChange={(e) => setReply(e.target.value)} /></Field>}
+                : <Field label={tr('ردّ فريق مساحة', 'Reply from the Masaha team')} helper={tr('يظهر لصاحب البلاغ. مطلوب لـ«لم يُعتمد»، واختياري لـ«تم التصحيح».', 'Shown to the person who reported it. Required to mark «Not accepted», optional for «Corrected».')} error={replyErr}><Textarea rows={3} value={reply} onChange={(e) => { setReply(e.target.value); setReplyErr(null); }} /></Field>}
             </SheetBody>
             {!ro && <SheetFooter className="flex flex-row gap-2"><Button className="flex-1" onClick={() => decide('fixed')}>{tr('تم التصحيح', 'Corrected')}</Button><Button variant="outline" className="flex-1" onClick={() => decide('rejected')}>{tr('لم يُعتمد', 'Not accepted')}</Button></SheetFooter>}
           </>}

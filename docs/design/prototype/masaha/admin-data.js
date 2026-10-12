@@ -16,18 +16,20 @@ window.ADMIN = (function () {
     focus: { status: 'verified', upd: { prices: 2, hours: 7, contacts: 20, amenities: 20 }, missing: [], last: '2026-09-27', own: [{ ar: 'مكتبة كتب تقنية', en: 'Tech library' }] },
     branch: { status: 'verified', upd: { prices: 3, hours: 12, contacts: 30, amenities: 12 }, missing: [], last: '2026-09-26' },
     numberone: { status: 'verified', upd: { prices: 41, hours: 9, contacts: 65, amenities: 30 }, missing: ['photos'], last: '2026-09-20' },
-    zm: { status: 'unverified', upd: { prices: 12, hours: 25, contacts: 25, amenities: 25 }, missing: ['pin'], last: '2026-09-17' },
+    zm: { status: 'unverified', upd: { prices: 12, hours: 25, contacts: 25, amenities: 25 }, missing: [], last: '2026-09-17' },
     golden: { status: 'unverified', upd: { prices: 46, hours: 70, contacts: 70, amenities: 70 }, missing: ['photos'], last: '2026-07-21', own: [{ ar: 'غرفة صلاة', en: 'Prayer room' }, { ar: 'خزائن شخصية', en: '' }] },
     white: { status: 'unverified', upd: { prices: 18, hours: 18, contacts: 18, amenities: 18 }, missing: ['hours'], last: '2026-09-11' },
-    palm: { status: 'unverified', hidden: true, upd: { prices: 120, hours: 120, contacts: 120, amenities: 120 }, missing: ['prices', 'pin'], last: '2026-05-30' },
+    palm: { status: 'unverified', hidden: true, upd: { prices: 120, hours: 120, contacts: 120, amenities: 120 }, missing: ['prices'], last: '2026-05-30' },
     olive: { status: 'verified', deleted: '2026-08-14', upd: { prices: 50, hours: 50, contacts: 50, amenities: 50 }, missing: [], last: '2026-08-10' }
   };
   const spaces = [...M.spaces.map((s) => ({ id: s.id, name: s.name, gov: s.gov, area: s.area })), { id: 'palm', name: 'Palm Hub', gov: 'gaza', area: 'sheikh' }, { id: 'olive', name: 'Olive Desk', gov: 'middle', area: 'deir' }]
     .map((s) => ({ ...s, ...meta[s.id], owners: owners.filter((o) => o.spaces.includes(s.id)).map((o) => o.id) }));
   const LIMIT = { prices: 30, other: 60 };
+  // The fact groups never saved — the contract's `missingGroups`; the photos are no fact group.
+  const missingGroups = (s) => s.missing.filter((g) => g !== 'photos');
   const staleGroups = (s) => Object.entries(s.upd).filter(([g, d]) => d > (g === 'prices' ? LIMIT.prices : LIMIT.other)).map(([g]) => g);
   const GROUP = { prices: T('الأسعار', 'Prices'), hours: T('ساعات العمل', 'Opening hours'), contacts: T('التواصل', 'Contacts'), amenities: T('المرافق', 'Amenities') };
-  const MISSING = { pin: T('بدون دبوس على الخريطة', 'No map pin'), photos: T('بدون صور', 'No photos'), hours: T('بدون ساعات عمل', 'No opening hours'), prices: T('بدون أسعار', 'No prices') };
+  const MISSING = { photos: T('بدون صور', 'No photos'), hours: T('بدون ساعات عمل', 'No opening hours'), prices: T('بدون أسعار', 'No prices') };
   const STATUS = { verified: [T('موثّقة', 'Verified'), 'success'], unverified: [T('غير موثّقة', 'Unverified'), 'neutral'] };
   // The state filter's four choices (A3): the verification, then hidden and deleted.
   const STATE_FILTER = { verified: T('موثّقة', 'Verified'), unverified: T('غير موثّقة', 'Unverified'), hidden: T('مخفية', 'Hidden'), deleted: T('محذوفة', 'Deleted') };
@@ -123,5 +125,5 @@ window.ADMIN = (function () {
   const fmt = (iso, y) => new Date(iso + 'T12:00:00').toLocaleDateString(T('ar-EG', 'en-GB'), { day: 'numeric', month: 'short', ...(y ? { year: 'numeric' } : {}), numberingSystem: 'latn' });
   // The admin's own catalogue holds every area; the public one only those its sample spaces use.
   const areaName = (s) => { for (const g of lookups.govs) { const a = g.areas.find((x) => x.id === s.area); if (a) return T(a.ar, a.en); } return T('الشيخ رضوان', 'Sheikh Radwan'); };
-  return { TODAY, owners, spaces, STATE_FILTER, users, reports, lookups, audit, LIMIT, staleGroups, GROUP, MISSING, STATUS, ROLE, METHOD, handledBy, FIELD, RSTAT, ACTION, fmt, areaName, admin: { name: B, email: 'basel@example.com' } };
+  return { TODAY, owners, spaces, STATE_FILTER, missingGroups, users, reports, lookups, audit, LIMIT, staleGroups, GROUP, MISSING, STATUS, ROLE, METHOD, handledBy, FIELD, RSTAT, ACTION, fmt, areaName, admin: { name: B, email: 'basel@example.com' } };
 })();

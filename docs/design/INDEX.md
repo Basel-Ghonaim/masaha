@@ -33,6 +33,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Admin users.html?temp=1` | the same | the temporary-password confirmation, now for the first active account **with a password** (it named Nour, who signs in with Google only) |
 | `Admin owners.html?sheet=add&email=nour@example.com` | the owners page | the add-owner sheet as the server leaves it after `EMAIL_HAS_ACCOUNT`: «سيُرقّى حسابه» and «ترقية وربط» |
 | `Admin reports.html?space=<id>` · `?field=<field>` | the admin's data reports | one space's reports, one field's, or both (A7); the verified space's «بلاغات <space>» link uses `?space=` |
+| `Admin space edit.html?id=golden&report=r1#report` | the admin's editor | the report «تعديل الحقل» carried there: above its section, with «تم التصحيح» (A8). Only an open report on an unverified space shows |
 
 ### Batch 3 — the public site
 
@@ -657,8 +658,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 |---|---|---|---|
 | Spaces — desktop 1440 | `Admin spaces.html` | 1440×1000 | [43-admin-spaces/01-spaces-desktop-1440.webp](screens/43-admin-spaces/01-spaces-desktop-1440.webp) |
 | Spaces — phone 390 | `Admin spaces.html` | 390×844 | [43-admin-spaces/02-spaces-phone-390.webp](screens/43-admin-spaces/02-spaces-phone-390.webp) |
-| Stale only — desktop 1440 | `Admin spaces.html?stale=1` | 1440×1000 | [43-admin-spaces/03-stale-only-desktop-1440.webp](screens/43-admin-spaces/03-stale-only-desktop-1440.webp) |
-| Stale only — phone 390 | `Admin spaces.html?stale=1` | 390×844 | [43-admin-spaces/04-stale-only-phone-390.webp](screens/43-admin-spaces/04-stale-only-phone-390.webp) |
+| Stale or missing — desktop 1440 | `Admin spaces.html?stale=1` | 1440×1000 | [43-admin-spaces/03-stale-only-desktop-1440.webp](screens/43-admin-spaces/03-stale-only-desktop-1440.webp) |
+| Stale or missing — phone 390 | `Admin spaces.html?stale=1` | 390×844 | [43-admin-spaces/04-stale-only-phone-390.webp](screens/43-admin-spaces/04-stale-only-phone-390.webp) |
 | Link owner — desktop 1440 | `Admin spaces.html?link=golden` | 1440×1000 | [43-admin-spaces/05-link-owner-desktop-1440.webp](screens/43-admin-spaces/05-link-owner-desktop-1440.webp) |
 | Link owner — phone 390 | `Admin spaces.html?link=golden` | 390×844 | [43-admin-spaces/06-link-owner-phone-390.webp](screens/43-admin-spaces/06-link-owner-phone-390.webp) |
 | Unlink last owner → unverified — desktop 1440 | `Admin spaces.html?unlink=numberone` | 1440×1000 | [43-admin-spaces/07-unlink-last-owner-unverified-desktop-1440.webp](screens/43-admin-spaces/07-unlink-last-owner-unverified-desktop-1440.webp) |
