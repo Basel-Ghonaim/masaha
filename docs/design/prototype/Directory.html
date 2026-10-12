@@ -199,20 +199,27 @@ function DirectoryScreen() {
   const [sort, setSort] = React.useState(near.coords ? 'distance' : 'updated');
   const set = (patch) => setF((prev) => ({ ...prev, ...patch }));
 
-  // «الأقرب إليّ» lives in the sort: choosing it asks for location (or reuses the saved/manual one).
+  // U2: «الأقرب إليّ» is a control of its own, not an item of the sort list. A location that
+  // arrives sorts by distance; another sort leaves it, keeping the location until «مسح موقعي».
   React.useEffect(() => {
     if (near.coords) setSort('distance');
-    else if (near.loc.status !== 'locating') setSort((s) => (s === 'distance' ? 'updated' : s));
-  }, [!!near.coords, near.loc.status]);
-  const chooseSort = (v) => {
-    if (v === 'distance' && !near.coords) { setSort('distance'); near.request(); return; }
-    setSort(v);
-  };
+    else setSort((s) => (s === 'distance' ? 'updated' : s));
+  }, [!!near.coords]);
+  const sortingByDistance = sort === 'distance' && !!near.coords;
+  const toggleNear = () => (sortingByDistance ? setSort('updated') : near.coords ? setSort('distance') : near.request());
+  const chooseSort = (v) => setSort(v);
   const changeView = (v) => setView(v);
   const firstSync = React.useRef(true);
   React.useEffect(() => { if (firstSync.current && pageParams.get('sheet')) { firstSync.current = false; return; } firstSync.current = false; syncUrl(f, view); }, [f, view]);
   const pickOnMap = () => { changeView('map'); setSelectedId(null); near.startPick(); };
-  const chooseArea = () => setSheetOpen(true);
+  // «اختر منطقتك»: from 1024 the list view's filters are the sidebar, so the focus goes to its
+  // «المنطقة»; below it, or on the map, the sheet opens.
+  const chooseArea = () => {
+    const place = isDesktop && view === 'list' && document.querySelector('aside [role=combobox]');
+    if (!place) return setSheetOpen(true);
+    place.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    place.focus({ preventScroll: true });
+  };
 
   const results = applyFilters(f, sort === 'distance' && !near.coords ? 'updated' : sort, near.coords);
   const selected = results.find((r) => r.s.id === selectedId);
@@ -229,7 +236,6 @@ function DirectoryScreen() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h1 className="text-heading-1">{tr("مساحات العمل", "Workspaces")}</h1>
-            <p className="text-body-sm text-muted-foreground" aria-live="polite">{ready ? `${countLabel(results.length)} ${placeLine(f.areas)} · ${DISPLAY_ONLY()}` : '\u00a0'}</p>
           </div>
           <Tabs value={view} onValueChange={changeView}>
             <TabsList aria-label={tr("طريقة العرض", "View")}>
@@ -252,7 +258,6 @@ function DirectoryScreen() {
                 <Select value={sort} onValueChange={chooseSort}>
                   <SelectTrigger aria-label={tr("الترتيب", "Sort")}><SelectValue>{tr("الترتيب: ", "Sort: ")}{SORTS()[sort]}</SelectValue></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="distance">{near.loc.status === 'locating' ? tr("الأقرب إليّ — جارٍ تحديد موقعك…", "Nearest to me — finding your location…") : tr("الأقرب إليّ", "Nearest to me")}</SelectItem>
                     <SelectItem value="updated">{tr("الأحدث تحديثًا", "Recently updated")}</SelectItem>
                     <SelectItem value="name">{tr("حسب الاسم", "By name")}</SelectItem>
                   </SelectContent>
@@ -261,7 +266,12 @@ function DirectoryScreen() {
             )}
           </div>
         </div>
-        {!picking && <LocationStatus near={near} showIdle={view === 'list'} onPickOnMap={pickOnMap} onChooseArea={chooseArea} />}
+        {/* U2 and P5: the count by the toolbar, «الأقرب إليّ» beside it in both views, its one state line under them. */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <ResultCount>{ready ? `${countLabel(results.length)} ${placeLine(f.areas)} · ${DISPLAY_ONLY()}` : '\u00a0'}</ResultCount>
+          {!picking && <NearMeButton near={near} on={sortingByDistance} onToggle={toggleNear} />}
+        </div>
+        {!picking && <LocationStatus near={near} sorting={sortingByDistance} onStop={() => setSort('updated')} onPickOnMap={pickOnMap} onChooseArea={chooseArea} />}
 
         {state === 'error' && (
           <Alert variant="destructive">

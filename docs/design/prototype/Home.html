@@ -30,6 +30,7 @@ function HomeScreen() {
   const [theme, setTheme] = useTheme();
   const [state, setState] = React.useState(pageParams.get('state') || 'ready');
   const near = useNearMe();
+  const toPick = () => { location.href = carryParams('Directory.html?view=map&pick=1'); };
   // U1: Home no longer narrows the Strip to one governorate.
   const areas = M.governorates.flatMap((g) => g.areas.map((a) => ({ a, g, n: M.spaces.filter((s) => s.area === a.id).length }))).filter((x) => x.n > 0);
   const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1200); };
@@ -61,13 +62,15 @@ function HomeScreen() {
               <p className="text-caption text-muted-foreground">{DISPLAY_ONLY()}</p>
             </div>
             <div className="flex items-center gap-2">
-              {!nearest && <NearMeButton near={near} />}
+              <NearMeButton near={near} on={!!near.coords} />
               <Button variant="link" asChild><a href={allHref}>{tr("عرض الكل", "View all")}<ChevronEndIcon /></a></Button>
             </div>
           </div>
-          <LocationStatus near={near} showIdle={false}
-            onPickOnMap={() => { location.href = 'Directory.html?view=map&pick=1'; }}
-            onChooseArea={() => { location.href = 'Directory.html?sheet=filters'; }} />
+          {/* U2: on Home «اختر منطقتك» is answered here, by the area section below. Home has no
+              map, so placing or changing a pin happens on the Directory's. */}
+          <LocationStatus near={near} sorting={!!near.coords}
+            onPickOnMap={toPick} onChangePick={toPick}
+            onChooseArea={() => { const h = document.getElementById('areas-title'); h.scrollIntoView({ behavior: 'smooth', block: 'start' }); h.focus({ preventScroll: true }); }} />
           {state === 'loading' && <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((i) => <SpaceCardSkeleton key={i} />)}</div>}
           {state === 'error' && (
             <Alert variant="destructive">
@@ -89,7 +92,7 @@ function HomeScreen() {
 
         {/* U1: the areas that have spaces, across the Strip, each with its governorate; then all of them. */}
         <section className="flex flex-col gap-4" aria-labelledby="areas-title">
-          <h2 id="areas-title" className="text-heading-2">{tr("تصفّح حسب المنطقة", "Browse by area")}</h2>
+          <h2 id="areas-title" tabIndex={-1} className="text-heading-2">{tr("تصفّح حسب المنطقة", "Browse by area")}</h2>
           <div className="grid gap-4 md:grid-cols-3">
             {areas.map(({ a, g, n }) => (
               <a key={a.id} href={`Directory.html?area=${a.id}`} className="block rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
