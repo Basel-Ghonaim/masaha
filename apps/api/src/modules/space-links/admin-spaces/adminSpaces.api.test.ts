@@ -142,7 +142,9 @@ describe('GET /admin/spaces', () => {
         nameEn: 'Focus Hub',
         nameAr: 'فوكس هب',
         area: { id: areaId, nameAr: 'النصر', nameEn: 'An-Nasr' },
-        state: 'verified',
+        isVerified: true,
+        isHidden: false,
+        deletedAt: null,
         owners: [
           { id: idOf('Ahmad'), name: 'Ahmad' },
           { id: idOf('Maha'), name: 'Maha' },
@@ -168,6 +170,105 @@ describe('GET /admin/spaces', () => {
     await space('Gone Hub', { deleted: true });
 
     expect(await namesListed()).toEqual(['Branch Hub', 'White Space']);
+  });
+
+  it.each([
+    ['no status', '', ['Live Hub']],
+    ['verified', '?status=verified', []],
+    ['unverified', '?status=unverified', ['Live Hub']],
+    ['hidden', '?status=hidden', []],
+  ])('leaves every soft-deleted space out for %s', async (_, query, expected) => {
+    await space('Live Hub');
+    const owned = await space('Gone Owned', { deleted: true });
+    await link(owned.id, 'Ahmad');
+    await space('Gone Hidden', { deleted: true, isHidden: true });
+    await space('Gone Plain', { deleted: true });
+
+    expect(await namesListed(query)).toEqual(expected);
+  });
+
+  describe('the deleted spaces', () => {
+    it('lists only the soft-deleted spaces, hidden or not, verified or not, with their owners and when each was deleted', async () => {
+      await space('Live Hub');
+      const owned = await space('Gone Owned', { deleted: true, isHidden: true });
+      await link(owned.id, 'Ahmad');
+      await space('Gone Plain', { deleted: true });
+
+      const response = await list('?status=deleted');
+
+      expect(response.status).toBe(200);
+      expect(
+        (
+          dataOf(response) as {
+            nameEn: string;
+            isVerified: boolean;
+            isHidden: boolean;
+            deletedAt: string | null;
+            owners: { name: string }[];
+          }[]
+        ).map(({ nameEn, isVerified, isHidden, deletedAt, owners }) => ({
+          nameEn,
+          isVerified,
+          isHidden,
+          deletedAt,
+          owners: owners.map(({ name }) => name),
+        })),
+      ).toEqual([
+        {
+          nameEn: 'Gone Owned',
+          isVerified: true,
+          isHidden: true,
+          deletedAt: '2026-10-06T09:00:00.000Z',
+          owners: ['Ahmad'],
+        },
+        {
+          nameEn: 'Gone Plain',
+          isVerified: false,
+          isHidden: false,
+          deletedAt: '2026-10-06T09:00:00.000Z',
+          owners: [],
+        },
+      ]);
+    });
+
+    it('gives a live space no deletion date', async () => {
+      await space('Live Hub');
+
+      expect((dataOf(await list()) as { deletedAt: unknown }[])[0]?.deletedAt).toBeNull();
+    });
+
+    it('searches them, keeps those of a place, and those with a stale group', async () => {
+      const elsewhere = await createArea();
+      await space('Nasr Hub');
+      await space('Gone Nasr Hub', { deleted: true });
+      await space('Gone Far Hub', { deleted: true, area: elsewhere.id });
+      await space('Gone Old', { deleted: true, ages: { prices: 31 } });
+
+      expect(await namesListed(`?status=deleted&q=hub&areaId=${String(areaId)}`)).toEqual([
+        'Gone Nasr Hub',
+      ]);
+      expect(await namesListed('?status=deleted&stale=true')).toEqual(['Gone Old']);
+    });
+
+    it('filters them before it pages: full pages and the right total', async () => {
+      // Deleted and live spaces interleaved by name, so a page filtered after it was fetched would
+      // come up short.
+      for (const letter of ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']) {
+        await space(`${letter} Hub`, { deleted: 'ACEGI'.includes(letter) });
+      }
+
+      const first = await list('?status=deleted&limit=2');
+      const last = await list('?status=deleted&limit=2&page=3');
+
+      expect((dataOf(first) as { nameEn: string }[]).map(({ nameEn }) => nameEn)).toEqual([
+        'A Hub',
+        'C Hub',
+      ]);
+      expect(
+        (first.body as { meta: { totalRecords: number; totalPages: number } }).meta,
+      ).toMatchObject({ totalRecords: 5, totalPages: 3 });
+      expect((dataOf(last) as { nameEn: string }[]).map(({ nameEn }) => nameEn)).toEqual(['I Hub']);
+    });
   });
 
   describe('its filters', () => {

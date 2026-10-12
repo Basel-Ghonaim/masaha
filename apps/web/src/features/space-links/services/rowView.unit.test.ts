@@ -11,7 +11,9 @@ const FOCUS: AdminSpaceRow = {
   nameEn: 'Focus Hub',
   nameAr: null,
   area: { id: 11, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
-  state: 'verified',
+  isVerified: true,
+  isHidden: false,
+  deletedAt: null,
   owners: [
     { id: 3, name: 'Ahmad' },
     { id: 4, name: 'مها' },
@@ -57,11 +59,12 @@ describe('rowView', () => {
   });
 
   it.each([
-    ['verified', 'success', 'Verified'],
-    ['unverified', 'neutral', 'Unverified'],
-    ['hidden', 'warning', 'Hidden'],
-  ] as const)('shows a %s space’s state as a %s badge', (state, variant, label) => {
-    expect(english({ ...FOCUS, state }).state).toEqual({ label, variant });
+    ['a verified', 'success', { isVerified: true, isHidden: false }, 'Verified'],
+    ['an unverified', 'neutral', { isVerified: false, isHidden: false }, 'Unverified'],
+    ['a hidden verified', 'warning', { isVerified: true, isHidden: true }, 'Hidden'],
+    ['a hidden unverified', 'warning', { isVerified: false, isHidden: true }, 'Hidden'],
+  ] as const)('shows %s space’s state as a %s badge', (_, variant, facts, label) => {
+    expect(english({ ...FOCUS, ...facts }).state).toEqual({ label, variant });
   });
 
   it('shows a dash for a space with no owner, and reads it as having none', () => {

@@ -34,6 +34,7 @@ describe('filtersOf', () => {
     ['q=%20%20', 'an empty search'],
     [`q=${'a'.repeat(81)}`, 'a search past 80 characters'],
     ['status=closed', 'an unknown state'],
+    ['status=deleted', 'the deleted spaces, which the list does not offer yet'],
     ['area=0', 'an area that is not a positive id'],
     ['governorate=north', 'a governorate that is not an id'],
     ['stale=sometimes', 'a stale flag that is not one'],

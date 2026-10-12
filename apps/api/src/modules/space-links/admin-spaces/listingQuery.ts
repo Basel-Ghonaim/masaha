@@ -12,9 +12,10 @@ export interface ResolvedFilters {
 
 /**
  * The admin's list query as `spaces` applies it (conventions §5, §9). Verified and unverified are a
- * space's ids from its links, and both leave hidden spaces out, since a hidden space's state is
- * hidden whatever its owners; an area within a governorate narrows to that area, or to none when it
- * is not one of the governorate's.
+ * space's ids from its links, and both leave hidden spaces out, since the list shows a hidden space
+ * as hidden whatever its owners; deleted keeps the soft-deleted spaces only, hidden or not, verified
+ * or not; an area within a governorate narrows to that area, or to none when it is not one of the
+ * governorate's.
  */
 export function listingQueryOf(
   { status, areaId, q, stale }: AdminSpacesQuery,
@@ -28,6 +29,7 @@ export function listingQueryOf(
     ...(status === 'verified' && { ids: { in: verifiedIds }, isHidden: false }),
     ...(status === 'unverified' && { ids: { notIn: verifiedIds }, isHidden: false }),
     ...(status === 'hidden' && { isHidden: true }),
+    ...(status === 'deleted' && { deleted: true }),
     ...(areaIds && { areaIds }),
     ...(q !== undefined && { q }),
     ...(stale === true && { staleOnly: true }),

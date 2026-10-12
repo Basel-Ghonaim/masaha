@@ -17,7 +17,7 @@ This section lists a capability only once it is merged and working. Each line li
 
 - [Auth](../features/auth.md): register, sign in with a password or with Google, stay signed in across reloads, and reset a forgotten password by an email link.
 - [Users](../features/users.md): the account menu, sign-out, and the change of a temporary password before any other page; on the API, the admin's users list, an owner's account the admin creates with a temporary password, the admin's suspension, role change and temporary password for an account, each handover recorded, and a suspension or a role change that holds from the account's next request.
-- [Space links](../features/space-links.md): the spaces a user works at and the space switcher; the admin's spaces list, with its filters, on the dashboard; on the API, the admin's owners: added (a new account or an upgraded one), linked and unlinked one space at a time, the space verified while it has one.
+- [Space links](../features/space-links.md): the spaces a user works at and the space switcher; the admin's spaces list, with its filters, on the dashboard; on the API, the soft-deleted spaces as a list of their own, and the admin's owners: added (a new account or an upgraded one), linked and unlinked one space at a time, the space verified while it has one.
 - [Lookups](../features/lookups.md): the admin's governorates and areas, and amenities; the public catalogue, on the API.
 - [Spaces](../features/spaces.md): the admin's: on the API, add, edit the profile and the facts (hours and shifts, prices, amenities with its own beside the platform's, contacts), confirm them, hide, delete and restore; on the dashboard, add a space with its pin on a map, and on its spaces list, hide, show, and delete with an undo.
 

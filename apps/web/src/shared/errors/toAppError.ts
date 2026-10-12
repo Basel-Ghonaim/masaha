@@ -2,6 +2,7 @@ import {
   DOMAIN_ERROR_CODES,
   ERROR_TYPES,
   FIELD_ERROR_CODES,
+  errorTypeOfStatus,
   type DomainErrorCode,
   type ErrorEnvelope,
   type ErrorType,
@@ -12,23 +13,6 @@ import type { AxiosError } from 'axios';
 import { AppError } from './AppError';
 import type { AppErrorType, ClientErrorType } from './errorTypes';
 import { retryAfterSeconds } from './retryAfter';
-
-// The contract's status for each type (docs/api/api-contract.md §3), read backwards: an answer without
-// the envelope, such as a proxy's 502, is typed by its status alone. The API holds the same table
-// (docs/architecture/findings/24-the-status-of-each-error-type-is-written-twice.md).
-const TYPE_BY_STATUS: Readonly<Partial<Record<number, ErrorType>>> = {
-  400: 'bad_request',
-  401: 'unauthorized',
-  403: 'forbidden',
-  404: 'not_found',
-  409: 'conflict',
-  413: 'payload_too_large',
-  415: 'unsupported_media_type',
-  422: 'validation',
-  429: 'rate_limit',
-  500: 'server',
-  503: 'service_unavailable',
-};
 
 /** The fields of the error envelope (api-contract §2), none of them trusted yet. */
 type UncheckedEnvelope = Partial<Record<keyof ErrorEnvelope['error'], unknown>>;
@@ -104,8 +88,12 @@ function typeOfCode(code: string | undefined): ClientErrorType {
   }
 }
 
+/**
+ * An answer without the envelope, such as a proxy's 502, typed by its status alone: the contract's
+ * table read backwards, else any 5xx as `server`.
+ */
 function typeOfStatus(status: number): AppErrorType {
-  return TYPE_BY_STATUS[status] ?? (status >= 500 ? 'server' : 'unknown');
+  return errorTypeOfStatus(status) ?? (status >= 500 ? 'server' : 'unknown');
 }
 
 function envelopeOf(body: unknown): UncheckedEnvelope {

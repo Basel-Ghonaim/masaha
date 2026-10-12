@@ -32,12 +32,12 @@ Without an Issue, the Work Item's **contract lives in the PR description**:
 
 A substantial item runs these seven phases, in order; a trivial one (§1) goes straight to its PR. The skills in [`.claude/skills/`](../../.claude/skills/) walk through them.
 
-1. **Before the prompt** (the owner, with an analyst). The task is explained, its open decisions settled, and the related findings to fold chosen (§4). The prompt carries the task in brief, what to read, the settled decisions, the folded findings, the boundaries with the other worker (§9), and where to save the plan and the report. The prompt names those folders; no document or skill does.
+1. **Before the prompt** (the owner, with an analyst). The task is explained, its open decisions settled, and the related findings to fold chosen (§4). The prompt carries the task in brief, what to read, the settled decisions, the folded findings, the other open items' files (§9), and where to save the plan and the report. The prompt names those folders; no document or skill does.
 2. **Plan,** in plan mode: a complete plan with every decision taken. It contains:
    - the contract (scope, acceptance criteria, out of scope);
    - a **Stronger decisions** section: any decision of the prompt or of the documents, an ADR's included, within the item's scope, that the worker can make stronger, each with its reason, its cost and a recommendation;
    - the related findings, each folded or not (§4);
-   - the files, the other layer's included (§9);
+   - the files it edits, the other layer's included (§9);
    - for an item that builds or changes a screen, the **design issues** it finds: a mistake in the design, with a better solution from the design system's components and tokens, built only once the reply approves them;
    - each test with the break it catches ([testing §3](testing.md#3-rules-that-bind-every-test)), and a *Review Focus* list: the inputs no planned test exercises;
    - the commits (§3) and the verification (phase 4);
@@ -180,24 +180,28 @@ Pure refactors that change no behaviour need no documentation update.
 
 ## 9. Parallel work
 
-The owner may run two AI workers at the same time. These rules keep them from colliding. **Who works on what at a given moment is never recorded** in a document: it changes too often.
+The owner may run several AI workers at the same time. These rules keep them from colliding. **Who works on what at a given moment is never recorded** in a document: it changes too often.
 
-- **Two workers, one layer each:**
-  - **worker A** works in the main folder and builds the web;
-  - **worker B** works in one long-lived git worktree, `masaha-b`, and builds the API, with the schema, the migrations and the seed;
-  - one Work Item is one fresh conversation, for either worker. Fixes and rebases for the same PR stay in its conversation; a new conversation is for a new Work Item.
+- **Workers:**
+  - **worker A** works in the main folder, on the web by default;
+  - **worker B** works in one long-lived git worktree, `masaha-b`, on the API by default, with the schema, the migrations and the seed;
+  - that split is the default, not a limit: a task worker, in a worktree of its own, is added where *Items in parallel* (below) allows;
+  - one Work Item is one fresh conversation, for any worker. Fixes and rebases for the same PR stay in its conversation; a new conversation is for a new Work Item.
 - **A narrow licence in the other layer,** declared in the plan and approved. For A, for example, a field in a shared schema or a small fix in the API that the screen needs. For B, what breaks in the web when a shared type changes, and the catalogue entries of the error codes it adds ([localisation › Catalogues](../frontend/localisation.md#catalogues)). **A never writes a migration; B never builds a page.**
 - **The contract is the API worker's.** `packages/shared` and the [API contract](../api/api-contract.md) are the contract between the two layers; a change the web needs there is declared in A's plan.
-- **Two items in flight never work in the same layer.** The build map may change shape to keep it so ([v1-mvp › Ordering notes](../plans/v1-mvp.md#ordering-notes)).
+- **Items in parallel.** Items run in parallel, in any layer, when:
+  1. at most one item in flight changes the schema;
+  2. at most one adds a dependency (*Dependencies*, below);
+  3. no two open items edit the same code file: each plan lists its files, and each prompt names the other open items'. Shared documents and append-only lists (the contract, the overview's *Built* line, the findings index, a capability document's *Decisions* and *History*, catalogue lines) may be shared: each side keeps to its own section, and a conflict there takes the fast path ([*Conflicts*](#conflicts));
+  4. every item that runs the API has its own databases and ports (*Databases*, below).
+
+  A plan that needs a file another open item edits stops and says so.
 - **Worker B's branches:** between items, its worktree is detached at `origin/main`. Each item cuts its own branch with `git switch --no-track -c <branch> origin/main`. `--no-track` means a plain `git push` can never target `main`. The first push is `git push -u origin <branch>`.
-- **Files:**
-  - every Work Item's prompt names the other worker's files;
-  - a file both items need is declared in the plan first and edited minimally, and each side keeps to its own section.
-- **Dependencies:** either worker may add one, declared in its plan (§6), but never both at once. A conflict in `package-lock.json` is never merged by hand: after the rebase, `npm install` regenerates it.
-- **Databases:** the API test lane empties every table before each file ([setup › The API test lane](setup.md#the-api-test-lane)), so two workers never share a database. All live in the shared container ([setup › Database](setup.md#database)), and each folder points at its own through its `apps/api/.env`:
+- **Dependencies:** an item that adds one declares it in its plan (§6), within *Items in parallel*. A conflict in `package-lock.json` is never merged by hand: after the rebase, `npm install` regenerates it.
+- **Databases:** the API test lane empties every table before each file ([setup › The API test lane](setup.md#the-api-test-lane)), so two items never share a database. All live in the shared container ([setup › Database](setup.md#database)), and each folder points at its own through its `apps/api/.env`:
   - worker A uses `masaha_dev` and `masaha_test`;
   - worker B uses `masaha_b_dev` and `masaha_b_test`;
-  - any other worktree whose item changes the schema gets databases of its own.
+  - any other folder that runs the API uses its own, `masaha_<item>_dev` and `masaha_<item>_test`, and ports of its own ([setup › Running a second folder](setup.md#running-a-second-folder)).
 - **Merging:**
   - one PR is merged at a time;
   - a PR is rebased on `main` only when GitHub shows a conflict, which is resolved by keeping both sides;

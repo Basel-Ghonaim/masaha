@@ -10,6 +10,7 @@ const SPACE: ListedSpace = {
   nameAr: null,
   areaId: 4,
   isHidden: false,
+  deletedAt: null,
   staleGroups: ['prices'],
   missingGroups: ['contacts'],
   lastUpdatedAt: new Date('2026-10-01T09:00:00Z'),
@@ -25,7 +26,9 @@ describe('toAdminSpaceRow', () => {
       nameEn: 'Focus Hub',
       nameAr: null,
       area: AREA,
-      state: 'verified',
+      isVerified: true,
+      isHidden: false,
+      deletedAt: null,
       owners: [AHMAD],
       staleGroups: ['prices'],
       missingGroups: ['contacts'],
@@ -34,10 +37,26 @@ describe('toAdminSpaceRow', () => {
   });
 
   it('is unverified without an owner', () => {
-    expect(toAdminSpaceRow(SPACE, AREA, []).state).toBe('unverified');
+    expect(toAdminSpaceRow(SPACE, AREA, []).isVerified).toBe(false);
   });
 
-  it('is hidden while hidden, whatever its owners', () => {
-    expect(toAdminSpaceRow({ ...SPACE, isHidden: true }, AREA, [AHMAD]).state).toBe('hidden');
+  it('says a hidden space with an owner is both hidden and verified', () => {
+    const row = toAdminSpaceRow({ ...SPACE, isHidden: true }, AREA, [AHMAD]);
+
+    expect({ isHidden: row.isHidden, isVerified: row.isVerified }).toEqual({
+      isHidden: true,
+      isVerified: true,
+    });
+  });
+
+  it('dates a deleted space’s deletion, and keeps its owners', () => {
+    const row = toAdminSpaceRow({ ...SPACE, deletedAt: new Date('2026-10-12T10:30:00Z') }, AREA, [
+      AHMAD,
+    ]);
+
+    expect({ deletedAt: row.deletedAt, owners: row.owners }).toEqual({
+      deletedAt: '2026-10-12T10:30:00.000Z',
+      owners: [AHMAD],
+    });
   });
 });

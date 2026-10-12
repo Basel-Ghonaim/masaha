@@ -150,7 +150,7 @@ Each step names its goal and points to what supports it:
 ### Ordering notes
 
 - The foundation comes first: every screen needs the session and a shell.
-- The API may run one step ahead of the screens, so that the two workers, one per layer, never work in the same layer at once ([workflow §9](../development/workflow.md#9-parallel-work)).
+- The API may run one step ahead of the screens; what runs in parallel is [workflow §9](../development/workflow.md#9-parallel-work)'s.
 - The directory follows the admin's spaces: it lists the spaces the admin entered.
 - Until the front desk (step 7), Home, the directory and the space page show no live state.
 - The space page's announcements, its report button and the favourite action arrive with step 10.

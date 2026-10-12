@@ -9,6 +9,7 @@ const LISTED = {
   nameAr: true,
   areaId: true,
   isHidden: true,
+  deletedAt: true,
   profileUpdatedAt: true,
   hoursUpdatedAt: true,
   pricesUpdatedAt: true,
@@ -20,6 +21,8 @@ export type ListedSpaceRecord = Prisma.SpaceGetPayload<{ select: typeof LISTED }
 
 /** What the admin's list filters by, on what `spaces` owns; every field narrows it. */
 export interface ListingFilter {
+  /** Only the soft-deleted spaces, which are otherwise never listed. */
+  deleted?: true;
   /** Only these spaces, or every space but these: an owning module's filter, resolved to ids. */
   ids?: { in: readonly number[] } | { notIn: readonly number[] };
   isHidden?: boolean;
@@ -31,6 +34,7 @@ export interface ListingFilter {
 }
 
 function whereOf({
+  deleted,
   ids,
   isHidden,
   areaIds,
@@ -62,7 +66,7 @@ function whereOf({
     });
   }
   return {
-    deletedAt: null,
+    deletedAt: deleted ? { not: null } : null,
     ...(ids && { id: 'in' in ids ? { in: [...ids.in] } : { notIn: [...ids.notIn] } }),
     ...(isHidden !== undefined && { isHidden }),
     ...(areaIds && { areaId: { in: [...areaIds] } }),
@@ -74,7 +78,8 @@ export function createListingRepository(db: PrismaClient = prisma) {
   return {
     /**
      * One page of the spaces that pass the filter, by English name, and how many pass it in all; a
-     * soft-deleted space never does. The two queries run in parallel (conventions §5).
+     * soft-deleted space passes only a filter for the deleted ones. The two queries run in parallel
+     * (conventions §5).
      */
     async findPage(
       filter: ListingFilter,
