@@ -31,7 +31,7 @@ export function SpacesPage() {
 
   return (
     <>
-      <PageHeader title={copy.dashboard.pages.spaces} />
+      <PageHeader />
       <div className="flex flex-col gap-4">
         {/* The way to the add page, above the list at its end, at every width. */}
         <div className="flex justify-end">

@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-10-10
+> **Last Updated:** 2026-10-12
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -301,6 +301,7 @@ Tailwind breakpoints: `md` = 768, `lg` = 1024 (defaults).
 - WCAG AA contrast for text and UI in **both** themes, including status-subtle surfaces.
 - One visible focus ring (`ring`) on every interactive element.
 - Minimum hit target: 44×44px on touch.
+- Every page has a document title, "{page} · Masaha", in the interface's language (WCAG 2.4.2), set as [architecture §2](../architecture.md#2-page-groups) describes.
 - Every control has a programmatic label; errors are linked with `aria-describedby`.
 - Form submit buttons stay **enabled**; validation runs on submit and moves focus to the first invalid field. A button is disabled only while its request is in flight, or when an action is unavailable for a reason shown next to it.
 - Full keyboard use in dashboards (tables, dialogs, menus).

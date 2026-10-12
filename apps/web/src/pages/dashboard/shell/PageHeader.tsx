@@ -1,13 +1,16 @@
+import { usePageTitle } from '@shared/routing';
 import { use, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { PageHeaderSlot } from './PageHeaderSlot';
 
 /**
  * The page's title, and what the page adds beside it (`children`), shown in the dashboard's top bar:
- * the shell draws the bar, and the page fills it.
+ * the shell draws the bar, and the page fills it. The title is the one its route says, which the
+ * document's title shows too.
  */
-export function PageHeader({ title, children }: { title: string; children?: ReactNode }) {
+export function PageHeader({ children }: { children?: ReactNode }) {
   const slot = use(PageHeaderSlot);
+  const title = usePageTitle();
 
   return slot
     ? createPortal(

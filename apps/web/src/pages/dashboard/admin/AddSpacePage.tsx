@@ -26,7 +26,7 @@ export function AddSpacePage() {
 
   return (
     <>
-      <PageHeader title={copy.dashboard.addSpace.title} />
+      <PageHeader />
       <div className="flex flex-col gap-4">
         <Breadcrumb label={copy.dashboard.addSpace.trail}>
           <BreadcrumbList>

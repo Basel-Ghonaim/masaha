@@ -45,5 +45,7 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument();
     expect(document.documentElement).toHaveAttribute('lang', 'en');
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    // The tab names the page in the language just chosen.
+    expect(document.title).toBe('Home · Masaha');
   });
 });

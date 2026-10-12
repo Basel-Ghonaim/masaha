@@ -6,6 +6,7 @@ export {
   spaceOverviewPath,
 } from './dashboardPaths';
 export { classifyRouteError, type RouteErrorKind } from './states/classifyRouteError';
+export { DocumentTitle } from './title/DocumentTitle';
 export { ForbiddenState } from './states/ForbiddenState';
 export { hasDashboard } from './landing/hasDashboard';
 export { landingPath } from './landing/landingPath';
@@ -20,3 +21,5 @@ export { RequireRole } from './guards/RequireRole';
 export { RequireSpaceRole } from './guards/RequireSpaceRole';
 export { CHANGE_PASSWORD_PATH, RESET_PASSWORD_PATH, SIGN_IN_PATH } from './returnUrl';
 export { RouteErrorState } from './states/RouteErrorState';
+export type { TitledHandle } from './title/titledHandle';
+export { usePageTitle } from './title/usePageTitle';

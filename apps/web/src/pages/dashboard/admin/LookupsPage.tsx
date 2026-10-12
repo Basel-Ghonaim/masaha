@@ -15,7 +15,7 @@ export function LookupsPage() {
 
   return (
     <>
-      <PageHeader title={copy.dashboard.pages.lookups} />
+      <PageHeader />
       <Tabs value={tab} onValueChange={chooseTab} className="w-full max-w-3xl">
         <TabsList aria-label={copy.dashboard.pages.lookups}>
           <TabsTrigger value="governorates">{copy.lookups.governorates.title}</TabsTrigger>
