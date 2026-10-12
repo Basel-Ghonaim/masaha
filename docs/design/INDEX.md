@@ -775,3 +775,20 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Payments | `Payments.html` | 390×844 | [32-payments-owner/02-ledger-this-month-phone-390.webp](screens/32-payments-owner/02-ledger-this-month-phone-390.webp) |
 | Desk · dark | `Desk.html?role=reception&theme=dark` | 390×844 | [52-dashboard-variants-phone-390/07-desk-dark.webp](screens/52-dashboard-variants-phone-390/07-desk-dark.webp) |
 | Customers · English | `Customers.html?lang=en` | 390×844 | [52-dashboard-variants-phone-390/08-customers-english.webp](screens/52-dashboard-variants-phone-390/08-customers-english.webp) |
+
+## 53 · Batch 3 — the public site
+
+Added by the public fix (`CHANGES.md` › *Batch 3*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
+
+| Frame | Prototype URL | Viewport | Screenshot |
+|---|---|---|---|
+| Directory · place and price filters — desktop 1440 | `Directory.html?loc=none&area=nasr,rimal&period=day&priceMax=20` | 1440×1000 | — |
+| Directory · striking cards, signed in — phone 390 | `Directory.html?loc=none&auth=1` | 390×844 | — |
+| Directory · map, selected space as a sheet — phone 390 | `Directory.html?view=map&selected=focus&loc=none` | 390×844 | — |
+| Manual pin · centre crosshair — phone 390 | `Directory.html?view=map&loc=picking` | 390×844 | — |
+| Space details · prices per audience, own amenities — EN desktop 1440 | `Space details.html?id=numberone&loc=none&lang=en` | 1440×1000 | — |
+| Space details · English-only name, no photos — phone 390 | `Space details.html?id=zm&loc=none` | 390×844 | — |
+| Report · unverified space, read by the team — phone 390 | `Space details.html?id=golden&loc=none&auth=1&dialog=report` | 390×844 | — |
+| Offline · the retry failed — phone 390 | `Error.html?type=offline&fail=retry` | 390×844 | — |
+| Cards · photos still loading — desktop 1440 | `Directory.html?loc=none&photos=loading` | 1440×1000 | — |
+| About · contact for everyone — desktop 1440 | `About.html#contact` | 1440×1000 | — |
