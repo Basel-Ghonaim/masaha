@@ -38,7 +38,8 @@ window.ADMIN = (function () {
     { id: 'u3', name: T('ليان حمدان', 'Layan Hamdan'), email: 'layan@example.com', role: 'user', method: 'both', joined: '2026-09-24', status: 'active' },
     { id: 'u4', name: T('خالد النجار', 'Khaled Al-Najjar'), email: 'khaled@example.com', role: 'user', method: 'email', joined: '2026-08-02', status: 'suspended' },
     { id: 'u5', name: T('نور سالم', 'Nour Salem'), email: 'nour@example.com', role: 'user', method: 'google', joined: '2026-09-23', status: 'active' },
-    ...owners.map((o, i) => ({ id: 'uo' + i, name: o.name, email: o.email, role: 'owner', method: i === 1 ? 'both' : 'email', joined: o.joined, status: o.status })),
+    // A6: the owners page is this list filtered to the owners, each row carrying its owner links.
+    ...owners.map((o, i) => ({ id: o.id, name: o.name, email: o.email, role: 'owner', method: i === 1 ? 'both' : 'email', joined: o.joined, status: o.status, spaces: o.spaces })),
     { id: 'ua', name: T('باسل', 'Basel'), email: 'basel@example.com', role: 'admin', method: 'email', joined: '2025-01-10', status: 'active', me: true }
   ];
   const ROLE = { user: T('مستخدم', 'User'), owner: T('مالك', 'Owner'), admin: T('أدمن', 'Admin') };
@@ -88,6 +89,8 @@ window.ADMIN = (function () {
       email: 'user' + (i + 1) + '@example.com', role: 'user', method: ['email', 'google', 'both'][i % 3],
       joined: aday(-(i % 180) - 1), status: i % 11 === 7 ? 'suspended' : 'active' });
   }
+
+  users.forEach((u) => { if (!u.spaces) u.spaces = []; });
 
   const audit = [
     ['2026-09-29', '10:42', B, 'temp_password', T('نور سالم', 'Nour Salem'), T('صدرت عبر واتساب · يُطلب التغيير عند الدخول', 'Issued via WhatsApp · change forced at sign-in')],

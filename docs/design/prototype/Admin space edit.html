@@ -47,7 +47,7 @@ const space = isNew
 // `?demo=ownlimit`: 20 own amenities, the contract's limit, so «إضافة مرفق إضافي» shows its reason.
 if (pageParams.get('demo') === 'ownlimit') space.ownAmenities = Array.from({ length: 20 }, (_, i) => ({ ar: 'مرفق إضافي ' + (i + 1), en: 'Extra amenity ' + (i + 1) }));
 const readOnly = !isNew && meta.status === 'verified';
-const ownerNames = (meta.owners || []).map((o) => (AD.owners.find((x) => x.id === o) || {}).name).filter(Boolean).join(tr(' و', ' and '));
+const ownerNames = (meta.owners || []).map((o) => personName(o, AD.users)).filter(Boolean).join(tr(' و', ' and '));
 // A1: one name per section, in the cards and in the navigation alike.
 const SECTIONS = () => [['profile', tr('المساحة', 'The space')], ['hours', tr('ساعات العمل', 'Opening hours')], ['prices', tr('الأسعار', 'Prices')], ['amenities', tr('المرافق', 'Amenities')], ['contacts', tr('التواصل', 'Contacts')], ['photos', tr('الصور', 'Photos')]];
 
@@ -110,12 +110,13 @@ function Edit({ theme, setTheme }) {
       <div className="flex flex-wrap items-center gap-3"><SpaceStatus s={meta} /></div>
       {readOnly ? (
         <Alert variant="info">
-          <AlertTitle>{tr('يعدّلها ', 'Edited by ')}<a href="Admin owners.html">{ownerNames}</a></AlertTitle>
+          <AlertTitle>{tr('يعدّلها ', 'Edited by ')}<a href={'Admin owners.html' + (meta.owners.length === 1 ? '?q=' + encodeURIComponent(AD.users.find((u) => u.id === meta.owners[0]).email) : '')}>{ownerNames}</a></AlertTitle>
           <AlertDescription>
             <p>{tr('هذه مساحة موثّقة، فتظهر هنا للقراءة فقط. لتصحيح معلومة:', 'This space is verified, so it shows here read-only. To correct something:')}</p>
             <p className="flex flex-wrap gap-x-4 gap-y-1">
               <a href={'Admin reports.html?space=' + meta.id}>{tr('بلاغات ', 'Reports on ')}<span lang="en">{meta.name}</span></a>
-              <a href={'Admin spaces.html?unlink=' + meta.id}>{tr('فك ربط المالك', 'Unlink the owner')}</a>
+              {/* A4: unlinking names the owner, one link per owner. */}
+              {(meta.owners || []).map((o) => <a key={o} href={'Admin spaces.html?unlink=' + meta.id + '&owner=' + o}>{tr('فك ربط ', 'Unlink ') + personName(o, AD.users)}</a>)}
               <a href={'Space details.html?id=' + meta.id}>{tr('عرض في الموقع', 'View on the site')}</a>
             </p>
           </AlertDescription>

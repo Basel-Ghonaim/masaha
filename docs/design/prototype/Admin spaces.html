@@ -25,14 +25,14 @@
 <script type="text/babel">
 const { DirectionProvider, Button, Badge, DataTable, EmptyState, Input, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, RadioGroup, RadioGroupItem, SearchIcon, SearchXIcon, EllipsisVerticalIcon, toast } = window.MasahaDesignSystem;
 const M = window.MASAHA;
-const ownerName = (id) => AD.owners.find((o) => o.id === id).name;
+const ownerName = (id) => personName(id, AD.users);
 function Spaces({ theme, setTheme }) {
   const [list, setList] = React.useState(AD.spaces);
   const [q, setQ] = React.useState(''); const [gov, setGov] = React.useState('all'); const [status, setStatus] = React.useState(AD.STATE_FILTER[pageParams.get('status')] ? pageParams.get('status') : 'all'); const [stale, setStale] = React.useState(pageParams.get('stale') === '1');
   const [del, setDel] = React.useState(pageParams.get('del') ? AD.spaces.find((s) => s.id === pageParams.get('del')) : null);
-  const [unlink, setUnlink] = React.useState(() => { const s = AD.spaces.find((x) => x.id === pageParams.get('unlink')); return s && s.owners.length ? { s, o: s.owners[0] } : null; });
+  // `?unlink=<space>&owner=<id>`: that owner of that space, the space's first when none is named.
+  const [unlink, setUnlink] = React.useState(() => { const s = AD.spaces.find((x) => x.id === pageParams.get('unlink')); const o = s && (s.owners.includes(pageParams.get('owner')) ? pageParams.get('owner') : s.owners[0]); return o ? { s, o } : null; });
   const [link, setLink] = React.useState(pageParams.get('link') ? AD.spaces.find((s) => s.id === pageParams.get('link')) : null);
-  const [pick, setPick] = React.useState('o4');
   const govs = M.governorates.filter((g) => !g.hidden);
   const areaOpts = govs.flatMap((g) => [['g:' + g.id, g.name], ...g.areas.map((a) => ['a:' + a.id, '— ' + a.name])]);
   // A3, as the contract's filter: verified and unverified leave hidden spaces out, hidden keeps them
@@ -53,7 +53,8 @@ function Spaces({ theme, setTheme }) {
         <DropdownMenuItem asChild><a href={'Admin space edit.html?id=' + s.id}>{s.status === 'verified' ? tr('عرض (يعدّلها المالك)', 'View (the owner edits it)') : tr('تعديل', 'Edit')}</a></DropdownMenuItem>
         <DropdownMenuItem onSelect={() => toggleHide(s)}>{s.hidden ? tr('إظهار', 'Show') : tr('إخفاء', 'Hide')}</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setLink(s)}>{tr('ربط مالك', 'Link owner')}</DropdownMenuItem>
-        {s.owners.length > 0 && <DropdownMenuItem onSelect={() => setUnlink({ s, o: s.owners[0] })}>{tr('فك الربط', 'Unlink owner')}</DropdownMenuItem>}
+        {/* A4: one item per owner, naming the link it ends. */}
+        {s.owners.map((o) => <DropdownMenuItem key={o} onSelect={() => setUnlink({ s, o })}>{tr('فك ربط ', 'Unlink ') + ownerName(o)}</DropdownMenuItem>)}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => setDel(s)}>{tr('حذف', 'Delete')}</DropdownMenuItem>
       </DropdownMenuContent>
@@ -71,7 +72,6 @@ function Spaces({ theme, setTheme }) {
   ];
   const paged = usePaged(rows);
     const addBtn = <Button asChild><a href="Admin space add.html">{tr('إضافة مساحة', 'Add space')}</a></Button>;
-  const free = AD.owners.filter((o) => !link || !link.owners.includes(o.id));
   return (
     <AdminShell current="spaces" title={tr('المساحات', 'Spaces')} theme={theme} setTheme={setTheme}>
       <DataTable label={tr('المساحات', 'Spaces')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
@@ -101,17 +101,10 @@ function Spaces({ theme, setTheme }) {
           </div>
         )}
         empty={<EmptyState icon={<SearchXIcon />} title={tr('لا توجد مساحات تطابق الفلاتر', 'No spaces match the filters')} />} />
-      <Dialog open={!!link} onOpenChange={(o) => !o && setLink(null)}>
-        <DialogContent closeLabel={tr('إغلاق', 'Close')}>
-          <DialogHeader><DialogTitle>{tr('ربط مالك', 'Link an owner')} · <span lang="en">{link && link.name}</span></DialogTitle><DialogDescription>{tr('تصبح المساحة موثّقة ويعدّلها مالكها.', 'The space becomes verified and its owner edits it.')}</DialogDescription></DialogHeader>
-          <RadioGroup value={pick} onValueChange={setPick}>{free.map((o) => <Field key={o.id} orientation="horizontal" label={<span className="flex flex-col"><span>{o.name}</span><span dir="ltr" className="self-start text-caption text-muted-foreground">{o.email}</span></span>}><RadioGroupItem value={o.id} /></Field>)}</RadioGroup>
-          <p className="text-caption text-muted-foreground">{tr('مالك جديد؟ أضفه من', 'New owner? Add them in')} <a href="Admin owners.html?sheet=add">{tr('أصحاب المساحات', 'Space owners')}</a>.</p>
-          <DialogFooter><Button onClick={() => { upd(link.id, { owners: [...link.owners, pick], status: 'verified' }); toast.success(tr('رُبط المالك · المساحة موثّقة', 'Owner linked · space verified')); setLink(null); }}>{tr('ربط', 'Link')}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LinkOwnerDialog space={link} spaces={list} onClose={() => setLink(null)} onLinked={(uid, sid) => setList((l) => l.map((x) => (x.id === sid ? { ...x, owners: [...x.owners, uid], status: 'verified' } : x)))} />
       <AlertDialog open={!!unlink} onOpenChange={(o) => !o && setUnlink(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>{tr('فك ربط', 'Unlink')} {unlink && ownerName(unlink.o)}؟</AlertDialogTitle><AlertDialogDescription>{unlink && unlink.s.owners.length === 1 ? tr('هو آخر مالك لهذه المساحة، فستصبح المساحة غير موثّقة ويعدّلها فريق مساحة.', 'They’re the last owner, so the space will become unverified and the Masaha team will edit it.') : tr('يبقى المالكون الآخرون.', 'The other owners stay.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>{unlink && tr(`فك ربط ${ownerName(unlink.o)} من `, `Unlink ${ownerName(unlink.o)} from `)}<span lang="en">{unlink && unlink.s.name}</span>{tr('؟', '?')}</AlertDialogTitle><AlertDialogDescription>{unlink && unlinkLine(unlink.s, unlink.s.owners, AD.users.find((u) => u.id === unlink.o))}</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { const s = unlink.s; const left = s.owners.filter((x) => x !== unlink.o); upd(s.id, { owners: left, status: left.length ? s.status : 'unverified' }); toast(left.length ? tr('فُك الربط', 'Unlinked') : tr('فُك الربط · المساحة غير موثّقة', 'Unlinked · space unverified')); }}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
