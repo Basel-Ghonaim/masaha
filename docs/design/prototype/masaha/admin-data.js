@@ -40,7 +40,9 @@ window.ADMIN = (function () {
     { id: 'u5', name: T('نور سالم', 'Nour Salem'), email: 'nour@example.com', role: 'user', method: 'google', joined: '2026-09-23', status: 'active' },
     // A6: the owners page is this list filtered to the owners, each row carrying its owner links.
     ...owners.map((o, i) => ({ id: o.id, name: o.name, email: o.email, role: 'owner', method: i === 1 ? 'both' : 'email', joined: o.joined, status: o.status, spaces: o.spaces })),
-    { id: 'ua', name: T('باسل', 'Basel'), email: 'basel@example.com', role: 'admin', method: 'email', joined: '2025-01-10', status: 'active', me: true }
+    { id: 'ua', name: T('باسل', 'Basel'), email: 'basel@example.com', role: 'admin', method: 'email', joined: '2025-01-10', status: 'active', me: true },
+    // A second admin, so a role change from «أدمن» can be shown; she has acted on nothing yet.
+    { id: 'ua2', name: T('منى', 'Mona'), email: 'mona@example.com', role: 'admin', method: 'email', joined: '2026-06-02', status: 'active' }
   ];
   const ROLE = { user: T('مستخدم', 'User'), owner: T('مالك', 'Owner'), admin: T('أدمن', 'Admin') };
   const METHOD = { email: T('بريد', 'Email'), google: 'Google', both: T('كلاهما', 'Both') };
@@ -93,7 +95,7 @@ window.ADMIN = (function () {
   users.forEach((u) => { if (!u.spaces) u.spaces = []; });
 
   const audit = [
-    ['2026-09-29', '10:42', B, 'temp_password', T('نور سالم', 'Nour Salem'), T('صدرت عبر واتساب · يُطلب التغيير عند الدخول', 'Issued via WhatsApp · change forced at sign-in')],
+    ['2026-09-29', '10:42', B, 'temp_password', T('عمر حلس', 'Omar Hilles'), T('صدرت عبر واتساب · يُطلب التغيير عند الدخول', 'Issued via WhatsApp · change forced at sign-in')],
     ['2026-09-28', '16:05', B, 'space_hidden', 'Palm Hub', T('مغلقة نهائيًا حسب اتصال هاتفي', 'Permanently closed, per phone call')],
     ['2026-09-27', '12:30', B, 'user_suspended', T('خالد النجار', 'Khaled Al-Najjar'), T('بلاغات مسيئة متكررة · انتهت الجلسات', 'Repeated abusive reports · sessions ended')],
     ['2026-09-25', '09:14', B, 'lookup_changed', T('الشجاعية', 'Ash-Shuja’iyya'), T('مخفية ← كانت ظاهرة', 'Hidden ← was shown')],

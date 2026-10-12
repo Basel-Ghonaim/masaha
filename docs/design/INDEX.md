@@ -27,6 +27,11 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Admin owners.html?unlink=<user>&space=<id>` | the owners page | the unlink confirmation for that owner and that space, the owner's first space when none is named. **Renamed** from `?unlink=1`, which named Yousef and Number One Hub whatever the link; the board's frames use `?unlink=o3` |
 | `Admin owners.html?q=<text>` | the owners page | the search set: name or email (A6) |
 | `?fail=link` | either link dialog | the link refused: the person has a reception link at this space (`RECEPTION_LINK_ACTIVE`), shown in the dialog, which stays open |
+| `?fail=role` | the users page's role dialog | the change refused: the person holds a link the list cannot show (`ACCOUNT_HAS_LINKS`), in the dialog, which stays open |
+| `Admin owners.html?link=<user>&space=<id>` | the owners page | the link dialog for that owner with that space chosen — where the add-owner sheet's «مالك مسبقًا — اربطه بالمساحة» leads |
+| `Admin users.html?q=<text>` | the users page | the search set: name or email — the audit log's and the owners' links land here |
+| `Admin users.html?temp=1` | the same | the temporary-password confirmation, now for the first active account **with a password** (it named Nour, who signs in with Google only) |
+| `Admin owners.html?sheet=add&email=nour@example.com` | the owners page | the add-owner sheet as the server leaves it after `EMAIL_HAS_ACCOUNT`: «سيُرقّى حسابه» and «ترقية وربط» |
 
 ### Batch 3 — the public site
 

@@ -90,21 +90,39 @@ const PrivacyNote = () => <p className="rounded-lg bg-muted p-3 text-body-sm tex
 // A3: a space's state is two facts — the verification always, «مخفية» beside it when hidden.
 const SpaceStatus = ({ s }) => { const [l, v] = AD.STATUS[s.status]; return <span className="inline-flex flex-wrap items-center gap-2"><ABadge variant={v}>{l}</ABadge>{s.hidden && <ABadge variant="warning">{tr('مخفية', 'Hidden')}</ABadge>}</span>; };
 const Num = ({ children }) => { const f = [].concat(children); const text = f.every((c) => typeof c === 'string' || typeof c === 'number'); return <span dir="ltr" className="num-iso">{text ? f.join('') : children}</span>; };
-// Shared once-only temporary password dialog.
+// A5: the once-only temporary password cannot be dismissed by accident — no X, no Escape, no click
+// outside. «تم» is its only way out, waiting (with its reason) until the password is copied; it
+// then asks how the password was handed over, which goes to the audit entry (S5).
 function TempPassDialog({ info, onClose, line }) {
-  const { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, CheckIcon } = window.MasahaDesignSystem;
+  const { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Field, RadioGroup, RadioGroupItem, CheckIcon, toast } = window.MasahaDesignSystem;
   const [copied, setCopied] = React.useState(false);
-  React.useEffect(() => setCopied(false), [info]);
+  const [channel, setChannel] = React.useState('');
+  const [err, setErr] = React.useState(null);
+  React.useEffect(() => { setCopied(false); setChannel(''); setErr(null); }, [info]);
+  const CHANNELS = [['whatsapp', tr('واتساب', 'WhatsApp')], ['in_person', tr('شفهيًا', 'In person')], ['other', tr('أخرى', 'Other')]];
+  const done = () => {
+    if (!channel) { setErr(tr('اختر طريقة التسليم', 'Choose how it was handed over')); return; }
+    toast.success(tr('سُجّلت طريقة التسليم', 'Handover recorded'), { description: info.name + ' · ' + CHANNELS.find(([k]) => k === channel)[1] });
+    onClose(channel);
+  };
+  const keep = (e) => e.preventDefault();
   return (
-    <Dialog open={!!info} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent closeLabel={tr('إغلاق', 'Close')}>
+    <Dialog open={!!info}>
+      <DialogContent onEscapeKeyDown={keep} onInteractOutside={keep}>
         <DialogHeader><DialogTitle>{tr('كلمة المرور المؤقتة', 'Temporary password')}</DialogTitle>{info && <DialogDescription>{info.name} · <span dir="ltr">{info.email}</span></DialogDescription>}</DialogHeader>
-        {info && <div className="flex flex-col gap-3">
+        {info && <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-3 rounded-lg bg-muted p-3"><span dir="ltr" className="text-heading-3">{info.pw}</span><Button size="sm" variant="outline" onClick={() => { try { navigator.clipboard.writeText(info.pw); } catch (e) {} setCopied(true); }}>{copied ? <><CheckIcon />{tr('نُسخت', 'Copied')}</> : tr('نسخ', 'Copy')}</Button></div>
           <p className="text-body-sm">{line}</p>
-          <p className="text-caption text-muted-foreground">{tr('لن تظهر مرة أخرى بعد إغلاق هذه النافذة.', 'It won’t be shown again after you close this window.')}</p>
+          <Field label={tr('طريقة التسليم', 'How it was handed over')} error={err}>
+            <RadioGroup value={channel} onValueChange={(v) => { setChannel(v); setErr(null); }} className="flex flex-wrap gap-x-6 gap-y-2">
+              {CHANNELS.map(([k, l]) => <Field key={k} label={l} orientation="horizontal"><RadioGroupItem value={k} /></Field>)}
+            </RadioGroup>
+          </Field>
         </div>}
-        <DialogFooter><Button onClick={onClose}>{tr('تم', 'Done')}</Button></DialogFooter>
+        <DialogFooter className="flex flex-wrap items-center gap-3">
+          {!copied && <span className="text-caption text-muted-foreground">{tr('انسخها أولًا — لن تظهر مرة أخرى', 'Copy it first — it won’t be shown again')}</span>}
+          <Button disabled={!copied} onClick={done}>{tr('تم', 'Done')}</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -116,14 +134,18 @@ const tempPass = () => 'Msh-' + Math.random().toString(36).slice(2, 6) + '-' + (
 // suspended accounts are refused by the API, so they are never offered.
 const liveSpaces = (ids, spaces) => ids.filter((id) => { const s = spaces.find((x) => x.id === id); return s && !s.deleted; });
 const personName = (id, users) => (users.find((u) => u.id === id) || {}).name;
-function LinkOwnerDialog({ space, person, users = AD.users, spaces = AD.spaces, onClose, onLinked }) {
+// `preset`: a choice the admin already made elsewhere — the add-owner sheet's space, carried by «اربطه بالمساحة».
+function LinkOwnerDialog({ space, person, preset, users = AD.users, spaces = AD.spaces, onClose, onLinked }) {
   const { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Field, Combobox, ComboboxTrigger, ComboboxContent, ComboboxItem, Alert, AlertTitle, AlertDescription, toast } = window.MasahaDesignSystem;
   const open = !!(space || person);
   const [pick, setPick] = React.useState('');
   const [err, setErr] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
-  React.useEffect(() => { setPick(''); setErr(null); setFailed(false); }, [space, person]);
+  React.useEffect(() => {
+    const ok = person && preset && spaces.some((x) => x.id === preset && !x.deleted) && !person.spaces.includes(preset);
+    setPick(ok ? preset : ''); setErr(null); setFailed(false);
+  }, [space, person]);
   if (!open) return <Dialog open={false}><DialogContent /></Dialog>;
   const fromSpace = !!space;
   const s = fromSpace ? space : spaces.find((x) => x.id === pick);
