@@ -24,24 +24,41 @@
 const { DirectionProvider, Card, EmptyState, Button, SearchXIcon, TriangleAlertIcon, CircleAlertIcon } = window.MasahaDesignSystem;
 const TYPES = {
   404: { icon: <SearchXIcon />, title: tr("الصفحة غير موجودة", "Page not found"), text: tr("ربما تغيّر الرابط أو حُذفت الصفحة.", "The link may have changed or the page was removed."), actions: [[tr("الرئيسية", "Home"), 'Home.html', 'primary'], [tr("تصفّح المساحات", "Browse spaces"), 'Directory.html', 'outline']] },
-  error: { icon: <TriangleAlertIcon />, title: tr("حدث خطأ غير متوقع", "Something went wrong"), text: tr("لم يكن الخطأ منك. حاول مرة أخرى بعد قليل.", "It wasn’t your fault. Try again in a moment."), retry: true },
-  offline: { icon: <CircleAlertIcon />, title: tr("لا يوجد اتصال بالإنترنت", "No internet connection"), text: tr("ستظهر البيانات عند عودة الاتصال.", "The data will appear when you’re back online."), retry: true },
-    // P7: the site's 403, the counterpart of the one the dashboard shows inside its shell.
-    403: { icon: <CircleAlertIcon />, title: tr("لا تملك صلاحية هذه الصفحة", "You don’t have access to this page"), text: tr("إن كنت تظن أن هذا خطأ، تواصل معنا.", "If you think this is a mistake, contact us."), actions: [[tr("الرئيسية", "Home"), 'Home.html', 'primary'], [tr("تواصل معنا", "Contact us"), 'About.html#owners', 'outline']] }
-  };
+  error: { icon: <TriangleAlertIcon />, title: tr("حدث خطأ غير متوقع", "Something went wrong"), text: tr("لم يكن الخطأ منك. حاول مرة أخرى بعد قليل.", "It wasn’t your fault. Try again in a moment."), retry: true, still: tr("ما زال الخطأ قائمًا. حاول بعد قليل.", "It’s still not working. Try again in a moment.") },
+  offline: { icon: <WifiOffIcon />, title: tr("لا يوجد اتصال بالإنترنت", "No internet connection"), text: tr("ستظهر البيانات عند عودة الاتصال.", "The data will appear when you’re back online."), retry: true, still: tr("ما زال الاتصال مفقودًا.", "Still no connection.") },
+  // P7: the site's 403, the counterpart of the one the dashboard shows inside its shell.
+  403: { icon: <CircleAlertIcon />, title: tr("لا تملك صلاحية هذه الصفحة", "You don’t have access to this page"), text: tr("إن كنت تظن أن هذا خطأ، تواصل معنا.", "If you think this is a mistake, contact us."), actions: [[tr("الرئيسية", "Home"), 'Home.html', 'primary'], [tr("تواصل معنا", "Contact us"), 'About.html#contact', 'outline']] }
+};
+// PU-024: the retry says it is trying (`loading`), and says so when it failed — offline, while the
+// device is still offline, or with `?fail=retry` — instead of reloading into the same page. A
+// second way on, «الرئيسية», may reach what is cached.
 function ErrorScreen() {
   const [theme, setTheme] = useTheme();
   const t = TYPES[pageParams.get('type')] || TYPES[404];
+  const [busy, setBusy] = React.useState(false);
+  const [still, setStill] = React.useState(false);
   React.useEffect(() => { document.title = t.title + tr(' — مساحة', ' — Masaha'); }, []);
+  const retry = () => {
+    setBusy(true); setStill(false);
+    setTimeout(() => {
+      if (pageParams.get('fail') === 'retry' || (pageParams.get('type') === 'offline' && !navigator.onLine)) { setBusy(false); setStill(true); return; }
+      location.reload();
+    }, ACTION_MS);
+  };
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <SiteHeader current="" theme={theme} setTheme={setTheme} />
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-10 md:px-8">
         <EmptyState icon={t.icon} title={t.title} titleAs="h1" description={t.text}>
           <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
-            {t.retry ? <Button className="w-full md:w-auto" onClick={() => location.reload()}>{tr("إعادة المحاولة", "Try again")}</Button>
-              : t.actions.map(([l, h, v]) => <Button key={h} variant={v} className="w-full md:w-auto" asChild><a href={h}>{l}</a></Button>)}
+            {t.retry ? (
+              <>
+                <Button className="w-full md:w-auto" loading={busy} onClick={retry}>{tr("إعادة المحاولة", "Try again")}</Button>
+                <Button variant="outline" className="w-full md:w-auto" asChild><a href="Home.html">{tr("الرئيسية", "Home")}</a></Button>
+              </>
+            ) : t.actions.map(([l, h, v]) => <Button key={h} variant={v} className="w-full md:w-auto" asChild><a href={h}>{l}</a></Button>)}
           </div>
+          <p className="text-body-sm text-muted-foreground" role="status">{still ? t.still : ''}</p>
         </EmptyState>
       </main>
       <SiteFooter />

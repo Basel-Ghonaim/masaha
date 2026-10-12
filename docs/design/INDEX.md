@@ -22,6 +22,17 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Admin space edit.html?demo=pricelimit` | the same | 40 prices, the contract's limit: «إضافة سعر» disabled with its reason |
 | `Admin space edit.html?new=1` | the old address of «إضافة مساحة» | now leads to `Admin space add.html`, the creation form of its own (AD-002), its other parameters kept |
 
+### Batch 3 — the public site
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `?area=nasr,rimal` | `Directory.html` | the place filter: a list of areas, from any governorate (U1). `?gov=` and the amenity filter's `?am=` are gone; an old link still opens, unfiltered by them |
+| `?period=day&priceMin=10&priceMax=20` | `Directory.html` | the price filter (U5): the range on that period's price; the period alone filters nothing (S1). `?priceMin=50&priceMax=20` shows the range's error on its field |
+| `?photos=loading` · `?photos=failed` | Home, `Directory.html`, `Favorites.html` | every card's cover frame waiting for its photo, or showing the space's mark where the photo did not load (U12, S5) |
+| `?auth=1` | Home, `Directory.html` | a signed-in visitor: the heart over each card's photo, saving a space where the comparing happens (PU-014) |
+| `Error.html?type=offline&fail=retry` · `?type=error&fail=retry` | `Error.html` | the retry failing: «ما زال الاتصال مفقودًا» under the buttons (offline also says so while the device is offline) |
+| `About.html#contact` | `About.html` | the «تواصل معنا» section every «تواصل معنا» on the site now leads to; `#owners` stays the owners' steps |
+
 ## 01 · Flow
 
 | Frame | Prototype URL | Viewport | Screenshot |
@@ -764,3 +775,20 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Payments | `Payments.html` | 390×844 | [32-payments-owner/02-ledger-this-month-phone-390.webp](screens/32-payments-owner/02-ledger-this-month-phone-390.webp) |
 | Desk · dark | `Desk.html?role=reception&theme=dark` | 390×844 | [52-dashboard-variants-phone-390/07-desk-dark.webp](screens/52-dashboard-variants-phone-390/07-desk-dark.webp) |
 | Customers · English | `Customers.html?lang=en` | 390×844 | [52-dashboard-variants-phone-390/08-customers-english.webp](screens/52-dashboard-variants-phone-390/08-customers-english.webp) |
+
+## 53 · Batch 3 — the public site
+
+Added by the public fix (`CHANGES.md` › *Batch 3*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
+
+| Frame | Prototype URL | Viewport | Screenshot |
+|---|---|---|---|
+| Directory · place and price filters — desktop 1440 | `Directory.html?loc=none&area=nasr,rimal&period=day&priceMax=20` | 1440×1000 | — |
+| Directory · striking cards, signed in — phone 390 | `Directory.html?loc=none&auth=1` | 390×844 | — |
+| Directory · map, selected space as a sheet — phone 390 | `Directory.html?view=map&selected=focus&loc=none` | 390×844 | — |
+| Manual pin · centre crosshair — phone 390 | `Directory.html?view=map&loc=picking` | 390×844 | — |
+| Space details · prices per audience, own amenities — EN desktop 1440 | `Space details.html?id=numberone&loc=none&lang=en` | 1440×1000 | — |
+| Space details · English-only name, no photos — phone 390 | `Space details.html?id=zm&loc=none` | 390×844 | — |
+| Report · unverified space, read by the team — phone 390 | `Space details.html?id=golden&loc=none&auth=1&dialog=report` | 390×844 | — |
+| Offline · the retry failed — phone 390 | `Error.html?type=offline&fail=retry` | 390×844 | — |
+| Cards · photos still loading — desktop 1440 | `Directory.html?loc=none&photos=loading` | 1440×1000 | — |
+| About · contact for everyone — desktop 1440 | `About.html#contact` | 1440×1000 | — |

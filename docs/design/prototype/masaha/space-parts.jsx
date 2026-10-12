@@ -5,31 +5,18 @@ const SM = window.MASAHA;
 const todayKey = () => ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
 const liveStatus = (s) => (s.closure ? 'closed' : s.status);
 
-function HeartIcon({ filled }) {
-  return (
-    <svg viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5" aria-hidden="true">
-      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-    </svg>
-  );
+// Photo stand-in: real photos come from the space; no stock imagery. The same drawn room as the
+// space's card (U12) — the first is the cover, the card's own — so a card and its page look like one place.
+function PhotoTile({ n, seed, className }) {
+  return <div className={'relative overflow-hidden rounded-lg bg-muted ' + (className || '')} role="img" aria-label={tr(`صورة ${n}`, `Photo ${n}`)}><CoverArt seed={n === 1 ? seed || '' : (seed || '') + n} /></div>;
 }
 
-// Photo stand-in: real photos come from the space; no stock imagery.
-function PhotoTile({ n, className }) {
-  return <div className={'flex items-center justify-center rounded-lg bg-muted text-caption text-muted-foreground ' + (className || '')} role="img" aria-label={tr(`صورة ${n}`, `Photo ${n}`)}>{tr("صورة ", "Photo ")}{n}</div>;
-}
-
+// PU-023: a space with no photos has no gallery; the name block says so in a caption.
 function Gallery({ space }) {
   const [open, setOpen] = React.useState(false);
   const [i, setI] = React.useState(0);
   const n = space.photos || 0;
-  if (!n) {
-    return (
-      <div className="flex gallery-h flex-col items-center justify-center gap-2 rounded-xl bg-muted" role="img" aria-label={tr(`لا توجد صور لـ ${space.name}`, `No photos of ${space.name}`)}>
-        <span className="text-display text-muted-foreground" aria-hidden="true">{space.name[0]}</span>
-        <span className="text-caption text-muted-foreground">{tr("لا توجد صور بعد", "No photos yet")}</span>
-      </div>
-    );
-  }
+  if (!n) return null;
   const show = (k) => { setI(k); setOpen(true); };
   // Layout by count so no cell is ever empty. Phone: the first photo only.
   const shown = Math.min(n, 5);
@@ -44,7 +31,7 @@ function Gallery({ space }) {
     <div className={'grid gallery-h gap-2 ' + grid}>
       {Array.from({ length: shown }, (_, k) => (
         <div key={k} className={'relative ' + (k > 0 ? 'hidden md:block ' : '') + cell(k)}>
-          <button type="button" onClick={() => show(k)} aria-label={tr(`عرض الصورة ${k + 1}`, `View photo ${k + 1}`)} className="size-full rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><PhotoTile n={k + 1} className="size-full" /></button>
+          <button type="button" onClick={() => show(k)} aria-label={tr(`عرض الصورة ${k + 1}`, `View photo ${k + 1}`)} className="size-full rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><PhotoTile n={k + 1} seed={space.id} className="size-full" /></button>
           {k === 0 && n > 1 && <SButton variant="outline" size="sm" className="gallery-more bg-card shadow-floating md:hidden" onClick={() => show(0)}>{more}</SButton>}
           {k === shown - 1 && shown >= 4 && <SButton variant="outline" size="sm" className="gallery-more hidden bg-card shadow-floating md:inline-flex" onClick={() => show(0)}>{more}</SButton>}
         </div>
@@ -52,10 +39,10 @@ function Gallery({ space }) {
       <SDialog open={open} onOpenChange={setOpen}>
         <SDialogContent closeLabel={tr("إغلاق", "Close")} className="sm:max-w-3xl">
           <SDialogHeader>
-            <SDialogTitle>{tr("صور ", "Photos of ")}{LANG === 'en' ? space.name : space.nameAr}</SDialogTitle>
+            <SDialogTitle>{tr("صور ", "Photos of ")}<SpaceName space={space} /></SDialogTitle>
             <SDialogDescription><span dir="ltr">{i + 1} / {n}</span></SDialogDescription>
           </SDialogHeader>
-          <PhotoTile n={i + 1} className="lightbox-h" />
+          <PhotoTile n={i + 1} seed={space.id} className="lightbox-h" />
           {n > 1 && (
             <div className="flex items-center justify-between gap-2">
               <SButton variant="outline" onClick={() => setI((i - 1 + n) % n)}><SChevronStart />{tr("السابقة", "Previous")}</SButton>
@@ -68,6 +55,7 @@ function Gallery({ space }) {
   );
 }
 
+// U4: the live status shows its state alone — it is derived now, so it is never dated (ADR 0008).
 function StatusLine({ space }) {
   if (!space.verified) {
     return (
@@ -82,8 +70,21 @@ function StatusLine({ space }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
       {badge}
-      <span className="text-caption text-muted-foreground">{tr("آخر تحديث ", "Updated ")}{space.closure ? space.closure.date : space.statusUpdated}</span>
+      <span className="text-caption text-muted-foreground">{tr("الحالة مباشرة الآن", "Live right now")}</span>
     </div>
+  );
+}
+
+// U4: each fact group says its own age, relative, and «قد يكون تغيّر» only once it is stale.
+const GROUP_UPDATED = () => ({ prices: tr("آخر تحديث للأسعار", "Prices updated"), hours: tr("آخر تحديث لساعات العمل", "Hours updated"), amenities: tr("آخر تحديث للمرافق", "Amenities updated"), contacts: tr("آخر تحديث للتواصل", "Contacts updated") });
+const factAge = (space, g) => (g === 'prices' ? space.updatedDays : space.fresh[g]);
+function Freshness({ space, group, lead }) {
+  const d = factAge(space, group);
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+      {lead}{lead && ' · '}{GROUP_UPDATED()[group]} {SM.ago(d)}
+      {SM.isStale(group, d) && <SBadge variant="warning">{tr("قد يكون تغيّر", "May have changed")}</SBadge>}
+    </span>
   );
 }
 
@@ -95,43 +96,63 @@ function TodayLine({ space }) {
 
 const directionsHref = (s) => `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
 
+// PU-021: every channel shows where it leads — the number, the address, the account — on one line,
+// cut at its end; a phone says its carrier when the number tells it.
+const contactLabel = (c) => { const ch = SM.channels[c.type]; return (ch.carrier && ch.carrier(c.value)) || ch.label; };
+const contactValue = (c) => (c.type === 'instagram' || c.type === 'tiktok' ? '@' + c.value : c.value);
 function ContactButton({ c, className, variant = 'outline' }) {
   const ch = SM.channels[c.type];
   return (
-    <SButton variant={variant} className={'justify-between ' + (className || '')} asChild>
+    <SButton variant={variant} className={'justify-between gap-3 ' + (className || '')} asChild>
       <a href={ch.href(c.value)} target={ch.phone || c.type === 'email' ? undefined : '_blank'} rel="noopener">
-        <span lang={ch.latin ? 'en' : undefined}>{ch.label}</span>
-        {(ch.phone || c.type === 'whatsapp') && <span dir="ltr" className={variant === 'outline' ? 'text-muted-foreground' : undefined}>{c.value}</span>}
+        <span className="shrink-0" lang={ch.latin ? 'en' : undefined}>{contactLabel(c)}</span>
+        <span dir="ltr" className={'min-w-0 truncate' + (variant === 'outline' ? ' text-muted-foreground' : '')}>{contactValue(c)}</span>
       </a>
     </SButton>
   );
 }
 
-function StatusContactCard({ space, km, compact }) {
-  const primary = space.contacts.filter((c) => c.type === 'whatsapp' || SM.channels[c.type].phone);
-  const rest = space.contacts.filter((c) => !primary.includes(c));
-  const list = compact ? rest : space.contacts;
+// U8 with PU-020: on a wide screen the aside holds the state and every contact; below `lg` the page
+// has a «الحالة» card at the top and one «التواصل» block near the end. «الاتجاهات» is in «الموقع»
+// only, and «للعرض فقط» in the prices only.
+function StatusContactCard({ space, km }) {
   return (
     <SCard>
-      <SCardHeader>
-        <SCardTitle>{compact ? tr("الحالة والتواصل", "Status & contact") : tr("الحالة والتواصل", "Status & contact")}</SCardTitle>
-      </SCardHeader>
+      <SCardHeader><SCardTitle>{tr("الحالة والتواصل", "Status & contact")}</SCardTitle></SCardHeader>
       <SCardContent className="flex flex-col gap-4">
         <StatusLine space={space} />
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
           <TodayLine space={space} />
           {km != null && <Distance km={km} />}
         </div>
-        {list.length > 0 && (
-          <div className={compact ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}>
-            {list.map((c, k) => <ContactButton key={c.type} c={c} variant={!compact && k === 0 ? 'primary' : 'outline'} className={compact ? '' : 'w-full'} />)}
-          </div>
-        )}
-        <SButton variant={compact ? 'outline' : 'secondary'} className={compact ? 'self-start' : 'w-full'} asChild><a href={directionsHref(space)} target="_blank" rel="noopener">{tr("الاتجاهات", "Directions")}</a></SButton>
-        <p className="text-caption text-muted-foreground">{tr("للعرض فقط · الدفع والاشتراك في المساحة", "Display only · Pay and subscribe at the space")}</p>
+        {space.contacts.length > 0 && <ContactList space={space} />}
+        {space.contacts.length > 0 && <p className="text-caption text-muted-foreground"><Freshness space={space} group="contacts" /></p>}
       </SCardContent>
     </SCard>
   );
+}
+function StatusCard({ space, km }) {
+  return (
+    <SCard>
+      <SCardHeader><SCardTitle>{tr("الحالة", "Status")}</SCardTitle></SCardHeader>
+      <SCardContent className="flex flex-col gap-3">
+        <StatusLine space={space} />
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
+          <TodayLine space={space} />
+          {km != null && <Distance km={km} />}
+        </div>
+      </SCardContent>
+    </SCard>
+  );
+}
+const ContactList = ({ space }) => (
+  <div className="flex flex-col gap-2">
+    {space.contacts.map((c, k) => <ContactButton key={c.type + k} c={c} variant={k === 0 ? 'primary' : 'outline'} className="w-full" />)}
+  </div>
+);
+function ContactSection({ space }) {
+  if (!space.contacts.length) return null;
+  return <Section id="contact" title={tr("التواصل", "Contact")} meta={<Freshness space={space} group="contacts" />}><ContactList space={space} /></Section>;
 }
 
 function Section({ id, title, meta, children, action }) {
@@ -174,12 +195,12 @@ function groupDays(hours) {
 const Range = ({ r }) => <span dir="ltr">{r[0]}–{r[1]}</span>;
 function ShiftsLine({ space }) {
   if (!space.shifts) return null;
-  return <span className="text-caption text-muted-foreground">{space.shifts.map((s, i) => <React.Fragment key={s.id}>{i > 0 && ' · '}{s.name} <Range r={s.range} /></React.Fragment>)}</span>;
+  return <p className="text-body-sm text-muted-foreground">{tr("الورديات: ", "Shifts: ")}{space.shifts.map((s, i) => <React.Fragment key={s.id}>{i > 0 && ' · '}{s.name} <Range r={s.range} /></React.Fragment>)}</p>;
 }
 function HoursCell({ space, range, isToday }) {
   if (isToday && space.closure) return <span className="text-label">{tr("مغلقة مؤقتًا", "Temporarily closed")}</span>;
   if (!range) return <span className="text-muted-foreground">{tr("مغلق", "Closed")}</span>;
-  return <div className="flex flex-col items-start gap-1"><Range r={range} /><ShiftsLine space={space} /></div>;
+  return <Range r={range} />;
 }
 const TodayBadge = () => <SBadge variant="primary">{tr("اليوم", "Today")}</SBadge>;
 
@@ -190,7 +211,7 @@ function HoursSection({ space }) {
   const canExpand = groups.length > 2;
   const rows = all ? SM.weekOrder.map(([k, name]) => ({ keys: [k], names: [name], range: space.hours[k] })) : groups;
   return (
-    <Section id="hours" title={tr("ساعات العمل", "Opening hours")} meta={tr(`آخر تحديث لساعات العمل ${space.hoursUpdated}`, `Hours updated ${space.hoursUpdated}`)}
+    <Section id="hours" title={tr("ساعات العمل", "Opening hours")} meta={<Freshness space={space} group="hours" />}
       action={canExpand && <SButton variant="link" size="sm" onClick={() => setAll(!all)} aria-expanded={all}>{all ? tr("عرض مختصر", "Show less") : tr("عرض كل الأيام", "Show all days")}</SButton>}>
       <SCard className="py-0">
         <STable>
@@ -220,32 +241,44 @@ function HoursSection({ space }) {
           </STableBody>
         </STable>
       </SCard>
+      <ShiftsLine space={space} />
     </Section>
   );
 }
 
-function PriceGrid({ prices, student }) {
-  const cells = SM.periods.filter((p) => prices[p.id] != null);
+// U9 (PU-011): a price has an audience, an optional shift and an optional label, for any of the four
+// periods (data model › Prices). The page shows one grid per audience — «الأسعار», then «للطلاب» —
+// each of the periods that audience publishes; a label stands in for its period's name.
+const PERIOD_ORDER = ['hour', 'day', 'week', 'month'];
+function priceRowsOf(space) {
+  if (space.priceRows) return space.priceRows;
+  const rows = PERIOD_ORDER.filter((k) => space.prices[k] != null).map((k) => ({ period: k, audience: 'general', amount: space.prices[k] }));
+  if (space.shiftPrices) Object.entries(space.shiftPrices).forEach(([shift, ps]) => PERIOD_ORDER.forEach((k) => ps[k] != null && rows.push({ period: k, audience: 'general', shift, amount: ps[k] })));
+  return rows;
+}
+function PriceGrid({ rows }) {
   return (
-    <div className="flex flex-col gap-3">
-      <dl className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        {cells.map((p) => (
-          <div key={p.id} className="flex flex-col gap-1 rounded-lg bg-muted p-3">
-            <dt className="text-caption text-muted-foreground">{p.short}</dt>
-            <dd className="text-heading-3"><Money amount={prices[p.id]} /></dd>
-          </div>
-        ))}
-      </dl>
-      {student && (
-        <dl className="flex flex-col gap-2">
-          <dt className="text-label">{tr("للطلاب", "For students")}</dt>
-          <dd className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            <div className="flex flex-col gap-1 rounded-lg bg-muted p-3">
-              <span className="text-caption text-muted-foreground">{tr("شهر", "Month")}</span>
-              <span className="text-heading-3"><Money amount={student} /></span>
-            </div>
-          </dd>
-        </dl>
+    <dl className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      {rows.map((r, k) => (
+        <div key={k} className="flex flex-col gap-1 rounded-lg bg-muted p-3">
+          <dt className="text-caption text-muted-foreground">{r.label ? tr(r.label[0], r.label[1] || r.label[0]) : SM.periods.find((p) => p.id === r.period).short}</dt>
+          <dd className="text-heading-3"><Money amount={r.amount} /></dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+function AudienceGrids({ rows }) {
+  const general = rows.filter((r) => r.audience === 'general');
+  const student = rows.filter((r) => r.audience === 'student');
+  return (
+    <div className="flex flex-col gap-4">
+      {general.length > 0 && <PriceGrid rows={general} />}
+      {student.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-label">{tr("للطلاب", "For students")}</h3>
+          <PriceGrid rows={student} />
+        </div>
       )}
     </div>
   );
@@ -259,43 +292,52 @@ function PricesSection({ space }) {
       </Section>
     );
   }
-  const meta = <>{tr("للعرض فقط · الدفع في المساحة · آخر تحديث ", "Display only · Pay at the space · Updated ")}{space.updated}</>;
+  const rows = priceRowsOf(space);
+  // U4 and PU-020: «للعرض فقط · الدفع في المساحة» once on the page, here, beside the prices' age.
+  const meta = <Freshness space={space} group="prices" lead={tr("للعرض فقط · الدفع في المساحة", "Display only · Pay at the space")} />;
   return (
-    <Section id="prices" title={tr("الأسعار", "Prices")} meta={space.stale ? null : meta}>
+    <Section id="prices" title={tr("الأسعار", "Prices")} meta={space.stale ? tr("للعرض فقط · الدفع في المساحة", "Display only · Pay at the space") : meta}>
       {space.stale && (
         <SAlert variant="warning">
-          <SAlertTitle>{tr("قد تكون الأسعار تغيّرت — آخر تحديث ", "Prices may have changed — updated ")}{space.updated}</SAlertTitle>
-          <SAlertDescription>{tr("تأكّد من السعر مع المساحة قبل الذهاب. للعرض فقط · الدفع في المساحة.", "Check the price with the space before you go. Display only · Pay at the space.")}</SAlertDescription>
+          <SAlertTitle>{tr("قد تكون الأسعار تغيّرت — آخر تحديث ", "Prices may have changed — updated ")}{SM.ago(space.updatedDays)}</SAlertTitle>
+          <SAlertDescription>{tr("تأكّد من السعر مع المساحة قبل الذهاب.", "Check the price with the space before you go.")}</SAlertDescription>
         </SAlert>
       )}
-      {space.shifts && space.shiftPrices ? (
+      {space.shifts && rows.some((r) => r.shift) ? (
+        // A real tab set: each shift's prices are a panel of their own (PU-013 keeps `Tabs` for this).
         <STabs defaultValue="full">
           <STabsList aria-label={tr("الأسعار حسب الدوام", "Prices by shift")}>
             <STabsTrigger value="full">{tr("اليوم الكامل", "Full day")}</STabsTrigger>
             {space.shifts.map((s) => <STabsTrigger key={s.id} value={s.id}>{s.long}</STabsTrigger>)}
           </STabsList>
-          <STabsContent value="full" className="pt-3"><PriceGrid prices={space.prices} student={space.studentMonth} /></STabsContent>
+          <STabsContent value="full" className="pt-3"><AudienceGrids rows={rows.filter((r) => !r.shift)} /></STabsContent>
           {space.shifts.map((s) => (
             <STabsContent key={s.id} value={s.id} className="flex flex-col gap-3 pt-3">
               <p className="text-body-sm text-muted-foreground">{s.long} <span dir="ltr">{s.range[0]}–{s.range[1]}</span></p>
-              <PriceGrid prices={space.shiftPrices[s.id]} />
+              <AudienceGrids rows={rows.filter((r) => r.shift === s.id)} />
             </STabsContent>
           ))}
         </STabs>
-      ) : <PriceGrid prices={space.prices} student={space.studentMonth} />}
+      ) : <AudienceGrids rows={rows} />}
     </Section>
   );
 }
 
+// H4 (the owner, 2026-10-12): a space's own amenities show exactly as the common ones — one list,
+// one style, after the common ones, no second section. Every amenity takes the same neutral mark: the
+// vendored bundle has no amenity icons, and one mark keeps the two kinds alike. An own amenity with
+// an Arabic name only shows it in the English interface too, marked as Arabic.
 function AmenitiesSection({ space }) {
-  const list = SM.allAmenities.filter((a) => space.amenities.includes(a.id));
+  const common = SM.allAmenities.filter((a) => space.amenities.includes(a.id)).map((a) => ({ key: a.id, name: a.name }));
+  const own = (space.ownAmenities || []).map((o) => ({ key: 'own:' + o.ar, name: LANG === 'en' && o.en ? o.en : o.ar, lang: LANG === 'en' && !o.en ? 'ar' : undefined }));
+  const list = common.concat(own);
   if (!list.length) return null;
   return (
-    <Section id="amenities" title={tr("المرافق", "Amenities")}>
+    <Section id="amenities" title={tr("المرافق", "Amenities")} meta={<Freshness space={space} group="amenities" />}>
       <ul className="flex flex-wrap gap-2">
         {list.map((a) => (
-          <li key={a.id} className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-body-sm">
-            <SCheckIcon className="size-4 text-primary" aria-hidden="true" />{a.name}
+          <li key={a.key} className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-body-sm">
+            <SCheckIcon className="size-4 text-primary" aria-hidden="true" /><span lang={a.lang} dir={a.lang ? 'rtl' : undefined}>{a.name}</span>
           </li>
         ))}
       </ul>
@@ -306,7 +348,7 @@ function AmenitiesSection({ space }) {
 function LocationSection({ space, user, userSource }) {
   return (
     <Section id="location" title={tr("الموقع", "Location")} action={<SButton variant="outline" size="sm" asChild><a href={directionsHref(space)} target="_blank" rel="noopener">{tr("الاتجاهات", "Directions")}</a></SButton>}>
-      <SpaceMap spaces={[space]} selectedId={space.id} onSelect={() => {}} user={user} userSource={userSource} label={tr(`موقع ${space.name} على الخريطة`, `${space.name} on the map`)} className="h-64" />
+      <SpaceMap static spaces={[space]} selectedId={space.id} user={user} userSource={userSource} label={tr(`موقع ${spaceName(space)} على الخريطة`, `${spaceName(space)} on the map`)} className="h-64" />
       <div className="flex flex-col gap-1 text-body-sm">
         <p>{space.address}</p>
         {space.landmark && <p className="text-muted-foreground">{space.landmark}</p>}
@@ -333,4 +375,4 @@ function AnnouncementsSection({ space }) {
   );
 }
 
-Object.assign(window, { HeartIcon, Gallery, StatusContactCard, ContactButton, AboutSection, HoursSection, PricesSection, AmenitiesSection, LocationSection, AnnouncementsSection, liveStatus, directionsHref });
+Object.assign(window, { Gallery, StatusContactCard, StatusCard, ContactSection, ContactButton, AboutSection, HoursSection, PricesSection, AmenitiesSection, LocationSection, AnnouncementsSection, liveStatus, directionsHref });

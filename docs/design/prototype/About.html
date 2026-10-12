@@ -28,7 +28,7 @@ function AboutScreen() {
   const [theme, setTheme] = useTheme();
   const c = M.platformContact;
   const legend = [
-    [<Badge variant="success">{tr("متاح", "Available")}</Badge>, tr("فيها أماكن شاغرة الآن، حسب آخر تحديث من إدارة المساحة.", "Has free places now, according to the space’s latest update.")],
+    [<Badge variant="success">{tr("متاح", "Available")}</Badge>, tr("فيها مكان الآن، وتُحدَّث الحالة تلقائيًا من حركة الحضور في المساحة.", "Has room now; the status updates itself from who comes and goes at the space.")],
     [<Badge variant="warning">{tr("ممتلئ", "Full")}</Badge>, tr("مفتوحة، لكن لا أماكن شاغرة الآن.", "Open, but no free places right now.")],
     [<Badge variant="neutral">{tr("مغلق الآن", "Closed now")}</Badge>, tr("خارج ساعات العمل، أو مغلقة مؤقتًا بإعلان من المساحة.", "Outside opening hours, or temporarily closed by an announcement from the space.")],
     [<span className="text-body-sm text-muted-foreground">{tr("لا تتوفر حالة مباشرة", "No live status")}</span>, tr("المساحة غير موثّقة، فلا أحد يحدّث حالتها لحظة بلحظة. راجع ساعات العمل أو تواصل معها.", "The space isn’t verified, so no one updates its status live. Check its hours or contact it.")]
@@ -38,7 +38,7 @@ function AboutScreen() {
       <SiteHeader current="about" theme={theme} setTheme={setTheme} />
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-14 px-4 py-10 md:px-8 md:py-16">
         <section className="flex flex-col gap-4">
-          <h1 className="text-heading-1 md:text-display">{tr("عن مساحة", "About Masaha")}</h1>
+          <h1 className="text-heading-1">{tr("عن مساحة", "About Masaha")}</h1>
           <p className="text-body">{tr("مساحة دليل لمساحات العمل المشتركة في قطاع غزة. نجمع في مكان واحد ساعات عمل كل مساحة وأسعارها ومرافقها وطرق التواصل معها، ونعرض حالتها المباشرة إن كانت موثّقة، لتعرف قبل أن تخرج إن كانت مفتوحة وفيها مكان.", "Masaha is a directory of coworking spaces in the Gaza Strip. It brings together each space’s hours, prices, amenities and contacts, and shows its live status if it’s verified, so you know before you leave whether it’s open and has room.")}</p>
           <p className="text-body text-muted-foreground">{tr("لمن يعمل عن بعد، وللطلاب، ولكل من يحتاج مكانًا فيه كهرباء وإنترنت ليعمل أو يدرس.", "For remote workers, students, and anyone who needs a place with power and internet to work or study.")}</p>
           <div className="flex flex-col gap-2 md:flex-row"><Button className="w-full md:w-auto" asChild><a href="Directory.html">{tr("تصفّح المساحات", "Browse spaces")}</a></Button></div>
@@ -52,7 +52,7 @@ function AboutScreen() {
                 <CardTitle className="flex items-center gap-2"><CircleCheckIcon className="size-5 text-primary" aria-hidden="true" />{tr("مساحة موثّقة", "Verified space")}</CardTitle>
                 <CardDescription>{tr("تديرها المساحة نفسها", "Managed by the space itself")}</CardDescription>
               </CardHeader>
-              <CardContent><p className="text-body-sm">{tr("تحدّث إدارة المساحة ساعاتها وأسعارها وإعلاناتها بنفسها، وتغيّر حالتها المباشرة خلال اليوم.", "The space updates its own hours, prices and announcements, and changes its live status during the day.")}</p></CardContent>
+              <CardContent><p className="text-body-sm">{tr("تحدّث إدارة المساحة ساعاتها وأسعارها وإعلاناتها، وتظهر حالتها المباشرة تلقائيًا، ويمكنها ضبطها يدويًا لفترة قصيرة.", "The space updates its hours, prices and announcements; its live status shows automatically, and the space can set it by hand for a short time.")}</p></CardContent>
             </Card>
             <Card>
               <CardHeader>
@@ -62,7 +62,7 @@ function AboutScreen() {
               <CardContent><p className="text-body-sm">{tr("جمع فريقنا معلوماتها من المساحة ومن صفحاتها العامة، ونراجعها دوريًا. لا تظهر لها حالة مباشرة.", "Our team collected its information from the space and its public pages, and reviews it periodically. It has no live status.")}</p></CardContent>
             </Card>
           </div>
-          <p className="text-body-sm text-muted-foreground">{tr("«آخر تحديث» هو آخر مرة تأكّدنا فيها من المعلومة أو حدّثتها المساحة. كلما طالت المدة زاد احتمال أن تكون قد تغيّرت، فنعرض تنبيهًا بجانب الأسعار القديمة. إن وجدت معلومة خاطئة، أبلغنا من صفحة المساحة.", "“Updated” is the last time we confirmed the information or the space updated it. The longer ago, the more likely it has changed, so we show a note next to old prices. If you find wrong information, report it from the space’s page.")}</p>
+          <p className="text-body-sm text-muted-foreground">{tr("«آخر تحديث» هو آخر مرة تأكّدنا فيها من المعلومة أو حدّثتها المساحة. كلما طالت المدة زاد احتمال أن تكون قد تغيّرت، فنعرض «قد يكون تغيّر» بجانب المعلومة القديمة. إن وجدت معلومة خاطئة، أبلغنا من صفحة المساحة.", "“Updated” is the last time we confirmed the information or the space updated it. The longer ago, the more likely it has changed, so we show “May have changed” next to old information. If you find wrong information, report it from the space’s page.")}</p>
         </section>
 
         <section aria-labelledby="status" className="flex flex-col gap-4">
@@ -76,6 +76,20 @@ function AboutScreen() {
                 </div>
               ))}
             </dl>
+          </Card>
+        </section>
+
+        {/* U11 (PU-016): contact for everyone, before the owners' own steps; the footer points here. */}
+        <section id="contact" aria-labelledby="contact-title" className="flex flex-col gap-4">
+          <h2 id="contact-title" className="text-heading-2">{tr("تواصل معنا", "Contact us")}</h2>
+          <Card>
+            <CardContent className="flex flex-col gap-4 pt-5">
+              <p className="text-body">{tr("اكتب لنا بسؤال، أو عن بلاغ لم يصلك ردّه، أو عن خطأ في الموقع.", "Write to us with a question, about a report that got no reply, or about a mistake on the site.")}</p>
+              <div className="flex flex-col gap-2 md:flex-row">
+                <Button className="justify-between md:justify-center" asChild><a href={'https://wa.me/' + c.whatsapp.replace(/\D/g, '')} target="_blank" rel="noopener">{tr("واتساب ", "WhatsApp ")}<span dir="ltr">{c.whatsapp}</span></a></Button>
+                <Button variant="outline" className="justify-between md:justify-center" asChild><a href={'mailto:' + c.email}>{tr("بريد ", "Email ")}<span dir="ltr" className="text-muted-foreground">{c.email}</span></a></Button>
+              </div>
+            </CardContent>
           </Card>
         </section>
 
@@ -96,7 +110,6 @@ function AboutScreen() {
           </Card>
         </section>
 
-        <p className="text-caption text-muted-foreground">{tr("مشروع تخرّج — جامعة القدس المفتوحة، فرع غزة", "Graduation project — Al-Quds Open University, Gaza branch")}</p>
       </main>
       <SiteFooter />
       <PageToaster />

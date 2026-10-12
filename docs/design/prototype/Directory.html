@@ -22,85 +22,134 @@
 <script type="text/babel" src="masaha/location.jsx"></script>
 <script type="text/babel" src="masaha/map.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Input, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, ToggleGroup, ToggleGroupItem, Switch, Tabs, TabsList, TabsTrigger, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, SheetClose, Skeleton, SearchIcon, SearchXIcon, XIcon } = window.MasahaDesignSystem;
+const { DirectionProvider, Input, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, ToggleGroup, ToggleGroupItem, Switch, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, SheetClose, Skeleton, Combobox, ComboboxTrigger, ComboboxContent, ComboboxGroup, ComboboxItem, SearchIcon, SearchXIcon, XIcon } = window.MasahaDesignSystem;
 const M = window.MASAHA;
 
 const list = (k) => (pageParams.get(k) || '').split(',').filter(Boolean);
 const initialFilters = () => ({
   q: pageParams.get('q') || '',
-  gov: pageParams.get('gov') || 'gaza',
   areas: list('area'),
   availableOnly: pageParams.get('available') === '1',
   verifiedOnly: pageParams.get('verified') === '1',
-  period: pageParams.get('period') || '',
-  amenities: list('am'),
+  period: pageParams.get('period') || 'day',
+  priceMin: pageParams.get('priceMin') || '',
+  priceMax: pageParams.get('priceMax') || '',
   others: pageParams.get('demo') === 'noresults' ? ['friday'] : list('other')
 });
 // Filters live in the URL so the space page's back link returns to the same results.
 function syncUrl(f, view) {
   const p = new URLSearchParams(location.search);
   const put = (k, v) => (v ? p.set(k, v) : p.delete(k));
-  put('q', f.q.trim()); put('gov', f.gov !== 'gaza' ? f.gov : ''); put('area', f.areas.join(',')); put('available', f.availableOnly ? '1' : '');
-  put('verified', f.verifiedOnly ? '1' : ''); put('period', f.period); put('am', f.amenities.join(',')); put('other', f.others.join(',')); put('view', view === 'map' ? 'map' : '');
-  ['sheet', 'selected', 'pick'].forEach((k) => p.delete(k));
+  put('q', f.q.trim()); put('area', f.areas.join(',')); put('available', f.availableOnly ? '1' : '');
+  put('verified', f.verifiedOnly ? '1' : ''); const range = priceRange(f); put('period', range.on ? f.period : ''); put('priceMin', f.priceMin.trim()); put('priceMax', f.priceMax.trim()); put('other', f.others.join(',')); put('view', view === 'map' ? 'map' : '');
+  ['sheet', 'selected', 'pick', 'gov', 'am'].forEach((k) => p.delete(k));
   const qs = p.toString() ? '?' + p.toString() : '';
   history.replaceState(null, '', location.pathname + qs);
   try { const keep = new URLSearchParams(qs); ['state', 'demo', 'loc'].forEach((k) => keep.delete(k)); sessionStorage.setItem('masaha:dir-query', keep.toString() ? '?' + keep : ''); } catch (e) {}
 }
-const clearedFilters = (f) => ({ ...f, q: '', gov: 'gaza', areas: [], availableOnly: false, verifiedOnly: false, period: '', amenities: [], others: [] });
-const activeCount = (f) => f.areas.length + (f.gov !== 'gaza' ? 1 : 0) + (f.availableOnly ? 1 : 0) + (f.verifiedOnly ? 1 : 0) + (f.period ? 1 : 0) + f.amenities.length + f.others.length;
+const clearedFilters = (f) => ({ ...f, q: '', areas: [], availableOnly: false, verifiedOnly: false, period: 'day', priceMin: '', priceMax: '', others: [] });
+const activeCount = (f) => f.areas.length + (f.availableOnly ? 1 : 0) + (f.verifiedOnly ? 1 : 0) + (priceRange(f).on ? 1 : 0) + f.others.length;
 const countLabel = (n) => n === 0 ? tr("لا توجد مساحات", "No spaces") : n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : LANG === 'en' ? `${n} spaces` : n <= 10 ? `${n} مساحات` : `${n} مساحة`;
+
+// U3: the search matches both names of a space and its area's, in either language.
+const matches = (s, q) => { const a = M.findArea(s.area) || {}; return [s.name, s.nameAr, a.ar, a.en].some((t) => t && t.toLowerCase().includes(q)); };
+
+// The count says where: the Strip, or the one area chosen.
+const placeLine = (ids) => ids.length === 1 ? tr(`في ${M.areaName(ids[0])}`, `in ${M.areaName(ids[0])}`) : ids.length ? tr('في المناطق المحددة', 'in the chosen areas') : tr('في قطاع غزة', 'in the Gaza Strip');
 
 function applyFilters(f, sort, coords) {
   const q = f.q.trim().toLowerCase();
   const list = M.spaces.filter((s) =>
-    s.gov === f.gov &&
     (!f.areas.length || f.areas.includes(s.area)) &&
     (!f.availableOnly || (s.verified && s.status === 'open')) &&
     (!f.verifiedOnly || s.verified) &&
-    (!f.period || s.prices[f.period] != null) &&
-    f.amenities.every((a) => s.amenities.includes(a)) &&
+    inRange(s, f) &&
     f.others.every((o) => s.others.includes(o)) &&
-    (!q || s.name.toLowerCase().includes(q) || M.areaName(s.area).includes(q))
+    (!q || matches(s, q))
   ).map((s) => ({ s, km: coords ? M.distanceKm(coords, s) : null }));
   const by = {
     distance: (a, b) => a.km - b.km,
     updated: (a, b) => a.s.updatedDays - b.s.updatedDays,
-    price: (a, b) => M.minPrice(a.s, f.period) - M.minPrice(b.s, f.period),
-    name: (a, b) => a.s.name.localeCompare(b.s.name)
+    name: (a, b) => spaceName(a.s).localeCompare(spaceName(b.s), LANG)
   };
   return list.sort(by[sort] || by.updated);
 }
 
+// U1: the directory covers the Strip, and place is one filter — the areas of the public
+// catalogue, each governorate a group, nothing chosen by default. A governorate with no active
+// area has no group. The amenities are no filter (the owner, 2026-10-12).
+const placeSummary = (ids) => ids.length === 0 ? tr("كل المناطق", "All areas") : ids.length === 1 ? M.areaName(ids[0]) : ids.length === 2 ? tr("منطقتان محددتان", "2 areas chosen") : LANG === 'en' ? `${ids.length} areas chosen` : ids.length <= 10 ? `${ids.length} مناطق محددة` : `${ids.length} منطقة محددة`;
+function PlaceField({ value, onChange }) {
+  return (
+    <Field label={tr("المنطقة", "Area")}>
+      <Combobox type="multiple" value={value} onValueChange={onChange}>
+        <ComboboxTrigger empty={!value.length}>{placeSummary(value)}</ComboboxTrigger>
+        <ComboboxContent searchLabel={tr("ابحث عن منطقة", "Search for an area")} searchPlaceholder={tr("اسم المنطقة", "Area name")} listLabel={tr("المناطق", "Areas")} emptyText={tr("لا توجد منطقة بهذا الاسم", "No area by that name")}>
+          {M.governorates.filter((g) => !g.hidden && g.areas.length).map((g) => (
+            <ComboboxGroup key={g.id} heading={g.name}>
+              {g.areas.map((a) => <ComboboxItem key={a.id} value={a.id} keywords={[a.ar, a.en]}>{a.name}</ComboboxItem>)}
+            </ComboboxGroup>
+          ))}
+        </ComboboxContent>
+      </Combobox>
+    </Field>
+  );
+}
+
+// U5 with S1: a budget. The period says which price the range reads — it is not a filter on its
+// own, so it always holds one («يوم» by default) and is sent only with a bound. A bound is a whole
+// number of shekels above zero (no price is ever 0); one that is not is said on its field and not
+// applied. An unverified space with stale prices shows none, so the range leaves it out.
+const toLatin = (t) => t.replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim();
+function priceRange(f) {
+  const read = (t) => { const v = toLatin(t); return v === '' ? { v: null } : /^[1-9][0-9]*$/.test(v) ? { v: Number(v) } : { bad: true }; };
+  const min = read(f.priceMin), max = read(f.priceMax);
+  const order = min.v != null && max.v != null && max.v < min.v;
+  const errMin = min.bad ? tr("اكتب مبلغًا أكبر من صفر", "Enter an amount above zero") : null;
+  const errMax = max.bad ? tr("اكتب مبلغًا أكبر من صفر", "Enter an amount above zero") : order ? tr("أقل من الحد الأدنى", "Below the minimum") : null;
+  const ok = !errMin && !errMax;
+  return { min: ok ? min.v : null, max: ok ? max.v : null, on: ok && (min.v != null || max.v != null), errMin, errMax };
+}
+const inRange = (s, f) => {
+  const r = priceRange(f);
+  if (!r.on) return true;
+  const v = M.priceHidden(s) ? null : s.prices[f.period];
+  return v != null && (r.min == null || v >= r.min) && (r.max == null || v <= r.max);
+};
+function PriceField({ f, set }) {
+  const r = priceRange(f);
+  // The form is drawn twice below `lg` (the hidden sidebar and the sheet), so its ids are its own.
+  const groupId = React.useId();
+  // «50 ₪» in Arabic, «₪50» in English: the sign leads the field in both directions.
+  const shekel = <span aria-hidden="true">₪</span>;
+  return (
+    <div role="group" aria-labelledby={groupId} className="flex flex-col gap-3">
+      <p id={groupId} className="text-label">{tr("السعر", "Price")}</p>
+      <ToggleGroup type="single" aria-label={tr("الفترة", "Period")} value={f.period} onValueChange={(v) => v && set({ period: v })}>
+        {M.periods.map((p) => <ToggleGroupItem key={p.id} value={p.id}>{p.short}</ToggleGroupItem>)}
+      </ToggleGroup>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={tr("من", "From")} error={r.errMin}><Input dir="ltr" inputMode="numeric" autoComplete="off" startIcon={shekel} value={f.priceMin} onChange={(e) => set({ priceMin: e.target.value })} /></Field>
+        <Field label={tr("إلى", "To")} error={r.errMax}><Input dir="ltr" inputMode="numeric" autoComplete="off" startIcon={shekel} value={f.priceMax} onChange={(e) => set({ priceMax: e.target.value })} /></Field>
+      </div>
+      <p className="text-caption text-muted-foreground">{tr("النطاق على سعر الفترة المختارة.", "The range reads the chosen period’s price.")}</p>
+    </div>
+  );
+}
+
 function FiltersForm({ f, set }) {
-  const gov = M.governorates.find((g) => g.id === f.gov);
+  const spacesId = React.useId();
   return (
     <div className="flex flex-col gap-6">
-      <Field label={tr("المحافظة", "Governorate")}>
-        <Select value={f.gov} onValueChange={(v) => set({ gov: v, areas: [] })}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{M.governorates.filter((g) => !g.hidden).map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
-        </Select>
-      </Field>
-      <Field label={tr("المنطقة", "Area")} helper={gov.areas.length ? undefined : tr("لا توجد مناطق مضافة في هذه المحافظة بعد", "No areas added in this governorate yet")}>
-        <ToggleGroup type="multiple" value={f.areas} onValueChange={(v) => set({ areas: v })}>
-          {gov.areas.map((a) => <ToggleGroupItem key={a.id} value={a.id}>{a.name}</ToggleGroupItem>)}
-        </ToggleGroup>
-      </Field>
-      <div className="flex flex-col gap-2">
+      <PlaceField value={f.areas} onChange={(v) => set({ areas: v })} />
+      {/* U5: the two switches are one group; an unverified space never has a live state. */}
+      <div role="group" aria-labelledby={spacesId} className="flex flex-col gap-2">
+        <p id={spacesId} className="text-label">{tr("المساحات", "Spaces")}</p>
         <Field label={tr("متاحة الآن فقط", "Available now only")} orientation="horizontal"><Switch checked={f.availableOnly} onCheckedChange={(v) => set({ availableOnly: v })} /></Field>
         <Field label={tr("المساحات الموثّقة فقط", "Verified spaces only")} orientation="horizontal"><Switch checked={f.verifiedOnly} onCheckedChange={(v) => set({ verifiedOnly: v })} /></Field>
+        <p className="text-caption text-muted-foreground">{tr("تشمل «متاحة الآن» المساحات الموثّقة فقط.", "“Available now” covers verified spaces only.")}</p>
       </div>
-      <Field label={tr("مدة الاشتراك", "Period")}>
-        <ToggleGroup type="single" value={f.period} onValueChange={(v) => set({ period: v })}>
-          {M.periods.map((p) => <ToggleGroupItem key={p.id} value={p.id}>{p.filter}</ToggleGroupItem>)}
-        </ToggleGroup>
-      </Field>
-      <Field label={tr("المرافق", "Amenities")}>
-        <ToggleGroup type="multiple" value={f.amenities} onValueChange={(v) => set({ amenities: v })}>
-          {M.amenities.map((a) => <ToggleGroupItem key={a.id} value={a.id}>{a.name}</ToggleGroupItem>)}
-        </ToggleGroup>
-      </Field>
+      <PriceField f={f} set={set} />
       <Field label={tr("أخرى", "Other")}>
         <ToggleGroup type="multiple" value={f.others} onValueChange={(v) => set({ others: v })}>
           {M.others.map((a) => <ToggleGroupItem key={a.id} value={a.id}>{a.name}</ToggleGroupItem>)}
@@ -110,6 +159,8 @@ function FiltersForm({ f, set }) {
   );
 }
 
+const SORTS = () => ({ distance: tr("حسب المسافة", "By distance"), updated: tr("الأحدث تحديثًا", "Recently updated"), name: tr("حسب الاسم", "By name") });
+
 function NoResults({ onClear }) {
   return (
     <EmptyState icon={<SearchXIcon />} title={tr("لا توجد مساحات تطابق الفلاتر", "No spaces match the filters")} description={tr("جرّب إزالة بعض الفلاتر أو البحث باسم آخر.", "Try removing some filters or searching for another name.")}>
@@ -118,12 +169,33 @@ function NoResults({ onClear }) {
   );
 }
 
+// U6: on a phone the selected space is a small bottom sheet, not a card over half the map. It is
+// not modal: the map keeps panning behind it, and tapping another pin selects that one.
+function SelectedSheet({ item, onClose }) {
+  const { s, km } = item;
+  return (
+    <Sheet open modal={false} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="bottom" closeLabel={tr("إغلاق", "Close")} onInteractOutside={(e) => e.preventDefault()} onOpenAutoFocus={(e) => e.preventDefault()}>
+        <SheetHeader>
+          <SheetTitle><SpaceName space={s} /></SheetTitle>
+          <SheetDescription>{areaLine(s)}</SheetDescription>
+        </SheetHeader>
+        <SheetBody className="flex flex-col gap-2 pb-2">
+          <LiveStatus space={s} />
+          <SpaceMeta space={s} km={km} />
+        </SheetBody>
+        <SheetFooter><Button className="w-full" asChild><a href={spaceHref(s)}>{tr("عرض التفاصيل", "View details")}</a></Button></SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function CompactSpaceCard({ item, onClose }) {
   const { s, km } = item;
   return (
     <Card className="shadow-overlay">
       <CardHeader>
-        <CardTitle>{s.name}</CardTitle>
+        <CardTitle><SpaceName space={s} /></CardTitle>
         <CardDescription>{areaLine(s)}</CardDescription>
         <CardAction><Button variant="ghost" size="icon" aria-label={tr("إغلاق", "Close")} onClick={onClose}><XIcon /></Button></CardAction>
       </CardHeader>
@@ -139,6 +211,9 @@ function CompactSpaceCard({ item, onClose }) {
 function DirectoryScreen() {
   const [theme, setTheme] = useTheme();
   const isDesktop = useIsDesktop();
+  const isTablet = useIsTablet();
+  const user = getUser();
+  const favs = useFavourites();
   const near = useNearMe();
   const [state, setState] = React.useState(pageParams.get('state') || 'ready');
   const [f, setF] = React.useState(initialFilters);
@@ -148,20 +223,27 @@ function DirectoryScreen() {
   const [sort, setSort] = React.useState(near.coords ? 'distance' : 'updated');
   const set = (patch) => setF((prev) => ({ ...prev, ...patch }));
 
-  // «الأقرب إليّ» lives in the sort: choosing it asks for location (or reuses the saved/manual one).
+  // U2: «الأقرب إليّ» is a control of its own, not an item of the sort list. A location that
+  // arrives sorts by distance; another sort leaves it, keeping the location until «مسح موقعي».
   React.useEffect(() => {
     if (near.coords) setSort('distance');
-    else if (near.loc.status !== 'locating') setSort((s) => (s === 'distance' ? 'updated' : s));
-  }, [!!near.coords, near.loc.status]);
-  const chooseSort = (v) => {
-    if (v === 'distance' && !near.coords) { setSort('distance'); near.request(); return; }
-    setSort(v);
-  };
+    else setSort((s) => (s === 'distance' ? 'updated' : s));
+  }, [!!near.coords]);
+  const sortingByDistance = sort === 'distance' && !!near.coords;
+  const toggleNear = () => (sortingByDistance ? setSort('updated') : near.coords ? setSort('distance') : near.request());
+  const chooseSort = (v) => setSort(v);
   const changeView = (v) => setView(v);
   const firstSync = React.useRef(true);
   React.useEffect(() => { if (firstSync.current && pageParams.get('sheet')) { firstSync.current = false; return; } firstSync.current = false; syncUrl(f, view); }, [f, view]);
   const pickOnMap = () => { changeView('map'); setSelectedId(null); near.startPick(); };
-  const chooseArea = () => setSheetOpen(true);
+  // «اختر منطقتك»: from 1024 the list view's filters are the sidebar, so the focus goes to its
+  // «المنطقة»; below it, or on the map, the sheet opens.
+  const chooseArea = () => {
+    const place = isDesktop && view === 'list' && document.querySelector('aside [role=combobox]');
+    if (!place) return setSheetOpen(true);
+    place.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    place.focus({ preventScroll: true });
+  };
 
   const results = applyFilters(f, sort === 'distance' && !near.coords ? 'updated' : sort, near.coords);
   const selected = results.find((r) => r.s.id === selectedId);
@@ -170,6 +252,7 @@ function DirectoryScreen() {
   const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1200); };
   const ready = state === 'ready';
   const picking = near.loc.status === 'picking';
+  const phoneSheet = view === 'map' && !picking && !!selected && !isTablet;
 
     return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
@@ -178,18 +261,19 @@ function DirectoryScreen() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h1 className="text-heading-1">{tr("مساحات العمل", "Workspaces")}</h1>
-            <p className="text-body-sm text-muted-foreground" aria-live="polite">{ready ? tr(`${countLabel(results.length)} في ${M.govName(f.gov)} · ${DISPLAY_ONLY()}`, `${countLabel(results.length)} in ${M.govName(f.gov)} · ${DISPLAY_ONLY()}`) : '\u00a0'}</p>
           </div>
-          <Tabs value={view} onValueChange={changeView}>
-            <TabsList aria-label={tr("طريقة العرض", "View")}>
-              <TabsTrigger value="list">{tr("قائمة", "List")}</TabsTrigger>
-              <TabsTrigger value="map">{tr("خريطة", "Map")}</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {/* PU-013: two pressed states of one control, not a tab list with no panels. */}
+          <Field label={<span className="sr-only">{tr("طريقة العرض", "View")}</span>}>
+            <ToggleGroup type="single" value={view} onValueChange={(v) => v && changeView(v)}>
+              <ToggleGroupItem value="list">{tr("قائمة", "List")}</ToggleGroupItem>
+              <ToggleGroupItem value="map">{tr("خريطة", "Map")}</ToggleGroupItem>
+            </ToggleGroup>
+          </Field>
         </div>
 
-        <div className="flex flex-col gap-2 md:flex-row md:items-center">
-          <Input role="searchbox" aria-label={tr("ابحث عن مساحة", "Search for a space")} placeholder={tr("اسم المساحة أو المنطقة", "Space name or area")} startIcon={<SearchIcon />} className="md:flex-1" value={f.q} onChange={(e) => set({ q: e.target.value })} />
+        {/* On the map a phone has no sort, so the search and «الفلاتر» share one row, and the map leads. */}
+        <div className={'flex gap-2 md:flex-row md:items-center ' + (view === 'map' ? 'flex-row items-center' : 'flex-col')}>
+          <Input role="searchbox" aria-label={tr("ابحث عن مساحة", "Search for a space")} placeholder={tr("اسم المساحة أو المنطقة", "Space name or area")} startIcon={<SearchIcon />} className={view === 'map' ? 'min-w-0 flex-1' : 'md:flex-1'} value={f.q} onChange={(e) => set({ q: e.target.value })} />
           <div className="flex items-center gap-2">
             {/* P5: the one filter sheet. From 1024 the list view's filters are in the sidebar, so the
                             toolbar draws none; the map has no sidebar, so there the sheet stays at every width. */}
@@ -199,11 +283,9 @@ function DirectoryScreen() {
             {view === 'list' && (
               <div className="flex-1 md:w-48 md:flex-none">
                 <Select value={sort} onValueChange={chooseSort}>
-                  <SelectTrigger aria-label={tr("الترتيب", "Sort")}><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label={tr("الترتيب", "Sort")}><SelectValue>{tr("الترتيب: ", "Sort: ")}{SORTS()[sort]}</SelectValue></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="distance">{near.loc.status === 'locating' ? tr("الأقرب إليّ — جارٍ تحديد موقعك…", "Nearest to me — finding your location…") : tr("الأقرب إليّ", "Nearest to me")}</SelectItem>
                     <SelectItem value="updated">{tr("الأحدث تحديثًا", "Recently updated")}</SelectItem>
-                    <SelectItem value="price">{tr("الأقل سعرًا", "Lowest price")}</SelectItem>
                     <SelectItem value="name">{tr("حسب الاسم", "By name")}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -211,7 +293,12 @@ function DirectoryScreen() {
             )}
           </div>
         </div>
-        {!picking && <LocationStatus near={near} showIdle={view === 'list'} onPickOnMap={pickOnMap} onChooseArea={chooseArea} />}
+        {/* U2 and P5: the count by the toolbar, «الأقرب إليّ» beside it in both views, its one state line under them. */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <ResultCount>{ready ? `${countLabel(results.length)} ${placeLine(f.areas)}` : '\u00a0'}</ResultCount>
+          {!picking && <NearMeButton near={near} on={sortingByDistance} onToggle={toggleNear} />}
+        </div>
+        {!picking && <LocationStatus near={near} sorting={sortingByDistance} onStop={() => setSort('updated')} onPickOnMap={pickOnMap} onChooseArea={chooseArea} />}
 
         {state === 'error' && (
           <Alert variant="destructive">
@@ -232,11 +319,11 @@ function DirectoryScreen() {
                 <CardContent><FiltersForm f={f} set={set} /></CardContent>
               </Card>
             </aside>
-            <section aria-label={tr("النتائج", "Results")} aria-busy={state === 'loading'} className="grid gap-4 md:grid-cols-2 lg:col-span-9">
+            <section aria-label={tr("النتائج", "Results")} aria-busy={state === 'loading'} className="grid gap-4 md:grid-cols-2 lg:col-span-9 xl:grid-cols-3">
               {state === 'loading' && [0, 1, 2, 3].map((i) => <SpaceCardSkeleton key={i} />)}
               {ready && (results.length
-                ? results.map((r) => <SpaceCard key={r.s.id} space={r.s} km={r.km} />)
-                : <Card className="md:col-span-2"><NoResults onClear={clear} /></Card>)}
+                ? results.map((r) => <SpaceCard key={r.s.id} space={r.s} km={r.km} action={user && <HeartButton space={r.s} on={favs.has(r.s)} onToggle={favs.toggle} />} />)
+                : <Card className="md:col-span-2 xl:col-span-3"><NoResults onClear={clear} /></Card>)}
             </section>
           </div>
         )}
@@ -252,23 +339,29 @@ function DirectoryScreen() {
                 userSource={near.loc.source}
                 picking={picking}
                 onPick={(c) => { near.placePin(c); setSort('distance'); }}
-                onLocate={near.request}
-                locating={near.loc.status === 'locating'}
+                pickAtCentre
+                legend={<MapLegend />}
+                focus={phoneSheet ? selected.s : null}
+                focusAt={{ x: 0.5, y: 0.3 }}
                 label={tr("خريطة المساحات", "Map of spaces")}
                 className="map-canvas">
-                {picking ? (
+                {({ confirmCentre }) => picking ? (
+                  // U7: a keyboard, a screen reader and a thumb all reach the centre and its button.
                   <Card className="shadow-overlay">
                     <CardHeader>
                       <CardTitle>{tr("حدّد موقعك على الخريطة", "Set your location on the map")}</CardTitle>
-                      <CardDescription>{tr("اضغط على مكانك التقريبي. نحسب المسافات منه، ويبقى على جهازك فقط.", "Tap your approximate location. We measure distances from it, and it stays on your device.")}</CardDescription>
-                      <CardAction><Button variant="ghost" size="sm" onClick={near.clear}>{tr("إلغاء", "Cancel")}</Button></CardAction>
+                      <CardDescription>{tr("حرّك الخريطة حتى تقع العلامة على مكانك التقريبي، أو اضغط عليه. نحسب المسافات منه، ويبقى على جهازك فقط.", "Move the map until the mark is on your approximate location, or tap it. We measure distances from it, and it stays on your device.")}</CardDescription>
                     </CardHeader>
+                    <CardFooter className="flex gap-2">
+                      <Button className="flex-1" onClick={confirmCentre}>{tr("ثبّت الموقع هنا", "Set location here")}</Button>
+                      <Button variant="ghost" onClick={near.cancelPick}>{tr("رجوع", "Back")}</Button>
+                    </CardFooter>
                   </Card>
-                ) : selected ? <CompactSpaceCard item={selected} onClose={() => setSelectedId(null)} />
+                ) : selected && isTablet ? <CompactSpaceCard item={selected} onClose={() => setSelectedId(null)} />
                   : ready && !results.length ? <Card className="shadow-overlay"><NoResults onClear={clear} /></Card> : null}
               </SpaceMap>
             )}
-            <MapLegend />
+            {phoneSheet && <SelectedSheet item={selected} onClose={() => setSelectedId(null)} />}
           </section>
         )}
       </main>

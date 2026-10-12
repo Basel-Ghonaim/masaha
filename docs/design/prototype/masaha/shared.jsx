@@ -19,6 +19,9 @@ function useIsDesktop() {
 const GAZA_STRIP = { north: 31.60, south: 31.22, west: 34.20, east: 34.57 };
 const MAX_ACCURACY_M = 2000;
 const LOC_KEY = 'masaha:near-me';
+function savedLoc() {
+  try { const s = JSON.parse(sessionStorage.getItem(LOC_KEY)); return s && s.coords ? s : null; } catch (e) { return null; }
+}
 function initialLoc() {
   const p = pageParams.get('loc');
   if (p === 'granted') return { status: 'granted', source: 'gps', coords: M.demoUser };
@@ -26,8 +29,7 @@ function initialLoc() {
   if (p === 'denied' || p === 'imprecise' || p === 'picking' || p === 'locating') return { status: p };
   if (p) return { status: 'idle' };
   if (pageParams.get('pick') === '1') return { status: 'picking' };
-  try { const s = JSON.parse(sessionStorage.getItem(LOC_KEY)); if (s && s.coords) return s; } catch (e) {}
-  return { status: 'idle' };
+  return savedLoc() || { status: 'idle' };
 }
 function useNearMe() {
   const [loc, setLoc] = React.useState(initialLoc);
@@ -48,11 +50,15 @@ function useNearMe() {
       { timeout: 8000, maximumAge: 300000, enableHighAccuracy: true }
     );
   }, []);
-  const startPick = React.useCallback(() => setLoc({ status: 'picking' }), []);
+  // U7: «رجوع» returns to the location from before picking, whatever it was; only «مسح موقعي» clears one.
+  // Arriving to pick from another page (Home's «تغيير الموقع»), the location before is this tab's saved one.
+  const before = React.useRef(loc.status === 'picking' && !pageParams.get('loc') ? savedLoc() : null);
+  const startPick = React.useCallback(() => setLoc((l) => { before.current = l.status === 'granted' ? l : null; return { status: 'picking' }; }), []);
+  const cancelPick = React.useCallback(() => setLoc(before.current || { status: 'idle' }), []);
   const placePin = React.useCallback((coords) => setLoc({ status: 'granted', source: 'manual', coords }), []);
   const clear = React.useCallback(() => setLoc({ status: 'idle' }), []);
   React.useEffect(() => { if (pageParams.get('near') === '1' && !pageParams.get('loc') && loc.status === 'idle') request(); }, []);
-  return { loc, coords: loc.status === 'granted' ? loc.coords : null, request, startPick, placePin, clear };
+  return { loc, coords: loc.status === 'granted' ? loc.coords : null, request, startPick, cancelPick, placePin, clear };
 }
 
 // SH-007 (and DI-7): an always-LTR value never breaks mid-number inside Arabic text.
@@ -61,6 +67,13 @@ const Money = ({ amount }) => <Ltr>{LANG === 'en' ? `₪${amount}` : `${amount} 
 const fmtKm = (km) => (km < 10 ? km.toFixed(1) : Math.round(km)).toString();
 const Distance = ({ km }) => <span>{tr("على بعد ", "About ")}<Ltr>{fmtKm(km)}</Ltr>{tr(" كم تقريبًا", " km away")}</span>;
 const spaceHref = (s) => `Space details.html?id=${s.id}`;
+
+// U3: one name for a space. In Arabic its Arabic name when it has one, else its English name (the
+// required one); in English its English name. The other name appears only under the space page's h1.
+const spaceName = (s) => (LANG === 'en' ? s.name : s.nameAr || s.name);
+const otherName = (s) => (LANG === 'en' ? s.nameAr || null : s.nameAr ? s.name : null);
+// An English-only name inside the Arabic interface is marked as English.
+const SpaceName = ({ space }) => (LANG === 'ar' && !space.nameAr && !/[\u0600-\u06FF]/.test(space.name) ? <span lang="en">{space.name}</span> : spaceName(space));
 const locPass = () => (pageParams.get('loc') === 'granted' ? '&loc=granted' : '');
 
 // Signed-in user (demo): sessionStorage after sign-in, or ?auth=1 | google | linked for board frames.
@@ -156,7 +169,7 @@ function PageActions({ actions }) {
 // them inside its shell with no actions, since the sidebar is the way on; the site offers
 // its way back. `?state=offline|403|404` reaches them from any page.
 const ROUTE_STATES = () => ({
-  offline: { icon: 'alert', title: tr('لا يوجد اتصال بالإنترنت', 'No internet connection'), text: tr('ستظهر البيانات عند عودة الاتصال.', 'The data will appear when you’re back online.'), retry: true },
+  offline: { icon: 'offline', title: tr('لا يوجد اتصال بالإنترنت', 'No internet connection'), text: tr('ستظهر البيانات عند عودة الاتصال.', 'The data will appear when you’re back online.'), retry: true },
   403: { icon: 'alert', title: tr('لا تملك صلاحية هذه الصفحة', 'You don’t have access to this page'), text: tr('إن كنت تظن أن هذا خطأ، تواصل مع صاحب المساحة أو الإدارة.', 'If you think this is a mistake, ask the space’s owner or the admin.') },
   404: { icon: 'search', title: tr('الصفحة غير موجودة', 'Page not found'), text: tr('ربما تغيّر الرابط أو حُذفت الصفحة.', 'The link may have changed or the page was removed.') }
 });
@@ -194,10 +207,15 @@ function useActionRun(actionKey) {
   return { busy, run };
 }
 
-function ActionButton({ actionKey, success, onAction, children, ...rest }) {
+// DI-27: no object rest here (`{ a, ...rest }`). In-browser Babel compiles it with a helper list,
+// `_excluded`, that is a page-wide global; a later script that uses rest overwrites it (the editor's
+// `ClockInput`), and the props meant to be held back reached the DOM. The props are picked by hand.
+const without = (props, keys) => { const out = Object.assign({}, props); keys.forEach((k) => { delete out[k]; }); return out; };
+
+function ActionButton(props) {
   const { Button } = window.MasahaDesignSystem;
-  const { busy, run } = useActionRun(actionKey);
-  return <Button {...rest} loading={busy} onClick={() => run(onAction, success)}>{children}</Button>;
+  const { busy, run } = useActionRun(props.actionKey);
+  return <Button {...without(props, ['actionKey', 'success', 'onAction', 'children'])} loading={busy} onClick={() => run(props.onAction, props.success)}>{props.children}</Button>;
 }
 
 // The failure of an action taken in a dialog or a sheet shows inside it, which stays open
@@ -237,10 +255,20 @@ function RouteState({ state }) {
   const { EmptyState, Button, SearchXIcon, CircleAlertIcon } = window.MasahaDesignSystem;
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-10">
-      <EmptyState icon={state.icon === 'search' ? <SearchXIcon /> : <CircleAlertIcon />} title={state.title} titleAs="h1" description={state.text}>
+      <EmptyState icon={state.icon === 'search' ? <SearchXIcon /> : state.icon === 'offline' ? <WifiOffIcon /> : <CircleAlertIcon />} title={state.title} titleAs="h1" description={state.text}>
         {state.retry && <Button onClick={() => location.reload()}>{tr('إعادة المحاولة', 'Try again')}</Button>}
       </EmptyState>
     </div>
+  );
+}
+
+// PU-024 and S3: offline is not an error, so it has its own icon. The layer has none, so it is drawn
+// here, in the layer's stroke style (design issue 3: worker A's icon set).
+function WifiOffIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h.01" /><path d="M8.5 16.43a5 5 0 0 1 7 0" /><path d="M5 12.86a10 10 0 0 1 5.17-2.69" /><path d="M19 12.86a10 10 0 0 0-2-1.52" /><path d="M2 8.82a15 15 0 0 1 4.18-2.64" /><path d="M22 8.82a15 15 0 0 0-11.29-3.76" /><path d="m2 2 20 20" />
+    </svg>
   );
 }
 
@@ -317,7 +345,7 @@ function SiteFooter() {
         <p>{tr("مساحة — دليل مساحات العمل المشتركة في قطاع غزة", "Masaha — a directory of coworking spaces in the Gaza Strip")}</p>
         <div className="flex flex-wrap gap-4">
           <a href="About.html">{tr("عن مساحة", "About Masaha")}</a>
-          <a href="About.html#owners">{tr("تواصل معنا", "Contact us")}</a>
+          <a href="About.html#contact">{tr("تواصل معنا", "Contact us")}</a>
         </div>
       </div>
     </footer>
@@ -339,45 +367,6 @@ function TodayHours({ space }) {
   return h ? <span>{tr("اليوم ", "Today ")}<Ltr>{h[0]}–{h[1]}</Ltr></span> : <span>{tr("مغلقة اليوم", "Closed today")}</span>;
 }
 
-function SpacePrices({ space }) {
-  if (M.priceHidden(space)) {
-    return <p className="rounded-md bg-muted px-3 py-3 text-body-sm text-muted-foreground">{tr("السعر غير محدّث — تواصل مع المساحة", "Price not up to date — contact the space")}</p>;
-  }
-  // Fixed columns: ساعة · يوم · أسبوع · شهر on every card; a missing period is a quiet «—».
-  const cells = M.periods.map((p) => ({ key: p.id, label: p.short, amount: space.prices[p.id] }));
-  if (space.studentMonth) cells.push({ key: 'student', label: tr("شهر · طلاب", "Student month"), amount: space.studentMonth, wide: true });
-  return (
-    <dl className="grid grid-cols-4 gap-2">
-      {cells.map((c) => c.amount == null ? (
-        <div key={c.key} className="flex flex-col rounded-md px-2 py-1">
-          <dt className="text-caption text-muted-foreground">{c.label}</dt>
-          <dd className="text-label text-muted-foreground"><span aria-hidden="true">—</span><span className="sr-only">{tr("غير متوفر", "Not offered")}</span></dd>
-        </div>
-      ) : (
-        <div key={c.key} className={'flex flex-col rounded-md bg-muted px-2 py-1' + (c.wide ? ' col-span-2' : '')}>
-          <dt className="text-caption text-muted-foreground">{c.label}</dt>
-          <dd className="text-label"><Money amount={c.amount} /></dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-// SH-021: the display-only note is the same on every card, so it is said once in the
-// list's header line (`DISPLAY_ONLY`). The card keeps what is its own: when the prices were
-// last updated, and the badge when they may have changed since.
-const DISPLAY_ONLY = () => tr("الأسعار للعرض فقط · الدفع في المساحة", "Prices are display only · Pay at the space");
-
-function PriceMeta({ space }) {
-  if (M.priceHidden(space)) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
-      <span>{tr("آخر تحديث ", "Updated ")}{space.updated}</span>
-      {space.stale && <Badge variant="warning">{tr("قد يكون تغيّر", "May have changed")}</Badge>}
-    </div>
-  );
-}
-
 function SpaceMeta({ space, km }) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
@@ -390,39 +379,129 @@ function SpaceMeta({ space, km }) {
 
 const areaLine = (s) => `${M.areaName(s.area)}${tr('، ', ', ')}${M.govShort(s.gov)}`;
 
-// reserveEnd: the top-end corner holds an overlaid control (favourites heart), so the status moves under the title.
-function SpaceCard({ space, km, reserveEnd }) {
+// U12: a stand-in for a space's cover photo. The archive has no real photos (no stock imagery), so
+// each space gets a quiet drawn room in the layer's tokens, varied by space so the list is not one
+// picture six times. In the product this frame holds the space's first photo, as a small thumbnail.
+const COVER_TONES = ['cover-art tone-primary', 'cover-art tone-info', 'cover-art tone-success', 'cover-art tone-warning'];
+function CoverArt({ seed }) {
+  const n = [...seed].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const flip = Math.floor(n / COVER_TONES.length) % 2 === 1;
   return (
-    <a href={spaceHref(space)} className="block h-full rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-      <Card className="h-full transition-colors hover:bg-accent">
-        <CardHeader className={reserveEnd ? 'pe-16' : undefined}>
-          <CardTitle>{space.name}</CardTitle>
-          <CardDescription>{areaLine(space)}</CardDescription>
-          {reserveEnd ? <div className="pt-1"><LiveStatus space={space} /></div> : <CardAction><LiveStatus space={space} /></CardAction>}
-        </CardHeader>
-        <CardContent className="flex flex-1 flex-col gap-3">
-          <SpaceMeta space={space} km={km} />
-          <SpacePrices space={space} />
-        </CardContent>
-        {!M.priceHidden(space) && <CardFooter><PriceMeta space={space} /></CardFooter>}
-      </Card>
-    </a>
+    <svg className={COVER_TONES[n % COVER_TONES.length]} viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <rect className="wall" width="320" height="180" />
+      <g transform={flip ? 'translate(320 0) scale(-1 1)' : undefined}>
+        <rect className="window" x="186" y="22" width="100" height="78" rx="6" />
+        <path className="mullion" d="M236 22 V100 M186 61 H286" />
+        <rect className="floor" y="128" width="320" height="52" />
+        <rect className="wood" x="34" y="104" width="156" height="9" rx="3" />
+        <rect className="wood" x="44" y="113" width="6" height="40" />
+        <rect className="wood" x="174" y="113" width="6" height="40" />
+        <rect className="paper" x="70" y="82" width="44" height="22" rx="3" />
+        <circle className="lamp" cx="150" cy="92" r="10" />
+        <circle className="leaf" cx="270" cy="124" r="18" />
+        <rect className="wood" x="264" y="132" width="12" height="22" rx="2" />
+      </g>
+    </svg>
+  );
+}
+
+Object.assign(window, { CoverArt });
+
+// U12 (H2): the photo leads the card, in a frame of fixed ratio — 2:1 on a phone, 16:9 from 768 —
+// reserved before anything arrives, so nothing moves on a weak connection: the frame waits muted,
+// then shows the photo. With no photo, or one that did not load, it shows the space's mark, the
+// first letter of its name, as the dashboard's switcher does (SH-006). `?photos=loading|failed`
+// show those two states.
+function SpaceCover({ space }) {
+  const demo = pageParams.get('photos');
+  const has = (space.photos || 0) > 0 && demo !== 'failed';
+  return (
+    <div className="cover-ratio relative w-full overflow-hidden bg-muted" aria-hidden="true">
+      {demo === 'loading' ? <Skeleton className="absolute inset-0 size-full rounded-none" />
+        : has ? <CoverArt seed={space.id} />
+        : (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="flex size-16 items-center justify-center rounded-xl bg-primary text-heading-1 text-primary-foreground shadow-raised">{spaceName(space)[0]}</span>
+          </span>
+        )}
+    </div>
+  );
+}
+
+// U12, as the owner decided on 2026-10-12: the card is the site's first impression, and it shows no
+// price — prices live on the space page. Under the photo, what makes someone open it: the name, the
+// area, the live state (or that it has none), today's hours, the distance when a location is in
+// use. `action`: a control laid over the photo's top-end corner (the heart), outside the link.
+function SpaceCard({ space, km, action }) {
+  return (
+    <div className="relative h-full">
+      <a href={spaceHref(space)} className="block h-full rounded-lg text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+        <Card className="h-full pt-0 transition-colors hover:bg-accent">
+          <SpaceCover space={space} />
+          <CardHeader>
+            <CardTitle><SpaceName space={space} /></CardTitle>
+            <CardDescription>{areaLine(space)}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col justify-end gap-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <LiveStatus space={space} />
+              {space.verified && <span className="inline-flex items-center gap-1 text-body-sm text-primary"><CircleCheckIcon className="size-4" aria-hidden="true" />{tr("موثّقة", "Verified")}</span>}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
+              <TodayHours space={space} />
+              {km != null && <Distance km={km} />}
+            </div>
+          </CardContent>
+        </Card>
+      </a>
+      {action}
+    </div>
   );
 }
 
 function SpaceCardSkeleton() {
   return (
-    <Card aria-hidden="true">
+    <Card className="pt-0" aria-hidden="true">
+      <div className="cover-ratio relative w-full overflow-hidden"><Skeleton className="absolute inset-0 size-full rounded-none" /></div>
       <CardHeader>
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-4 w-20" />
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-2">
+        <Skeleton className="h-5 w-16" />
         <Skeleton className="h-4 w-40" />
-        <div className="grid grid-cols-4 gap-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-12" />)}</div>
       </CardContent>
-      <CardFooter><Skeleton className="h-3 w-48" /></CardFooter>
     </Card>
+  );
+}
+
+// U12 with PU-014: shortlisting happens where the comparing happens. On Home and the Directory a
+// signed-in visitor saves a space from its card; the toast offers «تراجع» (P9).
+const SAVED_DEMO = ['focus', 'branch', 'golden'];
+function useFavourites() {
+  const { toast } = window.MasahaDesignSystem;
+  const [ids, setIds] = React.useState(SAVED_DEMO);
+  const toggle = (s) => {
+    const before = ids, on = ids.includes(s.id);
+    setIds(on ? ids.filter((x) => x !== s.id) : [...ids, s.id]);
+    toast(on ? tr("أُزيلت من المفضّلة", "Removed from favourites") : tr("أُضيفت إلى المفضّلة", "Added to favourites"), { description: spaceName(s), action: { label: tr("تراجع", "Undo"), onClick: () => setIds(before) } });
+  };
+  return { has: (s) => ids.includes(s.id), toggle };
+}
+function HeartButton({ space, on, onToggle }) {
+  const name = spaceName(space);
+  return (
+    <Button variant="outline" size="icon" className={'fav-remove bg-card shadow-floating' + (on ? ' text-primary' : '')} aria-pressed={on}
+      aria-label={on ? tr('إزالة ' + name + ' من المفضّلة', 'Remove ' + name + ' from favourites') : tr('حفظ ' + name + ' في المفضّلة', 'Save ' + name + ' to favourites')} onClick={() => onToggle(space)}>
+      <HeartIcon filled={on} />
+    </Button>
+  );
+}
+function HeartIcon({ filled }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5" aria-hidden="true">
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    </svg>
   );
 }
 
@@ -446,7 +525,7 @@ const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON
 
 const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
 
-Object.assign(window, { DISPLAY_ONLY, AccountMenuContent, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpacePrices, PriceMeta, SpaceMeta, areaLine, SpaceCard, SpaceCardSkeleton, PRIVACY_LINE, PageToaster, handOffToast });
+Object.assign(window, { WifiOffIcon, AccountMenuContent, without, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, spaceName, otherName, SpaceName, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpaceMeta, areaLine, SpaceCover, SpaceCard, SpaceCardSkeleton, useFavourites, HeartButton, HeartIcon, PRIVACY_LINE, PageToaster, handOffToast });
 
 // DS date picker with long localized dates («3 أكتوبر 2026»). value/onChange use ISO yyyy-mm-dd.
 const isoLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -469,7 +548,9 @@ function DateField({ value, onChange, disabled, label, error, helper, labelEnd, 
 Object.assign(window, { DateField, longDate, isoLocal });
 
 // 24-hour time on the DS Input: typed digits become HH:MM, clamped on blur. No AM/PM, no native picker.
-function TimeInput({ value, onChange, ...p }) {
+function TimeInput(props) {
+  const { value, onChange } = props;
+  const p = without(props, ['value', 'onChange']);
   const { Input } = window.MasahaDesignSystem;
   const [txt, setTxt] = React.useState(value || '');
   React.useEffect(() => setTxt(value || ''), [value]);

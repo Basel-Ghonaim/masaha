@@ -24,11 +24,17 @@
 const { DirectionProvider, Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardAction, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, SearchIcon, ChevronEndIcon, ArrowEndIcon } = window.MasahaDesignSystem;
 const M = window.MASAHA;
 
+const spacesLabel = (n) => n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : LANG === 'en' ? `${n} spaces` : n <= 10 ? `${n} مساحات` : `${n} مساحة`;
+
 function HomeScreen() {
   const [theme, setTheme] = useTheme();
   const [state, setState] = React.useState(pageParams.get('state') || 'ready');
   const near = useNearMe();
-  const gaza = M.governorates[0];
+  const toPick = () => { location.href = carryParams('Directory.html?view=map&pick=1'); };
+  const user = getUser();
+  const favs = useFavourites();
+  // U1: Home no longer narrows the Strip to one governorate.
+  const areas = M.governorates.flatMap((g) => g.areas.map((a) => ({ a, g, n: M.spaces.filter((s) => s.area === a.id).length }))).filter((x) => x.n > 0);
   const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1200); };
   const nearest = near.coords ? M.spaces.map((s) => ({ s, km: M.distanceKm(near.coords, s) })).sort((a, b) => a.km - b.km).slice(0, 3) : null;
   const available = state === 'empty' ? [] : M.spaces.filter((s) => s.verified && s.status === 'open').map((s) => ({ s }));
@@ -55,16 +61,17 @@ function HomeScreen() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-col gap-1">
               <h2 id="spaces-title" className="text-heading-2">{title}</h2>
-              <p className="text-caption text-muted-foreground">{DISPLAY_ONLY()}</p>
             </div>
             <div className="flex items-center gap-2">
-              {!nearest && <NearMeButton near={near} />}
+              <NearMeButton near={near} on={!!near.coords} />
               <Button variant="link" asChild><a href={allHref}>{tr("عرض الكل", "View all")}<ChevronEndIcon /></a></Button>
             </div>
           </div>
-          <LocationStatus near={near} showIdle={false}
-            onPickOnMap={() => { location.href = 'Directory.html?view=map&pick=1'; }}
-            onChooseArea={() => { location.href = 'Directory.html?sheet=filters'; }} />
+          {/* U2: on Home «اختر منطقتك» is answered here, by the area section below. Home has no
+              map, so placing or changing a pin happens on the Directory's. */}
+          <LocationStatus near={near} sorting={!!near.coords}
+            onPickOnMap={toPick} onChangePick={toPick}
+            onChooseArea={() => { const h = document.getElementById('areas-title'); h.scrollIntoView({ behavior: 'smooth', block: 'start' }); h.focus({ preventScroll: true }); }} />
           {state === 'loading' && <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((i) => <SpaceCardSkeleton key={i} />)}</div>}
           {state === 'error' && (
             <Alert variant="destructive">
@@ -74,7 +81,7 @@ function HomeScreen() {
             </Alert>
           )}
           {(state === 'ready' || state === 'empty') && (items.length ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{items.map(({ s, km }) => <SpaceCard key={s.id} space={s} km={km} />)}</div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{items.map(({ s, km }) => <SpaceCard key={s.id} space={s} km={km} action={user && <HeartButton space={s} on={favs.has(s)} onToggle={favs.toggle} />} />)}</div>
           ) : (
             <Card>
               <EmptyState icon={<SearchIcon />} title={tr("لا توجد مساحات متاحة الآن", "No spaces available right now")} titleAs="h3" description={tr("قد تكون المساحات ممتلئة أو مغلقة في هذا الوقت. تصفّح كل المساحات لمعرفة ساعات عملها.", "Spaces may be full or closed at this time. Browse all spaces to see their hours.")}>
@@ -84,26 +91,30 @@ function HomeScreen() {
           ))}
         </section>
 
+        {/* U1: the areas that have spaces, across the Strip, each with its governorate; then all of them. */}
         <section className="flex flex-col gap-4" aria-labelledby="areas-title">
-          <div className="flex flex-col gap-1">
-            <h2 id="areas-title" className="text-heading-2">{tr("تصفّح حسب المنطقة", "Browse by area")}</h2>
-            <p className="text-body-sm text-muted-foreground">{gaza.name}</p>
-          </div>
+          <h2 id="areas-title" tabIndex={-1} className="text-heading-2">{tr("تصفّح حسب المنطقة", "Browse by area")}</h2>
           <div className="grid gap-4 md:grid-cols-3">
-            {gaza.areas.map((a) => {
-              const n = M.spaces.filter((s) => s.area === a.id).length;
-              return (
-                <a key={a.id} href={`Directory.html?area=${a.id}`} className="block rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-                  <Card className="transition-colors hover:bg-accent">
-                    <CardHeader>
-                      <CardTitle>{a.name}</CardTitle>
-                      <CardDescription>{n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : tr(`${n} مساحات`, `${n} spaces`)}</CardDescription>
-                      <CardAction><ArrowEndIcon className="size-5 text-muted-foreground" aria-hidden="true" /></CardAction>
-                    </CardHeader>
-                  </Card>
-                </a>
-              );
-            })}
+            {areas.map(({ a, g, n }) => (
+              <a key={a.id} href={`Directory.html?area=${a.id}`} className="block rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                <Card className="h-full transition-colors hover:bg-accent">
+                  <CardHeader>
+                    <CardTitle>{a.name}</CardTitle>
+                    <CardDescription>{g.name} · {spacesLabel(n)}</CardDescription>
+                    <CardAction><ArrowEndIcon className="size-5 text-muted-foreground" aria-hidden="true" /></CardAction>
+                  </CardHeader>
+                </Card>
+              </a>
+            ))}
+            <a href="Directory.html" className="block rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+              <Card className="h-full transition-colors hover:bg-accent">
+                <CardHeader>
+                  <CardTitle>{tr("كل المناطق", "All areas")}</CardTitle>
+                  <CardDescription>{tr("قطاع غزة", "The Gaza Strip")} · {spacesLabel(M.spaces.length)}</CardDescription>
+                  <CardAction><ArrowEndIcon className="size-5 text-muted-foreground" aria-hidden="true" /></CardAction>
+                </CardHeader>
+              </Card>
+            </a>
           </div>
         </section>
 
@@ -113,7 +124,7 @@ function HomeScreen() {
               <CardTitle id="owner-title">{tr("هل تدير مساحة عمل؟", "Do you run a coworking space?")}</CardTitle>
               <CardDescription>{tr("تواصل معنا لإضافة مساحتك وتحديث ساعاتها وأسعارها وحالتها المباشرة.", "Contact us to add your space and keep its hours, prices and live status up to date.")}</CardDescription>
             </CardHeader>
-            <CardContent><Button variant="outline" className="w-full md:w-auto md:self-start" asChild><a href="#">{tr("تواصل معنا", "Contact us")}</a></Button></CardContent>
+            <CardContent><Button variant="outline" className="w-full md:w-auto md:self-start" asChild><a href="About.html#owners">{tr("تواصل معنا", "Contact us")}</a></Button></CardContent>
           </Card>
         </section>
       </main>

@@ -20,7 +20,7 @@ screenshots, is what a feature is built from. Two things follow:
 | Path | What it is |
 |---|---|
 | `SCREENS.md` | **Start here.** The 32 screens (foundation §13) → prototype pages and board sections |
-| `INDEX.md` | Every frame of the design board (483 frames in 52 sections), in order: label, prototype URL with its state parameters, viewport, screenshot |
+| `INDEX.md` | Every frame of the design board (493 frames in 53 sections), in order: label, prototype URL with its state parameters, viewport, screenshot |
 | `screens/` | A full-page screenshot of every distinct frame (437 WebP images), one folder per board section. Sections whose frames all repeat earlier ones have no folder; `INDEX.md` links each frame to its file |
 | `prototype/` | The clickable HTML prototypes: 40 pages, the board (`Flows - states.html`), sample data and copy. Fully offline (React, Babel, fonts and the design-system bundle are vendored) |
 | `prototype/BRIEF.md` | The product brief the screens were designed against — a record, so it is not updated as the design changes |
@@ -52,6 +52,13 @@ seen. **What they cannot see:** anything that happens once the page runs, a bloc
 missing gap, a section in the wrong place — the
 Directory's filters were drawn twice and passed both, and a 420-page load matrix too. Those need
 the pages opened in a browser, at 390, 768 and 1440, and looked at.
+
+**One scope for every script.** Each page's modules and inline scripts compile apart but share the
+page's global scope, so a top-level name in one is everyone's. Two rules follow: no module or page
+script uses object rest (`const { a, ...rest } = props`) — Babel compiles it with a helper list,
+`_excluded`, that the next script using rest overwrites, so held-back props leak (DI-27; pick them by
+hand, as `shared.jsx`'s `without` does); and no top-level name that the browser already owns, such as
+`name`.
 
 ## Rules for implementing from this archive (Claude Code)
 
