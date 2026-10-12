@@ -10,6 +10,7 @@ import type { UsersController } from './users.controller.ts';
  */
 export function createUsersAdminRouter(controller: UsersController): Router {
   const router = Router();
+  router.post('/users/:userId/temporary-password', controller.issueTemporaryPassword);
   router.post(
     '/users/:userId/temporary-password/handover',
     validate(handoverSchema),

@@ -53,6 +53,7 @@ export const ERRORS = {
     'This account has no temporary password waiting to be changed, so there is no handover to record.',
   OWN_ACCOUNT: 'You can’t do this to your own account.',
   LAST_ADMIN: 'The platform must keep at least one active admin.',
+  GOOGLE_ONLY_ACCOUNT: 'This account signs in with Google only, so it has no password to replace.',
   ACCOUNT_HAS_LINKS:
     'This person is linked to a space, and their role follows those links. Unlink them first.',
 } as const satisfies Record<AppErrorType | DomainErrorCode, string>;

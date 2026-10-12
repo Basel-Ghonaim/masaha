@@ -450,8 +450,19 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
   ```
 - **Errors:** `validation` (422), for an unknown `role` or `state` (`invalid_choice`) or a page out of range.
 
+#### `POST /admin/users/:userId/temporary-password` · 🛡
+- **Body:** none. The recovery of a person who lost their email ([security.md](../backend/security.md#passwords)).
+- **200:** `IssuedTemporaryPassword` (`@masaha/shared/users`), with `Cache-Control: no-store`: the account's password is replaced by a temporary one, to change at its next sign-in, and every session of the account and every pending reset link end. Issued again, it replaces the pending one. Audited `user.temporaryPasswordIssued` (`after: { mustChangePassword: true }`), with the account as the entity, never with the password; its handover follows, below.
+
+  ```ts
+  IssuedTemporaryPassword = {
+    temporaryPassword: string   // in this answer only, never again
+  }
+  ```
+- **Errors**, a refusal writing nothing: `conflict` (409) `OWN_ACCOUNT` for the admin's own account; `conflict` (409) `ACCOUNT_SUSPENDED` for a suspended account, restored first; `conflict` (409) `GOOGLE_ONLY_ACCOUNT` for an account without a password, whose way in is Google; `not_found` (404) for an unknown account.
+
 #### `POST /admin/users/:userId/temporary-password/handover` · 🛡
-- **Body:** `{ channel }`: how the temporary password just shown was handed over, `"WHATSAPP"`, `"IN_PERSON"` or `"OTHER"` (`HANDOVER_CHANNELS`, `@masaha/shared/users`). The web asks it after the password is shown, for an account the admin created; the admin's own temporary password (planned) uses it too.
+- **Body:** `{ channel }`: how the temporary password just shown was handed over, `"WHATSAPP"`, `"IN_PERSON"` or `"OTHER"` (`HANDOVER_CHANNELS`, `@masaha/shared/users`). The web asks it after the password is shown, for an account the admin created or a temporary password the admin issued.
 - **204:** audited `user.temporaryPasswordHandedOver` (`after: { channel }`), with the account as the entity, as the entry of the password it follows. Only while that temporary password is still pending; a second handover is a second entry.
 - **Errors:** `validation` (422), with `invalid_choice` on `channel`; `conflict` (409) `TEMPORARY_PASSWORD_NOT_PENDING` once the account has no temporary password to change; `not_found` (404) for an unknown account.
 
@@ -469,4 +480,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT`.

@@ -16,6 +16,11 @@ export interface User {
   hasPassword: boolean;
 }
 
+/** A temporary password the admin issued, answered once and never again (docs/backend/security.md). */
+export interface IssuedTemporaryPassword {
+  temporaryPassword: string;
+}
+
 /** What a password change answers, beside a new refresh cookie: the session goes on, renewed. */
 export interface PasswordChanged {
   accessToken: string;

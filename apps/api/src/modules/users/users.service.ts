@@ -168,6 +168,15 @@ export function createUsersService({
     return { account, otherActiveAdmins: locked.filter((other) => other !== id).length };
   }
 
+  /**
+   * A new temporary password and its hash (docs/backend/security.md › Passwords), before the
+   * transaction that stores it opens: bcrypt stays outside every transaction.
+   */
+  async function issueTemporaryPassword(): Promise<TemporaryPassword> {
+    const password = temporaryPassword();
+    return { password, hash: await passwords.hash(password) };
+  }
+
   /** The account, or a 401 when it no longer exists. */
   async function get(id: number, tx?: Tx): Promise<Account> {
     const account = await repository.findById(id, tx);
@@ -360,14 +369,7 @@ export function createUsersService({
       return (await repository.findByEmail(email, tx))?.account ?? null;
     },
 
-    /**
-     * A new temporary password and its hash (docs/backend/security.md › Passwords), before the
-     * transaction that stores it opens: bcrypt stays outside every transaction.
-     */
-    async issueTemporaryPassword(): Promise<TemporaryPassword> {
-      const password = temporaryPassword();
-      return { password, hash: await passwords.hash(password) };
-    },
+    issueTemporaryPassword,
 
     /**
      * An account created by someone else, with a temporary password to change at its first
@@ -396,6 +398,42 @@ export function createUsersService({
         tx,
       );
       return created.account;
+    },
+
+    /**
+     * The admin's recovery for a person who lost their email (D6, docs/backend/security.md ›
+     * Passwords): a temporary password, generated and hashed before the transaction, set under the
+     * account's session lock, to be changed at the next sign-in. Every session and pending reset link
+     * ends, as a reset does; issued again, it replaces the pending one. Refused for the actor's own
+     * account, a suspended one (restored first) and a Google-only one, which has no password to
+     * recover. Audited `user.temporaryPasswordIssued`, never with the password, which is answered
+     * once; an unknown account is 404.
+     */
+    async issueTemporaryPasswordFor(actorId: number, userId: number): Promise<string> {
+      assertNotOwnAccount(actorId, userId);
+      const temporary = await issueTemporaryPassword();
+      await runInTransaction(async (tx) => {
+        const account = await lockAccount(userId, tx);
+        if (!account) throw AppError.notFound(undefined, 'Account not found');
+        if (!maySignIn(account)) throw AppError.conflict('ACCOUNT_SUSPENDED', 'Account suspended');
+        if (!(await repository.findPasswordHash(userId, tx))) {
+          throw AppError.conflict('GOOGLE_ONLY_ACCOUNT', 'No password to replace');
+        }
+        await repository.setTemporaryPassword(userId, temporary.hash, tx);
+        await sessions.revokeAll(userId, tx);
+        await sessions.endResetTokens(userId, tx);
+        await audit(
+          {
+            actorId,
+            action: 'user.temporaryPasswordIssued',
+            entityType: 'user',
+            entityId: userId,
+            after: { mustChangePassword: true },
+          },
+          tx,
+        );
+      });
+      return temporary.password;
     },
 
     /**

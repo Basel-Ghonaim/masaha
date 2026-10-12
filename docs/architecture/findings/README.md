@@ -34,7 +34,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [46. The deployment's headers must let the map's tiles load](46-the-deployments-headers-must-let-the-maps-tiles-load.md)
 - [47. A dashboard test reads the top bar's title before the chosen page has loaded](47-a-dashboard-test-reads-the-top-bars-title-before-the-chosen-page-has-loaded.md)
 - [48. `db:up` from another folder recreates the shared container](48-db-up-from-another-folder-recreates-the-shared-container.md)
-- [49. A lost answer to adding an owner loses its temporary password](49-a-lost-answer-to-adding-an-owner-loses-its-temporary-password.md)
 - [50. An owner whose only spaces are deleted stays an owner](50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md)
 - [51. An access token outlives the end of its session](51-an-access-token-outlives-the-end-of-its-session.md)
 - [52. The race tests wait a fixed time](52-the-race-tests-wait-a-fixed-time.md)
@@ -71,3 +70,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [41. The request log does not name the space](41-the-request-log-does-not-name-the-space.md)
 - [43. Two races around a space's facts](43-two-races-around-a-spaces-facts.md)
 - [45. The data table's library reaches the site's first download](45-the-data-tables-library-reaches-the-sites-first-download.md)
+- [49. A lost answer to adding an owner loses its temporary password](49-a-lost-answer-to-adding-an-owner-loses-its-temporary-password.md)

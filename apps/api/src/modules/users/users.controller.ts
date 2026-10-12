@@ -1,6 +1,7 @@
 import type {
   ChangePasswordRequest,
   HandoverRequest,
+  IssuedTemporaryPassword,
   PasswordChanged,
   SetSuspendedRequest,
 } from '@masaha/shared/users';
@@ -30,6 +31,17 @@ export function createUsersController(users: UsersService, cookies: SessionCooki
       const { channel } = req.body as HandoverRequest;
       await users.recordHandover(userId, parseId(req.params.userId), channel);
       sendNoContent(res);
+    },
+
+    issueTemporaryPassword: async (req: Request, res: Response) => {
+      const { userId } = signedIn(req);
+      const temporaryPassword = await users.issueTemporaryPasswordFor(
+        userId,
+        parseId(req.params.userId),
+      );
+      // The temporary password is answered once: no cache keeps the answer.
+      res.set('Cache-Control', 'no-store');
+      sendSuccess(res, { temporaryPassword } satisfies IssuedTemporaryPassword);
     },
 
     setSuspended: async (req: Request, res: Response) => {

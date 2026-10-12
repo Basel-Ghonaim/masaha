@@ -12,17 +12,18 @@
 - Answers a page of the accounts for the admin's users list, filtered by name or email, role and state, each with how it signs in.
 - Records how a temporary password was handed over, in the audit, for the admin.
 - Suspends an account and restores it, for the admin: a suspension ends its sessions at once and keeps its links.
+- Issues a temporary password for the admin, the recovery of a person who lost their email, again when the first was lost.
 - Reads the account for the guard on every signed-in request, so a suspension, a role change and a pending password change hold from the account's next request.
 - Changes the global role when `space-links` finds that a person's owner links give another, or the admin's role change allows it, ending every session of theirs.
 - On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, and the forced password change's form.
 
-The account's settings (`GET` and `PATCH /me`), the temporary passwords of the owner's reception accounts and the admin's recovery are not built.
+The account's settings (`GET` and `PATCH /me`) and the temporary passwords of the owner's reception accounts are not built.
 
 ## Who uses it
 
 - **Every signed-in user,** through the account menu and sign-out.
 - **A user with a temporary password,** through the forced change.
-- **The admin,** who suspends and restores accounts, changes their role through `space-links`, and records how a temporary password was handed over.
+- **The admin,** who suspends and restores accounts, changes their role through `space-links`, issues temporary passwords, and records how each was handed over.
 - **[`auth`](auth.md),** which signs in, registers and links Google through it.
 - **[`space-links`](space-links.md),** which names the owners in the admin's spaces list, composes the admin's users list from its page of accounts, and changes a person's role as their owner links give it.
 
@@ -60,6 +61,7 @@ The account's settings (`GET` and `PATCH /me`), the temporary passwords of the o
 - **A suspension is a state route, `PUT …/suspended`, idempotent,** and keeps the account's links (D1, D4). *Why:* the style of a space's `hidden`; restoring brings everything back, so a suspended owner's space stays verified. 2026-10-11, the users item.
 - **A change that may remove an admin takes the person's lock with every active admin's row, by id, in one statement,** and refuses the last active admin (`LAST_ADMIN`) and the admin's own account (`OWN_ACCOUNT`) (D2). *Why:* two admins acting on each other at once must not both succeed ([conventions › Concurrency](../backend/conventions.md#concurrency)). 2026-10-11, the users item.
 - **A suspension also ends the pending reset links, and a password change checks the suspension under the session lock** (the owner's S4, S5). *Why:* no way back in outlives a suspension. 2026-10-11, the users item.
+- **The admin's temporary password is generated before its transaction and set under the account's session lock,** which keeps its refusals (a suspended or a Google-only account) true until the write; it ends every session and reset link, as a reset does, and is answered once, as an added owner's is (D6). *Why:* bcrypt stays outside every transaction, and issuing it again resolves a lost answer ([finding 49](../architecture/findings/49-a-lost-answer-to-adding-an-owner-loses-its-temporary-password.md)). 2026-10-11, the users item.
 
 ### Web decisions
 
@@ -92,7 +94,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #34 — `User` in `@masaha/shared/users`.
 - #35 — the password policy's rules for a checklist.
 - #60 — the page of accounts for the admin's users list; the role change that follows an owner's links; the accounts the admin creates with a temporary password, and its handover.
-- The users item — the account read by the guard on every signed-in request; suspension and restore; the role change's lock and its write, for `space-links`.
+- The users item — the account read by the guard on every signed-in request; suspension and restore; the role change's lock and its write, for `space-links`; the admin's temporary password.
 
 ### Web history
 

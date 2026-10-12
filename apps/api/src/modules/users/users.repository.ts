@@ -199,6 +199,15 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return rows.map((row) => row.id);
     },
 
+    /** Replaces the password with a temporary one, which must be changed first. */
+    async setTemporaryPassword(id: number, passwordHash: string, tx: Tx): Promise<void> {
+      await tx.user.update({
+        where: { id },
+        data: { passwordHash, mustChangePassword: true },
+        select: { id: true },
+      });
+    },
+
     /** Suspends the account at `at`, or restores it with `null`. */
     async setSuspendedAt(id: number, at: Date | null, tx: Tx): Promise<void> {
       await tx.user.update({ where: { id }, data: { suspendedAt: at }, select: { id: true } });
