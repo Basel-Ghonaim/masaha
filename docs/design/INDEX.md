@@ -20,6 +20,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Admin space edit.html?id=white` · `?id=palm` | the same | a space with one group never saved (the hours, the prices): «ما زال ناقصًا» and «لم تُضف بعد» |
 | `Admin space edit.html?demo=shifterror` | the admin's editor | an evening shift past every open day's close: its error on the shift |
 | `Admin space edit.html?demo=pricelimit` | the same | 40 prices, the contract's limit: «إضافة سعر» disabled with its reason |
+| `Admin space edit.html?demo=ownlimit` | the same | 20 own amenities («مرافق إضافية»), the contract's limit: «إضافة مرفق إضافي» disabled with its reason |
 | `Admin space edit.html?new=1` | the old address of «إضافة مساحة» | now leads to `Admin space add.html`, the creation form of its own (AD-002), its other parameters kept |
 
 ### Batch 3 — the public site

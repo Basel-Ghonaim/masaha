@@ -8,13 +8,14 @@ window.ADMIN = (function () {
     { id: 'o3', name: T('يوسف', 'Yousef'), email: 'yousef@example.com', spaces: ['numberone'], status: 'active', joined: '2025-11-04' },
     { id: 'o4', name: T('ريما', 'Rima'), email: 'rima@example.com', spaces: [], status: 'suspended', joined: '2026-01-20' }
   ];
-  // freshness: days since each group was updated; missing: what the listing lacks.
+  // freshness: days since each group was updated; missing: what the listing lacks; own: the
+  // space's own amenities («مرافق إضافية»), beside the common list.
   const meta = {
-    focus: { status: 'verified', upd: { prices: 2, hours: 7, contacts: 20, amenities: 20 }, missing: [], last: '2026-09-27' },
+    focus: { status: 'verified', upd: { prices: 2, hours: 7, contacts: 20, amenities: 20 }, missing: [], last: '2026-09-27', own: [{ ar: 'مكتبة كتب تقنية', en: 'Tech library' }] },
     branch: { status: 'verified', upd: { prices: 3, hours: 12, contacts: 30, amenities: 12 }, missing: [], last: '2026-09-26' },
     numberone: { status: 'verified', upd: { prices: 41, hours: 9, contacts: 65, amenities: 30 }, missing: ['photos'], last: '2026-09-20' },
     zm: { status: 'unverified', upd: { prices: 12, hours: 25, contacts: 25, amenities: 25 }, missing: ['pin'], last: '2026-09-17' },
-    golden: { status: 'unverified', upd: { prices: 46, hours: 70, contacts: 70, amenities: 70 }, missing: ['photos'], last: '2026-07-21' },
+    golden: { status: 'unverified', upd: { prices: 46, hours: 70, contacts: 70, amenities: 70 }, missing: ['photos'], last: '2026-07-21', own: [{ ar: 'غرفة صلاة', en: 'Prayer room' }, { ar: 'خزائن شخصية', en: '' }] },
     white: { status: 'unverified', upd: { prices: 18, hours: 18, contacts: 18, amenities: 18 }, missing: ['hours'], last: '2026-09-11' },
     palm: { status: 'hidden', upd: { prices: 120, hours: 120, contacts: 120, amenities: 120 }, missing: ['prices', 'pin'], last: '2026-05-30' }
   };

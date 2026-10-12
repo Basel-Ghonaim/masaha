@@ -112,16 +112,61 @@ function PricesSection({ space, meta = {} }) {
   );
 }
 
+// G1: beside the common list, a space's own amenities («مرافق إضافية»): an Arabic name, an
+// optional English one, at most 20, each 1–60 characters, a repeated Arabic name refused on its
+// field. Both are one group, saved, dated and confirmed together.
+const OWN_LIMIT = 20;
+const OWN_MAX = 60;
+function ownErrors(v) {
+  const out = {};
+  const seen = new Set();
+  v.own.forEach((o) => {
+    const ar = o.ar.trim();
+    if (!ar) out[o.id + '-ar'] = tr('أدخل الاسم بالعربية أو احذف هذا المرفق', 'Enter the Arabic name, or remove this amenity');
+    else if (ar.length > OWN_MAX) out[o.id + '-ar'] = tr('60 حرفًا على الأكثر', '60 characters at most');
+    else if (seen.has(ar)) out[o.id + '-ar'] = tr('مرفق مكرّر', 'A repeated amenity');
+    if (o.en.trim().length > OWN_MAX) out[o.id + '-en'] = tr('60 حرفًا على الأكثر', '60 characters at most');
+    if (ar) seen.add(ar);
+  });
+  return errorsOf(out);
+}
+
 function AmenitiesSection({ space, meta = {}, manage }) {
+  const { Separator: QSep } = window.MasahaDesignSystem;
   const all = window.MASAHA.allAmenities;
-  const sec = useSection('amenities', { list: meta.missing ? [] : space.amenities.slice() }, meta.missing);
+  const own = meta.missing ? [] : (space.ownAmenities || []).map((o, i) => ({ id: 'm' + i, ar: o.ar, en: o.en || '' }));
+  const sec = useSection('amenities', { list: meta.missing ? [] : space.amenities.slice(), own }, meta.missing);
   const toggle = (id, on) => sec.set({ list: on ? [...sec.v.list, id] : sec.v.list.filter((x) => x !== id) });
+  const setO = (id, p) => sec.set({ own: sec.v.own.map((o) => (o.id === id ? { ...o, ...p } : o)) });
+  const full = sec.v.own.length >= OWN_LIMIT;
   return (
-    <ProfileSection id="amenities" title={tr('المرافق', 'Amenities')} updated={meta.updated || tr('قبل 20 يومًا', '20 days ago')} stale={meta.stale} sec={sec}>
-      <div className="grid gap-2 md:grid-cols-2">
-        {all.map((a) => <QField key={a.id} label={a.name} orientation="horizontal"><QCheckbox checked={sec.v.list.includes(a.id)} onCheckedChange={(on) => toggle(a.id, !!on)} /></QField>)}
-      </div>
-      {manage && <p className="text-body-sm text-muted-foreground">{tr('مرفق ليس في القائمة؟ ', 'An amenity not on the list? ')}<a href={manage}>{tr('إدارة قائمة المرافق', 'Manage the amenities list')}</a></p>}
+    <ProfileSection id="amenities" title={tr('المرافق', 'Amenities')} updated={meta.updated || tr('قبل 20 يومًا', '20 days ago')} stale={meta.stale} sec={sec} validate={ownErrors}>
+      {(errors) => <>
+        <div className="grid gap-2 md:grid-cols-2">
+          {all.map((a) => <QField key={a.id} label={a.name} orientation="horizontal"><QCheckbox checked={sec.v.list.includes(a.id)} onCheckedChange={(on) => toggle(a.id, !!on)} /></QField>)}
+        </div>
+        {manage && <p className="text-body-sm text-muted-foreground">{tr('لإضافة مرفق إلى قائمة كل المساحات: ', 'To add an amenity to every space’s list: ')}<a href={manage}>{tr('إدارة قائمة المرافق', 'Manage the amenities list')}</a></p>}
+        <QSep />
+        <section id="own-amenities" aria-labelledby="own-amenities-title" className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h3 id="own-amenities-title" className="text-label">{tr('مرافق إضافية', 'Extra amenities')}</h3>
+            <p className="text-body-sm text-muted-foreground">{tr('مرافق ليست في القائمة تخصّ هذه المساحة.', 'Amenities this space has that the list does not.')}</p>
+          </div>
+          {sec.v.own.length > 0 && <ul className="flex flex-col gap-4">
+            {sec.v.own.map((o, i) => (
+              <li key={o.id} className="grid gap-2 md:grid-cols-12 md:items-start">
+                <div className="md:col-span-6"><QField label={tr('الاسم بالعربية', 'Name in Arabic')} error={errors[o.id + '-ar']}><QInput lang="ar" dir="rtl" value={o.ar} onChange={(e) => setO(o.id, { ar: e.target.value })} /></QField></div>
+                <div className="md:col-span-5"><QField label={tr('الاسم بالإنجليزية', 'Name in English')} labelEnd={<Optional />} error={errors[o.id + '-en']}><QInput lang="en" dir="ltr" value={o.en} onChange={(e) => setO(o.id, { en: e.target.value })} /></QField></div>
+                <div className="contact-remove md:col-span-1 md:flex md:justify-end"><QButton type="button" variant="ghost" size="icon" aria-label={tr('حذف المرفق الإضافي ', 'Remove extra amenity ') + (i + 1)} onClick={() => sec.set({ own: sec.v.own.filter((x) => x.id !== o.id) })}><QX /></QButton></div>
+              </li>
+            ))}
+          </ul>}
+          <div className="flex flex-wrap items-center gap-3">
+            <QButton type="button" variant="outline" disabled={full} onClick={() => sec.set({ own: [...sec.v.own, { id: 'n' + Date.now(), ar: '', en: '' }] })}>{tr('إضافة مرفق إضافي', 'Add an extra amenity')}</QButton>
+            {full && <LimitNote>{tr('الحد 20 مرفقًا إضافيًا', 'Up to 20 extra amenities')}</LimitNote>}
+          </div>
+        </section>
+      </>}
     </ProfileSection>
   );
 }
