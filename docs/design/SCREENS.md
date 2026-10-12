@@ -46,7 +46,7 @@ The screen list is owned by `docs/frontend/design-system/foundation.md` §13. Th
 | # | Screen | Prototype page | Board sections |
 |---|---|---|---|
 | 25 | Overview | `Admin overview.html` | 42, 50 |
-| 26 | Spaces (+ add / edit an unverified space) | `Admin spaces.html`, `Admin space edit.html` | 43, 49, 50, 51, 52 |
+| 26 | Spaces (+ add / edit an unverified space) | `Admin spaces.html`, `Admin space add.html`, `Admin space edit.html` | 43, 49, 50, 51, 52 |
 | 27 | Space owners | `Admin owners.html` | 44 |
 | 28 | Data reports (all spaces) | `Admin reports.html` | 45 |
 | 29 | Users (+ temporary password) | `Admin users.html` | 46, 50 |

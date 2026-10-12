@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>إضافة مساحة — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/admin-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/admin.jsx"></script>
+<script type="text/babel" src="masaha/map.jsx"></script>
+<script type="text/babel" src="masaha/profile-a.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Card, CardHeader, CardContent, Button, Alert, AlertTitle, AlertDescription, Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } = window.MasahaDesignSystem;
+
+// AD-002: a space is created from its profile alone, in one form with one submit, as #57 built
+// it — its basics and its location, then «إضافة مساحة». The fact groups follow on its editor.
+const EMPTY = { nameAr: '', nameEn: '', descAr: '', descEn: '', area: '', addrAr: '', addrEn: '', landmarkAr: '', landmarkEn: '', coords: '' };
+const NEW_SPACE_KEY = 'masaha:new-space';
+
+function AddSpace({ theme, setTheme }) {
+  const [v, setV] = React.useState(EMPTY);
+  const set = (p) => setV((x) => ({ ...x, ...p }));
+  const [tried, setTried] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [failed, setFailed] = React.useState(false);
+  const form = React.useRef(null);
+  const check = () => errorsOf({ ...basicsErrors(v), ...locationErrors(v) });
+  // Checked on submit; once tried, each change checks again, so a fixed field clears its line.
+  const errors = tried ? check() || {} : {};
+  const submit = (e) => {
+    e.preventDefault();
+    setTried(true);
+    if (check()) { setTimeout(() => { const bad = form.current.querySelector('[aria-invalid="true"]'); if (bad) bad.focus(); }); return; }
+    if (busy) return;
+    setBusy(true); setFailed(false);
+    setTimeout(() => {
+      setBusy(false);
+      if (actionFails('add')) { setFailed(true); return; }
+      const name = LANG === 'ar' && v.nameAr.trim() ? v.nameAr.trim() : v.nameEn.trim();
+      try { sessionStorage.setItem(NEW_SPACE_KEY, JSON.stringify(v)); } catch (err) {}
+      handOffToast(tr(`أُضيفت ${name}`, `${name} added`));
+      location.href = carryParams('Admin space edit.html?id=new');
+    }, 700);
+  };
+  const title = tr('إضافة مساحة', 'Add space');
+  return (
+    <AdminShell current="spaces" title={title} theme={theme} setTheme={setTheme}>
+      <Breadcrumb label={tr('مسار التنقل', 'Breadcrumb')}>
+        <BreadcrumbList>
+          <BreadcrumbItem><BreadcrumbLink href="Admin spaces.html">{tr('المساحات', 'Spaces')}</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbPage>{title}</BreadcrumbPage></BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <form ref={form} onSubmit={submit} noValidate className="flex flex-col gap-4">
+        <Card>
+          <CardHeader><SectionTitle>{tr('الأساسيات', 'Basics')}</SectionTitle></CardHeader>
+          <CardContent><BasicsFields v={v} set={set} errors={errors} /></CardContent>
+        </Card>
+        <Card>
+          <CardHeader><SectionTitle>{tr('الموقع', 'Location')}</SectionTitle></CardHeader>
+          <CardContent><LocationFields v={v} set={set} errors={errors} /></CardContent>
+        </Card>
+        {failed && (
+          <Alert variant="destructive">
+            <AlertTitle>{tr('تعذّرت إضافة المساحة', 'Couldn’t add the space')}</AlertTitle>
+            <AlertDescription>{tr('أُضيفت مساحة بالاسم نفسه في اللحظة ذاتها. أضِفها مرة أخرى.', 'Another space with this name was added at the same moment. Add it again.')}</AlertDescription>
+          </Alert>
+        )}
+        <div><Button type="submit" loading={busy}>{title}</Button></div>
+      </form>
+    </AdminShell>
+  );
+}
+function Screen() { const [theme, setTheme] = useTheme(); return <AddSpace theme={theme} setTheme={setTheme} />; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

@@ -30,7 +30,7 @@ function Spaces({ theme, setTheme }) {
   const [list, setList] = React.useState(AD.spaces);
   const [q, setQ] = React.useState(''); const [gov, setGov] = React.useState('all'); const [status, setStatus] = React.useState('all'); const [stale, setStale] = React.useState(pageParams.get('stale') === '1');
   const [del, setDel] = React.useState(pageParams.get('del') ? AD.spaces.find((s) => s.id === pageParams.get('del')) : null);
-  const [unlink, setUnlink] = React.useState(pageParams.get('unlink') ? { s: AD.spaces.find((s) => s.id === pageParams.get('unlink')), o: 'o3' } : null);
+  const [unlink, setUnlink] = React.useState(() => { const s = AD.spaces.find((x) => x.id === pageParams.get('unlink')); return s && s.owners.length ? { s, o: s.owners[0] } : null; });
   const [link, setLink] = React.useState(pageParams.get('link') ? AD.spaces.find((s) => s.id === pageParams.get('link')) : null);
   const [pick, setPick] = React.useState('o4');
   const govs = M.governorates.filter((g) => !g.hidden);
@@ -64,7 +64,7 @@ function Spaces({ theme, setTheme }) {
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
   const paged = usePaged(rows);
-    const addBtn = <Button asChild><a href="Admin space edit.html?new=1">{tr('إضافة مساحة', 'Add space')}</a></Button>;
+    const addBtn = <Button asChild><a href="Admin space add.html">{tr('إضافة مساحة', 'Add space')}</a></Button>;
   const free = AD.owners.filter((o) => !link || !link.owners.includes(o.id));
   return (
     <AdminShell current="spaces" title={tr('المساحات', 'Spaces')} theme={theme} setTheme={setTheme}>
