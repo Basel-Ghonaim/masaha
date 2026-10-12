@@ -31,7 +31,9 @@ const initialFilters = () => ({
   areas: list('area'),
   availableOnly: pageParams.get('available') === '1',
   verifiedOnly: pageParams.get('verified') === '1',
-  period: pageParams.get('period') || '',
+  period: pageParams.get('period') || 'day',
+  priceMin: pageParams.get('priceMin') || '',
+  priceMax: pageParams.get('priceMax') || '',
   others: pageParams.get('demo') === 'noresults' ? ['friday'] : list('other')
 });
 // Filters live in the URL so the space page's back link returns to the same results.
@@ -39,14 +41,14 @@ function syncUrl(f, view) {
   const p = new URLSearchParams(location.search);
   const put = (k, v) => (v ? p.set(k, v) : p.delete(k));
   put('q', f.q.trim()); put('area', f.areas.join(',')); put('available', f.availableOnly ? '1' : '');
-  put('verified', f.verifiedOnly ? '1' : ''); put('period', f.period); put('other', f.others.join(',')); put('view', view === 'map' ? 'map' : '');
+  put('verified', f.verifiedOnly ? '1' : ''); const range = priceRange(f); put('period', range.on ? f.period : ''); put('priceMin', f.priceMin.trim()); put('priceMax', f.priceMax.trim()); put('other', f.others.join(',')); put('view', view === 'map' ? 'map' : '');
   ['sheet', 'selected', 'pick', 'gov', 'am'].forEach((k) => p.delete(k));
   const qs = p.toString() ? '?' + p.toString() : '';
   history.replaceState(null, '', location.pathname + qs);
   try { const keep = new URLSearchParams(qs); ['state', 'demo', 'loc'].forEach((k) => keep.delete(k)); sessionStorage.setItem('masaha:dir-query', keep.toString() ? '?' + keep : ''); } catch (e) {}
 }
-const clearedFilters = (f) => ({ ...f, q: '', areas: [], availableOnly: false, verifiedOnly: false, period: '', others: [] });
-const activeCount = (f) => f.areas.length + (f.availableOnly ? 1 : 0) + (f.verifiedOnly ? 1 : 0) + (f.period ? 1 : 0) + f.others.length;
+const clearedFilters = (f) => ({ ...f, q: '', areas: [], availableOnly: false, verifiedOnly: false, period: 'day', priceMin: '', priceMax: '', others: [] });
+const activeCount = (f) => f.areas.length + (f.availableOnly ? 1 : 0) + (f.verifiedOnly ? 1 : 0) + (priceRange(f).on ? 1 : 0) + f.others.length;
 const countLabel = (n) => n === 0 ? tr("لا توجد مساحات", "No spaces") : n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : LANG === 'en' ? `${n} spaces` : n <= 10 ? `${n} مساحات` : `${n} مساحة`;
 
 // U3: the search matches both names of a space and its area's, in either language.
@@ -61,14 +63,13 @@ function applyFilters(f, sort, coords) {
     (!f.areas.length || f.areas.includes(s.area)) &&
     (!f.availableOnly || (s.verified && s.status === 'open')) &&
     (!f.verifiedOnly || s.verified) &&
-    (!f.period || s.prices[f.period] != null) &&
+    inRange(s, f) &&
     f.others.every((o) => s.others.includes(o)) &&
     (!q || matches(s, q))
   ).map((s) => ({ s, km: coords ? M.distanceKm(coords, s) : null }));
   const by = {
     distance: (a, b) => a.km - b.km,
     updated: (a, b) => a.s.updatedDays - b.s.updatedDays,
-    price: (a, b) => M.minPrice(a.s, f.period) - M.minPrice(b.s, f.period),
     name: (a, b) => spaceName(a.s).localeCompare(spaceName(b.s), LANG)
   };
   return list.sort(by[sort] || by.updated);
@@ -95,19 +96,60 @@ function PlaceField({ value, onChange }) {
   );
 }
 
+// U5 with S1: a budget. The period says which price the range reads — it is not a filter on its
+// own, so it always holds one («يوم» by default) and is sent only with a bound. A bound is a whole
+// number of shekels above zero (no price is ever 0); one that is not is said on its field and not
+// applied. An unverified space with stale prices shows none, so the range leaves it out.
+const toLatin = (t) => t.replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim();
+function priceRange(f) {
+  const read = (t) => { const v = toLatin(t); return v === '' ? { v: null } : /^[1-9][0-9]*$/.test(v) ? { v: Number(v) } : { bad: true }; };
+  const min = read(f.priceMin), max = read(f.priceMax);
+  const order = min.v != null && max.v != null && max.v < min.v;
+  const errMin = min.bad ? tr("اكتب مبلغًا أكبر من صفر", "Enter an amount above zero") : null;
+  const errMax = max.bad ? tr("اكتب مبلغًا أكبر من صفر", "Enter an amount above zero") : order ? tr("أقل من الحد الأدنى", "Below the minimum") : null;
+  const ok = !errMin && !errMax;
+  return { min: ok ? min.v : null, max: ok ? max.v : null, on: ok && (min.v != null || max.v != null), errMin, errMax };
+}
+const inRange = (s, f) => {
+  const r = priceRange(f);
+  if (!r.on) return true;
+  const v = M.priceHidden(s) ? null : s.prices[f.period];
+  return v != null && (r.min == null || v >= r.min) && (r.max == null || v <= r.max);
+};
+function PriceField({ f, set }) {
+  const r = priceRange(f);
+  // The form is drawn twice below `lg` (the hidden sidebar and the sheet), so its ids are its own.
+  const groupId = React.useId();
+  // «50 ₪» in Arabic, «₪50» in English: the sign leads the field in both directions.
+  const shekel = <span aria-hidden="true">₪</span>;
+  return (
+    <div role="group" aria-labelledby={groupId} className="flex flex-col gap-3">
+      <p id={groupId} className="text-label">{tr("السعر", "Price")}</p>
+      <ToggleGroup type="single" aria-label={tr("الفترة", "Period")} value={f.period} onValueChange={(v) => v && set({ period: v })}>
+        {M.periods.map((p) => <ToggleGroupItem key={p.id} value={p.id}>{p.short}</ToggleGroupItem>)}
+      </ToggleGroup>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={tr("من", "From")} error={r.errMin}><Input dir="ltr" inputMode="numeric" autoComplete="off" startIcon={shekel} value={f.priceMin} onChange={(e) => set({ priceMin: e.target.value })} /></Field>
+        <Field label={tr("إلى", "To")} error={r.errMax}><Input dir="ltr" inputMode="numeric" autoComplete="off" startIcon={shekel} value={f.priceMax} onChange={(e) => set({ priceMax: e.target.value })} /></Field>
+      </div>
+      <p className="text-caption text-muted-foreground">{tr("النطاق على سعر الفترة المختارة.", "The range reads the chosen period’s price.")}</p>
+    </div>
+  );
+}
+
 function FiltersForm({ f, set }) {
+  const spacesId = React.useId();
   return (
     <div className="flex flex-col gap-6">
       <PlaceField value={f.areas} onChange={(v) => set({ areas: v })} />
-      <div className="flex flex-col gap-2">
+      {/* U5: the two switches are one group; an unverified space never has a live state. */}
+      <div role="group" aria-labelledby={spacesId} className="flex flex-col gap-2">
+        <p id={spacesId} className="text-label">{tr("المساحات", "Spaces")}</p>
         <Field label={tr("متاحة الآن فقط", "Available now only")} orientation="horizontal"><Switch checked={f.availableOnly} onCheckedChange={(v) => set({ availableOnly: v })} /></Field>
         <Field label={tr("المساحات الموثّقة فقط", "Verified spaces only")} orientation="horizontal"><Switch checked={f.verifiedOnly} onCheckedChange={(v) => set({ verifiedOnly: v })} /></Field>
+        <p className="text-caption text-muted-foreground">{tr("تشمل «متاحة الآن» المساحات الموثّقة فقط.", "“Available now” covers verified spaces only.")}</p>
       </div>
-      <Field label={tr("مدة الاشتراك", "Period")}>
-        <ToggleGroup type="single" value={f.period} onValueChange={(v) => set({ period: v })}>
-          {M.periods.map((p) => <ToggleGroupItem key={p.id} value={p.id}>{p.filter}</ToggleGroupItem>)}
-        </ToggleGroup>
-      </Field>
+      <PriceField f={f} set={set} />
       <Field label={tr("أخرى", "Other")}>
         <ToggleGroup type="multiple" value={f.others} onValueChange={(v) => set({ others: v })}>
           {M.others.map((a) => <ToggleGroupItem key={a.id} value={a.id}>{a.name}</ToggleGroupItem>)}
@@ -116,6 +158,8 @@ function FiltersForm({ f, set }) {
     </div>
   );
 }
+
+const SORTS = () => ({ distance: tr("حسب المسافة", "By distance"), updated: tr("الأحدث تحديثًا", "Recently updated"), name: tr("حسب الاسم", "By name") });
 
 function NoResults({ onClear }) {
   return (
@@ -206,11 +250,10 @@ function DirectoryScreen() {
             {view === 'list' && (
               <div className="flex-1 md:w-48 md:flex-none">
                 <Select value={sort} onValueChange={chooseSort}>
-                  <SelectTrigger aria-label={tr("الترتيب", "Sort")}><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label={tr("الترتيب", "Sort")}><SelectValue>{tr("الترتيب: ", "Sort: ")}{SORTS()[sort]}</SelectValue></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="distance">{near.loc.status === 'locating' ? tr("الأقرب إليّ — جارٍ تحديد موقعك…", "Nearest to me — finding your location…") : tr("الأقرب إليّ", "Nearest to me")}</SelectItem>
                     <SelectItem value="updated">{tr("الأحدث تحديثًا", "Recently updated")}</SelectItem>
-                    <SelectItem value="price">{tr("الأقل سعرًا", "Lowest price")}</SelectItem>
                     <SelectItem value="name">{tr("حسب الاسم", "By name")}</SelectItem>
                   </SelectContent>
                 </Select>

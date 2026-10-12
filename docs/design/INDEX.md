@@ -27,6 +27,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Parameter | Where | What it shows |
 |---|---|---|
 | `?area=nasr,rimal` | `Directory.html` | the place filter: a list of areas, from any governorate (U1). `?gov=` and the amenity filter's `?am=` are gone; an old link still opens, unfiltered by them |
+| `?period=day&priceMin=10&priceMax=20` | `Directory.html` | the price filter (U5): the range on that period's price; the period alone filters nothing (S1). `?priceMin=50&priceMax=20` shows the range's error on its field |
 
 ## 01 · Flow
 

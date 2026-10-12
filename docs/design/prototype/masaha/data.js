@@ -46,12 +46,6 @@ window.MASAHA = (function () {
   const govName = (id) => (governorates.find((g) => g.id === id) || {}).name || '';
   const govShort = (id) => govName(id).replace('محافظة ', '');
   const priceHidden = (s) => s.stale && !s.verified;
-  const minPrice = (s, period) => {
-    if (priceHidden(s)) return Infinity;
-    if (period) return s.prices[period] ?? Infinity;
-    const p = periods.map((x) => s.prices[x.id]).filter((v) => v != null);
-    return p.length ? Math.min(...p) : Infinity;
-  };
   const distanceKm = (a, b) => {
     const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
     const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLng / 2) ** 2;
@@ -59,5 +53,5 @@ window.MASAHA = (function () {
   };
   const bounds = { north: 31.541, south: 31.514, west: 34.432, east: 34.474 };
   const demoUser = { lat: 31.5280, lng: 34.4520, accuracy: 120 };
-  return { governorates, periods, amenities, others, spaces, findArea, areaName, areaGov, govName, govShort, priceHidden, minPrice, distanceKm, bounds, demoUser };
+  return { governorates, periods, amenities, others, spaces, findArea, areaName, areaGov, govName, govShort, priceHidden, distanceKm, bounds, demoUser };
 })();
