@@ -14,7 +14,7 @@ A runbook, not a source of truth: each step links to the section that owns its r
    4. the prompt's settled decisions, as they will be built;
    5. **Stronger decisions**: each decision of the prompt or of the documents, an ADR's included, within the item's scope, that the worker can make stronger, and each rule of the documents the item would contradict or weaken. Each one gets what, why, its cost and a recommendation. When there is none, say so ([workflow §2, Phases](../../../docs/development/workflow.md#phases));
    6. the related findings, each folded or not, with why and its cost ([workflow §4](../../../docs/development/workflow.md#4-scope-control));
-   7. the files: the other layer's, under the licence the plan declares, and the files shared with the other worker, with the section each side owns ([workflow §9](../../../docs/development/workflow.md#9-parallel-work));
+   7. the files it edits: the other layer's, under the licence the plan declares, and any shared with another open item, with the section each side owns ([workflow §9](../../../docs/development/workflow.md#9-parallel-work));
    8. **design issues**, for an item that builds or changes a screen: each mistake found in the design, with a better solution from the design system's components and tokens; built only once the reply approves them ([workflow §2, Phases](../../../docs/development/workflow.md#phases));
    9. each behaviour's lane, its test and the break it catches ([testing §1](../../../docs/development/testing.md#1-the-assignment-rule), [§3](../../../docs/development/testing.md#3-rules-that-bind-every-test));
    10. a *Review Focus* list: the inputs no planned test exercises;
