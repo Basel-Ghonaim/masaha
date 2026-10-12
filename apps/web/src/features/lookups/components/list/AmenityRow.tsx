@@ -8,8 +8,8 @@ import { LookupSheet } from '../sheet/LookupSheet';
 import { RowControls } from './RowControls';
 
 /**
- * An amenity in its list: its icon, its name in the interface's language then the other, its badges
- * when the filter leaves it out or it is retired, and its controls with its edit sheet, which wrap
+ * An amenity in its list: its icon, its name in the interface's language then the other, its badge
+ * when it is retired, and its controls with its edit sheet, which wrap
  * under the names on a narrow screen; then, on a line of its own, the failure of the last action on
  * it, which names the amenity by where it stands. A retired amenity's name is dimmed.
  */
@@ -34,7 +34,6 @@ export function AmenityRow(props: {
         <span lang={row.other.lang} dir="auto" className="text-caption text-muted-foreground">
           {row.other.text}
         </span>
-        {row.notFiltered && <Badge variant="neutral">{row.notFilteredLabel}</Badge>}
         {row.inactive && <Badge variant="warning">{row.inactiveLabel}</Badge>}
       </span>
       <RowControls controls={row.controls}>

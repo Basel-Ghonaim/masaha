@@ -37,6 +37,7 @@ export function toAdminSpace(
     hours: facts.hours,
     prices: facts.prices,
     amenityIds: facts.amenityIds,
+    ownAmenities: facts.ownAmenities,
     contacts: facts.contacts,
   };
 }

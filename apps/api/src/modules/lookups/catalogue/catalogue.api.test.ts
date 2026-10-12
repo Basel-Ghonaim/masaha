@@ -70,7 +70,6 @@ describe('GET /lookups', () => {
             nameAr: 'wifi',
             nameEn: 'wifi',
             icon: 'wifi',
-            isFilterable: true,
           },
           {
             id: expect.any(Number) as number,
@@ -78,7 +77,6 @@ describe('GET /lookups', () => {
             nameAr: 'printer',
             nameEn: 'printer',
             icon: 'wifi',
-            isFilterable: true,
           },
         ],
       },

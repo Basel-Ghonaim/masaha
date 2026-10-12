@@ -84,24 +84,15 @@ interface AmenitySeed {
   readonly nameAr: string;
   readonly nameEn: string;
   readonly icon: AmenityIconKey;
-  readonly isFilterable?: boolean;
 }
 
 // Icon keys come from the shared list: each is a glyph's name that the web's design system draws
 // (`GlyphIcon`), and the web's typecheck refuses a key it cannot draw
 // (docs/architecture/findings/10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet.md).
-// The directory filter offers every amenity except those nearly every space has
-// (isFilterable: false).
 export const AMENITIES = [
   // One entry: no fiber or fast distinction.
-  { key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi', isFilterable: false },
-  {
-    key: 'stable_power',
-    nameAr: 'كهرباء مستقرة',
-    nameEn: 'Stable power',
-    icon: 'zap',
-    isFilterable: false,
-  },
+  { key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi' },
+  { key: 'stable_power', nameAr: 'كهرباء مستقرة', nameEn: 'Stable power', icon: 'zap' },
   { key: 'solar_power', nameAr: 'طاقة شمسية', nameEn: 'Solar power', icon: 'sun' },
   {
     key: 'generator_line',

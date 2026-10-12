@@ -14,8 +14,8 @@ type SwitchFieldView = {
 };
 
 /**
- * An amenity's form in the sheet, ready to render: its two names, its icon chosen from a grid, its
- * filter switch, and when editing its Active switch (a new one is always active), with their labels,
+ * An amenity's form in the sheet, ready to render: its two names, its icon chosen from a grid, and
+ * when editing its Active switch (a new one is always active), with their labels,
  * errors and states. Its key is never shown: the server derives it.
  */
 export type AmenityFormView = {
@@ -37,6 +37,5 @@ export type AmenityFormView = {
     ref: (element: HTMLButtonElement | null) => void;
     choose: (value: string) => void;
   };
-  filter: SwitchFieldView;
   active?: SwitchFieldView;
 };

@@ -25,7 +25,6 @@ const WIFI: AdminAmenity = {
   nameEn: 'Internet',
   icon: 'wifi',
   isActive: true,
-  isFilterable: false,
 };
 
 /** The app's one client, wired as bootstrap wires it, answering every request with `answer`. */
@@ -141,13 +140,8 @@ describe('the lookups repository', () => {
     expect(requests[0]).toMatchObject({ method: 'get', url: '/admin/amenities' });
   });
 
-  it('POSTs a new amenity’s names, icon and filter flag, and resolves to the amenity added', async () => {
-    const request = {
-      nameAr: 'إنترنت',
-      nameEn: 'Internet',
-      icon: 'wifi' as const,
-      isFilterable: false,
-    };
+  it('POSTs a new amenity’s names and icon, and resolves to the amenity added', async () => {
+    const request = { nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi' as const };
     const requests = serve({ status: 201, data: { success: true, data: WIFI } });
 
     await expect(createLookupsRepository().addAmenity(request)).resolves.toEqual(WIFI);
@@ -156,14 +150,12 @@ describe('the lookups repository', () => {
   });
 
   it('PATCHes an amenity with the fields to change, and resolves to it', async () => {
-    const off = { ...WIFI, isFilterable: true };
-    const requests = serve({ status: 200, data: { success: true, data: off } });
+    const zap = { ...WIFI, icon: 'zap' as const };
+    const requests = serve({ status: 200, data: { success: true, data: zap } });
 
-    await expect(createLookupsRepository().editAmenity(4, { isFilterable: true })).resolves.toEqual(
-      off,
-    );
+    await expect(createLookupsRepository().editAmenity(4, { icon: 'zap' })).resolves.toEqual(zap);
     expect(requests[0]).toMatchObject({ method: 'patch', url: '/admin/amenities/4' });
-    expect(bodyOf(requests[0])).toEqual({ isFilterable: true });
+    expect(bodyOf(requests[0])).toEqual({ icon: 'zap' });
   });
 
   it('PUTs the amenities’ order as their ids, and resolves to nothing on 204', async () => {

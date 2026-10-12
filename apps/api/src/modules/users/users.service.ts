@@ -314,9 +314,10 @@ export function createUsersService({
     get,
 
     /**
-     * Changes the account's global role, under its session lock, which the caller took
-     * (`lockAccount`): every session of the user ends, so no session goes on with the old role
-     * (docs/backend/security.md › Tokens and cookies), and the change is audited.
+     * Changes the account's global role, under its session lock, which the caller took: with
+     * `lockAccount`, or with `lockForAdminChange`, which also holds every active admin's row, when
+     * the change may remove an admin. Every session of the user ends, so no session goes on with
+     * the old role (docs/backend/security.md › Tokens and cookies), and the change is audited.
      */
     async changeRole(account: Account, role: Role, actorId: number, tx: Tx): Promise<void> {
       await repository.setRole(account.id, role, tx);

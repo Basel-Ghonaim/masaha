@@ -13,7 +13,6 @@ const AMENITY = {
   ...NAMES,
   key: true,
   icon: true,
-  isFilterable: true,
 } as const satisfies Prisma.AmenitySelect;
 
 export type CatalogueGovernorateRow = Prisma.GovernorateGetPayload<{ select: typeof GOVERNORATE }>;

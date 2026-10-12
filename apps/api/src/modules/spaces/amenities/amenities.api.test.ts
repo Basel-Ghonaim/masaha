@@ -11,6 +11,11 @@ const NOW = new Date('2026-10-06T09:00:00.000Z');
 const BEFORE = new Date('2026-09-01T09:00:00.000Z');
 const app = createTestApp({ clock: () => NOW });
 
+// Two of a space's own amenities, the first after the second in the alphabet: their order is the
+// list's, never the names'.
+const PRINTER = { nameAr: 'طابعة', nameEn: 'Printer' };
+const LOCKERS = { nameAr: 'خزائن', nameEn: null };
+
 let admin: { id: number; authorization: string };
 let spaceId: number;
 let internet: number;
@@ -43,11 +48,14 @@ beforeEach(async () => {
   retired = await amenity('fax', false);
 });
 
-function save(amenityIds: number[], id = spaceId) {
-  return adminRequest(app, admin, 'put', `/spaces/${String(id)}/amenities`, { amenityIds });
+function save(amenityIds: number[], ownAmenities: object[] = [], id = spaceId) {
+  return adminRequest(app, admin, 'put', `/spaces/${String(id)}/amenities`, {
+    amenityIds,
+    ownAmenities,
+  });
 }
 
-/** The space's amenity ids, by id, and the amenities' date. */
+/** The space's amenity ids, by id, its own amenities, in order, and the amenities' date. */
 async function stored() {
   return {
     amenityIds: (
@@ -57,6 +65,11 @@ async function stored() {
         select: { amenityId: true },
       })
     ).map(({ amenityId }) => amenityId),
+    ownAmenities: await prisma.spaceOwnAmenity.findMany({
+      where: { spaceId },
+      orderBy: { sortOrder: 'asc' },
+      select: { nameAr: true, nameEn: true },
+    }),
     amenitiesUpdatedAt: (await prisma.space.findUniqueOrThrow({ where: { id: spaceId } }))
       .amenitiesUpdatedAt,
   };
@@ -78,21 +91,44 @@ describe('PUT /admin/spaces/:spaceId/amenities', () => {
       amenities: NOW.toISOString(),
       contacts: BEFORE.toISOString(),
     });
-    expect(await stored()).toEqual({ amenityIds: [power], amenitiesUpdatedAt: NOW });
+    expect(await stored()).toEqual({
+      amenityIds: [power],
+      ownAmenities: [],
+      amenitiesUpdatedAt: NOW,
+    });
   });
 
-  it('answers the amenities in the space’s read, by id', async () => {
-    await save([power, internet]);
+  it('saves the space’s own amenities beside the platform’s, in their order', async () => {
+    const response = await save([internet], [PRINTER, { nameAr: 'خزائن' }]);
+
+    expect(response.status).toBe(200);
+    expect((dataOf(response) as { ownAmenities: unknown }).ownAmenities).toEqual([
+      PRINTER,
+      LOCKERS,
+    ]);
+    expect(await stored()).toEqual({
+      amenityIds: [internet],
+      ownAmenities: [PRINTER, LOCKERS],
+      amenitiesUpdatedAt: NOW,
+    });
+  });
+
+  it('answers the amenities in the space’s read, the platform’s by id and its own in order', async () => {
+    await save([power, internet], [PRINTER, LOCKERS]);
 
     const response = await adminRequest(app, admin, 'get', `/spaces/${String(spaceId)}`);
 
-    expect((dataOf(response) as { amenityIds: unknown }).amenityIds).toEqual([internet, power]);
+    expect(dataOf(response)).toMatchObject({
+      amenityIds: [internet, power],
+      ownAmenities: [PRINTER, LOCKERS],
+    });
   });
 
-  it('audits the set before and after, by id', async () => {
+  it('audits the whole group before and after: the set by id, and its own amenities', async () => {
     await prisma.spaceAmenity.create({ data: { spaceId, amenityId: internet } });
+    await prisma.spaceOwnAmenity.create({ data: { spaceId, nameAr: 'خزائن' } });
 
-    await save([power, internet]);
+    await save([power, internet], [PRINTER, LOCKERS]);
 
     expect(await auditEntries()).toEqual([
       {
@@ -101,21 +137,61 @@ describe('PUT /admin/spaces/:spaceId/amenities', () => {
         entityType: 'space',
         entityId: spaceId,
         spaceId,
-        before: { amenityIds: [internet] },
-        after: { amenityIds: [internet, power] },
+        before: { amenityIds: [internet], ownAmenities: [LOCKERS] },
+        after: { amenityIds: [internet, power], ownAmenities: [PRINTER, LOCKERS] },
       },
     ]);
   });
 
+  it('writes nothing when saved again unchanged, but a new order of its own amenities is a change', async () => {
+    await save([internet], [PRINTER, LOCKERS]);
+    await prisma.space.update({ where: { id: spaceId }, data: { amenitiesUpdatedAt: BEFORE } });
+
+    // The same group, an English name absent where it was saved as none.
+    const unchanged = await save([internet], [PRINTER, { nameAr: 'خزائن' }]);
+    const afterUnchanged = await stored();
+    const reordered = await save([internet], [LOCKERS, PRINTER]);
+
+    expect(unchanged.status).toBe(200);
+    expect(afterUnchanged.amenitiesUpdatedAt).toEqual(BEFORE);
+    expect(reordered.status).toBe(200);
+    expect(await stored()).toEqual({
+      amenityIds: [internet],
+      ownAmenities: [LOCKERS, PRINTER],
+      amenitiesUpdatedAt: NOW,
+    });
+    expect((await auditEntries()).map(({ after }) => after)).toEqual([
+      { amenityIds: [internet], ownAmenities: [PRINTER, LOCKERS] },
+      { amenityIds: [internet], ownAmenities: [LOCKERS, PRINTER] },
+    ]);
+  });
+
+  it('refuses an own amenity’s Arabic name repeated with the shared rules, writing nothing', async () => {
+    const response = await save([internet], [PRINTER, { nameAr: 'طابعة', nameEn: 'Printers' }]);
+
+    expect(response.status).toBe(422);
+    expect(errorOf(response).errors).toEqual({ 'ownAmenities.1.nameAr': ['not_unique'] });
+    expect(await stored()).toEqual({
+      amenityIds: [],
+      ownAmenities: [],
+      amenitiesUpdatedAt: BEFORE,
+    });
+    expect(await auditEntries()).toEqual([]);
+  });
+
   it('refuses to add a retired amenity, or one that does not exist, writing nothing', async () => {
-    const response = await save([internet, retired, 999]);
+    const response = await save([internet, retired, 999], [PRINTER]);
 
     expect(response.status).toBe(422);
     expect(errorOf(response).errors).toEqual({
       'amenityIds.1': ['invalid_choice'],
       'amenityIds.2': ['invalid_choice'],
     });
-    expect(await stored()).toEqual({ amenityIds: [], amenitiesUpdatedAt: BEFORE });
+    expect(await stored()).toEqual({
+      amenityIds: [],
+      ownAmenities: [],
+      amenitiesUpdatedAt: BEFORE,
+    });
     expect(await auditEntries()).toEqual([]);
   });
 
@@ -149,24 +225,35 @@ describe('PUT /admin/spaces/:spaceId/amenities', () => {
 
     expect(first.amenitiesUpdatedAt).toEqual(NOW);
     expect((await stored()).amenitiesUpdatedAt).toEqual(BEFORE);
-    expect((await auditEntries()).map(({ action }) => action)).toEqual(['space.amenitiesEdited']);
+    expect(await auditEntries()).toEqual([
+      expect.objectContaining({
+        action: 'space.amenitiesEdited',
+        before: { amenityIds: [], ownAmenities: [] },
+        after: { amenityIds: [], ownAmenities: [] },
+      }),
+    ]);
   });
 
   it('refuses the admin once an owner has joined, writing nothing', async () => {
     await signInOwnerOf(spaceId);
 
-    const response = await save([internet]);
+    const response = await save([internet], [PRINTER]);
 
     expect(response.status).toBe(403);
-    expect(await stored()).toEqual({ amenityIds: [], amenitiesUpdatedAt: BEFORE });
+    expect(await stored()).toEqual({
+      amenityIds: [],
+      ownAmenities: [],
+      amenitiesUpdatedAt: BEFORE,
+    });
     expect(await auditEntries()).toEqual([]);
   });
 
   it('answers not_found for a soft-deleted space and an unknown one', async () => {
     await prisma.space.update({ where: { id: spaceId }, data: { deletedAt: NOW } });
 
-    expect((await save([internet])).status).toBe(404);
-    expect((await save([internet], 999)).status).toBe(404);
+    expect((await save([internet], [PRINTER])).status).toBe(404);
+    expect((await save([internet], [PRINTER], 999)).status).toBe(404);
     expect(await prisma.spaceAmenity.count()).toBe(0);
+    expect(await prisma.spaceOwnAmenity.count()).toBe(0);
   });
 });

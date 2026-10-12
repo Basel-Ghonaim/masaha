@@ -24,7 +24,6 @@ const INTERNET: AdminAmenity = {
   nameEn: 'Internet',
   icon: 'wifi',
   isActive: true,
-  isFilterable: false,
 };
 const DRINKS: AdminAmenity = {
   id: 5,
@@ -33,7 +32,6 @@ const DRINKS: AdminAmenity = {
   nameEn: 'Hot drinks',
   icon: 'coffee',
   isActive: true,
-  isFilterable: true,
 };
 const HALLS: AdminAmenity = {
   id: 6,
@@ -42,7 +40,6 @@ const HALLS: AdminAmenity = {
   nameEn: 'Halls for rent',
   icon: 'presentation',
   isActive: false,
-  isFilterable: true,
 };
 
 // The fake server's list as it stands, and what the next list waits on before it is answered.
@@ -83,14 +80,9 @@ async function renderRows(
 
 type Row = ReturnType<typeof useAmenityRow>;
 
-/** Each row's controls, as waiting or not: its filter switch, its active switch, its two arrows. */
+/** Each row's controls, as waiting or not: its active switch, its two arrows. */
 const waiting = (rows: Row[]) =>
-  rows.map(({ controls }) => [
-    controls.switches[0]?.waiting,
-    controls.shown.waiting,
-    controls.up.waiting,
-    controls.down.waiting,
-  ]);
+  rows.map(({ controls }) => [controls.shown.waiting, controls.up.waiting, controls.down.waiting]);
 
 beforeEach(() => {
   startPreferences('en');
@@ -122,22 +114,18 @@ describe('useAmenityRow', () => {
       name: { text: 'إنترنت', lang: 'ar' },
       other: { text: 'Internet', lang: 'en' },
     });
-    expect(internet?.controls.switches[0]?.label).toBe('في الفلاتر: ⁨إنترنت⁩');
     expect(internet?.controls.shown.label).toBe('نشط: ⁨إنترنت⁩');
     expect(internet?.controls.up.label).toBe('تحريك لأعلى: ⁨إنترنت⁩');
   });
 
-  it('carries each switch’s words, its state, and the badges of a row left out of filters or retired', async () => {
+  it('carries its one switch’s words and its state, and the badge of a retired row', async () => {
     const { result } = await renderRows(() => ok({}));
     const [internet, drinks, halls] = result.current.rows;
 
-    expect(internet?.controls.switches[0]).toMatchObject({ text: 'In filters', checked: false });
+    expect(internet?.controls).not.toHaveProperty('switches');
+    expect(internet).not.toHaveProperty('notFiltered');
     expect(internet?.controls.shown).toMatchObject({ text: 'Active', checked: true });
-    expect([internet, drinks, halls].map((row) => [row?.notFiltered, row?.inactive])).toEqual([
-      [true, false],
-      [false, false],
-      [false, true],
-    ]);
+    expect([internet, drinks, halls].map((row) => row?.inactive)).toEqual([false, false, true]);
     expect(halls?.controls.shown.checked).toBe(false);
   });
 
@@ -151,38 +139,6 @@ describe('useAmenityRow', () => {
       [false, false],
       [false, true],
     ]);
-  });
-
-  it('puts an amenity in the filters with its PATCH, only its filter switch waiting until the list is fetched again', async () => {
-    const listHeld = deferred<undefined>();
-    const { result, requests, lists } = await renderRows(() => {
-      list = [{ ...INTERNET, isFilterable: true }, DRINKS, HALLS];
-      listWaitsOn = listHeld.promise;
-      return ok({ ...INTERNET, isFilterable: true });
-    });
-
-    act(() => {
-      result.current.rows[0]?.controls.switches[0]?.toggle(true);
-    });
-
-    await waitFor(() => {
-      expect(lists()).toBe(2);
-    });
-    expect(requests[1]).toMatchObject({ method: 'patch', url: '/admin/amenities/4' });
-    expect(bodyOf(requests[1])).toEqual({ isFilterable: true });
-    expect(result.current.rows[0]?.controls.switches[0]?.checked).toBe(false);
-    expect(waiting(result.current.rows)).toEqual([
-      [true, false, false, false],
-      [false, false, false, false],
-      [false, false, false, false],
-    ]);
-
-    listHeld.resolve(undefined);
-    await waitFor(() => {
-      expect(result.current.rows[0]?.controls.switches[0]?.waiting).toBe(false);
-    });
-    expect(result.current.rows[0]?.controls.switches[0]?.checked).toBe(true);
-    expect(result.current.rows[0]?.notFiltered).toBe(false);
   });
 
   it('retires an amenity with its PATCH, only its active switch waiting until the list is fetched again', async () => {
@@ -203,9 +159,9 @@ describe('useAmenityRow', () => {
     expect(requests[1]).toMatchObject({ method: 'patch', url: '/admin/amenities/5' });
     expect(bodyOf(requests[1])).toEqual({ isActive: false });
     expect(waiting(result.current.rows)).toEqual([
-      [false, false, false, false],
-      [false, true, false, false],
-      [false, false, false, false],
+      [false, false, false],
+      [true, false, false],
+      [false, false, false],
     ]);
 
     listHeld.resolve(undefined);
@@ -215,7 +171,7 @@ describe('useAmenityRow', () => {
     expect(result.current.rows[1]?.controls.shown.waiting).toBe(false);
   });
 
-  it('moves an amenity with the whole new order, every arrow waiting until the list is fetched again, the switches not', async () => {
+  it('moves an amenity with the whole new order, every arrow waiting until the list is fetched again, the switch not', async () => {
     const answered = deferred<FakeAnswer>();
     const { result, requests } = await renderRows(() => answered.promise);
 
@@ -225,9 +181,9 @@ describe('useAmenityRow', () => {
 
     await waitFor(() => {
       expect(waiting(result.current.rows)).toEqual([
-        [false, false, true, true],
-        [false, false, true, true],
-        [false, false, true, true],
+        [false, true, true],
+        [false, true, true],
+        [false, true, true],
       ]);
     });
     expect(requests[1]).toMatchObject({ method: 'put', url: '/admin/amenities/order' });
@@ -243,9 +199,9 @@ describe('useAmenityRow', () => {
       ]);
     });
     expect(waiting(result.current.rows)).toEqual([
-      [false, false, false, false],
-      [false, false, false, false],
-      [false, false, false, false],
+      [false, false, false],
+      [false, false, false],
+      [false, false, false],
     ]);
   });
 
@@ -279,17 +235,17 @@ describe('useAmenityRow', () => {
     expect(result.current.section.orderFailure).toBeNull();
 
     act(() => {
-      result.current.rows[1]?.controls.switches[0]?.toggle(false);
+      result.current.rows[1]?.controls.shown.toggle(false);
     });
     await waitFor(() => {
-      expect(result.current.rows[1]?.controls.switches[0]?.waiting).toBe(false);
+      expect(result.current.rows[1]?.controls.shown.waiting).toBe(false);
     });
     expect(result.current.rows[2]?.failure).not.toBeNull();
 
-    // The next action on that row, by its other switch, replaces the failure.
-    halls = ok({ ...HALLS, isFilterable: false });
+    // The next action on that row replaces the failure.
+    halls = ok({ ...HALLS, isActive: true });
     act(() => {
-      result.current.rows[2]?.controls.switches[0]?.toggle(false);
+      result.current.rows[2]?.controls.shown.toggle(true);
     });
     await waitFor(() => {
       expect(result.current.rows[2]?.failure).toBeNull();
@@ -310,7 +266,7 @@ describe('useAmenityRow', () => {
       expect(result.current.rows[0]?.failure).not.toBeNull();
     });
     act(() => {
-      result.current.rows[1]?.controls.switches[0]?.toggle(false);
+      result.current.rows[1]?.controls.shown.toggle(false);
     });
 
     await waitFor(() => {
@@ -352,7 +308,7 @@ describe('useAmenityRow', () => {
     );
 
     act(() => {
-      result.current.rows[0]?.controls.switches[0]?.toggle(true);
+      result.current.rows[0]?.controls.shown.toggle(false);
     });
 
     await waitFor(() => {
@@ -362,9 +318,9 @@ describe('useAmenityRow', () => {
       });
     });
     expect(waiting(result.current.rows)).toEqual([
-      [true, true, true, true],
-      [true, true, true, true],
-      [true, true, true, true],
+      [true, true, true],
+      [true, true, true],
+      [true, true, true],
     ]);
   });
 
@@ -376,7 +332,7 @@ describe('useAmenityRow', () => {
     );
 
     act(() => {
-      result.current.rows[0]?.controls.switches[0]?.toggle(true);
+      result.current.rows[0]?.controls.shown.toggle(false);
     });
     await waitFor(() => {
       expect(result.current.rows[0]?.failure).toMatchObject({ kind: 'rateLimit' });
@@ -389,9 +345,9 @@ describe('useAmenityRow', () => {
       expect(result.current.rows[1]?.failure).toMatchObject({ kind: 'refused' });
     });
     expect(waiting(result.current.rows)).toEqual([
-      [true, true, true, true],
-      [true, true, true, true],
-      [true, true, true, true],
+      [true, true, true],
+      [true, true, true],
+      [true, true, true],
     ]);
   });
 

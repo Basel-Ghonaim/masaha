@@ -184,7 +184,8 @@ const priceLabel = textSchema(1, PRICE_LABEL_MAX_LENGTH);
 /**
  * A published price: a period and an audience, an optional shift of the space, and an optional
  * custom label, its Arabic required with its English (docs/architecture/data-model.md › Prices).
- * Amounts are whole agorot (display only in v1).
+ * Amounts are whole agorot (display only in v1), above zero: no price is free, and a free event is
+ * an announcement.
  */
 const price = z
   .object({
@@ -193,7 +194,7 @@ const price = z
     shiftId: optional(id),
     labelAr: optional(priceLabel),
     labelEn: optional(priceLabel),
-    amountAgorot: z.number().int().min(0).max(PRICE_MAX_AGOROT),
+    amountAgorot: z.number().int().min(1).max(PRICE_MAX_AGOROT),
   })
   .refine((item) => item.labelEn == null || item.labelAr != null, {
     path: ['labelAr'],
@@ -220,15 +221,36 @@ export const updateSpacePricesSchema = z
 export type UpdateSpacePricesRequest = z.infer<typeof updateSpacePricesSchema>;
 
 export const MAX_AMENITIES = 100;
+export const MAX_OWN_AMENITIES = 20;
+/** As long as a platform amenity's name. */
+export const OWN_AMENITY_NAME_MAX_LENGTH = 60;
+
+const ownAmenityName = textSchema(1, OWN_AMENITY_NAME_MAX_LENGTH);
+
+/** An amenity of the space's own, beyond the platform's list: its Arabic name, its English optional. */
+const ownAmenity = z.object({ nameAr: ownAmenityName, nameEn: optional(ownAmenityName) });
 
 /**
- * The space's amenities, as a set of ids. Whether each may be linked is the server's to check: an
- * amenity added must be active, and one already linked stays, retired or not (decision F7).
+ * The amenities group, whole: the platform's amenities as a set of ids, and the space's own, in the
+ * order they are shown in. Both are required, so a body that leaves the own amenities out never
+ * empties them. Whether each id may be linked is the server's to check: an amenity added must be
+ * active, and one already linked stays, retired or not (decision F7). An own amenity's Arabic name
+ * is its own.
  */
 export const updateSpaceAmenitiesSchema = z
-  .object({ amenityIds: z.array(id).max(MAX_AMENITIES) })
-  .superRefine(({ amenityIds }, ctx) => {
+  .object({
+    amenityIds: z.array(id).max(MAX_AMENITIES),
+    ownAmenities: z.array(ownAmenity).max(MAX_OWN_AMENITIES),
+  })
+  .superRefine(({ amenityIds, ownAmenities }, ctx) => {
     refuseRepeats(ctx, 'amenityIds', amenityIds, null, (amenityId) => amenityId);
+    refuseRepeats(
+      ctx,
+      'ownAmenities',
+      ownAmenities,
+      () => 'nameAr',
+      (item) => item.nameAr,
+    );
   });
 export type UpdateSpaceAmenitiesRequest = z.infer<typeof updateSpaceAmenitiesSchema>;
 

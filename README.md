@@ -46,7 +46,7 @@ live status pulled from the space itself. Owners get a dashboard to run the spac
 ## What it offers, by audience
 
 **Visitors.** The directory in a list or on a map, one at a time; search and filters by area, price,
-the amenities that tell spaces apart, student prices, open on Friday, verified, and available now;
+student prices, open on Friday, verified, and available now;
 sorting, including nearest to me. "Near me" uses the device's location, and that location is never
 sent to Masaha — an area or a pin on the map stand in for it. The space page carries photos, prices
 (display only), amenities, hours, contact, announcements, and the live status — available, full or

@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -180,7 +180,7 @@ The spaces a signed-in user works at, as owner or reception ([ADR 0009](../archi
   ```ts
   LookupsCatalogue = {
     governorates: { id, nameAr, nameEn, areas: { id, nameAr, nameEn }[] }[],   // active only, each list in order
-    amenities: { id, key, nameAr, nameEn, icon: AmenityIconKey, isFilterable: boolean }[]   // active only, in order
+    amenities: { id, key, nameAr, nameEn, icon: AmenityIconKey }[]   // active only, in order
   }
   ```
   A hidden governorate is left out with all its areas, whatever their own flags; a hidden area and a retired amenity are left out.
@@ -205,8 +205,7 @@ AdminAmenity = {
   key: string,                 // snake_case, derived from nameEn when it is added; never changes
   nameAr: string, nameEn: string,
   icon: AmenityIconKey,        // one of AMENITY_ICON_KEYS (@masaha/shared/lookups)
-  isActive: boolean,           // false: retired, its links to spaces kept
-  isFilterable: boolean        // offered in the directory's filter
+  isActive: boolean            // false: retired, its links to spaces kept
 }
 ```
 
@@ -247,13 +246,13 @@ AdminAmenity = {
 - **200:** `AdminAmenity[]`: every amenity, retired ones included, in order. Not paginated (§4).
 
 #### `POST /admin/amenities` · 🛡
-- **Body:** `{ nameAr, nameEn, icon, isFilterable }`; `icon` is one of the shared icon keys (`invalid_choice`).
+- **Body:** `{ nameAr, nameEn, icon }`; `icon` is one of the shared icon keys (`invalid_choice`).
 - **201:** `AdminAmenity`, active and placed last. Its key is `nameEn` in snake_case: accents dropped, lowercased, every run of other characters than `a–z` and `0–9` one `_` ("Hot drinks" → `hot_drinks`). Audited `amenity.added`, with `key` in `after`.
 - **Errors:** `validation` (422), with `errors.nameEn = ["invalid_format"]` for an English name that yields no key; `conflict` (409), with `errors.nameEn = ["not_unique"]`, when another amenity, a retired one included, has the key.
 
 #### `PATCH /admin/amenities/:id` · 🛡
-- **Body:** `{ nameAr?, nameEn?, icon?, isFilterable?, isActive? }`; what is absent is kept. The key never changes, whatever the new English name.
-- **200:** `AdminAmenity`. Audited `amenity.edited` (names, `icon`, `isFilterable`), `amenity.hidden` or `amenity.restored`.
+- **Body:** `{ nameAr?, nameEn?, icon?, isActive? }`; what is absent is kept. The key never changes, whatever the new English name.
+- **200:** `AdminAmenity`. Audited `amenity.edited` (names, `icon`), `amenity.hidden` or `amenity.restored`.
 - **Errors:** `validation` (422); `not_found` (404).
 
 #### `PUT /admin/amenities/order` · 🛡
@@ -294,8 +293,11 @@ AdminSpace = {
   hours: SpaceHours | null,         // null until first saved
   prices: Price[],
   amenityIds: number[],             // by id; retired amenities included
+  ownAmenities: OwnAmenity[],       // its own, beyond the platform's list, in order
   contacts: Contact[]
 }
+
+OwnAmenity = { nameAr: string, nameEn: string | null }   // typed by the space
 
 OpeningRange = { opensMinute: number, closesMinute: number }   // minutes after midnight, Asia/Gaza
 Shift = { id: number, nameAr: string, nameEn: string | null, startsMinute: number, endsMinute: number }
@@ -374,14 +376,16 @@ The endpoints on one space put its links on the request first, without refusing 
 - **Errors:** `validation` (422), with `invalid_choice` on `shifts.<i>.id` for an id that is not one of the space's shifts; `conflict` (409), with no code, when a shift left out is still used by a price, a package, a subscription or a visit: nothing is written, and the price is changed first; `forbidden` (403); `not_found` (404).
 
 #### `PUT /admin/spaces/:spaceId/prices` · 🛡
-- **Body:** `{ prices }`, at most 40, each a `Price`: `period` and `audience` from their lists (`invalid_choice`); `shiftId` optional; `labelAr` and `labelEn` optional, 1–60 characters each, as the profile's texts, `labelEn` only with `labelAr` (`required` on `labelAr`); `amountAgorot` an integer from 0 to 10,000,000.
+- **Body:** `{ prices }`, at most 40, each a `Price`: `period` and `audience` from their lists (`invalid_choice`); `shiftId` optional; `labelAr` and `labelEn` optional, 1–60 characters each, as the profile's texts, `labelEn` only with `labelAr` (`required` on `labelAr`); `amountAgorot` an integer from 1 to 10,000,000 (`out_of_range` otherwise: no price is free).
 - **One price per period, audience, shift and label**, a missing shift or label counting as one value ([data-model › Constraints](../architecture/data-model.md#constraints-worth-stating)): a repeat is `not_unique` on the field that would tell it apart, `labelAr` when it has a label, else `shiftId` when it has a shift, else `period`.
 - **200:** `AdminSpace`. Audited `space.pricesEdited` (`before` and `after`: `{ prices }`).
 - **Errors:** `validation` (422), with `invalid_choice` on `prices.<i>.shiftId` for a shift that is not one of the space's, as they are when the space's lock is taken; `forbidden` (403); `not_found` (404).
 
 #### `PUT /admin/spaces/:spaceId/amenities` · 🛡
-- **Body:** `{ amenityIds }`, at most 100 ids, a set: an id repeated is `not_unique` (`errors["amenityIds.<i>"]`).
-- **200:** `AdminSpace`, its amenities exactly these. An amenity added must be active; one the space already has stays, retired or not, until it is left out ([data-model › Conventions](../architecture/data-model.md#conventions)). Audited `space.amenitiesEdited` (`before` and `after`: `{ amenityIds }`, by id).
+- **Body:** `{ amenityIds, ownAmenities }`, the group whole, both required (`required`):
+  - `amenityIds`: the platform's amenities, at most 100 ids, a set: an id repeated is `not_unique` (`errors["amenityIds.<i>"]`);
+  - `ownAmenities`: the space's own, beyond the platform's list, at most 20, in the order they are shown in, each `{ nameAr, nameEn? }`, 1–60 characters each, as the profile's texts; an Arabic name repeated is `not_unique` (`errors["ownAmenities.<i>.nameAr"]`).
+- **200:** `AdminSpace`, its amenities exactly these, its own in their order. An amenity added must be active; one the space already has stays, retired or not, until it is left out ([data-model › Conventions](../architecture/data-model.md#conventions)). A new order of its own amenities is a change. Audited `space.amenitiesEdited` (`before` and `after`: `{ amenityIds, ownAmenities }`, the ids in order of id). Entries written before 2026-10-12 hold `{ amenityIds }` only.
 - **Errors:** `validation` (422), with `invalid_choice` on `amenityIds.<i>` for an amenity added that is retired or does not exist; `forbidden` (403); `not_found` (404).
 
 #### `PUT /admin/spaces/:spaceId/contacts` · 🛡

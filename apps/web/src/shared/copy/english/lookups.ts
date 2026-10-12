@@ -22,20 +22,13 @@ export const LOOKUPS = {
   amenities: {
     /** The section's name, on its tab and its card. */
     title: 'Amenities',
-    /** The card's line under its title. */
-    description: '“In filters” is off for what nearly every space has: it tells no space apart.',
     add: 'Add amenity',
     empty: 'No amenities yet',
     emptyHint: 'Add the first amenity.',
     loadFailed: 'We couldn’t load the amenities',
     row: {
-      /** The badge of an amenity the directory's filter leaves out. */
-      notFiltered: 'Not in filters',
       /** The badge of a retired amenity. */
       inactive: 'Inactive',
-      /** A row's filter switch: its words beside it, and its name. */
-      inFilters: 'In filters',
-      inFiltersName: ({ name }: { name: string }) => `In filters: ${name}`,
       /** A row's active switch: its words beside it, and its name. */
       active: 'Active',
       activeName: ({ name }: { name: string }) => `Active: ${name}`,
@@ -68,12 +61,9 @@ export const LOOKUPS = {
     editAmenity: 'Edit amenity',
     /** An amenity's icon, chosen from a grid. */
     icon: 'Icon',
-    /** An amenity's filter switch. */
-    inFilters: 'In filters',
-    inFiltersHint: 'Offered in the directory’s filter.',
     /** An amenity's switch, when editing: a new amenity is always active. */
     amenityActive: 'Active',
-    amenityActiveHint: 'Inactive: not offered in forms and filters; spaces that have it keep it.',
+    amenityActiveHint: 'Inactive: not offered in forms; spaces that have it keep it.',
     nameAr: 'Name in Arabic',
     nameEn: 'Name in English',
     /** The switch, when editing: a new governorate or area is always active. */

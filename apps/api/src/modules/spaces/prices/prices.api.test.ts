@@ -135,6 +135,15 @@ describe('PUT /admin/spaces/:spaceId/prices', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
+  it('refuses a price of zero on its amount, writing nothing', async () => {
+    const response = await save([MONTH, { ...MONTH, audience: 'STUDENT', amountAgorot: 0 }]);
+
+    expect(response.status).toBe(422);
+    expect(errorOf(response).errors).toEqual({ 'prices.1.amountAgorot': ['out_of_range'] });
+    expect(await stored()).toEqual({ prices: [], pricesUpdatedAt: BEFORE });
+    expect(await auditEntries()).toEqual([]);
+  });
+
   it('refuses a repeated price with the shared rules, on its own field', async () => {
     const response = await save([MONTH, { ...MONTH, amountAgorot: 1 }]);
 

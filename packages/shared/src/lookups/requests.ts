@@ -50,7 +50,6 @@ export const createAmenitySchema = z.object({
   nameAr: lookupName,
   nameEn: lookupName,
   icon: z.enum(AMENITY_ICON_KEYS),
-  isFilterable: z.boolean(),
 });
 export type CreateAmenityRequest = z.infer<typeof createAmenitySchema>;
 
@@ -59,7 +58,6 @@ export const updateAmenitySchema = z.object({
   nameAr: lookupName.optional(),
   nameEn: lookupName.optional(),
   icon: z.enum(AMENITY_ICON_KEYS).optional(),
-  isFilterable: z.boolean().optional(),
   isActive: z.boolean().optional(),
 });
 export type UpdateAmenityRequest = z.infer<typeof updateAmenitySchema>;

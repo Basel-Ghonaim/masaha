@@ -10,7 +10,6 @@ const AMENITY = {
   nameEn: true,
   icon: true,
   isActive: true,
-  isFilterable: true,
 } as const satisfies Prisma.AmenitySelect;
 
 export type AmenityRow = Prisma.AmenityGetPayload<{ select: typeof AMENITY }>;
@@ -23,7 +22,6 @@ export interface NewAmenity {
   nameAr: string;
   nameEn: string;
   icon: string;
-  isFilterable: boolean;
   sortOrder: number;
 }
 

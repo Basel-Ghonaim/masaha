@@ -79,14 +79,14 @@ describe('lookupChange', () => {
   });
 
   it('audits any other changed field as edited, for an amenity', () => {
-    const wifi = { ...rafah, icon: 'wifi', isFilterable: true };
+    const wifi = { ...rafah, icon: 'wifi' };
 
-    expect(lookupChange('amenity', wifi, { icon: 'zap', isFilterable: false }).entries).toEqual([
+    expect(lookupChange('amenity', wifi, { icon: 'zap' }).entries).toEqual([
       {
         action: 'amenity.edited',
         entityType: 'amenity',
-        before: { icon: 'wifi', isFilterable: true },
-        after: { icon: 'zap', isFilterable: false },
+        before: { icon: 'wifi' },
+        after: { icon: 'zap' },
       },
     ]);
   });

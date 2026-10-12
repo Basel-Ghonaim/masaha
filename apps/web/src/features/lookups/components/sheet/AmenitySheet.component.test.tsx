@@ -15,7 +15,6 @@ const INTERNET: AdminAmenity = {
   nameEn: 'Internet',
   icon: 'sun',
   isActive: true,
-  isFilterable: false,
 };
 
 /** A name with the Unicode isolates around its inserted values removed, as a reader hears it. */
@@ -96,22 +95,20 @@ describe('the amenity’s sheet', () => {
     expect(within(icons).getByRole('radio', { name: 'Power plug' })).toHaveFocus();
   });
 
-  it('shows the filter and Active switches, each with its hint', async () => {
+  it('shows the Active switch alone, with its hint', async () => {
     await renderSection();
 
     const sheet = await editInternet();
 
-    const inFilters = within(sheet).getByRole('switch', { name: 'In filters' });
-    expect(inFilters).not.toBeChecked();
-    expect(inFilters).toHaveAccessibleDescription('Offered in the directory’s filter.');
     const active = within(sheet).getByRole('switch', { name: 'Active' });
+    expect(within(sheet).getAllByRole('switch')).toEqual([active]);
     expect(active).toBeChecked();
     expect(active).toHaveAccessibleDescription(
-      'Inactive: not offered in forms and filters; spaces that have it keep it.',
+      'Inactive: not offered in forms; spaces that have it keep it.',
     );
   });
 
-  it('adds an amenity with empty names, no icon chosen, in the filters, and no Active switch', async () => {
+  it('adds an amenity with empty names, no icon chosen, and no switch', async () => {
     await renderSection();
 
     await userEvent.click(screen.getByRole('button', { name: 'Add amenity' }));
@@ -121,8 +118,7 @@ describe('the amenity’s sheet', () => {
     expect(within(sheet).getByRole('textbox', { name: 'Name in English' })).toHaveValue('');
     const icons = within(sheet).getByRole('radiogroup', { name: 'Icon' });
     expect(within(icons).queryByRole('radio', { checked: true })).not.toBeInTheDocument();
-    expect(within(sheet).getByRole('switch', { name: 'In filters' })).toBeChecked();
-    expect(within(sheet).queryByRole('switch', { name: 'Active' })).not.toBeInTheDocument();
+    expect(within(sheet).queryByRole('switch')).not.toBeInTheDocument();
   });
 
   it('asks for an icon when none is chosen, the grid taking the focus', async () => {

@@ -13,13 +13,12 @@ type AmenityValues = {
   nameAr: string;
   nameEn: string;
   icon: AmenityIconKey | undefined;
-  isFilterable: boolean;
   isActive: boolean;
 };
 
 /**
  * What an amenity's forms share, on the one form pattern (`useServerForm`): the two names, then the
- * icon, chosen from the shared keys, each named; the filter switch; and when `editing`, the Active
+ * icon, chosen from the shared keys, each named; and when `editing`, the Active
  * switch, since a new amenity is always active. The save sends the request (`save`), then closes the
  * sheet (`onSaved`) once the list shows the change.
  */
@@ -57,16 +56,10 @@ export function useAmenityForm<Request>({
       icon: lines.fieldErrors.icon,
     },
   });
-  const [isFilterable, isActive] = useWatch({
-    control: form.control,
-    name: ['isFilterable', 'isActive'],
-  });
+  const isActive = useWatch({ control: form.control, name: 'isActive' });
   // The icon is held by the form, not read from the grid: its ref only takes the focus when the
   // icon is missing, where `register` would read a value from the option it is given.
   const { field: icon } = useController({ control: form.control, name: 'icon' });
-  const toggle = (name: 'isFilterable' | 'isActive') => (checked: boolean) => {
-    form.setValue(name, checked, { shouldDirty: true });
-  };
 
   return {
     field,
@@ -88,20 +81,15 @@ export function useAmenityForm<Request>({
         if (key !== undefined) icon.onChange(key);
       },
     },
-    filter: {
-      label: lines.inFilters,
-      hint: lines.inFiltersHint,
-      checked: isFilterable,
-      disabled: isPending,
-      toggle: toggle('isFilterable'),
-    },
     ...(editing && {
       active: {
         label: lines.amenityActive,
         hint: lines.amenityActiveHint,
         checked: isActive,
         disabled: isPending,
-        toggle: toggle('isActive'),
+        toggle: (checked: boolean) => {
+          form.setValue('isActive', checked, { shouldDirty: true });
+        },
       },
     }),
   };

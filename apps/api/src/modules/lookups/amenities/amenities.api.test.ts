@@ -34,7 +34,6 @@ const meetingRoom = {
   nameAr: 'قاعة اجتماعات',
   nameEn: 'Meeting room',
   icon: 'users',
-  isFilterable: true,
 };
 
 describe('the amenities endpoints', () => {
@@ -45,7 +44,7 @@ describe('the amenities endpoints', () => {
       name: 'PATCH /amenities/:id',
       method: 'patch',
       path: (id: number) => `/amenities/${String(id)}`,
-      body: () => ({ isFilterable: false }),
+      body: () => ({ icon: 'zap' }),
     },
     {
       name: 'PUT /amenities/order',
@@ -68,8 +67,8 @@ describe('the amenities endpoints', () => {
       expect(response.status).toBe(refusal.status);
       const { type, code } = errorOf(response);
       expect({ type, code }).toEqual({ type: refusal.type, code: refusal.code });
-      expect(await prisma.amenity.findMany({ select: { key: true, isFilterable: true } })).toEqual([
-        { key: 'internet', isFilterable: true },
+      expect(await prisma.amenity.findMany({ select: { key: true, icon: true } })).toEqual([
+        { key: 'internet', icon: 'wifi' },
       ]);
     });
 
@@ -84,7 +83,6 @@ describe('GET /admin/amenities', () => {
     const admin = await signIn('ADMIN');
     const power = await amenity('stable_power', 'Stable power', 1, {
       icon: 'zap',
-      isFilterable: false,
       isActive: false,
     });
     await amenity('internet', 'Internet', 0);
@@ -101,17 +99,17 @@ describe('GET /admin/amenities', () => {
         nameEn: 'Stable power',
         icon: 'zap',
         isActive: false,
-        isFilterable: false,
       },
     ]);
   });
 });
 
 describe('POST /admin/amenities', () => {
-  it('adds an active amenity last, keyed from its English name, and audits it as added', async () => {
+  it('adds an active amenity last, keyed from its English name, and audits it as added, with no filter flag', async () => {
     const admin = await signIn('ADMIN');
     await amenity('internet', 'Internet', 6);
 
+    // A client that still sends the retired filter flag: it is not taken.
     const response = await adminRequest(app, admin, 'post', '/amenities', {
       ...meetingRoom,
       isFilterable: false,
@@ -126,7 +124,6 @@ describe('POST /admin/amenities', () => {
       nameEn: 'Meeting room',
       icon: 'users',
       isActive: true,
-      isFilterable: false,
     });
     expect(await prisma.amenity.findUnique({ where: { id } })).toMatchObject({ sortOrder: 7 });
     expect(await listedKeys(admin)).toEqual(['internet', 'meeting_room']);
@@ -138,7 +135,7 @@ describe('POST /admin/amenities', () => {
         entityId: id,
         spaceId: null,
         before: null,
-        after: { key: 'meeting_room', ...meetingRoom, isFilterable: false },
+        after: { key: 'meeting_room', ...meetingRoom },
       },
     ]);
   });
@@ -201,11 +198,13 @@ describe('PATCH /admin/amenities/:id', () => {
       key: 'fast_internet',
     });
     expect(edited.status).toBe(200);
-    expect(dataOf(edited)).toMatchObject({
+    expect(dataOf(edited)).toEqual({
+      id: internet.id,
       key: 'internet',
+      nameAr: 'Internet',
       nameEn: 'Fast internet',
       icon: 'zap',
-      isFilterable: false,
+      isActive: true,
     });
 
     await adminRequest(app, admin, 'patch', path, { isActive: false });
@@ -217,8 +216,8 @@ describe('PATCH /admin/amenities/:id', () => {
         action: 'amenity.edited',
         entityType: 'amenity',
         entityId: internet.id,
-        before: { nameEn: 'Internet', icon: 'wifi', isFilterable: true },
-        after: { nameEn: 'Fast internet', icon: 'zap', isFilterable: false },
+        before: { nameEn: 'Internet', icon: 'wifi' },
+        after: { nameEn: 'Fast internet', icon: 'zap' },
       }),
       expect.objectContaining({ action: 'amenity.hidden', after: { isActive: false } }),
       expect.objectContaining({ action: 'amenity.restored', after: { isActive: true } }),

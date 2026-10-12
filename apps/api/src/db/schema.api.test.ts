@@ -80,12 +80,21 @@ describe('a price', () => {
     await expect(prisma.space.delete({ where: { id: space.id } })).resolves.toBeDefined();
   });
 
-  it('is never negative', async () => {
+  it.each([0, -1])('is above zero: %i is refused, past the API', async (amountAgorot) => {
     const space = await createSpace();
 
     await expect(
-      prisma.spacePrice.create({ data: { spaceId: space.id, period: 'DAY', amountAgorot: -1 } }),
+      prisma.spacePrice.create({ data: { spaceId: space.id, period: 'DAY', amountAgorot } }),
     ).rejects.toThrow(/space_prices_amount_check/);
+    expect(await prisma.spacePrice.count()).toBe(0);
+  });
+
+  it('takes the smallest price, one agora', async () => {
+    const space = await createSpace();
+
+    await expect(
+      prisma.spacePrice.create({ data: { spaceId: space.id, period: 'DAY', amountAgorot: 1 } }),
+    ).resolves.toMatchObject({ amountAgorot: 1 });
   });
 });
 

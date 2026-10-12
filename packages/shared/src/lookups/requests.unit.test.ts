@@ -78,31 +78,27 @@ describe('updateAreaSchema', () => {
 describe('createAmenitySchema', () => {
   const coffee = { nameAr: 'مشروبات ساخنة', nameEn: 'Hot drinks', icon: 'coffee' };
 
-  it('requires both names, an icon from the list and the filter flag', () => {
-    expect(createAmenitySchema.parse({ ...coffee, isFilterable: false })).toEqual({
-      ...coffee,
-      isFilterable: false,
-    });
+  it('requires both names and an icon from the list, and takes no filter flag', () => {
+    expect(createAmenitySchema.parse({ ...coffee, isFilterable: false })).toEqual(coffee);
     expect(fieldErrors(createAmenitySchema, {})).toEqual({
       nameAr: ['required'],
       nameEn: ['required'],
       icon: ['invalid_choice'],
-      isFilterable: ['required'],
     });
   });
 
   it('refuses an icon outside the list', () => {
-    expect(
-      fieldErrors(createAmenitySchema, { ...coffee, icon: 'printer', isFilterable: true }),
-    ).toEqual({
+    expect(fieldErrors(createAmenitySchema, { ...coffee, icon: 'printer' })).toEqual({
       icon: ['invalid_choice'],
     });
   });
 });
 
 describe('updateAmenitySchema', () => {
-  it('never changes the key', () => {
-    expect(updateAmenitySchema.parse({ key: 'tea', icon: 'zap', isActive: false })).toEqual({
+  it('never changes the key, and takes no filter flag', () => {
+    expect(
+      updateAmenitySchema.parse({ key: 'tea', icon: 'zap', isFilterable: true, isActive: false }),
+    ).toEqual({
       icon: 'zap',
       isActive: false,
     });

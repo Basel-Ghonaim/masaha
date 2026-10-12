@@ -15,7 +15,6 @@ const INTERNET: AdminAmenity = {
   nameEn: 'Internet',
   icon: 'wifi',
   isActive: true,
-  isFilterable: false,
 };
 
 /** The hook, with the amenities answered by `answer`. */
@@ -50,6 +49,8 @@ describe('useAmenitiesSection', () => {
       'Hot drinks',
     ]);
     expect(result.current.title).toBe('Amenities');
+    // The card is its title alone: no amenity is a filter, so it has no line to explain.
+    expect(result.current).not.toHaveProperty('description');
   });
 
   it('is empty when there are no amenities, with the words to say so', async () => {

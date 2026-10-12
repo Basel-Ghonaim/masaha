@@ -1,6 +1,6 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
 > **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the add-space page and the row actions of the admin's spaces list.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
@@ -20,7 +20,7 @@ The photos and the owner's side are not built.
 
 ## Responsibility boundary
 
-- **Owns** the `spaces` table and its profile, the slug, the hide flag, the soft delete, the fact groups' dates and the staleness rule; the hours and the shifts, the prices, the space's amenity links and its contacts.
+- **Owns** the `spaces` table and its profile, the slug, the hide flag, the soft delete, the fact groups' dates and the staleness rule; the hours and the shifts, the prices, the space's amenity links and its own amenities, and its contacts.
 - **Leaves** whether a space is verified to `space-links`, whose links are on the request ([conventions › Space access](../backend/conventions.md#space-access)); `spaces` never imports `space-links`.
 - **Leaves** a space's settings to `space-settings`, the defaults and thresholds to `platform-settings`, and the areas and the amenities, and whether an amenity is active, to [`lookups`](lookups.md).
 - **Leaves** who may edit a profile or a fact to `can()` ([security › Authorization](../backend/security.md#authorization)).
@@ -64,7 +64,7 @@ The photos and the owner's side are not built.
 
 **Prices.** The prices are replaced whole, in their order: nothing refers to a price, so they are written anew. A price may name a shift only of its own space, as the shifts stand once the space's lock is taken, so a shift removed by an hours save meanwhile is refused.
 
-**Amenities.** The set is made exact: the links left out are removed and the new ones added, a kept link untouched. An amenity added must be active, as `lookups` answers in the same transaction; one already linked stays, retired or not.
+**Amenities.** The group is the platform's amenities the space has, and its own, typed beside them. The set is made exact: the links left out are removed and the new ones added, a kept link untouched. An amenity added must be active, as `lookups` answers in the same transaction; one already linked stays, retired or not. The own amenities are replaced whole, in their order, only when they changed; the same list in another order is a change.
 
 **Contacts.** Each contact arrives validated and in its type's one stored form, from the shared rules both apps run, and the list is replaced whole, in its order.
 
@@ -99,11 +99,17 @@ The photos and the owner's side are not built.
 - **A network link keeps its path only, but a Facebook profile keeps its numeric `id`** ([data model](../architecture/data-model.md#conventions)). *Why:* a query is mostly tracking, but a profile with no username has no other address (the owner's refinement). 2026-10-07, #48.
 - **The phone rule is the platform's, in `core`** (D6). *Why:* every phone number in the database has one form; the customers will use it. 2026-10-07, #48.
 - **Only an active amenity can be added; a retired one already linked stays until it is removed** (F7). *Why:* a retired amenity keeps its links (data-model). 2026-10-07, #48.
+- **A space keeps amenities of its own beside the platform's, in the amenities group** (the owner's decision, D2): short texts, Arabic required and English optional, in their order, saved, dated, audited and confirmed with the group. *Why:* an owner must be able to say what the space offers beyond the platform's common list, which stays the admin's ([lookups](lookups.md)). 2026-10-12, #64.
+- **The own amenities are required in the body, never defaulted to none** (S1). *Why:* the group is saved whole, so a client that leaves them out would empty them unseen. 2026-10-12, #64.
+- **An own amenity's Arabic name is its own within the space,** refused `not_unique` by the shared rule and by the database's key (S2); an English name may repeat. *Why:* as the shifts' names; the English rule follows the lookups' ([finding 30](../architecture/findings/30-a-lookups-english-name-is-not-unique.md)). 2026-10-12, #64.
+- **An own amenity that names one of the platform's is not refused** (S4). *Why:* an exact match would catch little, since spellings vary, and the save would read the platform's names from `lookups`; a repeat is seen where both lists are shown, as [finding 30](../architecture/findings/30-a-lookups-english-name-is-not-unique.md) reasons. 2026-10-12, #64.
+- **The amenities' audit entry records the whole group,** the ids by id and the own amenities in order. *Why:* the group is saved whole, as every group is audited. 2026-10-12, #64.
 - **Each group's lists and amounts are capped** (D8), at the sizes the [contract](../api/api-contract.md#spaces-the-admin)'s request bodies give. *Why:* bounded forms, and a guard against a slip of the keyboard. 2026-10-07, #48.
 - **A new space has no hours until they are saved;** the Saturday–Thursday template is the form's starting point, not data (D9). *Why:* a stored template would date hours nobody entered. 2026-10-07, #48.
 - **Every group changes through one save path, the profile's edit included:** the lock, `can()`, the change, the group's date and its audit entry, in one transaction. *Why:* the owner's endpoints (step 5) reuse it (S9). 2026-10-07, #48.
 - **A save decides on the links read again under the space's lock,** not on those the loader read before it. *Why:* an owner linked between the two would let the admin's save land on a space just verified ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)). 2026-10-11, #60.
 - **The space's read is one consistent state, under the space's lock in share mode** (the owner's choice, S1). *Why:* a read during an hours save could show the old week with the new shifts (finding 43); a lock keeps one isolation level ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)), and unlike a snapshot, a test can prove it. 2026-10-11, #60.
+- **Every price is above zero; a free event goes in the announcements** (the owner's decision). *Why:* a price of zero would list a space as free when only an event is; the announcements carry it. 2026-10-12, #64.
 
 ### Web decisions
 
@@ -128,7 +134,7 @@ The photos and the owner's side are not built.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/`, `contacts/`, `confirm/` (a group confirmed unchanged), `listing/` (the page the admin's list reads); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
+- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/` (the links and the own amenities), `contacts/`, `confirm/` (a group confirmed unchanged), `listing/` (the page the admin's list reads); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
 - **Shared:** `packages/shared/src/spaces/`: the requests (the profile and each fact group, with their rules), the responses, the contacts' forms, the fact groups and the Gaza Strip's box; the phone rule in `core`.
 - **Web:** `apps/web/src/features/spaces/`, entry `index.ts` (`AddSpaceForm` with its `AreaField` slot, `SpaceActionsMenu`, `SpaceActionsHold`), mounted by `pages/dashboard/admin/`: a folder per operation in `hooks/` and `components/` (`add/`, `hide/`, `delete/` with the Undo's restore, `menu/`, `hold/`), the profile's two sections in `components/profile/`, the toasts in `components/toast/`, and in `services/` the profile the schema reads from the form, the space's name and a line cut around it.
 
@@ -145,6 +151,7 @@ The photos and the owner's side are not built.
 - #44 — the admin's spaces API: create, read, edit, hide, delete and restore, and the listing page.
 - #48 — the facts API: a group missing until saved, each group confirmed, the hours with the shifts, the prices, the amenities and the contacts.
 - #60 — a save decides on the links under the space's lock, and the read is consistent (finding 43).
+- #64 — a space's own amenities, in the amenities group; no price of zero.
 
 ### Web history
 

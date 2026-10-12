@@ -101,8 +101,9 @@ describe.each([
     name: 'PUT /spaces/:spaceId/amenities',
     method: 'put',
     rest: '/amenities',
-    // An active amenity's id, created before each request: a body that writes.
-    body: () => ({ amenityIds: [amenityId] }),
+    // An active amenity's id, created before each request, and an amenity of its own: a body that
+    // writes both.
+    body: () => ({ amenityIds: [amenityId], ownAmenities: [{ nameAr: 'طابعة' }] }),
     status: 200,
   },
   {
@@ -194,9 +195,10 @@ describe.each([
         prisma.spaceShift.count(),
         prisma.spacePrice.count(),
         prisma.spaceAmenity.count(),
+        prisma.spaceOwnAmenity.count(),
         prisma.spaceContact.count(),
       ]),
-    ).toEqual([0, 0, 0, 0, 0]);
+    ).toEqual([0, 0, 0, 0, 0, 0]);
   });
 });
 
@@ -228,6 +230,7 @@ describe('GET /admin/spaces/:spaceId', () => {
       hours: null,
       prices: [],
       amenityIds: [],
+      ownAmenities: [],
       contacts: [],
     });
   });
