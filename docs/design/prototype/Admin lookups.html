@@ -57,6 +57,7 @@ function EditSheet({ item, onClose, onSave }) {
   );
 }
 
+// A7: the lookups never page and have no toolbar — the contract answers them whole (§4's exception).
 function Lookups({ theme, setTheme }) {
   const [tab, setTab] = React.useState(pageParams.get('tab') || 'areas');
   const [govs, setGovs] = React.useState(AD.lookups.govs);

@@ -121,8 +121,9 @@ function Owners({ theme, setTheme }) {
   );
   const St = ({ o }) => <Badge variant={o.status === 'active' ? 'success' : 'neutral'}>{o.status === 'active' ? tr('نشط', 'Active') : tr('موقوف', 'Suspended')}</Badge>;
   const columns = [
-    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
-    { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <Ltr>{row.original.email}</Ltr> },
+    // A7: a table at 768 too, its email under the name until 1024 gives it a column of its own.
+    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="flex flex-col"><span className="text-label">{row.original.name}</span><span className="text-caption text-muted-foreground lg:hidden"><Ltr>{row.original.email}</Ltr></span></span> },
+    { id: 'email', header: tr('البريد', 'Email'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => <Ltr>{row.original.email}</Ltr> },
     { id: 'spaces', header: tr('المساحات المرتبطة', 'Linked spaces'), cell: ({ row }) => chips(row.original) },
     { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <St o={row.original} /> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }

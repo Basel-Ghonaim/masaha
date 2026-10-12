@@ -66,9 +66,8 @@ function Users({ theme, setTheme }) {
     { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
     { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <Ltr>{row.original.email}</Ltr> },
     { id: 'role', header: tr('الدور', 'Role'), cell: ({ row }) => AD.ROLE[row.original.role] },
-    // SH-007: seven columns do not fit the 768 rail, so these two wait for 1024.
-    { id: 'method', header: tr('طريقة الدخول', 'Sign-in method'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => AD.METHOD[row.original.method] },
-    { id: 'joined', header: tr('انضم', 'Joined'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => AD.fmt(row.original.joined, true) },
+    { id: 'method', header: tr('طريقة الدخول', 'Sign-in method'), cell: ({ row }) => AD.METHOD[row.original.method] },
+    { id: 'joined', header: tr('انضم', 'Joined'), cell: ({ row }) => AD.fmt(row.original.joined, true) },
     { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <St u={row.original} /> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
@@ -77,7 +76,7 @@ function Users({ theme, setTheme }) {
   const suspOwner = susp && susp.role === 'owner' && live(susp).length > 0;
   return (
     <AdminShell current="users" title={tr('المستخدمون', 'Users')} theme={theme} setTheme={setTheme}>
-      <DataTable label={tr('المستخدمون', 'Users')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
+      <AdminList label={tr('المستخدمون', 'Users')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-end">

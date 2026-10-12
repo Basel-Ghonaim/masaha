@@ -32,6 +32,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Admin users.html?q=<text>` | the users page | the search set: name or email — the audit log's and the owners' links land here |
 | `Admin users.html?temp=1` | the same | the temporary-password confirmation, now for the first active account **with a password** (it named Nour, who signs in with Google only) |
 | `Admin owners.html?sheet=add&email=nour@example.com` | the owners page | the add-owner sheet as the server leaves it after `EMAIL_HAS_ACCOUNT`: «سيُرقّى حسابه» and «ترقية وربط» |
+| `Admin reports.html?space=<id>` · `?field=<field>` | the admin's data reports | one space's reports, one field's, or both (A7); the verified space's «بلاغات <space>» link uses `?space=` |
 
 ### Batch 3 — the public site
 

@@ -25,21 +25,23 @@
 <script type="text/babel" src="masaha/finance.jsx"></script>
 <script src="masaha/desk-data.js"></script>
 <script type="text/babel">
-const { DirectionProvider, Badge, DataTable, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SearchXIcon } = window.MasahaDesignSystem;
+const { DirectionProvider, Badge, DataTable, EmptyState, Field, Input, SearchIcon, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SearchXIcon } = window.MasahaDesignSystem;
 const ROWS = AD.audit.map(([date, time, actor, action, target, details], i) => ({ id: 'e' + i, date, time, actor, action, target, details }));
 const VARIANT = { space_hidden: 'warning', owner_linked: 'success', role_changed: 'info', user_suspended: 'destructive', temp_password: 'info', lookup_changed: 'neutral', settings_changed: 'neutral' };
 function Audit({ theme, setTheme }) {
   const [range, setRange] = React.useState({ from: dayDate('2026-09-01'), to: dayDate(AD.TODAY) });
-  const [actor, setActor] = React.useState('all'); const [action, setAction] = React.useState('all');
-  const rows = ROWS.filter((r) => inRange(r.date, range) && (actor === 'all' || r.actor === actor) && (action === 'all' || r.action === action));
+  const [target, setTarget] = React.useState(''); const [actor, setActor] = React.useState('all'); const [action, setAction] = React.useState('all');
+  const tq = target.trim().toLowerCase();
+  const rows = ROWS.filter((r) => (!tq || r.target.toLowerCase().includes(tq)) && inRange(r.date, range) && (actor === 'all' || r.actor === actor) && (action === 'all' || r.action === action));
   const Act = ({ r }) => <Badge variant={VARIANT[r.action]}>{AD.ACTION[r.action]}</Badge>;
   const paged = usePaged(rows);
     const columns = [
     { id: 't', header: tr('الوقت', 'Time'), cell: ({ row }) => <span>{AD.fmt(row.original.date)} · <Num>{row.original.time}</Num></span> },
     { id: 'actor', header: tr('المنفّذ', 'Actor'), cell: ({ row }) => row.original.actor },
     { id: 'action', header: tr('الإجراء', 'Action'), cell: ({ row }) => <Act r={row.original} /> },
-    { id: 'target', header: tr('الهدف', 'Target'), cell: ({ row }) => <span className="text-label">{row.original.target}</span> },
-    { id: 'details', header: tr('التفاصيل', 'Details'), cell: ({ row }) => <span className="text-body-sm text-muted-foreground">{row.original.details}</span> }
+    // A7: a table at 768 too, the details under the target until 1024.
+    { id: 'target', header: tr('الهدف', 'Target'), cell: ({ row }) => <span className="flex flex-col"><span className="text-label">{row.original.target}</span><span className="text-caption text-muted-foreground lg:hidden">{row.original.details}</span></span> },
+    { id: 'details', header: tr('التفاصيل', 'Details'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => <span className="text-body-sm text-muted-foreground">{row.original.details}</span> }
   ];
   return (
     <AdminShell current="audit" title={tr('سجل التدقيق', 'Audit log')} theme={theme} setTheme={setTheme}>
@@ -47,6 +49,7 @@ function Audit({ theme, setTheme }) {
       <DataTable label={tr('سجل التدقيق', 'Audit log')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-3">
+          <Field label={tr('بحث في الهدف', 'Search the target')}><Input role="searchbox" placeholder={tr('مساحة، شخص، قائمة…', 'A space, a person, a lookup…')} startIcon={<SearchIcon />} value={target} onChange={(e) => setTarget(e.target.value)} /></Field>
           <FilterSheet active={[actor, action].filter((x) => x !== 'all').length} count={rows.length} onClear={() => { setActor('all'); setAction('all'); }}>
             <div className="grid gap-3 md:grid-cols-3">
               <RangePicker value={range} onChange={setRange} />

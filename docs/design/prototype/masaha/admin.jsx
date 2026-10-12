@@ -129,6 +129,29 @@ function TempPassDialog({ info, onClose, line }) {
 }
 const tempPass = () => 'Msh-' + Math.random().toString(36).slice(2, 6) + '-' + (100 + Math.floor(Math.random() * 900));
 
+// A7 (SH-007): Spaces, Users and Data reports are cards until 1024, not only below 768 — between
+// 768 and 1023 their tables lost the columns that tell one row from the next. The layer's
+// DataTable switches at 768 and has no prop for another breakpoint (DI-23), so between the two this
+// draws the DataTable's own card branch, with its markup and classes; elsewhere the DataTable.
+const LIST_CARD = 'rounded-lg border border-(--card-border) bg-card p-3 text-card-foreground shadow-raised';
+function AdminList(props) {
+  const { DataTable, Skeleton } = window.MasahaDesignSystem;
+  const tablet = useIsTablet();
+  const desktop = useIsDesktop();
+  if (!tablet || desktop) return <DataTable {...props} />;
+  const { label, data, getRowId, renderCard, empty, loading, toolbar, pagination } = props;
+  return (
+    <div data-slot="data-table" data-layout="cards" className="flex flex-col gap-4">
+      {toolbar}
+      {loading
+        ? <ul aria-label={label} aria-busy="true" className="flex flex-col gap-3">{[0, 1, 2, 3, 4].map((i) => <li key={i} aria-hidden="true" className={LIST_CARD + ' flex flex-col gap-2'}><Skeleton className="h-4 w-1/2" /><Skeleton className="h-4 w-3/4" /></li>)}</ul>
+        : data.length === 0 ? empty
+        : <ul aria-label={label} className="flex flex-col gap-3">{data.map((r) => <li key={getRowId(r)} data-slot="data-table-card" className={LIST_CARD}>{renderCard(r)}</li>)}</ul>}
+      {pagination}
+    </div>
+  );
+}
+
 // A4: one way to link an owner, from either end. From a space the admin chooses one person,
 // from a person one space; both say what the link will do before it is made. Admins and
 // suspended accounts are refused by the API, so they are never offered.
@@ -219,4 +242,4 @@ function unlinkLine(space, owners, person) {
   if (person && person.spaces.length === 1) out.push(tr(`ولا يبقى ${person.name} مالكًا، فيُطلب منه الدخول من جديد.`, `${person.name} is no longer an owner, and is asked to sign in again.`));
   return out.join(' ');
 }
-Object.assign(window, { AdminShell, PrivacyNote, SpaceStatus, Num, TempPassDialog, tempPass, LinkOwnerDialog, liveSpaces, personName, unlinkLine });
+Object.assign(window, { AdminShell, PrivacyNote, SpaceStatus, Num, TempPassDialog, tempPass, LinkOwnerDialog, liveSpaces, personName, unlinkLine, AdminList });

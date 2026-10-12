@@ -23,7 +23,7 @@
 <script type="text/babel" src="masaha/shared.jsx"></script>
 <script type="text/babel" src="masaha/admin.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Button, Badge, DataTable, EmptyState, Input, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, RadioGroup, RadioGroupItem, SearchIcon, SearchXIcon, EllipsisVerticalIcon, toast } = window.MasahaDesignSystem;
+const { DirectionProvider, Button, Badge, DataTable, ToggleGroup, ToggleGroupItem, EmptyState, Input, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, RadioGroup, RadioGroupItem, SearchIcon, SearchXIcon, EllipsisVerticalIcon, toast } = window.MasahaDesignSystem;
 const M = window.MASAHA;
 const ownerName = (id) => personName(id, AD.users);
 function Spaces({ theme, setTheme }) {
@@ -65,28 +65,30 @@ function Spaces({ theme, setTheme }) {
     { id: 'area', header: tr('المنطقة', 'Area'), cell: ({ row }) => AD.areaName(row.original) },
     { id: 'status', header: tr('الحالة', 'Status'), cell: ({ row }) => <State s={row.original} /> },
     { id: 'owners', header: tr('المالك', 'Owner'), cell: ({ row }) => owners(row.original) },
-    // SH-007: seven columns do not fit the 768 rail, so these two wait for 1024.
-    { id: 'fresh', header: tr('الحداثة', 'Freshness'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => fresh(row.original) },
-    { id: 'last', header: tr('آخر تحديث', 'Last update'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => AD.fmt(row.original.last) },
+    { id: 'fresh', header: tr('الحداثة', 'Freshness'), cell: ({ row }) => fresh(row.original) },
+    { id: 'last', header: tr('آخر تحديث', 'Last update'), cell: ({ row }) => AD.fmt(row.original.last) },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
   const paged = usePaged(rows);
     const addBtn = <Button asChild><a href="Admin space add.html">{tr('إضافة مساحة', 'Add space')}</a></Button>;
   return (
     <AdminShell current="spaces" title={tr('المساحات', 'Spaces')} theme={theme} setTheme={setTheme}>
-      <DataTable label={tr('المساحات', 'Spaces')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
+      <AdminList label={tr('المساحات', 'Spaces')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-3">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-3">
             <Field label={tr('بحث', 'Search')}><Input role="searchbox" placeholder={tr('اسم المساحة', 'Space name')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} /></Field>
-            <FilterSheet count={rows.length} active={[gov !== 'all', status !== 'all', stale].filter(Boolean).length} onClear={() => { setGov('all'); setStatus('all'); setStale(false); }}>
+            <FilterSheet count={rows.length} active={[gov !== 'all', status !== 'all'].filter(Boolean).length} onClear={() => { setGov('all'); setStatus('all'); }}>
             <Field label={tr('المحافظة / المنطقة', 'Governorate / area')}><Select value={gov} onValueChange={setGov}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل المناطق', 'All areas')}</SelectItem>{areaOpts.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></Field>
             <Field label={tr('الحالة', 'Status')}><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الحالات', 'All statuses')}</SelectItem>{Object.entries(AD.STATE_FILTER).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
-            <Field label={tr('بيانات قديمة فقط', 'Stale data only')} orientation="horizontal"><Switch checked={stale} onCheckedChange={setStale} /></Field>
             </FilterSheet>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <ResultCount>{tr('عدد المساحات', 'Spaces')}: <Num>{rows.length}</Num></ResultCount>
+            {/* A7: a switch is not a filter field — «بيانات قديمة فقط» is a chip by the count. */}
+            <div className="flex flex-wrap items-center gap-3">
+              <ResultCount>{tr('عدد المساحات', 'Spaces')}: <Num>{rows.length}</Num></ResultCount>
+              <ToggleGroup type="multiple" value={stale ? ['stale'] : []} onValueChange={(v) => setStale(v.includes('stale'))} aria-label={tr('تصفية سريعة', 'Quick filter')}><ToggleGroupItem value="stale">{tr('بيانات قديمة فقط', 'Stale data only')}</ToggleGroupItem></ToggleGroup>
+            </div>
             {addBtn}
           </div>
         </div>}
