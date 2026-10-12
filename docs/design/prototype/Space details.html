@@ -149,11 +149,10 @@ function SpaceDetailsScreen() {
   const shell = (content, bar) => (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <SiteHeader current="directory" theme={theme} setTheme={setTheme} />
-      <main className={'mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 ' + (bar ? 'pb-24 lg:pb-6' : '')}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {crumbs}
-          <Button variant="link" size="sm" asChild><a href={directoryHref()}><ChevronStartIcon />{tr("العودة إلى المساحات", "Back to spaces")}</a></Button>
-        </div>
+      <main className={'mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 ' + (bar ? 'pb-24 md:pb-6' : '')}>
+        {/* PU-022: one way back — the breadcrumb from 768, «العودة إلى المساحات» alone below it. */}
+        <div className="hidden md:block">{crumbs}</div>
+        <Button variant="link" size="sm" className="self-start px-0 md:hidden" asChild><a href={directoryHref()}><ChevronStartIcon />{tr("العودة إلى المساحات", "Back to spaces")}</a></Button>
         {content}
       </main>
       <SiteFooter />
@@ -183,7 +182,7 @@ function SpaceDetailsScreen() {
   const openReport = () => (signedIn ? setReport(true) : setSignIn('report'));
 
   const bar = (wa || call) && (
-    <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background px-4 py-3 lg:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background px-4 py-3 md:hidden">
       <div className="flex gap-2">
         {wa && <Button className="flex-1" asChild><a href={M.channels.whatsapp.href(wa.value)} target="_blank" rel="noopener">{tr("واتساب", "WhatsApp")}</a></Button>}
         {call && <Button variant="outline" className="flex-1" asChild><a href={M.channels[call.type].href(call.value)}>{tr("اتصال", "Call")}</a></Button>}
@@ -204,7 +203,8 @@ function SpaceDetailsScreen() {
           <div className="flex flex-col gap-6">
             <Gallery space={space} />
             <header className="flex flex-col gap-1">
-              <div className="flex items-center justify-between gap-3">
+              {/* PU-014: the heart beside the name it acts on, not at the far end of the column. */}
+              <div className="flex items-center gap-3">
                 <h1 className="min-w-0 text-heading-1"><SpaceName space={space} /></h1>
                 <Button variant="outline" size="icon" aria-pressed={fav} aria-label={fav ? tr("إزالة من المفضلة", "Remove from favourites") : tr("حفظ في المفضلة", "Save to favourites")} onClick={toggleFav} className={fav ? 'text-primary' : ''}><HeartIcon filled={fav} /></Button>
               </div>
@@ -212,6 +212,7 @@ function SpaceDetailsScreen() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
                 <span>{areaLine(space)}</span>
                 {space.verified && <span className="inline-flex items-center gap-1 text-primary"><CircleCheckIcon className="size-4" aria-hidden="true" />{tr("موثّقة", "Verified")}</span>}
+                {!space.photos && <span>{tr("لا توجد صور بعد", "No photos yet")}</span>}
               </div>
             </header>
             {!space.verified && (
@@ -222,14 +223,17 @@ function SpaceDetailsScreen() {
                 <Button variant="link" size="sm" className="self-start" onClick={() => setPlatform(true)}>{tr("هل تدير هذه المساحة؟ تواصل معنا", "Do you run this space? Contact us")}</Button>
               </div>
             )}
-            <div className="lg:hidden"><StatusContactCard space={space} km={km} compact /></div>
+            <div className="lg:hidden"><StatusCard space={space} km={km} /></div>
           </div>
-          <AboutSection space={space} />
-          <HoursSection space={space} />
-          <PricesSection space={space} />
-          <AmenitiesSection space={space} />
-          <LocationSection space={space} user={near.coords} userSource={near.loc.source} />
+          {/* U8: one order at every width — what is happening, what it costs, when it is open, what it
+              has, what it is, where it is; the contacts below `lg`, then the report. */}
           <AnnouncementsSection space={space} />
+          <PricesSection space={space} />
+          <HoursSection space={space} />
+          <AmenitiesSection space={space} />
+          <AboutSection space={space} />
+          <LocationSection space={space} user={near.coords} userSource={near.loc.source} />
+          <div className="lg:hidden"><ContactSection space={space} /></div>
           <div className="border-t border-border pt-6">
             <Button variant="link" className="px-0" onClick={openReport}>{tr("الإبلاغ عن معلومة غير صحيحة", "Report wrong information")}</Button>
           </div>

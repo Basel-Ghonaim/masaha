@@ -390,6 +390,8 @@ function CoverArt({ seed }) {
   );
 }
 
+Object.assign(window, { CoverArt });
+
 // U12 (H2): the photo leads the card, in a frame of fixed ratio — 2:1 on a phone, 16:9 from 768 —
 // reserved before anything arrives, so nothing moves on a weak connection: the frame waits muted,
 // then shows the photo. With no photo, or one that did not load, it shows the space's mark, the

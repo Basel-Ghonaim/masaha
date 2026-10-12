@@ -5,23 +5,18 @@ const SM = window.MASAHA;
 const todayKey = () => ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
 const liveStatus = (s) => (s.closure ? 'closed' : s.status);
 
-// Photo stand-in: real photos come from the space; no stock imagery.
-function PhotoTile({ n, className }) {
-  return <div className={'flex items-center justify-center rounded-lg bg-muted text-caption text-muted-foreground ' + (className || '')} role="img" aria-label={tr(`صورة ${n}`, `Photo ${n}`)}>{tr("صورة ", "Photo ")}{n}</div>;
+// Photo stand-in: real photos come from the space; no stock imagery. The same drawn room as the
+// space's card (U12) — the first is the cover, the card's own — so a card and its page look like one place.
+function PhotoTile({ n, seed, className }) {
+  return <div className={'relative overflow-hidden rounded-lg bg-muted ' + (className || '')} role="img" aria-label={tr(`صورة ${n}`, `Photo ${n}`)}><CoverArt seed={n === 1 ? seed || '' : (seed || '') + n} /></div>;
 }
 
+// PU-023: a space with no photos has no gallery; the name block says so in a caption.
 function Gallery({ space }) {
   const [open, setOpen] = React.useState(false);
   const [i, setI] = React.useState(0);
   const n = space.photos || 0;
-  if (!n) {
-    return (
-      <div className="flex gallery-h flex-col items-center justify-center gap-2 rounded-xl bg-muted" role="img" aria-label={tr(`لا توجد صور لـ ${spaceName(space)}`, `No photos of ${spaceName(space)}`)}>
-        <span className="text-display text-muted-foreground" aria-hidden="true">{spaceName(space)[0]}</span>
-        <span className="text-caption text-muted-foreground">{tr("لا توجد صور بعد", "No photos yet")}</span>
-      </div>
-    );
-  }
+  if (!n) return null;
   const show = (k) => { setI(k); setOpen(true); };
   // Layout by count so no cell is ever empty. Phone: the first photo only.
   const shown = Math.min(n, 5);
@@ -36,7 +31,7 @@ function Gallery({ space }) {
     <div className={'grid gallery-h gap-2 ' + grid}>
       {Array.from({ length: shown }, (_, k) => (
         <div key={k} className={'relative ' + (k > 0 ? 'hidden md:block ' : '') + cell(k)}>
-          <button type="button" onClick={() => show(k)} aria-label={tr(`عرض الصورة ${k + 1}`, `View photo ${k + 1}`)} className="size-full rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><PhotoTile n={k + 1} className="size-full" /></button>
+          <button type="button" onClick={() => show(k)} aria-label={tr(`عرض الصورة ${k + 1}`, `View photo ${k + 1}`)} className="size-full rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><PhotoTile n={k + 1} seed={space.id} className="size-full" /></button>
           {k === 0 && n > 1 && <SButton variant="outline" size="sm" className="gallery-more bg-card shadow-floating md:hidden" onClick={() => show(0)}>{more}</SButton>}
           {k === shown - 1 && shown >= 4 && <SButton variant="outline" size="sm" className="gallery-more hidden bg-card shadow-floating md:inline-flex" onClick={() => show(0)}>{more}</SButton>}
         </div>
@@ -47,7 +42,7 @@ function Gallery({ space }) {
             <SDialogTitle>{tr("صور ", "Photos of ")}<SpaceName space={space} /></SDialogTitle>
             <SDialogDescription><span dir="ltr">{i + 1} / {n}</span></SDialogDescription>
           </SDialogHeader>
-          <PhotoTile n={i + 1} className="lightbox-h" />
+          <PhotoTile n={i + 1} seed={space.id} className="lightbox-h" />
           {n > 1 && (
             <div className="flex items-center justify-between gap-2">
               <SButton variant="outline" onClick={() => setI((i - 1 + n) % n)}><SChevronStart />{tr("السابقة", "Previous")}</SButton>
@@ -87,43 +82,62 @@ function TodayLine({ space }) {
 
 const directionsHref = (s) => `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
 
+// PU-021: every channel shows where it leads — the number, the address, the account — on one line,
+// cut at its end; a phone says its carrier when the number tells it.
+const contactLabel = (c) => { const ch = SM.channels[c.type]; return (ch.carrier && ch.carrier(c.value)) || ch.label; };
+const contactValue = (c) => (c.type === 'instagram' || c.type === 'tiktok' ? '@' + c.value : c.value);
 function ContactButton({ c, className, variant = 'outline' }) {
   const ch = SM.channels[c.type];
   return (
-    <SButton variant={variant} className={'justify-between ' + (className || '')} asChild>
+    <SButton variant={variant} className={'justify-between gap-3 ' + (className || '')} asChild>
       <a href={ch.href(c.value)} target={ch.phone || c.type === 'email' ? undefined : '_blank'} rel="noopener">
-        <span lang={ch.latin ? 'en' : undefined}>{ch.label}</span>
-        {(ch.phone || c.type === 'whatsapp') && <span dir="ltr" className={variant === 'outline' ? 'text-muted-foreground' : undefined}>{c.value}</span>}
+        <span className="shrink-0" lang={ch.latin ? 'en' : undefined}>{contactLabel(c)}</span>
+        <span dir="ltr" className={'min-w-0 truncate' + (variant === 'outline' ? ' text-muted-foreground' : '')}>{contactValue(c)}</span>
       </a>
     </SButton>
   );
 }
 
-function StatusContactCard({ space, km, compact }) {
-  const primary = space.contacts.filter((c) => c.type === 'whatsapp' || SM.channels[c.type].phone);
-  const rest = space.contacts.filter((c) => !primary.includes(c));
-  const list = compact ? rest : space.contacts;
+// U8 with PU-020: on a wide screen the aside holds the state and every contact; below `lg` the page
+// has a «الحالة» card at the top and one «التواصل» block near the end. «الاتجاهات» is in «الموقع»
+// only, and «للعرض فقط» in the prices only.
+function StatusContactCard({ space, km }) {
   return (
     <SCard>
-      <SCardHeader>
-        <SCardTitle>{compact ? tr("الحالة والتواصل", "Status & contact") : tr("الحالة والتواصل", "Status & contact")}</SCardTitle>
-      </SCardHeader>
+      <SCardHeader><SCardTitle>{tr("الحالة والتواصل", "Status & contact")}</SCardTitle></SCardHeader>
       <SCardContent className="flex flex-col gap-4">
         <StatusLine space={space} />
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
           <TodayLine space={space} />
           {km != null && <Distance km={km} />}
         </div>
-        {list.length > 0 && (
-          <div className={compact ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}>
-            {list.map((c, k) => <ContactButton key={c.type} c={c} variant={!compact && k === 0 ? 'primary' : 'outline'} className={compact ? '' : 'w-full'} />)}
-          </div>
-        )}
-        <SButton variant={compact ? 'outline' : 'secondary'} className={compact ? 'self-start' : 'w-full'} asChild><a href={directionsHref(space)} target="_blank" rel="noopener">{tr("الاتجاهات", "Directions")}</a></SButton>
-        <p className="text-caption text-muted-foreground">{tr("للعرض فقط · الدفع والاشتراك في المساحة", "Display only · Pay and subscribe at the space")}</p>
+        {space.contacts.length > 0 && <ContactList space={space} />}
       </SCardContent>
     </SCard>
   );
+}
+function StatusCard({ space, km }) {
+  return (
+    <SCard>
+      <SCardHeader><SCardTitle>{tr("الحالة", "Status")}</SCardTitle></SCardHeader>
+      <SCardContent className="flex flex-col gap-3">
+        <StatusLine space={space} />
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
+          <TodayLine space={space} />
+          {km != null && <Distance km={km} />}
+        </div>
+      </SCardContent>
+    </SCard>
+  );
+}
+const ContactList = ({ space }) => (
+  <div className="flex flex-col gap-2">
+    {space.contacts.map((c, k) => <ContactButton key={c.type + k} c={c} variant={k === 0 ? 'primary' : 'outline'} className="w-full" />)}
+  </div>
+);
+function ContactSection({ space }) {
+  if (!space.contacts.length) return null;
+  return <Section id="contact" title={tr("التواصل", "Contact")}><ContactList space={space} /></Section>;
 }
 
 function Section({ id, title, meta, children, action }) {
@@ -166,12 +180,12 @@ function groupDays(hours) {
 const Range = ({ r }) => <span dir="ltr">{r[0]}–{r[1]}</span>;
 function ShiftsLine({ space }) {
   if (!space.shifts) return null;
-  return <span className="text-caption text-muted-foreground">{space.shifts.map((s, i) => <React.Fragment key={s.id}>{i > 0 && ' · '}{s.name} <Range r={s.range} /></React.Fragment>)}</span>;
+  return <p className="text-body-sm text-muted-foreground">{tr("الورديات: ", "Shifts: ")}{space.shifts.map((s, i) => <React.Fragment key={s.id}>{i > 0 && ' · '}{s.name} <Range r={s.range} /></React.Fragment>)}</p>;
 }
 function HoursCell({ space, range, isToday }) {
   if (isToday && space.closure) return <span className="text-label">{tr("مغلقة مؤقتًا", "Temporarily closed")}</span>;
   if (!range) return <span className="text-muted-foreground">{tr("مغلق", "Closed")}</span>;
-  return <div className="flex flex-col items-start gap-1"><Range r={range} /><ShiftsLine space={space} /></div>;
+  return <Range r={range} />;
 }
 const TodayBadge = () => <SBadge variant="primary">{tr("اليوم", "Today")}</SBadge>;
 
@@ -212,6 +226,7 @@ function HoursSection({ space }) {
           </STableBody>
         </STable>
       </SCard>
+      <ShiftsLine space={space} />
     </Section>
   );
 }
@@ -325,4 +340,4 @@ function AnnouncementsSection({ space }) {
   );
 }
 
-Object.assign(window, { Gallery, StatusContactCard, ContactButton, AboutSection, HoursSection, PricesSection, AmenitiesSection, LocationSection, AnnouncementsSection, liveStatus, directionsHref });
+Object.assign(window, { Gallery, StatusContactCard, StatusCard, ContactSection, ContactButton, AboutSection, HoursSection, PricesSection, AmenitiesSection, LocationSection, AnnouncementsSection, liveStatus, directionsHref });

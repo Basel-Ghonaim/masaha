@@ -7,7 +7,7 @@
       address: tr("النصر، شارع النصر، عمارة 12، الطابق الثالث", "An-Nasr, An-Nasr Street, Building 12, 3rd floor"), landmark: tr("قرب مفترق العيون", "Near Al-Oyoun junction"),
       rules: [tr("أقصى مدة جلوس: 4 ساعات في أوقات الذروة", "Maximum stay: 4 hours at peak times"), tr("المكالمات في زاوية المكالمات فقط", "Calls in the call corner only")],
       amenities: ['internet', 'power', 'solar', 'drinks', 'meeting'],
-      contacts: [{ type: 'whatsapp', value: '+970 59 000 0000' }, { type: 'jawwal', value: '+970 59 000 0001' }, { type: 'email', value: 'focus@example.com' }, { type: 'instagram', value: 'focushub.example' }, { type: 'facebook', value: 'focushub.example' }],
+      contacts: [{ type: 'whatsapp', value: '+970 59 000 0000' }, { type: 'phone', value: '+970 59 000 0001' }, { type: 'email', value: 'focus@example.com' }, { type: 'instagram', value: 'focushub.example' }, { type: 'facebook', value: 'focushub.example' }],
       announcements: [{ title: tr("ورشة تعريفية عن العمل الحر يوم الأحد الساعة 11:00", "Intro workshop on freelancing, Sunday at 11:00"), date: tr("قبل يومين", "2 days ago") }]
     },
     branch: {
@@ -18,7 +18,7 @@
       amenities: ['internet', 'power', 'generator', 'drinks', 'meeting', 'rental'],
       shifts: [{ id: 'am', name: tr("صباحي", "Morning"), long: tr("الدوام الصباحي", "Morning shift"), range: ['08:00', '16:00'] }, { id: 'pm', name: tr("مسائي", "Evening"), long: tr("الدوام المسائي", "Evening shift"), range: ['16:00', '22:00'] }],
       shiftPrices: { am: { day: 18, week: 90, month: 300 }, pm: { day: 16, week: 80, month: 280 } },
-      contacts: [{ type: 'whatsapp', value: '+970 59 000 0002' }, { type: 'jawwal', value: '+970 59 000 0003' }, { type: 'ooredoo', value: '+970 56 000 0003' }, { type: 'email', value: 'branch@example.com' }, { type: 'tiktok', value: 'branchhub.example' }],
+      contacts: [{ type: 'whatsapp', value: '+970 59 000 0002' }, { type: 'phone', value: '+970 59 000 0003' }, { type: 'phone', value: '+970 56 000 0003' }, { type: 'email', value: 'branch@example.com' }, { type: 'tiktok', value: 'branchhub.example' }],
       announcements: []
     },
     numberone: {
@@ -28,7 +28,7 @@
       rules: [tr("السعر الطلابي يتطلب بطاقة جامعية سارية", "The student price needs a valid university ID")],
       amenities: ['internet', 'power', 'solar', 'generator', 'drinks', 'training'],
       closure: { title: tr("مغلقة مؤقتًا حتى الخميس — انقطاع الكهرباء", "Temporarily closed until Thursday — power outage"), date: tr("قبل ساعتين", "2 hours ago") },
-      contacts: [{ type: 'whatsapp', value: '+970 59 000 0004' }, { type: 'ooredoo', value: '+970 56 000 0004' }, { type: 'instagram', value: 'numberonehub.example' }],
+      contacts: [{ type: 'whatsapp', value: '+970 59 000 0004' }, { type: 'phone', value: '+970 56 000 0004' }, { type: 'instagram', value: 'numberonehub.example' }],
       announcements: [{ title: tr("تبدأ دورة أساسيات البرمجة الأسبوع القادم", "The programming basics course starts next week"), date: tr("قبل 4 أيام", "4 days ago") }]
     },
     golden: {
@@ -37,7 +37,7 @@
       address: tr("الرمال، شارع الوحدة", "Al-Rimal, Al-Wahda Street"), landmark: tr("قرب دوار السرايا", "Near Al-Saraya roundabout"),
       rules: [],
       amenities: ['internet', 'power', 'solar', 'drinks'],
-      contacts: [{ type: 'jawwal', value: '+970 59 000 0005' }],
+      contacts: [{ type: 'phone', value: '+970 59 000 0005' }],
       announcements: []
     },
     zm: {
@@ -55,8 +55,8 @@
   M.allAmenities = [{ id: 'internet', name: tr("إنترنت", "Internet") }, { id: 'power', name: tr("كهرباء مستقرة", "Stable power") }].concat(M.amenities);
   M.channels = {
     whatsapp: { label: tr("واتساب", "WhatsApp"), href: (v) => 'https://wa.me/' + v.replace(/\D/g, '') },
-    jawwal: { label: tr("اتصال — جوال", "Call — Jawwal"), href: (v) => 'tel:' + v.replace(/\s/g, ''), phone: true },
-    ooredoo: { label: tr("اتصال — أوريدو", "Call — Ooredoo"), href: (v) => 'tel:' + v.replace(/\s/g, ''), phone: true },
+    // PU-021: a phone's carrier is no type of contact; it is read from the number's prefix.
+    phone: { label: tr("اتصال", "Call"), href: (v) => 'tel:' + v.replace(/\s/g, ''), phone: true, carrier: (v) => { const d = v.replace(/\D/g, ''); return /^(970|972)?0?59/.test(d) ? tr("اتصال — جوال", "Call — Jawwal") : /^(970|972)?0?56/.test(d) ? tr("اتصال — أوريدو", "Call — Ooredoo") : null; } },
     email: { label: tr("بريد", "Email"), href: (v) => 'mailto:' + v },
     instagram: { label: 'Instagram', href: (v) => 'https://instagram.com/' + v, latin: true },
     facebook: { label: 'Facebook', href: (v) => 'https://facebook.com/' + v, latin: true },
