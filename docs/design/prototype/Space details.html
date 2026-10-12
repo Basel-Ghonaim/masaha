@@ -60,14 +60,15 @@ function ReportDialog({ open, onOpenChange, space }) {
     e.preventDefault(); setTried(true);
     if (!topic || !msg.trim()) return;
     onOpenChange(false); setTopic(''); setMsg(''); setTried(false);
-    toast.success(tr("شكرًا، سنراجع البلاغ", "Thanks, we’ll review your report"));
+    toast.success(space.verified ? tr("أرسلنا البلاغ إلى إدارة المساحة", "We sent your report to the space") : tr("أرسلنا البلاغ إلى فريق مساحة", "We sent your report to the Masaha team"));
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent closeLabel={tr("إغلاق", "Close")}>
         <DialogHeader>
           <DialogTitle>{tr("الإبلاغ عن معلومة غير صحيحة", "Report wrong information")}</DialogTitle>
-          <DialogDescription>{tr("عن ", "About ")}<SpaceName space={space} />{tr(". يراجع فريق مساحة البلاغ ويحدّث الصفحة.", ". The Masaha team reviews reports and updates the page.")}</DialogDescription>
+          {/* U10 (PU-010): who reads it, by the space's verification, and where the answer appears. */}
+          <DialogDescription>{tr("عن ", "About ")}<SpaceName space={space} />{tr(". ", ". ")}{space.verified ? tr("يصل البلاغ إلى إدارة المساحة، وتجد ردّها في «بلاغاتي».", "Your report goes to the space’s management; you’ll find their reply in “My reports”.") : tr("يراجع فريق مساحة البلاغ، وتجد الردّ في «بلاغاتي».", "The Masaha team reviews it; you’ll find the reply in “My reports”.")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
           <Field label={tr("ما المعلومة غير الصحيحة؟", "What’s wrong?")} error={tried && !topic ? tr("اختر نوع المعلومة", "Choose what’s wrong") : undefined}>
@@ -80,7 +81,7 @@ function ReportDialog({ open, onOpenChange, space }) {
             <Textarea value={msg} onChange={(e) => setMsg(e.target.value)} required rows={4} />
           </Field>
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline" type="button">{tr("إلغاء", "Cancel")}</Button></DialogClose>
+            <DialogClose asChild><Button variant="outline" type="button">{tr("رجوع", "Back")}</Button></DialogClose>
             <Button type="submit">{tr("إرسال", "Send")}</Button>
           </DialogFooter>
         </form>
