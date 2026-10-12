@@ -207,10 +207,15 @@ function useActionRun(actionKey) {
   return { busy, run };
 }
 
-function ActionButton({ actionKey, success, onAction, children, ...rest }) {
+// DI-27: no object rest here (`{ a, ...rest }`). In-browser Babel compiles it with a helper list,
+// `_excluded`, that is a page-wide global; a later script that uses rest overwrites it (the editor's
+// `ClockInput`), and the props meant to be held back reached the DOM. The props are picked by hand.
+const without = (props, keys) => { const out = Object.assign({}, props); keys.forEach((k) => { delete out[k]; }); return out; };
+
+function ActionButton(props) {
   const { Button } = window.MasahaDesignSystem;
-  const { busy, run } = useActionRun(actionKey);
-  return <Button {...rest} loading={busy} onClick={() => run(onAction, success)}>{children}</Button>;
+  const { busy, run } = useActionRun(props.actionKey);
+  return <Button {...without(props, ['actionKey', 'success', 'onAction', 'children'])} loading={busy} onClick={() => run(props.onAction, props.success)}>{props.children}</Button>;
 }
 
 // The failure of an action taken in a dialog or a sheet shows inside it, which stays open
@@ -520,7 +525,7 @@ const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON
 
 const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
 
-Object.assign(window, { WifiOffIcon, AccountMenuContent, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, spaceName, otherName, SpaceName, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpaceMeta, areaLine, SpaceCover, SpaceCard, SpaceCardSkeleton, useFavourites, HeartButton, HeartIcon, PRIVACY_LINE, PageToaster, handOffToast });
+Object.assign(window, { WifiOffIcon, AccountMenuContent, without, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, spaceName, otherName, SpaceName, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpaceMeta, areaLine, SpaceCover, SpaceCard, SpaceCardSkeleton, useFavourites, HeartButton, HeartIcon, PRIVACY_LINE, PageToaster, handOffToast });
 
 // DS date picker with long localized dates («3 أكتوبر 2026»). value/onChange use ISO yyyy-mm-dd.
 const isoLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -543,7 +548,9 @@ function DateField({ value, onChange, disabled, label, error, helper, labelEnd, 
 Object.assign(window, { DateField, longDate, isoLocal });
 
 // 24-hour time on the DS Input: typed digits become HH:MM, clamped on blur. No AM/PM, no native picker.
-function TimeInput({ value, onChange, ...p }) {
+function TimeInput(props) {
+  const { value, onChange } = props;
+  const p = without(props, ['value', 'onChange']);
   const { Input } = window.MasahaDesignSystem;
   const [txt, setTxt] = React.useState(value || '');
   React.useEffect(() => setTxt(value || ''), [value]);

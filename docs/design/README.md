@@ -53,6 +53,13 @@ missing gap, a section in the wrong place — the
 Directory's filters were drawn twice and passed both, and a 420-page load matrix too. Those need
 the pages opened in a browser, at 390, 768 and 1440, and looked at.
 
+**One scope for every script.** Each page's modules and inline scripts compile apart but share the
+page's global scope, so a top-level name in one is everyone's. Two rules follow: no module or page
+script uses object rest (`const { a, ...rest } = props`) — Babel compiles it with a helper list,
+`_excluded`, that the next script using rest overwrites, so held-back props leak (DI-27; pick them by
+hand, as `shared.jsx`'s `without` does); and no top-level name that the browser already owns, such as
+`name`.
+
 ## Rules for implementing from this archive (Claude Code)
 
 1. **The prototype is a specification, not code to copy.** It is a single-file React prototype with inline Babel. Rebuild each screen with Masaha's design-system components, the four zones, TanStack Query and the typed copy catalogues, following the docs. Never import or paste prototype code or its CSS.
