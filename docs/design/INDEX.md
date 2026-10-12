@@ -22,6 +22,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Admin space edit.html?demo=pricelimit` | the same | 40 prices, the contract's limit: «إضافة سعر» disabled with its reason |
 | `Admin space edit.html?demo=ownlimit` | the same | 20 own amenities («مرافق إضافية»), the contract's limit: «إضافة مرفق إضافي» disabled with its reason |
 | `Admin space edit.html?new=1` | the old address of «إضافة مساحة» | now leads to `Admin space add.html`, the creation form of its own (AD-002), its other parameters kept |
+| `Admin spaces.html?status=verified` · `unverified` · `hidden` · `deleted` | the admin's spaces list | the state filter set: verified and unverified leave hidden spaces out; `deleted` lists the soft-deleted spaces, muted, each with «استرجاع» (A3) |
 
 ### Batch 3 — the public site
 

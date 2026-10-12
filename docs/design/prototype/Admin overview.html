@@ -26,12 +26,12 @@
 const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardContent, StatCard } = window.MasahaDesignSystem;
 function Tile({ href, ...p }) { return <a href={href} className="block rounded-xl text-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><StatCard className="h-full" {...p} /></a>; }
 function Overview({ theme, setTheme }) {
-  const S = AD.spaces; const c = (st) => S.filter((s) => s.status === st).length;
+  const S = AD.spaces.filter((s) => !s.deleted); const c = (st) => S.filter((s) => (st === 'hidden' ? s.hidden : s.status === st)).length;
   const open = AD.reports.filter((r) => r.status === 'new');
   const mine = open.filter((r) => AD.handledBy(r) === 'admin').length;
   const newUsers = AD.users.filter((u) => AD.fmt && u.joined >= '2026-09-23').length;
-  const stale = S.filter((s) => s.status !== 'hidden' && AD.staleGroups(s).length);
-  const todo = S.filter((s) => s.status !== 'hidden' && (s.missing.length || AD.staleGroups(s).length));
+  const stale = S.filter((s) => !s.hidden && AD.staleGroups(s).length);
+  const todo = S.filter((s) => !s.hidden && (s.missing.length || AD.staleGroups(s).length));
   return (
     <AdminShell current="overview" title={tr('نظرة عامة', 'Overview')} theme={theme} setTheme={setTheme}>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label={tr('ملخص المنصة', 'Platform summary')}>

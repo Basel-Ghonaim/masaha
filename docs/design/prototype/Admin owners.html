@@ -34,7 +34,7 @@ function Owners({ theme, setTheme }) {
   const [unlink, setUnlink] = React.useState(pageParams.get('unlink') ? { o: AD.owners[2], sid: 'numberone' } : null);
   const existing = AD.users.find((u) => u.email === email.trim().toLowerCase() && u.role === 'user');
   const already = list.find((o) => o.email === email.trim().toLowerCase());
-  const linkable = AD.spaces.filter((s) => s.status !== 'hidden');
+  const linkable = AD.spaces.filter((s) => !s.hidden && !s.deleted);
   const togglePick = (id, on) => setPicked((p) => (on ? [...p, id] : p.filter((x) => x !== id)));
   const openAdd = () => { setName(''); setEmail(''); setPicked([]); setErr({}); setSheet({ mode: 'add' }); };
   const submit = (e) => {
@@ -51,13 +51,13 @@ function Owners({ theme, setTheme }) {
     else setPass({ name: o.name, email: o.email, pw: tempPass() });
   };
   const doUnlink = () => { const { o, sid } = unlink; const wasLast = lastOwner(sid, list); setList((l) => l.map((x) => (x.id === o.id ? { ...x, spaces: x.spaces.filter((s) => s !== sid) } : x))); toast(wasLast ? tr('فُك الربط · المساحة أصبحت غير موثّقة', 'Unlinked · the space is now unverified') : tr('فُك الربط', 'Unlinked')); };
-  const chips = (o) => o.spaces.length ? <span className="flex flex-wrap gap-2">{o.spaces.map((sid) => <Badge key={sid} variant="neutral"><span lang="en">{spaceName(sid)}</span></Badge>)}</span> : <span className="text-muted-foreground">{tr('بدون مساحة', 'No space')}</span>;
+  const chips = (o) => o.spaces.filter((sid) => !AD.spaces.find((s) => s.id === sid).deleted).length ? <span className="flex flex-wrap gap-2">{o.spaces.filter((sid) => !AD.spaces.find((s) => s.id === sid).deleted).map((sid) => <Badge key={sid} variant="neutral"><span lang="en">{spaceName(sid)}</span></Badge>)}</span> : <span className="text-muted-foreground">{tr('بدون مساحة', 'No space')}</span>;
   const actions = (o) => (
     <DropdownMenu dir={DIR}>
       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={tr('إجراءات ', 'Actions for ') + o.name}><EllipsisVerticalIcon /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => { setPicked([]); setSheet({ mode: 'link', owner: o }); }}>{tr('ربط بمساحة', 'Link to a space')}</DropdownMenuItem>
-        {o.spaces.map((sid) => <DropdownMenuItem key={sid} onSelect={() => setUnlink({ o, sid })}>{tr('فك الربط من ', 'Unlink from ')}<span lang="en">{spaceName(sid)}</span></DropdownMenuItem>)}
+        {o.spaces.filter((sid) => !AD.spaces.find((s) => s.id === sid).deleted).map((sid) => <DropdownMenuItem key={sid} onSelect={() => setUnlink({ o, sid })}>{tr('فك الربط من ', 'Unlink from ')}<span lang="en">{spaceName(sid)}</span></DropdownMenuItem>)}
       </DropdownMenuContent>
     </DropdownMenu>
   );

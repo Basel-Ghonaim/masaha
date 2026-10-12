@@ -6,8 +6,10 @@ window.ADMIN = (function () {
     { id: 'o1', name: T('أحمد', 'Ahmad'), email: 'ahmad@example.com', spaces: ['focus'], status: 'active', joined: '2025-03-02' },
     { id: 'o2', name: T('مها', 'Maha'), email: 'maha@example.com', spaces: ['branch'], status: 'active', joined: '2025-06-18' },
     { id: 'o3', name: T('يوسف', 'Yousef'), email: 'yousef@example.com', spaces: ['numberone'], status: 'active', joined: '2025-11-04' },
-    { id: 'o4', name: T('ريما', 'Rima'), email: 'rima@example.com', spaces: [], status: 'suspended', joined: '2026-01-20' }
+    // G3, finding 50: Rima's only space is deleted, so she stays an owner with no space listed.
+    { id: 'o4', name: T('ريما', 'Rima'), email: 'rima@example.com', spaces: ['olive'], status: 'suspended', joined: '2026-01-20' }
   ];
+  // status is the verification alone (A3): `hidden` and `deleted` are facts of their own.
   // freshness: days since each group was updated; missing: what the listing lacks; own: the
   // space's own amenities («مرافق إضافية»), beside the common list.
   const meta = {
@@ -17,15 +19,18 @@ window.ADMIN = (function () {
     zm: { status: 'unverified', upd: { prices: 12, hours: 25, contacts: 25, amenities: 25 }, missing: ['pin'], last: '2026-09-17' },
     golden: { status: 'unverified', upd: { prices: 46, hours: 70, contacts: 70, amenities: 70 }, missing: ['photos'], last: '2026-07-21', own: [{ ar: 'غرفة صلاة', en: 'Prayer room' }, { ar: 'خزائن شخصية', en: '' }] },
     white: { status: 'unverified', upd: { prices: 18, hours: 18, contacts: 18, amenities: 18 }, missing: ['hours'], last: '2026-09-11' },
-    palm: { status: 'hidden', upd: { prices: 120, hours: 120, contacts: 120, amenities: 120 }, missing: ['prices', 'pin'], last: '2026-05-30' }
+    palm: { status: 'unverified', hidden: true, upd: { prices: 120, hours: 120, contacts: 120, amenities: 120 }, missing: ['prices', 'pin'], last: '2026-05-30' },
+    olive: { status: 'verified', deleted: '2026-08-14', upd: { prices: 50, hours: 50, contacts: 50, amenities: 50 }, missing: [], last: '2026-08-10' }
   };
-  const spaces = [...M.spaces.map((s) => ({ id: s.id, name: s.name, gov: s.gov, area: s.area })), { id: 'palm', name: 'Palm Hub', gov: 'gaza', area: 'sheikh' }]
+  const spaces = [...M.spaces.map((s) => ({ id: s.id, name: s.name, gov: s.gov, area: s.area })), { id: 'palm', name: 'Palm Hub', gov: 'gaza', area: 'sheikh' }, { id: 'olive', name: 'Olive Desk', gov: 'middle', area: 'deir' }]
     .map((s) => ({ ...s, ...meta[s.id], owners: owners.filter((o) => o.spaces.includes(s.id)).map((o) => o.id) }));
   const LIMIT = { prices: 30, other: 60 };
   const staleGroups = (s) => Object.entries(s.upd).filter(([g, d]) => d > (g === 'prices' ? LIMIT.prices : LIMIT.other)).map(([g]) => g);
   const GROUP = { prices: T('الأسعار', 'Prices'), hours: T('ساعات العمل', 'Opening hours'), contacts: T('التواصل', 'Contacts'), amenities: T('المرافق', 'Amenities') };
   const MISSING = { pin: T('بدون دبوس على الخريطة', 'No map pin'), photos: T('بدون صور', 'No photos'), hours: T('بدون ساعات عمل', 'No opening hours'), prices: T('بدون أسعار', 'No prices') };
-  const STATUS = { verified: [T('موثّقة', 'Verified'), 'success'], unverified: [T('غير موثّقة', 'Unverified'), 'neutral'], hidden: [T('مخفية', 'Hidden'), 'warning'] };
+  const STATUS = { verified: [T('موثّقة', 'Verified'), 'success'], unverified: [T('غير موثّقة', 'Unverified'), 'neutral'] };
+  // The state filter's four choices (A3): the verification, then hidden and deleted.
+  const STATE_FILTER = { verified: T('موثّقة', 'Verified'), unverified: T('غير موثّقة', 'Unverified'), hidden: T('مخفية', 'Hidden'), deleted: T('محذوفة', 'Deleted') };
 
   const users = [
     { id: 'u1', name: T('سارة أحمد', 'Sara Ahmad'), email: 'sara@example.com', role: 'user', method: 'google', joined: '2026-09-27', status: 'active' },
@@ -111,6 +116,7 @@ window.ADMIN = (function () {
 
   const ACTION = { space_hidden: T('إخفاء مساحة', 'Space hidden'), owner_linked: T('ربط مالك', 'Owner linked'), role_changed: T('تغيير دور', 'Role changed'), user_suspended: T('إيقاف مستخدم', 'User suspended'), temp_password: T('كلمة مرور مؤقتة', 'Temporary password'), lookup_changed: T('تعديل قائمة', 'Lookup changed'), settings_changed: T('تعديل الإعدادات', 'Settings changed') };
   const fmt = (iso, y) => new Date(iso + 'T12:00:00').toLocaleDateString(T('ar-EG', 'en-GB'), { day: 'numeric', month: 'short', ...(y ? { year: 'numeric' } : {}), numberingSystem: 'latn' });
-  const areaName = (s) => { const g = M.governorates.find((x) => x.id === s.gov); const a = g && g.areas.find((x) => x.id === s.area); return a ? a.name : T('الشيخ رضوان', 'Sheikh Radwan'); };
-  return { TODAY, owners, spaces, users, reports, lookups, audit, LIMIT, staleGroups, GROUP, MISSING, STATUS, ROLE, METHOD, handledBy, FIELD, RSTAT, ACTION, fmt, areaName, admin: { name: B, email: 'basel@example.com' } };
+  // The admin's own catalogue holds every area; the public one only those its sample spaces use.
+  const areaName = (s) => { for (const g of lookups.govs) { const a = g.areas.find((x) => x.id === s.area); if (a) return T(a.ar, a.en); } return T('الشيخ رضوان', 'Sheikh Radwan'); };
+  return { TODAY, owners, spaces, STATE_FILTER, users, reports, lookups, audit, LIMIT, staleGroups, GROUP, MISSING, STATUS, ROLE, METHOD, handledBy, FIELD, RSTAT, ACTION, fmt, areaName, admin: { name: B, email: 'basel@example.com' } };
 })();
