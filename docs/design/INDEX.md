@@ -22,6 +22,12 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Admin space edit.html?demo=pricelimit` | the same | 40 prices, the contract's limit: «إضافة سعر» disabled with its reason |
 | `Admin space edit.html?new=1` | the old address of «إضافة مساحة» | now leads to `Admin space add.html`, the creation form of its own (AD-002), its other parameters kept |
 
+### Batch 3 — the public site
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `?area=nasr,rimal` | `Directory.html` | the place filter: a list of areas, from any governorate (U1). `?gov=` and the amenity filter's `?am=` are gone; an old link still opens, unfiltered by them |
+
 ## 01 · Flow
 
 | Frame | Prototype URL | Viewport | Screenshot |

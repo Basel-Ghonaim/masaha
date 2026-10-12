@@ -2,11 +2,13 @@ window.MASAHA = (function () {
   const week = (open, close, fri = null) => ({ sat: [open, close], sun: [open, close], mon: [open, close], tue: [open, close], wed: [open, close], thu: [open, close], fri });
   // An area keeps both names: the directory's search matches either (U3).
   const area = (id, ar, en) => ({ id, name: tr(ar, en), ar, en });
+  // The public catalogue: the active governorates and their active areas, as the admin's lookups
+  // seed them (admin-data.js). Rafah is hidden, so it and its areas are left out.
   const governorates = [
-    { id: 'gaza', name: tr("محافظة غزة", "Gaza City"), areas: [area('nasr', "النصر", "An-Nasr"), area('rimal', "الرمال", "Al-Rimal"), area('sheikh', "الشيخ رضوان", "Sheikh Radwan")] },
-    { id: 'north', name: tr("محافظة شمال غزة", "North Gaza"), areas: [] },
-    { id: 'middle', name: tr("محافظة الوسطى", "Middle Area"), areas: [] },
-    { id: 'khanyounis', name: tr("محافظة خان يونس", "Khan Younis"), areas: [] },
+    { id: 'north', name: tr("محافظة شمال غزة", "North Gaza"), areas: [area('north', "شمال قطاع غزة", "North Gaza Strip")] },
+    { id: 'gaza', name: tr("محافظة غزة", "Gaza City"), areas: [area('rimal', "الرمال", "Al-Rimal"), area('nasr', "النصر", "An-Nasr"), area('sheikh', "الشيخ رضوان", "Sheikh Radwan"), area('telhawa', "تل الهوا", "Tel al-Hawa"), area('ijlin', "الشيخ عجلين", "Sheikh Ijlin"), area('sabra', "الصبرة", "As-Sabra"), area('zeitoun', "الزيتون", "Az-Zeitoun"), area('daraj', "الدرج", "Ad-Daraj"), area('tuffah', "التفاح", "At-Tuffah"), area('shati', "الشاطئ", "Ash-Shati")] },
+    { id: 'middle', name: tr("محافظة الوسطى", "Middle Area"), areas: [area('deir', "دير البلح", "Deir al-Balah"), area('nuseirat', "النصيرات", "An-Nuseirat"), area('bureij', "البريج", "Al-Bureij"), area('maghazi', "المغازي", "Al-Maghazi"), area('zawaida', "الزوايدة", "Az-Zawaida")] },
+    { id: 'khanyounis', name: tr("محافظة خان يونس", "Khan Younis"), areas: [area('ky', "خان يونس (المدينة)", "Khan Younis (city)"), area('mawasi', "المواصي", "Al-Mawasi")] },
     { id: 'rafah', name: tr("محافظة رفح", "Rafah"), areas: [], hidden: true }
   ];
   const periods = [
@@ -40,6 +42,7 @@ window.MASAHA = (function () {
   spaces.forEach((s) => { s.others = [s.studentMonth ? 'students' : null, s.hours.fri ? 'friday' : null].filter(Boolean); });
   const findArea = (id) => { for (const g of governorates) for (const a of g.areas) if (a.id === id) return a; return null; };
   const areaName = (id) => (findArea(id) || {}).name || '';
+  const areaGov = (id) => governorates.find((g) => g.areas.some((a) => a.id === id));
   const govName = (id) => (governorates.find((g) => g.id === id) || {}).name || '';
   const govShort = (id) => govName(id).replace('محافظة ', '');
   const priceHidden = (s) => s.stale && !s.verified;
@@ -56,5 +59,5 @@ window.MASAHA = (function () {
   };
   const bounds = { north: 31.541, south: 31.514, west: 34.432, east: 34.474 };
   const demoUser = { lat: 31.5280, lng: 34.4520, accuracy: 120 };
-  return { governorates, periods, amenities, others, spaces, findArea, areaName, govName, govShort, priceHidden, minPrice, distanceKm, bounds, demoUser };
+  return { governorates, periods, amenities, others, spaces, findArea, areaName, areaGov, govName, govShort, priceHidden, minPrice, distanceKm, bounds, demoUser };
 })();

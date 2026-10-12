@@ -22,47 +22,46 @@
 <script type="text/babel" src="masaha/location.jsx"></script>
 <script type="text/babel" src="masaha/map.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Input, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, ToggleGroup, ToggleGroupItem, Switch, Tabs, TabsList, TabsTrigger, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, SheetClose, Skeleton, SearchIcon, SearchXIcon, XIcon } = window.MasahaDesignSystem;
+const { DirectionProvider, Input, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, ToggleGroup, ToggleGroupItem, Switch, Tabs, TabsList, TabsTrigger, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, SheetClose, Skeleton, Combobox, ComboboxTrigger, ComboboxContent, ComboboxGroup, ComboboxItem, SearchIcon, SearchXIcon, XIcon } = window.MasahaDesignSystem;
 const M = window.MASAHA;
 
 const list = (k) => (pageParams.get(k) || '').split(',').filter(Boolean);
 const initialFilters = () => ({
   q: pageParams.get('q') || '',
-  gov: pageParams.get('gov') || 'gaza',
   areas: list('area'),
   availableOnly: pageParams.get('available') === '1',
   verifiedOnly: pageParams.get('verified') === '1',
   period: pageParams.get('period') || '',
-  amenities: list('am'),
   others: pageParams.get('demo') === 'noresults' ? ['friday'] : list('other')
 });
 // Filters live in the URL so the space page's back link returns to the same results.
 function syncUrl(f, view) {
   const p = new URLSearchParams(location.search);
   const put = (k, v) => (v ? p.set(k, v) : p.delete(k));
-  put('q', f.q.trim()); put('gov', f.gov !== 'gaza' ? f.gov : ''); put('area', f.areas.join(',')); put('available', f.availableOnly ? '1' : '');
-  put('verified', f.verifiedOnly ? '1' : ''); put('period', f.period); put('am', f.amenities.join(',')); put('other', f.others.join(',')); put('view', view === 'map' ? 'map' : '');
-  ['sheet', 'selected', 'pick'].forEach((k) => p.delete(k));
+  put('q', f.q.trim()); put('area', f.areas.join(',')); put('available', f.availableOnly ? '1' : '');
+  put('verified', f.verifiedOnly ? '1' : ''); put('period', f.period); put('other', f.others.join(',')); put('view', view === 'map' ? 'map' : '');
+  ['sheet', 'selected', 'pick', 'gov', 'am'].forEach((k) => p.delete(k));
   const qs = p.toString() ? '?' + p.toString() : '';
   history.replaceState(null, '', location.pathname + qs);
   try { const keep = new URLSearchParams(qs); ['state', 'demo', 'loc'].forEach((k) => keep.delete(k)); sessionStorage.setItem('masaha:dir-query', keep.toString() ? '?' + keep : ''); } catch (e) {}
 }
-const clearedFilters = (f) => ({ ...f, q: '', gov: 'gaza', areas: [], availableOnly: false, verifiedOnly: false, period: '', amenities: [], others: [] });
-const activeCount = (f) => f.areas.length + (f.gov !== 'gaza' ? 1 : 0) + (f.availableOnly ? 1 : 0) + (f.verifiedOnly ? 1 : 0) + (f.period ? 1 : 0) + f.amenities.length + f.others.length;
+const clearedFilters = (f) => ({ ...f, q: '', areas: [], availableOnly: false, verifiedOnly: false, period: '', others: [] });
+const activeCount = (f) => f.areas.length + (f.availableOnly ? 1 : 0) + (f.verifiedOnly ? 1 : 0) + (f.period ? 1 : 0) + f.others.length;
 const countLabel = (n) => n === 0 ? tr("لا توجد مساحات", "No spaces") : n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : LANG === 'en' ? `${n} spaces` : n <= 10 ? `${n} مساحات` : `${n} مساحة`;
 
 // U3: the search matches both names of a space and its area's, in either language.
 const matches = (s, q) => { const a = M.findArea(s.area) || {}; return [s.name, s.nameAr, a.ar, a.en].some((t) => t && t.toLowerCase().includes(q)); };
 
+// The count says where: the Strip, or the one area chosen.
+const placeLine = (ids) => ids.length === 1 ? tr(`في ${M.areaName(ids[0])}`, `in ${M.areaName(ids[0])}`) : ids.length ? tr('في المناطق المحددة', 'in the chosen areas') : tr('في قطاع غزة', 'in the Gaza Strip');
+
 function applyFilters(f, sort, coords) {
   const q = f.q.trim().toLowerCase();
   const list = M.spaces.filter((s) =>
-    s.gov === f.gov &&
     (!f.areas.length || f.areas.includes(s.area)) &&
     (!f.availableOnly || (s.verified && s.status === 'open')) &&
     (!f.verifiedOnly || s.verified) &&
     (!f.period || s.prices[f.period] != null) &&
-    f.amenities.every((a) => s.amenities.includes(a)) &&
     f.others.every((o) => s.others.includes(o)) &&
     (!q || matches(s, q))
   ).map((s) => ({ s, km: coords ? M.distanceKm(coords, s) : null }));
@@ -75,21 +74,31 @@ function applyFilters(f, sort, coords) {
   return list.sort(by[sort] || by.updated);
 }
 
+// U1: the directory covers the Strip, and place is one filter — the areas of the public
+// catalogue, each governorate a group, nothing chosen by default. A governorate with no active
+// area has no group. The amenities are no filter (the owner, 2026-10-12).
+const placeSummary = (ids) => ids.length === 0 ? tr("كل المناطق", "All areas") : ids.length === 1 ? M.areaName(ids[0]) : ids.length === 2 ? tr("منطقتان محددتان", "2 areas chosen") : LANG === 'en' ? `${ids.length} areas chosen` : ids.length <= 10 ? `${ids.length} مناطق محددة` : `${ids.length} منطقة محددة`;
+function PlaceField({ value, onChange }) {
+  return (
+    <Field label={tr("المنطقة", "Area")}>
+      <Combobox type="multiple" value={value} onValueChange={onChange}>
+        <ComboboxTrigger empty={!value.length}>{placeSummary(value)}</ComboboxTrigger>
+        <ComboboxContent searchLabel={tr("ابحث عن منطقة", "Search for an area")} searchPlaceholder={tr("اسم المنطقة", "Area name")} listLabel={tr("المناطق", "Areas")} emptyText={tr("لا توجد منطقة بهذا الاسم", "No area by that name")}>
+          {M.governorates.filter((g) => !g.hidden && g.areas.length).map((g) => (
+            <ComboboxGroup key={g.id} heading={g.name}>
+              {g.areas.map((a) => <ComboboxItem key={a.id} value={a.id} keywords={[a.ar, a.en]}>{a.name}</ComboboxItem>)}
+            </ComboboxGroup>
+          ))}
+        </ComboboxContent>
+      </Combobox>
+    </Field>
+  );
+}
+
 function FiltersForm({ f, set }) {
-  const gov = M.governorates.find((g) => g.id === f.gov);
   return (
     <div className="flex flex-col gap-6">
-      <Field label={tr("المحافظة", "Governorate")}>
-        <Select value={f.gov} onValueChange={(v) => set({ gov: v, areas: [] })}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{M.governorates.filter((g) => !g.hidden).map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
-        </Select>
-      </Field>
-      <Field label={tr("المنطقة", "Area")} helper={gov.areas.length ? undefined : tr("لا توجد مناطق مضافة في هذه المحافظة بعد", "No areas added in this governorate yet")}>
-        <ToggleGroup type="multiple" value={f.areas} onValueChange={(v) => set({ areas: v })}>
-          {gov.areas.map((a) => <ToggleGroupItem key={a.id} value={a.id}>{a.name}</ToggleGroupItem>)}
-        </ToggleGroup>
-      </Field>
+      <PlaceField value={f.areas} onChange={(v) => set({ areas: v })} />
       <div className="flex flex-col gap-2">
         <Field label={tr("متاحة الآن فقط", "Available now only")} orientation="horizontal"><Switch checked={f.availableOnly} onCheckedChange={(v) => set({ availableOnly: v })} /></Field>
         <Field label={tr("المساحات الموثّقة فقط", "Verified spaces only")} orientation="horizontal"><Switch checked={f.verifiedOnly} onCheckedChange={(v) => set({ verifiedOnly: v })} /></Field>
@@ -97,11 +106,6 @@ function FiltersForm({ f, set }) {
       <Field label={tr("مدة الاشتراك", "Period")}>
         <ToggleGroup type="single" value={f.period} onValueChange={(v) => set({ period: v })}>
           {M.periods.map((p) => <ToggleGroupItem key={p.id} value={p.id}>{p.filter}</ToggleGroupItem>)}
-        </ToggleGroup>
-      </Field>
-      <Field label={tr("المرافق", "Amenities")}>
-        <ToggleGroup type="multiple" value={f.amenities} onValueChange={(v) => set({ amenities: v })}>
-          {M.amenities.map((a) => <ToggleGroupItem key={a.id} value={a.id}>{a.name}</ToggleGroupItem>)}
         </ToggleGroup>
       </Field>
       <Field label={tr("أخرى", "Other")}>
@@ -181,7 +185,7 @@ function DirectoryScreen() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h1 className="text-heading-1">{tr("مساحات العمل", "Workspaces")}</h1>
-            <p className="text-body-sm text-muted-foreground" aria-live="polite">{ready ? tr(`${countLabel(results.length)} في ${M.govName(f.gov)} · ${DISPLAY_ONLY()}`, `${countLabel(results.length)} in ${M.govName(f.gov)} · ${DISPLAY_ONLY()}`) : '\u00a0'}</p>
+            <p className="text-body-sm text-muted-foreground" aria-live="polite">{ready ? `${countLabel(results.length)} ${placeLine(f.areas)} · ${DISPLAY_ONLY()}` : '\u00a0'}</p>
           </div>
           <Tabs value={view} onValueChange={changeView}>
             <TabsList aria-label={tr("طريقة العرض", "View")}>

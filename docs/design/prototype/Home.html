@@ -24,11 +24,14 @@
 const { DirectionProvider, Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardAction, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, SearchIcon, ChevronEndIcon, ArrowEndIcon } = window.MasahaDesignSystem;
 const M = window.MASAHA;
 
+const spacesLabel = (n) => n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : LANG === 'en' ? `${n} spaces` : n <= 10 ? `${n} مساحات` : `${n} مساحة`;
+
 function HomeScreen() {
   const [theme, setTheme] = useTheme();
   const [state, setState] = React.useState(pageParams.get('state') || 'ready');
   const near = useNearMe();
-  const gaza = M.governorates[0];
+  // U1: Home no longer narrows the Strip to one governorate.
+  const areas = M.governorates.flatMap((g) => g.areas.map((a) => ({ a, g, n: M.spaces.filter((s) => s.area === a.id).length }))).filter((x) => x.n > 0);
   const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1200); };
   const nearest = near.coords ? M.spaces.map((s) => ({ s, km: M.distanceKm(near.coords, s) })).sort((a, b) => a.km - b.km).slice(0, 3) : null;
   const available = state === 'empty' ? [] : M.spaces.filter((s) => s.verified && s.status === 'open').map((s) => ({ s }));
@@ -84,26 +87,30 @@ function HomeScreen() {
           ))}
         </section>
 
+        {/* U1: the areas that have spaces, across the Strip, each with its governorate; then all of them. */}
         <section className="flex flex-col gap-4" aria-labelledby="areas-title">
-          <div className="flex flex-col gap-1">
-            <h2 id="areas-title" className="text-heading-2">{tr("تصفّح حسب المنطقة", "Browse by area")}</h2>
-            <p className="text-body-sm text-muted-foreground">{gaza.name}</p>
-          </div>
+          <h2 id="areas-title" className="text-heading-2">{tr("تصفّح حسب المنطقة", "Browse by area")}</h2>
           <div className="grid gap-4 md:grid-cols-3">
-            {gaza.areas.map((a) => {
-              const n = M.spaces.filter((s) => s.area === a.id).length;
-              return (
-                <a key={a.id} href={`Directory.html?area=${a.id}`} className="block rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-                  <Card className="transition-colors hover:bg-accent">
-                    <CardHeader>
-                      <CardTitle>{a.name}</CardTitle>
-                      <CardDescription>{n === 1 ? tr("مساحة واحدة", "1 space") : n === 2 ? tr("مساحتان", "2 spaces") : tr(`${n} مساحات`, `${n} spaces`)}</CardDescription>
-                      <CardAction><ArrowEndIcon className="size-5 text-muted-foreground" aria-hidden="true" /></CardAction>
-                    </CardHeader>
-                  </Card>
-                </a>
-              );
-            })}
+            {areas.map(({ a, g, n }) => (
+              <a key={a.id} href={`Directory.html?area=${a.id}`} className="block rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                <Card className="h-full transition-colors hover:bg-accent">
+                  <CardHeader>
+                    <CardTitle>{a.name}</CardTitle>
+                    <CardDescription>{g.name} · {spacesLabel(n)}</CardDescription>
+                    <CardAction><ArrowEndIcon className="size-5 text-muted-foreground" aria-hidden="true" /></CardAction>
+                  </CardHeader>
+                </Card>
+              </a>
+            ))}
+            <a href="Directory.html" className="block rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+              <Card className="h-full transition-colors hover:bg-accent">
+                <CardHeader>
+                  <CardTitle>{tr("كل المناطق", "All areas")}</CardTitle>
+                  <CardDescription>{tr("قطاع غزة", "The Gaza Strip")} · {spacesLabel(M.spaces.length)}</CardDescription>
+                  <CardAction><ArrowEndIcon className="size-5 text-muted-foreground" aria-hidden="true" /></CardAction>
+                </CardHeader>
+              </Card>
+            </a>
           </div>
         </section>
 
