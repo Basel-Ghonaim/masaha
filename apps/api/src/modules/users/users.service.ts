@@ -15,12 +15,6 @@ import type { Limiter } from '../../shared/rate-limit/index.ts';
 import { createSessionsService, type SessionsService } from '../sessions/index.ts';
 import { hashPassword, verifyPassword } from './password.ts';
 import { temporaryPassword } from './temporaryPassword.ts';
-
-/** bcrypt, as the users module uses it. */
-export interface Passwords {
-  hash(password: string): Promise<string>;
-  verify(password: string, hash: string | null): Promise<boolean>;
-}
 import { PASSWORD_CHANGE } from './users.limits.ts';
 import { toUserView } from './users.mapper.ts';
 import {
@@ -47,7 +41,6 @@ interface Dependencies {
   repository?: UsersRepository;
   sessions?: SessionsService;
   runInTransaction?: RunInTransaction;
-  passwords?: Passwords;
 }
 
 /** A person Google has verified (the auth module's Google port). */
@@ -134,7 +127,6 @@ export function createUsersService({
   repository = createUsersRepository(),
   sessions = createSessionsService(),
   runInTransaction = createRunInTransaction(),
-  passwords = { hash: hashPassword, verify: verifyPassword },
 }: Dependencies) {
   /** A suspended account cannot sign in or refresh (docs/backend/security.md). */
   function maySignIn(account: Account): boolean {
@@ -174,7 +166,7 @@ export function createUsersService({
    */
   async function issueTemporaryPassword(): Promise<TemporaryPassword> {
     const password = temporaryPassword();
-    return { password, hash: await passwords.hash(password) };
+    return { password, hash: await hashPassword(password) };
   }
 
   /** The account, or a 401 when it no longer exists. */
@@ -209,7 +201,7 @@ export function createUsersService({
 
     /** A new USER with a password. A taken email is EMAIL_TAKEN. */
     async register({ name, email, password, language }: Registration): Promise<Account> {
-      const passwordHash = await passwords.hash(password);
+      const passwordHash = await hashPassword(password);
       const created = await repository.create({ name, email, passwordHash, language });
       if ('account' in created) return created.account;
       throw AppError.conflict('EMAIL_TAKEN', 'Email taken', { email: ['not_unique'] });
@@ -223,7 +215,7 @@ export function createUsersService({
     async verifyCredentials(email: string, password: string): Promise<VerifiedCredentials> {
       const found = await repository.findCredentials(email);
       const matched = found?.passwordHash ?? null;
-      if (!(await passwords.verify(password, matched)) || !found) {
+      if (!(await verifyPassword(password, matched)) || !found) {
         throw AppError.unauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
       }
       assertMaySignIn(found.account);
@@ -500,7 +492,7 @@ export function createUsersService({
 
     /** Hashes a new password, before the transaction that sets it opens. */
     hashPassword(password: string): Promise<string> {
-      return passwords.hash(password);
+      return hashPassword(password);
     },
 
     /** Sets a password already hashed, settling a pending temporary one. */
@@ -539,11 +531,11 @@ export function createUsersService({
       return limiter.limitFailures(
         [{ policy: PASSWORD_CHANGE, by: [String(userId)] }],
         async () => {
-          if (!forced && !(await passwords.verify(currentPassword ?? '', currentHash))) {
+          if (!forced && !(await verifyPassword(currentPassword ?? '', currentHash))) {
             throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Current password incorrect');
           }
 
-          const passwordHash = await passwords.hash(password);
+          const passwordHash = await hashPassword(password);
           const expected = {
             passwordHash: currentHash,
             mustChangePassword: account.mustChangePassword,

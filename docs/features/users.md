@@ -83,7 +83,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 
 ## Open findings
 
-- [39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md): the service takes its password hashing as a parameter only its unit test passes.
+None.
 
 ## History
 
@@ -95,6 +95,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #35 — the password policy's rules for a checklist.
 - #60 — the page of accounts for the admin's users list; the role change that follows an owner's links; the accounts the admin creates with a temporary password, and its handover.
 - The users item — the account read by the guard on every signed-in request; suspension and restore; the role change's lock and its write, for `space-links`; the admin's temporary password.
+- #78 — the service hashes through its own helpers, with no parameter for them ([finding 39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md)).
 
 ### Web history
 

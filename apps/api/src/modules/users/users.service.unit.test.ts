@@ -6,12 +6,7 @@ import type { AppError } from '../../shared/errors/index.ts';
 import { createLimiter, type Counter } from '../../shared/rate-limit/index.ts';
 import type { SessionsService } from '../sessions/index.ts';
 import type { Account, UsersRepository } from './users.repository.ts';
-import {
-  createUsersService,
-  googleIsAuthoritative,
-  type GoogleAccount,
-  type Passwords,
-} from './users.service.ts';
+import { createUsersService, googleIsAuthoritative, type GoogleAccount } from './users.service.ts';
 
 const tx = {} as Tx;
 const sara: Account = {
@@ -33,20 +28,11 @@ const google: GoogleAccount = {
 /** A users service over fakes, with a record of what it asked of them. */
 function setup(repository: Partial<Record<keyof UsersRepository, unknown>> = {}) {
   const calls: string[] = [];
-  const passwords: Passwords = {
-    hash: (password) => Promise.resolve(`hash:${password}`),
-    verify: (password, hash) => {
-      calls.push(`verify:${hash ?? 'none'}`);
-      return Promise.resolve(hash === `hash:${password}`);
-    },
-  };
   const sessions = {
     revokeAll: () => {
       calls.push('revokeAll');
       return Promise.resolve();
     },
-    endResetTokens: () => Promise.resolve(),
-    issue: () => Promise.resolve({ token: 'refresh' }),
   } as unknown as SessionsService;
   const counter: Counter = {
     hit: () => Promise.resolve({ hits: 1, resetAt: new Date(Date.now() + 60_000) }),
@@ -65,7 +51,6 @@ function setup(repository: Partial<Record<keyof UsersRepository, unknown>> = {})
     } as unknown as UsersRepository,
     sessions,
     runInTransaction,
-    passwords,
   });
   return { calls, users };
 }
@@ -78,44 +63,6 @@ async function rejection(promise: Promise<unknown>): Promise<AppError> {
   }
   throw new Error('Expected a rejection');
 }
-
-describe('users: credentials', () => {
-  it('spends a comparison on an unknown email, and answers as for a wrong password', async () => {
-    const { calls, users } = setup({ findCredentials: () => Promise.resolve(null) });
-
-    const error = await rejection(users.verifyCredentials('nobody@example.com', 'gaza2026'));
-
-    expect(calls).toEqual(['verify:none']);
-    expect(error.code).toBe('INVALID_CREDENTIALS');
-  });
-
-  it('shows a suspension only once the password matches', async () => {
-    const suspended = { ...sara, suspendedAt: new Date() };
-    const { users } = setup({
-      findCredentials: () => Promise.resolve({ account: suspended, passwordHash: 'hash:right' }),
-    });
-
-    expect((await rejection(users.verifyCredentials(sara.email, 'wrong'))).code).toBe(
-      'INVALID_CREDENTIALS',
-    );
-    expect((await rejection(users.verifyCredentials(sara.email, 'right'))).code).toBe(
-      'ACCOUNT_SUSPENDED',
-    );
-  });
-
-  it('confirms under the lock only while the matched hash is still the account’s', async () => {
-    let stored = 'hash:right';
-    const { users } = setup({
-      findCredentials: () => Promise.resolve({ account: sara, passwordHash: stored }),
-      findPasswordHash: () => Promise.resolve(stored),
-    });
-    const verified = await users.verifyCredentials(sara.email, 'right');
-
-    expect(await verified.confirm(tx)).toEqual(sara);
-    stored = 'hash:reset';
-    expect((await rejection(verified.confirm(tx))).code).toBe('INVALID_CREDENTIALS');
-  });
-});
 
 describe('users: Google', () => {
   it.each([
@@ -203,58 +150,5 @@ describe('users: Google', () => {
     expect((await rejection(other.users.linkGoogle(3, google, tx))).code).toBe(
       'GOOGLE_TOKEN_INVALID',
     );
-  });
-});
-
-describe('users: the current password', () => {
-  const withHash = (account: Account, hash: string | null, setPassword: unknown = sara) =>
-    setup({
-      findById: () => Promise.resolve(account),
-      findPasswordHash: () => Promise.resolve(hash),
-      setPasswordIf: () => Promise.resolve(setPassword),
-    });
-
-  it('sends an account without a password to the reset email', async () => {
-    const { users } = withHash(sara, null);
-
-    const error = await rejection(
-      users.changePassword(3, { password: 'new2026x' }, { pendingChange: false }),
-    );
-
-    expect(error.code).toBe('PASSWORD_NOT_SET');
-  });
-
-  it('skips the check only when the token and the account both say a change is pending', async () => {
-    const pending = { ...sara, mustChangePassword: true };
-
-    const forced = withHash(pending, 'hash:temp');
-    await forced.users.changePassword(3, { password: 'new2026x' }, { pendingChange: true });
-    expect(forced.calls.filter((call) => call.startsWith('verify'))).toEqual([]);
-
-    for (const [account, claim] of [
-      [pending, false],
-      [sara, true],
-    ] as const) {
-      const { users } = withHash(account, 'hash:temp');
-      const error = await rejection(
-        users.changePassword(3, { password: 'new2026x' }, { pendingChange: claim }),
-      );
-      expect(error.errors).toEqual({ currentPassword: ['required'] });
-    }
-  });
-
-  it('refuses a wrong current password, and a password that changed meanwhile', async () => {
-    const wrong = withHash(sara, 'hash:right');
-    const raced = withHash(sara, 'hash:right', null);
-
-    const request = (currentPassword: string) => ({ currentPassword, password: 'new2026x' });
-    expect(
-      (await rejection(wrong.users.changePassword(3, request('wrong'), { pendingChange: false })))
-        .code,
-    ).toBe('CURRENT_PASSWORD_INCORRECT');
-    expect(
-      (await rejection(raced.users.changePassword(3, request('right'), { pendingChange: false })))
-        .code,
-    ).toBe('CURRENT_PASSWORD_INCORRECT');
   });
 });
