@@ -1,13 +1,16 @@
 import type { PaginationMeta } from '@masaha/shared/core';
 import type { LookupsCatalogue } from '@masaha/shared/lookups';
 import type { AdminSpaceRow, ManagedSpace, SessionSpaceLink } from '@masaha/shared/space-links';
+import type { AdminSpace } from '@masaha/shared/spaces';
 import { createQueryClient } from '@shared/api';
+import { DocumentTitle, RecordTitleProvider } from '@shared/routing';
 import { establishSession, restoreSession, type SessionUser } from '@shared/session';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeIntersectionObserver } from '../../test/fakeIntersectionObserver';
 import { aSession } from '../../test/fakeSession';
 import type { FakeAnswer } from '../../test/fakeAdapter';
 import { fakeTransport, ok, refused, restoreTransport } from '../../test/fakeTransport';
@@ -86,11 +89,23 @@ const asOwnerAndReception = () => {
 const heard = (expected: string) => (name: string) =>
   name.replace(/[\u2066-\u2069]/g, '') === expected;
 
-/** The dashboard's real routes, beside home and sign-in, opened at `path`. */
+/**
+ * The dashboard's real routes, beside home and sign-in, opened at `path`, under the record's title and
+ * the document's, as the root layout holds them.
+ */
 function renderDashboard(path: string) {
   const router = createMemoryRouter(
     [
-      { HydrateFallback: () => null, children: dashboardRoutes },
+      {
+        HydrateFallback: () => null,
+        element: (
+          <RecordTitleProvider>
+            <DocumentTitle />
+            <Outlet />
+          </RecordTitleProvider>
+        ),
+        children: dashboardRoutes,
+      },
       { path: '/', element: <p>The home page</p> },
       { path: '/login', element: <p>The sign-in page</p> },
     ],
@@ -475,6 +490,38 @@ describe("the admin's lookups page", () => {
   });
 });
 
+/** A space just added: unverified, its profile dated, its other fact groups missing. */
+const ADDED: AdminSpace = {
+  id: 7,
+  slug: 'focus-hub',
+  nameEn: 'Focus Hub',
+  nameAr: null,
+  descriptionAr: null,
+  descriptionEn: null,
+  areaId: 11,
+  addressAr: 'شارع النصر',
+  addressEn: null,
+  landmarkAr: null,
+  landmarkEn: null,
+  location: { lat: 31.52, lng: 34.45 },
+  isHidden: false,
+  isVerified: false,
+  updatedAt: {
+    profile: '2026-10-10T08:00:00Z',
+    hours: null,
+    prices: null,
+    amenities: null,
+    contacts: null,
+  },
+  staleGroups: [],
+  missingGroups: ['hours', 'prices', 'amenities', 'contacts'],
+  hours: null,
+  prices: [],
+  amenityIds: [],
+  ownAmenities: [],
+  contacts: [],
+};
+
 describe("the admin's add-space page", () => {
   const CATALOGUE: LookupsCatalogue = {
     governorates: [
@@ -492,7 +539,15 @@ describe("the admin's add-space page", () => {
   // cold, takes seconds even alone: done before the test, so its waits measure the routes, not Vite
   // (finding 28).
   beforeAll(async () => {
-    await Promise.all([import('./admin/AddSpacePage'), import('./admin/SpacesPage')]);
+    await Promise.all([
+      import('./admin/AddSpacePage'),
+      import('./admin/SpacesPage'),
+      import('./admin/SpaceEditPage'),
+    ]);
+  });
+
+  beforeEach(() => {
+    fakeIntersectionObserver();
   });
 
   /** Pastes `text` into the field labelled `label`: typing key by key is the form's own tests'. */
@@ -501,12 +556,12 @@ describe("the admin's add-space page", () => {
     await user.paste(text);
   }
 
-  it('offers the public catalogue’s areas, and returns to the list once the space is added', async () => {
+  it('offers the public catalogue’s areas, and opens the new space’s editor once it is added', async () => {
     const user = userEvent.setup();
     signIn({ role: 'ADMIN' });
     const requests = fakeTransport((request) =>
       request.method === 'post'
-        ? ok({ id: 7, slug: 'focus-hub', nameEn: 'Focus Hub', nameAr: null }, 201)
+        ? ok(ADDED, 201)
         : request.url === '/lookups'
           ? ok(CATALOGUE)
           : ok([]),
@@ -522,11 +577,60 @@ describe("the admin's add-space page", () => {
     await user.click(screen.getByRole('button', { name: 'Add space' }));
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/dashboard/admin/spaces');
+      expect(router.state.location.pathname).toBe('/dashboard/admin/spaces/7');
     });
     expect(requests.find(({ method }) => method === 'post')).toMatchObject({
       url: '/admin/spaces',
     });
+    expect(await screen.findByRole('region', { name: 'Still missing' })).toBeInTheDocument();
+    // The editor opens on the space the creation answered: it is not read again.
+    expect(requests.filter(({ url }) => url === '/admin/spaces/7')).toEqual([]);
+  });
+});
+
+describe("the admin's space editor", () => {
+  // The editor loads lazily, and its first transform in this lane, cold, takes seconds: done before
+  // the test, so its waits measure the routes, not Vite (finding 28).
+  beforeAll(async () => {
+    await import('./admin/SpaceEditPage');
+  });
+
+  beforeEach(() => {
+    fakeIntersectionObserver();
+  });
+
+  it('is titled by the space’s name once it has loaded, in the top bar and the tab, under a trail back to the list', async () => {
+    signIn({ role: 'ADMIN' });
+    fakeTransport((request) => (request.url === '/admin/spaces/7' ? ok(ADDED) : ok([])));
+    renderDashboard('/dashboard/admin/spaces/7');
+
+    await topBarTitle('Focus Hub');
+    await waitFor(() => {
+      expect(document.title).toBe('Focus Hub · Masaha');
+    });
+    const trail = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(trail).getByRole('link', { name: 'Spaces' })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/spaces',
+    );
+    expect(await screen.findByRole('heading', { level: 2, name: 'The space' })).toBeInTheDocument();
+  });
+
+  it('is titled "Edit space" while the space loads', async () => {
+    signIn({ role: 'ADMIN' });
+    fakeTransport((request) =>
+      request.url === '/admin/spaces/7' ? new Promise<FakeAnswer>(() => undefined) : ok([]),
+    );
+    renderDashboard('/dashboard/admin/spaces/7');
+
+    await topBarTitle('Edit space');
+  });
+
+  it('shows the 404 inside the shell for an id that names no space', async () => {
+    signIn({ role: 'ADMIN' });
+    renderDashboard('/dashboard/admin/spaces/abc');
+
+    await stateInMain('Page not found');
   });
 });
 
@@ -626,7 +730,7 @@ describe("the admin's spaces page", () => {
     );
   });
 
-  it('keeps every menu waiting out a 429 through a change of filter, then of page', async () => {
+  it('keeps every menu’s actions waiting out a 429 through a change of filter, then of page', async () => {
     const FOCUS: AdminSpaceRow = { ...PALM, id: 7, nameEn: 'Focus Hub', isHidden: false };
     const WHITE: AdminSpaceRow = { ...PALM, id: 12, nameEn: 'White Space', isHidden: false };
     openSpaces(
@@ -656,8 +760,10 @@ describe("the admin's spaces page", () => {
     await userEvent.click(
       within(table).getByRole('button', { name: heard('Actions: White Space') }),
     );
-    for (const item of within(await screen.findByRole('menu')).getAllByRole('menuitem')) {
-      expect(item).toHaveAttribute('aria-disabled', 'true');
+    // The actions wait; Edit, a way to a page, never does.
+    const menu = await screen.findByRole('menu');
+    for (const name of ['Hide', 'Delete']) {
+      expect(within(menu).getByRole('menuitem', { name })).toHaveAttribute('aria-disabled', 'true');
     }
     expect(
       screen.getByText(/Try again in/, { selector: '[data-slot=alert-description]' }),

@@ -29,4 +29,7 @@ export const DASHBOARD = {
     title: 'إضافة مساحة',
     trail: 'مسار التنقل',
   },
+  editSpace: {
+    title: 'تعديل مساحة',
+  },
 } satisfies Catalogue['dashboard'];

@@ -8,14 +8,14 @@ import { LocationFields } from '../profile/LocationFields';
 /**
  * Adds a space: its basics and its location, each in its own card, then one submit, which sends
  * them as one creation. The area field is the page's to hand in (`areaField`), from the capability
- * that owns the areas; once the space is created, `onCreated` runs.
+ * that owns the areas; once the space is created, `onCreated` runs with its id.
  */
 export function AddSpaceForm({
   areaField,
   onCreated,
 }: {
   areaField: AreaField;
-  onCreated: () => void;
+  onCreated: (spaceId: number) => void;
 }) {
   const form = useAddSpaceForm({ onCreated });
 

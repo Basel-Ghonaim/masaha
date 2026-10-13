@@ -113,6 +113,7 @@ function renderList(
             <AdminSpacesList
               actions={(row) => <button type="button">{`Actions for ${row.nameEn}`}</button>}
               placeField={placeField}
+              spaceLink={(row) => `/spaces/${String(row.id)}`}
             />
           </main>
         ),
@@ -395,5 +396,15 @@ describe('AdminSpacesList, on a phone', () => {
     await screen.findByText('Focus Hub');
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('names each space with a link to its page', async () => {
+    renderList('/spaces');
+    const region = await listRegion();
+
+    expect(await within(region).findByRole('link', { name: 'Focus Hub' })).toHaveAttribute(
+      'href',
+      `/spaces/${String(FOCUS.id)}`,
+    );
   });
 });

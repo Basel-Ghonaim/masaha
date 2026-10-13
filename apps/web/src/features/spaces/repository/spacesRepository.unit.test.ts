@@ -60,6 +60,60 @@ describe('the spaces repository', () => {
     expect(requests[0]).toMatchObject({ method: 'post', url: '/admin/spaces/7/restore' });
   });
 
+  it('GETs one space, and resolves to it', async () => {
+    const space = { id: 7, slug: 'focus-hub', nameEn: 'Focus Hub' };
+    const requests = serve({ status: 200, data: { success: true, data: space } });
+
+    await expect(createSpacesRepository().get(7)).resolves.toEqual(space);
+    expect(requests[0]).toMatchObject({ method: 'get', url: '/admin/spaces/7' });
+  });
+
+  it('PATCHes the profile’s changes, and resolves to the space as it is then', async () => {
+    const space = { id: 7, nameEn: 'Focus Hub' };
+    const requests = serve({ status: 200, data: { success: true, data: space } });
+
+    await expect(
+      createSpacesRepository().updateProfile(7, { nameEn: 'Focus Hub', landmarkAr: null }),
+    ).resolves.toEqual(space);
+    expect(requests[0]).toMatchObject({ method: 'patch', url: '/admin/spaces/7' });
+    expect(JSON.parse(String(requests[0]?.data))).toEqual({
+      nameEn: 'Focus Hub',
+      landmarkAr: null,
+    });
+  });
+
+  it('PUTs the amenities group whole', async () => {
+    const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
+    const request = { amenityIds: [1, 3], ownAmenities: [{ nameAr: 'غرفة صلاة', nameEn: null }] };
+
+    await createSpacesRepository().updateAmenities(7, request);
+    expect(requests[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/amenities' });
+    expect(JSON.parse(String(requests[0]?.data))).toEqual(request);
+  });
+
+  it('PUTs the contacts whole', async () => {
+    const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
+    const request = { contacts: [{ type: 'PHONE' as const, value: '+970599123456' }] };
+
+    await createSpacesRepository().updateContacts(7, request);
+    expect(requests[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/contacts' });
+    expect(JSON.parse(String(requests[0]?.data))).toEqual(request);
+  });
+
+  it.each(['profile', 'amenities', 'contacts'] as const)(
+    'POSTs the %s group’s confirmation, with no body',
+    async (group) => {
+      const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
+
+      await createSpacesRepository().confirm(7, group);
+      expect(requests[0]).toMatchObject({
+        method: 'post',
+        url: `/admin/spaces/7/${group}/confirm`,
+      });
+      expect(requests[0]?.data).toBeUndefined();
+    },
+  );
+
   it('rejects a refusal as an AppError, with its type', async () => {
     serve({
       status: 404,

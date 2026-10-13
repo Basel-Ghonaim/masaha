@@ -8,7 +8,13 @@ import {
   type TitledHandle,
 } from '@shared/routing';
 import type { RouteObject } from 'react-router';
-import { ADMIN_ADD_SPACE_PATH, ADMIN_NAV, SPACE_NAV, type DashboardPageName } from './navigation';
+import {
+  ADMIN_ADD_SPACE_PATH,
+  ADMIN_NAV,
+  ADMIN_SPACE_PATH,
+  SPACE_NAV,
+  type DashboardPageName,
+} from './navigation';
 import { placeOf } from './placeOf';
 
 /** A page's title: its navigation item's name, as the catalogue words it. */
@@ -84,6 +90,15 @@ export const dashboardRoutes: RouteObject[] = [
             lazy: async () => {
               const { AddSpacePage } = await import('./admin/AddSpacePage');
               return { element: <AddSpacePage /> };
+            },
+          },
+          {
+            // Titled until the space loads; then by its name, which the page gives.
+            path: ADMIN_SPACE_PATH,
+            handle: { title: (copy) => copy.dashboard.editSpace.title } satisfies TitledHandle,
+            lazy: async () => {
+              const { SpaceEditPage } = await import('./admin/SpaceEditPage');
+              return { element: <SpaceEditPage /> };
             },
           },
           { path: '*', handle: NOT_FOUND, element: <NotFoundState /> },

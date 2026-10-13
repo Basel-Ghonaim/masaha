@@ -9,16 +9,18 @@ import {
   LoaderIcon,
 } from '@shared/design-system';
 import { useRef } from 'react';
+import { Link } from 'react-router';
 import { useSpaceActionsMenu } from '../../hooks/menu/useSpaceActionsMenu';
 import type { SpaceRef } from '../../types/SpaceRef';
 import { DeleteSpaceDialog } from '../delete/DeleteSpaceDialog';
 
 /**
- * A space's row menu, for the admin's list: Hide or Show, then Delete, which asks first. While the
- * row's action is pending its button stays where it is, busy, and keeps the focus; the items wait,
- * as they do while any 429 counts down.
+ * A space's row menu, for the admin's list: Edit, which leads to the space's editor (`editLink`, the
+ * page's path), Hide or Show, then Delete, which asks first. While the row's action is pending its
+ * button stays where it is, busy, and keeps the focus; the actions wait, as they do while any 429
+ * counts down, but Edit, a way to a page, never does.
  */
-export function SpaceActionsMenu({ space }: { space: SpaceRef }) {
+export function SpaceActionsMenu({ space, editLink }: { space: SpaceRef; editLink: string }) {
   const menu = useSpaceActionsMenu(space);
   const trigger = useRef<HTMLButtonElement>(null);
 
@@ -41,6 +43,9 @@ export function SpaceActionsMenu({ space }: { space: SpaceRef }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link to={editLink}>{menu.edit}</Link>
+          </DropdownMenuItem>
           <DropdownMenuItem disabled={menu.waiting} onSelect={menu.toggle.run}>
             {menu.toggle.label}
           </DropdownMenuItem>

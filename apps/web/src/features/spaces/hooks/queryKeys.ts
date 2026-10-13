@@ -5,4 +5,6 @@ export const spacesKeys = {
    * the epoch, or `null`: the window the server holds, as its last answer gave it.
    */
   hold: ['admin', 'spaces', 'hold'] as const,
+  /** One space, whole, as the admin edits it. */
+  space: (spaceId: number) => ['admin', 'spaces', 'space', spaceId] as const,
 };

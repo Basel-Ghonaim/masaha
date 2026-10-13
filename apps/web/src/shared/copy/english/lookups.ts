@@ -108,6 +108,13 @@ export const LOOKUPS = {
     hidden: ({ name }: { name: string }) => `${name} (hidden)`,
     loadFailed: 'We couldn’t load the areas',
   },
+  /** A space's area with its governorate, as a read-only page names it. */
+  areaName: ({ area, governorate }: { area: string; governorate: string }) =>
+    `${area} · ${governorate}`,
+  /** A space's amenities to tick, from the platform's list. */
+  amenityChecklist: {
+    empty: 'The list has no amenities yet',
+  },
   /** The field that chooses one area for a space, its areas grouped under their governorates. */
   areaSelect: {
     placeholder: 'Choose an area',

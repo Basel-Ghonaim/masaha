@@ -8,3 +8,8 @@ export const SPACE_ACTIONS = ['admin', 'spaces', 'action'] as const;
 export function spaceActionKey(kind: SpaceActionKind) {
   return [...SPACE_ACTIONS, kind] as const;
 }
+
+/** Every write on one space's facts, its saves and its confirmations, while the editor shows it. */
+export function spaceWriteKey(spaceId: number) {
+  return ['admin', 'spaces', 'write', spaceId] as const;
+}
