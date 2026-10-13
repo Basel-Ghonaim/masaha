@@ -9,12 +9,12 @@
 - Holds the place list, governorate then area, which covers the Gaza Strip, and the amenities a space may offer, each in Arabic and English, in an order the admin sets, with an active flag. Nothing is deleted: a row is hidden and restored.
 - Lets the admin add, rename, hide, restore and order the governorates, the areas and the amenities, on the dashboard's lookups page.
 - Answers the public catalogue: what a form or a filter may offer, active rows only.
-- Offers the one field that chooses a governorate or one of its areas, which the admin's spaces list sets in its filters, and the field that chooses one area for a space, which the add-space form sets.
+- Offers the one field that chooses a governorate or one of its areas, which the admin's spaces list sets in its filters, the field that chooses one area for a space, which the add-space form and the space editor set, and, for the editor, a space's amenities to tick and the names of its area and its amenities.
 - Answers the modules above it: the names of a set of areas, whether an area may take a space, the ids of a governorate's areas, and which amenities are active; and for the [directory](directory.md), the areas a space may be listed in, how well a search matches each one's names, and the active amenities of a space, named, in order.
 
 ## Who uses it
 
-- **The admin**, on the dashboard's lookups page, through the place field of the spaces list ([space-links](space-links.md)), and through the area field of the add-space form ([spaces](spaces.md)).
+- **The admin**, on the dashboard's lookups page, through the place field of the spaces list ([space-links](space-links.md)), and through the area field, the amenities' checklist and the names the space's pages set ([spaces](spaces.md)).
 - **Anyone,** through the public catalogue. No page of the site reads it yet; the admin's area field does.
 - **Other modules:** `spaces` checks a space's area and names it; `space-links` names the areas of the spaces it lists and resolves a governorate filter to its areas.
 
@@ -50,6 +50,10 @@ Nothing changes before the server answers. A write stays pending until the list 
 **The place field.** `GovernorateAreaSelect` offers "All areas", then each governorate followed by its areas, in order, named in the interface's language; each governorate's options are a group named after it, its areas indented. It reads the admin's lists, so hidden governorates and areas are offered too, marked "(hidden)". While they load, or once they have failed, one disabled option says so, and "All areas" stays. It takes its value and hands back the choice, a governorate's id or an area's, and sits in the Field of the list that sets it, which the page hands it to.
 
 **The area field.** `AreaSelect` offers one area, each governorate a group named after it with its areas under it, in order, named in the interface's language, and asks to choose one until it holds one. It reads the public catalogue, so only an area that may take a space is offered: no hidden area, nor one of a hidden governorate. While the catalogue loads, or once it has failed, one disabled option says so. It takes the area's id and hands back the one chosen, sits in the Field of the form that sets it, which the page hands it to, and lends that form its trigger, so a refusal can focus it.
+
+**The amenities' checklist.** `AmenityChecklist` is a group, named by the label it is given, of the platform's amenities to tick for a space: the active ones, in order, named in the interface's language, and any retired one the space still has (`linked`), ticked, with "Inactive" beside it, until a save leaves it out; a retired one the space does not have is never offered. It reads the admin's amenities, so it shares the lookups page's cache, takes the amenities chosen and hands back the new set, and shows its own loading and failure, with "Try again".
+
+**The names, read-only.** `AmenityNames` names a space's amenities as one line, in the list's order, retired ones included; `AreaName` names its area with its governorate ("Al-Rimal · Gaza"), a hidden one included. Both read the admin's lists, and show nothing while they load.
 
 **The public catalogue** answers what a form or a filter may offer, active rows only ([the contract](../api/api-contract.md#lookups-public)). The web reads it under `['public', 'lookups', 'catalogue']`.
 
@@ -91,12 +95,14 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **A space's area is chosen with a field of its own, not an option on the place field** (D4). *Why:* a filter and a choice are different jobs: the filter offers a governorate, all areas and hidden places, while a space takes one area that may take a space, which the creation refuses otherwise. 2026-10-10, #57.
 - **The area field reads the public catalogue,** under the public scope, never the admin's lists. *Why:* it offers what a space may take, the catalogue's own definition; the admin's writes on the lookups do not refresh it, so an area hidden in the last 30 seconds may still be offered, and the server refuses it on the field. 2026-10-10, #57.
 - **The area field's governorates are groups with a visible name,** its areas under them, with no helper naming the governorate. *Why:* the design's helper named one governorate of a list that held one; the grouped list names each as the area is chosen (design issue 4). 2026-10-10, #57.
+- **A space's amenities are ticked in a checklist this capability offers, the editor's slot** (S5). *Why:* the amenities are this capability's list. **It reads the admin's amenities,** not the catalogue, and offers a retired amenity the space still has, marked, until a save leaves it out. *Why:* the catalogue has no name for a retired amenity, which would stay linked unseen. 2026-10-13, #74.
+- **A read-only page names a space's area and amenities through two small exports,** `AreaName` and `AmenityNames`, over the admin's lists, hidden and retired rows included. *Why:* a verified space's page shows what it has, whatever its rows' flags since. 2026-10-13, #74.
 
 ## Code map
 
 - **API:** `apps/api/src/modules/lookups/`, entry `index.ts`: a folder per list (`governorates/`, `areas/`, `amenities/`) and one for the public `catalogue/`; the pure rules beside them (the exact order, a lookup's change and its audit entries, the list order); the public and admin routers.
 - **Shared:** `packages/shared/src/lookups/`: the requests, the responses and the icon keys.
-- **Web:** `apps/web/src/features/lookups/`, entry `index.ts` (`GovernoratesSection`, `AmenitiesSection`, `GovernorateAreaSelect`, `AreaSelect`), mounted by `pages/dashboard/admin/`; an amenity's icon through `components/AmenityIcon.tsx`; the place field in `components/place/` and `hooks/place/`; the area field, with the public catalogue's query, in `components/area/` and `hooks/area/`.
+- **Web:** `apps/web/src/features/lookups/`, entry `index.ts` (`GovernoratesSection`, `AmenitiesSection`, `GovernorateAreaSelect`, `AreaSelect`, `AreaName`, `AmenityChecklist`, `AmenityNames`), mounted by `pages/dashboard/admin/`; an amenity's icon through `components/AmenityIcon.tsx`; the place field in `components/place/` and `hooks/place/`; the area field, with the public catalogue's query, and the area's name in `components/area/` and `hooks/area/`; the amenities' checklist and names in `components/amenities/` and `hooks/amenities/`.
 
 ## Open findings
 
@@ -123,3 +129,4 @@ None.
 - #50 — the place field of the admin's spaces list.
 - #57 — the area field of the add-space form, from the public catalogue.
 - #64 — no amenity filter: the switch, its badge and the card's line removed.
+- #74 — the amenities' checklist and the area's and amenities' names, for the space editor.

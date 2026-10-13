@@ -90,6 +90,11 @@ export const LOOKUPS = {
     hidden: ({ name }: { name: string }) => `${name} (مخفية)`,
     loadFailed: 'تعذّر تحميل المناطق',
   },
+  areaName: ({ area, governorate }: { area: string; governorate: string }) =>
+    `${area} · ${governorate}`,
+  amenityChecklist: {
+    empty: 'لا مرافق في القائمة بعد',
+  },
   areaSelect: {
     placeholder: 'اختر المنطقة',
   },

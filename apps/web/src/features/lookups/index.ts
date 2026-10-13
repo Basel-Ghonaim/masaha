@@ -1,4 +1,7 @@
 export { AmenitiesSection } from './components/list/AmenitiesSection';
+export { AmenityChecklist } from './components/amenities/AmenityChecklist';
+export { AmenityNames } from './components/amenities/AmenityNames';
+export { AreaName } from './components/area/AreaName';
 export { AreaSelect } from './components/area/AreaSelect';
 export { GovernorateAreaSelect } from './components/place/GovernorateAreaSelect';
 export { GovernoratesSection } from './components/list/GovernoratesSection';
