@@ -62,6 +62,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Space details.html?…&fav=1&fail=fav` | the space page | the favourite's save failing on the way back: the failure toast with «إعادة المحاولة» |
 | `Settings.html?pw=open` | account settings | the password form open in the «تسجيل الدخول» card. Replaces `?state=signout`: v1 has no sign-out of all devices (C2) |
 | `Settings.html?auth=google&state=linksent` · `?fail=setlink` | the same, a Google-only account | the link to set a password sent, in place; or its sending failing |
+| `Change password.html?role=owner` · `reception` · `admin` · `user` | the forced change | where saving lands: the owner's overview (the default), the desk, the admin's overview, Home |
 
 ## 01 · Flow
 
@@ -159,8 +160,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Sign in · wrong password — phone 390 | `Sign in.html?state=error` | 390×844 | [06-sign-in/06-sign-in-wrong-password-phone-390.webp](screens/06-sign-in/06-sign-in-wrong-password-phone-390.webp) |
 | Sign in · too many attempts — desktop 1440 | `Sign in.html?state=ratelimit` | 1440×1000 | [06-sign-in/07-sign-in-too-many-attempts-desktop-1440.webp](screens/06-sign-in/07-sign-in-too-many-attempts-desktop-1440.webp) |
 | Sign in · too many attempts — phone 390 | `Sign in.html?state=ratelimit` | 390×844 | [06-sign-in/08-sign-in-too-many-attempts-phone-390.webp](screens/06-sign-in/08-sign-in-too-many-attempts-phone-390.webp) |
-| After Google · accounts linked (toast) — desktop 1440 | `Home.html?loc=none&toast=linked` | 1440×1000 | [06-sign-in/09-after-google-accounts-linked-toast-desktop-1440.webp](screens/06-sign-in/09-after-google-accounts-linked-toast-desktop-1440.webp) |
-| After Google · accounts linked (toast) — phone 390 | `Home.html?loc=none&toast=linked` | 390×844 | [06-sign-in/10-after-google-accounts-linked-toast-phone-390.webp](screens/06-sign-in/10-after-google-accounts-linked-toast-phone-390.webp) |
+| After Google · accounts linked (toast) — kept until closed — desktop 1440 | `Home.html?loc=none&toast=linked` | 1440×1000 | [06-sign-in/09-after-google-accounts-linked-toast-desktop-1440.webp](screens/06-sign-in/09-after-google-accounts-linked-toast-desktop-1440.webp) |
+| After Google · accounts linked (toast) — kept until closed — phone 390 | `Home.html?loc=none&toast=linked` | 390×844 | [06-sign-in/10-after-google-accounts-linked-toast-phone-390.webp](screens/06-sign-in/10-after-google-accounts-linked-toast-phone-390.webp) |
 
 ## 07 · Register «إنشاء حساب»
 
@@ -843,3 +844,4 @@ Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `scree
 | Back on the space · the save failed — phone 390 | `Space details.html?id=focus&loc=none&auth=1&fav=1&fail=fav&toast=welcome` | 390×844 | — |
 | Account settings · how I sign in — desktop 1440 | `Settings.html?auth=linked` | 1440×1000 | — |
 | Account settings · Google-only, the link sent — phone 390 | `Settings.html?auth=google&state=linksent` | 390×844 | — |
+| Forced change · reception, a neutral author — phone 390 | `Change password.html?auth=1&role=reception` | 390×844 | — |
