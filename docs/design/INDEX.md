@@ -47,6 +47,26 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Error.html?type=offline&fail=retry` · `?type=error&fail=retry` | `Error.html` | the retry failing: «ما زال الاتصال مفقودًا» under the buttons (offline also says so while the device is offline) |
 | `About.html#contact` | `About.html` | the «تواصل معنا» section every «تواصل معنا» on the site now leads to; `#owners` stays the owners' steps |
 
+### Batch 4 — the account and signing in
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `?state=ratelimit` | Sign in, Register, Forgot password, Settings | the 429 counting down from 0:42 (the server's `Retry-After`), the submit disabled until it ends (AC-022) |
+| `?google=error` · `notallowed` · `unavailable` · `off` | Sign in, Register | Google's failure, worded per code; `off`: no client id, so no button and no «أو» |
+| `Forgot password.html?state=loading` · `unreachable` · `linkopen` · `spent` | the forgot page | the recovery's server-held steps, the address masked as the server holds it |
+| `Reset password.html?state=loading` · `unreachable` · `checkfailed` | the reset page | the same; `checkfailed`: the link's check refused (a 429), «افتح الرابط من بريدك الإلكتروني مرة أخرى.» |
+| `Register.html?state=toolong` | the register page | a password over 72 bytes: the fourth rule «طويلة جدًا — اختصرها», shown once broken (AC-020) |
+| `Forgot password.html?state=sent&email=<address>` | the forgot page | the link sent to that address, shown masked, so a typo shows («s•••@gmial.com») |
+| `?toast=welcomefav` | `Space details.html` | the return from signing in to save: «أهلًا سارة، تم إنشاء حسابك — حُفظت فوكس هاب في المفضّلة» (C4) |
+| `Space details.html?dialog=signin-report` | the space page | the sign-in dialog of «الإبلاغ», with AC-018's reason |
+| `Space details.html?…&fav=1&fail=fav` | the space page | the favourite's save failing on the way back: the failure toast with «إعادة المحاولة» |
+| `Settings.html?pw=open` | account settings | the password form open in the «تسجيل الدخول» card. Replaces `?state=signout`: v1 has no sign-out of all devices (C2) |
+| `Settings.html?auth=google&state=linksent` · `?fail=setlink` | the same, a Google-only account | the link to set a password sent, in place; or its sending failing |
+| `Change password.html?role=owner` · `reception` · `admin` · `user` | the forced change | where saving lands: the owner's overview (the default), the desk, the admin's overview, Home |
+| `?auth=0` | Favourites, My reports, account settings | signed out: straight to sign-in with `next`, as the route's `RequireAuth` does (AC-011) |
+| `Settings.html?fail=language` | account settings | the language's save failing: the toggle returns, «تعذّر حفظ اللغة» with «إعادة المحاولة» |
+| `Reports.html?demo=pages` · `?tab=open` · `?tab=closed` | My reports | 28 reports, so the list has a second page (P6); the chips set |
+
 ## 01 · Flow
 
 | Frame | Prototype URL | Viewport | Screenshot |
@@ -129,7 +149,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 |---|---|---|---|
 | 1 · Heart → sign-in dialog | `Space details.html?id=focus&loc=none&dialog=signin` | 390×844 | [04-space-details-variants/14-signed-out-heart-sign-in-dialog-phone-390.webp](screens/04-space-details-variants/14-signed-out-heart-sign-in-dialog-phone-390.webp) |
 | 2 · Register | `Register.html?next=Space details.html?id=focus&auth=1&fav=1` | 390×844 | [05-auth-flow/02-2-register.webp](screens/05-auth-flow/02-2-register.webp) |
-| 3 · Back on the space · toast | `Space details.html?id=focus&loc=none&auth=1&fav=1&toast=welcome` | 390×844 | [05-auth-flow/03-3-back-on-the-space-toast.webp](screens/05-auth-flow/03-3-back-on-the-space-toast.webp) |
+| 3 · Back on the space · toast | `Space details.html?id=focus&loc=none&auth=1&fav=1&toast=welcomefav` | 390×844 | [05-auth-flow/03-3-back-on-the-space-toast.webp](screens/05-auth-flow/03-3-back-on-the-space-toast.webp) |
 
 ## 06 · Sign in
 
@@ -143,8 +163,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Sign in · wrong password — phone 390 | `Sign in.html?state=error` | 390×844 | [06-sign-in/06-sign-in-wrong-password-phone-390.webp](screens/06-sign-in/06-sign-in-wrong-password-phone-390.webp) |
 | Sign in · too many attempts — desktop 1440 | `Sign in.html?state=ratelimit` | 1440×1000 | [06-sign-in/07-sign-in-too-many-attempts-desktop-1440.webp](screens/06-sign-in/07-sign-in-too-many-attempts-desktop-1440.webp) |
 | Sign in · too many attempts — phone 390 | `Sign in.html?state=ratelimit` | 390×844 | [06-sign-in/08-sign-in-too-many-attempts-phone-390.webp](screens/06-sign-in/08-sign-in-too-many-attempts-phone-390.webp) |
-| After Google · accounts linked (toast) — desktop 1440 | `Home.html?loc=none&toast=linked` | 1440×1000 | [06-sign-in/09-after-google-accounts-linked-toast-desktop-1440.webp](screens/06-sign-in/09-after-google-accounts-linked-toast-desktop-1440.webp) |
-| After Google · accounts linked (toast) — phone 390 | `Home.html?loc=none&toast=linked` | 390×844 | [06-sign-in/10-after-google-accounts-linked-toast-phone-390.webp](screens/06-sign-in/10-after-google-accounts-linked-toast-phone-390.webp) |
+| After Google · accounts linked (toast) — kept until closed — desktop 1440 | `Home.html?loc=none&toast=linked` | 1440×1000 | [06-sign-in/09-after-google-accounts-linked-toast-desktop-1440.webp](screens/06-sign-in/09-after-google-accounts-linked-toast-desktop-1440.webp) |
+| After Google · accounts linked (toast) — kept until closed — phone 390 | `Home.html?loc=none&toast=linked` | 390×844 | [06-sign-in/10-after-google-accounts-linked-toast-phone-390.webp](screens/06-sign-in/10-after-google-accounts-linked-toast-phone-390.webp) |
 
 ## 07 · Register «إنشاء حساب»
 
@@ -321,7 +341,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Reports · error — desktop 1440 | `Reports.html?auth=1&state=error` | 1440×1000 | [16-my-reports/07-reports-error-desktop-1440.webp](screens/16-my-reports/07-reports-error-desktop-1440.webp) |
 | Reports · error — phone 390 | `Reports.html?auth=1&state=error` | 390×844 | [16-my-reports/08-reports-error-phone-390.webp](screens/16-my-reports/08-reports-error-phone-390.webp) |
 
-## 17 · Settings «الإعدادات»
+## 17 · Settings «إعدادات حسابي»
 
 | Frame | Prototype URL | Viewport | Screenshot |
 |---|---|---|---|
@@ -335,8 +355,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Settings · wrong current password — phone 390 | `Settings.html?auth=1&state=wrongpw` | 390×844 | [17-settings/08-settings-wrong-current-password-phone-390.webp](screens/17-settings/08-settings-wrong-current-password-phone-390.webp) |
 | Settings · too many attempts — desktop 1440 | `Settings.html?auth=1&state=ratelimit` | 1440×1000 | [17-settings/09-settings-too-many-attempts-desktop-1440.webp](screens/17-settings/09-settings-too-many-attempts-desktop-1440.webp) |
 | Settings · too many attempts — phone 390 | `Settings.html?auth=1&state=ratelimit` | 390×844 | [17-settings/10-settings-too-many-attempts-phone-390.webp](screens/17-settings/10-settings-too-many-attempts-phone-390.webp) |
-| Settings · sign out of all devices (confirm) — desktop 1440 | `Settings.html?auth=1&state=signout` | 1440×1000 | [17-settings/11-settings-sign-out-of-all-devices-confirm-desktop-1440.webp](screens/17-settings/11-settings-sign-out-of-all-devices-confirm-desktop-1440.webp) |
-| Settings · sign out of all devices (confirm) — phone 390 | `Settings.html?auth=1&state=signout` | 390×844 | [17-settings/12-settings-sign-out-of-all-devices-confirm-phone-390.webp](screens/17-settings/12-settings-sign-out-of-all-devices-confirm-phone-390.webp) |
+| Settings · changing the password (signs out the other devices) — desktop 1440 | `Settings.html?auth=1&pw=open` | 1440×1000 | [17-settings/11-settings-sign-out-of-all-devices-confirm-desktop-1440.webp](screens/17-settings/11-settings-sign-out-of-all-devices-confirm-desktop-1440.webp) |
+| Settings · changing the password (signs out the other devices) — phone 390 | `Settings.html?auth=1&pw=open` | 390×844 | [17-settings/12-settings-sign-out-of-all-devices-confirm-phone-390.webp](screens/17-settings/12-settings-sign-out-of-all-devices-confirm-phone-390.webp) |
 
 ## 18 · Forced password change
 
@@ -806,3 +826,28 @@ Added by the public fix (`CHANGES.md` › *Batch 3*). No screenshot yet: `screen
 | Offline · the retry failed — phone 390 | `Error.html?type=offline&fail=retry` | 390×844 | — |
 | Cards · photos still loading — desktop 1440 | `Directory.html?loc=none&photos=loading` | 1440×1000 | — |
 | About · contact for everyone — desktop 1440 | `About.html#contact` | 1440×1000 | — |
+
+## 54 · Batch 4 — the account
+
+Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
+
+| Frame | Prototype URL | Viewport | Screenshot |
+|---|---|---|---|
+| Sign in · too many attempts, counting down — phone 390 | `Sign in.html?state=ratelimit` | 390×844 | — |
+| Sign in · Google refused, the address has a password — phone 390 | `Sign in.html?google=notallowed` | 390×844 | — |
+| Register · email already registered, on its field — phone 390 | `Register.html?state=exists` | 390×844 | — |
+| Forgot · a reset link already open — phone 390 | `Forgot password.html?state=linkopen` | 390×844 | — |
+| Forgot · resends spent — phone 390 | `Forgot password.html?state=spent` | 390×844 | — |
+| Reset · the link could not be checked — phone 390 | `Reset password.html?state=checkfailed` | 390×844 | — |
+| Forgot · sent to a mistyped address, another email — phone 390 | `Forgot password.html?state=sent&email=sara@gmial.com` | 390×844 | — |
+| Sign in · from a space, the way back to it — phone 390 | `Sign in.html?next=Space details.html?id=focus&auth=1&fav=1` | 390×844 | — |
+| Back on the space · welcome and the saved favourite — phone 390 | `Space details.html?id=focus&loc=none&auth=1&fav=1&toast=welcomefav` | 390×844 | — |
+| Reset · new password, a way back — phone 390 | `Reset password.html?state=typing` | 390×844 | — |
+| Report → sign-in dialog, the reply in «بلاغاتي» — phone 390 | `Space details.html?id=focus&loc=none&dialog=signin-report` | 390×844 | — |
+| Back on the space · the save failed — phone 390 | `Space details.html?id=focus&loc=none&auth=1&fav=1&fail=fav&toast=welcome` | 390×844 | — |
+| Account settings · how I sign in — desktop 1440 | `Settings.html?auth=linked` | 1440×1000 | — |
+| Account settings · Google-only, the link sent — phone 390 | `Settings.html?auth=google&state=linksent` | 390×844 | — |
+| Forced change · reception, a neutral author — phone 390 | `Change password.html?auth=1&role=reception` | 390×844 | — |
+| Favourites · one left the directory — desktop 1440 | `Favorites.html?auth=1&loc=none` | 1440×1000 | — |
+| Favourites · nearest first — phone 390 | `Favorites.html?auth=1&loc=granted` | 390×844 | — |
+| My reports · two pages, a space that left — desktop 1440 | `Reports.html?auth=1&demo=pages` | 1440×1000 | — |

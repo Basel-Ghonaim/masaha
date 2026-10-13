@@ -3,7 +3,40 @@ const { Button: AButton, Field: AField, Input: AInput, InputAction: AInputAction
 const nextUrl = () => pageParams.get('next') || 'Home.html';
 const finishAuth = (...toasts) => { setUser(window.__pendingUser || { ...DEMO_USER, method: 'email' }); handOffToast(...toasts); location.href = carryParams(nextUrl()); };
 const withNext = (page) => (pageParams.get('next') ? `${page}?next=${encodeURIComponent(pageParams.get('next'))}` : page);
-const RATE_LIMIT = tr("محاولات كثيرة، حاول بعد 15 دقيقة", "Too many attempts, try again in 15 minutes");
+// C4 (G1): the action that led to the sign-in rides in `next` (`fav=1`, `dialog=report`); on the way back
+// it is done and named. The report reopens its dialog, so only the favourite needs a line.
+const nextSpace = () => {
+  const n = pageParams.get('next'); if (!n) return null;
+  const [path, qs] = n.split('?'); const q = new URLSearchParams(qs || '');
+  if (path !== 'Space details.html') return null;
+  const s = M.spaces.find((x) => x.id === (q.get('id') || 'focus'));
+  return s ? { space: s, fav: q.get('fav') === '1' } : null;
+};
+const withIntent = (welcome) => { const n = nextSpace(); return n && n.fav ? welcome + ' — ' + favSavedLine(n.space) : welcome; };
+// C4: with `next`, the card's way out returns there; without it, to the directory.
+function AuthWayBack() {
+  const n = nextSpace();
+  const back = n ? { href: `Space details.html?id=${n.space.id}`, label: tr(`العودة إلى ${spaceName(n.space)}`, `Back to ${spaceName(n.space)}`) }
+    : pageParams.get('next') ? { href: 'Home.html', label: tr("العودة إلى الرئيسية", "Back to home") }
+    : { href: 'Directory.html', label: tr("تصفّح المساحات بدون حساب", "Browse spaces without an account") };
+  return <AButton variant="ghost" size="sm" asChild><a href={back.href}>{back.label}</a></AButton>;
+}
+// AC-022: a 429 counts down from the server's Retry-After, as the built forms do; the submit waits with
+// it, and the line beside it says why (foundation §10). The prototype's Retry-After is 42 seconds.
+const RETRY_AFTER = 42;
+const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+function useCountdown(start) {
+  const [left, setLeft] = React.useState(start);
+  React.useEffect(() => { if (left <= 0) return; const t = setTimeout(() => setLeft(left - 1), 1000); return () => clearTimeout(t); }, [left]);
+  return [left, setLeft];
+}
+const useRetryAfter = (on) => useCountdown(on ? RETRY_AFTER : 0)[0];
+function RateLimitAlert({ left }) {
+  if (left <= 0) return null;
+  return <AAlert variant="warning"><AAlertDescription>{tr("محاولات كثيرة، حاول بعد ", "Too many attempts. Try again in ")}<Ltr>{mmss(left)}</Ltr>{tr("", ".")}</AAlertDescription></AAlert>;
+}
+// The address the server holds, masked as it answers it: "s•••@example.com".
+const maskEmail = (e) => { const at = e.indexOf('@'); return at < 1 ? e : e[0] + '•••' + e.slice(at); };
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
 function AuthShell({ theme, setTheme, children }) {
@@ -57,27 +90,40 @@ function OrDivider() {
 // Demo: ?google=error | linked; otherwise a first Google sign-in creates the account.
 function useGoogleSignIn() {
   const [busy, setBusy] = React.useState(false);
-  const [failed, setFailed] = React.useState(pageParams.get('google') === 'error');
+  const [failed, setFailed] = React.useState(({ error: 'token', fail: null, notallowed: 'notallowed', unavailable: 'unavailable' })[pageParams.get('google')] || null);
+  const off = pageParams.get('google') === 'off';
   const start = () => {
-    setFailed(false); setBusy(true);
+    setFailed(null); setBusy(true);
     setTimeout(() => {
       setBusy(false);
       const mode = pageParams.get('google');
-      if (mode === 'fail') return setFailed(true);
+      if (mode === 'fail') return setFailed('token');
       window.__pendingUser = { ...DEMO_USER, method: mode === 'linked' ? 'linked' : 'google' };
-      if (mode === 'linked') return finishAuth(tr("ربطنا حساب Google بحسابك", "We linked your Google account to your account"));
-      finishAuth(tr("أهلًا سارة، تم إنشاء حسابك", "Welcome Sara, your account is ready"));
+      if (mode === 'linked') {
+        const l = demoToast('linked');
+        const n = nextSpace();
+        return finishAuth({ title: l.title, description: l.description, persist: true }, ...(n && n.fav ? [favSavedLine(n.space)] : []));
+      }
+      finishAuth(withIntent(tr("أهلًا سارة، تم إنشاء حسابك", "Welcome Sara, your account is ready")));
     }, 1000);
   };
-  return { busy, failed, start };
+  return { busy, failed, start, off };
 }
 
+const GOOGLE_LINES = () => ({
+  token: tr("لم يتمكّن Google من تأكيد حسابك. حاول مرة أخرى، أو استخدم البريد الإلكتروني وكلمة المرور.", "Google couldn’t confirm your account. Try again, or use your email and password."),
+  notallowed: tr("يوجد حساب بهذا البريد الإلكتروني. سجّل الدخول بكلمة مروره، أو أعد تعيينها من «نسيت كلمة المرور».", "An account with this email already exists. Sign in with its password, or reset it under “Forgot password”."),
+  unavailable: tr("الدخول باستخدام Google غير متاح الآن. استخدم البريد الإلكتروني وكلمة المرور، أو حاول لاحقًا.", "Google sign-in isn’t available right now. Use your email and password, or try again later.")
+});
+
 function GoogleBlock({ google }) {
+  if (google.off) return null;
   return (
     <div className="flex flex-col gap-4">
       {google.failed && (
         <AAlert variant="destructive">
-          <AAlertDescription>{tr("تعذّر تسجيل الدخول باستخدام Google، حاول مرة أخرى أو استخدم البريد الإلكتروني.", "We couldn’t sign you in with Google. Try again or use your email.")}</AAlertDescription>
+          <AAlertTitle>{tr("تعذّرت المتابعة باستخدام Google", "Couldn’t continue with Google")}</AAlertTitle>
+          <AAlertDescription>{GOOGLE_LINES()[google.failed]}</AAlertDescription>
         </AAlert>
       )}
       <GoogleButton onClick={google.start} busy={google.busy} />
@@ -89,17 +135,20 @@ function GoogleBlock({ google }) {
 const PASSWORD_RULES = [
   { id: 'len', label: tr("8 أحرف على الأقل", "At least 8 characters"), test: (v) => v.length >= 8 },
   { id: 'letter', label: tr("حرف واحد على الأقل", "At least one letter"), test: (v) => /[A-Za-z\u0600-\u06FF]/.test(v) },
-  { id: 'digit', label: tr("رقم واحد على الأقل", "At least one number"), test: (v) => /[0-9\u0660-\u0669]/.test(v) }
+  { id: 'digit', label: tr("رقم واحد على الأقل", "At least one number"), test: (v) => /[0-9\u0660-\u0669]/.test(v) },
+  { id: 'bytes', label: tr("طويلة جدًا — اختصرها", "Too long — shorten it"), test: (v) => new TextEncoder().encode(v).length <= 72, onlyBroken: true }
 ];
 const passwordOk = (v) => PASSWORD_RULES.every((r) => r.test(v));
 
 // Met → success tick. After a submit, unmet rules turn to the error colour.
+// The length rule shows only once broken (AC-020).
 function PasswordRules({ value, id, submitted }) {
   return (
     <ul id={id} className="flex flex-col gap-1" aria-label={tr("شروط كلمة المرور", "Password rules")}>
       {PASSWORD_RULES.map((r) => {
         const ok = r.test(value);
-        const bad = !ok && submitted;
+        if (r.onlyBroken && ok) return null;
+        const bad = !ok && (submitted || r.onlyBroken);
         return (
           <li key={r.id} className={'flex items-center gap-2 text-caption ' + (ok ? 'text-foreground' : bad ? 'text-destructive' : 'text-muted-foreground')}>
             {ok ? <ACircleCheck className="size-4 text-success" aria-hidden="true" /> : bad ? <ACircleAlert className="size-4 text-destructive" aria-hidden="true" /> : <span className="size-4 rounded-full border border-input" aria-hidden="true"></span>}
@@ -134,8 +183,19 @@ function NetworkAlert({ onRetry }) {
   );
 }
 
-function RateLimitAlert() {
-  return <AAlert variant="warning"><AAlertDescription>{RATE_LIMIT}</AAlertDescription></AAlert>;
+// C3 (AC-003): the link sent — what happens next, the address the server holds (masked, so a typo shows),
+// another link on an m:ss clock, and, where the address was typed, «استخدم بريدًا آخر» at every moment.
+function LinkSent({ message, email, left, onResend, resending, onOtherEmail, fullWidth = true }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-body" role="status">{message}</p>
+      <p className="text-body-sm text-muted-foreground">{tr("أُرسلت إلى ", "Sent to ")}<Ltr>{maskEmail(email)}</Ltr></p>
+      <AButton variant="outline" className={fullWidth ? 'w-full' : 'self-start'} disabled={left > 0} loading={resending} onClick={onResend}>
+        {left > 0 ? <>{tr("أعد الإرسال بعد ", "Resend in ")}<Ltr>{mmss(left)}</Ltr></> : tr("أعد الإرسال", "Resend")}
+      </AButton>
+      {onOtherEmail && <AButton variant="link" size="sm" className="self-center" onClick={onOtherEmail}>{tr("استخدم بريدًا آخر", "Use another email")}</AButton>}
+    </div>
+  );
 }
 
-Object.assign(window, { AuthShell, GoogleButton, GoogleBlock, OrDivider, useGoogleSignIn, PasswordRules, PasswordField, passwordOk, NetworkAlert, RateLimitAlert, finishAuth, withNext, nextUrl, EMAIL_RE, RATE_LIMIT });
+Object.assign(window, { AuthShell, GoogleButton, GoogleBlock, OrDivider, useGoogleSignIn, PasswordRules, PasswordField, passwordOk, NetworkAlert, LinkSent, RateLimitAlert, nextSpace, withIntent, AuthWayBack, finishAuth, withNext, nextUrl, EMAIL_RE, RETRY_AFTER, mmss, useCountdown, useRetryAfter, maskEmail });

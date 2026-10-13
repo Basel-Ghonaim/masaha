@@ -15,7 +15,7 @@ function useIsDesktop() {
   return on;
 }
 
-// Location never leaves the device: kept in this tab only, used to sort and measure.
+// The location is kept in this tab; it is sent, rounded on the device, only to sort by distance, and the server neither stores nor logs it (DECISIONS_PUBLIC, 2026-10-13).
 const GAZA_STRIP = { north: 31.60, south: 31.22, west: 34.20, east: 34.57 };
 const MAX_ACCURACY_M = 2000;
 const LOC_KEY = 'masaha:near-me';
@@ -507,25 +507,40 @@ function HeartIcon({ filled }) {
 
 // One Toaster per page; shows a toast handed over from the auth pages (or ?toast= for the board).
 const TOAST_KEY = 'masaha:toast';
-const DEMO_TOASTS = { welcome: tr("أهلًا سارة، تم إنشاء حسابك", "Welcome Sara, your account is ready"), linked: tr("ربطنا حساب Google بحسابك", "We linked your Google account to your account") };
+// A toast handed over is a string, or { title, description, persist } for one that must not
+// vanish on its own (C5: the Google link tells of a lost password).
+const demoToast = (key) => {
+  const s = M && M.spaces ? M.spaces.find((x) => x.id === (pageParams.get('id') || 'focus')) : null;
+  const welcome = tr("أهلًا سارة، تم إنشاء حسابك", "Welcome Sara, your account is ready");
+  return {
+    welcome,
+    welcomefav: s ? welcome + ' — ' + favSavedLine(s) : welcome,
+    linked: { title: tr("ربطنا حساب Google بحسابك", "We linked your Google account to your account"), description: tr("حُذفت كلمة مرور حسابك وسُجّل خروجك من الأجهزة الأخرى. لتعيين كلمة مرور جديدة، استخدم «نسيت كلمة المرور».", "Your account’s password was removed and you were signed out on other devices. To set a new password, use “Forgot password”."), persist: true }
+  }[key];
+};
 function PageToaster({ bottomBar }) {
   const { Toaster, toast } = window.MasahaDesignSystem;
   React.useEffect(() => {
     let list = [];
     try { list = JSON.parse(sessionStorage.getItem(TOAST_KEY)) || []; sessionStorage.removeItem(TOAST_KEY); } catch (e) {}
     const demo = pageParams.get('toast');
-    if (demo) list = demo.split(',').map((k) => DEMO_TOASTS[k]).filter(Boolean);
-    list.forEach((m, i) => setTimeout(() => toast.success(m, { duration: demo ? Infinity : 5000 }), 300 + i * 150));
+    if (demo) list = demo.split(',').map(demoToast).filter(Boolean);
+    list.forEach((m, i) => setTimeout(() => {
+      const t = typeof m === 'string' ? { title: m } : m;
+      toast.success(t.title, { description: t.description, duration: demo || t.persist ? Infinity : 5000, closeButton: t.persist ? true : undefined });
+    }, 300 + i * 150));
   }, []);
   // P8: on a page with a fixed bottom bar the toast sits above it, so feedback never
     // covers the next action. (The layer's own offset is SH-012, worker A's.)
     return <Toaster label={tr("الإشعارات", "Notifications")} closeLabel={tr("إغلاق الإشعار", "Close notification")} position="bottom-center" mobileOffset={{ bottom: '5.5rem' }} offset={{ bottom: bottomBar ? '5.5rem' : '1.5rem' }} />;
 }
 const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON.stringify(msgs)); } catch (e) {} };
+// C4: the line naming the favourite saved on the way in.
+const favSavedLine = (s) => tr(`حُفظت ${spaceName(s)} في المفضّلة`, `${spaceName(s)} saved to your favourites`);
 
-const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
+const PRIVACY_LINE = tr("يُرسَل موقعك مقرَّبًا لترتيب المساحات حسب المسافة فقط، ولا يُحفظ.", "Your location is sent rounded, only to sort spaces by distance, and is never stored.");
 
-Object.assign(window, { WifiOffIcon, AccountMenuContent, without, ActionButton, ActionAlert, useActionRun, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, spaceName, otherName, SpaceName, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpaceMeta, areaLine, SpaceCover, SpaceCard, SpaceCardSkeleton, useFavourites, HeartButton, HeartIcon, PRIVACY_LINE, PageToaster, handOffToast });
+Object.assign(window, { WifiOffIcon, AccountMenuContent, without, ActionButton, ActionAlert, useActionRun, actionFails, ACTION_MS, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, spaceName, otherName, SpaceName, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpaceMeta, areaLine, SpaceCover, SpaceCard, SpaceCardSkeleton, useFavourites, HeartButton, HeartIcon, PRIVACY_LINE, PageToaster, handOffToast, favSavedLine });
 
 // DS date picker with long localized dates («3 أكتوبر 2026»). value/onChange use ISO yyyy-mm-dd.
 const isoLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);

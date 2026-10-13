@@ -33,6 +33,7 @@ const DEMO = {
   network: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'sara@example.com', password: 'masaha2026' },
   loading: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'sara@example.com', password: 'masaha2026' },
   typing: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'sara@example.com', password: 'masaha2' },
+  toolong: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'sara@example.com', password: 'ب'.repeat(40) + '1' },
   filled: { name: tr("سارة أحمد", "Sara Ahmad"), email: 'sara@example.com', password: 'masaha2026' }
 };
 function validate(v) {
@@ -49,23 +50,28 @@ function RegisterScreen() {
   const [theme, setTheme] = useTheme();
   const google = useGoogleSignIn();
   const [v, setV] = React.useState(DEMO[initialState] || { name: '', email: '', password: '' });
-  const [errors, setErrors] = React.useState(initialState === 'errors' ? validate(DEMO.errors) : {});
+  const [errors, setErrors] = React.useState(initialState === 'errors' ? validate(DEMO.errors) : initialState === 'exists' ? { email: tr("يوجد حساب بهذا البريد الإلكتروني.", "An account with this email already exists.") } : {});
   const [loading, setLoading] = React.useState(initialState === 'loading');
   const [submitted, setSubmitted] = React.useState(initialState === 'errors');
-  const [problem, setProblem] = React.useState(['exists', 'ratelimit', 'network'].includes(initialState) ? initialState : null);
+  const [taken, setTaken] = React.useState(initialState === 'exists');
+  const left = useRetryAfter(initialState === 'ratelimit');
+  const [problem, setProblem] = React.useState(['exists', 'network'].includes(initialState) ? initialState : null);
   const set = (k) => (val) => setV((p) => ({ ...p, [k]: typeof val === 'string' ? val : val.target.value }));
 
   const submit = (e) => {
     e && e.preventDefault();
     const next = validate(v);
-    setErrors(next); setProblem(null); setSubmitted(true);
-    if (Object.keys(next).length) return;
+    setErrors(next); setProblem(null); setSubmitted(true); setTaken(false);
+    if (Object.keys(next).length || left > 0) return;
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      if (v.email.startsWith('taken')) return setProblem('exists');
+      if (v.email.startsWith('taken')) {
+        setErrors({ email: tr("يوجد حساب بهذا البريد الإلكتروني.", "An account with this email already exists.") });
+        return setTaken(true);
+      }
       window.__pendingUser = { name: v.name.trim(), email: v.email.trim(), method: 'email' };
-      finishAuth(tr(`أهلًا ${v.name.trim().split(' ')[0]}، تم إنشاء حسابك`, `Welcome ${v.name.trim().split(' ')[0]}, your account is ready`));
+      finishAuth(withIntent(tr(`أهلًا ${v.name.trim().split(' ')[0]}، تم إنشاء حسابك`, `Welcome ${v.name.trim().split(' ')[0]}, your account is ready`)));
     }, 1200);
   };
 
@@ -79,21 +85,19 @@ function RegisterScreen() {
         <CardContent className="flex flex-col gap-4">
           <GoogleBlock google={google} />
           <form className="flex flex-col gap-4" noValidate onSubmit={submit}>
-            {problem === 'exists' && (
-              <Alert variant="warning">
-                <AlertDescription>{tr("هذا البريد مسجّل مسبقًا — ", "This email is already registered — ")}<a href={withNext('Sign in.html')}>{tr("سجّل الدخول", "sign in")}</a>{tr(" أو ", " or ")}<a href="Forgot password.html">{tr("استعد كلمة المرور", "reset your password")}</a></AlertDescription>
-              </Alert>
-            )}
-            {problem === 'ratelimit' && <RateLimitAlert />}
+            <RateLimitAlert left={left} />
             {problem === 'network' && <NetworkAlert onRetry={submit} />}
             <Field label={tr("الاسم", "Name")} error={errors.name}>
               <Input autoComplete="name" value={v.name} disabled={loading} onChange={set('name')} />
             </Field>
-            <Field label={tr("البريد الإلكتروني", "Email")} error={errors.email}>
-              <Input type="email" dir="ltr" autoComplete="email" placeholder="name@example.com" value={v.email} disabled={loading} onChange={set('email')} />
-            </Field>
+            <div className="flex flex-col gap-1">
+              <Field label={tr("البريد الإلكتروني", "Email")} error={errors.email}>
+                <Input type="email" dir="ltr" autoComplete="email" placeholder="name@example.com" value={v.email} disabled={loading} onChange={set('email')} />
+              </Field>
+              {taken && <Button variant="link" size="sm" className="self-start px-0" asChild><a href={withNext('Sign in.html')}>{tr("سجّل الدخول بهذا البريد", "Sign in with this email")}</a></Button>}
+            </div>
             <PasswordField label={tr("كلمة المرور", "Password")} value={v.password} onChange={set('password')} error={errors.password} disabled={loading} submitted={submitted} />
-            <Button type="submit" className="w-full" loading={loading}>{tr("إنشاء الحساب", "Create account")}</Button>
+            <Button type="submit" className="w-full" loading={loading} disabled={left > 0}>{tr("إنشاء الحساب", "Create account")}</Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col gap-3 text-body-sm text-muted-foreground">
@@ -101,6 +105,7 @@ function RegisterScreen() {
             {tr("لديك حساب؟", "Have an account?")}
             <Button variant="link" size="sm" asChild><a href={withNext('Sign in.html')}>{tr("تسجيل الدخول", "Sign in")}</a></Button>
           </p>
+          <AuthWayBack />
           <p className="text-center text-caption">{tr("تدير مساحة عمل؟ حسابات أصحاب المساحات ينشئها فريق مساحة — ", "Run a coworking space? Space owner accounts are created by the Masaha team — ")}<a href="About.html#owners">{tr("تواصل معنا", "Contact us")}</a></p>
         </CardFooter>
       </Card>
