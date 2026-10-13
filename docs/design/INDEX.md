@@ -84,6 +84,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?fail=add` | `Staff.html` | adding a staff member failing inside the sheet |
 | `Owner space profile.html?report=d1#report` · `Packages.html?report=d2#report` | the owner's editor | the report «تعديل الحقل» carried there, above its section, with «تم التصحيح» (O12, A8) |
 | `Finance.html?month=2026-08` | Finance | the month chosen (OW-015) |
+| `Owner overview.html?demo=nocapacity` · `?demo=clear` | the overview | no capacity set (the queue's row, «بلا حالة مباشرة»), or nothing to do («كل شيء على ما يرام») |
 
 ## 01 · Flow
 

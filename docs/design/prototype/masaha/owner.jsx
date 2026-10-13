@@ -38,8 +38,8 @@ const OWNER_NAV = () => IS_OWNER ? [
   ] }
 ];
 
-const publicState = (present, cap, closed) => (closed ? 'closed' : present >= cap ? 'full' : 'open');
-const STATE_WORD = () => ({ open: ['success', tr('متاح', 'Available')], full: ['warning', tr('ممتلئ', 'Full')], closed: ['neutral', tr('مغلق الآن', 'Closed now')] });
+const publicState = (present, cap, closed) => (closed ? 'closed' : !cap ? 'none' : present >= cap ? 'full' : 'open');
+const STATE_WORD = () => ({ open: ['success', tr('متاح', 'Available')], full: ['warning', tr('ممتلئ', 'Full')], closed: ['neutral', tr('مغلق الآن', 'Closed now')], none: ['neutral', tr('بلا حالة مباشرة', 'No live status')] });
 
 // «ضبط الحالة»: set any public state for a while, only inside opening hours. A new override replaces the old one.
 // Kept in sessionStorage so it follows across pages; ?override=full|open|closed:minutes demos it; ?hours=closed demos outside hours.
@@ -66,7 +66,7 @@ function useOverride() {
 const hmLeft = (s) => { const m = Math.ceil(s / 60); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); };
 
 // The state's own colours, as Badge draws them, so one control can be read at a glance.
-const STATE_SKIN = { open: 'border-success bg-success-subtle text-success-subtle-foreground', full: 'border-warning bg-warning-subtle text-warning-subtle-foreground', closed: 'border-border bg-secondary text-secondary-foreground' };
+const STATE_SKIN = { open: 'border-success bg-success-subtle text-success-subtle-foreground', full: 'border-warning bg-warning-subtle text-warning-subtle-foreground', closed: 'border-border bg-secondary text-secondary-foreground', none: 'border-border bg-secondary text-secondary-foreground' };
 
 // Read-only, for a page that reports the state without offering to change it.
 function PublicStateBadge({ state, ov }) {
