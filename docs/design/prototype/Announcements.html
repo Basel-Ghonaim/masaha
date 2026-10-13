@@ -141,9 +141,9 @@ function AnnInner({ theme, setTheme }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList aria-label={tr('حالة الإعلان', 'Announcement status')}>
-            <TabsTrigger value="active">{tr('نشطة', 'Active')} (<Num>{count('active')}</Num>)</TabsTrigger>
-            <TabsTrigger value="scheduled">{tr('مجدولة', 'Scheduled')} (<Num>{count('scheduled')}</Num>)</TabsTrigger>
-            <TabsTrigger value="ended">{tr('منتهية', 'Ended')} (<Num>{count('ended')}</Num>)</TabsTrigger>
+            <TabsTrigger value="active">{tr('نشطة', 'Active')}<Badge variant="neutral"><Num>{count('active')}</Num></Badge></TabsTrigger>
+            <TabsTrigger value="scheduled">{tr('مجدولة', 'Scheduled')}<Badge variant="neutral"><Num>{count('scheduled')}</Num></Badge></TabsTrigger>
+            <TabsTrigger value="ended">{tr('منتهية', 'Ended')}<Badge variant="neutral"><Num>{count('ended')}</Num></Badge></TabsTrigger>
           </TabsList>
         </Tabs>
         <div>{newBtn}</div>

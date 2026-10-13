@@ -41,7 +41,7 @@ function ProfileScreen() {
         <SectionNav sections={SECTIONS()} />
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-9">
           <p className="text-body-sm text-muted-foreground">{tr('كل قسم يُحفظ وحده، ويظهر للزوار فور الحفظ.', 'Each section saves on its own and shows to visitors as soon as it’s saved.')} <a href="Space details.html?id=focus" target="_blank" rel="noopener">{tr('عرض الصفحة العامة', 'View public page')}</a></p>
-          {dirty > 0 && <Alert variant="warning"><AlertDescription>{tr(`لديك تغييرات غير محفوظة في ${dirty} ${dirty === 1 ? 'قسم' : 'أقسام'}. ستُفقد إذا غادرت الصفحة.`, `You have unsaved changes in ${dirty} section${dirty === 1 ? '' : 's'}. They’ll be lost if you leave the page.`)}</AlertDescription></Alert>}
+          {dirty > 0 && <Alert variant="warning"><AlertDescription><>{tr('لديك تغييرات غير محفوظة في ', 'You have unsaved changes in ')}<Counted n={dirty} ar={F_SECTIONS_IN.ar} en={F_SECTIONS_IN.en} />{tr('. ستُفقد إذا غادرت الصفحة.', '. They’ll be lost if you leave the page.')}</>}</AlertDescription></Alert>}
           <SpaceSection space={space} />
           <HoursSection />
           <Card id="prices" className="section-anchor">

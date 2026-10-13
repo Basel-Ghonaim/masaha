@@ -79,9 +79,9 @@ function DebtsTab() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label={tr('مجموع الديون', 'Total owed')} value={<Money n={total} />} helper={<><Num>{debtors.length}</Num> {tr('زبائن', 'customers')}</>} />
-        <StatCard label={tr('أرصدة للزبائن', 'Customer credit')} value={<Money n={credits.reduce((a, c) => a + DESK.credit(c), 0)} />} helper={<><Num>{credits.length}</Num> {tr('زبون دفع مقدمًا', 'prepaid')}</>} />
-        <StatCard label={tr('دفعوا هذا الشهر', 'Paid this month')} value={<Num>{paidThisMonth.length}</Num>} helper={tr('زبائن', 'customers')} />
+        <StatCard label={tr('مجموع الديون', 'Total owed')} value={<Money n={total} />} helper={<Counted n={debtors.length} ar={F_CUSTOMERS.ar} en={F_CUSTOMERS.en} />} />
+        <StatCard label={tr('أرصدة للزبائن', 'Customer credit')} value={<Money n={credits.reduce((a, c) => a + DESK.credit(c), 0)} />} helper={<><Counted n={credits.length} ar={F_CUSTOMERS.ar} en={F_CUSTOMERS.en} />{tr(' دفعوا مقدمًا', ' paid in advance')}</>} />
+        <StatCard label={tr('دفعوا هذا الشهر', 'Paid this month')} value={<Counted n={paidThisMonth.length} ar={F_CUSTOMERS.ar} en={F_CUSTOMERS.en} />} />
       </div>
       <Card>
         <CardHeader><CardTitle>{tr('عليهم مبالغ', 'Customers who owe')}</CardTitle><CardDescription>{tr('الأكبر أولًا', 'Largest first')}</CardDescription></CardHeader>

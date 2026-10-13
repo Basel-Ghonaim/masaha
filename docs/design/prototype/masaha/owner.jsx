@@ -289,4 +289,31 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
 
 // Numbers and ratios stay LTR and isolated inside Arabic text ("27 / 40").
 const Num = ({ children }) => { const f = [].concat(children); const text = f.every((c) => typeof c === 'string' || typeof c === 'number'); return <span dir="ltr" className="num-iso">{text ? f.join('') : children}</span>; };
-Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF });
+// O5: a counted noun takes the form its number asks for — Arabic has six (Intl.PluralRules('ar'):
+// zero, one, two, few, many, other). `ar` gives the forms, {n} where the number goes, `other` the
+// fallback; `en` is [one, other]. `Counted` isolates the number as `Num` does.
+const AR_PLURAL = new Intl.PluralRules('ar');
+const countForm = (n, ar, en) => (LANG === 'en' ? en[n === 1 ? 0 : 1] : ar[AR_PLURAL.select(n)] || ar.other);
+const countText = (n, ar, en) => countForm(n, ar, en).replace('{n}', String(n));
+function Counted({ n, ar, en }) {
+  const parts = countForm(n, ar, en).split('{n}');
+  return parts.length < 2 ? parts[0] : <>{parts[0]}<Num>{n}</Num>{parts[1]}</>;
+}
+const F_DAYS_AGO = { ar: { one: 'قبل يوم واحد', two: 'قبل يومين', few: 'قبل {n} أيام', many: 'قبل {n} يومًا', other: 'قبل {n} يوم' }, en: ['{n} day ago', '{n} days ago'] };
+const F_DAYS_IN = { ar: { two: 'بعد يومين', few: 'بعد {n} أيام', many: 'بعد {n} يومًا', other: 'بعد {n} يوم' }, en: ['in {n} day', 'in {n} days'] };
+const F_DAYS_ACC = { ar: { one: 'يومًا واحدًا', two: 'يومين', few: '{n} أيام', many: '{n} يومًا', other: '{n} يوم' }, en: ['{n} day', '{n} days'] };
+const F_SUBS = { ar: { zero: 'لا اشتراكات', one: 'اشتراك واحد', two: 'اشتراكان', few: '{n} اشتراكات', many: '{n} اشتراكًا', other: '{n} اشتراك' }, en: ['{n} subscription', '{n} subscriptions'] };
+const F_SUBS_ACTIVE_ACC = { ar: { one: 'اشتراك واحد نشط', two: 'اشتراكين نشطين', few: '{n} اشتراكات نشطة', many: '{n} اشتراكًا نشطًا', other: '{n} اشتراك نشط' }, en: ['{n} active subscription', '{n} active subscriptions'] };
+const F_EXTEND_VERB = { ar: { one: 'مدّد اشتراكًا واحدًا', two: 'مدّد اشتراكين', few: 'مدّد {n} اشتراكات', many: 'مدّد {n} اشتراكًا', other: 'مدّد {n} اشتراك' }, en: ['Extend {n} subscription', 'Extend {n} subscriptions'] };
+const F_EXTENDED = { ar: { one: 'مُدِّد اشتراك واحد', two: 'مُدِّد اشتراكان', few: 'مُدِّد {n} اشتراكات', many: 'مُدِّد {n} اشتراكًا', other: 'مُدِّد {n} اشتراك' }, en: ['{n} subscription extended', '{n} subscriptions extended'] };
+const F_VISITS = { ar: { zero: 'لا زيارات', one: 'زيارة واحدة', two: 'زيارتان', few: '{n} زيارات', many: '{n} زيارة', other: '{n} زيارة' }, en: ['{n} visit', '{n} visits'] };
+const F_UNPAID = { ar: { one: 'زيارة واحدة لم تُحصَّل اليوم', two: 'زيارتان لم تُحصَّلا اليوم', few: '{n} زيارات لم تُحصَّل اليوم', many: '{n} زيارة لم تُحصَّل اليوم', other: '{n} زيارة لم تُحصَّل اليوم' }, en: ['{n} visit not collected today', '{n} visits not collected today'] };
+const F_SUBSCRIBERS = { ar: { zero: 'لا مشتركين', one: 'مشترك واحد', two: 'مشتركان', few: '{n} مشتركين', many: '{n} مشتركًا', other: '{n} مشترك' }, en: ['{n} subscriber', '{n} subscribers'] };
+const F_NEW_REPORTS = { ar: { one: 'بلاغ جديد', two: 'بلاغان جديدان', few: '{n} بلاغات جديدة', many: '{n} بلاغًا جديدًا', other: '{n} بلاغ جديد' }, en: ['{n} new report', '{n} new reports'] };
+const F_OWE = { ar: { one: 'زبون واحد عليه مبلغ', two: 'زبونان عليهما مبالغ', few: '{n} زبائن عليهم مبالغ', many: '{n} زبونًا عليهم مبالغ', other: '{n} زبون عليهم مبالغ' }, en: ['{n} customer owes money', '{n} customers owe money'] };
+const F_CUSTOMERS = { ar: { zero: 'لا زبائن', one: 'زبون واحد', two: 'زبونان', few: '{n} زبائن', many: '{n} زبونًا', other: '{n} زبون' }, en: ['{n} customer', '{n} customers'] };
+const F_SECTIONS_IN = { ar: { one: 'قسم واحد', two: 'قسمين', few: '{n} أقسام', many: '{n} قسمًا', other: '{n} قسم' }, en: ['{n} section', '{n} sections'] };
+const F_MINUTES = { ar: { one: 'دقيقة', two: 'دقيقتين', few: '{n} دقائق', many: '{n} دقيقة', other: '{n} دقيقة' }, en: ['{n} min', '{n} min'] };
+const F_VALID = { ar: { one: 'صالحة يومًا واحدًا', two: 'صالحة يومين', few: 'صالحة {n} أيام', many: 'صالحة {n} يومًا', other: 'صالحة {n} يوم' }, en: ['valid {n} day', 'valid {n} days'] };
+const F_DAYS_N = { ar: { one: 'يوم واحد', two: 'يومان', few: '{n} أيام', many: '{n} يومًا', other: '{n} يوم' }, en: ['{n} day', '{n} days'] };
+Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF, AR_PLURAL, countText, Counted, F_DAYS_AGO, F_DAYS_IN, F_DAYS_ACC, F_SUBS, F_SUBS_ACTIVE_ACC, F_EXTEND_VERB, F_EXTENDED, F_VISITS, F_UNPAID, F_SUBSCRIBERS, F_NEW_REPORTS, F_OWE, F_CUSTOMERS, F_SECTIONS_IN, F_MINUTES, F_VALID, F_DAYS_N });
