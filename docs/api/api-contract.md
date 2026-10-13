@@ -473,7 +473,7 @@ PhotoUrls = { card: string, page: string }   // absolute online, root-relative l
 SpacePhoto = { id: number, urls: PhotoUrls }  // a list's order is the gallery's; the first is the cover
 ```
 
-- **Audit:** each change, with the gallery's ids in order before and after (`{ photoIds }`), never a URL or a file: `space.photoAdded`.
+- **Audit:** each change, with the gallery's ids in order before and after (`{ photoIds }`), never a URL or a file: `space.photoAdded`, `space.photoRemoved`, `space.photosReordered`.
 
 #### `GET /admin/spaces/:spaceId/photos` · 🛡
 - **200:** `SpacePhoto[]`, in order. A verified space's too: the admin reads them, and cannot change them.
@@ -483,6 +483,15 @@ SpacePhoto = { id: number, urls: PhotoUrls }  // a list's order is the gallery's
 - **Body:** `multipart/form-data`, one part, `photo`: a JPEG, a PNG or a WebP, at most 4 MiB (`PHOTO_MAX_BYTES`) and 50 megapixels. The web shrinks a photo before sending it. Its name and declared type are ignored.
 - **201:** `SpacePhoto`, placed last. Audited `space.photoAdded`.
 - **Errors**, a refusal storing nothing: `validation` (422), with `errors.photo = ["required"]` without the part; `bad_request` (400) for any other part, a second file, or a body that cannot be read; `payload_too_large` (413) over 4 MiB or 50 megapixels; `unsupported_media_type` (415) for anything that does not decode as a JPEG, a PNG or a WebP; `conflict` (409), with no code, when the space already has 10 photos; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too; `service_unavailable` (503) when the store fails; `rate_limit` (429) past 30 uploads in 15 minutes ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)).
+
+#### `DELETE /admin/spaces/:spaceId/photos/:photoId` · 🛡
+- **204:** the photo is removed, the ones after it move up, and its files are deleted before the answer. Audited `space.photoRemoved`. A photo the space does not have writes nothing and answers the same, so a removal retried after a lost answer succeeds.
+- **Errors:** `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
+
+#### `PUT /admin/spaces/:spaceId/photos/order` · 🛡
+- **Body:** `{ ids: number[] }`: every id of the space's photos, each once, first to last, at most 10 (`too_long`).
+- **204:** the order is applied in one transaction; the first is the cover. Audited `space.photosReordered`; the order the gallery already has writes nothing.
+- **Errors:** `validation` (422); `conflict` (409), with no code, when the ids are not exactly the space's photos (one missing, extra, repeated or another space's): the gallery changed since it was read; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
 
 ### Owners (the admin)
 

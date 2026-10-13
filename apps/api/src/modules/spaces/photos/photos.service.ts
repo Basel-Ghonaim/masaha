@@ -126,6 +126,67 @@ export function createPhotosService({ runInTransaction, audit, storage, logger }
         throw error;
       }
     },
+
+    /**
+     * Removes a photo (D9): its row, the order closed up after it, and its audit entry, in one
+     * transaction; then its files, before the answer. A photo the space does not have writes
+     * nothing, so a removal retried after a lost answer succeeds (S4).
+     */
+    async remove(actor: Actor, space: LoadedSpace, photoId: number): Promise<void> {
+      const removed = await runInTransaction(async (tx) => {
+        await lockFor(actor, space, tx);
+        const before = await photos.listFor(space.id, tx);
+        const photo = before.find(({ id }) => id === photoId);
+        if (!photo) return null;
+        await photos.remove(space.id, photo.id, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'space.photoRemoved',
+            entityType: 'space',
+            entityId: space.id,
+            spaceId: space.id,
+            before: { photoIds: before.map(({ id }) => id) },
+            after: { photoIds: before.filter(({ id }) => id !== photoId).map(({ id }) => id) },
+          },
+          tx,
+        );
+        return photo;
+      });
+      if (removed) await discard(objectKeysOf(removed.key));
+    },
+
+    /**
+     * Puts the photos in the order of `ids`, which must be exactly the space's photos, each once:
+     * else the gallery changed since it was read (409). The first is the cover. The same order
+     * writes nothing.
+     */
+    async reorder(actor: Actor, space: LoadedSpace, ids: readonly number[]): Promise<void> {
+      await runInTransaction(async (tx) => {
+        await lockFor(actor, space, tx);
+        const before = (await photos.listFor(space.id, tx)).map(({ id }) => id);
+        const exact =
+          ids.length === before.length &&
+          new Set(ids).size === ids.length &&
+          ids.every((id) => before.includes(id));
+        if (!exact) throw AppError.conflict(undefined, 'Not exactly the space’s photos');
+        if (ids.every((id, i) => id === before[i])) return;
+
+        await photos.setOrder(ids, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'space.photosReordered',
+            entityType: 'space',
+            entityId: space.id,
+            spaceId: space.id,
+            before: { photoIds: before },
+            after: { photoIds: [...ids] },
+          },
+          tx,
+        );
+      });
+    },
   };
 }
 

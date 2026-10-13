@@ -1,3 +1,5 @@
+import { Writable } from 'node:stream';
+
 import { PHOTO_MAX_BYTES } from '@masaha/shared/spaces';
 import type { Express } from 'express';
 import request from 'supertest';
@@ -18,6 +20,7 @@ import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings, signInOwnerOf } from '../../../../test/spaces.ts';
 import { createTestStorage, failingStorage, type TestStorage } from '../../../../test/storage.ts';
 import { prisma } from '../../../db/index.ts';
+import { createLogger } from '../../../shared/http/index.ts';
 
 const NOW = new Date('2026-10-13T09:00:00.000Z');
 const BEFORE = new Date('2026-09-01T09:00:00.000Z');
@@ -345,5 +348,217 @@ describe('GET /admin/spaces/:spaceId/photos', () => {
 
     expect(response.status).toBe(refusal.status);
     expect(errorOf(response)).toMatchObject({ type: refusal.type });
+  });
+});
+
+/** Uploads `count` real photos, so each has its files, and answers them in order. */
+async function uploadPhotos(count: number) {
+  const photos: { id: number; key: string }[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const response = await upload(await image('jpeg'));
+    const { id } = dataOf(response) as { id: number };
+    const { path } = await prisma.spacePhoto.findUniqueOrThrow({ where: { id } });
+    photos.push({ id, key: path });
+  }
+  return photos;
+}
+
+function removePhoto(photoId: number, caller: { authorization: string } = admin) {
+  return adminRequest(
+    app,
+    caller,
+    'delete',
+    `/spaces/${String(spaceId)}/photos/${String(photoId)}`,
+  );
+}
+
+function reorder(ids: number[], caller: { authorization: string } = admin) {
+  return adminRequest(app, caller, 'put', `/spaces/${String(spaceId)}/photos/order`, { ids });
+}
+
+/** The files a photo stored under `key` has. */
+const filesOf = (key: string) => [`spaces/${key}/card.webp`, `spaces/${key}/page.webp`];
+
+describe('DELETE /admin/spaces/:spaceId/photos/:photoId', () => {
+  it('removes the photo and its files, closes up the order, and audits the ids', async () => {
+    const [a, b, c] = await uploadPhotos(3);
+    if (!a || !b || !c) throw new Error('Three photos were uploaded');
+    await prisma.auditLog.deleteMany();
+
+    const response = await removePhoto(b.id);
+
+    expect(response.status).toBe(204);
+    expect((await rows()).map((row) => [row.id, row.sortOrder])).toEqual([
+      [a.id, 0],
+      [c.id, 1],
+    ]);
+    expect(await files.files()).toEqual([...filesOf(a.key), ...filesOf(c.key)].sort());
+    expect(await auditEntries()).toEqual([
+      {
+        actorId: admin.id,
+        action: 'space.photoRemoved',
+        entityType: 'space',
+        entityId: spaceId,
+        spaceId,
+        before: { photoIds: [a.id, b.id, c.id] },
+        after: { photoIds: [a.id, c.id] },
+      },
+    ]);
+    expect(await prisma.space.findUniqueOrThrow({ where: { id: spaceId } })).toMatchObject(DATES);
+  });
+
+  it('writes nothing for a photo the space does not have, and answers as if removed', async () => {
+    await uploadPhotos(1);
+    const { id: otherSpace } = await createSpace('other-space');
+    const other = await prisma.spacePhoto.create({
+      data: { spaceId: otherSpace, path: 'elsewhere', sortOrder: 0 },
+    });
+    await prisma.auditLog.deleteMany();
+
+    const response = await removePhoto(other.id);
+    const unknown = await removePhoto(other.id + 1000);
+
+    expect(response.status).toBe(204);
+    expect(unknown.status).toBe(204);
+    expect(await prisma.spacePhoto.count()).toBe(2);
+    expect(await files.files()).toHaveLength(2);
+    expect(await auditEntries()).toEqual([]);
+  });
+
+  it('answers 204 when its files cannot be removed, and logs them as left behind', async () => {
+    const [photo] = await uploadPhotos(1);
+    if (!photo) throw new Error('A photo was uploaded');
+    const lines: string[] = [];
+    const logged = createTestApp({
+      clock: () => NOW,
+      storage: failingStorage(files.storage, { failRemove: /./ }),
+      logger: createLogger(
+        'warn',
+        new Writable({
+          write(chunk: Buffer, _encoding, done) {
+            lines.push(chunk.toString());
+            done();
+          },
+        }),
+      ),
+    });
+
+    const response = await adminRequest(
+      logged,
+      admin,
+      'delete',
+      `/spaces/${String(spaceId)}/photos/${String(photo.id)}`,
+    );
+
+    expect(response.status).toBe(204);
+    expect(await rows()).toEqual([]);
+    const line = lines.find((text) => text.includes('[storage:orphan]'));
+    expect(line).toContain(`spaces/${photo.key}/card.webp`);
+  });
+
+  it('refuses the admin once an owner has joined (403), removing nothing', async () => {
+    const [photo] = await uploadPhotos(1);
+    await signInOwnerOf(spaceId);
+
+    const response = await removePhoto(photo?.id ?? 0);
+
+    expect(response.status).toBe(403);
+    expect(await rows()).toHaveLength(1);
+    expect(await files.files()).toHaveLength(2);
+  });
+
+  it('answers not_found for a soft-deleted space', async () => {
+    const [photo] = await uploadPhotos(1);
+    await prisma.space.update({ where: { id: spaceId }, data: { deletedAt: NOW } });
+
+    expect((await removePhoto(photo?.id ?? 0)).status).toBe(404);
+  });
+
+  it.each(REFUSED_CALLERS)('refuses $caller with $status', async ({ caller, ...refusal }) => {
+    const response = await adminRequest(
+      app,
+      caller,
+      'delete',
+      `/spaces/${String(spaceId)}/photos/1`,
+    );
+
+    expect(response.status).toBe(refusal.status);
+  });
+});
+
+describe('PUT /admin/spaces/:spaceId/photos/order', () => {
+  it('puts the photos in the order given, the first the cover, and audits the ids', async () => {
+    const [a, b, c] = await seedPhotos(3);
+    if (!a || !b || !c) throw new Error('Three photos were seeded');
+
+    const response = await reorder([c.id, a.id, b.id]);
+
+    expect(response.status).toBe(204);
+    const listed = await adminRequest(app, admin, 'get', `/spaces/${String(spaceId)}/photos`);
+    expect((dataOf(listed) as { id: number }[]).map(({ id }) => id)).toEqual([c.id, a.id, b.id]);
+    expect((await rows()).map((row) => row.sortOrder)).toEqual([0, 1, 2]);
+    expect(await auditEntries()).toEqual([
+      {
+        actorId: admin.id,
+        action: 'space.photosReordered',
+        entityType: 'space',
+        entityId: spaceId,
+        spaceId,
+        before: { photoIds: [a.id, b.id, c.id] },
+        after: { photoIds: [c.id, a.id, b.id] },
+      },
+    ]);
+    expect(await prisma.space.findUniqueOrThrow({ where: { id: spaceId } })).toMatchObject(DATES);
+  });
+
+  it('writes nothing for the order the gallery already has', async () => {
+    const photos = await seedPhotos(2);
+
+    const response = await reorder(photos.map(({ id }) => id));
+
+    expect(response.status).toBe(204);
+    expect(await auditEntries()).toEqual([]);
+  });
+
+  it('refuses ids that are not exactly the space’s photos (409), writing nothing', async () => {
+    const [a, b] = await seedPhotos(2);
+    if (!a || !b) throw new Error('Two photos were seeded');
+    const { id: otherSpace } = await createSpace('other-space');
+    const other = await prisma.spacePhoto.create({
+      data: { spaceId: otherSpace, path: 'elsewhere', sortOrder: 0 },
+    });
+
+    for (const ids of [[a.id], [a.id, b.id, other.id], [a.id, a.id], [b.id, other.id]]) {
+      const response = await reorder(ids);
+      expect(response.status).toBe(409);
+      expect(errorOf(response).code).toBeUndefined();
+    }
+    expect((await rows()).map((row) => row.id)).toEqual([a.id, b.id]);
+    expect(await auditEntries()).toEqual([]);
+  });
+
+  it('refuses a body without ids, or with more than ten (422)', async () => {
+    const path = `/spaces/${String(spaceId)}/photos/order`;
+    const missing = await adminRequest(app, admin, 'put', path, {});
+    const eleven = await reorder(Array.from({ length: 11 }, (_, i) => i + 1));
+
+    expect(errorOf(missing).errors).toEqual({ ids: ['required'] });
+    expect(errorOf(eleven).errors).toEqual({ ids: ['too_long'] });
+  });
+
+  it('refuses the admin once an owner has joined (403)', async () => {
+    const photos = await seedPhotos(2);
+    await signInOwnerOf(spaceId);
+
+    const response = await reorder(photos.map(({ id }) => id).reverse());
+
+    expect(response.status).toBe(403);
+  });
+
+  it.each(REFUSED_CALLERS)('refuses $caller with $status', async ({ caller, ...refusal }) => {
+    const path = `/spaces/${String(spaceId)}/photos/order`;
+    const response = await adminRequest(app, caller, 'put', path, { ids: [] });
+
+    expect(response.status).toBe(refusal.status);
   });
 });

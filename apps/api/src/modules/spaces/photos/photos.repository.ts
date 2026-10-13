@@ -31,5 +31,23 @@ export function createPhotosRepository() {
       });
       return { id, key };
     },
+
+    /** Deletes the photo, then closes up the order after it: one statement each. */
+    async remove(spaceId: number, id: number, tx: Tx): Promise<void> {
+      const { sortOrder } = await tx.spacePhoto.delete({
+        where: { id },
+        select: { sortOrder: true },
+      });
+      await tx.$executeRaw`
+        UPDATE space_photos SET sort_order = sort_order - 1
+        WHERE space_id = ${spaceId} AND sort_order > ${sortOrder}`;
+    },
+
+    /** Gives each photo its place in `ids`, one statement at a time (finding 11). */
+    async setOrder(ids: readonly number[], tx: Tx): Promise<void> {
+      for (const [sortOrder, id] of ids.entries()) {
+        await tx.spacePhoto.update({ where: { id }, data: { sortOrder }, select: { id: true } });
+      }
+    },
   };
 }

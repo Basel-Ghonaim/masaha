@@ -1,6 +1,7 @@
 import {
   createSpaceSchema,
   PHOTO_MAX_BYTES,
+  photoOrderSchema,
   FACT_GROUPS,
   setSpaceHiddenSchema,
   updateSpaceAmenitiesSchema,
@@ -76,5 +77,7 @@ export function createSpacesAdminRouter({
     receiveFile('photo', PHOTO_MAX_BYTES),
     photos.upload,
   );
+  router.put('/spaces/:spaceId/photos/order', validate(photoOrderSchema), photos.reorder);
+  router.delete('/spaces/:spaceId/photos/:photoId', photos.remove);
   return router;
 }

@@ -1,9 +1,10 @@
-import type { SpacePhoto } from '@masaha/shared/spaces';
+import type { PhotoOrderRequest, SpacePhoto } from '@masaha/shared/spaces';
 import type { Request, Response } from 'express';
 
 import { signedIn, spaceOf } from '../../../shared/auth/index.ts';
 import { AppError } from '../../../shared/errors/index.ts';
-import { sendSuccess } from '../../../shared/http/index.ts';
+import { sendNoContent, sendSuccess } from '../../../shared/http/index.ts';
+import { parseId } from '../../../shared/validation/index.ts';
 import type { PhotosService } from './photos.service.ts';
 
 export function createPhotosController(service: PhotosService) {
@@ -19,6 +20,19 @@ export function createPhotosController(service: PhotosService) {
       const { userId, role } = signedIn(req);
       const photo = await service.upload({ id: userId, role }, spaceOf(req), req.file.buffer);
       sendSuccess(res, photo satisfies SpacePhoto, { status: 201 });
+    },
+
+    remove: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      await service.remove({ id: userId, role }, spaceOf(req), parseId(req.params.photoId));
+      sendNoContent(res);
+    },
+
+    reorder: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const { ids } = req.body as PhotoOrderRequest;
+      await service.reorder({ id: userId, role }, spaceOf(req), ids);
+      sendNoContent(res);
     },
   };
 }

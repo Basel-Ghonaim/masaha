@@ -10,7 +10,7 @@
 - Dates each of the space's fact groups when it is saved or confirmed unchanged, and computes from those dates which groups are stale, which are missing, and when the space was last updated.
 - Answers the modules above it: the summaries of a set of spaces, and a page of the admin's spaces list over the ids it is given, of the soft-deleted spaces when asked.
 - Answers the [directory](directory.md) the publicly listed spaces over the ids and areas it is given: filtered, searched, ordered and paged, or whole up to a ceiling for the map, each with its week; and a space's public page, read whole, its prices hidden as the public is kept from them.
-- Keeps a space's photos for the admin: up to 10, in an order whose first is the cover, each re-encoded on the server as two WebP sizes with no metadata and stored through the storage port; lists them, adds one at a time, as the [contract](../api/api-contract.md#photos) says.
+- Keeps a space's photos for the admin: up to 10, in an order whose first is the cover, each re-encoded on the server as two WebP sizes with no metadata and stored through the storage port; lists them, adds and removes one at a time and orders them, as the [contract](../api/api-contract.md#photos) says.
 - On the web, adds a space from its basics and its location, its pin placed on a map; edits a space on a page of its own, its profile, its amenities and its contacts each saved, dated and confirmed as a section, under the groups still missing, asking before the page is left with unsaved changes, and shows a verified space read-only; and gives each row of the admin's spaces list its menu: edit the space, hide it or show it again, and delete it, with an Undo that restores it.
 
 The owner's side is not built, and the photos are the API's only; on the web, neither are the hours with the shifts, nor the prices.
@@ -85,6 +85,8 @@ The owner's side is not built, and the photos are the API's only; on the web, ne
 **Photos.** A space's photos are no fact group: a change dates nothing and is never confirmed. Who may change them is `can()`'s, as for the facts: the admin while the space is unverified, else its owner.
 - **An upload** is refused cheaply first, without the lock, when `can()` refuses on the loaded links or the gallery is full, so a refused upload costs no decoding and no store. Then the image core (`shared/images`) decodes it, its content check, and makes the two sizes; both files are stored under a new random key, at once; a failed store removes what was stored and answers 503. Then one transaction: the space's lock, `can()` on the links under it, the count of 10 under it, the row placed last, its audit entry. A refusal or a failure there removes both files before the answer, so two uploads at once can never pass 10.
 - **A file left behind** (a crash between the store and the commit, a failed removal) is logged `[storage:orphan]`, and nothing reclaims it in v1 ([finding 63](../architecture/findings/63-a-photos-files-can-outlive-it.md)).
+- **A removal** deletes the row and moves the later photos up, with its audit entry, in one transaction under the space's lock; then its files, before the answer. A failed file removal is logged, never answered as a failure. A photo the space does not have writes nothing, and the answer is the same.
+- **An order** must name exactly the space's photos, each once, as they are under the lock (409 otherwise); the order the gallery has writes nothing.
 - **The list** is read under the space's share lock, as the space's read is.
 
 **Confirm.** A group confirmed unchanged has its date renewed and nothing else, under the space's lock, with its audit entry, on the same path and by the same `can()` rule as a save; a missing group has nothing to confirm (409).
@@ -134,6 +136,8 @@ The owner's side is not built, and the photos are the API's only; on the web, ne
 - **One storage key per photo, its sizes derived from it, its URLs built at read time** (D4). *Why:* the table does not change, and another store is a new adapter, not new data. 2026-10-13, #77.
 - **At most 10 photos, counted under the space's lock; the 11th is a 409 with no code** (D7, the owner's answer). *Why:* two uploads at once must not pass the cap; the gallery disables "add" at 10, so only a race meets it, and the upload's only 409 needs no code. 2026-10-13, #77.
 - **Files are stored before the transaction and removed when it refuses or fails; no reclamation job in v1** (D9). *Why:* no network call inside a transaction, no work after the answer ([finding 63](../architecture/findings/63-a-photos-files-can-outlive-it.md)). 2026-10-13, #77.
+- **Removing a photo the space does not have writes nothing, and answers as a removal** (S4). *Why:* the gallery's actions are immediate, and a removal retried after a lost answer must not show a failure; the owners' unlink set the precedent. 2026-10-13, #77.
+- **An order answers 204, like the lookups' order** (S9). *Why:* the gallery sent the order it shows. 2026-10-13, #77.
 - **A refused upload is refused before its work** (S1): `can()` and the count, without the lock, then decided again under it. *Why:* a verified space's upload or an 11th photo would cost a decode and two stores. 2026-10-13, #77.
 - **The gallery has its own read, `GET …/photos`** (D6). *Why:* `AdminSpace`, which the web's editor is built on, does not change. 2026-10-13, #77.
 - **Photos have a `can()` action of their own, `space.photos.manage`, under the facts' rule** (S3). *Why:* the table names what it decides, and photos are no fact group. 2026-10-13, #77.
@@ -205,7 +209,7 @@ The owner's side is not built, and the photos are the API's only; on the web, ne
 - #64 — a space's own amenities, in the amenities group; no price of zero.
 - The deleted-spaces item — the listing page of the soft-deleted spaces, with when each was deleted.
 - The directory item — the public listing (filters, search, orders, pages and the map's set) and the public page.
-- #77 — a space's photos: the gallery's read and its upload, through the storage port and the image core.
+- #77 — a space's photos: the gallery's read, its upload through the storage port and the image core, its removal and its order.
 
 ### Web history
 
