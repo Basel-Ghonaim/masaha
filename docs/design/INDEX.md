@@ -63,6 +63,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Settings.html?pw=open` | account settings | the password form open in the «تسجيل الدخول» card. Replaces `?state=signout`: v1 has no sign-out of all devices (C2) |
 | `Settings.html?auth=google&state=linksent` · `?fail=setlink` | the same, a Google-only account | the link to set a password sent, in place; or its sending failing |
 | `Change password.html?role=owner` · `reception` · `admin` · `user` | the forced change | where saving lands: the owner's overview (the default), the desk, the admin's overview, Home |
+| `?auth=0` | Favourites, My reports, account settings | signed out: straight to sign-in with `next`, as the route's `RequireAuth` does (AC-011) |
+| `Settings.html?fail=language` | account settings | the language's save failing: the toggle returns, «تعذّر حفظ اللغة» with «إعادة المحاولة» |
 
 ## 01 · Flow
 
@@ -338,7 +340,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Reports · error — desktop 1440 | `Reports.html?auth=1&state=error` | 1440×1000 | [16-my-reports/07-reports-error-desktop-1440.webp](screens/16-my-reports/07-reports-error-desktop-1440.webp) |
 | Reports · error — phone 390 | `Reports.html?auth=1&state=error` | 390×844 | [16-my-reports/08-reports-error-phone-390.webp](screens/16-my-reports/08-reports-error-phone-390.webp) |
 
-## 17 · Settings «الإعدادات»
+## 17 · Settings «إعدادات حسابي»
 
 | Frame | Prototype URL | Viewport | Screenshot |
 |---|---|---|---|

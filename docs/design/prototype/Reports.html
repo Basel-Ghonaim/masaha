@@ -75,7 +75,7 @@ function ReportsScreen() {
         <ToggleGroupItem value="open">{tr('قيد المراجعة', 'In review')}</ToggleGroupItem>
         <ToggleGroupItem value="closed">{tr('مغلقة', 'Closed')}</ToggleGroupItem>
       </ToggleGroup>
-      <section aria-label={tr('البلاغات', 'Reports')} aria-busy={state === 'loading'} className="flex max-w-3xl flex-col gap-4">
+      <section aria-label={tr('البلاغات', 'Reports')} aria-busy={state === 'loading'} className="flex flex-col gap-4">
         {state === 'loading' && [0, 1, 2].map((i) => <Card key={i} aria-hidden="true"><CardHeader><Skeleton className="h-5 w-32" /><Skeleton className="h-4 w-48" /></CardHeader><CardContent><Skeleton className="h-4 w-full" /></CardContent></Card>)}
         {state === 'error' && (
           <Alert variant="destructive">

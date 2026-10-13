@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>الإعدادات — مساحة</title>
+<title>إعدادات حسابي — مساحة</title>
 <link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
 <link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
 <link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
@@ -42,9 +42,11 @@ function ProfileCard({ user }) {
       <form onSubmit={save} noValidate className="flex flex-col gap-(--card-padding)">
         <CardContent className="flex flex-col gap-4">
           <Field label={tr('الاسم', 'Name')} error={error}><Input autoComplete="name" value={name} disabled={loading} onChange={(e) => setName(e.target.value)} /></Field>
-          <Field label={tr('البريد الإلكتروني', 'Email')} helper={<>{tr('لتغيير البريد', 'To change your email,')} <a href="About.html#contact">{tr('تواصل معنا', 'contact us')}</a></>}>
-            <Input type="email" dir="ltr" value={user.email} readOnly className="bg-muted" />
-          </Field>
+          <div className="flex flex-col gap-1">
+            <span className="text-label">{tr('البريد الإلكتروني', 'Email')}</span>
+            <span dir="ltr" className="self-start text-body">{user.email}</span>
+            <span className="text-caption text-muted-foreground">{tr('تسجّل الدخول بهذا البريد', 'You sign in with this email')}</span>
+          </div>
         </CardContent>
         <CardFooter><Button type="submit" loading={loading}>{tr('حفظ', 'Save')}</Button></CardFooter>
       </form>
@@ -53,12 +55,25 @@ function ProfileCard({ user }) {
 }
 
 function PreferencesCard({ theme, setTheme }) {
-  const [mode, setMode] = React.useState(pageParams.get('theme') === 'dark' ? 'dark' : 'light');
+  // AC-013: the device's setting until a choice is stored (foundation §6). The prototype stores none: ?theme= stands for one.
+  const p = pageParams.get('theme');
+  const [mode, setMode] = React.useState(p === 'dark' || p === 'light' ? p : 'system');
   const apply = (v) => {
     if (!v) return;
     setMode(v);
     const t = v === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : v;
     setTheme(t);
+  };
+  const [lang, setLang] = React.useState(LANG);
+  // P8's exception: the change shows in place, so only its failure is announced.
+  const pickLang = (v) => {
+    if (!v || v === LANG) return;
+    setLang(v);
+    setTimeout(() => {
+      if (!actionFails('language')) return switchLang();
+      setLang(LANG);
+      toast.error(tr('تعذّر حفظ اللغة', 'Couldn’t save the language'), { action: { label: tr('إعادة المحاولة', 'Try again'), onClick: () => pickLang(v) } });
+    }, ACTION_MS);
   };
   return (
     <Card>
@@ -67,13 +82,13 @@ function PreferencesCard({ theme, setTheme }) {
         <CardDescription>{tr('تُطبَّق فورًا.', 'Applied right away.')}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <Field label={tr('اللغة', 'Language')}>
-          <ToggleGroup type="single" value={LANG} onValueChange={(v) => v && v !== LANG && switchLang()}>
+        <Field label={tr('اللغة', 'Language')} helper={tr('تُحفظ في حسابك', 'Saved to your account')}>
+          <ToggleGroup type="single" value={lang} onValueChange={pickLang}>
             <ToggleGroupItem value="ar" lang="ar">العربية</ToggleGroupItem>
             <ToggleGroupItem value="en" lang="en">English</ToggleGroupItem>
           </ToggleGroup>
         </Field>
-        <Field label={tr('المظهر', 'Theme')}>
+        <Field label={tr('المظهر', 'Theme')} helper={tr('على هذا الجهاز', 'On this device')}>
           <ToggleGroup type="single" value={mode} onValueChange={apply}>
             <ToggleGroupItem value="light">{tr('فاتح', 'Light')}</ToggleGroupItem>
             <ToggleGroupItem value="dark">{tr('داكن', 'Dark')}</ToggleGroupItem>
@@ -177,9 +192,9 @@ function SettingsScreen() {
   const [theme, setTheme] = useTheme();
   const user = getUser();
   return (
-    <AccountShell current="settings" title={tr('الإعدادات', 'Settings')} theme={theme} setTheme={setTheme}>
+    <AccountShell current="settings" title={tr('إعدادات حسابي', 'Account settings')} theme={theme} setTheme={setTheme}>
       {user && (
-        <div className="flex max-w-2xl flex-col gap-6">
+        <div className="flex max-w-3xl flex-col gap-6">
           <ProfileCard user={user} />
           <PreferencesCard theme={theme} setTheme={setTheme} />
           <SignInCard user={user} />
