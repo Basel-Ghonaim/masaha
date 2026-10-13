@@ -38,7 +38,9 @@ function priceErrors(v) {
   return errorsOf(out);
 }
 
-function PricesSection({ space, meta = {} }) {
+// The owner's Packages & prices page names the table «الأسعار المعلنة» beside its private packages,
+// and its hours live on another page; the admin's editor passes none of these.
+function PricesSection({ space, meta = {}, title, description, hoursHref = '#hours' }) {
   const shifts = useStored('shifts');
   const wide = useIsTablet();
   const sec = useSection('prices', { rows: meta.missing ? [] : sampleRows() }, meta.missing);
@@ -65,11 +67,11 @@ function PricesSection({ space, meta = {} }) {
     };
   };
   return (
-    <ProfileSection id="prices" title={tr('الأسعار', 'Prices')} updated={meta.updated || tr('قبل 3 أيام', '3 days ago')} stale={meta.stale} sec={{ ...sec, save }}
-      description={tr('للعرض فقط · الدفع في المساحة', 'Display only · Pay at the space')} validate={priceErrors}>
+    <ProfileSection id="prices" title={title || tr('الأسعار', 'Prices')} updated={meta.updated || tr('قبل 3 أيام', '3 days ago')} stale={meta.stale} sec={{ ...sec, save }}
+      description={description || tr('للعرض فقط · الدفع في المساحة', 'Display only · Pay at the space')} validate={priceErrors}>
       {(errors) => <>
         <p className="text-caption text-muted-foreground">{tr('اترك المدة غير المتوفرة بلا سعر.', 'Leave out the periods you don’t offer.')}</p>
-        {noShifts && <p className="text-caption text-muted-foreground">{tr('لا ورديات محفوظة بعد، فكل الأسعار بلا وردية. ', 'No shifts are saved yet, so every price has none. ')}<a href="#hours">{tr('أضف ورديات في ساعات العمل أولًا', 'Add shifts in the opening hours first')}</a></p>}
+        {noShifts && <p className="text-caption text-muted-foreground">{tr('لا ورديات محفوظة بعد، فكل الأسعار بلا وردية. ', 'No shifts are saved yet, so every price has none. ')}<a href={hoursHref}>{tr('أضف ورديات في ساعات العمل أولًا', 'Add shifts in the opening hours first')}</a></p>}
         {sec.v.rows.length > 0 && (wide ? (
           <div className="price-table rounded-lg border border-border">
             <QTable>

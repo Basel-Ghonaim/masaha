@@ -71,6 +71,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Parameter | Where | What it shows |
 |---|---|---|
 | `?drawer=open` | the owner's and reception's pages, on a phone | the drawer, open, with the account at its head (DI-10) |
+| `?demo=missing` | `Owner space profile.html`, `Owner overview.html` | the amenities never saved: A2's checklist on the profile, «لم تُضف بعد» in the overview's queue |
+| `Packages.html#prices` | Packages & prices | the published prices' table, where every «الأسعار» link lands (O6) |
 
 ## 01 · Flow
 

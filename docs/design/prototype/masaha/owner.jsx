@@ -220,8 +220,20 @@ function DrawerAccount() {
   );
 }
 
+// The page renders after the browser looked for `#…`, so the anchor brings itself into view (as the
+// admin's report notice does).
+function useHashLanding() {
+  React.useEffect(() => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (!id) return undefined;
+    const t = setTimeout(() => { const el = document.getElementById(id); if (el) el.scrollIntoView({ block: 'start' }); }, 120);
+    return () => clearTimeout(t);
+  }, []);
+}
+
 // state: the automatic public state; a manual override turns it to Full while it runs.
 function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAction, actions, loadError, children }) {
+  useHashLanding();
   const ov = useOverride();
   const base = INSIDE_HOURS ? state : 'closed';
   // The 768–1023 rail: the sidebar collapses to icons there, so the switcher needs its tooltip.
@@ -316,4 +328,4 @@ const F_SECTIONS_IN = { ar: { one: 'قسم واحد', two: 'قسمين', few: '{
 const F_MINUTES = { ar: { one: 'دقيقة', two: 'دقيقتين', few: '{n} دقائق', many: '{n} دقيقة', other: '{n} دقيقة' }, en: ['{n} min', '{n} min'] };
 const F_VALID = { ar: { one: 'صالحة يومًا واحدًا', two: 'صالحة يومين', few: 'صالحة {n} أيام', many: 'صالحة {n} يومًا', other: 'صالحة {n} يوم' }, en: ['valid {n} day', 'valid {n} days'] };
 const F_DAYS_N = { ar: { one: 'يوم واحد', two: 'يومان', few: '{n} أيام', many: '{n} يومًا', other: '{n} يوم' }, en: ['{n} day', '{n} days'] };
-Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF, AR_PLURAL, countText, Counted, F_DAYS_AGO, F_DAYS_IN, F_DAYS_ACC, F_SUBS, F_SUBS_ACTIVE_ACC, F_EXTEND_VERB, F_EXTENDED, F_VISITS, F_UNPAID, F_SUBSCRIBERS, F_NEW_REPORTS, F_OWE, F_CUSTOMERS, F_SECTIONS_IN, F_MINUTES, F_VALID, F_DAYS_N });
+Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF, AR_PLURAL, countText, Counted, useHashLanding, F_DAYS_AGO, F_DAYS_IN, F_DAYS_ACC, F_SUBS, F_SUBS_ACTIVE_ACC, F_EXTEND_VERB, F_EXTENDED, F_VISITS, F_UNPAID, F_SUBSCRIBERS, F_NEW_REPORTS, F_OWE, F_CUSTOMERS, F_SECTIONS_IN, F_MINUTES, F_VALID, F_DAYS_N });

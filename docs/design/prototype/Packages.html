@@ -30,6 +30,9 @@
 const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Switch, Field, Input, ToggleGroup, ToggleGroupItem, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Alert, AlertDescription, EmptyState, InfoIcon, toast } = window.MasahaDesignSystem;
 const M = window.MASAHA;
 const space = M.spaces.find((s) => s.id === 'focus');
+// The space's saved shifts, which the price table and the package sheet offer; on the profile
+// the hours section publishes them, and it is not on this page.
+publish('shifts', SAMPLE_SHIFTS());
 const n = (v) => (v === '' || v == null ? null : Number(v));
 const INIT = [
   { id: 'p1', name: tr('10 أيام', '10 days'), validity: '45', totalDays: '10', daysPerWeek: '', hoursPerDay: '', totalHours: '', billing: 'fixed', unit: 'hour', price: '130', rate: '', audience: 'all', shift: '', active: true },
@@ -132,13 +135,8 @@ function PackagesInner({ theme, setTheme }) {
   const toggle = (p, on) => { setList((l) => l.map((x) => (x.id === p.id ? { ...x, active: on } : x))); toast(on ? tr('الباقة مفعّلة في المكتب', 'Package available at the desk') : tr('أُوقفت الباقة — الاشتراكات الحالية لا تتأثر', 'Package paused — current subscriptions aren’t affected'), { description: p.name }); };
   return (
     <OwnerShell current="packages" title={tr('الباقات والأسعار', 'Packages & prices')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
-      <section className="flex flex-col gap-3" aria-labelledby="pub">
-        <div className="flex flex-col gap-1">
-          <h2 id="pub" className="text-heading-2">{tr('الأسعار المعلنة', 'Published prices')}</h2>
-          <p className="text-body-sm text-muted-foreground">{tr('تظهر في صفحة المساحة العامة. الشهري والأسبوعي وشهري الطلاب تُؤخذ من هذه الأسعار.', 'Shown on the public space page. Monthly, weekly and student month packages come from these prices.')}</p>
-        </div>
-        <PricesSection space={space} confirmable />
-      </section>
+      <p className="text-body-sm text-muted-foreground">{tr('أسعار الأسبوع والشهر تُختار أيضًا في المكتب عند إنشاء اشتراك.', 'Week and month prices are also chosen at the desk when creating a subscription.')}</p>
+      <PricesSection space={space} title={tr('الأسعار المعلنة', 'Published prices')} description={tr('تظهر في صفحة المساحة · للعرض فقط · الدفع في المساحة', 'Shown on the space page · Display only · Pay at the space')} meta={{ updated: ago(O.groups.prices), stale: O.groups.prices > O.LIMIT.prices }} hoursHref="Owner space profile.html#hours" />
       <section className="flex flex-col gap-3" aria-labelledby="priv">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-col gap-1">

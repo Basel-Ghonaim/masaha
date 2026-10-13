@@ -38,5 +38,14 @@ window.OWNER = (function () {
   const history = { m1: [['2026-09-21', '2026-10-21', 'month'], ['2026-08-21', '2026-09-20', 'month'], ['2026-08-14', '2026-08-20', 'week']] };
   const attendanceOf = { m1: [['2026-09-29', '08:05', null], ['2026-09-28', '08:10', '14:00'], ['2026-09-27', '08:02', '14:05'], ['2026-09-26', '08:20', '13:50'], ['2026-09-24', '08:00', '14:00'], ['2026-09-23', '08:15', '14:10'], ['2026-09-22', '08:05', '14:00'], ['2026-09-21', '09:00', '14:00'], ['2026-09-20', '08:10', '12:30'], ['2026-09-19', '08:00', '14:00']] };
   const fmtDate = (iso) => { const d = new Date(iso + 'T12:00:00'); return d.toLocaleDateString(T('ar-EG', 'en-GB'), { day: 'numeric', month: 'short', numberingSystem: 'latn' }); };
-  return { capacity: 40, closeAt: '18:00', owner: { name: T('أحمد', 'Ahmad'), email: 'ahmad@example.com' }, spaces, members, present, log, history, attendanceOf, typeLabel, typeShort, shifts, statusBadge, daysLeft, fmtDate, now: '12:40' };
+  // The fix phase's sample states: ?demo=missing,nocapacity,clear,noshifts (a comma list).
+  const DEMO = (new URLSearchParams(location.search).get('demo') || '').split(',');
+  const demo = (k) => DEMO.includes(k);
+  const NOW_ISO = '2026-09-29T12:40';
+  // A1: each fact group's age in days. Prices are out of date after 30 days, the rest after 60.
+  // ?demo=missing takes the amenities back to never saved (A2); ?demo=clear makes every group fresh.
+  const groups = demo('clear') ? { profile: 3, hours: 3, prices: 3, amenities: 3, contacts: 3 } : { profile: 14, hours: 12, prices: 34, amenities: 20, contacts: 75 };
+  const LIMIT = { prices: 30, other: 60 };
+  const missing = demo('missing') ? ['amenities'] : [];
+  return { capacity: demo('nocapacity') ? null : 40, closeAt: '18:00', owner: { name: T('أحمد', 'Ahmad'), email: 'ahmad@example.com' }, spaces, members, present, log, history, attendanceOf, typeLabel, typeShort, shifts, statusBadge, daysLeft, fmtDate, now: '12:40', demo, NOW_ISO, groups, LIMIT, missing };
 })();
