@@ -1,6 +1,6 @@
 # Security
 
-> **Status:** Active · **Class:** Contract — rules to build against. **Built:** tokens and cookies; the password policy; `requireAuth`, which reads the account on every request; the refusal of suspended accounts at sign-in, refresh and every signed-in request; the rate limits of the sign-in flows, the password routes and the general API; the log redaction; the location's rules (near me); `requireRole`, mounted once on `/admin`; the `OWNER` role that follows a person's owner links, and its revocation; the temporary password of an owner's account the admin creates; suspension and its revocation; the admin's role changes and their revocation; the admin's recovery with its audit. **Not yet built:** the temporary passwords created by an owner; the revocation when a reception link is deactivated; the upload limits; the data-report limit · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against. **Built:** tokens and cookies; the password policy; `requireAuth`, which reads the account on every request; the refusal of suspended accounts at sign-in, refresh and every signed-in request; the rate limits of the sign-in flows, the password routes and the general API; the log redaction; the location's rules (near me); `requireRole`, mounted once on `/admin`; the `OWNER` role that follows a person's owner links, and its revocation; the temporary password of an owner's account the admin creates; suspension and its revocation; the admin's role changes and their revocation; the admin's recovery with its audit; the photo upload's limits, its content check and its re-encoding. **Not yet built:** the temporary passwords created by an owner; the revocation when a reception link is deactivated; the data-report limit · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
 > **Authority:** Tokens, passwords, cookies, authorization, rate limits and HTTP hardening. The session model's reasoning is in [ADR 0003](../architecture/decisions/0003-session-model.md); the authorization model's in [ADR 0002](../architecture/decisions/0002-authorization-model.md).
 
 ## Tokens and cookies
@@ -94,6 +94,7 @@ The counters are stored in PostgreSQL, in the `rate_limits` table, so every inst
 | Password reset and its check | Every request, by address and token (the check) or by address and recovery (the reset) | 5 / 15 min |
 | Password forgot, resend, reset and check together | Every request, by address | 50 / 15 min |
 | Data reports | Every report, by the user | 10 / hour |
+| Photo uploads | Every upload, by the user, counted before the file is read: each costs a decode and the store's free allowance | 30 / 15 min |
 | Password change | **Failed** attempts only (a wrong current password), by the user: a thief can change address | 10 / 15 min |
 | General API, signed in | Every request, by the user | 300 / 15 min |
 | General API, guest | Every request, by address: live-status polling from one space's shared address | 1,200 / 15 min |
@@ -113,12 +114,16 @@ Near me ([directory](../features/directory.md)) sorts on the server, so the devi
 - **It is sent in a header, only to sort by distance.** The `Masaha-Near: lat,lng` request header, never the query: a URL is written by the hosting's own request log and by any proxy's, which Masaha cannot redact; a header is not. The API refuses the header with any other order, and refuses distance without it ([the contract](../api/api-contract.md#directory-public)).
 - **It is rounded on the device, to 3 decimals** (about 110 m by 95 m in Gaza): a block of many buildings, not a home, yet fine enough for "near" among spaces that sit close together. The API **refuses a finer point** (`invalid_format`), so a client that skips the rounding fails rather than sending a precise location.
 - **It is never stored or logged.** It is read with the query and kept off the request, passed to the database only as a query parameter, and never written; the request logger redacts the header ([HTTP hardening](#http-hardening)). An API test reads the whole log line of a request that carries it.
-- **No cache keeps an answer computed from it:** that answer is `Cache-Control: no-store`. Each distance in it is straight-line, from the rounded point, to the nearest 100 m, and labelled approximate.
+- **No cache keeps an answer to a request that carries it:** every such answer, a refusal or a failure included, is `Cache-Control: no-store`. Each distance in it is a bare number, straight-line, from the rounded point, to the nearest 100 m; the screen labels it approximate.
 
 ## HTTP hardening
 
 - `helmet` defaults; CORS allows one origin from the environment with credentials; `trust proxy` set.
-- JSON body limit 16 kB; upload limit 5 MB per photo, JPEG/PNG/WebP only, content checked, re-encoded with sharp.
-- Online, a request or a response is limited to 4.5 MB ([ADR 0014](../architecture/decisions/0014-deployment.md)), below the photo limit. Photos are therefore resized on the client or uploaded directly to storage.
+- JSON body limit 16 kB.
+- **Photos:** one file per request, at most 4 MiB, so the request stays under the platform's 4.5 MB limit with its multipart framing ([ADR 0014](../architecture/decisions/0014-deployment.md)); the web shrinks a photo before sending it. Online, a larger request is refused by the platform itself, before the API (a 413 without the envelope).
+  - **Decoding is the content check:** sharp decodes the file, and anything it cannot decode as a JPEG, a PNG or a WebP is refused (415); the file's name and declared type are never read. An image over 50 megapixels is refused before it is decoded (413), so a small file that would expand to gigabytes costs nothing.
+  - **Re-encoded, with nothing but its pixels:** each photo is turned the way its EXIF says, then encoded again as WebP sizes with no metadata: no EXIF (so no GPS position or camera), no XMP, no ICC profile. The original is never stored.
+  - **Stored under a random key** (128 bits), which names nothing about the uploader; the store receives only the WebP files.
 - The server refuses to start without a reachable database; graceful shutdown on SIGTERM/SIGINT.
+- **`CLOUDINARY_URL` is a secret:** it holds the storage account's API secret. It lives only in `apps/api/.env` (and the host's settings online), is never logged, and a malformed one is refused at startup without echoing it. Requests to Cloudinary are signed with it, and it is never sent.
 - **The HTTP logger redacts** the `cookie`, `authorization`, `masaha-near` ([Location](#location)) and `set-cookie` headers, and any field named like a password or a token, and **never logs request bodies**. It is built in `shared/http`. The other logging rules are in [backend conventions §10](conventions.md#10-logging).

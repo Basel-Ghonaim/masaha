@@ -5,7 +5,9 @@ import { createTestApp } from '../../../test/app.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import {
   createArea,
+  addPhotos,
   createPublicSpace,
+  photoUrl,
   seedSettings,
   setWeek,
   signInOwnerOf,
@@ -62,6 +64,7 @@ describe('GET /map/spaces', () => {
       verified.id,
       Array.from({ length: 7 }, () => [480, 1080] as [number, number]),
     );
+    await addPhotos(verified.id, ['cover', 'other']);
     await createPublicSpace(areaId, 'Unverified');
     await createPublicSpace(areaId, 'Hidden', { isHidden: true });
 
@@ -80,6 +83,7 @@ describe('GET /map/spaces', () => {
             location: { lat: 31.501, lng: 34.461 },
             isVerified: true,
             days: Array.from({ length: 7 }, () => ({ opensMinute: 480, closesMinute: 1080 })),
+            cover: photoUrl('cover', 'card'),
           },
         ],
         truncated: false,

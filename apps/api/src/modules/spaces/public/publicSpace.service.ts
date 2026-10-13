@@ -3,13 +3,17 @@ import type {
   FactGroup,
   Location,
   OwnAmenity,
+  PhotoUrls,
   Price,
   SpaceHours,
 } from '@masaha/shared/spaces';
 
-import type { RunInTransaction } from '../../../db/index.ts';
+import type { RunInTransaction, Tx } from '../../../db/index.ts';
+import type { Storage } from '../../../shared/storage/index.ts';
 import type { PlatformSettingsService } from '../../platform-settings/index.ts';
 import { createFactsReader } from '../facts/facts.ts';
+import { urlsOf } from '../photos/photoSizes.ts';
+import { createPhotosRepository } from '../photos/photos.repository.ts';
 import { createSpaceRepository } from '../space/space.repository.ts';
 import { groupDatesOf, pricesHidden, staleCutoffs, staleGroups } from '../staleness.ts';
 
@@ -27,6 +31,8 @@ export interface PublicSpaceView {
   landmarkAr: string | null;
   landmarkEn: string | null;
   location: Location;
+  /** Decided under the space's lock, with the facts shown. */
+  isVerified: boolean;
   hours: SpaceHours | null;
   /** `null` when hidden: an unverified space's stale prices. */
   prices: Price[] | null;
@@ -36,6 +42,8 @@ export interface PublicSpaceView {
   contacts: Contact[];
   updatedAt: Record<FactGroup, string | null>;
   staleGroups: FactGroup[];
+  /** In the gallery's order, the cover first. */
+  photos: PhotoUrls[];
 }
 
 interface Dependencies {
@@ -43,6 +51,8 @@ interface Dependencies {
   platformSettings: PlatformSettingsService;
   /** The one clock (conventions §11): staleness is measured from it. */
   now: () => Date;
+  /** Where the photos' files are fetched from. */
+  storage: Storage;
 }
 
 /**
@@ -55,9 +65,11 @@ export function createPublicSpaceService({
   runInTransaction,
   platformSettings,
   now,
+  storage,
 }: Dependencies) {
   const repository = createSpaceRepository();
   const readFacts = createFactsReader();
+  const photos = createPhotosRepository();
 
   return {
     /** The space with this slug, unless it is soft-deleted or hidden. */
@@ -67,16 +79,22 @@ export function createPublicSpaceService({
 
     /**
      * The space with its facts, its prices hidden as the public is kept from them; `null` once it
-     * is soft-deleted or hidden.
+     * is soft-deleted or hidden. Whether it is verified is asked of `verifiedUnder` under the same
+     * lock: every link change takes it, so the answer and the prices it hides agree.
      */
-    async read(id: number, isVerified: boolean): Promise<PublicSpaceView | null> {
+    async read(
+      id: number,
+      verifiedUnder: (tx: Tx) => Promise<boolean>,
+    ): Promise<PublicSpaceView | null> {
       // Read before the transaction opens: inside it, a read without `tx` waits on a second
       // connection while the transaction holds one.
       const thresholds = await platformSettings.stalenessThresholds();
       return runInTransaction(async (tx) => {
         const space = await repository.lockShared(id, tx);
         if (!space || space.isHidden) return null;
+        const isVerified = await verifiedUnder(tx);
         const facts = await readFacts(id, tx);
+        const gallery = await photos.listFor(id, tx);
         const dates = groupDatesOf(space);
         const cutoffs = staleCutoffs(thresholds, now());
         return {
@@ -92,6 +110,7 @@ export function createPublicSpaceService({
           landmarkAr: space.landmarkAr,
           landmarkEn: space.landmarkEn,
           location: { lat: space.lat, lng: space.lng },
+          isVerified,
           hours: facts.hours,
           prices: pricesHidden(isVerified, dates, cutoffs) ? null : facts.prices,
           amenityIds: facts.amenityIds,
@@ -105,6 +124,7 @@ export function createPublicSpaceService({
             contacts: dates.contacts?.toISOString() ?? null,
           },
           staleGroups: staleGroups(dates, cutoffs),
+          photos: gallery.map(({ key }) => urlsOf(key, (objectKey) => storage.url(objectKey))),
         };
       });
     },

@@ -5,4 +5,5 @@ export {
   trustProxyOf,
   type EmailSettings,
   type Env,
+  type StorageSettings,
 } from './env.ts';

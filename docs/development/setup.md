@@ -33,6 +33,7 @@ One lockfile at the root installs every workspace: `packages/shared`, `apps/api`
 
 - **Today the policy only warns.** npm still runs unreviewed scripts, but reports them as `npm warn allow-scripts`. A future npm release will block them. With this list, the install prints no such warning, and `npm ci --strict-allow-scripts` passes.
 - **When a new dependency brings an install script,** npm names it in that warning. Review it, then approve it with `npm approve-scripts --no-allow-scripts-pin <pkg>`. Entries are name-only, because the lockfile already pins every version.
+- **`sharp`**, the API's image library, needs no approval: it has no install script, and its native libvips comes prebuilt for each platform as an optional package (`@img/sharp-win32-x64` on Windows, `@img/sharp-linux-x64` in CI and online), which the lockfile lists for every platform.
 - **Keep the policy in `package.json`.** npm ignores an `allowScripts` in a workspace, and refuses `--allow-scripts` on the command line inside a project.
 - The API's own `postinstall` (`prisma generate`) belongs to a workspace, which the policy does not cover. It always runs.
 
@@ -135,6 +136,8 @@ From the repository root, with Docker Desktop running:
 2. Copy `apps/api/.env.example` to `apps/api/.env`. **Do this before the first run.** Without it the API stops at once, reporting `NODE_ENV`, `CORS_ORIGIN`, `DATABASE_URL` and `JWT_SECRET` as missing. The example's database values match the local database. Set `JWT_SECRET` to a random value of at least 32 characters (for example, the output of `node -e "console.log(crypto.randomBytes(32).toString('base64url'))"`), and fill in `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` for the seed. `GOOGLE_CLIENT_ID` is optional locally: without it, Google sign-in is off.
 
    The reset email defaults to `EMAIL_MODE=log`: nothing is sent, and the reset link appears in the API's log. To send real email from development, set `EMAIL_MODE=smtp` and the `SMTP_*` and `EMAIL_FROM` values (the example explains Gmail's app password). Outside development, `log` is refused.
+
+   Files (a space's photos) default to `STORAGE_MODE=local`: they are written under `apps/api/.storage/` (git-ignored) and served by the API at `/api/v1/files/…`, which the web's development server reaches through its `/api` proxy, offline. To store them in Cloudinary instead, set `STORAGE_MODE=cloudinary` and `CLOUDINARY_URL` (`cloudinary://<api_key>:<api_secret>@<cloud_name>`, from Cloudinary's console); each environment keeps its files under its own folder, `masaha/<NODE_ENV>/`. `CLOUDINARY_URL` holds the account's secret: it lives only in `apps/api/.env`. Production refuses `local`.
 3. `npm run db:up` starts PostgreSQL.
 4. `npm run db:migrate` applies the migrations to `masaha_dev`.
 5. `npm run db:seed` adds the lookups, the admin account and the settings.

@@ -1,10 +1,14 @@
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 import { pino } from 'pino';
 import request from 'supertest';
 
-import { createApi, createApp, type ApiOptions } from '../src/app.ts';
+import { createApi, createApp, LOCAL_FILES_URL, type ApiOptions } from '../src/app.ts';
 import type { EmailMessage, EmailSender } from '../src/modules/auth/index.ts';
 import { hashPassword } from '../src/modules/users/index.ts';
 import { createAccessTokens } from '../src/shared/auth/index.ts';
+import { createLocalStorage } from '../src/shared/storage/index.ts';
 import { prisma } from '../src/db/index.ts';
 import type { Prisma } from '../src/generated/prisma/client.ts';
 
@@ -37,6 +41,11 @@ export function createTestApp(options: Partial<ApiOptions> = {}) {
       secureCookies: false,
       email: recordingEmailSender(),
       webOrigin: WEB_ORIGIN,
+      // A file a test stores and does not look at lands in the system's temporary folder.
+      storage: createLocalStorage({
+        root: path.join(tmpdir(), 'masaha-api-test-storage'),
+        urlBase: LOCAL_FILES_URL,
+      }),
       logger,
       ...api,
     }),

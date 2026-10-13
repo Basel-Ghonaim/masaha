@@ -9,6 +9,9 @@ coverage/
 # Generated Prisma client (npm install runs prisma generate)
 apps/api/src/generated/
 
+# The local storage's files (STORAGE_MODE=local)
+apps/api/.storage/
+
 # Environment
 .env
 .env.*

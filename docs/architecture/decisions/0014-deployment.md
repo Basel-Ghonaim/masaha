@@ -4,6 +4,7 @@
 > Free-tier terms and limits checked on 2026-10-01 against the providers' official pages.
 > **Revised:** 2026-10-06 — each app's development port is its own, 5320 and 3320 unless the folder sets others, so a second folder runs beside the first; the decision is unchanged
 > **Revised:** 2026-10-10 — the context names the demonstration on the local environment, in general terms; the decision is unchanged
+> **Revised:** 2026-10-13 — files: the free object storage is Cloudinary's free plan, used as a plain store, and photos are resized on the client and sent through the API, never uploaded directly; the decision is unchanged
 
 ## Context
 The demonstration runs on the local environment: the database in Docker and the development servers. It works offline, which matters with Gaza's power and internet cuts.
@@ -34,7 +35,8 @@ Each item gives the free-tier choice, then what a paid setup with its own domain
   - A paid setup would use an in-process or platform scheduler, at full precision.
   - A check-out always records its cut-off time, so a late run never corrupts data.
 - **Files:** functions have no persistent disk, and a request or a response is limited to 4.5 MB.
-  - Photos go to free object storage through the storage port, resized on the client or uploaded directly.
+  - Photos go to Cloudinary's free plan through the storage port, as a plain store with no transformation: resized on the client, sent through the API under the limit, and re-encoded there ([security › HTTP hardening](../../backend/security.md#http-hardening)).
+  - The web's pages will need to let Cloudinary's delivery host serve images ([finding 64](../findings/64-the-deployments-headers-must-let-cloudinarys-photos-load.md)).
   - Large responses, such as exports, must stay under the limit.
   - A paid setup would use a paid bucket with a CDN.
 - **Email:** without a domain, no domain-verified provider is possible, so the reset email uses a single verified sender, or Gmail SMTP. A paid setup would use a domain-verified provider with SPF and DKIM.

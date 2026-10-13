@@ -55,6 +55,7 @@ function toDirectorySpace(space: ListedPublicSpace, area: AreaName): DirectorySp
     isVerified: space.isVerified,
     days: space.days,
     ...(space.distanceMeters !== null && { distanceMeters: space.distanceMeters }),
+    cover: space.cover,
   };
 }
 
@@ -68,6 +69,7 @@ function toMapPin(space: ListedPublicSpace): MapPin {
     location: space.location,
     isVerified: space.isVerified,
     days: space.days,
+    cover: space.cover,
   };
 }
 
@@ -132,16 +134,18 @@ export function createDirectoryService({
 
     /**
      * A publicly listed space's page; anything else, an unknown slug included, is `not_found`
-     * (data-model › Publicly listed). Whether it is verified is read from its links just before
-     * its facts: an owner linked between the two shows it unverified for that one answer.
+     * (data-model › Publicly listed). Whether it is verified is read from its links under the
+     * space's lock, with its facts, so an owner linked or unlinked meanwhile never shows prices
+     * the rule would hide.
      */
     async page(slug: string): Promise<PublicSpace> {
       const shown = await publicSpace.findShown(slug);
       if (!shown || !(await lookups.isActiveArea(shown.areaId))) {
         throw AppError.notFound(undefined, 'Space not found');
       }
-      const verified = isVerified({ links: await spaceLinks.linksAt(shown.id) });
-      const view = await publicSpace.read(shown.id, verified);
+      const view = await publicSpace.read(shown.id, async (tx) =>
+        isVerified({ links: await spaceLinks.linksAt(shown.id, tx) }),
+      );
       if (!view) throw AppError.notFound(undefined, 'Space not found');
 
       const [[area], amenities] = await Promise.all([
@@ -162,7 +166,7 @@ export function createDirectoryService({
         landmarkAr: view.landmarkAr,
         landmarkEn: view.landmarkEn,
         location: view.location,
-        isVerified: verified,
+        isVerified: view.isVerified,
         hours: view.hours,
         prices: view.prices,
         amenities: [
@@ -172,6 +176,7 @@ export function createDirectoryService({
         contacts: view.contacts,
         updatedAt: view.updatedAt,
         staleGroups: view.staleGroups,
+        photos: view.photos,
       };
     },
   };

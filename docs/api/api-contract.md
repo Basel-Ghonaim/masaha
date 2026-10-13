@@ -39,12 +39,12 @@
 | `forbidden` | 403 | Authenticated but not permitted (role or space scope) |
 | `not_found` | 404 | Resource does not exist or is not visible to the caller |
 | `conflict` | 409 | Unique violation; state conflict (e.g. already checked in) |
-| `payload_too_large` | 413 | Upload too large |
-| `unsupported_media_type` | 415 | Upload type not allowed |
+| `payload_too_large` | 413 | Upload too large. Online, a request over 4.5 MB is refused by the platform itself with a 413 that carries no envelope ([ADR 0014](../architecture/decisions/0014-deployment.md)) |
+| `unsupported_media_type` | 415 | Upload type not allowed: its content, never its name or declared type, decides |
 | `validation` | 422 | Field validation failed (`errors` present) |
 | `rate_limit` | 429 | Too many requests |
 | `server` | 500 | Unexpected error |
-| `service_unavailable` | 503 | A dependency is unavailable or not configured: the database, or Google sign-in |
+| `service_unavailable` | 503 | A dependency is unavailable or not configured: the database, Google sign-in, or the photos' store |
 
 In code, the statuses are `ERROR_STATUSES` (`@masaha/shared/core`), which both apps read.
 
@@ -198,9 +198,10 @@ What anyone reads without signing in, over the **publicly listed** spaces only (
   - both price filters leave out an unverified space whose prices are stale, which its page hides;
   - `openFriday=true`: Friday open in its hours; a space whose hours were never saved is left out;
   - `verified=true`: an active `OWNER` link;
-  - `q`, 1–80 characters: either name of the space, or either name of its area, matched forgivingly. Both sides are normalised (lowercased; tashkeel and tatweel removed; أ إ آ ٱ → ا, ة → ه, ى → ي), and a part of a name, or a near match (a typo), passes. A `q` with nothing but tashkeel, tatweel or spaces is `invalid_format`.
+  - `q`, 1–80 characters: either name of the space, or either name of its area, matched forgivingly. Both sides are normalised (lowercased; tashkeel and tatweel removed; أ إ آ ٱ → ا, ة → ه, ى → ي), and a part of a name, or a near match (a typo), passes. A `q` with nothing but tashkeel or tatweel, spaces around them included, is `invalid_format`; one of spaces only is empty once trimmed, `too_short`, as every text is.
 - **The location** travels in the `Masaha-Near: lat,lng` request header, never in the query, and only to sort by distance ([security › Location](../backend/security.md#location)): each coordinate with at most 3 decimals (`invalid_format` on `near` otherwise), inside the Gaza Strip's box (`out_of_range`).
-- **Caching:** an answer carries `Cache-Control: public, max-age=30` and a validator (`ETag`): the same request with `If-None-Match` answers `304` while it is unchanged. An answer ordered by distance carries `Cache-Control: no-store`.
+- **Caching:** an answer carries `Cache-Control: public, max-age=30` and a validator (`ETag`): the same request with `If-None-Match` answers `304` while it is unchanged. Every answer to a request that carries the `Masaha-Near` header, a refusal or a failure included, carries `Cache-Control: no-store`.
+- **Photos:** a card and a pin carry the cover's card-size URL, a space's page its photos; each URL is a space's photo's ([Photos](#photos)): it never changes for its file, so it is cached long, and it leaves the answers within their 30 seconds once the photo is removed.
 
 ```ts
 DirectorySpace = {
@@ -208,13 +209,15 @@ DirectorySpace = {
   area: { id: number, nameAr: string, nameEn: string },   // its governorate: the catalogue's
   isVerified: boolean,
   days: (OpeningRange | null)[] | null,    // the week, Sunday first; null while never saved
-  distanceMeters?: number                  // ordered by distance only: straight-line, to the nearest 100 m
+  distanceMeters?: number,                 // ordered by distance only: straight-line, to the nearest 100 m
+  cover: string | null                     // the first photo's card-size URL; null: the web draws the space's mark
 }
 
 MapPin = {
   id: number, slug: string, nameEn: string, nameAr: string | null,
   areaId: number, location: { lat: number, lng: number },
-  isVerified: boolean, days: (OpeningRange | null)[] | null
+  isVerified: boolean, days: (OpeningRange | null)[] | null,
+  cover: string | null                     // as the card's, for the selected card
 }
 
 PublicSpace = {
@@ -227,7 +230,8 @@ PublicSpace = {
   amenities: PublicAmenity[],              // the platform's active ones in its order, then the space's own
   contacts: Contact[],
   updatedAt: Record<FactGroup, string | null>,   // ISO 8601; null while the group is missing
-  staleGroups: FactGroup[]
+  staleGroups: FactGroup[],
+  photos: PhotoUrls[]                      // in the gallery's order, the cover first; none: the page shows a caption
 }
 
 PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | null }   // null: the space's own
@@ -463,6 +467,35 @@ The endpoints on one space put its links on the request first, without refusing 
 - «المعلومات ما زالت صحيحة»: the group is confirmed unchanged. One path per group; any other answers `not_found` (404).
 - **200:** `AdminSpace`, the group dated now and nothing else changed. Only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). Audited `space.<group>Confirmed` (`profileConfirmed`, `hoursConfirmed`, …), with the group's date in `before` and `after` (`{ hoursUpdatedAt }`).
 - **Errors:** `conflict` (409), with no code, for a missing group: there is nothing to confirm until it is saved, even empty; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
+
+#### Photos
+
+A space's gallery: at most 10 photos (`PHOTO_LIMIT`, `@masaha/shared/spaces`), in an order whose first is the **cover**. Each photo is stored in two sizes (`PHOTO_SIZES`), re-encoded on the server as WebP with no metadata ([security › HTTP hardening](../backend/security.md#http-hardening)): `card`, 640×360, a 16:9 crop around the centre; `page`, at most 1600 on its longest side, never enlarged. Photos are no fact group: a change dates nothing and is never confirmed. They change while the space is unverified, as its facts do ([security › Authorization](../backend/security.md#authorization)); a hidden space's included.
+
+```ts
+PhotoUrls = { card: string, page: string }   // absolute online, root-relative locally: used as given
+SpacePhoto = { id: number, urls: PhotoUrls }  // a list's order is the gallery's; the first is the cover
+```
+
+- **Audit:** each change, with the gallery's ids in order before and after (`{ photoIds }`), never a URL or a file: `space.photoAdded`, `space.photoRemoved`, `space.photosReordered`.
+
+#### `GET /admin/spaces/:spaceId/photos` · 🛡
+- **200:** `SpacePhoto[]`, in order. A verified space's too: the admin reads them, and cannot change them.
+- **Errors:** `not_found` (404), for a soft-deleted space too.
+
+#### `POST /admin/spaces/:spaceId/photos` · 🛡
+- **Body:** `multipart/form-data`, one part, `photo`: a JPEG, a PNG or a WebP, at most 4 MiB (`PHOTO_MAX_BYTES`) and 50 megapixels. The web shrinks a photo before sending it. Its name and declared type are ignored.
+- **201:** `SpacePhoto`, placed last. Audited `space.photoAdded`.
+- **Errors**, a refusal storing nothing: `validation` (422), with `errors.photo = ["required"]` without the part; `bad_request` (400) for any other part, a second file, or a body that cannot be read; `payload_too_large` (413) over 4 MiB or 50 megapixels; `unsupported_media_type` (415) for anything that does not decode as a JPEG, a PNG or a WebP; `conflict` (409), with no code, when the space already has 10 photos; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too; `service_unavailable` (503) when the store fails; `rate_limit` (429) past 30 uploads in 15 minutes ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)).
+
+#### `DELETE /admin/spaces/:spaceId/photos/:photoId` · 🛡
+- **204:** the photo is removed, the ones after it move up, and its files are deleted before the answer. Audited `space.photoRemoved`. A photo the space does not have writes nothing and answers the same, so a removal retried after a lost answer succeeds.
+- **Errors:** `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
+
+#### `PUT /admin/spaces/:spaceId/photos/order` · 🛡
+- **Body:** `{ ids: number[] }`: every id of the space's photos, each once, first to last, at most 10 (`too_long`).
+- **204:** the order is applied in one transaction; the first is the cover. Audited `space.photosReordered`; the order the gallery already has writes nothing.
+- **Errors:** `validation` (422); `conflict` (409), with no code, when the ids are not exactly the space's photos (one missing, extra, repeated or another space's): the gallery changed since it was read; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
 
 ### Owners (the admin)
 

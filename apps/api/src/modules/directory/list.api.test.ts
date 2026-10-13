@@ -7,6 +7,8 @@ import {
   addPrice,
   createArea,
   createPublicSpace,
+  moveRowToEnd,
+  photoUrl,
   seedSettings,
   setWeek,
   signInOwnerOf,
@@ -80,6 +82,7 @@ describe('GET /spaces', () => {
           area: { id: areaId, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
           isVerified: false,
           days: SAT_TO_THU.map((day) => day && { opensMinute: day[0], closesMinute: day[1] }),
+          cover: null,
         },
       ],
       meta: {
@@ -93,6 +96,23 @@ describe('GET /spaces', () => {
     });
   });
 
+  it('carries the cover’s card-size URL: the first photo’s, in the gallery’s order', async () => {
+    const space = await createPublicSpace(areaId, 'With photos');
+    // Moved first after it was added: the order decides the cover, not the id.
+    await prisma.spacePhoto.create({ data: { spaceId: space.id, path: 'later', sortOrder: 1 } });
+    await prisma.spacePhoto.create({ data: { spaceId: space.id, path: 'cover', sortOrder: 0 } });
+    await createPublicSpace(areaId, 'Without');
+
+    const response = await list('?sort=name&lang=en');
+
+    expect(response.body).toMatchObject({
+      data: [
+        { nameEn: 'With photos', cover: photoUrl('cover', 'card') },
+        { nameEn: 'Without', cover: null },
+      ],
+    });
+  });
+
   it('gives a space whose hours were never saved no week', async () => {
     await createPublicSpace(areaId, 'No hours');
 
@@ -103,10 +123,13 @@ describe('GET /spaces', () => {
 
   it('cuts the page after every filter, ties by id, so each page is full and the total right', async () => {
     const { id: otherArea } = await createArea();
-    for (let i = 1; i <= 23; i += 1) {
+    const earliest = await createPublicSpace(areaId, 'Space 1', { profileUpdatedAt: daysAgo(1) });
+    for (let i = 2; i <= 23; i += 1) {
       await createPublicSpace(areaId, `Space ${String(i)}`, { profileUpdatedAt: daysAgo(1) });
     }
     await createPublicSpace(otherArea, 'Elsewhere', { profileUpdatedAt: NOW });
+    // The first space now comes last in a scan: only the tie-break by id puts it first.
+    await moveRowToEnd(earliest.id);
 
     const first = await list(`?area=${String(areaId)}`);
     const second = await list(`?area=${String(areaId)}&page=2`);

@@ -81,6 +81,26 @@ export async function createPublicSpace(
   });
 }
 
+/**
+ * Writes the space's row anew, so a scan meets it after the rows inserted since: an order that
+ * leans on insertion order, not on its tie-break, then shows it out of place.
+ */
+export async function moveRowToEnd(spaceId: number) {
+  await prisma.$executeRaw`UPDATE spaces SET slug = slug WHERE id = ${spaceId}`;
+}
+
+/** Photos of the space, stored under these keys, in this order: the first is its cover. */
+export async function addPhotos(spaceId: number, keys: readonly string[]) {
+  for (const [sortOrder, path] of keys.entries()) {
+    await prisma.spacePhoto.create({ data: { spaceId, path, sortOrder } });
+  }
+}
+
+/** Where the test storage serves a size of the photo stored under `key`. */
+export function photoUrl(key: string, size: 'card' | 'page') {
+  return `/api/v1/files/spaces/${key}/${size}.webp`;
+}
+
 /** The space's week, Sunday first: `[opens, closes]` in minutes, or `null` for a closed day. */
 export async function setWeek(spaceId: number, days: readonly ([number, number] | null)[]) {
   await prisma.spaceHours.createMany({

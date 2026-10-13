@@ -2,8 +2,11 @@ import type { PaginationQuery } from '@masaha/shared/core';
 import type { Location, OpeningRange } from '@masaha/shared/spaces';
 
 import { toSkip } from '../../../shared/http/index.ts';
+import type { Storage } from '../../../shared/storage/index.ts';
 import type { PlatformSettingsService } from '../../platform-settings/index.ts';
 import { createHoursRepository } from '../hours/hours.repository.ts';
+import { objectKeyOf } from '../photos/photoSizes.ts';
+import { createPhotosRepository } from '../photos/photos.repository.ts';
 import { staleCutoffs } from '../staleness.ts';
 import {
   createPublicListingRepository,
@@ -25,6 +28,8 @@ export interface ListedPublicSpace {
   days: (OpeningRange | null)[] | null;
   /** In metres, straight-line, to the nearest 100: only when ordered by distance. */
   distanceMeters: number | null;
+  /** Its first photo's card-size URL, or `null` without a photo. */
+  cover: string | null;
 }
 
 /** `PublicFilter` without the price cut-off, which `spaces` measures with its own staleness rule. */
@@ -36,6 +41,8 @@ interface Dependencies {
   platformSettings: PlatformSettingsService;
   /** The one clock (conventions §11): staleness is measured from it. */
   now: () => Date;
+  /** Where the photos' files are fetched from: the covers' URLs. */
+  storage: Storage;
 }
 
 /**
@@ -44,20 +51,23 @@ interface Dependencies {
  * the search and the order, and pages, so every page is full and the total right (§5). Each space
  * comes with its week.
  */
-export function createPublicListingService({ platformSettings, now }: Dependencies) {
+export function createPublicListingService({ platformSettings, now, storage }: Dependencies) {
   const repository = createPublicListingRepository();
   const hours = createHoursRepository();
+  const photos = createPhotosRepository();
 
   async function withPriceCutoff(filter: PublicListingFilter): Promise<PublicFilter> {
     const cutoffs = staleCutoffs(await platformSettings.stalenessThresholds(), now());
     return { ...filter, pricesStaleBefore: cutoffs.prices };
   }
 
-  async function withWeeks(records: PublicSpaceRecord[]): Promise<ListedPublicSpace[]> {
-    const weeks =
+  /** Each space with its week and its cover, one query each for the whole set. */
+  async function withWeeksAndCovers(records: PublicSpaceRecord[]): Promise<ListedPublicSpace[]> {
+    const ids = records.map(({ id }) => id);
+    const [weeks, covers] =
       records.length === 0
-        ? new Map<number, (OpeningRange | null)[]>()
-        : await hours.weeksFor(records.map(({ id }) => id));
+        ? [new Map<number, (OpeningRange | null)[]>(), new Map<number, string>()]
+        : await Promise.all([hours.weeksFor(ids), photos.coverKeysFor(ids)]);
     return records.map((record) => ({
       id: record.id,
       slug: record.slug,
@@ -68,7 +78,13 @@ export function createPublicListingService({ platformSettings, now }: Dependenci
       isVerified: record.isVerified,
       days: weeks.get(record.id) ?? null,
       distanceMeters: record.distance === null ? null : Math.round(record.distance / 100) * 100,
+      cover: coverUrl(covers.get(record.id)),
     }));
+  }
+
+  /** The card-size URL of the cover stored under `key`, if there is one. */
+  function coverUrl(key: string | undefined): string | null {
+    return key === undefined ? null : storage.url(objectKeyOf(key, 'card'));
   }
 
   return {
@@ -82,7 +98,7 @@ export function createPublicListingService({ platformSettings, now }: Dependenci
         skip: toSkip(page),
         take: page.limit,
       });
-      return { rows: await withWeeks(rows), total };
+      return { rows: await withWeeksAndCovers(rows), total };
     },
 
     /**
@@ -95,7 +111,7 @@ export function createPublicListingService({ platformSettings, now }: Dependenci
     ): Promise<{ rows: ListedPublicSpace[]; truncated: boolean }> {
       const records = await repository.findFirst(await withPriceCutoff(filter), ceiling + 1);
       return {
-        rows: await withWeeks(records.slice(0, ceiling)),
+        rows: await withWeeksAndCovers(records.slice(0, ceiling)),
         truncated: records.length > ceiling,
       };
     },

@@ -1,7 +1,7 @@
 # Spaces
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
-> **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the add-space page, the space editor and the row actions of the admin's spaces list; and on the API, what the public [directory](directory.md) reads.
+> **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the add-space page, the space editor and the row actions of the admin's spaces list; and on the API, what the public [directory](directory.md) reads.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
 ## What it does
@@ -10,9 +10,10 @@
 - Dates each of the space's fact groups when it is saved or confirmed unchanged, and computes from those dates which groups are stale, which are missing, and when the space was last updated.
 - Answers the modules above it: the summaries of a set of spaces, and a page of the admin's spaces list over the ids it is given, of the soft-deleted spaces when asked.
 - Answers the [directory](directory.md) the publicly listed spaces over the ids and areas it is given: filtered, searched, ordered and paged, or whole up to a ceiling for the map, each with its week; and a space's public page, read whole, its prices hidden as the public is kept from them.
+- Keeps a space's photos for the admin: up to 10, in an order whose first is the cover, each re-encoded on the server as two WebP sizes with no metadata and stored through the storage port; lists them, adds and removes one at a time and orders them, as the [contract](../api/api-contract.md#photos) says; answers [`directory`](directory.md) the covers of a set of spaces, in one query, and a page's photos under its lock.
 - On the web, adds a space from its basics and its location, its pin placed on a map; edits a space on a page of its own, its profile, its amenities and its contacts each saved, dated and confirmed as a section, under the groups still missing, asking before the page is left with unsaved changes, and shows a verified space read-only; and gives each row of the admin's spaces list its menu: edit the space, hide it or show it again, and delete it, with an Undo that restores it.
 
-The photos and the owner's side are not built; on the web, neither are the hours with the shifts, nor the prices.
+The owner's side is not built, and the photos are the API's only; on the web, neither are the hours with the shifts, nor the prices.
 
 ## Who uses it
 
@@ -81,6 +82,13 @@ The photos and the owner's side are not built; on the web, neither are the hours
 
 **Contacts.** Each contact arrives validated and in its type's one stored form, from the shared rules both apps run, and the list is replaced whole, in its order.
 
+**Photos.** A space's photos are no fact group: a change dates nothing and is never confirmed. Who may change them is `can()`'s, as for the facts: the admin while the space is unverified, else its owner.
+- **An upload** is refused cheaply first, without the lock, when `can()` refuses on the loaded links or the gallery is full, so a refused upload costs no decoding and no store. Then the image core (`shared/images`) decodes it, its content check, and makes the two sizes; both files are stored under a new random key, at once; a failed store removes what was stored and answers 503. Then one transaction: the space's lock, `can()` on the links under it, the count of 10 under it, the row placed last, its audit entry. A refusal or a failure there removes both files before the answer, so two uploads at once can never pass 10.
+- **A file left behind** (a crash between the store and the commit, a failed removal) is logged `[storage:orphan]`, and nothing reclaims it in v1 ([finding 63](../architecture/findings/63-a-photos-files-can-outlive-it.md)).
+- **A removal** deletes the row and moves the later photos up, with its audit entry, in one transaction under the space's lock; then its files, before the answer. A failed file removal is logged, never answered as a failure. A photo the space does not have writes nothing, and the answer is the same.
+- **An order** must name exactly the space's photos, each once, as they are under the lock (409 otherwise); the order the gallery has writes nothing.
+- **The list** is read under the space's share lock, as the space's read is.
+
 **Confirm.** A group confirmed unchanged has its date renewed and nothing else, under the space's lock, with its audit entry, on the same path and by the same `can()` rule as a save; a missing group has nothing to confirm (409).
 
 ## Decisions
@@ -123,6 +131,17 @@ The photos and the owner's side are not built; on the web, neither are the hours
 - **A save decides on the links read again under the space's lock,** not on those the loader read before it. *Why:* an owner linked between the two would let the admin's save land on a space just verified ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)). 2026-10-11, #60.
 - **The space's read is one consistent state, under the space's lock in share mode** (the owner's choice, S1). *Why:* a read during an hours save could show the old week with the new shifts (finding 43); a lock keeps one isolation level ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)), and unlike a snapshot, a test can prove it. 2026-10-11, #60.
 - **Every price is above zero; a free event goes in the announcements** (the owner's decision). *Why:* a price of zero would list a space as free when only an event is; the announcements carry it. 2026-10-12, #64.
+- **Photos are no fact group: they carry no date and confirm nothing** (D8). *Why:* the design's gallery has neither; a new photo says nothing of whether the facts are still true. The data model's profile group no longer lists them. 2026-10-13, #77.
+- **Each photo is re-encoded on the server as two WebP sizes, with no metadata; the original is never kept** (D3, D5): `card` 640×360, a centred 16:9 crop, for the card's cover and the gallery's tiles; `page` at most 1600 on its longest side, never enlarged. *Why:* decoding is the content check, a phone's EXIF carries where it was taken, and Gaza's connections need small files. 2026-10-13, #77.
+- **One storage key per photo, its sizes derived from it, its URLs built at read time** (D4). *Why:* the table does not change, and another store is a new adapter, not new data. 2026-10-13, #77.
+- **At most 10 photos, counted under the space's lock; the 11th is a 409 with no code** (D7, the owner's answer). *Why:* two uploads at once must not pass the cap; the gallery disables "add" at 10, so only a race meets it, and the upload's only 409 needs no code. 2026-10-13, #77.
+- **Files are stored before the transaction and removed when it refuses or fails; no reclamation job in v1** (D9). *Why:* no network call inside a transaction, no work after the answer ([finding 63](../architecture/findings/63-a-photos-files-can-outlive-it.md)). 2026-10-13, #77.
+- **Removing a photo the space does not have writes nothing, and answers as a removal** (S4). *Why:* the gallery's actions are immediate, and a removal retried after a lost answer must not show a failure; the owners' unlink set the precedent. 2026-10-13, #77.
+- **An order answers 204, like the lookups' order** (S9). *Why:* the gallery sent the order it shows. 2026-10-13, #77.
+- **A refused upload is refused before its work** (S1): `can()` and the count, without the lock, then decided again under it. *Why:* a verified space's upload or an 11th photo would cost a decode and two stores. 2026-10-13, #77.
+- **The gallery has its own read, `GET …/photos`** (D6). *Why:* `AdminSpace`, which the web's editor is built on, does not change. 2026-10-13, #77.
+- **Photos have a `can()` action of their own, `space.photos.manage`, under the facts' rule** (S3). *Why:* the table names what it decides, and photos are no fact group. 2026-10-13, #77.
+- **Each change is audited with the gallery's ids before and after, never a key or a URL** (D10). *Why:* the gallery is recorded whole, as every group is. 2026-10-13, #77.
 - **The public listing is one query over `spaces` and its facts, with the filters of other modules given as ids** ([directory › Decisions](directory.md#decisions)). *Why:* every filter applies before the page is cut; the search's score and the orders are computed in it. 2026-10-13, the directory item.
 - **The hidden-price rule is `spaces`', with "verified" as an input:** an unverified space's stale prices are hidden on its page, and the same spaces are left out of both price filters, in the query. *Why:* the staleness is this capability's; "verified" is `space-links`', resolved first. 2026-10-13, the directory item.
 - **The public page reads the space as the admin's read does,** under its share lock, and a hidden space reads as none. *Why:* a save in progress is never shown half done (finding 43). 2026-10-13, the directory item.
@@ -167,8 +186,8 @@ The photos and the owner's side are not built; on the web, neither are the hours
 
 ## Code map
 
-- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/` (the links and the own amenities), `contacts/`, `confirm/` (a group confirmed unchanged), `listing/` (the page the admin's list reads), `public/` (the public listing and the public page, for the directory); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
-- **Shared:** `packages/shared/src/spaces/`: the requests (the profile and each fact group, with their rules), the responses, the contacts' forms, the fact groups and the Gaza Strip's box; the phone rule in `core`.
+- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/` (the links and the own amenities), `contacts/`, `confirm/` (a group confirmed unchanged), `photos/` (the gallery: its sizes, its order and cover, the upload's order of work), `listing/` (the page the admin's list reads), `public/` (the public listing and the public page, for the directory); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
+- **Shared:** `packages/shared/src/spaces/`: the requests (the profile and each fact group, with their rules), the responses, the contacts' forms, the fact groups, the photos' limits and sizes, and the Gaza Strip's box; the phone rule in `core`.
 - **Web:** `apps/web/src/features/spaces/`, entry `index.ts` (`AddSpaceForm` with its `AreaField` slot, `SpaceEditor`, `useSpaceName`, `SpaceActionsMenu`, `SpaceActionsHold`), mounted by `pages/dashboard/admin/`: a folder per operation in `hooks/` and `components/` (`add/`, `editor/` with the space's query, a section's frame, its save, the section in view and the leave guard, `profile/`, `amenities/`, `contacts/`, `hide/`, `delete/` with the Undo's restore, `menu/`, `hold/`; and `confirm/` in `hooks/`), the profile's fields shared by the add form and the editor at the root of `hooks/` and in `components/profile/`, the toasts in `components/toast/`, and in `services/` the profile the schema reads from the form, as added and as edited, the changes a save sends, the amenities as their form holds them, a phone's carrier, the group's date, the space's name and a line cut around it.
 
 ## Open findings
@@ -177,6 +196,8 @@ The photos and the owner's side are not built; on the web, neither are the hours
 - [46](../architecture/findings/46-the-deployments-headers-must-let-the-maps-tiles-load.md): the deployment's headers must let the add page's map tiles load.
 - [59](../architecture/findings/59-the-verified-spaces-editor-cannot-name-its-owner.md): the verified space's editor cannot name its owner.
 - [60](../architecture/findings/60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md): the area field shows no area for a space whose area was hidden since.
+- [63](../architecture/findings/63-a-photos-files-can-outlive-it.md): a photo's files can outlive it.
+- [64](../architecture/findings/64-the-deployments-headers-must-let-cloudinarys-photos-load.md): the deployment's headers must let Cloudinary's photos load.
 
 ## History
 
@@ -189,6 +210,7 @@ The photos and the owner's side are not built; on the web, neither are the hours
 - #64 — a space's own amenities, in the amenities group; no price of zero.
 - The deleted-spaces item — the listing page of the soft-deleted spaces, with when each was deleted.
 - The directory item — the public listing (filters, search, orders, pages and the map's set) and the public page.
+- #77 — a space's photos: the gallery's read, its upload through the storage port and the image core, its removal and its order; the covers and the page's photos for the directory.
 
 ### Web history
 

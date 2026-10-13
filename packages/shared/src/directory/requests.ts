@@ -52,9 +52,12 @@ const areaList = z
 
 const amount = z.coerce.number().int().min(1).max(PRICE_MAX_AGOROT);
 
-/** Part of a name or of an area's name, in either language; refused when it holds nothing to match. */
+/**
+ * Part of a name or of an area's name, in either language; refused when it holds nothing to match.
+ * Spaces alone are trimmed to nothing, which is `too_short` only, as for every text.
+ */
 const searchText = textSchema(1, SPACE_NAME_MAX_LENGTH).refine(
-  (text) => !NOT_SEARCHABLE.test(text),
+  (text) => text === '' || !NOT_SEARCHABLE.test(text),
   { params: { code: 'invalid_format' } },
 );
 
