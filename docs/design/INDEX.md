@@ -56,6 +56,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Forgot password.html?state=loading` · `unreachable` · `linkopen` · `spent` | the forgot page | the recovery's server-held steps, the address masked as the server holds it |
 | `Reset password.html?state=loading` · `unreachable` · `checkfailed` | the reset page | the same; `checkfailed`: the link's check refused (a 429), «افتح الرابط من بريدك الإلكتروني مرة أخرى.» |
 | `Register.html?state=toolong` | the register page | a password over 72 bytes: the fourth rule «طويلة جدًا — اختصرها», shown once broken (AC-020) |
+| `Forgot password.html?state=sent&email=<address>` | the forgot page | the link sent to that address, shown masked, so a typo shows («s•••@gmial.com») |
 
 ## 01 · Flow
 
@@ -829,3 +830,4 @@ Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `scree
 | Forgot · a reset link already open — phone 390 | `Forgot password.html?state=linkopen` | 390×844 | — |
 | Forgot · resends spent — phone 390 | `Forgot password.html?state=spent` | 390×844 | — |
 | Reset · the link could not be checked — phone 390 | `Reset password.html?state=checkfailed` | 390×844 | — |
+| Forgot · sent to a mistyped address, another email — phone 390 | `Forgot password.html?state=sent&email=sara@gmial.com` | 390×844 | — |
