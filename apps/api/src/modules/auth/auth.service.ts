@@ -31,6 +31,7 @@ import type { EmailSender } from './email/emailSender.ts';
 import { resetEmail, resetLink } from './email/resetEmail.ts';
 import type { GoogleIdentity } from './google.ts';
 import { maskEmail } from './maskEmail.ts';
+import { drawNoSendWait } from './noSendWait.ts';
 
 /** A session for the body, and its refresh token for the cookie. */
 export interface SignedIn {
@@ -78,6 +79,8 @@ interface Dependencies {
   emailSender: EmailSender;
   /** The web's origin, where the reset link leads. */
   webOrigin: string;
+  /** The timer (conventions §11): resolves once `ms` have passed. */
+  wait: (ms: number) => Promise<void>;
 }
 
 /**
@@ -94,6 +97,7 @@ export function createAuthService({
   google,
   emailSender,
   webOrigin,
+  wait,
 }: Dependencies) {
   const invalidResetLink = () =>
     AppError.badRequest('RESET_TOKEN_INVALID', 'Reset token invalid, expired or used');
@@ -123,8 +127,9 @@ export function createAuthService({
   /**
    * Emails the account a reset link. Only a delivered link replaces the one already in the inbox
    * (docs/backend/security.md); one that is not sent is withdrawn, and the failure only logged.
+   * Whether it was delivered.
    */
-  async function sendResetLink(account: Account, clientAddress: string): Promise<void> {
+  async function sendResetLink(account: Account, clientAddress: string): Promise<boolean> {
     const { token, id } = await sessions.issueResetToken(account.id);
     const result = await emailSender.send(
       resetEmail({ to: account.email, link: resetLink(webOrigin, token) }),
@@ -132,6 +137,15 @@ export function createAuthService({
     );
     if (result.sent) await sessions.keepOnlyResetToken(account.id, id);
     else await sessions.withdrawResetToken(id);
+    return result.sent;
+  }
+
+  /**
+   * An answer that sent no email waits about as long as a real send takes, so its timing does not
+   * tell whether the address has an account (docs/backend/security.md › Passwords).
+   */
+  async function answerAsASend(delivered: boolean): Promise<void> {
+    if (!delivered) await wait(drawNoSendWait());
   }
 
   /** The user, their space links and a new access token, for a session whose refresh token exists. */
@@ -226,7 +240,8 @@ export function createAuthService({
     /** Rotates the refresh token and restores the session: who is signed in, in one request (ADR 0003). */
     async refresh(refreshToken: string | undefined): Promise<SignedIn> {
       if (!refreshToken) throw AppError.unauthorized(undefined, 'No session');
-      const userId = await sessions.ownerOf(refreshToken);
+      // Expired or not: a token of a session past its 30 days still reaches the lock, which ends it.
+      const userId = await sessions.holderOf(refreshToken);
       if (!userId) throw AppError.unauthorized(undefined, 'No valid session');
       await limiter.count(REFRESH, String(userId));
 
@@ -235,7 +250,7 @@ export function createAuthService({
         const account = await users.lockAccount(userId, tx);
         if (!account) return { outcome: 'invalid' } as const;
         if (!users.maySignIn(account)) {
-          await sessions.revokeAll(userId, tx);
+          await users.endSessions(userId, tx);
           return { outcome: 'refused', account } as const;
         }
         const rotation = await sessions.rotate(refreshToken, tx);
@@ -271,7 +286,7 @@ export function createAuthService({
         emailDigest: digest,
         replacing: heldKey,
       });
-      if (holder) await sendResetLink(holder, clientAddress);
+      await answerAsASend(holder ? await sendResetLink(holder, clientAddress) : false);
       return { position: positionOf(recovery), key, maxAgeMs: recovery.remainingMs };
     },
 
@@ -291,10 +306,12 @@ export function createAuthService({
       const renewed = await sessions.recordResend(recovery.id);
       // Not recorded: a concurrent ask was recorded first, or the recovery ended meanwhile.
       if (!renewed) throw resendRefusal(await sessions.recovery(key)) ?? resendTooSoon(1);
+      let delivered = false;
       if (renewed.userId !== null) {
         const account = await users.get(renewed.userId);
-        if (users.maySignIn(account)) await sendResetLink(account, clientAddress);
+        if (users.maySignIn(account)) delivered = await sendResetLink(account, clientAddress);
       }
+      await answerAsASend(delivered);
       return { position: positionOf(renewed), key, maxAgeMs: renewed.remainingMs };
     },
 
@@ -357,7 +374,7 @@ export function createAuthService({
         await users.lockAccount(owner, tx);
         if ((await sessions.consumeRecoveryLink(key, tx)) !== owner) throw invalidRecovery();
         await users.setPassword(owner, passwordHash, tx);
-        await sessions.revokeAll(owner, tx);
+        await users.endSessions(owner, tx);
         // Ending the links ends the recoveries bound to them.
         await sessions.endResetTokens(owner, tx);
       });

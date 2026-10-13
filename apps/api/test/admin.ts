@@ -41,7 +41,11 @@ export async function signIn(
       passwordHash: 'x',
     },
   });
-  const token = await accessTokens.sign({ userId: user.id, mustChangePassword: pending });
+  const token = await accessTokens.sign({
+    userId: user.id,
+    mustChangePassword: pending,
+    sessionVersion: user.sessionVersion,
+  });
   return { id: user.id, authorization: `Bearer ${token}` };
 }
 

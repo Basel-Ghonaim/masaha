@@ -1,6 +1,6 @@
 # Auth
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-08 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
 > **Authority:** The `auth` capability: the sign-in flows, as an orchestrator with no data of its own: registration, sign-in with a password or with Google, refresh, sign-out, and the forgotten password's recovery. Its endpoints are owned by the [API contract](../api/api-contract.md#session); every rule whose reason is security by [security.md](../backend/security.md); the recovery session's design by [ADR 0017](../architecture/decisions/0017-recovery-session.md).
 > **Scope:** the API module `auth` (L3), with its email and Google ports; `@masaha/shared/auth`; the web feature `features/auth`.
 
@@ -35,9 +35,9 @@
 
 **Google.** The web's client id is `VITE_GOOGLE_CLIENT_ID` ([setup › The web](../development/setup.md#the-web)); without the API's `GOOGLE_CLIENT_ID`, the API answers 503, and production refuses to start. A new account takes Google's name when it is valid user text, else the email's local part.
 
-**Refresh.** The cookie's token names its session. The account is read from `users`, a suspended one refused, and the token rotated by `sessions` ([security › Tokens and cookies](../backend/security.md#tokens-and-cookies), [conventions › Concurrency](../backend/conventions.md#concurrency)). The `Session` is the user's view, their active links and a new access token.
+**Refresh.** The cookie's token names its session. The account is read from `users`, a suspended one refused, and the token rotated by `sessions`, which refuses a session past its 30 days ([security › Tokens and cookies](../backend/security.md#tokens-and-cookies), [conventions › Concurrency](../backend/conventions.md#concurrency)). The `Session` is the user's view, their active links and a new access token.
 
-**The forgotten password.** A request for a link opens a recovery in the browser, held by the server and found by its cookie, and answers where it stands ([the contract](../api/api-contract.md#the-forgotten-password)). The page then offers another link without the email. Opening the link checks it: the reset page takes the token from the address's fragment, removes it, and sends it once; the answer names the account before the form is sent. Setting the password ends the recovery.
+**The forgotten password.** A request for a link opens a recovery in the browser, held by the server and found by its cookie, and answers where it stands ([the contract](../api/api-contract.md#the-forgotten-password)). The page then offers another link without the email. Opening the link checks it: the reset page takes the token from the address's fragment, removes it, and sends it once; the answer names the account before the form is sent. Setting the password ends the recovery. An answer that sends no email waits about as long as a send would ([security › Passwords](../backend/security.md#passwords)).
 
 **The reset email** is bilingual, Arabic then English, as designed ([SCREENS.md](../design/SCREENS.md) row 7), except the greeting by name ([security › Passwords](../backend/security.md#passwords)). Its words live with the module, in both languages held to one shape, since the API has no copy catalogue.
 
@@ -50,6 +50,8 @@
 - **Checking a link in a browser with no recovery opens one there.** *Why:* most people open the email on another device. 2026-10-05, #38.
 - **The check names the account, masked.** *Why:* the person sees whose password they set before sending it. 2026-10-03, #25; masked since 2026-10-05, #38.
 - **The email goes from a single Gmail account with an app password,** through `nodemailer` and any SMTP relay. *Why:* without a domain of its own, no domain-verified provider is possible ([ADR 0014](../architecture/decisions/0014-deployment.md)), and Gmail's own mail passes DMARC; another account or relay changes configuration, not code. 2026-10-03, #25.
+- **A session ends 30 days after its sign-in,** its deadline carried by each of its tokens and copied on rotation, not capped into the token's own expiry, so a refresh past it reaches the lock and deletes the family, even with a token past its own 7 days; the families alive at the migration got 30 days from it. *Why:* a session refreshed weekly never ended ([finding 20](../architecture/findings/20-a-session-has-no-absolute-lifetime.md)); its sign-in time is unknown once its first token is gone. 2026-10-13, #78.
+- **An answer that sends no email waits as a send would, and only then:** a request for a link or a resend that delivers nothing waits a time drawn anew within one constant's bounds, `NO_SEND_WAIT`, through the timer port; a delivered email adds no wait. *Why:* the send cannot move after the answer ([ADR 0014](../architecture/decisions/0014-deployment.md)), so the answers that send nothing are made as slow; padding the real sends too would push them later than the padded ones ([finding 16](../architecture/findings/16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists.md)). 2026-10-13, #78.
 
 ### Web decisions
 
@@ -68,16 +70,16 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 
 ## Code map
 
-- **API:** `apps/api/src/modules/auth/`, entry `index.ts`: the orchestrating service, its router and its limits; the Google port; `email/`, the email port, its senders, the caps and the reset email.
+- **API:** `apps/api/src/modules/auth/`, entry `index.ts`: the orchestrating service, its router and its limits; the wait of an answer that sends no email (`noSendWait.ts`); the Google port; `email/`, the email port, its senders, the caps and the reset email.
 - **Shared:** `packages/shared/src/auth/`: the session's and the recovery's shapes, and the requests.
 - **Web:** `apps/web/src/features/auth/`, entry `index.ts`: `SignInForm`, `RegisterForm`, `ContinueWithGoogle` (which takes the page's divider), `ForgotPasswordCard`, `ResetPasswordCard`. Two repositories, the sign-in's and the recovery's. Mounted by `pages/site/auth/`.
 
 ## Open findings
 
-- [16](../architecture/findings/16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists.md): the forgotten password's timing.
 - [22](../architecture/findings/22-the-reset-emails-words-live-outside-the-webs-copy-catalogue.md): the email's words outside the copy catalogue.
 - [32](../architecture/findings/32-the-google-sign-in-answer-does-not-say-whether-it-created-the-account.md): no welcome after a first Google sign-in.
 - [33](../architecture/findings/33-the-deployments-headers-must-let-googles-sign-in-work.md): the deployment's headers and Google's sign-in.
+- [65](../architecture/findings/65-the-forgotten-passwords-wait-is-an-estimate-not-a-measurement.md): the forgotten password's wait is an estimate, not a measurement.
 
 ## History
 
@@ -87,6 +89,7 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 - #31 — a racing first Google sign-in.
 - #34 — the shared package split by capability.
 - #38 — the recovery session.
+- #78 — a session's 30 days; the access tokens end with the session, through `users`' `endSessions`, after a reset and a refused refresh; the forgotten password's wait when it sends nothing.
 
 ### Web history
 

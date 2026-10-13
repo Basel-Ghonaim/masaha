@@ -446,7 +446,11 @@ describe('DELETE and restore of /admin/spaces/:spaceId', () => {
   it('takes the space from its owner when deleted, and gives it back when restored', async () => {
     const space = await createSpace();
     const owner = await link(space.id, 'OWNER');
-    const token = await accessTokens.sign({ userId: owner.id, mustChangePassword: false });
+    const token = await accessTokens.sign({
+      userId: owner.id,
+      mustChangePassword: false,
+      sessionVersion: 0,
+    });
     const mySpaces = async () => {
       const response = await request(app)
         .get('/api/v1/manage/spaces')

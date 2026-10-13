@@ -114,6 +114,25 @@ describe('POST /auth/google', () => {
     20_000,
   );
 
+  it('refuses the access tokens signed before it links, and opens a session that works', async () => {
+    await createAccount({ email: 'sara@gmail.com' });
+    const { accessToken } = (
+      (await login('sara@gmail.com')).body as {
+        data: { accessToken: string };
+      }
+    ).data;
+    const reach = (token: string) =>
+      request(app).get('/api/v1/manage/spaces').set('Authorization', `Bearer ${token}`);
+    expect((await reach(accessToken)).status).toBe(200);
+
+    const linked = await signInWithGoogle('gmail');
+
+    expect(linked.body).toMatchObject({ data: { linked: true } });
+    expect((await reach(accessToken)).status).toBe(401);
+    const { accessToken: google } = (linked.body as { data: { accessToken: string } }).data;
+    expect((await reach(google)).status).toBe(200);
+  });
+
   it('refuses to link where Google is not the authority for the address', async () => {
     const existing = await createAccount({ email: 'sara@example.com' });
 

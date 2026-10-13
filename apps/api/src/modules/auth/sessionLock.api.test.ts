@@ -11,7 +11,8 @@ import { prisma, type Tx } from '../../db/index.ts';
 // §13). Each test holds that row in its own transaction, as a reset or a password change would,
 // while a request runs; the request must then see what the transaction committed.
 
-const app = createTestApp();
+// A forgotten password that sends nothing waits as a send would: here, no real time.
+const app = createTestApp({ wait: () => Promise.resolve() });
 
 beforeEach(async () => {
   await resetDatabase(prisma);
@@ -116,6 +117,26 @@ describe('the session lock', () => {
 
     expect(answer.status).toBe(401);
     expect(await prisma.refreshToken.count({ where: { userId: user.id } })).toBe(0);
+  }, 20_000);
+
+  it('signs a session opened while a role change held the lock under the version it left', async () => {
+    const user = await createAccount();
+
+    // What a role change does under the lock: the role, and every session ended.
+    const answer = await whileLocked(user.id, login, async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { role: 'ADMIN', sessionVersion: { increment: 1 } },
+      });
+      await tx.refreshToken.deleteMany({ where: { userId: user.id } });
+    });
+
+    expect(answer.status).toBe(200);
+    const { accessToken } = (answer.body as { data: { accessToken: string } }).data;
+    const next = await request(app)
+      .get('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(next.status).toBe(200);
   }, 20_000);
 
   it('leaves no live token when a logout and a refresh of one session race', async () => {

@@ -53,7 +53,13 @@ function person(role: Role = 'USER', { suspended = false } = {}) {
 /** A signed-in session of the user: a refresh token, written with `tx` if given. */
 async function session(userId: number, tx: Tx = prisma) {
   return tx.refreshToken.create({
-    data: { userId, familyId: 1, tokenHash: randomUUID(), expiresAt: new Date('2026-10-18') },
+    data: {
+      userId,
+      familyId: 1,
+      tokenHash: randomUUID(),
+      expiresAt: new Date('2026-10-18'),
+      sessionEndsAt: new Date('2026-10-18'),
+    },
   });
 }
 
@@ -265,6 +271,23 @@ describe('POST /admin/spaces/:spaceId/owners', () => {
     expect((await pending)?.status).toBe(204);
     expect(await role(user.id)).toBe('OWNER');
     expect(await sessions(user.id)).toBe(0);
+  });
+});
+
+describe('the owner links: the tokens signed before a role change', () => {
+  it('refuses the token of a person whose first owner link, then whose last, changes the role', async () => {
+    const nour = await signIn('USER', 'nour@example.com');
+    const reach = (who: { authorization: string }) => adminRequest(app, who, 'get', '/users');
+    expect((await reach(nour)).status).toBe(403);
+
+    expect((await link(nour.id)).status).toBe(204);
+    expect((await reach(nour)).status).toBe(401);
+
+    const asOwner = await signIn('OWNER', 'owner@example.com');
+    await prisma.spaceManager.create({ data: { spaceId, userId: asOwner.id, role: 'OWNER' } });
+    expect((await unlink(nour.id)).status).toBe(204);
+    expect((await unlink(asOwner.id)).status).toBe(204);
+    expect((await reach(asOwner)).status).toBe(401);
   });
 });
 

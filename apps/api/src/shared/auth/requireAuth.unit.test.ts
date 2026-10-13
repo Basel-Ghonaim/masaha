@@ -7,7 +7,12 @@ import { createRequireAuth, type SignedInAccount } from './requireAuth.ts';
 
 const tokens = createAccessTokens('a-test-secret-of-at-least-32-characters');
 
-const active: SignedInAccount = { role: 'OWNER', mustChangePassword: false, suspended: false };
+const active: SignedInAccount = {
+  role: 'OWNER',
+  mustChangePassword: false,
+  suspended: false,
+  sessionVersion: 2,
+};
 
 /** The guard over an account reader that answers `account`, and the ids it was asked for. */
 function guardOver(account: SignedInAccount | null) {
@@ -39,8 +44,8 @@ async function run(guard: ReturnType<ReturnType<typeof createRequireAuth>>, req:
   return { error: undefined, next };
 }
 
-const settled: AccessClaims = { userId: 3, mustChangePassword: false };
-const pending: AccessClaims = { userId: 3, mustChangePassword: true };
+const settled: AccessClaims = { userId: 3, mustChangePassword: false, sessionVersion: 2 };
+const pending: AccessClaims = { userId: 3, mustChangePassword: true, sessionVersion: 2 };
 
 describe('requireAuth', () => {
   it('puts the account’s role now and the token’s pending claim on the request', async () => {
@@ -83,6 +88,19 @@ describe('requireAuth', () => {
 
       expect(error).toMatchObject({ type: 'unauthorized', code: undefined });
       expect(next).not.toHaveBeenCalled();
+    }
+  });
+
+  it('answers 401, with no code, for a token signed under another session version, even where a pending change is allowed', async () => {
+    for (const sessionVersion of [1, 3]) {
+      const { requireAuth } = guardOver({ ...active, sessionVersion });
+
+      for (const guard of [requireAuth(), requireAuth({ allowPendingPasswordChange: true })]) {
+        const { error, next } = await run(guard, await bearer(pending));
+
+        expect(error).toMatchObject({ type: 'unauthorized', code: undefined });
+        expect(next).not.toHaveBeenCalled();
+      }
     }
   });
 

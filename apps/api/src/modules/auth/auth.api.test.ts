@@ -67,6 +67,7 @@ describe('POST /auth/register', () => {
     expect(await accessTokens.verify(accessToken)).toEqual({
       userId: expect.any(Number) as unknown,
       mustChangePassword: false,
+      sessionVersion: 0,
     });
   });
 
@@ -402,6 +403,7 @@ describe('POST /auth/refresh', () => {
         familyId: 999,
         tokenHash: 'expired',
         expiresAt: new Date(Date.now() - 1_000),
+        sessionEndsAt: new Date(Date.now() + 60_000),
       },
     });
 
@@ -468,6 +470,79 @@ describe('POST /auth/refresh', () => {
   });
 });
 
+describe('the session’s end', () => {
+  const DAY = 24 * 60 * 60_000;
+  const SIGNED_IN = new Date('2026-10-01T08:00:00Z');
+  let now = SIGNED_IN;
+  const clocked = createTestApp({ clock: () => now });
+  const at = (ms: number) => new Date(SIGNED_IN.getTime() + ms);
+  const refreshAt = (when: Date, token: string) => {
+    now = when;
+    return request(clocked).post('/api/v1/auth/refresh').set('Cookie', `masaha_refresh=${token}`);
+  };
+
+  beforeEach(() => {
+    now = SIGNED_IN;
+  });
+
+  it('ends a session 30 days after its sign-in, however often it refreshed', async () => {
+    await createAccount();
+    let token = refreshTokenOf(
+      await request(clocked)
+        .post('/api/v1/auth/login')
+        .send({ email: 'sara@example.com', password: PASSWORD }),
+    );
+    const family = await familyOf(token);
+    for (const day of [6, 12, 18, 24]) {
+      const renewed = await refreshAt(at(day * DAY), token);
+      expect(renewed.status).toBe(200);
+      token = refreshTokenOf(renewed);
+    }
+    const lastMoment = await refreshAt(at(30 * DAY - 1), token);
+    expect(lastMoment.status).toBe(200);
+
+    const ended = await refreshAt(at(30 * DAY), refreshTokenOf(lastMoment));
+
+    expect(ended.status).toBe(401);
+    expect(cookieValue(ended, 'masaha_refresh')).toBe('');
+    expect(cookieValue(ended, 'masaha_session')).toBe('');
+    expect(await prisma.refreshToken.count({ where: { familyId: family } })).toBe(0);
+  });
+
+  it('ends a session past its end even when the token presented is past its own 7 days', async () => {
+    await createAccount();
+    const token = refreshTokenOf(
+      await request(clocked)
+        .post('/api/v1/auth/login')
+        .send({ email: 'sara@example.com', password: PASSWORD }),
+    );
+    const family = await familyOf(token);
+
+    const ended = await refreshAt(at(31 * DAY), token);
+
+    expect(ended.status).toBe(401);
+    expect(cookieValue(ended, 'masaha_refresh')).toBe('');
+    expect(await prisma.refreshToken.count({ where: { familyId: family } })).toBe(0);
+  });
+
+  it('deletes a session past its end when the user signs in again', async () => {
+    const user = await createAccount();
+    await prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        familyId: 999,
+        tokenHash: 'ended',
+        expiresAt: new Date(Date.now() + 60_000),
+        sessionEndsAt: new Date(Date.now() - 1_000),
+      },
+    });
+
+    expect((await login()).status).toBe(200);
+
+    expect(await prisma.refreshToken.count({ where: { tokenHash: 'ended' } })).toBe(0);
+  });
+});
+
 describe('POST /auth/logout', () => {
   it('ends the whole session of the device, grace tokens included, and clears the cookies', async () => {
     await createAccount();
@@ -515,6 +590,24 @@ describe('POST /auth/logout', () => {
       .set('Cookie', `masaha_refresh=${token}`);
 
     expect(response.status).toBe(204);
+  });
+
+  it('leaves another session of the account working, its access token included', async () => {
+    await createAccount();
+    const phone = await login();
+    const laptop = await login();
+    const { accessToken } = (laptop.body as { data: { accessToken: string } }).data;
+
+    const out = await request(app)
+      .post('/api/v1/auth/logout')
+      .set('Cookie', `masaha_refresh=${refreshTokenOf(phone)}`);
+
+    expect(out.status).toBe(204);
+    const next = await request(app)
+      .get('/api/v1/manage/spaces')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(next.status).toBe(200);
+    expect((await refresh(refreshTokenOf(laptop))).status).toBe(200);
   });
 
   it('answers 204 without a session', async () => {

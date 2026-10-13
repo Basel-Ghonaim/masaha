@@ -18,6 +18,7 @@ const sara: Account = {
   language: 'ar',
   mustChangePassword: false,
   suspendedAt: null,
+  sessionVersion: 0,
 };
 
 /** A recovery that may ask for another link now. */
@@ -46,9 +47,8 @@ function setup({ sent = true, account = sara, recovery = askable } = {}) {
     issueResetToken: () => Promise.resolve({ token: 'reset', id: 9 }),
     keepOnlyResetToken: record('keepOnlyResetToken'),
     withdrawResetToken: record('withdrawResetToken'),
-    ownerOf: () => Promise.resolve(3),
+    holderOf: () => Promise.resolve(3),
     resetTokenOwner: () => Promise.resolve(undefined),
-    revokeAll: record('revokeAll'),
     openRecovery: () => {
       calls.push('openRecovery');
       return Promise.resolve({ key: 'key', recovery: { ...askable, resendInSeconds: 60 } });
@@ -71,6 +71,7 @@ function setup({ sent = true, account = sara, recovery = askable } = {}) {
     },
     maySignIn: (candidate: Account) => !candidate.suspendedAt,
     lockAccount: () => Promise.resolve(account),
+    endSessions: record('endSessions'),
     assertMaySignIn: () => {
       throw AppError.forbidden('ACCOUNT_SUSPENDED');
     },
@@ -89,6 +90,7 @@ function setup({ sent = true, account = sara, recovery = askable } = {}) {
     google: undefined,
     emailSender: email,
     webOrigin: 'https://masaha.example',
+    wait: record('wait'),
   });
   return { auth, calls };
 }
@@ -107,7 +109,7 @@ describe('auth: the forgotten password', () => {
 
     await auth.forgotPassword({ email: 'sara@example.com' }, 'ip', undefined);
 
-    expect(calls).toEqual(['openRecovery', 'withdrawResetToken']);
+    expect(calls).toEqual(['openRecovery', 'withdrawResetToken', 'wait']);
   });
 
   it('opens a recovery but issues nothing for an account that may not sign in', async () => {
@@ -115,7 +117,7 @@ describe('auth: the forgotten password', () => {
 
     await auth.forgotPassword({ email: 'sara@example.com' }, 'ip', undefined);
 
-    expect(calls).toEqual(['openRecovery']);
+    expect(calls).toEqual(['openRecovery', 'wait']);
   });
 });
 
@@ -133,7 +135,7 @@ describe('auth: resending the link', () => {
 
     const answer = await auth.resendResetLink('ip', 'key');
 
-    expect(calls).toEqual(['recordResend']);
+    expect(calls).toEqual(['recordResend', 'wait']);
     expect(answer.position).toEqual({
       step: 'sent',
       email: 's•••@example.com',
@@ -147,7 +149,7 @@ describe('auth: resending the link', () => {
 
     await auth.resendResetLink('ip', 'key');
 
-    expect(calls).toEqual(['recordResend', 'get']);
+    expect(calls).toEqual(['recordResend', 'get', 'wait']);
   });
 });
 
@@ -156,7 +158,7 @@ describe('auth: refresh', () => {
     const { auth, calls } = setup({ account: { ...sara, suspendedAt: new Date() } });
 
     await expect(auth.refresh('token')).rejects.toMatchObject({ code: 'ACCOUNT_SUSPENDED' });
-    expect(calls).toEqual(['revokeAll']);
+    expect(calls).toEqual(['endSessions']);
   });
 });
 

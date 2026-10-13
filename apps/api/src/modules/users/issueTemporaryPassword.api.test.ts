@@ -44,7 +44,13 @@ function login(password: string, email = 'sara@example.com') {
 /** A session row for the user, as a sign-in leaves one. */
 function session(userId: number, tokenHash = `session-${String(userId)}`) {
   return prisma.refreshToken.create({
-    data: { userId, familyId: 0, tokenHash, expiresAt: new Date(Date.now() + 60_000) },
+    data: {
+      userId,
+      familyId: 0,
+      tokenHash,
+      expiresAt: new Date(Date.now() + 60_000),
+      sessionEndsAt: new Date(Date.now() + 60_000),
+    },
   });
 }
 
@@ -125,6 +131,15 @@ describe('POST /admin/users/:userId/temporary-password', () => {
       { channel: 'WHATSAPP' },
     );
     expect(handover.status).toBe(204);
+  });
+
+  it('refuses the access tokens signed before it', async () => {
+    const user = await signIn('USER', 'nour@example.com');
+    expect((await adminRequest(app, user, 'get', '/users')).status).toBe(403);
+
+    expect((await issue(user.id)).status).toBe(200);
+
+    expect((await adminRequest(app, user, 'get', '/users')).status).toBe(401);
   });
 
   it('replaces a pending temporary password when issued again (finding 49)', async () => {
@@ -230,6 +245,7 @@ describe('POST /admin/users/:userId/temporary-password: the races', () => {
             familyId: 0,
             tokenHash: 'opened-meanwhile',
             expiresAt: new Date(Date.now() + 60_000),
+            sessionEndsAt: new Date(Date.now() + 60_000),
           },
         });
       },

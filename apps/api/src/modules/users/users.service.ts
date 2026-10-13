@@ -15,12 +15,6 @@ import type { Limiter } from '../../shared/rate-limit/index.ts';
 import { createSessionsService, type SessionsService } from '../sessions/index.ts';
 import { hashPassword, verifyPassword } from './password.ts';
 import { temporaryPassword } from './temporaryPassword.ts';
-
-/** bcrypt, as the users module uses it. */
-export interface Passwords {
-  hash(password: string): Promise<string>;
-  verify(password: string, hash: string | null): Promise<boolean>;
-}
 import { PASSWORD_CHANGE } from './users.limits.ts';
 import { toUserView } from './users.mapper.ts';
 import {
@@ -47,7 +41,6 @@ interface Dependencies {
   repository?: UsersRepository;
   sessions?: SessionsService;
   runInTransaction?: RunInTransaction;
-  passwords?: Passwords;
 }
 
 /** A person Google has verified (the auth module's Google port). */
@@ -134,7 +127,6 @@ export function createUsersService({
   repository = createUsersRepository(),
   sessions = createSessionsService(),
   runInTransaction = createRunInTransaction(),
-  passwords = { hash: hashPassword, verify: verifyPassword },
 }: Dependencies) {
   /** A suspended account cannot sign in or refresh (docs/backend/security.md). */
   function maySignIn(account: Account): boolean {
@@ -174,7 +166,7 @@ export function createUsersService({
    */
   async function issueTemporaryPassword(): Promise<TemporaryPassword> {
     const password = temporaryPassword();
-    return { password, hash: await passwords.hash(password) };
+    return { password, hash: await hashPassword(password) };
   }
 
   /** The account, or a 401 when it no longer exists. */
@@ -186,11 +178,27 @@ export function createUsersService({
 
   /** What the access token says of the account (docs/backend/security.md › Tokens and cookies). */
   function accessClaims(account: Account): AccessClaims {
-    return { userId: account.id, mustChangePassword: account.mustChangePassword };
+    return {
+      userId: account.id,
+      mustChangePassword: account.mustChangePassword,
+      sessionVersion: account.sessionVersion,
+    };
+  }
+
+  /**
+   * Ends every session of the user (docs/backend/security.md › Tokens and cookies): their refresh
+   * tokens are deleted, and their session version goes up, so every access token already signed is
+   * refused from its next request. In the caller's transaction, under the session lock it took
+   * (conventions §13). The one way to end every session: nothing else revokes them.
+   */
+  async function endSessions(userId: number, tx: Tx): Promise<void> {
+    await repository.bumpSessionVersion(userId, tx);
+    await sessions.revokeAll(userId, tx);
   }
 
   return {
     accessClaims,
+    endSessions,
 
     /**
      * The account as requireAuth reads it on every signed-in request, by its primary key (ADR 0003,
@@ -199,8 +207,8 @@ export function createUsersService({
     async signedInAccount(id: number): Promise<SignedInAccount | null> {
       const account = await repository.findById(id);
       if (!account) return null;
-      const { role, mustChangePassword } = account;
-      return { role, mustChangePassword, suspended: !maySignIn(account) };
+      const { role, mustChangePassword, sessionVersion } = account;
+      return { role, mustChangePassword, sessionVersion, suspended: !maySignIn(account) };
     },
     maySignIn,
     assertMaySignIn,
@@ -209,7 +217,7 @@ export function createUsersService({
 
     /** A new USER with a password. A taken email is EMAIL_TAKEN. */
     async register({ name, email, password, language }: Registration): Promise<Account> {
-      const passwordHash = await passwords.hash(password);
+      const passwordHash = await hashPassword(password);
       const created = await repository.create({ name, email, passwordHash, language });
       if ('account' in created) return created.account;
       throw AppError.conflict('EMAIL_TAKEN', 'Email taken', { email: ['not_unique'] });
@@ -223,7 +231,7 @@ export function createUsersService({
     async verifyCredentials(email: string, password: string): Promise<VerifiedCredentials> {
       const found = await repository.findCredentials(email);
       const matched = found?.passwordHash ?? null;
-      if (!(await passwords.verify(password, matched)) || !found) {
+      if (!(await verifyPassword(password, matched)) || !found) {
         throw AppError.unauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
       }
       assertMaySignIn(found.account);
@@ -307,7 +315,7 @@ export function createUsersService({
       if (!linked && (await repository.findGoogleSubject(userId, tx)) !== google.subject) {
         throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
       }
-      if (linked) await sessions.revokeAll(userId, tx);
+      if (linked) await endSessions(userId, tx);
       return { account: (await repository.findById(userId, tx)) ?? locked, linked };
     },
 
@@ -321,7 +329,7 @@ export function createUsersService({
      */
     async changeRole(account: Account, role: Role, actorId: number, tx: Tx): Promise<void> {
       await repository.setRole(account.id, role, tx);
-      await sessions.revokeAll(account.id, tx);
+      await endSessions(account.id, tx);
       await audit(
         {
           actorId,
@@ -421,7 +429,7 @@ export function createUsersService({
           throw AppError.conflict('GOOGLE_ONLY_ACCOUNT', 'No password to replace');
         }
         await repository.setTemporaryPassword(userId, temporary.hash, tx);
-        await sessions.revokeAll(userId, tx);
+        await endSessions(userId, tx);
         await sessions.endResetTokens(userId, tx);
         await audit(
           {
@@ -481,7 +489,7 @@ export function createUsersService({
         if (isSuspended) assertKeepsAnAdmin(locked);
         await repository.setSuspendedAt(userId, isSuspended ? now() : null, tx);
         if (isSuspended) {
-          await sessions.revokeAll(userId, tx);
+          await endSessions(userId, tx);
           await sessions.endResetTokens(userId, tx);
         }
         await audit(
@@ -500,7 +508,7 @@ export function createUsersService({
 
     /** Hashes a new password, before the transaction that sets it opens. */
     hashPassword(password: string): Promise<string> {
-      return passwords.hash(password);
+      return hashPassword(password);
     },
 
     /** Sets a password already hashed, settling a pending temporary one. */
@@ -539,11 +547,11 @@ export function createUsersService({
       return limiter.limitFailures(
         [{ policy: PASSWORD_CHANGE, by: [String(userId)] }],
         async () => {
-          if (!forced && !(await passwords.verify(currentPassword ?? '', currentHash))) {
+          if (!forced && !(await verifyPassword(currentPassword ?? '', currentHash))) {
             throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Current password incorrect');
           }
 
-          const passwordHash = await passwords.hash(password);
+          const passwordHash = await hashPassword(password);
           const expected = {
             passwordHash: currentHash,
             mustChangePassword: account.mustChangePassword,
@@ -554,13 +562,13 @@ export function createUsersService({
             const locked = await lockAccount(userId, tx);
             if (!locked) throw AppError.unauthorized(undefined, 'Account not found');
             assertMaySignIn(locked);
-            const changed = await repository.setPasswordIf(userId, passwordHash, expected, tx);
-            if (!changed) {
+            if (!(await repository.setPasswordIf(userId, passwordHash, expected, tx))) {
               throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Password changed meanwhile');
             }
-            await sessions.revokeAll(userId, tx);
+            await endSessions(userId, tx);
             await sessions.endResetTokens(userId, tx);
-            return { changed, issued: await sessions.issue(userId, tx) };
+            // Read after the version went up: this device's new token is signed under it.
+            return { changed: await get(userId, tx), issued: await sessions.issue(userId, tx) };
           });
           const accessToken = await accessTokens.sign(accessClaims(changed));
           return { accessToken, refreshToken: issued.token };

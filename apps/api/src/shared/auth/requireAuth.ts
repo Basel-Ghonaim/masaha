@@ -9,6 +9,8 @@ export interface SignedInAccount {
   role: Role;
   mustChangePassword: boolean;
   suspended: boolean;
+  /** One more each time every session of the account ended. */
+  sessionVersion: number;
 }
 
 /** The account with this id as it is now, or nothing when there is none. */
@@ -57,7 +59,8 @@ export type RequireAuth = (options?: RequireAuthOptions) => RequestHandler;
  * The guard of every signed-in route (docs/backend/security.md › Authorization). It reads the
  * account by the token's id on every request, so a suspension, a role change or a temporary password
  * takes effect at once (ADR 0003, revised): 401 without a valid access token, for an account that
- * does not exist, for a suspended one, and for a token signed before a temporary password; then 403
+ * does not exist, for a suspended one, for a token signed before every session of the account last
+ * ended, and for one signed before a temporary password; then 403
  * PASSWORD_CHANGE_REQUIRED while the token says a temporary password must be changed. The composition root wires the reader, as it
  * wires the links loader: `shared/` imports no module.
  */
@@ -70,6 +73,11 @@ export function createRequireAuth(tokens: AccessTokens, readAccount: AccountRead
       if (!account) throw AppError.unauthorized(undefined, 'Account not found');
       // The suspension ended every session; a 401 makes the web's refresh find that out.
       if (account.suspended) throw AppError.unauthorized(undefined, 'Account suspended');
+      // Every session of the account ended after this token was signed: a password change, a reset,
+      // a suspension, a role change, a temporary password or a Google link. The 401 ends this one.
+      if (account.sessionVersion !== claims.sessionVersion) {
+        throw AppError.unauthorized(undefined, 'Session ended');
+      }
       // A change pending in the account but not in the token: the token was signed before a
       // temporary password, whose issue ended every session. The same 401 ends this one.
       if (account.mustChangePassword && !claims.mustChangePassword) {

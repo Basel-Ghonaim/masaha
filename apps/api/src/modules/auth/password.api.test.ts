@@ -16,13 +16,29 @@ import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma } from '../../db/index.ts';
 
 const outbox = recordingEmailSender();
-const app = createTestApp({ email: outbox });
+/** What each answer that sent nothing waited, which here takes no real time. */
+const waits: number[] = [];
+const wait = (ms: number) => {
+  waits.push(ms);
+  return Promise.resolve();
+};
+const app = createTestApp({ email: outbox, wait });
 const NEW_PASSWORD = 'mine2026x';
 
 beforeEach(async () => {
   await resetDatabase(prisma);
   outbox.sent.length = 0;
+  waits.length = 0;
 });
+
+/** Every wait within the bounds a real send takes (docs/backend/security.md › Passwords). */
+function expectSendLikeWaits(count: number) {
+  expect(waits).toHaveLength(count);
+  for (const ms of waits) {
+    expect(ms).toBeGreaterThanOrEqual(1_500);
+    expect(ms).toBeLessThanOrEqual(3_000);
+  }
+}
 
 function forgot(email = 'sara@example.com') {
   return request(app).post('/api/v1/auth/password/forgot').send({ email });
@@ -98,6 +114,28 @@ describe('POST /auth/password/forgot', () => {
       );
     }
     expect(outbox.sent.map(({ to }) => to)).toEqual(['sara@example.com']);
+  });
+
+  it('waits as long as a send when it sends nothing, for an unknown, a suspended or a capped address, and not after a delivered email', async () => {
+    await createAccount();
+    await createAccount({ email: 'away@example.com', suspendedAt: new Date() });
+    for (let delivered = 0; delivered < 3; delivered++) await forgot();
+    expect(waits).toEqual([]);
+
+    await forgot('nobody@example.com');
+    await forgot('away@example.com');
+    // The inbox's fourth email this hour: its cap sends nothing.
+    await forgot();
+
+    expect(outbox.sent).toHaveLength(3);
+    expectSendLikeWaits(3);
+  });
+
+  it('draws each wait anew, so no fixed delay tells', async () => {
+    for (const email of ['a@example.com', 'b@example.com', 'c@example.com']) await forgot(email);
+
+    expectSendLikeWaits(3);
+    expect(new Set(waits).size).toBeGreaterThan(1);
   });
 
   it('ends the recovery the browser held: its key opens nothing any more', async () => {
@@ -191,7 +229,7 @@ describe('GET /auth/password/recovery', () => {
 describe('POST /auth/password/resend', () => {
   // The recovery's window is a minute: this app's clock is moved past it.
   let now = Date.now();
-  const clocked = createTestApp({ email: outbox, clock: () => new Date(now) });
+  const clocked = createTestApp({ email: outbox, clock: () => new Date(now), wait });
 
   beforeEach(() => {
     now = Date.now();
@@ -223,6 +261,20 @@ describe('POST /auth/password/resend', () => {
     expect(setCookies(response).masaha_reset).toContain('Max-Age=3600');
     expect(outbox.sent.map(({ to }) => to)).toEqual(['sara@example.com', 'sara@example.com']);
     expect((await resend(key)).status).toBe(429);
+  });
+
+  it('waits as long as a send when it sends nothing, and not after a delivered link', async () => {
+    await createAccount();
+    const known = await openRecovery();
+    const unknown = await openRecovery('nobody@example.com');
+    now += 60_000;
+    waits.length = 0;
+
+    expect((await resend(known)).status).toBe(202);
+    expect(waits).toEqual([]);
+    expect((await resend(unknown)).status).toBe(202);
+
+    expectSendLikeWaits(1);
   });
 
   it('answers the same for an address with no account, and sends nothing', async () => {
@@ -462,6 +514,20 @@ describe('POST /auth/password/reset', () => {
     expect((await reset(key, { password: 'again2026x' })).body).toMatchObject({
       error: { code: 'RECOVERY_INVALID' },
     });
+  });
+
+  it('refuses the access tokens signed before it', async () => {
+    await createAccount();
+    const signedIn = await login(PASSWORD);
+    const { accessToken } = (signedIn.body as { data: { accessToken: string } }).data;
+    await forgot();
+
+    expect((await reset(await checkedKey(lastToken()))).status).toBe(204);
+
+    const next = await request(app)
+      .get('/api/v1/manage/spaces')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(next.status).toBe(401);
   });
 
   it('leaves a recovery bound to no link reading sent after the reset, as for an unknown address', async () => {

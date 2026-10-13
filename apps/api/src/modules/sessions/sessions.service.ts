@@ -8,6 +8,8 @@ import { hashToken, newToken } from './tokens.ts';
 
 // docs/backend/security.md › Tokens and cookies.
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60_000;
+/** A session ends this long after its sign-in, however often it refreshes. */
+export const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60_000;
 /** A token rotated this recently is still honoured, so two tabs refreshing together stay signed in. */
 export const ROTATION_GRACE_MS = 30_000;
 // docs/backend/security.md › Passwords.
@@ -24,7 +26,7 @@ export interface IssuedToken {
 
 export type Rotation =
   | { outcome: 'rotated'; issued: IssuedToken }
-  /** Unknown or expired. */
+  /** Unknown or expired, or its session past its end, which it ends. */
   | { outcome: 'invalid' }
   /** Rotated before the grace window: a copy is in use, so its whole session was ended. */
   | { outcome: 'reused' };
@@ -70,11 +72,17 @@ export function createSessionsService({
   repository = createSessionsRepository(),
   now = () => new Date(),
 }: Dependencies = {}) {
-  async function issueInFamily(userId: number, familyId: number | undefined, at: Date, tx?: Tx) {
+  async function issueInFamily(
+    userId: number,
+    family: { familyId: number; sessionEndsAt: Date } | undefined,
+    at: Date,
+    tx?: Tx,
+  ) {
     const token = newToken();
     const expiresAt = new Date(at.getTime() + REFRESH_TOKEN_TTL_MS);
+    const sessionEndsAt = family?.sessionEndsAt ?? new Date(at.getTime() + SESSION_LIFETIME_MS);
     const stored = await repository.createRefreshToken(
-      { userId, tokenHash: hashToken(token), expiresAt, familyId },
+      { userId, tokenHash: hashToken(token), expiresAt, sessionEndsAt, familyId: family?.familyId },
       tx,
     );
     return { stored, issued: { token } };
@@ -95,7 +103,7 @@ export function createSessionsService({
   }
 
   return {
-    /** Starts a new session for the user: the first token of a new family. */
+    /** Starts a new session for the user: the first token of a new family, ending in 30 days. */
     async issue(userId: number, tx?: Tx): Promise<IssuedToken> {
       const at = now();
       await repository.deleteExpired(userId, at, tx);
@@ -103,13 +111,10 @@ export function createSessionsService({
       return issued;
     },
 
-    /** Whose token this is, if it is known and unexpired, rotated or not. Changes nothing. */
-    async ownerOf(token: string): Promise<number | undefined> {
-      const stored = await repository.findRefreshToken(hashToken(token));
-      return stored && stored.expiresAt > now() ? stored.userId : undefined;
-    },
-
-    /** Whose token this is, expired or not: the session a logout ends. Changes nothing. */
+    /**
+     * Whose token this is, expired or not: the session a refresh renews or a logout ends. Changes
+     * nothing; `rotate` refuses an expired token under the lock.
+     */
     async holderOf(token: string, tx?: Tx): Promise<number | undefined> {
       return (await repository.findRefreshToken(hashToken(token), tx))?.userId;
     },
@@ -121,7 +126,14 @@ export function createSessionsService({
     async rotate(token: string, tx: Tx): Promise<Rotation> {
       const at = now();
       const stored = await repository.findRefreshToken(hashToken(token), tx);
-      if (!stored || stored.expiresAt <= at) return { outcome: 'invalid' };
+      if (!stored) return { outcome: 'invalid' };
+      // However often it refreshed, the session ends 30 days after its sign-in: past that, any of
+      // its tokens ends it, expired or not.
+      if (stored.sessionEndsAt <= at) {
+        await repository.deleteFamily(stored.familyId, tx);
+        return { outcome: 'invalid' };
+      }
+      if (stored.expiresAt <= at) return { outcome: 'invalid' };
 
       if (stored.rotatedAt && at.getTime() - stored.rotatedAt.getTime() > ROTATION_GRACE_MS) {
         await repository.deleteFamily(stored.familyId, tx);
@@ -131,7 +143,7 @@ export function createSessionsService({
       // A session that keeps refreshing never signs in again, so its expired rows go here: a
       // live session keeps the tokens of its last 7 days, which reuse detection needs.
       await repository.deleteExpired(stored.userId, at, tx);
-      const next = await issueInFamily(stored.userId, stored.familyId, at, tx);
+      const next = await issueInFamily(stored.userId, stored, at, tx);
       // Within the grace window the token already has its successor, and the new token joins the
       // session beside it. Otherwise it is marked rotated now: the session lock means no concurrent
       // refresh can have done it first.
