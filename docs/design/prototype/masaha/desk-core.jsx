@@ -187,7 +187,8 @@ function checkInWarnings(cid) {
   if (!s) w.push({ id: 'nosub' });
   else if (D.subStatus(s) === 'expired') w.push({ id: 'expired', sub: s });
   else {
-    if (s.terms.weekDays && !s.terms.weekDays.includes(D.TODAY_KEY)) w.push({ id: 'notday', sub: s });
+    // K5: the model holds days a week as a count, so the warning is the count used up — never which days.
+    if (s.terms.daysPerWeek && (s.used.week || 0) >= s.terms.daysPerWeek) w.push({ id: 'week', sub: s });
     if (s.terms.hoursPerDay && (s.used.todayMin || 0) >= s.terms.hoursPerDay * 60) w.push({ id: 'hours', sub: s });
   }
   if (D.present.length >= D.capacity) w.push({ id: 'full' });
@@ -280,7 +281,7 @@ function WarnDialog({ dlg, onClose }) {
     here: (w) => [tr('حاضر الآن', 'Already here'), <>{tr('مسجّل حضوره منذ', 'Checked in since')} <Num>{w.since}</Num>.</>],
     nosub: () => [tr('لا يوجد اشتراك', 'No subscription'), tr('يمكنك تسجيله كزيارة، أو إضافة اشتراك.', 'Check them in as a visit, or add a subscription.')],
     expired: (w) => [tr('انتهى الاشتراك', 'Subscription ended'), <>{w.sub.name} · {tr('انتهى في', 'ended')} {D.fmtDate(w.sub.to)}.</>],
-    notday: (w) => [tr('اليوم ليس من أيامه', 'Today isn’t one of their days'), D.progress(w.sub, c).find((l) => l.startsWith(tr('أيامه', 'Days')))],
+    week: (w) => [tr('استُنفدت أيام هذا الأسبوع', 'This week’s days are used up'), D.progress(w.sub, c).find((l) => l.startsWith(tr('هذا الأسبوع', 'This week')))],
     hours: (w) => [tr('تجاوز ساعات اليوم', 'Over today’s hours'), D.progress(w.sub, c).find((l) => l.startsWith(tr('ساعات اليوم', 'Today')))],
     full: () => [tr('المساحة ممتلئة', 'The space is full'), <><Num>{`${D.present.length}/${D.capacity}`}</Num> · {tr('ستبقى حالتها للزوار «ممتلئ».', 'Visitors keep seeing «Full».')}</>]
   };

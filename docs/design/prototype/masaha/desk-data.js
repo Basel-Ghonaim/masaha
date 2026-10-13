@@ -52,7 +52,7 @@ window.DESK = (function () {
     { id: 'm9', name: T('عمر حلس', 'Omar Hilles'), phone: '+970 59 000 1009', subs: [S('s9', 'month', '2026-09-02', '2026-10-01', { pays: [['2026-09-02', '08:15', 300, 'transfer', A]] })] },
     { id: 'm10', name: T('دانة الغول', 'Dana Al-Ghoul'), phone: '+970 59 000 1010', subs: [] },
     { id: 'm11', name: T('إبراهيم عاشور', 'Ibrahim Ashour'), phone: '+970 56 000 1011', subs: [S('s11', 'month', '2026-09-28', '2026-10-27', { billing: { type: 'fixed', amount: 280 }, manual: true, pays: [['2026-09-28', '08:20', 280, 'transfer', A]] })] },
-    { id: 'm12', name: T('ميار سكيك', 'Mayar Skaik'), phone: '+970 59 000 1012', subs: [S('s12', 'custom', '2026-09-19', '2026-10-18', { name: T('3 أيام ثابتة', '3 fixed days'), terms: { weekDays: ['sat', 'mon', 'wed'] }, billing: { type: 'fixed', amount: 200 }, manual: true, shift: 'am', pays: [['2026-09-19', '08:00', 200, 'cash', A]] })] },
+    { id: 'm12', name: T('ميار سكيك', 'Mayar Skaik'), phone: '+970 59 000 1012', subs: [S('s12', 'custom', '2026-09-19', '2026-10-18', { name: T('3 أيام بالأسبوع', '3 days a week'), terms: { daysPerWeek: 3 }, used: { week: 3 }, billing: { type: 'fixed', amount: 200 }, manual: true, shift: 'am', pays: [['2026-09-19', '08:00', 200, 'cash', A]] })] },
     { id: 'm13', name: T('بلال زقوت', 'Bilal Zaqout'), phone: '+970 59 000 1013', subs: [S('s13', 'custom', '2026-09-15', '2026-10-14', { terms: { hoursPerDay: 3 }, billing: { type: 'fixed', amount: 150 }, manual: true, used: { todayMin: 180 }, pays: [['2026-09-15', '08:30', 150, 'cash', A]] })] },
     { id: 'm14', name: T('مالك صيام', 'Malek Siam'), phone: '+970 56 000 1014', subs: [] },
     { id: 'm15', name: T('رنا الأغا', 'Rana Al-Agha'), phone: '+970 59 000 1015', subs: [S('s15', 'custom', '2026-09-14', '2026-10-13', { name: T('بالساعة — مدفوع مقدمًا', 'Hourly — prepaid'), billing: { type: 'usage', unit: 'hour', rate: 3 }, used: { hours: 14 }, pays: [['2026-09-14', '09:30', 60, 'cash', A]] })] }
@@ -190,7 +190,6 @@ window.DESK = (function () {
     const t = sub.terms || {};
     if (t.totalDays) out.push(T(`أيام ${sub.used.days || 0} من ${t.totalDays}`, `Days ${sub.used.days || 0} of ${t.totalDays}`));
     if (t.daysPerWeek) out.push(T(`هذا الأسبوع ${sub.used.week || 0} من ${t.daysPerWeek}`, `This week ${sub.used.week || 0} of ${t.daysPerWeek}`));
-    if (t.weekDays) out.push(T('أيامه: ', 'Days: ') + t.weekDays.map((k) => WEEKDAYS.find((w) => w[0] === k)[1]).join(T('، ', ', ')));
     if (t.hoursPerDay) out.push(T(`ساعات اليوم ${hm(todayMinutes(c, sub))} من ${t.hoursPerDay} س`, `Today ${hm(todayMinutes(c, sub))} of ${t.hoursPerDay} h`));
     if (t.hourBalance) out.push(T(`رصيد الساعات ${sub.used.hours || 0} من ${t.hourBalance} س`, `Hours ${sub.used.hours || 0} of ${t.hourBalance}`));
     if (sub.billing.type === 'usage') out.push(T(`يُحسب من الحضور: ${money(sub.billing.rate)} ${sub.billing.unit === 'hour' ? 'للساعة' : 'لليوم'}`, `Billed from attendance: ${money(sub.billing.rate)} per ${sub.billing.unit}`));
@@ -202,7 +201,6 @@ window.DESK = (function () {
     const t = sub.terms || {}; const parts = [];
     if (t.totalDays) parts.push(T(`${t.totalDays} أيام`, `${t.totalDays} days`));
     if (t.daysPerWeek) parts.push(T(`${t.daysPerWeek} أيام بالأسبوع`, `${t.daysPerWeek} days a week`));
-    if (t.weekDays) parts.push(t.weekDays.map((k) => WEEKDAYS.find((w) => w[0] === k)[1]).join(T('، ', ', ')));
     if (t.hoursPerDay) parts.push(T(`${t.hoursPerDay} س باليوم`, `${t.hoursPerDay} h a day`));
     if (t.hourBalance) parts.push(T(`رصيد ${t.hourBalance} س`, `${t.hourBalance} h balance`));
     if (sub.shift) parts.push(SHIFTS[sub.shift]);
