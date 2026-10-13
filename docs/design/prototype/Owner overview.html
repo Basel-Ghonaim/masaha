@@ -25,15 +25,52 @@
 <script src="masaha/desk-data.js"></script>
 <script type="text/babel" src="masaha/desk-core.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, StatCard, toast, LogInIcon } = window.MasahaDesignSystem;
-// Freshness: prices stale after 30 days, others after 60.
-const GROUPS = [
-  { id: 'prices', label: tr('الأسعار', 'Prices'), days: 34, limit: 30 },
-  { id: 'hours', label: tr('ساعات العمل', 'Opening hours'), days: 12, limit: 60 },
-  { id: 'contacts', label: tr('التواصل', 'Contacts'), days: 75, limit: 60 },
-  { id: 'amenities', label: tr('المرافق', 'Amenities'), days: 20, limit: 60 }
-];
-const ago = (d) => d === 0 ? tr('اليوم', 'today') : tr(`قبل ${d} يومًا`, `${d} days ago`);
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, StatCard, CircleCheckIcon } = window.MasahaDesignSystem;
+const GROUP_NAME = () => ({ profile: tr('المساحة', 'The space'), hours: tr('ساعات العمل', 'Opening hours'), prices: tr('الأسعار', 'Prices'), amenities: tr('المرافق', 'Amenities'), contacts: tr('التواصل', 'Contacts') });
+const groupHref = (g) => (g === 'prices' ? 'Packages.html#prices' : 'Owner space profile.html#' + g);
+// O3 (amended 2026-10-12): what needs the owner, as counts and links — no amounts, since the overview
+// is often open at the desk in view of customers and staff. Confirm lives beside what it confirms.
+function queueRows() {
+  if (O.demo('clear')) return [];
+  const rows = [];
+  ['profile', 'hours', 'prices', 'amenities', 'contacts'].forEach((g) => {
+    const missing = O.missing.includes(g);
+    const stale = !missing && O.groups[g] > (g === 'prices' ? O.LIMIT.prices : O.LIMIT.other);
+    if (missing) rows.push({ key: g, title: GROUP_NAME()[g], badge: tr('لم تُضف بعد', 'Not added yet'), caption: tr('لم يُحفظ هذا القسم بعد، فلا يراه الزوار.', 'This section was never saved, so visitors don’t see it.'), action: tr('مراجعة', 'Review'), href: groupHref(g) });
+    else if (stale) rows.push({ key: g, title: GROUP_NAME()[g], badge: tr('قديمة', 'Out of date'), caption: <>{tr('آخر تحديث ', 'Updated ')}<Counted n={O.groups[g]} ar={F_DAYS_AGO.ar} en={F_DAYS_AGO.en} /></>, action: tr('مراجعة', 'Review'), href: groupHref(g) });
+  });
+  const reports = O.reports.filter((r) => r.status === 'new').length;
+  if (reports) rows.push({ key: 'reports', title: <Counted n={reports} ar={F_NEW_REPORTS.ar} en={F_NEW_REPORTS.en} />, caption: tr('من زوار، عن معلومات في صفحة المساحة', 'From visitors, about facts on the space page'), action: tr('مراجعة', 'Review'), href: 'Data reports.html?status=new' });
+  const unpaid = DESK.unpaid.filter((u) => u.date === DESK.TODAY).length;
+  if (unpaid) rows.push({ key: 'unpaid', title: <Counted n={unpaid} ar={F_UNPAID.ar} en={F_UNPAID.en} />, caption: tr('خرجت بلا دفع، أو سُجّل خروجها تلقائيًا', 'Left without paying, or checked out automatically'), action: tr('فتح المكتب', 'Open the desk'), href: 'Desk.html' });
+  const owe = DESK.customers.filter((c) => DESK.balance(c) > 0).length;
+  if (owe) rows.push({ key: 'owe', title: <Counted n={owe} ar={F_OWE.ar} en={F_OWE.en} />, caption: tr('المبالغ في المالية › الديون', 'The amounts are in Finance › Debts'), action: tr('عرض', 'View'), href: 'Finance.html?tab=debts' });
+  O.announcements.filter((a) => a.type === 'closure' && annStatus(a) !== 'scheduled' && !a.extended).forEach((a) => rows.push({ key: a.id, title: tr('إغلاق لم تُمدَّد اشتراكاته', 'A closure whose subscriptions are not extended'), caption: annPeriod(a), action: tr('مراجعة', 'Review'), href: 'Announcements.html?tab=' + annStatus(a) + '&extend=' + a.id }));
+  if (!O.capacity) rows.push({ key: 'capacity', title: tr('لم تُحدَّد السعة', 'Capacity is not set'), caption: tr('بدونها لا تظهر حالة مباشرة للزوار.', 'Without it visitors see no live status.'), action: tr('تحديد السعة', 'Set the capacity'), href: 'Owner settings.html#attendance' });
+  return rows;
+}
+function QueueCard() {
+  const rows = queueRows();
+  return (
+    <Card>
+      <CardHeader><CardTitle><h2>{tr('يحتاج انتباهك', 'Needs your attention')}</h2></CardTitle></CardHeader>
+      <CardContent className={rows.length ? 'p-0' : undefined}>
+        {rows.length ? <ul className="divide-y">{rows.map((r) => (
+          <li key={r.key} className="flex flex-col gap-2 px-5 py-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="flex flex-wrap items-center gap-2"><span className="text-label">{r.title}</span>{r.badge && <Badge variant="warning">{r.badge}</Badge>}</span>
+              <span className="text-caption text-muted-foreground">{r.caption}</span>
+            </div>
+            <div className="shrink-0"><Button variant="outline" size="sm" asChild><a href={r.href}>{r.action}</a></Button></div>
+          </li>
+        ))}</ul> : <p className="flex items-center gap-2 text-body-sm text-muted-foreground"><CircleCheckIcon className="size-4" aria-hidden="true" />{tr('كل شيء على ما يرام', 'All is in order')}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+// Every tile is a link, or none is (OW-003): the one tile left links.
+function LinkTile(props) { return <a href={props.href} className="block rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><StatCard className="h-full" label={props.label} value={props.value} helper={props.helper} /></a>; }
+const TYPE_WORD = () => ({ general: tr('عام', 'General'), outage: tr('انقطاع', 'Outage'), closure: tr('إغلاق مؤقت', 'Temporary closure'), offer: tr('عرض', 'Offer'), event: tr('فعالية', 'Event') });
 
 function Meter({ value, max }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
@@ -44,115 +81,54 @@ function Meter({ value, max }) {
   );
 }
 
-function FreshnessCard() {
-  const [groups, setGroups] = React.useState(GROUPS);
-  const confirm = (id) => { setGroups((g) => g.map((x) => (x.id === id ? { ...x, days: 0 } : x))); toast.success(tr('أكّدنا أن المعلومات ما زالت صحيحة', 'Confirmed as still correct')); };
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{tr('حداثة البيانات', 'Data freshness')}</CardTitle>
-        <CardDescription>{tr('يرى الزوار «آخر تحديث» بجانب كل مجموعة.', 'Visitors see «Updated» next to each group.')}</CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
-        <ul className="divide-y">
-          {groups.map((g) => {
-            const stale = g.days > g.limit;
-            return (
-              <li key={g.id} className="flex flex-col gap-2 px-5 py-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-label">{g.label}</span>
-                  <span className="text-body-sm text-muted-foreground">{tr('آخر تحديث', 'Updated')} {ago(g.days)}</span>
-                  {stale && <Badge variant="warning">{tr('تحتاج مراجعة', 'Needs review')}</Badge>}
-                </div>
-                {stale && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" asChild><a href={'Owner space profile.html#' + g.id}>{tr('تعديل', 'Edit')}</a></Button>
-                    <Button variant="ghost" size="sm" onClick={() => confirm(g.id)}>{tr('المعلومات ما زالت صحيحة', 'Still correct')}</Button>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Money row: each tile links to its page.
-function MoneyTile({ href, ...p }) { return <a href={href} className="block rounded-xl text-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><StatCard className="h-full" {...p} /></a>; }
-function MoneyRow() {
-  const rows = DESK.ledger();
-  const today = DESK.collected(rows.filter((r) => r.date === DESK.TODAY));
-  const month = DESK.monthly[11][0] + DESK.monthly[11][1];
-  const prev = DESK.monthly[10][0] + DESK.monthly[10][1];
-  const pct = Math.round(((month - prev) / prev) * 100);
-  const debtors = DESK.customers.filter((c) => DESK.balance(c) > 0);
-  const debt = debtors.reduce((a, c) => a + DESK.balance(c), 0);
-  const unpaidToday = DESK.unpaid.filter((u) => u.date === DESK.TODAY);
-  return (
-    <section aria-label={tr('المال', 'Money')} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <MoneyTile href="Payments.html?range=today" label={tr('دخل اليوم', 'Income today')} value={<Money n={today} />} helper={tr('المقبوض فعليًا', 'Actually collected')} />
-      <MoneyTile href="Finance.html" label={tr('دخل الشهر', 'Income this month')} value={<Money n={month} />} helper={<>{pct >= 0 ? '+' : ''}<Num>{pct + '%'}</Num> {tr('عن الشهر الماضي', 'vs last month')}</>} />
-      <MoneyTile href="Finance.html?tab=debts" label={tr('مجموع الديون', 'Total owed')} value={<Money n={debt} />} helper={<><Num>{debtors.length}</Num> {tr('زبائن عليهم مبالغ', 'customers owe money')}</>} />
-      <MoneyTile href="Desk.html" label={tr('غير محصّل اليوم', 'Not collected today')} value={<Money n={unpaidToday.reduce((a, u) => a + u.amount, 0)} />} helper={<><Num>{unpaidToday.length}</Num> {tr('زيارات', 'visits')}</>} />
-    </section>
-  );
-}
-
 function OverviewScreen() {
   const [theme, setTheme] = useTheme();
   const n = DESK.present.length;
   const subs = DESK.present.filter((p) => p.kind === 'sub').length;
   const state = publicState(n, O.capacity);
+  const active = O.announcements.filter((a) => annStatus(a) === 'active');
   const ending = DESK.customers.filter((c) => DESK.customerStatus(c) === 'soon').map((c) => ({ c, s: DESK.currentSub(c), d: DESK.daysBetween(DESK.TODAY, DESK.currentSub(c).to) })).sort((a, b) => a.d - b.d);
   return (
-    <OwnerShell current="overview" title={tr('نظرة عامة', 'Overview')} state={state} theme={theme} setTheme={setTheme} actions={[{ key: 'desk', label: tr('مكتب الاستقبال', 'Front desk'), icon: <LogInIcon />, href: 'Desk.html' }]}>
-      <MoneyRow />
+    <OwnerShell current="overview" title={tr('نظرة عامة', 'Overview')} state={state} theme={theme} setTheme={setTheme}>
+      <QueueCard />
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardDescription>{tr('الحاضرون الآن', 'Present now')}</CardDescription>
-            <CardTitle className="text-display"><Num>{`${n} / ${O.capacity}`}</Num></CardTitle>
+            <CardTitle className="text-display"><Num>{O.capacity ? `${n} / ${O.capacity}` : n}</Num></CardTitle>
             <CardAction><Button variant="outline" size="sm" asChild><a href="Desk.html">{tr('عرض الحاضرين', 'View who’s here')}</a></Button></CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <Meter value={n} max={O.capacity} />
+            {O.capacity ? <Meter value={n} max={O.capacity} /> : null}
+            <p className="text-body-sm text-muted-foreground">{tr('اليوم: ', 'Today: ')}<Num>{n + DESK.leftToday}</Num>{tr(' · الآن: ', ' · now: ')}<Counted n={subs} ar={F_SUBSCRIBERS.ar} en={F_SUBSCRIBERS.en} />{tr(' و', ' and ')}<Counted n={n - subs} ar={F_VISITS.ar} en={F_VISITS.en} /></p>
             <div className="flex flex-wrap items-center gap-2 text-body-sm text-muted-foreground">
               <PublicStateBadge state={state} />
-              <span>{state === 'full' ? tr('وصلت إلى السعة، فتظهر المساحة «ممتلئ».', 'At capacity, so the space shows «Full».') : tr('السعة لا تظهر للزوار، فقط الحالة.', 'Visitors never see capacity, only the state.')}</span>
+              <span>{!O.capacity ? tr('حدّد السعة في الإعدادات لتظهر حالة مباشرة.', 'Set the capacity in Settings for a live status.') : state === 'full' ? tr('وصلت إلى السعة، فتظهر المساحة «ممتلئ».', 'At capacity, so the space shows «Full».') : tr('السعة لا تظهر للزوار، فقط الحالة.', 'Visitors never see capacity, only the state.')}</span>
             </div>
           </CardContent>
         </Card>
-        <div className="grid gap-4">
-          <StatCard label={tr('حضور اليوم', 'Attendance today')} value={<><Num>{n + DESK.leftToday}</Num> {tr('اليوم', 'today')} · <Num>{n}</Num> {tr('الآن', 'now')}</>} helper={<>{tr('الآن:', 'Now:')} <Num>{subs}</Num> {tr('مشتركًا', 'members')} · <Num>{n - subs}</Num> {tr('زيارات', 'visits')}</>} />
-          <StatCard label={tr('إعلانات نشطة', 'Active announcements')} value={<Num>1</Num>} helper={tr('ورشة تعريفية يوم الأحد', 'Intro workshop on Sunday')} />
-        </div>
+        <LinkTile href="Announcements.html" label={tr('إعلانات نشطة', 'Active announcements')} value={<Num>{active.length}</Num>} helper={active.map((a) => TYPE_WORD()[a.type]).join(tr('، ', ', '))} />
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{tr('اشتراكات تنتهي هذا الأسبوع', 'Subscriptions ending this week')}</CardTitle>
-            <CardDescription><Num>{ending.length}</Num> {tr('اشتراكات', 'subscriptions')}</CardDescription>
-            <CardAction><Button variant="link" size="sm" asChild><a href="Customers.html?status=soon">{tr('عرض الكل', 'View all')}</a></Button></CardAction>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ul className="divide-y">
-              {ending.slice(0, 5).map(({ c: m, s: sub, d }) => (
-                <li key={m.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                  <div className="flex min-w-0 flex-col">
-                    <a className="text-label text-foreground" href={'Customer file.html?id=' + m.id}>{m.name}</a>
-                    <span className="text-caption text-muted-foreground">{sub.name} · {d === 0 ? tr('ينتهي اليوم', 'Ends today') : tr(`ينتهي بعد ${d} أيام`, `Ends in ${d} days`)}</span>
-                  </div>
-                  <Button variant="outline" size="sm" asChild><a href={'Customers.html?renew=' + m.id}>{tr('تجديد', 'Renew')}</a></Button>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-        <StatCard label={tr('بلاغات جديدة', 'New data reports')} value={<Num>2</Num>} helper={tr('عن الأسعار وساعات العمل', 'About prices and hours')} />
-      </div>
-      <FreshnessCard />
+      <Card>
+        <CardHeader>
+          <CardTitle>{tr('اشتراكات تنتهي هذا الأسبوع', 'Subscriptions ending this week')}</CardTitle>
+          <CardDescription><Counted n={ending.length} ar={F_SUBS.ar} en={F_SUBS.en} /></CardDescription>
+          <CardAction><Button variant="link" size="sm" asChild><a href="Customers.html?status=soon">{tr('عرض الكل', 'View all')}</a></Button></CardAction>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ul className="divide-y">
+            {ending.slice(0, 5).map(({ c: m, s: sub, d }) => (
+              <li key={m.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                <div className="flex min-w-0 flex-col">
+                  <a className="text-label text-foreground" href={'Customer file.html?id=' + m.id}>{m.name}</a>
+                  <span className="text-caption text-muted-foreground">{sub.name} · {d === 0 ? tr('ينتهي اليوم', 'Ends today') : d === 1 ? tr('ينتهي غدًا', 'Ends tomorrow') : <>{tr('ينتهي ', 'Ends ')}<Counted n={d} ar={F_DAYS_IN.ar} en={F_DAYS_IN.en} /></>}</span>
+                </div>
+                <Button variant="outline" size="sm" asChild><a href={'Customers.html?renew=' + m.id}>{tr('تجديد', 'Renew')}</a></Button>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
     </OwnerShell>
   );
 }

@@ -26,55 +26,102 @@
 <script type="text/babel" src="masaha/desk-core.jsx"></script>
 <script type="text/babel" src="masaha/desk-sheet.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Button, Badge, DataTable, EmptyState, Field, Input, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, Alert, AlertTitle, AlertDescription, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, UsersIcon, EllipsisVerticalIcon, CheckIcon, toast } = window.MasahaDesignSystem;
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, Field, Input, RadioGroup, RadioGroupItem, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, Alert, AlertTitle, AlertDescription, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, UsersIcon, EllipsisVerticalIcon, CheckIcon, toast } = window.MasahaDesignSystem;
+// OW-018: what the model holds — the link's date (SpaceManager.createdAt), whether access was removed
+// (deactivatedAt) and the temporary password not changed yet (User.mustChangePassword).
 const INIT = [
-  { id: 'st1', name: tr('سامي', 'Sami'), key: DESK.SAMI, email: 'sami@example.com', status: 'active', last: tr('اليوم 07:52', 'Today 07:52'), month: 1380 },
-  { id: 'st2', name: tr('هالة', 'Hala'), key: 'هالة', email: 'hala@example.com', status: 'suspended', last: tr('قبل 3 أسابيع', '3 weeks ago'), month: 0 }
+  { id: 'st1', name: tr('سامي', 'Sami'), key: DESK.SAMI, email: 'sami@example.com', status: 'active', added: '2026-03-02', pending: false, month: 1380 },
+  { id: 'st3', name: tr('ليلى', 'Laila'), key: 'ليلى', email: 'laila@example.com', status: 'active', added: '2026-09-28', pending: true, month: 0 },
+  { id: 'st2', name: tr('هالة', 'Hala'), key: 'هالة', email: 'hala@example.com', status: 'removed', added: '2026-05-10', pending: false, month: 0 }
 ];
 const EXISTING = ['nour@example.com', 'sara@example.com'];
 const tempPass = () => 'Msh-' + Math.random().toString(36).slice(2, 6) + '-' + (100 + Math.floor(Math.random() * 900));
+
+function StaffPassDialog({ info, onClose }) {
+  const { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Field, RadioGroup, RadioGroupItem, CheckIcon, toast } = window.MasahaDesignSystem;
+  const [copied, setCopied] = React.useState(false);
+  const [channel, setChannel] = React.useState('');
+  const [err, setErr] = React.useState(null);
+  React.useEffect(() => { setCopied(false); setChannel(''); setErr(null); }, [info]);
+  const CHANNELS = [['whatsapp', tr('واتساب', 'WhatsApp')], ['in_person', tr('شفهيًا', 'In person')], ['other', tr('أخرى', 'Other')]];
+  const done = () => {
+    if (!channel) { setErr(tr('اختر طريقة التسليم', 'Choose how it was handed over')); return; }
+    toast.success(tr('سُجّلت طريقة التسليم', 'Handover recorded'), { description: info.name + ' · ' + CHANNELS.find(([k]) => k === channel)[1] });
+    onClose(channel);
+  };
+  const keep = (e) => e.preventDefault();
+  return (
+    <Dialog open={!!info}>
+      <DialogContent onEscapeKeyDown={keep} onInteractOutside={keep}>
+        <DialogHeader><DialogTitle>{tr('كلمة المرور المؤقتة', 'Temporary password')}</DialogTitle>{info && <DialogDescription>{info.name} · <span dir="ltr">{info.email}</span></DialogDescription>}</DialogHeader>
+        {info && <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-muted p-3"><span dir="ltr" className="text-heading-3">{info.pw}</span><Button size="sm" variant="outline" onClick={() => { try { navigator.clipboard.writeText(info.pw); } catch (e) {} setCopied(true); }}>{copied ? <><CheckIcon />{tr('نُسخت', 'Copied')}</> : tr('نسخ', 'Copy')}</Button></div>
+          <p className="text-body-sm">{tr('سلّمها للموظف؛ سيُطلب منه تغييرها عند أول دخول.', 'Hand it to the staff member; they’ll be asked to change it at first sign-in.')}</p>
+          <p className="text-caption text-muted-foreground">{tr('لن تظهر مرة أخرى بعد إغلاق هذه النافذة.', 'It won’t be shown again after you close this window.')}</p>
+          <Field label={tr('طريقة التسليم', 'How it was handed over')} error={err}>
+            <RadioGroup value={channel} onValueChange={(v) => { setChannel(v); setErr(null); }} className="flex flex-wrap gap-x-6 gap-y-2">
+              {CHANNELS.map(([k, l]) => <Field key={k} label={l} orientation="horizontal"><RadioGroupItem value={k} /></Field>)}
+            </RadioGroup>
+          </Field>
+        </div>}
+        <DialogFooter className="flex flex-wrap items-center gap-3">
+          {!copied && <span className="text-caption text-muted-foreground">{tr('انسخها أولًا — لن تظهر مرة أخرى', 'Copy it first — it won’t be shown again')}</span>}
+          <Button disabled={!copied} onClick={done}>{tr('تم', 'Done')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function StaffInner({ theme, setTheme }) {
   const [list, setList] = React.useState(pageParams.get('state') === 'empty' ? [] : INIT);
   const [add, setAdd] = React.useState(pageParams.get('sheet') === 'add');
   const [name, setName] = React.useState(pageParams.get('email') ? tr('نور', 'Nour') : ''); const [email, setEmail] = React.useState(pageParams.get('email') || ''); const [err, setErr] = React.useState({});
-  const [link, setLink] = React.useState(null);
+  const { busy, run } = useActionRun('add');
   const [pass, setPass] = React.useState(pageParams.get('pass') ? { name: tr('ليلى', 'Laila'), email: 'laila@example.com', pw: 'Msh-7k2q-418' } : null);
-  const [copied, setCopied] = React.useState(false);
   const [confirm, setConfirm] = React.useState(pageParams.get('stop') ? INIT[0] : null);
   const submit = (e) => {
     e.preventDefault(); const x = {};
     if (!name.trim()) x.name = tr('أدخل الاسم', 'Enter the name');
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) x.email = tr('أدخل بريدًا صحيحًا، مثل name@example.com', 'Enter a valid email, e.g. name@example.com');
-    else if (list.some((s) => s.email === email.trim().toLowerCase())) x.email = tr('هذا الموظف مضاف مسبقًا', 'This staff member is already added');
     setErr(x); if (Object.keys(x).length) return;
     const e2 = email.trim().toLowerCase();
-    if (EXISTING.includes(e2)) return setLink({ name: name.trim(), email: e2 });
-    const pw = tempPass();
-    setList((l) => [...l, { id: 's' + Date.now(), name: name.trim(), key: name.trim(), email: e2, status: 'active', last: tr('لم يدخل بعد', 'Not signed in yet'), month: 0 }]);
-    setAdd(false); setCopied(false); setPass({ name: name.trim(), email: e2, pw }); setName(''); setEmail('');
+    if (list.some((s) => s.email === e2 && s.status === 'active')) { setErr({ email: tr('هذا الموظف مضاف مسبقًا', 'This staff member is already added') }); return; }
+    run(() => {
+      const removed = list.find((s) => s.email === e2 && s.status === 'removed');
+      if (removed) {
+        setList((l) => l.map((s) => (s.id === removed.id ? { ...s, status: 'active' } : s)));
+        setAdd(false); setName(''); setEmail('');
+        toast.success(tr(`عاد وصول ${removed.name} إلى Focus Hub`, `${removed.name} has access to Focus Hub again`));
+        return;
+      }
+      if (EXISTING.includes(e2)) {
+        setList((l) => [...l, { id: 's' + Date.now(), name: name.trim(), key: name.trim(), email: e2, status: 'active', added: DESK.TODAY, pending: false, month: 0 }]);
+        setAdd(false); setName(''); setEmail('');
+        toast.success(tr(`رُبط حساب ${e2} بـ Focus Hub`, `${e2}’s account is linked to Focus Hub`));
+        return;
+      }
+      const pw = tempPass();
+      setList((l) => [...l, { id: 's' + Date.now(), name: name.trim(), key: name.trim(), email: e2, status: 'active', added: DESK.TODAY, pending: true, month: 0 }]);
+      setAdd(false); setName(''); setEmail(''); setPass({ name: name.trim(), email: e2, pw });
+    });
   };
-  const doLink = () => { setList((l) => [...l, { id: 's' + Date.now(), name: link.name, key: link.name, email: link.email, status: 'active', last: tr('لم يدخل بعد', 'Not signed in yet'), month: 0 }]); toast.success(tr('رُبط الحساب بالمساحة', 'Account linked to the space'), { description: link.email }); setLink(null); setAdd(false); setName(''); setEmail(''); };
-  const setStatus = (s, status) => { setList((l) => l.map((x) => (x.id === s.id ? { ...x, status } : x))); toast(status === 'active' ? tr(`أُعيد تفعيل ${s.name}`, `${s.name} reactivated`) : tr(`أُوقف ${s.name}`, `${s.name} suspended`)); };
-  const copy = () => { try { navigator.clipboard.writeText(pass.pw); } catch (e) {} setCopied(true); };
+  const setStatus = (s, status) => setList((l) => l.map((x) => (x.id === s.id ? { ...x, status } : x)));
   const actions = (s) => (
     <DropdownMenu dir={DIR}>
       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={tr('إجراءات ', 'Actions for ') + s.name}><EllipsisVerticalIcon /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild><a href={'Payments.html?staff=' + encodeURIComponent(s.key)}>{tr('عرض مقبوضاته', 'View collections')}</a></DropdownMenuItem>
-        {s.status === 'active' ? <DropdownMenuItem onSelect={() => setConfirm(s)}>{tr('إيقاف', 'Suspend')}</DropdownMenuItem> : <DropdownMenuItem onSelect={() => setStatus(s, 'active')}>{tr('إعادة تفعيل', 'Reactivate')}</DropdownMenuItem>}
+        {s.status === 'active' ? <DropdownMenuItem onSelect={() => setConfirm(s)}>{tr('إيقاف الوصول', 'Remove access')}</DropdownMenuItem> : <DropdownMenuItem onSelect={() => setStatus(s, 'active')}>{tr('إعادة الوصول', 'Give access back')}</DropdownMenuItem>}
       </DropdownMenuContent>
     </DropdownMenu>
   );
-  const StatusB = ({ s }) => <Badge variant={s.status === 'active' ? 'success' : 'neutral'}>{s.status === 'active' ? tr('نشط', 'Active') : tr('موقوف', 'Suspended')}</Badge>;
+  const StatusB = ({ s }) => <span className="flex flex-col items-start gap-1"><Badge variant={s.status === 'active' ? 'success' : 'neutral'}>{s.status === 'active' ? tr('نشط', 'Active') : tr('بلا وصول', 'No access')}</Badge>{s.status === 'active' && s.pending && <Badge variant="warning">{tr('لم يغيّر كلمة المرور المؤقتة بعد', 'Hasn’t changed the temporary password yet')}</Badge>}</span>;
   const MonthLink = ({ s }) => <a href={'Payments.html?staff=' + encodeURIComponent(s.key)}><Money n={s.month} /></a>;
   const columns = [
-    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
-    // SH-007: seven columns; the email and the last sign-in wait for 1024.
-    { id: 'email', header: tr('البريد', 'Email'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => <Ltr>{row.original.email}</Ltr> },
-    { id: 'role', header: tr('الدور', 'Role'), cell: () => tr('الاستقبال', 'Reception') },
+    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="flex min-w-0 flex-col"><span className="text-label">{row.original.name}</span><span className="text-caption text-muted-foreground"><Ltr>{row.original.email}</Ltr></span></span> },
     { id: 'status', header: tr('الحالة', 'Status'), cell: ({ row }) => <StatusB s={row.original} /> },
-    { id: 'last', header: tr('آخر دخول', 'Last sign-in'), cell: ({ row }) => row.original.last },
+    { id: 'added', header: tr('أُضيف في', 'Added'), cell: ({ row }) => DESK.fmtDate(row.original.added, true) },
     { id: 'month', header: tr('مقبوضاته هذا الشهر', 'Collected this month'), cell: ({ row }) => <MonthLink s={row.original} /> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
@@ -93,9 +140,10 @@ function StaffInner({ theme, setTheme }) {
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-1">
               <span className="text-label">{s.name}</span>
-              <span dir="ltr" className="self-start text-caption text-muted-foreground">{s.email}</span>
-              <span className="text-caption text-muted-foreground">{tr('الاستقبال', 'Reception')} · {tr('آخر دخول', 'Last sign-in')}: {s.last}</span>
-              <span className="flex flex-wrap items-center gap-2"><StatusB s={s} /><span className="text-caption">{tr('هذا الشهر', 'This month')} <MonthLink s={s} /></span></span>
+              <span className="text-caption text-muted-foreground"><Ltr>{s.email}</Ltr></span>
+              <span className="text-caption text-muted-foreground">{tr('أُضيف في', 'Added')} {DESK.fmtDate(s.added, true)}</span>
+              <StatusB s={s} />
+              <span className="text-caption">{tr('هذا الشهر', 'This month')} <MonthLink s={s} /></span>
             </div>
             {actions(s)}
           </div>
@@ -106,34 +154,21 @@ function StaffInner({ theme, setTheme }) {
           <SheetHeader><SheetTitle>{tr('إضافة موظف', 'Add staff member')}</SheetTitle><SheetDescription>{tr('الدور: الاستقبال', 'Role: Reception')}</SheetDescription></SheetHeader>
           <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
             <SheetBody className="flex flex-col gap-5 py-2">
+              <RateLimitNote />
+              <ActionAlert for="add" />
               <Field label={tr('الاسم', 'Name')} error={err.name}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
               <Field label={tr('البريد الإلكتروني', 'Email')} error={err.email}><Input type="email" dir="ltr" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
-              {link && (
-                <Alert variant="info">
-                  <AlertTitle>{tr('هذا البريد له حساب في مساحة', 'This email already has a Masaha account')}</AlertTitle>
-                  <AlertDescription>{tr('سيُربط بالمساحة ويدخل بكلمة مروره.', 'It will be linked to the space and sign in with its own password.')}</AlertDescription>
-                </Alert>
-              )}
+              <p className="text-body-sm text-muted-foreground">{tr('إن كان للبريد حساب في مساحة يُربط به ويدخل بكلمة مروره؛ وإلا يُنشأ حساب برمز مرور مؤقت يظهر لك مرة واحدة.', 'If the email has a Masaha account, it is linked and signs in with its own password; otherwise an account is created with a temporary password shown to you once.')}</p>
             </SheetBody>
-            <SheetFooter>{link ? <Button type="button" className="w-full" onClick={doLink}>{tr('ربط', 'Link')}</Button> : <Button type="submit" className="w-full">{tr('إضافة', 'Add')}</Button>}</SheetFooter>
+            <SheetFooter><Button type="submit" className="w-full" loading={busy}>{tr('إضافة إلى الاستقبال', 'Add to reception')}</Button></SheetFooter>
           </form>
         </SheetContent>
       </Sheet>
-      <Dialog open={!!pass} onOpenChange={(o) => !o && setPass(null)}>
-        <DialogContent closeLabel={tr('إغلاق', 'Close')}>
-          <DialogHeader><DialogTitle>{tr('كلمة المرور المؤقتة', 'Temporary password')}</DialogTitle><DialogDescription>{pass && <>{pass.name} · <span dir="ltr">{pass.email}</span></>}</DialogDescription></DialogHeader>
-          {pass && <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3 rounded-lg bg-muted p-3"><span dir="ltr" className="text-heading-3">{pass.pw}</span><Button size="sm" variant="outline" onClick={copy}>{copied ? <><CheckIcon />{tr('نُسخت', 'Copied')}</> : tr('نسخ', 'Copy')}</Button></div>
-            <p className="text-body-sm">{tr('سلّمها للموظف؛ سيُطلب منه تغييرها عند أول دخول.', 'Hand it to the staff member; they’ll be asked to change it at first sign-in.')}</p>
-            <p className="text-caption text-muted-foreground">{tr('لن تظهر مرة أخرى بعد إغلاق هذه النافذة.', 'It won’t be shown again after you close this window.')}</p>
-          </div>}
-          <DialogFooter><Button onClick={() => setPass(null)}>{tr('تم', 'Done')}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <StaffPassDialog info={pass} onClose={() => setPass(null)} />
       <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>{tr('إيقاف', 'Suspend')} {confirm && confirm.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('ينتهي دخوله فورًا، ويبقى سجله ودفعاته.', 'Their access ends right away; their record and payments are kept.')}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => setStatus(confirm, 'suspended')}>{tr('إيقاف', 'Suspend')}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogHeader><AlertDialogTitle>{tr('إيقاف وصول ', 'Remove ')}{confirm && confirm.name}{tr('؟', '’s access?')}</AlertDialogTitle><AlertDialogDescription>{confirm && tr(`تنتهي كل جلسات ${confirm.name} على كل الأجهزة الآن، ويتوقف الوصول إلى Focus Hub. يبقى الاسم على الدفعات وفي السجل، ويمكنك إعادة الوصول لاحقًا.`, `${confirm.name} is signed out on every device now and can no longer reach Focus Hub. The name stays on the payments and in the log, and you can give the access back later.`)}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => setStatus(confirm, 'removed')}>{tr('إيقاف الوصول', 'Remove access')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </OwnerShell>

@@ -23,10 +23,11 @@ const OWNER_NAV = () => IS_OWNER ? [
   { label: tr('المساحة', 'The space'), items: [
     { id: 'profile', label: tr('ملف المساحة', 'Space profile'), href: 'Owner space profile.html', icon: <OEye /> },
     { id: 'announcements', label: tr('الإعلانات', 'Announcements'), href: 'Announcements.html', icon: <OAlertIcon /> },
-    { id: 'data-reports', label: tr('بلاغات البيانات', 'Data reports'), href: 'Data reports.html', icon: <TriangleAlertIcon />, badge: 2 }
+    { id: 'data-reports', label: tr('بلاغات البيانات', 'Data reports'), href: 'Data reports.html', icon: <TriangleAlertIcon />, badge: O.reports.filter((r) => r.status === 'new').length || undefined }
   ] },
   { label: tr('الفريق والإعدادات', 'Team & settings'), items: [
     { id: 'staff', label: tr('الموظفون', 'Staff'), href: 'Staff.html', icon: <ChevronsUpDownIcon /> },
+    { id: 'audit', label: tr('سجل التدقيق', 'Audit log'), href: 'Owner audit.html', icon: <OSearch /> },
     { id: 'settings', label: tr('الإعدادات', 'Settings'), href: 'Owner settings.html', icon: <EllipsisIcon /> }
   ] }
 ] : [
@@ -38,8 +39,8 @@ const OWNER_NAV = () => IS_OWNER ? [
   ] }
 ];
 
-const publicState = (present, cap, closed) => (closed ? 'closed' : present >= cap ? 'full' : 'open');
-const STATE_WORD = () => ({ open: ['success', tr('متاح', 'Available')], full: ['warning', tr('ممتلئ', 'Full')], closed: ['neutral', tr('مغلق الآن', 'Closed now')] });
+const publicState = (present, cap, closed) => (closed ? 'closed' : !cap ? 'none' : present >= cap ? 'full' : 'open');
+const STATE_WORD = () => ({ open: ['success', tr('متاح', 'Available')], full: ['warning', tr('ممتلئ', 'Full')], closed: ['neutral', tr('مغلق الآن', 'Closed now')], none: ['neutral', tr('بلا حالة مباشرة', 'No live status')] });
 
 // «ضبط الحالة»: set any public state for a while, only inside opening hours. A new override replaces the old one.
 // Kept in sessionStorage so it follows across pages; ?override=full|open|closed:minutes demos it; ?hours=closed demos outside hours.
@@ -66,7 +67,7 @@ function useOverride() {
 const hmLeft = (s) => { const m = Math.ceil(s / 60); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); };
 
 // The state's own colours, as Badge draws them, so one control can be read at a glance.
-const STATE_SKIN = { open: 'border-success bg-success-subtle text-success-subtle-foreground', full: 'border-warning bg-warning-subtle text-warning-subtle-foreground', closed: 'border-border bg-secondary text-secondary-foreground' };
+const STATE_SKIN = { open: 'border-success bg-success-subtle text-success-subtle-foreground', full: 'border-warning bg-warning-subtle text-warning-subtle-foreground', closed: 'border-border bg-secondary text-secondary-foreground', none: 'border-border bg-secondary text-secondary-foreground' };
 
 // Read-only, for a page that reports the state without offering to change it.
 function PublicStateBadge({ state, ov }) {
@@ -199,12 +200,87 @@ function OwnerUserMenu({ theme, setTheme }) {
   );
 }
 
+// DI-10 (decided 2026-10-13): on a phone the bar has no room for the account, so it heads the drawer,
+// whose foot already holds the theme and the language — so the menu opened here leaves them out.
+function DrawerAccount() {
+  const u = STAFF;
+  return (
+    <ODropdown dir={DIR}>
+      <ODropdownTrigger asChild>
+        <button type="button" className="flex w-full items-center gap-3 rounded-md p-2 text-start hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-label={tr('قائمة الحساب', 'Account menu') + ' — ' + u.name}>
+          <OAvatar size="sm" aria-hidden="true"><OAvatarFallback>{u.name[0]}</OAvatarFallback></OAvatar>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-label">{u.name} · {u.role}</span>
+            <span dir="ltr" className="truncate text-caption text-muted-foreground">{u.email}</span>
+          </span>
+          <ChevronsUpDownIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+        </button>
+      </ODropdownTrigger>
+      <AccountMenuContent user={u} area="dashboard" onSignOut={() => { location.href = carryParams('Home.html?auth=0'); }} />
+    </ODropdown>
+  );
+}
+
+// The page renders after the browser looked for `#…`, so the anchor brings itself into view (as the
+// admin's report notice does).
+function useHashLanding() {
+  React.useEffect(() => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (!id) return undefined;
+    const t = setTimeout(() => { const el = document.getElementById(id); if (el) el.scrollIntoView({ block: 'start' }); }, 120);
+    return () => clearTimeout(t);
+  }, []);
+}
+
+// O10: an announcement is active from its start until its end, scheduled before, ended after.
+const annStatus = (a) => (a.to && a.to <= O.NOW_ISO ? 'ended' : a.from > O.NOW_ISO ? 'scheduled' : 'active');
+// Its period, in dates and times; with no end, «بلا موعد انتهاء».
+const annPeriod = (a) => {
+  const D = window.DESK; const d = (iso) => D.fmtDate(iso.slice(0, 10)); const t = (iso) => iso.slice(11, 16);
+  if (!a.to) return d(a.from) + ' ' + t(a.from) + tr(' · بلا موعد انتهاء', ' · no end');
+  return a.from.slice(0, 10) === a.to.slice(0, 10) ? d(a.from) + ' ' + t(a.from) + '–' + t(a.to) : d(a.from) + ' ' + t(a.from) + ' – ' + d(a.to) + ' ' + t(a.to);
+};
+// O11: the closure's days so far — all of them once it has ended.
+const closureDays = (a) => { const D = window.DESK; const end = a.to && a.to <= O.NOW_ISO ? a.to.slice(0, 10) : D.TODAY; return D.daysBetween(a.from.slice(0, 10), end) + 1; };
+
+// O12 + A8: `?report=<id>` from «تعديل الحقل»: the open report sits above its section, where the field
+// is corrected, and «تم التصحيح» resolves it there. The owner sees the date, never who reported it.
+const REPORT_FIELD = () => ({ hours: tr('ساعات العمل', 'Opening hours'), prices: tr('الأسعار', 'Prices'), contacts: tr('التواصل', 'Contacts'), location: tr('الموقع', 'Location'), amenities: tr('المرافق', 'Amenities'), other: tr('أخرى', 'Other') });
+const reportSection = (r) => ({ location: 'profile', other: 'profile' }[r.field] || r.field);
+function OwnerReportNotice({ at }) {
+  const { Alert, AlertTitle, AlertDescription, Button: B } = window.MasahaDesignSystem;
+  const r = O.reports.find((x) => x.id === pageParams.get('report') && x.status === 'new');
+  const [done, setDone] = React.useState(false);
+  const { busy, run } = useActionRun('fix');
+  if (!r || reportSection(r) !== at) return null;
+  if (done) return <Alert id="report" variant="info" className="section-anchor"><AlertTitle>{tr('عُلّم «تم التصحيح»', 'Marked «Corrected»')}</AlertTitle><AlertDescription><a href="Data reports.html?status=new">{tr('العودة إلى البلاغات', 'Back to the reports')}</a></AlertDescription></Alert>;
+  return (
+    <Alert id="report" variant="info" className="section-anchor">
+      <AlertTitle>{tr('بلاغ مفتوح على ', 'An open report on ')}{REPORT_FIELD()[r.field]}</AlertTitle>
+      <AlertDescription>
+        <p>{tr('«', '“')}{r.msg}{tr('»', '”')}{tr(' — زائر، ', ' — a visitor, ')}{O.fmtDate(r.date)}</p>
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2">
+          <B size="sm" loading={busy} onClick={() => run(() => setDone(true), tr('عُلّم «تم التصحيح»', 'Marked «Corrected»'))}>{tr('تم التصحيح', 'Corrected')}</B>
+          <a href={'Data reports.html?open=' + r.id}>{tr('فتح البلاغ للرد', 'Open the report to reply')}</a>
+        </p>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 // state: the automatic public state; a manual override turns it to Full while it runs.
 function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAction, actions, loadError, children }) {
+  useHashLanding();
   const ov = useOverride();
   const base = INSIDE_HOURS ? state : 'closed';
   // The 768–1023 rail: the sidebar collapses to icons there, so the switcher needs its tooltip.
-  const rail = useIsTablet() && !useIsDesktop();
+  // Both hooks run on every render (no short-circuit): skipping one on phones would reorder the hooks.
+  const tablet = useIsTablet();
+  const desktop = useIsDesktop();
+  const rail = tablet && !desktop;
+  const phone = !tablet;
+  // ?drawer=open: the phone's drawer, open, for the board (its open state is the layer's own).
+  React.useEffect(() => { if (phone && pageParams.get('drawer') === 'open') { const b = document.querySelector('[data-slot=sidebar-inset] > header button'); if (b) b.click(); } }, []);
     const route = routeState();
       const failed = pageParams.get('state') === 'error';
   return (
@@ -212,6 +288,7 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
       <SkipLink />
       <Sidebar label={tr('لوحة إدارة المساحة', 'Space dashboard')}>
         <div className="sidebar-stick">
+        {phone && <div className="border-b border-sidebar-border p-2"><DrawerAccount /></div>}
         <SidebarHeader mark={<SpaceSwitcher collapsed={rail} />} />
         <SidebarContent>
           {OWNER_NAV().map((g, i) => (
@@ -243,7 +320,7 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
           <h1 className="min-w-0 flex-1 truncate text-heading-3">{title}</h1>
           <PageActions actions={actions} />
           <PublicStateControl state={base} ov={ov} />
-          <div className="ms-auto flex items-center gap-1">
+          <div className="ms-auto hidden items-center gap-1 md:flex">
             <OLang lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} className="hidden md:inline-flex" />
             <OTheme theme={theme} onThemeChange={setTheme} label={theme === 'light' ? tr('المظهر الداكن', 'Dark theme') : tr('المظهر الفاتح', 'Light theme')} className="hidden md:inline-flex" />
             <OwnerUserMenu theme={theme} setTheme={setTheme} />
@@ -261,4 +338,31 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
 
 // Numbers and ratios stay LTR and isolated inside Arabic text ("27 / 40").
 const Num = ({ children }) => { const f = [].concat(children); const text = f.every((c) => typeof c === 'string' || typeof c === 'number'); return <span dir="ltr" className="num-iso">{text ? f.join('') : children}</span>; };
-Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF });
+// O5: a counted noun takes the form its number asks for — Arabic has six (Intl.PluralRules('ar'):
+// zero, one, two, few, many, other). `ar` gives the forms, {n} where the number goes, `other` the
+// fallback; `en` is [one, other]. `Counted` isolates the number as `Num` does.
+const AR_PLURAL = new Intl.PluralRules('ar');
+const countForm = (n, ar, en) => (LANG === 'en' ? en[n === 1 ? 0 : 1] : ar[AR_PLURAL.select(n)] || ar.other);
+const countText = (n, ar, en) => countForm(n, ar, en).replace('{n}', String(n));
+function Counted({ n, ar, en }) {
+  const parts = countForm(n, ar, en).split('{n}');
+  return parts.length < 2 ? parts[0] : <>{parts[0]}<Num>{n}</Num>{parts[1]}</>;
+}
+const F_DAYS_AGO = { ar: { one: 'قبل يوم واحد', two: 'قبل يومين', few: 'قبل {n} أيام', many: 'قبل {n} يومًا', other: 'قبل {n} يوم' }, en: ['{n} day ago', '{n} days ago'] };
+const F_DAYS_IN = { ar: { two: 'بعد يومين', few: 'بعد {n} أيام', many: 'بعد {n} يومًا', other: 'بعد {n} يوم' }, en: ['in {n} day', 'in {n} days'] };
+const F_DAYS_ACC = { ar: { one: 'يومًا واحدًا', two: 'يومين', few: '{n} أيام', many: '{n} يومًا', other: '{n} يوم' }, en: ['{n} day', '{n} days'] };
+const F_SUBS = { ar: { zero: 'لا اشتراكات', one: 'اشتراك واحد', two: 'اشتراكان', few: '{n} اشتراكات', many: '{n} اشتراكًا', other: '{n} اشتراك' }, en: ['{n} subscription', '{n} subscriptions'] };
+const F_SUBS_ACTIVE_ACC = { ar: { one: 'اشتراك واحد نشط', two: 'اشتراكين نشطين', few: '{n} اشتراكات نشطة', many: '{n} اشتراكًا نشطًا', other: '{n} اشتراك نشط' }, en: ['{n} active subscription', '{n} active subscriptions'] };
+const F_EXTEND_VERB = { ar: { one: 'مدّد اشتراكًا واحدًا', two: 'مدّد اشتراكين', few: 'مدّد {n} اشتراكات', many: 'مدّد {n} اشتراكًا', other: 'مدّد {n} اشتراك' }, en: ['Extend {n} subscription', 'Extend {n} subscriptions'] };
+const F_EXTENDED = { ar: { one: 'مُدِّد اشتراك واحد', two: 'مُدِّد اشتراكان', few: 'مُدِّد {n} اشتراكات', many: 'مُدِّد {n} اشتراكًا', other: 'مُدِّد {n} اشتراك' }, en: ['{n} subscription extended', '{n} subscriptions extended'] };
+const F_VISITS = { ar: { zero: 'لا زيارات', one: 'زيارة واحدة', two: 'زيارتان', few: '{n} زيارات', many: '{n} زيارة', other: '{n} زيارة' }, en: ['{n} visit', '{n} visits'] };
+const F_UNPAID = { ar: { one: 'زيارة واحدة لم تُحصَّل اليوم', two: 'زيارتان لم تُحصَّلا اليوم', few: '{n} زيارات لم تُحصَّل اليوم', many: '{n} زيارة لم تُحصَّل اليوم', other: '{n} زيارة لم تُحصَّل اليوم' }, en: ['{n} visit not collected today', '{n} visits not collected today'] };
+const F_SUBSCRIBERS = { ar: { zero: 'لا مشتركين', one: 'مشترك واحد', two: 'مشتركان', few: '{n} مشتركين', many: '{n} مشتركًا', other: '{n} مشترك' }, en: ['{n} subscriber', '{n} subscribers'] };
+const F_NEW_REPORTS = { ar: { one: 'بلاغ جديد', two: 'بلاغان جديدان', few: '{n} بلاغات جديدة', many: '{n} بلاغًا جديدًا', other: '{n} بلاغ جديد' }, en: ['{n} new report', '{n} new reports'] };
+const F_OWE = { ar: { one: 'زبون واحد عليه مبلغ', two: 'زبونان عليهما مبالغ', few: '{n} زبائن عليهم مبالغ', many: '{n} زبونًا عليهم مبالغ', other: '{n} زبون عليهم مبالغ' }, en: ['{n} customer owes money', '{n} customers owe money'] };
+const F_CUSTOMERS = { ar: { zero: 'لا زبائن', one: 'زبون واحد', two: 'زبونان', few: '{n} زبائن', many: '{n} زبونًا', other: '{n} زبون' }, en: ['{n} customer', '{n} customers'] };
+const F_SECTIONS_IN = { ar: { one: 'قسم واحد', two: 'قسمين', few: '{n} أقسام', many: '{n} قسمًا', other: '{n} قسم' }, en: ['{n} section', '{n} sections'] };
+const F_MINUTES = { ar: { one: 'دقيقة', two: 'دقيقتين', few: '{n} دقائق', many: '{n} دقيقة', other: '{n} دقيقة' }, en: ['{n} min', '{n} min'] };
+const F_VALID = { ar: { one: 'صالحة يومًا واحدًا', two: 'صالحة يومين', few: 'صالحة {n} أيام', many: 'صالحة {n} يومًا', other: 'صالحة {n} يوم' }, en: ['valid {n} day', 'valid {n} days'] };
+const F_DAYS_N = { ar: { one: 'يوم واحد', two: 'يومان', few: '{n} أيام', many: '{n} يومًا', other: '{n} يوم' }, en: ['{n} day', '{n} days'] };
+Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF, AR_PLURAL, countText, Counted, useHashLanding, OwnerReportNotice, REPORT_FIELD, reportSection, annPeriod, annStatus, closureDays, F_DAYS_AGO, F_DAYS_IN, F_DAYS_ACC, F_SUBS, F_SUBS_ACTIVE_ACC, F_EXTEND_VERB, F_EXTENDED, F_VISITS, F_UNPAID, F_SUBSCRIBERS, F_NEW_REPORTS, F_OWE, F_CUSTOMERS, F_SECTIONS_IN, F_MINUTES, F_VALID, F_DAYS_N });

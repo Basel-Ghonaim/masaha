@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="masaha/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سجل التدقيق — مساحة</title>
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/fonts/fonts.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/styles.css">
+<link rel="stylesheet" href="masaha/masaha.css">
+<script src="masaha/i18n.js"></script>
+<script src="_vendor/react.js"></script>
+<script src="_vendor/react-dom.js"></script>
+<script src="_vendor/babel.min.js"></script>
+<script src="_ds/masaha-design-system-bde31931-75b2-4a5c-a81f-9e2963a5815a/_ds_bundle.js"></script>
+<script src="masaha/data.js"></script>
+<script src="masaha/details-data.js"></script>
+<script src="masaha/owner-data.js"></script>
+</head>
+<body class="bg-background text-foreground">
+<div id="ds-root"></div>
+<script type="text/babel" src="masaha/shared.jsx"></script>
+<script type="text/babel" src="masaha/owner.jsx"></script>
+<script src="masaha/desk-data.js"></script>
+<script type="text/babel" src="masaha/finance.jsx"></script>
+<script type="text/babel">
+const { DirectionProvider, Badge, DataTable, EmptyState, Field, Input, SearchIcon, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SearchXIcon } = window.MasahaDesignSystem;
+const ROWS = O.audit.map(([date, time, actor, action, target, details], i) => ({ id: 'e' + i, date, time, actor, action, target, details })).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+const ACTION = () => ({ payment_recorded: tr('تسجيل دفعة', 'Payment recorded'), payment_voided: tr('إلغاء دفعة', 'Payment voided'), auto_checkout: tr('خروج تلقائي', 'Automatic check-out'), customer_created: tr('زبون جديد', 'New customer'), staff_added: tr('إضافة موظف', 'Staff added'), staff_deactivated: tr('إيقاف وصول', 'Access removed'), announcement_published: tr('نشر إعلان', 'Announcement published'), announcement_ended: tr('إنهاء إعلان', 'Announcement ended'), subscriptions_extended: tr('تمديد الاشتراكات', 'Subscriptions extended'), package_paused: tr('إيقاف باقة', 'Package paused'), group_saved: tr('حفظ قسم', 'Section saved'), group_confirmed: tr('تأكيد قسم', 'Section confirmed'), report_dismissed: tr('بلاغ لم يُعتمد', 'Report not accepted'), settings_changed: tr('تغيير الإعدادات', 'Settings changed'), photo_removed: tr('حذف صورة', 'Photo deleted') });
+// AD-028 as amended: red follows P9 — only the acts whose confirmation is destructive.
+const RED = ['payment_voided', 'staff_deactivated', 'subscriptions_extended', 'photo_removed'];
+const person = (t) => t.split(/ [←→] /)[0];
+const actorName = (a) => a || tr('النظام', 'The system');
+function targetHref(r) {
+  if (r.action === 'payment_recorded' || r.action === 'payment_voided') return 'Payments.html';
+  if (r.action === 'auto_checkout' || r.action === 'customer_created') return 'Customers.html';
+  if (r.action === 'staff_added' || r.action === 'staff_deactivated') return 'Staff.html';
+  if (r.action === 'announcement_ended') return 'Announcements.html?tab=ended';
+  if (r.action === 'announcement_published') return 'Announcements.html';
+  if (r.action === 'subscriptions_extended') return 'Announcements.html?tab=ended';
+  if (r.action === 'package_paused') return 'Packages.html';
+  if (r.action === 'group_saved' || r.action === 'group_confirmed') return r.target === tr('الأسعار', 'Prices') ? 'Packages.html#prices' : 'Owner space profile.html';
+  if (r.action === 'report_dismissed') return 'Data reports.html?status=rejected';
+  if (r.action === 'settings_changed') return 'Owner settings.html';
+  if (r.action === 'photo_removed') return 'Owner space profile.html#photos';
+  return null;
+}
+const DAY = 864e5;
+function Audit({ theme, setTheme }) {
+  // AD-028: the range says what it is — «آخر 30 يومًا» by default, «كل الفترة» one choice away.
+  const [period, setPeriod] = React.useState('last30');
+  const [range, setRange] = React.useState({ from: dayDate('2026-09-01'), to: dayDate(DESK.TODAY) });
+  const [target, setTarget] = React.useState(''); const [actor, setActor] = React.useState('all'); const [action, setAction] = React.useState('all');
+  const since = isoOf(new Date(dayDate(DESK.TODAY).getTime() - 29 * DAY));
+  const inPeriod = (iso) => (period === 'all' ? true : period === 'last30' ? iso >= since && iso <= DESK.TODAY : inRange(iso, range));
+  const tq = target.trim().toLowerCase();
+  const rows = ROWS.filter((r) => (!tq || r.target.toLowerCase().includes(tq)) && inPeriod(r.date) && (actor === 'all' || (r.actor || 'system') === actor) && (action === 'all' || r.action === action));
+  // AD-028: an actor filter only once there is more than one actor to choose between.
+  const actors = [...new Set(ROWS.map((r) => r.actor || 'system'))];
+  const Act = ({ r }) => <Badge variant={RED.includes(r.action) ? 'destructive' : 'neutral'}>{ACTION()[r.action]}</Badge>;
+  const Target = ({ r }) => { const href = targetHref(r); return href ? <a className="text-label" href={href}>{r.target}</a> : <span className="text-label">{r.target}</span>; };
+  const paged = usePaged(rows);
+  const columns = [
+    { id: 't', header: tr('الوقت', 'Time'), cell: ({ row }) => <span>{DESK.fmtDate(row.original.date, true)} · <Num>{row.original.time}</Num></span> },
+    { id: 'actor', header: tr('المنفّذ', 'Actor'), cell: ({ row }) => actorName(row.original.actor) },
+    { id: 'action', header: tr('الإجراء', 'Action'), cell: ({ row }) => <Act r={row.original} /> },
+    // A7: a table at 768 too, the details under the target until 1024.
+    { id: 'target', header: tr('الهدف', 'Target'), cell: ({ row }) => <span className="flex flex-col"><Target r={row.original} /><span className="text-caption text-muted-foreground lg:hidden">{row.original.details}</span></span> },
+    { id: 'details', header: tr('التفاصيل', 'Details'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => <span className="text-body-sm text-muted-foreground">{row.original.details}</span> }
+  ];
+  const active = [period !== 'last30', actor !== 'all', action !== 'all'].filter(Boolean).length;
+  return (
+    <OwnerShell current="audit" title={tr('سجل التدقيق', 'Audit log')} state={publicState(DESK.present.length, O.capacity)} theme={theme} setTheme={setTheme}>
+      <p className="text-body-sm text-muted-foreground">{tr('كل ما جرى في Focus Hub: مَن فعل ماذا، ومتى.', 'Everything done at Focus Hub: who did what, and when.')}</p>
+      <DataTable label={tr('سجل التدقيق', 'Audit log')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
+        summary={paged.summary} pagination={paged.nav}
+        toolbar={<div className="flex flex-col gap-3">
+          <Field label={tr('بحث في الهدف', 'Search the target')}><Input role="searchbox" placeholder={tr('دفعة، شخص، إعلان…', 'A payment, a person, an announcement…')} startIcon={<SearchIcon />} value={target} onChange={(e) => setTarget(e.target.value)} /></Field>
+          <FilterSheet active={active} count={rows.length} onClear={() => { setPeriod('last30'); setActor('all'); setAction('all'); }}>
+            <div className="grid gap-3 md:grid-cols-3">
+              <Field label={tr('الفترة', 'Period')}><Select value={period} onValueChange={setPeriod}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="last30">{tr('آخر 30 يومًا', 'Last 30 days')}</SelectItem><SelectItem value="all">{tr('كل الفترة', 'All time')}</SelectItem><SelectItem value="custom">{tr('فترة محدّدة', 'A set period')}</SelectItem></SelectContent></Select></Field>
+              {period === 'custom' && <RangePicker value={range} onChange={setRange} label={tr('من – إلى', 'From – to')} />}
+              {actors.length > 1 && <Field label={tr('المنفّذ', 'Actor')}><Select value={actor} onValueChange={setActor}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('الكل', 'All')}</SelectItem>{actors.map((a) => <SelectItem key={a} value={a}>{actorName(a === 'system' ? null : a)}</SelectItem>)}</SelectContent></Select></Field>}
+              <Field label={tr('نوع الإجراء', 'Action type')}><Select value={action} onValueChange={setAction}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الإجراءات', 'All actions')}</SelectItem>{Object.entries(ACTION()).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
+            </div>
+          </FilterSheet>
+          <ResultCount>{tr('الأحداث', 'Events')}: <Num>{rows.length}</Num></ResultCount>
+        </div>}
+        renderCard={(r) => (<div className="flex flex-col gap-1"><div className="flex items-center justify-between gap-2"><Act r={r} /><span className="text-caption text-muted-foreground">{DESK.fmtDate(r.date, true)} · <Num>{r.time}</Num></span></div><Target r={r} /><span className="text-body-sm text-muted-foreground">{r.details}</span><span className="text-caption text-muted-foreground">{actorName(r.actor)}</span></div>)}
+        empty={<EmptyState icon={<SearchXIcon />} title={tr('لا توجد أحداث تطابق الفلاتر', 'No events match the filters')} />} />
+    </OwnerShell>
+  );
+}
+
+function Screen() { const [theme, setTheme] = useTheme(); return <Audit theme={theme} setTheme={setTheme} />; }
+ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><Screen /></DirectionProvider>);
+</script>
+</body>
+</html>

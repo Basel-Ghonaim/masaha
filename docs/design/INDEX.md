@@ -66,6 +66,26 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?auth=0` | Favourites, My reports, account settings | signed out: straight to sign-in with `next`, as the route's `RequireAuth` does (AC-011) |
 | `Settings.html?fail=language` | account settings | the language's save failing: the toggle returns, «تعذّر حفظ اللغة» with «إعادة المحاولة» |
 | `Reports.html?demo=pages` · `?tab=open` · `?tab=closed` | My reports | 28 reports, so the list has a second page (P6); the chips set |
+### Batch 5 — the owner's management
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `?drawer=open` | the owner's and reception's pages, on a phone | the drawer, open, with the account at its head (DI-10) |
+| `?demo=missing` | `Owner space profile.html`, `Owner overview.html` | the amenities never saved: A2's checklist on the profile, «لم تُضف بعد» in the overview's queue |
+| `Packages.html#prices` | Packages & prices | the published prices' table, where every «الأسعار» link lands (O6) |
+| `Owner settings.html#attendance` | Settings | «الحضور والحالة المباشرة»: capacity and the check-out rules (O2) |
+| `?fail=save-attendance` · `save-pricing` · `save-message` | `Owner settings.html` | one card's save failing, in that card only |
+| `Packages.html?demo=noshifts` | the package sheet | no shift saved: the reason and the link to the hours |
+| `?fail=save` | the package sheet | the save failing inside the sheet |
+| `Announcements.html?delete=a1` | announcements | deleting a scheduled announcement: the confirmation |
+| `?fail=end` | announcements | «إنهاء الآن» failing: the toast with «إعادة المحاولة» |
+| `Announcements.html?tab=ended&extend=a6` | announcements (owner) | the closure extension's confirmation for a closure that has ended (O11) |
+| `?fail=extend` | the same | the extension failing |
+| `?fail=add` | `Staff.html` | adding a staff member failing inside the sheet |
+| `Owner space profile.html?report=d1#report` · `Packages.html?report=d2#report` | the owner's editor | the report «تعديل الحقل» carried there, above its section, with «تم التصحيح» (O12, A8) |
+| `Finance.html?month=2026-08` | Finance | the month chosen (OW-015) |
+| `Owner overview.html?demo=nocapacity` · `?demo=clear` | the overview | no capacity set (the queue's row, «بلا حالة مباشرة»), or nothing to do («كل شيء على ما يرام») |
+| `Owner audit.html` | the owner's audit log | the space's log (O13); `?state=loading` its skeleton |
 
 ## 01 · Flow
 
@@ -598,8 +618,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 |---|---|---|---|
 | Space profile — desktop 1440 | `Owner space profile.html` | 1440×1000 | [30-owner-space-profile-kept/01-space-profile-desktop-1440.webp](screens/30-owner-space-profile-kept/01-space-profile-desktop-1440.webp) |
 | Space profile — phone 390 | `Owner space profile.html` | 390×844 | [30-owner-space-profile-kept/02-space-profile-phone-390.webp](screens/30-owner-space-profile-kept/02-space-profile-phone-390.webp) |
-| Capacity section — desktop 1440 | `Owner space profile.html#capacity` | 1440×1000 | [36-space-profile/03-capacity-section-desktop-1440.webp](screens/36-space-profile/03-capacity-section-desktop-1440.webp) |
-| Capacity section — phone 390 | `Owner space profile.html#capacity` | 390×844 | [36-space-profile/04-capacity-section-phone-390.webp](screens/36-space-profile/04-capacity-section-phone-390.webp) |
+| Capacity → Settings «الحضور والحالة المباشرة» — desktop 1440 | `Owner settings.html#attendance` | 1440×1000 | [36-space-profile/03-capacity-section-desktop-1440.webp](screens/36-space-profile/03-capacity-section-desktop-1440.webp) |
+| Capacity → Settings «الحضور والحالة المباشرة» — phone 390 | `Owner settings.html#attendance` | 390×844 | [36-space-profile/04-capacity-section-phone-390.webp](screens/36-space-profile/04-capacity-section-phone-390.webp) |
 
 ## 37 · Staff «الموظفون» (owner)
 
@@ -611,10 +631,10 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Add staff sheet — phone 390 | `Staff.html?sheet=add` | 390×844 | [37-staff-owner/04-add-staff-sheet-phone-390.webp](screens/37-staff-owner/04-add-staff-sheet-phone-390.webp) |
 | Temporary password (shown once) — desktop 1440 | `Staff.html?pass=1` | 1440×1000 | [37-staff-owner/05-temporary-password-shown-once-desktop-1440.webp](screens/37-staff-owner/05-temporary-password-shown-once-desktop-1440.webp) |
 | Temporary password (shown once) — phone 390 | `Staff.html?pass=1` | 390×844 | [37-staff-owner/06-temporary-password-shown-once-phone-390.webp](screens/37-staff-owner/06-temporary-password-shown-once-phone-390.webp) |
-| Email already has an account → «ربط» — desktop 1440 | `Staff.html?sheet=add&email=nour@example.com` | 1440×1000 | [37-staff-owner/07-email-already-has-an-account-desktop-1440.webp](screens/37-staff-owner/07-email-already-has-an-account-desktop-1440.webp) |
-| Email already has an account → «ربط» — phone 390 | `Staff.html?sheet=add&email=nour@example.com` | 390×844 | [37-staff-owner/08-email-already-has-an-account-phone-390.webp](screens/37-staff-owner/08-email-already-has-an-account-phone-390.webp) |
-| Suspend (confirm) — desktop 1440 | `Staff.html?stop=1` | 1440×1000 | [37-staff-owner/09-suspend-confirm-desktop-1440.webp](screens/37-staff-owner/09-suspend-confirm-desktop-1440.webp) |
-| Suspend (confirm) — phone 390 | `Staff.html?stop=1` | 390×844 | [37-staff-owner/10-suspend-confirm-phone-390.webp](screens/37-staff-owner/10-suspend-confirm-phone-390.webp) |
+| Email with an account → linked on submit — desktop 1440 | `Staff.html?sheet=add&email=nour@example.com` | 1440×1000 | [37-staff-owner/07-email-already-has-an-account-desktop-1440.webp](screens/37-staff-owner/07-email-already-has-an-account-desktop-1440.webp) |
+| Email with an account → linked on submit — phone 390 | `Staff.html?sheet=add&email=nour@example.com` | 390×844 | [37-staff-owner/08-email-already-has-an-account-phone-390.webp](screens/37-staff-owner/08-email-already-has-an-account-phone-390.webp) |
+| Remove access (confirm) — desktop 1440 | `Staff.html?stop=1` | 1440×1000 | [37-staff-owner/09-suspend-confirm-desktop-1440.webp](screens/37-staff-owner/09-suspend-confirm-desktop-1440.webp) |
+| Remove access (confirm) — phone 390 | `Staff.html?stop=1` | 390×844 | [37-staff-owner/10-suspend-confirm-phone-390.webp](screens/37-staff-owner/10-suspend-confirm-phone-390.webp) |
 | Empty — desktop 1440 | `Staff.html?state=empty` | 1440×1000 | [37-staff-owner/11-empty-desktop-1440.webp](screens/37-staff-owner/11-empty-desktop-1440.webp) |
 | Empty — phone 390 | `Staff.html?state=empty` | 390×844 | [37-staff-owner/12-empty-phone-390.webp](screens/37-staff-owner/12-empty-phone-390.webp) |
 
@@ -626,12 +646,12 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Active · owner — phone 390 | `Announcements.html` | 390×844 | [38-announcements-owner-reception/02-active-owner-phone-390.webp](screens/38-announcements-owner-reception/02-active-owner-phone-390.webp) |
 | Active · reception — desktop 1440 | `Announcements.html?role=reception` | 1440×1000 | [38-announcements-owner-reception/03-active-reception-desktop-1440.webp](screens/38-announcements-owner-reception/03-active-reception-desktop-1440.webp) |
 | Active · reception — phone 390 | `Announcements.html?role=reception` | 390×844 | [38-announcements-owner-reception/04-active-reception-phone-390.webp](screens/38-announcements-owner-reception/04-active-reception-phone-390.webp) |
-| Scheduled closure · extend (owner) — desktop 1440 | `Announcements.html?tab=scheduled&edit=a1` | 1440×1000 | [38-announcements-owner-reception/05-scheduled-closure-extend-owner-desktop-1440.webp](screens/38-announcements-owner-reception/05-scheduled-closure-extend-owner-desktop-1440.webp) |
-| Scheduled closure · extend (owner) — phone 390 | `Announcements.html?tab=scheduled&edit=a1` | 390×844 | [38-announcements-owner-reception/06-scheduled-closure-extend-owner-phone-390.webp](screens/38-announcements-owner-reception/06-scheduled-closure-extend-owner-phone-390.webp) |
-| Closure · reception sees note — desktop 1440 | `Announcements.html?role=reception&tab=scheduled&edit=a1` | 1440×1000 | [38-announcements-owner-reception/07-closure-reception-sees-note-desktop-1440.webp](screens/38-announcements-owner-reception/07-closure-reception-sees-note-desktop-1440.webp) |
-| Closure · reception sees note — phone 390 | `Announcements.html?role=reception&tab=scheduled&edit=a1` | 390×844 | [38-announcements-owner-reception/08-closure-reception-sees-note-phone-390.webp](screens/38-announcements-owner-reception/08-closure-reception-sees-note-phone-390.webp) |
-| Ended closure · extension done — desktop 1440 | `Announcements.html?tab=ended&edit=a4` | 1440×1000 | [38-announcements-owner-reception/09-ended-closure-extension-done-desktop-1440.webp](screens/38-announcements-owner-reception/09-ended-closure-extension-done-desktop-1440.webp) |
-| Ended closure · extension done — phone 390 | `Announcements.html?tab=ended&edit=a4` | 390×844 | [38-announcements-owner-reception/10-ended-closure-extension-done-phone-390.webp](screens/38-announcements-owner-reception/10-ended-closure-extension-done-phone-390.webp) |
+| Scheduled closure · edit (owner) — desktop 1440 | `Announcements.html?tab=scheduled&edit=a1` | 1440×1000 | [38-announcements-owner-reception/05-scheduled-closure-extend-owner-desktop-1440.webp](screens/38-announcements-owner-reception/05-scheduled-closure-extend-owner-desktop-1440.webp) |
+| Scheduled closure · edit (owner) — phone 390 | `Announcements.html?tab=scheduled&edit=a1` | 390×844 | [38-announcements-owner-reception/06-scheduled-closure-extend-owner-phone-390.webp](screens/38-announcements-owner-reception/06-scheduled-closure-extend-owner-phone-390.webp) |
+| Scheduled closure · edit (reception) — desktop 1440 | `Announcements.html?role=reception&tab=scheduled&edit=a1` | 1440×1000 | [38-announcements-owner-reception/07-closure-reception-sees-note-desktop-1440.webp](screens/38-announcements-owner-reception/07-closure-reception-sees-note-desktop-1440.webp) |
+| Scheduled closure · edit (reception) — phone 390 | `Announcements.html?role=reception&tab=scheduled&edit=a1` | 390×844 | [38-announcements-owner-reception/08-closure-reception-sees-note-phone-390.webp](screens/38-announcements-owner-reception/08-closure-reception-sees-note-phone-390.webp) |
+| Ended · one closure extended, one to extend — desktop 1440 | `Announcements.html?tab=ended` | 1440×1000 | [38-announcements-owner-reception/09-ended-closure-extension-done-desktop-1440.webp](screens/38-announcements-owner-reception/09-ended-closure-extension-done-desktop-1440.webp) |
+| Ended · one closure extended, one to extend — phone 390 | `Announcements.html?tab=ended` | 390×844 | [38-announcements-owner-reception/10-ended-closure-extension-done-phone-390.webp](screens/38-announcements-owner-reception/10-ended-closure-extension-done-phone-390.webp) |
 | New announcement sheet — desktop 1440 | `Announcements.html?sheet=new&type=event` | 1440×1000 | [38-announcements-owner-reception/11-new-announcement-sheet-desktop-1440.webp](screens/38-announcements-owner-reception/11-new-announcement-sheet-desktop-1440.webp) |
 | New announcement sheet — phone 390 | `Announcements.html?sheet=new&type=event` | 390×844 | [38-announcements-owner-reception/12-new-announcement-sheet-phone-390.webp](screens/38-announcements-owner-reception/12-new-announcement-sheet-phone-390.webp) |
 | Empty — desktop 1440 | `Announcements.html?state=empty` | 1440×1000 | [38-announcements-owner-reception/13-empty-desktop-1440.webp](screens/38-announcements-owner-reception/13-empty-desktop-1440.webp) |
@@ -827,6 +847,7 @@ Added by the public fix (`CHANGES.md` › *Batch 3*). No screenshot yet: `screen
 | Cards · photos still loading — desktop 1440 | `Directory.html?loc=none&photos=loading` | 1440×1000 | — |
 | About · contact for everyone — desktop 1440 | `About.html#contact` | 1440×1000 | — |
 
+<<<<<<< HEAD
 ## 54 · Batch 4 — the account
 
 Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
@@ -851,3 +872,31 @@ Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `scree
 | Favourites · one left the directory — desktop 1440 | `Favorites.html?auth=1&loc=none` | 1440×1000 | — |
 | Favourites · nearest first — phone 390 | `Favorites.html?auth=1&loc=granted` | 390×844 | — |
 | My reports · two pages, a space that left — desktop 1440 | `Reports.html?auth=1&demo=pages` | 1440×1000 | — |
+## 55 · Batch 5 — the owner's management
+
+Added by the owner's fix (`CHANGES.md` › *Batch 5*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
+
+| Frame | Prototype URL | Viewport | Screenshot |
+|---|---|---|---|
+| Overview · a work queue, no money — desktop 1440 | `Owner overview.html` | 1440×1000 | — |
+| Overview · a work queue — phone 390 | `Owner overview.html` | 390×844 | — |
+| Overview · nothing needs you — phone 390 | `Owner overview.html?demo=clear` | 390×844 | — |
+| Phone bar · the account heads the drawer — phone 390 | `Owner overview.html?drawer=open` | 390×844 | — |
+| Overview · no capacity, a group never saved — desktop 1440 | `Owner overview.html?demo=missing,nocapacity` | 1440×1000 | — |
+| Space profile · a report on its section — phone 390 | `Owner space profile.html?report=d1#report` | 390×844 | — |
+| New package · limits on demand — phone 390 | `Packages.html?sheet=new` | 390×844 | — |
+| New announcement · the model's fields — phone 390 | `Announcements.html?sheet=new&type=closure` | 390×844 | — |
+| Space profile · the editor, prices as a row — desktop 1440 | `Owner space profile.html` | 1440×1000 | — |
+| Packages & prices · two sections — desktop 1440 | `Packages.html` | 1440×1000 | — |
+| Edit package · per day, no shifts saved — desktop 1440 | `Packages.html?edit=p4&demo=noshifts` | 1440×1000 | — |
+| Announcements · end now, no end, quiet types — desktop 1440 | `Announcements.html` | 1440×1000 | — |
+| Closure extension · the confirmation — desktop 1440 | `Announcements.html?tab=ended&extend=a6` | 1440×1000 | — |
+| Closure extension · reception's line — phone 390 | `Announcements.html?role=reception&tab=ended` | 390×844 | — |
+| Staff · the password, shown once — phone 390 | `Staff.html?pass=1` | 390×844 | — |
+| Finance · debts that page — phone 390 | `Finance.html?tab=debts` | 390×844 | — |
+| Audit log · the space's — phone 390 | `Owner audit.html` | 390×844 | — |
+| Staff · real columns, a pending password — desktop 1440 | `Staff.html` | 1440×1000 | — |
+| Data reports · the reporter is a visitor — desktop 1440 | `Data reports.html?open=d1` | 1440×1000 | — |
+| Finance · one month — desktop 1440 | `Finance.html?month=2026-08` | 1440×1000 | — |
+| Settings · attendance and the live state — desktop 1440 | `Owner settings.html#attendance` | 1440×1000 | — |
+| Audit log · the space's — desktop 1440 | `Owner audit.html` | 1440×1000 | — |
