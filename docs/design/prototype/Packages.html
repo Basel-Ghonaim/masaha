@@ -143,6 +143,7 @@ function PackagesInner({ theme, setTheme }) {
   return (
     <OwnerShell current="packages" title={tr('الباقات والأسعار', 'Packages & prices')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('أسعار الأسبوع والشهر تُختار أيضًا في المكتب عند إنشاء اشتراك.', 'Week and month prices are also chosen at the desk when creating a subscription.')}</p>
+      <OwnerReportNotice at="prices" />
       <PricesSection space={space} title={tr('الأسعار المعلنة', 'Published prices')} description={tr('تظهر في صفحة المساحة · للعرض فقط · الدفع في المساحة', 'Shown on the space page · Display only · Pay at the space')} meta={{ updated: ago(O.groups.prices), stale: O.groups.prices > O.LIMIT.prices }} hoursHref="Owner space profile.html#hours" />
       <section className="flex flex-col gap-3" aria-labelledby="priv">
         <div className="flex flex-wrap items-end justify-between gap-3">

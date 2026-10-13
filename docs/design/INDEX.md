@@ -82,6 +82,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Announcements.html?tab=ended&extend=a6` | announcements (owner) | the closure extension's confirmation for a closure that has ended (O11) |
 | `?fail=extend` | the same | the extension failing |
 | `?fail=add` | `Staff.html` | adding a staff member failing inside the sheet |
+| `Owner space profile.html?report=d1#report` · `Packages.html?report=d2#report` | the owner's editor | the report «تعديل الحقل» carried there, above its section, with «تم التصحيح» (O12, A8) |
 
 ## 01 · Flow
 

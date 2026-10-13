@@ -23,7 +23,7 @@ const OWNER_NAV = () => IS_OWNER ? [
   { label: tr('المساحة', 'The space'), items: [
     { id: 'profile', label: tr('ملف المساحة', 'Space profile'), href: 'Owner space profile.html', icon: <OEye /> },
     { id: 'announcements', label: tr('الإعلانات', 'Announcements'), href: 'Announcements.html', icon: <OAlertIcon /> },
-    { id: 'data-reports', label: tr('بلاغات البيانات', 'Data reports'), href: 'Data reports.html', icon: <TriangleAlertIcon />, badge: 2 }
+    { id: 'data-reports', label: tr('بلاغات البيانات', 'Data reports'), href: 'Data reports.html', icon: <TriangleAlertIcon />, badge: O.reports.filter((r) => r.status === 'new').length || undefined }
   ] },
   { label: tr('الفريق والإعدادات', 'Team & settings'), items: [
     { id: 'staff', label: tr('الموظفون', 'Staff'), href: 'Staff.html', icon: <ChevronsUpDownIcon /> },
@@ -242,6 +242,31 @@ const annPeriod = (a) => {
 // O11: the closure's days so far — all of them once it has ended.
 const closureDays = (a) => { const D = window.DESK; const end = a.to && a.to <= O.NOW_ISO ? a.to.slice(0, 10) : D.TODAY; return D.daysBetween(a.from.slice(0, 10), end) + 1; };
 
+// O12 + A8: `?report=<id>` from «تعديل الحقل»: the open report sits above its section, where the field
+// is corrected, and «تم التصحيح» resolves it there. The owner sees the date, never who reported it.
+const REPORT_FIELD = () => ({ hours: tr('ساعات العمل', 'Opening hours'), prices: tr('الأسعار', 'Prices'), contacts: tr('التواصل', 'Contacts'), location: tr('الموقع', 'Location'), amenities: tr('المرافق', 'Amenities'), other: tr('أخرى', 'Other') });
+const reportSection = (r) => ({ location: 'profile', other: 'profile' }[r.field] || r.field);
+function OwnerReportNotice({ at }) {
+  const { Alert, AlertTitle, AlertDescription, Button: B } = window.MasahaDesignSystem;
+  const r = O.reports.find((x) => x.id === pageParams.get('report') && x.status === 'new');
+  const [done, setDone] = React.useState(false);
+  const { busy, run } = useActionRun('fix');
+  if (!r || reportSection(r) !== at) return null;
+  if (done) return <Alert id="report" variant="info" className="section-anchor"><AlertTitle>{tr('عُلّم «تم التصحيح»', 'Marked «Corrected»')}</AlertTitle><AlertDescription><a href="Data reports.html?status=new">{tr('العودة إلى البلاغات', 'Back to the reports')}</a></AlertDescription></Alert>;
+  return (
+    <Alert id="report" variant="info" className="section-anchor">
+      <AlertTitle>{tr('بلاغ مفتوح على ', 'An open report on ')}{REPORT_FIELD()[r.field]}</AlertTitle>
+      <AlertDescription>
+        <p>{tr('«', '“')}{r.msg}{tr('»', '”')}{tr(' — زائر، ', ' — a visitor, ')}{O.fmtDate(r.date)}</p>
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2">
+          <B size="sm" loading={busy} onClick={() => run(() => setDone(true), tr('عُلّم «تم التصحيح»', 'Marked «Corrected»'))}>{tr('تم التصحيح', 'Corrected')}</B>
+          <a href={'Data reports.html?open=' + r.id}>{tr('فتح البلاغ للرد', 'Open the report to reply')}</a>
+        </p>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 // state: the automatic public state; a manual override turns it to Full while it runs.
 function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAction, actions, loadError, children }) {
   useHashLanding();
@@ -339,4 +364,4 @@ const F_SECTIONS_IN = { ar: { one: 'قسم واحد', two: 'قسمين', few: '{
 const F_MINUTES = { ar: { one: 'دقيقة', two: 'دقيقتين', few: '{n} دقائق', many: '{n} دقيقة', other: '{n} دقيقة' }, en: ['{n} min', '{n} min'] };
 const F_VALID = { ar: { one: 'صالحة يومًا واحدًا', two: 'صالحة يومين', few: 'صالحة {n} أيام', many: 'صالحة {n} يومًا', other: 'صالحة {n} يوم' }, en: ['valid {n} day', 'valid {n} days'] };
 const F_DAYS_N = { ar: { one: 'يوم واحد', two: 'يومان', few: '{n} أيام', many: '{n} يومًا', other: '{n} يوم' }, en: ['{n} day', '{n} days'] };
-Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF, AR_PLURAL, countText, Counted, useHashLanding, annPeriod, annStatus, closureDays, F_DAYS_AGO, F_DAYS_IN, F_DAYS_ACC, F_SUBS, F_SUBS_ACTIVE_ACC, F_EXTEND_VERB, F_EXTENDED, F_VISITS, F_UNPAID, F_SUBSCRIBERS, F_NEW_REPORTS, F_OWE, F_CUSTOMERS, F_SECTIONS_IN, F_MINUTES, F_VALID, F_DAYS_N });
+Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF, AR_PLURAL, countText, Counted, useHashLanding, OwnerReportNotice, REPORT_FIELD, reportSection, annPeriod, annStatus, closureDays, F_DAYS_AGO, F_DAYS_IN, F_DAYS_ACC, F_SUBS, F_SUBS_ACTIVE_ACC, F_EXTEND_VERB, F_EXTENDED, F_VISITS, F_UNPAID, F_SUBSCRIBERS, F_NEW_REPORTS, F_OWE, F_CUSTOMERS, F_SECTIONS_IN, F_MINUTES, F_VALID, F_DAYS_N });

@@ -45,7 +45,9 @@ function ProfileScreen() {
           <p className="text-body-sm text-muted-foreground">{tr('كل قسم يُحفظ وحده، ويظهر للزوار فور الحفظ.', 'Each section saves on its own and shows to visitors as soon as it’s saved.')} <a href="Space details.html?id=focus" target="_blank" rel="noopener">{tr('عرض الصفحة العامة', 'View public page')}</a></p>
           {dirty > 0 && <Alert variant="warning"><AlertDescription><>{tr('لديك تغييرات غير محفوظة في ', 'You have unsaved changes in ')}<Counted n={dirty} ar={F_SECTIONS_IN.ar} en={F_SECTIONS_IN.en} />{tr('. ستُفقد إذا غادرت الصفحة.', '. They’ll be lost if you leave the page.')}</>}</AlertDescription></Alert>}
           <MissingChecklist names={Object.fromEntries(SECTIONS())} missing={O.missing} />
+          <OwnerReportNotice at="profile" />
           <SpaceSection space={space} meta={groupMeta('profile')} />
+          <OwnerReportNotice at="hours" />
           <HoursSection meta={groupMeta('hours')} />
           {/* O1/O6: the prices group lives on Packages & prices, where its table is saved and confirmed;
               here it is one row, with its date, so the profile still lists all five groups. */}
@@ -60,7 +62,9 @@ function ProfileScreen() {
               <CardAction><Button variant="outline" size="sm" asChild><a href="Packages.html#prices">{tr('الباقات والأسعار', 'Packages & prices')}<ArrowEndIcon /></a></Button></CardAction>
             </CardHeader>
           </Card>
+          <OwnerReportNotice at="amenities" />
           <AmenitiesSection space={space} meta={groupMeta('amenities')} />
+          <OwnerReportNotice at="contacts" />
           <ContactsSection space={space} meta={groupMeta('contacts')} />
           <PhotosSection />
         </div>

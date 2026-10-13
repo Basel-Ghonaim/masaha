@@ -57,5 +57,12 @@ window.OWNER = (function () {
     { id: 'a5', type: 'outage', textAr: 'الإنترنت بطيء هذا الصباح، ونعمل على إصلاحه.', textEn: '', from: '2026-09-22T08:00', to: '2026-09-22T12:00' },
     { id: 'a4', type: 'closure', textAr: 'مغلقة لصيانة المولّد.', textEn: 'Closed for generator maintenance.', from: '2026-09-14T08:00', to: '2026-09-16T18:00', extended: { count: 19, days: 3, by: T('أحمد', 'Ahmad'), on: '2026-09-17' } }
   ];
-  return { capacity: demo('nocapacity') ? null : 40, closeAt: '18:00', owner: { name: T('أحمد', 'Ahmad'), email: 'ahmad@example.com' }, spaces, members, present, log, history, attendanceOf, typeLabel, typeShort, shifts, statusBadge, daysLeft, fmtDate, now: '12:40', demo, NOW_ISO, groups, LIMIT, missing, announcements };
+  // O12: the reporter is anonymous to the owner — no name is sent; the admin keeps it.
+  const reports = demo('clear') ? [] : [
+    { id: 'd1', field: 'hours', date: '2026-09-29', status: 'new', msg: T('صارت المساحة تفتح 09:00 بدل 08:00 منذ بداية الأسبوع.', 'The space opens at 09:00 instead of 08:00 since the start of the week.') },
+    { id: 'd2', field: 'prices', date: '2026-09-27', status: 'new', msg: T('سعر الأسبوع عند الاستقبال 100 ₪ وليس 90 ₪.', 'The weekly price at the desk is ₪100, not ₪90.') },
+    { id: 'd3', field: 'amenities', date: '2026-09-20', status: 'fixed', msg: T('أضافوا قاعة اجتماعات جديدة في الطابق نفسه.', 'They added a new meeting room on the same floor.'), reply: T('شكرًا، أضفنا القاعة إلى المرافق.', 'Thanks, we added the room to the amenities.') },
+    { id: 'd4', field: 'contacts', date: '2026-09-12', status: 'rejected', msg: T('رقم الواتساب لا يرد.', 'The WhatsApp number doesn’t answer.'), reply: T('الرقم صحيح، نرد خلال ساعات العمل.', 'The number is correct; we reply during opening hours.') }
+  ];
+  return { capacity: demo('nocapacity') ? null : 40, closeAt: '18:00', owner: { name: T('أحمد', 'Ahmad'), email: 'ahmad@example.com' }, spaces, members, present, log, history, attendanceOf, typeLabel, typeShort, shifts, statusBadge, daysLeft, fmtDate, now: '12:40', demo, NOW_ISO, groups, LIMIT, missing, announcements, reports };
 })();
