@@ -32,96 +32,103 @@ const M = window.MASAHA;
 const space = M.spaces.find((s) => s.id === 'focus');
 // The space's saved shifts, which the price table and the package sheet offer; on the profile
 // the hours section publishes them, and it is not on this page.
-publish('shifts', SAMPLE_SHIFTS());
+// ?demo=noshifts: a space with no shifts saved, so the sheet says why it offers none.
+const SHIFTS_NOW = () => (O.demo('noshifts') ? [] : SAMPLE_SHIFTS());
+publish('shifts', SHIFTS_NOW());
 const n = (v) => (v === '' || v == null ? null : Number(v));
+// O8 (OW-009): a package as the model holds it — the validity always, the limits only when set,
+// one billing choice (FIXED · PER_HOUR · PER_DAY) and one amount, above zero (the owner, 2026-10-13).
+const LIMITS = () => [['totalDays', tr('عدد الأيام', 'Number of days')], ['daysPerWeek', tr('أيام بالأسبوع', 'Days a week')], ['hoursPerDay', tr('ساعات باليوم', 'Hours a day')], ['totalHours', tr('مجموع الساعات', 'Total hours')]];
 const INIT = [
-  { id: 'p1', name: tr('10 أيام', '10 days'), validity: '45', totalDays: '10', daysPerWeek: '', hoursPerDay: '', totalHours: '', billing: 'fixed', unit: 'hour', price: '130', rate: '', audience: 'all', shift: '', active: true },
-  { id: 'p2', name: tr('20 ساعة', '20 hours'), validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '', totalHours: '20', billing: 'fixed', unit: 'hour', price: '50', rate: '', audience: 'all', shift: '', active: true },
-  { id: 'p3', name: tr('شهر يوم بعد يوم', 'Month, every other day'), validity: '30', totalDays: '', daysPerWeek: '3', hoursPerDay: '', totalHours: '', billing: 'fixed', unit: 'hour', price: '180', rate: '', audience: 'all', shift: '', active: true },
-  { id: 'p4', name: tr('صباحي للطلاب', 'Student mornings'), validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '5', totalHours: '', billing: 'usage', unit: 'day', price: '', rate: '10', audience: 'students', shift: 'am', active: false }
+  { id: 'p1', name: tr('10 أيام', '10 days'), validity: '45', totalDays: '10', daysPerWeek: '', hoursPerDay: '', totalHours: '', billing: 'fixed', amount: '130', audience: 'all', shift: '', active: true },
+  { id: 'p2', name: tr('20 ساعة', '20 hours'), validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '', totalHours: '20', billing: 'fixed', amount: '50', audience: 'all', shift: '', active: true },
+  { id: 'p3', name: tr('شهر يوم بعد يوم', 'Month, every other day'), validity: '30', totalDays: '', daysPerWeek: '3', hoursPerDay: '', totalHours: '', billing: 'fixed', amount: '180', audience: 'all', shift: '', active: true },
+  { id: 'p4', name: tr('صباحي للطلاب', 'Student mornings'), validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '5', totalHours: '', billing: 'day', amount: '10', audience: 'students', shift: 'am', active: false }
 ];
 const $ = DESK.money;
+const priceText = (p) => (p.billing === 'fixed' ? $(p.amount) : p.billing === 'hour' ? tr(`${$(p.amount)} للساعة`, `${$(p.amount)} an hour`) : tr(`${$(p.amount)} لليوم`, `${$(p.amount)} a day`));
 // Live one-line summary of the terms.
 function summary(p) {
   const parts = [];
-  if (n(p.validity)) parts.push(tr(`صالحة ${p.validity} يومًا`, `valid ${p.validity} days`));
-  if (n(p.totalDays)) parts.push(tr(`${p.totalDays} أيام`, `${p.totalDays} days`));
-  if (n(p.daysPerWeek)) parts.push(tr(`${p.daysPerWeek} أيام بالأسبوع`, `${p.daysPerWeek} days a week`));
+  if (n(p.validity)) parts.push(countText(n(p.validity), F_VALID.ar, F_VALID.en));
+  if (n(p.totalDays)) parts.push(countText(n(p.totalDays), F_DAYS_N.ar, F_DAYS_N.en));
+  if (n(p.daysPerWeek)) parts.push(countText(n(p.daysPerWeek), F_DAYS_N.ar, F_DAYS_N.en) + tr(' بالأسبوع', ' a week'));
   if (n(p.hoursPerDay)) parts.push(tr(`${p.hoursPerDay} س باليوم`, `${p.hoursPerDay} h a day`));
   if (n(p.totalHours)) parts.push(tr(`رصيد ${p.totalHours} س`, `${p.totalHours} h balance`));
   if (p.audience === 'students') parts.push(tr('للطلاب', 'students'));
-  if (p.shift) parts.push(DESK.SHIFTS[p.shift]);
-  parts.push(p.billing === 'fixed' ? (n(p.price) ? $(p.price) : tr('بدون سعر', 'no price')) : tr(`${n(p.rate) ? $(p.rate) : '—'} ${p.unit === 'hour' ? 'للساعة' : 'لليوم'} حسب الاستخدام`, `${n(p.rate) ? $(p.rate) : '—'} per ${p.unit}, by usage`));
+  const sh = SHIFTS_NOW().find((x) => x.id === p.shift);
+  if (sh) parts.push(tr(sh.ar, sh.en || sh.ar));
   return parts.join(' · ');
 }
-const Opt = () => <span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>;
-const NumF = ({ label, v, k, set, err }) => <Field label={label} labelEnd={<Opt />} error={err}><Input inputMode="numeric" dir="ltr" value={v[k]} onChange={(e) => set({ [k]: e.target.value.replace(/[^\d]/g, '') })} /></Field>;
 
-function PackageSheet({ pkg, onClose, onSave }) {
-  const blank = { name: '', validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '', totalHours: '', billing: 'fixed', unit: 'hour', price: '', rate: String(DESK.PRICES.hour), audience: 'all', shift: '', active: true };
-  const [v, setV] = React.useState(blank); const [err, setErr] = React.useState({});
-  React.useEffect(() => { if (pkg) { setV({ ...blank, ...pkg }); setErr({}); } }, [pkg]);
+function PackageSheet({ pkg, list, onClose, onSave }) {
+  const blank = { name: '', validity: '30', totalDays: '', daysPerWeek: '', hoursPerDay: '', totalHours: '', billing: 'fixed', amount: '', audience: 'all', shift: '', active: true };
+  const [v, setV] = React.useState(blank);
+  const [err, setErr] = React.useState({});
+  const [on, setOn] = React.useState([]);
+  const form = React.useRef(null);
+  const { busy, run } = useActionRun('save');
+  React.useEffect(() => { if (pkg) { setV({ ...blank, ...pkg }); setErr({}); setOn(LIMITS().map(([k]) => k).filter((k) => pkg && pkg[k])); } }, [pkg]);
   const set = (p) => setV((x) => ({ ...x, ...p }));
+  const toggleLimits = (next) => { setOn(next); LIMITS().forEach(([k]) => { if (!next.includes(k)) set({ [k]: '' }); }); };
+  const digits = (s) => latinDigits(s).replace(/[^\d]/g, '');
   const submit = (e) => {
-    e.preventDefault(); const x = {};
+    e.preventDefault();
+    const x = {};
     if (!v.name.trim()) x.name = tr('أدخل اسم الباقة', 'Enter the package name');
-    if (v.billing === 'fixed' && !(n(v.price) > 0)) x.price = tr('أدخل السعر', 'Enter the price');
-    if (v.billing === 'usage' && !(n(v.rate) > 0)) x.rate = tr('أدخل السعر', 'Enter the rate');
-    if (n(v.daysPerWeek) > 6) x.daysPerWeek = tr('6 أيام بالأسبوع كحد أقصى', 'At most 6 days a week');
-    setErr(x); if (Object.keys(x).length) return;
-    onSave({ ...v, name: v.name.trim() });
+    else if (list.some((p) => p.id !== v.id && p.name.trim() === v.name.trim())) x.name = tr('اسم مستخدم لباقة أخرى', 'Another package has this name');
+    if (!v.validity.trim()) x.validity = tr('أدخل الصلاحية بالأيام', 'Enter the validity in days');
+    else if (!(n(v.validity) > 0)) x.validity = tr('عدد صحيح أكبر من صفر', 'A whole number above zero');
+    on.forEach((k) => {
+      if (!String(v[k]).trim()) { x[k] = tr('أدخل العدد أو أطفئ هذا الحد', 'Enter the number, or turn this limit off'); return; }
+      if (k === 'daysPerWeek' && !(n(v[k]) >= 1 && n(v[k]) <= 7)) x[k] = tr('من 1 إلى 7', 'From 1 to 7');
+      else if (k === 'hoursPerDay' && !(n(v[k]) >= 1 && n(v[k]) <= 24)) x[k] = tr('من 1 إلى 24', 'From 1 to 24');
+      else if ((k === 'totalDays' || k === 'totalHours') && !(n(v[k]) > 0)) x[k] = tr('عدد صحيح أكبر من صفر', 'A whole number above zero');
+    });
+    if (!String(v.amount).trim()) x.amount = tr('أدخل السعر', 'Enter the price');
+    else if (!(n(v.amount) > 0)) x.amount = tr('أدخل مبلغًا أكبر من صفر', 'Enter an amount above zero');
+    setErr(x);
+    if (Object.keys(x).length) { setTimeout(() => { const bad = form.current && form.current.querySelector('[aria-invalid="true"]'); if (bad) bad.focus(); }); return; }
+    run(() => onSave({ ...v, name: v.name.trim() }));
   };
+  const shifts = SHIFTS_NOW();
   return (
     <Sheet open={!!pkg} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="end" closeLabel={tr('إغلاق', 'Close')}>
-        <SheetHeader><SheetTitle>{pkg && pkg.id ? tr('تعديل الباقة', 'Edit package') : tr('باقة جديدة', 'New package')}</SheetTitle><SheetDescription>{tr('باقة خاصة — لا تظهر للزوار، وتُختار من مكتب الاستقبال.', 'Private — not shown to visitors; chosen at the front desk.')}</SheetDescription></SheetHeader>
-        <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
-          <SheetBody className="flex flex-col gap-5 py-2">
+        <SheetHeader><SheetTitle>{pkg && pkg.id ? tr('تعديل الباقة', 'Edit package') : tr('باقة جديدة', 'New package')}</SheetTitle><SheetDescription>{tr('باقة خاصة — لا تظهر للزوار، وتُختار في مكتب الاستقبال.', 'Private — never shown to visitors; chosen at the front desk.')}</SheetDescription></SheetHeader>
+        <form ref={form} onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <SheetBody className="flex min-w-0 flex-col gap-5 py-2">
+            <RateLimitNote />
+            <ActionAlert for="save" />
             <Field label={tr('اسم الباقة', 'Package name')} error={err.name}><Input value={v.name} onChange={(e) => set({ name: e.target.value })} /></Field>
-            <p className="text-caption text-muted-foreground">{tr('كل الشروط اختيارية ويمكن جمعها.', 'Every term is optional and they can be combined.')}</p>
-            <div className="grid grid-cols-2 gap-3">
-              <NumF label={tr('الصلاحية (أيام)', 'Validity (days)')} v={v} k="validity" set={set} />
-              <NumF label={tr('عدد الأيام الكلي', 'Total days')} v={v} k="totalDays" set={set} />
-              <NumF label={tr('أيام بالأسبوع', 'Days a week')} v={v} k="daysPerWeek" set={set} err={err.daysPerWeek} />
-              <NumF label={tr('ساعات باليوم', 'Hours a day')} v={v} k="hoursPerDay" set={set} />
-              <NumF label={tr('مجموع الساعات', 'Total hours')} v={v} k="totalHours" set={set} />
-            </div>
+            <Field label={tr('الصلاحية (أيام)', 'Validity (days)')} error={err.validity} helper={tr('ينتهي الاشتراك بعد هذه المدة من بدايته.', 'A subscription ends this long after it starts.')}><Input inputMode="numeric" dir="ltr" className="w-24" value={v.validity} onChange={(e) => set({ validity: digits(e.target.value) })} /></Field>
+            <Field label={tr('الحدود', 'Limits')} labelEnd={<Optional />} helper={tr('اختر ما ينطبق؛ يظهر لكل حد حقله.', 'Choose what applies; each limit shows its field.')}>
+              <ToggleGroup type="multiple" value={on} onValueChange={toggleLimits} className="flex-wrap">{LIMITS().map(([k, l]) => <ToggleGroupItem key={k} value={k}>{l}</ToggleGroupItem>)}</ToggleGroup>
+            </Field>
+            {LIMITS().filter(([k]) => on.includes(k)).map(([k, l]) => <Field key={k} label={l} error={err[k]}><Input inputMode="numeric" dir="ltr" className="w-24" value={v[k]} onChange={(e) => set({ [k]: digits(e.target.value) })} /></Field>)}
             <Field label={tr('طريقة الحساب', 'Billing')}>
               <ToggleGroup type="single" value={v.billing} onValueChange={(b) => b && set({ billing: b })}>
                 <ToggleGroupItem value="fixed">{tr('سعر ثابت', 'Fixed price')}</ToggleGroupItem>
-                <ToggleGroupItem value="usage">{tr('حسب الاستخدام', 'By usage')}</ToggleGroupItem>
+                <ToggleGroupItem value="hour">{tr('بالساعة', 'Per hour')}</ToggleGroupItem>
+                <ToggleGroupItem value="day">{tr('باليوم', 'Per day')}</ToggleGroupItem>
               </ToggleGroup>
             </Field>
-            {v.billing === 'fixed' ? <Field label={tr('السعر (₪)', 'Price (₪)')} error={err.price}><Input inputMode="numeric" dir="ltr" value={v.price} onChange={(e) => set({ price: e.target.value.replace(/[^\d]/g, '') })} /></Field> : (
-              <div className="grid gap-3 md:grid-cols-2">
-                <Field label={tr('الوحدة', 'Unit')}>
-                  <ToggleGroup type="single" value={v.unit} onValueChange={(u) => u && set({ unit: u, rate: String(u === 'hour' ? DESK.PRICES.hour : DESK.PRICES.day) })}>
-                    <ToggleGroupItem value="hour">{tr('بالساعة', 'Per hour')}</ToggleGroupItem>
-                    <ToggleGroupItem value="day">{tr('باليوم', 'Per day')}</ToggleGroupItem>
-                  </ToggleGroup>
-                </Field>
-                <Field label={tr('السعر (₪)', 'Rate (₪)')} error={err.rate}><Input inputMode="numeric" dir="ltr" value={v.rate} onChange={(e) => set({ rate: e.target.value.replace(/[^\d]/g, '') })} /></Field>
-              </div>
-            )}
-            <Field label={tr('الفئة', 'Audience')}>
+            <Field label={v.billing === 'fixed' ? tr('السعر الكلي (₪)', 'Total price (₪)') : v.billing === 'hour' ? tr('سعر الساعة (₪)', 'Price per hour (₪)') : tr('سعر اليوم (₪)', 'Price per day (₪)')} error={err.amount}><Input inputMode="numeric" dir="ltr" className="w-24" value={v.amount} onChange={(e) => set({ amount: digits(e.target.value) })} /></Field>
+            <Field label={tr('لمن', 'For')}>
               <ToggleGroup type="single" value={v.audience} onValueChange={(a) => a && set({ audience: a })}>
-                <ToggleGroupItem value="all">{tr('عام', 'Everyone')}</ToggleGroupItem>
-                <ToggleGroupItem value="students">{tr('طلاب', 'Students')}</ToggleGroupItem>
+                <ToggleGroupItem value="all">{tr('الجميع', 'Everyone')}</ToggleGroupItem>
+                <ToggleGroupItem value="students">{tr('الطلاب', 'Students')}</ToggleGroupItem>
               </ToggleGroup>
             </Field>
-            <Field label={tr('الوردية', 'Shift')} labelEnd={<Opt />}>
-              <ToggleGroup type="single" value={v.shift} onValueChange={(s) => set({ shift: s || '' })}>
-                <ToggleGroupItem value="am">{DESK.SHIFTS.am}</ToggleGroupItem>
-                <ToggleGroupItem value="pm">{DESK.SHIFTS.pm}</ToggleGroupItem>
-              </ToggleGroup>
-            </Field>
+            <Field label={tr('الوردية', 'Shift')} labelEnd={<Optional />}>{shifts.length ? <ToggleGroup type="single" value={v.shift} onValueChange={(s) => set({ shift: s || '' })}>{shifts.map((x) => <ToggleGroupItem key={x.id} value={x.id}>{tr(x.ar, x.en || x.ar)}</ToggleGroupItem>)}</ToggleGroup> : <p className="text-caption text-muted-foreground">{tr('لا ورديات محفوظة بعد. ', 'No shifts are saved yet. ')}<a href="Owner space profile.html#hours">{tr('أضف ورديات في ساعات العمل أولًا', 'Add shifts in the opening hours first')}</a></p>}</Field>
             <div className="flex flex-col gap-1 rounded-lg bg-muted p-4" aria-live="polite">
               <span className="text-caption text-muted-foreground">{tr('الملخّص', 'Summary')}</span>
               <span className="text-label">{v.name.trim() || tr('باقة بدون اسم', 'Unnamed package')}</span>
               <span className="text-body-sm">{summary(v)}</span>
+              <span className="text-label">{n(v.amount) > 0 ? priceText(v) : tr('بدون سعر بعد', 'No price yet')}</span>
             </div>
           </SheetBody>
-          <SheetFooter><Button type="submit" className="w-full">{tr('حفظ الباقة', 'Save package')}</Button></SheetFooter>
+          <SheetFooter><Button type="submit" className="w-full" loading={busy}>{tr('حفظ الباقة', 'Save package')}</Button></SheetFooter>
         </form>
       </SheetContent>
     </Sheet>
@@ -132,7 +139,7 @@ function PackagesInner({ theme, setTheme }) {
   const [list, setList] = React.useState(pageParams.get('state') === 'empty' ? [] : INIT);
   const [edit, setEdit] = React.useState(pageParams.get('sheet') === 'new' ? {} : pageParams.get('edit') ? INIT.find((p) => p.id === pageParams.get('edit')) : null);
   const save = (p) => { setList((l) => (p.id ? l.map((x) => (x.id === p.id ? p : x)) : [...l, { ...p, id: 'p' + Date.now() }])); setEdit(null); toast.success(tr('حُفظت الباقة', 'Package saved'), { description: p.name }); };
-  const toggle = (p, on) => { setList((l) => l.map((x) => (x.id === p.id ? { ...x, active: on } : x))); toast(on ? tr('الباقة مفعّلة في المكتب', 'Package available at the desk') : tr('أُوقفت الباقة — الاشتراكات الحالية لا تتأثر', 'Package paused — current subscriptions aren’t affected'), { description: p.name }); };
+  const toggle = (p, on) => setList((l) => l.map((x) => (x.id === p.id ? { ...x, active: on } : x)));
   return (
     <OwnerShell current="packages" title={tr('الباقات والأسعار', 'Packages & prices')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('أسعار الأسبوع والشهر تُختار أيضًا في المكتب عند إنشاء اشتراك.', 'Week and month prices are also chosen at the desk when creating a subscription.')}</p>
@@ -141,29 +148,33 @@ function PackagesInner({ theme, setTheme }) {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-col gap-1">
             <h2 id="priv" className="text-heading-2">{tr('الباقات الخاصة', 'Private packages')}</h2>
-            <p className="text-body-sm text-muted-foreground">{tr('لا تظهر للزوار. تُختار عند إنشاء اشتراك في مكتب الاستقبال.', 'Not shown to visitors. Chosen when creating a subscription at the front desk.')}</p>
+            <p className="text-body-sm text-muted-foreground">{tr('لا تظهر للزوار · تُختار في المكتب عند إنشاء اشتراك', 'Never shown to visitors · chosen at the desk when creating a subscription')}</p>
           </div>
           <Button onClick={() => setEdit({})}>{tr('باقة جديدة', 'New package')}</Button>
         </div>
         {list.length ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {list.map((p) => (
-              <Card key={p.id} className={p.active ? '' : 'bg-muted'}>
-                <CardHeader>
-                  <CardTitle>{p.name}</CardTitle>
-                  <CardDescription>{summary(p)}</CardDescription>
-                  <CardAction><Badge variant={p.active ? 'success' : 'neutral'}>{p.active ? tr('مفعّلة', 'Active') : tr('موقوفة', 'Paused')}</Badge></CardAction>
-                </CardHeader>
-                <CardFooter className="flex items-center justify-between gap-2">
-                  <Field label={tr('متاحة في المكتب', 'Available at the desk')} orientation="horizontal"><Switch checked={p.active} onCheckedChange={(on) => toggle(p, on)} /></Field>
-                  <Button size="sm" variant="outline" onClick={() => setEdit(p)}>{tr('تعديل', 'Edit')}</Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+          <Card>
+            <CardContent className="p-0">
+              <ul className="divide-y">
+                {list.map((p) => (
+                  <li key={p.id} className={'flex flex-col gap-3 px-5 py-3 md:flex-row md:items-center md:justify-between ' + (p.active ? '' : 'bg-muted')}>
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <span className="flex flex-wrap items-center gap-2"><span className="text-label">{p.name}</span>{!p.active && <Badge variant="neutral">{tr('موقوفة', 'Paused')}</Badge>}</span>
+                      <span className="text-body-sm text-muted-foreground">{summary(p)}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <span className="text-label">{priceText(p)}</span>
+                      <Field label={tr('متاحة في المكتب', 'Available at the desk')} orientation="horizontal"><Switch checked={p.active} onCheckedChange={(on) => toggle(p, on)} /></Field>
+                      <Button size="sm" variant="outline" onClick={() => setEdit(p)} aria-label={tr('تعديل ', 'Edit ') + p.name}>{tr('تعديل', 'Edit')}</Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
         ) : <Card><EmptyState icon={<InfoIcon />} title={tr('لا توجد باقات خاصة', 'No private packages')} description={tr('أنشئ باقة مثل «10 أيام» أو «20 ساعة» لتختارها في المكتب.', 'Create a package like «10 days» or «20 hours» to pick at the desk.')}><Button onClick={() => setEdit({})}>{tr('باقة جديدة', 'New package')}</Button></EmptyState></Card>}
       </section>
-      <PackageSheet pkg={edit} onClose={() => setEdit(null)} onSave={save} />
+      <PackageSheet pkg={edit} list={list} onClose={() => setEdit(null)} onSave={save} />
     </OwnerShell>
   );
 }

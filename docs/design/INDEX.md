@@ -75,6 +75,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Packages.html#prices` | Packages & prices | the published prices' table, where every «الأسعار» link lands (O6) |
 | `Owner settings.html#attendance` | Settings | «الحضور والحالة المباشرة»: capacity and the check-out rules (O2) |
 | `?fail=save-attendance` · `save-pricing` · `save-message` | `Owner settings.html` | one card's save failing, in that card only |
+| `Packages.html?demo=noshifts` | the package sheet | no shift saved: the reason and the link to the hours |
+| `?fail=save` | the package sheet | the save failing inside the sheet |
 
 ## 01 · Flow
 
