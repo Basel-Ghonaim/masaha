@@ -60,6 +60,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?toast=welcomefav` | `Space details.html` | the return from signing in to save: «أهلًا سارة، تم إنشاء حسابك — حُفظت فوكس هاب في المفضّلة» (C4) |
 | `Space details.html?dialog=signin-report` | the space page | the sign-in dialog of «الإبلاغ», with AC-018's reason |
 | `Space details.html?…&fav=1&fail=fav` | the space page | the favourite's save failing on the way back: the failure toast with «إعادة المحاولة» |
+| `Settings.html?pw=open` | account settings | the password form open in the «تسجيل الدخول» card. Replaces `?state=signout`: v1 has no sign-out of all devices (C2) |
+| `Settings.html?auth=google&state=linksent` · `?fail=setlink` | the same, a Google-only account | the link to set a password sent, in place; or its sending failing |
 
 ## 01 · Flow
 
@@ -349,8 +351,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Settings · wrong current password — phone 390 | `Settings.html?auth=1&state=wrongpw` | 390×844 | [17-settings/08-settings-wrong-current-password-phone-390.webp](screens/17-settings/08-settings-wrong-current-password-phone-390.webp) |
 | Settings · too many attempts — desktop 1440 | `Settings.html?auth=1&state=ratelimit` | 1440×1000 | [17-settings/09-settings-too-many-attempts-desktop-1440.webp](screens/17-settings/09-settings-too-many-attempts-desktop-1440.webp) |
 | Settings · too many attempts — phone 390 | `Settings.html?auth=1&state=ratelimit` | 390×844 | [17-settings/10-settings-too-many-attempts-phone-390.webp](screens/17-settings/10-settings-too-many-attempts-phone-390.webp) |
-| Settings · sign out of all devices (confirm) — desktop 1440 | `Settings.html?auth=1&state=signout` | 1440×1000 | [17-settings/11-settings-sign-out-of-all-devices-confirm-desktop-1440.webp](screens/17-settings/11-settings-sign-out-of-all-devices-confirm-desktop-1440.webp) |
-| Settings · sign out of all devices (confirm) — phone 390 | `Settings.html?auth=1&state=signout` | 390×844 | [17-settings/12-settings-sign-out-of-all-devices-confirm-phone-390.webp](screens/17-settings/12-settings-sign-out-of-all-devices-confirm-phone-390.webp) |
+| Settings · changing the password (signs out the other devices) — desktop 1440 | `Settings.html?auth=1&pw=open` | 1440×1000 | [17-settings/11-settings-sign-out-of-all-devices-confirm-desktop-1440.webp](screens/17-settings/11-settings-sign-out-of-all-devices-confirm-desktop-1440.webp) |
+| Settings · changing the password (signs out the other devices) — phone 390 | `Settings.html?auth=1&pw=open` | 390×844 | [17-settings/12-settings-sign-out-of-all-devices-confirm-phone-390.webp](screens/17-settings/12-settings-sign-out-of-all-devices-confirm-phone-390.webp) |
 
 ## 18 · Forced password change
 
@@ -839,3 +841,5 @@ Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `scree
 | Reset · new password, a way back — phone 390 | `Reset password.html?state=typing` | 390×844 | — |
 | Report → sign-in dialog, the reply in «بلاغاتي» — phone 390 | `Space details.html?id=focus&loc=none&dialog=signin-report` | 390×844 | — |
 | Back on the space · the save failed — phone 390 | `Space details.html?id=focus&loc=none&auth=1&fav=1&fail=fav&toast=welcome` | 390×844 | — |
+| Account settings · how I sign in — desktop 1440 | `Settings.html?auth=linked` | 1440×1000 | — |
+| Account settings · Google-only, the link sent — phone 390 | `Settings.html?auth=google&state=linksent` | 390×844 | — |

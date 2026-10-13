@@ -23,7 +23,7 @@
 <script type="text/babel" src="masaha/account.jsx"></script>
 <script type="text/babel" src="masaha/auth.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Field, Input, ToggleGroup, ToggleGroupItem, Alert, AlertDescription, AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, Badge, toast } = window.MasahaDesignSystem;
+const { DirectionProvider, Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Field, Input, ToggleGroup, ToggleGroupItem, Alert, AlertDescription, Badge, Separator, toast } = window.MasahaDesignSystem;
 const demo = pageParams.get('state');
 
 function ProfileCard({ user }) {
@@ -85,89 +85,90 @@ function PreferencesCard({ theme, setTheme }) {
   );
 }
 
-function PasswordForm({ withCurrent, submitLabel, onDone, onCancel }) {
+function PasswordForm({ onDone, onBack }) {
   const [cur, setCur] = React.useState(demo === 'wrongpw' || demo === 'ratelimit' ? 'oldpass1' : '');
   const [pw, setPw] = React.useState(demo === 'wrongpw' || demo === 'ratelimit' ? 'masaha2026' : '');
   const [errors, setErrors] = React.useState(demo === 'wrongpw' ? { cur: tr('كلمة المرور الحالية غير صحيحة', 'The current password is wrong') } : {});
-  const [limited] = React.useState(demo === 'ratelimit');
+  const left = useRetryAfter(demo === 'ratelimit');
   const [submitted, setSubmitted] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  React.useEffect(() => { const el = document.querySelector('#pw-form input'); if (el) el.focus(); }, []);
   const submit = (e) => {
     e.preventDefault(); setSubmitted(true);
     const next = {};
-    if (withCurrent && !cur) next.cur = tr('أدخل كلمة المرور الحالية', 'Enter your current password');
+    if (!cur) next.cur = tr('أدخل كلمة المرور الحالية', 'Enter your current password');
     if (!pw) next.pw = tr('أدخل كلمة المرور الجديدة', 'Enter the new password');
     else if (!passwordOk(pw)) next.pw = tr('كلمة المرور لا تستوفي الشروط أدناه', 'The password doesn’t meet the rules below');
     setErrors(next);
-    if (Object.keys(next).length || limited) return;
+    if (Object.keys(next).length || left > 0) return;
     setLoading(true);
     // Demo: current password "wrong…" fails.
     setTimeout(() => { setLoading(false); if (cur.startsWith('wrong')) return setErrors({ cur: tr('كلمة المرور الحالية غير صحيحة', 'The current password is wrong') }); onDone(); }, 900);
   };
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-      {limited && <RateLimitAlert />}
-      {withCurrent && <PasswordField label={tr('كلمة المرور الحالية', 'Current password')} value={cur} onChange={setCur} error={errors.cur} disabled={loading} autoComplete="current-password" rules={false} />}
+    <form id="pw-form" onSubmit={submit} noValidate className="flex flex-col gap-4">
+      <RateLimitAlert left={left} />
+      <PasswordField label={tr('كلمة المرور الحالية', 'Current password')} value={cur} onChange={setCur} error={errors.cur} disabled={loading} autoComplete="current-password" rules={false} />
       <PasswordField label={tr('كلمة المرور الجديدة', 'New password')} value={pw} onChange={setPw} error={errors.pw} disabled={loading} submitted={submitted} />
+      <p className="text-caption text-muted-foreground">{tr("تغيير كلمة المرور يسجّل خروجك من كل الأجهزة الأخرى", "Changing your password signs you out on all your other devices")}</p>
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={loading}>{submitLabel}</Button>
-        {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>{tr('إلغاء', 'Cancel')}</Button>}
+        <Button type="submit" loading={loading} disabled={left > 0}>{tr("حفظ كلمة المرور", "Save password")}</Button>
+        <Button type="button" variant="ghost" onClick={onBack}>{tr("رجوع", "Back")}</Button>
       </div>
     </form>
   );
 }
 
-function SecurityCard({ user }) {
+function MethodRow({ label, caption, end }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-col gap-1">
+        <span className="text-label">{label}</span>
+        <span className="text-body-sm text-muted-foreground">{caption}</span>
+      </div>
+      {end}
+    </div>
+  );
+}
+
+function SetPasswordByEmail({ user }) {
+  const [sent, setSent] = React.useState(demo === 'linksent');
+  const limit = useRetryAfter(demo === 'ratelimit');
+  const [left, setLeft] = useCountdown(demo === 'linksent' ? 60 : 0);
+  const send = useActionRun('setlink');
+  const ask = () => send.run(() => { setSent(true); setLeft(60); });
+  if (sent) {
+    return <LinkSent message={tr("أرسلنا إلى بريدك رابطًا لتعيين كلمة المرور. الرابط صالح لمدة ساعة. تفقّد مجلد الرسائل غير المرغوب فيها.", "We sent a link to set your password to your email. The link is valid for one hour. Check your spam folder.")} email={user.email} left={left} onResend={ask} resending={send.busy} fullWidth={false} />;
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <RateLimitAlert left={limit} />
+      <p className="text-body-sm text-muted-foreground">{tr("لتسجيل الدخول بالبريد وكلمة مرور أيضًا، نرسل رابطًا إلى بريدك", "To also sign in with your email and a password, we send a link to your email")}</p>
+      <Button variant="outline" className="self-start" loading={send.busy} disabled={limit > 0} onClick={ask}>{tr("أرسل رابط تعيين كلمة المرور", "Send a link to set a password")}</Button>
+    </div>
+  );
+}
+
+function SignInCard({ user }) {
   const hasPassword = user.method !== 'google';
   const hasGoogle = user.method !== 'email';
-  const [adding, setAdding] = React.useState(false);
-  const [added, setAdded] = React.useState(false);
+  const [open, setOpen] = React.useState(hasPassword && (pageParams.get('pw') === 'open' || demo === 'wrongpw' || demo === 'ratelimit'));
+  const focusChange = () => setTimeout(() => { const b = document.getElementById('pw-change'); if (b) b.focus(); }, 0);
   return (
     <Card>
-      <CardHeader><CardTitle>{tr('الأمان', 'Security')}</CardTitle></CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        {hasGoogle && (
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-col gap-1">
-              <span className="text-label">Google</span>
-              <span className="text-body-sm text-muted-foreground">{tr('تسجّل الدخول باستخدام Google', 'You sign in with Google')} · <span dir="ltr">{user.email}</span></span>
-            </div>
-            <Badge variant="success">{tr('مربوط', 'Linked')}</Badge>
-          </div>
-        )}
-        {(hasPassword || added) ? (
-          <section aria-labelledby="pw-title" className="flex flex-col gap-4">
-            <h3 id="pw-title" className="text-heading-3">{tr('تغيير كلمة المرور', 'Change password')}</h3>
-            <PasswordForm withCurrent submitLabel={tr('حفظ كلمة المرور', 'Save password')} onDone={() => toast.success(tr('تم تغيير كلمة المرور', 'Password changed'))} />
-          </section>
-        ) : adding ? (
-          <section aria-labelledby="pw-add" className="flex flex-col gap-4">
-            <h3 id="pw-add" className="text-heading-3">{tr('إضافة كلمة مرور', 'Add a password')}</h3>
-            <p className="text-body-sm text-muted-foreground">{tr('لتسجيل الدخول بالبريد الإلكتروني أيضًا.', 'So you can also sign in with your email.')}</p>
-            <PasswordForm submitLabel={tr('إضافة كلمة المرور', 'Add password')} onCancel={() => setAdding(false)} onDone={() => { setAdded(true); toast.success(tr('أُضيفت كلمة المرور', 'Password added')); }} />
-          </section>
-        ) : (
-          <div className="flex flex-col items-start gap-2">
-            <p className="text-body-sm text-muted-foreground">{tr('يمكنك إضافة كلمة مرور لتسجيل الدخول بالبريد الإلكتروني أيضًا. هذا اختياري.', 'You can add a password to also sign in with your email. This is optional.')}</p>
-            <Button variant="outline" onClick={() => setAdding(true)}>{tr('إضافة كلمة مرور', 'Add a password')}</Button>
-          </div>
-        )}
+      <CardHeader>
+        <CardTitle>{tr('تسجيل الدخول', 'Signing in')}</CardTitle>
+        <CardDescription>{tr('الطرق التي تدخل بها إلى حسابك.', 'The ways you sign in to your account.')}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {hasGoogle && <MethodRow label="Google" caption={<>{tr('تسجّل الدخول باستخدام Google', 'You sign in with Google')} · <Ltr>{user.email}</Ltr></>} end={<Badge variant="success">{tr('مربوط', 'Linked')}</Badge>} />}
+        {hasGoogle && <Separator />}
+        <MethodRow label={tr('كلمة المرور', 'Password')}
+          caption={hasPassword ? tr('تسجّل الدخول ببريدك وكلمة المرور', 'You sign in with your email and password') : tr('لم تُعيَّن بعد', 'Not set yet')}
+          end={hasPassword && !open && <Button id="pw-change" variant="outline" size="sm" aria-expanded={false} aria-controls="pw-form" onClick={() => setOpen(true)}>{tr('تغيير', 'Change')}</Button>} />
+        {hasPassword && open && <PasswordForm onBack={() => { setOpen(false); focusChange(); }} onDone={() => { setOpen(false); toast.success(tr('تم تغيير كلمة المرور، وسُجّل خروجك من الأجهزة الأخرى', 'Password changed, and you were signed out on your other devices')); focusChange(); }} />}
+        {!hasPassword && <SetPasswordByEmail user={user} />}
       </CardContent>
-      <CardFooter className="border-t border-border">
-        <AlertDialog defaultOpen={demo === 'signout'}>
-          <AlertDialogTrigger asChild><Button variant="outline">{tr('تسجيل الخروج من كل الأجهزة', 'Sign out of all devices')}</Button></AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{tr('تسجيل الخروج من كل الأجهزة؟', 'Sign out of all devices?')}</AlertDialogTitle>
-              <AlertDialogDescription>{tr('ستحتاج إلى تسجيل الدخول من جديد على كل جهاز، ومنها هذا الجهاز.', 'You’ll need to sign in again on every device, including this one.')}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{tr('إلغاء', 'Cancel')}</AlertDialogCancel>
-              <AlertDialogAction onClick={signOut}>{tr('تسجيل الخروج', 'Sign out')}</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </CardFooter>
     </Card>
   );
 }
@@ -181,7 +182,7 @@ function SettingsScreen() {
         <div className="flex max-w-2xl flex-col gap-6">
           <ProfileCard user={user} />
           <PreferencesCard theme={theme} setTheme={setTheme} />
-          <SecurityCard user={user} />
+          <SignInCard user={user} />
         </div>
       )}
     </AccountShell>

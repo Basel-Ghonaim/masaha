@@ -20,7 +20,7 @@ screenshots, is what a feature is built from. Two things follow:
 | Path | What it is |
 |---|---|
 | `SCREENS.md` | **Start here.** The 32 screens (foundation §13) → prototype pages and board sections |
-| `INDEX.md` | Every frame of the design board (505 frames in 54 sections), in order: label, prototype URL with its state parameters, viewport, screenshot |
+| `INDEX.md` | Every frame of the design board (507 frames in 54 sections), in order: label, prototype URL with its state parameters, viewport, screenshot |
 | `screens/` | A full-page screenshot of every distinct frame (437 WebP images), one folder per board section. Sections whose frames all repeat earlier ones have no folder; `INDEX.md` links each frame to its file |
 | `prototype/` | The clickable HTML prototypes: 40 pages, the board (`Flows - states.html`), sample data and copy. Fully offline (React, Babel, fonts and the design-system bundle are vendored) |
 | `prototype/BRIEF.md` | The product brief the screens were designed against — a record, so it is not updated as the design changes |
