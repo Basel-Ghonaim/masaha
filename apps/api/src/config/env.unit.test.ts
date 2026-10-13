@@ -17,6 +17,11 @@ const smtp = {
   EMAIL_FROM: 'Masaha <masaha@example.com>',
 };
 
+const cloudinary = {
+  STORAGE_MODE: 'cloudinary',
+  CLOUDINARY_URL: 'cloudinary://123456789012345:a-test-api-secret@demo-cloud',
+};
+
 describe('loadEnv', () => {
   it('applies the defaults', () => {
     expect(loadEnv(valid)).toEqual({
@@ -29,6 +34,7 @@ describe('loadEnv', () => {
       TRUST_PROXY: undefined,
       GOOGLE_CLIENT_ID: undefined,
       EMAIL: { mode: 'log' },
+      STORAGE: { mode: 'local' },
     });
   });
 
@@ -50,6 +56,7 @@ describe('loadEnv', () => {
       loadEnv({
         ...valid,
         ...smtp,
+        ...cloudinary,
         NODE_ENV: 'production',
         GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com',
         TRUST_PROXY: '1',
@@ -83,11 +90,12 @@ describe('loadEnv', () => {
     });
   });
 
-  it('starts in production with Google and a delivering email mode', () => {
+  it('starts in production with Google, a delivering email mode and Cloudinary', () => {
     expect(
       loadEnv({
         ...valid,
         ...smtp,
+        ...cloudinary,
         NODE_ENV: 'production',
         GOOGLE_CLIENT_ID: 'id',
         TRUST_PROXY: '1',
@@ -95,12 +103,52 @@ describe('loadEnv', () => {
     ).toBe('production');
   });
 
+  it('stores files on the local disk outside production only; production needs Cloudinary', () => {
+    const production = {
+      ...valid,
+      ...smtp,
+      NODE_ENV: 'production',
+      GOOGLE_CLIENT_ID: 'id',
+      TRUST_PROXY: '1',
+    };
+
+    expect(loadEnv({ ...valid, NODE_ENV: 'test', ...smtp }).STORAGE).toEqual({ mode: 'local' });
+    expect(() => loadEnv(production)).toThrow(/STORAGE_MODE/);
+    expect(loadEnv({ ...production, ...cloudinary }).STORAGE).toEqual({
+      mode: 'cloudinary',
+      settings: {
+        cloudName: 'demo-cloud',
+        apiKey: '123456789012345',
+        apiSecret: 'a-test-api-secret',
+      },
+    });
+  });
+
+  it('refuses Cloudinary without its URL, or with one of another shape, never echoing it', () => {
+    expect(() => loadEnv({ ...valid, STORAGE_MODE: 'cloudinary' })).toThrow(/CLOUDINARY_URL/);
+    for (const url of [
+      'https://123456789012345:a-test-api-secret@demo-cloud',
+      'cloudinary://123456789012345@demo-cloud',
+      'cloudinary://123456789012345:a-test-api-secret@',
+    ]) {
+      const load = () => loadEnv({ ...valid, STORAGE_MODE: 'cloudinary', CLOUDINARY_URL: url });
+      expect(load).toThrow(/CLOUDINARY_URL/);
+      expect(load).not.toThrow(/a-test-api-secret|123456789012345/);
+    }
+  });
+
   it('requires NODE_ENV: a missing one never falls back to development', () => {
     expect(() => loadEnv({ ...valid, NODE_ENV: undefined })).toThrow(/NODE_ENV/);
   });
 
   it('requires TRUST_PROXY in production, and trusts loopback elsewhere', () => {
-    const production = { ...valid, ...smtp, NODE_ENV: 'production', GOOGLE_CLIENT_ID: 'id' };
+    const production = {
+      ...valid,
+      ...smtp,
+      ...cloudinary,
+      NODE_ENV: 'production',
+      GOOGLE_CLIENT_ID: 'id',
+    };
 
     expect(() => loadEnv(production)).toThrow(/TRUST_PROXY/);
     expect(trustProxyOf(loadEnv({ ...production, TRUST_PROXY: '1' }))).toBe(1);

@@ -46,6 +46,11 @@ const envSchema = z
     SMTP_PASSWORD: optional,
     // The sender, e.g. "مساحة Masaha" <name@gmail.com>. Gmail requires the account's own address.
     EMAIL_FROM: optional,
+    // Where files are stored (docs/backend/conventions.md §12). `local` writes them under
+    // apps/api/.storage and serves them itself, so it is refused in production; `cloudinary` stores
+    // them in Cloudinary, from its account's URL, a secret.
+    STORAGE_MODE: z.enum(['local', 'cloudinary']).default('local'),
+    CLOUDINARY_URL: optional,
   })
   .superRefine((env, context) => {
     for (const name of ['GOOGLE_CLIENT_ID', 'TRUST_PROXY'] as const) {
@@ -62,9 +67,17 @@ const envSchema = z
         message: 'log sends nothing and logs the link: development only. Use smtp',
       });
     }
+    // Online, a function has no disk that lasts: files must go to the store that does.
+    if (env.STORAGE_MODE === 'local' && env.NODE_ENV === 'production') {
+      context.addIssue({
+        code: 'custom',
+        path: ['STORAGE_MODE'],
+        message: 'local keeps files on this machine: not in production. Use cloudinary',
+      });
+    }
   })
-  // The email settings become one value whose type says what the mode needs, so no entry can wire
-  // a mode without its settings.
+  // The email and the storage settings each become one value whose type says what the mode needs,
+  // so no entry can wire a mode without its settings.
   .transform(
     (
       {
@@ -75,11 +88,17 @@ const envSchema = z
         SMTP_USER,
         SMTP_PASSWORD,
         EMAIL_FROM,
+        STORAGE_MODE,
+        CLOUDINARY_URL,
         ...env
       },
       context,
     ) => {
-      if (EMAIL_MODE === 'log') return { ...env, EMAIL: { mode: 'log' } as EmailSettings };
+      const storage = storageOf(STORAGE_MODE, CLOUDINARY_URL, context);
+      if (EMAIL_MODE === 'log') {
+        if (!storage) return z.NEVER;
+        return { ...env, STORAGE: storage, EMAIL: { mode: 'log' } as EmailSettings };
+      }
       const settings = {
         host: SMTP_HOST,
         user: SMTP_USER,
@@ -100,12 +119,12 @@ const envSchema = z
         });
       }
       const { host, user, password, from } = settings;
-      if (!host || !user || !password || !from) return z.NEVER;
+      if (!host || !user || !password || !from || !storage) return z.NEVER;
       const email: EmailSettings = {
         mode: 'smtp',
         settings: { host, port: SMTP_PORT, secure: SMTP_SECURE, user, password, from },
       };
-      return { ...env, EMAIL: email };
+      return { ...env, STORAGE: storage, EMAIL: email };
     },
   );
 
@@ -123,6 +142,38 @@ export type EmailSettings =
         from: string;
       };
     };
+
+/** Where files are stored (docs/backend/conventions.md §12). */
+export type StorageSettings =
+  | { mode: 'local' }
+  | { mode: 'cloudinary'; settings: { cloudName: string; apiKey: string; apiSecret: string } };
+
+// cloudinary://<api_key>:<api_secret>@<cloud_name>, as Cloudinary's console gives it.
+const CLOUDINARY_URL_FORMAT = /^cloudinary:\/\/([^:@/\s]+):([^@/\s]+)@([A-Za-z0-9_-]+)$/;
+
+/**
+ * The storage's settings, or `undefined` with an issue added. An issue names the variable only: the
+ * URL holds the account's secret, so it is never echoed.
+ */
+function storageOf(
+  mode: 'local' | 'cloudinary',
+  url: string | undefined,
+  context: z.RefinementCtx,
+): StorageSettings | undefined {
+  if (mode === 'local') return { mode };
+  const [, apiKey, apiSecret, cloudName] = (url && CLOUDINARY_URL_FORMAT.exec(url)) || [];
+  if (!apiKey || !apiSecret || !cloudName) {
+    context.addIssue({
+      code: 'custom',
+      path: ['CLOUDINARY_URL'],
+      message: url
+        ? 'Expected cloudinary://<api_key>:<api_secret>@<cloud_name>'
+        : 'Required with STORAGE_MODE=cloudinary',
+    });
+    return undefined;
+  }
+  return { mode, settings: { cloudName, apiKey, apiSecret } };
+}
 
 export type Env = z.infer<typeof envSchema>;
 

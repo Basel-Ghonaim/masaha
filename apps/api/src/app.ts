@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Router } from 'express';
@@ -101,12 +103,24 @@ import {
   limitRequests,
   type RateLimitPolicy,
 } from './shared/rate-limit/index.ts';
+import {
+  createCloudinaryStorage,
+  createLocalStorage,
+  type Storage,
+} from './shared/storage/index.ts';
 
 // Where the API and its auth router are mounted (docs/api/api-contract.md §1); the refresh cookie
 // is scoped to the auth router's path, and the recovery cookie to its password routes.
 const API_BASE = '/api/v1';
 const AUTH_PATH = '/auth';
 const PASSWORD_PATH = '/password';
+
+// Where the local storage serves its own files, in development and the tests (conventions §12):
+// under the API, so the web's proxy reaches them at its own origin.
+const FILES_PATH = '/files';
+export const LOCAL_FILES_URL = `${API_BASE}${FILES_PATH}`;
+// apps/api/.storage, git-ignored, from src/ and from dist/ alike.
+const LOCAL_STORAGE_ROOT = fileURLToPath(new URL('../.storage/', import.meta.url));
 
 // The general limit on every API request (docs/backend/security.md › Rate limits): by the user when
 // the request is signed in, otherwise by address, with a higher ceiling, because a whole coworking
@@ -179,6 +193,8 @@ export interface ApiOptions {
   email: EmailSender;
   /** The web's origin, where the reset email's link leads. */
   webOrigin: string;
+  /** Where files are stored for this environment (STORAGE_MODE). */
+  storage: Storage;
   logger: Logger;
   /** The one clock every rule reads (conventions §11). Tests pass a fixed one. */
   clock?: () => Date;
@@ -194,6 +210,7 @@ export function createApi({
   google,
   email,
   webOrigin,
+  storage,
   logger,
   clock = () => new Date(),
 }: ApiOptions): Router {
@@ -282,6 +299,8 @@ export function createApi({
   });
 
   const api = Router();
+  // The local storage's own files, before the general limit: a page of photos is many requests.
+  if (storage.files) api.use(FILES_PATH, storage.files);
   api.use(
     limitRequests(limiter, async (req) => {
       const claims = await readAccessToken(req, accessTokens);
@@ -366,6 +385,14 @@ export function createAppFromEnv(
           ? createSmtpEmailSender(env.EMAIL.settings)
           : createLogEmailSender(logger),
       webOrigin: env.CORS_ORIGIN,
+      storage:
+        env.STORAGE.mode === 'cloudinary'
+          ? createCloudinaryStorage({
+              ...env.STORAGE.settings,
+              // One account, one folder per environment (conventions §12).
+              folder: `masaha/${env.NODE_ENV}`,
+            })
+          : createLocalStorage({ root: LOCAL_STORAGE_ROOT, urlBase: LOCAL_FILES_URL }),
       logger,
     }),
   });

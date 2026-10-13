@@ -121,4 +121,5 @@ Near me ([directory](../features/directory.md)) sorts on the server, so the devi
 - JSON body limit 16 kB; upload limit 5 MB per photo, JPEG/PNG/WebP only, content checked, re-encoded with sharp.
 - Online, a request or a response is limited to 4.5 MB ([ADR 0014](../architecture/decisions/0014-deployment.md)), below the photo limit. Photos are therefore resized on the client or uploaded directly to storage.
 - The server refuses to start without a reachable database; graceful shutdown on SIGTERM/SIGINT.
+- **`CLOUDINARY_URL` is a secret:** it holds the storage account's API secret. It lives only in `apps/api/.env` (and the host's settings online), is never logged, and a malformed one is refused at startup without echoing it. Requests to Cloudinary are signed with it, and it is never sent.
 - **The HTTP logger redacts** the `cookie`, `authorization`, `masaha-near` ([Location](#location)) and `set-cookie` headers, and any field named like a password or a token, and **never logs request bodies**. It is built in `shared/http`. The other logging rules are in [backend conventions §10](conventions.md#10-logging).

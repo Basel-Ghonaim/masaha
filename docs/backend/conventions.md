@@ -1,6 +1,6 @@
 # Backend Conventions
 
-> **Status:** Active · **Class:** Contract — rules to build against. **Built:** the shared errors, http and validation code, with `parseId`; `shared/auth` (the access tokens, `requireAuth`, `requireRole`, `signedIn`, `can()`, and the links loader without the refusal, `loadSpaceLinks`, on the admin's space routes); the audit writer (§6); the rate limiter; the level rule (§7), enforced by lint; `runInTransaction` in `db/`; the modules `sessions`, and `platform-settings` and `space-settings` minimally (the new-space defaults and the staleness thresholds; a space's settings row, created with it), beside the capabilities documented in [`docs/features/`](../README.md#features--one-document-per-capability); the logging of §10; the clock of §11; of §12, the composition root, the email port, the Google identity port and the rate limits in PostgreSQL; of §13, the idempotency key's name, the session lock and the space's lock. **Not yet built:** `optionalAuth` and the refusing space middleware of `/manage` (§8); the audit reader (§6); every other module; Gaza time (§11); the storage and scheduler ports (§12); the idempotent creates and the ledger's translation table (§13) · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against. **Built:** the shared errors, http and validation code, with `parseId`; `shared/auth` (the access tokens, `requireAuth`, `requireRole`, `signedIn`, `can()`, and the links loader without the refusal, `loadSpaceLinks`, on the admin's space routes); the audit writer (§6); the rate limiter; the level rule (§7), enforced by lint; `runInTransaction` in `db/`; the modules `sessions`, and `platform-settings` and `space-settings` minimally (the new-space defaults and the staleness thresholds; a space's settings row, created with it), beside the capabilities documented in [`docs/features/`](../README.md#features--one-document-per-capability); the logging of §10; the clock of §11; of §12, the composition root, the email port, the Google identity port, the storage port with its two adapters and the rate limits in PostgreSQL; of §13, the idempotency key's name, the session lock and the space's lock. **Not yet built:** `optionalAuth` and the refusing space middleware of `/manage` (§8); the audit reader (§6); every other module; Gaza time (§11); the scheduler port (§12); the idempotent creates and the ledger's translation table (§13) · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
 > **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging, time, environments, idempotency and concurrency in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
 
 The backend is one application divided into **modules**, one per capability, arranged in **levels** (§7). Each module is built from the same **layers** (§2). **A screen is not a capability** (§7): placements follow the rule that consumes a value, never the screen that shows it.
@@ -28,7 +28,8 @@ apps/api/src/
     <module>.mapper.ts
     <rule>.ts                    the pure domain rules the module owns (§8)
     <module>.limits.ts           the rate-limit policies the module applies (§2)
-    <port>/                      a port the module owns and its adapters, e.g. auth's email/ (R5)
+    <port>/                      a port only this module needs, and its adapters, e.g. auth's
+                                 email/ (R5)
   shared/              the platform (R6): knows no domain concept
     errors/            AppError + factories, error handler
     http/              sendSuccess, pagination helpers
@@ -39,7 +40,8 @@ apps/api/src/
     audit/             the audit writer (§6)
     jobs/              the scheduler that runs the modules' timed work: an in-process timer
                        locally, an internal endpoint called by an external cron online (§12)
-    storage/           the storage adapters (photos): local disk locally, object storage online (§12)
+    storage/           the storage port, bytes by key, and its adapters: the local disk locally,
+                       Cloudinary online (§12)
     rate-limit/        the fixed-window counters in PostgreSQL and the limiter over them (§12)
 ```
 
@@ -173,7 +175,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
   - external infrastructure: storage, email, Google's identity (sign-in), the clock, the scheduler;
   - a genuine upward need that moving the logic or passing a parameter cannot solve.
 
-  The port lives in the module that needs it, never in `shared/`.
+  A port only one module needs lives in that module (`auth`'s email and Google identity); a platform port that knows no domain lives in `shared/` (storage, the scheduler). Either is wired in the composition root.
 - **R6 — The platform knows no domain.** `shared/` holds only errors, http, validation, auth (the access-token codec, the route guards and the pure `can()` table), the audit writer, jobs, storage and the rate limiter.
 - **R7 — Read models read, never write.** Read models may read other modules' tables with aggregate queries: `finance`, `overview` and the `audit` reader. They never write.
 - **R8 — Testing**, in the lanes of [testing.md](../development/testing.md):
@@ -306,16 +308,17 @@ Masaha runs on Gaza time (`Asia/Gaza`). Built: the clock (below), wired since F-
 
 The application runs in two environments: a long-running server locally, and a function on Vercel online ([ADR 0014](../architecture/decisions/0014-deployment.md)).
 
-- **One composition root.** The same `app.ts` assembles the application in both. Only a thin entry differs, and it calls `createAppFromEnv`, the one mapping from the validated environment to the ports (the email mode, Google, the cookies, the trusted proxies). No module, rule or path changes between them.
+- **One composition root.** The same `app.ts` assembles the application in both. Only a thin entry differs, and it calls `createAppFromEnv`, the one mapping from the validated environment to the ports (the email mode, the storage, Google, the cookies, the trusted proxies). No module, rule or path changes between them.
 - **The ports take a different implementation per environment.** Nothing else does.
 
   | Port | Locally | Online |
   |---|---|---|
-  | Storage | local disk | free object storage |
+  | Storage | the local disk under `apps/api/.storage/`, its files served by the API itself at `/api/v1/files/…`, so they reach the web through its proxy at one origin | Cloudinary's free plan, as a plain store: files uploaded as they are and delivered as they were, with no transformation, under a folder per environment (`masaha/<NODE_ENV>/`). Production refuses the local disk. Tests pass the local disk in a temporary folder |
   | Google identity | Google's published keys, when `GOOGLE_CLIENT_ID` is set | the same. Tests inject a fake |
   | Email | `log`: nothing is sent, and the link is written to the log (development only) | `smtp`: through an SMTP relay ([security.md](security.md#passwords)) |
   | Scheduler | an in-process timer started by `server.ts` | an internal, secret-protected endpoint that an external cron calls every few minutes. The slice that builds it adds its path to the API contract |
   | Clock | the system clock | the system clock. Tests inject a fixed one (§11) |
+- **The storage port is bytes by key** (`shared/storage`): a key's extension names its type, and a URL is built from the key at read time, never stored. A new kind of file is a new consumer of the port, with its own content check; a new provider is a new adapter behind the same port.
 - **No work runs after a response is sent**, in either environment. A function may be frozen as soon as it answers, so whatever a request must do is done before it responds. The one exception is the request's log line, written as the response finishes, synchronously and best effort (§10).
 - **Timed work tolerates a late run.** An auto check-out records the cut-off time it was due at, never the time the job ran.
 - **Rate limits** are stored in PostgreSQL, so every instance shares them ([security.md](security.md#rate-limits-fixed-window)).
