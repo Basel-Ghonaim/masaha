@@ -35,7 +35,7 @@ function SignInScreen() {
   const [errors, setErrors] = React.useState({});
   const [loading, setLoading] = React.useState(initialState === 'loading');
   const [failed, setFailed] = React.useState(initialState === 'error');
-  const [limited, setLimited] = React.useState(initialState === 'ratelimit');
+  const left = useRetryAfter(initialState === 'ratelimit');
 
   const submit = (e) => {
     e.preventDefault();
@@ -44,7 +44,7 @@ function SignInScreen() {
     else if (!EMAIL_RE.test(email)) next.email = tr("تحقّق من كتابة البريد الإلكتروني", "Check the email address");
     if (!password) next.password = tr("أدخل كلمة المرور", "Enter your password");
     setErrors(next); setFailed(false);
-    if (Object.keys(next).length || limited) return;
+    if (Object.keys(next).length || left > 0) return;
     setLoading(true);
     // Demo: "wrong@example.com" fails; anything else signs in and returns to where the user was.
     setTimeout(() => { setLoading(false); if (email.startsWith('wrong')) setFailed(true); else finishAuth(tr("أهلًا بعودتك", "Welcome back")); }, 1200);
@@ -66,7 +66,7 @@ function SignInScreen() {
                 <AlertDescription>{tr("البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة أخرى.", "The email or password is wrong. Try again.")}</AlertDescription>
               </Alert>
             )}
-            {limited && <RateLimitAlert />}
+            <RateLimitAlert left={left} />
             <Field label={tr("البريد الإلكتروني", "Email")} error={errors.email}>
               <Input type="email" dir="ltr" autoComplete="email" placeholder="name@example.com" value={email} disabled={loading} onChange={(e) => setEmail(e.target.value)} />
             </Field>
@@ -74,7 +74,7 @@ function SignInScreen() {
               <PasswordField label={tr("كلمة المرور", "Password")} value={password} onChange={setPassword} error={errors.password} disabled={loading} autoComplete="current-password" rules={false} />
               <Button variant="link" size="sm" className="self-end px-0" asChild><a href="Forgot password.html">{tr("نسيت كلمة المرور؟", "Forgot password?")}</a></Button>
             </div>
-            <Button type="submit" className="w-full" loading={loading}><LogInIcon />{tr("تسجيل الدخول", "Sign in")}</Button>
+            <Button type="submit" className="w-full" loading={loading} disabled={left > 0}><LogInIcon />{tr("تسجيل الدخول", "Sign in")}</Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col gap-2 text-body-sm text-muted-foreground">

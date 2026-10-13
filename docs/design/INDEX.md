@@ -47,6 +47,16 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Error.html?type=offline&fail=retry` · `?type=error&fail=retry` | `Error.html` | the retry failing: «ما زال الاتصال مفقودًا» under the buttons (offline also says so while the device is offline) |
 | `About.html#contact` | `About.html` | the «تواصل معنا» section every «تواصل معنا» on the site now leads to; `#owners` stays the owners' steps |
 
+### Batch 4 — the account and signing in
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `?state=ratelimit` | Sign in, Register, Forgot password, Settings | the 429 counting down from 0:42 (the server's `Retry-After`), the submit disabled until it ends (AC-022) |
+| `?google=error` · `notallowed` · `unavailable` · `off` | Sign in, Register | Google's failure, worded per code; `off`: no client id, so no button and no «أو» |
+| `Forgot password.html?state=loading` · `unreachable` · `linkopen` · `spent` | the forgot page | the recovery's server-held steps, the address masked as the server holds it |
+| `Reset password.html?state=loading` · `unreachable` · `checkfailed` | the reset page | the same; `checkfailed`: the link's check refused (a 429), «افتح الرابط من بريدك الإلكتروني مرة أخرى.» |
+| `Register.html?state=toolong` | the register page | a password over 72 bytes: the fourth rule «طويلة جدًا — اختصرها», shown once broken (AC-020) |
+
 ## 01 · Flow
 
 | Frame | Prototype URL | Viewport | Screenshot |
@@ -806,3 +816,16 @@ Added by the public fix (`CHANGES.md` › *Batch 3*). No screenshot yet: `screen
 | Offline · the retry failed — phone 390 | `Error.html?type=offline&fail=retry` | 390×844 | — |
 | Cards · photos still loading — desktop 1440 | `Directory.html?loc=none&photos=loading` | 1440×1000 | — |
 | About · contact for everyone — desktop 1440 | `About.html#contact` | 1440×1000 | — |
+
+## 54 · Batch 4 — the account
+
+Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
+
+| Frame | Prototype URL | Viewport | Screenshot |
+|---|---|---|---|
+| Sign in · too many attempts, counting down — phone 390 | `Sign in.html?state=ratelimit` | 390×844 | — |
+| Sign in · Google refused, the address has a password — phone 390 | `Sign in.html?google=notallowed` | 390×844 | — |
+| Register · email already registered, on its field — phone 390 | `Register.html?state=exists` | 390×844 | — |
+| Forgot · a reset link already open — phone 390 | `Forgot password.html?state=linkopen` | 390×844 | — |
+| Forgot · resends spent — phone 390 | `Forgot password.html?state=spent` | 390×844 | — |
+| Reset · the link could not be checked — phone 390 | `Reset password.html?state=checkfailed` | 390×844 | — |
