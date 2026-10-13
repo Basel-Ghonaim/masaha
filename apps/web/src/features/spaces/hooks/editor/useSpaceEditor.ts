@@ -8,8 +8,8 @@ import { useLeaveGuard } from './useLeaveGuard';
 import { useSectionInView } from './useSectionInView';
 import { useSpaceQuery } from './useSpaceQuery';
 
-/** The groups whose sections the editor draws, in its order (the hours and the prices come later). */
-const SECTIONS: readonly FactGroup[] = ['profile'];
+/** The groups whose sections the editor draws, in its order. */
+const SECTIONS: readonly FactGroup[] = ['profile', 'amenities', 'contacts'];
 
 /**
  * A space's editor, ready to render: its loading, failure and not-found states; then its state's

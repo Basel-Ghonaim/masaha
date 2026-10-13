@@ -47,6 +47,9 @@ export function adminSpacePath(spaceId: number): string {
   return ADMIN_SPACE_PATH.replace(':spaceId', String(spaceId));
 }
 
+/** The lookups page on its amenities' tab, where an amenity is added to every space's list. */
+export const ADMIN_AMENITIES_PATH = `${DASHBOARD_PATHS.admin}/lookups?tab=amenities`;
+
 /** The platform's pages, in the sidebar's order, all the admin's. */
 export const ADMIN_NAV: readonly NavItem[] = [
   { name: 'overview', segment: '' },

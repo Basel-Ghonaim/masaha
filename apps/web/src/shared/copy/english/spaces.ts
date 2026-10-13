@@ -114,6 +114,75 @@ export const SPACES = {
       stay: 'Stay',
       leave: 'Leave',
     },
+    /** «المرافق»: the platform's amenities ticked, and the space's own beside them. */
+    amenities: {
+      /** Names the platform's amenities to tick. */
+      list: 'The list’s amenities',
+      /** Before the link to the lookups' amenities, under the list. */
+      manageLead: 'To add an amenity to every space’s list:',
+      manageLink: 'Manage the amenities list',
+      own: 'Extra amenities',
+      ownHint: 'Amenities this space has that the list does not.',
+      nameAr: 'Name in Arabic',
+      nameEn: 'Name in English',
+      add: 'Add an extra amenity',
+      /** Beside the disabled "Add", at the contract's limit. */
+      limit: 'Up to 20 extra amenities',
+      remove: ({ position }: { position: number }) => `Remove extra amenity ${String(position)}`,
+      fieldErrors: {
+        nameAr: {
+          too_short: 'Enter the Arabic name, or remove this amenity',
+          too_long: '60 characters at most',
+          not_unique: 'A repeated amenity',
+        },
+        nameEn: { too_long: '60 characters at most' },
+      },
+      /** A ticked amenity retired meanwhile (422 on no field). */
+      unavailable: 'An amenity you ticked is no longer offered. Untick it, or reload the page.',
+      /** A verified space's platform amenities, read-only. */
+      available: 'Available',
+    },
+    /** «التواصل»: the contract's seven types, each value in its stored form. */
+    contacts: {
+      type: 'Type',
+      value: 'Value',
+      types: {
+        WHATSAPP: 'WhatsApp',
+        PHONE: 'Phone',
+        EMAIL: 'Email',
+        INSTAGRAM: 'Instagram',
+        FACEBOOK: 'Facebook',
+        TIKTOK: 'TikTok',
+        WEBSITE: 'Website',
+      },
+      /** A value's example, while it holds none that can be stored. */
+      examples: {
+        WHATSAPP: '0599 123 456',
+        PHONE: '0599 123 456',
+        EMAIL: 'name@example.com',
+        INSTAGRAM: '@name',
+        FACEBOOK: 'facebook.com/name',
+        TIKTOK: '@name',
+        WEBSITE: 'example.com',
+      },
+      storedAs: ({ value }: { value: string }) => `Stored as ${value}`,
+      example: ({ value }: { value: string }) => `For example: ${value}`,
+      /** A phone's carrier, read from its prefix. */
+      carriers: { jawwal: 'Jawwal', ooredoo: 'Ooredoo' },
+      add: 'Add contact',
+      limit: 'Up to 20 contacts',
+      remove: ({ position }: { position: number }) => `Remove contact ${String(position)}`,
+      fieldErrors: {
+        empty: 'Fill in the value, or remove this contact',
+        phone: 'Not a valid number: a Palestinian or Israeli one',
+        email: 'Not a valid email',
+        link: 'Not a valid link or name for this type',
+        not_unique: 'A repeated contact',
+        too_long: '200 characters at most',
+      },
+      /** A verified space with none, read-only. */
+      none: 'No contacts yet',
+    },
     /** A verified space's values, read-only. */
     readOnly: {
       none: '—',

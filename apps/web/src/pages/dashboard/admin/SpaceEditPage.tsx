@@ -1,5 +1,5 @@
-import { AreaName, AreaSelect } from '@features/lookups';
-import { SpaceEditor, useSpaceName, type AreaField } from '@features/spaces';
+import { AmenityChecklist, AmenityNames, AreaName, AreaSelect } from '@features/lookups';
+import { SpaceEditor, useSpaceName, type AmenitiesField, type AreaField } from '@features/spaces';
 import { useCopy } from '@shared/copy';
 import {
   Breadcrumb,
@@ -11,7 +11,7 @@ import {
 } from '@shared/design-system';
 import { NotFoundState, parseSpaceId, publicSpacePath, useRecordTitle } from '@shared/routing';
 import { Link, useParams } from 'react-router';
-import { ADMIN_SPACES_PATH } from '../navigation';
+import { ADMIN_AMENITIES_PATH, ADMIN_SPACES_PATH } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
 
 /** The editor's area field, from `lookups`, made once so the form keeps it from render to render. */
@@ -20,9 +20,15 @@ const areaField: AreaField = (props) => <AreaSelect {...props} />;
 /** A space's area named, from `lookups`, for a verified space's read-only page. */
 const areaName = (areaId: number) => <AreaName areaId={areaId} />;
 
+/** The platform's amenities to tick, from `lookups`, made once as the area field is. */
+const amenitiesField: AmenitiesField = (props) => <AmenityChecklist {...props} />;
+
+/** A space's amenities named, from `lookups`, for a verified space's read-only page. */
+const amenityNames = (ids: number[]) => <AmenityNames ids={ids} />;
+
 /**
  * The admin edits a space: titled by its name once it has loaded, with the trail back to the spaces
- * list, then the editor of `spaces` with the fields of `lookups`. An id that names no space shows
+ * list, then the editor of `spaces` with the fields of `lookups` and the way to its amenities' tab. An id that names no space shows
  * the 404.
  */
 export function SpaceEditPage() {
@@ -59,6 +65,9 @@ function SpaceEdit({ spaceId }: { spaceId: number }) {
           spaceId={spaceId}
           areaField={areaField}
           areaName={areaName}
+          amenitiesField={amenitiesField}
+          amenityNames={amenityNames}
+          amenitiesListLink={ADMIN_AMENITIES_PATH}
           publicLink={publicSpacePath}
         />
       </div>
