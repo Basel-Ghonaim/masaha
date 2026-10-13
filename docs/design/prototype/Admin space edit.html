@@ -43,9 +43,11 @@ const meta = isNew
 const base = M.spaces.find((s) => s.id === id) || M.spaces.find((s) => s.id === 'golden');
 const space = isNew
   ? { id: 'new', name: created.nameEn, nameAr: created.nameAr, profile: created, contacts: [], amenities: [] }
-  : { ...base, name: meta.name, nameAr: base.nameAr || '', contacts: base.contacts || [], amenities: base.amenities || [] };
+  : { ...base, name: meta.name, nameAr: base.nameAr || '', contacts: base.contacts || [], amenities: base.amenities || [], ownAmenities: meta.own || [] };
+// `?demo=ownlimit`: 20 own amenities, the contract's limit, so «إضافة مرفق إضافي» shows its reason.
+if (pageParams.get('demo') === 'ownlimit') space.ownAmenities = Array.from({ length: 20 }, (_, i) => ({ ar: 'مرفق إضافي ' + (i + 1), en: 'Extra amenity ' + (i + 1) }));
 const readOnly = !isNew && meta.status === 'verified';
-const ownerNames = (meta.owners || []).map((o) => (AD.owners.find((x) => x.id === o) || {}).name).filter(Boolean).join(tr(' و', ' and '));
+const ownerNames = (meta.owners || []).map((o) => personName(o, AD.users)).filter(Boolean).join(tr(' و', ' and '));
 // A1: one name per section, in the cards and in the navigation alike.
 const SECTIONS = () => [['profile', tr('المساحة', 'The space')], ['hours', tr('ساعات العمل', 'Opening hours')], ['prices', tr('الأسعار', 'Prices')], ['amenities', tr('المرافق', 'Amenities')], ['contacts', tr('التواصل', 'Contacts')], ['photos', tr('الصور', 'Photos')]];
 
@@ -59,6 +61,35 @@ const groupMeta = (g) => {
   // DI-14: older than its threshold — 30 days for the prices, 60 for the others (the platform's).
   return { days, updated: ago(days), stale: days > (g === 'prices' ? AD.LIMIT.prices : AD.LIMIT.other) };
 };
+
+// A8 (AD-022): `?report=<id>`, from the report's «تعديل الحقل»: the report sits above its section,
+// where the field is corrected, and is resolved there (S7).
+const REPORT = (() => { const r = AD.reports.find((x) => x.id === pageParams.get('report')); return r && r.space === meta.id && r.status === 'new' && AD.handledBy(r) === 'admin' ? r : null; })();
+const REPORT_SECTION = REPORT ? ({ location: 'profile', other: 'profile' }[REPORT.field] || REPORT.field) : null;
+function ReportNotice({ at }) {
+  const { Button, toast } = window.MasahaDesignSystem;
+  const [done, setDone] = React.useState(false);
+  // useActionRun, not ActionButton: in-browser Babel gives every script a global `_excluded`, and a
+  // later module's overwrites shared.jsx's, so ActionButton's rest props would keep `actionKey`.
+  const { busy, run } = useActionRun('fix');
+  const shown = !!REPORT && REPORT_SECTION === at;
+  // The page renders after the browser looked for `#report`, so the notice brings itself into view.
+  React.useEffect(() => { if (shown && location.hash === '#report') setTimeout(() => { const el = document.getElementById('report'); if (el) el.scrollIntoView({ block: 'start' }); }, 50); }, []);
+  if (!REPORT || REPORT_SECTION !== at) return null;
+  if (done) return <Alert id="report" variant="info" className="section-anchor"><AlertTitle>{tr('عُلّم «تم التصحيح»', 'Marked «Corrected»')}</AlertTitle><AlertDescription><a href="Admin reports.html?status=new">{tr('العودة إلى البلاغات', 'Back to the reports')}</a></AlertDescription></Alert>;
+  return (
+    <Alert id="report" variant="info" className="section-anchor">
+      <AlertTitle>{tr('بلاغ مفتوح على ', 'An open report on ')}{AD.FIELD[REPORT.field]}</AlertTitle>
+      <AlertDescription>
+        <p>{tr('«', '“')}{REPORT.msg}{tr('»', '”')} — {REPORT.who}{tr('، ', ', ')}{AD.fmt(REPORT.date)}</p>
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2">
+          <Button size="sm" loading={busy} onClick={() => run(() => setDone(true), tr('عُلّم «تم التصحيح»', 'Marked «Corrected»'))}>{tr('تم التصحيح', 'Corrected')}</Button>
+          <a href={'Admin reports.html?open=' + REPORT.id}>{tr('فتح البلاغ للرد', 'Open the report to reply')}</a>
+        </p>
+      </AlertDescription>
+    </Alert>
+  );
+}
 
 // Verified space: values as text, nothing editable — the same sections under the same names.
 const CT = Object.fromEntries(CONTACT_TYPES());
@@ -86,7 +117,7 @@ function ReadOnlyView() {
         <Block id="shifts" title={tr('الورديات', 'Shifts')}>{SAMPLE_SHIFTS().map((x) => <Row key={x.id} k={tr(x.ar, x.en || x.ar)}><Ltr>{x.from} – {x.to}</Ltr></Row>)}</Block>
       </RO>
       <RO id="prices" title={tr('الأسعار', 'Prices')}><Rows>{per.map(([k, l]) => <Row key={k} k={l}>{P[k] ? <Ltr>{money(P[k])}</Ltr> : null}</Row>)}{s.studentMonth && <Row k={tr('شهر · طلاب', 'Student month')}><Ltr>{money(s.studentMonth)}</Ltr></Row>}</Rows></RO>
-      <RO id="amenities" title={tr('المرافق', 'Amenities')}><Rows><Row k={tr('المتوفر', 'Available')}>{amen}</Row></Rows></RO>
+      <RO id="amenities" title={tr('المرافق', 'Amenities')}><Rows><Row k={tr('المتوفر', 'Available')}>{amen}</Row><Row k={tr('مرافق إضافية', 'Extra amenities')}>{(meta.own || []).map((o) => tr(o.ar, o.en || o.ar)).join(tr('، ', ', '))}</Row></Rows></RO>
       <RO id="contacts" title={tr('التواصل', 'Contacts')}><Rows>{(s.contacts || []).map((c, i) => <Row key={i} k={CT[OLD_TYPE[c.type] || c.type]}><ContactValue c={c} /></Row>)}</Rows></RO>
       <RO id="photos" title={tr('الصور', 'Photos')}><Rows><Row k={tr('العدد', 'Count')}><Ltr>{s.photos != null ? s.photos : 0}</Ltr></Row></Rows></RO>
       <PrivacyNote />
@@ -108,12 +139,13 @@ function Edit({ theme, setTheme }) {
       <div className="flex flex-wrap items-center gap-3"><SpaceStatus s={meta} /></div>
       {readOnly ? (
         <Alert variant="info">
-          <AlertTitle>{tr('يعدّلها ', 'Edited by ')}<a href="Admin owners.html">{ownerNames}</a></AlertTitle>
+          <AlertTitle>{tr('يعدّلها ', 'Edited by ')}<a href={'Admin owners.html' + (meta.owners.length === 1 ? '?q=' + encodeURIComponent(AD.users.find((u) => u.id === meta.owners[0]).email) : '')}>{ownerNames}</a></AlertTitle>
           <AlertDescription>
             <p>{tr('هذه مساحة موثّقة، فتظهر هنا للقراءة فقط. لتصحيح معلومة:', 'This space is verified, so it shows here read-only. To correct something:')}</p>
             <p className="flex flex-wrap gap-x-4 gap-y-1">
               <a href={'Admin reports.html?space=' + meta.id}>{tr('بلاغات ', 'Reports on ')}<span lang="en">{meta.name}</span></a>
-              <a href={'Admin spaces.html?unlink=' + meta.id}>{tr('فك ربط المالك', 'Unlink the owner')}</a>
+              {/* A4: unlinking names the owner, one link per owner. */}
+              {(meta.owners || []).map((o) => <a key={o} href={'Admin spaces.html?unlink=' + meta.id + '&owner=' + o}>{tr('فك ربط ', 'Unlink ') + personName(o, AD.users)}</a>)}
               <a href={'Space details.html?id=' + meta.id}>{tr('عرض في الموقع', 'View on the site')}</a>
             </p>
           </AlertDescription>
@@ -125,10 +157,15 @@ function Edit({ theme, setTheme }) {
         <SectionNav sections={SECTIONS()} wideOnly={readOnly} />
         {readOnly ? <ReadOnlyView /> : <div className="flex min-w-0 flex-col gap-6 lg:col-span-9">
           <MissingChecklist names={Object.fromEntries(SECTIONS())} missing={missingGroups} />
+          <ReportNotice at="profile" />
           <SpaceSection space={space} meta={groupMeta('profile')} />
+          <ReportNotice at="hours" />
           <HoursSection meta={groupMeta('hours')} />
+          <ReportNotice at="prices" />
           <PricesSection space={space} meta={groupMeta('prices')} />
+          <ReportNotice at="amenities" />
           <AmenitiesSection space={space} meta={groupMeta('amenities')} manage="Admin lookups.html?tab=amenities" />
+          <ReportNotice at="contacts" />
           <ContactsSection space={space} meta={groupMeta('contacts')} />
           <PhotosSection empty={isNew} />
           <PrivacyNote />

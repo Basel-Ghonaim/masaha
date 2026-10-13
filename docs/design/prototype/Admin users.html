@@ -23,26 +23,41 @@
 <script type="text/babel" src="masaha/shared.jsx"></script>
 <script type="text/babel" src="masaha/admin.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Button, Badge, DataTable, EmptyState, Input, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, RadioGroup, RadioGroupItem, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, SearchIcon, SearchXIcon, EllipsisVerticalIcon, toast } = window.MasahaDesignSystem;
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, Input, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, RadioGroup, RadioGroupItem, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, Alert, AlertTitle, AlertDescription, SearchIcon, SearchXIcon, EllipsisVerticalIcon, toast } = window.MasahaDesignSystem;
 function Users({ theme, setTheme }) {
   const [list, setList] = React.useState(AD.users);
-  const [q, setQ] = React.useState(''); const [role, setRole] = React.useState(pageParams.get('role') || 'all'); const [status, setStatus] = React.useState('all');
+  const [q, setQ] = React.useState(pageParams.get('q') || ''); const [role, setRole] = React.useState(pageParams.get('role') || 'all'); const [status, setStatus] = React.useState('all');
   const [susp, setSusp] = React.useState(pageParams.get('suspend') ? AD.users[1] : null);
-  const [roleDlg, setRoleDlg] = React.useState(pageParams.get('changerole') ? AD.users[0] : null); const [newRole, setNewRole] = React.useState('user');
-  const [tp, setTp] = React.useState(pageParams.get('temp') ? AD.users[4] : null); const [pass, setPass] = React.useState(null);
-  React.useEffect(() => { if (roleDlg) setNewRole(roleDlg.role); }, [roleDlg]);
+  const [roleDlg, setRoleDlg] = React.useState(pageParams.get('changerole') ? AD.users[0] : null);
+  const [roleFail, setRoleFail] = React.useState(false);
+  // `?temp=1`: the first active account with a password — a Google-only one cannot be given one (AD-021).
+  const [tp, setTp] = React.useState(pageParams.get('temp') ? AD.users.find((u) => !u.me && u.status === 'active' && u.method !== 'google') : null); const [pass, setPass] = React.useState(null);
+  React.useEffect(() => setRoleFail(false), [roleDlg]);
   const t = q.trim().toLowerCase();
   const rows = list.filter((u) => (!t || u.name.toLowerCase().includes(t) || u.email.includes(t)) && (role === 'all' || u.role === role) && (status === 'all' || u.status === status));
   const upd = (id, p) => setList((l) => l.map((x) => (x.id === id ? { ...x, ...p } : x)));
+  const live = (u) => liveSpaces(u.spaces, AD.spaces);
   const St = ({ u }) => <Badge variant={u.status === 'active' ? 'success' : 'neutral'}>{u.status === 'active' ? tr('نشط', 'Active') : tr('موقوف', 'Suspended')}</Badge>;
+  // A disabled item says why, inside itself (foundation §10).
+  const Off = ({ label, why }) => <DropdownMenuItem disabled><span className="flex flex-col">{label}<span className="text-caption text-muted-foreground">{why}</span></span></DropdownMenuItem>;
   const actions = (u) => u.me ? <span className="text-caption text-muted-foreground">{tr('أنت', 'You')}</span> : (
     <DropdownMenu dir={DIR}>
       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={tr('إجراءات ', 'Actions for ') + u.name}><EllipsisVerticalIcon /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => setRoleDlg(u)}>{tr('تغيير الدور', 'Change role')}</DropdownMenuItem>
-        {u.method !== 'google' && <DropdownMenuItem onSelect={() => setTp(u)}>{tr('إصدار كلمة مرور مؤقتة', 'Issue a temporary password')}</DropdownMenuItem>}
+        {/* A5 as #62 built it: «مالك» follows the links, so a linked person's role waits for them to end. */}
+        {u.role !== 'owner' ? <DropdownMenuItem onSelect={() => setRoleDlg(u)}>{tr('تغيير الدور', 'Change role')}</DropdownMenuItem>
+          : live(u).length ? <>
+            <Off label={tr('تغيير الدور', 'Change role')} why={tr('دوره يتبع روابطه — فُكّ ربطه أولًا', 'Their role follows their links — unlink them first')} />
+            <DropdownMenuItem asChild><a href={'Admin owners.html?q=' + encodeURIComponent(u.email)}>{tr('فك روابطه', 'Unlink them')}</a></DropdownMenuItem>
+          </> : <>
+            <Off label={tr('تغيير الدور', 'Change role')} why={tr('كل مساحاته محذوفة — استرجع المساحة لفك ربطه', 'All their spaces are deleted — restore the space to unlink them')} />
+            <DropdownMenuItem asChild><a href="Admin spaces.html?status=deleted">{tr('المساحات المحذوفة', 'Deleted spaces')}</a></DropdownMenuItem>
+          </>}
+        {u.status !== 'active' ? <Off label={tr('إصدار كلمة مرور مؤقتة', 'Issue a temporary password')} why={tr('الحساب موقوف — استرجعه أولًا', 'The account is suspended — restore it first')} />
+          : u.method === 'google' ? <Off label={tr('إصدار كلمة مرور مؤقتة', 'Issue a temporary password')} why={tr('حساب Google — يستعيده من Google', 'A Google account — they recover it through Google')} />
+          : <DropdownMenuItem onSelect={() => setTp(u)}>{tr('إصدار كلمة مرور مؤقتة', 'Issue a temporary password')}</DropdownMenuItem>}
         <DropdownMenuSeparator />
-        {u.status === 'active' ? <DropdownMenuItem onSelect={() => setSusp(u)}>{tr('إيقاف', 'Suspend')}</DropdownMenuItem> : <DropdownMenuItem onSelect={() => { upd(u.id, { status: 'active' }); toast(tr(`أُلغي إيقاف ${u.name}`, `${u.name} unsuspended`)); }}>{tr('إلغاء الإيقاف', 'Unsuspend')}</DropdownMenuItem>}
+        {u.status === 'active' ? <DropdownMenuItem onSelect={() => setSusp(u)}>{tr('إيقاف', 'Suspend')}</DropdownMenuItem> : <DropdownMenuItem onSelect={() => { upd(u.id, { status: 'active' }); toast(tr(`استُرجع حساب ${u.name}`, `${u.name}’s account restored`)); }}>{tr('استرجاع الحساب', 'Restore the account')}</DropdownMenuItem>}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -51,15 +66,17 @@ function Users({ theme, setTheme }) {
     { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
     { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <Ltr>{row.original.email}</Ltr> },
     { id: 'role', header: tr('الدور', 'Role'), cell: ({ row }) => AD.ROLE[row.original.role] },
-    // SH-007: seven columns do not fit the 768 rail, so these two wait for 1024.
-    { id: 'method', header: tr('طريقة الدخول', 'Sign-in method'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => AD.METHOD[row.original.method] },
-    { id: 'joined', header: tr('انضم', 'Joined'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => AD.fmt(row.original.joined, true) },
+    { id: 'method', header: tr('طريقة الدخول', 'Sign-in method'), cell: ({ row }) => AD.METHOD[row.original.method] },
+    { id: 'joined', header: tr('انضم', 'Joined'), cell: ({ row }) => AD.fmt(row.original.joined, true) },
     { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <St u={row.original} /> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
+  // The one change a role can make: a user becomes an admin, or an admin a user again.
+  const toAdmin = roleDlg && roleDlg.role === 'user';
+  const suspOwner = susp && susp.role === 'owner' && live(susp).length > 0;
   return (
     <AdminShell current="users" title={tr('المستخدمون', 'Users')} theme={theme} setTheme={setTheme}>
-      <DataTable label={tr('المستخدمون', 'Users')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
+      <AdminList label={tr('المستخدمون', 'Users')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-end">
@@ -75,24 +92,29 @@ function Users({ theme, setTheme }) {
         empty={<EmptyState icon={<SearchXIcon />} title={tr('لا يوجد مستخدمون يطابقون البحث', 'No users match')} />} />
       <AlertDialog open={!!susp} onOpenChange={(o) => !o && setSusp(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>{tr('إيقاف', 'Suspend')} {susp && susp.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('تنتهي كل جلساته فورًا ولا يستطيع الدخول حتى يُلغى الإيقاف.', 'All their sessions end right away and they can’t sign in until unsuspended.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>{tr('إيقاف', 'Suspend')} {susp && susp.name}؟</AlertDialogTitle>
+            <AlertDialogDescription>{tr('تنتهي كل جلساته فورًا ولا يدخل حتى تسترجع حسابه.', 'All their sessions end at once, and they can’t sign in until you restore the account.')}{suspOwner && ' ' + tr('تبقى مساحته موثّقة، ولا تُعدَّل إلا بعد فك ربطه.', 'Their space stays verified, and can be edited only once they’re unlinked.')}</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { upd(susp.id, { status: 'suspended' }); toast(tr(`أُوقف ${susp.name} · انتهت الجلسات`, `${susp.name} suspended · sessions ended`)); }}>{tr('إيقاف', 'Suspend')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <Dialog open={!!roleDlg} onOpenChange={(o) => !o && setRoleDlg(null)}>
-        <DialogContent closeLabel={tr('إغلاق', 'Close')}>
-          <DialogHeader><DialogTitle>{tr('تغيير الدور', 'Change role')} · {roleDlg && roleDlg.name}</DialogTitle><DialogDescription>{tr('المالك يحتاج ربطه بمساحة من «أصحاب المساحات».', 'An owner still needs linking to a space in «Space owners».')}</DialogDescription></DialogHeader>
-          <RadioGroup value={newRole} onValueChange={setNewRole}>{Object.entries(AD.ROLE).map(([k, l]) => <Field key={k} label={l} orientation="horizontal"><RadioGroupItem value={k} /></Field>)}</RadioGroup>
-          <DialogFooter><Button onClick={() => { upd(roleDlg.id, { role: newRole }); toast.success(tr('تغيّر الدور', 'Role changed'), { description: roleDlg.name + ' · ' + AD.ROLE[newRole] }); setRoleDlg(null); }} disabled={roleDlg && newRole === roleDlg.role}>{tr('حفظ', 'Save')}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog open={!!roleDlg} onOpenChange={(o) => !o && setRoleDlg(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{roleDlg && (toAdmin ? tr(`جعل ${roleDlg.name} أدمن؟`, `Make ${roleDlg.name} an admin?`) : tr(`إعادة ${roleDlg.name} مستخدمًا؟`, `Make ${roleDlg.name} a user again?`))}</AlertDialogTitle>
+            <AlertDialogDescription>{toAdmin ? tr('يحصل على كل صلاحيات الإدارة على المنصة وكل مساحاتها، وتنتهي جلساته فيدخل من جديد.', 'They get every admin power over the platform and all its spaces, and their sessions end so they sign in again.') : tr('يفقد لوحة الإدارة فورًا، وتنتهي جلساته.', 'They lose the admin dashboard at once, and their sessions end.')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          {/* `?fail=role`: the person holds a link the users list does not show — a reception link (ACCOUNT_HAS_LINKS, DI-24). */}
+          {roleFail && <Alert variant="destructive"><AlertTitle>{tr('لم يتغيّر الدور', 'The role didn’t change')}</AlertTitle><AlertDescription>{tr('له رابط بمساحة — استقبال على الأرجح؛ يفكّه مالكها أولًا.', 'They hold a link to a space — reception, most likely; its owner ends it first.')}</AlertDescription></Alert>}
+          <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={(e) => { if (actionFails('role')) { e.preventDefault(); setRoleFail(true); return; } const next = toAdmin ? 'admin' : 'user'; upd(roleDlg.id, { role: next }); toast.success(tr('تغيّر الدور', 'Role changed'), { description: roleDlg.name + ' · ' + AD.ROLE[next] }); }}>{toAdmin ? tr('جعله أدمن', 'Make them an admin') : tr('إعادته مستخدمًا', 'Make them a user')}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={!!tp} onOpenChange={(o) => !o && setTp(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>{tr('إصدار كلمة مرور مؤقتة لـ', 'Issue a temporary password for')} {tp && tp.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('لاستعادة الحساب عبر واتساب بعد التأكد من هويته. تُلغى كلمة مروره الحالية، ويُطلب منه تغييرها عند الدخول التالي.', 'For account recovery over WhatsApp once you’ve confirmed who they are. Their current password stops working and they must change it at the next sign-in.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>{tr('إصدار كلمة مرور مؤقتة لـ', 'Issue a temporary password for')} {tp && tp.name}؟</AlertDialogTitle><AlertDialogDescription>{tr('لاستعادة الحساب بعد التأكد من هويته. تُلغى كلمة مروره الحالية وتنتهي جلساته، ويُطلب منه تغييرها عند الدخول التالي.', 'To recover the account once you’ve confirmed who they are. Their current password stops working and their sessions end; they must change it at the next sign-in.')}</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction onClick={() => { setPass({ name: tp.name, email: tp.email, pw: tempPass() }); }}>{tr('إصدار', 'Issue')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <TempPassDialog info={pass} onClose={() => setPass(null)} line={tr('أرسلها له عبر واتساب؛ سيُطلب منه تغييرها عند الدخول التالي.', 'Send it over WhatsApp; they’ll be asked to change it at the next sign-in.')} />
+      <TempPassDialog info={pass} onClose={() => setPass(null)} line={tr('سلّمها له بعد التأكد من هويته؛ سيُطلب منه تغييرها عند الدخول التالي.', 'Hand it over once you’ve confirmed who they are; they’ll be asked to change it at the next sign-in.')} />
     </AdminShell>
   );
 }

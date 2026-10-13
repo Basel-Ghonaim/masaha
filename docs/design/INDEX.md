@@ -20,7 +20,21 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Admin space edit.html?id=white` · `?id=palm` | the same | a space with one group never saved (the hours, the prices): «ما زال ناقصًا» and «لم تُضف بعد» |
 | `Admin space edit.html?demo=shifterror` | the admin's editor | an evening shift past every open day's close: its error on the shift |
 | `Admin space edit.html?demo=pricelimit` | the same | 40 prices, the contract's limit: «إضافة سعر» disabled with its reason |
+| `Admin space edit.html?demo=ownlimit` | the same | 20 own amenities («مرافق إضافية»), the contract's limit: «إضافة مرفق إضافي» disabled with its reason |
 | `Admin space edit.html?new=1` | the old address of «إضافة مساحة» | now leads to `Admin space add.html`, the creation form of its own (AD-002), its other parameters kept |
+| `Admin spaces.html?status=verified` · `unverified` · `hidden` · `deleted` | the admin's spaces list | the state filter set: verified and unverified leave hidden spaces out; `deleted` lists the soft-deleted spaces, muted, each with «استرجاع» (A3) |
+| `Admin spaces.html?unlink=<space>&owner=<id>` | the admin's spaces list | the unlink confirmation for that owner of that space, the space's first owner when none is named (A4) |
+| `Admin owners.html?unlink=<user>&space=<id>` | the owners page | the unlink confirmation for that owner and that space, the owner's first space when none is named. **Renamed** from `?unlink=1`, which named Yousef and Number One Hub whatever the link; the board's frames use `?unlink=o3` |
+| `Admin owners.html?q=<text>` | the owners page | the search set: name or email (A6) |
+| `?fail=link` | either link dialog | the link refused: the person has a reception link at this space (`RECEPTION_LINK_ACTIVE`), shown in the dialog, which stays open |
+| `?fail=role` | the users page's role dialog | the change refused: the person holds a link the list cannot show (`ACCOUNT_HAS_LINKS`), in the dialog, which stays open |
+| `Admin owners.html?link=<user>&space=<id>` | the owners page | the link dialog for that owner with that space chosen — where the add-owner sheet's «مالك مسبقًا — اربطه بالمساحة» leads |
+| `Admin users.html?q=<text>` | the users page | the search set: name or email — the audit log's and the owners' links land here |
+| `Admin users.html?temp=1` | the same | the temporary-password confirmation, now for the first active account **with a password** (it named Nour, who signs in with Google only) |
+| `Admin owners.html?sheet=add&email=nour@example.com` | the owners page | the add-owner sheet as the server leaves it after `EMAIL_HAS_ACCOUNT`: «سيُرقّى حسابه» and «ترقية وربط» |
+| `Admin reports.html?space=<id>` · `?field=<field>` | the admin's data reports | one space's reports, one field's, or both (A7); the verified space's «بلاغات <space>» link uses `?space=` |
+| `Admin space edit.html?id=golden&report=r1#report` | the admin's editor | the report «تعديل الحقل» carried there: above its section, with «تم التصحيح» (A8). Only an open report on an unverified space shows |
+| `Admin lookups.html?edit=area` | the lookups | the area sheet: the names and, since Gaza City has more than ten areas, «الترتيب» (AD-026); its switch is now only in the row (AD-025) |
 
 ### Batch 3 — the public site
 
@@ -645,8 +659,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 |---|---|---|---|
 | Spaces — desktop 1440 | `Admin spaces.html` | 1440×1000 | [43-admin-spaces/01-spaces-desktop-1440.webp](screens/43-admin-spaces/01-spaces-desktop-1440.webp) |
 | Spaces — phone 390 | `Admin spaces.html` | 390×844 | [43-admin-spaces/02-spaces-phone-390.webp](screens/43-admin-spaces/02-spaces-phone-390.webp) |
-| Stale only — desktop 1440 | `Admin spaces.html?stale=1` | 1440×1000 | [43-admin-spaces/03-stale-only-desktop-1440.webp](screens/43-admin-spaces/03-stale-only-desktop-1440.webp) |
-| Stale only — phone 390 | `Admin spaces.html?stale=1` | 390×844 | [43-admin-spaces/04-stale-only-phone-390.webp](screens/43-admin-spaces/04-stale-only-phone-390.webp) |
+| Stale or missing — desktop 1440 | `Admin spaces.html?stale=1` | 1440×1000 | [43-admin-spaces/03-stale-only-desktop-1440.webp](screens/43-admin-spaces/03-stale-only-desktop-1440.webp) |
+| Stale or missing — phone 390 | `Admin spaces.html?stale=1` | 390×844 | [43-admin-spaces/04-stale-only-phone-390.webp](screens/43-admin-spaces/04-stale-only-phone-390.webp) |
 | Link owner — desktop 1440 | `Admin spaces.html?link=golden` | 1440×1000 | [43-admin-spaces/05-link-owner-desktop-1440.webp](screens/43-admin-spaces/05-link-owner-desktop-1440.webp) |
 | Link owner — phone 390 | `Admin spaces.html?link=golden` | 390×844 | [43-admin-spaces/06-link-owner-phone-390.webp](screens/43-admin-spaces/06-link-owner-phone-390.webp) |
 | Unlink last owner → unverified — desktop 1440 | `Admin spaces.html?unlink=numberone` | 1440×1000 | [43-admin-spaces/07-unlink-last-owner-unverified-desktop-1440.webp](screens/43-admin-spaces/07-unlink-last-owner-unverified-desktop-1440.webp) |
@@ -672,8 +686,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Existing account → upgrade and link — phone 390 | `Admin owners.html?sheet=add&email=nour@example.com` | 390×844 | [44-admin-owners/06-existing-account-upgrade-and-link-phone-390.webp](screens/44-admin-owners/06-existing-account-upgrade-and-link-phone-390.webp) |
 | Temporary password (once) — desktop 1440 | `Admin owners.html?pass=1` | 1440×1000 | [44-admin-owners/07-temporary-password-once-desktop-1440.webp](screens/44-admin-owners/07-temporary-password-once-desktop-1440.webp) |
 | Temporary password (once) — phone 390 | `Admin owners.html?pass=1` | 390×844 | [44-admin-owners/08-temporary-password-once-phone-390.webp](screens/44-admin-owners/08-temporary-password-once-phone-390.webp) |
-| Unlink last owner (confirm) — desktop 1440 | `Admin owners.html?unlink=1` | 1440×1000 | [44-admin-owners/09-unlink-last-owner-confirm-desktop-1440.webp](screens/44-admin-owners/09-unlink-last-owner-confirm-desktop-1440.webp) |
-| Unlink last owner (confirm) — phone 390 | `Admin owners.html?unlink=1` | 390×844 | [44-admin-owners/10-unlink-last-owner-confirm-phone-390.webp](screens/44-admin-owners/10-unlink-last-owner-confirm-phone-390.webp) |
+| Unlink last owner (confirm) — desktop 1440 | `Admin owners.html?unlink=o3` | 1440×1000 | [44-admin-owners/09-unlink-last-owner-confirm-desktop-1440.webp](screens/44-admin-owners/09-unlink-last-owner-confirm-desktop-1440.webp) |
+| Unlink last owner (confirm) — phone 390 | `Admin owners.html?unlink=o3` | 390×844 | [44-admin-owners/10-unlink-last-owner-confirm-phone-390.webp](screens/44-admin-owners/10-unlink-last-owner-confirm-phone-390.webp) |
 | Link to more spaces — desktop 1440 | `Admin owners.html?link=o1` | 1440×1000 | [44-admin-owners/11-link-to-more-spaces-desktop-1440.webp](screens/44-admin-owners/11-link-to-more-spaces-desktop-1440.webp) |
 | Link to more spaces — phone 390 | `Admin owners.html?link=o1` | 390×844 | [44-admin-owners/12-link-to-more-spaces-phone-390.webp](screens/44-admin-owners/12-link-to-more-spaces-phone-390.webp) |
 

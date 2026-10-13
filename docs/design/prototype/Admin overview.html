@@ -23,41 +23,49 @@
 <script type="text/babel" src="masaha/shared.jsx"></script>
 <script type="text/babel" src="masaha/admin.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardContent, StatCard } = window.MasahaDesignSystem;
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, StatCard } = window.MasahaDesignSystem;
 function Tile({ href, ...p }) { return <a href={href} className="block rounded-xl text-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><StatCard className="h-full" {...p} /></a>; }
+// A8: the admin's home is the day's work. Every count leads to the list that holds it, and the card
+// below lists only what the admin can act on — the spaces it edits, the unverified ones — first five.
 function Overview({ theme, setTheme }) {
-  const S = AD.spaces; const c = (st) => S.filter((s) => s.status === st).length;
+  const S = AD.spaces.filter((s) => !s.deleted);
+  const verified = S.filter((s) => s.status === 'verified').length;
+  const hidden = S.filter((s) => s.hidden).length;
   const open = AD.reports.filter((r) => r.status === 'new');
   const mine = open.filter((r) => AD.handledBy(r) === 'admin').length;
-  const newUsers = AD.users.filter((u) => AD.fmt && u.joined >= '2026-09-23').length;
-  const stale = S.filter((s) => s.status !== 'hidden' && AD.staleGroups(s).length);
-  const todo = S.filter((s) => s.status !== 'hidden' && (s.missing.length || AD.staleGroups(s).length));
+  // As the contract's `stale=true`: a space with a group out of date **or** never saved.
+  const needs = S.filter((s) => AD.staleGroups(s).length || AD.missingGroups(s).length);
+  const noOwner = S.filter((s) => s.status === 'unverified' && !s.hidden);
+  // The same groups «عرض الكل» keeps (stale or missing); a missing photo is no fact group, so it shows but does not count.
+  const todo = S.filter((s) => s.status === 'unverified' && (AD.staleGroups(s).length || AD.missingGroups(s).length));
   return (
     <AdminShell current="overview" title={tr('نظرة عامة', 'Overview')} theme={theme} setTheme={setTheme}>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label={tr('ملخص المنصة', 'Platform summary')}>
-        <Tile href="Admin spaces.html" label={tr('المساحات', 'Spaces')} value={<Num>{S.length}</Num>} helper={<><Num>{c('verified')}</Num> {tr('موثّقة', 'verified')} · <Num>{c('unverified')}</Num> {tr('غير موثّقة', 'unverified')} · <Num>{c('hidden')}</Num> {tr('مخفية', 'hidden')}</>} />
+        <Tile href="Admin spaces.html" label={tr('المساحات', 'Spaces')} value={<Num>{S.length}</Num>} helper={<><Num>{verified}</Num> {tr('موثّقة', 'verified')} · <Num>{S.length - verified}</Num> {tr('غير موثّقة', 'unverified')} · <Num>{hidden}</Num> {tr('مخفية', 'hidden')}</>} />
         <Tile href="Admin reports.html?status=new" label={tr('بلاغات مفتوحة', 'Open data reports')} value={<Num>{open.length}</Num>} helper={<><Num>{mine}</Num> {tr('بانتظار الإدارة', 'waiting for the admin')} · <Num>{open.length - mine}</Num> {tr('بانتظار المالكين', 'waiting for owners')}</>} />
-        <Tile href="Admin users.html" label={tr('مستخدمون جدد هذا الأسبوع', 'New users this week')} value={<Num>{newUsers}</Num>} helper={tr('منذ السبت', 'Since Saturday')} />
-        <Tile href="Admin spaces.html?stale=1" label={tr('مساحات بيانات قديمة', 'Spaces with stale data')} value={<Num>{stale.length}</Num>} helper={tr('الأسعار > 30 يومًا · الباقي > 60', 'Prices > 30 days · others > 60')} />
+        <Tile href="Admin spaces.html?stale=1" label={tr('بيانات قديمة أو ناقصة', 'Stale or missing data')} value={<Num>{needs.length}</Num>} helper={tr('الأسعار > 30 يومًا · الباقي > 60 · أو لم تُضف بعد', 'Prices > 30 days · others > 60 · or not added yet')} />
+        <Tile href="Admin spaces.html?status=unverified" label={tr('مساحات غير موثّقة بلا مالك', 'Unverified spaces, no owner')} value={<Num>{noOwner.length}</Num>} helper={tr('تعدّلها الإدارة حتى يُربط مالكها', 'The admin edits them until an owner is linked')} />
       </section>
       <Card>
-        <CardHeader><CardTitle>{tr('اكتمال البيانات', 'Data completeness')}</CardTitle><CardDescription>{tr('مساحات ينقصها شيء أو فيها بيانات قديمة. المساحات المخفية غير مشمولة.', 'Spaces missing something or with stale data. Hidden spaces are left out.')}</CardDescription></CardHeader>
+        <CardHeader><CardTitle>{tr('اكتمال البيانات', 'Data completeness')}</CardTitle><CardDescription>{tr('المساحات التي تعدّلها الإدارة — غير الموثّقة، والمخفية منها — وينقصها شيء أو فيها بيانات قديمة. الموثّقة يحدّثها مالكوها.', 'The spaces the admin edits — the unverified ones, hidden ones included — that miss something or hold stale data. Verified spaces are their owners’ to update.')}</CardDescription></CardHeader>
         <CardContent className="p-0">
           <ul className="divide-y">
-            {todo.map((s) => (
+            {todo.slice(0, 5).map((s) => (
               <li key={s.id} className="flex flex-col gap-2 px-5 py-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex min-w-0 flex-col gap-1">
                   <span className="flex flex-wrap items-center gap-2"><span lang="en" className="text-label">{s.name}</span><SpaceStatus s={s} /></span>
                   <span className="flex flex-wrap gap-2">
-                    {s.missing.map((m) => <Badge key={m} variant="destructive">{AD.MISSING[m]}</Badge>)}
+                    {/* A8: «ناقصة» is attention, not an error (warning); a missing photo blocks nothing (neutral). */}
+                    {s.missing.map((m) => <Badge key={m} variant={m === 'photos' ? 'neutral' : 'warning'}>{AD.MISSING[m]}</Badge>)}
                     {AD.staleGroups(s).map((g) => <Badge key={g} variant="warning"><span>{AD.GROUP[g]} · <Num>{s.upd[g]}</Num> {tr('يومًا', 'days')}</span></Badge>)}
                   </span>
                 </div>
-                {s.status === 'verified' ? <span className="text-caption text-muted-foreground">{tr('يعدّلها المالك', 'The owner edits it')}</span> : <Button size="sm" variant="outline" asChild><a href={'Admin space edit.html?id=' + s.id}>{tr('تعديل', 'Edit')}</a></Button>}
+                <Button size="sm" variant="outline" asChild><a href={'Admin space edit.html?id=' + s.id}>{tr('تعديل', 'Edit')}</a></Button>
               </li>
             ))}
           </ul>
         </CardContent>
+        <CardFooter><a href="Admin spaces.html?stale=1">{tr('عرض الكل', 'View all')}{todo.length > 5 ? <> (<Num>{todo.length}</Num>)</> : null}</a></CardFooter>
       </Card>
       <PrivacyNote />
     </AdminShell>

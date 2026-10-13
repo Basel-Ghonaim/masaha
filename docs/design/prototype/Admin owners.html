@@ -23,91 +23,162 @@
 <script type="text/babel" src="masaha/shared.jsx"></script>
 <script type="text/babel" src="masaha/admin.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Button, Badge, DataTable, EmptyState, Field, Input, Checkbox, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Alert, AlertTitle, AlertDescription, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, UsersIcon, EllipsisVerticalIcon, XIcon, toast } = window.MasahaDesignSystem;
-const spaceName = (id) => AD.spaces.find((s) => s.id === id).name;
-const lastOwner = (sid, list) => list.filter((o) => o.spaces.includes(sid)).length === 1;
+const { DirectionProvider, Button, Badge, DataTable, EmptyState, Field, Input, Checkbox, Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter, Alert, AlertTitle, AlertDescription, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Combobox, ComboboxTrigger, ComboboxContent, ComboboxItem, UsersIcon, SearchIcon, SearchXIcon, EllipsisVerticalIcon, XIcon, toast } = window.MasahaDesignSystem;
+const spaceOf = (id) => AD.spaces.find((s) => s.id === id);
+// A6: the owners page is the users list filtered to the owners (`GET /admin/users?role=owner`), each
+// row with its owner links, and the users list's search and state filter.
 function Owners({ theme, setTheme }) {
-  const [list, setList] = React.useState(AD.owners);
-  const [sheet, setSheet] = React.useState(pageParams.get('sheet') === 'add' ? { mode: 'add' } : pageParams.get('link') ? { mode: 'link', owner: AD.owners.find((o) => o.id === pageParams.get('link')) } : null);
-  const [name, setName] = React.useState(pageParams.get('email') ? tr('نور سالم', 'Nour Salem') : ''); const [email, setEmail] = React.useState(pageParams.get('email') || ''); const [picked, setPicked] = React.useState(pageParams.get('email') ? ['zm'] : []); const [err, setErr] = React.useState({});
+  const [list, setList] = React.useState(AD.users);
+  const [spaces, setSpaces] = React.useState(AD.spaces);
+  const [q, setQ] = React.useState(pageParams.get('q') || ''); const [state, setState] = React.useState('all');
+  const [sheet, setSheet] = React.useState(pageParams.get('sheet') === 'add' ? { mode: 'add' } : null);
+  const [linkFor, setLinkFor] = React.useState(() => AD.users.find((u) => u.id === pageParams.get('link') && u.role === 'owner' && u.status === 'active') || null);
+  // `?email=nour@example.com`: the sheet as the server left it, the email answered EMAIL_HAS_ACCOUNT.
+  const [name, setName] = React.useState(pageParams.get('email') ? tr('نور سالم', 'Nour Salem') : ''); const [email, setEmail] = React.useState(pageParams.get('email') || ''); const [sid, setSid] = React.useState(pageParams.get('email') ? 'zm' : ''); const [err, setErr] = React.useState({});
+  const [upgrade, setUpgrade] = React.useState(() => !!AD.users.find((u) => u.email === pageParams.get('email') && u.role === 'user' && u.status === 'active'));
+  const [busy, setBusy] = React.useState(false);
   const [pass, setPass] = React.useState(pageParams.get('pass') ? { name: tr('ريم', 'Reem'), email: 'reem@example.com', pw: 'Msh-9d3x-527' } : null);
-  const [unlink, setUnlink] = React.useState(pageParams.get('unlink') ? { o: AD.owners[2], sid: 'numberone' } : null);
-  const existing = AD.users.find((u) => u.email === email.trim().toLowerCase() && u.role === 'user');
-  const already = list.find((o) => o.email === email.trim().toLowerCase());
-  const linkable = AD.spaces.filter((s) => s.status !== 'hidden');
-  const togglePick = (id, on) => setPicked((p) => (on ? [...p, id] : p.filter((x) => x !== id)));
-  const openAdd = () => { setName(''); setEmail(''); setPicked([]); setErr({}); setSheet({ mode: 'add' }); };
+  // `?unlink=<user>&space=<id>`: that owner and that space, the owner's first space when none is named.
+  const [unlink, setUnlink] = React.useState(() => {
+    const o = AD.users.find((u) => u.id === pageParams.get('unlink') && u.role === 'owner');
+    const live = o ? liveSpaces(o.spaces, AD.spaces) : [];
+    const sid = live.includes(pageParams.get('space')) ? pageParams.get('space') : live[0];
+    return sid ? { o, sid } : null;
+  });
+  const owners = list.filter((u) => u.role === 'owner');
+  const t = q.trim().toLowerCase();
+  const rows = owners.filter((u) => (!t || u.name.toLowerCase().includes(t) || u.email.includes(t)) && (state === 'all' || u.status === state));
+  const ownersOf = (sid) => list.filter((u) => u.spaces.includes(sid)).map((u) => u.id);
+  const choices = spaces.filter((s) => !s.deleted);
+  const chosen = spaces.find((s) => s.id === sid);
+  const openAdd = () => { setName(''); setEmail(''); setSid(''); setErr({}); setUpgrade(false); setSheet({ mode: 'add' }); };
+  // A5: one space at a time, and the answer the server gives, after the submit (S3, S4). An email
+  // with an account is refused first (EMAIL_HAS_ACCOUNT); sent again, it is upgraded on purpose.
   const submit = (e) => {
     e.preventDefault();
-    if (sheet.mode === 'link') { const o = sheet.owner; setList((l) => l.map((x) => (x.id === o.id ? { ...x, spaces: [...new Set([...x.spaces, ...picked])] } : x))); toast.success(tr('رُبطت المساحات', 'Spaces linked'), { description: o.name }); setSheet(null); return; }
+    const mail = email.trim().toLowerCase();
     const x = {};
     if (!name.trim()) x.name = tr('أدخل الاسم', 'Enter the name');
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) x.email = tr('أدخل بريدًا صحيحًا، مثل name@example.com', 'Enter a valid email, e.g. name@example.com');
-    else if (already) x.email = tr('هذا البريد مالك مسبقًا', 'This email is already an owner');
-    setErr(x); if (Object.keys(x).length) return;
-    const o = { id: 'o' + Date.now(), name: name.trim(), email: email.trim().toLowerCase(), spaces: picked, status: 'active' };
-    setList((l) => [...l, o]); setSheet(null);
-    if (existing) toast.success(tr('رُقّي الحساب إلى مالك ورُبط', 'Account upgraded to owner and linked'), { description: o.email });
-    else setPass({ name: o.name, email: o.email, pw: tempPass() });
+    if (!/^\S+@\S+\.\S+$/.test(mail)) x.email = tr('أدخل بريدًا صحيحًا، مثل name@example.com', 'Enter a valid email, e.g. name@example.com');
+    if (!sid) x.space = tr('اختر المساحة', 'Choose the space');
+    setErr(x);
+    if (Object.keys(x).length) { setTimeout(() => { const bad = document.querySelector('[role=dialog] [aria-invalid="true"]'); if (bad) bad.focus(); }); return; }
+    setBusy(true);
+    setTimeout(() => {
+      setBusy(false);
+      const acc = list.find((u) => u.email === mail);
+      if (acc && !(upgrade && acc.role === 'user' && acc.status === 'active')) {
+        // The contract's order: an admin, a suspended account, an owner already, then any account.
+        const why = acc.role === 'admin' ? 'admin' : acc.status !== 'active' ? 'suspended' : acc.role === 'owner' ? 'owner' : 'account';
+        if (why === 'account') { setUpgrade(true); return; }
+        setErr({ email: why, owner: acc }); return;
+      }
+      if (acc) {
+        setList((l) => l.map((u) => (u.id === acc.id ? { ...u, role: 'owner', spaces: [...u.spaces, sid] } : u)));
+        setSpaces((sp) => sp.map((s) => (s.id === sid ? { ...s, owners: [...s.owners, acc.id], status: 'verified' } : s)));
+        setSheet(null);
+        toast.success(tr('رُقّي الحساب إلى مالك ورُبط', 'Account upgraded to owner and linked'), { description: acc.name + ' · ' + chosen.name });
+        return;
+      }
+      const o = { id: 'n' + Date.now(), name: name.trim(), email: mail, role: 'owner', method: 'email', spaces: [sid], status: 'active', joined: AD.TODAY };
+      setList((l) => [o, ...l]);
+      setSpaces((sp) => sp.map((s) => (s.id === sid ? { ...s, owners: [...s.owners, o.id], status: 'verified' } : s)));
+      setSheet(null);
+      setPass({ name: o.name, email: o.email, pw: tempPass() });
+    }, ACTION_MS);
   };
-  const doUnlink = () => { const { o, sid } = unlink; const wasLast = lastOwner(sid, list); setList((l) => l.map((x) => (x.id === o.id ? { ...x, spaces: x.spaces.filter((s) => s !== sid) } : x))); toast(wasLast ? tr('فُك الربط · المساحة أصبحت غير موثّقة', 'Unlinked · the space is now unverified') : tr('فُك الربط', 'Unlinked')); };
-  const chips = (o) => o.spaces.length ? <span className="flex flex-wrap gap-2">{o.spaces.map((sid) => <Badge key={sid} variant="neutral"><span lang="en">{spaceName(sid)}</span></Badge>)}</span> : <span className="text-muted-foreground">{tr('بدون مساحة', 'No space')}</span>;
+  const emailError = err.email === 'admin' ? tr('حساب أدمن، لا يُربط بمساحة', 'An admin’s account; it can’t be linked to a space')
+    : err.email === 'suspended' ? <>{tr('الحساب موقوف — ', 'The account is suspended — ')}<a href={'Admin users.html?q=' + encodeURIComponent(email.trim().toLowerCase())}>{tr('استرجعه أولًا', 'restore it first')}</a></>
+    : err.email === 'owner' ? <>{tr('مالك مسبقًا — ', 'Already an owner — ')}<a href={'Admin owners.html?link=' + err.owner.id + (sid ? '&space=' + sid : '')}>{tr('اربطه بالمساحة', 'link them to the space')}</a></>
+    : err.email;
+  const link = (uid, sid) => { setList((l) => l.map((u) => (u.id === uid ? { ...u, role: 'owner', spaces: [...u.spaces, sid] } : u))); setSpaces((sp) => sp.map((s) => (s.id === sid ? { ...s, owners: [...s.owners, uid], status: 'verified' } : s))); };
+  // The last owner link, a deleted space's included, makes the person a user again (ADR 0009).
+  const doUnlink = () => {
+    const { o, sid } = unlink;
+    const left = ownersOf(sid).filter((id) => id !== o.id);
+    const keeps = list.find((u) => u.id === o.id).spaces.filter((x) => x !== sid);
+    setList((l) => l.map((u) => (u.id === o.id ? { ...u, spaces: keeps, role: keeps.length ? 'owner' : 'user' } : u)));
+    setSpaces((sp) => sp.map((s) => (s.id === sid ? { ...s, owners: left, status: left.length ? s.status : 'unverified' } : s)));
+    toast([tr('فُك الربط', 'Unlinked'), !left.length && tr('المساحة غير موثّقة', 'the space is unverified'), !keeps.length && tr(`لم يعد ${o.name} مالكًا`, `${o.name} is no longer an owner`)].filter(Boolean).join(' · '));
+  };
+  const chips = (o) => {
+    const live = liveSpaces(o.spaces, spaces);
+    if (live.length) return <span className="flex flex-wrap gap-2">{live.map((sid) => <Badge key={sid} variant="neutral"><span lang="en">{spaceOf(sid).name}</span></Badge>)}</span>;
+    // Finding 50: an owner whose only spaces are deleted stays an owner until one is restored and unlinked.
+    return <span className="text-body-sm text-muted-foreground">{tr('كل مساحاته محذوفة — ', 'All their spaces are deleted — ')}<a href="Admin spaces.html?status=deleted">{tr('استرجع المساحة لفك ربطه', 'restore the space to unlink them')}</a></span>;
+  };
+  const Reason = ({ children }) => <span className="block text-caption text-muted-foreground">{children}</span>;
   const actions = (o) => (
     <DropdownMenu dir={DIR}>
       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={tr('إجراءات ', 'Actions for ') + o.name}><EllipsisVerticalIcon /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => { setPicked([]); setSheet({ mode: 'link', owner: o }); }}>{tr('ربط بمساحة', 'Link to a space')}</DropdownMenuItem>
-        {o.spaces.map((sid) => <DropdownMenuItem key={sid} onSelect={() => setUnlink({ o, sid })}>{tr('فك الربط من ', 'Unlink from ')}<span lang="en">{spaceName(sid)}</span></DropdownMenuItem>)}
+        {o.status === 'active'
+          ? <DropdownMenuItem onSelect={() => setLinkFor(o)}>{tr('ربط بمساحة', 'Link to a space')}</DropdownMenuItem>
+          : <DropdownMenuItem disabled><span>{tr('ربط بمساحة', 'Link to a space')}<Reason>{tr('الحساب موقوف — استرجعه أولًا', 'The account is suspended — restore it first')}</Reason></span></DropdownMenuItem>}
+        {liveSpaces(o.spaces, spaces).map((sid) => <DropdownMenuItem key={sid} onSelect={() => setUnlink({ o, sid })}>{tr('فك الربط من ', 'Unlink from ')}<span lang="en">{spaceOf(sid).name}</span></DropdownMenuItem>)}
       </DropdownMenuContent>
     </DropdownMenu>
   );
   const St = ({ o }) => <Badge variant={o.status === 'active' ? 'success' : 'neutral'}>{o.status === 'active' ? tr('نشط', 'Active') : tr('موقوف', 'Suspended')}</Badge>;
   const columns = [
-    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.name}</span> },
-    { id: 'email', header: tr('البريد', 'Email'), cell: ({ row }) => <Ltr>{row.original.email}</Ltr> },
+    // A7: a table at 768 too, its email under the name until 1024 gives it a column of its own.
+    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="flex flex-col"><span className="text-label">{row.original.name}</span><span className="text-caption text-muted-foreground lg:hidden"><Ltr>{row.original.email}</Ltr></span></span> },
+    { id: 'email', header: tr('البريد', 'Email'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => <Ltr>{row.original.email}</Ltr> },
     { id: 'spaces', header: tr('المساحات المرتبطة', 'Linked spaces'), cell: ({ row }) => chips(row.original) },
     { id: 'st', header: tr('الحالة', 'Status'), cell: ({ row }) => <St o={row.original} /> },
     { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{actions(row.original)}</div> }
   ];
-  const paged = usePaged(list);
-    const addBtn = <Button onClick={openAdd}>{tr('إضافة مالك', 'Add owner')}</Button>;
+  const paged = usePaged(rows);
+  const addBtn = <Button onClick={openAdd}>{tr('إضافة مالك', 'Add owner')}</Button>;
+  const unlinkOwners = unlink ? ownersOf(unlink.sid) : [];
   return (
     <AdminShell current="owners" title={tr('أصحاب المساحات', 'Space owners')} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('ربط مالك بمساحة يجعلها موثّقة؛ بعدها يعدّلها المالك ويرى تشغيلها وحده.', 'Linking an owner makes a space verified; from then on the owner edits it and alone sees its operations.')}</p>
       <DataTable label={tr('أصحاب المساحات', 'Space owners')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
-        toolbar={<div className="flex flex-wrap items-center justify-between gap-3">
-          <ResultCount>{tr('عدد أصحاب المساحات', 'Space owners')}: <Num>{list.length}</Num></ResultCount>
-          {addBtn}
+        toolbar={<div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end">
+            <Field label={tr('بحث', 'Search')} className="md:flex-1"><Input role="searchbox" placeholder={tr('الاسم أو البريد', 'Name or email')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} /></Field>
+            <FilterSheet active={state !== 'all' ? 1 : 0} count={rows.length} onClear={() => setState('all')}>
+              <Field label={tr('الحالة', 'Status')}><Select value={state} onValueChange={setState}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الحالات', 'All statuses')}</SelectItem><SelectItem value="active">{tr('نشط', 'Active')}</SelectItem><SelectItem value="suspended">{tr('موقوف', 'Suspended')}</SelectItem></SelectContent></Select></Field>
+            </FilterSheet>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <ResultCount>{tr('عدد أصحاب المساحات', 'Space owners')}: <Num>{rows.length}</Num></ResultCount>
+            {addBtn}
+          </div>
         </div>}
         renderCard={(o) => (<div className="flex items-start justify-between gap-3"><div className="flex min-w-0 flex-col gap-2"><span className="text-label">{o.name}</span><span dir="ltr" className="self-start text-caption text-muted-foreground">{o.email}</span>{chips(o)}<span><St o={o} /></span></div>{actions(o)}</div>)}
-        empty={<EmptyState icon={<UsersIcon />} title={tr('لا يوجد أصحاب مساحات', 'No space owners')} description={tr('أضف مالكًا واربطه بمساحته لتصبح موثّقة.', 'Add an owner and link their space to verify it.')}>{addBtn}</EmptyState>} />
+        empty={q.trim() || state !== 'all' ? <EmptyState icon={<SearchXIcon />} title={tr('لا يوجد أصحاب مساحات يطابقون البحث', 'No space owners match')} /> : <EmptyState icon={<UsersIcon />} title={tr('لا يوجد أصحاب مساحات', 'No space owners')} description={tr('أضف مالكًا واربطه بمساحته لتصبح موثّقة.', 'Add an owner and link their space to verify it.')}>{addBtn}</EmptyState>} />
       <Sheet open={!!sheet} onOpenChange={(o) => !o && setSheet(null)}>
         <SheetContent side="end" closeLabel={tr('إغلاق', 'Close')}>
-          <SheetHeader><SheetTitle>{sheet && sheet.mode === 'link' ? tr('ربط بمساحة', 'Link to a space') + ' · ' + sheet.owner.name : tr('إضافة مالك', 'Add owner')}</SheetTitle><SheetDescription>{tr('يمكن ربط مالك بأكثر من مساحة.', 'An owner can be linked to more than one space.')}</SheetDescription></SheetHeader>
+          <SheetHeader><SheetTitle>{tr('إضافة مالك', 'Add owner')}</SheetTitle><SheetDescription>{tr('يُربط بمساحة واحدة؛ اربطه بغيرها بعد ذلك.', 'Linked to one space; link more afterwards.')}</SheetDescription></SheetHeader>
           <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
             <SheetBody className="flex flex-col gap-5 py-2">
-              {sheet && sheet.mode === 'add' && <>
-                <Field label={tr('الاسم', 'Name')} error={err.name}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-                <Field label={tr('البريد الإلكتروني', 'Email')} error={err.email}><Input type="email" dir="ltr" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
-                {existing && !already && <Alert variant="info"><AlertTitle>{tr('هذا البريد له حساب مستخدم', 'This email has a user account')}</AlertTitle><AlertDescription>{tr('سيُرقّى إلى مالك ويُربط، ويدخل بكلمة مروره.', 'It will be upgraded to owner and linked, and signs in with its own password.')}</AlertDescription></Alert>}
-              </>}
-              <Field label={tr('المساحات', 'Spaces')}>
-                <div className="flex flex-col gap-2">{linkable.map((s) => {
-                  const mine = sheet && sheet.mode === 'link' && sheet.owner.spaces.includes(s.id);
-                  return <Field key={s.id} orientation="horizontal" label={<span className="flex flex-wrap items-center gap-2"><span lang="en">{s.name}</span><SpaceStatus s={s} />{mine && <span className="text-caption text-muted-foreground">{tr('مربوطة', 'Linked')}</span>}</span>}><Checkbox checked={mine || picked.includes(s.id)} disabled={mine} onCheckedChange={(on) => togglePick(s.id, !!on)} /></Field>;
-                })}</div>
+              <Field label={tr('الاسم', 'Name')} error={err.name}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+              <Field label={tr('البريد الإلكتروني', 'Email')} error={emailError}><Input type="email" dir="ltr" placeholder="name@example.com" value={email} onChange={(e) => { setEmail(e.target.value); setUpgrade(false); if (err.email) setErr((x) => ({ ...x, email: undefined })); }} /></Field>
+              <Field label={tr('المساحة', 'Space')} error={err.space}>
+                <Combobox type="single" value={sid} onValueChange={(v) => { setSid(v); setErr((x) => ({ ...x, space: undefined })); }}>
+                  <ComboboxTrigger empty={!sid}>{chosen ? <span lang="en">{chosen.name}</span> : tr('اختر المساحة', 'Choose the space')}</ComboboxTrigger>
+                  <ComboboxContent searchLabel={tr('بحث', 'Search')} searchPlaceholder={tr('اسم المساحة', 'Space name')} listLabel={tr('المساحات', 'Spaces')} emptyText={tr('لا نتائج', 'No results')}>
+                    {choices.map((x) => <ComboboxItem key={x.id} value={x.id} keywords={[x.name]}><span className="flex min-w-0 flex-col gap-1"><span lang="en">{x.name}</span><span className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground"><SpaceStatus s={x} />{x.owners.length ? x.owners.map((id) => personName(id, list)).join(tr('، ', ', ')) : tr('بلا مالك', 'No owner')}</span></span></ComboboxItem>)}
+                  </ComboboxContent>
+                </Combobox>
               </Field>
+              {upgrade
+                ? <Alert variant="info"><AlertTitle>{tr('لهذا البريد حساب', 'This email has an account')}</AlertTitle><AlertDescription>{tr('سيُرقّى حسابه إلى مالك ويُربط بالمساحة، ويحتفظ باسمه وطريقة دخوله، ولا تظهر كلمة مرور.', 'Their account will be upgraded to owner and linked to the space; it keeps its name and its way of signing in, and no password is shown.')}</AlertDescription></Alert>
+                : <p className="text-body-sm text-muted-foreground">{tr('سيُنشأ حساب ويظهر رمز مرور مؤقت مرة واحدة — جهّز طريقة تسليمه.', 'An account will be created and a temporary password shown once — have a way to hand it over ready.')}</p>}
             </SheetBody>
-            <SheetFooter><Button type="submit" className="w-full">{sheet && sheet.mode === 'link' ? tr('ربط', 'Link') : existing && !already ? tr('ترقية وربط', 'Upgrade and link') : tr('إضافة', 'Add')}</Button></SheetFooter>
+            <SheetFooter><Button type="submit" className="w-full" loading={busy}>{upgrade ? tr('ترقية وربط', 'Upgrade and link') : tr('إنشاء حساب وربط', 'Create account and link')}</Button></SheetFooter>
           </form>
         </SheetContent>
       </Sheet>
+      <LinkOwnerDialog person={linkFor && list.find((u) => u.id === linkFor.id)} preset={pageParams.get('space')} users={list} spaces={spaces} onClose={() => setLinkFor(null)} onLinked={link} />
       <TempPassDialog info={pass} onClose={() => setPass(null)} line={tr('سلّمها للمالك؛ سيُطلب منه تغييرها عند أول دخول.', 'Hand it to the owner; they’ll be asked to change it at first sign-in.')} />
       <AlertDialog open={!!unlink} onOpenChange={(o) => !o && setUnlink(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>{tr('فك ربط', 'Unlink')} {unlink && unlink.o.name} {tr('من', 'from')} <span lang="en">{unlink && spaceName(unlink.sid)}</span>؟</AlertDialogTitle>
-            <AlertDialogDescription>{unlink && lastOwner(unlink.sid, list) ? tr('ستصبح المساحة غير موثّقة: تختفي حالتها المباشرة ويعدّلها فريق مساحة.', 'The space will become unverified: its live status disappears and the Masaha team edits it.') : tr('يبقى المالكون الآخرون مرتبطين.', 'The other owners stay linked.')}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>{unlink && tr(`فك ربط ${unlink.o.name} من `, `Unlink ${unlink.o.name} from `)}<span lang="en">{unlink && spaceOf(unlink.sid).name}</span>{tr('؟', '?')}</AlertDialogTitle>
+            <AlertDialogDescription>{unlink && unlinkLine(spaceOf(unlink.sid), unlinkOwners, list.find((u) => u.id === unlink.o.id))}</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={doUnlink}>{tr('فك الربط', 'Unlink')}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

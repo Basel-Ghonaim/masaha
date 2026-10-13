@@ -38,21 +38,23 @@ function PSettings({ theme, setTheme }) {
   const contact = useCard({ email: 'hello@masaha.example', whatsapp: '+970 59 000 0000' });
   const fresh = useCard({ prices: '30', other: '60' });
   const def = useCard({ autoOut: true, rounding: 'up10', cap: true });
-  const [err, setErr] = React.useState({});
-  const saveContact = () => { const x = {}; if (!/^\S+@\S+\.\S+$/.test(contact.v.email)) x.email = tr('أدخل بريدًا صحيحًا', 'Enter a valid email'); if (contact.v.whatsapp.replace(/\D/g, '').length < 12) x.wa = tr('رقم غير مكتمل، مثل +970 59 000 0000', 'Incomplete number, e.g. +970 59 000 0000'); setErr(x); if (!Object.keys(x).length) contact.save(); };
-  const saveFresh = () => { const x = {}; if (!(Number(fresh.v.prices) > 0)) x.prices = tr('أدخل عدد الأيام', 'Enter the number of days'); if (!(Number(fresh.v.other) > 0)) x.other = tr('أدخل عدد الأيام', 'Enter the number of days'); setErr(x); if (!Object.keys(x).length) fresh.save(); };
+  // AD-029: each card keeps its own errors, so one card's save never clears or marks another's.
+  const [errC, setErrC] = React.useState({}); const [errF, setErrF] = React.useState({});
+  const saveContact = () => { const x = {}; if (!/^\S+@\S+\.\S+$/.test(contact.v.email)) x.email = tr('أدخل بريدًا صحيحًا', 'Enter a valid email'); if (contact.v.whatsapp.replace(/\D/g, '').length < 12) x.wa = tr('رقم غير مكتمل، مثل +970 59 000 0000', 'Incomplete number, e.g. +970 59 000 0000'); setErrC(x); if (!Object.keys(x).length) contact.save(); };
+  const saveFresh = () => { const x = {}; if (!(Number(fresh.v.prices) > 0)) x.prices = tr('أدخل عدد الأيام', 'Enter the number of days'); if (!(Number(fresh.v.other) > 0)) x.other = tr('أدخل عدد الأيام', 'Enter the number of days'); setErrF(x); if (!Object.keys(x).length) fresh.save(); };
   const RO = [['up10', tr('تقريب لأعلى بعد 10 دقائق', 'Round up after 10 minutes')], ['half', tr('لأقرب نصف ساعة', 'To the nearest half hour')], ['minute', tr('بالدقيقة', 'By the minute')]];
   return (
     <AdminShell current="settings" title={tr('إعدادات المنصة', 'Platform settings')} theme={theme} setTheme={setTheme}>
-      <div className="flex max-w-2xl flex-col gap-6">
+      {/* AD-029, as narrowed: a form page keeps one reading width; data tables run full width. */}
+      <div className="flex max-w-3xl flex-col gap-6">
         <SCard title={tr('التواصل مع المنصة', 'Platform contact')} description={tr('يظهر في «عن مساحة» و«تواصل معنا».', 'Shown in «About Masaha» and «Contact us».')} card={contact} onSave={saveContact}>
-          <Field label={tr('البريد الإلكتروني', 'Email')} error={err.email}><Input type="email" dir="ltr" value={contact.v.email} onChange={(e) => contact.set({ email: e.target.value })} /></Field>
-          <Field label={tr('واتساب', 'WhatsApp')} error={err.wa}><Input type="tel" dir="ltr" placeholder="+970 59 000 0000" value={contact.v.whatsapp} onChange={(e) => contact.set({ whatsapp: e.target.value })} /></Field>
+          <Field label={tr('البريد الإلكتروني', 'Email')} error={errC.email}><Input type="email" dir="ltr" value={contact.v.email} onChange={(e) => contact.set({ email: e.target.value })} /></Field>
+          <Field label={tr('واتساب', 'WhatsApp')} error={errC.wa}><Input type="tel" dir="ltr" placeholder="+970 59 000 0000" value={contact.v.whatsapp} onChange={(e) => contact.set({ whatsapp: e.target.value })} /></Field>
         </SCard>
         <SCard title={tr('حداثة البيانات', 'Data freshness')} description={tr('بعدها يرى الزوار «قد يكون تغيّر» أو يُخفى السعر في المساحات غير الموثّقة.', 'After this visitors see «may have changed», or the price is hidden on unverified spaces.')} card={fresh} onSave={saveFresh}>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label={tr('الأسعار (أيام)', 'Prices (days)')} error={err.prices}><Input inputMode="numeric" dir="ltr" value={fresh.v.prices} onChange={(e) => fresh.set({ prices: e.target.value.replace(/\D/g, '') })} /></Field>
-            <Field label={tr('باقي البيانات (أيام)', 'Other data (days)')} error={err.other}><Input inputMode="numeric" dir="ltr" value={fresh.v.other} onChange={(e) => fresh.set({ other: e.target.value.replace(/\D/g, '') })} /></Field>
+            <Field label={tr('الأسعار (أيام)', 'Prices (days)')} error={errF.prices}><Input inputMode="numeric" dir="ltr" value={fresh.v.prices} onChange={(e) => fresh.set({ prices: e.target.value.replace(/\D/g, '') })} /></Field>
+            <Field label={tr('باقي البيانات (أيام)', 'Other data (days)')} error={errF.other}><Input inputMode="numeric" dir="ltr" value={fresh.v.other} onChange={(e) => fresh.set({ other: e.target.value.replace(/\D/g, '') })} /></Field>
           </div>
         </SCard>
         <SCard title={tr('الإعدادات الافتراضية للمساحات الجديدة', 'Defaults for new spaces')} description={tr('يغيّرها كل مالك لاحقًا من إعدادات مساحته.', 'Each owner can change them later in their space settings.')} card={def}>

@@ -25,38 +25,65 @@
 <script type="text/babel" src="masaha/finance.jsx"></script>
 <script src="masaha/desk-data.js"></script>
 <script type="text/babel">
-const { DirectionProvider, Badge, DataTable, EmptyState, Field, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SearchXIcon } = window.MasahaDesignSystem;
-const ROWS = AD.audit.map(([date, time, actor, action, target, details], i) => ({ id: 'e' + i, date, time, actor, action, target, details }));
-const VARIANT = { space_hidden: 'warning', owner_linked: 'success', role_changed: 'info', user_suspended: 'destructive', temp_password: 'info', lookup_changed: 'neutral', settings_changed: 'neutral' };
+const { DirectionProvider, Badge, DataTable, EmptyState, Field, Input, SearchIcon, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SearchXIcon } = window.MasahaDesignSystem;
+const ROWS = AD.audit.map(([date, time, actor, action, target, details], i) => ({ id: 'e' + i, date, time, actor, action, target, details })).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+// AD-028 as amended by the owner: the log's red follows P9 — `destructive` for the acts whose
+// confirmation is destructive (deleting a space, suspending an account, unlinking an owner); every
+// other action, hiding included, is `neutral`, its word carrying the meaning.
+const RED = ['space_deleted', 'user_suspended', 'owner_unlinked'];
+// AD-028: each target leads to its page — a space to its editor, a person to the users list, a link
+// to the owners page, a lookup to its tab, a setting to the settings.
+const person = (t) => t.split(/ [←→] /)[0];
+function targetHref(r) {
+  if (r.action.startsWith('space_')) { const s = AD.spaces.find((x) => x.name === r.target); return !s ? null : s.deleted ? 'Admin spaces.html?status=deleted' : 'Admin space edit.html?id=' + s.id; }
+  if (r.action.startsWith('owner_')) return 'Admin owners.html?q=' + encodeURIComponent(person(r.target));
+  if (r.action.startsWith('user_') || r.action === 'role_changed' || r.action === 'temp_password') return 'Admin users.html?q=' + encodeURIComponent(r.target);
+  if (r.action === 'lookup_changed') return AD.lookups.amenities.some((m) => r.target === tr(m.ar, m.en)) ? 'Admin lookups.html?tab=amenities' : 'Admin lookups.html';
+  if (r.action === 'settings_changed') return 'Admin settings.html';
+  return null;
+}
+const DAY = 864e5;
 function Audit({ theme, setTheme }) {
+  // AD-028: the range says what it is — «آخر 30 يومًا» by default, «كل الفترة» one choice away.
+  const [period, setPeriod] = React.useState('last30');
   const [range, setRange] = React.useState({ from: dayDate('2026-09-01'), to: dayDate(AD.TODAY) });
-  const [actor, setActor] = React.useState('all'); const [action, setAction] = React.useState('all');
-  const rows = ROWS.filter((r) => inRange(r.date, range) && (actor === 'all' || r.actor === actor) && (action === 'all' || r.action === action));
-  const Act = ({ r }) => <Badge variant={VARIANT[r.action]}>{AD.ACTION[r.action]}</Badge>;
+  const [target, setTarget] = React.useState(''); const [actor, setActor] = React.useState('all'); const [action, setAction] = React.useState('all');
+  const since = isoOf(new Date(dayDate(AD.TODAY).getTime() - 29 * DAY));
+  const inPeriod = (iso) => (period === 'all' ? true : period === 'last30' ? iso >= since && iso <= AD.TODAY : inRange(iso, range));
+  const tq = target.trim().toLowerCase();
+  const rows = ROWS.filter((r) => (!tq || r.target.toLowerCase().includes(tq)) && inPeriod(r.date) && (actor === 'all' || r.actor === actor) && (action === 'all' || r.action === action));
+  // AD-028: an actor filter only once there is more than one actor to choose between.
+  const actors = [...new Set(ROWS.map((r) => r.actor))];
+  const Act = ({ r }) => <Badge variant={RED.includes(r.action) ? 'destructive' : 'neutral'}>{AD.ACTION[r.action]}</Badge>;
+  const Target = ({ r }) => { const href = targetHref(r); return href ? <a className="text-label" href={href}>{r.target}</a> : <span className="text-label">{r.target}</span>; };
   const paged = usePaged(rows);
-    const columns = [
+  const columns = [
     { id: 't', header: tr('الوقت', 'Time'), cell: ({ row }) => <span>{AD.fmt(row.original.date)} · <Num>{row.original.time}</Num></span> },
     { id: 'actor', header: tr('المنفّذ', 'Actor'), cell: ({ row }) => row.original.actor },
     { id: 'action', header: tr('الإجراء', 'Action'), cell: ({ row }) => <Act r={row.original} /> },
-    { id: 'target', header: tr('الهدف', 'Target'), cell: ({ row }) => <span className="text-label">{row.original.target}</span> },
-    { id: 'details', header: tr('التفاصيل', 'Details'), cell: ({ row }) => <span className="text-body-sm text-muted-foreground">{row.original.details}</span> }
+    // A7: a table at 768 too, the details under the target until 1024.
+    { id: 'target', header: tr('الهدف', 'Target'), cell: ({ row }) => <span className="flex flex-col"><Target r={row.original} /><span className="text-caption text-muted-foreground lg:hidden">{row.original.details}</span></span> },
+    { id: 'details', header: tr('التفاصيل', 'Details'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => <span className="text-body-sm text-muted-foreground">{row.original.details}</span> }
   ];
+  const active = [period !== 'last30', actor !== 'all', action !== 'all'].filter(Boolean).length;
   return (
     <AdminShell current="audit" title={tr('سجل التدقيق', 'Audit log')} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('أحداث المنصة فقط. أحداث تشغيل المساحات (الزبائن والدفعات) يراها مالك المساحة فقط.', 'Platform events only. Space operations events (customers and payments) are seen only by the space owner.')}</p>
       <DataTable label={tr('سجل التدقيق', 'Audit log')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
         toolbar={<div className="flex flex-col gap-3">
-          <FilterSheet active={[actor, action].filter((x) => x !== 'all').length} count={rows.length} onClear={() => { setActor('all'); setAction('all'); }}>
+          <Field label={tr('بحث في الهدف', 'Search the target')}><Input role="searchbox" placeholder={tr('مساحة، شخص، قائمة…', 'A space, a person, a lookup…')} startIcon={<SearchIcon />} value={target} onChange={(e) => setTarget(e.target.value)} /></Field>
+          <FilterSheet active={active} count={rows.length} onClear={() => { setPeriod('last30'); setActor('all'); setAction('all'); }}>
             <div className="grid gap-3 md:grid-cols-3">
-              <RangePicker value={range} onChange={setRange} />
-              <Field label={tr('المنفّذ', 'Actor')}><Select value={actor} onValueChange={setActor}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('الكل', 'All')}</SelectItem><SelectItem value={AD.admin.name}>{AD.admin.name}</SelectItem></SelectContent></Select></Field>
+              <Field label={tr('الفترة', 'Period')}><Select value={period} onValueChange={setPeriod}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="last30">{tr('آخر 30 يومًا', 'Last 30 days')}</SelectItem><SelectItem value="all">{tr('كل الفترة', 'All time')}</SelectItem><SelectItem value="custom">{tr('فترة محدّدة', 'A set period')}</SelectItem></SelectContent></Select></Field>
+              {period === 'custom' && <RangePicker value={range} onChange={setRange} label={tr('من – إلى', 'From – to')} />}
+              {actors.length > 1 && <Field label={tr('المنفّذ', 'Actor')}><Select value={actor} onValueChange={setActor}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('الكل', 'All')}</SelectItem>{actors.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent></Select></Field>}
               <Field label={tr('نوع الإجراء', 'Action type')}><Select value={action} onValueChange={setAction}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{tr('كل الإجراءات', 'All actions')}</SelectItem>{Object.entries(AD.ACTION).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></Field>
             </div>
           </FilterSheet>
           <ResultCount>{tr('الأحداث', 'Events')}: <Num>{rows.length}</Num></ResultCount>
         </div>}
-        renderCard={(r) => (<div className="flex flex-col gap-1"><div className="flex items-center justify-between gap-2"><Act r={r} /><span className="text-caption text-muted-foreground">{AD.fmt(r.date)} · <Num>{r.time}</Num></span></div><span className="text-label">{r.target}</span><span className="text-body-sm text-muted-foreground">{r.details}</span><span className="text-caption text-muted-foreground">{r.actor}</span></div>)}
+        renderCard={(r) => (<div className="flex flex-col gap-1"><div className="flex items-center justify-between gap-2"><Act r={r} /><span className="text-caption text-muted-foreground">{AD.fmt(r.date)} · <Num>{r.time}</Num></span></div><Target r={r} /><span className="text-body-sm text-muted-foreground">{r.details}</span><span className="text-caption text-muted-foreground">{r.actor}</span></div>)}
         empty={<EmptyState icon={<SearchXIcon />} title={tr('لا توجد أحداث تطابق الفلاتر', 'No events match the filters')} />} />
     </AdminShell>
   );
