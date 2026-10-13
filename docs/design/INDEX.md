@@ -81,6 +81,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?fail=end` | announcements | «إنهاء الآن» failing: the toast with «إعادة المحاولة» |
 | `Announcements.html?tab=ended&extend=a6` | announcements (owner) | the closure extension's confirmation for a closure that has ended (O11) |
 | `?fail=extend` | the same | the extension failing |
+| `?fail=add` | `Staff.html` | adding a staff member failing inside the sheet |
 
 ## 01 · Flow
 
@@ -626,10 +627,10 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Add staff sheet — phone 390 | `Staff.html?sheet=add` | 390×844 | [37-staff-owner/04-add-staff-sheet-phone-390.webp](screens/37-staff-owner/04-add-staff-sheet-phone-390.webp) |
 | Temporary password (shown once) — desktop 1440 | `Staff.html?pass=1` | 1440×1000 | [37-staff-owner/05-temporary-password-shown-once-desktop-1440.webp](screens/37-staff-owner/05-temporary-password-shown-once-desktop-1440.webp) |
 | Temporary password (shown once) — phone 390 | `Staff.html?pass=1` | 390×844 | [37-staff-owner/06-temporary-password-shown-once-phone-390.webp](screens/37-staff-owner/06-temporary-password-shown-once-phone-390.webp) |
-| Email already has an account → «ربط» — desktop 1440 | `Staff.html?sheet=add&email=nour@example.com` | 1440×1000 | [37-staff-owner/07-email-already-has-an-account-desktop-1440.webp](screens/37-staff-owner/07-email-already-has-an-account-desktop-1440.webp) |
-| Email already has an account → «ربط» — phone 390 | `Staff.html?sheet=add&email=nour@example.com` | 390×844 | [37-staff-owner/08-email-already-has-an-account-phone-390.webp](screens/37-staff-owner/08-email-already-has-an-account-phone-390.webp) |
-| Suspend (confirm) — desktop 1440 | `Staff.html?stop=1` | 1440×1000 | [37-staff-owner/09-suspend-confirm-desktop-1440.webp](screens/37-staff-owner/09-suspend-confirm-desktop-1440.webp) |
-| Suspend (confirm) — phone 390 | `Staff.html?stop=1` | 390×844 | [37-staff-owner/10-suspend-confirm-phone-390.webp](screens/37-staff-owner/10-suspend-confirm-phone-390.webp) |
+| Email with an account → linked on submit — desktop 1440 | `Staff.html?sheet=add&email=nour@example.com` | 1440×1000 | [37-staff-owner/07-email-already-has-an-account-desktop-1440.webp](screens/37-staff-owner/07-email-already-has-an-account-desktop-1440.webp) |
+| Email with an account → linked on submit — phone 390 | `Staff.html?sheet=add&email=nour@example.com` | 390×844 | [37-staff-owner/08-email-already-has-an-account-phone-390.webp](screens/37-staff-owner/08-email-already-has-an-account-phone-390.webp) |
+| Remove access (confirm) — desktop 1440 | `Staff.html?stop=1` | 1440×1000 | [37-staff-owner/09-suspend-confirm-desktop-1440.webp](screens/37-staff-owner/09-suspend-confirm-desktop-1440.webp) |
+| Remove access (confirm) — phone 390 | `Staff.html?stop=1` | 390×844 | [37-staff-owner/10-suspend-confirm-phone-390.webp](screens/37-staff-owner/10-suspend-confirm-phone-390.webp) |
 | Empty — desktop 1440 | `Staff.html?state=empty` | 1440×1000 | [37-staff-owner/11-empty-desktop-1440.webp](screens/37-staff-owner/11-empty-desktop-1440.webp) |
 | Empty — phone 390 | `Staff.html?state=empty` | 390×844 | [37-staff-owner/12-empty-phone-390.webp](screens/37-staff-owner/12-empty-phone-390.webp) |
 
