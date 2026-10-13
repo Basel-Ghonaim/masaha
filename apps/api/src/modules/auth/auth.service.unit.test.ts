@@ -46,7 +46,7 @@ function setup({ sent = true, account = sara, recovery = askable } = {}) {
     issueResetToken: () => Promise.resolve({ token: 'reset', id: 9 }),
     keepOnlyResetToken: record('keepOnlyResetToken'),
     withdrawResetToken: record('withdrawResetToken'),
-    ownerOf: () => Promise.resolve(3),
+    holderOf: () => Promise.resolve(3),
     resetTokenOwner: () => Promise.resolve(undefined),
     revokeAll: record('revokeAll'),
     openRecovery: () => {

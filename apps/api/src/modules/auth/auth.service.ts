@@ -226,7 +226,8 @@ export function createAuthService({
     /** Rotates the refresh token and restores the session: who is signed in, in one request (ADR 0003). */
     async refresh(refreshToken: string | undefined): Promise<SignedIn> {
       if (!refreshToken) throw AppError.unauthorized(undefined, 'No session');
-      const userId = await sessions.ownerOf(refreshToken);
+      // Expired or not: a token of a session past its 30 days still reaches the lock, which ends it.
+      const userId = await sessions.holderOf(refreshToken);
       if (!userId) throw AppError.unauthorized(undefined, 'No valid session');
       await limiter.count(REFRESH, String(userId));
 

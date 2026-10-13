@@ -7,6 +7,7 @@ const REFRESH_TOKEN = {
   familyId: true,
   expiresAt: true,
   rotatedAt: true,
+  sessionEndsAt: true,
 } as const;
 
 export interface StoredRefreshToken {
@@ -15,6 +16,8 @@ export interface StoredRefreshToken {
   familyId: number;
   expiresAt: Date;
   rotatedAt: Date | null;
+  /** When its session ends, whatever its refreshes. */
+  sessionEndsAt: Date;
 }
 
 const RECOVERY = {
@@ -52,6 +55,8 @@ export interface NewRefreshToken {
   userId: number;
   tokenHash: string;
   expiresAt: Date;
+  /** When the session ends: set at sign-in, the same for every token of the family. */
+  sessionEndsAt: Date;
   /** The family to join. Without one, the token starts its own: its family is its own id. */
   familyId?: number;
 }
@@ -94,8 +99,11 @@ export function createSessionsRepository(db: PrismaClient = prisma) {
       await tx.refreshToken.deleteMany({ where: { userId } });
     },
 
+    /** Deletes the user's expired tokens, and those of their sessions past their end. */
     async deleteExpired(userId: number, now: Date, tx: Tx = db): Promise<void> {
-      await tx.refreshToken.deleteMany({ where: { userId, expiresAt: { lte: now } } });
+      await tx.refreshToken.deleteMany({
+        where: { userId, OR: [{ expiresAt: { lte: now } }, { sessionEndsAt: { lte: now } }] },
+      });
     },
 
     /** A new reset token. Earlier ones stay until this one is delivered. Its id. */

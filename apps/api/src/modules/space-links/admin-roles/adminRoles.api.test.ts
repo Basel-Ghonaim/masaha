@@ -34,7 +34,13 @@ async function roleOf(userId: number): Promise<Role> {
 /** A session row for the user, as a sign-in leaves one. */
 function session(userId: number, tokenHash = `session-${String(userId)}`) {
   return prisma.refreshToken.create({
-    data: { userId, familyId: 0, tokenHash, expiresAt: new Date(Date.now() + 60_000) },
+    data: {
+      userId,
+      familyId: 0,
+      tokenHash,
+      expiresAt: new Date(Date.now() + 60_000),
+      sessionEndsAt: new Date(Date.now() + 60_000),
+    },
   });
 }
 

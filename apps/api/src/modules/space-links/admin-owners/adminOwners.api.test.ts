@@ -53,7 +53,13 @@ function person(role: Role = 'USER', { suspended = false } = {}) {
 /** A signed-in session of the user: a refresh token, written with `tx` if given. */
 async function session(userId: number, tx: Tx = prisma) {
   return tx.refreshToken.create({
-    data: { userId, familyId: 1, tokenHash: randomUUID(), expiresAt: new Date('2026-10-18') },
+    data: {
+      userId,
+      familyId: 1,
+      tokenHash: randomUUID(),
+      expiresAt: new Date('2026-10-18'),
+      sessionEndsAt: new Date('2026-10-18'),
+    },
   });
 }
 

@@ -140,6 +140,9 @@ model User {
   role               Role      @default(USER)
   language           Language  @default(ar)
   mustChangePassword Boolean   @default(false) @map("must_change_password")
+  /// One more each time every session of the account ends; an access token signed under another is
+  /// refused (docs/backend/security.md › Tokens and cookies).
+  sessionVersion     Int       @default(0) @map("session_version")
   /// Users are suspended, never deleted (ADR 0007).
   suspendedAt        DateTime? @map("suspended_at") @db.Timestamptz(3)
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -168,17 +171,20 @@ model User {
 
 /// Stored as its SHA-256 hash. A session is a family of tokens, one per rotation (docs/backend/security.md).
 model RefreshToken {
-  id           Int       @id @default(autoincrement())
-  userId       Int       @map("user_id")
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
   /// The id of the session's first token, copied to every token rotated from it, so a reused token
   /// ends its own session and no other.
-  familyId     Int       @map("family_id")
-  tokenHash    String    @unique @map("token_hash")
-  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
-  rotatedAt    DateTime? @map("rotated_at") @db.Timestamptz(3)
-  replacedById Int?      @unique @map("replaced_by_id")
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  familyId      Int       @map("family_id")
+  tokenHash     String    @unique @map("token_hash")
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(3)
+  rotatedAt     DateTime? @map("rotated_at") @db.Timestamptz(3)
+  /// When the session ends, whatever its refreshes: set at sign-in and copied to every token rotated
+  /// from it (docs/backend/security.md › Tokens and cookies).
+  sessionEndsAt DateTime  @map("session_ends_at") @db.Timestamptz(3)
+  replacedById  Int?      @unique @map("replaced_by_id")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   replacedBy RefreshToken? @relation("RefreshTokenRotation", fields: [replacedById], references: [id], onDelete: SetNull)
@@ -312,7 +318,7 @@ model Space {
   deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(3)
   // Freshness per fact group: set when the group is saved or confirmed unchanged. A group that can
   // be empty is null, missing, until it is first saved (docs/architecture/data-model.md).
-  /// Name, description, address, area, location and photos; set when the space is created.
+  /// Name, description, address, area and location; set when the space is created.
   profileUpdatedAt   DateTime  @default(now()) @map("profile_updated_at") @db.Timestamptz(3)
   /// The opening hours and the shifts.
   hoursUpdatedAt     DateTime? @map("hours_updated_at") @db.Timestamptz(3)

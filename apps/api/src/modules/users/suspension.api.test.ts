@@ -217,6 +217,7 @@ describe('PUT /admin/users/:userId/suspended: the races', () => {
             familyId: 0,
             tokenHash: 'opened-meanwhile',
             expiresAt: new Date(Date.now() + 60_000),
+            sessionEndsAt: new Date(Date.now() + 60_000),
           },
         }),
     );

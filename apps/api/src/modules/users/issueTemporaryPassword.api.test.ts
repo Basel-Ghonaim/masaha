@@ -44,7 +44,13 @@ function login(password: string, email = 'sara@example.com') {
 /** A session row for the user, as a sign-in leaves one. */
 function session(userId: number, tokenHash = `session-${String(userId)}`) {
   return prisma.refreshToken.create({
-    data: { userId, familyId: 0, tokenHash, expiresAt: new Date(Date.now() + 60_000) },
+    data: {
+      userId,
+      familyId: 0,
+      tokenHash,
+      expiresAt: new Date(Date.now() + 60_000),
+      sessionEndsAt: new Date(Date.now() + 60_000),
+    },
   });
 }
 
@@ -230,6 +236,7 @@ describe('POST /admin/users/:userId/temporary-password: the races', () => {
             familyId: 0,
             tokenHash: 'opened-meanwhile',
             expiresAt: new Date(Date.now() + 60_000),
+            sessionEndsAt: new Date(Date.now() + 60_000),
           },
         });
       },
