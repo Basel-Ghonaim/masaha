@@ -90,6 +90,7 @@ function setup({ sent = true, account = sara, recovery = askable } = {}) {
     google: undefined,
     emailSender: email,
     webOrigin: 'https://masaha.example',
+    wait: record('wait'),
   });
   return { auth, calls };
 }
@@ -108,7 +109,7 @@ describe('auth: the forgotten password', () => {
 
     await auth.forgotPassword({ email: 'sara@example.com' }, 'ip', undefined);
 
-    expect(calls).toEqual(['openRecovery', 'withdrawResetToken']);
+    expect(calls).toEqual(['openRecovery', 'withdrawResetToken', 'wait']);
   });
 
   it('opens a recovery but issues nothing for an account that may not sign in', async () => {
@@ -116,7 +117,7 @@ describe('auth: the forgotten password', () => {
 
     await auth.forgotPassword({ email: 'sara@example.com' }, 'ip', undefined);
 
-    expect(calls).toEqual(['openRecovery']);
+    expect(calls).toEqual(['openRecovery', 'wait']);
   });
 });
 
@@ -134,7 +135,7 @@ describe('auth: resending the link', () => {
 
     const answer = await auth.resendResetLink('ip', 'key');
 
-    expect(calls).toEqual(['recordResend']);
+    expect(calls).toEqual(['recordResend', 'wait']);
     expect(answer.position).toEqual({
       step: 'sent',
       email: 's•••@example.com',
@@ -148,7 +149,7 @@ describe('auth: resending the link', () => {
 
     await auth.resendResetLink('ip', 'key');
 
-    expect(calls).toEqual(['recordResend', 'get']);
+    expect(calls).toEqual(['recordResend', 'get', 'wait']);
   });
 });
 

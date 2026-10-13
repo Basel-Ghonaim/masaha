@@ -200,6 +200,8 @@ export interface ApiOptions {
   logger: Logger;
   /** The one clock every rule reads (conventions §11). Tests pass a fixed one. */
   clock?: () => Date;
+  /** The timer every wait uses (conventions §11). Tests pass one that waits no real time. */
+  wait?: (ms: number) => Promise<void>;
 }
 
 /**
@@ -215,6 +217,7 @@ export function createApi({
   storage,
   logger,
   clock = () => new Date(),
+  wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 }: ApiOptions): Router {
   const limiter = createLimiter(createCounter(), clock);
   const accessTokens = createAccessTokens(jwtSecret);
@@ -304,6 +307,7 @@ export function createApi({
     google,
     emailSender: createCappedEmailSender(email, { limiter, logger }),
     webOrigin,
+    wait,
   });
 
   const api = Router();

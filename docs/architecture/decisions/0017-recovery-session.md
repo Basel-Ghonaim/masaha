@@ -1,6 +1,7 @@
 # ADR 0017 — The recovery session: the server holds where a password recovery stands
 
 > **Status:** Accepted · **Date:** 2026-10-05
+> **Revised:** 2026-10-13 — an answer that sends no email waits about as long as a send would, so the timing no longer tells a fast probe whether an account exists ([security.md](../../backend/security.md#passwords)); the decision is unchanged
 
 ## Context
 A forgotten password is recovered in steps: ask for a link with an email, open the link, choose a new password. In the first design the web held each step. The reset page kept the link's token from the moment it checked it until the password was sent, and a reload, or a link opened on another device, lost the place. Asking for the link again meant typing the email again.
@@ -24,4 +25,4 @@ The endpoints are owned by the [API contract](../../api/api-contract.md#the-forg
 ## Consequences
 - A second credential, the recovery's key, exists beside the link. It is only ever in an `HttpOnly`, same-site cookie, and the flow ends with less exposure than it began with: the token leaves the web at the check.
 - The recovery is stored by the module that owns the other tokens. It keeps only a masked address and a digest of the address, never the address itself.
-- The reset email is still sent before the answer, because no work may run after a response ([ADR 0014](0014-deployment.md)). So the timing can still tell whether an account exists ([finding 16](../findings/16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists.md)).
+- The reset email is still sent before the answer, because no work may run after a response ([ADR 0014](0014-deployment.md)). An answer that sends nothing therefore waits as a send would; a relay slower than that wait still tells ([finding 16](../findings/16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists.md)).

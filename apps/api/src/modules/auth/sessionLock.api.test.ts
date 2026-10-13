@@ -11,7 +11,8 @@ import { prisma, type Tx } from '../../db/index.ts';
 // §13). Each test holds that row in its own transaction, as a reset or a password change would,
 // while a request runs; the request must then see what the transaction committed.
 
-const app = createTestApp();
+// A forgotten password that sends nothing waits as a send would: here, no real time.
+const app = createTestApp({ wait: () => Promise.resolve() });
 
 beforeEach(async () => {
   await resetDatabase(prisma);
