@@ -28,7 +28,7 @@ Live status, the announcements, the reports and the favourites' cards are not bu
 - Its public router is mounted at the API's root, unguarded, behind the general rate limit ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)).
 - **A composed read** ([conventions › Composed reads](../backend/conventions.md#composed-reads)): each filter on another module's value is resolved to ids first, by its owner, in one query: the listed areas and the areas a search matches by `lookups`, the verified spaces by `space-links`. `spaces` then filters, searches, orders and pages ([conventions §5](../backend/conventions.md#5-pagination)); the areas' names, and on the page the amenities' names, follow, one query each.
 - **The search's one rule** is the database's: a function normalises the names and the query alike, and another scores how well they match ([data model › Conventions](../architecture/data-model.md#conventions)).
-- **The page** is read under the space's share lock, as the admin's read is ([conventions §13](../backend/conventions.md#concurrency)); whether it is verified is read from its links just before.
+- **The page** is read under the space's share lock, as the admin's read is ([conventions §13](../backend/conventions.md#concurrency)); whether it is verified is read from its links under the same lock, through `space-links`, with the facts it decides on.
 - **The location** is read from its header with the query, by one shared schema, and kept off the request, so the request logger, which redacts the header, never writes it ([security › Location](../backend/security.md#location)).
 
 ## Behaviour and flows
@@ -60,6 +60,8 @@ Live status, the announcements, the reports and the favourites' cards are not bu
 - **Price bounds are in agorot, and both price filters leave out the spaces whose prices the page hides** (S4, S5). *Why:* the contract's one unit; a space found by "student prices" must show them. 2026-10-13, the directory item.
 - **A retired amenity is not shown on the page** (S8). *Why:* retiring withdraws it from what the platform offers. 2026-10-13, the directory item.
 - **Answers are kept 30 seconds with a validator; one ordered by distance is never kept** (D7, S7). 2026-10-13, the directory item.
+- **No answer to a request that carries the location is kept, a refusal or a failure included.** *Why:* the rule is about the request, not its success; the header was marked only after a successful read (Issue #69). 2026-10-13, #77.
+- **The page decides verified under the space's lock, with its facts.** *Why:* read just before, an owner unlinked meanwhile showed an unverified space's stale prices for one answer (Issue #69). 2026-10-13, #77.
 
 ## Code map
 
@@ -75,3 +77,4 @@ None.
 ### API history
 
 - The directory item — the list, the map's pins and a space's page; the search; near me from a header.
+- #77 — Issue #69: the tie-break tests made able to fail, `no-store` on every answer carrying the location, the page's verified under its lock, the spaces-only `q` named `too_short`.

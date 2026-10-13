@@ -113,7 +113,7 @@ Near me ([directory](../features/directory.md)) sorts on the server, so the devi
 - **It is sent in a header, only to sort by distance.** The `Masaha-Near: lat,lng` request header, never the query: a URL is written by the hosting's own request log and by any proxy's, which Masaha cannot redact; a header is not. The API refuses the header with any other order, and refuses distance without it ([the contract](../api/api-contract.md#directory-public)).
 - **It is rounded on the device, to 3 decimals** (about 110 m by 95 m in Gaza): a block of many buildings, not a home, yet fine enough for "near" among spaces that sit close together. The API **refuses a finer point** (`invalid_format`), so a client that skips the rounding fails rather than sending a precise location.
 - **It is never stored or logged.** It is read with the query and kept off the request, passed to the database only as a query parameter, and never written; the request logger redacts the header ([HTTP hardening](#http-hardening)). An API test reads the whole log line of a request that carries it.
-- **No cache keeps an answer computed from it:** that answer is `Cache-Control: no-store`. Each distance in it is straight-line, from the rounded point, to the nearest 100 m, and labelled approximate.
+- **No cache keeps an answer to a request that carries it:** every such answer, a refusal or a failure included, is `Cache-Control: no-store`. Each distance in it is a bare number, straight-line, from the rounded point, to the nearest 100 m; the screen labels it approximate.
 
 ## HTTP hardening
 

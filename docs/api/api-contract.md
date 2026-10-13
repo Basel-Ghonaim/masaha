@@ -198,9 +198,9 @@ What anyone reads without signing in, over the **publicly listed** spaces only (
   - both price filters leave out an unverified space whose prices are stale, which its page hides;
   - `openFriday=true`: Friday open in its hours; a space whose hours were never saved is left out;
   - `verified=true`: an active `OWNER` link;
-  - `q`, 1–80 characters: either name of the space, or either name of its area, matched forgivingly. Both sides are normalised (lowercased; tashkeel and tatweel removed; أ إ آ ٱ → ا, ة → ه, ى → ي), and a part of a name, or a near match (a typo), passes. A `q` with nothing but tashkeel, tatweel or spaces is `invalid_format`.
+  - `q`, 1–80 characters: either name of the space, or either name of its area, matched forgivingly. Both sides are normalised (lowercased; tashkeel and tatweel removed; أ إ آ ٱ → ا, ة → ه, ى → ي), and a part of a name, or a near match (a typo), passes. A `q` with nothing but tashkeel or tatweel, spaces around them included, is `invalid_format`; one of spaces only is empty once trimmed, `too_short`, as every text is.
 - **The location** travels in the `Masaha-Near: lat,lng` request header, never in the query, and only to sort by distance ([security › Location](../backend/security.md#location)): each coordinate with at most 3 decimals (`invalid_format` on `near` otherwise), inside the Gaza Strip's box (`out_of_range`).
-- **Caching:** an answer carries `Cache-Control: public, max-age=30` and a validator (`ETag`): the same request with `If-None-Match` answers `304` while it is unchanged. An answer ordered by distance carries `Cache-Control: no-store`.
+- **Caching:** an answer carries `Cache-Control: public, max-age=30` and a validator (`ETag`): the same request with `If-None-Match` answers `304` while it is unchanged. Every answer to a request that carries the `Masaha-Near` header, a refusal or a failure included, carries `Cache-Control: no-store`.
 
 ```ts
 DirectorySpace = {

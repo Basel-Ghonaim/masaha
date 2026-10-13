@@ -33,12 +33,15 @@ describe('directoryQuerySchema', () => {
     expect(listErrors({ sort: 'relevance' })).toEqual({ sort: ['invalid_choice'] });
   });
 
-  it('refuses a q made only of tashkeel, tatweel or spaces, which would match every space', () => {
+  it('refuses a q made only of tashkeel or tatweel, which would match every space', () => {
     expect(listErrors({ q: '\u064E\u0650' })).toEqual({ q: ['invalid_format'] });
     expect(listErrors({ q: '\u0640\u0640\u0640' })).toEqual({ q: ['invalid_format'] });
     expect(listErrors({ q: '\u0640 \u0670' })).toEqual({ q: ['invalid_format'] });
-    expect(listErrors({ q: '   ' })?.q).toContain('too_short');
-    expect(listErrors({ q: 'مَساحة' })).toBeNull();
+    expect(listErrors({ q: '\u0645\u064e\u0633\u0627\u062d\u0629' })).toBeNull();
+  });
+
+  it('refuses a q of spaces only as empty once trimmed, as every text is', () => {
+    expect(listErrors({ q: '   ' })).toEqual({ q: ['too_short'] });
   });
 
   it('reads the area list as distinct ids, at most 50', () => {

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createTestApp } from '../../../test/app.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
-import { createArea, createPublicSpace, seedSettings } from '../../../test/spaces.ts';
+import { createArea, createPublicSpace, moveRowToEnd, seedSettings } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
 import { createLogger } from '../../shared/http/index.ts';
 
@@ -48,6 +48,8 @@ describe('GET /spaces?sort=distance, from the Masaha-Near header', () => {
   it('orders spaces at one distance by id, so a page never repeats or skips one', async () => {
     const first = await createPublicSpace(areaId, 'First', { lat: 31.51, lng: 34.45 });
     const second = await createPublicSpace(areaId, 'Second', { lat: 31.51, lng: 34.45 });
+    // The first now comes last in a scan: only the tie-break by id keeps it first.
+    await moveRowToEnd(first.id);
 
     const response = await nearest('31.500,34.450', '&limit=1&page=2');
 
@@ -70,6 +72,13 @@ describe('GET /spaces?sort=distance, from the Masaha-Near header', () => {
 
     const response = await nearest('31.500,34.450');
 
+    expect(response.headers['cache-control']).toBe('no-store');
+  });
+
+  it('lets no cache keep a refusal of a request that carries the point either', async () => {
+    const response = await nearest('31.500,34.450', '&limit=0');
+
+    expect(response.status).toBe(422);
     expect(response.headers['cache-control']).toBe('no-store');
   });
 

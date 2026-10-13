@@ -7,6 +7,7 @@ import {
   addPrice,
   createArea,
   createPublicSpace,
+  moveRowToEnd,
   seedSettings,
   setWeek,
   signInOwnerOf,
@@ -103,10 +104,13 @@ describe('GET /spaces', () => {
 
   it('cuts the page after every filter, ties by id, so each page is full and the total right', async () => {
     const { id: otherArea } = await createArea();
-    for (let i = 1; i <= 23; i += 1) {
+    const earliest = await createPublicSpace(areaId, 'Space 1', { profileUpdatedAt: daysAgo(1) });
+    for (let i = 2; i <= 23; i += 1) {
       await createPublicSpace(areaId, `Space ${String(i)}`, { profileUpdatedAt: daysAgo(1) });
     }
     await createPublicSpace(otherArea, 'Elsewhere', { profileUpdatedAt: NOW });
+    // The first space now comes last in a scan: only the tie-break by id puts it first.
+    await moveRowToEnd(earliest.id);
 
     const first = await list(`?area=${String(areaId)}`);
     const second = await list(`?area=${String(areaId)}&page=2`);
