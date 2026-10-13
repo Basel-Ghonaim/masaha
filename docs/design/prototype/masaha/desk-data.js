@@ -171,11 +171,12 @@ window.DESK = (function () {
   };
   const todayMinutesRaw = (c) => { const p = presentOf(c.id); return p ? toMin(NOW) - toMin(p.since) : 0; };
   const paid = (sub) => sub.pays.filter((p) => !p[5]).reduce((a, p) => a + p[2], 0);
-  const subStatus = (sub) => { const d = daysBetween(TODAY, sub.to); return d < 0 ? 'expired' : d <= 7 ? 'soon' : 'active'; };
+  // DK-008: a subscription with no end date stays active until it is ended.
+  const subStatus = (sub) => { if (!sub.to) return 'active'; const d = daysBetween(TODAY, sub.to); return d < 0 ? 'expired' : d <= 7 ? 'soon' : 'active'; };
   const customerStatus = (c) => (currentSub(c) ? subStatus(currentSub(c)) : 'none');
   const payStatus = (sub, c) => { const d = due(sub, c), p = paid(sub); return p >= d ? 'paid' : p > 0 ? 'partial' : 'unpaid'; };
   const openItems = (c) => [
-    ...c.subs.filter((s) => due(s, c) - paid(s) > 0).map((s) => ({ id: s.id, kind: 'sub', label: s.name + ' · ' + fmtDate(s.from) + ' – ' + fmtDate(s.to), date: s.from, due: due(s, c), paid: paid(s) })),
+    ...c.subs.filter((s) => due(s, c) - paid(s) > 0).map((s) => ({ id: s.id, kind: 'sub', label: s.name + ' · ' + fmtDate(s.from) + ' – ' + (s.to ? fmtDate(s.to) : T('بلا تاريخ نهاية', 'No end date')), date: s.from, due: due(s, c), paid: paid(s) })),
     ...unpaid.filter((u) => u.customerId === c.id).map((u) => ({ id: u.id, kind: 'visit', label: T('زيارة', 'Visit') + ' · ' + fmtDate(u.date), date: u.date, due: u.amount, paid: 0 }))
   ].sort((a, b) => (a.date < b.date ? -1 : 1));
   const balance = (c) => openItems(c).reduce((a, i) => a + i.due - i.paid, 0);
@@ -193,7 +194,7 @@ window.DESK = (function () {
     if (t.hoursPerDay) out.push(T(`ساعات اليوم ${hm(todayMinutes(c, sub))} من ${t.hoursPerDay} س`, `Today ${hm(todayMinutes(c, sub))} of ${t.hoursPerDay} h`));
     if (t.hourBalance) out.push(T(`رصيد الساعات ${sub.used.hours || 0} من ${t.hourBalance} س`, `Hours ${sub.used.hours || 0} of ${t.hourBalance}`));
     if (sub.billing.type === 'usage') out.push(T(`يُحسب من الحضور: ${money(sub.billing.rate)} ${sub.billing.unit === 'hour' ? 'للساعة' : 'لليوم'}`, `Billed from attendance: ${money(sub.billing.rate)} per ${sub.billing.unit}`));
-    out.push(subStatus(sub) === 'expired' ? T(`انتهى في ${fmtDate(sub.to)}`, `Ended ${fmtDate(sub.to)}`) : T(`صالح حتى ${fmtDate(sub.to)}`, `Valid until ${fmtDate(sub.to)}`));
+    out.push(!sub.to ? T('بلا تاريخ نهاية', 'No end date') : subStatus(sub) === 'expired' ? T(`انتهى في ${fmtDate(sub.to)}`, `Ended ${fmtDate(sub.to)}`) : T(`صالح حتى ${fmtDate(sub.to)}`, `Valid until ${fmtDate(sub.to)}`));
     return out;
   };
   const termsLine = (sub) => {

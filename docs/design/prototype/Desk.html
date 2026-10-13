@@ -38,7 +38,7 @@ const initialDialog = (() => {
   if (d === 'pay') return { kind: 'pay', customerId: cid, itemId: pageParams.get('item'), visitId: pageParams.get('vid') };
   if (d === 'debt') return { kind: 'debt', visitId: pageParams.get('vid') };
   if (pageParams.get('writeoff') && IS_OWNER) return { kind: 'writeoff', visitId: pageParams.get('writeoff') };
-  if (d === 'sheet') return { kind: 'sheet', mode: pageParams.get('mode') || 'new', customerId: cid, name: pageParams.get('name') || '', pkg: pageParams.get('pkg'), payNow: pageParams.get('paynow') };
+  if (d === 'sheet') return { kind: 'sheet', mode: pageParams.get('mode') || 'new', customerId: cid, name: pageParams.get('name') || '', pkg: pageParams.get('pkg'), payNow: pageParams.get('paynow'), half: pageParams.get('half') === '1' };
   if (d === 'visit') return { kind: 'visit' };
   return null;
 })();

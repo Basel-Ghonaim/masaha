@@ -127,15 +127,29 @@ function DeskProvider({ children, initial }) {
       bump(); close();
       toast.success(tr(`لن يُحصَّل ${$(u.amount)} · ${who}`, `${$(u.amount)} written off · ${who}`), { description: tr('السبب: ', 'Reason: ') + reason });
     },
-    saveSubscription({ customerId, name, phone }, sub, payNow) {
+    // K3 + K4: the subscription, then its money — on a renewal, oldest first across what was owed
+    // before, one payment per item, the rest on the new subscription. `payment` null: the payment
+    // failed after the save (DK-018), so the sheet stays open and nothing is said yet.
+    saveSubscription({ customerId, name, phone }, sub, payment) {
       let c = customerId && D.findCustomer(customerId);
-      if (!c) { c = { id: 'c' + Date.now(), name, phone: normPhone(phone), subs: [] }; D.customers.unshift(c); }
-      else { c.name = name; c.phone = normPhone(phone) || c.phone; }
-      sub.pays = payNow && payNow.amount > 0 ? [[D.TODAY, D.NOW, payNow.amount, payNow.method, ME]] : [];
+      if (!c) { c = { id: 'c' + Date.now(), name, phone: phone ? normPhone(phone) : '', subs: [] }; D.customers.unshift(c); }
+      else if (!c.phone && phone) c.phone = normPhone(phone);
+      const prior = payment && payment.renew ? D.openItems(c) : [];
       c.subs.unshift(sub);
+      if (!payment) { bump(); return c; }
+      let left = payment.recorded; const parts = [];
+      for (const it of prior) {
+        if (left <= 0) break;
+        const take = Math.min(left, it.due - it.paid); left -= take;
+        if (it.kind === 'sub') { const s = c.subs.find((x) => x.id === it.id); s.pays.push([D.TODAY, D.NOW, take, payment.method, ME]); parts.push((s.debtLabel || s.name) + ' ' + $(take)); }
+        else { const u = D.unpaid.find((x) => x.id === it.id); u.amount -= take; if (u.amount <= 0) D.unpaid.splice(D.unpaid.indexOf(u), 1); D.visitPays.unshift({ id: 'vp' + Date.now() + it.id, customerId: c.id, name: c.name, date: D.TODAY, time: D.NOW, amount: take, method: payment.method, by: ME }); parts.push(tr('زيارة ', 'Visit ') + D.fmtDate(it.date) + ' ' + $(take)); }
+      }
+      if (left > 0) { sub.pays.push([D.TODAY, D.NOW, left, payment.method, ME]); parts.push(sub.name + ' ' + $(left)); }
       bump(); close();
-      const left = sub.billing.type === 'fixed' ? sub.billing.amount - (payNow ? payNow.amount : 0) : null;
-      toast.success(tr('حُفظ الاشتراك', 'Subscription saved') + (left > 0 ? tr(` · المتبقي ${$(left)}`, ` · ${$(left)} left`) : ''), { description: c.name });
+      const owed = D.balance(c);
+      toast.success(payment.renew ? tr(`جُدّد اشتراك ${c.name}`, `${c.name}’s subscription renewed`) : tr(`حُفظ الاشتراك · ${c.name}`, `Subscription saved · ${c.name}`), {
+        description: sub.name + ' · ' + (payment.recorded > 0 ? paidLine(payment.recorded, payment.method) + (parts.length > 1 ? ': ' + parts.join(tr('، ', ', ')) : '') : tr('بدون دفع', 'No payment')) + (owed > 0 ? tr(` · المتبقي ${$(owed)} دين`, ` · ${$(owed)} owed`) : '')
+      });
       return c;
     },
     // P9: a settled customer is archived at once and can be put back from the toast.
