@@ -3,11 +3,21 @@
 window.DESK = (function () {
   const T = window.tr;
   const TODAY = '2026-09-29', NOW = '12:40', TODAY_KEY = 'tue', CLOSE = '18:00';
-  const PRICES = { hour: 3, day: 15, week: 90, month: 300, studentMonth: 250 };
+  const PRICES = { hour: 3, day: 15, week: 90, month: 300, studentMonth: 250, studentHour: null, studentDay: null };
   // Demo: ?prices=dayonly (no hour price) or ?prices=none (no hour and no day price).
   const PM = new URLSearchParams(location.search).get('prices');
   if (PM === 'dayonly' || PM === 'none') PRICES.hour = null;
   if (PM === 'none') PRICES.day = null;
+  // The fix phase's sample states, a comma list as on the owner's pages: ?demo=noshifts,nocap,nostudent,studentprices.
+  const DEMO = (new URLSearchParams(location.search).get('demo') || '').split(',');
+  if (DEMO.includes('studentprices')) { PRICES.studentHour = 2; PRICES.studentDay = 10; }
+  // DK-021, DK-023: the space's settings (SpaceSettings), as Owner settings starts them: round up after
+  // 15 minutes, the cap at the day price on, student prices for visits on.
+  const SETTINGS = { roundAfter: 15, cap: !DEMO.includes('nocap'), studentVisits: !DEMO.includes('nostudent') };
+  // «طالب» changes a visit's rate only when the setting is on and the space publishes a student hour or day price.
+  const STUDENT_VISITS = SETTINGS.studentVisits && (PRICES.studentHour != null || PRICES.studentDay != null);
+  // The space's shifts, as the profile's sample saves them; ?demo=noshifts: none saved.
+  const SHIFT_LIST = DEMO.includes('noshifts') ? [] : [{ id: 'am', from: '08:00', to: '13:00' }, { id: 'pm', from: '13:00', to: '18:00' }];
   const WEEKDAYS = [['sat', T('السبت', 'Sat')], ['sun', T('الأحد', 'Sun')], ['mon', T('الاثنين', 'Mon')], ['tue', T('الثلاثاء', 'Tue')], ['wed', T('الأربعاء', 'Wed')], ['thu', T('الخميس', 'Thu')], ['fri', T('الجمعة', 'Fri')]];
   const SHIFTS = { am: T('الوردية الصباحية', 'Morning shift'), pm: T('الوردية المسائية', 'Evening shift') };
   const PACKAGES = [
@@ -75,10 +85,11 @@ window.DESK = (function () {
   const subPresent = [['m1', '08:05'], ['m2', '08:30'], ['m4', '10:30'], ['m7', '09:10'], ['m9', '09:40'], ['m11', '08:47']];
   const fTimes = ['07:58', '08:12', '08:20', '08:31', '08:55', '09:02', '09:18', '09:33', '09:50', '10:15', '10:44', '11:06', '11:48'];
   fTimes.forEach((t, i) => subPresent.push(['f' + i, t]));
-  const visits = [[T('هبة المصري', 'Heba Al-Masri'), '08:40', true], [T('تالا شراب', 'Tala Sharab'), '09:25'], [T('روان مهنا', 'Rawan Muhanna'), '10:05', true], [T('آدم الحلو', 'Adam Al-Helou'), '10:50'], [T('جنى أبو ندى', 'Jana Abu Nada'), '11:15'], [T('ريم بكر', 'Reem Bakr'), '11:40'], [T('حسن الطويل', 'Hasan Al-Taweel'), '12:05'], [T('لمى الكرد', 'Lama Al-Kurd'), '12:20']];
+  const visits = [[T('هبة المصري', 'Heba Al-Masri'), '08:40', true], [T('تالا شراب', 'Tala Sharab'), '09:25'], [T('روان مهنا', 'Rawan Muhanna'), '10:05', true], [T('آدم الحلو', 'Adam Al-Helou'), '10:50'], [T('جنى أبو ندى', 'Jana Abu Nada'), '11:15'], [T('أحمد الشوا', 'Ahmad Al-Shawa'), '11:40', false, 'm5'], [T('حسن الطويل', 'Hasan Al-Taweel'), '12:05'], [T('لمى الكرد', 'Lama Al-Kurd'), '12:20']];
+  // DK-020: a visit may be checked in as a customer (pv5: Ahmad, whose subscription has ended).
   const present = [
     ...subPresent.map(([cid, since], i) => ({ id: 'ps' + i, kind: 'sub', customerId: cid, since })),
-    ...visits.map(([name, since, student], i) => ({ id: 'pv' + i, kind: 'visit', name, since, student: !!student }))
+    ...visits.map(([name, since, student, cid], i) => ({ id: 'pv' + i, kind: 'visit', name, since, student: !!student && STUDENT_VISITS, customerId: cid || null }))
   ].sort((a, b) => (a.since < b.since ? 1 : -1));
 
   // Unpaid visits: left without paying, or checked out automatically at closing.
@@ -121,14 +132,23 @@ window.DESK = (function () {
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const fmtDate = (iso, withYear) => new Date(iso + 'T12:00:00').toLocaleDateString(T('ar-EG', 'en-GB'), { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}), numberingSystem: 'latn' });
   const money = (n) => (window.LANG === 'en' ? '₪' + n : n + ' ₪');
-  // Visits: rounded up to the next hour after a 10-minute grace, capped at the day price.
-  const visitCharge = (inT, outT = NOW) => {
-    const mins = Math.max(0, toMin(outT) - toMin(inT));
-    if (!PRICES.hour) return PRICES.day ? { mode: 'day', mins, hours: 0, amount: PRICES.day } : { mode: 'manual', mins, hours: 0, amount: null };
-    const hours = Math.max(1, Math.floor(mins / 60) + (mins % 60 > 10 ? 1 : 0));
-    const byHour = hours * PRICES.hour;
-    return { mode: 'hour', mins, hours, byHour, capped: byHour > PRICES.day, amount: Math.min(byHour, PRICES.day) };
+  // A visit's rates: the student ones where «طالب» counts and the space has them, else the general ones.
+  const visitRates = (student) => {
+    const s = student && STUDENT_VISITS;
+    return { hour: s && PRICES.studentHour != null ? PRICES.studentHour : PRICES.hour, day: s && PRICES.studentDay != null ? PRICES.studentDay : PRICES.day };
   };
+  // DK-021: the space's rounding (up after SETTINGS.roundAfter minutes), capped at the day price when the cap is on.
+  const visitCharge = (inT, outT = NOW, student = false) => {
+    const mins = Math.max(0, toMin(outT) - toMin(inT));
+    const r = visitRates(student);
+    if (!r.hour) return r.day ? { mode: 'day', mins, hours: 0, day: r.day, amount: r.day } : { mode: 'manual', mins, hours: 0, amount: null };
+    const hours = Math.max(1, Math.floor(mins / 60) + (mins % 60 > SETTINGS.roundAfter ? 1 : 0));
+    const byHour = hours * r.hour;
+    const capped = SETTINGS.cap && r.day != null && byHour > r.day;
+    return { mode: 'hour', mins, hours, hour: r.hour, day: r.day, byHour, capped, amount: capped ? r.day : byHour };
+  };
+  // The shift in progress now, or '' outside every shift.
+  const currentShift = () => { const s = SHIFT_LIST.find((x) => toMin(x.from) <= toMin(NOW) && toMin(NOW) < toMin(x.to)); return s ? s.id : ''; };
   const findCustomer = (id) => customers.find((c) => c.id === id);
   const presentOf = (cid) => present.find((p) => p.customerId === cid);
   const currentSub = (c) => c.subs[0] || null;
@@ -180,6 +200,8 @@ window.DESK = (function () {
   const statusBadge = { active: ['success', T('نشط', 'Active')], soon: ['warning', T('ينتهي قريبًا', 'Ending soon')], expired: ['neutral', T('منتهٍ', 'Expired')], none: ['neutral', T('بدون اشتراك', 'No subscription')] };
   const payBadge = { paid: ['success', T('مدفوع', 'Paid')], partial: ['warning', T('مدفوع جزئيًا', 'Partly paid')], unpaid: ['destructive', T('غير مدفوع', 'Unpaid')] };
   const methodLabel = { cash: T('نقدًا', 'Cash'), transfer: T('تحويل', 'Transfer') };
+  // K4: the method inside a sentence («استُلم 12 ₪ نقدًا»).
+  const methodIn = { cash: T('نقدًا', 'in cash'), transfer: T('تحويلًا', 'by transfer') };
 
   // Finance demo series (collected, voids excluded). Months oldest → newest, ending Sep 2026.
   const MONTHS = ['2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09'];
@@ -200,5 +222,6 @@ window.DESK = (function () {
   const collected = (rows) => rows.filter((r) => !r.voided).reduce((a, r) => a + r.amount, 0);
 
   return { ledger, collected, MONTHS, monthly, daily30, heat, perDay, staffMonth, leftToday, credit, TODAY, NOW, TODAY_KEY, CLOSE, PRICES, WEEKDAYS, SHIFTS, PACKAGES, pkg, customers, present, unpaid, visitPays, attendance, capacity: 40,
+    SETTINGS, STUDENT_VISITS, SHIFT_LIST, visitRates, currentShift, methodIn,
     toMin, hm, daysBetween, addDays, fmtDate, money, visitCharge, findCustomer, presentOf, currentSub, todayMinutes, due, paid, subStatus, customerStatus, payStatus, openItems, balance, subKind, progress, termsLine, statusBadge, payBadge, methodLabel, by, SAMI: SM, AHMAD: A };
 })();

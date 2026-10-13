@@ -8,6 +8,15 @@ const durLabel = (mins) => { const h = Math.floor(mins / 60), m = mins % 60; ret
 const nameOf = (p) => (p.kind === 'visit' ? p.name : D.findCustomer(p.customerId).name);
 const normPhone = (v) => { let d = (v || '').replace(/\D/g, ''); if (!d) return ''; if (d.startsWith('00')) d = d.slice(2); if (d.startsWith('0')) d = '970' + d.slice(1); if (!d.startsWith('970')) d = '970' + d; const r = d.slice(3); return '+970 ' + r.slice(0, 2) + ' ' + r.slice(2, 5) + ' ' + r.slice(5, 9); };
 const phoneOk = (v) => normPhone(v).replace(/\D/g, '').length === 12;
+// K4: a stay and a payment in words, for a toast («4 س 35 د», «استُلم 12 ₪ نقدًا»).
+const durText = (mins) => { const h = Math.floor(mins / 60), m = mins % 60; return LANG === 'en' ? (h ? h + 'h ' : '') + m + 'm' : (h ? h + ' س ' : '') + m + ' د'; };
+const paidLine = (n, method) => tr(`استُلم ${$(n)} ${D.methodIn[method]}`, `${$(n)} received ${D.methodIn[method]}`);
+// DK-018: a money request carries its key (ADR 0015), so its failure says a retry is safe.
+const MONEY_RETRY = tr('لم يصل الرد. أعد المحاولة — لن تُسجَّل مرتين.', 'No answer came back. Try again — it won’t be recorded twice.');
+// Foundation §10: a failed submit moves focus to the first invalid field of the open dialog or sheet.
+const focusInvalid = () => setTimeout(() => { const bad = document.querySelector('[role=dialog] [aria-invalid="true"], [role=alertdialog] [aria-invalid="true"]'); if (bad) bad.focus(); });
+// DK-010: a subscriber on a fixed price has nothing to settle at check-out, so it is one tap.
+const isQuickOut = (p) => { if (p.kind !== 'sub') return false; const s = D.currentSub(D.findCustomer(p.customerId)); return !s || s.billing.type === 'fixed'; };
 
 const DeskCtx = React.createContext(null);
 const useDesk = () => React.useContext(DeskCtx);
@@ -26,8 +35,9 @@ function DeskProvider({ children, initial }) {
       D.present.unshift({ id: 'n' + Date.now(), kind: 'sub', customerId: cid, since: D.NOW });
       bump(); close(); toast.success(tr(`سُجّل حضور ${D.findCustomer(cid).name}`, `${D.findCustomer(cid).name} checked in`));
     },
-    checkInVisit(name, student, shift) {
-      D.present.unshift({ id: 'n' + Date.now(), kind: 'visit', name, student, shift, since: D.NOW });
+    // DK-020: a visit may be checked in as a customer, whose file it then joins.
+    checkInVisit(name, student, shift, customerId) {
+      D.present.unshift({ id: 'n' + Date.now(), kind: 'visit', name, student: !!student, shift, customerId: customerId || null, since: D.NOW });
       bump(); close(); toast.success(tr(`سُجّلت زيارة ${name}`, `Visit for ${name} checked in`));
     },
     // Subscriber check-in: one tap unless something needs a look; warnings never block.
@@ -36,27 +46,41 @@ function DeskProvider({ children, initial }) {
       if (!w.length) return api.checkInSub(cid);
       open('warn', { customerId: cid, warnings: w });
     },
-    checkOut(pid, { received = 0, method = 'cash', debt, due } = {}) {
+    // K2 + K7: `recorded` is what the ledger takes — never more than a visit's charge; `change` is
+    // handed back. What stays unpaid becomes the debt of the visit's customer, found or made by phone.
+    checkOut(pid, { recorded = 0, change = 0, method = 'cash', debt, due } = {}) {
       const i = D.present.findIndex((p) => p.id === pid); const p = D.present[i];
       D.present.splice(i, 1);
       const mins = D.toMin(D.NOW) - D.toMin(p.since);
+      const c = p.customerId ? D.findCustomer(p.customerId) : null;
+      const who = c ? c.name : p.name;
+      let desc;
       if (p.kind === 'visit') {
-        const charge = due != null ? due : D.visitCharge(p.since).amount;
-        if (received > 0) D.visitPays.unshift({ id: 'vp' + Date.now(), name: p.name, date: D.TODAY, time: D.NOW, amount: received, method, by: ME });
-        const left = charge - received;
-        if (left > 0) {
+        const charge = due != null ? due : D.visitCharge(p.since, D.NOW, p.student).amount;
+        const left = charge - recorded;
+        let debtor = c;
+        if (left > 0 && !debtor) {
           const phone = normPhone(debt.phone);
-          let c = D.customers.find((x) => x.phone === phone);
-          if (!c) { c = { id: 'c' + Date.now(), name: debt.name || p.name, phone, subs: [] }; D.customers.unshift(c); }
-          D.unpaid.unshift({ id: 'u' + Date.now(), customerId: c.id, date: D.TODAY, in: p.since, out: D.NOW, amount: left, how: 'left' });
-          toast.success(tr(`سُجّل خروج ${p.name} · عليه ${$(left)}`, `${p.name} checked out · owes ${$(left)}`));
-        } else toast.success(tr(`سُجّل خروج ${p.name} · دُفع ${$(received)}`, `${p.name} checked out · paid ${$(received)}`));
+          debtor = D.customers.find((x) => !x.archived && x.phone === phone);
+          if (!debtor) { debtor = { id: 'c' + Date.now(), name: debt.name || p.name, phone, subs: [] }; D.customers.unshift(debtor); }
+        }
+        if (recorded > 0) D.visitPays.unshift({ id: 'vp' + Date.now(), customerId: debtor ? debtor.id : null, name: debtor ? debtor.name : p.name, date: D.TODAY, time: D.NOW, amount: recorded, method, by: ME });
+        if (left > 0) D.unpaid.unshift({ id: 'u' + Date.now(), customerId: debtor.id, date: D.TODAY, in: p.since, out: D.NOW, amount: left, how: 'left' });
+        desc = left > 0
+          ? (recorded > 0 ? paidLine(recorded, method) + ' · ' : tr('لم يدفع · ', 'Not paid · ')) + tr(`المتبقي ${$(left)} دين على ${debtor.name}`, `${$(left)} left as a debt for ${debtor.name}`)
+          : paidLine(recorded, method) + tr(' عن الزيارة', ' for the visit') + (change > 0 ? tr(` · الباقي للزبون ${$(change)}`, ` · ${$(change)} change`) : '');
       } else {
-        const c = D.findCustomer(p.customerId); const s = D.currentSub(c);
+        const s = c && D.currentSub(c);
         if (s) { s.used.todayMin = (s.used.todayMin || 0) + mins; if (s.billing.type === 'usage' || s.terms.hourBalance) s.used.hours = (s.used.hours || 0) + Math.ceil(mins / 60); }
-        toast.success(tr(`سُجّل خروج ${c.name}`, `${c.name} checked out`));
+        desc = durText(mins);
+        if (s && s.billing.type === 'usage') {
+          if (recorded > 0) s.pays.push([D.TODAY, D.NOW, recorded, method, ME]);
+          const left = Math.max(0, D.due(s, c) - D.paid(s));
+          desc = (recorded > 0 ? paidLine(recorded, method) + tr(` عن ${s.name}`, ` for ${s.name}`) : tr('لم يدفع الآن', 'No payment now')) + (left > 0 ? tr(` · المتبقي ${$(left)} على الاشتراك`, ` · ${$(left)} left on the subscription`) : '');
+        }
       }
       bump(); close();
+      toast.success(tr(`سُجّل خروج ${who}`, `${who} checked out`), { description: desc });
     },
     // Applies to one item, or to the oldest first.
     pay(cid, amount, method, note, itemId) {
@@ -220,7 +244,7 @@ function WarnDialog({ dlg, onClose }) {
           <DK.DialogFooter className="flex flex-wrap gap-2">
             {ids.includes('here') ? <DK.Button onClick={() => desk.open('checkout', { presentId: dlg.warnings[0].presentId })}><DK.LogOutIcon />{tr('تسجيل خروج', 'Check out')}</DK.Button>
               : asVisit ? <>
-                <ActionButton actionKey="warn" onAction={() => desk.checkInVisit(c.name, !!c.student, null)}>{tr('تسجيل كزيارة', 'Check in as a visit')}</ActionButton>
+                <ActionButton actionKey="warn" onAction={() => desk.checkInVisit(c.name, !!c.student && D.STUDENT_VISITS, D.currentShift() || null, c.id)}>{tr('تسجيل كزيارة', 'Check in as a visit')}</ActionButton>
                 <DK.Button variant="outline" onClick={() => desk.open('sheet', { mode: ids.includes('expired') ? 'renew' : 'subscribe', customerId: c.id })}>{ids.includes('expired') ? tr('تجديد', 'Renew') : tr('اشتراك جديد', 'New subscription')}</DK.Button>
               </> : <ActionButton actionKey="warn" onAction={() => desk.checkInSub(c.id)}>{tr('تسجيل على أي حال', 'Check in anyway')}</ActionButton>}
             <DK.Button variant="ghost" onClick={onClose}>{tr('رجوع', 'Back')}</DK.Button>
@@ -233,7 +257,7 @@ function WarnDialog({ dlg, onClose }) {
 
 function MethodToggle({ value, onChange }) {
   return (
-    <DK.Field label={tr('طريقة الدفع', 'Method')}>
+    <DK.Field label={tr('الطريقة', 'Method')}>
       <DK.ToggleGroup type="single" value={value} onValueChange={(v) => v && onChange(v)}>
         <DK.ToggleGroupItem value="cash">{D.methodLabel.cash}</DK.ToggleGroupItem>
         <DK.ToggleGroupItem value="transfer">{D.methodLabel.transfer}</DK.ToggleGroupItem>
@@ -243,105 +267,134 @@ function MethodToggle({ value, onChange }) {
 }
 const Row = ({ k, v }) => <div className="flex items-center justify-between gap-3 py-1"><dt className="text-body-sm text-muted-foreground">{k}</dt><dd className="text-label">{v}</dd></div>;
 
-// 4.4 Check-out
+// K2: one money block wherever money is taken — what is due, what is received (filled with what is
+// due), the method, and a live line: the debt that remains, or the change to give back. `open`: a
+// usage-based subscription has no ceiling, so more than is due becomes credit, not change.
+const moneyOf = (due, value, open) => {
+  const rec = Math.max(0, Number(value) || 0);
+  return open
+    ? { rec, recorded: rec, left: Math.max(0, due - rec), change: 0, credit: Math.max(0, rec - due) }
+    : { rec, recorded: Math.min(rec, due), left: Math.max(0, due - rec), change: Math.max(0, rec - due), credit: 0 };
+};
+function MoneyBlock({ calc, due, dueLabel, dueField, open, value, onValue, method, onMethod, error, remainder, who, phoneNote, none = true, children }) {
+  const m = moneyOf(due, value, open);
+  const rest = remainder === 'sub' ? tr('يبقى على اشتراك', 'stays on the subscription of') + ' ' + who
+    : remainder === 'uncollected' ? tr('يبقى غير محصّل', 'stays uncollected')
+    : tr('يصبح دينًا على', 'becomes a debt for') + ' ' + who;
+  const line = m.change > 0 ? <>{tr('الباقي للزبون', 'Change to give back:')} <Money n={m.change} /></>
+    : m.credit > 0 ? <>{tr('يصبح له رصيد', 'Becomes credit:')} <Money n={m.credit} /></>
+    : m.left > 0 ? <>{tr('المتبقي', 'The remaining')} <Money n={m.left} /> {rest}{phoneNote ? tr(' — رقم الجوال مطلوب', ' — a mobile number is required') : ''}</>
+    : due > 0 ? tr('يُسجَّل المبلغ كاملًا.', 'Paid in full.') : tr('لا شيء مستحق الآن.', 'Nothing is due now.');
+  const nothing = () => { onValue('0'); setTimeout(() => { const tel = document.querySelector('[role=dialog] input[type=tel]'); if (tel) tel.focus(); }); };
+  return (
+    <div className="flex flex-col gap-4 rounded-lg bg-muted p-3">
+      {calc && <div className="flex flex-col gap-1 text-body-sm">{calc}</div>}
+      {dueField || <p className="text-heading-3">{dueLabel || tr('المستحق', 'Due')} <Money n={due} /></p>}
+      <div className="grid gap-4 md:grid-cols-2">
+        <DK.Field label={tr('المستلم الآن (₪)', 'Received now (₪)')} error={error}><DK.Input inputMode="numeric" dir="ltr" value={value} onChange={(e) => onValue(e.target.value.replace(/[^\d]/g, ''))} /></DK.Field>
+        {m.rec > 0 && <MethodToggle value={method} onChange={onMethod} />}
+      </div>
+      <p aria-live="polite" className="text-body-sm">{line}</p>
+      {m.left > 0 && children}
+      {none && m.rec > 0 && <DK.Button type="button" variant="outline" className="self-start" onClick={nothing}>{tr('لم يدفع شيئًا', 'Paid nothing')}</DK.Button>}
+    </div>
+  );
+}
+
+// DK-018: the 429 inside a money dialog says that nothing was recorded, so the retry is safe too.
+function MoneyRateNote() {
+  if (pageParams.get('state') !== 'ratelimit') return null;
+  return <DK.Alert variant="warning"><DK.AlertTitle>{RATE_LIMIT_LINE}</DK.AlertTitle><DK.AlertDescription>{tr('لم يُسجَّل شيء. إعادة المحاولة بعد ذلك لن تسجّله مرتين.', 'Nothing was recorded. Trying again after that won’t record it twice.')}</DK.AlertDescription></DK.Alert>;
+}
+
+// «خروج» on a row, a card or the file: one tap for a fixed-price subscriber (DK-010), the dialog otherwise.
+function OutButton({ p, size, variant = 'outline' }) {
+  const desk = useDesk();
+  const { busy, run } = useActionRun('checkout');
+  const quick = isQuickOut(p);
+  return <DK.Button size={size} variant={variant} loading={quick && busy} aria-label={tr('خروج ', 'Check out ') + nameOf(p)} onClick={() => (quick ? run(() => desk.checkOut(p.id)) : desk.open('checkout', { presentId: p.id }))}><DK.LogOutIcon />{tr('خروج', 'Check out')}</DK.Button>;
+}
+
+// 4.4 Check-out: a visit, or a subscriber billed from attendance.
 function CheckoutDialog({ dlg, onClose }) {
   const desk = useDesk();
   const p = dlg && D.present.find((x) => x.id === dlg.presentId);
   const [received, setReceived] = React.useState(''); const [method, setMethod] = React.useState('cash');
-  const [debtMode, setDebtMode] = React.useState(false); const [dName, setDName] = React.useState(''); const [dPhone, setDPhone] = React.useState(''); const [err, setErr] = React.useState({});
+  const [dName, setDName] = React.useState(''); const [dPhone, setDPhone] = React.useState(''); const [err, setErr] = React.useState({});
   const [manualAmt, setManualAmt] = React.useState('');
-  const ch0 = p && p.kind === 'visit' ? D.visitCharge(p.since) : null;
+  const c = p && p.customerId ? D.findCustomer(p.customerId) : null;
+  const s = p && p.kind === 'sub' && c ? D.currentSub(c) : null;
+  const ch0 = p && p.kind === 'visit' ? D.visitCharge(p.since, D.NOW, p.student) : null;
   const ch = ch0 && (ch0.mode === 'manual' ? { ...ch0, amount: Number(manualAmt) || 0 } : ch0);
-  React.useEffect(() => { if (p) { setManualAmt(''); setReceived(ch && ch0.mode !== 'manual' ? String(ch.amount) : ''); setMethod('cash'); setDebtMode(!!dlg.debt); setDName(p.kind === 'visit' ? p.name : ''); setDPhone(dlg.debt ? '059' : ''); setErr({}); } }, [dlg && dlg.presentId]);
+  // A usage-based subscriber: what the subscription owes so far, today included.
+  const subDue = s ? Math.max(0, D.due(s, c) - D.paid(s)) : 0;
+  const due = ch ? ch.amount : subDue;
+  React.useEffect(() => { if (p) { setManualAmt(''); setReceived(dlg.received != null ? dlg.received : ch0 && ch0.mode === 'manual' ? '' : String(due)); setMethod('cash'); setDName(p.kind === 'visit' ? p.name : ''); setDPhone(''); setErr({}); } }, [dlg && dlg.presentId]);
+  const { busy, run } = useActionRun('checkout');
   if (!p) return <DK.Dialog open={false}><DK.DialogContent closeLabel="" /></DK.Dialog>;
   const mins = D.toMin(D.NOW) - D.toMin(p.since);
-  const rec = Math.max(0, Number(received) || 0);
-  const left = ch ? Math.max(0, ch.amount - (debtMode ? 0 : rec)) : 0;
-  const needPhone = ch && (debtMode || left > 0);
-  const finish = (noPay) => {
-    if (!ch) return desk.checkOut(p.id);
-    if (ch.mode === 'manual' && !(ch.amount > 0)) return setErr({ manual: tr('أدخل مبلغ الزيارة', 'Enter the visit amount') });
-    const r = noPay ? 0 : Math.min(rec, ch.amount);
-    if (ch.amount - r > 0) {
-      if (!debtMode && !noPay && !needPhone) return;
-      const e = {}; if (!dName.trim()) e.name = tr('أدخل الاسم', 'Enter the name'); if (!phoneOk(dPhone)) e.phone = tr('رقم الجوال مطلوب ليُسجَّل المبلغ دينًا، مثل +970 59 000 0000', 'A mobile number is needed to record the debt, e.g. +970 59 000 0000');
-      setErr(e); if (Object.keys(e).length) return;
+  const m = moneyOf(due, received, !!s);
+  // An unpaid visit needs a phone; a visit checked in as a customer already has its debtor (DK-020).
+  const needPhone = !!ch && !c && m.left > 0;
+  const match = needPhone && phoneOk(dPhone) ? D.customers.find((x) => !x.archived && x.phone === normPhone(dPhone)) : null;
+  const finish = () => {
+    if (ch && ch.mode === 'manual' && !(ch.amount > 0)) { setErr({ manual: tr('أدخل مبلغ الزيارة', 'Enter the visit amount') }); return focusInvalid(); }
+    if (needPhone) {
+      const e = {};
+      if (!dName.trim()) e.name = tr('أدخل الاسم', 'Enter the name');
+      if (!phoneOk(dPhone)) e.phone = tr('رقم الجوال مطلوب ليُسجَّل المبلغ دينًا، مثل +970 59 000 0000', 'A mobile number is needed to record the debt, e.g. +970 59 000 0000');
+      setErr(e); if (Object.keys(e).length) return focusInvalid();
     }
-    desk.checkOut(p.id, { received: r, method, due: ch.amount, debt: { name: dName.trim(), phone: dPhone } });
+    run(() => desk.checkOut(p.id, { recorded: m.recorded, change: m.change, method, due, debt: { name: dName.trim(), phone: dPhone } }));
   };
-  let subBlock = null;
-  if (p.kind === 'sub') {
-    const c = D.findCustomer(p.customerId); const s = D.currentSub(c);
-    const lines = s ? D.progress(s, c) : [];
-    subBlock = (
-      <div className="flex flex-col gap-2 rounded-lg bg-muted p-3">
-        <span className="text-label">{s ? s.name : tr('بدون اشتراك', 'No subscription')}</span>
-        <ul className="flex flex-col gap-1 text-body-sm">{lines.map((l, i) => <li key={i}>{l}</li>)}</ul>
-        {s && s.billing.type === 'usage' && <p className="text-body-sm">{tr('اليوم', 'Today')} <Num>{Math.ceil(mins / 60)}</Num> {tr('س', 'h')} · {tr('المستحق حتى الآن', 'Due so far')} <Money n={D.due(s, c)} /></p>}
-      </div>
-    );
-  }
+  // DK-021: the line says the space's own rule; the cap only when it is on and applied.
+  const calc = ch && ch.mode === 'hour' ? <>
+    <span><Num>{ch.hours}</Num> {tr('س', 'h')} × <Money n={ch.hour} /> = <Money n={ch.byHour} /> · {tr('تقريب لأعلى بعد', 'rounded up after')} <Counted n={D.SETTINGS.roundAfter} ar={F_MINUTES.ar} en={F_MINUTES.en} /></span>
+    {ch.capped && <span>{tr('السقف: سعر اليوم', 'Cap: the day price')} <Money n={ch.day} /></span>}
+  </> : ch && ch.mode === 'day' ? <span>{tr('لا يوجد سعر بالساعة — سعر اليوم', 'No hourly price — the day price')} <Money n={ch.day} /></span>
+    : s ? <>
+      <span>{s.name} · {tr('يُحسب من الحضور:', 'Billed from attendance:')} <Money n={s.billing.rate} /> {s.billing.unit === 'hour' ? tr('للساعة', 'per hour') : tr('لليوم', 'per day')}</span>
+      <span>{tr('اليوم', 'Today')} <Num>{Math.ceil(mins / 60)}</Num> {tr('س', 'h')} · {tr('المدفوع', 'Paid')} <Money n={D.paid(s)} /></span>
+    </> : null;
+  const dueField = ch && ch.mode === 'manual' ? (
+    <DK.Field label={tr('مبلغ الزيارة (₪)', 'Visit amount (₪)')} labelEnd={<DK.Badge variant="info">{tr('سعر يدوي', 'Manual price')}</DK.Badge>} helper={tr('لا يوجد سعر ساعة ولا سعر يوم منشور.', 'There’s no published hour or day price.')} error={err.manual}>
+      <DK.Input inputMode="numeric" dir="ltr" value={manualAmt} onChange={(e) => { const v = e.target.value.replace(/[^\d]/g, ''); setManualAmt(v); setReceived(v); }} autoFocus />
+    </DK.Field>
+  ) : null;
+  const label = m.recorded > 0 ? <>{tr('خروج واستلام', 'Check out and take')} <Money n={m.recorded} /></> : tr('خروج بدون دفع', 'Check out without paying');
   return (
     <DK.Dialog open onOpenChange={(o) => !o && onClose()}>
       <DK.DialogContent closeLabel={tr('إغلاق', 'Close')}>
         <DK.DialogHeader>
           <DK.DialogTitle>{tr('تسجيل خروج', 'Check out')} · {nameOf(p)}</DK.DialogTitle>
-          <DK.DialogDescription>{p.kind === 'visit' ? tr('زيارة', 'Visit') + (p.student ? tr(' · طالب', ' · student') : '') : tr('مشترك', 'Member')}</DK.DialogDescription>
+          <DK.DialogDescription>{p.kind === 'visit' ? tr('زيارة', 'Visit') + (p.student ? tr(' · طالب', ' · student') : '') : tr('مشترك · يُحسب من الحضور', 'Subscriber · billed from attendance')}</DK.DialogDescription>
         </DK.DialogHeader>
         <div className="flex flex-col gap-4">
           <dl className="flex flex-col divide-y">
             <Row k={tr('الدخول', 'In')} v={<Num>{p.since}</Num>} />
             <Row k={tr('الخروج', 'Out')} v={<Num>{D.NOW}</Num>} />
             <Row k={tr('المدة', 'Duration')} v={durLabel(mins)} />
-            {ch && ch.mode === 'hour' && <Row k={tr('تُحسب', 'Charged as')} v={<>{<Num>{ch.hours}</Num>} {tr('س · تقريب لأعلى بعد 10 دقائق', 'h · rounded up after 10 min')}</>} />}
           </dl>
-          {ch && <>
-            {ch.mode === 'manual' ? (
-              <div className="flex flex-col gap-2 rounded-lg bg-muted p-3">
-                <p className="text-body-sm">{tr('لا يوجد سعر ساعة ولا سعر يوم منشور. أدخل مبلغ الزيارة.', 'There’s no published hour or day price. Enter the visit amount.')}</p>
-                <DK.Field label={tr('مبلغ الزيارة (₪)', 'Visit amount (₪)')} labelEnd={<DK.Badge variant="info">{tr('سعر يدوي', 'Manual price')}</DK.Badge>} error={err.manual}>
-                  <DK.Input inputMode="numeric" dir="ltr" value={manualAmt} onChange={(e) => { const v = e.target.value.replace(/[^\d]/g, ''); setManualAmt(v); setReceived(v); }} autoFocus />
-                </DK.Field>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1 rounded-lg bg-muted p-3">
-                {ch.mode === 'day' ? <span className="text-body-sm">{tr('لا يوجد سعر بالساعة — سعر اليوم', 'No hourly price — day price')} <Money n={D.PRICES.day} /></span> : <>
-                  <span className="text-body-sm">{<Num>{ch.hours}</Num>} {tr('س', 'h')} × <Money n={D.PRICES.hour} /> = <Money n={ch.byHour} /></span>
-                  {ch.capped && <span className="text-body-sm">{tr('السقف: سعر اليوم', 'Cap: day price')} <Money n={D.PRICES.day} /></span>}
-                </>}
-                <span className="text-heading-3">{tr('المستحق', 'Due')} <Money n={ch.amount} /></span>
-              </div>
-            )}
-            {!debtMode && <div className="grid gap-4 md:grid-cols-2">
-              <DK.Field label={tr('المبلغ المستلم (₪)', 'Amount received (₪)')}><DK.Input inputMode="numeric" dir="ltr" value={received} onChange={(e) => setReceived(e.target.value.replace(/[^\d]/g, ''))} /></DK.Field>
-              <MethodToggle value={method} onChange={setMethod} />
-            </div>}
+          <MoneyBlock calc={calc} due={due} dueLabel={s ? tr('المستحق حتى الآن', 'Due so far') : undefined} dueField={dueField} open={!!s} value={received} onValue={setReceived} method={method} onMethod={setMethod}
+            remainder={s ? 'sub' : 'debt'} who={c ? c.name : dName.trim() || p.name} phoneNote={needPhone}>
             {needPhone && (
-              <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-                <p className="text-body-sm">{tr('المتبقي', 'Remaining')} <Money n={left} /> {tr('يصبح دينًا عليه، ويُنشأ له ملف زبون.', 'becomes a debt, and a customer record is created.')}</p>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <DK.Field label={tr('الاسم', 'Name')} error={err.name}><DK.Input value={dName} onChange={(e) => setDName(e.target.value)} /></DK.Field>
-                  <DK.Field label={tr('رقم الجوال', 'Mobile number')} error={err.phone}><DK.Input type="tel" dir="ltr" placeholder="+970 59 000 0000" value={dPhone} onChange={(e) => setDPhone(e.target.value)} /></DK.Field>
-                </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <DK.Field label={tr('الاسم', 'Name')} error={err.name}><DK.Input value={dName} onChange={(e) => setDName(e.target.value)} /></DK.Field>
+                <DK.Field label={tr('رقم الجوال', 'Mobile number')} error={err.phone} helper={match ? tr('يُضاف إلى ملف ', 'Added to the file of ') + match.name : undefined}><DK.Input type="tel" dir="ltr" placeholder="+970 59 000 0000" value={dPhone} onChange={(e) => setDPhone(e.target.value)} /></DK.Field>
               </div>
             )}
-          </>}
-          {subBlock}
+          </MoneyBlock>
+          <MoneyRateNote />
+          <ActionAlert for="checkout">{MONEY_RETRY}</ActionAlert>
         </div>
-        <ActionAlert for="checkout" />
         <DK.DialogFooter className="flex flex-wrap gap-2">
-          {ch ? (debtMode ? <>
-            <ActionButton actionKey="checkout" onAction={() => finish(true)}>{tr('تأكيد الخروج بدون دفع', 'Confirm check-out without paying')}</ActionButton>
-            <DK.Button variant="ghost" onClick={() => setDebtMode(false)}>{tr('رجوع', 'Back')}</DK.Button>
-          </> : <>
-            <ActionButton actionKey="checkout" onAction={() => finish(false)}>{tr('خروج ودفع', 'Check out and pay')}</ActionButton>
-            <DK.Button variant="outline" onClick={() => setDebtMode(true)}>{tr('خروج بدون دفع', 'Check out without paying')}</DK.Button>
-          </>) : <ActionButton actionKey="checkout" onAction={() => finish()}><DK.LogOutIcon />{tr('تسجيل خروج', 'Check out')}</ActionButton>}
+          <DK.Button loading={busy} onClick={finish}><DK.LogOutIcon />{label}</DK.Button>
         </DK.DialogFooter>
       </DK.DialogContent>
     </DK.Dialog>
   );
 }
+
 
 // 4.6 Receive payment
 function PayDialog({ dlg, onClose }) {
@@ -406,4 +459,4 @@ function PayDialog({ dlg, onClose }) {
   );
 }
 
-Object.assign(window, { DeskProvider, useDesk, CustomerCard, StatusBadge, BalanceBadge, Money, durLabel, nameOf, normPhone, phoneOk, checkInWarnings, MethodToggle, ME });
+Object.assign(window, { DeskProvider, useDesk, CustomerCard, StatusBadge, BalanceBadge, Money, durLabel, nameOf, normPhone, phoneOk, checkInWarnings, MethodToggle, ME, durText, paidLine, MONEY_RETRY, focusInvalid, isQuickOut, moneyOf, MoneyBlock, MoneyRateNote, OutButton });

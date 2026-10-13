@@ -33,7 +33,8 @@ if (pageParams.get('full') === '1') for (let i = DESK.present.length; i < DESK.c
 const initialDialog = (() => {
   const d = pageParams.get('dialog'); const cid = pageParams.get('cid');
   if (d === 'warn') return { kind: 'warn', customerId: cid, warnings: checkInWarnings(cid) };
-  if (d === 'checkout') return { kind: 'checkout', presentId: pageParams.get('pid'), debt: pageParams.get('debt') === '1' };
+  // DK-010: a fixed-price subscriber has no dialog — DeskInner checks them out on load instead.
+  if (d === 'checkout') { const p = DESK.present.find((x) => x.id === pageParams.get('pid')); if (p && isQuickOut(p)) return null; return { kind: 'checkout', presentId: pageParams.get('pid'), received: pageParams.get('debt') === '1' ? '0' : pageParams.get('received') }; }
   if (d === 'pay') return { kind: 'pay', customerId: cid, itemId: pageParams.get('item') };
   if (d === 'sheet') return { kind: 'sheet', mode: pageParams.get('mode') || 'new', customerId: cid, name: pageParams.get('name') || '', pkg: pageParams.get('pkg'), payNow: pageParams.get('paynow') };
   if (d === 'visit') return { kind: 'visit' };
@@ -41,7 +42,7 @@ const initialDialog = (() => {
 })();
 
 function Detail({ p }) {
-  if (p.kind === 'visit') { const v = DESK.visitCharge(p.since); return v.mode === 'manual' ? <span className="text-muted-foreground">{tr('يُحدَّد عند الخروج', 'Set at check-out')}</span> : <span>{tr('حتى الآن', 'So far')} <Money n={v.amount} /></span>; }
+  if (p.kind === 'visit') { const v = DESK.visitCharge(p.since, DESK.NOW, p.student); return v.mode === 'manual' ? <span className="text-muted-foreground">{tr('يُحدَّد عند الخروج', 'Set at check-out')}</span> : <span>{tr('حتى الآن', 'So far')} <Money n={v.amount} /></span>; }
   const c = DESK.findCustomer(p.customerId); const s = DESK.currentSub(c);
   if (!s) return <span className="text-muted-foreground">—</span>;
   const lines = DESK.progress(s, c);
@@ -58,10 +59,10 @@ function PresentList() {
   const [q, setQ] = React.useState('');
   const rows = DESK.present.filter((p) => !q.trim() || nameOf(p).includes(q.trim()));
   const subs = DESK.present.filter((p) => p.kind === 'sub').length;
-  const out = (p) => <Button variant="outline" size="sm" onClick={() => desk.open('checkout', { presentId: p.id })} aria-label={tr('خروج ', 'Check out ') + nameOf(p)}><LogOutIcon />{tr('خروج', 'Check out')}</Button>;
+  const out = (p) => <OutButton p={p} size="sm" />;
   const mins = (p) => DESK.toMin(DESK.NOW) - DESK.toMin(p.since);
   const columns = [
-    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => row.original.kind === 'sub' ? <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + row.original.customerId)}>{nameOf(row.original)}</a> : <span className="text-label">{nameOf(row.original)}</span> },
+    { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => row.original.customerId ? <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + row.original.customerId)}>{nameOf(row.original)}</a> : <span className="text-label">{nameOf(row.original)}</span> },
     { id: 'kind', header: tr('النوع', 'Type'), cell: ({ row }) => <KindBadge p={row.original} /> },
     { id: 'since', header: tr('منذ', 'Since'), cell: ({ row }) => <Num>{row.original.since}</Num> },
     { id: 'dur', header: tr('المدة', 'Duration'), cell: ({ row }) => durLabel(mins(row.original)) },
@@ -186,6 +187,8 @@ function DeskScreen() {
 function DeskInner({ theme, setTheme }) {
   const desk = useDesk();
   const [tab, setTab] = React.useState(pageParams.get('tab') === 'log' ? 'log' : 'now');
+  // DK-010: ?dialog=checkout&pid=<a fixed-price subscriber> checks them out on load, as the tap does.
+  React.useEffect(() => { const p = DESK.present.find((x) => x.id === pageParams.get('pid')); if (pageParams.get('dialog') === 'checkout' && p && isQuickOut(p)) setTimeout(() => desk.checkOut(p.id), 300); }, []);
   // P1, amended: the bottom bar holds only the action that is the page's purpose and is
   // used all day. «استلام دفعة» joins the other page actions in the top bar.
   const bottom = <Button className="w-full" onClick={() => desk.open('visit')}><LogInIcon />{tr('تسجيل زيارة', 'Check in a visit')}</Button>;
