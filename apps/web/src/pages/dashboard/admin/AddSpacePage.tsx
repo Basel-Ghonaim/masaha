@@ -10,7 +10,7 @@ import {
   BreadcrumbSeparator,
 } from '@shared/design-system';
 import { Link, useNavigate } from 'react-router';
-import { ADMIN_SPACES_PATH } from '../navigation';
+import { ADMIN_SPACES_PATH, adminSpacePath } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
 
 /** The form's area field, from `lookups`, made once so the form keeps it from render to render. */
@@ -18,7 +18,8 @@ const areaField: AreaField = (props) => <AreaSelect {...props} />;
 
 /**
  * The admin adds a space: the page's title in the top bar, the trail back to the spaces list, and
- * the form of `spaces` with the area field of `lookups`. Once the space is added, the list again.
+ * the form of `spaces` with the area field of `lookups`. Once the space is added, its editor, where
+ * its other facts follow.
  */
 export function AddSpacePage() {
   const copy = useCopy();
@@ -43,8 +44,8 @@ export function AddSpacePage() {
         </Breadcrumb>
         <AddSpaceForm
           areaField={areaField}
-          onCreated={() => {
-            void navigate(ADMIN_SPACES_PATH);
+          onCreated={(spaceId) => {
+            void navigate(adminSpacePath(spaceId));
           }}
         />
       </div>

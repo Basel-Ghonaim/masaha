@@ -9,7 +9,7 @@ import { useSetSpaceHidden } from '../hide/useSetSpaceHidden';
 import { useSpaceActionsHold } from '../hold/useSpaceActionsHold';
 
 /**
- * A space's row menu, ready to render: its button, named after the space; Hide, or Show for a hidden
+ * A space's row menu, ready to render: its button, named after the space; Edit; Hide, or Show for a hidden
  * space; and Delete, which asks first in a dialog whose title names the space. Its items wait while
  * the row's own action is pending, until the list has arrived again, and while any 429 counts down
  * (the hold); its button stays, busy while its action is.
@@ -30,6 +30,7 @@ export function useSpaceActionsMenu(space: SpaceRef) {
     // An accessible name is one string, so the name in it is isolated rather than marked.
     trigger: { label: lines.menu.actions({ name: isolate(name.text) }), busy },
     waiting: busy || hold.blocked,
+    edit: lines.menu.edit,
     toggle: {
       label: hidden ? lines.menu.show : lines.menu.hide,
       run: () => {

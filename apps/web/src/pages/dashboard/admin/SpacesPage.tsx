@@ -5,7 +5,7 @@ import { useCopy } from '@shared/copy';
 import { Button } from '@shared/design-system';
 import type { ComponentProps } from 'react';
 import { Link } from 'react-router';
-import { ADMIN_ADD_SPACE_PATH } from '../navigation';
+import { ADMIN_ADD_SPACE_PATH, adminSpacePath } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
 
 type ListSlots = ComponentProps<typeof AdminSpacesList>;
@@ -14,7 +14,12 @@ type ListSlots = ComponentProps<typeof AdminSpacesList>;
 // its rows from one render to the next.
 
 /** A row's menu, from `spaces`, for the space the row of `space-links`' list shows. */
-const spaceActions: ListSlots['actions'] = (row) => <SpaceActionsMenu space={row} />;
+const spaceActions: ListSlots['actions'] = (row) => (
+  <SpaceActionsMenu space={row} editLink={adminSpacePath(row.id)} />
+);
+
+/** A space's page, its editor, where the row's name leads. */
+const spaceLink: ListSlots['spaceLink'] = (row) => adminSpacePath(row.id);
 
 /** The list's "Governorate / area" field, from `lookups`. */
 const placeField: ListSlots['placeField'] = ({ value, onChange }) => (
@@ -23,8 +28,8 @@ const placeField: ListSlots['placeField'] = ({ value, onChange }) => (
 
 /**
  * The admin's spaces: the page's title, then the way to add a space, then the list of
- * `space-links` with each row's menu from `spaces` and the place field from `lookups`, and above it
- * the wait while a 429 holds the menus.
+ * `space-links` with each row's menu from `spaces`, its name leading to the space's editor, and the
+ * place field from `lookups`, and above it the wait while a 429 holds the menus.
  */
 export function SpacesPage() {
   const copy = useCopy();
@@ -40,7 +45,7 @@ export function SpacesPage() {
           </Button>
         </div>
         <SpaceActionsHold />
-        <AdminSpacesList actions={spaceActions} placeField={placeField} />
+        <AdminSpacesList actions={spaceActions} placeField={placeField} spaceLink={spaceLink} />
       </div>
     </>
   );

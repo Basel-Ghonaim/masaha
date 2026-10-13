@@ -23,9 +23,10 @@ const EMPTY: ProfileValues = {
 /**
  * The add-space form, ready to render: a space's basics and its location, checked in the browser by
  * the contract's schema and sent once. Once the space is created and the admin's lists have been
- * fetched again, the spaces list the page left included, a toast names it and `onCreated` runs.
+ * fetched again, the spaces list the page left included, a toast names it and `onCreated` runs with
+ * the new space's id.
  */
-export function useAddSpaceForm({ onCreated }: { onCreated: () => void }) {
+export function useAddSpaceForm({ onCreated }: { onCreated: (spaceId: number) => void }) {
   const words = useCopy().spaces.add;
   const create = useCreateSpace();
   const form = useServerForm<ProfileValues, CreateSpaceRequest>({
@@ -34,8 +35,8 @@ export function useAddSpaceForm({ onCreated }: { onCreated: () => void }) {
     fields: PROFILE_FIELDS,
     prepare: profileInput,
     submit: async (request) => {
-      await create.mutateAsync(request);
-      onCreated();
+      const space = await create.mutateAsync(request);
+      onCreated(space.id);
     },
     failureTitle: words.failureTitle,
     fieldLines: words.fieldErrors,

@@ -164,6 +164,7 @@ export const SPACES = {
   },
   menu: {
     actions: ({ name }: { name: string }) => `إجراءات: ${name}`,
+    edit: 'تعديل',
     hide: 'إخفاء',
     show: 'إظهار',
     delete: 'حذف',

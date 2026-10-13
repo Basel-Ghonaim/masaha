@@ -23,15 +23,18 @@ const column = createDataTableColumnHelper<AdminSpaceRowView>();
  *
  * The page that sets it fills two slots from other capabilities: each row's `actions`, in the last
  * column and at a card's end, and the `placeField`, inside the list's own "Governorate / area" field.
+ * Each space's name is a link to its page, by the path the page gives (`spaceLink`).
  * When the row that held the focus leaves the list, as a deleted space does, the focus moves to the
  * list rather than being lost.
  */
 export function AdminSpacesList({
   actions,
   placeField,
+  spaceLink,
 }: {
   actions: (space: AdminSpaceRow) => ReactNode;
   placeField: PlaceField;
+  spaceLink: (space: AdminSpaceRow) => string;
 }) {
   const list = useAdminSpacesList();
   const region = useRef<HTMLElement>(null);
@@ -57,7 +60,9 @@ export function AdminSpacesList({
         column.display({
           id: 'name',
           header: headers.space,
-          cell: (info) => <SpaceNameText name={info.row.original.name} />,
+          cell: (info) => (
+            <SpaceNameText name={info.row.original.name} to={spaceLink(info.row.original.row)} />
+          ),
         }),
         column.display({
           id: 'area',
@@ -95,7 +100,7 @@ export function AdminSpacesList({
           meta: { className: 'w-px' },
         }),
       ]),
-    [headers, noOwner, actions],
+    [headers, noOwner, actions, spaceLink],
   );
 
   return (
@@ -114,7 +119,9 @@ export function AdminSpacesList({
         columns={columns}
         data={list.rows}
         getRowId={(row) => String(row.id)}
-        renderCard={(row) => <AdminSpaceCard row={row} actions={actions(row.row)} />}
+        renderCard={(row) => (
+          <AdminSpaceCard row={row} actions={actions(row.row)} spaceLink={spaceLink(row.row)} />
+        )}
         loading={list.status === 'loading'}
         empty={<AdminSpacesState list={list} />}
         toolbar={<AdminSpacesToolbar filters={list.filters} placeField={placeField} />}

@@ -4,14 +4,23 @@ import { BadgeList } from './BadgeList';
 import { SpaceNameText } from './SpaceNameText';
 
 /**
- * A space as a card, on a phone: its name; its area, its owners and its last update on one line;
+ * A space as a card, on a phone: its name, a link to its page; its area, its owners and its last update on one line;
  * its state and freshness badges, which wrap; and its actions at the end.
  */
-export function AdminSpaceCard({ row, actions }: { row: AdminSpaceRowView; actions: ReactNode }) {
+export function AdminSpaceCard({
+  row,
+  actions,
+  spaceLink,
+}: {
+  row: AdminSpaceRowView;
+  actions: ReactNode;
+  /** The space's page, as the list's `spaceLink` gives it. */
+  spaceLink: string;
+}) {
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-1">
-        <SpaceNameText name={row.name} />
+        <SpaceNameText name={row.name} to={spaceLink} />
         <span className="text-caption text-muted-foreground">
           {row.area}
           <span aria-hidden> · </span>

@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { spacesKeys } from './queryKeys';
 
 /**
  * Fetches the admin's views again after a write on a space. A space's life shows in another
@@ -16,7 +17,19 @@ export function useRefreshAdmin({ includeInactive = false }: { includeInactive?:
   const queryClient = useQueryClient();
   return () =>
     queryClient.invalidateQueries(
-      { queryKey: ['admin'], refetchType: includeInactive ? 'all' : 'active' },
+      {
+        queryKey: ['admin'],
+        refetchType: includeInactive ? 'all' : 'active',
+        // A space's editor in the cache keeps its own state: a list's change is no change of it.
+        predicate: ({ queryKey }) => !isSpaceKey(queryKey),
+      },
       { cancelRefetch: false },
     );
+}
+
+/** Whether a key is one space's, as its editor reads it. */
+function isSpaceKey(queryKey: readonly unknown[]): boolean {
+  const [scope, capability, kind] = queryKey;
+  const [spaceScope, spaceCapability, spaceKind] = spacesKeys.space(0);
+  return scope === spaceScope && capability === spaceCapability && kind === spaceKind;
 }

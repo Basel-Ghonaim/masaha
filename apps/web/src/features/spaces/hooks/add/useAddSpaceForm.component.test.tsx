@@ -111,7 +111,7 @@ describe('useAddSpaceForm', () => {
     });
   });
 
-  it('once created, fetches the admin’s list it left and waits for it, says so by name, then hands over', async () => {
+  it('once created, fetches the admin’s list it left and waits for it, says so by name, then hands over the new space, kept for its editor', async () => {
     const listAgain = deferred<FakeAnswer>();
     let lists = 0;
     const { result, onCreated, client } = renderForm(undefined, () =>
@@ -142,7 +142,31 @@ describe('useAddSpaceForm', () => {
     await waitFor(() => {
       expect(onCreated).toHaveBeenCalledTimes(1);
     });
+    expect(onCreated).toHaveBeenCalledWith(7);
+    expect(client.getQueryData(['admin', 'spaces', 'space', 7])).toEqual(CREATED);
     expect(await toastTitled('Focus Hub added')).toBeInTheDocument();
+  });
+
+  it('fetches again none of the spaces whose editors the cache holds', async () => {
+    const { result, client, requests } = renderForm();
+    // A space's editor visited earlier, still in the cache.
+    await act(() =>
+      client.query({
+        queryKey: ['admin', 'spaces', 'space', 3],
+        queryFn: () => api.get('/admin/spaces/3'),
+      }),
+    );
+    await fillRequired(result);
+
+    submit(result);
+
+    await waitFor(() => {
+      expect(requests.filter(({ method }) => method === 'post')).toHaveLength(1);
+    });
+    await waitFor(() => {
+      expect(result.current.form.isPending).toBe(false);
+    });
+    expect(requests.filter(({ url }) => url === '/admin/spaces/3')).toHaveLength(1);
   });
 
   it('places the pin from the map, and sends it as its coordinates read, to five decimals', async () => {

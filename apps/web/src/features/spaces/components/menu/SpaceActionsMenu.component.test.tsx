@@ -2,6 +2,7 @@ import { createQueryClient } from '@shared/api';
 import { Toaster, toast } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -36,11 +37,13 @@ function renderMenus(
   const requests = fakeTransport((request) => (request.method === 'get' ? ok([]) : write(request)));
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <main>
-        <SpaceActionsHold />
-        <SpaceActionsMenu space={FOCUS} />
-        <SpaceActionsMenu space={PALM} />
-      </main>
+      <MemoryRouter>
+        <main>
+          <SpaceActionsHold />
+          <SpaceActionsMenu space={FOCUS} editLink="/spaces/7" />
+          <SpaceActionsMenu space={PALM} editLink="/spaces/9" />
+        </main>
+      </MemoryRouter>
       <Toaster label="Notifications" />
     </QueryClientProvider>,
   );
@@ -71,7 +74,7 @@ afterEach(() => {
 });
 
 describe('SpaceActionsMenu', () => {
-  it('opens from the keyboard: Hide for a shown space, then Delete', async () => {
+  it('opens from the keyboard: Edit, Hide for a shown space, then Delete', async () => {
     renderMenus();
 
     menuButton('Focus Hub').focus();
@@ -82,7 +85,9 @@ describe('SpaceActionsMenu', () => {
       within(menu)
         .getAllByRole('menuitem')
         .map((item) => item.textContent),
-    ).toEqual(['Hide', 'Delete']);
+    ).toEqual(['Edit', 'Hide', 'Delete']);
+    expect(within(menu).getByRole('menuitem', { name: 'Edit' })).toHaveFocus();
+    await userEvent.keyboard('{ArrowDown}');
     expect(within(menu).getByRole('menuitem', { name: 'Hide' })).toHaveFocus();
     await userEvent.keyboard('{ArrowDown}');
     expect(within(menu).getByRole('menuitem', { name: 'Delete' })).toHaveFocus();
@@ -196,7 +201,7 @@ describe('SpaceActionsMenu', () => {
     expect(menuButton('Focus Hub')).toHaveFocus();
   });
 
-  it('holds every row’s items while a 429 counts down, and shows the wait above them', async () => {
+  it('holds every row’s actions while a 429 counts down, and shows the wait above them, but never Edit', async () => {
     renderMenus(() => refused(429, { type: 'rate_limit' }, { 'retry-after': '30' }));
 
     await userEvent.click(menuButton('Focus Hub'));
@@ -209,9 +214,12 @@ describe('SpaceActionsMenu', () => {
     ).toBeVisible();
     await userEvent.click(menuButton('Palm Hub'));
     const menu = await screen.findByRole('menu');
-    for (const item of within(menu).getAllByRole('menuitem')) {
-      expect(item).toHaveAttribute('aria-disabled', 'true');
+    for (const name of ['Show', 'Delete']) {
+      expect(within(menu).getByRole('menuitem', { name })).toHaveAttribute('aria-disabled', 'true');
     }
+    expect(within(menu).getByRole('menuitem', { name: 'Edit' })).not.toHaveAttribute(
+      'aria-disabled',
+    );
   });
 
   it('has no accessibility violations, with its menu open, and with its dialog open', async () => {
@@ -228,5 +236,16 @@ describe('SpaceActionsMenu', () => {
     expect(
       await axe(document.body, { rules: { region: { enabled: false } } }),
     ).toHaveNoViolations();
+  });
+
+  it('leads to the space’s editor from Edit', async () => {
+    renderMenus();
+
+    await userEvent.click(menuButton('Palm Hub'));
+
+    expect(await screen.findByRole('menuitem', { name: 'Edit' })).toHaveAttribute(
+      'href',
+      '/spaces/9',
+    );
   });
 });

@@ -194,6 +194,8 @@ export const SPACES = {
   menu: {
     /** The menu's button, named after its space. */
     actions: ({ name }: { name: string }) => `Actions: ${name}`,
+    /** Leads to the space's editor. */
+    edit: 'Edit',
     hide: 'Hide',
     show: 'Show',
     delete: 'Delete',
