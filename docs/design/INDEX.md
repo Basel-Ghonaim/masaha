@@ -847,6 +847,7 @@ Added by the public fix (`CHANGES.md` › *Batch 3*). No screenshot yet: `screen
 | Cards · photos still loading — desktop 1440 | `Directory.html?loc=none&photos=loading` | 1440×1000 | — |
 | About · contact for everyone — desktop 1440 | `About.html#contact` | 1440×1000 | — |
 
+<<<<<<< HEAD
 ## 54 · Batch 4 — the account
 
 Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
@@ -871,3 +872,31 @@ Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `scree
 | Favourites · one left the directory — desktop 1440 | `Favorites.html?auth=1&loc=none` | 1440×1000 | — |
 | Favourites · nearest first — phone 390 | `Favorites.html?auth=1&loc=granted` | 390×844 | — |
 | My reports · two pages, a space that left — desktop 1440 | `Reports.html?auth=1&demo=pages` | 1440×1000 | — |
+## 55 · Batch 5 — the owner's management
+
+Added by the owner's fix (`CHANGES.md` › *Batch 5*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
+
+| Frame | Prototype URL | Viewport | Screenshot |
+|---|---|---|---|
+| Overview · a work queue, no money — desktop 1440 | `Owner overview.html` | 1440×1000 | — |
+| Overview · a work queue — phone 390 | `Owner overview.html` | 390×844 | — |
+| Overview · nothing needs you — phone 390 | `Owner overview.html?demo=clear` | 390×844 | — |
+| Phone bar · the account heads the drawer — phone 390 | `Owner overview.html?drawer=open` | 390×844 | — |
+| Overview · no capacity, a group never saved — desktop 1440 | `Owner overview.html?demo=missing,nocapacity` | 1440×1000 | — |
+| Space profile · a report on its section — phone 390 | `Owner space profile.html?report=d1#report` | 390×844 | — |
+| New package · limits on demand — phone 390 | `Packages.html?sheet=new` | 390×844 | — |
+| New announcement · the model's fields — phone 390 | `Announcements.html?sheet=new&type=closure` | 390×844 | — |
+| Space profile · the editor, prices as a row — desktop 1440 | `Owner space profile.html` | 1440×1000 | — |
+| Packages & prices · two sections — desktop 1440 | `Packages.html` | 1440×1000 | — |
+| Edit package · per day, no shifts saved — desktop 1440 | `Packages.html?edit=p4&demo=noshifts` | 1440×1000 | — |
+| Announcements · end now, no end, quiet types — desktop 1440 | `Announcements.html` | 1440×1000 | — |
+| Closure extension · the confirmation — desktop 1440 | `Announcements.html?tab=ended&extend=a6` | 1440×1000 | — |
+| Closure extension · reception's line — phone 390 | `Announcements.html?role=reception&tab=ended` | 390×844 | — |
+| Staff · the password, shown once — phone 390 | `Staff.html?pass=1` | 390×844 | — |
+| Finance · debts that page — phone 390 | `Finance.html?tab=debts` | 390×844 | — |
+| Audit log · the space's — phone 390 | `Owner audit.html` | 390×844 | — |
+| Staff · real columns, a pending password — desktop 1440 | `Staff.html` | 1440×1000 | — |
+| Data reports · the reporter is a visitor — desktop 1440 | `Data reports.html?open=d1` | 1440×1000 | — |
+| Finance · one month — desktop 1440 | `Finance.html?month=2026-08` | 1440×1000 | — |
+| Settings · attendance and the live state — desktop 1440 | `Owner settings.html#attendance` | 1440×1000 | — |
+| Audit log · the space's — desktop 1440 | `Owner audit.html` | 1440×1000 | — |

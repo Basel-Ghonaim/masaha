@@ -24,10 +24,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'prototype');
 const KNOWN = {
   'Customer file.html': ['-mt-3'],
   'Admin overview.html': ['hover:opacity-90'],
-  'Owner overview.html': ['hover:opacity-90'],
-  'Announcements.html': ['md:max-w-32'],
   'Customers.html': ['md:w-44'],
-  'Finance.html': ['md:w-72'],
   'Wordmark.html': ['wm-a', 'wm-word'],
 };
 const known = (file, c) => (KNOWN[file] || []).includes(c);

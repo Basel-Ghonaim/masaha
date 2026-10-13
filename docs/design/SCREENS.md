@@ -27,19 +27,19 @@ The screen list is owned by `docs/frontend/design-system/foundation.md` §13. Th
 
 | # | Screen | Who | Prototype page | Board sections |
 |---|---|---|---|---|
-| 12 | Overview | O | `Owner overview.html` | 29, 31 |
+| 12 | Overview | O | `Owner overview.html` | 29, 31, 55 |
 | 13 | Front desk (check in, check out, override, uncollected) | O + R | `Desk.html` | 20, 21, 22, 23, 24, 25, 31, 50, 51, 52 |
 | 14 | Customers | O + R | `Customers.html` | 24, 26, 31, 50, 52 |
 | 15 | Customer details (subscriptions, statement, payments) | O + R | `Customer file.html` | 27, 31, 41, 50, 51, 52 |
 | 16 | New / renew subscription (sheet) | O + R | `Desk.html?dialog=sheet…` | 24 |
 | 17 | Payments (owner: all + void · reception: «دفعاتي اليوم») | O + R | `Payments.html`, `My payments.html` | 28, 32, 50, 52 |
-| 18 | Announcements (+ closure extension, owner only) | O + R | `Announcements.html` | 38, 41 |
-| 19 | Finance & statistics | O | `Finance.html` | 33, 35, 50, 51, 52 |
-| 20 | Space profile | O | `Owner space profile.html` | 30, 34, 36, 49 |
-| 21 | Prices & packages | O | `Packages.html` | 34, 50 |
-| 22 | Staff | O | `Staff.html` | 37, 50 |
-| 23 | Data reports | O | `Data reports.html` | 39 |
-| 24 | Settings | O | `Owner settings.html` | 40 |
+| 18 | Announcements (+ closure extension, owner only) | O + R | `Announcements.html` | 38, 41, 55 |
+| 19 | Finance & statistics | O | `Finance.html` | 33, 35, 50, 51, 52, 55 |
+| 20 | Space profile | O | `Owner space profile.html` | 30, 34, 36, 49, 55 |
+| 21 | Prices & packages | O | `Packages.html` | 34, 50, 55 |
+| 22 | Staff | O | `Staff.html` | 37, 50, 55 |
+| 23 | Data reports | O | `Data reports.html` | 39, 55 |
+| 24 | Settings | O | `Owner settings.html` | 40, 55 |
 
 ## Admin (8)
 
