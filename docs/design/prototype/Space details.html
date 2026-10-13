@@ -41,7 +41,7 @@ function SignInDialog({ open, onOpenChange }) {
       <DialogContent closeLabel={tr("إغلاق", "Close")}>
         <DialogHeader>
           <DialogTitle>{open === 'report' ? tr("سجّل الدخول للإبلاغ عن معلومة", "Sign in to report information") : tr("سجّل الدخول لحفظ المساحات في المفضلة", "Sign in to save spaces to your favourites")}</DialogTitle>
-          <DialogDescription>{open === 'report' ? tr("نطلب تسجيل الدخول لنتابع البلاغ معك إن احتجنا توضيحًا.", "We ask you to sign in so we can follow up if we need details.") : tr("تجد المساحات التي تحفظها في حسابك على أي جهاز.", "Spaces you save are in your account on any device.")}</DialogDescription>
+          <DialogDescription>{open === 'report' ? tr("سجّل الدخول لتجد الردّ على بلاغك في «بلاغاتي».", "Sign in to find the reply to your report in “My reports”.") : tr("تجد المساحات التي تحفظها في حسابك على أي جهاز.", "Spaces you save are in your account on any device.")}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" asChild><a href={authHref('Register.html', open)}>{tr("إنشاء حساب", "Create account")}</a></Button>
@@ -130,10 +130,19 @@ function SpaceDetailsScreen() {
   const signedIn = pageParams.get('auth') === '1';
   const space = M.spaces.find((s) => s.id === (pageParams.get('id') || 'focus'));
   if (space && pageParams.get('demo') === 'stale') Object.assign(space, { stale: true, updatedDays: 40 });
-  const [fav, setFav] = React.useState(pageParams.get('fav') === '1');
-  const [signIn, setSignIn] = React.useState(pageParams.get('dialog') === 'signin' ? 'fav' : false);
+  const [fav, setFav] = React.useState(pageParams.get('fav') === '1' && !actionFails('fav'));
+  const [signIn, setSignIn] = React.useState(pageParams.get('dialog') === 'signin' ? 'fav' : pageParams.get('dialog') === 'signin-report' ? 'report' : false);
   const [report, setReport] = React.useState(pageParams.get('dialog') === 'report');
   const [platform, setPlatform] = React.useState(false);
+  // C4: the save failing on the way back (P8) says so, with a way to try again.
+  React.useEffect(() => {
+    if (space && pageParams.get('fav') === '1' && actionFails('fav')) {
+      const t = setTimeout(() => {
+        toast.error(tr(`تعذّر حفظ ${spaceName(space)} في المفضّلة`, `Couldn’t save ${spaceName(space)} to your favourites`), { action: { label: tr("إعادة المحاولة", "Try again"), onClick: () => { setFav(true); toast.success(favSavedLine(space)); } } });
+      }, 400);
+      return () => clearTimeout(t);
+    }
+  }, []);
   React.useEffect(() => { if (space) document.title = `${spaceName(space)} — ${tr('مساحة', 'Masaha')}`; }, []);
 
   const crumbs = (

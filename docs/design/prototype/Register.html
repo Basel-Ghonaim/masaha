@@ -71,7 +71,7 @@ function RegisterScreen() {
         return setTaken(true);
       }
       window.__pendingUser = { name: v.name.trim(), email: v.email.trim(), method: 'email' };
-      finishAuth(tr(`أهلًا ${v.name.trim().split(' ')[0]}، تم إنشاء حسابك`, `Welcome ${v.name.trim().split(' ')[0]}, your account is ready`));
+      finishAuth(withIntent(tr(`أهلًا ${v.name.trim().split(' ')[0]}، تم إنشاء حسابك`, `Welcome ${v.name.trim().split(' ')[0]}, your account is ready`)));
     }, 1200);
   };
 
@@ -105,6 +105,7 @@ function RegisterScreen() {
             {tr("لديك حساب؟", "Have an account?")}
             <Button variant="link" size="sm" asChild><a href={withNext('Sign in.html')}>{tr("تسجيل الدخول", "Sign in")}</a></Button>
           </p>
+          <AuthWayBack />
           <p className="text-center text-caption">{tr("تدير مساحة عمل؟ حسابات أصحاب المساحات ينشئها فريق مساحة — ", "Run a coworking space? Space owner accounts are created by the Masaha team — ")}<a href="About.html#owners">{tr("تواصل معنا", "Contact us")}</a></p>
         </CardFooter>
       </Card>

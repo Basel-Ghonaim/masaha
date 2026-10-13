@@ -57,6 +57,9 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Reset password.html?state=loading` · `unreachable` · `checkfailed` | the reset page | the same; `checkfailed`: the link's check refused (a 429), «افتح الرابط من بريدك الإلكتروني مرة أخرى.» |
 | `Register.html?state=toolong` | the register page | a password over 72 bytes: the fourth rule «طويلة جدًا — اختصرها», shown once broken (AC-020) |
 | `Forgot password.html?state=sent&email=<address>` | the forgot page | the link sent to that address, shown masked, so a typo shows («s•••@gmial.com») |
+| `?toast=welcomefav` | `Space details.html` | the return from signing in to save: «أهلًا سارة، تم إنشاء حسابك — حُفظت فوكس هاب في المفضّلة» (C4) |
+| `Space details.html?dialog=signin-report` | the space page | the sign-in dialog of «الإبلاغ», with AC-018's reason |
+| `Space details.html?…&fav=1&fail=fav` | the space page | the favourite's save failing on the way back: the failure toast with «إعادة المحاولة» |
 
 ## 01 · Flow
 
@@ -140,7 +143,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 |---|---|---|---|
 | 1 · Heart → sign-in dialog | `Space details.html?id=focus&loc=none&dialog=signin` | 390×844 | [04-space-details-variants/14-signed-out-heart-sign-in-dialog-phone-390.webp](screens/04-space-details-variants/14-signed-out-heart-sign-in-dialog-phone-390.webp) |
 | 2 · Register | `Register.html?next=Space details.html?id=focus&auth=1&fav=1` | 390×844 | [05-auth-flow/02-2-register.webp](screens/05-auth-flow/02-2-register.webp) |
-| 3 · Back on the space · toast | `Space details.html?id=focus&loc=none&auth=1&fav=1&toast=welcome` | 390×844 | [05-auth-flow/03-3-back-on-the-space-toast.webp](screens/05-auth-flow/03-3-back-on-the-space-toast.webp) |
+| 3 · Back on the space · toast | `Space details.html?id=focus&loc=none&auth=1&fav=1&toast=welcomefav` | 390×844 | [05-auth-flow/03-3-back-on-the-space-toast.webp](screens/05-auth-flow/03-3-back-on-the-space-toast.webp) |
 
 ## 06 · Sign in
 
@@ -831,3 +834,8 @@ Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `scree
 | Forgot · resends spent — phone 390 | `Forgot password.html?state=spent` | 390×844 | — |
 | Reset · the link could not be checked — phone 390 | `Reset password.html?state=checkfailed` | 390×844 | — |
 | Forgot · sent to a mistyped address, another email — phone 390 | `Forgot password.html?state=sent&email=sara@gmial.com` | 390×844 | — |
+| Sign in · from a space, the way back to it — phone 390 | `Sign in.html?next=Space details.html?id=focus&auth=1&fav=1` | 390×844 | — |
+| Back on the space · welcome and the saved favourite — phone 390 | `Space details.html?id=focus&loc=none&auth=1&fav=1&toast=welcomefav` | 390×844 | — |
+| Reset · new password, a way back — phone 390 | `Reset password.html?state=typing` | 390×844 | — |
+| Report → sign-in dialog, the reply in «بلاغاتي» — phone 390 | `Space details.html?id=focus&loc=none&dialog=signin-report` | 390×844 | — |
+| Back on the space · the save failed — phone 390 | `Space details.html?id=focus&loc=none&auth=1&fav=1&fail=fav&toast=welcome` | 390×844 | — |

@@ -3,6 +3,24 @@ const { Button: AButton, Field: AField, Input: AInput, InputAction: AInputAction
 const nextUrl = () => pageParams.get('next') || 'Home.html';
 const finishAuth = (...toasts) => { setUser(window.__pendingUser || { ...DEMO_USER, method: 'email' }); handOffToast(...toasts); location.href = carryParams(nextUrl()); };
 const withNext = (page) => (pageParams.get('next') ? `${page}?next=${encodeURIComponent(pageParams.get('next'))}` : page);
+// C4 (G1): the action that led to the sign-in rides in `next` (`fav=1`, `dialog=report`); on the way back
+// it is done and named. The report reopens its dialog, so only the favourite needs a line.
+const nextSpace = () => {
+  const n = pageParams.get('next'); if (!n) return null;
+  const [path, qs] = n.split('?'); const q = new URLSearchParams(qs || '');
+  if (path !== 'Space details.html') return null;
+  const s = M.spaces.find((x) => x.id === (q.get('id') || 'focus'));
+  return s ? { space: s, fav: q.get('fav') === '1' } : null;
+};
+const withIntent = (welcome) => { const n = nextSpace(); return n && n.fav ? welcome + ' — ' + favSavedLine(n.space) : welcome; };
+// C4: with `next`, the card's way out returns there; without it, to the directory.
+function AuthWayBack() {
+  const n = nextSpace();
+  const back = n ? { href: `Space details.html?id=${n.space.id}`, label: tr(`العودة إلى ${spaceName(n.space)}`, `Back to ${spaceName(n.space)}`) }
+    : pageParams.get('next') ? { href: 'Home.html', label: tr("العودة إلى الرئيسية", "Back to home") }
+    : { href: 'Directory.html', label: tr("تصفّح المساحات بدون حساب", "Browse spaces without an account") };
+  return <AButton variant="ghost" size="sm" asChild><a href={back.href}>{back.label}</a></AButton>;
+}
 // AC-022: a 429 counts down from the server's Retry-After, as the built forms do; the submit waits with
 // it, and the line beside it says why (foundation §10). The prototype's Retry-After is 42 seconds.
 const RETRY_AFTER = 42;
@@ -81,8 +99,12 @@ function useGoogleSignIn() {
       const mode = pageParams.get('google');
       if (mode === 'fail') return setFailed('token');
       window.__pendingUser = { ...DEMO_USER, method: mode === 'linked' ? 'linked' : 'google' };
-      if (mode === 'linked') return finishAuth(tr("ربطنا حساب Google بحسابك", "We linked your Google account to your account"));
-      finishAuth(tr("أهلًا سارة، تم إنشاء حسابك", "Welcome Sara, your account is ready"));
+      if (mode === 'linked') {
+        const l = demoToast('linked');
+        const n = nextSpace();
+        return finishAuth({ title: l.title, description: l.description, persist: true }, ...(n && n.fav ? [favSavedLine(n.space)] : []));
+      }
+      finishAuth(withIntent(tr("أهلًا سارة، تم إنشاء حسابك", "Welcome Sara, your account is ready")));
     }, 1000);
   };
   return { busy, failed, start, off };
@@ -176,4 +198,4 @@ function LinkSent({ message, email, left, onResend, resending, onOtherEmail, ful
   );
 }
 
-Object.assign(window, { AuthShell, GoogleButton, GoogleBlock, OrDivider, useGoogleSignIn, PasswordRules, PasswordField, passwordOk, NetworkAlert, LinkSent, RateLimitAlert, finishAuth, withNext, nextUrl, EMAIL_RE, RETRY_AFTER, mmss, useCountdown, useRetryAfter, maskEmail });
+Object.assign(window, { AuthShell, GoogleButton, GoogleBlock, OrDivider, useGoogleSignIn, PasswordRules, PasswordField, passwordOk, NetworkAlert, LinkSent, RateLimitAlert, nextSpace, withIntent, AuthWayBack, finishAuth, withNext, nextUrl, EMAIL_RE, RETRY_AFTER, mmss, useCountdown, useRetryAfter, maskEmail });
