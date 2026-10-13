@@ -47,5 +47,15 @@ window.OWNER = (function () {
   const groups = demo('clear') ? { profile: 3, hours: 3, prices: 3, amenities: 3, contacts: 3 } : { profile: 14, hours: 12, prices: 34, amenities: 20, contacts: 75 };
   const LIMIT = { prices: 30, other: 60 };
   const missing = demo('missing') ? ['amenities'] : [];
-  return { capacity: demo('nocapacity') ? null : 40, closeAt: '18:00', owner: { name: T('أحمد', 'Ahmad'), email: 'ahmad@example.com' }, spaces, members, present, log, history, attendanceOf, typeLabel, typeShort, shifts, statusBadge, daysLeft, fmtDate, now: '12:40', demo, NOW_ISO, groups, LIMIT, missing };
+  // O9: an announcement as the model holds it — a type, an Arabic text, an optional English one, a
+  // start and an end (null: until it is ended). No title and no author.
+  const announcements = [
+    { id: 'a1', type: 'closure', textAr: 'مغلقة مؤقتًا من الخميس حتى السبت لصيانة المولّد. نعود يوم الأحد.', textEn: 'Closed Thursday to Saturday for generator maintenance. We reopen on Sunday.', from: '2026-10-01T08:00', to: '2026-10-03T18:00' },
+    { id: 'a2', type: 'event', textAr: 'ورشة مجانية عن أدوات العمل عن بُعد يوم الأحد الساعة 11:00 في قاعة الاجتماعات.', textEn: 'A free workshop on remote-work tools on Sunday at 11:00 in the meeting room.', from: '2026-09-27T08:00', to: '2026-10-04T13:00' },
+    { id: 'a3', type: 'offer', textAr: 'شهري الطلاب 250 ₪ — أحضر بطاقتك الجامعية إلى الاستقبال.', textEn: 'Student month ₪250 — bring your student card to the front desk.', from: '2026-09-15T08:00', to: null },
+    { id: 'a6', type: 'closure', textAr: 'مغلقة بسبب انقطاع الكهرباء في المنطقة.', textEn: 'Closed because of a power cut in the area.', from: '2026-09-24T08:00', to: '2026-09-25T18:00' },
+    { id: 'a5', type: 'outage', textAr: 'الإنترنت بطيء هذا الصباح، ونعمل على إصلاحه.', textEn: '', from: '2026-09-22T08:00', to: '2026-09-22T12:00' },
+    { id: 'a4', type: 'closure', textAr: 'مغلقة لصيانة المولّد.', textEn: 'Closed for generator maintenance.', from: '2026-09-14T08:00', to: '2026-09-16T18:00', extended: { count: 19, days: 3, by: T('أحمد', 'Ahmad'), on: '2026-09-17' } }
+  ];
+  return { capacity: demo('nocapacity') ? null : 40, closeAt: '18:00', owner: { name: T('أحمد', 'Ahmad'), email: 'ahmad@example.com' }, spaces, members, present, log, history, attendanceOf, typeLabel, typeShort, shifts, statusBadge, daysLeft, fmtDate, now: '12:40', demo, NOW_ISO, groups, LIMIT, missing, announcements };
 })();

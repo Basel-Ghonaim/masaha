@@ -74,4 +74,3 @@ hand, as `shared.jsx`'s `without` does); and no top-level name that the browser 
 - **Navigation icons are placeholders.** Claude Design only had part of the icon set; the final icons are chosen in code (F-6).
 - **Sample data is illustrative.** Some admin frames reuse text from another space (for example Golden Hub's edit form shows Focus Hub's description).
 - **The Google button loads the Roboto font from Google Fonts;** offline it falls back to the system font.
-- **One older frame renders with an error:** `Announcements.html?tab=ended&edit=a4`, which the later announcement frames cover.

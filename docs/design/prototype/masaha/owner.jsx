@@ -231,6 +231,17 @@ function useHashLanding() {
   }, []);
 }
 
+// O10: an announcement is active from its start until its end, scheduled before, ended after.
+const annStatus = (a) => (a.to && a.to <= O.NOW_ISO ? 'ended' : a.from > O.NOW_ISO ? 'scheduled' : 'active');
+// Its period, in dates and times; with no end, «بلا موعد انتهاء».
+const annPeriod = (a) => {
+  const D = window.DESK; const d = (iso) => D.fmtDate(iso.slice(0, 10)); const t = (iso) => iso.slice(11, 16);
+  if (!a.to) return d(a.from) + ' ' + t(a.from) + tr(' · بلا موعد انتهاء', ' · no end');
+  return a.from.slice(0, 10) === a.to.slice(0, 10) ? d(a.from) + ' ' + t(a.from) + '–' + t(a.to) : d(a.from) + ' ' + t(a.from) + ' – ' + d(a.to) + ' ' + t(a.to);
+};
+// O11: the closure's days so far — all of them once it has ended.
+const closureDays = (a) => { const D = window.DESK; const end = a.to && a.to <= O.NOW_ISO ? a.to.slice(0, 10) : D.TODAY; return D.daysBetween(a.from.slice(0, 10), end) + 1; };
+
 // state: the automatic public state; a manual override turns it to Full while it runs.
 function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAction, actions, loadError, children }) {
   useHashLanding();
@@ -328,4 +339,4 @@ const F_SECTIONS_IN = { ar: { one: 'قسم واحد', two: 'قسمين', few: '{
 const F_MINUTES = { ar: { one: 'دقيقة', two: 'دقيقتين', few: '{n} دقائق', many: '{n} دقيقة', other: '{n} دقيقة' }, en: ['{n} min', '{n} min'] };
 const F_VALID = { ar: { one: 'صالحة يومًا واحدًا', two: 'صالحة يومين', few: 'صالحة {n} أيام', many: 'صالحة {n} يومًا', other: 'صالحة {n} يوم' }, en: ['valid {n} day', 'valid {n} days'] };
 const F_DAYS_N = { ar: { one: 'يوم واحد', two: 'يومان', few: '{n} أيام', many: '{n} يومًا', other: '{n} يوم' }, en: ['{n} day', '{n} days'] };
-Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF, AR_PLURAL, countText, Counted, useHashLanding, F_DAYS_AGO, F_DAYS_IN, F_DAYS_ACC, F_SUBS, F_SUBS_ACTIVE_ACC, F_EXTEND_VERB, F_EXTENDED, F_VISITS, F_UNPAID, F_SUBSCRIBERS, F_NEW_REPORTS, F_OWE, F_CUSTOMERS, F_SECTIONS_IN, F_MINUTES, F_VALID, F_DAYS_N });
+Object.assign(window, { OwnerShell, PublicStateBadge, PublicStateControl, publicState, Num, ROLE, IS_OWNER, roleQ, STAFF, AR_PLURAL, countText, Counted, useHashLanding, annPeriod, annStatus, closureDays, F_DAYS_AGO, F_DAYS_IN, F_DAYS_ACC, F_SUBS, F_SUBS_ACTIVE_ACC, F_EXTEND_VERB, F_EXTENDED, F_VISITS, F_UNPAID, F_SUBSCRIBERS, F_NEW_REPORTS, F_OWE, F_CUSTOMERS, F_SECTIONS_IN, F_MINUTES, F_VALID, F_DAYS_N });
