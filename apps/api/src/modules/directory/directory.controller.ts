@@ -2,15 +2,18 @@ import type { DirectoryQuery, MapPinsQuery } from '@masaha/shared/directory';
 import type { Request, Response } from 'express';
 
 import { buildPaginationMeta, sendSuccess } from '../../shared/http/index.ts';
-import { cachePublicly } from './cache.ts';
+import { cachePrivately, cachePublicly } from './cache.ts';
 import type { DirectoryService } from './directory.service.ts';
+import { listQueryOf } from './listQuery.ts';
 
 export function createDirectoryController(directory: DirectoryService) {
   return {
-    list: async (req: Request, res: Response) => {
-      const query = req.query as unknown as DirectoryQuery;
+    list: async (_req: Request, res: Response) => {
+      const query: DirectoryQuery = listQueryOf(res);
       const { rows, total } = await directory.list(query);
-      cachePublicly(res);
+      // An answer ordered from where someone is is theirs alone, and nothing keeps it.
+      if (query.near) cachePrivately(res);
+      else cachePublicly(res);
       sendSuccess(res, rows, { meta: buildPaginationMeta(query, total) });
     },
 

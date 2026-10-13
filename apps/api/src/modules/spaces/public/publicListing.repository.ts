@@ -1,5 +1,5 @@
 import type { Language } from '@masaha/shared/core';
-import type { Price } from '@masaha/shared/spaces';
+import type { Location, Price } from '@masaha/shared/spaces';
 
 import { prisma } from '../../../db/index.ts';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.ts';
@@ -14,6 +14,8 @@ const SEARCH_THRESHOLD = 0.3;
 
 /** Friday, as `space_hours` numbers the days (0 = Sunday). */
 const FRIDAY = 5;
+
+const EARTH_RADIUS_METRES = 6_371_000;
 
 /** What the public may filter the listed spaces by. */
 export interface PublicFilter {
@@ -35,7 +37,11 @@ export interface PublicFilter {
 }
 
 /** The orders of the public list; each ends with the id, so ties keep one order across pages. */
-export type PublicOrder = { by: 'updated' } | { by: 'name'; lang: Language } | { by: 'relevance' };
+export type PublicOrder =
+  | { by: 'updated' }
+  | { by: 'name'; lang: Language }
+  | { by: 'distance'; from: Location }
+  | { by: 'relevance' };
 
 export interface PublicSpaceRecord {
   id: number;
@@ -46,15 +52,25 @@ export interface PublicSpaceRecord {
   lat: number;
   lng: number;
   isVerified: boolean;
+  /** In metres, straight-line, only when ordered by distance. */
+  distance: number | null;
 }
 
 const { sql, join, empty } = Prisma;
+
+/** The great-circle distance in metres from `from` to the space (the haversine formula). */
+function distanceFrom({ lat, lng }: Location): Prisma.Sql {
+  return sql`(2 * ${EARTH_RADIUS_METRES}::float8 * asin(sqrt(
+    power(sin(radians(s.lat - ${lat}::float8) / 2), 2)
+    + cos(radians(${lat}::float8)) * cos(radians(s.lat))
+      * power(sin(radians(s.lng - ${lng}::float8) / 2), 2))))`;
+}
 
 /**
  * The listed spaces that pass the filter, with what each order needs: publicly listed means not
  * deleted, not hidden, in a listed area (data-model › Derived values).
  */
-function listed(filter: PublicFilter): Prisma.Sql {
+function listed(filter: PublicFilter, from?: Location): Prisma.Sql {
   const verified = sql`(s.id = ANY(${[...filter.verifiedIds]}::int[]))`;
   // The rule of `pricesHidden`, in the query: a verified space's prices, or fresh ones.
   const pricesShown = sql`(${verified} OR s.prices_updated_at >= ${filter.pricesStaleBefore})`;
@@ -104,7 +120,8 @@ function listed(filter: PublicFilter): Prisma.Sql {
       GREATEST(s.profile_updated_at, s.hours_updated_at, s.prices_updated_at,
                s.amenities_updated_at, s.contacts_updated_at) AS last_updated,
       ${verified} AS is_verified,
-      ${score} AS score
+      ${score} AS score,
+      ${from ? distanceFrom(from) : sql`NULL::float8`} AS distance
     FROM spaces s ${areaMatches}
     WHERE ${join(conditions, ' AND ')}`;
 }
@@ -123,6 +140,8 @@ function orderOf(order: PublicOrder): Prisma.Sql {
       return order.lang === 'ar'
         ? sql`COALESCE(name_ar, name_en) COLLATE "ar-x-icu", id`
         : sql`name_en COLLATE "en-x-icu", id`;
+    case 'distance':
+      return sql`distance, id`;
     case 'relevance':
       return sql`score DESC, id`;
   }
@@ -137,6 +156,7 @@ interface Row {
   lat: number;
   lng: number;
   is_verified: boolean;
+  distance: number | null;
 }
 
 function toRecord(row: Row): PublicSpaceRecord {
@@ -149,6 +169,7 @@ function toRecord(row: Row): PublicSpaceRecord {
     lat: row.lat,
     lng: row.lng,
     isVerified: row.is_verified,
+    distance: row.distance,
   };
 }
 
@@ -163,10 +184,10 @@ export function createPublicListingRepository(db: PrismaClient = prisma) {
       order: PublicOrder,
       { skip, take }: { skip: number; take: number },
     ): Promise<{ rows: PublicSpaceRecord[]; total: number }> {
-      const spaces = listed(filter);
+      const spaces = listed(filter, order.by === 'distance' ? order.from : undefined);
       const [rows, [count]] = await Promise.all([
         db.$queryRaw<Row[]>`
-          SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified
+          SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified, distance
           FROM (${spaces}) listed ${matching(filter)}
           ORDER BY ${orderOf(order)}
           LIMIT ${take} OFFSET ${skip}`,
@@ -179,7 +200,7 @@ export function createPublicListingRepository(db: PrismaClient = prisma) {
     /** The first `limit` listed spaces that pass the filter, by id. */
     async findFirst(filter: PublicFilter, limit: number): Promise<PublicSpaceRecord[]> {
       const rows = await db.$queryRaw<Row[]>`
-        SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified
+        SELECT id, slug, name_en, name_ar, area_id, lat, lng, is_verified, distance
         FROM (${listed(filter)}) listed ${matching(filter)}
         ORDER BY id
         LIMIT ${limit}`;

@@ -199,14 +199,16 @@ What anyone reads without signing in, over the **publicly listed** spaces only (
   - `openFriday=true`: Friday open in its hours; a space whose hours were never saved is left out;
   - `verified=true`: an active `OWNER` link;
   - `q`, 1–80 characters: either name of the space, or either name of its area, matched forgivingly. Both sides are normalised (lowercased; tashkeel and tatweel removed; أ إ آ ٱ → ا, ة → ه, ى → ي), and a part of a name, or a near match (a typo), passes. A `q` with nothing but tashkeel, tatweel or spaces is `invalid_format`.
-- **Caching:** an answer carries `Cache-Control: public, max-age=30` and a validator (`ETag`): the same request with `If-None-Match` answers `304` while it is unchanged.
+- **The location** travels in the `Masaha-Near: lat,lng` request header, never in the query, and only to sort by distance ([security › Location](../backend/security.md#location)): each coordinate with at most 3 decimals (`invalid_format` on `near` otherwise), inside the Gaza Strip's box (`out_of_range`).
+- **Caching:** an answer carries `Cache-Control: public, max-age=30` and a validator (`ETag`): the same request with `If-None-Match` answers `304` while it is unchanged. An answer ordered by distance carries `Cache-Control: no-store`.
 
 ```ts
 DirectorySpace = {
   id: number, slug: string, nameEn: string, nameAr: string | null,
   area: { id: number, nameAr: string, nameEn: string },   // its governorate: the catalogue's
   isVerified: boolean,
-  days: (OpeningRange | null)[] | null     // the week, Sunday first; null while never saved
+  days: (OpeningRange | null)[] | null,    // the week, Sunday first; null while never saved
+  distanceMeters?: number                  // ordered by distance only: straight-line, to the nearest 100 m
 }
 
 MapPin = {
@@ -233,7 +235,8 @@ PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | 
 
 #### `GET /spaces` · 🌐
 - **Query:** the filters, `sort`, `lang` and the page (§4): `?area=&period=&priceMin=&priceMax=&studentPrices=&openFriday=&verified=&q=&sort=&lang=&page=&limit=`.
-  - `sort`: `updated`, the latest of the space's groups' dates first, the default without `q`; `name`, by the name in `lang` (`ar`, the default: the Arabic name, else the English one; `en`: the English name), in that language's collation; `relevance`, best match first, the default with `q` and refused without it (`invalid_choice` on `sort`). Every order ends with the id, so ties keep their places across pages.
+  - `sort`: `updated`, the latest of the space's groups' dates first, the default without `q`; `name`, by the name in `lang` (`ar`, the default: the Arabic name, else the English one; `en`: the English name), in that language's collation; `relevance`, best match first, the default with `q` and refused without it (`invalid_choice` on `sort`); `distance`, nearest first, from the `Masaha-Near` header. Every order ends with the id, so ties keep their places across pages.
+  - `sort=distance` without the header is `required` on `near`; the header with any other order is `invalid_choice` on `near`.
 - **200:** `DirectorySpace[]` (`@masaha/shared/directory`), with `meta`.
 - **Errors:** `validation` (422).
 

@@ -1,6 +1,6 @@
 # Security
 
-> **Status:** Active · **Class:** Contract — rules to build against. **Built:** tokens and cookies; the password policy; `requireAuth`, which reads the account on every request; the refusal of suspended accounts at sign-in, refresh and every signed-in request; the rate limits of the sign-in flows, the password routes and the general API; the log redaction; `requireRole`, mounted once on `/admin`; the `OWNER` role that follows a person's owner links, and its revocation; the temporary password of an owner's account the admin creates; suspension and its revocation; the admin's role changes and their revocation; the admin's recovery with its audit. **Not yet built:** the temporary passwords created by an owner; the revocation when a reception link is deactivated; the upload limits; the data-report limit · **Last Updated:** 2026-10-11 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against. **Built:** tokens and cookies; the password policy; `requireAuth`, which reads the account on every request; the refusal of suspended accounts at sign-in, refresh and every signed-in request; the rate limits of the sign-in flows, the password routes and the general API; the log redaction; the location's rules (near me); `requireRole`, mounted once on `/admin`; the `OWNER` role that follows a person's owner links, and its revocation; the temporary password of an owner's account the admin creates; suspension and its revocation; the admin's role changes and their revocation; the admin's recovery with its audit. **Not yet built:** the temporary passwords created by an owner; the revocation when a reception link is deactivated; the upload limits; the data-report limit · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
 > **Authority:** Tokens, passwords, cookies, authorization, rate limits and HTTP hardening. The session model's reasoning is in [ADR 0003](../architecture/decisions/0003-session-model.md); the authorization model's in [ADR 0002](../architecture/decisions/0002-authorization-model.md).
 
 ## Tokens and cookies
@@ -106,10 +106,19 @@ The counters are stored in PostgreSQL, in the `rate_limits` table, so every inst
 - A 429 carries the error envelope, `Retry-After` and the `RateLimit-Policy` and `RateLimit` header fields.
 - `express-rate-limit`, approved in the foundation plan, is **not used**. It counts failures-only limits by adding every request and subtracting the successes after the response is sent: work after the response, which ADR 0014 forbids.
 
+## Location
+
+Near me ([directory](../features/directory.md)) sorts on the server, so the device's location reaches the API (the owner's change, 2026-10-13: it was never sent). These rules keep it from going further:
+
+- **It is sent in a header, only to sort by distance.** The `Masaha-Near: lat,lng` request header, never the query: a URL is written by the hosting's own request log and by any proxy's, which Masaha cannot redact; a header is not. The API refuses the header with any other order, and refuses distance without it ([the contract](../api/api-contract.md#directory-public)).
+- **It is rounded on the device, to 3 decimals** (about 110 m by 95 m in Gaza): a block of many buildings, not a home, yet fine enough for "near" among spaces that sit close together. The API **refuses a finer point** (`invalid_format`), so a client that skips the rounding fails rather than sending a precise location.
+- **It is never stored or logged.** It is read with the query and kept off the request, passed to the database only as a query parameter, and never written; the request logger redacts the header ([HTTP hardening](#http-hardening)). An API test reads the whole log line of a request that carries it.
+- **No cache keeps an answer computed from it:** that answer is `Cache-Control: no-store`. Each distance in it is straight-line, from the rounded point, to the nearest 100 m, and labelled approximate.
+
 ## HTTP hardening
 
 - `helmet` defaults; CORS allows one origin from the environment with credentials; `trust proxy` set.
 - JSON body limit 16 kB; upload limit 5 MB per photo, JPEG/PNG/WebP only, content checked, re-encoded with sharp.
 - Online, a request or a response is limited to 4.5 MB ([ADR 0014](../architecture/decisions/0014-deployment.md)), below the photo limit. Photos are therefore resized on the client or uploaded directly to storage.
 - The server refuses to start without a reachable database; graceful shutdown on SIGTERM/SIGINT.
-- **The HTTP logger redacts** the `cookie`, `authorization` and `set-cookie` headers, and any field named like a password or a token, and **never logs request bodies**. It is built in `shared/http`. The other logging rules are in [backend conventions §10](conventions.md#10-logging).
+- **The HTTP logger redacts** the `cookie`, `authorization`, `masaha-near` ([Location](#location)) and `set-cookie` headers, and any field named like a password or a token, and **never logs request bodies**. It is built in `shared/http`. The other logging rules are in [backend conventions §10](conventions.md#10-logging).

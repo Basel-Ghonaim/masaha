@@ -1,7 +1,12 @@
 import { z } from 'zod';
 
 import { LANGUAGES, paginationQuerySchema, textSchema } from '../core/index.ts';
-import { PRICE_MAX_AGOROT, PRICE_PERIODS, SPACE_NAME_MAX_LENGTH } from '../spaces/index.ts';
+import {
+  isInGazaStrip,
+  PRICE_MAX_AGOROT,
+  PRICE_PERIODS,
+  SPACE_NAME_MAX_LENGTH,
+} from '../spaces/index.ts';
 
 // The public directory's reads (docs/api/api-contract.md §5, Directory (public)).
 
@@ -12,10 +17,19 @@ export const DIRECTORY_AREAS_MAX = 50;
 export const MAP_PINS_CEILING = 1000;
 
 /**
- * The list's orders: the latest update first; by name in the interface's language; and best match
- * first, the default when `q` is given.
+ * The request header that carries the device's location, and only to sort by distance: a header,
+ * never the query, so no URL a host or a proxy logs holds it (docs/backend/security.md › Location).
  */
-export const DIRECTORY_SORTS = ['updated', 'name', 'relevance'] as const;
+export const NEAR_HEADER = 'Masaha-Near';
+
+/** The most decimals a coordinate of `near` may have: the device rounds to about 110 m. */
+export const NEAR_DECIMALS = 3;
+
+/**
+ * The list's orders: the latest update first; by name in the interface's language; nearest first,
+ * from `near`; and best match first, the default when `q` is given.
+ */
+export const DIRECTORY_SORTS = ['updated', 'name', 'distance', 'relevance'] as const;
 
 export type DirectorySort = (typeof DIRECTORY_SORTS)[number];
 
@@ -43,6 +57,23 @@ const searchText = textSchema(1, SPACE_NAME_MAX_LENGTH).refine(
   (text) => !NOT_SEARCHABLE.test(text),
   { params: { code: 'invalid_format' } },
 );
+
+const COORDINATE = `-?\\d{1,3}(?:\\.\\d{1,${String(NEAR_DECIMALS)}})?`;
+const NEAR = new RegExp(`^(${COORDINATE})\\s*,\\s*(${COORDINATE})$`);
+
+/**
+ * `lat,lng`, each with at most three decimals, inside the Gaza Strip's box: a finer point is
+ * refused, so a client that forgets to round fails rather than sending where someone is.
+ */
+const nearPoint = z
+  .string()
+  .trim()
+  .regex(NEAR)
+  .transform((text) => {
+    const [, lat, lng] = NEAR.exec(text) ?? [];
+    return { lat: Number(lat), lng: Number(lng) };
+  })
+  .refine(isInGazaStrip, { params: { code: 'out_of_range' } });
 
 /** What the list and the map filter by alike. */
 const filters = {
@@ -74,18 +105,27 @@ function checkPrice({ period, priceMin, priceMax }: FilterValues, ctx: z.Refinem
 
 /**
  * The directory's list: the filters, the order, the interface's language (for the order by name)
- * and the page. `sort` defaults to `relevance` with `q` and to `updated` without.
+ * and the page; `near` is the `Masaha-Near` header's point, read with the query. `sort` defaults to
+ * `relevance` with `q` and to `updated` without; `distance` needs `near`, and `near` is taken only
+ * with it.
  */
 export const directoryQuerySchema = paginationQuerySchema
   .extend({
     ...filters,
     sort: z.enum(DIRECTORY_SORTS).optional(),
     lang: z.enum(LANGUAGES).default('ar'),
+    near: nearPoint.optional(),
   })
   .superRefine((query, ctx) => {
     checkPrice(query, ctx);
     if (query.sort === 'relevance' && query.q === undefined) {
       ctx.addIssue({ code: 'custom', path: ['sort'], params: { code: 'invalid_choice' } });
+    }
+    if (query.sort === 'distance' && query.near === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['near'], params: { code: 'required' } });
+    }
+    if (query.sort !== 'distance' && query.near !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['near'], params: { code: 'invalid_choice' } });
     }
   })
   .transform(({ sort, ...query }) => ({

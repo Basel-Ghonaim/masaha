@@ -77,6 +77,49 @@ describe('directoryQuerySchema', () => {
       directoryQuerySchema.parse({ verified: 'true', openFriday: 'true', studentPrices: 'false' }),
     ).toMatchObject({ verified: true, openFriday: true, studentPrices: false });
   });
+
+  describe('near (the Masaha-Near header)', () => {
+    it('takes a point with three decimals, to sort by distance', () => {
+      expect(directoryQuerySchema.parse({ sort: 'distance', near: '31.523,34.452' })).toMatchObject(
+        { sort: 'distance', near: { lat: 31.523, lng: 34.452 } },
+      );
+      expect(directoryQuerySchema.parse({ sort: 'distance', near: ' 31.5 , 34.4 ' })).toMatchObject(
+        {
+          near: { lat: 31.5, lng: 34.4 },
+        },
+      );
+    });
+
+    it('refuses a coordinate finer than three decimals, so a precise location is never taken', () => {
+      expect(listErrors({ sort: 'distance', near: '31.5234,34.452' })).toEqual({
+        near: ['invalid_format'],
+      });
+      expect(listErrors({ sort: 'distance', near: '31.523,34.4521' })).toEqual({
+        near: ['invalid_format'],
+      });
+    });
+
+    it.each(['31.523', '31.523;34.452', 'a,b', '31.523,34.452,1', '31.5,34.4, 31.5,34.4'])(
+      'refuses the malformed point %j',
+      (near) => {
+        expect(listErrors({ sort: 'distance', near })).toEqual({ near: ['invalid_format'] });
+      },
+    );
+
+    it('refuses a point outside the Gaza Strip’s box', () => {
+      expect(listErrors({ sort: 'distance', near: '32.1,34.8' })).toEqual({
+        near: ['out_of_range'],
+      });
+    });
+
+    it('is required to sort by distance, and refused with any other order', () => {
+      expect(listErrors({ sort: 'distance' })).toEqual({ near: ['required'] });
+      expect(listErrors({ near: '31.523,34.452' })).toEqual({ near: ['invalid_choice'] });
+      expect(listErrors({ sort: 'name', near: '31.523,34.452' })).toEqual({
+        near: ['invalid_choice'],
+      });
+    });
+  });
 });
 
 describe('mapPinsQuerySchema', () => {

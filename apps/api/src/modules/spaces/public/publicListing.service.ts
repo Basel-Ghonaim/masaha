@@ -23,6 +23,8 @@ export interface ListedPublicSpace {
   isVerified: boolean;
   /** Sunday (0) to Saturday (6), `null` on a closed day; `null` while never saved. */
   days: (OpeningRange | null)[] | null;
+  /** In metres, straight-line, to the nearest 100: only when ordered by distance. */
+  distanceMeters: number | null;
 }
 
 /** `PublicFilter` without the price cut-off, which `spaces` measures with its own staleness rule. */
@@ -65,6 +67,7 @@ export function createPublicListingService({ platformSettings, now }: Dependenci
       location: { lat: record.lat, lng: record.lng },
       isVerified: record.isVerified,
       days: weeks.get(record.id) ?? null,
+      distanceMeters: record.distance === null ? null : Math.round(record.distance / 100) * 100,
     }));
   }
 

@@ -36,6 +36,10 @@ function orderOf(query: DirectoryQuery): PublicOrder {
       return { by: 'name', lang: query.lang };
     case 'relevance':
       return { by: 'relevance' };
+    case 'distance':
+      // The schema takes `distance` only with the point, and the point only with it.
+      if (!query.near) throw AppError.validation({ near: ['required'] });
+      return { by: 'distance', from: query.near };
     case 'updated':
       return { by: 'updated' };
   }
@@ -50,6 +54,7 @@ function toDirectorySpace(space: ListedPublicSpace, area: AreaName): DirectorySp
     area: { id: area.id, nameAr: area.nameAr, nameEn: area.nameEn },
     isVerified: space.isVerified,
     days: space.days,
+    ...(space.distanceMeters !== null && { distanceMeters: space.distanceMeters }),
   };
 }
 

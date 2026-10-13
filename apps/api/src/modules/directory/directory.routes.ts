@@ -1,8 +1,9 @@
-import { directoryQuerySchema, mapPinsQuerySchema } from '@masaha/shared/directory';
+import { mapPinsQuerySchema } from '@masaha/shared/directory';
 import { Router } from 'express';
 
 import { validate } from '../../shared/validation/index.ts';
 import type { DirectoryController } from './directory.controller.ts';
+import { validateListQuery } from './listQuery.ts';
 
 /**
  * The public directory, at /spaces, /spaces/:slug and /map/spaces (docs/api/api-contract.md §5,
@@ -11,7 +12,7 @@ import type { DirectoryController } from './directory.controller.ts';
  */
 export function createDirectoryPublicRouter(directory: DirectoryController): Router {
   const router = Router();
-  router.get('/spaces', validate(directoryQuerySchema, 'query'), directory.list);
+  router.get('/spaces', validateListQuery, directory.list);
   router.get('/spaces/:slug', directory.page);
   router.get('/map/spaces', validate(mapPinsQuerySchema, 'query'), directory.pins);
   return router;
