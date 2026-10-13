@@ -27,6 +27,7 @@ const OWNER_NAV = () => IS_OWNER ? [
   ] },
   { label: tr('الفريق والإعدادات', 'Team & settings'), items: [
     { id: 'staff', label: tr('الموظفون', 'Staff'), href: 'Staff.html', icon: <ChevronsUpDownIcon /> },
+    { id: 'audit', label: tr('سجل التدقيق', 'Audit log'), href: 'Owner audit.html', icon: <OSearch /> },
     { id: 'settings', label: tr('الإعدادات', 'Settings'), href: 'Owner settings.html', icon: <EllipsisIcon /> }
   ] }
 ] : [

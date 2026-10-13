@@ -58,3 +58,5 @@ The screen list is owned by `docs/frontend/design-system/foundation.md` §13. Th
 
 - `Wordmark.html`: the three wordmark options; **option A (plain word, «م» favicon) was chosen**.
 - `prototype/BRIEF.md`: the product brief the designs were made against (roles, scope, product rules, sample data).
+- `Owner audit.html`: the owner's audit log (O13), the admin's audit page scoped to the space. It is not
+yet one of foundation §13's screens ([finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md)); board section 55.
