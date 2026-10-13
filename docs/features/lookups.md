@@ -1,6 +1,6 @@
 # Lookups
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
 > **Authority:** The `lookups` capability: the bilingual lists of governorates, areas and amenities, the admin's screen that keeps them, and the public catalogue. Its endpoints are owned by the [API contract](../api/api-contract.md#lookups-public); its entities by the [data model](../architecture/data-model.md#lookups).
 > **Scope:** the API module `lookups` (L0); `@masaha/shared/lookups`; the web feature `features/lookups`, for the admin.
 
@@ -10,7 +10,7 @@
 - Lets the admin add, rename, hide, restore and order the governorates, the areas and the amenities, on the dashboard's lookups page.
 - Answers the public catalogue: what a form or a filter may offer, active rows only.
 - Offers the one field that chooses a governorate or one of its areas, which the admin's spaces list sets in its filters, and the field that chooses one area for a space, which the add-space form sets.
-- Answers the modules above it: the names of a set of areas, whether an area may take a space, the ids of a governorate's areas, and which amenities are active.
+- Answers the modules above it: the names of a set of areas, whether an area may take a space, the ids of a governorate's areas, and which amenities are active; and for the [directory](directory.md), the areas a space may be listed in, how well a search matches each one's names, and the active amenities of a space, named, in order.
 
 ## Who uses it
 
@@ -114,6 +114,7 @@ None.
 - #44 — the public catalogue, and what `spaces` and `space-links` read.
 - #45 — duplicate English names accepted.
 - #64 — no amenity filter: the flag dropped.
+- The directory item — the listed areas, the areas a search matches, and the amenities named, for the public directory.
 
 ### Web history
 

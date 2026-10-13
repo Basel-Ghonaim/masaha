@@ -16,6 +16,18 @@ export {
   type ListingService,
 } from './listing/listing.service.ts';
 export { createPricesController } from './prices/prices.controller.ts';
+export {
+  createPublicListingService,
+  type ListedPublicSpace,
+  type PublicListingFilter,
+  type PublicListingService,
+  type PublicOrder,
+} from './public/publicListing.service.ts';
+export {
+  createPublicSpaceService,
+  type PublicSpaceService,
+  type PublicSpaceView,
+} from './public/publicSpace.service.ts';
 export { createPricesService, type PricesService } from './prices/prices.service.ts';
 export { createProfileController } from './profile/profile.controller.ts';
 export { createProfileService, type ProfileService } from './profile/profile.service.ts';

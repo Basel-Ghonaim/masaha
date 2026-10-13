@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -61,7 +61,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 **Exceptions**, lists a screen shows whole, so they are answered whole, without `page` or `meta`:
 - the admin's lookup lists (`GET /admin/governorates`, `GET /admin/amenities`) (§5, *Lookups*; why: [lookups › Decisions](../features/lookups.md#decisions));
 - the public catalogue of the lookups (`GET /lookups`), the same bounded lists, active rows only (§5, *Lookups (public)*);
-- planned: the public directory's `GET /spaces`, the whole filtered set ([plan](../plans/v1-mvp.md#public-directory)).
+- the map's pins (`GET /map/spaces`), the whole filtered set up to a ceiling of 1,000 (§5, *Directory (public)*).
 
 ## 5. Endpoints
 
@@ -186,6 +186,65 @@ The spaces a signed-in user works at, as owner or reception ([ADR 0009](../archi
   }
   ```
   A hidden governorate is left out with all its areas, whatever their own flags; a hidden area and a retired amenity are left out.
+
+### Directory (public)
+
+What anyone reads without signing in, over the **publicly listed** spaces only ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)): not deleted, not hidden, in an active area of an active governorate. Why each rule: [directory › Decisions](../features/directory.md#decisions). No answer carries a capacity, a count or a live status ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)).
+
+- **The filters** the list and the map share, each optional, every one applied before a page is cut:
+  - `area`: a comma list of area ids, at most 50, each once (`invalid_format`, `too_long`); an id of an area that is not listed narrows to nothing;
+  - `period` (`HOUR`, `DAY`, `WEEK` or `MONTH`), with `priceMin` and `priceMax`, whole agorot from 1 to 10,000,000, inclusive: a general price of that period within the bounds, whatever its shift or label. A bound needs `period` (`required` on `period`), and `priceMin` above `priceMax` is `out_of_range` on `priceMax`;
+  - `studentPrices=true`: a student price;
+  - both price filters leave out an unverified space whose prices are stale, which its page hides;
+  - `openFriday=true`: Friday open in its hours; a space whose hours were never saved is left out;
+  - `verified=true`: an active `OWNER` link;
+  - `q`, 1–80 characters: either name of the space, or either name of its area, matched forgivingly. Both sides are normalised (lowercased; tashkeel and tatweel removed; أ إ آ ٱ → ا, ة → ه, ى → ي), and a part of a name, or a near match (a typo), passes. A `q` with nothing but tashkeel, tatweel or spaces is `invalid_format`.
+- **Caching:** an answer carries `Cache-Control: public, max-age=30` and a validator (`ETag`): the same request with `If-None-Match` answers `304` while it is unchanged.
+
+```ts
+DirectorySpace = {
+  id: number, slug: string, nameEn: string, nameAr: string | null,
+  area: { id: number, nameAr: string, nameEn: string },   // its governorate: the catalogue's
+  isVerified: boolean,
+  days: (OpeningRange | null)[] | null     // the week, Sunday first; null while never saved
+}
+
+MapPin = {
+  id: number, slug: string, nameEn: string, nameAr: string | null,
+  areaId: number, location: { lat: number, lng: number },
+  isVerified: boolean, days: (OpeningRange | null)[] | null
+}
+
+PublicSpace = {
+  id, slug, nameEn, nameAr, descriptionAr, descriptionEn,
+  area: { id, nameAr, nameEn },
+  addressAr, addressEn, landmarkAr, landmarkEn, location: { lat, lng },
+  isVerified: boolean,
+  hours: SpaceHours | null,                // null until first saved
+  prices: Price[] | null,                  // null when hidden: an unverified space's stale prices
+  amenities: PublicAmenity[],              // the platform's active ones in its order, then the space's own
+  contacts: Contact[],
+  updatedAt: Record<FactGroup, string | null>,   // ISO 8601; null while the group is missing
+  staleGroups: FactGroup[]
+}
+
+PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | null }   // null: the space's own
+```
+
+#### `GET /spaces` · 🌐
+- **Query:** the filters, `sort`, `lang` and the page (§4): `?area=&period=&priceMin=&priceMax=&studentPrices=&openFriday=&verified=&q=&sort=&lang=&page=&limit=`.
+  - `sort`: `updated`, the latest of the space's groups' dates first, the default without `q`; `name`, by the name in `lang` (`ar`, the default: the Arabic name, else the English one; `en`: the English name), in that language's collation; `relevance`, best match first, the default with `q` and refused without it (`invalid_choice` on `sort`). Every order ends with the id, so ties keep their places across pages.
+- **200:** `DirectorySpace[]` (`@masaha/shared/directory`), with `meta`.
+- **Errors:** `validation` (422).
+
+#### `GET /map/spaces` · 🌐
+- **Query:** the filters, and `bounds=south,west,north,east`, the map's viewport (`invalid_format` unless south is below north and west before east). No page, no order.
+- **200:** `{ pins: MapPin[], truncated: boolean }`: every space that passes, unpaged (§4), up to 1,000; past them, the first 1,000 by id, with `truncated: true`, and the map asks again within its viewport.
+- **Errors:** `validation` (422).
+
+#### `GET /spaces/:slug` · 🌐
+- **200:** `PublicSpace`. Read whole, as the admin's read is, so a save in progress is never half shown.
+- **Errors:** `not_found` (404) for an unknown slug, and for a space that is deleted, hidden, or in an area or a governorate that is not active.
 
 ### Lookups (the admin)
 

@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -202,12 +202,12 @@ Built: `POST /me/password`, the password change and the forced change at first s
 | GET | `/me/reports` | 👤 with the resolution note |
 
 #### Public directory
-Built: `GET /lookups`, the active governorates with their active areas and the active amenities ([api-contract §5](../api/api-contract.md#5-endpoints)).
+Built: `GET /lookups`, the active governorates with their active areas and the active amenities; `GET /spaces`, the directory's list, paged and filtered on the server, with its search; `GET /map/spaces`, the map's pins; and `GET /spaces/:slug`, a space's public page, without announcements ([api-contract §5](../api/api-contract.md#directory-public)).
 
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| GET | `/spaces` | 🌐 | filters: `area`, `priceMin`, `priceMax`, `period`, `studentPrices`, `openFriday`, `verified`, `availableNow` (live status `AVAILABLE`), `q`; sort. Returns the **whole filtered set in one request**, unpaginated (an exception to [api-contract §4](../api/api-contract.md#4-pagination); the directory holds tens of spaces): the map uses it, and with «الأقرب إليّ» the device sorts it by distance. Takes **no location** |
-| GET | `/spaces/:slug` | 🌐 | full public profile incl. announcements and freshness; never capacity |
+| GET | `/spaces?availableNow=` | 🌐 | the list's filter by live status `AVAILABLE`, with the occupancy (step 7) |
+| GET | `/spaces/:slug` | 🌐 | its announcements, with step 10 |
 | GET | `/spaces/:slug/occupancy` | 🌐 | `{ status: "AVAILABLE" \| "FULL" \| "CLOSED" }`, never counts ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)) — verified spaces only |
 | POST | `/spaces/:slug/reports` | 👤 | report wrong information |
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |

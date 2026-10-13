@@ -120,6 +120,14 @@ export function createSpaceRepository(db: PrismaClient = prisma) {
       return tx.space.findFirst({ where: { id, deletedAt: null }, select: SPACE });
     },
 
+    /** The space with this slug, its id and its area, unless it is soft-deleted or hidden. */
+    findShownBySlug(slug: string, tx: Tx = db): Promise<{ id: number; areaId: number } | null> {
+      return tx.space.findFirst({
+        where: { slug, deletedAt: null, isHidden: false },
+        select: { id: true, areaId: true },
+      });
+    },
+
     update(id: number, data: SpaceData, tx: Tx): Promise<SpaceRecord> {
       return tx.space.update({ where: { id }, data, select: SPACE });
     },

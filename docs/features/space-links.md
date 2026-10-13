@@ -1,6 +1,6 @@
 # Space Links
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
 > **Authority:** The `space-links` capability: a user's links to spaces and their role at each ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)), as the session, the caller's own list, the space switcher, the admin's spaces list and users list, the admin's owners (added, linked and unlinked) and the links loader use them. Its endpoints are owned by the API contract: [*Managed spaces*](../api/api-contract.md#managed-spaces), [*Owners (the admin)*](../api/api-contract.md#owners-the-admin) and [*Users (the admin)*](../api/api-contract.md#users-the-admin); the `SpaceManager` entity and "verified" by the [data model](../architecture/data-model.md#spaces).
 > **Scope:** the API module `space-links` (L2); `@masaha/shared/space-links`; the web feature `features/space-links`, dashboard-only.
 
@@ -11,6 +11,7 @@
 - Shows the space switcher in a space's dashboard.
 - Composes the admin's spaces list: its filters, its owners and its verified state, and on the API the soft-deleted spaces as a list of their own; and shows it on the dashboard's spaces page, with its filters kept in the address.
 - Loads a space's links for the routes on one space, so `can()` knows the caller's role there and whether the space is verified.
+- Answers the [directory](directory.md) which spaces are verified, every one in one query: its filter, and the stale prices it hides.
 - Composes the admin's users list, on the API: its filters, and the spaces each person owns; the owners page is that list filtered to the owners.
 - Adds an owner for the admin, on the API: a new account with a temporary password, or an existing one upgraded on purpose, linked to one space.
 - Links a space's owners for the admin, and ends their links, one space at a time, on the API; the person's global role follows their owner links.
@@ -134,6 +135,7 @@ Staff (reception accounts) are not built.
 - #60 — the admin's users list; adding, linking and unlinking owners, with the role that follows the links.
 - The users item — the admin's role change.
 - The deleted-spaces item — a row's state as facts apart, and the soft-deleted spaces listed under `status=deleted`.
+- The directory item — the verified spaces' ids, for the public directory.
 
 ### Web history
 

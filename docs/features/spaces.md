@@ -1,7 +1,7 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
-> **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the add-space page and the row actions of the admin's spaces list.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
+> **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the add-space page and the row actions of the admin's spaces list; and on the API, what the public [directory](directory.md) reads.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
 ## What it does
@@ -9,6 +9,7 @@
 - Lets the admin create a space from its profile, its basics and its location; read it; edit the profile and its facts, one group at a time (the hours with the shifts, the prices, the amenities, the contacts), and confirm each group unchanged, as far as [security](../backend/security.md#authorization) allows; hide and show it again; delete it softly and restore it.
 - Dates each of the space's fact groups when it is saved or confirmed unchanged, and computes from those dates which groups are stale, which are missing, and when the space was last updated.
 - Answers the modules above it: the summaries of a set of spaces, and a page of the admin's spaces list over the ids it is given, of the soft-deleted spaces when asked.
+- Answers the [directory](directory.md) the publicly listed spaces over the ids and areas it is given: filtered, searched, ordered and paged, or whole up to a ceiling for the map, each with its week; and a space's public page, read whole, its prices hidden as the public is kept from them.
 - On the web, adds a space from its basics and its location, its pin placed on a map; and gives each row of the admin's spaces list its menu: hide the space or show it again, and delete it, with an Undo that restores it.
 
 The photos and the owner's side are not built.
@@ -20,7 +21,7 @@ The photos and the owner's side are not built.
 
 ## Responsibility boundary
 
-- **Owns** the `spaces` table and its profile, the slug, the hide flag, the soft delete, the fact groups' dates and the staleness rule; the hours and the shifts, the prices, the space's amenity links and its own amenities, and its contacts.
+- **Owns** the `spaces` table and its profile, the slug, the hide flag, the soft delete, the fact groups' dates, the staleness rule and the rule of the hidden prices; the hours and the shifts, the prices, the space's amenity links and its own amenities, and its contacts.
 - **Leaves** whether a space is verified to `space-links`, whose links are on the request ([conventions › Space access](../backend/conventions.md#space-access)); `spaces` never imports `space-links`.
 - **Leaves** a space's settings to `space-settings`, the defaults and thresholds to `platform-settings`, and the areas and the amenities, and whether an amenity is active, to [`lookups`](lookups.md).
 - **Leaves** who may edit a profile or a fact to `can()` ([security › Authorization](../backend/security.md#authorization)).
@@ -110,6 +111,9 @@ The photos and the owner's side are not built.
 - **A save decides on the links read again under the space's lock,** not on those the loader read before it. *Why:* an owner linked between the two would let the admin's save land on a space just verified ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)). 2026-10-11, #60.
 - **The space's read is one consistent state, under the space's lock in share mode** (the owner's choice, S1). *Why:* a read during an hours save could show the old week with the new shifts (finding 43); a lock keeps one isolation level ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)), and unlike a snapshot, a test can prove it. 2026-10-11, #60.
 - **Every price is above zero; a free event goes in the announcements** (the owner's decision). *Why:* a price of zero would list a space as free when only an event is; the announcements carry it. 2026-10-12, #64.
+- **The public listing is one query over `spaces` and its facts, with the filters of other modules given as ids** ([directory › Decisions](directory.md#decisions)). *Why:* every filter applies before the page is cut; the search's score and the orders are computed in it. 2026-10-13, the directory item.
+- **The hidden-price rule is `spaces`', with "verified" as an input:** an unverified space's stale prices are hidden on its page, and the same spaces are left out of both price filters, in the query. *Why:* the staleness is this capability's; "verified" is `space-links`', resolved first. 2026-10-13, the directory item.
+- **The public page reads the space as the admin's read does,** under its share lock, and a hidden space reads as none. *Why:* a save in progress is never shown half done (finding 43). 2026-10-13, the directory item.
 
 ### Web decisions
 
@@ -134,7 +138,7 @@ The photos and the owner's side are not built.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/` (the links and the own amenities), `contacts/`, `confirm/` (a group confirmed unchanged), `listing/` (the page the admin's list reads); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
+- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/` (the links and the own amenities), `contacts/`, `confirm/` (a group confirmed unchanged), `listing/` (the page the admin's list reads), `public/` (the public listing and the public page, for the directory); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
 - **Shared:** `packages/shared/src/spaces/`: the requests (the profile and each fact group, with their rules), the responses, the contacts' forms, the fact groups and the Gaza Strip's box; the phone rule in `core`.
 - **Web:** `apps/web/src/features/spaces/`, entry `index.ts` (`AddSpaceForm` with its `AreaField` slot, `SpaceActionsMenu`, `SpaceActionsHold`), mounted by `pages/dashboard/admin/`: a folder per operation in `hooks/` and `components/` (`add/`, `hide/`, `delete/` with the Undo's restore, `menu/`, `hold/`), the profile's two sections in `components/profile/`, the toasts in `components/toast/`, and in `services/` the profile the schema reads from the form, the space's name and a line cut around it.
 
@@ -153,6 +157,7 @@ The photos and the owner's side are not built.
 - #60 — a save decides on the links under the space's lock, and the read is consistent (finding 43).
 - #64 — a space's own amenities, in the amenities group; no price of zero.
 - The deleted-spaces item — the listing page of the soft-deleted spaces, with when each was deleted.
+- The directory item — the public listing (filters, search, orders, pages and the map's set) and the public page.
 
 ### Web history
 

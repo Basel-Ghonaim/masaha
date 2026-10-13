@@ -76,6 +76,16 @@ export function createSpaceLinksService({
         return space && area ? [toManagedSpace(link, space, area)] : [];
       });
     },
+
+    /**
+     * Every verified space's id, those with an active OWNER link (data-model › Derived values), in
+     * one query: the public directory's filter and the stale prices it hides, resolved to ids before
+     * `spaces` pages (conventions §5). A soft-deleted space's id may be among them; the directory
+     * never lists one.
+     */
+    verifiedSpaceIds(tx?: Tx): Promise<number[]> {
+      return repository.findVerifiedSpaceIds(tx);
+    },
   };
 }
 

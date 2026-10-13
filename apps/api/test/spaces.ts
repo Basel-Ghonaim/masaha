@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS } from '../src/db/seed/lookups.ts';
 import { prisma } from '../src/db/index.ts';
+import type { Prisma } from '../src/generated/prisma/client.ts';
 import { accessTokens } from './app.ts';
 
 // What the admin's space endpoints are tested on: the platform's settings, an area to place a space
@@ -18,7 +19,9 @@ let governorates = 0;
 export async function createArea({
   areaActive = true,
   governorateActive = true,
-}: { areaActive?: boolean; governorateActive?: boolean } = {}) {
+  nameAr = 'النصر',
+  nameEn = 'An-Nasr',
+}: { areaActive?: boolean; governorateActive?: boolean; nameAr?: string; nameEn?: string } = {}) {
   governorates += 1;
   const governorate = await prisma.governorate.create({
     data: { nameAr: `غزة ${String(governorates)}`, nameEn: 'Gaza', isActive: governorateActive },
@@ -26,8 +29,8 @@ export async function createArea({
   return prisma.area.create({
     data: {
       governorateId: governorate.id,
-      nameAr: 'النصر',
-      nameEn: 'An-Nasr',
+      nameAr,
+      nameEn,
       isActive: areaActive,
     },
   });
@@ -54,4 +57,47 @@ export async function signInOwnerOf(
   await prisma.spaceManager.create({ data: { spaceId, userId: user.id, role: 'OWNER' } });
   const token = await accessTokens.sign({ userId: user.id, mustChangePassword: false });
   return { id: user.id, authorization: `Bearer ${token}` };
+}
+
+/**
+ * A space as the public directory lists it: shown, in the area, its slug from its English name and
+ * its profile dated now, with the fields under test overridden.
+ */
+export async function createPublicSpace(
+  areaId: number,
+  nameEn: string,
+  data: Partial<Prisma.SpaceUncheckedCreateInput> = {},
+) {
+  return prisma.space.create({
+    data: {
+      slug: nameEn.toLowerCase().replaceAll(' ', '-'),
+      nameEn,
+      addressAr: 'شارع الشهداء',
+      areaId,
+      lat: 31.52,
+      lng: 34.45,
+      ...data,
+    },
+  });
+}
+
+/** The space's week, Sunday first: `[opens, closes]` in minutes, or `null` for a closed day. */
+export async function setWeek(spaceId: number, days: readonly ([number, number] | null)[]) {
+  await prisma.spaceHours.createMany({
+    data: days.map((day, dayOfWeek) =>
+      day
+        ? { spaceId, dayOfWeek, opensMinute: day[0], closesMinute: day[1] }
+        : { spaceId, dayOfWeek, isClosed: true },
+    ),
+  });
+}
+
+/** A price of the space, for the general audience unless told otherwise. */
+export async function addPrice(
+  spaceId: number,
+  period: 'HOUR' | 'DAY' | 'WEEK' | 'MONTH',
+  amountAgorot: number,
+  audience: 'GENERAL' | 'STUDENT' = 'GENERAL',
+) {
+  await prisma.spacePrice.create({ data: { spaceId, period, audience, amountAgorot } });
 }
