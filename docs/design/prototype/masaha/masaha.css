@@ -110,3 +110,6 @@ a[data-slot=dropdown-menu-item],[data-slot=dropdown-menu-item] a,a[data-slot=bre
 .cover-art .paper{fill:var(--card)}
 .cover-art .lamp{fill:var(--warning)}
 .cover-art .leaf{fill:var(--success)}
+/* DK-003: below xl the desk reads search → uncollected → present; from xl the uncollected card is the
+   side column again, beside the present list, as before. */
+@media(min-width:1280px){.desk-now{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:1.5rem;align-items:start}.desk-now>.desk-present{grid-column:1/span 8;grid-row:1}.desk-now>.desk-unpaid{grid-column:9/span 4;grid-row:1}}

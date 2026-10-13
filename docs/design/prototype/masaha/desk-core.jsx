@@ -169,7 +169,7 @@ function DeskProvider({ children, initial }) {
   return (
     <DeskCtx.Provider value={api}>
       {children}
-      <VisitDialog open={dlg && dlg.kind === 'visit'} onClose={close} />
+      <VisitDialog dlg={dlg && dlg.kind === 'visit' ? dlg : null} onClose={close} />
       <WarnDialog dlg={dlg && dlg.kind === 'warn' ? dlg : null} onClose={close} />
       <CheckoutDialog dlg={dlg && dlg.kind === 'checkout' ? dlg : null} onClose={close} />
       <PayDialog dlg={dlg && dlg.kind === 'pay' ? dlg : null} onClose={close} />
@@ -235,31 +235,37 @@ function FullAlert() {
   return <DK.Alert variant="warning"><DK.AlertTitle><span>{tr('المساحة ممتلئة', 'The space is full')} <Num>{`${D.present.length}/${D.capacity}`}</Num></span></DK.AlertTitle><DK.AlertDescription>{tr('يمكنك التسجيل على أي حال؛ ستبقى حالتها للزوار «ممتلئ».', 'You can still check in; visitors keep seeing «Full».')}</DK.AlertDescription></DK.Alert>;
 }
 
-// 4.3 Visit: a name only — no customer record.
-function VisitDialog({ open, onClose }) {
+// 4.3 Visit: a name, with the name the search carried (DK-002), and only the choices the space uses
+// (DK-023): «طالب» where it changes the rate, «الوردية» where the space has shifts, on the one now.
+function VisitDialog({ dlg, onClose }) {
   const desk = useDesk();
   const [name, setName] = React.useState(''); const [student, setStudent] = React.useState(false); const [shift, setShift] = React.useState(''); const [err, setErr] = React.useState();
-  React.useEffect(() => { if (open) { setName(pageParams.get('vname') || ''); setStudent(false); setShift(''); setErr(); } }, [open]);
+  React.useEffect(() => { if (dlg) { setName(dlg.name || ''); setStudent(false); setShift(D.currentShift()); setErr(); } }, [dlg]);
   const { busy, run } = useActionRun('visit');
-    const submit = (e) => { e.preventDefault(); if (!name.trim()) return setErr(tr('أدخل الاسم', 'Enter the name')); run(() => desk.checkInVisit(name.trim(), student, shift || null)); };
+  const submit = (e) => { e.preventDefault(); if (!name.trim()) { setErr(tr('أدخل الاسم', 'Enter the name')); return focusInvalid(); } run(() => desk.checkInVisit(name.trim(), student, shift || null)); };
+  const r = D.visitRates(student);
+  const rate = r.hour ? <>{tr('تُحسب', 'Charged')} <Money n={r.hour} /> {tr('للساعة', 'an hour')}{D.SETTINGS.cap && r.day ? <> · {tr('حتى', 'up to')} <Money n={r.day} /></> : null}.</>
+    : r.day ? <>{tr('تُحسب بسعر اليوم', 'Charged at the day price')} <Money n={r.day} />.</> : tr('لا يوجد سعر منشور؛ تُدخل المبلغ عند الخروج.', 'No published price; you enter the amount at check-out.');
   return (
-    <DK.Dialog open={!!open} onOpenChange={(o) => !o && onClose()}>
+    <DK.Dialog open={!!dlg} onOpenChange={(o) => !o && onClose()}>
       <DK.DialogContent closeLabel={tr('إغلاق', 'Close')}>
         <DK.DialogHeader>
           <DK.DialogTitle>{tr('تسجيل زيارة', 'Check in a visit')}</DK.DialogTitle>
-          <DK.DialogDescription>{D.PRICES.hour ? <>{tr('تُحسب بالساعة', 'Charged by the hour')} (<Money n={D.PRICES.hour} />) {tr('وبحد أقصى سعر اليوم', 'up to the day price')} (<Money n={D.PRICES.day} />).</> : D.PRICES.day ? <>{tr('تُحسب بسعر اليوم', 'Charged at the day price')} (<Money n={D.PRICES.day} />).</> : tr('لا يوجد سعر منشور؛ تُدخل المبلغ عند الخروج.', 'No published price; you enter the amount at check-out.')} {tr('لا يُنشأ ملف زبون.', 'No customer record is created.')}</DK.DialogDescription>
+          <DK.DialogDescription>{rate} {tr('لا يُنشأ ملف زبون.', 'No customer record is created.')}</DK.DialogDescription>
         </DK.DialogHeader>
         <form onSubmit={submit} noValidate className="flex flex-col gap-4">
           {desk.full() && <FullAlert />}
           <DK.Field label={tr('الاسم', 'Name')} error={err}><DK.Input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></DK.Field>
-          <DK.Field label={tr('طالب', 'Student')} orientation="horizontal"><DK.Switch checked={student} onCheckedChange={setStudent} /></DK.Field>
-          <DK.Field label={tr('الوردية', 'Shift')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>}>
-            <DK.ToggleGroup type="single" value={shift} onValueChange={(v) => setShift(v || '')}>
-              <DK.ToggleGroupItem value="am">{D.SHIFTS.am}</DK.ToggleGroupItem>
-              <DK.ToggleGroupItem value="pm">{D.SHIFTS.pm}</DK.ToggleGroupItem>
-            </DK.ToggleGroup>
-          </DK.Field>
-          <ActionAlert for="visit" />
+          {D.STUDENT_VISITS && <DK.Field label={tr('طالب', 'Student')} orientation="horizontal"><DK.Switch checked={student} onCheckedChange={setStudent} /></DK.Field>}
+          {D.SHIFT_LIST.length > 0 && (
+            <DK.Field label={tr('الوردية', 'Shift')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>}>
+              <DK.ToggleGroup type="single" value={shift} onValueChange={(v) => setShift(v || '')}>
+                {D.SHIFT_LIST.map((x) => <DK.ToggleGroupItem key={x.id} value={x.id}>{D.SHIFTS[x.id]}</DK.ToggleGroupItem>)}
+              </DK.ToggleGroup>
+            </DK.Field>
+          )}
+          <MoneyRateNote />
+          <ActionAlert for="visit">{MONEY_RETRY}</ActionAlert>
           <DK.DialogFooter><DK.Button type="submit" loading={busy}><DK.LogInIcon />{desk.full() ? tr('تسجيل على أي حال', 'Check in anyway') : tr('تسجيل الزيارة', 'Check in')}</DK.Button></DK.DialogFooter>
         </form>
       </DK.DialogContent>

@@ -39,7 +39,7 @@ const initialDialog = (() => {
   if (d === 'debt') return { kind: 'debt', visitId: pageParams.get('vid') };
   if (pageParams.get('writeoff') && IS_OWNER) return { kind: 'writeoff', visitId: pageParams.get('writeoff') };
   if (d === 'sheet') return { kind: 'sheet', mode: pageParams.get('mode') || 'new', customerId: cid, name: pageParams.get('name') || '', pkg: pageParams.get('pkg'), payNow: pageParams.get('paynow'), half: pageParams.get('half') === '1' };
-  if (d === 'visit') return { kind: 'visit' };
+  if (d === 'visit') return { kind: 'visit', name: pageParams.get('vname') || '' };
   return null;
 })();
 
@@ -57,11 +57,8 @@ function KindBadge({ p }) {
 }
 
 function PresentList() {
-  const desk = useDesk();
-  const [q, setQ] = React.useState('');
-  const rows = DESK.present.filter((p) => !q.trim() || nameOf(p).includes(q.trim()));
-  const subs = DESK.present.filter((p) => p.kind === 'sub').length;
-  const out = (p) => <OutButton p={p} size="sm" />;
+  const rows = DESK.present;
+  const subs = rows.filter((p) => p.kind === 'sub').length;
   const mins = (p) => DESK.toMin(DESK.NOW) - DESK.toMin(p.since);
   const columns = [
     { id: 'name', header: tr('الاسم', 'Name'), cell: ({ row }) => row.original.customerId ? <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + row.original.customerId)}>{nameOf(row.original)}</a> : <span className="text-label">{nameOf(row.original)}</span> },
@@ -70,15 +67,12 @@ function PresentList() {
     { id: 'dur', header: tr('المدة', 'Duration'), cell: ({ row }) => durLabel(mins(row.original)) },
     // SH-007: six columns; the usage line is the one that can wait for 1024.
     { id: 'detail', header: tr('الاستخدام', 'Usage'), meta: { className: 'hidden lg-col' }, cell: ({ row }) => <span className="text-body-sm"><Detail p={row.original} /></span> },
-    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end">{out(row.original)}</div> }
+    { id: 'act', header: () => <span className="sr-only">{tr('إجراءات', 'Actions')}</span>, cell: ({ row }) => <div className="flex justify-end"><OutButton p={row.original} size="sm" /></div> }
   ];
+  // DK-003: «27 / 40» is said once, in the section's heading; the table's line splits it.
   return (
     <DataTable label={tr('الحاضرون الآن', 'Present now')} columns={columns} data={rows} getRowId={(r) => r.id} loading={st === 'loading'}
-      summary={<span>{tr('الحاضرون الآن', 'Present now')} <Num>{DESK.present.length + ' / ' + DESK.capacity}</Num> · <Num>{subs}</Num> {tr('مشتركًا', 'members')} · <Num>{DESK.present.length - subs}</Num> {tr('زيارات', 'visits')}</span>}
-      toolbar={<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <h2 className="text-heading-3">{tr('الحاضرون الآن', 'Present now')} <Num>{DESK.present.length + ' / ' + DESK.capacity}</Num></h2>
-        <Input role="searchbox" aria-label={tr('ابحث بين الحاضرين', 'Search people present')} placeholder={tr('ابحث بين الحاضرين', 'Search people present')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} className="md:max-w-xs" />
-      </div>}
+      summary={<span><Counted n={subs} ar={F_SUBSCRIBERS.ar} en={F_SUBSCRIBERS.en} /> · <Counted n={rows.length - subs} ar={F_VISITS.ar} en={F_VISITS.en} /></span>}
       renderCard={(p) => (
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
@@ -87,12 +81,13 @@ function PresentList() {
             <span className="text-caption text-muted-foreground">{tr('منذ', 'Since')} <Num>{p.since}</Num> · {durLabel(mins(p))}</span>
             <span className="text-caption"><Detail p={p} /></span>
           </div>
-          {out(p)}
+          <OutButton p={p} size="sm" />
         </div>
       )}
-      empty={<EmptyState icon={<UsersIcon />} title={tr('لا أحد حاضر الآن', 'No one is here right now')} description={q ? tr('لا يوجد حاضر بهذا الاسم.', 'No one present by this name.') : tr('ابحث عن زبون أو سجّل زيارة لأول من يصل.', 'Search for a customer, or check in a visit for the first arrival.')} />} />
+      empty={<EmptyState icon={<UsersIcon />} title={tr('لا أحد حاضر الآن', 'No one is here right now')} description={tr('ابحث عن زبون أو سجّل زيارة لأول من يصل.', 'Search for a customer, or check in a visit for the first arrival.')} />} />
   );
 }
+
 
 // DK-003: the money to chase, compact — its count and total in the title, the first three rows and
 // «عرض الكل». DI-35: `#unpaid` is where the overview's queue lands. Below xl nothing shows when it is empty.
@@ -103,7 +98,7 @@ function UnpaidCard() {
   const total = list.reduce((a, u) => a + u.amount, 0);
   const shown = all ? list : list.slice(0, UNPAID_SHOWN);
   return (
-    <Card id="unpaid" className={'section-anchor' + (list.length || st === 'loading' ? '' : ' hidden xl:flex')}>
+    <Card id="unpaid" className={'section-anchor desk-unpaid' + (list.length || st === 'loading' ? '' : ' hidden xl:flex')}>
       <CardHeader>
         <CardTitle><h2>{list.length ? <><Counted n={list.length} ar={F_UNCOLLECTED.ar} en={F_UNCOLLECTED.en} /> · <Money n={total} /></> : tr('غير محصّل', 'Not collected')}</h2></CardTitle>
         <CardDescription>{tr('زيارات خرجت بدون دفع أو سُجّل خروجها تلقائيًا عند الإغلاق.', 'Visits that left unpaid or were checked out automatically at closing.')}</CardDescription>
@@ -150,27 +145,57 @@ function LogTab() {
   );
 }
 
-function DeskSearch() {
-  const desk = useDesk();
-  const [q, setQ] = React.useState(pageParams.get('q') || '');
-  const term = q.trim(); const digits = term.replace(/\D/g, '');
-  const results = term ? DESK.customers.filter((c) => c.name.includes(term) || (digits.length >= 2 && digits === term.replace(/\s/g, '') && c.phone.replace(/\D/g, '').endsWith(digits))).slice(0, 6) : [];
+// K1 (DK-001, DK-002): one search finds everyone — the people here first, with «خروج»; then the
+// customers on file, with «حضور»; then the two ways in for what was typed, which they carry.
+const RESULTS_MAX = 6;
+function PresentRow({ p }) {
   return (
-    <section aria-label={tr('البحث عن زبون', 'Find a customer')} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="flex-1"><Input role="searchbox" size="lg" aria-label={tr('ابحث بالاسم أو آخر أرقام الجوال', 'Search by name or last digits of the mobile')} placeholder={tr('الاسم أو آخر أرقام الجوال', 'Name or last digits of the mobile')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} autoFocus /></div>
-        {/* P1: «زبون جديد» is this page's add, so it stays beside the search at every width.
-            Check-in and «استلام دفعة» are page actions, in the top bar and the bottom bar. */}
-        <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'new' })}>{tr('زبون جديد', 'New customer')}</Button>
+    <li className="flex items-center justify-between gap-3 px-4 py-3">
+      <div className="flex min-w-0 flex-col gap-1">
+        {p.customerId ? <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + p.customerId)}>{nameOf(p)}</a> : <span className="text-label">{nameOf(p)}</span>}
+        <span className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground"><KindBadge p={p} /><span>{tr('منذ', 'Since')} <Num>{p.since}</Num></span></span>
       </div>
-      {term && (results.length ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-live="polite">{results.map((c) => <CustomerCard key={c.id} c={c} />)}</div>
-      ) : (
-        <Card><EmptyState icon={<SearchXIcon />} title={tr('لا يوجد زبون بهذا الاسم أو الرقم', 'No customer with this name or number')} description={tr('إذا كان يزور لمرة واحدة، سجّل له زيارة.', 'If it’s a one-off, check in a visit.')}>
-          <Button onClick={() => desk.open('sheet', { mode: 'new', name: term })}>{tr('زبون جديد باسم', 'New customer named')} «{term}»</Button>
-          <Button variant="outline" onClick={() => desk.open('visit')}>{tr('تسجيل زيارة', 'Check in a visit')}</Button>
-        </EmptyState></Card>
-      ))}
+      <OutButton p={p} size="sm" />
+    </li>
+  );
+}
+function SearchResults({ term }) {
+  const desk = useDesk();
+  const t = term.trim(); const digits = t.replace(/\D/g, '');
+  const byDigits = digits.length >= 2 && digits === t.replace(/[\s+]/g, '');
+  const phoneOf = (p) => (p.customerId ? DESK.findCustomer(p.customerId).phone || '' : '');
+  const here = DESK.present.filter((p) => nameOf(p).includes(t) || (byDigits && phoneOf(p).replace(/\D/g, '').endsWith(digits)));
+  const people = DESK.searchCustomers(t).filter((c) => !DESK.presentOf(c.id)).slice(0, RESULTS_MAX);
+  const none = !here.length && !people.length;
+  // A one-off visit is the common case (glossary › Visit): it leads when nothing matches.
+  const visitBtn = <Button variant={none ? 'primary' : 'outline'} onClick={() => desk.open('visit', { name: byDigits ? '' : t })}><LogInIcon />{byDigits ? tr('تسجيل زيارة', 'Check in a visit') : <>{tr('تسجيل زيارة باسم', 'Check in a visit for')} «{t}»</>}</Button>;
+  const newBtn = <Button variant="outline" onClick={() => desk.open('sheet', byDigits ? { mode: 'new', phone: t } : { mode: 'new', name: t })}>{byDigits ? tr('زبون جديد بهذا الرقم', 'New customer with this number') : <>{tr('زبون جديد باسم', 'New customer named')} «{t}»</>}</Button>;
+  if (none) return <Card><EmptyState icon={<SearchXIcon />} title={tr('لا أحد بهذا الاسم أو الرقم', 'No one by this name or number')} description={tr('زائر لمرة واحدة؟ سجّل له زيارة.', 'A one-off visitor? Check in a visit.')}>{visitBtn}{newBtn}</EmptyState></Card>;
+  return (
+    <div className="flex flex-col gap-4">
+      {here.length > 0 && (
+        <section aria-labelledby="results-here" className="flex flex-col gap-2">
+          <h2 id="results-here" className="text-label text-muted-foreground">{tr('حاضر الآن', 'Here now')}</h2>
+          <ul className="flex flex-col divide-y rounded-lg border border-border bg-card">{here.map((p) => <PresentRow key={p.id} p={p} />)}</ul>
+        </section>
+      )}
+      {people.length > 0 && (
+        <section aria-labelledby="results-customers" className="flex flex-col gap-2">
+          <h2 id="results-customers" className="text-label text-muted-foreground">{tr('زبائن', 'Customers')}</h2>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{people.map((c) => <CustomerCard key={c.id} c={c} />)}</div>
+        </section>
+      )}
+      <div className="flex flex-wrap gap-2">{visitBtn}{newBtn}</div>
+    </div>
+  );
+}
+// The results come straight after the search in the page's order, in a live region.
+function DeskSearch() {
+  const [q, setQ] = React.useState(pageParams.get('q') || '');
+  return (
+    <section aria-label={tr('البحث', 'Search')} className="flex flex-col gap-4">
+      <Input role="searchbox" size="lg" aria-label={tr('ابحث بالاسم أو آخر أرقام الجوال', 'Search by name or last digits of the mobile')} placeholder={tr('الاسم أو آخر أرقام الجوال', 'Name or last digits of the mobile')} startIcon={<SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+      <div aria-live="polite">{q.trim() && <SearchResults term={q} />}</div>
     </section>
   );
 }
@@ -188,28 +213,33 @@ function DeskInner({ theme, setTheme }) {
   const [tab, setTab] = React.useState(pageParams.get('tab') === 'log' ? 'log' : 'now');
   // DK-010: ?dialog=checkout&pid=<a fixed-price subscriber> checks them out on load, as the tap does.
   React.useEffect(() => { const p = DESK.present.find((x) => x.id === pageParams.get('pid')); if (pageParams.get('dialog') === 'checkout' && p && isQuickOut(p)) setTimeout(() => desk.checkOut(p.id), 300); }, []);
-  // P1, amended: the bottom bar holds only the action that is the page's purpose and is
-  // used all day. «استلام دفعة» joins the other page actions in the top bar.
+  // P1, amended: the bottom bar holds only the page's purpose, used all day. «استلام دفعة» and «زبون
+  // جديد» are page actions: in the top bar from 768, in its «⋯» on a phone.
   const bottom = <Button className="w-full" onClick={() => desk.open('visit')}><LogInIcon />{tr('تسجيل زيارة', 'Check in a visit')}</Button>;
   const pageActions = [
     { key: 'pay', label: tr('استلام دفعة', 'Receive payment'), onClick: () => desk.open('pay', {}) },
+    { key: 'new', label: tr('زبون جديد', 'New customer'), onClick: () => desk.open('sheet', { mode: 'new' }) },
     { key: 'visit', label: tr('تسجيل زيارة', 'Check in a visit'), icon: <LogInIcon />, variant: 'primary', bottom: true, onClick: () => desk.open('visit') }
   ];
   return (
     <OwnerShell current="desk" title={tr('مكتب الاستقبال', 'Front desk')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme} actions={pageActions} bottomAction={bottom}>
       <DeskSearch />
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList aria-label={tr('الحضور', 'Attendance')}>
-          <TabsTrigger value="now">{tr('الآن', 'Now')}</TabsTrigger>
-          <TabsTrigger value="log">{tr('السجل', 'Log')}</TabsTrigger>
-        </TabsList>
-      </Tabs>
-      {tab === 'now' ? (
-        <div className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start">
-          <div className="min-w-0 xl:col-span-8"><PresentList /></div>
-          <div className="xl:col-span-4"><UnpaidCard /></div>
-        </div>
-      ) : <LogTab />}
+      {/* DK-003: below xl the money to chase comes before the people here; from xl it is the side column (masaha.css). */}
+      <div className="desk-now flex flex-col gap-6">
+        <UnpaidCard />
+        <section aria-labelledby="present-title" className="desk-present flex min-w-0 flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="present-title" className="text-heading-3">{tr('الحاضرون الآن', 'Present now')} <Num>{DESK.present.length + ' / ' + DESK.capacity}</Num></h2>
+            <Tabs value={tab} onValueChange={setTab}>
+              <TabsList aria-label={tr('الحضور', 'Attendance')}>
+                <TabsTrigger value="now">{tr('الآن', 'Now')}</TabsTrigger>
+                <TabsTrigger value="log">{tr('السجل', 'Log')}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          {tab === 'now' ? <PresentList /> : <LogTab />}
+        </section>
+      </div>
     </OwnerShell>
   );
 }
