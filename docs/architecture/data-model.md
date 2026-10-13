@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
 
 ## Conventions
@@ -22,6 +22,7 @@
 - **Same space by construction:** a record that points at two things of one space carries the `spaceId` and points at each through a composite foreign key, `(id, spaceId)`, so the database refuses a customer, package, shift or subscription of another space. A price's shift set the pattern.
 - **Idempotency:** a record the desk creates from a request that may be retried (a check-in, a visit, a payment) carries the client's **idempotency key** (a UUID, sent in the `Idempotency-Key` header), unique within its space ([ADR 0015](decisions/0015-idempotency-and-concurrency.md)). A retried request hits the key, and the service returns the row that already exists instead of recording it twice. Its Prisma field is `idempotencyKey`, stored in the `request_id` column (the name it had before [ADR 0015](decisions/0015-idempotency-and-concurrency.md) told the two ids apart).
 - **Settings** are key–value rows whose keys are fixed in code; each value is validated when read (the contact keys excepted, [finding 40](findings/40-the-platforms-contact-settings-are-outside-the-typed-catalogue.md)).
+- **Search** is the database's, through the `pg_trgm` extension and two SQL functions of the directory's migration, so the stored names and the query go through one rule: `masaha_search_text` normalises a text (lowercased; tashkeel and tatweel removed; أ إ آ ٱ folded into ا, ة into ه, ى into ي; whitespace collapsed), and `masaha_search_score` scores a query against a text from 0 to 1: 1 when the text holds it, else the trigram `word_similarity`, so a typo still scores. The directory counts a match from 0.3, pg_trgm's own default. No trigram index: at a thousand spaces a scan costs a few milliseconds, and Prisma would drop an index it does not know. Prisma compares neither extensions nor functions, so later migrations leave both alone; a change to either is a new raw-SQL migration.
 - **Indexes only for queries that run.** Foreign keys used in lists are indexed, or covered by the prefix of a unique index.
 - **Unique violations** (Prisma `P2002`) become `409 CONFLICT`.
 
@@ -83,7 +84,7 @@ Summaries only: the schema owns the fields.
 - **Stale:** a fact group whose `…UpdatedAt` is older than its threshold: `priceStalenessDays` (default 30) for prices, `stalenessDays` (default 60) for the others. Both are admin settings.
 - **Missing:** a fact group never saved, its `…UpdatedAt` null. It is never stale; the admin's "stale only" filter keeps it, as it keeps a stale one.
 - **Stale prices:**
-  - on an **unverified** space, the amounts are hidden, "Price not up to date — contact the space" is shown, and the space is left out of the price filter;
+  - on an **unverified** space, the amounts are hidden, "Price not up to date — contact the space" is shown, and the space is left out of the price filters (a price range and student prices);
   - on a **verified** space, the amounts are shown with a "may have changed" note, and the owner's overview reminds them to confirm.
 
 ### Front desk and money

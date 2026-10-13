@@ -63,6 +63,15 @@ export function missingGroups(dates: GroupDates): FactGroup[] {
 }
 
 /**
+ * Whether the public is kept from a space's prices (data-model › Derived values, *Stale prices*):
+ * an unverified space's, once stale. A verified space's are shown with a note; missing prices have
+ * nothing to hide. The directory's price filters leave out the same spaces, in their query.
+ */
+export function pricesHidden(isVerified: boolean, dates: GroupDates, cutoffs: GroupCutoffs) {
+  return !isVerified && staleGroups(dates, cutoffs).includes('prices');
+}
+
+/**
  * The latest of the groups' dates: when the space's facts last changed or were confirmed. The
  * profile is always dated, so there is one.
  */

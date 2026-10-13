@@ -1,0 +1,88 @@
+import type { AmenityIconKey } from '../lookups/index.ts';
+import type {
+  Contact,
+  FactGroup,
+  Location,
+  OpeningRange,
+  Price,
+  SpaceHours,
+} from '../spaces/index.ts';
+
+// The public directory's answers (docs/api/api-contract.md §5, Directory (public)). Nothing here
+// carries a capacity, a count or a live status (ADR 0008), nor a price but on a space's page.
+
+/** A space's area, named in both languages; its governorate is the public catalogue's. */
+export interface DirectoryArea {
+  id: number;
+  nameAr: string;
+  nameEn: string;
+}
+
+/** A space as the directory's card shows it. */
+export interface DirectorySpace {
+  id: number;
+  slug: string;
+  nameEn: string;
+  nameAr: string | null;
+  area: DirectoryArea;
+  /** An active OWNER link (data-model › Derived values). */
+  isVerified: boolean;
+  /** The week, Sunday (0) to Saturday (6), `null` on a closed day; `null` while never saved. */
+  days: (OpeningRange | null)[] | null;
+  /** Straight-line, from the rounded point, to the nearest 100 m: only when sorted by distance. */
+  distanceMeters?: number;
+}
+
+/** A space on the map, with what its selected card shows. */
+export interface MapPin {
+  id: number;
+  slug: string;
+  nameEn: string;
+  nameAr: string | null;
+  /** Named from the public catalogue. */
+  areaId: number;
+  location: Location;
+  isVerified: boolean;
+  days: (OpeningRange | null)[] | null;
+}
+
+/** The map's pins: the whole filtered set, or its first `MAP_PINS_CEILING` by id, `truncated`. */
+export interface MapPins {
+  pins: MapPin[];
+  truncated: boolean;
+}
+
+/** An amenity as a space's page lists it: the platform's, with its icon, or the space's own. */
+export interface PublicAmenity {
+  nameAr: string;
+  nameEn: string | null;
+  /** The platform's amenity's icon; `null` for the space's own. */
+  icon: AmenityIconKey | null;
+}
+
+/** A space's public page. */
+export interface PublicSpace {
+  id: number;
+  slug: string;
+  nameEn: string;
+  nameAr: string | null;
+  descriptionAr: string | null;
+  descriptionEn: string | null;
+  area: DirectoryArea;
+  addressAr: string;
+  addressEn: string | null;
+  landmarkAr: string | null;
+  landmarkEn: string | null;
+  location: Location;
+  isVerified: boolean;
+  /** `null` until first saved. */
+  hours: SpaceHours | null;
+  /** `null` when hidden: an unverified space's stale prices (data-model › Derived values). */
+  prices: Price[] | null;
+  /** The platform's active amenities in its order, then the space's own in theirs. */
+  amenities: PublicAmenity[];
+  contacts: Contact[];
+  /** Each group's date, ISO 8601; `null` while the group is missing. */
+  updatedAt: Record<FactGroup, string | null>;
+  staleGroups: FactGroup[];
+}

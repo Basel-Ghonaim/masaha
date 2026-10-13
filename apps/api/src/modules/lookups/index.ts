@@ -11,5 +11,5 @@ export {
 } from './governorates/governorates.service.ts';
 export { createLookupsAdminRouter } from './lookups.admin.routes.ts';
 export { createLookupsPublicRouter } from './lookups.public.routes.ts';
-export type { AreaName } from './lookups.repository.ts';
+export type { AreaMatch, AreaName, NamedAmenity } from './lookups.repository.ts';
 export { createLookupsService, type LookupsService } from './lookups.service.ts';

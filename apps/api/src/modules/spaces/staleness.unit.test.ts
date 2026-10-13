@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   lastUpdate,
   missingGroups,
+  pricesHidden,
   staleCutoffs,
   staleGroups,
   type GroupDates,
@@ -85,5 +86,25 @@ describe('lastUpdate', () => {
     expect(
       lastUpdate(dated(90, { hours: null, prices: null, amenities: null, contacts: null })),
     ).toEqual(daysAgo(90));
+  });
+});
+
+describe('pricesHidden', () => {
+  const cutoffs = staleCutoffs(THRESHOLDS, NOW);
+
+  it('hides an unverified space’s prices once they are stale', () => {
+    expect(pricesHidden(false, dated(0, { prices: daysAgo(31) }), cutoffs)).toBe(true);
+  });
+
+  it('shows an unverified space’s fresh prices, up to their cut-off', () => {
+    expect(pricesHidden(false, dated(0, { prices: daysAgo(30) }), cutoffs)).toBe(false);
+  });
+
+  it('shows a verified space’s stale prices, which carry a note instead', () => {
+    expect(pricesHidden(true, dated(0, { prices: daysAgo(90) }), cutoffs)).toBe(false);
+  });
+
+  it('hides nothing of prices never saved', () => {
+    expect(pricesHidden(false, dated(0, { prices: null }), cutoffs)).toBe(false);
   });
 });

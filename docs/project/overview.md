@@ -1,6 +1,6 @@
 # Project Overview
 
-> **Status:** Active · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
 > **Authority:** What Masaha is, what is built today, what v1 is committed to, and what is explicitly not in v1. It names scope; it does not specify behaviour.
 
 ## What Masaha is
@@ -19,6 +19,7 @@ This section lists a capability only once it is merged and working. Each line li
 - [Users](../features/users.md): the account menu, sign-out, and the change of a temporary password before any other page; on the API, the admin's users list, an owner's account the admin creates with a temporary password, the admin's suspension, role change and temporary password for an account, each handover recorded, and a suspension or a role change that holds from the account's next request.
 - [Space links](../features/space-links.md): the spaces a user works at and the space switcher; the admin's spaces list, with its filters, on the dashboard; on the API, the soft-deleted spaces as a list of their own, and the admin's owners: added (a new account or an upgraded one), linked and unlinked one space at a time, the space verified while it has one.
 - [Lookups](../features/lookups.md): the admin's governorates and areas, and amenities; the public catalogue, on the API.
+- [Directory](../features/directory.md): on the API, the public directory's list, paged and filtered, with a forgiving search and near me; the map's pins; and a space's public page.
 - [Spaces](../features/spaces.md): the admin's: on the API, add, edit the profile and the facts (hours and shifts, prices, amenities with its own beside the platform's, contacts), confirm them, hide, delete and restore; on the dashboard, add a space with its pin on a map, and on its spaces list, hide, show, and delete with an undo.
 
 ## Committed scope — v1
@@ -33,7 +34,7 @@ Global roles `USER` · `OWNER` · `ADMIN`. At a space, a user is `OWNER` or `REC
 
 ### Public site
 - Directory of spaces: the list **or** the map, one at a time, the list by default; search and filters (area, price, student prices, open on Friday, verified, available now); sort, including nearest to me.
-- Near me: the device's location, never sent to Masaha, with an area or a pin on the map as fallbacks ([the rule](../frontend/design-system/foundation.md#13-screens-to-design-32), under *Directory*). Home shows the nearest spaces when a location is in use, otherwise the spaces available now.
+- Near me: the device's location, rounded on the device and sent in a header only to sort by distance, never stored or logged (the owner's change, 2026-10-13: it was never sent), with an area or a pin on the map as fallbacks ([the rule](../frontend/design-system/foundation.md#13-screens-to-design-32), under *Directory*; [security › Location](../backend/security.md#location)). Home shows the nearest spaces when a location is in use, otherwise the spaces available now.
 - Space page: photos, prices (display only), amenities, hours, contact, announcements, live status — available, full or closed now, never a seat count (verified spaces) — and "last updated" per fact.
 - Verified / unverified spaces: every space is listed whether or not its owner has joined.
 - "Are you the owner?": contact by email or WhatsApp (no in-app request).

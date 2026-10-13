@@ -11,8 +11,9 @@ import {
 import { pinoHttp } from 'pino-http';
 
 // What a log line never holds (docs/backend/security.md › HTTP hardening): the headers that carry
-// a session, and any field named like a password or a token, at the depths the API logs them.
-// Request bodies are never logged: pino-http's request serializer leaves them out.
+// a session, the one that carries the device's location (› Location), and any field named like a
+// password or a token, at the depths the API logs them. Request bodies are never logged: pino-http's
+// request serializer leaves them out.
 const SECRET_FIELDS = [
   'password',
   'currentPassword',
@@ -27,6 +28,7 @@ const SECRET_FIELDS = [
 const REDACTED_PATHS = [
   'req.headers.cookie',
   'req.headers.authorization',
+  'req.headers["masaha-near"]',
   'res.headers["set-cookie"]',
   ...SECRET_FIELDS.flatMap((field) => [field, `*.${field}`, `*.*.${field}`]),
 ];

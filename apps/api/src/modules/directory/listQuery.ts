@@ -1,0 +1,23 @@
+import { directoryQuerySchema, NEAR_HEADER, type DirectoryQuery } from '@masaha/shared/directory';
+import type { RequestHandler, Response } from 'express';
+
+import { toValidationError } from '../../shared/validation/index.ts';
+
+/**
+ * Validates the list's query together with the `Masaha-Near` header, as one input whose point is
+ * `near`, against the shared schema. The parsed query is kept on the response's locals, never on
+ * the request, so nothing the request logger writes holds the point (docs/backend/security.md ›
+ * Location); the header itself is redacted there.
+ */
+export const validateListQuery: RequestHandler = (req, res, next) => {
+  const input = { ...req.query, near: req.get(NEAR_HEADER) };
+  const result = directoryQuerySchema.safeParse(input);
+  if (!result.success) throw toValidationError(result.error.issues, input);
+  res.locals.directoryQuery = result.data;
+  next();
+};
+
+/** The list's query, as `validateListQuery` parsed it. */
+export function listQueryOf(res: Response): DirectoryQuery {
+  return res.locals.directoryQuery as DirectoryQuery;
+}

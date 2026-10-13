@@ -18,6 +18,11 @@ import {
   type GoogleIdentity,
 } from './modules/auth/index.ts';
 import {
+  createDirectoryController,
+  createDirectoryPublicRouter,
+  createDirectoryService,
+} from './modules/directory/index.ts';
+import {
   createAmenitiesController,
   createAmenitiesService,
   createAreasController,
@@ -63,6 +68,8 @@ import {
   createPricesService,
   createProfileController,
   createProfileService,
+  createPublicListingService,
+  createPublicSpaceService,
   createSpaceAmenitiesController,
   createSpaceAmenitiesService,
   createSpaceController,
@@ -247,6 +254,12 @@ export function createApi({
     lookups,
     users,
   });
+  const directory = createDirectoryService({
+    lookups,
+    spaceLinks,
+    publicListing: createPublicListingService({ platformSettings, now: clock }),
+    publicSpace: createPublicSpaceService({ runInTransaction, platformSettings, now: clock }),
+  });
   const adminUsers = createAdminUsersService({ users, spaces });
   const adminRoles = createAdminRolesService({ runInTransaction, users });
   const adminOwners = createAdminOwnersService({
@@ -284,6 +297,7 @@ export function createApi({
   const usersController = createUsersController(users, cookies);
   api.use('/me', createUsersMeRouter(usersController, requireAuth));
   api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
+  api.use(createDirectoryPublicRouter(createDirectoryController(directory)));
   api.use(
     '/manage/spaces',
     createSpaceLinksMeRouter(createSpaceLinksController(spaceLinks), requireAuth),
