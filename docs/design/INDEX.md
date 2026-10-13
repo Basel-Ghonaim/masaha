@@ -79,6 +79,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?fail=save` | the package sheet | the save failing inside the sheet |
 | `Announcements.html?delete=a1` | announcements | deleting a scheduled announcement: the confirmation |
 | `?fail=end` | announcements | «إنهاء الآن» failing: the toast with «إعادة المحاولة» |
+| `Announcements.html?tab=ended&extend=a6` | announcements (owner) | the closure extension's confirmation for a closure that has ended (O11) |
+| `?fail=extend` | the same | the extension failing |
 
 ## 01 · Flow
 

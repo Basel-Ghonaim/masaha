@@ -38,6 +38,46 @@ const TYPES = () => ({
 const textOf = (a) => (LANG === 'en' && a.textEn ? a.textEn : a.textAr);
 const STAT = () => ({ active: [tr('نشط', 'Active'), 'success'], scheduled: [tr('مجدول', 'Scheduled'), 'info'], ended: [tr('انتهى', 'Ended'), 'neutral'] });
 const affected = DESK.customers.filter((c) => { const s = DESK.currentSub(c); return s && DESK.subStatus(s) !== 'expired'; }).length;
+// O11: once a closure has started, the owner may extend the active subscriptions by its days — once.
+const extendable = (a) => IS_OWNER && a.type === 'closure' && annStatus(a) !== 'scheduled' && !a.extended;
+function ClosureLine({ a }) {
+  if (a.extended) return <span className="flex items-center gap-2 text-caption text-muted-foreground"><CircleCheckIcon className="size-4" aria-hidden="true" /><Counted n={a.extended.count} ar={F_EXTENDED.ar} en={F_EXTENDED.en} />{' '}<Counted n={a.extended.days} ar={F_DAYS_ACC.ar} en={F_DAYS_ACC.en} /> · {a.extended.by} · {DESK.fmtDate(a.extended.on, true)}</span>;
+  if (annStatus(a) === 'scheduled') return <span className="text-caption text-muted-foreground">{IS_OWNER ? tr('يمكن تمديد الاشتراكات بعد أن يبدأ الإغلاق.', 'Subscriptions can be extended once the closure has started.') : tr('يمدّد المالك الاشتراكات بعد الإغلاق.', 'The owner extends subscriptions after the closure.')}</span>;
+  if (!IS_OWNER) return <span className="text-caption text-muted-foreground">{tr('يمدّد المالك الاشتراكات بعد الإغلاق.', 'The owner extends subscriptions after the closure.')}</span>;
+  return null;
+}
+function ExtendDialog({ a, onClose, onDone }) {
+  const [days, setDays] = React.useState('');
+  const [err, setErr] = React.useState(null);
+  const { run } = useActionRun('extend');
+  React.useEffect(() => { if (a) { setDays(String(closureDays(a))); setErr(null); } }, [a]);
+  const d = Number(days) || 0;
+  const go = (e) => {
+    if (!(d >= 1)) { e.preventDefault(); setErr(tr('يومًا واحدًا على الأقل', 'At least one day')); return; }
+    run(() => { onDone(a, { count: affected, days: d, by: tr('أحمد', 'Ahmad'), on: DESK.TODAY }); onClose(); }, countText(affected, F_EXTENDED.ar, F_EXTENDED.en) + ' ' + countText(d, F_DAYS_ACC.ar, F_DAYS_ACC.en));
+  };
+  return (
+    <AlertDialog open={!!a} onOpenChange={(o) => !o && onClose()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{tr('تمديد اشتراكات المشتركين النشطين بأيام الإغلاق؟', 'Extend active subscribers’ subscriptions by the closure’s days?')}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {tr('تتأخر نهاية ', 'The end of ')}<Counted n={affected} ar={F_SUBS_ACTIVE_ACC.ar} en={F_SUBS_ACTIVE_ACC.en} />{' '}
+            {LANG === 'en' ? <>{'moves '}<Counted n={d} ar={F_DAYS_ACC.ar} en={F_DAYS_ACC.en} />{' later. '}</> : <><Counted n={d} ar={F_DAYS_ACC.ar} en={F_DAYS_ACC.en} />{'. '}</>}
+            {tr('لا يمكن التراجع، ولا تطبيقه مرة ثانية لهذا الإغلاق.', 'It cannot be undone, nor applied again for this closure.')}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {a && <Field label={tr('عدد الأيام', 'Number of days')} error={err} helper={<>{tr('أيام الإغلاق: ', 'The closure’s days: ')}<Num>{closureDays(a)}</Num></>}>
+          <Input inputMode="numeric" dir="ltr" className="w-20" value={days} onChange={(e) => { setDays(e.target.value.replace(/[^\d]/g, '')); setErr(null); }} />
+        </Field>}
+        <AlertDialogFooter>
+          <AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={go}><Counted n={affected} ar={F_EXTEND_VERB.ar} en={F_EXTEND_VERB.en} /></AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
 
 // How it looks on the public space page.
 function Preview({ a }) {
@@ -137,6 +177,7 @@ function AnnInner({ theme, setTheme }) {
   const [tab, setTab] = React.useState(pageParams.get('tab') || 'active');
   const [edit, setEdit] = React.useState(pageParams.get('edit') ? O.announcements.find((a) => a.id === pageParams.get('edit')) : pageParams.get('sheet') === 'new' ? { type: pageParams.get('type') || 'general' } : null);
   const [removing, setRemoving] = React.useState(pageParams.get('delete') ? O.announcements.find((x) => x.id === pageParams.get('delete')) : null);
+  const [extending, setExtending] = React.useState(() => { const a = O.announcements.find((x) => x.id === pageParams.get('extend')); return a && extendable(a) ? a : null; });
   const shown = list.filter((a) => annStatus(a) === tab);
   const save = (v) => { setList((l) => (v.id ? l.map((x) => (x.id === v.id ? v : x)) : [{ ...v, id: 'a' + Date.now() }, ...l])); setEdit(null); toast.success(v.id ? tr('حُفظ الإعلان', 'Announcement saved') : tr('نُشر الإعلان', 'Announcement published')); };
   const count = (s) => list.filter((a) => annStatus(a) === s).length;
@@ -173,11 +214,13 @@ function AnnInner({ theme, setTheme }) {
               </CardHeader>
               <CardContent className="flex flex-col gap-2">
                 <p className="text-body" lang={LANG === 'en' && !a.textEn ? 'ar' : undefined} dir={LANG === 'en' && !a.textEn ? 'rtl' : undefined}>{textOf(a)}</p>
+                {a.type === 'closure' && <ClosureLine a={a} />}
               </CardContent>
               <CardFooter className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={() => setEdit(a)}>{st === 'ended' ? tr('عرض', 'View') : tr('تعديل', 'Edit')}</Button>
                 {st === 'active' && <Button size="sm" variant="outline" onClick={() => endNow(a)} loading={ending}>{tr('إنهاء الآن', 'End now')}</Button>}
                 {st === 'scheduled' && <Button size="sm" variant="outline" onClick={() => setRemoving(a)}>{tr('حذف', 'Delete')}</Button>}
+                {extendable(a) && <Button size="sm" variant="outline" onClick={() => setExtending(a)}>{tr('تمديد الاشتراكات', 'Extend subscriptions')}</Button>}
               </CardFooter>
             </Card>
           ); })}
@@ -188,6 +231,7 @@ function AnnInner({ theme, setTheme }) {
             </div>
           ) : <Card><EmptyState icon={<CircleAlertIcon />} title={tab === 'active' ? tr('لا توجد إعلانات نشطة', 'No active announcements') : tab === 'scheduled' ? tr('لا توجد إعلانات مجدولة', 'No scheduled announcements') : tr('لا توجد إعلانات منتهية', 'No ended announcements')} description={tr('أعلن عن إغلاق، أو انقطاع، أو عرض، أو فعالية ليراه الزوار في صفحة المساحة.', 'Announce a closure, outage, offer or event for visitors to see on the space page.')}>{newBtn}</EmptyState></Card>}
       <AnnSheet item={edit} onClose={() => setEdit(null)} onSave={save} />
+      <ExtendDialog a={extending} onClose={() => setExtending(null)} onDone={(a, ext) => setList((l) => l.map((x) => (x.id === a.id ? { ...x, extended: ext } : x)))} />
       <AlertDialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>{tr('حذف الإعلان؟', 'Delete the announcement?')}</AlertDialogTitle><AlertDialogDescription>{tr('يُحذف قبل أن يظهر للزوار، ولا يمكن استرجاعه.', 'It is deleted before visitors see it, and cannot be brought back.')}</AlertDialogDescription></AlertDialogHeader>
