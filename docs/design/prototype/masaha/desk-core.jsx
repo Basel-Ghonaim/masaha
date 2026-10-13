@@ -15,6 +15,10 @@ const paidLine = (n, method) => tr(`استُلم ${$(n)} ${D.methodIn[method]}`,
 const MONEY_RETRY = tr('لم يصل الرد. أعد المحاولة — لن تُسجَّل مرتين.', 'No answer came back. Try again — it won’t be recorded twice.');
 // Foundation §10: a failed submit moves focus to the first invalid field of the open dialog or sheet.
 const focusInvalid = () => setTimeout(() => { const bad = document.querySelector('[role=dialog] [aria-invalid="true"], [role=alertdialog] [aria-invalid="true"]'); if (bad) bad.focus(); });
+// A day in a row's line: «اليوم», «أمس», or the date.
+const dayWord = (iso) => (iso === D.TODAY ? tr('اليوم', 'today') : iso === D.addDays(D.TODAY, -1) ? tr('أمس', 'yesterday') : D.fmtDate(iso));
+// O5's forms for the desk's own counted words.
+const F_UNCOLLECTED = { ar: { one: 'زيارة واحدة غير محصّلة', two: 'زيارتان غير محصّلتين', few: '{n} زيارات غير محصّلة', many: '{n} زيارة غير محصّلة', other: '{n} زيارة غير محصّلة' }, en: ['{n} visit not collected', '{n} visits not collected'] };
 // DK-010: a subscriber on a fixed price has nothing to settle at check-out, so it is one tap.
 const isQuickOut = (p) => { if (p.kind !== 'sub') return false; const s = D.currentSub(D.findCustomer(p.customerId)); return !s || s.billing.type === 'fixed'; };
 
@@ -82,19 +86,46 @@ function DeskProvider({ children, initial }) {
       bump(); close();
       toast.success(tr(`سُجّل خروج ${who}`, `${who} checked out`), { description: desc });
     },
-    // Applies to one item, or to the oldest first.
-    pay(cid, amount, method, note, itemId) {
+    // ADR 0010 rule 2: one payment per item, to one item or to the oldest first. A usage-based
+    // subscription chosen alone takes more than it owes, as credit. K4: the toast names it all.
+    pay(cid, amount, method, note, itemId, change = 0) {
       const c = D.findCustomer(cid);
-      let left = amount;
+      let left = amount; const parts = [];
       const items = D.openItems(c).filter((it) => !itemId || it.id === itemId);
       for (const it of items) {
         if (left <= 0) break;
-        const take = Math.min(left, it.due - it.paid); left -= take;
-        if (it.kind === 'sub') c.subs.find((s) => s.id === it.id).pays.push([D.TODAY, D.NOW, take, method, ME, null, note]);
-        else { const u = D.unpaid.find((x) => x.id === it.id); u.amount -= take; u.paidToday = (u.paidToday || 0) + take; if (u.amount <= 0) D.unpaid.splice(D.unpaid.indexOf(u), 1); D.visitPays.unshift({ id: 'vp' + Date.now(), name: c.name, date: D.TODAY, time: D.NOW, amount: take, method, by: ME }); }
+        const s = it.kind === 'sub' ? c.subs.find((x) => x.id === it.id) : null;
+        const take = s && s.billing.type === 'usage' && itemId ? left : Math.min(left, it.due - it.paid); left -= take;
+        if (s) s.pays.push([D.TODAY, D.NOW, take, method, ME, null, note]);
+        else { const u = D.unpaid.find((x) => x.id === it.id); u.amount -= take; if (u.amount <= 0) D.unpaid.splice(D.unpaid.indexOf(u), 1); D.visitPays.unshift({ id: 'vp' + Date.now() + it.id, customerId: c.id, name: c.name, date: D.TODAY, time: D.NOW, amount: take, method, by: ME }); }
+        parts.push((s ? s.debtLabel || s.name : tr('زيارة ', 'Visit ') + D.fmtDate(it.date)) + ' ' + $(take));
       }
       bump(); close();
-      toast.success(tr(`تم تسجيل ${$(amount)} · المتبقي ${$(D.balance(c))}`, `${$(amount)} recorded · ${$(D.balance(c))} left`));
+      toast.success(paidLine(amount, method), { description: c.name + ' · ' + parts.join(tr('، ', ', ')) + tr(` · المتبقي ${$(D.balance(c))}`, ` · ${$(D.balance(c))} left`) + (change > 0 ? tr(` · الباقي للزبون ${$(change)}`, ` · ${$(change)} change`) : '') });
+    },
+    // DK-012: a payment on an uncollected visit that has no customer.
+    payVisit(uid, amount, method, note, change = 0) {
+      const u = D.unpaid.find((x) => x.id === uid);
+      u.amount -= amount; if (u.amount <= 0) D.unpaid.splice(D.unpaid.indexOf(u), 1);
+      D.visitPays.unshift({ id: 'vp' + Date.now(), customerId: null, name: u.name, date: D.TODAY, time: D.NOW, amount, method, by: ME });
+      bump(); close();
+      toast.success(paidLine(amount, method), { description: u.name + tr(' · زيارة ', ' · visit of ') + D.fmtDate(u.date) + (u.amount > 0 ? tr(` · المتبقي ${$(u.amount)} غير محصّل`, ` · ${$(u.amount)} still uncollected`) : '') + (change > 0 ? tr(` · الباقي للزبون ${$(change)}`, ` · ${$(change)} change`) : '') });
+    },
+    // DK-012: «تسجيل دينًا» — the phone finds the customer or makes one, as at an unpaid check-out.
+    attachDebt(uid, name, phone) {
+      const u = D.unpaid.find((x) => x.id === uid); const ph = normPhone(phone);
+      let c = D.customers.find((x) => !x.archived && x.phone === ph);
+      if (!c) { c = { id: 'c' + Date.now(), name, phone: ph, subs: [] }; D.customers.unshift(c); }
+      u.customerId = c.id;
+      bump(); close();
+      toast.success(tr(`سُجّل ${$(u.amount)} دينًا على ${c.name}`, `${$(u.amount)} recorded as a debt for ${c.name}`));
+    },
+    // K6: out of «غير محصّل» and the debt, kept with the reason, who and when.
+    writeOff(uid, reason) {
+      const u = D.unpaid.find((x) => x.id === uid); const who = u.customerId ? D.findCustomer(u.customerId).name : u.name;
+      D.unpaid.splice(D.unpaid.indexOf(u), 1); D.writtenOff.push({ ...u, reason, by: ME, on: D.TODAY });
+      bump(); close();
+      toast.success(tr(`لن يُحصَّل ${$(u.amount)} · ${who}`, `${$(u.amount)} written off · ${who}`), { description: tr('السبب: ', 'Reason: ') + reason });
     },
     saveSubscription({ customerId, name, phone }, sub, payNow) {
       let c = customerId && D.findCustomer(customerId);
@@ -128,6 +159,8 @@ function DeskProvider({ children, initial }) {
       <WarnDialog dlg={dlg && dlg.kind === 'warn' ? dlg : null} onClose={close} />
       <CheckoutDialog dlg={dlg && dlg.kind === 'checkout' ? dlg : null} onClose={close} />
       <PayDialog dlg={dlg && dlg.kind === 'pay' ? dlg : null} onClose={close} />
+      <DebtDialog dlg={dlg && dlg.kind === 'debt' ? dlg : null} onClose={close} />
+      <WriteOffDialog dlg={dlg && dlg.kind === 'writeoff' ? dlg : null} onClose={close} />
       {window.SubscriptionSheet && <SubscriptionSheet dlg={dlg && dlg.kind === 'sheet' ? dlg : null} onClose={close} />}
     </DeskCtx.Provider>
   );
@@ -396,28 +429,55 @@ function CheckoutDialog({ dlg, onClose }) {
 }
 
 
-// 4.6 Receive payment
+// 4.6 Receive payment: a customer's open items, oldest first or one of them; or, from the uncollected
+// list, one visit that has no customer (DK-012). The money block names what is recorded.
 function PayDialog({ dlg, onClose }) {
   const desk = useDesk();
   const [cid, setCid] = React.useState(null); const [q, setQ] = React.useState('');
   const [item, setItem] = React.useState('auto'); const [amount, setAmount] = React.useState(''); const [method, setMethod] = React.useState('cash'); const [note, setNote] = React.useState(''); const [err, setErr] = React.useState();
+  const v = dlg && dlg.visitId ? D.unpaid.find((x) => x.id === dlg.visitId) : null;
   const c = cid && D.findCustomer(cid);
   const items = c ? D.openItems(c) : [];
   const leftOf = (id) => { if (id === 'auto') return D.balance(c); const it = items.find((i) => i.id === id); return it ? it.due - it.paid : 0; };
+  const chosen = c && item !== 'auto' ? c.subs.find((x) => x.id === item) : null;
+  // A usage-based subscription takes more than it owes, as credit (ADR 0010 rule 4).
+  const open = !!chosen && chosen.billing.type === 'usage';
+  const due = v ? v.amount : c ? leftOf(item) : 0;
   React.useEffect(() => { if (dlg) { setCid(dlg.customerId || null); setQ(''); setItem(dlg.itemId || 'auto'); setMethod('cash'); setNote(''); setErr(); } }, [dlg]);
-  React.useEffect(() => { if (c) setAmount(String(leftOf(item) || '')); }, [cid, item]);
-  const term = q.trim(); const digits = term.replace(/\D/g, '');
-  const results = term ? D.customers.filter((x) => x.name.includes(term) || (digits.length >= 3 && x.phone.replace(/\D/g, '').endsWith(digits))).slice(0, 6) : D.customers.filter((x) => D.balance(x) > 0).slice(0, 6);
+  React.useEffect(() => { if (v) setAmount(String(v.amount)); else if (c) setAmount(String(leftOf(item) || '')); }, [dlg, cid, item]);
+  const term = q.trim();
+  const results = term ? D.searchCustomers(term).slice(0, 6) : D.customers.filter((x) => !x.archived && D.balance(x) > 0).slice(0, 6);
+  const m = moneyOf(due, amount, open);
   const { busy, run } = useActionRun('pay');
-    const submit = (e) => { e.preventDefault(); const n = Number(amount); if (!(n > 0)) return setErr(tr('أدخل مبلغًا أكبر من صفر', 'Enter an amount above zero')); if (n > leftOf(item)) return setErr(tr(`أكبر من المتبقي (${$(leftOf(item))})`, `More than what’s left (${$(leftOf(item))})`)); run(() => desk.pay(c.id, n, method, note, item === 'auto' ? null : item)); };
+  const submit = (e) => {
+    e.preventDefault();
+    if (!(m.recorded > 0)) { setErr(tr('أدخل مبلغًا أكبر من صفر', 'Enter an amount above zero')); return focusInvalid(); }
+    setErr();
+    run(() => (v ? desk.payVisit(v.id, m.recorded, method, note, m.change) : desk.pay(c.id, m.recorded, method, note, item === 'auto' ? null : item, m.change)));
+  };
+  const how = (u) => <>{u.how === 'auto' ? tr('خروج تلقائي عند الإغلاق', 'Auto check-out at closing') : tr('خرج بدون دفع', 'Left without paying')} · {dayWord(u.date)} <Num>{u.in + '–' + u.out}</Num></>;
+  const submitLabel = m.recorded > 0 ? <>{tr('تسجيل', 'Record')} <Money n={m.recorded} /></> : tr('تسجيل الدفعة', 'Record payment');
+  const tail = (
+    <>
+      <DK.Field label={tr('ملاحظة', 'Note')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>}><DK.Input value={note} onChange={(e) => setNote(e.target.value)} /></DK.Field>
+      <MoneyRateNote />
+      <ActionAlert for="pay">{MONEY_RETRY}</ActionAlert>
+    </>
+  );
   return (
     <DK.Dialog open={!!dlg} onOpenChange={(o) => !o && onClose()}>
       <DK.DialogContent closeLabel={tr('إغلاق', 'Close')}>
         <DK.DialogHeader>
-          <DK.DialogTitle>{tr('استلام دفعة', 'Receive a payment')}{c ? ' · ' + c.name : ''}</DK.DialogTitle>
-          <DK.DialogDescription>{c ? <>{tr('المتبقي عليه', 'Balance')} <Money n={D.balance(c)} /></> : tr('اختر الزبون', 'Choose the customer')}</DK.DialogDescription>
+          <DK.DialogTitle>{v ? tr('تحصيل زيارة', 'Collect a visit') + ' · ' + v.name : tr('استلام دفعة', 'Receive a payment') + (c ? ' · ' + c.name : '')}</DK.DialogTitle>
+          <DK.DialogDescription>{v ? how(v) : c ? <>{tr('المتبقي عليه', 'Balance')} <Money n={D.balance(c)} /></> : tr('اختر الزبون', 'Choose the customer')}</DK.DialogDescription>
         </DK.DialogHeader>
-        {!c ? (
+        {v ? (
+          <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+            <MoneyBlock due={due} value={amount} onValue={setAmount} method={method} onMethod={setMethod} error={err} remainder="uncollected" none={false} />
+            {tail}
+            <DK.DialogFooter className="flex flex-wrap gap-2"><DK.Button type="submit" loading={busy}>{submitLabel}</DK.Button></DK.DialogFooter>
+          </form>
+        ) : !c ? (
           <div className="flex flex-col gap-3">
             <DK.Input role="searchbox" aria-label={tr('ابحث بالاسم أو آخر أرقام الجوال', 'Search by name or last digits')} placeholder={tr('الاسم أو آخر أرقام الجوال', 'Name or last digits of the mobile')} startIcon={<DK.SearchIcon />} value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
             {!term && <p className="text-caption text-muted-foreground">{tr('عليهم مبالغ:', 'Customers who owe:')}</p>}
@@ -442,14 +502,10 @@ function PayDialog({ dlg, onClose }) {
                 ))}
               </DK.RadioGroup>
             </DK.Field>
-            <div className="grid gap-4 md:grid-cols-2">
-              <DK.Field label={tr('المبلغ (₪)', 'Amount (₪)')} error={err}><DK.Input inputMode="numeric" dir="ltr" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))} /></DK.Field>
-              <MethodToggle value={method} onChange={setMethod} />
-            </div>
-            <DK.Field label={tr('ملاحظة', 'Note')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>}><DK.Input value={note} onChange={(e) => setNote(e.target.value)} /></DK.Field>
-            <ActionAlert for="pay" />
+            <MoneyBlock due={due} open={open} value={amount} onValue={setAmount} method={method} onMethod={setMethod} error={err} remainder="debt" who={c.name} none={false} />
+            {tail}
             <DK.DialogFooter className="flex flex-wrap gap-2">
-              <DK.Button type="submit" loading={busy}>{tr('تسجيل الدفعة', 'Record payment')}</DK.Button>
+              <DK.Button type="submit" loading={busy}>{submitLabel}</DK.Button>
               {!dlg.customerId && <DK.Button type="button" variant="ghost" onClick={() => setCid(null)}>{tr('زبون آخر', 'Another customer')}</DK.Button>}
             </DK.DialogFooter>
           </form>
@@ -459,4 +515,106 @@ function PayDialog({ dlg, onClose }) {
   );
 }
 
-Object.assign(window, { DeskProvider, useDesk, CustomerCard, StatusBadge, BalanceBadge, Money, durLabel, nameOf, normPhone, phoneOk, checkInWarnings, MethodToggle, ME, durText, paidLine, MONEY_RETRY, focusInvalid, isQuickOut, moneyOf, MoneyBlock, MoneyRateNote, OutButton });
+// P9: an irreversible act felt by others asks with an AlertDialog whose reason is required — voiding
+// a payment, and K6's write-off. The action repeats the verb, `destructive`; the dismiss is «رجوع».
+function ReasonDialog({ open, onClose, title, description, action, actionKey, onConfirm }) {
+  const [reason, setReason] = React.useState(''); const [err, setErr] = React.useState();
+  React.useEffect(() => { if (open) { setReason(''); setErr(); } }, [open]);
+  const { busy, run } = useActionRun(actionKey);
+  const go = () => { if (!reason.trim()) { setErr(tr('اكتب السبب', 'Write the reason')); return focusInvalid(); } run(() => onConfirm(reason.trim())); };
+  return (
+    <DK.AlertDialog open={!!open} onOpenChange={(o) => !o && onClose()}>
+      <DK.AlertDialogContent>
+        <DK.AlertDialogHeader>
+          <DK.AlertDialogTitle>{title}</DK.AlertDialogTitle>
+          <DK.AlertDialogDescription>{description}</DK.AlertDialogDescription>
+        </DK.AlertDialogHeader>
+        <DK.Field label={tr('السبب', 'Reason')} error={err}><DK.Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></DK.Field>
+        <ActionAlert for={actionKey} />
+        <DK.AlertDialogFooter>
+          <DK.AlertDialogCancel>{tr('رجوع', 'Back')}</DK.AlertDialogCancel>
+          <DK.Button variant="destructive" loading={busy} onClick={go}>{action}</DK.Button>
+        </DK.AlertDialogFooter>
+      </DK.AlertDialogContent>
+    </DK.AlertDialog>
+  );
+}
+
+// K6: the owner's «لن يُحصَّل» — with a reason, recorded and audited; never a payment, never a deletion.
+function WriteOffDialog({ dlg, onClose }) {
+  const desk = useDesk();
+  const u = dlg && D.unpaid.find((x) => x.id === dlg.visitId);
+  const who = u ? (u.customerId ? D.findCustomer(u.customerId).name : u.name) : '';
+  return (
+    <ReasonDialog open={!!u} onClose={onClose} actionKey="writeoff" title={tr('لن يُحصَّل مبلغ هذه الزيارة؟', 'Write off this visit?')} action={tr('لن يُحصَّل', 'Write off')} onConfirm={(reason) => desk.writeOff(u.id, reason)}
+      description={u && <>{who} · {D.fmtDate(u.date)} · <Money n={u.amount} />. {tr('تخرج الزيارة من «غير محصّل» ومن دين الزبون. ليست دفعة ولا حذفًا: تبقى في السجل مع السبب واسمك، ولا يمكن التراجع.', 'The visit leaves «Not collected» and the customer’s debt. It isn’t a payment or a deletion: it stays on record with the reason and your name, and it can’t be undone.')}</>} />
+  );
+}
+
+// DK-012: a visit with no customer (the automatic check-out closed it) becomes a debt by a name and a
+// phone, which find the customer or make one — the rule of an unpaid check-out.
+function DebtDialog({ dlg, onClose }) {
+  const desk = useDesk();
+  const u = dlg && D.unpaid.find((x) => x.id === dlg.visitId);
+  const [name, setName] = React.useState(''); const [phone, setPhone] = React.useState(''); const [err, setErr] = React.useState({});
+  React.useEffect(() => { if (u) { setName(u.name || ''); setPhone(''); setErr({}); } }, [dlg]);
+  const { busy, run } = useActionRun('debt');
+  const match = phoneOk(phone) ? D.customers.find((x) => !x.archived && x.phone === normPhone(phone)) : null;
+  const submit = (e) => {
+    e.preventDefault();
+    const x = {};
+    if (!name.trim()) x.name = tr('أدخل الاسم', 'Enter the name');
+    if (!phoneOk(phone)) x.phone = tr('رقم الجوال مطلوب ليُسجَّل المبلغ دينًا، مثل +970 59 000 0000', 'A mobile number is needed to record the debt, e.g. +970 59 000 0000');
+    setErr(x); if (Object.keys(x).length) return focusInvalid();
+    run(() => desk.attachDebt(u.id, name.trim(), phone));
+  };
+  return (
+    <DK.Dialog open={!!u} onOpenChange={(o) => !o && onClose()}>
+      <DK.DialogContent closeLabel={tr('إغلاق', 'Close')}>
+        {u && <>
+          <DK.DialogHeader>
+            <DK.DialogTitle>{tr('تسجيل دين', 'Record a debt')} · {u.name}</DK.DialogTitle>
+            <DK.DialogDescription><Money n={u.amount} /> {tr('تبقى دينًا على صاحب هذا الرقم، ويُنشأ له ملف زبون إن لم يكن له ملف.', 'stays as a debt for the owner of this number; a customer record is created if there is none.')}</DK.DialogDescription>
+          </DK.DialogHeader>
+          <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+            <DK.Field label={tr('الاسم', 'Name')} error={err.name}><DK.Input value={name} onChange={(e) => setName(e.target.value)} /></DK.Field>
+            <DK.Field label={tr('رقم الجوال', 'Mobile number')} error={err.phone} helper={match ? tr('يُضاف إلى ملف ', 'Added to the file of ') + match.name : undefined}><DK.Input type="tel" dir="ltr" placeholder="+970 59 000 0000" value={phone} onChange={(e) => setPhone(e.target.value)} autoFocus /></DK.Field>
+            <ActionAlert for="debt" />
+            <DK.DialogFooter><DK.Button type="submit" loading={busy}>{tr('تسجيل الدين', 'Record the debt')}</DK.Button></DK.DialogFooter>
+          </form>
+        </>}
+      </DK.DialogContent>
+    </DK.Dialog>
+  );
+}
+
+// An uncollected visit's row: on the desk with its name, its actions under it (the side column is
+// narrow); in the customer's file without, on one line from 768. Its actions:
+// «تحصيل», «تسجيل دينًا» when it has no customer (DK-012), and the owner's «لن يُحصَّل» (K6).
+function UnpaidRow({ u, showName }) {
+  const desk = useDesk();
+  const c = u.customerId ? D.findCustomer(u.customerId) : null;
+  const who = c ? c.name : u.name;
+  const how = u.how === 'auto' ? tr('خروج تلقائي عند الإغلاق', 'Auto check-out at closing') : tr('خرج بدون دفع', 'Left without paying');
+  return (
+    <li className={'flex flex-col gap-2 px-5 py-3' + (showName ? '' : ' md:flex-row md:items-center md:justify-between')}>
+      <div className="flex min-w-0 flex-col">
+        {showName && (c ? <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + c.id)}>{who}</a> : <span className="text-label">{who}</span>)}
+        <span className={showName ? 'text-caption text-muted-foreground' : 'text-body-sm'}>{how} · {dayWord(u.date)} <Num>{u.in + '–' + u.out}</Num></span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-label"><Money n={u.amount} /></span>
+        <DK.Button size="sm" variant="outline" onClick={() => (c ? desk.open('pay', { customerId: c.id, itemId: u.id }) : desk.open('pay', { visitId: u.id }))}>{tr('تحصيل', 'Collect')}</DK.Button>
+        {!c && <DK.Button size="sm" variant="outline" onClick={() => desk.open('debt', { visitId: u.id })}>{tr('تسجيل دينًا', 'Record as a debt')}</DK.Button>}
+        {IS_OWNER && (
+          <DK.DropdownMenu dir={DIR}>
+            <DK.DropdownMenuTrigger asChild><DK.Button variant="ghost" size="icon" aria-label={tr('إجراءات أخرى لزيارة ', 'More actions for the visit of ') + who}><DK.EllipsisVerticalIcon /></DK.Button></DK.DropdownMenuTrigger>
+            <DK.DropdownMenuContent align="end"><DK.DropdownMenuItem variant="destructive" onSelect={() => desk.open('writeoff', { visitId: u.id })}>{tr('لن يُحصَّل…', 'Write off…')}</DK.DropdownMenuItem></DK.DropdownMenuContent>
+          </DK.DropdownMenu>
+        )}
+      </div>
+    </li>
+  );
+}
+
+Object.assign(window, { DeskProvider, useDesk, CustomerCard, StatusBadge, BalanceBadge, Money, durLabel, nameOf, normPhone, phoneOk, checkInWarnings, MethodToggle, ME, durText, paidLine, MONEY_RETRY, focusInvalid, isQuickOut, moneyOf, MoneyBlock, MoneyRateNote, OutButton, dayWord, F_UNCOLLECTED, ReasonDialog, UnpaidRow });

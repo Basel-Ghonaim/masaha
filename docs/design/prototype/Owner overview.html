@@ -42,7 +42,7 @@ function queueRows() {
   const reports = O.reports.filter((r) => r.status === 'new').length;
   if (reports) rows.push({ key: 'reports', title: <Counted n={reports} ar={F_NEW_REPORTS.ar} en={F_NEW_REPORTS.en} />, caption: tr('من زوار، عن معلومات في صفحة المساحة', 'From visitors, about facts on the space page'), action: tr('مراجعة', 'Review'), href: 'Data reports.html?status=new' });
   const unpaid = DESK.unpaid.filter((u) => u.date === DESK.TODAY).length;
-  if (unpaid) rows.push({ key: 'unpaid', title: <Counted n={unpaid} ar={F_UNPAID.ar} en={F_UNPAID.en} />, caption: tr('خرجت بلا دفع، أو سُجّل خروجها تلقائيًا', 'Left without paying, or checked out automatically'), action: tr('فتح المكتب', 'Open the desk'), href: 'Desk.html' });
+  if (unpaid) rows.push({ key: 'unpaid', title: <Counted n={unpaid} ar={F_UNPAID.ar} en={F_UNPAID.en} />, caption: tr('خرجت بلا دفع، أو سُجّل خروجها تلقائيًا', 'Left without paying, or checked out automatically'), action: tr('فتح المكتب', 'Open the desk'), href: 'Desk.html#unpaid' });
   const owe = DESK.customers.filter((c) => DESK.balance(c) > 0).length;
   if (owe) rows.push({ key: 'owe', title: <Counted n={owe} ar={F_OWE.ar} en={F_OWE.en} />, caption: tr('المبالغ في المالية › الديون', 'The amounts are in Finance › Debts'), action: tr('عرض', 'View'), href: 'Finance.html?tab=debts' });
   O.announcements.filter((a) => a.type === 'closure' && annStatus(a) !== 'scheduled' && !a.extended).forEach((a) => rows.push({ key: a.id, title: tr('إغلاق لم تُمدَّد اشتراكاته', 'A closure whose subscriptions are not extended'), caption: annPeriod(a), action: tr('مراجعة', 'Review'), href: 'Announcements.html?tab=' + annStatus(a) + '&extend=' + a.id }));

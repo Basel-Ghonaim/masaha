@@ -92,11 +92,16 @@ window.DESK = (function () {
     ...visits.map(([name, since, student, cid], i) => ({ id: 'pv' + i, kind: 'visit', name, since, student: !!student && STUDENT_VISITS, customerId: cid || null }))
   ].sort((a, b) => (a.since < b.since ? 1 : -1));
 
-  // Unpaid visits: left without paying, or checked out automatically at closing.
+  // Unpaid visits: left without paying, or checked out automatically at closing. DK-012: a visit the
+  // automatic check-out closed may have no customer, only the name it was checked in with.
   const unpaid = [
     { id: 'u1', customerId: 'm10', date: TODAY, in: '09:00', out: '11:10', amount: 9, how: 'left' },
-    { id: 'u2', customerId: 'm14', date: '2026-09-28', in: '14:00', out: CLOSE, amount: 12, how: 'auto' }
+    { id: 'u2', customerId: 'm14', date: '2026-09-28', in: '14:00', out: CLOSE, amount: 12, how: 'auto' },
+    { id: 'u3', customerId: null, name: T('يزن الأسطل', 'Yazan Al-Astal'), date: '2026-09-28', in: '15:20', out: CLOSE, amount: 9, how: 'auto' },
+    { id: 'u4', customerId: null, name: T('إياد الشرفا', 'Iyad Al-Sharafa'), date: '2026-09-27', in: '16:10', out: CLOSE, amount: 6, how: 'auto' }
   ];
+  // K6: visits the owner wrote off («لن يُحصَّل»), with the reason, who and when — never a payment.
+  const writtenOff = [];
   // Visits paid today (not tied to a customer): for «دفعاتي اليوم».
   const visitPays = [
     { id: 'vp1', name: T('فرح جابر', 'Farah Jaber'), date: TODAY, time: '10:02', amount: 6, method: 'cash', by: SM },
@@ -150,6 +155,12 @@ window.DESK = (function () {
   // The shift in progress now, or '' outside every shift.
   const currentShift = () => { const s = SHIFT_LIST.find((x) => toMin(x.from) <= toMin(NOW) && toMin(NOW) < toMin(x.to)); return s ? s.id : ''; };
   const findCustomer = (id) => customers.find((c) => c.id === id);
+  // K1: one search for the desk, the payment picker and Customers — a name, or the mobile's last digits.
+  const searchCustomers = (term) => {
+    const t = term.trim(); const digits = t.replace(/\D/g, '');
+    const byDigits = digits.length >= 2 && digits === t.replace(/[\s+]/g, '');
+    return customers.filter((c) => !c.archived && (c.name.includes(t) || (byDigits && (c.phone || '').replace(/\D/g, '').endsWith(digits))));
+  };
   const presentOf = (cid) => present.find((p) => p.customerId === cid);
   const currentSub = (c) => c.subs[0] || null;
   const todayMinutes = (c, sub) => { const p = presentOf(c.id); return (sub.used.todayMin || 0) + (p ? toMin(NOW) - toMin(p.since) : 0); };
@@ -221,7 +232,7 @@ window.DESK = (function () {
   };
   const collected = (rows) => rows.filter((r) => !r.voided).reduce((a, r) => a + r.amount, 0);
 
-  return { ledger, collected, MONTHS, monthly, daily30, heat, perDay, staffMonth, leftToday, credit, TODAY, NOW, TODAY_KEY, CLOSE, PRICES, WEEKDAYS, SHIFTS, PACKAGES, pkg, customers, present, unpaid, visitPays, attendance, capacity: 40,
-    SETTINGS, STUDENT_VISITS, SHIFT_LIST, visitRates, currentShift, methodIn,
+  return { ledger, collected, MONTHS, monthly, daily30, heat, perDay, staffMonth, leftToday, credit, TODAY, NOW, TODAY_KEY, CLOSE, PRICES, WEEKDAYS, SHIFTS, PACKAGES, pkg, customers, present, unpaid, writtenOff, visitPays, attendance, capacity: 40,
+    searchCustomers, SETTINGS, STUDENT_VISITS, SHIFT_LIST, visitRates, currentShift, methodIn,
     toMin, hm, daysBetween, addDays, fmtDate, money, visitCharge, findCustomer, presentOf, currentSub, todayMinutes, due, paid, subStatus, customerStatus, payStatus, openItems, balance, subKind, progress, termsLine, statusBadge, payBadge, methodLabel, by, SAMI: SM, AHMAD: A };
 })();

@@ -35,7 +35,9 @@ const initialDialog = (() => {
   if (d === 'warn') return { kind: 'warn', customerId: cid, warnings: checkInWarnings(cid) };
   // DK-010: a fixed-price subscriber has no dialog — DeskInner checks them out on load instead.
   if (d === 'checkout') { const p = DESK.present.find((x) => x.id === pageParams.get('pid')); if (p && isQuickOut(p)) return null; return { kind: 'checkout', presentId: pageParams.get('pid'), received: pageParams.get('debt') === '1' ? '0' : pageParams.get('received') }; }
-  if (d === 'pay') return { kind: 'pay', customerId: cid, itemId: pageParams.get('item') };
+  if (d === 'pay') return { kind: 'pay', customerId: cid, itemId: pageParams.get('item'), visitId: pageParams.get('vid') };
+  if (d === 'debt') return { kind: 'debt', visitId: pageParams.get('vid') };
+  if (pageParams.get('writeoff') && IS_OWNER) return { kind: 'writeoff', visitId: pageParams.get('writeoff') };
   if (d === 'sheet') return { kind: 'sheet', mode: pageParams.get('mode') || 'new', customerId: cid, name: pageParams.get('name') || '', pkg: pageParams.get('pkg'), payNow: pageParams.get('paynow') };
   if (d === 'visit') return { kind: 'visit' };
   return null;
@@ -92,34 +94,31 @@ function PresentList() {
   );
 }
 
+// DK-003: the money to chase, compact — its count and total in the title, the first three rows and
+// «عرض الكل». DI-35: `#unpaid` is where the overview's queue lands. Below xl nothing shows when it is empty.
+const UNPAID_SHOWN = 3;
 function UnpaidCard() {
-  const desk = useDesk();
+  const [all, setAll] = React.useState(pageParams.get('unpaid') === 'all');
   const list = DESK.unpaid;
+  const total = list.reduce((a, u) => a + u.amount, 0);
+  const shown = all ? list : list.slice(0, UNPAID_SHOWN);
   return (
-    <Card>
+    <Card id="unpaid" className={'section-anchor' + (list.length || st === 'loading' ? '' : ' hidden xl:flex')}>
       <CardHeader>
-        <CardTitle>{tr('غير محصّل', 'Not collected')}</CardTitle>
+        <CardTitle><h2>{list.length ? <><Counted n={list.length} ar={F_UNCOLLECTED.ar} en={F_UNCOLLECTED.en} /> · <Money n={total} /></> : tr('غير محصّل', 'Not collected')}</h2></CardTitle>
         <CardDescription>{tr('زيارات خرجت بدون دفع أو سُجّل خروجها تلقائيًا عند الإغلاق.', 'Visits that left unpaid or were checked out automatically at closing.')}</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         {st === 'loading' ? <div className="flex flex-col gap-3 px-5 pb-5"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div>
-        : list.length ? (
-          <ul className="divide-y">
-            {list.map((u) => { const c = DESK.findCustomer(u.customerId); return (
-              <li key={u.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                <div className="flex min-w-0 flex-col">
-                  <a className="text-label text-foreground" href={roleQ('Customer file.html?id=' + c.id)}>{c.name}</a>
-                  <span className="text-caption text-muted-foreground">{u.how === 'auto' ? tr('خروج تلقائي عند الإغلاق', 'Auto check-out at closing') : tr('خرج بدون دفع', 'Left without paying')} · {u.date === DESK.TODAY ? tr('اليوم', 'today') : tr('أمس', 'yesterday')} <Num>{u.in + '–' + u.out}</Num></span>
-                </div>
-                <span className="flex items-center gap-2"><span className="text-label"><Money n={u.amount} /></span><Button size="sm" variant="outline" onClick={() => desk.open('pay', { customerId: c.id, itemId: u.id })}>{tr('تحصيل', 'Collect')}</Button></span>
-              </li>
-            ); })}
-          </ul>
-        ) : <p className="flex items-center gap-2 px-5 pb-5 text-body-sm text-muted-foreground"><CircleCheckIcon className="size-4" aria-hidden="true" />{tr('لا توجد مبالغ غير محصّلة.', 'Nothing left to collect.')}</p>}
+        : list.length ? <>
+          <ul className="divide-y">{shown.map((u) => <UnpaidRow key={u.id} u={u} showName />)}</ul>
+          {list.length > UNPAID_SHOWN && <div className="border-t px-5 py-3"><Button variant="link" size="sm" className="px-0" aria-expanded={all} onClick={() => setAll(!all)}>{all ? tr('عرض أقل', 'Show fewer') : tr('عرض الكل', 'Show all')}</Button></div>}
+        </> : <p className="flex items-center gap-2 px-5 pb-5 text-body-sm text-muted-foreground"><CircleCheckIcon className="size-4" aria-hidden="true" />{tr('لا توجد مبالغ غير محصّلة.', 'Nothing left to collect.')}</p>}
       </CardContent>
     </Card>
   );
 }
+
 
 const LOG = () => window.OWNER.log.map(([name, a, b, how], i) => ({ id: 'l' + i, name, a, b, how }));
 function LogTab() {
