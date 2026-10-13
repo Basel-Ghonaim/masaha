@@ -199,12 +199,39 @@ function OwnerUserMenu({ theme, setTheme }) {
   );
 }
 
+// DI-10 (decided 2026-10-13): on a phone the bar has no room for the account, so it heads the drawer,
+// whose foot already holds the theme and the language — so the menu opened here leaves them out.
+function DrawerAccount() {
+  const u = STAFF;
+  return (
+    <ODropdown dir={DIR}>
+      <ODropdownTrigger asChild>
+        <button type="button" className="flex w-full items-center gap-3 rounded-md p-2 text-start hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-label={tr('قائمة الحساب', 'Account menu') + ' — ' + u.name}>
+          <OAvatar size="sm" aria-hidden="true"><OAvatarFallback>{u.name[0]}</OAvatarFallback></OAvatar>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-label">{u.name} · {u.role}</span>
+            <span dir="ltr" className="truncate text-caption text-muted-foreground">{u.email}</span>
+          </span>
+          <ChevronsUpDownIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+        </button>
+      </ODropdownTrigger>
+      <AccountMenuContent user={u} area="dashboard" onSignOut={() => { location.href = carryParams('Home.html?auth=0'); }} />
+    </ODropdown>
+  );
+}
+
 // state: the automatic public state; a manual override turns it to Full while it runs.
 function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAction, actions, loadError, children }) {
   const ov = useOverride();
   const base = INSIDE_HOURS ? state : 'closed';
   // The 768–1023 rail: the sidebar collapses to icons there, so the switcher needs its tooltip.
-  const rail = useIsTablet() && !useIsDesktop();
+  // Both hooks run on every render (no short-circuit): skipping one on phones would reorder the hooks.
+  const tablet = useIsTablet();
+  const desktop = useIsDesktop();
+  const rail = tablet && !desktop;
+  const phone = !tablet;
+  // ?drawer=open: the phone's drawer, open, for the board (its open state is the layer's own).
+  React.useEffect(() => { if (phone && pageParams.get('drawer') === 'open') { const b = document.querySelector('[data-slot=sidebar-inset] > header button'); if (b) b.click(); } }, []);
     const route = routeState();
       const failed = pageParams.get('state') === 'error';
   return (
@@ -212,6 +239,7 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
       <SkipLink />
       <Sidebar label={tr('لوحة إدارة المساحة', 'Space dashboard')}>
         <div className="sidebar-stick">
+        {phone && <div className="border-b border-sidebar-border p-2"><DrawerAccount /></div>}
         <SidebarHeader mark={<SpaceSwitcher collapsed={rail} />} />
         <SidebarContent>
           {OWNER_NAV().map((g, i) => (
@@ -243,7 +271,7 @@ function OwnerShell({ current, title, state = 'open', theme, setTheme, bottomAct
           <h1 className="min-w-0 flex-1 truncate text-heading-3">{title}</h1>
           <PageActions actions={actions} />
           <PublicStateControl state={base} ov={ov} />
-          <div className="ms-auto flex items-center gap-1">
+          <div className="ms-auto hidden items-center gap-1 md:flex">
             <OLang lang={LANG === 'en' ? 'ar' : 'en'} label={LANG === 'en' ? 'العربية' : 'English'} onClick={switchLang} className="hidden md:inline-flex" />
             <OTheme theme={theme} onThemeChange={setTheme} label={theme === 'light' ? tr('المظهر الداكن', 'Dark theme') : tr('المظهر الفاتح', 'Light theme')} className="hidden md:inline-flex" />
             <OwnerUserMenu theme={theme} setTheme={setTheme} />

@@ -182,3 +182,13 @@ Reviewed as AC-001…AC-022 (G1–G4); decided in `DECISIONS_ACCOUNT.md` as the 
 - **DI-30:** the dashboards' 429 line (`RateLimitNote`) still says «15 دقيقة».
 - **DI-31:** the built `LinkSent` needs C3's way back at every moment and a `message` for Settings.
 - **DI-32:** `?auth=linked` stands for both "Google and a password" and "has a dashboard".
+## Batch 5 — the owner's management (2026-10-13)
+
+Reviewed as OW-001…OW-022; decided in `DECISIONS_OWNER.md` with the owner's amendments of 2026-10-12
+(no money on the overview) and 2026-10-13 (the phone's top bar, a package's price above zero, and the
+editor boundary: nothing the admin's editor shows changes while worker A builds it). The design-system
+item (OW-010) and the rule changes are the web's and the docs'.
+
+| Decision | What changed | Where |
+|---|---|---|
+| **DI-10** | On a phone the owner's and reception's top bar holds four things — the menu, the page's title (truncated if it must), P1's «⋯» and P2's state control — and the account leaves it: it heads the drawer, a row with the avatar, the name and role and the email that opens the one account menu, without the theme and language items the drawer's foot already holds. From 768 the bar is unchanged. `?drawer=open` opens the drawer for the board. The desk's pages share the shell, so they change with it | `masaha/owner.jsx` |

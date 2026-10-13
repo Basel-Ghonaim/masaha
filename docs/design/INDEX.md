@@ -66,6 +66,11 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?auth=0` | Favourites, My reports, account settings | signed out: straight to sign-in with `next`, as the route's `RequireAuth` does (AC-011) |
 | `Settings.html?fail=language` | account settings | the language's save failing: the toggle returns, «تعذّر حفظ اللغة» with «إعادة المحاولة» |
 | `Reports.html?demo=pages` · `?tab=open` · `?tab=closed` | My reports | 28 reports, so the list has a second page (P6); the chips set |
+### Batch 5 — the owner's management
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `?drawer=open` | the owner's and reception's pages, on a phone | the drawer, open, with the account at its head (DI-10) |
 
 ## 01 · Flow
 
