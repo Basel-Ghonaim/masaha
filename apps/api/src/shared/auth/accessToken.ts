@@ -6,12 +6,15 @@ const ALGORITHM = 'HS256';
 const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 
 /**
- * What an access token says: who, and whether a temporary password was pending when it was signed.
- * The role is not in it: requireAuth reads the account's on every request (ADR 0003, revised).
+ * What an access token says: who, whether a temporary password was pending when it was signed, and
+ * the account's session version then. The role is not in it: requireAuth reads the account's on
+ * every request (ADR 0003, revised).
  */
 export interface AccessClaims {
   userId: number;
   mustChangePassword: boolean;
+  /** The account's session version when it was signed: once every session ends, it is refused. */
+  sessionVersion: number;
 }
 
 export interface AccessTokens {
@@ -24,8 +27,8 @@ export function createAccessTokens(secret: string): AccessTokens {
   const key = new TextEncoder().encode(secret);
 
   return {
-    sign: ({ userId, mustChangePassword }) =>
-      new SignJWT({ mustChangePassword })
+    sign: ({ userId, mustChangePassword, sessionVersion }) =>
+      new SignJWT({ mustChangePassword, sessionVersion })
         .setProtectedHeader({ alg: ALGORITHM })
         .setSubject(String(userId))
         .setIssuedAt()
@@ -36,11 +39,17 @@ export function createAccessTokens(secret: string): AccessTokens {
       try {
         const { payload } = await jwtVerify(token, key, { algorithms: [ALGORITHM] });
         const userId = Number(payload.sub);
-        const { mustChangePassword } = payload;
-        if (!Number.isSafeInteger(userId) || typeof mustChangePassword !== 'boolean') {
+        const { mustChangePassword, sessionVersion } = payload;
+        if (
+          !Number.isSafeInteger(userId) ||
+          typeof mustChangePassword !== 'boolean' ||
+          typeof sessionVersion !== 'number' ||
+          !Number.isSafeInteger(sessionVersion) ||
+          sessionVersion < 0
+        ) {
           return undefined;
         }
-        return { userId, mustChangePassword };
+        return { userId, mustChangePassword, sessionVersion };
       } catch {
         return undefined;
       }

@@ -5,7 +5,7 @@ import { createAccessTokens } from './accessToken.ts';
 
 const SECRET = 'a-test-secret-of-at-least-32-characters';
 const tokens = createAccessTokens(SECRET);
-const claims = { userId: 7, mustChangePassword: false } as const;
+const claims = { userId: 7, mustChangePassword: false, sessionVersion: 3 } as const;
 
 function sign(payload: Record<string, unknown>, alg = 'HS256', secret = SECRET) {
   return new SignJWT(payload)
@@ -48,16 +48,27 @@ describe('createAccessTokens', () => {
   });
 
   it('refuses a token whose claims are not ours', async () => {
-    expect(await tokens.verify(await sign({ mustChangePassword: 'no' }))).toBeUndefined();
+    expect(
+      await tokens.verify(await sign({ mustChangePassword: 'no', sessionVersion: 3 })),
+    ).toBeUndefined();
     expect(await tokens.verify(await sign({}))).toBeUndefined();
   });
 
-  it('carries who and the pending claim, and no role', async () => {
+  it('refuses a token without a session version, as one signed before it existed', async () => {
+    for (const sessionVersion of [undefined, '3', 1.5, -1]) {
+      expect(
+        await tokens.verify(await sign({ mustChangePassword: false, sessionVersion })),
+      ).toBeUndefined();
+    }
+  });
+
+  it('carries who, the pending claim and the session version, and no role', async () => {
     const [, payload = ''] = (await tokens.sign(claims)).split('.');
 
     expect(JSON.parse(Buffer.from(payload, 'base64url').toString())).toEqual({
       sub: '7',
       mustChangePassword: false,
+      sessionVersion: 3,
       iat: expect.any(Number) as number,
       exp: expect.any(Number) as number,
     });

@@ -107,6 +107,23 @@ describe('POST /me/password: a voluntary change', () => {
     expect((await refresh(cookieValue(changed, 'masaha_refresh') ?? '')).status).toBe(200);
   });
 
+  it('refuses the access tokens signed before it, and this device’s new one works', async () => {
+    await createAccount();
+    const laptop = await signIn();
+    const phone = await signIn();
+
+    const changed = await changePassword(phone.accessToken, {
+      currentPassword: PASSWORD,
+      password: NEW_PASSWORD,
+    });
+
+    expect(changed.status).toBe(200);
+    const { accessToken } = (changed.body as { data: { accessToken: string } }).data;
+    expect((await reachProtected(laptop.accessToken)).status).toBe(401);
+    expect((await reachProtected(phone.accessToken)).status).toBe(401);
+    expect((await reachProtected(accessToken)).status).toBe(200);
+  });
+
   it.each(['USER', 'OWNER', 'ADMIN'] as const)(
     'works for an account whose role is %s',
     async (role) => {
@@ -128,7 +145,11 @@ describe('POST /me/password: a Google-only account', () => {
     const user = await prisma.user.create({
       data: { email: 'google@example.com', name: 'G', googleSubject: 'g1' },
     });
-    const accessToken = await accessTokens.sign({ userId: user.id, mustChangePassword: false });
+    const accessToken = await accessTokens.sign({
+      userId: user.id,
+      mustChangePassword: false,
+      sessionVersion: 0,
+    });
 
     const response = await changePassword(accessToken, { password: NEW_PASSWORD });
 
@@ -145,7 +166,11 @@ describe('POST /me/password: a Google-only account', () => {
 describe('POST /me/password: the skipped current password', () => {
   it('is required when the token says a change is pending and the account no longer does', async () => {
     const user = await createAccount({ mustChangePassword: false });
-    const accessToken = await accessTokens.sign({ userId: user.id, mustChangePassword: true });
+    const accessToken = await accessTokens.sign({
+      userId: user.id,
+      mustChangePassword: true,
+      sessionVersion: 0,
+    });
 
     const response = await changePassword(accessToken, { password: NEW_PASSWORD });
 

@@ -464,6 +464,20 @@ describe('POST /auth/password/reset', () => {
     });
   });
 
+  it('refuses the access tokens signed before it', async () => {
+    await createAccount();
+    const signedIn = await login(PASSWORD);
+    const { accessToken } = (signedIn.body as { data: { accessToken: string } }).data;
+    await forgot();
+
+    expect((await reset(await checkedKey(lastToken()))).status).toBe(204);
+
+    const next = await request(app)
+      .get('/api/v1/manage/spaces')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(next.status).toBe(401);
+  });
+
   it('leaves a recovery bound to no link reading sent after the reset, as for an unknown address', async () => {
     await createAccount();
     // Someone else asked for the account's link in their own browser, and for an unknown address.

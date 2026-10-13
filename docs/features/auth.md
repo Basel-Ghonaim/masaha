@@ -88,7 +88,7 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 - #31 — a racing first Google sign-in.
 - #34 — the shared package split by capability.
 - #38 — the recovery session.
-- #78 — a session's 30 days.
+- #78 — a session's 30 days; the access tokens end with the session, through `users`' `endSessions`, after a reset and a refused refresh.
 
 ### Web history
 

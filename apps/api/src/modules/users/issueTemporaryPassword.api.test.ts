@@ -133,6 +133,15 @@ describe('POST /admin/users/:userId/temporary-password', () => {
     expect(handover.status).toBe(204);
   });
 
+  it('refuses the access tokens signed before it', async () => {
+    const user = await signIn('USER', 'nour@example.com');
+    expect((await adminRequest(app, user, 'get', '/users')).status).toBe(403);
+
+    expect((await issue(user.id)).status).toBe(200);
+
+    expect((await adminRequest(app, user, 'get', '/users')).status).toBe(401);
+  });
+
   it('replaces a pending temporary password when issued again (finding 49)', async () => {
     const user = await createAccount();
     const first = issued(await issue(user.id));

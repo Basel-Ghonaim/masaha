@@ -139,6 +139,28 @@ describe('PUT /admin/users/:userId/suspended', () => {
     expect((await sessionOf()).accessToken).toBeTruthy();
   });
 
+  it('keeps refusing a token signed before the suspension once the account is restored', async () => {
+    const user = await createAccount();
+    const { accessToken } = await sessionOf();
+    const reach = () =>
+      request(app).get('/api/v1/manage/spaces').set('Authorization', `Bearer ${accessToken}`);
+    expect((await reach()).status).toBe(200);
+
+    expect((await suspend(user.id)).status).toBe(204);
+    expect((await reach()).status).toBe(401);
+    expect((await suspend(user.id, false)).status).toBe(204);
+
+    expect((await reach()).status).toBe(401);
+    const signedInAgain = (await sessionOf()).accessToken;
+    expect(
+      (
+        await request(app)
+          .get('/api/v1/manage/spaces')
+          .set('Authorization', `Bearer ${signedInAgain}`)
+      ).status,
+    ).toBe(200);
+  });
+
   it('writes nothing and ends no session when the account is already in that state', async () => {
     const user = await createAccount();
     await sessionOf();

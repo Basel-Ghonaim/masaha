@@ -274,6 +274,23 @@ describe('POST /admin/spaces/:spaceId/owners', () => {
   });
 });
 
+describe('the owner links: the tokens signed before a role change', () => {
+  it('refuses the token of a person whose first owner link, then whose last, changes the role', async () => {
+    const nour = await signIn('USER', 'nour@example.com');
+    const reach = (who: { authorization: string }) => adminRequest(app, who, 'get', '/users');
+    expect((await reach(nour)).status).toBe(403);
+
+    expect((await link(nour.id)).status).toBe(204);
+    expect((await reach(nour)).status).toBe(401);
+
+    const asOwner = await signIn('OWNER', 'owner@example.com');
+    await prisma.spaceManager.create({ data: { spaceId, userId: asOwner.id, role: 'OWNER' } });
+    expect((await unlink(nour.id)).status).toBe(204);
+    expect((await unlink(asOwner.id)).status).toBe(204);
+    expect((await reach(asOwner)).status).toBe(401);
+  });
+});
+
 describe('DELETE /admin/spaces/:spaceId/owners/:userId', () => {
   it.each(REFUSED_CALLERS)('refuses a $caller with $status', async ({ caller, ...refusal }) => {
     const owner = await person('OWNER');

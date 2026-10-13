@@ -18,6 +18,7 @@ const sara: Account = {
   language: 'ar',
   mustChangePassword: false,
   suspendedAt: null,
+  sessionVersion: 0,
 };
 
 /** A recovery that may ask for another link now. */
@@ -48,7 +49,6 @@ function setup({ sent = true, account = sara, recovery = askable } = {}) {
     withdrawResetToken: record('withdrawResetToken'),
     holderOf: () => Promise.resolve(3),
     resetTokenOwner: () => Promise.resolve(undefined),
-    revokeAll: record('revokeAll'),
     openRecovery: () => {
       calls.push('openRecovery');
       return Promise.resolve({ key: 'key', recovery: { ...askable, resendInSeconds: 60 } });
@@ -71,6 +71,7 @@ function setup({ sent = true, account = sara, recovery = askable } = {}) {
     },
     maySignIn: (candidate: Account) => !candidate.suspendedAt,
     lockAccount: () => Promise.resolve(account),
+    endSessions: record('endSessions'),
     assertMaySignIn: () => {
       throw AppError.forbidden('ACCOUNT_SUSPENDED');
     },
@@ -156,7 +157,7 @@ describe('auth: refresh', () => {
     const { auth, calls } = setup({ account: { ...sara, suspendedAt: new Date() } });
 
     await expect(auth.refresh('token')).rejects.toMatchObject({ code: 'ACCOUNT_SUSPENDED' });
-    expect(calls).toEqual(['revokeAll']);
+    expect(calls).toEqual(['endSessions']);
   });
 });
 

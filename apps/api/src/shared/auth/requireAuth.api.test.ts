@@ -17,7 +17,7 @@ beforeEach(async () => {
 
 /** An access token for the account, signed before the change each test makes. */
 async function tokenFor(userId: number, mustChangePassword = false) {
-  return `Bearer ${await accessTokens.sign({ userId, mustChangePassword })}`;
+  return `Bearer ${await accessTokens.sign({ userId, mustChangePassword, sessionVersion: 0 })}`;
 }
 
 function get(path: string, authorization: string) {

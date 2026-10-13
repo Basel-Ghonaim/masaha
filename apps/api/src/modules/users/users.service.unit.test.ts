@@ -17,6 +17,7 @@ const sara: Account = {
   language: 'ar',
   mustChangePassword: false,
   suspendedAt: null,
+  sessionVersion: 0,
 };
 const google: GoogleAccount = {
   subject: 'g-sara',
@@ -47,6 +48,10 @@ function setup(repository: Partial<Record<keyof UsersRepository, unknown>> = {})
     repository: {
       lock: () => Promise.resolve(true),
       findById: () => Promise.resolve(sara),
+      bumpSessionVersion: () => {
+        calls.push('bumpSessionVersion');
+        return Promise.resolve();
+      },
       ...repository,
     } as unknown as UsersRepository,
     sessions,
@@ -144,7 +149,7 @@ describe('users: Google', () => {
     });
 
     expect((await linking.users.linkGoogle(3, google, tx)).linked).toBe(true);
-    expect(linking.calls).toEqual(['revokeAll']);
+    expect(linking.calls).toEqual(['bumpSessionVersion', 'revokeAll']);
     expect((await linked.users.linkGoogle(3, google, tx)).linked).toBe(false);
     expect(linked.calls).toEqual([]);
     expect((await rejection(other.users.linkGoogle(3, google, tx))).code).toBe(

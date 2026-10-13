@@ -118,6 +118,26 @@ describe('the session lock', () => {
     expect(await prisma.refreshToken.count({ where: { userId: user.id } })).toBe(0);
   }, 20_000);
 
+  it('signs a session opened while a role change held the lock under the version it left', async () => {
+    const user = await createAccount();
+
+    // What a role change does under the lock: the role, and every session ended.
+    const answer = await whileLocked(user.id, login, async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { role: 'ADMIN', sessionVersion: { increment: 1 } },
+      });
+      await tx.refreshToken.deleteMany({ where: { userId: user.id } });
+    });
+
+    expect(answer.status).toBe(200);
+    const { accessToken } = (answer.body as { data: { accessToken: string } }).data;
+    const next = await request(app)
+      .get('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(next.status).toBe(200);
+  }, 20_000);
+
   it('leaves no live token when a logout and a refresh of one session race', async () => {
     const user = await createAccount();
     const { refreshToken } = await signIn();

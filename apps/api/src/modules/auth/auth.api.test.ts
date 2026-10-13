@@ -67,6 +67,7 @@ describe('POST /auth/register', () => {
     expect(await accessTokens.verify(accessToken)).toEqual({
       userId: expect.any(Number) as unknown,
       mustChangePassword: false,
+      sessionVersion: 0,
     });
   });
 
@@ -589,6 +590,24 @@ describe('POST /auth/logout', () => {
       .set('Cookie', `masaha_refresh=${token}`);
 
     expect(response.status).toBe(204);
+  });
+
+  it('leaves another session of the account working, its access token included', async () => {
+    await createAccount();
+    const phone = await login();
+    const laptop = await login();
+    const { accessToken } = (laptop.body as { data: { accessToken: string } }).data;
+
+    const out = await request(app)
+      .post('/api/v1/auth/logout')
+      .set('Cookie', `masaha_refresh=${refreshTokenOf(phone)}`);
+
+    expect(out.status).toBe(204);
+    const next = await request(app)
+      .get('/api/v1/manage/spaces')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(next.status).toBe(200);
+    expect((await refresh(refreshTokenOf(laptop))).status).toBe(200);
   });
 
   it('answers 204 without a session', async () => {

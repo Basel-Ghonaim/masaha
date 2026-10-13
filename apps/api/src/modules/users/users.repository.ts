@@ -12,6 +12,7 @@ const ACCOUNT = {
   language: true,
   mustChangePassword: true,
   suspendedAt: true,
+  sessionVersion: true,
 } as const satisfies Prisma.UserSelect;
 
 export type Account = Prisma.UserGetPayload<{ select: typeof ACCOUNT }>;
@@ -229,6 +230,18 @@ export function createUsersRepository(db: PrismaClient = prisma) {
         data: { passwordHash, mustChangePassword: false },
       });
       return count === 1 ? tx.user.findUnique({ where: { id }, select: ACCOUNT }) : null;
+    },
+
+    /**
+     * One more on the account's session version, in one atomic statement: every access token signed
+     * under the version before is refused from its next request.
+     */
+    async bumpSessionVersion(id: number, tx: Tx): Promise<void> {
+      await tx.user.update({
+        where: { id },
+        data: { sessionVersion: { increment: 1 } },
+        select: { id: true },
+      });
     },
 
     /** Sets the global role. */

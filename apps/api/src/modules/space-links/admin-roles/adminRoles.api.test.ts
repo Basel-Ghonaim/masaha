@@ -64,6 +64,24 @@ async function link(
   return space;
 }
 
+describe('PUT /admin/users/:userId/role: the tokens signed before', () => {
+  it('refuses them, for a user made an admin and for an admin made a user', async () => {
+    const user = await signIn('USER', 'user@example.com');
+    const other = await signIn('ADMIN', 'other@example.com');
+    expect((await adminRequest(app, user, 'get', '/users')).status).toBe(403);
+    expect((await adminRequest(app, other, 'get', '/users')).status).toBe(200);
+
+    expect((await changeRole(user.id, 'ADMIN')).status).toBe(204);
+    expect((await changeRole(other.id, 'USER')).status).toBe(204);
+
+    for (const before of [user, other]) {
+      const response = await adminRequest(app, before, 'get', '/users');
+      expect(response.status).toBe(401);
+      expect(errorOf(response)).toMatchObject({ type: 'unauthorized' });
+    }
+  });
+});
+
 describe('PUT /admin/users/:userId/role', () => {
   it.each(REFUSED_CALLERS)('refuses a $caller with $status', async ({ caller, ...refusal }) => {
     const user = await createAccount();

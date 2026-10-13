@@ -236,7 +236,7 @@ export function createAuthService({
         const account = await users.lockAccount(userId, tx);
         if (!account) return { outcome: 'invalid' } as const;
         if (!users.maySignIn(account)) {
-          await sessions.revokeAll(userId, tx);
+          await users.endSessions(userId, tx);
           return { outcome: 'refused', account } as const;
         }
         const rotation = await sessions.rotate(refreshToken, tx);
@@ -358,7 +358,7 @@ export function createAuthService({
         await users.lockAccount(owner, tx);
         if ((await sessions.consumeRecoveryLink(key, tx)) !== owner) throw invalidRecovery();
         await users.setPassword(owner, passwordHash, tx);
-        await sessions.revokeAll(owner, tx);
+        await users.endSessions(owner, tx);
         // Ending the links ends the recoveries bound to them.
         await sessions.endResetTokens(owner, tx);
       });
