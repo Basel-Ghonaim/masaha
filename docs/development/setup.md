@@ -33,6 +33,7 @@ One lockfile at the root installs every workspace: `packages/shared`, `apps/api`
 
 - **Today the policy only warns.** npm still runs unreviewed scripts, but reports them as `npm warn allow-scripts`. A future npm release will block them. With this list, the install prints no such warning, and `npm ci --strict-allow-scripts` passes.
 - **When a new dependency brings an install script,** npm names it in that warning. Review it, then approve it with `npm approve-scripts --no-allow-scripts-pin <pkg>`. Entries are name-only, because the lockfile already pins every version.
+- **`sharp`**, the API's image library, needs no approval: it has no install script, and its native libvips comes prebuilt for each platform as an optional package (`@img/sharp-win32-x64` on Windows, `@img/sharp-linux-x64` in CI and online), which the lockfile lists for every platform.
 - **Keep the policy in `package.json`.** npm ignores an `allowScripts` in a workspace, and refuses `--allow-scripts` on the command line inside a project.
 - The API's own `postinstall` (`prisma generate`) belongs to a workspace, which the policy does not cover. It always runs.
 

@@ -75,6 +75,7 @@ const ADMIN_WHILE_UNVERIFIED: SpaceCells = [
 const SPACE_EXPECTATIONS: Record<SpaceAction, SpaceCells> = {
   'space.profile.update': ADMIN_WHILE_UNVERIFIED,
   'space.facts.update': ADMIN_WHILE_UNVERIFIED,
+  'space.photos.manage': ADMIN_WHILE_UNVERIFIED,
   'dataReports.resolve': ADMIN_WHILE_UNVERIFIED,
   'space.dataReports.read': ADMIN_OR_OWNER,
   'attendance.record': STAFF,

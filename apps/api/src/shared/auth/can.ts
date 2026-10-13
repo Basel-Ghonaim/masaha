@@ -51,6 +51,8 @@ const PERMISSIONS = {
   // The space's public facts: who keeps them depends on whether an owner has joined.
   'space.profile.update': 'adminWhileUnverifiedElseOwner',
   'space.facts.update': 'adminWhileUnverifiedElseOwner',
+  // A space's photos: no fact group, no date, but kept by whoever keeps its facts.
+  'space.photos.manage': 'adminWhileUnverifiedElseOwner',
   'dataReports.resolve': 'adminWhileUnverifiedElseOwner',
   'space.dataReports.read': 'adminOrOwner',
 

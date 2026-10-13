@@ -36,6 +36,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [55. A file's first wait for a lazy shell outlasts three seconds on a busy machine](55-a-files-first-wait-for-a-lazy-shell-outlasts-three-seconds-on-a-busy-machine.md)
 - [59. The verified space's editor cannot name its owner](59-the-verified-spaces-editor-cannot-name-its-owner.md)
 - [60. The area field shows no area for a space whose area was hidden since](60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)
+- [63. A photo's files can outlive it](63-a-photos-files-can-outlive-it.md)
 
 ## Accepted
 

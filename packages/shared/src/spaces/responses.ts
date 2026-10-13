@@ -1,6 +1,7 @@
 import type { ContactType } from './contacts.ts';
 import type { FactGroup } from './factGroups.ts';
 import type { Location } from './gazaStrip.ts';
+import type { PhotoSize } from './photos.ts';
 import type { PRICE_AUDIENCES, PRICE_PERIODS } from './requests.ts';
 
 // The admin's spaces (docs/api/api-contract.md §5, Spaces (the admin)).
@@ -90,4 +91,13 @@ export interface AdminSpace {
   ownAmenities: OwnAmenity[];
   /** In the order they are shown in. */
   contacts: Contact[];
+}
+
+/** Where each size of a photo is fetched: absolute online, root-relative locally; used as given. */
+export type PhotoUrls = Record<PhotoSize, string>;
+
+/** A space's photo, as its gallery shows it. A list's order is the gallery's; the first is the cover. */
+export interface SpacePhoto {
+  id: number;
+  urls: PhotoUrls;
 }

@@ -39,12 +39,12 @@
 | `forbidden` | 403 | Authenticated but not permitted (role or space scope) |
 | `not_found` | 404 | Resource does not exist or is not visible to the caller |
 | `conflict` | 409 | Unique violation; state conflict (e.g. already checked in) |
-| `payload_too_large` | 413 | Upload too large |
-| `unsupported_media_type` | 415 | Upload type not allowed |
+| `payload_too_large` | 413 | Upload too large. Online, a request over 4.5 MB is refused by the platform itself with a 413 that carries no envelope ([ADR 0014](../architecture/decisions/0014-deployment.md)) |
+| `unsupported_media_type` | 415 | Upload type not allowed: its content, never its name or declared type, decides |
 | `validation` | 422 | Field validation failed (`errors` present) |
 | `rate_limit` | 429 | Too many requests |
 | `server` | 500 | Unexpected error |
-| `service_unavailable` | 503 | A dependency is unavailable or not configured: the database, or Google sign-in |
+| `service_unavailable` | 503 | A dependency is unavailable or not configured: the database, Google sign-in, or the photos' store |
 
 In code, the statuses are `ERROR_STATUSES` (`@masaha/shared/core`), which both apps read.
 
@@ -463,6 +463,26 @@ The endpoints on one space put its links on the request first, without refusing 
 - «المعلومات ما زالت صحيحة»: the group is confirmed unchanged. One path per group; any other answers `not_found` (404).
 - **200:** `AdminSpace`, the group dated now and nothing else changed. Only while the space is unverified ([security › Authorization](../backend/security.md#authorization)). Audited `space.<group>Confirmed` (`profileConfirmed`, `hoursConfirmed`, …), with the group's date in `before` and `after` (`{ hoursUpdatedAt }`).
 - **Errors:** `conflict` (409), with no code, for a missing group: there is nothing to confirm until it is saved, even empty; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too.
+
+#### Photos
+
+A space's gallery: at most 10 photos (`PHOTO_LIMIT`, `@masaha/shared/spaces`), in an order whose first is the **cover**. Each photo is stored in two sizes (`PHOTO_SIZES`), re-encoded on the server as WebP with no metadata ([security › HTTP hardening](../backend/security.md#http-hardening)): `card`, 640×360, a 16:9 crop around the centre; `page`, at most 1600 on its longest side, never enlarged. Photos are no fact group: a change dates nothing and is never confirmed. They change while the space is unverified, as its facts do ([security › Authorization](../backend/security.md#authorization)); a hidden space's included.
+
+```ts
+PhotoUrls = { card: string, page: string }   // absolute online, root-relative locally: used as given
+SpacePhoto = { id: number, urls: PhotoUrls }  // a list's order is the gallery's; the first is the cover
+```
+
+- **Audit:** each change, with the gallery's ids in order before and after (`{ photoIds }`), never a URL or a file: `space.photoAdded`.
+
+#### `GET /admin/spaces/:spaceId/photos` · 🛡
+- **200:** `SpacePhoto[]`, in order. A verified space's too: the admin reads them, and cannot change them.
+- **Errors:** `not_found` (404), for a soft-deleted space too.
+
+#### `POST /admin/spaces/:spaceId/photos` · 🛡
+- **Body:** `multipart/form-data`, one part, `photo`: a JPEG, a PNG or a WebP, at most 4 MiB (`PHOTO_MAX_BYTES`) and 50 megapixels. The web shrinks a photo before sending it. Its name and declared type are ignored.
+- **201:** `SpacePhoto`, placed last. Audited `space.photoAdded`.
+- **Errors**, a refusal storing nothing: `validation` (422), with `errors.photo = ["required"]` without the part; `bad_request` (400) for any other part, a second file, or a body that cannot be read; `payload_too_large` (413) over 4 MiB or 50 megapixels; `unsupported_media_type` (415) for anything that does not decode as a JPEG, a PNG or a WebP; `conflict` (409), with no code, when the space already has 10 photos; `forbidden` (403), with no code, on a verified space; `not_found` (404), for a soft-deleted space too; `service_unavailable` (503) when the store fails; `rate_limit` (429) past 30 uploads in 15 minutes ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)).
 
 ### Owners (the admin)
 

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { paragraphSchema, textSchema } from '../core/index.ts';
 import { CONTACT_TYPES, normaliseContact } from './contacts.ts';
 import { isInGazaStrip } from './gazaStrip.ts';
+import { PHOTO_LIMIT } from './photos.ts';
 
 // The requests of the admin's space endpoints (docs/api/api-contract.md §5, Spaces (the admin)).
 
@@ -291,3 +292,10 @@ export const updateSpaceContactsSchema = z
     );
   });
 export type UpdateSpaceContactsRequest = z.infer<typeof updateSpaceContactsSchema>;
+
+/**
+ * A space's photos in a new order: every one of its photos' ids, each once, first to last; the
+ * first is its cover. Whether they are exactly its photos is decided under the space's lock.
+ */
+export const photoOrderSchema = z.object({ ids: z.array(id).max(PHOTO_LIMIT) });
+export type PhotoOrderRequest = z.infer<typeof photoOrderSchema>;

@@ -66,6 +66,8 @@ import {
   createHoursController,
   createHoursService,
   createListingService,
+  createPhotosController,
+  createPhotosService,
   createPricesController,
   createPricesService,
   createProfileController,
@@ -265,6 +267,7 @@ export function createApi({
   const spaceAmenities = createSpaceAmenitiesService({ ...facts, lookups });
   const contacts = createContactsService(facts);
   const confirm = createConfirmService(facts);
+  const photos = createPhotosService({ runInTransaction, audit: writeAudit, storage, logger });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const adminSpaces = createAdminSpacesService({
     listing: createListingService({ platformSettings, now: clock }),
@@ -355,6 +358,8 @@ export function createApi({
       amenities: createSpaceAmenitiesController(spaceAmenities),
       contacts: createContactsController(contacts),
       confirm: createConfirmController(confirm),
+      photos: createPhotosController(photos),
+      limiter,
     }),
   );
   api.use('/admin', requireAuth(), requireRole('ADMIN'), admin);

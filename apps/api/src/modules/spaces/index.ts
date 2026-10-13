@@ -15,6 +15,8 @@ export {
   type ListingQuery,
   type ListingService,
 } from './listing/listing.service.ts';
+export { createPhotosController } from './photos/photos.controller.ts';
+export { createPhotosService, type PhotosService } from './photos/photos.service.ts';
 export { createPricesController } from './prices/prices.controller.ts';
 export {
   createPublicListingService,

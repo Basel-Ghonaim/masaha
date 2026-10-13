@@ -1,5 +1,6 @@
 import {
   createSpaceSchema,
+  PHOTO_MAX_BYTES,
   FACT_GROUPS,
   setSpaceHiddenSchema,
   updateSpaceAmenitiesSchema,
@@ -10,14 +11,19 @@ import {
 } from '@masaha/shared/spaces';
 import { Router } from 'express';
 
+import { signedIn } from '../../shared/auth/index.ts';
+import { receiveFile } from '../../shared/http/index.ts';
+import { limitRequests, type Limiter } from '../../shared/rate-limit/index.ts';
 import { validate } from '../../shared/validation/index.ts';
 import type { SpaceAmenitiesController } from './amenities/amenities.controller.ts';
 import type { ConfirmController } from './confirm/confirm.controller.ts';
 import type { ContactsController } from './contacts/contacts.controller.ts';
 import type { HoursController } from './hours/hours.controller.ts';
+import type { PhotosController } from './photos/photos.controller.ts';
 import type { PricesController } from './prices/prices.controller.ts';
 import type { ProfileController } from './profile/profile.controller.ts';
 import type { SpaceController } from './space/space.controller.ts';
+import { PHOTO_UPLOAD } from './spaces.limits.ts';
 
 /**
  * The admin's spaces (docs/api/api-contract.md §5, Spaces (the admin)). The composition root mounts
@@ -32,6 +38,8 @@ export function createSpacesAdminRouter({
   amenities,
   contacts,
   confirm,
+  photos,
+  limiter,
 }: {
   space: SpaceController;
   profile: ProfileController;
@@ -40,6 +48,9 @@ export function createSpacesAdminRouter({
   amenities: SpaceAmenitiesController;
   contacts: ContactsController;
   confirm: ConfirmController;
+  photos: PhotosController;
+  /** Counts the uploads before a file is read (security.md › Rate limits). */
+  limiter: Limiter;
 }): Router {
   const router = Router();
   router.post('/spaces', validate(createSpaceSchema), space.create);
@@ -56,5 +67,14 @@ export function createSpacesAdminRouter({
   for (const group of FACT_GROUPS) {
     router.post(`/spaces/:spaceId/${group}/confirm`, confirm.confirm(group));
   }
+  router.get('/spaces/:spaceId/photos', photos.list);
+  router.post(
+    '/spaces/:spaceId/photos',
+    limitRequests(limiter, (req) =>
+      Promise.resolve({ policy: PHOTO_UPLOAD, by: [String(signedIn(req).userId)] }),
+    ),
+    receiveFile('photo', PHOTO_MAX_BYTES),
+    photos.upload,
+  );
   return router;
 }
