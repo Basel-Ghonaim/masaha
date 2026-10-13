@@ -350,7 +350,7 @@ function DirectoryScreen() {
                   <Card className="shadow-overlay">
                     <CardHeader>
                       <CardTitle>{tr("حدّد موقعك على الخريطة", "Set your location on the map")}</CardTitle>
-                      <CardDescription>{tr("حرّك الخريطة حتى تقع العلامة على مكانك التقريبي، أو اضغط عليه. نحسب المسافات منه، ويبقى على جهازك فقط.", "Move the map until the mark is on your approximate location, or tap it. We measure distances from it, and it stays on your device.")}</CardDescription>
+                      <CardDescription>{tr("حرّك الخريطة حتى تقع العلامة على مكانك التقريبي، أو اضغط عليه. نرتّب المساحات حسب المسافة منه، ويُرسَل مقرَّبًا ولا يُحفظ.", "Move the map until the mark is on your approximate location, or tap it. We sort the spaces by distance from it; it is sent rounded and never stored.")}</CardDescription>
                     </CardHeader>
                     <CardFooter className="flex gap-2">
                       <Button className="flex-1" onClick={confirmCentre}>{tr("ثبّت الموقع هنا", "Set location here")}</Button>

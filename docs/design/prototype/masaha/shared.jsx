@@ -15,7 +15,7 @@ function useIsDesktop() {
   return on;
 }
 
-// Location never leaves the device: kept in this tab only, used to sort and measure.
+// The location is kept in this tab; it is sent, rounded on the device, only to sort by distance, and the server neither stores nor logs it (DECISIONS_PUBLIC, 2026-10-13).
 const GAZA_STRIP = { north: 31.60, south: 31.22, west: 34.20, east: 34.57 };
 const MAX_ACCURACY_M = 2000;
 const LOC_KEY = 'masaha:near-me';
@@ -538,7 +538,7 @@ const handOffToast = (...msgs) => { try { sessionStorage.setItem(TOAST_KEY, JSON
 // C4: the line naming the favourite saved on the way in.
 const favSavedLine = (s) => tr(`حُفظت ${spaceName(s)} في المفضّلة`, `${spaceName(s)} saved to your favourites`);
 
-const PRIVACY_LINE = tr("يبقى موقعك على جهازك فقط، ولا يُرسَل إلى أي جهة.", "Your location stays on your device and is never sent anywhere.");
+const PRIVACY_LINE = tr("يُرسَل موقعك مقرَّبًا لترتيب المساحات حسب المسافة فقط، ولا يُحفظ.", "Your location is sent rounded, only to sort spaces by distance, and is never stored.");
 
 Object.assign(window, { WifiOffIcon, AccountMenuContent, without, ActionButton, ActionAlert, useActionRun, actionFails, ACTION_MS, RateLimitNote, RATE_LIMIT_LINE, LoadError, PageActions, RouteState, routeState, SkipLink, dashboardHref, getUser, setUser, signOut, firstName, authQ, DEMO_USER, useTheme, useIsDesktop, useNearMe, GAZA_STRIP, pageParams, Ltr, Money, Distance, fmtKm, spaceHref, spaceName, otherName, SpaceName, locPass, SiteHeader, SiteFooter, statusWord, LiveStatus, TodayHours, SpaceMeta, areaLine, SpaceCover, SpaceCard, SpaceCardSkeleton, useFavourites, HeartButton, HeartIcon, PRIVACY_LINE, PageToaster, handOffToast, favSavedLine });
 
