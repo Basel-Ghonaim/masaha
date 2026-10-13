@@ -65,6 +65,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Change password.html?role=owner` · `reception` · `admin` · `user` | the forced change | where saving lands: the owner's overview (the default), the desk, the admin's overview, Home |
 | `?auth=0` | Favourites, My reports, account settings | signed out: straight to sign-in with `next`, as the route's `RequireAuth` does (AC-011) |
 | `Settings.html?fail=language` | account settings | the language's save failing: the toggle returns, «تعذّر حفظ اللغة» with «إعادة المحاولة» |
+| `Reports.html?demo=pages` · `?tab=open` · `?tab=closed` | My reports | 28 reports, so the list has a second page (P6); the chips set |
 
 ## 01 · Flow
 
@@ -848,3 +849,5 @@ Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `scree
 | Account settings · Google-only, the link sent — phone 390 | `Settings.html?auth=google&state=linksent` | 390×844 | — |
 | Forced change · reception, a neutral author — phone 390 | `Change password.html?auth=1&role=reception` | 390×844 | — |
 | Favourites · one left the directory — desktop 1440 | `Favorites.html?auth=1&loc=none` | 1440×1000 | — |
+| Favourites · nearest first — phone 390 | `Favorites.html?auth=1&loc=granted` | 390×844 | — |
+| My reports · two pages, a space that left — desktop 1440 | `Reports.html?auth=1&demo=pages` | 1440×1000 | — |

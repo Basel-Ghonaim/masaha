@@ -35,17 +35,24 @@ function FavCard({ space, km, onRemove }) {
   );
 }
 
+// C8: favourites are answered whole (an exception the API item adds to api-contract §4): no pages. U2 applies here as on Home (AC-014).
+const savedCount = (n) => (LANG === 'en' ? `${n} saved space${n === 1 ? '' : 's'}` : n === 1 ? 'مساحة واحدة محفوظة' : n === 2 ? 'مساحتان محفوظتان' : n <= 10 ? `${n} مساحات محفوظة` : `${n} مساحة محفوظة`);
+
 function FavoritesScreen() {
   const [theme, setTheme] = useTheme();
   const near = useNearMe();
   const [state, setState] = React.useState(pageParams.get('state') || 'ready');
   const [ids, setIds] = React.useState(state === 'empty' ? [] : SAVED);
+  const toPick = () => { location.href = carryParams('Directory.html?view=map&pick=1'); };
   const remove = (id, name) => {
     const before = ids;
     setIds(ids.filter((x) => x !== id));
     toast(tr('أُزيلت من المفضّلة', 'Removed from favourites'), { description: name, action: { label: tr('تراجع', 'Undo'), onClick: () => setIds(before) } });
   };
   const retry = () => { setState('loading'); setTimeout(() => setState('ready'), 1000); };
+  const listed = ids.filter((id) => !id.startsWith('unlisted:'));
+  const items = listed.map((id) => { const s = M.spaces.find((x) => x.id === id); return { s, km: near.coords ? M.distanceKm(near.coords, s) : null }; });
+  if (near.coords) items.sort((a, b) => a.km - b.km);
   return (
     <AccountShell current="favorites" title={tr('المفضّلة', 'Favourites')} description={tr('المساحات التي حفظتها، بحالتها الآن.', 'The spaces you saved, with their status now.')} theme={theme} setTheme={setTheme}>
       {state === 'loading' && <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{[0, 1, 2].map((i) => <SpaceCardSkeleton key={i} />)}</div>}
@@ -58,11 +65,13 @@ function FavoritesScreen() {
       )}
       {(state === 'ready' || state === 'empty') && (ids.length ? (
         <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <ResultCount>{savedCount(ids.length)}</ResultCount>
+            <NearMeButton near={near} on={!!near.coords} />
+          </div>
+          <LocationStatus near={near} sorting={!!near.coords} onPickOnMap={toPick} onChangePick={toPick} onChooseArea={() => { location.href = carryParams('Directory.html?sheet=filters'); }} />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {ids.filter((id) => !id.startsWith('unlisted:')).map((id) => {
-            const s = M.spaces.find((x) => x.id === id);
-            return <FavCard key={id} space={s} km={near.coords ? M.distanceKm(near.coords, s) : null} onRemove={() => remove(id, spaceName(s))} />;
-          })}
+          {items.map((it) => <FavCard key={it.s.id} space={it.s} km={it.km} onRemove={() => remove(it.s.id, spaceName(it.s))} />)}
           </div>
           {ids.some((id) => id.startsWith('unlisted:')) && (
             <ul className="flex flex-col gap-3">
