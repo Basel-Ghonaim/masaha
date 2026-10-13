@@ -24,7 +24,10 @@ const AdminMark = () => (
 
 function AdminShell({ current, title, theme, setTheme, actions, loadError, children }) {
   const u = AD.admin;
-  const rail = useIsTablet() && !useIsDesktop();
+  // Both hooks run on every render (no short-circuit): skipping one on phones would reorder the hooks.
+  const tablet = useIsTablet();
+  const desktop = useIsDesktop();
+  const rail = tablet && !desktop;
     const route = routeState();
       const failed = pageParams.get('state') === 'error';
   const brand = tr('مساحة — إدارة المنصة', 'Masaha — platform admin');
