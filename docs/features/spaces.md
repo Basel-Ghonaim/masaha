@@ -1,7 +1,7 @@
 # Spaces
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
-> **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the add-space page and the row actions of the admin's spaces list; and on the API, what the public [directory](directory.md) reads.
+> **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the add-space page, the space editor and the row actions of the admin's spaces list; and on the API, what the public [directory](directory.md) reads.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
 ## What it does
@@ -10,13 +10,13 @@
 - Dates each of the space's fact groups when it is saved or confirmed unchanged, and computes from those dates which groups are stale, which are missing, and when the space was last updated.
 - Answers the modules above it: the summaries of a set of spaces, and a page of the admin's spaces list over the ids it is given, of the soft-deleted spaces when asked.
 - Answers the [directory](directory.md) the publicly listed spaces over the ids and areas it is given: filtered, searched, ordered and paged, or whole up to a ceiling for the map, each with its week; and a space's public page, read whole, its prices hidden as the public is kept from them.
-- On the web, adds a space from its basics and its location, its pin placed on a map; and gives each row of the admin's spaces list its menu: hide the space or show it again, and delete it, with an Undo that restores it.
+- On the web, adds a space from its basics and its location, its pin placed on a map; edits a space on a page of its own, its profile saved, dated and confirmed as a section, under the groups still missing, asking before the page is left with unsaved changes, and shows a verified space read-only; and gives each row of the admin's spaces list its menu: hide the space or show it again, and delete it, with an Undo that restores it.
 
-The photos and the owner's side are not built.
+The photos and the owner's side are not built; on the web, neither are the hours with the shifts, nor the prices.
 
 ## Who uses it
 
-- **The admin,** through the API, the dashboard's add-space page, and the row menu of the dashboard's spaces list.
+- **The admin,** through the API, the dashboard's add-space page, the space editor, and the row menu of the dashboard's spaces list.
 - **`space-links`,** which names the spaces of a user's links from the summaries, and composes the admin's spaces list on the listing page.
 
 ## Responsibility boundary
@@ -33,7 +33,7 @@ The photos and the owner's side are not built.
 - Every change is audited by the audit writer, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the names the [contract](../api/api-contract.md#spaces-the-admin) gives.
 - Staleness reads the platform's thresholds and the one clock ([conventions §11](../backend/conventions.md#11-time)).
 - The list's filters are resolved to ids by the module above before `spaces` pages ([conventions §5](../backend/conventions.md#5-pagination)).
-- **The web** writes through the transport and TanStack Query; a write fetches the whole admin scope again, since the list it changes is [`space-links`](space-links.md)' ([architecture §7](../frontend/architecture.md#7-server-state)). The page sets the row menu in that list's slot, and the 429's wait above it ([architecture › What a feature exports](../frontend/architecture.md#what-a-feature-exports)); on the add page, it sets the area field of [`lookups`](lookups.md) in the form's slot. The form follows `shared/forms` ([architecture › Forms](../frontend/architecture.md#forms)), preparing its values for the schema, and places the pin with `shared/map`'s point picker ([architecture §6](../frontend/architecture.md#6-map)). The dashboard-only rule keeps it out of the site's download ([architecture §3](../frontend/architecture.md#3-capabilities-features)).
+- **The web** writes through the transport and TanStack Query; a write fetches the whole admin scope again, since the list it changes is [`space-links`](space-links.md)' ([architecture §7](../frontend/architecture.md#7-server-state)). The page sets the row menu in that list's slot, and the 429's wait above it ([architecture › What a feature exports](../frontend/architecture.md#what-a-feature-exports)); on the add page, it sets the area field of [`lookups`](lookups.md) in the form's slot. The form follows `shared/forms` ([architecture › Forms](../frontend/architecture.md#forms)), preparing its values for the schema, and places the pin with `shared/map`'s point picker ([architecture §6](../frontend/architecture.md#6-map)). The editor's page gives the space's name to the page's title ([architecture §2](../frontend/architecture.md#2-page-groups), *Titles*), and sets in the editor the area field and the area's name of [`lookups`](lookups.md) and the space's public page; a write in the editor answers the whole space, which it keeps as the space's state, the rest of the admin scope only marked out of date. The dashboard-only rule keeps it out of the site's download ([architecture §3](../frontend/architecture.md#3-capabilities-features)).
 
 ## Behaviour and flows
 
@@ -49,6 +49,16 @@ The photos and the owner's side are not built.
 - **Checked in the browser** by the contract's schema: a blank optional field is no value, an empty required one is asked for in the form's own words, and coordinates that name no point, or a point outside the Strip's box, are refused on their field and nothing is sent.
 - **Sent once.** The server's field errors land on their fields, the first taking the focus; a 409 (two creations of one name at once) says so and asks to add it again; a 429 counts down and holds the submit.
 - **Once created,** the admin's lists are fetched again, the spaces list the page left included, a toast says "{name} added", and the page returns to the list.
+
+**The space editor on the web.** `SpaceEditor` is a space's page in the dashboard, which the page titles by the space's name once it has loaded, «تعديل مساحة» until then. Its loading, its failure (with "Try again") and a space that does not exist or was deleted (the 404) are its own.
+- **The frame:** the space's state as two badges, whether it is verified, always, and «مخفية» when hidden; an unverified space's warning that the team's information shows publicly and each section saves alone; the sections; and a note that the space's operating data is private to its management.
+- **The sections** are the fact groups, one name each, in the navigation and on their cards. A list of them stays in view beside the sections from 1024 px; below it, a row of chips sticks under the top bar and scrolls sideways. The section in view is marked at every width, and one chosen is marked at once.
+- **«المساحة»** is the profile: the basics and the location, the add page's two blocks, under a separator, each keeping its own anchor (`#basics`, `#location`), with one date, one footer and one confirmation.
+- **Each section** shows its group's date («آخر تحديث قبل 3 أيام», in Gaza's days), «قديمة» when the server counts it stale, or «لم تُضف بعد» while it is missing, when it offers Save only. Save stays enabled. While its fields differ from the group as saved, it says «تغييرات غير محفوظة» and offers to discard them; while they do not, and the group is saved, it offers «المعلومات ما زالت صحيحة», which renews the date alone. A save of the profile sends only the fields that changed, a cleared one as `null`; a save that changed nothing sends nothing and says how to renew the date. A save or a confirmation is said in a toast naming the section, and the section then holds the server's answer; an unchanged section follows the space as it is fetched again.
+- **A refusal stays in its section,** leaving the others as they are: its fields' errors on its fields, the first taking the focus; a 429 counting down; a 403 or a 404 saying the space was verified or deleted meanwhile, and the space fetched again, so a verified one turns read-only.
+- **«ما زال ناقصًا»** heads a space with a group never saved: the five groups, each «تمّت» or «لم تُضف بعد», a drawn section's line a link to it. It goes once nothing is missing.
+- **Leaving** the page with unsaved changes, by a link, Back or the sidebar, asks first, naming the sections, «البقاء» holding the focus; a move to a section's anchor never asks. Closing or reloading the tab asks through the browser.
+- **A verified space** shows its values to read under the same sections, its texts each in its own language, the area named by `lookups`, with no section list below 1024 px and no checklist; its notice says its owner edits it, «يعدّلها مالكها», with no name ([finding 59](../architecture/findings/59-the-verified-spaces-editor-cannot-name-its-owner.md)), and leads to its page on the site.
 
 **The row actions on the web.** `SpaceActionsMenu` is a row's menu in the admin's spaces list: **Hide**, or **Show** for a hidden space, then **Delete**.
 - **Hide and Show** apply at once. The action stays pending until the list has arrived again, then a toast says what changed, by the space's name.
@@ -136,16 +146,31 @@ The photos and the owner's side are not built.
 - **Every field that may stay empty says so; the landmark is asked in both languages,** like the addresses. *Why:* the design marked the landmark alone, and showed one landmark where the contract has two (design issues 1 and 2). 2026-10-10, #57.
 - **The page's title is in the top bar, with a trail back to the list; "Add space" sits above the list, at its end, at every width.** *Why:* the design drew the title twice, and the button in two places; on a phone the top bar is full (design issues 5 and 7). 2026-10-10, #57.
 
+- **The editor is a page per space, titled by the space's name** through the one record title the top bar and the tab read (D4). *Why:* the record-name rule of [architecture §2](../frontend/architecture.md#2-page-groups), built here for its first page. 2026-10-13, #74.
+- **The editor's sections are this capability's, made for the owner's Space profile to reuse:** nothing in them is the admin's; the page sets what differs (D5). *Why:* the owner edits the same groups (O1). 2026-10-13, #74.
+- **One section per fact group, each saved, dated and confirmed alone;** a group never saved offers Save only, and the confirmation shows only while a saved section is unchanged (A1). *Why:* the API saves and confirms one group at a time, and a missing group has nothing to confirm. 2026-10-13, #74.
+- **The profile's save sends only the fields that changed,** a cleared optional one as `null` (S1). *Why:* resent whole, an unchanged area hidden since would be refused, and the section could never be saved ([finding 60](../architecture/findings/60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)); nor is a field another admin changed meanwhile sent back. 2026-10-13, #74.
+- **A save that changes nothing sends nothing,** and the section says how to renew the date (S2, design issue 2). *Why:* the server writes nothing and keeps the date, so a toast saying "saved" would be untrue. 2026-10-13, #74.
+- **A write's answer is the space's state:** kept as the space's query, the rest of the admin scope only marked out of date (S3). *Why:* the editor shows the answer itself; the list is fetched again when it is shown. It departs from the row actions' wait for the list, which they change on screen. 2026-10-13, #74.
+- **A 403 or a 404 on a write fetches the space again** (S4). *Why:* an owner linked, or a delete, while the page was open: the page then shows the space as it is, a verified one read-only. 2026-10-13, #74.
+- **Leaving with unsaved changes asks first,** naming the sections; a move within the page never asks (D2). The guard is this capability's until a second form needs it (S8). 2026-10-13, #74.
+- **The section in view is read from where the sections cross the window,** a section chosen marked at once (S9); below 1024 px the row of chips sticks under the top bar, which keeps one line (S7, design issue 4). 2026-10-13, #74.
+- **Each toast names its section** (design issue 1). *Why:* with several sections, «حُفظ القسم» said nothing of which. 2026-10-13, #74.
+- **The checklist lists the five groups; a line leads to its section only once the editor draws it** (design issue 5). *Why:* the editor draws no section for the hours or the prices, and a link must lead somewhere. 2026-10-13, #74.
+- **A verified space's notice names no owner** (the owner's answer to Q1). *Why:* the space's read carries no owners ([finding 59](../architecture/findings/59-the-verified-spaces-editor-cannot-name-its-owner.md)); the name and the unlink come with the owners item's one dialog. 2026-10-13, #74.
+
 ## Code map
 
 - **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/` (the links and the own amenities), `contacts/`, `confirm/` (a group confirmed unchanged), `listing/` (the page the admin's list reads), `public/` (the public listing and the public page, for the directory); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
 - **Shared:** `packages/shared/src/spaces/`: the requests (the profile and each fact group, with their rules), the responses, the contacts' forms, the fact groups and the Gaza Strip's box; the phone rule in `core`.
-- **Web:** `apps/web/src/features/spaces/`, entry `index.ts` (`AddSpaceForm` with its `AreaField` slot, `SpaceActionsMenu`, `SpaceActionsHold`), mounted by `pages/dashboard/admin/`: a folder per operation in `hooks/` and `components/` (`add/`, `hide/`, `delete/` with the Undo's restore, `menu/`, `hold/`), the profile's two sections in `components/profile/`, the toasts in `components/toast/`, and in `services/` the profile the schema reads from the form, the space's name and a line cut around it.
+- **Web:** `apps/web/src/features/spaces/`, entry `index.ts` (`AddSpaceForm` with its `AreaField` slot, `SpaceEditor`, `useSpaceName`, `SpaceActionsMenu`, `SpaceActionsHold`), mounted by `pages/dashboard/admin/`: a folder per operation in `hooks/` and `components/` (`add/`, `editor/` with the space's query, a section's frame, its save, the section in view and the leave guard, `profile/`, `confirm/`, `hide/`, `delete/` with the Undo's restore, `menu/`, `hold/`), the profile's fields shared by the add form and the editor in `hooks/useProfileFields.ts` and `components/profile/`, the toasts in `components/toast/`, and in `services/` the profile the schema reads from the form, as added and as edited, the changes a save sends, the group's date, the space's name and a line cut around it.
 
 ## Open findings
 
 - [44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md): no screen restores a deleted space once its toast has gone.
 - [46](../architecture/findings/46-the-deployments-headers-must-let-the-maps-tiles-load.md): the deployment's headers must let the add page's map tiles load.
+- [59](../architecture/findings/59-the-verified-spaces-editor-cannot-name-its-owner.md): the verified space's editor cannot name its owner.
+- [60](../architecture/findings/60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md): the area field shows no area for a space whose area was hidden since.
 
 ## History
 
@@ -163,3 +188,4 @@ The photos and the owner's side are not built.
 
 - #50 — the web's row actions: hide, show, delete and its Undo.
 - #57 — the add-space page: the basics and the location, the pin on a map, and the list's "Add space".
+- #74 — the space editor: its frame, the sections' navigation, «المساحة», the checklist, the leave guard and a verified space read-only.

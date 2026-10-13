@@ -2,7 +2,7 @@ import { parseCoordinates } from '@shared/map';
 import type { ProfileValues } from '../types/ProfileValues';
 
 // The profile's texts that may stay empty (docs/api/api-contract.md §5, Spaces (the admin)).
-const OPTIONAL_TEXTS = [
+export const OPTIONAL_TEXTS = [
   'nameAr',
   'descriptionAr',
   'descriptionEn',

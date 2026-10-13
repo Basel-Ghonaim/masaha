@@ -34,11 +34,18 @@ export const SPACE_NAV: readonly SpaceNavItem[] = [
 ];
 
 /**
- * The admin's spaces list and its add page, by path. The add page is reached from the list and
- * belongs to it: it is never a sidebar item, so the list's item stays current there.
+ * The admin's spaces list and its sub-pages, by path. The add page and a space's editor are reached
+ * from the list and belong to it: neither is a sidebar item, so the list's item stays current there.
  */
 export const ADMIN_SPACES_PATH = `${DASHBOARD_PATHS.admin}/spaces`;
 export const ADMIN_ADD_SPACE_PATH = `${ADMIN_SPACES_PATH}/new`;
+/** A space's editor, reached from the list and after a creation; never a sidebar item either. */
+export const ADMIN_SPACE_PATH = `${ADMIN_SPACES_PATH}/:spaceId`;
+
+/** The editor of the space `spaceId`. */
+export function adminSpacePath(spaceId: number): string {
+  return ADMIN_SPACE_PATH.replace(':spaceId', String(spaceId));
+}
 
 /** The platform's pages, in the sidebar's order, all the admin's. */
 export const ADMIN_NAV: readonly NavItem[] = [

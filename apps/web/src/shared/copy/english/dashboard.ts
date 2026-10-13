@@ -36,4 +36,8 @@ export const DASHBOARD = {
     /** Names the trail back to the spaces list. */
     trail: 'Breadcrumb',
   },
+  /** A space's editor, reached from the spaces list: titled by the space's name once loaded. */
+  editSpace: {
+    title: 'Edit space',
+  },
 } as const;
