@@ -83,6 +83,7 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?fail=extend` | the same | the extension failing |
 | `?fail=add` | `Staff.html` | adding a staff member failing inside the sheet |
 | `Owner space profile.html?report=d1#report` · `Packages.html?report=d2#report` | the owner's editor | the report «تعديل الحقل» carried there, above its section, with «تم التصحيح» (O12, A8) |
+| `Finance.html?month=2026-08` | Finance | the month chosen (OW-015) |
 
 ## 01 · Flow
 
