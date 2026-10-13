@@ -28,7 +28,7 @@
 <script type="text/babel">
 const { DirectionProvider, Button, Badge, Alert, AlertDescription, Card, CardHeader, CardTitle, CardDescription, CardAction, ArrowEndIcon } = window.MasahaDesignSystem;
 const M = window.MASAHA;
-const SECTIONS = () => [['profile', tr('المساحة', 'The space')], ['hours', tr('ساعات العمل', 'Opening hours')], ['prices', tr('الأسعار', 'Prices')], ['amenities', tr('المرافق', 'Amenities')], ['contacts', tr('التواصل', 'Contacts')], ['photos', tr('الصور', 'Photos')], ['capacity', tr('السعة ومدة الجلوس', 'Capacity and stay')]];
+const SECTIONS = () => [['profile', tr('المساحة', 'The space')], ['hours', tr('ساعات العمل', 'Opening hours')], ['prices', tr('الأسعار', 'Prices')], ['amenities', tr('المرافق', 'Amenities')], ['contacts', tr('التواصل', 'Contacts')], ['photos', tr('الصور', 'Photos')]];
 // A1: each group's date from the sample; a group never saved is `missing` (A2).
 const groupMeta = (g) => (O.missing.includes(g) ? { missing: true } : { updated: ago(O.groups[g]), stale: O.groups[g] > (g === 'prices' ? O.LIMIT.prices : O.LIMIT.other) });
 
@@ -63,7 +63,6 @@ function ProfileScreen() {
           <AmenitiesSection space={space} meta={groupMeta('amenities')} />
           <ContactsSection space={space} meta={groupMeta('contacts')} />
           <PhotosSection />
-          <CapacitySection />
         </div>
       </div>
     </OwnerShell>

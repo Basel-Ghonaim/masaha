@@ -73,6 +73,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `?drawer=open` | the owner's and reception's pages, on a phone | the drawer, open, with the account at its head (DI-10) |
 | `?demo=missing` | `Owner space profile.html`, `Owner overview.html` | the amenities never saved: A2's checklist on the profile, «لم تُضف بعد» in the overview's queue |
 | `Packages.html#prices` | Packages & prices | the published prices' table, where every «الأسعار» link lands (O6) |
+| `Owner settings.html#attendance` | Settings | «الحضور والحالة المباشرة»: capacity and the check-out rules (O2) |
+| `?fail=save-attendance` · `save-pricing` · `save-message` | `Owner settings.html` | one card's save failing, in that card only |
 
 ## 01 · Flow
 
@@ -605,8 +607,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 |---|---|---|---|
 | Space profile — desktop 1440 | `Owner space profile.html` | 1440×1000 | [30-owner-space-profile-kept/01-space-profile-desktop-1440.webp](screens/30-owner-space-profile-kept/01-space-profile-desktop-1440.webp) |
 | Space profile — phone 390 | `Owner space profile.html` | 390×844 | [30-owner-space-profile-kept/02-space-profile-phone-390.webp](screens/30-owner-space-profile-kept/02-space-profile-phone-390.webp) |
-| Capacity section — desktop 1440 | `Owner space profile.html#capacity` | 1440×1000 | [36-space-profile/03-capacity-section-desktop-1440.webp](screens/36-space-profile/03-capacity-section-desktop-1440.webp) |
-| Capacity section — phone 390 | `Owner space profile.html#capacity` | 390×844 | [36-space-profile/04-capacity-section-phone-390.webp](screens/36-space-profile/04-capacity-section-phone-390.webp) |
+| Capacity → Settings «الحضور والحالة المباشرة» — desktop 1440 | `Owner settings.html#attendance` | 1440×1000 | [36-space-profile/03-capacity-section-desktop-1440.webp](screens/36-space-profile/03-capacity-section-desktop-1440.webp) |
+| Capacity → Settings «الحضور والحالة المباشرة» — phone 390 | `Owner settings.html#attendance` | 390×844 | [36-space-profile/04-capacity-section-phone-390.webp](screens/36-space-profile/04-capacity-section-phone-390.webp) |
 
 ## 37 · Staff «الموظفون» (owner)
 

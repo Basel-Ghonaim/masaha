@@ -368,21 +368,4 @@ function PhotosSection({ empty }) {
   );
 }
 
-function CapacitySection() {
-  const sec = useSection('capacity', { capacity: '40', maxStay: '4' });
-  return (
-    <ProfileSection id="capacity" title={tr('السعة ومدة الجلوس', 'Capacity and stay')} updated={tr('قبل شهرين', '2 months ago')} sec={sec}
-      validate={(v) => (!(Number(v.capacity) > 0) ? tr('أدخل السعة بعدد صحيح.', 'Enter the capacity as a whole number.') : null)}>
-      <div className="grid gap-4 md:grid-cols-2">
-        <QField label={tr('السعة', 'Capacity')} helper={tr('لا تظهر للزوار — يراها فريق المساحة فقط، وتُستخدم لحساب الحالة', 'Not shown to visitors — only the space team sees it; used to work out the state')}>
-          <QInput inputMode="numeric" dir="ltr" value={sec.v.capacity} onChange={(e) => sec.set({ capacity: e.target.value.replace(/\D/g, '') })} />
-        </QField>
-        <QField label={tr('أقصى مدة جلوس (ساعات)', 'Maximum stay (hours)')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>} helper={tr('يظهر في قواعد المساحة.', 'Shown in the space rules.')}>
-          <QInput inputMode="numeric" dir="ltr" value={sec.v.maxStay} onChange={(e) => sec.set({ maxStay: e.target.value.replace(/\D/g, '') })} />
-        </QField>
-      </div>
-    </ProfileSection>
-  );
-}
-
-Object.assign(window, { CONTACT_TYPES, OLD_TYPE, storedForm, carrierOf, PricesSection, AmenitiesSection, ContactsSection, PhotosSection, CapacitySection });
+Object.assign(window, { CONTACT_TYPES, OLD_TYPE, storedForm, carrierOf, PricesSection, AmenitiesSection, ContactsSection, PhotosSection });

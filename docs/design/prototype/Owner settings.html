@@ -26,19 +26,19 @@
 <script type="text/babel" src="masaha/desk-core.jsx"></script>
 <script type="text/babel" src="masaha/desk-sheet.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Field, Switch, RadioGroup, RadioGroupItem, Textarea, ArrowEndIcon, toast } = window.MasahaDesignSystem;
+const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Field, Input, Switch, RadioGroup, RadioGroupItem, Textarea, ArrowEndIcon, toast } = window.MasahaDesignSystem;
 // Each card saves on its own.
 function useCard(init) {
   const [v, setV] = React.useState(init); const [saved, setSaved] = React.useState(init);
   const dirty = JSON.stringify(v) !== JSON.stringify(saved);
   return { v, set: (p) => setV((x) => ({ ...x, ...p })), dirty, save: () => { setSaved(v); toast.success(tr('حُفظت الإعدادات', 'Settings saved')); }, reset: () => setV(saved) };
 }
-function SettingsCard({ title, description, card, children, onSave }) {
+function SettingsCard({ id, title, description, card, children, onSave, actionKey }) {
   return (
-    <Card>
+    <Card id={id} className={id ? 'section-anchor' : undefined}>
       <CardHeader><CardTitle>{title}</CardTitle>{description && <CardDescription>{description}</CardDescription>}{card.dirty && <CardAction><Badge variant="warning">{tr('تغييرات غير محفوظة', 'Unsaved changes')}</Badge></CardAction>}</CardHeader>
-      <CardContent className="flex flex-col gap-5"><RateLimitNote /><ActionAlert for="save" />{children}</CardContent>
-      <CardFooter className="flex flex-wrap gap-2"><ActionButton actionKey="save" onAction={onSave || card.save}>{tr('حفظ', 'Save')}</ActionButton>{card.dirty && <Button variant="ghost" onClick={card.reset}>{tr('تجاهل التغييرات', 'Discard changes')}</Button>}</CardFooter>
+      <CardContent className="flex flex-col gap-5"><RateLimitNote /><ActionAlert for={actionKey || 'save'} />{children}</CardContent>
+      <CardFooter className="flex flex-wrap gap-2"><ActionButton actionKey={actionKey || 'save'} onAction={onSave || card.save}>{tr('حفظ', 'Save')}</ActionButton>{card.dirty && <Button variant="ghost" onClick={card.reset}>{tr('تجاهل التغييرات', 'Discard changes')}</Button>}</CardFooter>
     </Card>
   );
 }
@@ -46,31 +46,64 @@ const TOKENS = () => [['{الاسم}', tr('الاسم', 'name')], ['{المبل�
 const DEFAULT_MSG = 'مرحبًا {الاسم}، تذكير من {المساحة}: عليك {المبلغ}. يمكنك الدفع في المساحة. شكرًا.';
 
 function OSInner({ theme, setTheme }) {
-  const att = useCard({ autoOut: true });
-  const pr = useCard({ rounding: 'up10', cap: true, student: false });
+  const att = useCard({ capacity: O.capacity == null ? '' : String(O.capacity), autoOut: true, maxStay: '4' });
+  const [attErr, setAttErr] = React.useState({});
+  const pr = useCard({ rounding: 'up', minutes: '15', cap: true, student: true });
+  const [prErr, setPrErr] = React.useState();
   const msg = useCard({ text: DEFAULT_MSG });
   const [err, setErr] = React.useState();
   const ta = React.useRef(null);
   const insert = (tok) => { const el = ta.current && ta.current.querySelector ? ta.current.querySelector('textarea') || ta.current : ta.current; const t = msg.v.text; const pos = el && el.selectionStart != null ? el.selectionStart : t.length; msg.set({ text: t.slice(0, pos) + tok + t.slice(pos) }); };
   const preview = msg.v.text.split('{الاسم}').join(tr('رهف', 'Rahaf')).split('{المبلغ}').join(DESK.money(150)).split('{المساحة}').join('Focus Hub');
   const saveMsg = () => { if (!msg.v.text.includes('{المبلغ}')) return setErr(tr('أضف {المبلغ} ليعرف الزبون كم عليه.', 'Add {المبلغ} so the customer knows how much they owe.')); setErr(); msg.save(); };
-  const RO = [['up10', tr('تقريب لأعلى بعد 10 دقائق', 'Round up after 10 minutes'), tr('ساعتان و8 دقائق = ساعتان · ساعتان و11 دقيقة = 3 ساعات', '2 h 8 min = 2 h · 2 h 11 min = 3 h')], ['half', tr('لأقرب نصف ساعة', 'To the nearest half hour'), tr('ساعتان و20 دقيقة = ساعتان ونصف', '2 h 20 min = 2.5 h')], ['minute', tr('بالدقيقة', 'By the minute'), tr('ساعتان و20 دقيقة = 7 ₪', '2 h 20 min = ₪7')]];
+  // OW-021: the model stores N (1–59) for «round up after N minutes»; the example follows it.
+  const N = Number(pr.v.minutes) || 0;
+  const twoH = (m) => (m <= 0 ? tr('ساعتان', '2 h') : <>{tr('ساعتان و', '2 h ')}<Counted n={m} ar={F_MINUTES.ar} en={F_MINUTES.en} /></>);
+  const upExample = N >= 1 && N <= 59 ? <>{twoH(N - 1)}{tr(' = ساعتان · ', ' = 2 h · ')}{twoH(N + 1)}{tr(' = 3 ساعات', ' = 3 h')}</> : null;
+  const savePr = () => { if (pr.v.rounding === 'up' && !(N >= 1 && N <= 59)) { setPrErr(tr('من 1 إلى 59 دقيقة', 'From 1 to 59 minutes')); return; } setPrErr(); pr.save(); };
+  // O2: capacity (SpaceOccupancy, PATCH /manage/spaces/:id) and the stay limit (SpaceSettings) sit
+  // together, since both shape the live state and the check-out; one save sends both.
+  const saveAtt = () => {
+    const e = {};
+    if (att.v.capacity !== '' && !(Number(att.v.capacity) > 0)) e.capacity = tr('عدد صحيح أكبر من صفر', 'A whole number above zero');
+    if (att.v.maxStay !== '' && !(Number(att.v.maxStay) >= 1 && Number(att.v.maxStay) <= 23)) e.maxStay = tr('من 1 إلى 23 ساعة', 'From 1 to 23 hours');
+    setAttErr(e);
+    if (!Object.keys(e).length) att.save();
+  };
   return (
     <OwnerShell current="settings" title={tr('الإعدادات', 'Settings')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
-      <div className="flex max-w-2xl flex-col gap-6">
-        <SettingsCard title={tr('الحضور', 'Attendance')} card={att}>
-          <Field label={tr('تسجيل خروج تلقائي عند الإغلاق', 'Check everyone out automatically at closing')} helper={<>{tr('يُسجَّل خروج الجميع الساعة', 'Everyone is checked out at')} <Num>{DESK.CLOSE}</Num>. {tr('الزيارات غير المدفوعة تظهر في «غير محصّل».', 'Unpaid visits show in «Not collected».')}</>} orientation="horizontal"><Switch checked={att.v.autoOut} onCheckedChange={(b) => att.set({ autoOut: b })} /></Field>
+      <div className="flex max-w-3xl flex-col gap-6">
+        <SettingsCard id="attendance" title={tr('الحضور والحالة المباشرة', 'Attendance and the live state')} card={att} onSave={saveAtt} actionKey="save-attendance">
+          <Field label={tr('السعة', 'Capacity')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>} error={attErr.capacity}
+            helper={tr('لا تظهر للزوار. بها تُحسب الحالة «ممتلئ»؛ بدونها لا تظهر حالة مباشرة.', 'Never shown to visitors. It decides when the space shows «Full»; without it there is no live status.')}>
+            <Input inputMode="numeric" dir="ltr" className="w-24" value={att.v.capacity} onChange={(e) => att.set({ capacity: e.target.value.replace(/[^\d]/g, '') })} />
+          </Field>
+          <Field label={tr('خروج تلقائي عند الإغلاق', 'Automatic check-out at closing')} helper={<>{tr('يُسجَّل خروج الجميع الساعة', 'Everyone is checked out at')} <Num>{DESK.CLOSE}</Num>. {tr('الزيارات غير المدفوعة تظهر في «غير محصّل».', 'Unpaid visits show in «Not collected».')}</>} orientation="horizontal"><Switch checked={att.v.autoOut} onCheckedChange={(b) => att.set({ autoOut: b })} /></Field>
+          <Field label={tr('خروج تلقائي بعد (ساعات)', 'Automatic check-out after (hours)')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>} error={attErr.maxStay}
+            helper={tr('يُسجَّل خروج من يبقى أكثر من هذه المدة، قبل الإغلاق. اتركه فارغًا ليكون الخروج عند الإغلاق فقط.', 'Whoever stays longer is checked out, before closing. Leave it empty to check out at closing only.')}>
+            <Input inputMode="numeric" dir="ltr" className="w-20" value={att.v.maxStay} onChange={(e) => att.set({ maxStay: e.target.value.replace(/[^\d]/g, '') })} />
+          </Field>
         </SettingsCard>
-        <SettingsCard title={tr('تسعير الزيارات', 'Visit pricing')} description={<>{tr('سعر الساعة', 'Hour price')} <Money n={DESK.PRICES.hour || 0} /> · {tr('سعر اليوم', 'day price')} <Money n={DESK.PRICES.day || 0} /> — <a href="Packages.html">{tr('الباقات والأسعار', 'Packages & prices')}</a></>} card={pr}>
-          <Field label={tr('التقريب', 'Rounding')}>
-            <RadioGroup value={pr.v.rounding} onValueChange={(r) => pr.set({ rounding: r })}>
-              {RO.map(([k, l, h]) => <Field key={k} orientation="horizontal" label={<span className="flex flex-col"><span>{l}</span><span className="text-caption text-muted-foreground">{h}</span></span>}><RadioGroupItem value={k} /></Field>)}
+        <SettingsCard title={tr('تسعير الزيارات', 'Visit pricing')} description={<>{tr('سعر الساعة', 'Hour price')} <Money n={DESK.PRICES.hour || 0} /> · {tr('سعر اليوم', 'day price')} <Money n={DESK.PRICES.day || 0} /> — <a href="Packages.html#prices">{tr('الباقات والأسعار', 'Packages & prices')}</a></>} card={pr} onSave={savePr} actionKey="save-pricing">
+          <Field label={tr('التقريب', 'Rounding')} error={prErr}>
+            <RadioGroup value={pr.v.rounding} onValueChange={(r) => { pr.set({ rounding: r }); setPrErr(); }}>
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <RadioGroupItem value="up" id="round-up" />
+                  <label htmlFor="round-up" className="text-body">{tr('تقريب لأعلى بعد', 'Round up after')}</label>
+                  <Input inputMode="numeric" dir="ltr" className="w-16" aria-label={tr('دقائق التقريب', 'Rounding minutes')} disabled={pr.v.rounding !== 'up'} value={pr.v.minutes} onChange={(e) => pr.set({ minutes: e.target.value.replace(/[^\d]/g, '').slice(0, 2) })} />
+                  <span className="text-body">{tr(N >= 3 && N <= 10 ? 'دقائق' : 'دقيقة', 'minutes')}</span>
+                </div>
+                {upExample && <span className="ps-8 text-caption text-muted-foreground">{upExample}</span>}
+              </div>
+              <Field orientation="horizontal" label={<span className="flex flex-col"><span>{tr('لأقرب نصف ساعة', 'To the nearest half hour')}</span><span className="text-caption text-muted-foreground">{tr('ساعتان و20 دقيقة = ساعتان ونصف', '2 h 20 min = 2.5 h')}</span></span>}><RadioGroupItem value="half" /></Field>
+              <Field orientation="horizontal" label={<span className="flex flex-col"><span>{tr('بالدقيقة', 'By the minute')}</span><span className="text-caption text-muted-foreground">{tr('ساعتان و20 دقيقة = 7 ₪', '2 h 20 min = ₪7')}</span></span>}><RadioGroupItem value="minute" /></Field>
             </RadioGroup>
           </Field>
           <Field label={tr('لا يتجاوز سعر اليوم', 'Never more than the day price')} orientation="horizontal"><Switch checked={pr.v.cap} onCheckedChange={(b) => pr.set({ cap: b })} /></Field>
           <Field label={tr('استخدام أسعار الطلاب للزيارات عند توفرها', 'Use student prices for visits when available')} orientation="horizontal"><Switch checked={pr.v.student} onCheckedChange={(b) => pr.set({ student: b })} /></Field>
         </SettingsCard>
-        <SettingsCard title={tr('رسالة التذكير', 'Reminder message')} description={tr('تُفتح في واتساب برسالة جاهزة من ملف الزبون، وترسلها أنت.', 'Opens in WhatsApp as a ready message from the customer file; you send it yourself.')} card={msg} onSave={saveMsg}>
+        <SettingsCard title={tr('رسالة التذكير', 'Reminder message')} description={tr('تُفتح في واتساب برسالة جاهزة من ملف الزبون، وترسلها أنت.', 'Opens in WhatsApp as a ready message from the customer file; you send it yourself.')} card={msg} onSave={saveMsg} actionKey="save-message">
           <Field label={tr('نص الرسالة', 'Message text')} error={err}><Textarea ref={ta} rows={4} value={msg.v.text} onChange={(e) => msg.set({ text: e.target.value })} /></Field>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-caption text-muted-foreground">{tr('إدراج:', 'Insert:')}</span>
