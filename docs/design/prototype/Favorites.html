@@ -25,9 +25,9 @@
 <script type="text/babel">
 const { DirectionProvider, Button, Card, CardHeader, CardTitle, CardDescription, CardAction, Alert, AlertTitle, AlertDescription, AlertAction, EmptyState, toast } = window.MasahaDesignSystem;
 const M = window.MASAHA;
-// Demo: Focus, Branch, Golden saved; one saved space was later hidden by the admin.
-const SAVED = ['focus', 'branch', 'golden', 'hidden:palm'];
-const HIDDEN_NAMES = { palm: 'Palm Hub' };
+// Newest saved first (C8). Palm Hub was saved, then left the directory (`listed: false`, its name only).
+const SAVED = ['focus', 'branch', 'golden', 'unlisted:palm'];
+const UNLISTED = { palm: 'Palm Hub' };
 
 function FavCard({ space, km, onRemove }) {
   return (
@@ -59,23 +59,22 @@ function FavoritesScreen() {
       {(state === 'ready' || state === 'empty') && (ids.length ? (
         <div className="flex flex-col gap-3">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {ids.map((id) => {
-            if (id.startsWith('hidden:')) {
-              const name = HIDDEN_NAMES[id.slice(7)];
-              return (
-                <Card key={id} className="bg-muted">
-                  <CardHeader>
-                    <CardTitle className="text-muted-foreground">{name}</CardTitle>
-                    <CardDescription>{tr('هذه المساحة لم تعد متاحة', 'This space is no longer available')}</CardDescription>
-                    <CardAction><Button variant="outline" size="sm" onClick={() => remove(id, name)}>{tr('إزالة', 'Remove')}</Button></CardAction>
-                  </CardHeader>
-                </Card>
-              );
-            }
+          {ids.filter((id) => !id.startsWith('unlisted:')).map((id) => {
             const s = M.spaces.find((x) => x.id === id);
             return <FavCard key={id} space={s} km={near.coords ? M.distanceKm(near.coords, s) : null} onRemove={() => remove(id, spaceName(s))} />;
           })}
           </div>
+          {ids.some((id) => id.startsWith('unlisted:')) && (
+            <ul className="flex flex-col gap-3">
+              {ids.filter((id) => id.startsWith('unlisted:')).map((id) => (
+                <li key={id}><Card className="bg-muted"><CardHeader>
+                  <CardTitle className="text-muted-foreground"><SpaceName space={{ name: UNLISTED[id.slice(9)] }} /></CardTitle>
+                  <CardDescription>{UNLISTED_LINE}</CardDescription>
+                  <CardAction><Button variant="outline" size="sm" onClick={() => remove(id, UNLISTED[id.slice(9)])}>{tr('إزالة', 'Remove')}</Button></CardAction>
+                </CardHeader></Card></li>
+              ))}
+            </ul>
+          )}
         </div>
       ) : (
         <Card>

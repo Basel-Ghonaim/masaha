@@ -847,3 +847,4 @@ Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `scree
 | Account settings · how I sign in — desktop 1440 | `Settings.html?auth=linked` | 1440×1000 | — |
 | Account settings · Google-only, the link sent — phone 390 | `Settings.html?auth=google&state=linksent` | 390×844 | — |
 | Forced change · reception, a neutral author — phone 390 | `Change password.html?auth=1&role=reception` | 390×844 | — |
+| Favourites · one left the directory — desktop 1440 | `Favorites.html?auth=1&loc=none` | 1440×1000 | — |

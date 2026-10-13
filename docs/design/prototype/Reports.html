@@ -27,8 +27,12 @@ const M = window.MASAHA;
 const REPORTS = [
   { id: 'r4', space: 'numberone', field: tr('ساعات العمل', 'Opening hours'), sent: tr('قبل ساعتين', '2 hours ago'), status: 'review', message: tr('المساحة تفتح الساعة 09:00 وليس 08:00 منذ بداية الشهر، والإغلاق صار 17:00 أيام الخميس.', 'The space opens at 09:00, not 08:00, since the start of the month, and closes at 17:00 on Thursdays.') },
   { id: 'r3', space: 'golden', field: tr('الأسعار', 'Prices'), sent: tr('قبل 3 أيام', '3 days ago'), status: 'fixed', message: tr('السعر الشهري أصبح 320 ₪ والسعر اليومي 15 ₪ كما هو. سألت الإدارة مباشرة عند الاستقبال وأكّدوا السعر الجديد، ويبدأ تطبيقه من أول الشهر القادم للمشتركين الجدد.', 'The monthly price is now ₪320 and the daily price is still ₪15. I asked the front desk directly and they confirmed the new price, which applies from next month for new subscribers.') },
-  { id: 'r2', space: 'white', field: tr('التواصل', 'Contact'), sent: tr('قبل أسبوعين', '2 weeks ago'), status: 'rejected', message: tr('رقم الواتساب لا يرد.', 'The WhatsApp number doesn’t answer.'), note: tr('تواصلنا مع المساحة وتأكّدنا أن الرقم صحيح.', 'We contacted the space and confirmed the number is correct.') },
-  { id: 'r1', space: 'focus', field: tr('المرافق', 'Amenities'), sent: tr('قبل شهر', 'a month ago'), status: 'fixed', message: tr('أضافوا قاعة اجتماعات جديدة في الطابق نفسه.', 'They added a new meeting room on the same floor.'), note: tr('شكرًا، أضفنا القاعة إلى المرافق.', 'Thanks, we added the room to the amenities.') }
+  { id: 'r5', space: 'zm', field: tr('الموقع', 'Location'), sent: tr('قبل 5 أيام', '5 days ago'), status: 'review' },
+  { id: 'r2', space: 'white', field: tr('التواصل', 'Contact'), sent: tr('قبل أسبوعين', '2 weeks ago'), status: 'rejected', message: tr('رقم الواتساب لا يرد.', 'The WhatsApp number doesn’t answer.'), note: tr('تواصلنا مع المساحة وتأكّدنا أن الرقم صحيح.', 'We contacted the space and confirmed the number is correct.'), repliedBy: 'masaha' },
+  { id: 'r6', listed: false, name: 'Palm Hub', field: tr('الأسعار', 'Prices'), sent: tr('قبل 3 أسابيع', '3 weeks ago'), status: 'fixed', message: tr('السعر اليومي صار 12 ₪.', 'The daily price is now ₪12.'), note: tr('صحّحنا السعر اليومي.', 'We corrected the daily price.'), repliedBy: 'masaha' },
+  { id: 'r1', space: 'focus', field: tr('المرافق', 'Amenities'), sent: tr('قبل شهر', 'a month ago'), status: 'fixed', message: tr('أضافوا قاعة اجتماعات جديدة في الطابق نفسه.', 'They added a new meeting room on the same floor.'), note: tr('شكرًا، أضفنا القاعة إلى المرافق.', 'Thanks, we added the room to the amenities.'), repliedBy: 'space' },
+  // AC-009: answered by the team before Number One's owner was linked; the label follows who answered (repliedBy, from the resolver), not today's verification.
+  { id: 'r0', space: 'numberone', field: tr('التواصل', 'Contact'), sent: tr('قبل شهرين', '2 months ago'), status: 'fixed', message: tr('رقم الهاتف في الصفحة قديم.', 'The phone number on the page is old.'), note: tr('صحّحنا رقم الهاتف.', 'We corrected the phone number.'), repliedBy: 'masaha' }
 ];
 const STATUS = {
   review: { label: tr('قيد المراجعة', 'In review'), variant: 'info' },
@@ -38,22 +42,22 @@ const STATUS = {
 
 function ReportItem({ r }) {
   const [open, setOpen] = React.useState(false);
-  const s = M.spaces.find((x) => x.id === r.space);
+  const s = r.listed === false ? null : M.spaces.find((x) => x.id === r.space);
   const st = STATUS[r.status];
-  const long = r.message.length > 90;
+  const long = r.message && r.message.length > 90;
   return (
     <Card>
       <CardHeader>
-        <CardTitle><a href={spaceHref(s)} className="text-foreground"><SpaceName space={s} /></a></CardTitle>
-        <CardDescription>{r.field} · {tr('أُرسل', 'Sent')} {r.sent}</CardDescription>
+        <CardTitle>{s ? <a href={spaceHref(s)} className="text-foreground"><SpaceName space={s} /></a> : <span className="text-muted-foreground"><SpaceName space={{ name: r.name }} /></span>}</CardTitle>
+        <CardDescription>{r.field} · {tr('أُرسل', 'Sent')} {r.sent}{!s && <span className="block">{UNLISTED_LINE}</span>}</CardDescription>
         <CardAction><Badge variant={st.variant}>{st.label}</Badge></CardAction>
       </CardHeader>
       <CardContent className="flex flex-col items-start gap-2">
-        <p id={'msg-' + r.id} className={'text-body-sm ' + (open ? '' : 'line-clamp-2')}>{r.message}</p>
+        {r.message && <p id={'msg-' + r.id} className={'text-body-sm ' + (open ? '' : 'line-clamp-2')}>{r.message}</p>}
         {long && <Button variant="link" size="sm" className="px-0" aria-expanded={open} aria-controls={'msg-' + r.id} onClick={() => setOpen(!open)}>{open ? tr('عرض أقل', 'Show less') : tr('عرض المزيد', 'Show more')}</Button>}
         {r.note && (
           <div className="flex w-full flex-col gap-1 rounded-md bg-muted px-3 py-2">
-            <span className="text-caption text-muted-foreground">{s.verified ? tr('ردّ إدارة المساحة', 'Reply from the space') : tr('ردّ فريق مساحة', 'Reply from the Masaha team')}</span>
+            <span className="text-caption text-muted-foreground">{s && s.verified ? tr('ردّ إدارة المساحة', 'Reply from the space') : tr('ردّ فريق مساحة', 'Reply from the Masaha team')}</span>
             <p className="text-body-sm">{r.note}</p>
           </div>
         )}
