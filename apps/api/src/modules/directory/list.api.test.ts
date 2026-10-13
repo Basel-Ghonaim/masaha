@@ -8,6 +8,7 @@ import {
   createArea,
   createPublicSpace,
   moveRowToEnd,
+  photoUrl,
   seedSettings,
   setWeek,
   signInOwnerOf,
@@ -81,6 +82,7 @@ describe('GET /spaces', () => {
           area: { id: areaId, nameAr: 'الرمال', nameEn: 'Al-Rimal' },
           isVerified: false,
           days: SAT_TO_THU.map((day) => day && { opensMinute: day[0], closesMinute: day[1] }),
+          cover: null,
         },
       ],
       meta: {
@@ -91,6 +93,23 @@ describe('GET /spaces', () => {
         hasNextPage: false,
         hasPreviousPage: false,
       },
+    });
+  });
+
+  it('carries the cover’s card-size URL: the first photo’s, in the gallery’s order', async () => {
+    const space = await createPublicSpace(areaId, 'With photos');
+    // Moved first after it was added: the order decides the cover, not the id.
+    await prisma.spacePhoto.create({ data: { spaceId: space.id, path: 'later', sortOrder: 1 } });
+    await prisma.spacePhoto.create({ data: { spaceId: space.id, path: 'cover', sortOrder: 0 } });
+    await createPublicSpace(areaId, 'Without');
+
+    const response = await list('?sort=name&lang=en');
+
+    expect(response.body).toMatchObject({
+      data: [
+        { nameEn: 'With photos', cover: photoUrl('cover', 'card') },
+        { nameEn: 'Without', cover: null },
+      ],
     });
   });
 

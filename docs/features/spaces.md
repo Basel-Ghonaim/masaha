@@ -10,7 +10,7 @@
 - Dates each of the space's fact groups when it is saved or confirmed unchanged, and computes from those dates which groups are stale, which are missing, and when the space was last updated.
 - Answers the modules above it: the summaries of a set of spaces, and a page of the admin's spaces list over the ids it is given, of the soft-deleted spaces when asked.
 - Answers the [directory](directory.md) the publicly listed spaces over the ids and areas it is given: filtered, searched, ordered and paged, or whole up to a ceiling for the map, each with its week; and a space's public page, read whole, its prices hidden as the public is kept from them.
-- Keeps a space's photos for the admin: up to 10, in an order whose first is the cover, each re-encoded on the server as two WebP sizes with no metadata and stored through the storage port; lists them, adds and removes one at a time and orders them, as the [contract](../api/api-contract.md#photos) says.
+- Keeps a space's photos for the admin: up to 10, in an order whose first is the cover, each re-encoded on the server as two WebP sizes with no metadata and stored through the storage port; lists them, adds and removes one at a time and orders them, as the [contract](../api/api-contract.md#photos) says; answers [`directory`](directory.md) the covers of a set of spaces, in one query, and a page's photos under its lock.
 - On the web, adds a space from its basics and its location, its pin placed on a map; edits a space on a page of its own, its profile, its amenities and its contacts each saved, dated and confirmed as a section, under the groups still missing, asking before the page is left with unsaved changes, and shows a verified space read-only; and gives each row of the admin's spaces list its menu: edit the space, hide it or show it again, and delete it, with an Undo that restores it.
 
 The owner's side is not built, and the photos are the API's only; on the web, neither are the hours with the shifts, nor the prices.
@@ -197,6 +197,7 @@ The owner's side is not built, and the photos are the API's only; on the web, ne
 - [59](../architecture/findings/59-the-verified-spaces-editor-cannot-name-its-owner.md): the verified space's editor cannot name its owner.
 - [60](../architecture/findings/60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md): the area field shows no area for a space whose area was hidden since.
 - [63](../architecture/findings/63-a-photos-files-can-outlive-it.md): a photo's files can outlive it.
+- [64](../architecture/findings/64-the-deployments-headers-must-let-cloudinarys-photos-load.md): the deployment's headers must let Cloudinary's photos load.
 
 ## History
 
@@ -209,7 +210,7 @@ The owner's side is not built, and the photos are the API's only; on the web, ne
 - #64 — a space's own amenities, in the amenities group; no price of zero.
 - The deleted-spaces item — the listing page of the soft-deleted spaces, with when each was deleted.
 - The directory item — the public listing (filters, search, orders, pages and the map's set) and the public page.
-- #77 — a space's photos: the gallery's read, its upload through the storage port and the image core, its removal and its order.
+- #77 — a space's photos: the gallery's read, its upload through the storage port and the image core, its removal and its order; the covers and the page's photos for the directory.
 
 ### Web history
 

@@ -5,9 +5,11 @@ import { createTestApp } from '../../../test/app.ts';
 import { whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import {
+  addPhotos,
   addPrice,
   createArea,
   createPublicSpace,
+  photoUrl,
   seedSettings,
   setWeek,
   signInOwnerOf,
@@ -77,6 +79,7 @@ describe('GET /spaces/:slug', () => {
       data: { spaceId: space.id, type: 'WHATSAPP', value: '+970599123456' },
     });
     await prisma.spaceOccupancy.create({ data: { spaceId: space.id, capacity: 40 } });
+    await addPhotos(space.id, ['cover', 'second']);
 
     const response = await page('focus-hub');
 
@@ -135,6 +138,10 @@ describe('GET /spaces/:slug', () => {
           contacts: null,
         },
         staleGroups: ['profile'],
+        photos: [
+          { card: photoUrl('cover', 'card'), page: photoUrl('cover', 'page') },
+          { card: photoUrl('second', 'card'), page: photoUrl('second', 'page') },
+        ],
       },
     });
     expect(response.headers['cache-control']).toBe('public, max-age=30');
@@ -160,6 +167,14 @@ describe('GET /spaces/:slug', () => {
     expect(shown.body).toMatchObject({
       data: { isVerified: true, prices: [{ amountAgorot: 2000 }], staleGroups: ['prices'] },
     });
+  });
+
+  it('carries no photo for a space without one: the page shows a caption', async () => {
+    await createPublicSpace(areaId, 'Bare');
+
+    const response = await page('bare');
+
+    expect(response.body).toMatchObject({ data: { photos: [] } });
   });
 
   it('decides verified on the links as they are under the space’s lock, with the facts it shows', async () => {

@@ -201,6 +201,7 @@ What anyone reads without signing in, over the **publicly listed** spaces only (
   - `q`, 1–80 characters: either name of the space, or either name of its area, matched forgivingly. Both sides are normalised (lowercased; tashkeel and tatweel removed; أ إ آ ٱ → ا, ة → ه, ى → ي), and a part of a name, or a near match (a typo), passes. A `q` with nothing but tashkeel or tatweel, spaces around them included, is `invalid_format`; one of spaces only is empty once trimmed, `too_short`, as every text is.
 - **The location** travels in the `Masaha-Near: lat,lng` request header, never in the query, and only to sort by distance ([security › Location](../backend/security.md#location)): each coordinate with at most 3 decimals (`invalid_format` on `near` otherwise), inside the Gaza Strip's box (`out_of_range`).
 - **Caching:** an answer carries `Cache-Control: public, max-age=30` and a validator (`ETag`): the same request with `If-None-Match` answers `304` while it is unchanged. Every answer to a request that carries the `Masaha-Near` header, a refusal or a failure included, carries `Cache-Control: no-store`.
+- **Photos:** a card and a pin carry the cover's card-size URL, a space's page its photos; each URL is a space's photo's ([Photos](#photos)): it never changes for its file, so it is cached long, and it leaves the answers within their 30 seconds once the photo is removed.
 
 ```ts
 DirectorySpace = {
@@ -208,13 +209,15 @@ DirectorySpace = {
   area: { id: number, nameAr: string, nameEn: string },   // its governorate: the catalogue's
   isVerified: boolean,
   days: (OpeningRange | null)[] | null,    // the week, Sunday first; null while never saved
-  distanceMeters?: number                  // ordered by distance only: straight-line, to the nearest 100 m
+  distanceMeters?: number,                 // ordered by distance only: straight-line, to the nearest 100 m
+  cover: string | null                     // the first photo's card-size URL; null: the web draws the space's mark
 }
 
 MapPin = {
   id: number, slug: string, nameEn: string, nameAr: string | null,
   areaId: number, location: { lat: number, lng: number },
-  isVerified: boolean, days: (OpeningRange | null)[] | null
+  isVerified: boolean, days: (OpeningRange | null)[] | null,
+  cover: string | null                     // as the card's, for the selected card
 }
 
 PublicSpace = {
@@ -227,7 +230,8 @@ PublicSpace = {
   amenities: PublicAmenity[],              // the platform's active ones in its order, then the space's own
   contacts: Contact[],
   updatedAt: Record<FactGroup, string | null>,   // ISO 8601; null while the group is missing
-  staleGroups: FactGroup[]
+  staleGroups: FactGroup[],
+  photos: PhotoUrls[]                      // in the gallery's order, the cover first; none: the page shows a caption
 }
 
 PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | null }   // null: the space's own

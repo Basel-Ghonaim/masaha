@@ -4,6 +4,7 @@ import type {
   FactGroup,
   Location,
   OpeningRange,
+  PhotoUrls,
   Price,
   SpaceHours,
 } from '../spaces/index.ts';
@@ -31,6 +32,8 @@ export interface DirectorySpace {
   days: (OpeningRange | null)[] | null;
   /** Straight-line, from the rounded point, to the nearest 100 m: only when sorted by distance. */
   distanceMeters?: number;
+  /** The cover's card-size URL (its first photo), or `null`: the web then draws the space's mark. */
+  cover: string | null;
 }
 
 /** A space on the map, with what its selected card shows. */
@@ -44,6 +47,8 @@ export interface MapPin {
   location: Location;
   isVerified: boolean;
   days: (OpeningRange | null)[] | null;
+  /** The cover's card-size URL, for the selected card, or `null`. */
+  cover: string | null;
 }
 
 /** The map's pins: the whole filtered set, or its first `MAP_PINS_CEILING` by id, `truncated`. */
@@ -85,4 +90,6 @@ export interface PublicSpace {
   /** Each group's date, ISO 8601; `null` while the group is missing. */
   updatedAt: Record<FactGroup, string | null>;
   staleGroups: FactGroup[];
+  /** Its photos in the gallery's order, the cover first, each in both sizes; none: a caption. */
+  photos: PhotoUrls[];
 }

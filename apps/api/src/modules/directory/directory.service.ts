@@ -55,6 +55,7 @@ function toDirectorySpace(space: ListedPublicSpace, area: AreaName): DirectorySp
     isVerified: space.isVerified,
     days: space.days,
     ...(space.distanceMeters !== null && { distanceMeters: space.distanceMeters }),
+    cover: space.cover,
   };
 }
 
@@ -68,6 +69,7 @@ function toMapPin(space: ListedPublicSpace): MapPin {
     location: space.location,
     isVerified: space.isVerified,
     days: space.days,
+    cover: space.cover,
   };
 }
 
@@ -174,6 +176,7 @@ export function createDirectoryService({
         contacts: view.contacts,
         updatedAt: view.updatedAt,
         staleGroups: view.staleGroups,
+        photos: view.photos,
       };
     },
   };

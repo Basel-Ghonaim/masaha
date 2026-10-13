@@ -19,6 +19,15 @@ export function createPhotosRepository() {
       return rows.map(({ id, path }) => ({ id, key: path }));
     },
 
+    /** The key of each space's cover, its first photo, for a set of spaces: one query. */
+    async coverKeysFor(spaceIds: readonly number[]): Promise<Map<number, string>> {
+      const rows = await prisma.$queryRaw<{ space_id: number; path: string }[]>`
+        SELECT DISTINCT ON (space_id) space_id, path FROM space_photos
+        WHERE space_id = ANY(${[...spaceIds]}::int[])
+        ORDER BY space_id, sort_order, id`;
+      return new Map(rows.map((row) => [row.space_id, row.path]));
+    },
+
     count(spaceId: number, tx: Tx = prisma): Promise<number> {
       return tx.spacePhoto.count({ where: { spaceId } });
     },

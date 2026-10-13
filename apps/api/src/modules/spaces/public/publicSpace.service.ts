@@ -3,13 +3,17 @@ import type {
   FactGroup,
   Location,
   OwnAmenity,
+  PhotoUrls,
   Price,
   SpaceHours,
 } from '@masaha/shared/spaces';
 
 import type { RunInTransaction, Tx } from '../../../db/index.ts';
+import type { Storage } from '../../../shared/storage/index.ts';
 import type { PlatformSettingsService } from '../../platform-settings/index.ts';
 import { createFactsReader } from '../facts/facts.ts';
+import { urlsOf } from '../photos/photoSizes.ts';
+import { createPhotosRepository } from '../photos/photos.repository.ts';
 import { createSpaceRepository } from '../space/space.repository.ts';
 import { groupDatesOf, pricesHidden, staleCutoffs, staleGroups } from '../staleness.ts';
 
@@ -38,6 +42,8 @@ export interface PublicSpaceView {
   contacts: Contact[];
   updatedAt: Record<FactGroup, string | null>;
   staleGroups: FactGroup[];
+  /** In the gallery's order, the cover first. */
+  photos: PhotoUrls[];
 }
 
 interface Dependencies {
@@ -45,6 +51,8 @@ interface Dependencies {
   platformSettings: PlatformSettingsService;
   /** The one clock (conventions §11): staleness is measured from it. */
   now: () => Date;
+  /** Where the photos' files are fetched from. */
+  storage: Storage;
 }
 
 /**
@@ -57,9 +65,11 @@ export function createPublicSpaceService({
   runInTransaction,
   platformSettings,
   now,
+  storage,
 }: Dependencies) {
   const repository = createSpaceRepository();
   const readFacts = createFactsReader();
+  const photos = createPhotosRepository();
 
   return {
     /** The space with this slug, unless it is soft-deleted or hidden. */
@@ -84,6 +94,7 @@ export function createPublicSpaceService({
         if (!space || space.isHidden) return null;
         const isVerified = await verifiedUnder(tx);
         const facts = await readFacts(id, tx);
+        const gallery = await photos.listFor(id, tx);
         const dates = groupDatesOf(space);
         const cutoffs = staleCutoffs(thresholds, now());
         return {
@@ -113,6 +124,7 @@ export function createPublicSpaceService({
             contacts: dates.contacts?.toISOString() ?? null,
           },
           staleGroups: staleGroups(dates, cutoffs),
+          photos: gallery.map(({ key }) => urlsOf(key, (objectKey) => storage.url(objectKey))),
         };
       });
     },

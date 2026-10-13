@@ -277,8 +277,13 @@ export function createApi({
   const directory = createDirectoryService({
     lookups,
     spaceLinks,
-    publicListing: createPublicListingService({ platformSettings, now: clock }),
-    publicSpace: createPublicSpaceService({ runInTransaction, platformSettings, now: clock }),
+    publicListing: createPublicListingService({ platformSettings, now: clock, storage }),
+    publicSpace: createPublicSpaceService({
+      runInTransaction,
+      platformSettings,
+      now: clock,
+      storage,
+    }),
   });
   const adminUsers = createAdminUsersService({ users, spaces });
   const adminRoles = createAdminRolesService({ runInTransaction, users });
