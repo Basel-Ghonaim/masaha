@@ -26,37 +26,46 @@
 <script type="text/babel" src="masaha/desk-core.jsx"></script>
 <script type="text/babel" src="masaha/desk-sheet.jsx"></script>
 <script type="text/babel">
-const { DirectionProvider, Card, CardHeader, CardTitle, CardDescription, CardContent, StatCard, DataTable, EmptyState, Badge, CircleCheckIcon } = window.MasahaDesignSystem;
-// Reception's own payments today, for the end-of-shift handover.
+const { DirectionProvider, Card, CardContent, StatCard, DataTable, EmptyState, Badge, CircleCheckIcon } = window.MasahaDesignSystem;
+// Reception's own payments today, for the end-of-shift handover — a voided one too, struck (DK-015).
 function rowsFor(by) {
   const out = [];
-  DESK.customers.forEach((c) => c.subs.forEach((s) => s.pays.forEach((p, i) => { if (p[0] === DESK.TODAY && p[4] === by) out.push({ id: s.id + i, time: p[1], who: c.name, item: s.name, amount: p[2], method: p[3], voided: p[5] }); })));
-  DESK.visitPays.forEach((v) => { if (v.date === DESK.TODAY && v.by === by) out.push({ id: v.id, time: v.time, who: v.name, item: tr('زيارة', 'Visit'), amount: v.amount, method: v.method }); });
+  DESK.customers.forEach((c) => c.subs.forEach((s) => s.pays.forEach((p, i) => { if (p[0] === DESK.TODAY && p[4] === by) out.push({ id: s.id + i, time: p[1], who: c.name, item: s.name, amount: p[2], method: p[3], voided: p[5] || null, voidedBy: p[7] || null }); })));
+  DESK.visitPays.forEach((v) => { if (v.date === DESK.TODAY && v.by === by) out.push({ id: v.id, time: v.time, who: v.name, item: tr('زيارة', 'Visit'), amount: v.amount, method: v.method, voided: v.voided || null, voidedBy: v.voidedBy || null }); });
   return out.sort((a, b) => (a.time < b.time ? 1 : -1));
 }
 function MineInner({ theme, setTheme }) {
   const rows = pageParams.get('state') === 'empty' ? [] : rowsFor(DESK.SAMI);
+  // ADR 0010 rule 3: a voided payment counts nowhere — not in the figures to hand over.
   const live = rows.filter((r) => !r.voided);
   const sum = (m) => live.filter((r) => !m || r.method === m).reduce((a, r) => a + r.amount, 0);
+  const count = <Counted n={live.length} ar={F_PAYMENTS.ar} en={F_PAYMENTS.en} />;
   const paged = usePaged(rows);
-    const columns = [
+  const columns = [
     { id: 'time', header: tr('الوقت', 'Time'), cell: ({ row }) => <Num>{row.original.time}</Num> },
     { id: 'who', header: tr('الاسم', 'Name'), cell: ({ row }) => <span className="text-label">{row.original.who}</span> },
     { id: 'item', header: tr('عن', 'For'), cell: ({ row }) => row.original.item },
     { id: 'method', header: tr('الطريقة', 'Method'), cell: ({ row }) => <Badge variant={row.original.method === 'cash' ? 'neutral' : 'info'}>{DESK.methodLabel[row.original.method]}</Badge> },
-    { id: 'amount', header: tr('المبلغ', 'Amount'), cell: ({ row }) => <span className="text-label"><Money n={row.original.amount} /></span> }
+    { id: 'amount', header: tr('المبلغ', 'Amount'), cell: ({ row }) => <PaidAmount r={row.original} /> }
   ];
   return (
     <OwnerShell current="my-payments" title={tr('دفعاتي اليوم', 'My payments today')} state={publicState(DESK.present.length, DESK.capacity)} theme={theme} setTheme={setTheme}>
       <p className="text-body-sm text-muted-foreground">{tr('الدفعات التي سجّلتها أنت اليوم، لتسليمها في نهاية الوردية.', 'The payments you recorded today, for the end-of-shift handover.')} · {DESK.fmtDate(DESK.TODAY, true)}</p>
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label={tr('نقدًا', 'Cash')} value={<Money n={sum('cash')} />} helper={tr('للتسليم نقدًا', 'To hand over in cash')} />
+      {/* DK-015: on a phone the three figures are one card, the cash to hand over first. */}
+      <Card className="md:hidden"><CardContent><dl className="flex flex-col divide-y">
+        <Row k={tr('نقدًا للتسليم', 'Cash to hand over')} v={<Money n={sum('cash')} />} />
+        <Row k={tr('تحويل', 'Transfer')} v={<Money n={sum('transfer')} />} />
+        <Row k={<>{tr('المجموع', 'Total')} · {count}</>} v={<Money n={sum()} />} />
+      </dl></CardContent></Card>
+      <div className="hidden gap-4 md:grid md:grid-cols-3">
+        <StatCard label={tr('نقدًا للتسليم', 'Cash to hand over')} value={<Money n={sum('cash')} />} />
         <StatCard label={tr('تحويل', 'Transfer')} value={<Money n={sum('transfer')} />} helper={tr('وصلت إلى حساب المساحة', 'Received in the space’s account')} />
-        <StatCard label={tr('المجموع', 'Total')} value={<Money n={sum()} />} helper={<><Num>{live.length}</Num> {tr('دفعات', 'payments')}</>} />
+        <StatCard label={tr('المجموع', 'Total')} value={<Money n={sum()} />} helper={count} />
       </div>
+      <p className="text-caption text-muted-foreground">{tr('خطأ في دفعة؟ يلغيها صاحب المساحة، وتظهر هنا مشطوبة.', 'A mistake in a payment? The space’s owner voids it, and it shows here struck through.')}</p>
       <DataTable label={tr('دفعاتي اليوم', 'My payments today')} columns={columns} data={paged.rows} getRowId={(r) => r.id} loading={pageParams.get('state') === 'loading'}
         summary={paged.summary} pagination={paged.nav}
-        renderCard={(r) => (<div className="flex items-start justify-between gap-3"><div className="flex flex-col gap-1"><span className="text-label">{r.who}</span><span className="text-caption text-muted-foreground"><Num>{r.time}</Num> · {r.item} · {DESK.methodLabel[r.method]}</span></div><span className="text-label"><Money n={r.amount} /></span></div>)}
+        renderCard={(r) => (<div className="flex items-start justify-between gap-3"><div className="flex flex-col gap-1"><span className="text-label">{r.who}</span><span className="text-caption text-muted-foreground"><Num>{r.time}</Num> · {r.item} · {DESK.methodLabel[r.method]}</span></div><PaidAmount r={r} /></div>)}
         empty={<EmptyState icon={<CircleCheckIcon />} title={tr('لم تسجّل أي دفعة اليوم', 'You haven’t recorded any payments today')} />} />
     </OwnerShell>
   );

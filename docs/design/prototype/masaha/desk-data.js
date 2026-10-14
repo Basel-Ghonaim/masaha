@@ -3,11 +3,21 @@
 window.DESK = (function () {
   const T = window.tr;
   const TODAY = '2026-09-29', NOW = '12:40', TODAY_KEY = 'tue', CLOSE = '18:00';
-  const PRICES = { hour: 3, day: 15, week: 90, month: 300, studentMonth: 250 };
+  const PRICES = { hour: 3, day: 15, week: 90, month: 300, studentMonth: 250, studentHour: null, studentDay: null };
   // Demo: ?prices=dayonly (no hour price) or ?prices=none (no hour and no day price).
   const PM = new URLSearchParams(location.search).get('prices');
   if (PM === 'dayonly' || PM === 'none') PRICES.hour = null;
   if (PM === 'none') PRICES.day = null;
+  // The fix phase's sample states, a comma list as on the owner's pages: ?demo=noshifts,nocap,nostudent,studentprices.
+  const DEMO = (new URLSearchParams(location.search).get('demo') || '').split(',');
+  if (DEMO.includes('studentprices')) { PRICES.studentHour = 2; PRICES.studentDay = 10; }
+  // DK-021, DK-023: the space's settings (SpaceSettings), as Owner settings starts them: round up after
+  // 15 minutes, the cap at the day price on, student prices for visits on.
+  const SETTINGS = { roundAfter: 15, cap: !DEMO.includes('nocap'), studentVisits: !DEMO.includes('nostudent') };
+  // «طالب» changes a visit's rate only when the setting is on and the space publishes a student hour or day price.
+  const STUDENT_VISITS = SETTINGS.studentVisits && (PRICES.studentHour != null || PRICES.studentDay != null);
+  // The space's shifts, as the profile's sample saves them; ?demo=noshifts: none saved.
+  const SHIFT_LIST = DEMO.includes('noshifts') ? [] : [{ id: 'am', from: '08:00', to: '13:00' }, { id: 'pm', from: '13:00', to: '18:00' }];
   const WEEKDAYS = [['sat', T('السبت', 'Sat')], ['sun', T('الأحد', 'Sun')], ['mon', T('الاثنين', 'Mon')], ['tue', T('الثلاثاء', 'Tue')], ['wed', T('الأربعاء', 'Wed')], ['thu', T('الخميس', 'Thu')], ['fri', T('الجمعة', 'Fri')]];
   const SHIFTS = { am: T('الوردية الصباحية', 'Morning shift'), pm: T('الوردية المسائية', 'Evening shift') };
   const PACKAGES = [
@@ -42,10 +52,12 @@ window.DESK = (function () {
     { id: 'm9', name: T('عمر حلس', 'Omar Hilles'), phone: '+970 59 000 1009', subs: [S('s9', 'month', '2026-09-02', '2026-10-01', { pays: [['2026-09-02', '08:15', 300, 'transfer', A]] })] },
     { id: 'm10', name: T('دانة الغول', 'Dana Al-Ghoul'), phone: '+970 59 000 1010', subs: [] },
     { id: 'm11', name: T('إبراهيم عاشور', 'Ibrahim Ashour'), phone: '+970 56 000 1011', subs: [S('s11', 'month', '2026-09-28', '2026-10-27', { billing: { type: 'fixed', amount: 280 }, manual: true, pays: [['2026-09-28', '08:20', 280, 'transfer', A]] })] },
-    { id: 'm12', name: T('ميار سكيك', 'Mayar Skaik'), phone: '+970 59 000 1012', subs: [S('s12', 'custom', '2026-09-19', '2026-10-18', { name: T('3 أيام ثابتة', '3 fixed days'), terms: { weekDays: ['sat', 'mon', 'wed'] }, billing: { type: 'fixed', amount: 200 }, manual: true, shift: 'am', pays: [['2026-09-19', '08:00', 200, 'cash', A]] })] },
+    { id: 'm12', name: T('ميار سكيك', 'Mayar Skaik'), phone: '+970 59 000 1012', subs: [S('s12', 'custom', '2026-09-19', '2026-10-18', { name: T('3 أيام بالأسبوع', '3 days a week'), terms: { daysPerWeek: 3 }, used: { week: 3 }, billing: { type: 'fixed', amount: 200 }, manual: true, shift: 'am', pays: [['2026-09-19', '08:00', 200, 'cash', A]] })] },
     { id: 'm13', name: T('بلال زقوت', 'Bilal Zaqout'), phone: '+970 59 000 1013', subs: [S('s13', 'custom', '2026-09-15', '2026-10-14', { terms: { hoursPerDay: 3 }, billing: { type: 'fixed', amount: 150 }, manual: true, used: { todayMin: 180 }, pays: [['2026-09-15', '08:30', 150, 'cash', A]] })] },
     { id: 'm14', name: T('مالك صيام', 'Malek Siam'), phone: '+970 56 000 1014', subs: [] },
-    { id: 'm15', name: T('رنا الأغا', 'Rana Al-Agha'), phone: '+970 59 000 1015', subs: [S('s15', 'custom', '2026-09-14', '2026-10-13', { name: T('بالساعة — مدفوع مقدمًا', 'Hourly — prepaid'), billing: { type: 'usage', unit: 'hour', rate: 3 }, used: { hours: 14 }, pays: [['2026-09-14', '09:30', 60, 'cash', A]] })] }
+    { id: 'm15', name: T('رنا الأغا', 'Rana Al-Agha'), phone: '+970 59 000 1015', subs: [S('s15', 'custom', '2026-09-14', '2026-10-13', { name: T('بالساعة — مدفوع مقدمًا', 'Hourly — prepaid'), billing: { type: 'usage', unit: 'hour', rate: 3 }, used: { hours: 14 }, pays: [['2026-09-14', '09:30', 60, 'cash', A]] })] },
+    // DK-014: archived, never deleted.
+    { id: 'm16', name: T('عبير حسونة', 'Abeer Hassouna'), phone: '+970 59 000 1016', archived: { by: A, on: '2026-09-10' }, subs: [S('s16', 'week', '2026-08-03', '2026-08-09', { pays: [['2026-08-03', '09:40', 90, 'cash', A]] })] }
   ];
   const fillers = [T('هادي النخالة', 'Hadi Al-Nakhala'), T('سارة البحيصي', 'Sara Al-Buhaisi'), T('أنس الجمل', 'Anas Al-Jamal'), T('ديما عكاشة', 'Dima Okasha'), T('طارق مقداد', 'Tareq Miqdad'), T('ياسمين الشريف', 'Yasmin Al-Sharif'), T('زياد ضاهر', 'Ziad Daher'), T('فرح أبو رمضان', 'Farah Abu Ramadan'), T('كريم دلول', 'Karim Dalloul'), T('شهد حجازي', 'Shahd Hijazi'), T('مريم الخالدي', 'Maryam Al-Khalidi'), T('حمزة السقا', 'Hamza Al-Saqqa'), T('آية المدهون', 'Aya Al-Madhoun')];
   const fEnds = ['2026-10-12', '2026-10-18', '2026-10-09', '2026-10-22', '2026-10-15', '2026-10-26', '2026-10-11', '2026-10-20', '2026-10-07', '2026-10-24', '2026-10-14', '2026-10-17', '2026-10-21'];
@@ -75,26 +87,35 @@ window.DESK = (function () {
   const subPresent = [['m1', '08:05'], ['m2', '08:30'], ['m4', '10:30'], ['m7', '09:10'], ['m9', '09:40'], ['m11', '08:47']];
   const fTimes = ['07:58', '08:12', '08:20', '08:31', '08:55', '09:02', '09:18', '09:33', '09:50', '10:15', '10:44', '11:06', '11:48'];
   fTimes.forEach((t, i) => subPresent.push(['f' + i, t]));
-  const visits = [[T('هبة المصري', 'Heba Al-Masri'), '08:40', true], [T('تالا شراب', 'Tala Sharab'), '09:25'], [T('روان مهنا', 'Rawan Muhanna'), '10:05', true], [T('آدم الحلو', 'Adam Al-Helou'), '10:50'], [T('جنى أبو ندى', 'Jana Abu Nada'), '11:15'], [T('ريم بكر', 'Reem Bakr'), '11:40'], [T('حسن الطويل', 'Hasan Al-Taweel'), '12:05'], [T('لمى الكرد', 'Lama Al-Kurd'), '12:20']];
+  const visits = [[T('هبة المصري', 'Heba Al-Masri'), '08:40', true], [T('تالا شراب', 'Tala Sharab'), '09:25'], [T('روان مهنا', 'Rawan Muhanna'), '10:05', true], [T('آدم الحلو', 'Adam Al-Helou'), '10:50'], [T('جنى أبو ندى', 'Jana Abu Nada'), '11:15'], [T('أحمد الشوا', 'Ahmad Al-Shawa'), '11:40', false, 'm5'], [T('حسن الطويل', 'Hasan Al-Taweel'), '12:05'], [T('لمى الكرد', 'Lama Al-Kurd'), '12:20']];
+  // DK-020: a visit may be checked in as a customer (pv5: Ahmad, whose subscription has ended).
   const present = [
     ...subPresent.map(([cid, since], i) => ({ id: 'ps' + i, kind: 'sub', customerId: cid, since })),
-    ...visits.map(([name, since, student], i) => ({ id: 'pv' + i, kind: 'visit', name, since, student: !!student }))
+    ...visits.map(([name, since, student, cid], i) => ({ id: 'pv' + i, kind: 'visit', name, since, student: !!student && STUDENT_VISITS, customerId: cid || null }))
   ].sort((a, b) => (a.since < b.since ? 1 : -1));
 
-  // Unpaid visits: left without paying, or checked out automatically at closing.
+  // Unpaid visits: left without paying, or checked out automatically at closing. DK-012: a visit the
+  // automatic check-out closed may have no customer, only the name it was checked in with.
   const unpaid = [
     { id: 'u1', customerId: 'm10', date: TODAY, in: '09:00', out: '11:10', amount: 9, how: 'left' },
-    { id: 'u2', customerId: 'm14', date: '2026-09-28', in: '14:00', out: CLOSE, amount: 12, how: 'auto' }
+    { id: 'u2', customerId: 'm14', date: '2026-09-28', in: '14:00', out: CLOSE, amount: 12, how: 'auto' },
+    { id: 'u3', customerId: null, name: T('يزن الأسطل', 'Yazan Al-Astal'), date: '2026-09-28', in: '15:20', out: CLOSE, amount: 9, how: 'auto' },
+    { id: 'u4', customerId: null, name: T('إياد الشرفا', 'Iyad Al-Sharafa'), date: '2026-09-27', in: '16:10', out: CLOSE, amount: 6, how: 'auto' }
   ];
-  // Visits paid today (not tied to a customer): for «دفعاتي اليوم».
+  // K6: visits the owner wrote off («لن يُحصَّل»), with the reason, who and when — never a payment.
+  const writtenOff = [];
+  // Visit payments: by name, or through the visit's customer (`customerId`, K4) once it has one.
   const visitPays = [
-    { id: 'vp1', name: T('فرح جابر', 'Farah Jaber'), date: TODAY, time: '10:02', amount: 6, method: 'cash', by: SM },
+    // DK-015: the owner voided one of Sami's today, so the handover shows it struck.
+    { id: 'vp1', name: T('فرح جابر', 'Farah Jaber'), date: TODAY, time: '10:02', amount: 6, method: 'cash', by: SM, voided: T('سُجّلت بالخطأ', 'Recorded by mistake'), voidedBy: A },
     { id: 'vp2', name: T('أنس البنا', 'Anas Al-Banna'), date: TODAY, time: '10:40', amount: 9, method: 'transfer', by: SM },
     { id: 'vp3', name: T('شهد عيّاد', 'Shahd Ayyad'), date: TODAY, time: '11:55', amount: 15, method: 'cash', by: SM }
   ];
 
   const olderVisits = [['2026-09-28', '17:20', 12, 'cash', SM, T('يزن حمّاد', 'Yazan Hammad')], ['2026-09-28', '13:05', 15, 'cash', A, T('نادين سرور', 'Nadine Srour')], ['2026-09-27', '16:40', 9, 'transfer', SM, T('عبد الله الحايك', 'Abdullah Al-Hayek')], ['2026-09-26', '12:15', 6, 'cash', SM, T('سجى أبو حصيرة', 'Saja Abu Hasira')], ['2026-09-24', '15:30', 15, 'cash', A, T('معاذ البيطار', 'Muath Al-Bitar')]];
   olderVisits.forEach(([date, time, amount, method, who, name], i) => visitPays.push({ id: 'ov' + i, name, date, time, amount, method, by: who }));
+  // K4: a visit paid as a customer's (Malek's, on file since an unpaid visit) — reached through the customer.
+  visitPays.push({ id: 'vpm14', customerId: 'm14', name: T('مالك صيام', 'Malek Siam'), date: '2026-09-21', time: '17:05', amount: 12, method: 'cash', by: A });
   visitPays.push({ id: 'ovx', name: T('وسيم عودة', 'Wassim Odeh'), date: '2026-09-27', time: '11:00', amount: 15, method: 'cash', by: SM, voided: T('الزبون لم يبقَ، أُعيد المبلغ', 'The customer didn’t stay; refunded'), voidedBy: A });
 
   // P6: a month of visit payments behind today, so the ledger is a real ledger — 312 rows in
@@ -121,15 +142,31 @@ window.DESK = (function () {
   const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const fmtDate = (iso, withYear) => new Date(iso + 'T12:00:00').toLocaleDateString(T('ar-EG', 'en-GB'), { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}), numberingSystem: 'latn' });
   const money = (n) => (window.LANG === 'en' ? '₪' + n : n + ' ₪');
-  // Visits: rounded up to the next hour after a 10-minute grace, capped at the day price.
-  const visitCharge = (inT, outT = NOW) => {
-    const mins = Math.max(0, toMin(outT) - toMin(inT));
-    if (!PRICES.hour) return PRICES.day ? { mode: 'day', mins, hours: 0, amount: PRICES.day } : { mode: 'manual', mins, hours: 0, amount: null };
-    const hours = Math.max(1, Math.floor(mins / 60) + (mins % 60 > 10 ? 1 : 0));
-    const byHour = hours * PRICES.hour;
-    return { mode: 'hour', mins, hours, byHour, capped: byHour > PRICES.day, amount: Math.min(byHour, PRICES.day) };
+  // A visit's rates: the student ones where «طالب» counts and the space has them, else the general ones.
+  const visitRates = (student) => {
+    const s = student && STUDENT_VISITS;
+    return { hour: s && PRICES.studentHour != null ? PRICES.studentHour : PRICES.hour, day: s && PRICES.studentDay != null ? PRICES.studentDay : PRICES.day };
   };
+  // DK-021: the space's rounding (up after SETTINGS.roundAfter minutes), capped at the day price when the cap is on.
+  const visitCharge = (inT, outT = NOW, student = false) => {
+    const mins = Math.max(0, toMin(outT) - toMin(inT));
+    const r = visitRates(student);
+    if (!r.hour) return r.day ? { mode: 'day', mins, hours: 0, day: r.day, amount: r.day } : { mode: 'manual', mins, hours: 0, amount: null };
+    const hours = Math.max(1, Math.floor(mins / 60) + (mins % 60 > SETTINGS.roundAfter ? 1 : 0));
+    const byHour = hours * r.hour;
+    const capped = SETTINGS.cap && r.day != null && byHour > r.day;
+    return { mode: 'hour', mins, hours, hour: r.hour, day: r.day, byHour, capped, amount: capped ? r.day : byHour };
+  };
+  // The shift in progress now, or '' outside every shift.
+  const currentShift = () => { const s = SHIFT_LIST.find((x) => toMin(x.from) <= toMin(NOW) && toMin(NOW) < toMin(x.to)); return s ? s.id : ''; };
   const findCustomer = (id) => customers.find((c) => c.id === id);
+  const visitPaysOf = (cid) => visitPays.filter((v) => v.customerId === cid);
+  // K1: one search for the desk, the payment picker and Customers — a name, or the mobile's last digits.
+  const searchCustomers = (term) => {
+    const t = term.trim(); const digits = t.replace(/\D/g, '');
+    const byDigits = digits.length >= 2 && digits === t.replace(/[\s+]/g, '');
+    return customers.filter((c) => !c.archived && (c.name.includes(t) || (byDigits && (c.phone || '').replace(/\D/g, '').endsWith(digits))));
+  };
   const presentOf = (cid) => present.find((p) => p.customerId === cid);
   const currentSub = (c) => c.subs[0] || null;
   const todayMinutes = (c, sub) => { const p = presentOf(c.id); return (sub.used.todayMin || 0) + (p ? toMin(NOW) - toMin(p.since) : 0); };
@@ -140,11 +177,12 @@ window.DESK = (function () {
   };
   const todayMinutesRaw = (c) => { const p = presentOf(c.id); return p ? toMin(NOW) - toMin(p.since) : 0; };
   const paid = (sub) => sub.pays.filter((p) => !p[5]).reduce((a, p) => a + p[2], 0);
-  const subStatus = (sub) => { const d = daysBetween(TODAY, sub.to); return d < 0 ? 'expired' : d <= 7 ? 'soon' : 'active'; };
-  const customerStatus = (c) => (currentSub(c) ? subStatus(currentSub(c)) : 'none');
+  // DK-008: a subscription with no end date stays active until it is ended.
+  const subStatus = (sub) => { if (!sub.to) return 'active'; const d = daysBetween(TODAY, sub.to); return d < 0 ? 'expired' : d <= 7 ? 'soon' : 'active'; };
+  const customerStatus = (c) => (c.archived ? 'archived' : currentSub(c) ? subStatus(currentSub(c)) : 'none');
   const payStatus = (sub, c) => { const d = due(sub, c), p = paid(sub); return p >= d ? 'paid' : p > 0 ? 'partial' : 'unpaid'; };
   const openItems = (c) => [
-    ...c.subs.filter((s) => due(s, c) - paid(s) > 0).map((s) => ({ id: s.id, kind: 'sub', label: s.name + ' · ' + fmtDate(s.from) + ' – ' + fmtDate(s.to), date: s.from, due: due(s, c), paid: paid(s) })),
+    ...c.subs.filter((s) => due(s, c) - paid(s) > 0).map((s) => ({ id: s.id, kind: 'sub', label: s.name + ' · ' + fmtDate(s.from) + ' – ' + (s.to ? fmtDate(s.to) : T('بلا تاريخ نهاية', 'No end date')), date: s.from, due: due(s, c), paid: paid(s) })),
     ...unpaid.filter((u) => u.customerId === c.id).map((u) => ({ id: u.id, kind: 'visit', label: T('زيارة', 'Visit') + ' · ' + fmtDate(u.date), date: u.date, due: u.amount, paid: 0 }))
   ].sort((a, b) => (a.date < b.date ? -1 : 1));
   const balance = (c) => openItems(c).reduce((a, i) => a + i.due - i.paid, 0);
@@ -158,11 +196,10 @@ window.DESK = (function () {
     const t = sub.terms || {};
     if (t.totalDays) out.push(T(`أيام ${sub.used.days || 0} من ${t.totalDays}`, `Days ${sub.used.days || 0} of ${t.totalDays}`));
     if (t.daysPerWeek) out.push(T(`هذا الأسبوع ${sub.used.week || 0} من ${t.daysPerWeek}`, `This week ${sub.used.week || 0} of ${t.daysPerWeek}`));
-    if (t.weekDays) out.push(T('أيامه: ', 'Days: ') + t.weekDays.map((k) => WEEKDAYS.find((w) => w[0] === k)[1]).join(T('، ', ', ')));
     if (t.hoursPerDay) out.push(T(`ساعات اليوم ${hm(todayMinutes(c, sub))} من ${t.hoursPerDay} س`, `Today ${hm(todayMinutes(c, sub))} of ${t.hoursPerDay} h`));
     if (t.hourBalance) out.push(T(`رصيد الساعات ${sub.used.hours || 0} من ${t.hourBalance} س`, `Hours ${sub.used.hours || 0} of ${t.hourBalance}`));
     if (sub.billing.type === 'usage') out.push(T(`يُحسب من الحضور: ${money(sub.billing.rate)} ${sub.billing.unit === 'hour' ? 'للساعة' : 'لليوم'}`, `Billed from attendance: ${money(sub.billing.rate)} per ${sub.billing.unit}`));
-    out.push(subStatus(sub) === 'expired' ? T(`انتهى في ${fmtDate(sub.to)}`, `Ended ${fmtDate(sub.to)}`) : T(`صالح حتى ${fmtDate(sub.to)}`, `Valid until ${fmtDate(sub.to)}`));
+    out.push(!sub.to ? T('بلا تاريخ نهاية', 'No end date') : subStatus(sub) === 'expired' ? T(`انتهى في ${fmtDate(sub.to)}`, `Ended ${fmtDate(sub.to)}`) : T(`صالح حتى ${fmtDate(sub.to)}`, `Valid until ${fmtDate(sub.to)}`));
     return out;
   };
   const termsLine = (sub) => {
@@ -170,16 +207,17 @@ window.DESK = (function () {
     const t = sub.terms || {}; const parts = [];
     if (t.totalDays) parts.push(T(`${t.totalDays} أيام`, `${t.totalDays} days`));
     if (t.daysPerWeek) parts.push(T(`${t.daysPerWeek} أيام بالأسبوع`, `${t.daysPerWeek} days a week`));
-    if (t.weekDays) parts.push(t.weekDays.map((k) => WEEKDAYS.find((w) => w[0] === k)[1]).join(T('، ', ', ')));
     if (t.hoursPerDay) parts.push(T(`${t.hoursPerDay} س باليوم`, `${t.hoursPerDay} h a day`));
     if (t.hourBalance) parts.push(T(`رصيد ${t.hourBalance} س`, `${t.hourBalance} h balance`));
     if (sub.shift) parts.push(SHIFTS[sub.shift]);
     return parts.join(' · ') || T('بدون شروط إضافية', 'No extra terms');
   };
 
-  const statusBadge = { active: ['success', T('نشط', 'Active')], soon: ['warning', T('ينتهي قريبًا', 'Ending soon')], expired: ['neutral', T('منتهٍ', 'Expired')], none: ['neutral', T('بدون اشتراك', 'No subscription')] };
+  const statusBadge = { active: ['success', T('نشط', 'Active')], soon: ['warning', T('ينتهي قريبًا', 'Ending soon')], expired: ['neutral', T('منتهٍ', 'Expired')], none: ['neutral', T('بدون اشتراك', 'No subscription')], archived: ['neutral', T('مؤرشف', 'Archived')] };
   const payBadge = { paid: ['success', T('مدفوع', 'Paid')], partial: ['warning', T('مدفوع جزئيًا', 'Partly paid')], unpaid: ['destructive', T('غير مدفوع', 'Unpaid')] };
   const methodLabel = { cash: T('نقدًا', 'Cash'), transfer: T('تحويل', 'Transfer') };
+  // K4: the method inside a sentence («استُلم 12 ₪ نقدًا»).
+  const methodIn = { cash: T('نقدًا', 'in cash'), transfer: T('تحويلًا', 'by transfer') };
 
   // Finance demo series (collected, voids excluded). Months oldest → newest, ending Sep 2026.
   const MONTHS = ['2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09'];
@@ -194,11 +232,12 @@ window.DESK = (function () {
   const ledger = () => {
     const rows = [];
     customers.forEach((c) => c.subs.forEach((s, si) => s.pays.forEach((p, i) => rows.push({ id: s.id + '-' + i, ref: p, date: p[0], time: p[1], amount: p[2], method: p[3], by: p[4], voided: p[5] || null, voidedBy: p[7] || null, who: c.name, customerId: c.id, item: s.name, type: 'sub' }))));
-    visitPays.forEach((v) => rows.push({ id: v.id, ref: v, date: v.date, time: v.time, amount: v.amount, method: v.method, by: v.by, voided: v.voided || null, voidedBy: v.voidedBy || null, who: v.name, item: T('زيارة', 'Visit'), type: 'visit' }));
+    visitPays.forEach((v) => rows.push({ id: v.id, ref: v, date: v.date, time: v.time, amount: v.amount, method: v.method, by: v.by, voided: v.voided || null, voidedBy: v.voidedBy || null, who: v.name, customerId: v.customerId || null, item: T('زيارة', 'Visit'), type: 'visit' }));
     return rows.sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1));
   };
   const collected = (rows) => rows.filter((r) => !r.voided).reduce((a, r) => a + r.amount, 0);
 
-  return { ledger, collected, MONTHS, monthly, daily30, heat, perDay, staffMonth, leftToday, credit, TODAY, NOW, TODAY_KEY, CLOSE, PRICES, WEEKDAYS, SHIFTS, PACKAGES, pkg, customers, present, unpaid, visitPays, attendance, capacity: 40,
+  return { ledger, collected, MONTHS, monthly, daily30, heat, perDay, staffMonth, leftToday, credit, TODAY, NOW, TODAY_KEY, CLOSE, PRICES, WEEKDAYS, SHIFTS, PACKAGES, pkg, customers, present, unpaid, writtenOff, visitPays, attendance, capacity: 40,
+    searchCustomers, visitPaysOf, SETTINGS, STUDENT_VISITS, SHIFT_LIST, visitRates, currentShift, methodIn,
     toMin, hm, daysBetween, addDays, fmtDate, money, visitCharge, findCustomer, presentOf, currentSub, todayMinutes, due, paid, subStatus, customerStatus, payStatus, openItems, balance, subKind, progress, termsLine, statusBadge, payBadge, methodLabel, by, SAMI: SM, AHMAD: A };
 })();

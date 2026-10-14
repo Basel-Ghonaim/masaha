@@ -29,17 +29,25 @@
 const { DirectionProvider, Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, Tabs, TabsList, TabsTrigger, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Field, Input, Textarea, Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, EmptyState, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, LogInIcon, LogOutIcon, UsersIcon } = window.MasahaDesignSystem;
 const c = DESK.findCustomer(pageParams.get('id') || 'm6');
 
+// K4 (DK-011): every amount in the balance is an item here — the unpaid visits first, each to collect.
 function SubsTab({ bump }) {
   const [ending, setEnding] = React.useState(pageParams.get('end') ? c.subs[0] : null);
   const endNow = () => { const s = ending; s.to = DESK.TODAY; setEnding(null); bump(); window.MasahaDesignSystem.toast.success(tr('انتهى الاشتراك اليوم', 'Subscription ended today'), { description: s.name }); };
-  if (!c.subs.length) return <Card><EmptyState icon={<UsersIcon />} title={tr('لا توجد اشتراكات', 'No subscriptions')} description={tr('هذا الزبون يأتي بزيارات فقط.', 'This customer only comes for visits.')} /></Card>;
+  const visits = DESK.unpaid.filter((u) => u.customerId === c.id);
   return (
     <div className="flex flex-col gap-4">
+      {visits.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle>{tr('زيارات غير مدفوعة', 'Unpaid visits')}</CardTitle><CardDescription>{tr('تُحسب في رصيده.', 'They count in the balance.')}</CardDescription></CardHeader>
+          <CardContent className="p-0"><ul className="divide-y">{visits.map((u) => <UnpaidRow key={u.id} u={u} />)}</ul></CardContent>
+        </Card>
+      )}
+      {!c.subs.length && <Card><EmptyState icon={<UsersIcon />} title={tr('لا توجد اشتراكات', 'No subscriptions')} description={visits.length ? undefined : tr('هذا الزبون يأتي بزيارات فقط.', 'This customer only comes for visits.')} /></Card>}
       {c.subs.map((s, i) => { const [pv, pl] = DESK.payBadge[DESK.payStatus(s, c)]; const [sv, sl] = DESK.statusBadge[DESK.subStatus(s)]; return (
         <Card key={s.id}>
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center gap-2">{s.name}{s.manual && <Badge variant="info">{tr('سعر يدوي', 'Manual price')}</Badge>}</CardTitle>
-            <CardDescription>{DESK.fmtDate(s.from, true)} – {DESK.fmtDate(s.to, true)} · {DESK.termsLine(s)}</CardDescription>
+            <CardDescription>{DESK.fmtDate(s.from, true)} – {s.to ? DESK.fmtDate(s.to, true) : tr('بلا تاريخ نهاية', 'No end date')} · {DESK.termsLine(s)}</CardDescription>
             <CardAction className="flex flex-wrap gap-2">{i === 0 && <Badge variant={sv}>{sl}</Badge>}<Badge variant={pv}>{pl}</Badge></CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -58,7 +66,7 @@ function SubsTab({ bump }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{tr('إنهاء الاشتراك اليوم؟', 'End the subscription today?')}</AlertDialogTitle>
-            <AlertDialogDescription>{ending && <>{ending.name} · {tr('يصبح تاريخ النهاية', 'The end date becomes')} {DESK.fmtDate(DESK.TODAY, true)} {tr('بدل', 'instead of')} {DESK.fmtDate(ending.to, true)}. {tr('المبالغ المدفوعة والمستحقة لا تتغيّر.', 'Amounts paid and due don’t change.')}</>}</AlertDialogDescription>
+            <AlertDialogDescription>{ending && <>{ending.name} · {tr('يصبح تاريخ النهاية', 'The end date becomes')} {DESK.fmtDate(DESK.TODAY, true)}{ending.to ? <> {tr('بدل', 'instead of')} {DESK.fmtDate(ending.to, true)}</> : null}. {tr('المبالغ المدفوعة والمستحقة لا تتغيّر.', 'Amounts paid and due don’t change.')}</>}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tr('رجوع', 'Back')}</AlertDialogCancel>
@@ -110,41 +118,35 @@ function AttendanceTab() {
   );
 }
 
-function PaymentsTab({ bump }) {
-  const [voiding, setVoiding] = React.useState(pageParams.get('void') ? true : null);
-  const [reason, setReason] = React.useState(''); const [err, setErr] = React.useState();
-  const pays = [];
-  c.subs.forEach((s) => s.pays.forEach((p, i) => pays.push({ key: s.id + i, s, p, date: p[0], time: p[1], amount: p[2], method: p[3], by: p[4], voided: p[5], note: p[6] })));
-  DESK.visitPays.filter((v) => v.name === c.name).forEach((v) => pays.push({ key: v.id, date: v.date, time: v.time, amount: v.amount, method: v.method, by: v.by, item: tr('زيارة', 'Visit') }));
-  pays.sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1));
-  const target = voiding === true ? pays.find((x) => !x.voided && x.s) : voiding;
-  const doVoid = () => { if (!reason.trim()) return setErr(tr('اكتب سبب الإلغاء', 'Write the reason')); target.p[5] = reason.trim(); setVoiding(null); setReason(''); setErr(); bump(); window.MasahaDesignSystem.toast(tr('أُلغيت الدفعة', 'Payment voided')); };
+// K4 (DK-011): the customer's payments — the subscriptions', and the visits' through the visit's
+// customer, never by name. Each row as Payments draws it, so the void is one dialog.
+const filePays = () => {
+  const out = [];
+  c.subs.forEach((s) => s.pays.forEach((p, i) => out.push({ id: s.id + '-' + i, ref: p, type: 'sub', item: s.name, date: p[0], time: p[1], amount: p[2], method: p[3], by: p[4], voided: p[5] || null, voidedBy: p[7] || null, who: c.name })));
+  DESK.visitPaysOf(c.id).forEach((v) => out.push({ id: v.id, ref: v, type: 'visit', item: tr('زيارة', 'Visit'), date: v.date, time: v.time, amount: v.amount, method: v.method, by: v.by, voided: v.voided || null, voidedBy: v.voidedBy || null, who: c.name }));
+  return out.sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1));
+};
+// DK-017's five columns: the date (its time under it), the item, the amount (its method under it),
+// who recorded it, and the owner's «⋯» (DK-016) — on visit payments too.
+function PaymentsTab() {
+  const pays = filePays();
   if (!pays.length) return <Card><EmptyState icon={<UsersIcon />} title={tr('لا توجد دفعات بعد', 'No payments yet')} /></Card>;
   return (
     <Card>
       <CardContent className="p-0">
         <Table>
-          <TableHeader><TableRow><TableHead>{tr('التاريخ', 'Date')}</TableHead><TableHead>{tr('المبلغ', 'Amount')}</TableHead><TableHead>{tr('الطريقة', 'Method')}</TableHead><TableHead>{tr('عن', 'For')}</TableHead><TableHead>{tr('سجّلها', 'Recorded by')}</TableHead>{IS_OWNER && <TableHead><span className="sr-only">{tr('إجراءات', 'Actions')}</span></TableHead>}</TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>{tr('التاريخ', 'Date')}</TableHead><TableHead>{tr('عن', 'For')}</TableHead><TableHead>{tr('المبلغ', 'Amount')}</TableHead><TableHead>{tr('سجّلها', 'Recorded by')}</TableHead>{IS_OWNER && <TableHead><span className="sr-only">{tr('إجراءات', 'Actions')}</span></TableHead>}</TableRow></TableHeader>
           <TableBody>{pays.map((x) => (
-            <TableRow key={x.key}>
-              <TableCell>{DESK.fmtDate(x.date)} · <Num>{x.time}</Num></TableCell>
-              <TableCell>{x.voided ? <span className="flex flex-col"><s className="text-muted-foreground"><Money n={x.amount} /></s><span className="text-caption text-muted-foreground">{tr('أُلغيت:', 'Voided:')} {x.voided}</span></span> : <span className="text-label"><Money n={x.amount} /></span>}</TableCell>
-              <TableCell>{DESK.methodLabel[x.method]}</TableCell>
-              <TableCell>{x.s ? x.s.name : x.item}</TableCell>
+            <TableRow key={x.id}>
+              <TableCell><span className="flex flex-col"><span>{DESK.fmtDate(x.date)}</span><span className="text-caption text-muted-foreground"><Num>{x.time}</Num></span></span></TableCell>
+              <TableCell>{x.item}</TableCell>
+              <TableCell><PaidAmount r={x} method /></TableCell>
               <TableCell>{DESK.by(x.by)}</TableCell>
-              {IS_OWNER && <TableCell className="text-end">{!x.voided && x.s && <Button size="sm" variant="ghost" onClick={() => setVoiding(x)}>{tr('إلغاء الدفعة', 'Void payment')}</Button>}</TableCell>}
+              {IS_OWNER && <TableCell className="text-end"><PaymentMenu r={x} /></TableCell>}
             </TableRow>
           ))}</TableBody>
         </Table>
       </CardContent>
-      <Dialog open={!!target && !!voiding} onOpenChange={(o) => !o && setVoiding(null)}>
-        <DialogContent closeLabel={tr('إغلاق', 'Close')}>
-          <DialogHeader><DialogTitle>{tr('إلغاء الدفعة', 'Void payment')}</DialogTitle>{target && <DialogDescription><Money n={target.amount} /> · {DESK.fmtDate(target.date)} · {DESK.methodLabel[target.method]}. {tr('تبقى ظاهرة مشطوبة مع السبب.', 'It stays visible, struck through, with the reason.')}</DialogDescription>}</DialogHeader>
-          <Field label={tr('السبب', 'Reason')} error={err}><Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
-          <ActionAlert for="void" />
-          <DialogFooter><ActionButton actionKey="void" variant="destructive" onAction={doVoid}>{tr('إلغاء الدفعة', 'Void payment')}</ActionButton><Button variant="ghost" onClick={() => setVoiding(null)}>{tr('رجوع', 'Back')}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }
@@ -173,27 +175,29 @@ function FileInner({ theme, setTheme }) {
             {bal > 0 || DESK.credit(c) > 0 ? <BalanceBadge c={c} /> : <Badge variant="neutral">{tr('مسدّد', 'Settled')}</Badge>}
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex flex-wrap gap-2">
-          {here ? <Button variant="outline" onClick={() => desk.open('checkout', { presentId: here.id })}><LogOutIcon />{tr('خروج', 'Check out')}</Button> : <Button onClick={() => desk.tapCheckIn(c.id)}><LogInIcon />{tr('حضور', 'Check in')}</Button>}
-          <Button variant={bal > 0 ? 'secondary' : 'outline'} onClick={() => desk.open('pay', { customerId: c.id })}>{tr('استلام دفعة', 'Receive payment')}</Button>
-          {s && <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</Button>}
-          <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New subscription')}</Button>
+        <CardFooter className="flex flex-wrap items-center gap-2">
+          <CustomerActions c={c} where="file" />
           {c.phone && bal > 0 && <Button variant="ghost" asChild><a href={wa} target="_blank" rel="noopener">{tr('تذكير على واتساب', 'WhatsApp reminder')}</a></Button>}
         </CardFooter>
       </Card>
       {c.phone && bal > 0 && <p className="-mt-3 text-caption text-muted-foreground">{tr('يفتح واتساب برسالة جاهزة، وترسلها أنت.', 'Opens WhatsApp with a ready message; you send it yourself.')}</p>}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList aria-label={tr('ملف الزبون', 'Customer file')}>
-          <TabsTrigger value="subs">{tr('الاشتراكات', 'Subscriptions')}</TabsTrigger>
+          <TabsTrigger value="subs">{tr('المستحقات والاشتراكات', 'Dues and subscriptions')}</TabsTrigger>
           <TabsTrigger value="att">{tr('الحضور', 'Attendance')}</TabsTrigger>
           <TabsTrigger value="pays">{tr('الدفعات', 'Payments')}</TabsTrigger>
         </TabsList>
       </Tabs>
-      {tab === 'subs' ? <SubsTab bump={desk.bump} /> : tab === 'att' ? <AttendanceTab /> : <PaymentsTab bump={desk.bump} />}
+      {tab === 'subs' ? <SubsTab bump={desk.bump} /> : tab === 'att' ? <AttendanceTab /> : <PaymentsTab />}
     </OwnerShell>
   );
 }
-function FileScreen() { const [theme, setTheme] = useTheme(); return <DeskProvider><FileInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+// ?edit=1 opens «تعديل البيانات» (DK-014; &taken=1, its PHONE_TAKEN); ?void=1 the void of the first payment
+// not voided (owner); ?writeoff=<visit> the owner's «لن يُحصَّل» (K6).
+const fileInitial = pageParams.get('edit') === '1' ? { kind: 'edit', customerId: c.id, taken: pageParams.get('taken') === '1' }
+  : pageParams.get('void') && IS_OWNER ? { kind: 'void', row: filePays().find((r) => !r.voided) }
+  : pageParams.get('writeoff') && IS_OWNER ? { kind: 'writeoff', visitId: pageParams.get('writeoff') } : null;
+function FileScreen() { const [theme, setTheme] = useTheme(); return <DeskProvider initial={fileInitial}><FileInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
 ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><FileScreen /></DirectionProvider>);
 </script>
 </body>
