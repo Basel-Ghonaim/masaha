@@ -82,6 +82,41 @@ describe('the spaces repository', () => {
     });
   });
 
+  it('PUTs the hours with the shifts whole', async () => {
+    const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
+    const request = {
+      days: [null, null, null, null, null, null, { opensMinute: 540, closesMinute: 1440 }],
+      shifts: [
+        { id: 4, nameAr: 'صباحية', nameEn: null, startsMinute: 540, endsMinute: 780 },
+        { nameAr: 'ليلية', nameEn: 'Night', startsMinute: 1200, endsMinute: 1410 },
+      ],
+    };
+
+    await createSpacesRepository().updateHours(7, request);
+    expect(requests[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/hours' });
+    expect(JSON.parse(String(requests[0]?.data))).toEqual(request);
+  });
+
+  it('PUTs the prices whole', async () => {
+    const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
+    const request = {
+      prices: [
+        {
+          period: 'DAY' as const,
+          audience: 'GENERAL' as const,
+          shiftId: null,
+          labelAr: null,
+          labelEn: null,
+          amountAgorot: 1500,
+        },
+      ],
+    };
+
+    await createSpacesRepository().updatePrices(7, request);
+    expect(requests[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/prices' });
+    expect(JSON.parse(String(requests[0]?.data))).toEqual(request);
+  });
+
   it('PUTs the amenities group whole', async () => {
     const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
     const request = { amenityIds: [1, 3], ownAmenities: [{ nameAr: 'غرفة صلاة', nameEn: null }] };
@@ -100,7 +135,7 @@ describe('the spaces repository', () => {
     expect(JSON.parse(String(requests[0]?.data))).toEqual(request);
   });
 
-  it.each(['profile', 'amenities', 'contacts'] as const)(
+  it.each(['profile', 'hours', 'prices', 'amenities', 'contacts'] as const)(
     'POSTs the %s group’s confirmation, with no body',
     async (group) => {
       const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });

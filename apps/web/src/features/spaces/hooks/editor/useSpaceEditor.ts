@@ -8,8 +8,8 @@ import { useLeaveGuard } from './useLeaveGuard';
 import { useSectionInView } from './useSectionInView';
 import { useSpaceQuery } from './useSpaceQuery';
 
-/** The groups whose sections the editor draws, in its order. */
-const SECTIONS: readonly FactGroup[] = ['profile', 'amenities', 'contacts'];
+/** The groups whose sections the editor draws, in its order: all five. */
+const SECTIONS: readonly FactGroup[] = FACT_GROUPS;
 
 /**
  * A space's editor, ready to render: its loading, failure and not-found states; then its state's
@@ -81,6 +81,8 @@ export function useSpaceEditor(spaceId: number) {
       })),
     },
     privacy: words.privacy,
+    /** The opening hours have unsaved changes: a new shift is not yet the prices' to choose. */
+    hoursUnsaved: dirty.includes('hours'),
     onDirtyChange,
     guard,
   };
@@ -99,7 +101,7 @@ function badgesOf(space: AdminSpace, status: EditorWords['status']) {
   return badges;
 }
 
-/** The five groups, each done or not yet added, a drawn section's leading to it; none once all are done. */
+/** The five groups, each done or not yet added and leading to its section; none once all are done. */
 function checklistOf(space: AdminSpace, words: EditorWords) {
   if (space.missingGroups.length === 0) return null;
   return {
@@ -110,7 +112,7 @@ function checklistOf(space: AdminSpace, words: EditorWords) {
       return {
         group,
         label: words.sections[group],
-        href: SECTIONS.includes(group) ? `#${group}` : null,
+        href: `#${group}`,
         status: missing ? words.checklist.missing : words.checklist.done,
         variant: missing ? ('warning' as const) : ('success' as const),
       };

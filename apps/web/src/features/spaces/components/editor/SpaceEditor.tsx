@@ -8,6 +8,10 @@ import { AmenitiesSection } from '../amenities/AmenitiesSection';
 import { ReadOnlyAmenities } from '../amenities/ReadOnlyAmenities';
 import { ContactsSection } from '../contacts/ContactsSection';
 import { ReadOnlyContacts } from '../contacts/ReadOnlyContacts';
+import { HoursSection } from '../hours/HoursSection';
+import { ReadOnlyHours } from '../hours/ReadOnlyHours';
+import { PricesSection } from '../prices/PricesSection';
+import { ReadOnlyPrices } from '../prices/ReadOnlyPrices';
 import { ProfileSection } from '../profile/ProfileSection';
 import { ReadOnlyProfile } from '../profile/ReadOnlyProfile';
 import { EditorFailure } from './EditorFailure';
@@ -77,6 +81,8 @@ export function SpaceEditor({
           {editor.readOnly ? (
             <>
               <ReadOnlyProfile space={space} areaName={areaName} />
+              <ReadOnlyHours space={space} />
+              <ReadOnlyPrices space={space} />
               <ReadOnlyAmenities space={space} amenityNames={amenityNames} />
               <ReadOnlyContacts space={space} />
             </>
@@ -85,6 +91,12 @@ export function SpaceEditor({
               <ProfileSection
                 space={space}
                 areaField={areaField}
+                onDirtyChange={editor.onDirtyChange}
+              />
+              <HoursSection space={space} onDirtyChange={editor.onDirtyChange} />
+              <PricesSection
+                space={space}
+                hoursUnsaved={editor.hoursUnsaved}
                 onDirtyChange={editor.onDirtyChange}
               />
               <AmenitiesSection

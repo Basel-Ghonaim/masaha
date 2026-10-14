@@ -14,11 +14,20 @@ import type { ReactNode } from 'react';
 import type { SectionFrameView } from '../../types/SectionFrameView';
 
 /**
- * A fact group's section: a card titled by its `h2`, its date or that it is missing, its badges, its
- * fields (`children`) in one form, its failure, and its footer: Save, then Discard while it has
- * unsaved changes, or the confirmation while it is unchanged. Its id is the navigation's anchor.
+ * A fact group's section: a card titled by its `h2`, its date or that it is missing, its badges and
+ * its header's own `action`, its fields (`children`) in one form, its failure, and its footer: Save,
+ * then Discard while it has unsaved changes, or the confirmation while it is unchanged. Its id is the
+ * navigation's anchor.
  */
-export function SectionCard({ frame, children }: { frame: SectionFrameView; children: ReactNode }) {
+export function SectionCard({
+  frame,
+  action,
+  children,
+}: {
+  frame: SectionFrameView;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <Card id={frame.id} className="scroll-mt-28 lg:scroll-mt-20">
       <CardHeader>
@@ -29,9 +38,10 @@ export function SectionCard({ frame, children }: { frame: SectionFrameView; chil
           <span>{frame.date}</span>
           {frame.stale && <Badge variant="warning">{frame.stale}</Badge>}
         </CardDescription>
-        {frame.unsaved && (
-          <CardAction>
-            <Badge variant="warning">{frame.unsaved}</Badge>
+        {(frame.unsaved || action) && (
+          <CardAction className="flex flex-wrap items-center justify-end gap-2">
+            {frame.unsaved && <Badge variant="warning">{frame.unsaved}</Badge>}
+            {action}
           </CardAction>
         )}
       </CardHeader>

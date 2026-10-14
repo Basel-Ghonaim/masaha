@@ -114,6 +114,114 @@ export const SPACES = {
       stay: 'Stay',
       leave: 'Leave',
     },
+    /** «ساعات العمل»: the week, Saturday first, each day open or closed, and the shifts. */
+    hours: {
+      /** The days by the catalogue's key, to compose a line. */
+      days: {
+        saturday: 'Saturday',
+        sunday: 'Sunday',
+        monday: 'Monday',
+        tuesday: 'Tuesday',
+        wednesday: 'Wednesday',
+        thursday: 'Thursday',
+        friday: 'Friday',
+      },
+      open: 'Open',
+      closed: 'Closed',
+      /** Names a day's switch. */
+      openOn: ({ day }: { day: string }) => `Open on ${day}`,
+      from: 'From',
+      to: 'To',
+      /** A time field's placeholder: 24-hour, Western digits. */
+      timeExample: '08:00',
+      copyAll: 'Copy to all days',
+      copyHint: ({ day }: { day: string }) =>
+        `“Copy to all days” copies ${day}’s hours to every open day.`,
+      /** Beside the disabled copy, while no day is open. */
+      noOpenDay: 'Open at least one day.',
+      shifts: 'Shifts',
+      shiftsHint: 'Optional. Each shift lies inside the hours of at least one open day.',
+      shift: ({ position }: { position: number }) => `Shift ${String(position)}`,
+      nameAr: 'Name in Arabic',
+      nameEn: 'Name in English',
+      addShift: 'Add shift',
+      /** Beside the disabled "Add shift", at the contract's limit. */
+      shiftLimit: 'Up to 10 shifts',
+      removeShift: 'Remove shift',
+      removeShiftNamed: ({ position }: { position: number }) => `Remove shift ${String(position)}`,
+      /** Beside a shift's disabled Remove, while a saved price uses it. */
+      inUse: 'A price uses it — remove that price first',
+      /** A shift's helper: the open days it does not fit. */
+      notOn: ({ days }: { days: string }) => `Doesn’t apply on ${days}`,
+      range: ({ from, to }: { from: string; to: string }) => `${from}–${to}`,
+      /** A verified space with no hours, read-only. */
+      none: 'No opening hours yet',
+      /** A removed shift still in use (409). */
+      inUse409:
+        'A shift you removed is still used by a price, a package or a subscription, so nothing was saved. Change what uses it first.',
+      /** A shift removed meanwhile by another admin (422 on a shift's id). */
+      shiftsChanged:
+        'This space’s shifts changed since the page was opened. Discard your changes to see them as saved.',
+      fieldErrors: {
+        opens: { required: 'Enter a time', invalid_format: 'A time from 00:00 to 23:59' },
+        closes: {
+          required: 'Enter a time',
+          invalid_format: 'A time up to 24:00, such as 18:30',
+          out_of_range: 'Must be after the start',
+        },
+        nameAr: {
+          too_short: 'Enter the shift’s Arabic name',
+          too_long: '40 characters at most',
+          not_unique: 'A repeated shift name',
+        },
+        nameEn: { too_long: '40 characters at most' },
+        /** A shift inside no open day. */
+        outside: 'Outside the hours of every open day',
+        noneOpen: 'No day is open yet',
+      },
+    },
+    /** «الأسعار»: the prices, for display only; each a period, an audience, a shift, a label. */
+    prices: {
+      intro: 'For display only: payment is at the space. Leave out the periods it doesn’t offer.',
+      /** Above the rows, while the space has no saved shift. */
+      noShifts: 'No saved shifts — add shifts first.',
+      /** Above the rows, while the opening hours have unsaved changes. */
+      hoursUnsaved: 'Save the opening hours for a new shift to show here.',
+      period: 'Period',
+      audience: 'For',
+      shift: 'Shift',
+      label: 'Custom label',
+      labelEn: 'Label in English',
+      labelEnPlaceholder: 'In English (optional)',
+      amount: 'Amount (₪)',
+      periods: { HOUR: 'Hour', DAY: 'Day', WEEK: 'Week', MONTH: 'Month' },
+      audiences: { GENERAL: 'Everyone', STUDENT: 'Students' },
+      noShift: 'No shift',
+      row: ({ position }: { position: number }) => `Price ${String(position)}`,
+      add: 'Add price',
+      /** Beside the disabled "Add price", at the contract's limit. */
+      limit: 'Up to 40 prices',
+      remove: ({ position }: { position: number }) => `Remove price ${String(position)}`,
+      /** A verified space's price: its period and audience, then its shift and label. */
+      summary: ({ period, audience }: { period: string; audience: string }) =>
+        `${period} · ${audience}`,
+      withPart: ({ line, part }: { line: string; part: string }) => `${line} · ${part}`,
+      /** A verified space with none, read-only. */
+      none: 'No prices yet',
+      fieldErrors: {
+        amount: {
+          required: 'Enter the amount',
+          invalid_format: 'An amount in shekels, such as 15 or 12.50',
+          out_of_range: 'Above zero, up to ₪100000',
+        },
+        /** A price that repeats another: said on the field that would tell them apart. */
+        repeated: 'A repeated price: change this field',
+        labelAr: { required: 'The Arabic label first' },
+        label: { too_long: '60 characters at most' },
+        /** A shift removed meanwhile (422 on the row's shift). */
+        shiftGone: 'This shift is no longer the space’s',
+      },
+    },
     /** «المرافق»: the platform's amenities ticked, and the space's own beside them. */
     amenities: {
       /** Names the platform's amenities to tick. */

@@ -34,7 +34,7 @@ export function ReadOnlyRows({
 }
 
 /** One labelled value of a read-only section. */
-export function ReadOnlyItem({ label, children }: { label: string; children: ReactNode }) {
+export function ReadOnlyItem({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
     <div className="grid gap-1 py-2 md:grid-cols-3">
       <dt className="text-body-sm text-muted-foreground">{label}</dt>
