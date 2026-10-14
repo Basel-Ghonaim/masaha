@@ -173,11 +173,8 @@ function FileInner({ theme, setTheme }) {
             {bal > 0 || DESK.credit(c) > 0 ? <BalanceBadge c={c} /> : <Badge variant="neutral">{tr('مسدّد', 'Settled')}</Badge>}
           </CardAction>
         </CardHeader>
-        <CardFooter className="flex flex-wrap gap-2">
-          {here ? <Button variant="outline" onClick={() => desk.open('checkout', { presentId: here.id })}><LogOutIcon />{tr('خروج', 'Check out')}</Button> : <Button onClick={() => desk.tapCheckIn(c.id)}><LogInIcon />{tr('حضور', 'Check in')}</Button>}
-          <Button variant={bal > 0 ? 'secondary' : 'outline'} onClick={() => desk.open('pay', { customerId: c.id })}>{tr('استلام دفعة', 'Receive payment')}</Button>
-          {s && <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</Button>}
-          <Button variant="outline" onClick={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New subscription')}</Button>
+        <CardFooter className="flex flex-wrap items-center gap-2">
+          <CustomerActions c={c} where="file" />
           {c.phone && bal > 0 && <Button variant="ghost" asChild><a href={wa} target="_blank" rel="noopener">{tr('تذكير على واتساب', 'WhatsApp reminder')}</a></Button>}
         </CardFooter>
       </Card>
@@ -193,7 +190,9 @@ function FileInner({ theme, setTheme }) {
     </OwnerShell>
   );
 }
-function FileScreen() { const [theme, setTheme] = useTheme(); return <DeskProvider><FileInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
+// DK-014: ?edit=1 opens «تعديل البيانات» (with &taken=1, its PHONE_TAKEN).
+const fileInitial = pageParams.get('edit') === '1' ? { kind: 'edit', customerId: c.id, taken: pageParams.get('taken') === '1' } : null;
+function FileScreen() { const [theme, setTheme] = useTheme(); return <DeskProvider initial={fileInitial}><FileInner theme={theme} setTheme={setTheme} /></DeskProvider>; }
 ReactDOM.createRoot(document.getElementById('ds-root')).render(<DirectionProvider dir={DIR}><FileScreen /></DirectionProvider>);
 </script>
 </body>

@@ -152,18 +152,26 @@ function DeskProvider({ children, initial }) {
       });
       return c;
     },
+    // DK-014: archived, never deleted — out of the search and the desk, under «مؤرشف» in Customers.
     // P9: a settled customer is archived at once and can be put back from the toast.
     archive(cid) {
-      const i = D.customers.findIndex((c) => c.id === cid); const c = D.customers[i];
-      D.customers.splice(i, 1); bump();
-      toast(tr(`أُرشف ${c.name}`, `${c.name} archived`), { action: { label: tr('تراجع', 'Undo'), onClick: () => { D.customers.splice(i, 0, c); bump(); } } });
+      const c = D.findCustomer(cid); c.archived = { by: ME, on: D.TODAY }; bump();
+      toast(tr(`أُرشف ${c.name}`, `${c.name} archived`), { action: { label: tr('تراجع', 'Undo'), onClick: () => { delete c.archived; bump(); } } });
     },
     // A customer who owes is archived only after the dialog that names the debt, so there is
     // no undo after it: the confirmation was the decision.
     archiveOwing(cid) {
-      const i = D.customers.findIndex((c) => c.id === cid); const c = D.customers[i];
-      D.customers.splice(i, 1); bump();
+      const c = D.findCustomer(cid); c.archived = { by: ME, on: D.TODAY }; bump(); close();
       toast.success(tr(`أُرشف ${c.name} · عليه ${$(D.balance(c))}`, `${c.name} archived · owes ${$(D.balance(c))}`));
+    },
+    askArchive(cid) { if (D.balance(D.findCustomer(cid)) > 0) open('archive', { customerId: cid }); else api.archive(cid); },
+    restore(cid) {
+      const c = D.findCustomer(cid); delete c.archived; bump();
+      toast.success(tr(`استُرجع ${c.name}`, `${c.name} restored`));
+    },
+    saveCustomer(cid, name, phone) {
+      const c = D.findCustomer(cid); c.name = name; c.phone = phone ? normPhone(phone) : '';
+      bump(); close(); toast.success(tr(`حُفظت بيانات ${name}`, `${name}’s details saved`));
     }
   };
   return (
@@ -175,6 +183,8 @@ function DeskProvider({ children, initial }) {
       <PayDialog dlg={dlg && dlg.kind === 'pay' ? dlg : null} onClose={close} />
       <DebtDialog dlg={dlg && dlg.kind === 'debt' ? dlg : null} onClose={close} />
       <WriteOffDialog dlg={dlg && dlg.kind === 'writeoff' ? dlg : null} onClose={close} />
+      <EditCustomerDialog dlg={dlg && dlg.kind === 'edit' ? dlg : null} onClose={close} />
+      <ArchiveDialog dlg={dlg && dlg.kind === 'archive' ? dlg : null} onClose={close} />
       {window.SubscriptionSheet && <SubscriptionSheet dlg={dlg && dlg.kind === 'sheet' ? dlg : null} onClose={close} />}
     </DeskCtx.Provider>
   );
@@ -201,7 +211,7 @@ function BalanceBadge({ c }) {
   const cr = D.credit(c); return cr > 0 ? <DK.Badge variant="success"><span>{tr('له رصيد', 'In credit')} <Money n={cr} /></span></DK.Badge> : null;
 }
 
-// 4.2 Customer card: who, where, what's left, one tap for each action.
+// 4.2 Customer card: who, where, what's left; its actions by state (DK-013). The name opens the file.
 function CustomerCard({ c }) {
   const desk = useDesk();
   const s = D.currentSub(c); const here = D.presentOf(c.id);
@@ -220,15 +230,109 @@ function CustomerCard({ c }) {
         </div>
         {s && <ul className="flex flex-col gap-1 text-body-sm text-muted-foreground">{D.progress(s, c).map((l, i) => <li key={i}>{l}</li>)}</ul>}
       </DK.CardContent>
-      <DK.CardFooter className="flex flex-wrap gap-2">
-        {here ? <DK.Button size="sm" variant="outline" onClick={() => desk.open('checkout', { presentId: here.id })}><DK.LogOutIcon />{tr('خروج', 'Check out')}</DK.Button>
-          : <DK.Button size="sm" onClick={() => desk.tapCheckIn(c.id)}><DK.LogInIcon />{tr('حضور', 'Check in')}</DK.Button>}
-        <DK.Button size="sm" variant={D.balance(c) > 0 ? 'secondary' : 'outline'} onClick={() => desk.open('pay', { customerId: c.id })}>{tr('دفع', 'Pay')}</DK.Button>
-        {s && <DK.Button size="sm" variant="outline" onClick={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</DK.Button>}
-        <DK.Button size="sm" variant="outline" onClick={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New subscription')}</DK.Button>
-        <DK.Button size="sm" variant="ghost" asChild><a href={roleQ('Customer file.html?id=' + c.id)}>{tr('ملف الزبون', 'Customer file')}</a></DK.Button>
-      </DK.CardFooter>
+      <DK.CardFooter><CustomerActions c={c} where="card" /></DK.CardFooter>
     </DK.Card>
+  );
+}
+
+// DK-013: one set of a customer's actions, in one order, wherever they are. `full`: the Customers
+// row, whose «⋯» holds them all; elsewhere the state's actions are buttons beside the «⋯».
+function CustomerMenuItems({ c, full, where }) {
+  const desk = useDesk();
+  const here = D.presentOf(c.id); const bal = D.balance(c); const st = D.customerStatus(c);
+  return (
+    <>
+      {full && <>
+        {here
+          ? <DK.DropdownMenuItem onSelect={() => (isQuickOut(here) ? desk.checkOut(here.id) : desk.open('checkout', { presentId: here.id }))}>{tr('خروج', 'Check out')}</DK.DropdownMenuItem>
+          : <DK.DropdownMenuItem onSelect={() => desk.tapCheckIn(c.id)}>{tr('حضور', 'Check in')}</DK.DropdownMenuItem>}
+        {bal > 0 && <DK.DropdownMenuItem onSelect={() => desk.open('pay', { customerId: c.id })}><span>{tr('استلام', 'Receive')} <Money n={bal} /></span></DK.DropdownMenuItem>}
+        {(st === 'soon' || st === 'expired') && <DK.DropdownMenuItem onSelect={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</DK.DropdownMenuItem>}
+        <DK.DropdownMenuSeparator />
+      </>}
+      <DK.DropdownMenuItem onSelect={() => desk.open('sheet', { mode: 'subscribe', customerId: c.id })}>{tr('اشتراك جديد', 'New subscription')}</DK.DropdownMenuItem>
+      <DK.DropdownMenuItem onSelect={() => desk.open('edit', { customerId: c.id })}>{tr('تعديل البيانات', 'Edit details')}</DK.DropdownMenuItem>
+      {where !== 'file' && <DK.DropdownMenuItem asChild><a href={roleQ('Customer file.html?id=' + c.id)}>{tr('ملف الزبون', 'Customer file')}</a></DK.DropdownMenuItem>}
+      {IS_OWNER && <><DK.DropdownMenuSeparator /><DK.DropdownMenuItem onSelect={() => desk.askArchive(c.id)}>{tr('أرشفة', 'Archive')}</DK.DropdownMenuItem></>}
+    </>
+  );
+}
+// On the desk's card and the file's header: «حضور» or «خروج» first; «استلام 42 ₪» only when they
+// owe; «تجديد» only when ending soon or ended; the rest in «⋯». An archived customer: «استرجاع».
+function CustomerActions({ c, where }) {
+  const desk = useDesk();
+  const here = D.presentOf(c.id); const bal = D.balance(c); const st = D.customerStatus(c);
+  const size = where === 'card' ? 'sm' : undefined;
+  if (c.archived) return IS_OWNER ? <DK.Button size={size} variant="outline" onClick={() => desk.restore(c.id)}>{tr('استرجاع', 'Restore')}</DK.Button> : null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {here ? <OutButton p={here} size={size} variant="primary" /> : <DK.Button size={size} onClick={() => desk.tapCheckIn(c.id)}><DK.LogInIcon />{tr('حضور', 'Check in')}</DK.Button>}
+      {bal > 0 && <DK.Button size={size} variant="secondary" onClick={() => desk.open('pay', { customerId: c.id })}>{tr('استلام', 'Receive')} <Money n={bal} /></DK.Button>}
+      {(st === 'soon' || st === 'expired') && <DK.Button size={size} variant="outline" onClick={() => desk.open('sheet', { mode: 'renew', customerId: c.id })}>{tr('تجديد', 'Renew')}</DK.Button>}
+      <DK.DropdownMenu dir={DIR}>
+        <DK.DropdownMenuTrigger asChild><DK.Button variant="ghost" size="icon" aria-label={tr('إجراءات أخرى: ', 'More actions: ') + c.name}><DK.EllipsisVerticalIcon /></DK.Button></DK.DropdownMenuTrigger>
+        <DK.DropdownMenuContent align="end"><CustomerMenuItems c={c} where={where} /></DK.DropdownMenuContent>
+      </DK.DropdownMenu>
+    </div>
+  );
+}
+
+// DK-014: the name and the mobile are put right at the desk (both roles). The mobile is where a debt
+// reminder goes, and is unique among the space's customers that are not archived (PHONE_TAKEN).
+function EditCustomerDialog({ dlg, onClose }) {
+  const desk = useDesk();
+  const c = dlg && D.findCustomer(dlg.customerId);
+  const [name, setName] = React.useState(''); const [phone, setPhone] = React.useState(''); const [err, setErr] = React.useState({});
+  const takenBy = (v) => (phoneOk(v) ? D.customers.find((x) => x.id !== (c && c.id) && !x.archived && x.phone === normPhone(v)) : null);
+  const takenLine = (o) => tr('هذا الرقم مسجّل لزبون آخر: ', 'This number belongs to another customer: ') + o.name;
+  // ?taken=1: the frame of PHONE_TAKEN — Salma's number typed, as the server answers it.
+  React.useEffect(() => { if (c) { const other = dlg.taken ? D.findCustomer('m8') : null; setName(c.name); setPhone(other ? other.phone : c.phone || ''); setErr(other ? { phone: takenLine(other) } : {}); } }, [dlg]);
+  const { busy, run } = useActionRun('edit');
+  const submit = (e) => {
+    e.preventDefault();
+    const x = {}; const other = takenBy(phone);
+    if (!name.trim()) x.name = tr('أدخل الاسم', 'Enter the name');
+    if (phone && !phoneOk(phone)) x.phone = tr('رقم غير مكتمل، مثل +970 59 000 0000', 'Incomplete number, e.g. +970 59 000 0000');
+    else if (other) x.phone = takenLine(other);
+    setErr(x); if (Object.keys(x).length) return focusInvalid();
+    run(() => desk.saveCustomer(c.id, name.trim(), phone));
+  };
+  return (
+    <DK.Dialog open={!!c} onOpenChange={(o) => !o && onClose()}>
+      <DK.DialogContent closeLabel={tr('إغلاق', 'Close')}>
+        {c && <>
+          <DK.DialogHeader><DK.DialogTitle>{tr('تعديل البيانات', 'Edit details')}</DK.DialogTitle><DK.DialogDescription>{c.name}</DK.DialogDescription></DK.DialogHeader>
+          <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+            <DK.Field label={tr('الاسم', 'Name')} error={err.name}><DK.Input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></DK.Field>
+            <DK.Field label={tr('رقم الجوال', 'Mobile number')} labelEnd={<span className="text-caption text-muted-foreground">{tr('اختياري', 'Optional')}</span>} error={err.phone} helper={err.phone ? undefined : tr('إليه يُرسل تذكير الدين على واتساب.', 'Debt reminders go to this number on WhatsApp.')}>
+              <DK.Input type="tel" dir="ltr" placeholder="+970 59 000 0000" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </DK.Field>
+            <ActionAlert for="edit" />
+            <DK.DialogFooter><DK.Button type="submit" loading={busy}>{tr('حفظ', 'Save')}</DK.Button></DK.DialogFooter>
+          </form>
+        </>}
+      </DK.DialogContent>
+    </DK.Dialog>
+  );
+}
+
+// P9 (DK-014): a customer who owes is archived only after the dialog that names the debt — no undo after.
+function ArchiveDialog({ dlg, onClose }) {
+  const desk = useDesk();
+  const c = dlg && D.findCustomer(dlg.customerId);
+  return (
+    <DK.AlertDialog open={!!c} onOpenChange={(o) => !o && onClose()}>
+      <DK.AlertDialogContent>
+        <DK.AlertDialogHeader>
+          <DK.AlertDialogTitle>{tr('أرشفة', 'Archive')} {c && c.name}{tr('؟', '?')}</DK.AlertDialogTitle>
+          <DK.AlertDialogDescription>{tr('عليه', 'They owe')} <Money n={c ? D.balance(c) : 0} /> {tr('غير مسدّدة. يبقى المبلغ في سجله، ويخرج من البحث ومن المكتب، ويبقى تحت «مؤرشف» في الزبائن.', 'unpaid. The amount stays on their record; they leave the search and the desk, and stay under «Archived» in Customers.')}</DK.AlertDialogDescription>
+        </DK.AlertDialogHeader>
+        <DK.AlertDialogFooter>
+          <DK.AlertDialogCancel>{tr('رجوع', 'Back')}</DK.AlertDialogCancel>
+          <DK.AlertDialogAction variant="destructive" onClick={() => desk.archiveOwing(c.id)}>{tr('أرشفة رغم الدين', 'Archive anyway')}</DK.AlertDialogAction>
+        </DK.AlertDialogFooter>
+      </DK.AlertDialogContent>
+    </DK.AlertDialog>
   );
 }
 
@@ -638,4 +742,4 @@ function UnpaidRow({ u, showName }) {
   );
 }
 
-Object.assign(window, { DeskProvider, useDesk, CustomerCard, StatusBadge, BalanceBadge, Money, durLabel, nameOf, normPhone, phoneOk, checkInWarnings, MethodToggle, ME, durText, paidLine, MONEY_RETRY, focusInvalid, isQuickOut, moneyOf, MoneyBlock, MoneyRateNote, OutButton, dayWord, F_UNCOLLECTED, ReasonDialog, UnpaidRow });
+Object.assign(window, { DeskProvider, useDesk, CustomerCard, StatusBadge, BalanceBadge, Money, durLabel, nameOf, normPhone, phoneOk, checkInWarnings, MethodToggle, ME, durText, paidLine, MONEY_RETRY, focusInvalid, isQuickOut, moneyOf, MoneyBlock, MoneyRateNote, OutButton, dayWord, F_UNCOLLECTED, ReasonDialog, UnpaidRow, CustomerActions, CustomerMenuItems });

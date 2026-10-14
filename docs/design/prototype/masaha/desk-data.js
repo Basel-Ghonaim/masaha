@@ -55,7 +55,9 @@ window.DESK = (function () {
     { id: 'm12', name: T('ميار سكيك', 'Mayar Skaik'), phone: '+970 59 000 1012', subs: [S('s12', 'custom', '2026-09-19', '2026-10-18', { name: T('3 أيام بالأسبوع', '3 days a week'), terms: { daysPerWeek: 3 }, used: { week: 3 }, billing: { type: 'fixed', amount: 200 }, manual: true, shift: 'am', pays: [['2026-09-19', '08:00', 200, 'cash', A]] })] },
     { id: 'm13', name: T('بلال زقوت', 'Bilal Zaqout'), phone: '+970 59 000 1013', subs: [S('s13', 'custom', '2026-09-15', '2026-10-14', { terms: { hoursPerDay: 3 }, billing: { type: 'fixed', amount: 150 }, manual: true, used: { todayMin: 180 }, pays: [['2026-09-15', '08:30', 150, 'cash', A]] })] },
     { id: 'm14', name: T('مالك صيام', 'Malek Siam'), phone: '+970 56 000 1014', subs: [] },
-    { id: 'm15', name: T('رنا الأغا', 'Rana Al-Agha'), phone: '+970 59 000 1015', subs: [S('s15', 'custom', '2026-09-14', '2026-10-13', { name: T('بالساعة — مدفوع مقدمًا', 'Hourly — prepaid'), billing: { type: 'usage', unit: 'hour', rate: 3 }, used: { hours: 14 }, pays: [['2026-09-14', '09:30', 60, 'cash', A]] })] }
+    { id: 'm15', name: T('رنا الأغا', 'Rana Al-Agha'), phone: '+970 59 000 1015', subs: [S('s15', 'custom', '2026-09-14', '2026-10-13', { name: T('بالساعة — مدفوع مقدمًا', 'Hourly — prepaid'), billing: { type: 'usage', unit: 'hour', rate: 3 }, used: { hours: 14 }, pays: [['2026-09-14', '09:30', 60, 'cash', A]] })] },
+    // DK-014: archived, never deleted.
+    { id: 'm16', name: T('عبير حسونة', 'Abeer Hassouna'), phone: '+970 59 000 1016', archived: { by: A, on: '2026-09-10' }, subs: [S('s16', 'week', '2026-08-03', '2026-08-09', { pays: [['2026-08-03', '09:40', 90, 'cash', A]] })] }
   ];
   const fillers = [T('هادي النخالة', 'Hadi Al-Nakhala'), T('سارة البحيصي', 'Sara Al-Buhaisi'), T('أنس الجمل', 'Anas Al-Jamal'), T('ديما عكاشة', 'Dima Okasha'), T('طارق مقداد', 'Tareq Miqdad'), T('ياسمين الشريف', 'Yasmin Al-Sharif'), T('زياد ضاهر', 'Ziad Daher'), T('فرح أبو رمضان', 'Farah Abu Ramadan'), T('كريم دلول', 'Karim Dalloul'), T('شهد حجازي', 'Shahd Hijazi'), T('مريم الخالدي', 'Maryam Al-Khalidi'), T('حمزة السقا', 'Hamza Al-Saqqa'), T('آية المدهون', 'Aya Al-Madhoun')];
   const fEnds = ['2026-10-12', '2026-10-18', '2026-10-09', '2026-10-22', '2026-10-15', '2026-10-26', '2026-10-11', '2026-10-20', '2026-10-07', '2026-10-24', '2026-10-14', '2026-10-17', '2026-10-21'];
@@ -173,7 +175,7 @@ window.DESK = (function () {
   const paid = (sub) => sub.pays.filter((p) => !p[5]).reduce((a, p) => a + p[2], 0);
   // DK-008: a subscription with no end date stays active until it is ended.
   const subStatus = (sub) => { if (!sub.to) return 'active'; const d = daysBetween(TODAY, sub.to); return d < 0 ? 'expired' : d <= 7 ? 'soon' : 'active'; };
-  const customerStatus = (c) => (currentSub(c) ? subStatus(currentSub(c)) : 'none');
+  const customerStatus = (c) => (c.archived ? 'archived' : currentSub(c) ? subStatus(currentSub(c)) : 'none');
   const payStatus = (sub, c) => { const d = due(sub, c), p = paid(sub); return p >= d ? 'paid' : p > 0 ? 'partial' : 'unpaid'; };
   const openItems = (c) => [
     ...c.subs.filter((s) => due(s, c) - paid(s) > 0).map((s) => ({ id: s.id, kind: 'sub', label: s.name + ' · ' + fmtDate(s.from) + ' – ' + (s.to ? fmtDate(s.to) : T('بلا تاريخ نهاية', 'No end date')), date: s.from, due: due(s, c), paid: paid(s) })),
@@ -207,7 +209,7 @@ window.DESK = (function () {
     return parts.join(' · ') || T('بدون شروط إضافية', 'No extra terms');
   };
 
-  const statusBadge = { active: ['success', T('نشط', 'Active')], soon: ['warning', T('ينتهي قريبًا', 'Ending soon')], expired: ['neutral', T('منتهٍ', 'Expired')], none: ['neutral', T('بدون اشتراك', 'No subscription')] };
+  const statusBadge = { active: ['success', T('نشط', 'Active')], soon: ['warning', T('ينتهي قريبًا', 'Ending soon')], expired: ['neutral', T('منتهٍ', 'Expired')], none: ['neutral', T('بدون اشتراك', 'No subscription')], archived: ['neutral', T('مؤرشف', 'Archived')] };
   const payBadge = { paid: ['success', T('مدفوع', 'Paid')], partial: ['warning', T('مدفوع جزئيًا', 'Partly paid')], unpaid: ['destructive', T('غير مدفوع', 'Unpaid')] };
   const methodLabel = { cash: T('نقدًا', 'Cash'), transfer: T('تحويل', 'Transfer') };
   // K4: the method inside a sentence («استُلم 12 ₪ نقدًا»).
