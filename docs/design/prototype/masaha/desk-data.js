@@ -104,7 +104,7 @@ window.DESK = (function () {
   ];
   // K6: visits the owner wrote off («لن يُحصَّل»), with the reason, who and when — never a payment.
   const writtenOff = [];
-  // Visits paid today (not tied to a customer): for «دفعاتي اليوم».
+  // Visit payments: by name, or through the visit's customer (`customerId`, K4) once it has one.
   const visitPays = [
     { id: 'vp1', name: T('فرح جابر', 'Farah Jaber'), date: TODAY, time: '10:02', amount: 6, method: 'cash', by: SM },
     { id: 'vp2', name: T('أنس البنا', 'Anas Al-Banna'), date: TODAY, time: '10:40', amount: 9, method: 'transfer', by: SM },
@@ -113,6 +113,8 @@ window.DESK = (function () {
 
   const olderVisits = [['2026-09-28', '17:20', 12, 'cash', SM, T('يزن حمّاد', 'Yazan Hammad')], ['2026-09-28', '13:05', 15, 'cash', A, T('نادين سرور', 'Nadine Srour')], ['2026-09-27', '16:40', 9, 'transfer', SM, T('عبد الله الحايك', 'Abdullah Al-Hayek')], ['2026-09-26', '12:15', 6, 'cash', SM, T('سجى أبو حصيرة', 'Saja Abu Hasira')], ['2026-09-24', '15:30', 15, 'cash', A, T('معاذ البيطار', 'Muath Al-Bitar')]];
   olderVisits.forEach(([date, time, amount, method, who, name], i) => visitPays.push({ id: 'ov' + i, name, date, time, amount, method, by: who }));
+  // K4: a visit paid as a customer's (Malek's, on file since an unpaid visit) — reached through the customer.
+  visitPays.push({ id: 'vpm14', customerId: 'm14', name: T('مالك صيام', 'Malek Siam'), date: '2026-09-21', time: '17:05', amount: 12, method: 'cash', by: A });
   visitPays.push({ id: 'ovx', name: T('وسيم عودة', 'Wassim Odeh'), date: '2026-09-27', time: '11:00', amount: 15, method: 'cash', by: SM, voided: T('الزبون لم يبقَ، أُعيد المبلغ', 'The customer didn’t stay; refunded'), voidedBy: A });
 
   // P6: a month of visit payments behind today, so the ledger is a real ledger — 312 rows in
@@ -157,6 +159,7 @@ window.DESK = (function () {
   // The shift in progress now, or '' outside every shift.
   const currentShift = () => { const s = SHIFT_LIST.find((x) => toMin(x.from) <= toMin(NOW) && toMin(NOW) < toMin(x.to)); return s ? s.id : ''; };
   const findCustomer = (id) => customers.find((c) => c.id === id);
+  const visitPaysOf = (cid) => visitPays.filter((v) => v.customerId === cid);
   // K1: one search for the desk, the payment picker and Customers — a name, or the mobile's last digits.
   const searchCustomers = (term) => {
     const t = term.trim(); const digits = t.replace(/\D/g, '');
@@ -234,6 +237,6 @@ window.DESK = (function () {
   const collected = (rows) => rows.filter((r) => !r.voided).reduce((a, r) => a + r.amount, 0);
 
   return { ledger, collected, MONTHS, monthly, daily30, heat, perDay, staffMonth, leftToday, credit, TODAY, NOW, TODAY_KEY, CLOSE, PRICES, WEEKDAYS, SHIFTS, PACKAGES, pkg, customers, present, unpaid, writtenOff, visitPays, attendance, capacity: 40,
-    searchCustomers, SETTINGS, STUDENT_VISITS, SHIFT_LIST, visitRates, currentShift, methodIn,
+    searchCustomers, visitPaysOf, SETTINGS, STUDENT_VISITS, SHIFT_LIST, visitRates, currentShift, methodIn,
     toMin, hm, daysBetween, addDays, fmtDate, money, visitCharge, findCustomer, presentOf, currentSub, todayMinutes, due, paid, subStatus, customerStatus, payStatus, openItems, balance, subKind, progress, termsLine, statusBadge, payBadge, methodLabel, by, SAMI: SM, AHMAD: A };
 })();

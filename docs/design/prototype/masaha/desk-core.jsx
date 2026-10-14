@@ -169,6 +169,12 @@ function DeskProvider({ children, initial }) {
       const c = D.findCustomer(cid); delete c.archived; bump();
       toast.success(tr(`استُرجع ${c.name}`, `${c.name} restored`));
     },
+    // DK-016: a void is the owner's, once, with the reason; the payment stays, struck (ADR 0010 rule 3).
+    voidPayment(row, reason) {
+      if (row.type === 'sub') { row.ref[5] = reason; row.ref[7] = ME; } else { row.ref.voided = reason; row.ref.voidedBy = ME; }
+      bump(); close();
+      toast.success(tr(`أُلغيت الدفعة ${$(row.amount)}`, `${$(row.amount)} payment voided`), { description: row.who + tr(' · السبب: ', ' · Reason: ') + reason });
+    },
     saveCustomer(cid, name, phone) {
       const c = D.findCustomer(cid); c.name = name; c.phone = phone ? normPhone(phone) : '';
       bump(); close(); toast.success(tr(`حُفظت بيانات ${name}`, `${name}’s details saved`));
@@ -185,6 +191,7 @@ function DeskProvider({ children, initial }) {
       <WriteOffDialog dlg={dlg && dlg.kind === 'writeoff' ? dlg : null} onClose={close} />
       <EditCustomerDialog dlg={dlg && dlg.kind === 'edit' ? dlg : null} onClose={close} />
       <ArchiveDialog dlg={dlg && dlg.kind === 'archive' ? dlg : null} onClose={close} />
+      <VoidDialog dlg={dlg && dlg.kind === 'void' ? dlg : null} onClose={close} />
       {window.SubscriptionSheet && <SubscriptionSheet dlg={dlg && dlg.kind === 'sheet' ? dlg : null} onClose={close} />}
     </DeskCtx.Provider>
   );
@@ -676,6 +683,38 @@ function WriteOffDialog({ dlg, onClose }) {
   );
 }
 
+// K4: a payment's amount — a voided one stays, struck through, with who voided it and why (ADR 0010
+// rule 3); `method`: the method under it, as DK-017's five columns put it.
+function PaidAmount({ r, method }) {
+  return (
+    <span className="flex flex-col">
+      {r.voided ? <span className="strike text-muted-foreground"><Money n={r.amount} /></span> : <span className="text-label"><Money n={r.amount} /></span>}
+      {method && <span className="text-caption text-muted-foreground">{D.methodLabel[r.method]}</span>}
+      {r.voided && <span className="text-caption text-muted-foreground">{tr('ألغاها', 'Voided by')} {D.by(r.voidedBy)}: {r.voided}</span>}
+    </span>
+  );
+}
+// DK-016: the void sits in the row's «⋯», the destructive item, for the owner, on a payment not voided.
+function PaymentMenu({ r }) {
+  const desk = useDesk();
+  if (!IS_OWNER || r.voided) return null;
+  return (
+    <DK.DropdownMenu dir={DIR}>
+      <DK.DropdownMenuTrigger asChild><DK.Button variant="ghost" size="icon" aria-label={tr('إجراءات الدفعة: ', 'Payment actions: ') + D.money(r.amount) + ' · ' + r.who}><DK.EllipsisVerticalIcon /></DK.Button></DK.DropdownMenuTrigger>
+      <DK.DropdownMenuContent align="end"><DK.DropdownMenuItem variant="destructive" onSelect={() => desk.open('void', { row: r })}>{tr('إلغاء الدفعة…', 'Void payment…')}</DK.DropdownMenuItem></DK.DropdownMenuContent>
+    </DK.DropdownMenu>
+  );
+}
+// P9 + DK-016: the AlertDialog repeats the amount, the customer and the date, and asks why.
+function VoidDialog({ dlg, onClose }) {
+  const desk = useDesk();
+  const r = dlg && dlg.row;
+  return (
+    <ReasonDialog open={!!r} onClose={onClose} actionKey="void" title={tr('إلغاء الدفعة؟', 'Void this payment?')} action={tr('إلغاء الدفعة', 'Void payment')} onConfirm={(reason) => desk.voidPayment(r, reason)}
+      description={r && <><Money n={r.amount} /> · {r.who} · {D.fmtDate(r.date)} · {D.methodLabel[r.method]}. {tr('تبقى ظاهرة مشطوبة مع السبب واسمك، ولا تُحسب في الدخل ولا في التسليم. لا يمكن التراجع.', 'It stays visible, struck through, with the reason and your name, and counts in neither income nor the handover. It can’t be undone.')}</>} />
+  );
+}
+
 // DK-012: a visit with no customer (the automatic check-out closed it) becomes a debt by a name and a
 // phone, which find the customer or make one — the rule of an unpaid check-out.
 function DebtDialog({ dlg, onClose }) {
@@ -742,4 +781,4 @@ function UnpaidRow({ u, showName }) {
   );
 }
 
-Object.assign(window, { DeskProvider, useDesk, CustomerCard, StatusBadge, BalanceBadge, Money, durLabel, nameOf, normPhone, phoneOk, checkInWarnings, MethodToggle, ME, durText, paidLine, MONEY_RETRY, focusInvalid, isQuickOut, moneyOf, MoneyBlock, MoneyRateNote, OutButton, dayWord, F_UNCOLLECTED, ReasonDialog, UnpaidRow, CustomerActions, CustomerMenuItems });
+Object.assign(window, { DeskProvider, useDesk, CustomerCard, StatusBadge, BalanceBadge, Money, durLabel, nameOf, normPhone, phoneOk, checkInWarnings, MethodToggle, ME, durText, paidLine, MONEY_RETRY, focusInvalid, isQuickOut, moneyOf, MoneyBlock, MoneyRateNote, OutButton, dayWord, F_UNCOLLECTED, ReasonDialog, UnpaidRow, CustomerActions, CustomerMenuItems, PaidAmount, PaymentMenu });
