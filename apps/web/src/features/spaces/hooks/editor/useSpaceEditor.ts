@@ -9,7 +9,7 @@ import { useSectionInView } from './useSectionInView';
 import { useSpaceQuery } from './useSpaceQuery';
 
 /** The groups whose sections the editor draws, in its order. */
-const SECTIONS: readonly FactGroup[] = ['profile', 'amenities', 'contacts'];
+const SECTIONS: readonly FactGroup[] = ['profile', 'hours', 'amenities', 'contacts'];
 
 /**
  * A space's editor, ready to render: its loading, failure and not-found states; then its state's

@@ -108,7 +108,7 @@ describe('useSpaceEditor', () => {
       ]),
     ).toEqual([
       ['profile', '#profile', 'Done', 'success'],
-      ['hours', null, 'Not added yet', 'warning'],
+      ['hours', '#hours', 'Not added yet', 'warning'],
       ['prices', null, 'Not added yet', 'warning'],
       ['amenities', '#amenities', 'Not added yet', 'warning'],
       ['contacts', '#contacts', 'Not added yet', 'warning'],

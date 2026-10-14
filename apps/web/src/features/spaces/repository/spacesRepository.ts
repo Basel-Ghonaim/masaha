@@ -4,6 +4,7 @@ import type {
   FactGroup,
   UpdateSpaceAmenitiesRequest,
   UpdateSpaceContactsRequest,
+  UpdateSpaceHoursRequest,
   UpdateSpaceProfileRequest,
 } from '@masaha/shared/spaces';
 import { api } from '@shared/api';
@@ -16,6 +17,8 @@ export interface SpacesRepository {
   get(spaceId: number): Promise<AdminSpace>;
   /** Changes the profile's fields it is given, `null` clearing an optional one. */
   updateProfile(spaceId: number, request: UpdateSpaceProfileRequest): Promise<AdminSpace>;
+  /** Replaces the opening hours with the shifts, together; a shift keeps its id. */
+  updateHours(spaceId: number, request: UpdateSpaceHoursRequest): Promise<AdminSpace>;
   /** Replaces the amenities group: the platform's amenities and the space's own. */
   updateAmenities(spaceId: number, request: UpdateSpaceAmenitiesRequest): Promise<AdminSpace>;
   /** Replaces the contacts, in their order. */
@@ -36,6 +39,7 @@ export function createSpacesRepository(): SpacesRepository {
     create: (request) => api.post<AdminSpace>('/admin/spaces', request),
     get: (spaceId) => api.get<AdminSpace>(path(spaceId)),
     updateProfile: (spaceId, request) => api.patch<AdminSpace>(path(spaceId), request),
+    updateHours: (spaceId, request) => api.put<AdminSpace>(`${path(spaceId)}/hours`, request),
     updateAmenities: (spaceId, request) =>
       api.put<AdminSpace>(`${path(spaceId)}/amenities`, request),
     updateContacts: (spaceId, request) => api.put<AdminSpace>(`${path(spaceId)}/contacts`, request),

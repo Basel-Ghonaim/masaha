@@ -243,7 +243,11 @@ describe('the space editor', () => {
       'href',
       '/spaces/7#profile',
     );
-    expect(within(checklist).queryByRole('link', { name: 'Opening hours' })).toBeNull();
+    expect(within(checklist).getByRole('link', { name: 'Opening hours' })).toHaveAttribute(
+      'href',
+      '/spaces/7#hours',
+    );
+    expect(within(checklist).queryByRole('link', { name: 'Prices' })).toBeNull();
   });
 
   it('lists its sections in a navigation, the one in view marked', async () => {
@@ -254,7 +258,7 @@ describe('the space editor', () => {
       within(navigation)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['The space', 'Amenities', 'Contacts']);
+    ).toEqual(['The space', 'Opening hours', 'Amenities', 'Contacts']);
     act(() => {
       observer.intersect(['amenities', 'contacts']);
     });
@@ -422,6 +426,53 @@ describe('the contacts section', () => {
   });
 });
 
+describe('the opening hours section', () => {
+  it('shows each day with its state and switch, its two times when open, and the copy in its header', async () => {
+    renderEditor();
+    const hours = await waitFor(() => section('Opening hours'));
+
+    const saturday = within(hours).getByRole('switch', { name: 'Open on Saturday' });
+    expect(saturday).toBeChecked();
+    const saturdayRow = within(saturday.closest('li') as HTMLElement);
+    expect(saturdayRow.getByText('Saturday')).toBeInTheDocument();
+    expect(saturdayRow.getByRole('textbox', { name: 'From' })).toHaveValue('08:00');
+    expect(saturdayRow.getByRole('textbox', { name: 'To' })).toHaveValue('18:00');
+    expect(saturdayRow.getByRole('textbox', { name: 'To' })).toHaveAttribute('dir', 'ltr');
+    const friday = within(hours).getByRole('switch', { name: 'Open on Friday' });
+    expect(friday).not.toBeChecked();
+    expect(within(friday.closest('li') as HTMLElement).queryByRole('textbox')).toBeNull();
+    const header = hours.querySelector('[data-slot=card-header]') as HTMLElement;
+    expect(within(header).getByRole('button', { name: 'Copy to all days' })).toBeEnabled();
+  });
+
+  it('shows why a shift cannot be removed beside its Remove', async () => {
+    renderEditor({
+      read: () =>
+        ok({
+          ...SPACE,
+          hours: {
+            days: [null, null, null, null, null, null, { opensMinute: 480, closesMinute: 1080 }],
+            shifts: [{ id: 4, nameAr: 'صباحية', nameEn: null, startsMinute: 480, endsMinute: 780 }],
+          },
+          prices: [
+            {
+              period: 'DAY',
+              audience: 'GENERAL',
+              shiftId: 4,
+              labelAr: null,
+              labelEn: null,
+              amountAgorot: 1500,
+            },
+          ],
+        }),
+    });
+    const shift = await screen.findByRole('group', { name: 'Shift 1' });
+
+    expect(within(shift).getByRole('button', { name: 'Remove shift 1' })).toBeDisabled();
+    expect(within(shift).getByText('A price uses it — remove that price first')).toBeVisible();
+  });
+});
+
 describe('a verified space', () => {
   it('shows its values to read, with the way to its public page, and nothing to save', async () => {
     renderEditor({
@@ -432,6 +483,18 @@ describe('a verified space', () => {
           amenityIds: [1, 3],
           ownAmenities: [{ nameAr: 'غرفة صلاة', nameEn: null }],
           contacts: [{ type: 'PHONE', value: '+970569123456' }],
+          hours: {
+            days: [
+              { opensMinute: 480, closesMinute: 1080 },
+              { opensMinute: 480, closesMinute: 1080 },
+              { opensMinute: 480, closesMinute: 1080 },
+              { opensMinute: 480, closesMinute: 1080 },
+              { opensMinute: 480, closesMinute: 1080 },
+              null,
+              { opensMinute: 540, closesMinute: 1440 },
+            ],
+            shifts: [{ id: 4, nameAr: 'صباحية', nameEn: null, startsMinute: 540, endsMinute: 780 }],
+          },
         }),
     });
 
@@ -451,6 +514,13 @@ describe('a verified space', () => {
     const contacts = section('Contacts');
     expect(within(contacts).getByText('+970569123456')).toHaveAttribute('dir', 'ltr');
     expect(within(contacts).getByText('Ooredoo')).toBeInTheDocument();
+    const hours = section('Opening hours');
+    const saturday = within(hours).getByText('Saturday').closest('div') as HTMLElement;
+    expect(within(saturday).getByText('09:00–24:00')).toHaveAttribute('dir', 'ltr');
+    const friday = within(hours).getByText('Friday').closest('div') as HTMLElement;
+    expect(within(friday).getByText('Closed')).toBeInTheDocument();
+    expect(within(hours).getByText('صباحية')).toHaveAttribute('lang', 'ar');
+    expect(within(hours).getByText('09:00–13:00')).toHaveAttribute('dir', 'ltr');
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Still missing' })).toBeNull();
