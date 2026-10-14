@@ -14,7 +14,8 @@ import { useAreaOptions } from '../../hooks/area/useAreaOptions';
  * The field that chooses one area for a space: each governorate a group named after it, with its
  * areas, from the public catalogue, so only an area that may take a space is offered. Set inside a
  * Field, which names it; `ref` reaches its trigger, so a form can focus it. While the areas load,
- * or once they have failed, one option says so.
+ * or once they have failed, one option says so. A space's own area hidden since stays shown, first
+ * and marked hidden.
  */
 export function AreaSelect({
   value,
@@ -44,6 +45,9 @@ export function AreaSelect({
           <SelectItem value="failed" disabled>
             {select.failedLabel}
           </SelectItem>
+        )}
+        {select.kept !== null && (
+          <SelectItem value={select.kept.value}>{select.kept.label}</SelectItem>
         )}
         {select.groups.map((group) => (
           <SelectGroup key={group.key}>

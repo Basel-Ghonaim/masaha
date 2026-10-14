@@ -1,4 +1,4 @@
-import type { LookupsCatalogue } from '@masaha/shared/lookups';
+import type { AdminGovernorateWithAreas, LookupsCatalogue } from '@masaha/shared/lookups';
 import { Field } from '@shared/design-system';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -27,9 +27,23 @@ const CATALOGUE: LookupsCatalogue = {
   amenities: [],
 };
 
+// The admin's lists hold the hidden rows too: Al-Nasr was hidden since a space took it.
+const ADMIN_GOVERNORATES: AdminGovernorateWithAreas[] = [
+  {
+    id: 1,
+    nameAr: 'غزة',
+    nameEn: 'Gaza',
+    isActive: true,
+    areas: [
+      { id: 11, governorateId: 1, nameAr: 'الرمال', nameEn: 'Al-Rimal', isActive: true },
+      { id: 12, governorateId: 1, nameAr: 'النصر', nameEn: 'Al-Nasr', isActive: false },
+    ],
+  },
+];
+
 /** The select inside a Field, as a form sets it. */
 function renderSelect(value: number | null) {
-  fakeTransport(() => ok(CATALOGUE));
+  fakeTransport(({ url }) => (url === '/lookups' ? ok(CATALOGUE) : ok(ADMIN_GOVERNORATES)));
   const onValueChange = vi.fn<(areaId: number) => void>();
   const Wrapper = queryWrapper();
   const rendered = render(
@@ -77,6 +91,16 @@ describe('AreaSelect', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('combobox', { name: 'Area' })).toHaveTextContent('Al-Rimal');
+    });
+  });
+
+  it('shows a space’s own hidden area in its trigger, marked hidden', async () => {
+    renderSelect(12);
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox', { name: 'Area' })).toHaveTextContent(
+        'Al-Nasr · Gaza (hidden)',
+      );
     });
   });
 

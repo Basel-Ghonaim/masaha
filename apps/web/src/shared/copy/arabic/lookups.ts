@@ -97,5 +97,6 @@ export const LOOKUPS = {
   },
   areaSelect: {
     placeholder: 'اختر المنطقة',
+    hidden: ({ name }: { name: string }) => `${name} (مخفية)`,
   },
 } satisfies Catalogue['lookups'];

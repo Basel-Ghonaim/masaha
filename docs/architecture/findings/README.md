@@ -31,7 +31,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [52. The race tests wait a fixed time](52-the-race-tests-wait-a-fixed-time.md)
 - [55. A file's first wait for a lazy shell outlasts three seconds on a busy machine](55-a-files-first-wait-for-a-lazy-shell-outlasts-three-seconds-on-a-busy-machine.md)
 - [59. The verified space's editor cannot name its owner](59-the-verified-spaces-editor-cannot-name-its-owner.md)
-- [60. The area field shows no area for a space whose area was hidden since](60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)
 - [63. A photo's files can outlive it](63-a-photos-files-can-outlive-it.md)
 - [64. The deployment's headers must let Cloudinary's photos load](64-the-deployments-headers-must-let-cloudinarys-photos-load.md)
 - [65. The forgotten password's wait is an estimate, not a measurement](65-the-forgotten-passwords-wait-is-an-estimate-not-a-measurement.md)
@@ -77,3 +76,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [47. A dashboard test reads the top bar's title before the chosen page has loaded](47-a-dashboard-test-reads-the-top-bars-title-before-the-chosen-page-has-loaded.md)
 - [49. A lost answer to adding an owner loses its temporary password](49-a-lost-answer-to-adding-an-owner-loses-its-temporary-password.md)
 - [51. An access token outlives the end of its session](51-an-access-token-outlives-the-end-of-its-session.md)
+- [60. The area field shows no area for a space whose area was hidden since](60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)

@@ -118,5 +118,7 @@ export const LOOKUPS = {
   /** The field that chooses one area for a space, its areas grouped under their governorates. */
   areaSelect: {
     placeholder: 'Choose an area',
+    /** A space's own area that was hidden since it took it. */
+    hidden: ({ name }: { name: string }) => `${name} (hidden)`,
   },
 } as const;

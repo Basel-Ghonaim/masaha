@@ -195,7 +195,6 @@ The owner's side is not built, and the photos are the API's only; on the web, ne
 - [44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md): no screen restores a deleted space once its toast has gone.
 - [46](../architecture/findings/46-the-deployments-headers-must-let-the-maps-tiles-load.md): the deployment's headers must let the add page's map tiles load.
 - [59](../architecture/findings/59-the-verified-spaces-editor-cannot-name-its-owner.md): the verified space's editor cannot name its owner.
-- [60](../architecture/findings/60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md): the area field shows no area for a space whose area was hidden since.
 - [63](../architecture/findings/63-a-photos-files-can-outlive-it.md): a photo's files can outlive it.
 - [64](../architecture/findings/64-the-deployments-headers-must-let-cloudinarys-photos-load.md): the deployment's headers must let Cloudinary's photos load.
 

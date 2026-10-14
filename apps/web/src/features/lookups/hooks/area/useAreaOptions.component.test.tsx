@@ -1,4 +1,4 @@
-import type { LookupsCatalogue } from '@masaha/shared/lookups';
+import type { AdminGovernorateWithAreas, LookupsCatalogue } from '@masaha/shared/lookups';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
@@ -27,6 +27,21 @@ const CATALOGUE: LookupsCatalogue = {
   ],
   amenities: [],
 };
+
+// The admin's lists hold the hidden rows too: Al-Nasr was hidden since a space took it.
+const ADMIN_GOVERNORATES: AdminGovernorateWithAreas[] = [
+  {
+    id: 1,
+    nameAr: 'غزة',
+    nameEn: 'Gaza',
+    isActive: true,
+    areas: [
+      { id: 11, governorateId: 1, nameAr: 'الرمال', nameEn: 'Al-Rimal', isActive: true },
+      { id: 12, governorateId: 1, nameAr: 'النصر', nameEn: 'Al-Nasr', isActive: false },
+      { id: 13, governorateId: 1, nameAr: 'الشيخ رضوان', nameEn: 'Sheikh Radwan', isActive: true },
+    ],
+  },
+];
 
 /** The options for `value`, the catalogue answered by `answer`; `onValueChange` records choices. */
 function renderOptions(
@@ -114,5 +129,37 @@ describe('useAreaOptions', () => {
     });
     expect(result.current.failedLabel).toBe('We couldn’t load the areas');
     expect(result.current.groups).toEqual([]);
+  });
+
+  it('keeps a space’s own area the catalogue no longer offers, marked hidden', async () => {
+    startPreferences('en');
+    const { result, requests } = renderOptions(12, ({ url }) =>
+      url === '/lookups' ? ok(CATALOGUE) : ok(ADMIN_GOVERNORATES),
+    );
+
+    await waitFor(() => {
+      expect(result.current.kept).toEqual({ value: '12', label: 'Al-Nasr · Gaza (hidden)' });
+    });
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'get /lookups',
+      'get /admin/governorates',
+    ]);
+    // Offered to no other space: the groups stay the catalogue's.
+    expect(
+      result.current.groups.flatMap(({ options }) => options.map(({ value }) => value)),
+    ).toEqual(['11', '13', '31']);
+  });
+
+  it('reads no admin list while the catalogue offers the area', async () => {
+    startPreferences('en');
+    const { result, requests } = renderOptions(13);
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+    expect(result.current.kept).toBeNull();
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'get /lookups',
+    ]);
   });
 });
