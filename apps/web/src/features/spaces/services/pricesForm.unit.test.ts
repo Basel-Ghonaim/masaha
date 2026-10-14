@@ -38,9 +38,15 @@ describe('agorotOf', () => {
     expect(agorotOf('0')).toBe(0);
   });
 
-  it('leaves an amount with more than two decimals as no whole number of agorot', () => {
-    expect(Number.isInteger(agorotOf('12.555'))).toBe(false);
-    expect(agorotOf('12.555')).toBeCloseTo(1255.5);
+  it('hands back an amount past two decimals as typed, a thousands separator included', () => {
+    expect(agorotOf('1,000')).toBe('1,000');
+    expect(agorotOf('12.500')).toBe('12.500');
+    expect(agorotOf('٣٫٠٠٠')).toBe('٣٫٠٠٠');
+    expect(agorotOf('12.555')).toBe('12.555');
+    // Up to two decimals is still whole agorot.
+    expect(agorotOf('12.5')).toBe(1250);
+    expect(agorotOf('12,50')).toBe(1250);
+    expect(agorotOf('١٢٫٥')).toBe(1250);
   });
 
   it('leaves what is no amount as typed, and a blank as no value', () => {

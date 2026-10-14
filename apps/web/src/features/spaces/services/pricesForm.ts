@@ -34,8 +34,8 @@ export function shekelsOf(agorot: number): string {
 
 /**
  * The agorot an amount typed in shekels names: Western or Arabic-Indic digits, `.`, `,` or `٫` as
- * the separator. Up to two decimals, it is whole agorot; more, it is left unrounded, which the
- * contract refuses as no whole number. A blank is no value (`undefined`); a text it cannot read is
+ * the separator, up to two decimals, as whole agorot. A blank is no value (`undefined`). A text it
+ * cannot read, or one past two decimals, such as `12.500` or a thousands separator in `1,000`, is
  * handed back as typed, so the contract's schema refuses it as `invalid_format`.
  */
 export function agorotOf(text: string): number | string | undefined {
@@ -50,7 +50,7 @@ export function agorotOf(text: string): number | string | undefined {
   if (parts === null || !/\d/.test(typed)) return text;
   const shekels = Number(typed);
   const decimals = parts[2]?.length ?? 0;
-  return decimals <= 2 ? Math.round(shekels * 100) : shekels * 100;
+  return decimals <= 2 ? Math.round(shekels * 100) : text;
 }
 
 /** A space's prices as their form holds them. */
