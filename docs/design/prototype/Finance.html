@@ -117,7 +117,7 @@ function DebtsTab({ month }) {
           <CardContent className="p-0"><ul className="divide-y">{credits.map((c) => <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-3"><a className="text-label text-foreground" href={'Customer file.html?id=' + c.id}>{c.name}</a><BalanceBadge c={c} /></li>)}</ul></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>{tr('دفعوا في ', 'Paid in ') + monthLabel(month)}</CardTitle>{paidThisMonth.length > 5 && <CardAction><Button variant="link" size="sm" asChild><a href="Payments.html">{tr('عرض الكل', 'View all')}</a></Button></CardAction>}</CardHeader>
+          <CardHeader><CardTitle>{tr('دفعوا في ', 'Paid in ') + monthLabel(month)}</CardTitle>{paidThisMonth.length > 5 && <CardAction><Button variant="link" size="sm" asChild><a href={'Payments.html?month=' + month}>{tr('عرض الكل', 'View all')}</a></Button></CardAction>}</CardHeader>
           <CardContent className="p-0"><ul className="divide-y">{paidThisMonth.slice(0, 5).map((c) => <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-3"><a className="text-label text-foreground" href={'Customer file.html?id=' + c.id}>{c.name}</a><span className="text-body-sm text-muted-foreground">{DESK.currentSub(c) ? DESK.currentSub(c).name : ''}</span></li>)}</ul></CardContent>
         </Card>
       </div>

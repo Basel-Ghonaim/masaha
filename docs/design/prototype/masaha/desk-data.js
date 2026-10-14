@@ -232,7 +232,7 @@ window.DESK = (function () {
   const ledger = () => {
     const rows = [];
     customers.forEach((c) => c.subs.forEach((s, si) => s.pays.forEach((p, i) => rows.push({ id: s.id + '-' + i, ref: p, date: p[0], time: p[1], amount: p[2], method: p[3], by: p[4], voided: p[5] || null, voidedBy: p[7] || null, who: c.name, customerId: c.id, item: s.name, type: 'sub' }))));
-    visitPays.forEach((v) => rows.push({ id: v.id, ref: v, date: v.date, time: v.time, amount: v.amount, method: v.method, by: v.by, voided: v.voided || null, voidedBy: v.voidedBy || null, who: v.name, item: T('زيارة', 'Visit'), type: 'visit' }));
+    visitPays.forEach((v) => rows.push({ id: v.id, ref: v, date: v.date, time: v.time, amount: v.amount, method: v.method, by: v.by, voided: v.voided || null, voidedBy: v.voidedBy || null, who: v.name, customerId: v.customerId || null, item: T('زيارة', 'Visit'), type: 'visit' }));
     return rows.sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1));
   };
   const collected = (rows) => rows.filter((r) => !r.voided).reduce((a, r) => a + r.amount, 0);
