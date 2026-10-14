@@ -212,7 +212,7 @@ export const SPACES = {
         amount: {
           required: 'Enter the amount',
           invalid_format: 'An amount in shekels, such as 15 or 12.50',
-          out_of_range: 'Above zero, up to ₪100,000',
+          out_of_range: 'Above zero, up to ₪100000',
         },
         /** A price that repeats another: said on the field that would tell them apart. */
         repeated: 'A repeated price: change this field',

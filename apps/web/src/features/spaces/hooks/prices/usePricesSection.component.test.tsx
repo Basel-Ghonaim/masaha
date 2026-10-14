@@ -241,7 +241,7 @@ describe('usePricesSection', () => {
     await waitFor(() => {
       expect(result.current.rows.map((row) => row.amount.error)).toEqual([
         'Enter the amount',
-        'Above zero, up to ₪100,000',
+        'Above zero, up to ₪100000',
         'An amount in shekels, such as 15 or 12.50',
         'An amount in shekels, such as 15 or 12.50',
       ]);

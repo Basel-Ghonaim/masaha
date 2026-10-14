@@ -176,7 +176,7 @@ export const SPACES = {
         amount: {
           required: 'أدخل المبلغ',
           invalid_format: 'مبلغ بالشيكل، مثل 15 أو 12.50',
-          out_of_range: 'أكبر من صفر، حتى 100,000 ₪',
+          out_of_range: 'أكبر من صفر، حتى 100000 ₪',
         },
         repeated: 'سعر مكرّر: غيّر هذا الحقل',
         labelAr: { required: 'الوصف بالعربية أولًا' },
