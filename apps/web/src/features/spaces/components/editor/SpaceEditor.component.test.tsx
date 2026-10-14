@@ -224,7 +224,7 @@ describe('the space editor', () => {
     expect(screen.getByText('Hidden')).toBeInTheDocument();
   });
 
-  it('heads a space with missing groups with the five, a drawn section’s line a link to it', async () => {
+  it('heads a space with missing groups with the five, each line a link to its section', async () => {
     renderEditor();
 
     const checklist = await screen.findByRole('region', { name: 'Still missing' });
@@ -247,7 +247,10 @@ describe('the space editor', () => {
       'href',
       '/spaces/7#hours',
     );
-    expect(within(checklist).queryByRole('link', { name: 'Prices' })).toBeNull();
+    expect(within(checklist).getByRole('link', { name: 'Prices' })).toHaveAttribute(
+      'href',
+      '/spaces/7#prices',
+    );
   });
 
   it('lists its sections in a navigation, the one in view marked', async () => {
@@ -258,7 +261,7 @@ describe('the space editor', () => {
       within(navigation)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['The space', 'Opening hours', 'Amenities', 'Contacts']);
+    ).toEqual(['The space', 'Opening hours', 'Prices', 'Amenities', 'Contacts']);
     act(() => {
       observer.intersect(['amenities', 'contacts']);
     });
@@ -473,6 +476,32 @@ describe('the opening hours section', () => {
   });
 });
 
+describe('the prices section', () => {
+  it('names each price’s controls by its row, and says once why no shift can be chosen', async () => {
+    const day = {
+      period: 'DAY' as const,
+      audience: 'GENERAL' as const,
+      shiftId: null,
+      labelAr: null,
+      labelEn: null,
+      amountAgorot: 1500,
+    };
+    renderEditor({
+      read: () => ok({ ...SPACE, prices: [day, { ...day, period: 'WEEK', amountAgorot: 1250 }] }),
+    });
+    const first = await screen.findByRole('group', { name: 'Price 1' });
+
+    expect(within(first).getByRole('combobox', { name: 'Period' })).toHaveTextContent('Day');
+    expect(within(first).getByRole('combobox', { name: 'For' })).toHaveTextContent('Everyone');
+    expect(within(first).getByRole('combobox', { name: 'Shift' })).toBeDisabled();
+    expect(within(first).getByRole('textbox', { name: 'Amount (₪)' })).toHaveValue('15');
+    expect(within(first).getByRole('button', { name: 'Remove price 1' })).toBeEnabled();
+    const second = screen.getByRole('group', { name: 'Price 2' });
+    expect(within(second).getByRole('textbox', { name: 'Amount (₪)' })).toHaveValue('12.50');
+    expect(screen.getAllByText('No saved shifts — add shifts first.')).toHaveLength(1);
+  });
+});
+
 describe('a verified space', () => {
   it('shows its values to read, with the way to its public page, and nothing to save', async () => {
     renderEditor({
@@ -495,6 +524,16 @@ describe('a verified space', () => {
             ],
             shifts: [{ id: 4, nameAr: 'صباحية', nameEn: null, startsMinute: 540, endsMinute: 780 }],
           },
+          prices: [
+            {
+              period: 'DAY',
+              audience: 'GENERAL',
+              shiftId: null,
+              labelAr: null,
+              labelEn: null,
+              amountAgorot: 1500,
+            },
+          ],
         }),
     });
 
@@ -521,6 +560,9 @@ describe('a verified space', () => {
     expect(within(friday).getByText('Closed')).toBeInTheDocument();
     expect(within(hours).getByText('صباحية')).toHaveAttribute('lang', 'ar');
     expect(within(hours).getByText('09:00–13:00')).toHaveAttribute('dir', 'ltr');
+    const prices = section('Prices');
+    const day = within(prices).getByText('Day · Everyone').closest('div') as HTMLElement;
+    expect(within(day).getByText('₪15')).toHaveAttribute('dir', 'ltr');
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Still missing' })).toBeNull();

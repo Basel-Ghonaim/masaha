@@ -180,6 +180,48 @@ export const SPACES = {
         noneOpen: 'No day is open yet',
       },
     },
+    /** «الأسعار»: the prices, for display only; each a period, an audience, a shift, a label. */
+    prices: {
+      intro: 'For display only: payment is at the space. Leave out the periods it doesn’t offer.',
+      /** Above the rows, while the space has no saved shift. */
+      noShifts: 'No saved shifts — add shifts first.',
+      /** Above the rows, while the opening hours have unsaved changes. */
+      hoursUnsaved: 'Save the opening hours for a new shift to show here.',
+      period: 'Period',
+      audience: 'For',
+      shift: 'Shift',
+      label: 'Custom label',
+      labelEn: 'Label in English',
+      labelEnPlaceholder: 'In English (optional)',
+      amount: 'Amount (₪)',
+      periods: { HOUR: 'Hour', DAY: 'Day', WEEK: 'Week', MONTH: 'Month' },
+      audiences: { GENERAL: 'Everyone', STUDENT: 'Students' },
+      noShift: 'No shift',
+      row: ({ position }: { position: number }) => `Price ${String(position)}`,
+      add: 'Add price',
+      /** Beside the disabled "Add price", at the contract's limit. */
+      limit: 'Up to 40 prices',
+      remove: ({ position }: { position: number }) => `Remove price ${String(position)}`,
+      /** A verified space's price: its period and audience, then its shift and label. */
+      summary: ({ period, audience }: { period: string; audience: string }) =>
+        `${period} · ${audience}`,
+      withPart: ({ line, part }: { line: string; part: string }) => `${line} · ${part}`,
+      /** A verified space with none, read-only. */
+      none: 'No prices yet',
+      fieldErrors: {
+        amount: {
+          required: 'Enter the amount',
+          invalid_format: 'An amount in shekels, such as 15 or 12.50',
+          out_of_range: 'Above zero, up to ₪100,000',
+        },
+        /** A price that repeats another: said on the field that would tell them apart. */
+        repeated: 'A repeated price: change this field',
+        labelAr: { required: 'The Arabic label first' },
+        label: { too_long: '60 characters at most' },
+        /** A shift removed meanwhile (422 on the row's shift). */
+        shiftGone: 'This shift is no longer the space’s',
+      },
+    },
     /** «المرافق»: the platform's amenities ticked, and the space's own beside them. */
     amenities: {
       /** Names the platform's amenities to tick. */

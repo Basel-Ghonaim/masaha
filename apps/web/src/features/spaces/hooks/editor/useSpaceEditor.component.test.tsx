@@ -94,7 +94,7 @@ describe('useSpaceEditor', () => {
     await ready(result);
   });
 
-  it('lists the five groups while one is missing, only a drawn section’s line a link', async () => {
+  it('lists the five groups while one is missing, each line a link to its section', async () => {
     const { result } = renderEditor();
 
     const editor = await ready(result);
@@ -109,7 +109,7 @@ describe('useSpaceEditor', () => {
     ).toEqual([
       ['profile', '#profile', 'Done', 'success'],
       ['hours', '#hours', 'Not added yet', 'warning'],
-      ['prices', null, 'Not added yet', 'warning'],
+      ['prices', '#prices', 'Not added yet', 'warning'],
       ['amenities', '#amenities', 'Not added yet', 'warning'],
       ['contacts', '#contacts', 'Not added yet', 'warning'],
     ]);
@@ -158,6 +158,24 @@ describe('useSpaceEditor', () => {
 
     await act(() => router.navigate('/elsewhere'));
     expect(router.state.location.pathname).toBe('/elsewhere');
+  });
+
+  it('says whether the hours have unsaved changes, for the prices', async () => {
+    const { result } = renderEditor();
+    const editor = await ready(result);
+
+    act(() => {
+      editor.onDirtyChange('profile', true);
+    });
+    expect(result.current).toMatchObject({ hoursUnsaved: false });
+    act(() => {
+      editor.onDirtyChange('hours', true);
+    });
+    expect(result.current).toMatchObject({ hoursUnsaved: true });
+    act(() => {
+      editor.onDirtyChange('hours', false);
+    });
+    expect(result.current).toMatchObject({ hoursUnsaved: false });
   });
 
   it('says the changes are being saved while one of the space’s writes is pending', async () => {

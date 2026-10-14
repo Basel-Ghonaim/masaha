@@ -34,6 +34,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [63. A photo's files can outlive it](63-a-photos-files-can-outlive-it.md)
 - [64. The deployment's headers must let Cloudinary's photos load](64-the-deployments-headers-must-let-cloudinarys-photos-load.md)
 - [65. The forgotten password's wait is an estimate, not a measurement](65-the-forgotten-passwords-wait-is-an-estimate-not-a-measurement.md)
+- [67. The prices table cuts its shift at 768 px](67-the-prices-table-cuts-its-shift-at-768-px.md)
 
 ## Accepted
 
