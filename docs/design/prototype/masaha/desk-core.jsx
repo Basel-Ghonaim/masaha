@@ -19,6 +19,7 @@ const focusInvalid = () => setTimeout(() => { const bad = document.querySelector
 const dayWord = (iso) => (iso === D.TODAY ? tr('اليوم', 'today') : iso === D.addDays(D.TODAY, -1) ? tr('أمس', 'yesterday') : D.fmtDate(iso));
 // O5's forms for the desk's own counted words.
 const F_UNCOLLECTED = { ar: { one: 'زيارة واحدة غير محصّلة', two: 'زيارتان غير محصّلتين', few: '{n} زيارات غير محصّلة', many: '{n} زيارة غير محصّلة', other: '{n} زيارة غير محصّلة' }, en: ['{n} visit not collected', '{n} visits not collected'] };
+const F_PAYMENTS = { ar: { zero: 'لا دفعات', one: 'دفعة واحدة', two: 'دفعتان', few: '{n} دفعات', many: '{n} دفعة', other: '{n} دفعة' }, en: ['{n} payment', '{n} payments'] };
 // DK-010: a subscriber on a fixed price has nothing to settle at check-out, so it is one tap.
 const isQuickOut = (p) => { if (p.kind !== 'sub') return false; const s = D.currentSub(D.findCustomer(p.customerId)); return !s || s.billing.type === 'fixed'; };
 
@@ -781,4 +782,4 @@ function UnpaidRow({ u, showName }) {
   );
 }
 
-Object.assign(window, { DeskProvider, useDesk, CustomerCard, StatusBadge, BalanceBadge, Money, durLabel, nameOf, normPhone, phoneOk, checkInWarnings, MethodToggle, ME, durText, paidLine, MONEY_RETRY, focusInvalid, isQuickOut, moneyOf, MoneyBlock, MoneyRateNote, OutButton, dayWord, F_UNCOLLECTED, ReasonDialog, UnpaidRow, CustomerActions, CustomerMenuItems, PaidAmount, PaymentMenu });
+Object.assign(window, { DeskProvider, useDesk, CustomerCard, StatusBadge, BalanceBadge, Money, durLabel, nameOf, normPhone, phoneOk, checkInWarnings, MethodToggle, ME, durText, paidLine, MONEY_RETRY, focusInvalid, isQuickOut, moneyOf, MoneyBlock, MoneyRateNote, OutButton, dayWord, F_UNCOLLECTED, ReasonDialog, UnpaidRow, CustomerActions, CustomerMenuItems, PaidAmount, PaymentMenu, F_PAYMENTS });

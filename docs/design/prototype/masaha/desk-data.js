@@ -106,7 +106,8 @@ window.DESK = (function () {
   const writtenOff = [];
   // Visit payments: by name, or through the visit's customer (`customerId`, K4) once it has one.
   const visitPays = [
-    { id: 'vp1', name: T('فرح جابر', 'Farah Jaber'), date: TODAY, time: '10:02', amount: 6, method: 'cash', by: SM },
+    // DK-015: the owner voided one of Sami's today, so the handover shows it struck.
+    { id: 'vp1', name: T('فرح جابر', 'Farah Jaber'), date: TODAY, time: '10:02', amount: 6, method: 'cash', by: SM, voided: T('سُجّلت بالخطأ', 'Recorded by mistake'), voidedBy: A },
     { id: 'vp2', name: T('أنس البنا', 'Anas Al-Banna'), date: TODAY, time: '10:40', amount: 9, method: 'transfer', by: SM },
     { id: 'vp3', name: T('شهد عيّاد', 'Shahd Ayyad'), date: TODAY, time: '11:55', amount: 15, method: 'cash', by: SM }
   ];
