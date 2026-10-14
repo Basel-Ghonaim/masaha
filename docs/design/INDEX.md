@@ -86,6 +86,24 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | `Finance.html?month=2026-08` | Finance | the month chosen (OW-015) |
 | `Owner overview.html?demo=nocapacity` · `?demo=clear` | the overview | no capacity set (the queue's row, «بلا حالة مباشرة»), or nothing to do («كل شيء على ما يرام») |
 | `Owner audit.html` | the owner's audit log | the space's log (O13); `?state=loading` its skeleton |
+### Batch 6 — the front desk
+
+| Parameter | Where | What it shows |
+|---|---|---|
+| `Desk.html?q=<text>` | the desk | the one search: «حاضر الآن» first, then the customers, then «تسجيل زيارة باسم «…»» and «زبون جديد باسم «…»» (K1); two digits or more match a mobile's end |
+| `?dialog=checkout&pid=<id>&received=<₪>` | the desk | the check-out's money block with that amount received: less → the debt line (and the mobile, for a visit with no customer), more → the change. `&debt=1` is `received=0`. A fixed-price subscriber's `pid` (`ps0`) checks out on load, as the one tap does |
+| `?dialog=pay&vid=<visit>` · `?dialog=debt&vid=<visit>` | the desk | an uncollected visit with no customer: collected on the visit, or recorded as a debt by name and mobile (DK-012) |
+| `?writeoff=<visit>` | `Desk.html`, `Customer file.html` (owner) | «لن يُحصَّل»: its reason asked (K6) |
+| `?unpaid=all` · `Desk.html#unpaid` | the desk | the uncollected card with every row; the card, where the overview's queue lands (DI-35) |
+| `?dialog=visit&vname=<name>` | the desk | the visit dialog with the name carried |
+| `?demo=noshifts` · `studentprices` · `nostudent` · `nocap` | the desk's pages | no shift saved (no «الوردية»); a student hour and day price, 2 ₪ and 10 ₪ («طالب» shows); student prices for visits off; the day-price cap off — a comma list, as on the owner's pages |
+| `?fail=sheet` · `?fail=sheet-pay&half=1` | the subscription sheet | the save failing; the subscription saved and its payment not, retried alone (DK-018) |
+| `?fail=checkout` · `pay` · `visit` · `debt` · `writeoff` · `void` · `edit` | the desk's dialogs | that action failing inside its dialog; money's says a retry is safe |
+| `?state=ratelimit` | the desk's money dialogs | the 429 inside the dialog: nothing was recorded, a retry is safe |
+| `Customers.html?status=archived` | Customers (owner) | «مؤرشف»: the archived customers with «استرجاع» (DK-014); `active` · `soon` · `expired` the other chips |
+| `Customers.html?edit=<id>` · `Customer file.html?edit=1` | the customer | «تعديل البيانات»; `&taken=1` its PHONE_TAKEN on the mobile |
+| `Customer file.html?void=1` · `Payments.html?void=1` | owner | the void's `AlertDialog` for the newest payment not voided (the void is in the row's «⋯») |
+| `Payments.html?month=2026-08` | Payments | one month, as Finance's «عرض الكل» opens it (DI-36) |
 
 ## 01 · Flow
 
@@ -415,8 +433,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Desk · owner (أحمد) — phone 390 | `Desk.html` | 390×844 | [21-front-desk-reception-vs-owner/04-desk-owner-phone-390.webp](screens/21-front-desk-reception-vs-owner/04-desk-owner-phone-390.webp) |
 | Desk · search results — desktop 1440 | `Desk.html?role=reception&q=نور` | 1440×1000 | [21-front-desk-reception-vs-owner/05-desk-search-results-desktop-1440.webp](screens/21-front-desk-reception-vs-owner/05-desk-search-results-desktop-1440.webp) |
 | Desk · search results — phone 390 | `Desk.html?role=reception&q=نور` | 390×844 | [21-front-desk-reception-vs-owner/06-desk-search-results-phone-390.webp](screens/21-front-desk-reception-vs-owner/06-desk-search-results-phone-390.webp) |
-| Desk · no result → «زبون جديد باسم …» — desktop 1440 | `Desk.html?role=reception&q=سليم` | 1440×1000 | [21-front-desk-reception-vs-owner/07-desk-no-result-desktop-1440.webp](screens/21-front-desk-reception-vs-owner/07-desk-no-result-desktop-1440.webp) |
-| Desk · no result → «زبون جديد باسم …» — phone 390 | `Desk.html?role=reception&q=سليم` | 390×844 | [21-front-desk-reception-vs-owner/08-desk-no-result-phone-390.webp](screens/21-front-desk-reception-vs-owner/08-desk-no-result-phone-390.webp) |
+| Desk · no result → «تسجيل زيارة باسم …» — desktop 1440 | `Desk.html?role=reception&q=سليم` | 1440×1000 | [21-front-desk-reception-vs-owner/07-desk-no-result-desktop-1440.webp](screens/21-front-desk-reception-vs-owner/07-desk-no-result-desktop-1440.webp) |
+| Desk · no result → «تسجيل زيارة باسم …» — phone 390 | `Desk.html?role=reception&q=سليم` | 390×844 | [21-front-desk-reception-vs-owner/08-desk-no-result-phone-390.webp](screens/21-front-desk-reception-vs-owner/08-desk-no-result-phone-390.webp) |
 | Desk · empty — desktop 1440 | `Desk.html?role=reception&state=empty` | 1440×1000 | [21-front-desk-reception-vs-owner/09-desk-empty-desktop-1440.webp](screens/21-front-desk-reception-vs-owner/09-desk-empty-desktop-1440.webp) |
 | Desk · empty — phone 390 | `Desk.html?role=reception&state=empty` | 390×844 | [21-front-desk-reception-vs-owner/10-desk-empty-phone-390.webp](screens/21-front-desk-reception-vs-owner/10-desk-empty-phone-390.webp) |
 | Desk · loading — desktop 1440 | `Desk.html?role=reception&state=loading` | 1440×1000 | [21-front-desk-reception-vs-owner/11-desk-loading-desktop-1440.webp](screens/21-front-desk-reception-vs-owner/11-desk-loading-desktop-1440.webp) |
@@ -434,8 +452,8 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Visit dialog — phone 390 | `Desk.html?role=reception&dialog=visit` | 390×844 | [22-check-in-warnings/02-visit-dialog-phone-390.webp](screens/22-check-in-warnings/02-visit-dialog-phone-390.webp) |
 | Expired → «تسجيل كزيارة» / «تجديد» — desktop 1440 | `Desk.html?role=reception&dialog=warn&cid=m5` | 1440×1000 | [22-check-in-warnings/03-expired-desktop-1440.webp](screens/22-check-in-warnings/03-expired-desktop-1440.webp) |
 | Expired → «تسجيل كزيارة» / «تجديد» — phone 390 | `Desk.html?role=reception&dialog=warn&cid=m5` | 390×844 | [22-check-in-warnings/04-expired-phone-390.webp](screens/22-check-in-warnings/04-expired-phone-390.webp) |
-| Not one of his days — desktop 1440 | `Desk.html?role=reception&dialog=warn&cid=m12` | 1440×1000 | [22-check-in-warnings/05-not-one-of-his-days-desktop-1440.webp](screens/22-check-in-warnings/05-not-one-of-his-days-desktop-1440.webp) |
-| Not one of his days — phone 390 | `Desk.html?role=reception&dialog=warn&cid=m12` | 390×844 | [22-check-in-warnings/06-not-one-of-his-days-phone-390.webp](screens/22-check-in-warnings/06-not-one-of-his-days-phone-390.webp) |
+| This week’s days used up — desktop 1440 | `Desk.html?role=reception&dialog=warn&cid=m12` | 1440×1000 | [22-check-in-warnings/05-not-one-of-his-days-desktop-1440.webp](screens/22-check-in-warnings/05-not-one-of-his-days-desktop-1440.webp) |
+| This week’s days used up — phone 390 | `Desk.html?role=reception&dialog=warn&cid=m12` | 390×844 | [22-check-in-warnings/06-not-one-of-his-days-phone-390.webp](screens/22-check-in-warnings/06-not-one-of-his-days-phone-390.webp) |
 | Over today’s hours — desktop 1440 | `Desk.html?role=reception&dialog=warn&cid=m13` | 1440×1000 | [22-check-in-warnings/07-over-today-s-hours-desktop-1440.webp](screens/22-check-in-warnings/07-over-today-s-hours-desktop-1440.webp) |
 | Over today’s hours — phone 390 | `Desk.html?role=reception&dialog=warn&cid=m13` | 390×844 | [22-check-in-warnings/08-over-today-s-hours-phone-390.webp](screens/22-check-in-warnings/08-over-today-s-hours-phone-390.webp) |
 | Already present — desktop 1440 | `Desk.html?role=reception&dialog=warn&cid=m1` | 1440×1000 | [22-check-in-warnings/09-already-present-desktop-1440.webp](screens/22-check-in-warnings/09-already-present-desktop-1440.webp) |
@@ -453,19 +471,19 @@ shared layer's decisions were applied (`CHANGES.md`), and work on every page of 
 | Visit · without paying (phone required) — phone 390 | `Desk.html?role=reception&dialog=checkout&pid=pv0&debt=1` | 390×844 | [23-check-out/04-visit-without-paying-phone-required-phone-390.webp](screens/23-check-out/04-visit-without-paying-phone-required-phone-390.webp) |
 | Subscriber · usage-based — desktop 1440 | `Desk.html?role=reception&dialog=checkout&pid=ps2` | 1440×1000 | [23-check-out/05-subscriber-usage-based-desktop-1440.webp](screens/23-check-out/05-subscriber-usage-based-desktop-1440.webp) |
 | Subscriber · usage-based — phone 390 | `Desk.html?role=reception&dialog=checkout&pid=ps2` | 390×844 | [23-check-out/06-subscriber-usage-based-phone-390.webp](screens/23-check-out/06-subscriber-usage-based-phone-390.webp) |
-| Subscriber · monthly — desktop 1440 | `Desk.html?role=reception&dialog=checkout&pid=ps0` | 1440×1000 | [23-check-out/07-subscriber-monthly-desktop-1440.webp](screens/23-check-out/07-subscriber-monthly-desktop-1440.webp) |
-| Subscriber · monthly — phone 390 | `Desk.html?role=reception&dialog=checkout&pid=ps0` | 390×844 | [23-check-out/08-subscriber-monthly-phone-390.webp](screens/23-check-out/08-subscriber-monthly-phone-390.webp) |
+| Subscriber · monthly → one tap, no dialog — desktop 1440 | `Desk.html?role=reception&dialog=checkout&pid=ps0` | 1440×1000 | [23-check-out/07-subscriber-monthly-desktop-1440.webp](screens/23-check-out/07-subscriber-monthly-desktop-1440.webp) |
+| Subscriber · monthly → one tap, no dialog — phone 390 | `Desk.html?role=reception&dialog=checkout&pid=ps0` | 390×844 | [23-check-out/08-subscriber-monthly-phone-390.webp](screens/23-check-out/08-subscriber-monthly-phone-390.webp) |
 
 ## 24 · New customer / subscription sheet
 
 | Frame | Prototype URL | Viewport | Screenshot |
 |---|---|---|---|
-| Step 1 · customer — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 1440×1000 | [24-new-customer-membership-sheet/01-step-1-customer-desktop-1440.webp](screens/24-new-customer-subscription-sheet/01-step-1-customer-desktop-1440.webp) |
-| Step 1 · customer — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 390×844 | [24-new-customer-membership-sheet/02-step-1-customer-phone-390.webp](screens/24-new-customer-subscription-sheet/02-step-1-customer-phone-390.webp) |
-| Step 2 · package + partial payment — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 1440×1000 | [24-new-customer-membership-sheet/03-step-2-package-partial-payment-desktop-1440.webp](screens/24-new-customer-subscription-sheet/03-step-2-package-partial-payment-desktop-1440.webp) |
-| Step 2 · package + partial payment — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 390×844 | [24-new-customer-membership-sheet/04-step-2-package-partial-payment-phone-390.webp](screens/24-new-customer-subscription-sheet/04-step-2-package-partial-payment-phone-390.webp) |
-| Step 2 · «مخصّص» — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 1440×1000 | [24-new-customer-membership-sheet/05-step-2-desktop-1440.webp](screens/24-new-customer-subscription-sheet/05-step-2-desktop-1440.webp) |
-| Step 2 · «مخصّص» — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 390×844 | [24-new-customer-membership-sheet/06-step-2-phone-390.webp](screens/24-new-customer-subscription-sheet/06-step-2-phone-390.webp) |
+| New customer · one step — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 1440×1000 | [24-new-customer-membership-sheet/01-step-1-customer-desktop-1440.webp](screens/24-new-customer-subscription-sheet/01-step-1-customer-desktop-1440.webp) |
+| New customer · one step — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 390×844 | [24-new-customer-membership-sheet/02-step-1-customer-phone-390.webp](screens/24-new-customer-subscription-sheet/02-step-1-customer-phone-390.webp) |
+| Renewal · a partial payment — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 1440×1000 | [24-new-customer-membership-sheet/03-step-2-package-partial-payment-desktop-1440.webp](screens/24-new-customer-subscription-sheet/03-step-2-package-partial-payment-desktop-1440.webp) |
+| Renewal · a partial payment — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&paynow=50` | 390×844 | [24-new-customer-membership-sheet/04-step-2-package-partial-payment-phone-390.webp](screens/24-new-customer-subscription-sheet/04-step-2-package-partial-payment-phone-390.webp) |
+| «مخصّص» · no end, no limit — desktop 1440 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 1440×1000 | [24-new-customer-membership-sheet/05-step-2-desktop-1440.webp](screens/24-new-customer-subscription-sheet/05-step-2-desktop-1440.webp) |
+| «مخصّص» · no end, no limit — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 390×844 | [24-new-customer-membership-sheet/06-step-2-phone-390.webp](screens/24-new-customer-subscription-sheet/06-step-2-phone-390.webp) |
 | Renewal with an unpaid September — desktop 1440 | `Customers.html?role=reception&renew=m6` | 1440×1000 | [24-new-customer-membership-sheet/07-renewal-with-an-unpaid-september-desktop-1440.webp](screens/24-new-customer-subscription-sheet/07-renewal-with-an-unpaid-september-desktop-1440.webp) |
 | Renewal with an unpaid September — phone 390 | `Customers.html?role=reception&renew=m6` | 390×844 | [24-new-customer-membership-sheet/08-renewal-with-an-unpaid-september-phone-390.webp](screens/24-new-customer-subscription-sheet/08-renewal-with-an-unpaid-september-phone-390.webp) |
 
@@ -900,3 +918,46 @@ Added by the owner's fix (`CHANGES.md` › *Batch 5*). No screenshot yet: `scree
 | Finance · one month — desktop 1440 | `Finance.html?month=2026-08` | 1440×1000 | — |
 | Settings · attendance and the live state — desktop 1440 | `Owner settings.html#attendance` | 1440×1000 | — |
 | Audit log · the space's — desktop 1440 | `Owner audit.html` | 1440×1000 | — |
+## 56 · Batch 6 — the front desk
+
+Added by the desk's fix (`CHANGES.md` › *Batch 6*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
+
+| Frame | Prototype URL | Viewport | Screenshot |
+|---|---|---|---|
+| Desk · one search, here first — desktop 1440 | `Desk.html?role=reception&q=لمى` | 1440×1000 | — |
+| Desk · one search, here first — phone 390 | `Desk.html?role=reception&q=لمى` | 390×844 | — |
+| Desk · nothing found: the visit leads — phone 390 | `Desk.html?role=reception&q=سليم` | 390×844 | — |
+| Desk · ordered for the phone — phone 390 | `Desk.html?role=reception` | 390×844 | — |
+| Desk · a mobile's last digits — phone 390 | `Desk.html?role=reception&q=1006` | 390×844 | — |
+| Desk · every uncollected row, the owner's «⋯» — desktop 1440 | `Desk.html?unpaid=all` | 1440×1000 | — |
+| Write-off · a reason, never a payment (owner) — phone 390 | `Desk.html?writeoff=u2` | 390×844 | — |
+| Uncollected · a debt by name and mobile — phone 390 | `Desk.html?role=reception&dialog=debt&vid=u3` | 390×844 | — |
+| Uncollected · collect a visit with no customer — phone 390 | `Desk.html?role=reception&dialog=pay&vid=u3` | 390×844 | — |
+| Desk · landed from the overview's queue — phone 390 | `Desk.html#unpaid` | 390×844 | — |
+| Check-out · more handed over: the change — desktop 1440 | `Desk.html?role=reception&dialog=checkout&pid=pv0&received=20` | 1440×1000 | — |
+| Check-out · leaves owing, the mobile asked — phone 390 | `Desk.html?role=reception&dialog=checkout&pid=pv0&received=5` | 390×844 | — |
+| Check-out · a visit as the customer, nothing paid — phone 390 | `Desk.html?role=reception&dialog=checkout&pid=pv5&received=0` | 390×844 | — |
+| Check-out · billed from attendance — phone 390 | `Desk.html?role=reception&dialog=checkout&pid=ps2` | 390×844 | — |
+| Check-out · a fixed-price subscriber, one tap — phone 390 | `Desk.html?role=reception&dialog=checkout&pid=ps0` | 390×844 | — |
+| Visit · the shift now, the rate named — desktop 1440 | `Desk.html?role=reception&dialog=visit&vname=سليم` | 1440×1000 | — |
+| Visit · student prices, no shifts — phone 390 | `Desk.html?role=reception&dialog=visit&demo=noshifts,studentprices` | 390×844 | — |
+| Check-in · this week's days used up — phone 390 | `Desk.html?role=reception&dialog=warn&cid=m12` | 390×844 | — |
+| Check-out · a retry that is safe — phone 390 | `Desk.html?role=reception&dialog=checkout&pid=pv0&fail=checkout` | 390×844 | — |
+| Check-out · too many attempts — phone 390 | `Desk.html?role=reception&dialog=checkout&pid=pv0&state=ratelimit` | 390×844 | — |
+| Renewal · the old debt first, one total — desktop 1440 | `Customers.html?role=reception&renew=m6` | 1440×1000 | — |
+| Renewal · the old debt first — phone 390 | `Customers.html?role=reception&renew=m6` | 390×844 | — |
+| New customer · one step — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=new&name=سليم` | 390×844 | — |
+| Custom · no end, no limit — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=subscribe&cid=m3&pkg=custom` | 390×844 | — |
+| Sheet · saved, the payment failed — phone 390 | `Desk.html?role=reception&dialog=sheet&mode=renew&cid=m7&fail=sheet-pay&half=1` | 390×844 | — |
+| Receive payment · the amount on the button — phone 390 | `Desk.html?role=reception&dialog=pay&cid=m6` | 390×844 | — |
+| Customer file · actions by state — phone 390 | `Customer file.html?id=m6` | 390×844 | — |
+| Edit details · the mobile taken — phone 390 | `Customer file.html?id=m6&edit=1&taken=1` | 390×844 | — |
+| Customers · archived, «استرجاع» (owner) — phone 390 | `Customers.html?status=archived` | 390×844 | — |
+| My payments · a void struck, one card — phone 390 | `My payments.html?role=reception` | 390×844 | — |
+| Payments · void: the reason (owner) — phone 390 | `Payments.html?void=1` | 390×844 | — |
+| Customer file · unpaid visits first — desktop 1440 | `Customer file.html?id=m14` | 1440×1000 | — |
+| Customer file · the visit's payment, the void in «⋯» — desktop 1440 | `Customer file.html?id=m14&tab=pays` | 1440×1000 | — |
+| Customers · five columns, status chips — tablet 768 | `Customers.html` | 768×1024 | — |
+| Payments · five columns, voided shown — tablet 768 | `Payments.html?range=today&voided=1` | 768×1024 | — |
+| Payments · a month from Finance — desktop 1440 | `Payments.html?month=2026-08` | 1440×1000 | — |
+| My payments · the handover — desktop 1440 | `My payments.html?role=reception` | 1440×1000 | — |
