@@ -67,6 +67,7 @@ import {
   createHoursService,
   createListingService,
   createPhotosController,
+  createPhotosManageRouter,
   createPhotosService,
   createPricesController,
   createPricesService,
@@ -79,6 +80,7 @@ import {
   createSpaceController,
   createSpaceService,
   createSpacesAdminRouter,
+  createSpacesManageRouter,
   createSpacesService,
 } from './modules/spaces/index.ts';
 import {
@@ -92,6 +94,7 @@ import {
   createAccessTokens,
   createRequireAuth,
   loadSpaceLinks,
+  requireSpaceAccess,
   readAccessToken,
   requireRole,
 } from './shared/auth/index.ts';
@@ -333,6 +336,28 @@ export function createApi({
   api.use(
     '/manage/spaces',
     createSpaceLinksMeRouter(createSpaceLinksController(spaceLinks), requireAuth),
+  );
+  const manage = Router();
+  manage.use(
+    createSpacesManageRouter({
+      space: createSpaceController(space),
+      profile: createProfileController(profile),
+      hours: createHoursController(hours),
+      prices: createPricesController(prices),
+      amenities: createSpaceAmenitiesController(spaceAmenities),
+      contacts: createContactsController(contacts),
+      confirm: createConfirmController(confirm),
+    }),
+  );
+  manage.use(
+    '/photos',
+    createPhotosManageRouter({ photos: createPhotosController(photos), limiter }),
+  );
+  api.use(
+    '/manage/spaces/:spaceId',
+    requireAuth(),
+    requireSpaceAccess((spaceId, tx) => spaceLinks.linksAt(spaceId, tx)),
+    manage,
   );
 
   // The platform's routes: guarded once here, so no module's admin router can leave it out.

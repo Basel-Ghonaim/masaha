@@ -74,6 +74,11 @@ The model (roles, space scope, what each role may do) is owned by [ADR 0002](../
 
 - `requireAuth` → 401 without a valid token. It then reads the account by the token's id, on every request: 401 for an account that does not exist, for a suspended one, for a token whose session version is not the account's ([Tokens and cookies](#tokens-and-cookies)), and for a token signed before a temporary password ([Passwords](#passwords)) (no code: each ended every session, so the web's refresh is refused and the session ends). The last two checks overlap, since a temporary password raises the version: the pending check stays as a second guard for any future path that sets a temporary password; the role the request carries is the account's now, never the token's ([ADR 0003](../architecture/decisions/0003-session-model.md), revised). `requireRole(...roles)` → 403.
 - Services call `can(actor, action, resource)`; the space scope and the role at the space (`OWNER` or `RECEPTION`) come from the user's active `SpaceManager` link, never from the global role or the client ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)).
+- The managed-space boundary checks the caller's active `OWNER` or `RECEPTION` link before any
+  route runs. No link, a deactivated link, an unknown space or a soft-deleted space answers
+  `not_found` (404), hiding whether an unrelated caller's target exists; hidden live spaces remain
+  available to their active links. `space.read` is the explicit staff read action; all writes still
+  pass through the existing owner-only `can()` actions and services.
 - Suspended users cannot log in or refresh, and their unexpired access tokens are refused.
 - **The admin edits a space's facts only while it is unverified,** with no active `OWNER` link; once an owner has joined, the owner does. Resolving its data reports follows the same rule. `can()` decides, from the links on the request ([conventions › Space access](conventions.md#space-access)).
 - **A suspension keeps the account's links:** a suspended owner's space stays verified, so while the owner is suspended the admin edits it only after unlinking them.
