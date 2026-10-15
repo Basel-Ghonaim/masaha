@@ -506,6 +506,7 @@ const ADDED: AdminSpace = {
   location: { lat: 31.52, lng: 34.45 },
   isHidden: false,
   isVerified: false,
+  owners: [],
   updatedAt: {
     profile: '2026-10-10T08:00:00Z',
     hours: null,

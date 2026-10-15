@@ -355,6 +355,7 @@ AdminSpace = {
   location: { lat: number, lng: number },
   isHidden: boolean,
   isVerified: boolean,             // an active OWNER link (data-model › Derived values)
+  owners: { id: number, name: string }[],  // active OWNER links, oldest first
   updatedAt: Record<FactGroup, string | null>,   // ISO 8601; null while the group is missing (never the profile)
   staleGroups: FactGroup[],         // older than the platform's thresholds (data-model › Derived values)
   missingGroups: FactGroup[],       // never saved
@@ -417,7 +418,7 @@ Contact = {
 The endpoints on one space put its links on the request first, without refusing anyone ([conventions §8](../backend/conventions.md#space-access)); a `:spaceId` that names no space answers `not_found` (404).
 
 #### `GET /admin/spaces/:spaceId` · 🛡
-- **200:** `AdminSpace`, with `isVerified` from its links: what the edit screen shows, editable or read-only.
+- **200:** `AdminSpace`, with `isVerified` and active `owners` (oldest first; reception and deactivated links excluded) from its links: what the edit screen shows, editable or read-only.
 - **Errors:** `not_found` (404), for a soft-deleted space too.
 
 #### `PATCH /admin/spaces/:spaceId` · 🛡

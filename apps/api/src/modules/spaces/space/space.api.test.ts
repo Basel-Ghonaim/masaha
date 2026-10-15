@@ -224,6 +224,7 @@ describe('GET /admin/spaces/:spaceId', () => {
       location: { lat: 31.53, lng: 34.46 },
       isHidden: false,
       isVerified: false,
+      owners: [],
       updatedAt: { profile: at, hours: at, prices: at, amenities: at, contacts: at },
       staleGroups: ['prices'],
       missingGroups: [],
@@ -300,11 +301,129 @@ describe('GET /admin/spaces/:spaceId', () => {
     expect(response?.status).toBe(200);
     expect(dataOf(response as request.Response)).toMatchObject({
       isVerified: true,
+      owners: [{ id: owner.id, name: 'Ahmad' }],
       hours: {
         days: Array.from({ length: 7 }, () => ({ opensMinute: 480, closesMinute: 1080 })),
         shifts: [{ nameAr: 'صباحية', nameEn: null, startsMinute: 480, endsMinute: 780 }],
       },
     });
+  });
+
+  it('returns active owner names in link creation order (oldest first), excluding reception and deactivated links', async () => {
+    const space = await createSpace();
+    const owner1 = await prisma.user.create({
+      data: { email: 'owner1@example.com', name: 'Zaid', passwordHash: 'x' },
+    });
+    const owner2 = await prisma.user.create({
+      data: { email: 'owner2@example.com', name: 'Amal', passwordHash: 'x' },
+    });
+    const reception = await prisma.user.create({
+      data: { email: 'reception@example.com', name: 'Rami', passwordHash: 'x' },
+    });
+    const deactivatedOwner = await prisma.user.create({
+      data: { email: 'deactivated@example.com', name: 'Dina', passwordHash: 'x' },
+    });
+
+    await prisma.spaceManager.create({
+      data: {
+        spaceId: space.id,
+        userId: owner1.id,
+        role: 'OWNER',
+        createdAt: new Date(NOW.getTime() - 2000),
+      },
+    });
+    await prisma.spaceManager.create({
+      data: {
+        spaceId: space.id,
+        userId: owner2.id,
+        role: 'OWNER',
+        createdAt: new Date(NOW.getTime() - 1000),
+      },
+    });
+    await prisma.spaceManager.create({
+      data: {
+        spaceId: space.id,
+        userId: reception.id,
+        role: 'RECEPTION',
+        createdAt: new Date(NOW.getTime() - 3000),
+      },
+    });
+    await prisma.spaceManager.create({
+      data: {
+        spaceId: space.id,
+        userId: deactivatedOwner.id,
+        role: 'OWNER',
+        deactivatedAt: NOW,
+        createdAt: new Date(NOW.getTime() - 4000),
+      },
+    });
+
+    const response = await adminRequest(app, admin, 'get', path(space.id));
+
+    expect(response.status).toBe(200);
+    expect((dataOf(response) as { owners: unknown }).owners).toEqual([
+      { id: owner1.id, name: 'Zaid' },
+      { id: owner2.id, name: 'Amal' },
+    ]);
+  });
+
+  it('answers an empty owners array for an unverified space, even with reception and deactivated links', async () => {
+    const space = await createSpace();
+    const responseEmpty = await adminRequest(app, admin, 'get', path(space.id));
+    expect((dataOf(responseEmpty) as { owners: unknown }).owners).toEqual([]);
+
+    await link(space.id, 'RECEPTION', false);
+    await link(space.id, 'OWNER', true);
+
+    const responseFiltered = await adminRequest(app, admin, 'get', path(space.id));
+    expect((dataOf(responseFiltered) as { owners: unknown }).owners).toEqual([]);
+  });
+
+  it('omits an owner link whose user cannot be found, rather than returning an empty name', async () => {
+    const space = await createSpace();
+    const owner = await link(space.id, 'OWNER');
+
+    await prisma.$executeRawUnsafe('ALTER TABLE space_managers DISABLE TRIGGER ALL;');
+    try {
+      await prisma.$executeRaw`
+        INSERT INTO space_managers (space_id, user_id, role, created_at, updated_at)
+        VALUES (${space.id}, 99999, 'OWNER', ${NOW}, ${NOW})
+      `;
+    } finally {
+      await prisma.$executeRawUnsafe('ALTER TABLE space_managers ENABLE TRIGGER ALL;');
+    }
+
+    const response = await adminRequest(app, admin, 'get', path(space.id));
+    expect(response.status).toBe(200);
+    expect((dataOf(response) as { owners: unknown }).owners).toEqual([
+      { id: owner.id, name: 'Sara' },
+    ]);
+  });
+
+  it('retains active owners on fact write and confirm responses', async () => {
+    const space = await createSpace();
+    await prisma.spaceManager.create({
+      data: { spaceId: space.id, userId: admin.id, role: 'OWNER' },
+    });
+
+    const patchResponse = await adminRequest(app, admin, 'patch', path(space.id), {
+      nameEn: 'Renamed Hub',
+    });
+    expect(patchResponse.status).toBe(200);
+    expect((dataOf(patchResponse) as { owners: unknown }).owners).toEqual([
+      { id: admin.id, name: 'Sara' },
+    ]);
+
+    const confirmResponse = await adminRequest(
+      app,
+      admin,
+      'post',
+      path(space.id, '/profile/confirm'),
+    );
+    expect(confirmResponse.status).toBe(200);
+    expect((dataOf(confirmResponse) as { owners: unknown }).owners).toEqual([
+      { id: admin.id, name: 'Sara' },
+    ]);
   });
 
   it('names the space in the request’s log line (conventions §10)', async () => {

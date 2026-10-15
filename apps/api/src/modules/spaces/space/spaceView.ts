@@ -18,6 +18,7 @@ export function createSpaceView(now: () => Date) {
     isVerified: boolean,
     thresholds: StalenessThresholds,
     facts: SpaceFacts,
+    owners: AdminSpace['owners'],
   ): AdminSpace =>
-    toAdminSpace(space, { isVerified, cutoffs: staleCutoffs(thresholds, now()), facts });
+    toAdminSpace(space, { isVerified, owners, cutoffs: staleCutoffs(thresholds, now()), facts });
 }

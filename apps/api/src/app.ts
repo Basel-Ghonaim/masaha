@@ -7,7 +7,7 @@ import helmet from 'helmet';
 import type { Logger } from 'pino';
 
 import { secureCookiesOf, trustProxyOf, type Env } from './config/index.ts';
-import { createRunInTransaction } from './db/index.ts';
+import { createRunInTransaction, type Tx } from './db/index.ts';
 import {
   createAuthController,
   createAuthRouter,
@@ -248,23 +248,29 @@ export function createApi({
   const platformSettings = createPlatformSettingsService();
   const spaceSettings = createSpaceSettingsService();
   const spaces = createSpacesService();
+  const adminSpaces = createAdminSpacesService({
+    listing: createListingService({ platformSettings, now: clock }),
+    lookups,
+    users,
+  });
   const space = createSpaceService({
     runInTransaction,
     audit: writeAudit,
     lookups,
     platformSettings,
     spaceSettings,
-    now: clock,
-  });
-  const profile = createProfileService({
-    runInTransaction,
-    audit: writeAudit,
-    lookups,
-    platformSettings,
+    ownersFor: (spaceId: number, tx?: Tx) => adminSpaces.ownersFor(spaceId, tx),
     now: clock,
   });
   // The space's fact groups, each saved alone, through one save path.
-  const facts = { runInTransaction, audit: writeAudit, platformSettings, now: clock };
+  const facts = {
+    runInTransaction,
+    audit: writeAudit,
+    platformSettings,
+    ownersFor: (spaceId: number, tx?: Tx) => adminSpaces.ownersFor(spaceId, tx),
+    now: clock,
+  };
+  const profile = createProfileService({ ...facts, lookups });
   const hours = createHoursService(facts);
   const prices = createPricesService(facts);
   const spaceAmenities = createSpaceAmenitiesService({ ...facts, lookups });
@@ -272,11 +278,6 @@ export function createApi({
   const confirm = createConfirmService(facts);
   const photos = createPhotosService({ runInTransaction, audit: writeAudit, storage, logger });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
-  const adminSpaces = createAdminSpacesService({
-    listing: createListingService({ platformSettings, now: clock }),
-    lookups,
-    users,
-  });
   const directory = createDirectoryService({
     lookups,
     spaceLinks,

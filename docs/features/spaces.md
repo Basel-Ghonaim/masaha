@@ -23,7 +23,7 @@ The owner's side is not built, and the photos are the API's only.
 ## Responsibility boundary
 
 - **Owns** the `spaces` table and its profile, the slug, the hide flag, the soft delete, the fact groups' dates, the staleness rule and the rule of the hidden prices; the hours and the shifts, the prices, the space's amenity links and its own amenities, and its contacts.
-- **Leaves** whether a space is verified to `space-links`, whose links are on the request ([conventions › Space access](../backend/conventions.md#space-access)); `spaces` never imports `space-links`.
+- **Leaves** whether a space is verified and its active owners to `space-links`, which the composition root injects ([conventions › Space access](../backend/conventions.md#space-access)); `spaces` never imports `space-links`.
 - **Leaves** a space's settings to `space-settings`, the defaults and thresholds to `platform-settings`, and the areas and the amenities, and whether an amenity is active, to [`lookups`](lookups.md).
 - **Leaves** who may edit a profile or a fact to `can()` ([security › Authorization](../backend/security.md#authorization)).
 
@@ -147,6 +147,7 @@ The owner's side is not built, and the photos are the API's only.
 - **The public listing is one query over `spaces` and its facts, with the filters of other modules given as ids** ([directory › Decisions](directory.md#decisions)). *Why:* every filter applies before the page is cut; the search's score and the orders are computed in it. 2026-10-13, the directory item.
 - **The hidden-price rule is `spaces`', with "verified" as an input:** an unverified space's stale prices are hidden on its page, and the same spaces are left out of both price filters, in the query. *Why:* the staleness is this capability's; "verified" is `space-links`', resolved first. 2026-10-13, the directory item.
 - **The public page reads the space as the admin's read does,** under its share lock, and a hidden space reads as none. *Why:* a save in progress is never shown half done (finding 43). 2026-10-13, the directory item.
+- **The admin's space read receives active owners composed from `space-links`** (D1). *Why:* `spaces` never imports `space-links` (an L2 capability); the composition root injects an `ownersFor` reader so the single-space read and fact writes carry active owner names under the existing space share lock. 2026-10-15.
 
 ### Web decisions
 

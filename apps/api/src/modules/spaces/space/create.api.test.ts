@@ -104,6 +104,7 @@ describe('POST /admin/spaces', () => {
       amenityIds: [],
       ownAmenities: [],
       contacts: [],
+      owners: [],
     });
   });
 

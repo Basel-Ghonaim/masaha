@@ -72,6 +72,8 @@ export interface AdminSpace {
   isHidden: boolean;
   /** An owner has joined: the owner edits its profile and facts, and the admin no longer does. */
   isVerified: boolean;
+  /** Active owner links, in link creation order (oldest first). */
+  owners: { id: number; name: string }[];
   /**
    * When each fact group was last saved or confirmed (ISO 8601); null while it has never been saved
    * (the profile always has a date).

@@ -7,7 +7,17 @@ import type { SpaceRecord } from './space.repository.ts';
 /** The space as the admin sees it, with its facts; `cutoffs` are the staleness cut-offs now. */
 export function toAdminSpace(
   space: SpaceRecord,
-  { isVerified, cutoffs, facts }: { isVerified: boolean; cutoffs: GroupCutoffs; facts: SpaceFacts },
+  {
+    isVerified,
+    owners,
+    cutoffs,
+    facts,
+  }: {
+    isVerified: boolean;
+    owners: AdminSpace['owners'];
+    cutoffs: GroupCutoffs;
+    facts: SpaceFacts;
+  },
 ): AdminSpace {
   const dates = groupDatesOf(space);
   return {
@@ -25,6 +35,7 @@ export function toAdminSpace(
     location: { lat: space.lat, lng: space.lng },
     isHidden: space.isHidden,
     isVerified,
+    owners,
     updatedAt: {
       profile: dates.profile?.toISOString() ?? null,
       hours: dates.hours?.toISOString() ?? null,
