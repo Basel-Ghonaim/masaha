@@ -65,7 +65,7 @@ export function useAdminSpacesList() {
     label: lines.label,
     columns: lines.columns,
     noOwner: lines.noOwner,
-    summary: answer && lines.count({ count: answer.meta.totalRecords }),
+    count: answer === undefined ? undefined : lines.count({ count: answer.meta.totalRecords }),
     pagination:
       lastPage > 1
         ? {
@@ -129,11 +129,13 @@ export function useAdminSpacesList() {
         },
       },
       stale: {
-        label: lines.staleOnly,
+        label: lines.staleOrMissing,
         checked: filters.filters.stale,
         toggle: filters.chooseStale,
       },
-      /** The phone's sheet that holds the place, the state and stale only. */
+      /** What names the chip, which is a filter and not a field. */
+      quickFilter: lines.quickFilter,
+      /** The phone's sheet that holds the place and the state. */
       sheet: {
         text: lines.filters,
         label:

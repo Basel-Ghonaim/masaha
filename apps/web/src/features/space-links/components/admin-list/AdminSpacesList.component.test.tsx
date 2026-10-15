@@ -50,6 +50,20 @@ const PALM: AdminSpaceRow = {
   missingGroups: [],
   lastUpdatedAt: '2026-09-20T08:00:00Z',
 };
+const OLIVE: AdminSpaceRow = {
+  id: 12,
+  slug: 'olive-desk',
+  nameEn: 'Olive Desk',
+  nameAr: null,
+  area: { id: 13, nameAr: 'دير البلح', nameEn: 'Deir al-Balah' },
+  isVerified: true,
+  isHidden: false,
+  deletedAt: '2026-10-01T08:00:00Z',
+  owners: [{ id: 5, name: 'Rima' }],
+  staleGroups: [],
+  missingGroups: [],
+  lastUpdatedAt: '2026-09-12T08:00:00Z',
+};
 
 /** A page of `rows` with its meta. */
 function page(rows: AdminSpaceRow[], meta: Partial<PaginationMeta> = {}): FakeAnswer {
@@ -97,7 +111,7 @@ function placeField({
   );
 }
 
-/** The list at `path`, the server answering with `answer`; each row's actions are a button. */
+/** The list at `path`, the server answering with `answer`; a row's actions, the page's seam. */
 function renderList(
   path: string,
   answer: Parameters<typeof fakeTransport>[0] = () => page([FOCUS, PALM]),
@@ -111,7 +125,13 @@ function renderList(
         element: (
           <main>
             <AdminSpacesList
-              actions={(row) => <button type="button">{`Actions for ${row.nameEn}`}</button>}
+              actions={(row) =>
+                row.deletedAt !== null ? (
+                  <button type="button">{`Restore ${row.nameEn}`}</button>
+                ) : (
+                  <button type="button">{`Actions for ${row.nameEn}`}</button>
+                )
+              }
               placeField={placeField}
               spaceLink={(row) => `/spaces/${String(row.id)}`}
             />
@@ -130,6 +150,14 @@ function renderList(
 }
 
 const listRegion = () => screen.findByRole('region', { name: 'Spaces' });
+
+/** A row's cells, the header row first; `[]` when the row is not there. */
+const cellsOf = (row: HTMLElement | undefined) =>
+  row
+    ? within(row)
+        .getAllByRole('cell')
+        .map((cell) => cell.textContent)
+    : [];
 
 beforeEach(() => {
   startPreferences('en');
@@ -156,12 +184,6 @@ describe('AdminSpacesList, from 768 px', () => {
         .map((cell) => cell.textContent),
     ).toEqual(['Space', 'Area', 'Status', 'Owner', 'Freshness', 'Last update', 'Actions']);
     const [, focus, palm] = within(table).getAllByRole('row');
-    const cellsOf = (row: HTMLElement | undefined) =>
-      row
-        ? within(row)
-            .getAllByRole('cell')
-            .map((cell) => cell.textContent)
-        : [];
     expect(cellsOf(focus)).toEqual([
       'Focus Hub',
       'Al-Rimal',
@@ -174,12 +196,51 @@ describe('AdminSpacesList, from 768 px', () => {
     expect(cellsOf(palm)).toEqual([
       'Palm Hub',
       'An-Nasr',
-      'Hidden',
+      'UnverifiedHidden',
       '—No owner',
       'Up to date',
       '20 Sept',
       'Actions for Palm Hub',
     ]);
+  });
+
+  it('asks for the deleted spaces when the status says so, and shows them muted with one way back', async () => {
+    const { requests } = renderList('/spaces?status=deleted', () => page([OLIVE]));
+
+    const table = await screen.findByRole('table', { name: 'Spaces' });
+    await within(table).findByText('Olive Desk');
+    expect(cellsOf(within(table).getAllByRole('row')[1])).toEqual([
+      'Olive Desk',
+      'Deir al-Balah',
+      'VerifiedDeletedDeleted on 1 Oct',
+      '⁨Rima⁩',
+      'Up to date',
+      '12 Sept',
+      'Restore Olive Desk',
+    ]);
+    expect(requests[0]?.params).toMatchObject({ status: 'deleted' });
+    // A deleted space leads nowhere: its editor would only say that it is gone.
+    expect(within(table).getByText('Olive Desk')).toHaveClass('text-muted-foreground');
+    expect(within(table).queryByRole('link', { name: 'Olive Desk' })).toBeNull();
+    expect(within(table).getByRole('button', { name: 'Restore Olive Desk' })).toBeInTheDocument();
+    expect(within(table).queryByRole('button', { name: 'Actions for Olive Desk' })).toBeNull();
+  });
+
+  it('offers every status of the contract, the deleted spaces among them', async () => {
+    const { router } = renderList('/spaces');
+    await screen.findByText('Focus Hub');
+
+    await userEvent.click(screen.getByRole('combobox', { name: 'Status' }));
+    expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual([
+      'All statuses',
+      'Verified',
+      'Unverified',
+      'Hidden',
+      'Deleted',
+    ]);
+
+    await userEvent.click(screen.getByRole('option', { name: 'Deleted' }));
+    expect(router.state.location.search).toBe('?status=deleted');
   });
 
   it('reads a space with no owner as having none, not as a dash', async () => {
@@ -199,7 +260,7 @@ describe('AdminSpacesList, from 768 px', () => {
     expect(screen.getByText('بالم')).not.toHaveAttribute('lang');
   });
 
-  it('shows the count the filters keep under the table', async () => {
+  it('shows the count the filters keep beside the search', async () => {
     renderList('/spaces', () => page([FOCUS, PALM], { totalRecords: 42, totalPages: 3 }));
 
     expect(await screen.findByText('Spaces: 42')).toBeInTheDocument();
@@ -271,11 +332,29 @@ describe('AdminSpacesList, from 768 px', () => {
     );
     await userEvent.click(screen.getByRole('combobox', { name: 'Status' }));
     await userEvent.click(await screen.findByRole('option', { name: 'Hidden' }));
-    await userEvent.click(screen.getByRole('switch', { name: 'Stale data only' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Stale or missing' }));
     await userEvent.click(screen.getByRole('combobox', { name: 'Governorate / area' }));
     await userEvent.click(await screen.findByRole('option', { name: 'Gaza' }));
 
     expect(router.state.location.search).toBe('?status=hidden&governorate=1&stale=true');
+  });
+
+  it('keeps stale or missing a chip by the count, not a field of its own', async () => {
+    const { router } = renderList('/spaces');
+    await screen.findByText('Spaces: 2');
+
+    const chip = screen.getByRole('toolbar', { name: 'Quick filter' });
+    const stale = within(chip).getByRole('button', { name: 'Stale or missing' });
+    expect(stale).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('switch')).toBeNull();
+
+    await userEvent.click(stale);
+
+    expect(router.state.location.search).toBe('?stale=true');
+    expect(await within(chip).findByRole('button', { name: 'Stale or missing' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('shows placeholder rows while the first page loads', async () => {
@@ -369,8 +448,20 @@ describe('AdminSpacesList, on a phone', () => {
     const cards = within(screen.getByRole('list', { name: 'Spaces' })).getAllByRole('listitem');
     expect(cards.map((card) => card.textContent)).toEqual([
       'Focus HubAl-Rimal · Owner: ⁨Ahmad⁩ · 27 SeptVerifiedStale: Prices, ContactsMissing: Opening hoursActions for Focus Hub',
-      'Palm HubAn-Nasr · Owner: —Owner: No owner · 20 SeptHiddenUp to dateActions for Palm Hub',
+      'Palm HubAn-Nasr · Owner: —Owner: No owner · 20 SeptUnverifiedHiddenUp to dateActions for Palm Hub',
     ]);
+  });
+
+  it('shows a deleted space as a card, muted, with the same facts and its one action', async () => {
+    renderList('/spaces?status=deleted', () => page([OLIVE]));
+    await screen.findByText('Olive Desk');
+
+    const card = screen.getByRole('listitem');
+    expect(card.textContent).toBe(
+      'Olive DeskDeir al-Balah · Owner: ⁨Rima⁩ · 12 SeptVerifiedDeletedUp to dateDeleted on 1 OctRestore Olive Desk',
+    );
+    expect(within(card).getByText('Olive Desk')).toHaveClass('text-muted-foreground');
+    expect(within(card).queryByRole('button', { name: 'Actions for Olive Desk' })).toBeNull();
   });
 
   it('keeps the search in view and the other filters in a sheet, with their count', async () => {
@@ -378,11 +469,16 @@ describe('AdminSpacesList, on a phone', () => {
     await screen.findByText('Focus Hub');
 
     expect(screen.getByRole('searchbox', { name: 'Search' })).toBeVisible();
+    // Stale or missing is a chip on every width, so the sheet keeps the two fields only.
+    expect(screen.getByRole('button', { name: 'Stale or missing' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Filters, 2 applied' }));
     const sheet = await screen.findByRole('dialog', { name: 'Filters' });
     expect(within(sheet).getByRole('combobox', { name: 'Governorate / area' })).toBeInTheDocument();
     expect(within(sheet).getByRole('combobox', { name: 'Status' })).toHaveTextContent('Hidden');
-    expect(within(sheet).getByRole('switch', { name: 'Stale data only' })).toBeChecked();
+    expect(within(sheet).queryByRole('switch')).toBeNull();
 
     await userEvent.click(within(sheet).getByRole('button', { name: 'Clear filters' }));
     expect(router.state.location.search).toBe('');

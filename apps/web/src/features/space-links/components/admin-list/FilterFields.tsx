@@ -5,14 +5,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Switch,
 } from '@shared/design-system';
 import type { AdminSpacesListView } from '../../types/AdminSpacesListView';
 import type { PlaceField } from '../../types/PlaceField';
 
 /**
- * The filters beside the search: the place, from the field the page hands in, the state and stale
- * only. Each applies at once. Above the table they stand in a row; on a phone, in the filters' sheet.
+ * The filters beside the search: the place, from the field the page hands in, and the state. Each
+ * applies at once. Above the table they stand in a row; on a phone, in the filters' sheet. Stale or
+ * missing is no field: its chip stands by the count.
  */
 export function FilterFields({
   filters,
@@ -39,9 +39,6 @@ export function FilterFields({
             ))}
           </SelectContent>
         </Select>
-      </Field>
-      <Field label={filters.stale.label} orientation="horizontal" className="self-end">
-        <Switch checked={filters.stale.checked} onCheckedChange={filters.stale.toggle} />
       </Field>
     </>
   );

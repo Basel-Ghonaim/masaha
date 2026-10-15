@@ -1,5 +1,4 @@
 import type { AdminSpaceRow } from '@masaha/shared/space-links';
-import { Badge } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useAdminSpacesList } from '../../hooks/admin-list/useAdminSpacesList';
@@ -61,7 +60,11 @@ export function AdminSpacesList({
           id: 'name',
           header: headers.space,
           cell: (info) => (
-            <SpaceNameText name={info.row.original.name} to={spaceLink(info.row.original.row)} />
+            <SpaceNameText
+              name={info.row.original.name}
+              to={spaceLink(info.row.original.row)}
+              muted={info.row.original.deletedOn !== null}
+            />
           ),
         }),
         column.display({
@@ -73,7 +76,14 @@ export function AdminSpacesList({
           id: 'state',
           header: headers.status,
           cell: (info) => (
-            <Badge variant={info.row.original.state.variant}>{info.row.original.state.label}</Badge>
+            <div className="flex flex-col items-start gap-1">
+              <BadgeList badges={info.row.original.state} />
+              {info.row.original.deletedOn !== null && (
+                <span className="text-caption text-muted-foreground">
+                  {info.row.original.deletedOn}
+                </span>
+              )}
+            </div>
           ),
         }),
         column.display({
@@ -124,8 +134,9 @@ export function AdminSpacesList({
         )}
         loading={list.status === 'loading'}
         empty={<AdminSpacesState list={list} />}
-        toolbar={<AdminSpacesToolbar filters={list.filters} placeField={placeField} />}
-        summary={list.summary}
+        toolbar={
+          <AdminSpacesToolbar filters={list.filters} placeField={placeField} count={list.count} />
+        }
         pagination={
           list.pagination !== null && <AdminSpacesPagination pagination={list.pagination} />
         }
