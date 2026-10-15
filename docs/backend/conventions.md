@@ -192,7 +192,10 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 ### Space access
 
 - `requireSpaceAccess` (`shared/auth`) takes a links loader. The composition root wires it with `space-links`' service and mounts it **once** on `/manage/spaces/:spaceId`, before every module's `manage` router.
-- It refuses a caller with no active link at the space. Otherwise it puts the space's links on the request: the `SpaceResource` from which `can()` reads the caller's role and whether the space is verified.
+- **Built:** it refuses a caller with no active link at the space with `not_found` (404), including
+  an unknown or soft-deleted space, so the route does not reveal space existence. Otherwise it puts
+  the space's links on the request: the `SpaceResource` from which `can()` reads the caller's role
+  and whether the space is verified. A hidden live space remains accessible to its active links.
 - On the admin's space routes, the composition root mounts the same loader without the refusal, so "verified" is known there too.
 - **A change that decides under the space's lock reads the links again there,** through the loaded space's `linksUnder(tx)`: every link change takes that lock (§13), so a link committed after the loader ran still decides ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)).
 - Modules read the links from the request and pass them to their service. **No module imports `space-links` to learn its access or "verified".** `can()` decides per action.

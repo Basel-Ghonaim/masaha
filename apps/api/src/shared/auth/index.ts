@@ -22,3 +22,4 @@ export {
 export { requireRole } from './requireRole.ts';
 export { signedIn } from './signedIn.ts';
 export { loadSpaceLinks, spaceOf, type LinksLoader, type LoadedSpace } from './spaceLinks.ts';
+export { requireSpaceAccess } from './spaceAccess.ts';

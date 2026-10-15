@@ -17,7 +17,9 @@
 - Links a space's owners for the admin, and ends their links, one space at a time, on the API; the person's global role follows their owner links.
 - Changes a person's global role for the admin, between `USER` and `ADMIN`, on the API, while they hold no active link.
 
-Staff (reception accounts) are not built.
+Reception accounts' management API access is built: an active `RECEPTION` link can read its
+space and its photos, but cannot mutate profile, facts, confirmations or photos. The dashboard
+screen and staff-management API remain planned.
 
 ## Who uses it
 
@@ -36,6 +38,9 @@ Staff (reception accounts) are not built.
 
 - **The caller's spaces** use the `me` router at `/manage/spaces`, behind `requireAuth` only: the path names no space, so the space middleware does not run.
 - **The links loader** is `shared/auth`'s, wired with this module's links. On the admin's space routes it runs without its refusal ([conventions › Space access](../backend/conventions.md#space-access)).
+- **Managed routes** use `requireSpaceAccess` once at `/manage/spaces/:spaceId`. It checks the
+  caller's active `OWNER` or `RECEPTION` link and returns `not_found` for no link, unknown spaces
+  and soft-deleted spaces; a hidden live space remains manageable.
 - **The admin's spaces list** is a composed read ([conventions › Composed reads](../backend/conventions.md#composed-reads)). Each filter on another module's value is resolved to ids first: the verified state from the links, here, and a governorate to its areas, by `lookups`. `spaces` then applies its own filters (deleted, hidden, stale, the area, the search) to those ids and pages ([conventions §5](../backend/conventions.md#5-pagination)). The page's owners, their names (from `users`) and its areas' names follow, one query per module.
 - **The single-space admin read** is supplied active owner names (`ownersFor`) by the admin composition here, while the list composition remains unchanged. The names are read under the space share lock from `users`.
 - **A link change** is one transaction: it takes the space's lock through `spaces`; for an existing account, then the person's session lock through `users` (a new account's row is inserted under the space's lock), then counts the person's owner links and asks `users` to change the role when they give another ([conventions §13](../backend/conventions.md#concurrency)).
@@ -139,6 +144,7 @@ Staff (reception accounts) are not built.
 - The users item — the admin's role change.
 - The deleted-spaces item — a row's state as facts apart, and the soft-deleted spaces listed under `status=deleted`.
 - The directory item — the verified spaces' ids, for the public directory.
+- MANAGE — the active-link access boundary used by the owner/reception managed-space API.
 
 ### Web history
 

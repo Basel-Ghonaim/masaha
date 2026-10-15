@@ -1,7 +1,7 @@
 # Spaces
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-14 · **Owner:** Basel Ghoneim
-> **Authority:** The `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). Only the admin's side is built: the API, and on the web the add-space page, the space editor and the row actions of the admin's spaces list; and on the API, what the public [directory](directory.md) reads.
+> **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API and the API-only managed-space routes are built; the owner/reception web screen remains planned.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
 ## What it does
@@ -13,7 +13,10 @@
 - Keeps a space's photos for the admin: up to 10, in an order whose first is the cover, each re-encoded on the server as two WebP sizes with no metadata and stored through the storage port; lists them, adds and removes one at a time and orders them, as the [contract](../api/api-contract.md#photos) says; answers [`directory`](directory.md) the covers of a set of spaces, in one query, and a page's photos under its lock.
 - On the web, adds a space from its basics and its location, its pin placed on a map; edits a space on a page of its own, its profile, its hours with the shifts, its prices, its amenities and its contacts each saved, dated and confirmed as a section, under the groups still missing, asking before the page is left with unsaved changes, and shows a verified space read-only; and gives each row of the admin's spaces list its menu: edit the space, hide it or show it again, and delete it, with an Undo that restores it.
 
-The owner's side is not built, and the photos are the API's only.
+The managed API lets an active owner read and edit the profile and facts, confirm groups and
+manage photos; reception can read the complete space and photo response but cannot mutate it.
+It reuses the admin services and shapes. The owner/reception web screen, capacity and packages
+remain planned, and photos are still API-only.
 
 ## Who uses it
 
@@ -30,6 +33,10 @@ The owner's side is not built, and the photos are the API's only.
 ## How it composes the platform
 
 - The admin's router sits inside `/admin`, behind the one guard there; the routes on one space first load its links without refusing anyone ([conventions › Space access](../backend/conventions.md#space-access)).
+- **The managed routers sit below `/manage/spaces/:spaceId`, behind one `requireSpaceAccess`
+  boundary.** It admits only an active owner or reception link and returns the no-hint 404 for
+  unrelated, unknown or deleted spaces; the shared controllers and services keep the admin's
+  validation, locks and audit names.
 - **A new space's settings:** in the creation's transaction, `spaces` reads the new-space defaults from `platform-settings` and writes the space's settings row through `space-settings`, both below it ([conventions › New-space defaults](../backend/conventions.md#new-space-defaults), [data model › Checked by the service](../architecture/data-model.md#checked-by-the-service)).
 - Every change is audited by the audit writer, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the names the [contract](../api/api-contract.md#spaces-the-admin) gives.
 - Staleness reads the platform's thresholds and the one clock ([conventions §11](../backend/conventions.md#11-time)).
@@ -202,7 +209,9 @@ The owner's side is not built, and the photos are the API's only.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/` (the links and the own amenities), `contacts/`, `confirm/` (a group confirmed unchanged), `photos/` (the gallery: its sizes, its order and cover, the upload's order of work), `listing/` (the page the admin's list reads), `public/` (the public listing and the public page, for the directory); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router.
+- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: the same modules as the admin plus
+  `spaces.manage.routes.ts` and `photos.manage.routes.ts` for the managed API; shared controllers
+  and services keep the two audiences consistent.
 - **Shared:** `packages/shared/src/spaces/`: the requests (the profile and each fact group, with their rules), the responses, the contacts' forms, the fact groups, the photos' limits and sizes, and the Gaza Strip's box; the phone rule in `core`.
 - **Web:** `apps/web/src/features/spaces/`, entry `index.ts` (`AddSpaceForm` with its `AreaField` slot, `SpaceEditor`, `useSpaceName`, `SpaceActionsMenu`, `SpaceActionsHold`), mounted by `pages/dashboard/admin/`: a folder per operation in `hooks/` and `components/` (`add/`, `editor/` with the space's query, a section's frame, its save, the section in view and the leave guard, `profile/`, `hours/`, `prices/`, `amenities/`, `contacts/`, `hide/`, `delete/` with the Undo's restore, `menu/`, `hold/`; and `confirm/` in `hooks/`), the profile's fields shared by the add form and the editor at the root of `hooks/` and in `components/profile/`, the toasts in `components/toast/`, and in `services/` the profile the schema reads from the form, as added and as edited, the changes a save sends, the hours, the prices and the amenities as their forms hold them, a time of day, an amount in shekels, a phone's carrier, the group's date, the space's name and a line cut around it.
 
@@ -227,6 +236,8 @@ The owner's side is not built, and the photos are the API's only.
 - The deleted-spaces item — the listing page of the soft-deleted spaces, with when each was deleted.
 - The directory item — the public listing (filters, search, orders, pages and the map's set) and the public page.
 - #77 — a space's photos: the gallery's read, its upload through the storage port and the image core, its removal and its order; the covers and the page's photos for the directory.
+- MANAGE — the owner/reception managed-space API, reusing the admin services and response shapes;
+  reception reads, owners write, and managed photos share the admin upload path.
 
 ### Web history
 

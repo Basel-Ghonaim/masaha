@@ -213,16 +213,18 @@ Built: `GET /lookups`, the active governorates with their active areas and the a
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, the spaces the caller has an active link to, with the role at each ([api-contract §5](../api/api-contract.md#5-endpoints)).
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations and photo routes below.
+An active owner or reception link is required; reception is read-only. The web screen and later
+dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | the profile and the facts (read), the profile (edit), capacity (private) |
-| PUT | `/manage/spaces/:spaceId/:group` | 🏢 | the facts, one group at a time (`hours` with the shifts, `prices`, `amenities`, `contacts`), on the same logic as the admin's ([api-contract §5](../api/api-contract.md#spaces-the-admin)) |
+| GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | the profile and all facts (read), the profile (edit); capacity remains planned |
+| PUT | `/manage/spaces/:spaceId/{hours|prices|amenities|contacts}` | 🏢 | the fact groups, on the same logic as the admin's |
 | POST | `/manage/spaces/:spaceId/:group/confirm` | 🏢 | «المعلومات ما زالت صحيحة»: resets that group's freshness date, as the admin's confirm does ([api-contract §5](../api/api-contract.md#spaces-the-admin)) |
 | GET | `/manage/spaces/:spaceId/occupancy` | 🧾 | the live numbers for the space's staff: `{ capacity, present }`; the statistics are under finance (🏢) |
 | PUT / DELETE | `/manage/spaces/:spaceId/status-override` | 🧾 | set a state until a time (30 min, 1 h, 2 h or closing time), or clear it |
-| GET / POST / DELETE / PUT | `/manage/spaces/:spaceId/photos[/:photoId \| /order]` | 🏢 | list, upload, remove, reorder, on the admin's service ([api-contract › Photos](../api/api-contract.md#photos)) |
+| GET / POST / DELETE / PUT | `/manage/spaces/:spaceId/photos[/:photoId \| /order]` | GET 🧾 · writes 🏢 | list, upload, remove, reorder, on the admin's service ([api-contract › Photos](../api/api-contract.md#photos)) |
 | GET / POST / PATCH | `/manage/spaces/:spaceId/staff[/:userId]` | 🏢 | add reception by name and email (a new account with a temporary password shown once, or an existing account linked); deactivate |
 | GET / POST / PATCH | `/manage/spaces/:spaceId/packages[/:id]` | GET 🧾 · write 🏢 | subscription templates; private ones are never public |
 | GET / POST | `/manage/spaces/:spaceId/customers` | 🧾 | list (search; filters: subscription type, status, payment), create |

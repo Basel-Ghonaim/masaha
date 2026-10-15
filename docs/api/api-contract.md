@@ -174,6 +174,39 @@ The spaces a signed-in user works at, as owner or reception ([ADR 0009](../archi
   ```
 - **Errors:** `unauthorized` (401) without a valid access token; `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending.
 
+Managed routes require an active `OWNER` or `RECEPTION` link to the named live space. A missing,
+deactivated or deleted link answers `not_found` (404), so an unrelated caller cannot learn whether
+the space exists. A hidden live space remains available to its linked owner and reception staff.
+Reads reuse `AdminSpace` and the admin photo shapes; writes reuse the same services, validation,
+locks and audit action names as the admin routes.
+
+#### `GET /manage/spaces/:spaceId` · 🧾
+- **200:** `AdminSpace`, including all fact groups and active owners.
+- **Errors:** `not_found` (404) for an unknown, deleted or unlinked space.
+
+#### `PATCH /manage/spaces/:spaceId` · 🏢
+- **Body / response / errors:** the same profile request and `AdminSpace` response as the admin
+  route. Only an active owner may edit.
+
+#### `PUT /manage/spaces/:spaceId/{hours|prices|amenities|contacts}` · 🏢
+- **Body / response / errors:** the same group requests, `AdminSpace` response, service rules and
+  audit actions as the corresponding admin routes. Reception is read-only.
+
+#### `POST /manage/spaces/:spaceId/{profile|hours|prices|amenities|contacts}/confirm` · 🏢
+- **Response / errors:** the same confirmation response, freshness update and audit action as the
+  corresponding admin route. A reception link is refused.
+
+#### Managed photos
+
+- **`GET /manage/spaces/:spaceId/photos` · 🧾:** `SpacePhoto[]`, in gallery order.
+- **`POST /manage/spaces/:spaceId/photos` · 🏢:** the same multipart limits, rate limit before file
+  parsing, storage cleanup and `SpacePhoto` response as the admin upload.
+- **`DELETE /manage/spaces/:spaceId/photos/:photoId` · 🏢:** the same removal and audit behavior.
+- **`PUT /manage/spaces/:spaceId/photos/order` · 🏢:** the same ordering validation and audit
+  behavior.
+- Reception may list photos but cannot upload, remove or reorder them. Unknown, deleted or
+  unlinked spaces answer `not_found` for every managed endpoint.
+
 ### Lookups (public)
 
 #### `GET /lookups` · 🌐

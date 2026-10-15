@@ -48,6 +48,7 @@ type Rule =
   | 'signedIn';
 
 const PERMISSIONS = {
+  'space.read': 'staff',
   // The space's public facts: who keeps them depends on whether an owner has joined.
   'space.profile.update': 'adminWhileUnverifiedElseOwner',
   'space.facts.update': 'adminWhileUnverifiedElseOwner',

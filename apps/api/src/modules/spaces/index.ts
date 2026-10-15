@@ -36,5 +36,7 @@ export { createProfileService, type ProfileService } from './profile/profile.ser
 export { createSpaceController } from './space/space.controller.ts';
 export { createSpaceService, type SpaceService } from './space/space.service.ts';
 export { createSpacesAdminRouter } from './spaces.admin.routes.ts';
+export { createPhotosManageRouter } from './photos.manage.routes.ts';
+export { createSpacesManageRouter } from './spaces.manage.routes.ts';
 export type { SpaceRow } from './spaces.repository.ts';
 export { createSpacesService, type SpacesService } from './spaces.service.ts';
