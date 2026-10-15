@@ -8,6 +8,7 @@ import { requireSpaceAccess } from './spaceAccess.ts';
 describe('requireSpaceAccess', () => {
   it('accepts an active linked space and preserves linksUnder transaction reads', async () => {
     const calls: Array<{ id: number; tx?: object }> = [];
+    const transaction = {};
     const app = express();
     app.use(
       '/spaces/:spaceId',
@@ -20,7 +21,7 @@ describe('requireSpaceAccess', () => {
         return Promise.resolve([{ userId: 7, role: 'OWNER', deactivatedAt: null }]);
       }),
       async (req, res) => {
-        await req.space?.linksUnder({} as never);
+        await req.space?.linksUnder(transaction as never);
         res.json({ id: req.space?.id, links: req.space?.links });
       },
     );
@@ -35,7 +36,8 @@ describe('requireSpaceAccess', () => {
       links: [{ userId: 7, role: 'OWNER', deactivatedAt: null }],
     });
     expect(calls).toHaveLength(2);
-    expect(calls[1]).toMatchObject({ id: 12 });
+    expect(calls[1]).toEqual({ id: 12, tx: transaction });
+    expect(calls[1]?.tx).toBe(transaction);
   });
 
   it('returns not_found when there is no active link', async () => {
