@@ -1,6 +1,6 @@
 import type { AdminSpace, CreateSpaceRequest } from '@masaha/shared/spaces';
 
-import type { RunInTransaction } from '../../../db/index.ts';
+import type { RunInTransaction, Tx } from '../../../db/index.ts';
 import type { AuditValues, AuditWriter } from '../../../shared/audit/index.ts';
 import { isVerified, type LoadedSpace } from '../../../shared/auth/index.ts';
 import { AppError } from '../../../shared/errors/index.ts';
@@ -19,6 +19,7 @@ interface Dependencies {
   lookups: LookupsService;
   platformSettings: PlatformSettingsService;
   spaceSettings: SpaceSettingsService;
+  ownersFor: (spaceId: number, tx?: Tx) => Promise<AdminSpace['owners']>;
   /** The one clock (conventions §11): staleness is measured from it. */
   now: () => Date;
 }
@@ -48,6 +49,7 @@ export function createSpaceService({
   lookups,
   platformSettings,
   spaceSettings,
+  ownersFor,
   now,
 }: Dependencies) {
   const repository = createSpaceRepository();
@@ -95,7 +97,11 @@ export function createSpaceService({
         const found = await repository.lockShared(space.id, tx);
         if (!found) throw AppError.notFound(undefined, 'Space not found');
         const verified = isVerified({ links: await space.linksUnder(tx) });
-        return view(found, verified, thresholds, await readFacts(space.id, tx));
+        const [facts, owners] = await Promise.all([
+          readFacts(space.id, tx),
+          ownersFor(space.id, tx),
+        ]);
+        return view(found, verified, thresholds, facts, owners);
       });
     },
 
@@ -192,7 +198,7 @@ export function createSpaceService({
             );
             return creation.space;
           });
-          return view(space, false, thresholds, NO_FACTS);
+          return view(space, false, thresholds, NO_FACTS, []);
         } catch (error) {
           if (!(error instanceof SlugTaken)) throw error;
           if (attempt === CREATE_ATTEMPTS) {

@@ -18,6 +18,7 @@ export interface GroupEditDependencies {
   runInTransaction: RunInTransaction;
   audit: AuditWriter;
   platformSettings: PlatformSettingsService;
+  ownersFor: (spaceId: number, tx?: Tx) => Promise<AdminSpace['owners']>;
   /** The one clock (conventions §11): the group's new date. */
   now: () => Date;
 }
@@ -52,6 +53,7 @@ export function createGroupEdit({
   runInTransaction,
   audit,
   platformSettings,
+  ownersFor,
   now,
 }: GroupEditDependencies) {
   const repository = createSpaceRepository();
@@ -80,7 +82,11 @@ export function createGroupEdit({
       const at = now();
       const change = await step(tx, current, at);
       if (!change) {
-        return view(current, isVerified(locked), thresholds, await readFacts(space.id, tx));
+        const [facts, owners] = await Promise.all([
+          readFacts(space.id, tx),
+          ownersFor(space.id, tx),
+        ]);
+        return view(current, isVerified(locked), thresholds, facts, owners);
       }
 
       const updated = await repository.update(space.id, { [DATE_COLUMNS[group]]: at }, tx);
@@ -96,7 +102,8 @@ export function createGroupEdit({
         },
         tx,
       );
-      return view(updated, isVerified(locked), thresholds, await readFacts(space.id, tx));
+      const [facts, owners] = await Promise.all([readFacts(space.id, tx), ownersFor(space.id, tx)]);
+      return view(updated, isVerified(locked), thresholds, facts, owners);
     });
   };
 }

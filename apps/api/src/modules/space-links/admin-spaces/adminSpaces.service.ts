@@ -1,5 +1,6 @@
 import type { AdminSpaceRow, AdminSpacesQuery } from '@masaha/shared/space-links';
 
+import type { Tx } from '../../../db/index.ts';
 import type { LookupsService } from '../../lookups/index.ts';
 import type { ListingService } from '../../spaces/index.ts';
 import type { UsersService } from '../../users/index.ts';
@@ -22,6 +23,21 @@ interface Dependencies {
 export function createAdminSpacesService({ listing, lookups, users }: Dependencies) {
   const repository = createSpaceLinksRepository();
   return {
+    /**
+     * Active owners of one space, oldest first; omitted when the user lookup returns no name
+     * (the user was deleted or absent). Read under the caller's transaction.
+     */
+    async ownersFor(spaceId: number, tx?: Tx): Promise<{ id: number; name: string }[]> {
+      const links = await repository.findOwnerLinks([spaceId], tx);
+      if (links.length === 0) return [];
+      const names = await users.namesFor([...new Set(links.map(({ userId }) => userId))]);
+      const nameById = new Map(names.map(({ id, name }) => [id, name]));
+      return links.flatMap(({ userId }) => {
+        const name = nameById.get(userId);
+        return name !== undefined ? [{ id: userId, name }] : [];
+      });
+    },
+
     async list(query: AdminSpacesQuery): Promise<{ rows: AdminSpaceRow[]; total: number }> {
       const byLinks = query.status === 'verified' || query.status === 'unverified';
       const [verifiedIds, governorateAreaIds] = await Promise.all([

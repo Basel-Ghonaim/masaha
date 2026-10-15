@@ -44,6 +44,7 @@ const SPACE: AdminSpace = {
   location: { lat: 31.5195, lng: 34.447 },
   isHidden: false,
   isVerified: false,
+  owners: [],
   updatedAt: {
     profile: '2026-10-10T08:00:00Z',
     hours: null,
