@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from '@shared/design-system';
 import type { RefObject } from 'react';
-import type { useSpaceActionsMenu } from '../../hooks/menu/useSpaceActionsMenu';
+import type { SpaceDeleteDialog } from '../../hooks/menu/useSpaceActionsMenu';
 import { NamedLine } from '../toast/NamedLine';
 
 /**
@@ -21,7 +21,7 @@ export function DeleteSpaceDialog({
   dialog,
   returnFocus,
 }: {
-  dialog: ReturnType<typeof useSpaceActionsMenu>['dialog'];
+  dialog: SpaceDeleteDialog;
   returnFocus: RefObject<HTMLButtonElement | null>;
 }) {
   return (

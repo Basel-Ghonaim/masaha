@@ -255,6 +255,8 @@ export const SPACES = {
     hide: 'إخفاء',
     show: 'إظهار',
     delete: 'حذف',
+    restore: 'استرجاع',
+    restoreNamed: ({ name }: { name: string }) => `استرجاع ${name}`,
   },
   deleteDialog: {
     title: ({ name }: { name: string }) => `حذف ${name}؟`,
