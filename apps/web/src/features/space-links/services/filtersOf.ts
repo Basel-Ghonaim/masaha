@@ -1,4 +1,8 @@
-import { adminSpacesQuerySchema, type SpaceStatus } from '@masaha/shared/space-links';
+import {
+  SPACE_STATUSES,
+  adminSpacesQuerySchema,
+  type SpaceStatus,
+} from '@masaha/shared/space-links';
 import type { AdminSpacesFilters } from '../types/AdminSpacesFilters';
 import type { AdminSpacesRequest } from '../types/AdminSpacesRequest';
 
@@ -10,16 +14,12 @@ type Rule<T> = {
 const RULES = adminSpacesQuerySchema.shape;
 
 /**
- * The statuses this list offers: the contract's, but the deleted spaces, which it does not show yet
- * (their screen, the owner's A3, is not built).
+ * The statuses this list offers, the contract's own: the soft-deleted spaces, which `status=deleted`
+ * lists alone, are a choice of it like any other.
  */
-export const LIST_STATUSES = ['verified', 'unverified', 'hidden'] as const satisfies SpaceStatus[];
+export const LIST_STATUSES = SPACE_STATUSES;
 
-export type ListStatus = (typeof LIST_STATUSES)[number];
-
-function isListStatus(status: SpaceStatus | undefined): status is ListStatus {
-  return LIST_STATUSES.some((listed) => listed === status);
-}
+export type ListStatus = SpaceStatus;
 
 /** A parameter read by the contract's own rule: missing or invalid, it is not there. */
 function read<T>(rule: Rule<T>, value: string | null): T | undefined {
@@ -31,14 +31,13 @@ function read<T>(rule: Rule<T>, value: string | null): T | undefined {
 /**
  * The list's filters and page from the address (`?q=&status=&governorate=&area=&stale=true&page=`),
  * each read by the rule the server applies, so a value the server would refuse falls back to its
- * default, as does a status the list does not offer. An area names one place more precisely than its governorate, so it wins over one.
+ * default. An area names one place more precisely than its governorate, so it wins over one.
  */
 export function filtersOf(params: URLSearchParams): AdminSpacesFilters {
   const areaId = read(RULES.areaId, params.get('area'));
   const governorateId = read(RULES.governorateId, params.get('governorate'));
   const q = read(RULES.q, params.get('q'));
-  const contractStatus = read(RULES.status, params.get('status'));
-  const status = isListStatus(contractStatus) ? contractStatus : undefined;
+  const status = read(RULES.status, params.get('status'));
 
   return {
     ...(q !== undefined && { q }),

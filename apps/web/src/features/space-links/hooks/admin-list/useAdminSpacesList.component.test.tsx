@@ -84,7 +84,7 @@ describe('useAdminSpacesList', () => {
     expect(result.current.list.rows.map(({ name, area }) => [name.text, area])).toEqual([
       ['Focus Hub', 'Al-Rimal'],
     ]);
-    expect(result.current.list.summary).toBe('Spaces: 1');
+    expect(result.current.list.count).toBe('Spaces: 1');
     expect(result.current.list.pagination).toBeNull();
   });
 
@@ -249,7 +249,7 @@ describe('useAdminSpacesList', () => {
     expect(result.current.list.pagination?.next.search).toBe('?page=2');
   });
 
-  it('offers the three states it shows as filters, and the count of filters applied for the phone’s button', async () => {
+  it('offers the contract’s four states and the count of filters applied for the phone’s button', async () => {
     const { result } = renderList('/s?status=hidden&stale=true', () => page([FOCUS]));
 
     await waitFor(() => {
@@ -263,8 +263,15 @@ describe('useAdminSpacesList', () => {
         { value: 'verified', label: 'Verified' },
         { value: 'unverified', label: 'Unverified' },
         { value: 'hidden', label: 'Hidden' },
+        { value: 'deleted', label: 'Deleted' },
       ],
     });
+    expect(result.current.list.filters.stale).toEqual({
+      label: 'Stale or missing',
+      checked: true,
+      toggle: expect.any(Function) as () => void,
+    });
+    expect(result.current.list.filters.quickFilter).toBe('Quick filter');
     expect(result.current.list.filters.sheet).toMatchObject({
       text: 'Filters',
       label: 'Filters, 2 applied',
@@ -275,5 +282,35 @@ describe('useAdminSpacesList', () => {
       result.current.list.filters.status.choose('all');
     });
     expect(result.current.location.search).toBe('?stale=true');
+  });
+
+  it('asks for the deleted spaces, and keeps the page and the filters while they load', async () => {
+    const OLIVE = { ...FOCUS, id: 12, nameEn: 'Olive Desk', deletedAt: '2026-10-01T08:00:00Z' };
+    const next = deferred<FakeAnswer>();
+    const { result, requests } = renderList('/s?status=deleted', (request) =>
+      (request.params as { page: number }).page === 2
+        ? next.promise
+        : page([OLIVE], { totalPages: 2, totalRecords: 21 }),
+    );
+    await waitFor(() => {
+      expect(result.current.list.status).toBe('ready');
+    });
+    expect(requests[0]?.params).toMatchObject({ status: 'deleted', page: 1 });
+
+    act(() => {
+      void result.current.navigate('/s?status=deleted&page=2');
+    });
+
+    await waitFor(() => {
+      expect(result.current.list.busy).toBe(true);
+    });
+    expect(result.current.list.rows.map(({ name }) => name.text)).toEqual(['Olive Desk']);
+    expect(result.current.list.rows[0]?.deletedOn).toBe('Deleted on 1 Oct');
+    expect(requests[1]?.params).toMatchObject({ status: 'deleted', page: 2 });
+
+    next.resolve(page([FOCUS], { currentPage: 2, totalPages: 2, totalRecords: 21 }));
+    await waitFor(() => {
+      expect(result.current.list.busy).toBe(false);
+    });
   });
 });

@@ -22,8 +22,15 @@ import { SpaceActionsMenu } from './SpaceActionsMenu';
 
 type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
 
-const FOCUS = { id: 7, nameEn: 'Focus Hub', nameAr: 'فوكس', isHidden: false };
-const PALM = { id: 9, nameEn: 'Palm Hub', nameAr: null, isHidden: true };
+const FOCUS = { id: 7, nameEn: 'Focus Hub', nameAr: 'فوكس', isHidden: false, deletedAt: null };
+const PALM = { id: 9, nameEn: 'Palm Hub', nameAr: null, isHidden: true, deletedAt: null };
+const OLIVE = {
+  id: 12,
+  nameEn: 'Olive Desk',
+  nameAr: null,
+  isHidden: false,
+  deletedAt: '2026-10-01T08:00:00Z',
+};
 
 /** A name with the Unicode isolates around its inserted values removed, as a reader hears it. */
 const heard = (expected: string) => (name: string) => name.replace(/[⁦-⁩]/g, '') === expected;
@@ -42,6 +49,7 @@ function renderMenus(
           <SpaceActionsHold />
           <SpaceActionsMenu space={FOCUS} editLink="/spaces/7" />
           <SpaceActionsMenu space={PALM} editLink="/spaces/9" />
+          <SpaceActionsMenu space={OLIVE} editLink="/spaces/12" />
         </main>
       </MemoryRouter>
       <Toaster label="Notifications" />
@@ -60,6 +68,9 @@ const toastTitled = (text: string) =>
 
 const menuButton = (name: string) =>
   screen.getByRole('button', { name: heard(`Actions: ${name}`) });
+
+const restoreButton = (name: string) =>
+  screen.getByRole('button', { name: heard(`Restore ${name}`) });
 
 beforeEach(() => {
   startPreferences('en');
@@ -247,5 +258,72 @@ describe('SpaceActionsMenu', () => {
       'href',
       '/spaces/9',
     );
+  });
+});
+
+describe('SpaceActionsMenu, for a deleted space', () => {
+  it('offers Restore alone, where the row’s menu stood', () => {
+    renderMenus();
+
+    expect(restoreButton('Olive Desk')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: heard('Actions: Olive Desk') })).toBeNull();
+  });
+
+  it('restores the space, its button pending and holding the focus, then says so by its name', async () => {
+    const answer = deferred<FakeAnswer>();
+    const { writes } = renderMenus(() => answer.promise);
+    const restore = restoreButton('Olive Desk');
+    restore.focus();
+
+    await userEvent.click(restore);
+
+    const write = writes();
+    expect(write).toHaveLength(1);
+    expect(write[0]?.url).toContain('/admin/spaces/12/restore');
+    // The pending state reaches the row on a later tick than the click.
+    await waitFor(() => {
+      expect(restoreButton('Olive Desk')).toHaveAttribute('aria-busy', 'true');
+    });
+    expect(restoreButton('Olive Desk')).toHaveFocus();
+
+    await act(async () => {
+      answer.resolve({ status: 204 });
+      await answer.promise;
+    });
+
+    expect(await toastTitled('Olive Desk restored')).toBeVisible();
+  });
+
+  it('names the space when the server refuses, with the refusal’s reference', async () => {
+    renderMenus(() => refused(409, { type: 'conflict' }));
+
+    await userEvent.click(restoreButton('Olive Desk'));
+
+    expect(await toastTitled('Couldn’t restore Olive Desk')).toBeVisible();
+    expect(screen.getByText(/req-1/)).toBeInTheDocument();
+  });
+
+  it('waits its button while a 429 counts down, and acts once the wait is over', async () => {
+    const { writes } = renderMenus(() =>
+      refused(429, { type: 'rate_limit' }, { 'retry-after': '30' }),
+    );
+
+    await userEvent.click(restoreButton('Olive Desk'));
+
+    await waitFor(() => {
+      expect(restoreButton('Olive Desk')).toHaveAttribute('aria-disabled', 'true');
+    });
+    await userEvent.click(restoreButton('Olive Desk'));
+    expect(writes()).toHaveLength(1);
+    // It stays in the focus order and where it was, so the keyboard keeps its place.
+    expect(restoreButton('Olive Desk')).toBeVisible();
+  });
+
+  it('has no accessibility violations', async () => {
+    renderMenus();
+
+    expect(
+      await axe(document.body, { rules: { region: { enabled: false } } }),
+    ).toHaveNoViolations();
   });
 });

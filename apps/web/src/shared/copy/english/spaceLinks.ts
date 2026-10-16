@@ -19,13 +19,19 @@ export const SPACE_LINKS = {
     place: 'Governorate / area',
     status: 'Status',
     allStatuses: 'All statuses',
-    /** A space's state, on its badge and as a filter's option. */
+    /** A space's state, on its badges and as a filter's option. */
     states: {
       verified: 'Verified',
       unverified: 'Unverified',
       hidden: 'Hidden',
+      deleted: 'Deleted',
     },
-    staleOnly: 'Stale data only',
+    /** A deleted row's date, by the list's own short date. */
+    deletedOn: ({ date }: { date: string }) => `Deleted on ${date}`,
+    /** The chip that keeps the spaces with a stale or a missing fact group. */
+    staleOrMissing: 'Stale or missing',
+    /** What names that chip, a filter that is not a field. */
+    quickFilter: 'Quick filter',
     /** The phone's button that opens the filters, and its sheet's title. */
     filters: 'Filters',
     /** The phone's button's name while filters apply. */

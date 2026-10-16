@@ -5,7 +5,7 @@ import { SpaceNameText } from './SpaceNameText';
 
 /**
  * A space as a card, on a phone: its name, a link to its page; its area, its owners and its last update on one line;
- * its state and freshness badges, which wrap; and its actions at the end.
+ * its state and freshness badges, which wrap, and a deleted space's date under them; and its actions at the end.
  */
 export function AdminSpaceCard({
   row,
@@ -17,10 +17,12 @@ export function AdminSpaceCard({
   /** The space's page, as the list's `spaceLink` gives it. */
   spaceLink: string;
 }) {
+  const deleted = row.deletedOn !== null;
+
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-1">
-        <SpaceNameText name={row.name} to={spaceLink} />
+        <SpaceNameText name={row.name} to={spaceLink} muted={deleted} />
         <span className="text-caption text-muted-foreground">
           {row.area}
           <span aria-hidden> · </span>
@@ -35,7 +37,8 @@ export function AdminSpaceCard({
           <span aria-hidden> · </span>
           {row.lastUpdated}
         </span>
-        <BadgeList badges={[row.state, ...row.freshness]} />
+        <BadgeList badges={[...row.state, ...row.freshness]} />
+        {deleted && <span className="text-caption text-muted-foreground">{row.deletedOn}</span>}
       </div>
       {actions}
     </div>

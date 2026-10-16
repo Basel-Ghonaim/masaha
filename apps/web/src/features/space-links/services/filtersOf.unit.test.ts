@@ -30,11 +30,16 @@ describe('filtersOf', () => {
     expect(read('governorate=2&area=12')).toEqual({ ...NONE, place: { areaId: 12 } });
   });
 
+  it('keeps the deleted spaces’ status, the list’s fourth', () => {
+    expect(read('status=deleted')).toEqual({ ...NONE, status: 'deleted' });
+    expect(paramsOf({ ...NONE, status: 'deleted' }).toString()).toBe('status=deleted');
+    expect(requestOf({ ...NONE, status: 'deleted' })).toEqual({ status: 'deleted', page: 1 });
+  });
+
   it.each([
     ['q=%20%20', 'an empty search'],
     [`q=${'a'.repeat(81)}`, 'a search past 80 characters'],
     ['status=closed', 'an unknown state'],
-    ['status=deleted', 'the deleted spaces, which the list does not offer yet'],
     ['area=0', 'an area that is not a positive id'],
     ['governorate=north', 'a governorate that is not an id'],
     ['stale=sometimes', 'a stale flag that is not one'],

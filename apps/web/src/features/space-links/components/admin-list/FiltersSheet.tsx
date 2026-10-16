@@ -14,8 +14,9 @@ import type { PlaceField } from '../../types/PlaceField';
 import { FilterFields } from './FilterFields';
 
 /**
- * The phone's filters: a button that shows how many apply, opening a bottom sheet with the place,
- * the state and stale only, which apply at once, and a button that clears them.
+ * The phone's filters: a button that shows how many apply, opening a bottom sheet with the place
+ * and the state, which apply at once, and a button that clears them. Stale or missing keeps its
+ * chip above, where it stands on every width.
  */
 export function FiltersSheet({
   filters,

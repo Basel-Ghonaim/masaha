@@ -14,7 +14,10 @@ export type AdminSpaceRowView = {
   row: AdminSpaceRow;
   name: SpaceNameView;
   area: string;
-  state: BadgeView;
+  /** A space's state is two facts: its verification, always, and hidden or deleted beside it. */
+  state: BadgeView[];
+  /** When it was deleted, as the row says it, or `null` while it is live. */
+  deletedOn: string | null;
   /** Its owners' names, each isolated, joined; `null` when it has none. */
   owners: string | null;
   /** A card's line of owners: shown with a dash when it has none, read aloud as having none. */

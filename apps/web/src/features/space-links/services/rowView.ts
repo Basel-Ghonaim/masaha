@@ -3,24 +3,14 @@ import type { FactGroup } from '@masaha/shared/spaces';
 import type { Catalogue } from '@shared/copy';
 import { isolate } from '@shared/localisation';
 import type { AdminSpaceRowView, BadgeView } from '../types/AdminSpaceRowView';
-import type { ListStatus } from './filtersOf';
 import { updatedOn } from './updatedOn';
 
-// A verified space is confirmed by its owner; an unverified one is not yet, as a missing group is
-// not yet entered; a hidden one needs the admin's eye, as a stale group does.
-const STATE_VARIANTS: Record<ListStatus, BadgeView['variant']> = {
+// A space's state is two facts (the owner's A3): a verified space is confirmed by its owner, an
+// unverified one is not yet, a hidden one needs the admin's eye and a deleted one is gone for now.
+const VERIFICATION_VARIANTS = {
   verified: 'success',
   unverified: 'neutral',
-  hidden: 'warning',
-};
-
-/**
- * A row's one badge: hidden first, whatever its owners, else whether it is verified. The badge stays
- * one until the list shows a state's two facts apart.
- */
-function stateOf({ isHidden, isVerified }: AdminSpaceRow): ListStatus {
-  return isHidden ? 'hidden' : isVerified ? 'verified' : 'unverified';
-}
+} as const;
 
 /**
  * One row of the admin's spaces list in the interface's language. Its state's facts and its stale and
@@ -46,12 +36,24 @@ export function rowView(
       ? [
           {
             label: lines.missing({ groups: groups(row.missingGroups) }),
-            variant: 'neutral' as const,
+            variant: 'warning' as const,
           },
         ]
       : []),
   ];
-  const state = stateOf(row);
+  const deleted = row.deletedAt !== null;
+  const state: BadgeView[] = [
+    {
+      label: lines.states[row.isVerified ? 'verified' : 'unverified'],
+      variant: VERIFICATION_VARIANTS[row.isVerified ? 'verified' : 'unverified'],
+    },
+    ...(row.isHidden ? [{ label: lines.states.hidden, variant: 'warning' as const }] : []),
+    ...(deleted ? [{ label: lines.states.deleted, variant: 'neutral' as const }] : []),
+  ];
+  const deletedOn =
+    row.deletedAt === null
+      ? null
+      : lines.deletedOn({ date: updatedOn(row.deletedAt, english ? 'en' : 'ar', now) });
   const arabicName = english ? null : row.nameAr;
   // Each name isolated, so a name in one direction never reorders its neighbours.
   const owners =
@@ -67,7 +69,8 @@ export function rowView(
         ? { text: arabicName ?? row.nameEn }
         : { text: row.nameEn, lang: 'en', dir: 'ltr' },
     area: english ? row.area.nameEn : row.area.nameAr,
-    state: { label: lines.states[state], variant: STATE_VARIANTS[state] },
+    state,
+    deletedOn,
     owners,
     ownersLine: {
       shown: lines.owners({ owners: owners ?? '—' }),

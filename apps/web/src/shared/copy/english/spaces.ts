@@ -298,7 +298,7 @@ export const SPACES = {
       coordinates: 'Coordinates',
     },
   },
-  /** A space's row menu. */
+  /** A space's row actions. */
   menu: {
     /** The menu's button, named after its space. */
     actions: ({ name }: { name: string }) => `Actions: ${name}`,
@@ -307,6 +307,9 @@ export const SPACES = {
     hide: 'Hide',
     show: 'Show',
     delete: 'Delete',
+    /** A deleted space's one action, and the button that offers it, named after its space. */
+    restore: 'Restore',
+    restoreNamed: ({ name }: { name: string }) => `Restore ${name}`,
   },
   /** The confirmation before a space is deleted. */
   deleteDialog: {

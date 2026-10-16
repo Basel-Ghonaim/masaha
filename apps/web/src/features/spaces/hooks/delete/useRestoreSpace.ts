@@ -11,10 +11,10 @@ import { useRefreshAdmin } from '../useRefreshAdmin';
 const repository = createSpacesRepository();
 
 /**
- * Restores a space just deleted, from its toast's Undo, pending until the admin's list has arrived
- * again; then a toast says so by its name. It runs even once the space's row, or the page, has gone:
- * its callbacks are the mutation's. A failure's toast names the space, and a 429's wait holds every
- * row's actions.
+ * Restores a soft-deleted space, from the deleted spaces' list or from the delete's Undo, pending
+ * until the admin's list has arrived again; then a toast says so by its name. It runs even once the
+ * space's row, or the page, has gone: its callbacks are the mutation's. A failure's toast names the
+ * space, and a 429's wait holds every row's actions.
  */
 export function useRestoreSpace() {
   const refresh = useRefreshAdmin();

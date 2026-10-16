@@ -35,11 +35,12 @@ describe('rowView', () => {
       row: FOCUS,
       name: { text: 'Focus Hub' },
       area: 'Al-Rimal',
-      state: { label: 'Verified', variant: 'success' },
+      state: [{ label: 'Verified', variant: 'success' }],
       owners: '⁨Ahmad⁩, ⁨مها⁩',
       ownersLine: { shown: 'Owner: ⁨Ahmad⁩, ⁨مها⁩', heard: 'Owner: ⁨Ahmad⁩, ⁨مها⁩' },
       freshness: [{ label: 'Up to date', variant: 'success' }],
       lastUpdated: '27 Sept',
+      deletedOn: null,
     });
   });
 
@@ -59,12 +60,51 @@ describe('rowView', () => {
   });
 
   it.each([
-    ['a verified', 'success', { isVerified: true, isHidden: false }, 'Verified'],
-    ['an unverified', 'neutral', { isVerified: false, isHidden: false }, 'Unverified'],
-    ['a hidden verified', 'warning', { isVerified: true, isHidden: true }, 'Hidden'],
-    ['a hidden unverified', 'warning', { isVerified: false, isHidden: true }, 'Hidden'],
-  ] as const)('shows %s space’s state as a %s badge', (_, variant, facts, label) => {
-    expect(english({ ...FOCUS, ...facts }).state).toEqual({ label, variant });
+    [
+      'a verified',
+      { isVerified: true, isHidden: false },
+      [{ label: 'Verified', variant: 'success' }],
+    ],
+    [
+      'an unverified',
+      { isVerified: false, isHidden: false },
+      [{ label: 'Unverified', variant: 'neutral' }],
+    ],
+    [
+      'a hidden verified',
+      { isVerified: true, isHidden: true },
+      [
+        { label: 'Verified', variant: 'success' },
+        { label: 'Hidden', variant: 'warning' },
+      ],
+    ],
+    [
+      'a hidden unverified',
+      { isVerified: false, isHidden: true },
+      [
+        { label: 'Unverified', variant: 'neutral' },
+        { label: 'Hidden', variant: 'warning' },
+      ],
+    ],
+  ] as const)('shows the two facts of %s space’s state, verification first', (_, facts, state) => {
+    expect(english({ ...FOCUS, ...facts }).state).toEqual(state);
+  });
+
+  it('says when a deleted space was deleted, in the interface’s language, on Gaza’s day', () => {
+    const deleted = { ...FOCUS, deletedAt: '2026-10-01T08:00:00Z' };
+
+    expect(english(deleted)).toMatchObject({
+      state: [
+        { label: 'Verified', variant: 'success' },
+        { label: 'Deleted', variant: 'neutral' },
+      ],
+      deletedOn: 'Deleted on 1 Oct',
+    });
+    expect(arabic(deleted).deletedOn).toBe('حُذفت في 1 أكتوبر');
+  });
+
+  it('shows a live space with no deletion date', () => {
+    expect(english(FOCUS).deletedOn).toBeNull();
   });
 
   it('shows a dash for a space with no owner, and reads it as having none', () => {
@@ -77,7 +117,7 @@ describe('rowView', () => {
     });
   });
 
-  it('names the stale groups on a warning badge and the missing ones on a neutral badge, in order', () => {
+  it('names the stale groups and the missing ones on a warning badge each, in order', () => {
     const stale: AdminSpaceRow = {
       ...FOCUS,
       staleGroups: ['prices', 'contacts'],
@@ -86,17 +126,17 @@ describe('rowView', () => {
 
     expect(english(stale).freshness).toEqual([
       { label: 'Stale: Prices, Contacts', variant: 'warning' },
-      { label: 'Missing: Opening hours', variant: 'neutral' },
+      { label: 'Missing: Opening hours', variant: 'warning' },
     ]);
     expect(arabic(stale).freshness).toEqual([
       { label: 'قديمة: الأسعار، التواصل', variant: 'warning' },
-      { label: 'غير مُدخلة: ساعات العمل', variant: 'neutral' },
+      { label: 'غير مُدخلة: ساعات العمل', variant: 'warning' },
     ]);
   });
 
   it('shows only the missing groups when nothing is stale', () => {
     expect(english({ ...FOCUS, missingGroups: ['amenities'] }).freshness).toEqual([
-      { label: 'Missing: Amenities', variant: 'neutral' },
+      { label: 'Missing: Amenities', variant: 'warning' },
     ]);
   });
 });
