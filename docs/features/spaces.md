@@ -155,6 +155,7 @@ remain planned, and photos are still API-only.
 - **The public page reads the space as the admin's read does,** under its share lock, and a hidden space reads as none. *Why:* a save in progress is never shown half done (finding 43). 2026-10-13, the directory item.
 - **The admin's space read receives active owners composed from `space-links`** (D1). *Why:* `spaces` never imports `space-links` (an L2 capability); the composition root injects an `ownersFor` reader so the single-space read and fact writes carry active owner names under the existing space share lock. 2026-10-15.
 - **The managed photo writes ask `can()` at the route, through `requireCan`, before the upload is counted or its body read;** the service's own `can()`, under the space's lock, still decides (the owner's D4). *Why:* reception's refused upload was read into memory first, and the managed reads' two copies of the `space.read` check needed one home: the boundary, which is that check. 2026-10-17, #86.
+- **Reception reads the space whole, its owners' names and ids included** (the owner's D5, the review's option A). *Why:* the staff who work the space every day know its owner, and a reception-only shape would be a second contract and a rule no lane tests. Revisit when staff management (step 5b) lands. 2026-10-17, #86.
 
 ### Web decisions
 

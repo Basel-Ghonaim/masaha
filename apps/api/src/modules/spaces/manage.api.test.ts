@@ -2,9 +2,10 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createTestApp } from '../../../test/app.ts';
-import { errorOf, signIn } from '../../../test/admin.ts';
+import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace } from '../../../test/factories.ts';
 import { image } from '../../../test/images.ts';
+import { whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { seedSettings, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -187,5 +188,88 @@ describe('managed photo writes', () => {
     expect(response.status).toBe(429);
     expect(errorOf(response).type).toBe('rate_limit');
     expect(await prisma.spacePhoto.count()).toBe(0);
+  });
+});
+
+describe('the managed read and its races', () => {
+  it('answers the owner and reception the same whole space: its facts, its verification and its owners', async () => {
+    await prisma.spaceHours.createMany({
+      data: [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
+        spaceId,
+        dayOfWeek,
+        isClosed: false,
+        opensMinute: 480,
+        closesMinute: 1080,
+      })),
+    });
+    await prisma.space.update({ where: { id: spaceId }, data: { hoursUpdatedAt: new Date() } });
+
+    const ownerRead = await manage(owner, 'get');
+    const receptionRead = await manage(reception, 'get');
+
+    expect(ownerRead.status).toBe(200);
+    expect(dataOf(ownerRead)).toMatchObject({
+      id: spaceId,
+      isVerified: true,
+      isHidden: false,
+      owners: [{ id: owner.id, name: 'Ahmad' }],
+      hours: {
+        days: Array.from({ length: 7 }, () => ({ opensMinute: 480, closesMinute: 1080 })),
+        shifts: [],
+      },
+      prices: [],
+      amenityIds: [],
+      ownAmenities: [],
+      contacts: [],
+      staleGroups: [],
+      missingGroups: ['prices', 'amenities', 'contacts'],
+    });
+    expect(receptionRead.status).toBe(200);
+    expect(dataOf(receptionRead)).toEqual(dataOf(ownerRead));
+  });
+
+  it('answers not_found for an unknown or malformed space id, and 401 to a guest', async () => {
+    for (const id of ['999999', 'abc', '2147483648']) {
+      const response = await request(app)
+        .get(`/api/v1/manage/spaces/${id}`)
+        .set('Authorization', owner.authorization);
+      expect(response.status).toBe(404);
+      expect(errorOf(response).type).toBe('not_found');
+    }
+
+    const guest = await request(app).get(`/api/v1/manage/spaces/${String(spaceId)}`);
+    expect(guest.status).toBe(401);
+    expect(errorOf(guest).type).toBe('unauthorized');
+  });
+
+  it('keeps a hidden space open to its owner and reception', async () => {
+    await prisma.space.update({ where: { id: spaceId }, data: { isHidden: true } });
+
+    const read = await manage(owner, 'get');
+    expect(read.status).toBe(200);
+    expect(dataOf(read)).toMatchObject({ isHidden: true });
+    expect((await manage(owner, 'patch', '', { nameEn: 'Branch Hub' })).status).toBe(200);
+    expect((await manage(reception, 'get')).status).toBe(200);
+    expect((await manage(reception, 'get', '/photos')).status).toBe(200);
+  });
+
+  it('decides a managed save on the links under the space’s lock: an owner unlinked meanwhile is refused', async () => {
+    // A link change in progress holds the space's lock, as every link change does, and ends the
+    // owner's link only after the save has read the links and started waiting for the lock.
+    const response = await whileHeld(
+      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+      () => manage(owner, 'put', '/contacts', { contacts: [] }),
+      (tx) =>
+        tx.spaceManager.update({
+          where: { spaceId_userId: { spaceId, userId: owner.id } },
+          data: { deactivatedAt: new Date() },
+        }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(errorOf(response).type).toBe('forbidden');
+    const { contactsUpdatedAt } = await prisma.space.findUniqueOrThrow({ where: { id: spaceId } });
+    expect(contactsUpdatedAt).toBeNull();
+    expect(await auditEntries()).toEqual([]);
   });
 });
