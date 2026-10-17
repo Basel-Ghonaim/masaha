@@ -465,6 +465,8 @@ describe('AdminSpacesList, on a phone', () => {
     );
     expect(within(card).getByText('Olive Desk')).toHaveClass('text-muted-foreground');
     expect(within(card).getByText('Deleted · 1 Oct')).toHaveClass('text-muted-foreground');
+    // No badge, so no empty badge row to add a gap of its own.
+    expect(card.querySelector('span.flex-wrap')).toBeNull();
     expect(within(card).queryByRole('button', { name: 'Actions for Olive Desk' })).toBeNull();
   });
 
