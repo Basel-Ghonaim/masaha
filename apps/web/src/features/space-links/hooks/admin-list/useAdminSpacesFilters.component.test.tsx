@@ -58,7 +58,8 @@ describe('useAdminSpacesFilters', () => {
       result.current.filters.chooseStale(true);
     });
     expect(result.current.location.search).toBe('?status=hidden&governorate=2&stale=true');
-    expect(result.current.filters.applied).toBe(3);
+    // The sheet holds the place and the state only: the chip beside the search is its own.
+    expect(result.current.filters.applied).toBe(2);
   });
 
   it('writes an area in place of the governorate, and takes a filter off again', () => {
@@ -167,14 +168,15 @@ describe('useAdminSpacesFilters', () => {
     expect(result.current.filters.search.text).toBe('Palm');
   });
 
-  it('clears the filters in the phone’s sheet, keeping the search', () => {
+  it('clears the sheet’s own two filters, keeping the search and the stale chip', () => {
     const { result } = renderFilters('/s?q=Hub&status=hidden&area=12&stale=true&page=2');
 
     act(() => {
       result.current.filters.clearFilters();
     });
 
-    expect(result.current.location.search).toBe('?q=Hub');
+    // The chip above the sheet is a filter the sheet never showed, so it keeps its own state.
+    expect(result.current.location.search).toBe('?q=Hub&stale=true');
   });
 
   it('clears every filter, the search included', () => {

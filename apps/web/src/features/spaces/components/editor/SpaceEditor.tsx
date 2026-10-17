@@ -10,6 +10,8 @@ import { ContactsSection } from '../contacts/ContactsSection';
 import { ReadOnlyContacts } from '../contacts/ReadOnlyContacts';
 import { HoursSection } from '../hours/HoursSection';
 import { ReadOnlyHours } from '../hours/ReadOnlyHours';
+import { PhotosSection } from '../photos/PhotosSection';
+import { ReadOnlyPhotos } from '../photos/ReadOnlyPhotos';
 import { PricesSection } from '../prices/PricesSection';
 import { ReadOnlyPrices } from '../prices/ReadOnlyPrices';
 import { ProfileSection } from '../profile/ProfileSection';
@@ -85,6 +87,7 @@ export function SpaceEditor({
               <ReadOnlyPrices space={space} />
               <ReadOnlyAmenities space={space} amenityNames={amenityNames} />
               <ReadOnlyContacts space={space} />
+              <ReadOnlyPhotos spaceId={spaceId} />
             </>
           ) : (
             <>
@@ -106,6 +109,7 @@ export function SpaceEditor({
                 onDirtyChange={editor.onDirtyChange}
               />
               <ContactsSection space={space} onDirtyChange={editor.onDirtyChange} />
+              <PhotosSection spaceId={spaceId} onUploadingChange={editor.onUploadingChange} />
             </>
           )}
           <PrivacyNote text={editor.privacy} />

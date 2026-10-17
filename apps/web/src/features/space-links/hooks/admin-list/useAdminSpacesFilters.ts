@@ -65,9 +65,9 @@ export function useAdminSpacesFilters() {
     };
   }, [text, setParams]);
 
-  const applied = [filters.place !== null, filters.status !== undefined, filters.stale].filter(
-    Boolean,
-  ).length;
+  // The stale filter is a chip above the sheet on every width, so the sheet's own count and its
+  // clear are the two fields it holds (the design counts the same two).
+  const applied = [filters.place !== null, filters.status !== undefined].filter(Boolean).length;
 
   return {
     filters,
@@ -82,13 +82,13 @@ export function useAdminSpacesFilters() {
     chooseStale: (stale: boolean) => {
       apply({ stale });
     },
-    /** How many of the phone's sheet's filters apply: the place, the state, stale only. */
+    /** How many of the phone's sheet's filters apply: the place and the state. */
     applied,
-    /** Whether any filter applies, the search included. */
-    anyApplied: applied > 0 || filters.q !== undefined,
-    /** Takes off the sheet's filters, keeping the search. */
+    /** Whether any filter applies, the search and the stale chip included. */
+    anyApplied: applied > 0 || filters.q !== undefined || filters.stale,
+    /** Takes off the sheet's filters, the place and the state, keeping the search and the chip. */
     clearFilters: () => {
-      apply({ place: null, status: undefined, stale: false });
+      apply({ place: null, status: undefined });
     },
     /** Takes off every filter, the search included. */
     clearAll: () => {

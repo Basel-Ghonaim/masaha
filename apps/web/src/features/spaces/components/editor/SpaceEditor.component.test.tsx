@@ -107,18 +107,30 @@ const amenitiesField: AmenitiesField = ({ label, value, onValueChange, disabled 
   </fieldset>
 );
 
+/** The gallery the editor's photos section reads; three photos, the first the cover. */
+const PHOTOS = [
+  { id: 3, urls: { card: '/files/3-card.webp', page: '/files/3-page.webp' } },
+  { id: 4, urls: { card: '/files/4-card.webp', page: '/files/4-page.webp' } },
+];
+
 /**
  * The editor of space 7 at `/spaces/7`, beside another page, `/elsewhere`. The server answers the
- * space's read with `read` (the space as it is) and every write with `write`.
+ * space's read with `read` (the space as it is), the gallery's read with its photos, and every write
+ * with `write`.
  */
 function renderEditor({
   read = () => ok(SPACE),
+  photos = () => ok(PHOTOS),
   write = () => ok(savedNow(SPACE)),
 }: {
   read?: () => FakeAnswer | Promise<FakeAnswer>;
+  photos?: () => FakeAnswer | Promise<FakeAnswer>;
   write?: (request: Request) => FakeAnswer | Promise<FakeAnswer>;
 } = {}) {
-  const requests = fakeTransport((request) => (request.method === 'get' ? read() : write(request)));
+  const requests = fakeTransport((request) => {
+    if (request.method !== 'get') return write(request);
+    return request.url?.endsWith('/photos') === true ? photos() : read();
+  });
   const router = createMemoryRouter(
     [
       {
@@ -262,7 +274,7 @@ describe('the space editor', () => {
       within(navigation)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['The space', 'Opening hours', 'Prices', 'Amenities', 'Contacts']);
+    ).toEqual(['The space', 'Opening hours', 'Prices', 'Amenities', 'Contacts', 'Photos']);
     act(() => {
       observer.intersect(['amenities', 'contacts']);
     });
@@ -270,6 +282,19 @@ describe('the space editor', () => {
       'aria-current',
       'location',
     );
+  });
+
+  it('draws the photos section last, editable for an unverified space', async () => {
+    renderEditor();
+
+    const photos = await waitFor(() => section('Photos'));
+    expect(await within(photos).findByText('Cover')).toBeInTheDocument();
+    expect(
+      within(photos).getByRole('button', { name: 'Make Photo 2 the cover' }),
+    ).toBeInTheDocument();
+    // Photos are no fact group: the section carries no date and nothing to save.
+    expect(within(photos).queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(within(photos).queryByText('Not added yet')).toBeNull();
   });
 
   it('moves to a section from its chip or its checklist line, with unsaved changes and no question', async () => {
@@ -567,6 +592,10 @@ describe('a verified space', () => {
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Still missing' })).toBeNull();
+    // Its photos are read, with no control to change them: the server's can() refuses every write.
+    const photos = section('Photos');
+    expect(await within(photos).findByText('Cover')).toBeInTheDocument();
+    expect(within(photos).queryByRole('button')).toBeNull();
   });
 });
 

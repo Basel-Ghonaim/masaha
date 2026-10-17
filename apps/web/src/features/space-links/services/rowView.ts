@@ -42,14 +42,15 @@ export function rowView(
       : []),
   ];
   const deleted = row.deletedAt !== null;
-  const state: BadgeView[] = [
-    {
-      label: lines.states[row.isVerified ? 'verified' : 'unverified'],
-      variant: VERIFICATION_VARIANTS[row.isVerified ? 'verified' : 'unverified'],
-    },
-    ...(row.isHidden ? [{ label: lines.states.hidden, variant: 'warning' as const }] : []),
-    ...(deleted ? [{ label: lines.states.deleted, variant: 'neutral' as const }] : []),
-  ];
+  const state: BadgeView[] = deleted
+    ? []
+    : [
+        {
+          label: lines.states[row.isVerified ? 'verified' : 'unverified'],
+          variant: VERIFICATION_VARIANTS[row.isVerified ? 'verified' : 'unverified'],
+        },
+        ...(row.isHidden ? [{ label: lines.states.hidden, variant: 'warning' as const }] : []),
+      ];
   const deletedOn =
     row.deletedAt === null
       ? null
@@ -76,7 +77,13 @@ export function rowView(
       shown: lines.owners({ owners: owners ?? '—' }),
       heard: lines.owners({ owners: owners ?? lines.noOwner }),
     },
-    freshness: freshness.length > 0 ? freshness : [{ label: lines.upToDate, variant: 'success' }],
+    // A deleted row carries no freshness: nothing will fill its gaps, and the one muted line by its
+    // name says it is gone. A live row's is the stale groups, the missing ones, or that it is fresh.
+    freshness: deleted
+      ? []
+      : freshness.length > 0
+        ? freshness
+        : [{ label: lines.upToDate, variant: 'success' }],
     lastUpdated: updatedOn(row.lastUpdatedAt, english ? 'en' : 'ar', now),
   };
 }

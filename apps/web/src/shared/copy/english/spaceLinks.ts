@@ -26,8 +26,8 @@ export const SPACE_LINKS = {
       hidden: 'Hidden',
       deleted: 'Deleted',
     },
-    /** A deleted row's date, by the list's own short date. */
-    deletedOn: ({ date }: { date: string }) => `Deleted on ${date}`,
+    /** A deleted row's line, by the list's own short date, in place of its badges. */
+    deletedOn: ({ date }: { date: string }) => `Deleted · ${date}`,
     /** The chip that keeps the spaces with a stale or a missing fact group. */
     staleOrMissing: 'Stale or missing',
     /** What names that chip, a filter that is not a field. */

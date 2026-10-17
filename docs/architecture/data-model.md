@@ -82,7 +82,7 @@ Summaries only: the schema owns the fields.
   The directory's "available now" filter selects `AVAILABLE`. Capacity and the exact numbers (present / capacity) are shown only to the space's staff (owner and reception).
 - **Auto check-out:** open visits and check-ins are closed at the space's closing time, or at 23:59 when the space has no opening hours, unless the owner turns closing-time check-out off in the space's settings; and earlier, after `maxStayMinutes`, when the owner sets it.
 - **Stale:** a fact group whose `…UpdatedAt` is older than its threshold: `priceStalenessDays` (default 30) for prices, `stalenessDays` (default 60) for the others. Both are admin settings.
-- **Missing:** a fact group never saved, its `…UpdatedAt` null. It is never stale; the admin's "stale only" filter keeps it, as it keeps a stale one.
+- **Missing:** a fact group never saved, its `…UpdatedAt` null. It is never stale; the admin's "stale or missing" filter keeps it, as it keeps a stale one.
 - **Stale prices:**
   - on an **unverified** space, the amounts are hidden, "Price not up to date — contact the space" is shown, and the space is left out of the price filters (a price range and student prices);
   - on a **verified** space, the amounts are shown with a "may have changed" note, and the owner's overview reminds them to confirm.

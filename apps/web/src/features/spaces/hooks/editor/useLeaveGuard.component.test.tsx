@@ -5,12 +5,13 @@ import { renderHookInRouter } from '../../../../test/renderHookInRouter';
 import { startPreferences } from '../../../../test/startPreferences';
 import { useLeaveGuard } from './useLeaveGuard';
 
-/** What the editor hands the guard: the unsaved sections' names, and whether a save is pending. */
-type Inputs = { unsaved: string[]; saving: boolean };
+/** What the editor hands the guard: the unsaved sections' names, and whether a save or an upload is
+ *  pending. */
+type Inputs = { unsaved: string[]; saving: boolean; uploading: boolean };
 
 /** The guard with inputs the test changes as the editor would, each change rendering it again. */
-function renderGuard(initial: Inputs) {
-  let inputs = initial;
+function renderGuard(initial: Partial<Inputs> = {}) {
+  let inputs: Inputs = { unsaved: [], saving: false, uploading: false, ...initial };
   const listeners = new Set<() => void>();
   const set = (next: Partial<Inputs>) => {
     inputs = { ...inputs, ...next };
@@ -26,7 +27,7 @@ function renderGuard(initial: Inputs) {
       },
       () => inputs,
     );
-    return useLeaveGuard(current.unsaved, current.saving);
+    return useLeaveGuard(current.unsaved, current.saving, current.uploading);
   });
   return { ...rendered, set };
 }
@@ -119,5 +120,46 @@ describe('useLeaveGuard', () => {
   it('asks the browser before the tab closes or reloads only while sections are unsaved', () => {
     renderGuard({ unsaved: [], saving: false });
     expect(unloadAsks()).toBe(false);
+  });
+
+  it('asks while an upload is running, names no section, and lets a move within the page through', async () => {
+    const { result, router } = renderGuard({ uploading: true });
+
+    expect(unloadAsks()).toBe(true);
+    await act(() => router.navigate({ hash: '#photos' }));
+    expect(router.state.location.hash).toBe('#photos');
+    expect(result.current.open).toBe(false);
+
+    await act(() => router.navigate('/elsewhere'));
+
+    expect(result.current.open).toBe(true);
+    expect(result.current.title).toBe('Leave while an upload is running?');
+    expect(result.current.description).toBe(
+      'A photo that has not finished uploading will be lost.',
+    );
+    act(() => {
+      result.current.stay.run();
+    });
+    expect(router.state.location.pathname).toBe('/page');
+  });
+
+  it('goes on by itself once the upload has ended', async () => {
+    const { router, set } = renderGuard({ uploading: true });
+    await act(() => router.navigate('/elsewhere'));
+
+    set({ uploading: false });
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/elsewhere');
+    });
+  });
+
+  it('still names the sections while one is unsaved and an upload runs too', async () => {
+    const { result, router } = renderGuard({ unsaved: ['The space'], uploading: true });
+
+    await act(() => router.navigate('/elsewhere'));
+
+    expect(result.current.title).toBe('Leave with unsaved changes?');
+    expect(result.current.description).toBe('Unsaved changes in The space will be lost.');
   });
 });

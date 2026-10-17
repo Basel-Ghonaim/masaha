@@ -8,8 +8,8 @@ import { useLeaveGuard } from './useLeaveGuard';
 import { useSectionInView } from './useSectionInView';
 import { useSpaceQuery } from './useSpaceQuery';
 
-/** The groups whose sections the editor draws, in its order: all five. */
-const SECTIONS: readonly FactGroup[] = FACT_GROUPS;
+/** The sections the editor draws, in its order: the five fact groups, then the gallery. */
+const SECTIONS = [...FACT_GROUPS, 'photos'] as const;
 
 /**
  * A space's editor, ready to render: its loading, failure and not-found states; then its state's
@@ -17,7 +17,8 @@ const SECTIONS: readonly FactGroup[] = FACT_GROUPS;
  * sections' navigation with the one in view marked, and the guard that asks before the page is left
  * with unsaved changes, which each section reports (`onDirtyChange`), and says they are being saved
  * while one of the space's writes is pending. A space found deleted is the 404, whatever was read
- * before.
+ * before. The gallery is a section like the rest, and no fact group: it is never in the checklist,
+ * which still maps the five groups.
  */
 export function useSpaceEditor(spaceId: number) {
   const copy = useCopy();
@@ -34,9 +35,16 @@ export function useSpaceEditor(spaceId: number) {
     );
   }, []);
   const saving = useIsMutating({ mutationKey: spaceWriteKey(spaceId) }) > 0;
+  // Photos are immediate actions, so nothing there is "unsaved": only an upload still travelling is
+  // lost by leaving, and the gallery says so while it is.
+  const [uploading, setUploading] = useState(false);
+  const onUploadingChange = useCallback((running: boolean) => {
+    setUploading(running);
+  }, []);
   const guard = useLeaveGuard(
     FACT_GROUPS.filter((group) => dirty.includes(group)).map((group) => words.sections[group]),
     saving,
+    uploading,
   );
   const space = query.data;
   const inView = useSectionInView(
@@ -71,12 +79,12 @@ export function useSpaceEditor(spaceId: number) {
     checklist: space.isVerified ? null : checklistOf(space, words),
     navigation: {
       label: words.navigation,
-      items: SECTIONS.map((group) => ({
-        id: group,
-        label: words.sections[group],
-        current: inView.current === group,
+      items: SECTIONS.map((section) => ({
+        id: section,
+        label: words.sections[section],
+        current: inView.current === section,
         choose: () => {
-          inView.choose(group);
+          inView.choose(section);
         },
       })),
     },
@@ -84,6 +92,8 @@ export function useSpaceEditor(spaceId: number) {
     /** The opening hours have unsaved changes: a new shift is not yet the prices' to choose. */
     hoursUnsaved: dirty.includes('hours'),
     onDirtyChange,
+    /** The gallery's queue, so the guard asks while a file is on its way up. */
+    onUploadingChange,
     guard,
   };
 }
