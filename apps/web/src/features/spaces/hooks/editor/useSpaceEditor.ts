@@ -35,9 +35,16 @@ export function useSpaceEditor(spaceId: number) {
     );
   }, []);
   const saving = useIsMutating({ mutationKey: spaceWriteKey(spaceId) }) > 0;
+  // Photos are immediate actions, so nothing there is "unsaved": only an upload still travelling is
+  // lost by leaving, and the gallery says so while it is.
+  const [uploading, setUploading] = useState(false);
+  const onUploadingChange = useCallback((running: boolean) => {
+    setUploading(running);
+  }, []);
   const guard = useLeaveGuard(
     FACT_GROUPS.filter((group) => dirty.includes(group)).map((group) => words.sections[group]),
     saving,
+    uploading,
   );
   const space = query.data;
   const inView = useSectionInView(
@@ -85,6 +92,8 @@ export function useSpaceEditor(spaceId: number) {
     /** The opening hours have unsaved changes: a new shift is not yet the prices' to choose. */
     hoursUnsaved: dirty.includes('hours'),
     onDirtyChange,
+    /** The gallery's queue, so the guard asks while a file is on its way up. */
+    onUploadingChange,
     guard,
   };
 }

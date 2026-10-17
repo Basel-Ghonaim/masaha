@@ -109,7 +109,7 @@ export function SpaceEditor({
                 onDirtyChange={editor.onDirtyChange}
               />
               <ContactsSection space={space} onDirtyChange={editor.onDirtyChange} />
-              <PhotosSection spaceId={spaceId} />
+              <PhotosSection spaceId={spaceId} onUploadingChange={editor.onUploadingChange} />
             </>
           )}
           <PrivacyNote text={editor.privacy} />

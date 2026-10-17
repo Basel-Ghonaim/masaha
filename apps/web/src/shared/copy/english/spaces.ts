@@ -112,6 +112,9 @@ export const SPACES = {
         `Unsaved changes in ${sections} will be lost.`,
       /** While a save of them is pending. */
       saving: ({ sections }: { sections: string }) => `The changes in ${sections} are being saved.`,
+      /** While a photo is being uploaded, which is the one thing leaving would lose. */
+      uploadTitle: 'Leave while an upload is running?',
+      uploading: 'A photo that has not finished uploading will be lost.',
       stay: 'Stay',
       leave: 'Leave',
     },
@@ -321,6 +324,22 @@ export const SPACES = {
       covered: ({ photo }: { photo: string }) => `${photo} is the cover now`,
       orderChanged:
         'The gallery changed since this page was opened. Reload it to see the current order.',
+      choose: 'Add photos',
+      limitReason: 'Up to 10 photos — remove one to add another',
+      /** What went up of what was chosen, when the gallery had not the room for all of it. */
+      summary: ({ uploaded, selected }: { uploaded: number; selected: number }) =>
+        `Uploaded ${String(uploaded)} of ${String(selected)}; the limit is 10 photos`,
+      /** The browser is reading the file and shrinking it. */
+      preparing: 'Preparing…',
+      uploading: ({ percent }: { percent: number }) => `Uploading ${String(percent)}%`,
+      /** The browser has no codec for the file, so nothing was sent for it. */
+      unsupported: 'Unsupported format; choose JPEG, PNG or WebP',
+      /** Over the contract's 4 MiB, after the browser's own shrinking. */
+      tooLarge: 'Larger than 4 MB; choose a smaller photo',
+      /** The gallery already holds ten, which is all it may hold (409). */
+      galleryFull: 'The space already has 10 photos. Remove one to add another.',
+      retry: 'Try again',
+      drop: 'Take it off the list',
       /** An owner joined while the page was open (403). */
       verifiedMeanwhile: 'The space was verified meanwhile: its owner edits its photos now.',
       /** The space was deleted while the page was open (404). */

@@ -6,6 +6,7 @@ import type { PhotoTileView } from '../../types/PhotoTileView';
 import { usePhotoOrder } from './usePhotoOrder';
 import { usePhotoRemove } from './usePhotoRemove';
 import { usePhotosQuery } from './usePhotosQuery';
+import { usePhotoUploads } from './usePhotoUploads';
 
 /**
  * «الصور», the editor's section, ready to render: the gallery as the server has it, in its order,
@@ -17,13 +18,17 @@ import { usePhotosQuery } from './usePhotosQuery';
  * again, and a 403 or a 404 on any of them fetches the space too, so a space verified or deleted
  * meanwhile changes the page's shape rather than leaving a control that cannot work.
  */
-export function usePhotoGallery(spaceId: number): PhotoGalleryView {
+export function usePhotoGallery(
+  spaceId: number,
+  onUploadingChange: (uploading: boolean) => void,
+): PhotoGalleryView {
   const copy = useCopy();
   const words = copy.spaces.editor.photos;
   const query = usePhotosQuery(spaceId);
   const photos = query.data ?? [];
   const order = usePhotoOrder(spaceId, photos);
   const removal = usePhotoRemove(spaceId);
+  const uploads = usePhotoUploads(spaceId, photos, onUploadingChange);
   const lines = {
     forbidden: words.verifiedMeanwhile,
     not_found: words.deletedMeanwhile,
@@ -92,5 +97,22 @@ export function usePhotoGallery(spaceId: number): PhotoGalleryView {
       ready && tiles.length === 0 ? { title: words.empty.title, text: words.empty.text } : null,
     said: order.said,
     remove,
+    uploads: {
+      // The layer has no file control, so the picker is behind the section's own button: the input
+      // takes any image, which on a phone opens its gallery and its camera alike.
+      input: {
+        label: words.choose,
+        accept: 'image/*',
+        multiple: true,
+        choose: (files) => {
+          if (files !== null && files.length > 0) uploads.choose(files);
+        },
+      },
+      label: words.choose,
+      disabled: !uploads.canAdd || uploads.busy,
+      reason: uploads.addReason,
+      summary: uploads.summary,
+      tiles: uploads.tiles,
+    },
   };
 }
