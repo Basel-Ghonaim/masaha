@@ -25,12 +25,13 @@ export function createAdminSpacesService({ listing, lookups, users }: Dependenci
   return {
     /**
      * Active owners of one space, oldest first; omitted when the user lookup returns no name
-     * (the user was deleted or absent). Read under the caller's transaction.
+     * (the user was deleted or absent). Read with the caller's transaction, so under its lock and
+     * on its connection.
      */
-    async ownersFor(spaceId: number, tx?: Tx): Promise<{ id: number; name: string }[]> {
+    async ownersFor(spaceId: number, tx: Tx): Promise<{ id: number; name: string }[]> {
       const links = await repository.findOwnerLinks([spaceId], tx);
       if (links.length === 0) return [];
-      const names = await users.namesFor([...new Set(links.map(({ userId }) => userId))]);
+      const names = await users.namesFor([...new Set(links.map(({ userId }) => userId))], tx);
       const nameById = new Map(names.map(({ id, name }) => [id, name]));
       return links.flatMap(({ userId }) => {
         const name = nameById.get(userId);

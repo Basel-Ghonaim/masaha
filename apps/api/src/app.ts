@@ -262,7 +262,7 @@ export function createApi({
     lookups,
     platformSettings,
     spaceSettings,
-    ownersFor: (spaceId: number, tx?: Tx) => adminSpaces.ownersFor(spaceId, tx),
+    ownersFor: (spaceId: number, tx: Tx) => adminSpaces.ownersFor(spaceId, tx),
     now: clock,
   });
   // The space's fact groups, each saved alone, through one save path.
@@ -270,7 +270,7 @@ export function createApi({
     runInTransaction,
     audit: writeAudit,
     platformSettings,
-    ownersFor: (spaceId: number, tx?: Tx) => adminSpaces.ownersFor(spaceId, tx),
+    ownersFor: (spaceId: number, tx: Tx) => adminSpaces.ownersFor(spaceId, tx),
     now: clock,
   };
   const profile = createProfileService({ ...facts, lookups });

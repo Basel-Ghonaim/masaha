@@ -401,6 +401,53 @@ describe('GET /admin/spaces/:spaceId', () => {
     ]);
   });
 
+  it('reads the owners’ names on the read’s own connection, inside its transaction', async () => {
+    const space = await createSpace();
+    const owner = await link(space.id, 'OWNER');
+    let pending: Promise<request.Response> | undefined;
+    let readWaiter: number | undefined;
+    let namesWaiter: number | undefined;
+    let release: () => void = () => undefined;
+    let usersHeld: Promise<unknown> | undefined;
+    // The read waits for the space's lock on its transaction's connection. Meanwhile a second
+    // transaction takes the users table, so the read's names query, once the space is free, waits
+    // for it on whichever connection runs it.
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${space.id} FOR NO KEY UPDATE`;
+        pending = adminRequest(app, admin, 'get', path(space.id));
+        [readWaiter] = await waitingOnLock();
+        await new Promise<void>((taken, failed) => {
+          usersHeld = prisma.$transaction(
+            async (holder) => {
+              await holder.$executeRaw`LOCK TABLE users IN ACCESS EXCLUSIVE MODE`;
+              await new Promise<void>((released) => {
+                release = released;
+                taken();
+              });
+            },
+            { timeout: 15_000 },
+          );
+          usersHeld.catch(failed);
+        });
+      },
+      { timeout: 10_000 },
+    );
+    try {
+      [namesWaiter] = await waitingOnLock({ on: 'users' });
+    } finally {
+      release();
+      await usersHeld;
+    }
+    const response = await pending;
+
+    expect(response?.status).toBe(200);
+    expect((dataOf(response as request.Response) as { owners: unknown }).owners).toEqual([
+      { id: owner.id, name: 'Sara' },
+    ]);
+    expect(namesWaiter).toBe(readWaiter);
+  }, 20_000);
+
   it('retains active owners on fact write and confirm responses', async () => {
     const space = await createSpace();
     await prisma.spaceManager.create({

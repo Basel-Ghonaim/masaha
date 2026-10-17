@@ -13,17 +13,25 @@ const POLL_MS = 20;
 /**
  * Waits until `count` backends of the test database wait on a lock — the requests a race test
  * started, blocked on what its transaction holds — and answers their process ids, smallest first.
- * Fails after REACH_MS, so a race whose request never reached the lock fails instead of passing
- * without interleaving (finding 52).
+ * With `on`, only those waiting for that table's lock. Fails after REACH_MS, so a race whose request
+ * never reached the lock fails instead of passing without interleaving (finding 52).
  */
-export async function waitingOnLock({ count = 1 }: { count?: number } = {}): Promise<number[]> {
+export async function waitingOnLock({
+  count = 1,
+  on,
+}: { count?: number; on?: string } = {}): Promise<number[]> {
   const deadline = Date.now() + REACH_MS;
   for (;;) {
     // Each poll is its own statement on the default client, so its own statistics snapshot.
-    const rows = await prisma.$queryRaw<{ pid: number }[]>`
-      SELECT pid FROM pg_stat_activity
-      WHERE datname = current_database() AND wait_event_type = 'Lock'
-      ORDER BY pid`;
+    const rows =
+      on === undefined
+        ? await prisma.$queryRaw<{ pid: number }[]>`
+            SELECT pid FROM pg_stat_activity
+            WHERE datname = current_database() AND wait_event_type = 'Lock'
+            ORDER BY pid`
+        : await prisma.$queryRaw<{ pid: number }[]>`
+            SELECT pid FROM pg_locks WHERE NOT granted AND relation = to_regclass(${on})
+            ORDER BY pid`;
     if (rows.length >= count) return rows.map(({ pid }) => pid);
     if (Date.now() > deadline) {
       throw new Error(`${String(count)} request(s) never waited on a lock`);
