@@ -1,6 +1,6 @@
 # Testing
 
-> **Status:** Active · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
 > **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof and what makes a test a proof, not its style.
 
 ## 1. The assignment rule
@@ -34,7 +34,7 @@ A test file's suffix names its lane, and each lane's script runs only its own fi
 4. If a test needs a production change, keep it only if production is better for it anyway.
 5. **Seen failing.** A new test is seen failing, in its own lane, before the code that passes it. A test for code that already exists is proven by reverting that code once and seeing the test fail. A red test is never committed ([workflow §3](workflow.md#commits)).
 6. **Name the break.** Every test can name the production change that would make it fail. Its expectations are written by hand, never computed by the code under test, and its title states what it proves and nothing it does not.
-7. **Make the break.** For a security, transaction or ordering property, the author makes that change once, sees the test fail, and restores it.
+7. **Make the break.** For a security, transaction or ordering property, the author makes that change once, sees the test fail, and restores it. A race's test acts only once its request is seen waiting on the lock (`apps/api/test/locks.ts`), never after a fixed time.
 
 ### A feature, layer by layer
 

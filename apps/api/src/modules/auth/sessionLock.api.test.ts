@@ -4,6 +4,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { cookieValue, createAccount, createTestApp, PASSWORD } from '../../../test/app.ts';
+import { lockUsers, waitingOnLock, whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma, type Tx } from '../../db/index.ts';
 
@@ -18,9 +19,6 @@ beforeEach(async () => {
   await resetDatabase(prisma);
 });
 
-/** Long enough for a request to finish its bcrypt work and wait on the lock. */
-const WAIT_MS = 2_000;
-
 /**
  * Starts `call` while the user's row is locked, runs `meanwhile` in that transaction, commits, then
  * returns the request's answer.
@@ -30,18 +28,7 @@ async function whileLocked(
   call: () => Promise<request.Response>,
   meanwhile: (tx: Tx) => Promise<unknown>,
 ): Promise<request.Response> {
-  let answer: Promise<request.Response> | undefined;
-  await prisma.$transaction(
-    async (tx) => {
-      await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`;
-      answer = call();
-      await new Promise((resolve) => setTimeout(resolve, WAIT_MS));
-      await meanwhile(tx);
-    },
-    { timeout: 10_000 },
-  );
-  if (!answer) throw new Error('The request never started');
-  return answer;
+  return whileHeld((tx) => lockUsers(tx, userId), call, meanwhile);
 }
 
 function login() {
@@ -250,7 +237,7 @@ describe('the session lock', () => {
           .set('Cookie', `masaha_reset=${key}`)
           .send({ token })
           .then((response) => response);
-        await new Promise((resolve) => setTimeout(resolve, WAIT_MS));
+        await waitingOnLock();
         await endLinksMeanwhile(tx, user.id);
       },
       { timeout: 10_000 },

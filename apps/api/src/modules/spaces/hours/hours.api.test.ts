@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { adminRequest, auditEntries, dataOf, errorOf, signIn } from '../../../../test/admin.ts';
 import { createTestApp } from '../../../../test/app.ts';
 import { createSpace, createUser } from '../../../../test/factories.ts';
+import { waitingOnLock } from '../../../../test/locks.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings, signInOwnerOf } from '../../../../test/spaces.ts';
 import { prisma } from '../../../db/index.ts';
@@ -282,7 +283,7 @@ describe('PUT /admin/spaces/:spaceId/hours', () => {
       await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
       await tx.spaceManager.create({ data: { spaceId, userId: owner.id, role: 'OWNER' } });
       pending = save({ days: WEEK, shifts: [] });
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await waitingOnLock();
     });
     const response = await pending;
 

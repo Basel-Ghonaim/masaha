@@ -1,6 +1,6 @@
 # Space Links
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-15 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
 > **Authority:** The `space-links` capability: a user's links to spaces and their role at each ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)), as the session, the caller's own list, the space switcher, the admin's spaces list and users list, the admin's owners (added, linked and unlinked) and the links loader use them. Its endpoints are owned by the API contract: [*Managed spaces*](../api/api-contract.md#managed-spaces), [*Owners (the admin)*](../api/api-contract.md#owners-the-admin) and [*Users (the admin)*](../api/api-contract.md#users-the-admin); the `SpaceManager` entity and "verified" by the [data model](../architecture/data-model.md#spaces).
 > **Scope:** the API module `space-links` (L2); `@masaha/shared/space-links`; the web feature `features/space-links`, dashboard-only.
 
@@ -38,11 +38,9 @@ screen and staff-management API remain planned.
 
 - **The caller's spaces** use the `me` router at `/manage/spaces`, behind `requireAuth` only: the path names no space, so the space middleware does not run.
 - **The links loader** is `shared/auth`'s, wired with this module's links. On the admin's space routes it runs without its refusal ([conventions › Space access](../backend/conventions.md#space-access)).
-- **Managed routes** use `requireSpaceAccess` once at `/manage/spaces/:spaceId`. It checks the
-  caller's active `OWNER` or `RECEPTION` link and returns `not_found` for no link, unknown spaces
-  and soft-deleted spaces; a hidden live space remains manageable.
+- **Managed routes** take their access from these links: the boundary on `/manage/spaces/:spaceId` reads them through the links loader ([security › Authorization](../backend/security.md#authorization)).
 - **The admin's spaces list** is a composed read ([conventions › Composed reads](../backend/conventions.md#composed-reads)). Each filter on another module's value is resolved to ids first: the verified state from the links, here, and a governorate to its areas, by `lookups`. `spaces` then applies its own filters (deleted, hidden, stale, the area, the search) to those ids and pages ([conventions §5](../backend/conventions.md#5-pagination)). The page's owners, their names (from `users`) and its areas' names follow, one query per module.
-- **The single-space admin read** is supplied active owner names (`ownersFor`) by the admin composition here, while the list composition remains unchanged. The names are read under the space share lock from `users`.
+- **The single-space admin read** is supplied active owner names (`ownersFor`) by the admin composition here, while the list composition remains unchanged. The names are read from `users` in the read's own transaction, under the space's share lock.
 - **A link change** is one transaction: it takes the space's lock through `spaces`; for an existing account, then the person's session lock through `users` (a new account's row is inserted under the space's lock), then counts the person's owner links and asks `users` to change the role when they give another ([conventions §13](../backend/conventions.md#concurrency)).
 - **The admin's users list** is a composed read too: every filter is the account's own, so `users` filters and pages its accounts; the page's active owner links follow, and their spaces' names from `spaces`, which leaves a soft-deleted space out, one query per module.
 - **The web** reads through the transport and TanStack Query, the caller's spaces under the user's own key scope and the admin's list under the admin's ([architecture §7](../frontend/architecture.md#7-server-state)); the dashboard-only rule keeps it out of the site's download ([architecture §3](../frontend/architecture.md#3-capabilities-features)).
@@ -102,7 +100,7 @@ screen and staff-management API remain planned.
 - **`status=deleted` lists the soft-deleted spaces alone,** hidden or not, verified or not, with the search, the place, stale only, the order and the pages of the others; every other status, and none, leaves them out (the owner's A3). *Why:* a space deleted by mistake can be restored once its toast has gone ([finding 44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)); one list, filtered before the page is cut. 2026-10-12, the deleted-spaces item.
 - **A deleted space's row names its owners, and is verified by them,** the second exception to "a link to a deleted space counts for nothing". *Why:* its links are kept as they are, and the way out of [finding 50](../architecture/findings/50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md), restore then unlink, needs to know whose space it was; the row says what a restore brings back. 2026-10-12, the deleted-spaces item.
 - **The row dates a deletion (`deletedAt`), `null` for a live space** (the owner's choice over a flag). *Why:* the screen shows a deleted row as deleted on that day. 2026-10-12, the deleted-spaces item.
-- **The admin-spaces composition supplies active owner names to the single-space admin read** (`ownersFor`), while its list composition remains unchanged. *Why:* `spaces` is an L1 capability and must not import `space-links` (L2); the composition root injects the reader so the read and writes carry owner names under the existing space share lock. 2026-10-15.
+- **The admin-spaces composition supplies active owner names to the single-space admin read** (`ownersFor`), while its list composition remains unchanged. *Why:* `spaces` is an L1 capability and must not import `space-links` (L2); the composition root injects the reader so the read and writes carry owner names under the existing space share lock. 2026-10-15, #82.
 
 ### Web decisions
 
@@ -150,7 +148,9 @@ screen and staff-management API remain planned.
 - The users item — the admin's role change.
 - The deleted-spaces item — a row's state as facts apart, and the soft-deleted spaces listed under `status=deleted`.
 - The directory item — the verified spaces' ids, for the public directory.
-- MANAGE — the active-link access boundary used by the owner/reception managed-space API.
+- #82 — the active owners of one space, for the single-space admin read (`ownersFor`).
+- #83 — the active-link access boundary used by the owner/reception managed-space API.
+- #86 — `ownersFor` reads the names in its caller's transaction.
 
 ### Web history
 

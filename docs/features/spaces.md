@@ -1,6 +1,6 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-15 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
 > **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the API-only managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list. The owner/reception web screen, capacity and packages remain planned.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
@@ -33,10 +33,7 @@ remain planned, and photos are still API-only.
 ## How it composes the platform
 
 - The admin's router sits inside `/admin`, behind the one guard there; the routes on one space first load its links without refusing anyone ([conventions › Space access](../backend/conventions.md#space-access)).
-- **The managed routers sit below `/manage/spaces/:spaceId`, behind one `requireSpaceAccess`
-  boundary.** It admits only an active owner or reception link and returns the no-hint 404 for
-  unrelated, unknown or deleted spaces; the shared controllers and services keep the admin's
-  validation, locks and audit names.
+- **The managed routers sit below `/manage/spaces/:spaceId`, behind the one boundary** that admits the space's staff ([security › Authorization](../backend/security.md#authorization)); the shared controllers and services keep the admin's validation, locks and audit names.
 - **A new space's settings:** in the creation's transaction, `spaces` reads the new-space defaults from `platform-settings` and writes the space's settings row through `space-settings`, both below it ([conventions › New-space defaults](../backend/conventions.md#new-space-defaults), [data model › Checked by the service](../architecture/data-model.md#checked-by-the-service)).
 - Every change is audited by the audit writer, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the names the [contract](../api/api-contract.md#spaces-the-admin) gives.
 - Staleness reads the platform's thresholds and the one clock ([conventions §11](../backend/conventions.md#11-time)).
@@ -94,7 +91,7 @@ remain planned, and photos are still API-only.
 **Contacts.** Each contact arrives validated and in its type's one stored form, from the shared rules both apps run, and the list is replaced whole, in its order.
 
 **Photos.** A space's photos are no fact group: a change dates nothing and is never confirmed. Who may change them is `can()`'s, as for the facts: the admin while the space is unverified, else its owner.
-- **An upload** is refused cheaply first, without the lock, when `can()` refuses on the loaded links or the gallery is full, so a refused upload costs no decoding and no store. Then the image core (`shared/images`) decodes it, its content check, and makes the two sizes; both files are stored under a new random key, at once; a failed store removes what was stored and answers 503. Then one transaction: the space's lock, `can()` on the links under it, the count of 10 under it, the row placed last, its audit entry. A refusal or a failure there removes both files before the answer, so two uploads at once can never pass 10.
+- **An upload** is refused cheaply first, without the lock, when `can()` refuses on the loaded links or the gallery is full, so a refused upload costs no decoding and no store; on the managed route, `can()` is asked before the upload is even counted or read ([security › Authorization](../backend/security.md#authorization)). Then the image core (`shared/images`) decodes it, its content check, and makes the two sizes; both files are stored under a new random key, at once; a failed store removes what was stored and answers 503. Then one transaction: the space's lock, `can()` on the links under it, the count of 10 under it, the row placed last, its audit entry. A refusal or a failure there removes both files before the answer, so two uploads at once can never pass 10.
 - **A file left behind** (a crash between the store and the commit, a failed removal) is logged `[storage:orphan]`, and nothing reclaims it in v1 ([finding 63](../architecture/findings/63-a-photos-files-can-outlive-it.md)).
 - **A removal** deletes the row and moves the later photos up, with its audit entry, in one transaction under the space's lock; then its files, before the answer. A failed file removal is logged, never answered as a failure. A photo the space does not have writes nothing, and the answer is the same.
 - **An order** must name exactly the space's photos, each once, as they are under the lock (409 otherwise); the order the gallery has writes nothing.
@@ -156,7 +153,9 @@ remain planned, and photos are still API-only.
 - **The public listing is one query over `spaces` and its facts, with the filters of other modules given as ids** ([directory › Decisions](directory.md#decisions)). *Why:* every filter applies before the page is cut; the search's score and the orders are computed in it. 2026-10-13, the directory item.
 - **The hidden-price rule is `spaces`', with "verified" as an input:** an unverified space's stale prices are hidden on its page, and the same spaces are left out of both price filters, in the query. *Why:* the staleness is this capability's; "verified" is `space-links`', resolved first. 2026-10-13, the directory item.
 - **The public page reads the space as the admin's read does,** under its share lock, and a hidden space reads as none. *Why:* a save in progress is never shown half done (finding 43). 2026-10-13, the directory item.
-- **The admin's space read receives active owners composed from `space-links`** (D1). *Why:* `spaces` never imports `space-links` (an L2 capability); the composition root injects an `ownersFor` reader so the single-space read and fact writes carry active owner names under the existing space share lock. 2026-10-15.
+- **The admin's space read receives active owners composed from `space-links`** (D1). *Why:* `spaces` never imports `space-links` (an L2 capability); the composition root injects an `ownersFor` reader so the single-space read and fact writes carry active owner names under the existing space share lock. 2026-10-15, #82.
+- **The managed photo writes ask `can()` at the route, through `requireCan`, before the upload is counted or its body read;** the service's own `can()`, under the space's lock, still decides (the owner's D4). *Why:* reception's refused upload was read into memory first, and the managed reads' two copies of the `space.read` check needed one home: the boundary, which is that check. 2026-10-17, #86.
+- **Reception reads the space whole, its owners' names and ids included** (the owner's D5, the review's option A). *Why:* the staff who work the space every day know its owner, and a reception-only shape would be a second contract and a rule no lane tests. Revisit when staff management (step 5b) lands. 2026-10-17, #86.
 
 ### Web decisions
 
@@ -214,9 +213,7 @@ remain planned, and photos are still API-only.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: the same modules as the admin plus
-  `spaces.manage.routes.ts` and `photos.manage.routes.ts` for the managed API; shared controllers
-  and services keep the two audiences consistent.
+- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/` (the links and the own amenities), `contacts/`, `confirm/` (a group confirmed unchanged), `photos/` (the gallery: its sizes, its order and cover, the upload's order of work), `listing/` (the page the admin's list reads), `public/` (the public listing and the public page, for the directory); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router, and a manage router each for the space and its photos, on the same controllers and services.
 - **Shared:** `packages/shared/src/spaces/`: the requests (the profile and each fact group, with their rules), the responses, the contacts' forms, the fact groups, the photos' limits and sizes, and the Gaza Strip's box; the phone rule in `core`.
 - **Web:** `apps/web/src/features/spaces/`, entry `index.ts` (`AddSpaceForm` with its `AreaField` slot, `SpaceEditor`, `useSpaceName`, `SpaceActionsMenu`, `SpaceActionsHold`), mounted by `pages/dashboard/admin/`: a folder per operation in `hooks/` and `components/` (`add/`, `editor/` with the space's query, a section's frame, its save, the section in view and the leave guard, `profile/`, `hours/`, `prices/`, `amenities/`, `contacts/`, `hide/`, `delete/` with the Undo's restore, `menu/`, `hold/`; and `confirm/` in `hooks/`), the profile's fields shared by the add form and the editor at the root of `hooks/` and in `components/profile/`, the toasts in `components/toast/`, and in `services/` the profile the schema reads from the form, as added and as edited, the changes a save sends, the hours, the prices and the amenities as their forms hold them, a time of day, an amount in shekels, a phone's carrier, the group's date, the space's name and a line cut around it.
 
@@ -240,8 +237,9 @@ remain planned, and photos are still API-only.
 - The deleted-spaces item — the listing page of the soft-deleted spaces, with when each was deleted.
 - The directory item — the public listing (filters, search, orders, pages and the map's set) and the public page.
 - #77 — a space's photos: the gallery's read, its upload through the storage port and the image core, its removal and its order; the covers and the page's photos for the directory.
-- MANAGE — the owner/reception managed-space API, reusing the admin services and response shapes;
-  reception reads, owners write, and managed photos share the admin upload path.
+- #82 — the single-space read and the fact writes carry the space's active owners.
+- #83 — the owner/reception managed-space API, reusing the admin services and response shapes; reception reads, owners write, and managed photos share the admin upload path.
+- #86 — the read and the fact writes read one statement at a time, the owners' names in their transaction; a managed photo write refused before it is read; the managed read's payload and its races tested.
 
 ### Web history
 

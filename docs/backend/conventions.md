@@ -1,6 +1,6 @@
 # Backend Conventions
 
-> **Status:** Active · **Class:** Contract — rules to build against. **Built:** the shared errors, http and validation code, with `parseId`; `shared/auth` (the access tokens, `requireAuth`, `requireRole`, `signedIn`, `can()`, and the links loader without the refusal, `loadSpaceLinks`, on the admin's space routes); the audit writer (§6); the rate limiter; the level rule (§7), enforced by lint; `runInTransaction` in `db/`; the modules `sessions`, and `platform-settings` and `space-settings` minimally (the new-space defaults and the staleness thresholds; a space's settings row, created with it), beside the capabilities documented in [`docs/features/`](../README.md#features--one-document-per-capability); the logging of §10; the clock and the timer of §11; of §12, the composition root, the email port, the Google identity port, the storage port with its two adapters and the rate limits in PostgreSQL; of §13, the idempotency key's name, the session lock and the space's lock. **Not yet built:** `optionalAuth` and the refusing space middleware of `/manage` (§8); the audit reader (§6); every other module; Gaza time (§11); the scheduler port (§12); the idempotent creates and the ledger's translation table (§13) · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against. **Built:** the shared errors, http and validation code, with `parseId`; `shared/auth` (the access tokens, `requireAuth`, `requireRole`, `signedIn`, `can()`, and the links loader without the refusal, `loadSpaceLinks`, on the admin's space routes; `requireSpaceAccess` on `/manage/spaces/:spaceId`; `requireCan`); the audit writer (§6); the rate limiter; the level rule (§7), enforced by lint; `runInTransaction` in `db/`; the modules `sessions`, and `platform-settings` and `space-settings` minimally (the new-space defaults and the staleness thresholds; a space's settings row, created with it), beside the capabilities documented in [`docs/features/`](../README.md#features--one-document-per-capability); the logging of §10; the clock and the timer of §11; of §12, the composition root, the email port, the Google identity port, the storage port with its two adapters and the rate limits in PostgreSQL; of §13, the idempotency key's name, the session lock and the space's lock. **Not yet built:** `optionalAuth` (§7); the audit reader (§6); every other module; Gaza time (§11); the scheduler port (§12); the idempotent creates and the ledger's translation table (§13) · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
 > **Authority:** The backend's modules, their levels, routers and placements, and the rules every module follows; layering, validation, errors, pagination, audit, logging, time, environments, idempotency and concurrency in `apps/api`. Why the backend is a modular monolith is in [ADR 0012](../architecture/decisions/0012-modular-monolith-backend.md); why identity is three modules is in [ADR 0013](../architecture/decisions/0013-identity-modules.md). Payload shapes and paths are owned by the [API contract](../api/api-contract.md); security mechanisms by [security.md](security.md); where each behaviour is tested by [testing.md](../development/testing.md).
 
 The backend is one application divided into **modules**, one per capability, arranged in **levels** (§7). Each module is built from the same **layers** (§2). **A screen is not a capability** (§7): placements follow the rule that consumes a value, never the screen that shows it.
@@ -36,7 +36,8 @@ apps/api/src/
     validation/        validate(schema, source) middleware, parseId (user text is normalised by
                        the shared schemas, in packages/shared, §3)
     auth/              the access-token codec, requireAuth, optionalAuth, requireRole,
-                       requireSpaceAccess (§8), can(), signedIn (the claims a guard set)
+                       requireSpaceAccess and requireCan (§8), can(), signedIn (the claims a
+                       guard set)
     audit/             the audit writer (§6)
     jobs/              the scheduler that runs the modules' timed work: an in-process timer
                        locally, an internal endpoint called by an external cron online (§12)
@@ -53,7 +54,7 @@ Inside a module, each layer calls only the one below it.
 
 | Layer | Owns | Never |
 |---|---|---|
-| **Routes** | The per-endpoint chain: rate limiter → auth guard → role guard → `validate(schema)` → controller. A limit counted on every request sits here; a limit that counts only failures, or counts by what only the service knows (the user behind a cookie, the account of an email), is applied by the service, where the outcome is decided | Logic |
+| **Routes** | The per-endpoint chain: auth guard → role or space guard (`requireRole`, `requireSpaceAccess`) → permission guard (`requireCan`) → rate limiter → `validate(schema)` or the file reader → controller; a route with no signed-in caller starts at its limiter, and the general limit runs before every route. A guard refuses before anything of the request's body is read. A limit counted on every request sits here; a limit that counts only failures, or counts by what only the service knows (the user behind a cookie, the account of an email), is applied by the service, where the outcome is decided | Logic |
 | **Controller** | HTTP only: read validated input, call the service, respond with `sendSuccess`, set cookies | Business rules, Prisma |
 | **Service** | Business rules, permission checks via `can()`, mapping to DTOs, audit entries (§6), calls to lower modules' services, transactions when it orchestrates (§8) | Importing Prisma or Express |
 | **Repository** | Prisma queries on the module's own tables only; applies soft-delete filters by default; each function accepts an optional `tx` (§8) | Rules |
@@ -192,13 +193,11 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 ### Space access
 
 - `requireSpaceAccess` (`shared/auth`) takes a links loader. The composition root wires it with `space-links`' service and mounts it **once** on `/manage/spaces/:spaceId`, before every module's `manage` router.
-- **Built:** it refuses a caller with no active link at the space with `not_found` (404), including
-  an unknown or soft-deleted space, so the route does not reveal space existence. Otherwise it puts
-  the space's links on the request: the `SpaceResource` from which `can()` reads the caller's role
-  and whether the space is verified. A hidden live space remains accessible to its active links.
+- It refuses whom `can()` refuses `space.read` at the space, as [security › Authorization](security.md#authorization) says, and otherwise puts the space's links on the request: the `SpaceResource` from which `can()` reads the caller's role and whether the space is verified.
 - On the admin's space routes, the composition root mounts the same loader without the refusal, so "verified" is known there too.
 - **A change that decides under the space's lock reads the links again there,** through the loaded space's `linksUnder(tx)`: every link change takes that lock (§13), so a link committed after the loader ran still decides ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)).
 - Modules read the links from the request and pass them to their service. **No module imports `space-links` to learn its access or "verified".** `can()` decides per action.
+- **`requireCan(action)`** (`shared/auth`) asks `can()` for one action at the route, from the links on the request, where a refusal must come before the request's body is read ([security › Authorization](security.md#authorization)); the service's own `can()`, under the space's lock, still decides.
 
 ### Pure rules
 

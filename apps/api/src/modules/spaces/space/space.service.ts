@@ -19,7 +19,7 @@ interface Dependencies {
   lookups: LookupsService;
   platformSettings: PlatformSettingsService;
   spaceSettings: SpaceSettingsService;
-  ownersFor: (spaceId: number, tx?: Tx) => Promise<AdminSpace['owners']>;
+  ownersFor: (spaceId: number, tx: Tx) => Promise<AdminSpace['owners']>;
   /** The one clock (conventions §11): staleness is measured from it. */
   now: () => Date;
 }
@@ -97,10 +97,9 @@ export function createSpaceService({
         const found = await repository.lockShared(space.id, tx);
         if (!found) throw AppError.notFound(undefined, 'Space not found');
         const verified = isVerified({ links: await space.linksUnder(tx) });
-        const [facts, owners] = await Promise.all([
-          readFacts(space.id, tx),
-          ownersFor(space.id, tx),
-        ]);
+        // One statement at a time: a transaction's connection runs one at once (finding 11).
+        const facts = await readFacts(space.id, tx);
+        const owners = await ownersFor(space.id, tx);
         return view(found, verified, thresholds, facts, owners);
       });
     },
