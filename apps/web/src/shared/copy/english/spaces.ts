@@ -65,13 +65,14 @@ export const SPACES = {
     },
     privacy:
       'A space’s operating data is private to its management — customers, visits, subscriptions, payments and finance.',
-    /** Each fact group's section, by one name in the navigation and on its card. */
+    /** Each fact group's section, by one name in the navigation and on its card, and the gallery's. */
     sections: {
       profile: 'The space',
       hours: 'Opening hours',
       prices: 'Prices',
       amenities: 'Amenities',
       contacts: 'Contacts',
+      photos: 'Photos',
     },
     /** Names the sections' navigation. */
     navigation: 'Profile sections',
@@ -291,6 +292,40 @@ export const SPACES = {
       /** A verified space with none, read-only. */
       none: 'No contacts yet',
     },
+    /** «الصور»: the gallery. Photos are no fact group: they carry no date and confirm nothing. */
+    photos: {
+      intro:
+        'Up to 10 photos · JPEG, PNG or WebP · 4 MB each. The first is the cover, and every change is saved at once.',
+      loadFailed: 'We couldn’t load the photos',
+      empty: {
+        title: 'No photos yet',
+        text: 'The first photo becomes the cover.',
+      },
+      cover: 'Cover',
+      photo: ({ position }: { position: number }) => `Photo ${String(position)}`,
+      before: 'Before',
+      beforeNamed: ({ photo }: { photo: string }) => `Before: ${photo}`,
+      after: 'After',
+      afterNamed: ({ photo }: { photo: string }) => `After: ${photo}`,
+      makeCover: 'Make it the cover',
+      makeCoverNamed: ({ photo }: { photo: string }) => `Make ${photo} the cover`,
+      removeNamed: ({ photo }: { photo: string }) => `Remove ${photo}`,
+      removeDialog: {
+        title: ({ photo }: { photo: string }) => `Delete ${photo}?`,
+        description: 'It leaves the space’s page at once and cannot be brought back.',
+        cancel: 'Back',
+        confirm: 'Delete',
+      },
+      moved: ({ photo, position, total }: { photo: string; position: number; total: number }) =>
+        `${photo} is now at position ${String(position)} of ${String(total)}`,
+      covered: ({ photo }: { photo: string }) => `${photo} is the cover now`,
+      orderChanged:
+        'The gallery changed since this page was opened. Reload it to see the current order.',
+      /** An owner joined while the page was open (403). */
+      verifiedMeanwhile: 'The space was verified meanwhile: its owner edits its photos now.',
+      /** The space was deleted while the page was open (404). */
+      deletedMeanwhile: 'The space was deleted meanwhile.',
+    },
     /** A verified space's values, read-only. */
     readOnly: {
       none: '—',
@@ -327,6 +362,7 @@ export const SPACES = {
     /** Restores the space just deleted. */
     undo: 'Undo',
     restored: ({ name }: { name: string }) => `${name} restored`,
+    photoRemoved: ({ photo }: { photo: string }) => `${photo} deleted`,
   },
   /** An action that failed, named after its space. */
   failures: {

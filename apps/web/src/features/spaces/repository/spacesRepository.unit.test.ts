@@ -1,7 +1,7 @@
 import type { CreateSpaceRequest } from '@masaha/shared/spaces';
 import { apiClient, setupApiClient } from '@shared/api';
 import { AppError } from '@shared/errors';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
 import { createSpacesRepository } from './spacesRepository';
 
@@ -148,6 +148,36 @@ describe('the spaces repository', () => {
       expect(requests[0]?.data).toBeUndefined();
     },
   );
+
+  it('reads, uploads, removes and orders a space’s photos on the contract’s paths', async () => {
+    const file = new File(['the bytes of a photo'], 'desk.jpg', { type: 'image/jpeg' });
+    const photo = { id: 3, urls: { card: '/files/card.webp', page: '/files/page.webp' } };
+    const progress = vi.fn();
+
+    const listed = serve({ status: 200, data: { success: true, data: [photo] } });
+    await expect(createSpacesRepository().listPhotos(7)).resolves.toEqual([photo]);
+    expect(listed[0]).toMatchObject({ method: 'get', url: '/admin/spaces/7/photos' });
+
+    const uploaded = serve({ status: 201, data: { success: true, data: photo } });
+    await expect(createSpacesRepository().uploadPhoto(7, file, progress)).resolves.toEqual(photo);
+    const part = uploaded[0];
+    expect(part).toMatchObject({ method: 'post', url: '/admin/spaces/7/photos' });
+    const body = part?.data as FormData;
+    expect([...body.keys()]).toEqual(['photo']);
+    expect(body.get('photo')).toBe(file);
+    // The progress the transport reports reaches the caller, so a tile can show its own percentage.
+    part?.onUploadProgress?.({ loaded: 1024, total: 2048, bytes: 1024, lengthComputable: true });
+    expect(progress).toHaveBeenCalledWith(1024, 2048);
+
+    const removed = serve({ status: 204 });
+    await expect(createSpacesRepository().removePhoto(7, 3)).resolves.toBeUndefined();
+    expect(removed[0]).toMatchObject({ method: 'delete', url: '/admin/spaces/7/photos/3' });
+
+    const ordered = serve({ status: 204 });
+    await expect(createSpacesRepository().orderPhotos(7, [4, 3])).resolves.toBeUndefined();
+    expect(ordered[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/photos/order' });
+    expect(JSON.parse(String(ordered[0]?.data))).toEqual({ ids: [4, 3] });
+  });
 
   it('rejects a refusal as an AppError, with its type', async () => {
     serve({

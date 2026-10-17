@@ -64,6 +64,7 @@ export const SPACES = {
       prices: 'الأسعار',
       amenities: 'المرافق',
       contacts: 'التواصل',
+      photos: 'الصور',
     },
     navigation: 'أقسام الملف',
     checklist: {
@@ -243,6 +244,36 @@ export const SPACES = {
       },
       none: 'لا وسائل تواصل بعد',
     },
+    photos: {
+      intro:
+        'حتى 10 صور · JPEG أو PNG أو WebP · حتى 4 ميغابايت للصورة. الأولى هي الغلاف، وكل تغيير يُحفظ فورًا.',
+      loadFailed: 'تعذّر تحميل الصور',
+      empty: {
+        title: 'لا توجد صور بعد',
+        text: 'الصورة الأولى تصبح الغلاف.',
+      },
+      cover: 'الغلاف',
+      photo: ({ position }: { position: number }) => `الصورة ${String(position)}`,
+      before: 'قبل',
+      beforeNamed: ({ photo }: { photo: string }) => `قبل: ${photo}`,
+      after: 'بعد',
+      afterNamed: ({ photo }: { photo: string }) => `بعد: ${photo}`,
+      makeCover: 'اجعلها الغلاف',
+      makeCoverNamed: ({ photo }: { photo: string }) => `اجعل ${photo} الغلاف`,
+      removeNamed: ({ photo }: { photo: string }) => `إزالة ${photo}`,
+      removeDialog: {
+        title: ({ photo }: { photo: string }) => `حذف ${photo}؟`,
+        description: 'تختفي من صفحة المساحة فورًا ولا يمكن استرجاعها.',
+        cancel: 'رجوع',
+        confirm: 'حذف',
+      },
+      moved: ({ photo, position, total }: { photo: string; position: number; total: number }) =>
+        `${photo} الآن في الموضع ${String(position)} من ${String(total)}`,
+      covered: ({ photo }: { photo: string }) => `${photo} هي الغلاف الآن`,
+      orderChanged: 'تغيّرت الصور منذ فتح هذه الصفحة. أعد التحميل لترى الترتيب الحالي.',
+      verifiedMeanwhile: 'تم توثيق المساحة في هذه الأثناء؛ مالكها يعدّل صورها الآن.',
+      deletedMeanwhile: 'حُذفت المساحة في هذه الأثناء.',
+    },
     readOnly: {
       none: '—',
       area: 'المنطقة',
@@ -271,6 +302,7 @@ export const SPACES = {
     deleted: ({ name }: { name: string }) => `حُذفت ${name}`,
     undo: 'تراجع',
     restored: ({ name }: { name: string }) => `استُرجعت ${name}`,
+    photoRemoved: ({ photo }: { photo: string }) => `حُذفت ${photo}`,
   },
   failures: {
     hide: ({ name }: { name: string }) => `تعذّر إخفاء ${name}`,

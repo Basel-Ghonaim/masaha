@@ -8,8 +8,8 @@ import { useLeaveGuard } from './useLeaveGuard';
 import { useSectionInView } from './useSectionInView';
 import { useSpaceQuery } from './useSpaceQuery';
 
-/** The groups whose sections the editor draws, in its order: all five. */
-const SECTIONS: readonly FactGroup[] = FACT_GROUPS;
+/** The sections the editor draws, in its order: the five fact groups, then the gallery. */
+const SECTIONS = [...FACT_GROUPS, 'photos'] as const;
 
 /**
  * A space's editor, ready to render: its loading, failure and not-found states; then its state's
@@ -17,7 +17,8 @@ const SECTIONS: readonly FactGroup[] = FACT_GROUPS;
  * sections' navigation with the one in view marked, and the guard that asks before the page is left
  * with unsaved changes, which each section reports (`onDirtyChange`), and says they are being saved
  * while one of the space's writes is pending. A space found deleted is the 404, whatever was read
- * before.
+ * before. The gallery is a section like the rest, and no fact group: it is never in the checklist,
+ * which still maps the five groups.
  */
 export function useSpaceEditor(spaceId: number) {
   const copy = useCopy();
@@ -71,12 +72,12 @@ export function useSpaceEditor(spaceId: number) {
     checklist: space.isVerified ? null : checklistOf(space, words),
     navigation: {
       label: words.navigation,
-      items: SECTIONS.map((group) => ({
-        id: group,
-        label: words.sections[group],
-        current: inView.current === group,
+      items: SECTIONS.map((section) => ({
+        id: section,
+        label: words.sections[section],
+        current: inView.current === section,
         choose: () => {
-          inView.choose(group);
+          inView.choose(section);
         },
       })),
     },
