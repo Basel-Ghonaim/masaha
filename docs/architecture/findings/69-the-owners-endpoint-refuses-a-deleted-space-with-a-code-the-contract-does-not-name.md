@@ -1,0 +1,9 @@
+# 69. The owners endpoint refuses a deleted space with a code the contract does not name
+
+**Status:** Open · **Date:** 2026-10-17
+
+**Evidence:** the contract gives a soft-deleted space two refusals on the owners endpoints, and names both: `validation` (422) with `errors.spaceId = ["invalid_choice"]` on the add-owner's body, `not_found` (404) on the link's path ([api-contract §5 › Owners (the admin)](../../api/api-contract.md#owners-the-admin)). The service answers those two: `lockChosenSpace` throws `invalid_choice` and `lockSpace` throws the 404, in `apps/api/src/modules/space-links/admin-owners/adminOwners.service.ts`.
+
+A call made while verifying #84's screen refused a soft-deleted space with `spaceId: invalid_format`, which the contract names for no case on these endpoints. It is the code the add-owner's **body schema** gives before the service is reached: `spaceId` is `z.number().int().positive()` in `packages/shared/src/space-links/requests.ts`, and `toFieldErrors` turns a value of the wrong JSON type into `invalid_format`, never into `invalid_choice` (`packages/shared/src/core/fieldErrors.ts`). Such an answer reports how the id was written, not that the space is deleted, so a client cannot tell "this space is deleted" from "this id is not a number"; that round could only reach its verified-then-deleted case by restoring the space first.
+
+**Resolves when:** the refusal for a soft-deleted space on the owners endpoints is a code the contract names, whatever JSON type the id was written in — the schema's type check and the contract's `invalid_choice` being one answer, or the contract naming the type check's code.

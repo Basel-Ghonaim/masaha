@@ -274,8 +274,8 @@ describe('useAdminSpacesList', () => {
     expect(result.current.list.filters.quickFilter).toBe('Quick filter');
     expect(result.current.list.filters.sheet).toMatchObject({
       text: 'Filters',
-      label: 'Filters, 2 applied',
-      count: 2,
+      label: 'Filters, 1 applied',
+      count: 1,
     });
 
     act(() => {
@@ -305,12 +305,38 @@ describe('useAdminSpacesList', () => {
       expect(result.current.list.busy).toBe(true);
     });
     expect(result.current.list.rows.map(({ name }) => name.text)).toEqual(['Olive Desk']);
-    expect(result.current.list.rows[0]?.deletedOn).toBe('Deleted on 1 Oct');
+    expect(result.current.list.rows[0]?.deletedOn).toBe('Deleted · 1 Oct');
     expect(requests[1]?.params).toMatchObject({ status: 'deleted', page: 2 });
 
     next.resolve(page([FOCUS], { currentPage: 2, totalPages: 2, totalRecords: 21 }));
     await waitFor(() => {
       expect(result.current.list.busy).toBe(false);
     });
+  });
+
+  it('keeps the rows already shown busy while another status loads', async () => {
+    const next = deferred<FakeAnswer>();
+    const { result } = renderList('/s', (request) =>
+      (request.params as { status?: string }).status === 'deleted' ? next.promise : page([FOCUS]),
+    );
+    await waitFor(() => {
+      expect(result.current.list.status).toBe('ready');
+    });
+
+    act(() => {
+      void result.current.navigate('/s?status=deleted');
+    });
+
+    await waitFor(() => {
+      expect(result.current.list.busy).toBe(true);
+    });
+    expect(result.current.list.status).toBe('ready');
+    expect(result.current.list.rows.map(({ name }) => name.text)).toEqual(['Focus Hub']);
+
+    next.resolve(page([], { totalRecords: 0 }));
+    await waitFor(() => {
+      expect(result.current.list.busy).toBe(false);
+    });
+    expect(result.current.list.rows).toEqual([]);
   });
 });

@@ -161,7 +161,9 @@ describe('SpaceActionsMenu', () => {
 
     const dialog = await screen.findByRole('alertdialog', { name: 'Delete Focus Hub?' });
     expect(
-      within(dialog).getByText('It leaves the site and this list. You can undo it right after.'),
+      within(dialog).getByText(
+        'It leaves the site and the list; you’ll find it under «Deleted» to restore it.',
+      ),
     ).toBeVisible();
     expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
   });
@@ -317,6 +319,24 @@ describe('SpaceActionsMenu, for a deleted space', () => {
     expect(writes()).toHaveLength(1);
     // It stays in the focus order and where it was, so the keyboard keeps its place.
     expect(restoreButton('Olive Desk')).toBeVisible();
+  });
+
+  it('restores once, however many times it is clicked while it waits', async () => {
+    const answer = deferred<FakeAnswer>();
+    const { writes } = renderMenus(() => answer.promise);
+
+    await userEvent.click(restoreButton('Olive Desk'));
+    await waitFor(() => {
+      expect(restoreButton('Olive Desk')).toHaveAttribute('aria-busy', 'true');
+    });
+    await userEvent.click(restoreButton('Olive Desk'));
+
+    expect(writes()).toHaveLength(1);
+    await act(async () => {
+      answer.resolve({ status: 204 });
+      await answer.promise;
+    });
+    expect(await toastTitled('Olive Desk restored')).toBeVisible();
   });
 
   it('has no accessibility violations', async () => {

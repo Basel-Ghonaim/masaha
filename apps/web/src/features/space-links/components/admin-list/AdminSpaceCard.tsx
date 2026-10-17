@@ -5,7 +5,8 @@ import { SpaceNameText } from './SpaceNameText';
 
 /**
  * A space as a card, on a phone: its name, a link to its page; its area, its owners and its last update on one line;
- * its state and freshness badges, which wrap, and a deleted space's date under them; and its actions at the end.
+ * its state and freshness badges, which wrap — a deleted space has neither and carries its one muted line instead;
+ * and its actions at the end.
  */
 export function AdminSpaceCard({
   row,

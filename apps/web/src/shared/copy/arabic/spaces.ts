@@ -260,7 +260,7 @@ export const SPACES = {
   },
   deleteDialog: {
     title: ({ name }: { name: string }) => `حذف ${name}؟`,
-    description: 'تختفي من الموقع ومن هذه القائمة، ويمكنك التراجع فور الحذف.',
+    description: 'تختفي من الموقع ومن القائمة، وتجدها في «محذوفة» لاسترجاعها.',
     cancel: 'إلغاء',
     confirm: 'حذف',
   },

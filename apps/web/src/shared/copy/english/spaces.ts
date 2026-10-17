@@ -314,7 +314,7 @@ export const SPACES = {
   /** The confirmation before a space is deleted. */
   deleteDialog: {
     title: ({ name }: { name: string }) => `Delete ${name}?`,
-    description: 'It leaves the site and this list. You can undo it right after.',
+    description: 'It leaves the site and the list; you’ll find it under «Deleted» to restore it.',
     cancel: 'Cancel',
     confirm: 'Delete',
   },

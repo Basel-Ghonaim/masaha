@@ -209,15 +209,18 @@ describe('AdminSpacesList, from 768 px', () => {
 
     const table = await screen.findByRole('table', { name: 'Spaces' });
     await within(table).findByText('Olive Desk');
+    // A deleted row carries one muted line and no badge of its own, as the design draws it.
     expect(cellsOf(within(table).getAllByRole('row')[1])).toEqual([
       'Olive Desk',
       'Deir al-Balah',
-      'VerifiedDeletedDeleted on 1 Oct',
+      'Deleted · 1 Oct',
       '⁨Rima⁩',
-      'Up to date',
+      '—',
       '12 Sept',
       'Restore Olive Desk',
     ]);
+    expect(within(table).getByText('Deleted · 1 Oct')).toHaveClass('text-muted-foreground');
+    expect(within(table).getByText('—')).toHaveAttribute('aria-hidden', 'true');
     expect(requests[0]?.params).toMatchObject({ status: 'deleted' });
     // A deleted space leads nowhere: its editor would only say that it is gone.
     expect(within(table).getByText('Olive Desk')).toHaveClass('text-muted-foreground');
@@ -322,7 +325,7 @@ describe('AdminSpacesList, from 768 px', () => {
     expect(screen.queryByRole('navigation', { name: 'Pages of the spaces list' })).toBeNull();
   });
 
-  it('sets the search, the place, the state and stale only above the table', async () => {
+  it('sets the search, the place, the state and the stale or missing chip above the table', async () => {
     const { router } = renderList('/spaces');
     await screen.findByText('Focus Hub');
 
@@ -452,15 +455,16 @@ describe('AdminSpacesList, on a phone', () => {
     ]);
   });
 
-  it('shows a deleted space as a card, muted, with the same facts and its one action', async () => {
+  it('shows a deleted space as a card, muted, with one line and its one action', async () => {
     renderList('/spaces?status=deleted', () => page([OLIVE]));
     await screen.findByText('Olive Desk');
 
     const card = screen.getByRole('listitem');
     expect(card.textContent).toBe(
-      'Olive DeskDeir al-Balah · Owner: ⁨Rima⁩ · 12 SeptVerifiedDeletedUp to dateDeleted on 1 OctRestore Olive Desk',
+      'Olive DeskDeir al-Balah · Owner: ⁨Rima⁩ · 12 SeptDeleted · 1 OctRestore Olive Desk',
     );
     expect(within(card).getByText('Olive Desk')).toHaveClass('text-muted-foreground');
+    expect(within(card).getByText('Deleted · 1 Oct')).toHaveClass('text-muted-foreground');
     expect(within(card).queryByRole('button', { name: 'Actions for Olive Desk' })).toBeNull();
   });
 
@@ -469,19 +473,21 @@ describe('AdminSpacesList, on a phone', () => {
     await screen.findByText('Focus Hub');
 
     expect(screen.getByRole('searchbox', { name: 'Search' })).toBeVisible();
-    // Stale or missing is a chip on every width, so the sheet keeps the two fields only.
+    // Stale or missing is a chip on every width, so the sheet keeps the two fields only,
+    // and counts the two only: the chip above it is one of them, not a field.
     expect(screen.getByRole('button', { name: 'Stale or missing' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Filters, 2 applied' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Filters, 1 applied' }));
     const sheet = await screen.findByRole('dialog', { name: 'Filters' });
     expect(within(sheet).getByRole('combobox', { name: 'Governorate / area' })).toBeInTheDocument();
     expect(within(sheet).getByRole('combobox', { name: 'Status' })).toHaveTextContent('Hidden');
     expect(within(sheet).queryByRole('switch')).toBeNull();
 
     await userEvent.click(within(sheet).getByRole('button', { name: 'Clear filters' }));
-    expect(router.state.location.search).toBe('');
+    // The sheet clears its own two fields and nothing else: the chip above stays where it is.
+    expect(router.state.location.search).toBe('?stale=true');
     await userEvent.keyboard('{Escape}');
 
     expect(await screen.findByRole('button', { name: 'Filters' })).toHaveFocus();

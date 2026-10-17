@@ -75,16 +75,15 @@ export function AdminSpacesList({
         column.display({
           id: 'state',
           header: headers.status,
-          cell: (info) => (
-            <div className="flex flex-col items-start gap-1">
+          cell: (info) =>
+            info.row.original.deletedOn === null ? (
               <BadgeList badges={info.row.original.state} />
-              {info.row.original.deletedOn !== null && (
-                <span className="text-caption text-muted-foreground">
-                  {info.row.original.deletedOn}
-                </span>
-              )}
-            </div>
-          ),
+            ) : (
+              // A deleted row says it in one muted line, as the design draws it.
+              <span className="text-caption text-muted-foreground">
+                {info.row.original.deletedOn}
+              </span>
+            ),
         }),
         column.display({
           id: 'owners',
@@ -94,7 +93,15 @@ export function AdminSpacesList({
         column.display({
           id: 'freshness',
           header: headers.freshness,
-          cell: (info) => <BadgeList badges={info.row.original.freshness} />,
+          cell: (info) =>
+            info.row.original.deletedOn === null ? (
+              <BadgeList badges={info.row.original.freshness} />
+            ) : (
+              // Nothing will fill a deleted row's gaps, so the cell says nothing of them.
+              <span aria-hidden className="text-muted-foreground">
+                —
+              </span>
+            ),
         }),
         column.display({
           id: 'lastUpdate',

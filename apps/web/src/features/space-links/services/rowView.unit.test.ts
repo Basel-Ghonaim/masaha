@@ -90,17 +90,19 @@ describe('rowView', () => {
     expect(english({ ...FOCUS, ...facts }).state).toEqual(state);
   });
 
-  it('says when a deleted space was deleted, in the interface’s language, on Gaza’s day', () => {
+  it('says when a deleted space was deleted in one muted line, and shows no badge of its own', () => {
     const deleted = { ...FOCUS, deletedAt: '2026-10-01T08:00:00Z' };
 
     expect(english(deleted)).toMatchObject({
-      state: [
-        { label: 'Verified', variant: 'success' },
-        { label: 'Deleted', variant: 'neutral' },
-      ],
-      deletedOn: 'Deleted on 1 Oct',
+      state: [],
+      freshness: [],
+      deletedOn: 'Deleted · 1 Oct',
     });
-    expect(arabic(deleted).deletedOn).toBe('حُذفت في 1 أكتوبر');
+    expect(arabic(deleted)).toMatchObject({
+      state: [],
+      freshness: [],
+      deletedOn: 'محذوفة · 1 أكتوبر',
+    });
   });
 
   it('shows a live space with no deletion date', () => {
