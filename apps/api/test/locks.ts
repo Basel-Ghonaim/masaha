@@ -6,8 +6,31 @@ import { prisma, type Tx } from '../src/db/index.ts';
 // another change would hold, a request starts and waits on them, the transaction writes what that
 // change would, and commits. The request must then decide on what was committed.
 
-/** Long enough for a request to reach the lock it waits on, bcrypt included. */
-const WAIT_MS = 2_000;
+/** How long a request may take to reach the lock it waits on, bcrypt included; under Vitest's 5 s. */
+const REACH_MS = 4_000;
+const POLL_MS = 20;
+
+/**
+ * Waits until `count` backends of the test database wait on a lock — the requests a race test
+ * started, blocked on what its transaction holds — and answers their process ids, smallest first.
+ * Fails after REACH_MS, so a race whose request never reached the lock fails instead of passing
+ * without interleaving (finding 52).
+ */
+export async function waitingOnLock({ count = 1 }: { count?: number } = {}): Promise<number[]> {
+  const deadline = Date.now() + REACH_MS;
+  for (;;) {
+    // Each poll is its own statement on the default client, so its own statistics snapshot.
+    const rows = await prisma.$queryRaw<{ pid: number }[]>`
+      SELECT pid FROM pg_stat_activity
+      WHERE datname = current_database() AND wait_event_type = 'Lock'
+      ORDER BY pid`;
+    if (rows.length >= count) return rows.map(({ pid }) => pid);
+    if (Date.now() > deadline) {
+      throw new Error(`${String(count)} request(s) never waited on a lock`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+  }
+}
 
 /** Locks these users' rows, by id, as a transaction holding their session locks does. */
 export async function lockUsers(tx: Tx, ...ids: number[]): Promise<void> {
@@ -18,8 +41,8 @@ export async function lockUsers(tx: Tx, ...ids: number[]): Promise<void> {
 }
 
 /**
- * Starts `call` once `hold` has taken its locks, runs `meanwhile` in the same transaction while the
- * request waits, commits, then returns the request's answer.
+ * Starts `call` once `hold` has taken its locks, waits until the request waits on them, runs
+ * `meanwhile` in the same transaction, commits, then returns the request's answer.
  */
 export async function whileHeld(
   hold: (tx: Tx) => Promise<unknown>,
@@ -31,7 +54,7 @@ export async function whileHeld(
     async (tx) => {
       await hold(tx);
       answer = Promise.resolve(call());
-      await new Promise((resolve) => setTimeout(resolve, WAIT_MS));
+      await waitingOnLock();
       await meanwhile(tx);
     },
     { timeout: 10_000 },

@@ -15,6 +15,7 @@ import {
 } from '../../../../test/admin.ts';
 import { createTestApp } from '../../../../test/app.ts';
 import { createSpace } from '../../../../test/factories.ts';
+import { waitingOnLock } from '../../../../test/locks.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings } from '../../../../test/spaces.ts';
 import { prisma, type Tx } from '../../../db/index.ts';
@@ -99,9 +100,6 @@ async function entries() {
     after,
   }));
 }
-
-/** Waits for a request that waits on a lock the test holds. */
-const aWhile = () => new Promise((resolve) => setTimeout(resolve, 500));
 
 describe('POST /admin/spaces/:spaceId/owners', () => {
   it.each(REFUSED_CALLERS)('refuses a $caller with $status', async ({ caller, ...refusal }) => {
@@ -247,7 +245,7 @@ describe('POST /admin/spaces/:spaceId/owners', () => {
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
       pending = link(user.id);
-      await aWhile();
+      await waitingOnLock();
       duringHold = await links(user.id);
     });
 
@@ -265,7 +263,7 @@ describe('POST /admin/spaces/:spaceId/owners', () => {
       await tx.$queryRaw`SELECT id FROM users WHERE id = ${user.id} FOR NO KEY UPDATE`;
       await session(user.id, tx);
       pending = link(user.id);
-      await aWhile();
+      await waitingOnLock();
     });
 
     expect((await pending)?.status).toBe(204);
@@ -400,7 +398,7 @@ describe('DELETE /admin/spaces/:spaceId/owners/:userId', () => {
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM users WHERE id = ${owner.id} FOR NO KEY UPDATE`;
       pending.push(unlink(owner.id), unlink(owner.id, other));
-      await aWhile();
+      await waitingOnLock({ count: 2 });
     });
 
     expect((await Promise.all(pending)).map(({ status }) => status)).toEqual([204, 204]);
@@ -568,8 +566,8 @@ describe('POST /admin/owners', () => {
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
       pending = add(NEW);
-      // Long enough for its read of the email and its hash, outside any transaction.
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Its read of the email and its hash, outside any transaction, are done once it waits.
+      await waitingOnLock();
       await tx.user.create({
         data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
       });

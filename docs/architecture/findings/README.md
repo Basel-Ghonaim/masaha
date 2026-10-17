@@ -26,7 +26,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [40. The platform's contact settings are outside the typed catalogue](40-the-platforms-contact-settings-are-outside-the-typed-catalogue.md)
 - [46. The deployment's headers must let the map's tiles load](46-the-deployments-headers-must-let-the-maps-tiles-load.md)
 - [48. `db:up` from another folder recreates the shared container](48-db-up-from-another-folder-recreates-the-shared-container.md)
-- [52. The race tests wait a fixed time](52-the-race-tests-wait-a-fixed-time.md)
 - [55. A file's first wait for a lazy shell outlasts three seconds on a busy machine](55-a-files-first-wait-for-a-lazy-shell-outlasts-three-seconds-on-a-busy-machine.md)
 - [59. The verified space's editor cannot name its owner](59-the-verified-spaces-editor-cannot-name-its-owner.md)
 - [63. A photo's files can outlive it](63-a-photos-files-can-outlive-it.md)
@@ -77,4 +76,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [49. A lost answer to adding an owner loses its temporary password](49-a-lost-answer-to-adding-an-owner-loses-its-temporary-password.md)
 - [50. An owner whose only spaces are deleted stays an owner](50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md)
 - [51. An access token outlives the end of its session](51-an-access-token-outlives-the-end-of-its-session.md)
+- [52. The race tests wait a fixed time](52-the-race-tests-wait-a-fixed-time.md)
 - [60. The area field shows no area for a space whose area was hidden since](60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)

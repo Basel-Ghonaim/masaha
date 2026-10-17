@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { accessTokens, createTestApp } from '../../../../test/app.ts';
 import { adminRequest, auditEntries, dataOf, errorOf, signIn } from '../../../../test/admin.ts';
 import { createSpace } from '../../../../test/factories.ts';
+import { waitingOnLock } from '../../../../test/locks.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings, signInOwnerOf } from '../../../../test/spaces.ts';
 import { prisma } from '../../../db/index.ts';
@@ -294,7 +295,7 @@ describe('GET /admin/spaces/:spaceId', () => {
       });
       await tx.spaceManager.create({ data: { spaceId: space.id, userId: owner.id } });
       pending = adminRequest(app, admin, 'get', path(space.id));
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await waitingOnLock();
     });
     const response = await pending;
 
