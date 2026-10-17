@@ -32,7 +32,14 @@ export function PhotoRemoveDialog({ dialog }: { dialog: PhotoRemoveDialogView })
         {dialog.failure && <FormFailure view={dialog.failure} />}
         <AlertDialogFooter>
           <AlertDialogCancel>{dialog.cancelLabel}</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={dialog.confirm}>
+          <AlertDialogAction
+            variant="destructive"
+            onClick={(event) => {
+              // Radix closes the dialog on this click; it closes on success only, so a failure shows.
+              event.preventDefault();
+              dialog.confirm();
+            }}
+          >
             {dialog.confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

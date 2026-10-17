@@ -39,7 +39,12 @@ export interface SpacesRepository {
   /** Reads the gallery, in its order; the first is the cover. */
   listPhotos(spaceId: number): Promise<SpacePhoto[]>;
   /** Adds one photo, sent as a single part and shrunk in the browser first; it lands last. */
-  uploadPhoto(spaceId: number, file: File, onProgress?: UploadProgress): Promise<SpacePhoto>;
+  uploadPhoto(
+    spaceId: number,
+    file: File,
+    onProgress?: UploadProgress,
+    signal?: AbortSignal,
+  ): Promise<SpacePhoto>;
   /** Removes a photo: it leaves the space's page at once and the ones after it move up. */
   removePhoto(spaceId: number, photoId: number): Promise<undefined>;
   /** Orders the gallery: every id, each once, first to last, and the first is the cover. */
@@ -62,12 +67,13 @@ export function createSpacesRepository(): SpacesRepository {
     remove: (spaceId) => api.delete<undefined>(path(spaceId)),
     restore: (spaceId) => api.post<undefined>(`${path(spaceId)}/restore`),
     listPhotos: (spaceId) => api.get<SpacePhoto[]>(`${path(spaceId)}/photos`),
-    uploadPhoto: (spaceId, file, onProgress) =>
+    uploadPhoto: (spaceId, file, onProgress, signal) =>
       sendMultipart<SpacePhoto>({
         url: `${path(spaceId)}/photos`,
         fieldName: 'photo',
         file,
         ...(onProgress === undefined ? {} : { onProgress }),
+        ...(signal === undefined ? {} : { signal }),
       }),
     removePhoto: (spaceId, photoId) =>
       api.delete<undefined>(`${path(spaceId)}/photos/${String(photoId)}`),

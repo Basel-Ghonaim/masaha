@@ -14,7 +14,7 @@ import { useBlocker } from 'react-router';
  * With only an upload running the dialog says what is really lost — a photo that has not finished
  * going up — and names no section, because none of them is unsaved.
  */
-export function useLeaveGuard(unsaved: string[], saving: boolean, uploading = false) {
+export function useLeaveGuard(unsaved: string[], saving: boolean, uploading: boolean) {
   const copy = useCopy();
   const english = useLanguage() === 'en';
   const words = copy.spaces.editor.leave;

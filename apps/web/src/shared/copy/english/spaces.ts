@@ -306,9 +306,7 @@ export const SPACES = {
       },
       cover: 'Cover',
       photo: ({ position }: { position: number }) => `Photo ${String(position)}`,
-      before: 'Before',
       beforeNamed: ({ photo }: { photo: string }) => `Before: ${photo}`,
-      after: 'After',
       afterNamed: ({ photo }: { photo: string }) => `After: ${photo}`,
       makeCover: 'Make it the cover',
       makeCoverNamed: ({ photo }: { photo: string }) => `Make ${photo} the cover`,
@@ -323,7 +321,7 @@ export const SPACES = {
         `${photo} is now at position ${String(position)} of ${String(total)}`,
       covered: ({ photo }: { photo: string }) => `${photo} is the cover now`,
       orderChanged:
-        'The gallery changed since this page was opened. Reload it to see the current order.',
+        'The photos changed since this page was opened. We refreshed them; check the order and try again.',
       choose: 'Add photos',
       limitReason: 'Up to 10 photos — remove one to add another',
       /** What went up of what was chosen, when the gallery had not the room for all of it. */
@@ -336,6 +334,8 @@ export const SPACES = {
       unsupported: 'Unsupported format; choose JPEG, PNG or WebP',
       /** Over the contract's 4 MiB, after the browser's own shrinking. */
       tooLarge: 'Larger than 4 MB; choose a smaller photo',
+      /** The upload failed with no answer to read from. */
+      uploadFailed: 'We couldn’t upload this photo',
       /** The gallery already holds ten, which is all it may hold (409). */
       galleryFull: 'The space already has 10 photos. Remove one to add another.',
       retry: 'Try again',

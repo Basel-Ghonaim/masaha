@@ -2,10 +2,11 @@ import type { SpacePhoto } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createSpacesRepository } from '../../repository/spacesRepository';
 import { useSpaceAnswer } from '../editor/useSpaceAnswer';
 import { spacesKeys } from '../queryKeys';
+import { staleGallery } from './staleGallery';
 
 const repository = createSpacesRepository();
 
@@ -35,28 +36,36 @@ export function usePhotoOrder(spaceId: number, photos: SpacePhoto[]) {
   const client = useQueryClient();
   const answer = useSpaceAnswer(spaceId);
   const [said, setSaid] = useState<string | null>(null);
+  const [changed, setChanged] = useState<string | null>(null);
   const [refusedId, setRefusedId] = useState<number | null>(null);
+  // One write at a time, from the click to the refetched gallery: a second would be computed from the
+  // list the first has already changed. A ref, because two clicks can land before a render.
+  const sending = useRef(false);
 
   const move = useMutation<undefined, AppError, Move>({
     mutationFn: ({ ids }) => repository.orderPhotos(spaceId, ids),
+    // Returned, so the move is pending until the gallery is fetched again.
     onSuccess: () => {
       setRefusedId(null);
-      void client.invalidateQueries({ queryKey: spacesKeys.photos(spaceId) });
+      return client.invalidateQueries({ queryKey: spacesKeys.photos(spaceId) });
     },
     onError: (refusal, { photoId }) => {
       setRefusedId(photoId);
-      if (refusal.type === 'conflict') {
-        setSaid(words.orderChanged);
-        void client.invalidateQueries({ queryKey: spacesKeys.photos(spaceId) });
-        return;
-      }
-      answer.refused(refusal);
+      if (refusal.type === 'conflict') setChanged(words.orderChanged);
+      else answer.refused(refusal);
+      return staleGallery(client, spaceId, refusal);
+    },
+    onSettled: () => {
+      sending.current = false;
     },
   });
 
   /** Sends the whole order, and says where the photo stands once the server has taken it. */
   const send = (move_: Move, line: string) => {
+    if (sending.current) return;
+    sending.current = true;
     setSaid(null);
+    setChanged(null);
     move.mutate(move_, {
       onSuccess: () => {
         setSaid(line);
@@ -70,7 +79,7 @@ export function usePhotoOrder(spaceId: number, photos: SpacePhoto[]) {
   const total = photos.length;
 
   return {
-    /** One step before the photo above it; disabled on the first, which is the cover. */
+    /** One step before the photo above it; unavailable on the first, which is the cover. */
     moveBefore: (id: number) => {
       const index = at(id);
       return {
@@ -78,6 +87,7 @@ export function usePhotoOrder(spaceId: number, photos: SpacePhoto[]) {
         disabled: index <= 0,
         busy: move.isPending,
         run: () => {
+          if (index <= 0) return;
           send(
             { ids: permutation(photos, id, index - 1), photoId: id },
             words.moved({ photo: label(id), position: index, total }),
@@ -85,7 +95,7 @@ export function usePhotoOrder(spaceId: number, photos: SpacePhoto[]) {
         },
       };
     },
-    /** One step after the photo below it; disabled on the last. */
+    /** One step after the photo below it; unavailable on the last. */
     moveAfter: (id: number) => {
       const index = at(id);
       return {
@@ -93,6 +103,7 @@ export function usePhotoOrder(spaceId: number, photos: SpacePhoto[]) {
         disabled: index < 0 || index >= total - 1,
         busy: move.isPending,
         run: () => {
+          if (index < 0 || index >= total - 1) return;
           send(
             { ids: permutation(photos, id, index + 1), photoId: id },
             words.moved({ photo: label(id), position: index + 2, total }),
@@ -105,7 +116,7 @@ export function usePhotoOrder(spaceId: number, photos: SpacePhoto[]) {
       at(id) === 0
         ? null
         : {
-            label: words.makeCover,
+            label: words.makeCoverNamed({ photo: label(id) }),
             run: () => {
               send(
                 { ids: permutation(photos, id, 0), photoId: id },
@@ -116,6 +127,8 @@ export function usePhotoOrder(spaceId: number, photos: SpacePhoto[]) {
     busy: move.isPending,
     /** The refusal of the last write, for the tile it was for; a 409 is the gallery's own news. */
     refusal: move.isError && move.error.type !== 'conflict' ? move.error : null,
+    /** Why the gallery was refreshed under the admin, for everyone to read. */
+    changed,
     refusedId,
     /** What the last accepted move or cover did, for the gallery's live region. */
     said,

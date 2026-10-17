@@ -119,6 +119,7 @@ describe('usePhotoRemove', () => {
     const { result, client } = renderRemove(() => refused(404, { type: 'not_found' }));
     const space = client.getQueryCache();
     client.setQueryData(['admin', 'spaces', 'space', 7], { id: 7, slug: 'focus-hub' });
+    client.setQueryData(['admin', 'spaces', 'photos', 7], PHOTOS);
 
     act(() => {
       result.current.ask(tileOf(2, 4));
@@ -132,5 +133,29 @@ describe('usePhotoRemove', () => {
         true,
       );
     });
+    // The gallery is fetched again too, so what is drawn is what the server has.
+    expect(client.getQueryState(['admin', 'spaces', 'photos', 7])?.isInvalidated).toBe(true);
+  });
+
+  it('forgets a failed removal when the dialog is asked about another photo', async () => {
+    const { result } = renderRemove(() => refused(500, { type: 'server' }));
+
+    act(() => {
+      result.current.ask(tileOf(2, 4));
+    });
+    act(() => {
+      result.current.confirm();
+    });
+    await waitFor(() => {
+      expect(result.current.refusal).toMatchObject({ type: 'server' });
+    });
+    act(() => {
+      result.current.cancel();
+    });
+    act(() => {
+      result.current.ask(tileOf(1, 3));
+    });
+
+    expect(result.current.refusal).toBeNull();
   });
 });

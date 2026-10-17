@@ -7,6 +7,7 @@ import { createSpacesRepository } from '../../repository/spacesRepository';
 import type { PhotoTileView } from '../../types/PhotoTileView';
 import { useSpaceAnswer } from '../editor/useSpaceAnswer';
 import { spacesKeys } from '../queryKeys';
+import { staleGallery } from './staleGallery';
 
 const repository = createSpacesRepository();
 
@@ -31,6 +32,7 @@ export function usePhotoRemove(spaceId: number) {
     },
     onError: (refusal) => {
       answer.refused(refusal);
+      void staleGallery(client, spaceId, refusal);
     },
   });
 
@@ -38,9 +40,11 @@ export function usePhotoRemove(spaceId: number) {
     /** The tile the dialog is about, or `null` while none is. */
     target,
     ask: (tile: PhotoTileView) => {
+      remove.reset();
       setTarget(tile);
     },
     cancel: () => {
+      remove.reset();
       setTarget(null);
     },
     confirm: () => {

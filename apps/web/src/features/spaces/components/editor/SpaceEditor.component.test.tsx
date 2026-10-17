@@ -289,7 +289,9 @@ describe('the space editor', () => {
 
     const photos = await waitFor(() => section('Photos'));
     expect(await within(photos).findByText('Cover')).toBeInTheDocument();
-    expect(within(photos).getByRole('button', { name: 'Make it the cover' })).toBeInTheDocument();
+    expect(
+      within(photos).getByRole('button', { name: 'Make Photo 2 the cover' }),
+    ).toBeInTheDocument();
     // Photos are no fact group: the section carries no date and nothing to save.
     expect(within(photos).queryByRole('button', { name: 'Save' })).toBeNull();
     expect(within(photos).queryByText('Not added yet')).toBeNull();

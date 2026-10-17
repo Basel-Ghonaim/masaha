@@ -205,6 +205,62 @@ describe('usePhotoUploads', () => {
     expect(result.current.uploads.addReason).toBe('Up to 10 photos — remove one to add another');
   });
 
+  it('counts what went up when the batch ends, and clears the line when the next choice starts', async () => {
+    const full = Array.from({ length: 9 }, (_, index) => stored(index + 1));
+    let refuse = true;
+    const { result } = renderUploads(full, (request) =>
+      request.method === 'get'
+        ? ok(full)
+        : refuse
+          ? refused(500, { type: 'server' })
+          : ok(stored(10)),
+    );
+    await waitFor(() => {
+      expect(result.current.photos).toHaveLength(9);
+    });
+
+    // Only the first of the two fits, and it fails: nothing went up, whatever was predicted.
+    await choose(result, fakeFile('one.jpg', 'image/jpeg'), fakeFile('two.jpg', 'image/jpeg'));
+    await waitFor(() => {
+      expect(result.current.uploads.summary).toBe('Uploaded 0 of 2; the limit is 10 photos');
+    });
+
+    refuse = false;
+    await act(async () => {
+      result.current.uploads.tiles[0]?.drop.run();
+      await Promise.resolve();
+    });
+    await choose(result, fakeFile('three.jpg', 'image/jpeg'));
+
+    expect(result.current.uploads.summary).toBeNull();
+  });
+
+  it('stops the queue when the section is left: nothing new is sent and the file in flight is aborted', async () => {
+    const first = deferred<FakeAnswer>();
+    const { result, requests, unmount } = renderUploads(PHOTOS, (request) =>
+      request.method === 'get' ? ok(PHOTOS) : first.promise,
+    );
+
+    await choose(
+      result,
+      fakeFile('one.jpg', 'image/jpeg'),
+      fakeFile('two.jpg', 'image/jpeg'),
+      fakeFile('three.jpg', 'image/jpeg'),
+    );
+    const posts = () => requests.filter(({ method }) => method === 'post');
+    expect(posts()).toHaveLength(1);
+
+    unmount();
+    await act(async () => {
+      first.resolve(ok(stored(9)));
+      await first.promise;
+      await Promise.resolve();
+    });
+
+    expect(posts()[0]?.signal?.aborted).toBe(true);
+    expect(posts()).toHaveLength(1);
+  });
+
   it('tells the editor while a file is being prepared or sent, and once the queue has ended', async () => {
     const waiting = deferred<FakeAnswer>();
     const { result, uploading } = renderUploads(PHOTOS, (request) =>

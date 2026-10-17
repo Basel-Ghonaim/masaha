@@ -20,6 +20,7 @@ export function PhotoUploadTile({ tile }: { tile: PhotoUploadTileView }) {
     payload_too_large: words.tooLarge,
     forbidden: words.verifiedMeanwhile,
     not_found: words.deletedMeanwhile,
+    conflict: words.galleryFull,
   });
   const waiting =
     tile.state === 'preparing' ? words.preparing : words.uploading({ percent: tile.progress ?? 0 });
@@ -39,7 +40,7 @@ export function PhotoUploadTile({ tile }: { tile: PhotoUploadTileView }) {
       {tile.state === 'failed' && (
         <>
           <p role="status" className="flex flex-col text-caption text-destructive">
-            <span>{tile.unsupported ? words.unsupported : (refusal ?? words.loadFailed)}</span>
+            <span>{tile.unsupported ? words.unsupported : (refusal ?? words.uploadFailed)}</span>
             {reference !== undefined && <span className="text-muted-foreground">{reference}</span>}
           </p>
           <div className="flex flex-wrap items-center gap-2">

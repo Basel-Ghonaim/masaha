@@ -96,6 +96,7 @@ export function usePhotoGallery(
     empty:
       ready && tiles.length === 0 ? { title: words.empty.title, text: words.empty.text } : null,
     said: order.said,
+    changed: order.changed,
     remove,
     uploads: {
       // The layer has no file control, so the picker is behind the section's own button: the input
@@ -109,7 +110,7 @@ export function usePhotoGallery(
         },
       },
       label: words.choose,
-      disabled: !uploads.canAdd || uploads.busy,
+      disabled: !uploads.canAdd,
       reason: uploads.addReason,
       summary: uploads.summary,
       tiles: uploads.tiles,

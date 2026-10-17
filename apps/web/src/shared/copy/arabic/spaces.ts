@@ -256,9 +256,7 @@ export const SPACES = {
       },
       cover: 'الغلاف',
       photo: ({ position }: { position: number }) => `الصورة ${String(position)}`,
-      before: 'قبل',
       beforeNamed: ({ photo }: { photo: string }) => `قبل: ${photo}`,
-      after: 'بعد',
       afterNamed: ({ photo }: { photo: string }) => `بعد: ${photo}`,
       makeCover: 'اجعلها الغلاف',
       makeCoverNamed: ({ photo }: { photo: string }) => `اجعل ${photo} الغلاف`,
@@ -272,7 +270,7 @@ export const SPACES = {
       moved: ({ photo, position, total }: { photo: string; position: number; total: number }) =>
         `${photo} الآن في الموضع ${String(position)} من ${String(total)}`,
       covered: ({ photo }: { photo: string }) => `${photo} هي الغلاف الآن`,
-      orderChanged: 'تغيّرت الصور منذ فتح هذه الصفحة. أعد التحميل لترى الترتيب الحالي.',
+      orderChanged: 'تغيّرت الصور منذ فتح هذه الصفحة. حدّثناها؛ راجع الترتيب ثم أعد المحاولة.',
       choose: 'إضافة صور',
       limitReason: 'الحد 10 صور — احذف صورة لتضيف غيرها',
       summary: ({ uploaded, selected }: { uploaded: number; selected: number }) =>
@@ -281,6 +279,7 @@ export const SPACES = {
       uploading: ({ percent }: { percent: number }) => `جارٍ الرفع ${String(percent)}٪`,
       unsupported: 'صيغة غير مدعومة، اختر JPEG أو PNG أو WebP',
       tooLarge: 'أكبر من 4 ميغابايت؛ اختر صورة أصغر',
+      uploadFailed: 'تعذّر رفع هذه الصورة',
       galleryFull: 'للمساحة 10 صور بالفعل. احذف صورة لتضيف غيرها.',
       retry: 'إعادة المحاولة',
       drop: 'أخرجها من القائمة',

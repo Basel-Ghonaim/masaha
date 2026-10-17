@@ -8,6 +8,7 @@ import { createSpacesRepository } from '../../repository/spacesRepository';
 import type { PhotoUploadState, PhotoUploadTileView } from '../../types/PhotoTileView';
 import { useSpaceAnswer } from '../editor/useSpaceAnswer';
 import { spacesKeys } from '../queryKeys';
+import { staleGallery } from './staleGallery';
 
 const repository = createSpacesRepository();
 
@@ -21,7 +22,12 @@ type Pending = {
   refusal: AppError | null;
   /** Whether the queue has already had its turn with it. */
   started: boolean;
+  /** The choice it came from, whose line counts what of it went up. */
+  batch: number;
 };
+
+/** What one choice of files was, and how much of it has gone up. */
+type Batch = { selected: number; uploaded: number; cut: boolean };
 
 const refused = (error: unknown): AppError | null => (isAppError(error) ? error : null);
 
@@ -54,6 +60,13 @@ export function usePhotoUploads(
   const queue = useRef<Pending[]>([]);
   const nextKey = useRef(0);
   const running = useRef(false);
+  const batches = useRef(new Map<number, Batch>());
+  const nextBatch = useRef(0);
+  // Set when the section is left: the queue sends nothing more, and the file in flight is aborted.
+  const left = useRef(false);
+  const flight = useRef<AbortController | null>(null);
+  // Read through a function: the flag changes while a request is awaited, which narrowing cannot see.
+  const hasLeft = () => left.current;
   const uploading = waitingOn(items) > 0;
 
   const write = useCallback((next: Pending[]) => {
@@ -75,6 +88,7 @@ export function usePhotoUploads(
       try {
         file = await shrinkImage(item.file);
       } catch (error) {
+        if (left.current) return;
         // A file the browser cannot read is refused where it was chosen; nothing is sent for it.
         const unsupported = error instanceof UnsupportedImageError;
         change(item.key, {
@@ -85,23 +99,37 @@ export function usePhotoUploads(
         });
         return;
       }
+      if (left.current) return;
       change(item.key, { state: 'uploading', progress: 0 });
+      const request = new AbortController();
+      flight.current = request;
       try {
-        const photo = await repository.uploadPhoto(spaceId, file, (sent, total) => {
-          change(item.key, { progress: Math.min(100, Math.round((sent / total) * 100)) });
-        });
+        const photo = await repository.uploadPhoto(
+          spaceId,
+          file,
+          (sent, total) => {
+            change(item.key, { progress: Math.min(100, Math.round((sent / total) * 100)) });
+          },
+          request.signal,
+        );
+        const batch = batches.current.get(item.batch);
+        if (batch !== undefined) batch.uploaded += 1;
         client.setQueryData(spacesKeys.photos(spaceId), (stored: SpacePhoto[] | undefined) => [
           ...(stored ?? []),
           photo,
         ]);
         write(queue.current.filter((pending) => pending.key !== item.key));
       } catch (error) {
+        if (hasLeft()) return;
         const refusal = refused(error);
-        if (refusal !== null && (refusal.status === 403 || refusal.status === 404)) {
+        if (refusal !== null) {
           // A verified or deleted space turns the page read-only or shows the 404, as for any write.
           answer.refused(refusal);
+          void staleGallery(client, spaceId, refusal);
         }
         change(item.key, { state: 'failed', progress: null, unsupported: false, refusal });
+      } finally {
+        flight.current = null;
       }
     },
     [answer, change, client, spaceId, write],
@@ -114,14 +142,20 @@ export function usePhotoUploads(
     try {
       for (;;) {
         const next = queue.current.find((item) => !item.started);
-        if (next === undefined) break;
+        if (next === undefined || left.current) break;
         next.started = true;
         await send(next);
       }
     } finally {
       running.current = false;
     }
-  }, [send]);
+    if (left.current) return;
+    // The queue has ended: what the last cut choice says is what really went up.
+    const cut = [...batches.current.values()].filter((batch) => batch.cut).at(-1);
+    if (cut !== undefined) {
+      setSummary(words.summary({ uploaded: cut.uploaded, selected: cut.selected }));
+    }
+  }, [send, words]);
 
   // The guard hears only the change: once when a file starts travelling and once when none does. The
   // callback is kept in a ref so telling it on unmount does not depend on its identity.
@@ -136,7 +170,10 @@ export function usePhotoUploads(
     guard.current(uploading);
   }, [uploading]);
   useEffect(() => {
+    left.current = false;
     return () => {
+      left.current = true;
+      flight.current?.abort();
       guard.current(false);
     };
   }, []);
@@ -146,6 +183,15 @@ export function usePhotoUploads(
       const files = [...chosen];
       const room = Math.max(0, PHOTO_LIMIT - photos.length - waitingOn(queue.current));
       const kept = files.slice(0, room);
+      // A new choice ends the line about the last one.
+      batches.current.clear();
+      const batch = (nextBatch.current += 1);
+      batches.current.set(batch, {
+        selected: files.length,
+        uploaded: 0,
+        cut: kept.length < files.length,
+      });
+      setSummary(null);
       if (kept.length > 0) {
         write([
           ...queue.current,
@@ -157,16 +203,14 @@ export function usePhotoUploads(
             unsupported: false,
             refusal: null,
             started: false,
+            batch,
           })),
         ]);
       }
-      if (kept.length < files.length) {
-        // What the gallery had room for went up; the rest of the choice is left out, and it says so.
-        setSummary(words.summary({ uploaded: kept.length, selected: files.length }));
-      }
+      // A choice the gallery had no room for all of says so once its queue ends: see `drain`.
       void drain();
     },
-    [drain, photos.length, words, write],
+    [drain, photos.length, write],
   );
 
   const tiles: PhotoUploadTileView[] = items.map((item) => ({

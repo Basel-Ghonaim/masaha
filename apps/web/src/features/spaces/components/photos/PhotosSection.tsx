@@ -31,6 +31,11 @@ export function PhotosSection({
       <p role="status" className="sr-only">
         {gallery.said}
       </p>
+      {gallery.changed !== null && (
+        <p role="status" className="text-caption text-muted-foreground">
+          {gallery.changed}
+        </p>
+      )}
       {gallery.state === 'loading' ? (
         <Skeleton className="h-40 w-full" />
       ) : gallery.state === 'failed' ? (
@@ -76,9 +81,9 @@ export function PhotosSection({
         {gallery.uploads.reason && (
           <span className="text-caption text-muted-foreground">{gallery.uploads.reason}</span>
         )}
-        {gallery.uploads.summary && (
-          <p className="text-caption text-muted-foreground">{gallery.uploads.summary}</p>
-        )}
+        <p role="status" className="text-caption text-muted-foreground empty:hidden">
+          {gallery.uploads.summary}
+        </p>
       </div>
       <PhotoRemoveDialog dialog={gallery.remove} />
     </PhotosCard>

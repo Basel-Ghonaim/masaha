@@ -51,6 +51,8 @@ export type PhotoGalleryView = {
   empty: { title: string; text: string } | null;
   /** A move or a cover that landed, read aloud once by a live region. */
   said: string | null;
+  /** Why the gallery was fetched again under the admin, shown for all to read. */
+  changed: string | null;
   remove: PhotoRemoveDialogView;
   uploads: PhotoUploadView;
 };

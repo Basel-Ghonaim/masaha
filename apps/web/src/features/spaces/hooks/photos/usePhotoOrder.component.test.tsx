@@ -85,18 +85,20 @@ describe('usePhotoOrder', () => {
     expect(result.current.said).toBe('Photo 3 is the cover now');
   });
 
-  it('says the gallery changed and shows the server’s order when it refuses the move (409)', async () => {
-    const { result, requests } = renderOrder(() => refused(409, { type: 'conflict' }));
+  it('says the gallery was refreshed and fetches the server’s order when it refuses the move (409)', async () => {
+    const { result, requests, client } = renderOrder(() => refused(409, { type: 'conflict' }));
+    client.setQueryData(['admin', 'spaces', 'photos', 7], PHOTOS);
 
     act(() => {
       result.current.moveAfter(3).run();
     });
 
     await waitFor(() => {
-      expect(result.current.said).toBe(
-        'The gallery changed since this page was opened. Reload it to see the current order.',
+      expect(result.current.changed).toBe(
+        'The photos changed since this page was opened. We refreshed them; check the order and try again.',
       );
     });
+    expect(client.getQueryState(['admin', 'spaces', 'photos', 7])?.isInvalidated).toBe(true);
     expect(result.current.refusal).toBeNull();
     expect(ordersSent(requests)).toEqual([{ ids: [4, 3, 5] }]);
     expect(result.current.refusedId).toBe(3);
