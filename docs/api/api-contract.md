@@ -200,7 +200,7 @@ Every route below needs an active `OWNER` or `RECEPTION` link at the named live 
 - **`DELETE /manage/spaces/:spaceId/photos/:photoId` · 🏢:** the same removal and audit behavior.
 - **`PUT /manage/spaces/:spaceId/photos/order` · 🏢:** the same ordering validation and audit
   behavior.
-- Reception may list photos but cannot upload, remove or reorder them.
+- Reception may list photos; its upload, removal or order answers `forbidden` (403) before the request is counted or its body read.
 
 ### Lookups (public)
 

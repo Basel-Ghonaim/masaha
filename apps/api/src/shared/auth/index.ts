@@ -19,6 +19,7 @@ export {
   type SignedIn,
   type SignedInAccount,
 } from './requireAuth.ts';
+export { requireCan } from './requireCan.ts';
 export { requireRole } from './requireRole.ts';
 export { signedIn } from './signedIn.ts';
 export { loadSpaceLinks, spaceOf, type LinksLoader, type LoadedSpace } from './spaceLinks.ts';

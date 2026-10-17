@@ -151,3 +151,41 @@ describe('managed space access', () => {
     expect((await manage(reception, 'get')).status).toBe(404);
   });
 });
+
+describe('managed photo writes', () => {
+  const photos = () => `/api/v1/manage/spaces/${String(spaceId)}/photos`;
+  const uploads = () => prisma.rateLimit.count({ where: { key: { startsWith: 'photo-upload:' } } });
+
+  it('refuses reception’s photo writes before reading them, and counts no upload', async () => {
+    const upload = await request(app).post(photos()).set('Authorization', reception.authorization);
+    const reorder = await manage(reception, 'put', '/photos/order', { ids: 'all' });
+    const removal = await manage(reception, 'delete', '/photos/abc');
+
+    for (const response of [upload, reorder, removal]) {
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+    }
+    expect(await uploads()).toBe(0);
+  });
+
+  it('counts an upload before reading its file: thirty unreadable uploads use the limit, and the next photo is refused 429', async () => {
+    const path = photos();
+    for (let i = 0; i < 30; i += 1) {
+      const unreadable = await request(app)
+        .post(path)
+        .set('Authorization', owner.authorization)
+        .attach('other', Buffer.from('x'), 'x.txt');
+      expect(unreadable.status).toBe(400);
+      expect(errorOf(unreadable).type).toBe('bad_request');
+    }
+
+    const response = await request(app)
+      .post(path)
+      .set('Authorization', owner.authorization)
+      .attach('photo', await image('jpeg'), { filename: 'photo.jpg', contentType: 'image/jpeg' });
+
+    expect(response.status).toBe(429);
+    expect(errorOf(response).type).toBe('rate_limit');
+    expect(await prisma.spacePhoto.count()).toBe(0);
+  });
+});

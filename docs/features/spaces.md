@@ -91,7 +91,7 @@ remain planned, and photos are still API-only.
 **Contacts.** Each contact arrives validated and in its type's one stored form, from the shared rules both apps run, and the list is replaced whole, in its order.
 
 **Photos.** A space's photos are no fact group: a change dates nothing and is never confirmed. Who may change them is `can()`'s, as for the facts: the admin while the space is unverified, else its owner.
-- **An upload** is refused cheaply first, without the lock, when `can()` refuses on the loaded links or the gallery is full, so a refused upload costs no decoding and no store. Then the image core (`shared/images`) decodes it, its content check, and makes the two sizes; both files are stored under a new random key, at once; a failed store removes what was stored and answers 503. Then one transaction: the space's lock, `can()` on the links under it, the count of 10 under it, the row placed last, its audit entry. A refusal or a failure there removes both files before the answer, so two uploads at once can never pass 10.
+- **An upload** is refused cheaply first, without the lock, when `can()` refuses on the loaded links or the gallery is full, so a refused upload costs no decoding and no store; on the managed route, `can()` is asked before the upload is even counted or read ([security › Authorization](../backend/security.md#authorization)). Then the image core (`shared/images`) decodes it, its content check, and makes the two sizes; both files are stored under a new random key, at once; a failed store removes what was stored and answers 503. Then one transaction: the space's lock, `can()` on the links under it, the count of 10 under it, the row placed last, its audit entry. A refusal or a failure there removes both files before the answer, so two uploads at once can never pass 10.
 - **A file left behind** (a crash between the store and the commit, a failed removal) is logged `[storage:orphan]`, and nothing reclaims it in v1 ([finding 63](../architecture/findings/63-a-photos-files-can-outlive-it.md)).
 - **A removal** deletes the row and moves the later photos up, with its audit entry, in one transaction under the space's lock; then its files, before the answer. A failed file removal is logged, never answered as a failure. A photo the space does not have writes nothing, and the answer is the same.
 - **An order** must name exactly the space's photos, each once, as they are under the lock (409 otherwise); the order the gallery has writes nothing.
@@ -154,6 +154,7 @@ remain planned, and photos are still API-only.
 - **The hidden-price rule is `spaces`', with "verified" as an input:** an unverified space's stale prices are hidden on its page, and the same spaces are left out of both price filters, in the query. *Why:* the staleness is this capability's; "verified" is `space-links`', resolved first. 2026-10-13, the directory item.
 - **The public page reads the space as the admin's read does,** under its share lock, and a hidden space reads as none. *Why:* a save in progress is never shown half done (finding 43). 2026-10-13, the directory item.
 - **The admin's space read receives active owners composed from `space-links`** (D1). *Why:* `spaces` never imports `space-links` (an L2 capability); the composition root injects an `ownersFor` reader so the single-space read and fact writes carry active owner names under the existing space share lock. 2026-10-15.
+- **The managed photo writes ask `can()` at the route, through `requireCan`, before the upload is counted or its body read;** the service's own `can()`, under the space's lock, still decides (the owner's D4). *Why:* reception's refused upload was read into memory first, and the managed reads' two copies of the `space.read` check needed one home: the boundary, which is that check. 2026-10-17, #86.
 
 ### Web decisions
 
@@ -239,7 +240,7 @@ remain planned, and photos are still API-only.
 - #77 — a space's photos: the gallery's read, its upload through the storage port and the image core, its removal and its order; the covers and the page's photos for the directory.
 - MANAGE — the owner/reception managed-space API, reusing the admin services and response shapes;
   reception reads, owners write, and managed photos share the admin upload path.
-- #86 — the read and the fact writes read one statement at a time, the owners' names in their transaction.
+- #86 — the read and the fact writes read one statement at a time, the owners' names in their transaction; a managed photo write refused before it is read; the managed read's payload and its races tested.
 
 ### Web history
 

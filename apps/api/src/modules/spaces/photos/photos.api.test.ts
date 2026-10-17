@@ -301,6 +301,21 @@ describe('POST /admin/spaces/:spaceId/photos', () => {
     expect(response.status).toBe(429);
     expect(await files.files()).toEqual([]);
   });
+
+  it('counts an admin’s upload before reading its file: the next photo after thirty unreadable ones is refused 429', async () => {
+    for (let i = 0; i < 30; i += 1) {
+      const unreadable = await request(app)
+        .post(`/api/v1/admin/spaces/${String(spaceId)}/photos`)
+        .set('Authorization', admin.authorization)
+        .attach('other', Buffer.from('x'), 'x.txt');
+      expect(unreadable.status).toBe(400);
+    }
+
+    const response = await upload(await image('jpeg'));
+
+    expect(response.status).toBe(429);
+    expect(await files.files()).toEqual([]);
+  });
 });
 
 describe('GET /admin/spaces/:spaceId/photos', () => {

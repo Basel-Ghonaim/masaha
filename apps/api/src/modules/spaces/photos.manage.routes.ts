@@ -1,8 +1,7 @@
 import { PHOTO_MAX_BYTES, photoOrderSchema } from '@masaha/shared/spaces';
 import { Router } from 'express';
 
-import { can, signedIn, spaceOf } from '../../shared/auth/index.ts';
-import { AppError } from '../../shared/errors/index.ts';
+import { requireCan, signedIn } from '../../shared/auth/index.ts';
 import { receiveFile } from '../../shared/http/index.ts';
 import { limitRequests, type Limiter } from '../../shared/rate-limit/index.ts';
 import { validate } from '../../shared/validation/index.ts';
@@ -17,20 +16,18 @@ export function createPhotosManageRouter({
   limiter: Limiter;
 }): Router {
   const router = Router();
-  router.get('/', async (req, res) => {
-    const { userId, role } = signedIn(req);
-    if (!can({ id: userId, role }, 'space.read', spaceOf(req))) throw AppError.forbidden();
-    await photos.list(req, res);
-  });
+  const mayManagePhotos = requireCan('space.photos.manage');
+  router.get('/', photos.list);
   router.post(
     '/',
+    mayManagePhotos,
     limitRequests(limiter, (req) =>
       Promise.resolve({ policy: PHOTO_UPLOAD, by: [String(signedIn(req).userId)] }),
     ),
     receiveFile('photo', PHOTO_MAX_BYTES),
     photos.upload,
   );
-  router.put('/order', validate(photoOrderSchema), photos.reorder);
-  router.delete('/:photoId', photos.remove);
+  router.put('/order', mayManagePhotos, validate(photoOrderSchema), photos.reorder);
+  router.delete('/:photoId', mayManagePhotos, photos.remove);
   return router;
 }
