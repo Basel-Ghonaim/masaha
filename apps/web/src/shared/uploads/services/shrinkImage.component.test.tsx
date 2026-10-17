@@ -30,6 +30,14 @@ describe('shrinkImage', () => {
     expect(canvas.drawn()).toEqual({ width: 800, height: 600 });
   });
 
+  it('puts a transparent photo on white, not on the black a JPEG export would give it', async () => {
+    const canvas = fakeCanvas({ width: 800, height: 600 });
+
+    await shrinkImage(fakeFile('logo.png', 'image/png'));
+
+    expect(canvas.backdrop()).toBe('#ffffff');
+  });
+
   it('refuses a file the browser cannot decode, and one it cannot draw', async () => {
     const undecodable = fakeCanvas({ decodes: false });
 

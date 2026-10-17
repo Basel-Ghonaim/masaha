@@ -96,4 +96,26 @@ describe('sendMultipart', () => {
     ).resolves.toEqual(ANSWERED);
     expect(requests[0]?.onUploadProgress).toBeUndefined();
   });
+
+  it('gives the upload its own, longer timeout than the client’s 15 s', async () => {
+    const requests = serve(() => ({ status: 200, data: { success: true, data: ANSWERED } }));
+
+    await sendMultipart({ url: '/admin/spaces/7/photos', fieldName: 'photo', file: PHOTO });
+
+    expect(requests[0]?.timeout).toBe(120_000);
+  });
+
+  it('hands the caller’s signal to the request, so leaving can abort it', async () => {
+    const leaving = new AbortController();
+    const requests = serve(() => ({ status: 200, data: { success: true, data: ANSWERED } }));
+
+    await sendMultipart({
+      url: '/admin/spaces/7/photos',
+      fieldName: 'photo',
+      file: PHOTO,
+      signal: leaving.signal,
+    });
+
+    expect(requests[0]?.signal).toBe(leaving.signal);
+  });
 });

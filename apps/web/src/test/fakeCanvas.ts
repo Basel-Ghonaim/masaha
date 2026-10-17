@@ -19,6 +19,8 @@ export type FakeCanvas = {
   decodeOptions: () => ImageBitmapOptions | undefined;
   /** The size the decoded photo was drawn at, or `null` when it never was. */
   drawn: () => { width: number; height: number } | null;
+  /** The colour the canvas was filled with before the photo was drawn, or `null` when it was not. */
+  backdrop: () => string | null;
   /** The type and quality the encoder was asked for, or `null` when it was never asked. */
   encoded: () => { type: string; quality: number | undefined } | null;
 };
@@ -39,6 +41,7 @@ export function fakeCanvas({
 }: FakeDecode = {}): FakeCanvas {
   let decodeOptions: ImageBitmapOptions | undefined;
   let drawn: { width: number; height: number } | null = null;
+  let backdrop: string | null = null;
   let encoded: { type: string; quality: number | undefined } | null = null;
 
   vi.stubGlobal(
@@ -54,6 +57,10 @@ export function fakeCanvas({
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() =>
     draws
       ? ({
+          fillStyle: '#000000',
+          fillRect() {
+            backdrop = String((this as { fillStyle: unknown }).fillStyle);
+          },
           drawImage: (_source: unknown, x: number, y: number, w: number, h: number) => {
             drawn = { width: w, height: h };
           },
@@ -73,6 +80,7 @@ export function fakeCanvas({
 
   return {
     decodeOptions: () => decodeOptions,
+    backdrop: () => backdrop,
     drawn: () => drawn,
     encoded: () => encoded,
   };

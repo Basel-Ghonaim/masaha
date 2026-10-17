@@ -12,7 +12,12 @@ export type MultipartUpload = {
   fieldName: string;
   file: File;
   onProgress?: UploadProgress;
+  /** Aborts the request in flight, as when the page that sent it is left. */
+  signal?: AbortSignal;
 };
+
+// A photo on a weak link (~30 KB/s) needs well over the client's 15 s, which covers the whole request.
+const UPLOAD_TIMEOUT_MS = 120_000;
 
 /**
  * Sends one file as a multipart body through the app's one client, so a capability never reaches for
@@ -28,10 +33,13 @@ export async function sendMultipart<T>({
   fieldName,
   file,
   onProgress,
+  signal,
 }: MultipartUpload): Promise<T> {
   const body = new FormData();
   body.append(fieldName, file);
   return api.post<T>(url, body, {
+    timeout: UPLOAD_TIMEOUT_MS,
+    ...(signal === undefined ? {} : { signal }),
     ...(onProgress === undefined
       ? {}
       : {

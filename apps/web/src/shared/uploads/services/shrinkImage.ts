@@ -27,6 +27,9 @@ function draw(decoded: Decoded): HTMLCanvasElement | null {
   canvas.height = height;
   const context = canvas.getContext('2d');
   if (context === null) return null;
+  // A JPEG has no alpha: left alone, a transparent PNG would be flattened onto black.
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, width, height);
   context.drawImage(decoded.source, 0, 0, width, height);
   return canvas;
 }
