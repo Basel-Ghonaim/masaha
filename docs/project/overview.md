@@ -1,6 +1,6 @@
 # Project Overview
 
-> **Status:** Active · **Last Updated:** 2026-10-14 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-15 · **Owner:** Basel Ghoneim
 > **Authority:** What Masaha is, what is built today, what v1 is committed to, and what is explicitly not in v1. It names scope; it does not specify behaviour.
 
 ## What Masaha is

@@ -153,7 +153,7 @@ remain planned, and photos are still API-only.
 - **The public listing is one query over `spaces` and its facts, with the filters of other modules given as ids** ([directory › Decisions](directory.md#decisions)). *Why:* every filter applies before the page is cut; the search's score and the orders are computed in it. 2026-10-13, the directory item.
 - **The hidden-price rule is `spaces`', with "verified" as an input:** an unverified space's stale prices are hidden on its page, and the same spaces are left out of both price filters, in the query. *Why:* the staleness is this capability's; "verified" is `space-links`', resolved first. 2026-10-13, the directory item.
 - **The public page reads the space as the admin's read does,** under its share lock, and a hidden space reads as none. *Why:* a save in progress is never shown half done (finding 43). 2026-10-13, the directory item.
-- **The admin's space read receives active owners composed from `space-links`** (D1). *Why:* `spaces` never imports `space-links` (an L2 capability); the composition root injects an `ownersFor` reader so the single-space read and fact writes carry active owner names under the existing space share lock. 2026-10-15.
+- **The admin's space read receives active owners composed from `space-links`** (D1). *Why:* `spaces` never imports `space-links` (an L2 capability); the composition root injects an `ownersFor` reader so the single-space read and fact writes carry active owner names under the existing space share lock. 2026-10-15, #82.
 - **The managed photo writes ask `can()` at the route, through `requireCan`, before the upload is counted or its body read;** the service's own `can()`, under the space's lock, still decides (the owner's D4). *Why:* reception's refused upload was read into memory first, and the managed reads' two copies of the `space.read` check needed one home: the boundary, which is that check. 2026-10-17, #86.
 - **Reception reads the space whole, its owners' names and ids included** (the owner's D5, the review's option A). *Why:* the staff who work the space every day know its owner, and a reception-only shape would be a second contract and a rule no lane tests. Revisit when staff management (step 5b) lands. 2026-10-17, #86.
 
@@ -213,9 +213,7 @@ remain planned, and photos are still API-only.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: the same modules as the admin plus
-  `spaces.manage.routes.ts` and `photos.manage.routes.ts` for the managed API; shared controllers
-  and services keep the two audiences consistent.
+- **API:** `apps/api/src/modules/spaces/`, entry `index.ts`: `space/` (create, read, hide, delete, restore), `profile/` (the edit), `facts/` (the one save path of a group, and every group's read), `hours/` (the hours and the shifts, with the pure rule of how a save changes the shifts), `prices/`, `amenities/` (the links and the own amenities), `contacts/`, `confirm/` (a group confirmed unchanged), `photos/` (the gallery: its sizes, its order and cover, the upload's order of work), `listing/` (the page the admin's list reads), `public/` (the public listing and the public page, for the directory); the pure rules beside them (the slug, staleness and missing groups, the profile's fields); the summaries in the module's root service; the admin router, and a manage router each for the space and its photos, on the same controllers and services.
 - **Shared:** `packages/shared/src/spaces/`: the requests (the profile and each fact group, with their rules), the responses, the contacts' forms, the fact groups, the photos' limits and sizes, and the Gaza Strip's box; the phone rule in `core`.
 - **Web:** `apps/web/src/features/spaces/`, entry `index.ts` (`AddSpaceForm` with its `AreaField` slot, `SpaceEditor`, `useSpaceName`, `SpaceActionsMenu`, `SpaceActionsHold`), mounted by `pages/dashboard/admin/`: a folder per operation in `hooks/` and `components/` (`add/`, `editor/` with the space's query, a section's frame, its save, the section in view and the leave guard, `profile/`, `hours/`, `prices/`, `amenities/`, `contacts/`, `hide/`, `delete/` with the Undo's restore, `menu/`, `hold/`; and `confirm/` in `hooks/`), the profile's fields shared by the add form and the editor at the root of `hooks/` and in `components/profile/`, the toasts in `components/toast/`, and in `services/` the profile the schema reads from the form, as added and as edited, the changes a save sends, the hours, the prices and the amenities as their forms hold them, a time of day, an amount in shekels, a phone's carrier, the group's date, the space's name and a line cut around it.
 
@@ -239,8 +237,8 @@ remain planned, and photos are still API-only.
 - The deleted-spaces item — the listing page of the soft-deleted spaces, with when each was deleted.
 - The directory item — the public listing (filters, search, orders, pages and the map's set) and the public page.
 - #77 — a space's photos: the gallery's read, its upload through the storage port and the image core, its removal and its order; the covers and the page's photos for the directory.
-- MANAGE — the owner/reception managed-space API, reusing the admin services and response shapes;
-  reception reads, owners write, and managed photos share the admin upload path.
+- #82 — the single-space read and the fact writes carry the space's active owners.
+- #83 — the owner/reception managed-space API, reusing the admin services and response shapes; reception reads, owners write, and managed photos share the admin upload path.
 - #86 — the read and the fact writes read one statement at a time, the owners' names in their transaction; a managed photo write refused before it is read; the managed read's payload and its races tested.
 
 ### Web history

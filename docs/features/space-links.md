@@ -100,7 +100,7 @@ screen and staff-management API remain planned.
 - **`status=deleted` lists the soft-deleted spaces alone,** hidden or not, verified or not, with the search, the place, stale only, the order and the pages of the others; every other status, and none, leaves them out (the owner's A3). *Why:* a space deleted by mistake can be restored once its toast has gone ([finding 44](../architecture/findings/44-no-screen-restores-a-deleted-space-once-its-toast-has-gone.md)); one list, filtered before the page is cut. 2026-10-12, the deleted-spaces item.
 - **A deleted space's row names its owners, and is verified by them,** the second exception to "a link to a deleted space counts for nothing". *Why:* its links are kept as they are, and the way out of [finding 50](../architecture/findings/50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md), restore then unlink, needs to know whose space it was; the row says what a restore brings back. 2026-10-12, the deleted-spaces item.
 - **The row dates a deletion (`deletedAt`), `null` for a live space** (the owner's choice over a flag). *Why:* the screen shows a deleted row as deleted on that day. 2026-10-12, the deleted-spaces item.
-- **The admin-spaces composition supplies active owner names to the single-space admin read** (`ownersFor`), while its list composition remains unchanged. *Why:* `spaces` is an L1 capability and must not import `space-links` (L2); the composition root injects the reader so the read and writes carry owner names under the existing space share lock. 2026-10-15.
+- **The admin-spaces composition supplies active owner names to the single-space admin read** (`ownersFor`), while its list composition remains unchanged. *Why:* `spaces` is an L1 capability and must not import `space-links` (L2); the composition root injects the reader so the read and writes carry owner names under the existing space share lock. 2026-10-15, #82.
 
 ### Web decisions
 
@@ -148,7 +148,8 @@ screen and staff-management API remain planned.
 - The users item — the admin's role change.
 - The deleted-spaces item — a row's state as facts apart, and the soft-deleted spaces listed under `status=deleted`.
 - The directory item — the verified spaces' ids, for the public directory.
-- MANAGE — the active-link access boundary used by the owner/reception managed-space API.
+- #82 — the active owners of one space, for the single-space admin read (`ownersFor`).
+- #83 — the active-link access boundary used by the owner/reception managed-space API.
 - #86 — `ownersFor` reads the names in its caller's transaction.
 
 ### Web history
