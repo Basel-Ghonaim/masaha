@@ -33,10 +33,7 @@ remain planned, and photos are still API-only.
 ## How it composes the platform
 
 - The admin's router sits inside `/admin`, behind the one guard there; the routes on one space first load its links without refusing anyone ([conventions › Space access](../backend/conventions.md#space-access)).
-- **The managed routers sit below `/manage/spaces/:spaceId`, behind one `requireSpaceAccess`
-  boundary.** It admits only an active owner or reception link and returns the no-hint 404 for
-  unrelated, unknown or deleted spaces; the shared controllers and services keep the admin's
-  validation, locks and audit names.
+- **The managed routers sit below `/manage/spaces/:spaceId`, behind the one boundary** that admits the space's staff ([security › Authorization](../backend/security.md#authorization)); the shared controllers and services keep the admin's validation, locks and audit names.
 - **A new space's settings:** in the creation's transaction, `spaces` reads the new-space defaults from `platform-settings` and writes the space's settings row through `space-settings`, both below it ([conventions › New-space defaults](../backend/conventions.md#new-space-defaults), [data model › Checked by the service](../architecture/data-model.md#checked-by-the-service)).
 - Every change is audited by the audit writer, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the names the [contract](../api/api-contract.md#spaces-the-admin) gives.
 - Staleness reads the platform's thresholds and the one clock ([conventions §11](../backend/conventions.md#11-time)).

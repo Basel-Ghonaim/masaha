@@ -38,9 +38,7 @@ screen and staff-management API remain planned.
 
 - **The caller's spaces** use the `me` router at `/manage/spaces`, behind `requireAuth` only: the path names no space, so the space middleware does not run.
 - **The links loader** is `shared/auth`'s, wired with this module's links. On the admin's space routes it runs without its refusal ([conventions › Space access](../backend/conventions.md#space-access)).
-- **Managed routes** use `requireSpaceAccess` once at `/manage/spaces/:spaceId`. It checks the
-  caller's active `OWNER` or `RECEPTION` link and returns `not_found` for no link, unknown spaces
-  and soft-deleted spaces; a hidden live space remains manageable.
+- **Managed routes** take their access from these links: the boundary on `/manage/spaces/:spaceId` reads them through the links loader ([security › Authorization](../backend/security.md#authorization)).
 - **The admin's spaces list** is a composed read ([conventions › Composed reads](../backend/conventions.md#composed-reads)). Each filter on another module's value is resolved to ids first: the verified state from the links, here, and a governorate to its areas, by `lookups`. `spaces` then applies its own filters (deleted, hidden, stale, the area, the search) to those ids and pages ([conventions §5](../backend/conventions.md#5-pagination)). The page's owners, their names (from `users`) and its areas' names follow, one query per module.
 - **The single-space admin read** is supplied active owner names (`ownersFor`) by the admin composition here, while the list composition remains unchanged. The names are read from `users` in the read's own transaction, under the space's share lock.
 - **A link change** is one transaction: it takes the space's lock through `spaces`; for an existing account, then the person's session lock through `users` (a new account's row is inserted under the space's lock), then counts the person's owner links and asks `users` to change the role when they give another ([conventions §13](../backend/conventions.md#concurrency)).
