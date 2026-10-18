@@ -12,12 +12,12 @@
 - Answers a page of the accounts for the admin's users list, filtered by name or email, role and state, each with how it signs in.
 - Records how a temporary password was handed over, in the audit, for the admin.
 - Suspends an account and restores it, for the admin: a suspension ends its sessions at once and keeps its links.
-- Issues a temporary password for the admin, the recovery of a person who lost their email, again when the first was lost.
+- Issues a temporary password for the admin, the recovery of a person who lost their email, again when the first was lost; and, through `space-links`, for an owner's reception account while its first is pending, with its handover.
 - Reads the account for the guard on every signed-in request, so a suspension, a role change and a pending password change hold from the account's next request, and an access token signed before every session of the account last ended is refused.
 - Changes the global role when `space-links` finds that a person's owner links give another, or the admin's role change allows it, ending every session of theirs.
 - On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, the forced password change's form, and the one-time password dialog with its handover.
 
-The account's settings (`GET` and `PATCH /me`) and the temporary passwords of the owner's reception accounts are not built.
+The account's settings (`GET` and `PATCH /me`) are not built.
 
 ## Who uses it
 
@@ -72,6 +72,7 @@ The account's settings (`GET` and `PATCH /me`) and the temporary passwords of th
 - **A temporary password's expiry is stored on the account, not its issue time,** set by every write that makes one pending and cleared by every write that settles one, with a database `CHECK` tying the two; it is checked at the password sign-in only, once the password matches. *Why:* the rule is one comparison, a later change of the lifetime changes the next issues only, and a session or a Google sign-in that proved the person before keeps working ([security › Passwords](../backend/security.md#passwords)). 2026-10-18, #90.
 - **No recovery by email and no Google link while a temporary password is pending,** both decided here (`mayRecoverByEmail`, and the refusal in `accountForGoogle`, again in `linkGoogle` under the lock). *Why:* the email was typed by someone else; a mailbox at a mistyped address must not take the account ([security › Passwords](../backend/security.md#passwords)). 2026-10-18, #90.
 - **The forced change takes an optional `email`, refused (422) outside it,** set in the change's own transaction after the password, so a taken address (`EMAIL_TAKEN`) changes nothing, and audited `user.emailChanged` only when it differs. *Why:* the holder of the temporary password is the proof; a field silently dropped elsewhere would let a client believe an address changed. 2026-10-18, #90.
+- **An issue's writes (`replaceWithTemporaryPassword`) and a handover's (`recordHandoverLocked`) are one implementation each, under the lock their caller took,** shared by the admin and the owner's staff, the owner's carrying the space. *Why:* one place sets the expiry, ends the sessions and the reset links, and audits; the owner's routes take the space's lock first. 2026-10-18, #90.
 - **An account whose temporary password is pending gains no power (`assertNoPasswordPending`, S6),** asked by the admin's owner links and role change under the account's lock. *Why:* its creator knows the password ([security › Passwords](../backend/security.md#passwords)); the rule is the account's, so it lives here. 2026-10-18, #90.
 
 ### Web decisions
@@ -112,7 +113,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #60 — the page of accounts for the admin's users list; the role change that follows an owner's links; the accounts the admin creates with a temporary password, and its handover.
 - The users item — the account read by the guard on every signed-in request; suspension and restore; the role change's lock and its write, for `space-links`; the admin's temporary password.
 - #78 — the session version: every access token ends with its session; the service hashes through its own helpers, with no parameter for them ([finding 39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md)).
-- #90 — the temporary password's expiry; no recovery by email or Google while one is pending; the email confirmed at the forced change.
+- #90 — the temporary password's expiry; no recovery by email or Google while one is pending; the email confirmed at the forced change; the owner's re-issue and handover.
 
 ### Web history
 

@@ -240,6 +240,62 @@ export function createUsersService({
     await sessions.revokeAll(userId, tx);
   }
 
+  /**
+   * Replaces the account's password with a temporary one already hashed, expiring 7 days from now,
+   * under the session lock its caller took: every session and pending reset link ends, as a reset
+   * does, and the issue is audited `user.temporaryPasswordIssued`, with the space when an owner
+   * issues it. The admin's recovery and the owner's re-issue both write through here.
+   */
+  async function replaceWithTemporaryPassword(
+    actorId: number,
+    userId: number,
+    passwordHash: string,
+    tx: Tx,
+    spaceId?: number,
+  ): Promise<void> {
+    await repository.setTemporaryPassword(userId, passwordHash, temporaryPasswordExpiry(now()), tx);
+    await endSessions(userId, tx);
+    await sessions.endResetTokens(userId, tx);
+    await audit(
+      {
+        actorId,
+        action: 'user.temporaryPasswordIssued',
+        entityType: 'user',
+        entityId: userId,
+        ...(spaceId !== undefined && { spaceId }),
+        after: { mustChangePassword: true },
+      },
+      tx,
+    );
+  }
+
+  /**
+   * The account's handover, under its session lock, which the caller took (with `lockAccount`).
+   * Only while its temporary password is pending. `spaceId` names the space for an owner's staff.
+   */
+  async function recordHandoverLocked(
+    actorId: number,
+    account: Account,
+    channel: HandoverChannel,
+    tx: Tx,
+    spaceId?: number,
+  ): Promise<void> {
+    if (!account.mustChangePassword) {
+      throw AppError.conflict('TEMPORARY_PASSWORD_NOT_PENDING', 'No temporary password pending');
+    }
+    await audit(
+      {
+        actorId,
+        action: 'user.temporaryPasswordHandedOver',
+        entityType: 'user',
+        entityId: account.id,
+        ...(spaceId !== undefined && { spaceId }),
+        after: { channel },
+      },
+      tx,
+    );
+  }
+
   return {
     accessClaims,
     endSessions,
@@ -490,27 +546,13 @@ export function createUsersService({
         if (!(await repository.findPasswordHash(userId, tx))) {
           throw AppError.conflict('GOOGLE_ONLY_ACCOUNT', 'No password to replace');
         }
-        await repository.setTemporaryPassword(
-          userId,
-          temporary.hash,
-          temporaryPasswordExpiry(now()),
-          tx,
-        );
-        await endSessions(userId, tx);
-        await sessions.endResetTokens(userId, tx);
-        await audit(
-          {
-            actorId,
-            action: 'user.temporaryPasswordIssued',
-            entityType: 'user',
-            entityId: userId,
-            after: { mustChangePassword: true },
-          },
-          tx,
-        );
+        await replaceWithTemporaryPassword(actorId, userId, temporary.hash, tx);
       });
       return temporary.password;
     },
+
+    replaceWithTemporaryPassword,
+    recordHandoverLocked,
 
     /**
      * Records how the account's temporary password was handed over, after it was shown (the
@@ -522,22 +564,7 @@ export function createUsersService({
       return runInTransaction(async (tx) => {
         const account = await lockAccount(userId, tx);
         if (!account) throw AppError.notFound(undefined, 'Account not found');
-        if (!account.mustChangePassword) {
-          throw AppError.conflict(
-            'TEMPORARY_PASSWORD_NOT_PENDING',
-            'No temporary password pending',
-          );
-        }
-        await audit(
-          {
-            actorId,
-            action: 'user.temporaryPasswordHandedOver',
-            entityType: 'user',
-            entityId: userId,
-            after: { channel },
-          },
-          tx,
-        );
+        await recordHandoverLocked(actorId, account, channel, tx);
       });
     },
 

@@ -226,7 +226,7 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | GET | `/manage/spaces/:spaceId/occupancy` | 🧾 | the live numbers for the space's staff: `{ capacity, present }`; the statistics are under finance (🏢) |
 | PUT / DELETE | `/manage/spaces/:spaceId/status-override` | 🧾 | set a state until a time (30 min, 1 h, 2 h or closing time), or clear it |
 | GET / POST / DELETE / PUT | `/manage/spaces/:spaceId/photos[/:photoId \| /order]` | GET 🧾 · writes 🏢 | list, upload, remove, reorder, on the admin's service ([api-contract › Photos](../api/api-contract.md#photos)) |
-| GET / POST / PATCH | `/manage/spaces/:spaceId/staff[/:userId]` | 🏢 | reception accounts, created new with a temporary password shown once, listed whole, deactivated and re-activated ([api-contract › Staff (managed)](../api/api-contract.md#staff-managed)) |
+| GET / POST / PATCH | `/manage/spaces/:spaceId/staff[/:userId]` | 🏢 | reception accounts, created new with a temporary password shown once, listed whole, deactivated and re-activated, a pending temporary password re-issued and handed over ([api-contract › Staff (managed)](../api/api-contract.md#staff-managed)) |
 | GET / POST / PATCH | `/manage/spaces/:spaceId/packages[/:packageId]` | GET 🧾 · writes 🏢 | subscription templates, listed whole, retired ones included; never public ([api-contract › Packages (managed)](../api/api-contract.md#packages-managed)) |
 | GET / POST | `/manage/spaces/:spaceId/customers` | 🧾 | list (search; filters: subscription type, status, payment), create |
 | GET / PATCH | `/manage/spaces/:spaceId/customers/:customerId` | 🧾 | details with subscriptions, balances and debt; edit |

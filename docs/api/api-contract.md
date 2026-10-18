@@ -252,7 +252,7 @@ SpacePackage = {
 
 ### Staff (managed)
 
-A space's staff: the reception accounts its owner creates ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md), revised). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Every route is the owner's (🏢): reception is refused with `forbidden` (403) before a body is read or the request counted. The creation counts under the staff-accounts limit ([security.md](../backend/security.md#rate-limits-fixed-window)).
+A space's staff: the reception accounts its owner creates ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md), revised). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Every route is the owner's (🏢): reception is refused with `forbidden` (403) before a body is read or the request counted. The creation and the re-issue count under the staff-accounts limit ([security.md](../backend/security.md#rate-limits-fixed-window)).
 
 ```ts
 StaffMember = {
@@ -276,6 +276,16 @@ AddedStaff = { userId: number, temporaryPassword: string }   // shown once
 - **Body:** `{ isActive }`.
 - **200:** `StaffMember`, as it now is. `false` deactivates the person's reception link and ends every session they hold ([security.md](../backend/security.md#tokens-and-cookies)); `true` re-activates it, ending nothing. The same state as asked writes nothing. Audited `space.staffDeactivated` or `space.staffReactivated` (`before` and `after`: `{ userId, isActive }`).
 - **Errors:** `not_found` (404) for a person without a reception link at the space, an owner's link included (a co-owner is never changed here); `conflict` (409) `ACCOUNT_SUSPENDED` or `ACCOUNT_IS_ADMIN` for a re-activation of a suspended account or an admin; `validation` (422); `forbidden` (403) for reception, before the body is read.
+
+#### `POST /manage/spaces/:spaceId/staff/:userId/temporary-password` · 🏢
+- **Body:** none.
+- **200:** `IssuedTemporaryPassword` (`@masaha/shared/users`), under `Cache-Control: no-store`: a new temporary password, only while one is pending (lost, or expired), whoever issued it: the owner's own, or an admin's recovery. It replaces the pending one, with a new expiry, and ends every session and pending reset link, as the admin's does. Audited `user.temporaryPasswordIssued`, with the space. Counts under the staff-accounts limit.
+- **Errors**, a refusal writing nothing: `not_found` (404) without an active reception link of the person at the space; `conflict` (409) `TEMPORARY_PASSWORD_NOT_PENDING` while none is pending (the person's recovery is then the email, or the admin); `conflict` (409) `ACCOUNT_SUSPENDED`; `conflict` (409) `ACCOUNT_HAS_LINKS` for an account that is not a `USER` or holds another active link; `forbidden` (403) for reception, before the request is counted; `rate_limit` (429).
+
+#### `POST /manage/spaces/:spaceId/staff/:userId/temporary-password/handover` · 🏢
+- **Body:** `{ channel }`, as the admin's handover's.
+- **204:** how the temporary password just shown was handed over, audited `user.temporaryPasswordHandedOver` (`after: { channel }`), with the space.
+- **Errors:** `validation` (422), with `invalid_choice` on `channel`; `conflict` (409) `TEMPORARY_PASSWORD_NOT_PENDING` once nothing is pending; `not_found` (404) without an active reception link of the person at the space; `forbidden` (403) for reception, before the body is read.
 
 ### Lookups (public)
 

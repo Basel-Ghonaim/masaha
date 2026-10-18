@@ -1,4 +1,5 @@
 import type { AddedStaff } from '@masaha/shared/space-links';
+import type { IssuedTemporaryPassword } from '@masaha/shared/users';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -53,6 +54,12 @@ function routes(): { method: Method; suffix: string; body: object }[] {
     { method: 'get', suffix: '', body: {} },
     { method: 'post', suffix: '', body: { name: '' } },
     { method: 'patch', suffix: `/${String(reception.id)}`, body: { isActive: 'no' } },
+    { method: 'post', suffix: `/${String(reception.id)}/temporary-password`, body: {} },
+    {
+      method: 'post',
+      suffix: `/${String(reception.id)}/temporary-password/handover`,
+      body: { channel: 'SMS' },
+    },
   ];
 }
 
@@ -321,5 +328,125 @@ describe('PATCH /manage/spaces/:spaceId/staff/:userId', () => {
       expect(response.status).toBe(404);
     }
     expect(await prisma.spaceManager.count({ where: { deactivatedAt: { not: null } } })).toBe(0);
+  });
+});
+
+/** A reception account the owner just created, its temporary password still pending. */
+async function addedReceptionist(email = 'nour@example.com') {
+  const response = await staff(owner, 'post', '', { name: 'Nour', email });
+  return dataOf(response) as AddedStaff;
+}
+
+function login(email: string, password: string) {
+  return request(app).post('/api/v1/auth/login').send({ email, password });
+}
+
+/** Changes the temporary password, as the person does at their first sign-in. */
+async function changeTemporary(email: string, temporaryPassword: string) {
+  const signedIn = await login(email, temporaryPassword);
+  const { accessToken } = (signedIn.body as { data: { accessToken: string } }).data;
+  const changed = await request(app)
+    .post('/api/v1/me/password')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .send({ password: 'mine2026x' });
+  expect(changed.status).toBe(200);
+}
+
+describe('POST /manage/spaces/:spaceId/staff/:userId/temporary-password', () => {
+  it('the owner issues a new temporary password only while one is pending', async () => {
+    const added = await addedReceptionist();
+    const lapsed = new Date(Date.now() - 60_000);
+    await prisma.user.update({
+      where: { id: added.userId },
+      data: { temporaryPasswordExpiresAt: lapsed },
+    });
+
+    const response = await staff(owner, 'post', `/${String(added.userId)}/temporary-password`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    const { temporaryPassword } = dataOf(response) as IssuedTemporaryPassword;
+    expect((await login('nour@example.com', added.temporaryPassword)).body).toMatchObject({
+      error: { code: 'INVALID_CREDENTIALS' },
+    });
+    expect((await login('nour@example.com', temporaryPassword)).status).toBe(200);
+    const account = await prisma.user.findUniqueOrThrow({ where: { id: added.userId } });
+    expect(account.temporaryPasswordExpiresAt?.getTime()).toBeGreaterThan(Date.now());
+    expect((await auditEntries()).at(-1)).toEqual({
+      actorId: owner.id,
+      action: 'user.temporaryPasswordIssued',
+      entityType: 'user',
+      entityId: added.userId,
+      spaceId,
+      before: null,
+      after: { mustChangePassword: true },
+    });
+
+    await changeTemporary('nour@example.com', temporaryPassword);
+    const settled = await staff(owner, 'post', `/${String(added.userId)}/temporary-password`);
+    expect(settled.status).toBe(409);
+    expect(errorOf(settled).code).toBe('TEMPORARY_PASSWORD_NOT_PENDING');
+  });
+
+  it('counts each re-issue under the staff-accounts limit: the 11th request of the hour answers 429', async () => {
+    const added = await addedReceptionist();
+    const reissue = () => staff(owner, 'post', `/${String(added.userId)}/temporary-password`);
+    // The creation was the first of the hour; nine re-issues make ten.
+    for (let attempt = 0; attempt < 9; attempt++) expect((await reissue()).status).toBe(200);
+
+    const limited = await reissue();
+
+    expect(limited.status).toBe(429);
+    expect(limited.headers['retry-after']).toBeDefined();
+  }, 30_000);
+  it('refuses a re-issue for an account that holds anything else', async () => {
+    const added = await addedReceptionist();
+    await prisma.spaceManager.create({
+      data: { spaceId: otherSpaceId, userId: added.userId, role: 'OWNER' },
+    });
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: added.userId } });
+
+    const response = await staff(owner, 'post', `/${String(added.userId)}/temporary-password`);
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('ACCOUNT_HAS_LINKS');
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: added.userId } })).passwordHash,
+    ).toBe(before.passwordHash);
+  });
+});
+
+describe('POST /manage/spaces/:spaceId/staff/:userId/temporary-password/handover', () => {
+  it('records the owner’s handover only for its own pending staff', async () => {
+    const added = await addedReceptionist();
+    const elsewhere = await signIn('USER', 'elsewhere@example.com');
+    await prisma.spaceManager.create({
+      data: { spaceId: otherSpaceId, userId: elsewhere.id, role: 'RECEPTION' },
+    });
+    await prisma.user.update({
+      where: { id: elsewhere.id },
+      data: { mustChangePassword: true, temporaryPasswordExpiresAt: new Date(Date.now() + 60_000) },
+    });
+    const handover = (userId: number, channel = 'IN_PERSON') =>
+      staff(owner, 'post', `/${String(userId)}/temporary-password/handover`, { channel });
+
+    const recorded = await handover(added.userId);
+
+    expect(recorded.status).toBe(204);
+    expect((await auditEntries()).at(-1)).toEqual({
+      actorId: owner.id,
+      action: 'user.temporaryPasswordHandedOver',
+      entityType: 'user',
+      entityId: added.userId,
+      spaceId,
+      before: null,
+      after: { channel: 'IN_PERSON' },
+    });
+    expect((await handover(elsewhere.id)).status).toBe(404);
+    expect((await handover(added.userId, 'SMS')).status).toBe(422);
+    await changeTemporary('nour@example.com', added.temporaryPassword);
+    const settled = await handover(added.userId);
+    expect(settled.status).toBe(409);
+    expect(errorOf(settled).code).toBe('TEMPORARY_PASSWORD_NOT_PENDING');
   });
 });

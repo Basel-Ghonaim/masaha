@@ -4,10 +4,11 @@ import type {
   SetStaffActiveRequest,
   StaffMember,
 } from '@masaha/shared/space-links';
+import type { HandoverRequest, IssuedTemporaryPassword } from '@masaha/shared/users';
 import type { Request, Response } from 'express';
 
 import { signedIn, spaceOf } from '../../../shared/auth/index.ts';
-import { sendSuccess } from '../../../shared/http/index.ts';
+import { sendNoContent, sendSuccess } from '../../../shared/http/index.ts';
 import { parseId } from '../../../shared/validation/index.ts';
 import type { StaffService } from './staff.service.ts';
 
@@ -39,6 +40,29 @@ export function createStaffController(service: StaffService) {
         (req.body as SetStaffActiveRequest).isActive,
       );
       sendSuccess(res, member satisfies StaffMember);
+    },
+
+    issueTemporaryPassword: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const temporaryPassword = await service.issueTemporaryPassword(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.userId),
+      );
+      // The temporary password is answered once: no cache keeps the answer.
+      res.set('Cache-Control', 'no-store');
+      sendSuccess(res, { temporaryPassword } satisfies IssuedTemporaryPassword);
+    },
+
+    recordHandover: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      await service.recordHandover(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.userId),
+        (req.body as HandoverRequest).channel,
+      );
+      sendNoContent(res);
     },
   };
 }

@@ -1,11 +1,12 @@
 import type { AddedStaff, AddStaffRequest, StaffMember } from '@masaha/shared/space-links';
+import type { HandoverChannel } from '@masaha/shared/users';
 
 import type { RunInTransaction, Tx } from '../../../db/index.ts';
 import type { AuditWriter } from '../../../shared/audit/index.ts';
 import { can, type Actor, type LoadedSpace } from '../../../shared/auth/index.ts';
 import { AppError } from '../../../shared/errors/index.ts';
 import type { SpacesService } from '../../spaces/index.ts';
-import type { UsersService } from '../../users/index.ts';
+import type { Account, UsersService } from '../../users/index.ts';
 import { createSpaceLinksRepository, type ReceptionLink } from '../space-links.repository.ts';
 import { toStaffMember } from './staff.mapper.ts';
 
@@ -33,6 +34,19 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
     if (!can(actor, 'staff.manage', { links: await space.linksUnder(tx) })) {
       throw AppError.forbidden();
     }
+  }
+
+  /**
+   * The person's account under their session lock, taken after the space's: only with an active
+   * reception link at the space, else 404.
+   */
+  async function lockActiveReception(space: LoadedSpace, userId: number, tx: Tx): Promise<Account> {
+    const account = await users.lockAccount(userId, tx);
+    const link = account ? await repository.findReceptionLink(space.id, userId, tx) : null;
+    if (!account || !link || link.deactivatedAt !== null) {
+      throw AppError.notFound(undefined, 'No active reception link here');
+    }
+    return account;
   }
 
   /** The member as the list shows them, read in the change's transaction. */
@@ -150,6 +164,56 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
           tx,
         );
         return memberOf({ userId, deactivatedAt: isActive ? null : at }, tx);
+      });
+    },
+
+    /**
+     * A new temporary password for the person, only while their first is still pending (a lost
+     * answer, or one that expired), hashed before the transaction. Refused, in this order, without
+     * an active reception link here (404), once the person has changed it (the account is theirs:
+     * its recovery is the email or the admin), for a suspended account, and for an account that is
+     * not a `USER` or holds any other active link (S5): no owner may take another space's account.
+     */
+    async issueTemporaryPassword(
+      actor: Actor,
+      space: LoadedSpace,
+      userId: number,
+    ): Promise<string> {
+      const temporary = await users.issueTemporaryPassword();
+      await runInTransaction(async (tx) => {
+        await lockFor(actor, space, tx);
+        const account = await lockActiveReception(space, userId, tx);
+        if (!account.mustChangePassword) {
+          throw AppError.conflict(
+            'TEMPORARY_PASSWORD_NOT_PENDING',
+            'No temporary password pending',
+          );
+        }
+        if (!users.maySignIn(account)) {
+          throw AppError.conflict('ACCOUNT_SUSPENDED', 'Account suspended');
+        }
+        if (
+          account.role !== 'USER' ||
+          (await repository.countOtherActiveLinks(userId, space.id, tx)) > 0
+        ) {
+          throw AppError.conflict('ACCOUNT_HAS_LINKS', 'The account holds other links');
+        }
+        await users.replaceWithTemporaryPassword(actor.id, userId, temporary.hash, tx, space.id);
+      });
+      return temporary.password;
+    },
+
+    /** Records how the person's pending temporary password was handed over, for this space. */
+    recordHandover(
+      actor: Actor,
+      space: LoadedSpace,
+      userId: number,
+      channel: HandoverChannel,
+    ): Promise<void> {
+      return runInTransaction(async (tx) => {
+        await lockFor(actor, space, tx);
+        const account = await lockActiveReception(space, userId, tx);
+        await users.recordHandoverLocked(actor.id, account, channel, tx, space.id);
       });
     },
   };

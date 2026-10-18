@@ -134,6 +134,13 @@ export function createSpaceLinksRepository(db: PrismaClient = prisma) {
       return tx.spaceManager.count({ where: { userId, deactivatedAt: null } });
     },
 
+    /** How many active links the user holds other than theirs to this space, of either role. */
+    countOtherActiveLinks(userId: number, spaceId: number, tx: Tx): Promise<number> {
+      return tx.spaceManager.count({
+        where: { userId, deactivatedAt: null, spaceId: { not: spaceId } },
+      });
+    },
+
     /** How many active OWNER links the user holds, a soft-deleted space's included. */
     countOwnerLinks(userId: number, tx: Tx): Promise<number> {
       return tx.spaceManager.count({ where: { userId, role: 'OWNER', deactivatedAt: null } });
