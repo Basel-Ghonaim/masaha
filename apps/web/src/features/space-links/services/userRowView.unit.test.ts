@@ -15,6 +15,7 @@ const RIMA: AdminUserRow = {
     { id: 7, nameEn: 'Focus Hub', nameAr: null },
     { id: 9, nameEn: 'Palm Hub', nameAr: 'بالم' },
   ],
+  receptionSpaces: [],
 };
 
 const english = { lines: CATALOGUES.en.spaceLinks.ownersList, english: true };

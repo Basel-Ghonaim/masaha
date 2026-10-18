@@ -663,6 +663,7 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
     joinedAt: string,                             // when the account was created
     spaces: { id: number, nameEn: string, nameAr: string | null }[]   // its active OWNER links, oldest first;
                                                   // none to a soft-deleted space
+    receptionSpaces: { id: number, nameEn: string, nameAr: string | null }[]   // its active RECEPTION links, the same way
   }
   ```
 - **Errors:** `validation` (422), for an unknown `role` or `state` (`invalid_choice`) or a page out of range.

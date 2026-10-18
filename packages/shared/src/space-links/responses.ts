@@ -60,6 +60,8 @@ export interface AdminUserRow {
   joinedAt: string;
   /** The spaces of its active owner links, oldest first; a soft-deleted space's is left out. */
   spaces: { id: number; nameEn: string; nameAr: string | null }[];
+  /** The spaces of its active reception links, oldest first; a soft-deleted space's is left out. */
+  receptionSpaces: { id: number; nameEn: string; nameAr: string | null }[];
 }
 
 /** A reception account the owner created (POST /manage/spaces/:spaceId/staff). */

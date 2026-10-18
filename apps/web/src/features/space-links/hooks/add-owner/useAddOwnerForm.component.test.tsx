@@ -39,6 +39,7 @@ const RIMA: AdminUserRow = {
   signIn: { password: true, google: false },
   joinedAt: '2026-09-01T08:00:00Z',
   spaces: [],
+  receptionSpaces: [],
 };
 
 /** A page of `rows`, the only one. */

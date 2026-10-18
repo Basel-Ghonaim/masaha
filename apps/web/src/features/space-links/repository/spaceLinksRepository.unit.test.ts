@@ -38,6 +38,7 @@ const USER: AdminUserRow = {
   signIn: { password: true, google: false },
   joinedAt: '2026-09-01T08:00:00.000Z',
   spaces: [{ id: 7, nameEn: 'Focus Hub', nameAr: null }],
+  receptionSpaces: [],
 };
 
 /** The app's one client, wired as bootstrap wires it, answering every request with `answer`. */
