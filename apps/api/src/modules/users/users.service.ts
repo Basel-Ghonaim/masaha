@@ -137,6 +137,24 @@ export function createUsersService({
     return !account.suspendedAt;
   }
 
+  /**
+   * Whether the reset email may open the account: one that may sign in, with no temporary password
+   * pending (accounts created by someone else, docs/backend/security.md › Passwords).
+   */
+  function mayRecoverByEmail(account: Account): boolean {
+    return maySignIn(account) && !account.mustChangePassword;
+  }
+
+  /**
+   * No Google link while a temporary password is pending: its email was typed by someone else, so
+   * Google proving the address proves nothing of the person (docs/backend/security.md › Sign-in methods).
+   */
+  function assertMayLinkGoogle(account: Account): void {
+    if (account.mustChangePassword) {
+      throw AppError.conflict('GOOGLE_LINK_NOT_ALLOWED', 'A temporary password is pending');
+    }
+  }
+
   function assertMaySignIn(account: Account): void {
     if (!maySignIn(account)) throw AppError.forbidden('ACCOUNT_SUSPENDED', 'Account suspended');
   }
@@ -225,6 +243,7 @@ export function createUsersService({
       return { role, mustChangePassword, sessionVersion, suspended: !maySignIn(account) };
     },
     maySignIn,
+    mayRecoverByEmail,
     assertMaySignIn,
     lockAccount,
     lockForAdminChange,
@@ -291,6 +310,7 @@ export function createUsersService({
             // Another Google account is already linked to this email's account: never replaced.
             throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
           }
+          assertMayLinkGoogle(byEmail.account);
           if (!googleIsAuthoritative(google)) {
             throw AppError.conflict(
               'GOOGLE_LINK_NOT_ALLOWED',
@@ -327,6 +347,8 @@ export function createUsersService({
       const locked = await lockAccount(userId, tx);
       if (!locked) throw AppError.unauthorized(undefined, 'Account not found');
       assertMaySignIn(locked);
+      // A temporary password issued since the read: refused under the lock, before anything links.
+      assertMayLinkGoogle(locked);
       const linked = await repository.linkGoogleIfUnlinked(userId, google.subject, tx);
       if (!linked && (await repository.findGoogleSubject(userId, tx)) !== google.subject) {
         throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');

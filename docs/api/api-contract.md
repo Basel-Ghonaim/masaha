@@ -100,7 +100,7 @@ Every endpoint with a body may answer `validation` (422), and every endpoint may
 #### `POST /auth/google` · 🌐
 - **Body:** `{ idToken, language? }`: a Google OpenID Connect ID token from Google's sign-in on the web, and the interface language for an account this creates.
 - **200:** `Session & { linked }`. The account linked to this Google account; else the account with its email, linked now where security allows it (`linked: true`); else a new `USER` without a password ([security.md](../backend/security.md#sign-in-methods)).
-- **Errors:** `validation` (422); `unauthorized` (401) `GOOGLE_TOKEN_INVALID` for a token that fails verification, or whose email's account is linked to another Google account; `conflict` (409) `GOOGLE_LINK_NOT_ALLOWED` when the email has an account and Google is not the authority for the address; `forbidden` (403) `ACCOUNT_SUSPENDED`; `service_unavailable` (503) while the API has no Google client id, or cannot load Google's keys; a 503 counts no failure.
+- **Errors:** `validation` (422); `unauthorized` (401) `GOOGLE_TOKEN_INVALID` for a token that fails verification, or whose email's account is linked to another Google account; `conflict` (409) `GOOGLE_LINK_NOT_ALLOWED` when the email has an account and Google is not the authority for the address, or the account has a temporary password pending ([security.md](../backend/security.md#passwords)); `forbidden` (403) `ACCOUNT_SUSPENDED`; `service_unavailable` (503) while the API has no Google client id, or cannot load Google's keys; a 503 counts no failure.
 
 #### `POST /auth/refresh` · the refresh cookie
 - **Body:** none.
@@ -128,12 +128,12 @@ RecoveryPosition =
 
 #### `POST /auth/password/forgot` · 🌐 · sets the recovery cookie
 - **Body:** `{ email }`.
-- **202:** `RecoveryPosition` at `sent`, and the recovery cookie, the same for every address, whether or not it has an account. A recovery the browser held is ended. When the address has an account that may sign in, the reset email is sent.
+- **202:** `RecoveryPosition` at `sent`, and the recovery cookie, the same for every address, whether or not it has an account. A recovery the browser held is ended. When the address has an account that may sign in and has no temporary password pending, the reset email is sent.
 - **Errors:** `validation` (422); `forbidden` (403) for a cross-site request; `rate_limit` (429).
 
 #### `POST /auth/password/resend` · the recovery cookie
 - **Body:** none. The address is the recovery's: any field is refused.
-- **202:** `RecoveryPosition` at `sent`, with the window started again, and the recovery cookie renewed for the new link's life. When the recovery's address has an account that may sign in, another reset email is sent. The answer is the same either way.
+- **202:** `RecoveryPosition` at `sent`, with the window started again, and the recovery cookie renewed for the new link's life. When the recovery's address has an account that may sign in and has no temporary password pending, another reset email is sent. The answer is the same either way.
 - **Errors:** `validation` (422) for a field in the body; `bad_request` (400) `RECOVERY_INVALID` without a recovery at `sent` (none, ended or expired); `bad_request` (400) `RESEND_LIMIT_REACHED` once its resends are spent; `rate_limit` (429) inside the window, with `Retry-After` the seconds left; `forbidden` (403) for a cross-site request.
 
 #### `GET /auth/password/recovery` · the recovery cookie
@@ -143,12 +143,12 @@ RecoveryPosition =
 #### `POST /auth/password/reset/check` · 🌐 · sets the recovery cookie
 - **Body:** `{ token }`, read by the web from the link's fragment. It is the last time the web holds it.
 - **200:** `RecoveryPosition` at `password`, and the recovery cookie, now lasting as long as the link. The link is bound to the browser's recovery, or to a new one when the browser holds none, and a recovery elsewhere that held it ends. The token is neither used nor extended.
-- **Errors:** `validation` (422) for a missing or empty token; `bad_request` (400) `RESET_TOKEN_INVALID`, the same for an unknown, expired or used link; `forbidden` (403) for a cross-site request; `rate_limit` (429).
+- **Errors:** `validation` (422) for a missing or empty token; `bad_request` (400) `RESET_TOKEN_INVALID`, the same for an unknown, expired or used link, and for a link of an account whose temporary password became pending; `forbidden` (403) for a cross-site request; `rate_limit` (429).
 
 #### `POST /auth/password/reset` · the recovery cookie
 - **Body:** `{ password }`, following the policy. The link is the recovery's: a `token` in the body is refused.
-- **204:** the password is set with the link the recovery holds, a pending temporary one is settled, and every session, and every recovery bound to a link of the user, ended. The link is used, and the recovery cookie cleared.
-- **Errors:** `validation` (422), with `errors.token = ["invalid_format"]` for a token in the body; `bad_request` (400) `RECOVERY_INVALID` without a recovery at `password`, or when its link was used, has expired or was replaced meanwhile; `forbidden` (403) for a cross-site request, which keeps the cookie; `rate_limit` (429).
+- **204:** the password is set with the link the recovery holds, and every session, and every recovery bound to a link of the user, ended. The link is used, and the recovery cookie cleared.
+- **Errors:** `validation` (422), with `errors.token = ["invalid_format"]` for a token in the body; `bad_request` (400) `RECOVERY_INVALID` without a recovery at `password`, or when its link was used, has expired or was replaced meanwhile, or its account's temporary password became pending; `forbidden` (403) for a cross-site request, which keeps the cookie; `rate_limit` (429).
 
 ### Me
 

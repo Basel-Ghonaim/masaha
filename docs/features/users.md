@@ -7,7 +7,7 @@
 ## What it does
 
 - Holds the accounts: creates one at registration, at a first Google sign-in, or as an account the admin creates, with a temporary password, links Google to an existing one, hashes and verifies passwords, and refuses a suspended account.
-- Changes a password, and settles a temporary one in the forced change. A temporary password expires 7 days after it is issued: a password sign-in with an expired one is refused.
+- Changes a password, and settles a temporary one in the forced change. A temporary password expires 7 days after it is issued: a password sign-in with an expired one is refused. While one is pending, the account has no recovery by email and no Google link.
 - Answers the account's view (`User`) for the session, and the names of a set of users for a list.
 - Answers a page of the accounts for the admin's users list, filtered by name or email, role and state, each with how it signs in.
 - Records how a temporary password was handed over, in the audit, for the admin.
@@ -70,6 +70,7 @@ The account's settings (`GET` and `PATCH /me`) and the temporary passwords of th
 
 - **Every session of an account ends through one function, `endSessions`,** which raises the account's session version and deletes its refresh tokens, in the caller's transaction, under the session lock it took; nothing else revokes them, and the guard refuses an access token signed under another version. A password change signs its device's new token after the raise; a Google link ends every session too. *Why:* an access token outlived the end of its session ([finding 51](../architecture/findings/51-an-access-token-outlives-the-end-of-its-session.md)); a version is exact where a time has a same-second window, and needs no clock shared between instances. 2026-10-13, #78.
 - **A temporary password's expiry is stored on the account, not its issue time,** set by every write that makes one pending and cleared by every write that settles one, with a database `CHECK` tying the two; it is checked at the password sign-in only, once the password matches. *Why:* the rule is one comparison, a later change of the lifetime changes the next issues only, and a session or a Google sign-in that proved the person before keeps working ([security › Passwords](../backend/security.md#passwords)). 2026-10-18, #90.
+- **No recovery by email and no Google link while a temporary password is pending,** both decided here (`mayRecoverByEmail`, and the refusal in `accountForGoogle`, again in `linkGoogle` under the lock). *Why:* the email was typed by someone else; a mailbox at a mistyped address must not take the account ([security › Passwords](../backend/security.md#passwords)). 2026-10-18, #90.
 
 ### Web decisions
 
@@ -109,7 +110,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #60 — the page of accounts for the admin's users list; the role change that follows an owner's links; the accounts the admin creates with a temporary password, and its handover.
 - The users item — the account read by the guard on every signed-in request; suspension and restore; the role change's lock and its write, for `space-links`; the admin's temporary password.
 - #78 — the session version: every access token ends with its session; the service hashes through its own helpers, with no parameter for them ([finding 39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md)).
-- #90 — the temporary password's expiry.
+- #90 — the temporary password's expiry; no recovery by email or Google while one is pending.
 
 ### Web history
 

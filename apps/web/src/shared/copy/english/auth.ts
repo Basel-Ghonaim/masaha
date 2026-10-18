@@ -23,7 +23,7 @@ export const AUTH = {
     lines: {
       GOOGLE_TOKEN_INVALID: GOOGLE_NOT_CONFIRMED,
       GOOGLE_LINK_NOT_ALLOWED:
-        'An account with this email already exists. Sign in with its password, or reset it under “Forgot password”.',
+        'An account with this email already exists. Sign in with its password; if you don’t know it, reset it under “Forgot password”, or ask whoever created your account.',
       service_unavailable:
         'Google sign-in isn’t available right now. Use your email and password, or try again later.',
       validation: GOOGLE_NOT_CONFIRMED,

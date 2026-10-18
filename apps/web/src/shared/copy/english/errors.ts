@@ -46,7 +46,7 @@ export const ERRORS = {
   RESEND_LIMIT_REACHED:
     'You’ve asked for the link too many times. Enter your email again to ask for another.',
   GOOGLE_LINK_NOT_ALLOWED:
-    'An account with this email already exists. Sign in with its password, or reset the password, to continue.',
+    'An account with this email already exists. Sign in with its password; if you don’t know it, reset it, or ask whoever created your account.',
   PASSWORD_NOT_SET:
     'This account has no password yet. Set one from the link we email you under “Forgot password”.',
   TEMPORARY_PASSWORD_NOT_PENDING:

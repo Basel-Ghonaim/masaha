@@ -7,6 +7,7 @@ import {
   cookieValue,
   createAccount,
   createTestApp,
+  inAWeek,
   PASSWORD,
   recordingEmailSender,
   setCookies,
@@ -80,6 +81,14 @@ function lastToken(): string {
   return match[1];
 }
 
+/** Makes the account's temporary password pending, as an issue does, but leaving its reset links. */
+function makePending(userId: number) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { mustChangePassword: true, temporaryPasswordExpiresAt: inAWeek() },
+  });
+}
+
 /** The recovery position a request opens, for any address typed as `sara@example.com`. */
 const SENT = { step: 'sent', email: 's•••@example.com', resendInSeconds: 60, canResend: true };
 
@@ -114,6 +123,24 @@ describe('POST /auth/password/forgot', () => {
       );
     }
     expect(outbox.sent.map(({ to }) => to)).toEqual(['sara@example.com']);
+  });
+
+  it('sends no reset email to an account whose temporary password is pending, and answers as for an unknown address', async () => {
+    const user = await createAccount({ mustChangePassword: true });
+    const pending = await forgot();
+    await prisma.user.delete({ where: { id: user.id } });
+    const unknown = await forgot();
+
+    for (const response of [pending, unknown]) {
+      expect(response.status).toBe(202);
+      expect(response.body).toEqual({ success: true, data: SENT });
+      expect(setCookies(response).masaha_reset).toMatch(
+        /^masaha_reset=[\w-]{43}; Max-Age=3600; Path=\/api\/v1\/auth\/password; Expires=[^;]+; HttpOnly; SameSite=Strict$/,
+      );
+    }
+    expect(pending.text).toBe(unknown.text);
+    expect(outbox.sent).toEqual([]);
+    expectSendLikeWaits(2);
   });
 
   it('waits as long as a send when it sends nothing, for an unknown, a suspended or a capped address, and not after a delivered email', async () => {
@@ -274,6 +301,22 @@ describe('POST /auth/password/resend', () => {
     expect(waits).toEqual([]);
     expect((await resend(unknown)).status).toBe(202);
 
+    expectSendLikeWaits(1);
+  });
+
+  it('the resend sends nothing for a pending account', async () => {
+    const user = await createAccount();
+    const key = await openRecovery();
+    // A temporary password issued after the request: the recovery still names the account.
+    await makePending(user.id);
+    now += 60_000;
+    waits.length = 0;
+
+    const response = await resend(key);
+
+    expect(response.status).toBe(202);
+    expect(response.body).toEqual({ success: true, data: SENT });
+    expect(outbox.sent.map(({ to }) => to)).toEqual(['sara@example.com']);
     expectSendLikeWaits(1);
   });
 
@@ -462,6 +505,19 @@ describe('POST /auth/password/reset/check', () => {
     expect(await prisma.passwordResetToken.count({ where: { userId: user.id } })).toBe(2);
   });
 
+  it('refuses a reset link at its check once the account’s temporary password is pending', async () => {
+    const user = await createAccount();
+    await forgot();
+    const token = lastToken();
+    // A temporary password issued after the link was asked, without ending it: the race.
+    await makePending(user.id);
+
+    const response = await check(token);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ error: { code: 'RESET_TOKEN_INVALID' } });
+  });
+
   it('limits one address to 50 password requests every 15 minutes, whatever the email', async () => {
     await forgot('first@example.com');
     await prisma.rateLimit.updateMany({
@@ -487,8 +543,8 @@ describe('POST /auth/password/reset/check', () => {
 });
 
 describe('POST /auth/password/reset', () => {
-  it('sets the new password once with the recovery’s link, settles a temporary one, ends every session and clears the cookie', async () => {
-    const user = await createAccount({ mustChangePassword: true });
+  it('sets the new password once with the recovery’s link, ends every session and clears the cookie', async () => {
+    const user = await createAccount();
     const signedIn = await login(PASSWORD);
     await forgot();
     const key = await checkedKey(lastToken());
@@ -513,6 +569,22 @@ describe('POST /auth/password/reset', () => {
     });
     expect((await reset(key, { password: 'again2026x' })).body).toMatchObject({
       error: { code: 'RECOVERY_INVALID' },
+    });
+  });
+
+  it('refuses the reset itself, keeping the password, when the account became pending after the link was checked', async () => {
+    const user = await createAccount();
+    await forgot();
+    const key = await checkedKey(lastToken());
+    const { passwordHash } = await makePending(user.id);
+
+    const response = await reset(key);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ error: { code: 'RECOVERY_INVALID' } });
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({
+      passwordHash,
+      mustChangePassword: true,
     });
   });
 

@@ -72,7 +72,7 @@ describe('useContinueWithGoogle', () => {
     [
       'an email whose account Google may not open',
       refused(409, { type: 'conflict', code: 'GOOGLE_LINK_NOT_ALLOWED' }),
-      'An account with this email already exists. Sign in with its password, or reset it under “Forgot password”.',
+      'An account with this email already exists. Sign in with its password; if you don’t know it, reset it under “Forgot password”, or ask whoever created your account.',
     ],
     [
       'a token Google did not confirm',
