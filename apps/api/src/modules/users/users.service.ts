@@ -576,11 +576,12 @@ export function createUsersService({
      * account must still say is pending. An account without a password (Google only) sets its
      * first one through the reset email instead. Wrong current passwords count under a per-user
      * limit. Every session of the user ends, any pending reset link with them, and this device's
-     * goes on in a new one.
+     * goes on in a new one. The forced change also takes the email, confirmed or corrected (its
+     * address was typed by someone else): a correction is audited, and a taken one changes nothing.
      */
     async changePassword(
       userId: number,
-      { currentPassword, password }: ChangePasswordRequest,
+      { currentPassword, password, email }: ChangePasswordRequest,
       { pendingChange }: { pendingChange: boolean },
     ): Promise<PasswordChange> {
       const account = await get(userId);
@@ -593,6 +594,8 @@ export function createUsersService({
       if (!forced && currentPassword === undefined) {
         throw AppError.validation({ currentPassword: ['required'] });
       }
+      // Outside the forced change the address is not this route's: refused, never dropped.
+      if (!forced && email !== undefined) throw AppError.validation({ email: ['invalid_choice'] });
 
       return limiter.limitFailures(
         [{ policy: PASSWORD_CHANGE, by: [String(userId)] }],
@@ -614,6 +617,23 @@ export function createUsersService({
             assertMaySignIn(locked);
             if (!(await repository.setPasswordIf(userId, passwordHash, expected, tx))) {
               throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Password changed meanwhile');
+            }
+            if (email !== undefined && email !== locked.email) {
+              // The last statement before the throw: a unique violation aborts the transaction.
+              if ((await repository.setEmail(userId, email, tx)) === 'taken') {
+                throw AppError.conflict('EMAIL_TAKEN', 'Email taken', { email: ['not_unique'] });
+              }
+              await audit(
+                {
+                  actorId: userId,
+                  action: 'user.emailChanged',
+                  entityType: 'user',
+                  entityId: userId,
+                  before: { email: locked.email },
+                  after: { email },
+                },
+                tx,
+              );
             }
             await endSessions(userId, tx);
             await sessions.endResetTokens(userId, tx);

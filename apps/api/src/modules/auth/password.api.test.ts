@@ -143,6 +143,22 @@ describe('POST /auth/password/forgot', () => {
     expectSendLikeWaits(2);
   });
 
+  it('once the temporary password is changed, the reset email is sent again — to the corrected address', async () => {
+    await createAccount({ mustChangePassword: true });
+    const signedIn = await login(PASSWORD);
+    const { accessToken } = (signedIn.body as { data: { accessToken: string } }).data;
+    const changed = await request(app)
+      .post('/api/v1/me/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ password: NEW_PASSWORD, email: 'new@example.com' });
+    expect(changed.status).toBe(200);
+
+    await forgot('new@example.com');
+    await forgot();
+
+    expect(outbox.sent.map(({ to }) => to)).toEqual(['new@example.com']);
+  });
+
   it('waits as long as a send when it sends nothing, for an unknown, a suspended or a capped address, and not after a delivered email', async () => {
     await createAccount();
     await createAccount({ email: 'away@example.com', suspendedAt: new Date() });

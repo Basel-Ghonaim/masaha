@@ -222,6 +222,20 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       });
     },
 
+    /**
+     * Sets the account's email, or says another account holds it. A unique violation aborts the
+     * transaction: the caller throws at once, and the change rolls back whole.
+     */
+    async setEmail(id: number, email: string, tx: Tx): Promise<'set' | 'taken'> {
+      try {
+        await tx.user.update({ where: { id }, data: { email }, select: { id: true } });
+        return 'set';
+      } catch (error) {
+        if (takenKey(error) === 'email') return 'taken';
+        throw error;
+      }
+    },
+
     /** Suspends the account at `at`, or restores it with `null`. */
     async setSuspendedAt(id: number, at: Date | null, tx: Tx): Promise<void> {
       await tx.user.update({ where: { id }, data: { suspendedAt: at }, select: { id: true } });
