@@ -1,7 +1,6 @@
 import { useCopy } from '@shared/copy';
-import { isolate, useLanguage } from '@shared/localisation';
+import { isolate, lineParts, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
-import { lineParts } from '../../services/lineParts';
 import { spaceNameOf } from '../../services/spaceName';
 import type { SpaceRef } from '../../types/SpaceRef';
 import { useDeleteSpace } from '../delete/useDeleteSpace';
