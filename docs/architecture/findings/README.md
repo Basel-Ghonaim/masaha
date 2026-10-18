@@ -42,9 +42,14 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [81. A retired package that keeps its shift stops the owner from removing that shift](81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)
 - [82. The users feature keeps several operations flat](82-the-users-feature-keeps-several-operations-flat.md)
 - [83. ALREADY_OWNER names no account](83-already-owner-names-no-account.md)
+- [84. A person cannot work at two spaces' front desks](84-a-person-cannot-work-at-two-spaces-front-desks.md)
 - [87. The owners shell cold-loads the whole space-links index](87-the-owners-shell-cold-loads-the-space-links-index.md)
 - [88. The upgrade confirm shows no front desks](88-the-upgrade-confirm-shows-no-front-desks.md)
 - [89. «Check the email» stands for three causes](89-check-the-email-stands-for-three-causes.md)
+- [90. The staff refusals reuse the admin's messages](90-the-staff-refusals-reuse-the-admins-messages.md)
+- [91. An address held by a pending account is locked out until the admin acts](91-an-address-held-by-a-pending-account-is-locked-out-until-the-admin-acts.md)
+- [92. An owner can end the sessions of another space's owner at will](92-an-owner-can-end-the-sessions-of-another-spaces-owner-at-will.md)
+- [93. Three staff refusals have no test of their own](93-three-staff-refusals-have-no-test-of-their-own.md)
 
 ## Accepted
 

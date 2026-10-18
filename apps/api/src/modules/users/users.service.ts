@@ -26,6 +26,7 @@ import {
   type Account,
   type AccountsFilter,
   type ListedAccount,
+  type StaffAccount,
   type UserName,
   type UsersRepository,
 } from './users.repository.ts';
@@ -110,6 +111,17 @@ export function assertNotOwnAccount(actorId: number, userId: number): void {
 export function assertKeepsAnAdmin({ account, otherActiveAdmins }: LockedAmongAdmins): void {
   if (account.role === 'ADMIN' && !account.suspendedAt && otherActiveAdmins === 0) {
     throw AppError.conflict('LAST_ADMIN', 'The last active admin');
+  }
+}
+
+/**
+ * An account whose temporary password is pending gains no power (S6): its password is known to
+ * whoever created the account, so an owner's link, or the admin's role, would be theirs too
+ * (docs/backend/security.md › Passwords). The person changes it first.
+ */
+export function assertNoPasswordPending(account: Account): void {
+  if (account.mustChangePassword) {
+    throw AppError.conflict('ACCOUNT_PASSWORD_PENDING', 'A temporary password is pending');
   }
 }
 
@@ -409,6 +421,11 @@ export function createUsersService({
     /** The names of these users, in one query, for a list that names them (the spaces' owners). */
     namesFor(ids: readonly number[], tx?: Tx): Promise<UserName[]> {
       return repository.findNames(ids, tx);
+    },
+
+    /** These users' accounts as the owner's staff list shows them, in one query. */
+    staffAccounts(ids: readonly number[], tx?: Tx): Promise<StaffAccount[]> {
+      return repository.findStaffAccounts(ids, tx);
     },
 
     /** The account with this email, if there is one. */

@@ -2,7 +2,12 @@ import type { AdminRoleChoice } from '@masaha/shared/space-links';
 
 import type { RunInTransaction } from '../../../db/index.ts';
 import { AppError } from '../../../shared/errors/index.ts';
-import { assertKeepsAnAdmin, assertNotOwnAccount, type UsersService } from '../../users/index.ts';
+import {
+  assertKeepsAnAdmin,
+  assertNoPasswordPending,
+  assertNotOwnAccount,
+  type UsersService,
+} from '../../users/index.ts';
 import { createSpaceLinksRepository } from '../space-links.repository.ts';
 
 interface Dependencies {
@@ -23,7 +28,8 @@ export function createAdminRolesService({ runInTransaction, users }: Dependencie
     /**
      * Gives the person the role, under the person's session lock taken with every active admin's
      * row (conventions §13): never the actor's own account, never a person holding an active link,
-     * never the last active admin. The same role again writes nothing; an unknown account is 404.
+     * never the last active admin, and never an admin's role to an account whose temporary password
+     * is pending (S6). The same role again writes nothing; an unknown account is 404.
      */
     change(actorId: number, userId: number, role: AdminRoleChoice): Promise<void> {
       assertNotOwnAccount(actorId, userId);
@@ -36,6 +42,7 @@ export function createAdminRolesService({ runInTransaction, users }: Dependencie
         if ((await repository.countActiveLinks(userId, tx)) > 0) {
           throw AppError.conflict('ACCOUNT_HAS_LINKS', 'The role follows the links');
         }
+        if (role === 'ADMIN') assertNoPasswordPending(locked.account);
         assertKeepsAnAdmin(locked);
         await users.changeRole(locked.account, role, actorId, tx);
       });

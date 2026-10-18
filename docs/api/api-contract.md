@@ -63,6 +63,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - the public catalogue of the lookups (`GET /lookups`), the same bounded lists, active rows only (§5, *Lookups (public)*);
 - the map's pins (`GET /map/spaces`), the whole filtered set up to a ceiling of 1,000 (§5, *Directory (public)*);
 - a space's packages (`GET /manage/spaces/:spaceId/packages`), retired ones included: a space keeps tens at most, typed by hand, and the owner's list and the front desk's picker both read them whole (§5, *Packages (managed)*; why: [packages › Decisions](../features/packages.md#api-decisions)).
+- a space's staff (`GET /manage/spaces/:spaceId/staff`), every reception link, active or not: a space has few, and the owner's page reads them whole (§5, *Staff (managed)*; why: [space-links › Decisions](../features/space-links.md#api-decisions)).
 
 ## 5. Endpoints
 
@@ -248,6 +249,28 @@ SpacePackage = {
 - **Body:** any of the terms, and `isActive`; what is absent is kept, and a limit or the shift is cleared with `null`.
 - **200:** `SpacePackage`. Audited `package.edited`.
 - **Errors:** as the create's; `not_found` (404) for a package that is not the space's.
+
+### Staff (managed)
+
+A space's staff: the reception accounts its owner creates ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md), revised). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Every route is the owner's (🏢): reception is refused with `forbidden` (403) before a body is read or the request counted. The creation counts under the staff-accounts limit ([security.md](../backend/security.md#rate-limits-fixed-window)).
+
+```ts
+StaffMember = {
+  userId: number, name: string, email: string,
+  isActive: boolean,                                // false: the owner deactivated the link
+  temporaryPassword: { expiresAt: string } | null   // pending, and when it expires (ISO 8601); null once changed
+}
+AddedStaff = { userId: number, temporaryPassword: string }   // shown once
+```
+
+#### `GET /manage/spaces/:spaceId/staff` · 🏢
+- **200:** `StaffMember[]` (`@masaha/shared/space-links`): every `RECEPTION` link of the space, deactivated ones included, oldest first. An expired temporary password is still listed, with its past `expiresAt`. Not paginated (§4).
+- **Errors:** `forbidden` (403) for reception; `not_found` (404).
+
+#### `POST /manage/spaces/:spaceId/staff` · 🏢
+- **Body:** `{ name, email }`: a name as a user's, and the email, trimmed and lowercased.
+- **201:** `AddedStaff`, under `Cache-Control: no-store`: a new `USER` account with a temporary password ([security.md](../backend/security.md#passwords)), linked to the space as its `RECEPTION`. Audited `user.created` and `space.staffAdded` (`after: { userId }`).
+- **Errors:** `conflict` (409) `EMAIL_HAS_ACCOUNT`, with `errors.email = ["not_unique"]`, for an email that already has an account, which is never linked, writing nothing; `validation` (422); `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `rate_limit` (429); `not_found` (404).
 
 ### Lookups (public)
 
@@ -594,12 +617,12 @@ A space's owners, as the admin links them ([ADR 0009](../architecture/decisions/
     temporaryPassword: string | null   // the new account's, in this answer only, never again; null for an upgrade
   }
   ```
-- **Errors**, a refusal writing nothing: `validation` (422), with `errors.spaceId = ["invalid_choice"]` for a soft-deleted or unknown space; for an email with an account, in this order: `conflict` (409) `ACCOUNT_IS_ADMIN`, `conflict` (409) `ACCOUNT_SUSPENDED`, `conflict` (409) `ALREADY_OWNER` for an owner, who is linked instead, `conflict` (409) `EMAIL_HAS_ACCOUNT` without `upgradeExisting` (also when another creation took the email meanwhile), and `conflict` (409) `RECEPTION_LINK_ACTIVE`.
+- **Errors**, a refusal writing nothing: `validation` (422), with `errors.spaceId = ["invalid_choice"]` for a soft-deleted or unknown space; for an email with an account, in this order: `conflict` (409) `ACCOUNT_IS_ADMIN`, `conflict` (409) `ACCOUNT_SUSPENDED`, `conflict` (409) `ALREADY_OWNER` for an owner, who is linked instead, `conflict` (409) `EMAIL_HAS_ACCOUNT` without `upgradeExisting` (also when another creation took the email meanwhile), `conflict` (409) `RECEPTION_LINK_ACTIVE`, and `conflict` (409) `ACCOUNT_PASSWORD_PENDING` for an account whose temporary password is pending, which the person changes first ([security.md](../backend/security.md#passwords)).
 
 #### `POST /admin/spaces/:spaceId/owners` · 🛡
 - **Body:** `{ userId }`: a user, who becomes an owner, or an owner, who owns one more space.
 - **204:** the person is the space's owner; the space is verified. A person already the space's active owner: nothing is written.
-- **Errors:** `validation` (422), with `errors.userId = ["invalid_choice"]` for an unknown person; `conflict` (409) `ACCOUNT_IS_ADMIN` for an admin; `conflict` (409) `ACCOUNT_SUSPENDED` for a suspended account; `conflict` (409) `RECEPTION_LINK_ACTIVE` for a person with an active reception link at this space, which its owner deactivates first; `not_found` (404) for a soft-deleted or unknown space. A refusal writes nothing.
+- **Errors:** `validation` (422), with `errors.userId = ["invalid_choice"]` for an unknown person; `conflict` (409) `ACCOUNT_IS_ADMIN` for an admin; `conflict` (409) `ACCOUNT_SUSPENDED` for a suspended account; `conflict` (409) `RECEPTION_LINK_ACTIVE` for a person with an active reception link at this space, which its owner deactivates first; `conflict` (409) `ACCOUNT_PASSWORD_PENDING` for an account whose temporary password is pending, which the person changes first ([security.md](../backend/security.md#passwords)); `not_found` (404) for a soft-deleted or unknown space. A refusal writes nothing.
 
 #### `DELETE /admin/spaces/:spaceId/owners/:userId` · 🛡
 - **204:** the person's owner link to the space is ended; the last one leaves the space unverified, its facts the admin's again ([security › Authorization](../backend/security.md#authorization)). Without an active owner link of the person there, nothing is written: a reception link is never ended here.
@@ -648,7 +671,7 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 #### `PUT /admin/users/:userId/role` · 🛡
 - **Body:** `{ role }`: `"USER"` or `"ADMIN"` (`ADMIN_ROLE_CHOICES`, `@masaha/shared/space-links`). `OWNER` is never given: it follows the person's active owner links ([Owners (the admin)](#owners-the-admin)).
 - **204:** the person's global role is the one asked, every session of theirs ended: their access tokens are refused from their next request, and they sign in again with the new role ([security.md](../backend/security.md#authorization)). Audited `user.roleChanged` (`before` and `after`: `{ role }`), with the person as the entity. Asking the role they already have writes nothing and ends no session.
-- **Errors**, a refusal writing nothing: `validation` (422), with `invalid_choice` on `role`; `conflict` (409) `OWN_ACCOUNT` for the admin's own account, whatever the role asked; `conflict` (409) `ACCOUNT_HAS_LINKS` for a person with any active link, owner or reception, a soft-deleted space's included: an owner is not made a user, and no linked person an admin, until the links end; `conflict` (409) `LAST_ADMIN` when it would leave the platform with no active admin, which only a change made meanwhile by another admin can cause; `not_found` (404) for an unknown account.
+- **Errors**, a refusal writing nothing: `validation` (422), with `invalid_choice` on `role`; `conflict` (409) `OWN_ACCOUNT` for the admin's own account, whatever the role asked; `conflict` (409) `ACCOUNT_HAS_LINKS` for a person with any active link, owner or reception, a soft-deleted space's included: an owner is not made a user, and no linked person an admin, until the links end; `conflict` (409) `ACCOUNT_PASSWORD_PENDING` for making an admin of an account whose temporary password is pending; `conflict` (409) `LAST_ADMIN` when it would leave the platform with no active admin, which only a change made meanwhile by another admin can cause; `not_found` (404) for an unknown account.
 
 #### `PUT /admin/users/:userId/suspended` · 🛡
 - **Body:** `{ isSuspended: boolean }`.
@@ -659,4 +682,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING`.

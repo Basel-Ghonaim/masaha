@@ -37,6 +37,15 @@ export interface UserName {
   name: string;
 }
 
+/** A staff member's account, as the owner's staff list shows it. */
+export interface StaffAccount {
+  id: number;
+  name: string;
+  email: string;
+  mustChangePassword: boolean;
+  temporaryPasswordExpiresAt: Date | null;
+}
+
 /** What the admin's list filters the accounts by, each optional. */
 export interface AccountsFilter {
   /** Part of the name or the email, whatever the case. */
@@ -82,6 +91,20 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return tx.user.findMany({
         where: { id: { in: [...ids] } },
         select: { id: true, name: true },
+      });
+    },
+
+    /** These users' accounts as a staff list shows them, in one query, without any hash. */
+    findStaffAccounts(ids: readonly number[], tx: Tx = db): Promise<StaffAccount[]> {
+      return tx.user.findMany({
+        where: { id: { in: [...ids] } },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          mustChangePassword: true,
+          temporaryPasswordExpiresAt: true,
+        },
       });
     },
 

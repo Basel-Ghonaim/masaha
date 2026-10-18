@@ -13,9 +13,9 @@ import {
   REFUSED_CALLERS,
   signIn,
 } from '../../../../test/admin.ts';
-import { createTestApp } from '../../../../test/app.ts';
+import { createTestApp, inAWeek } from '../../../../test/app.ts';
 import { createSpace } from '../../../../test/factories.ts';
-import { waitingOnLock } from '../../../../test/locks.ts';
+import { lockUsers, waitingOnLock, whileHeld } from '../../../../test/locks.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings } from '../../../../test/spaces.ts';
 import { prisma, type Tx } from '../../../db/index.ts';
@@ -48,6 +48,14 @@ function person(role: Role = 'USER', { suspended = false } = {}) {
       passwordHash: 'x',
       suspendedAt: suspended ? NOW : null,
     },
+  });
+}
+
+/** Makes the account's temporary password pending, as an issue does. */
+function makePending(userId: number, tx: Tx = prisma) {
+  return tx.user.update({
+    where: { id: userId },
+    data: { mustChangePassword: true, temporaryPasswordExpiresAt: inAWeek() },
   });
 }
 
@@ -206,6 +214,11 @@ describe('POST /admin/spaces/:spaceId/owners', () => {
         return user;
       },
       'RECEPTION_LINK_ACTIVE',
+    ],
+    [
+      'an account whose temporary password is pending',
+      async () => makePending((await person()).id),
+      'ACCOUNT_PASSWORD_PENDING',
     ],
   ])('refuses %s with 409, writing nothing', async (_case, make, code) => {
     const user = await make();
@@ -515,6 +528,38 @@ describe('POST /admin/owners', () => {
       'user.roleChanged',
     ]);
   });
+
+  it('refuses to upgrade an account whose temporary password is pending, writing nothing', async () => {
+    const user = await prisma.user.create({
+      data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
+    });
+    await makePending(user.id);
+
+    const refused = await add({ ...NEW, upgradeExisting: true });
+
+    expect(refused.status).toBe(409);
+    expect(errorOf(refused)).toMatchObject({ type: 'conflict', code: 'ACCOUNT_PASSWORD_PENDING' });
+    expect(await role(user.id)).toBe('USER');
+    expect(await links(user.id)).toEqual([]);
+    expect(await entries()).toEqual([]);
+  });
+
+  it('refuses an upgrade that waited on the person while a temporary password was issued', async () => {
+    const user = await prisma.user.create({
+      data: { email: 'nour@example.com', name: 'Nour', passwordHash: 'x' },
+    });
+
+    // The test issues a temporary password, as an issue holding the person's lock would.
+    const answer = await whileHeld(
+      (tx) => lockUsers(tx, user.id),
+      () => add({ ...NEW, upgradeExisting: true }),
+      (tx) => makePending(user.id, tx),
+    );
+
+    expect(answer.status).toBe(409);
+    expect(errorOf(answer).code).toBe('ACCOUNT_PASSWORD_PENDING');
+    expect(await links(user.id)).toEqual([]);
+  }, 20_000);
 
   it('creates the account when the upgrade is allowed but the email has none', async () => {
     const response = await add({ ...NEW, upgradeExisting: true });

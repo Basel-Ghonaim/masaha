@@ -79,6 +79,7 @@ export const DOMAIN_ERROR_CODES = [
   'EMAIL_HAS_ACCOUNT',
   'ALREADY_OWNER',
   'ACCOUNT_HAS_LINKS',
+  'ACCOUNT_PASSWORD_PENDING',
   // customers
   'PHONE_TAKEN',
   // the check-in (visits, subscriptions)

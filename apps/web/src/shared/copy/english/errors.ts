@@ -58,4 +58,6 @@ export const ERRORS = {
   GOOGLE_ONLY_ACCOUNT: 'This account signs in with Google only, so it has no password to replace.',
   ACCOUNT_HAS_LINKS:
     'This person is linked to a space, and their role follows those links. Unlink them first.',
+  ACCOUNT_PASSWORD_PENDING:
+    'This person hasn’t changed their temporary password yet; the account can’t be upgraded or linked until they sign in and change it.',
 } as const satisfies Record<AppErrorType | DomainErrorCode, string>;

@@ -16,10 +16,11 @@
 - Adds an owner for the admin, on the API: a new account with a temporary password, or an existing one upgraded on purpose, linked to one space.
 - Links a space's owners for the admin, and ends their links, one space at a time, on the API; the person's global role follows their owner links.
 - Changes a person's global role for the admin, between `USER` and `ADMIN`, on the API, while they hold no active link.
+- Keeps a space's staff for its owner, on the API: creates a new reception account with a temporary password (never an existing account's email), and lists the space's reception links whole.
 
 Reception accounts' management API access is built: an active `RECEPTION` link can read its
 space and its photos, but cannot mutate profile, facts, confirmations or photos. The dashboard
-screen and staff-management API remain planned.
+screen remains planned.
 
 ## Who uses it
 
@@ -45,6 +46,7 @@ screen and staff-management API remain planned.
 - **The admin's users list** is a composed read too: every filter is the account's own, so `users` filters and pages its accounts; the page's active owner links follow, and their spaces' names from `spaces`, which leaves a soft-deleted space out, one query per module.
 - **The web** reads through the transport and TanStack Query, the caller's spaces under the user's own key scope and the admin's list under the admin's ([architecture §7](../frontend/architecture.md#7-server-state)); the dashboard-only rule keeps it out of the site's download ([architecture §3](../frontend/architecture.md#3-capabilities-features)).
 - **The admin's list on the web** is one section that the spaces page sets, with two slots it fills from other capabilities: each row's actions, from [`spaces`](spaces.md), and the place field, from [`lookups`](lookups.md) ([architecture › What a feature exports](../frontend/architecture.md#what-a-feature-exports)); and the path each space's name leads to, the space's editor (`spaceLink`). Its filters and page live in the address ([architecture › Where state lives](../frontend/architecture.md#where-state-lives)).
+- **The owner's staff** use the managed router at `/manage/spaces/:spaceId/staff`, behind the boundary, every route asking `requireCan('staff.manage')` first; the creation counts under its limit before its body is read. Each write takes the space's lock (and `can()` on the links under it), then works through `users` for the account. The list is composed: the reception links here, their accounts from `users`, one query each.
 - **The owners page on the web** reads the users list under `['admin', 'space-links', 'users', request]`, in the admin's scope, with `role=owner` fixed by its own hook; the section takes from the page only the path of the deleted spaces, where an owner whose every space is deleted is led.
 
 ## Behaviour and flows
@@ -112,6 +114,11 @@ screen and staff-management API remain planned.
 - **A deleted space's row names its owners, and is verified by them,** the second exception to "a link to a deleted space counts for nothing". *Why:* its links are kept as they are, and the way out of [finding 50](../architecture/findings/50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md), restore then unlink, needs to know whose space it was; the row says what a restore brings back. 2026-10-12, the deleted-spaces item.
 - **The row dates a deletion (`deletedAt`), `null` for a live space** (the owner's choice over a flag). *Why:* the screen shows a deleted row as deleted on that day. 2026-10-12, the deleted-spaces item.
 - **The admin-spaces composition supplies active owner names to the single-space admin read** (`ownersFor`), while its list composition remains unchanged. *Why:* `spaces` is an L1 capability and must not import `space-links` (L2); the composition root injects the reader so the read and writes carry owner names under the existing space share lock. 2026-10-15, #82.
+- **The owner creates new reception accounts only,** inserted without a lookup, so the users' unique key refuses an email that has an account (`EMAIL_HAS_ACCOUNT`) and no existing account is ever linked by an owner (ADR 0009, revised). *Why:* the email is typed by the owner and may be wrong: linking would hand a stranger's account the desk, or the desk to a stranger ([finding 84](../architecture/findings/84-a-person-cannot-work-at-two-spaces-front-desks.md)). 2026-10-18, #90.
+- **The staff list is answered whole,** every reception link, deactivated ones included, oldest first, each with its pending temporary password's expiry. *Why:* a space has few staff, and the owner's page shows each one's state, an expired password included. 2026-10-18, #90.
+- **The staff live in `space-links`,** in `staff/`, its routes in `space-links.manage.routes.ts`, every account write a `users` function. *Why:* the links are this module's table; the account is `users`' ([ADR 0013](../architecture/decisions/0013-identity-modules.md)). 2026-10-18, #90.
+- **The admin links, upgrades or makes an admin no account whose temporary password is pending** (`ACCOUNT_PASSWORD_PENDING`, S6), under the account's lock, after the other refusals; the admin's own new owners are created, not linked, so they are not concerned. *Why:* the owner who created a receptionist holds their temporary password: an upgrade to another space's owner, or the admin's role, would be the owner's too ([security › Passwords](../backend/security.md#passwords)). 2026-10-18, #90.
+- **Staff accounts count under their own limit, 10 an hour per owner,** after `requireCan` and before the body is read. *Why:* each costs a bcrypt hash, and a creation an account row ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). 2026-10-18, #90.
 
 ### Web decisions
 
@@ -147,17 +154,22 @@ screen and staff-management API remain planned.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/space-links/`, entry `index.ts`: the links, the caller's spaces and the loader in the module's root service, with its `me` router; `admin-spaces/` for the admin's list and its router; `admin-users/` for the admin's users list, `admin-owners/` for adding, linking and unlinking, and `admin-roles/` for the role change, on the same router, with the pure rule of the role the links give beside them.
-- **Shared:** `packages/shared/src/space-links/`: the caller's spaces, the admin's list query and its rows, the users list's query and its rows, and the owner's add and link requests and the added owner.
+- **API:** `apps/api/src/modules/space-links/`, entry `index.ts`: the links, the caller's spaces and the loader in the module's root service, with its `me` router; `admin-spaces/` for the admin's list and its router; `admin-users/` for the admin's users list, `admin-owners/` for adding, linking and unlinking, and `admin-roles/` for the role change, on the same router, with the pure rule of the role the links give beside them; `staff/` for the owner's staff, on `space-links.manage.routes.ts`, with its limit in `space-links.limits.ts`.
+- **Shared:** `packages/shared/src/space-links/`: the caller's spaces, the admin's list query and its rows, the users list's query and its rows, the owner's add and link requests and the added owner, and the staff's requests, member and added account.
 - **Web:** `apps/web/src/features/space-links/`, entry `index.ts`: `SpaceSwitcher` (`components/switcher/`, `hooks/switcher/`), and `useMySpacesQuery` for the shell's public link, mounted by `pages/dashboard/shell/`; `AdminSpacesList` (`components/admin-list/`, `hooks/admin-list/`, with the pure address, row, date and page rules in `services/`) and `OwnersList` (`components/owners-list/`, `hooks/owners-list/`, the users list's read and filters in `hooks/users-list/`, its address and row rules in `services/`), both mounted by `pages/dashboard/admin/`; `AddOwner` (`components/add-owner/`, `hooks/add-owner/`: the form, the add and the email's account), with the space choices in `hooks/useSpaceChoices.ts` and `components/SpaceCombobox.tsx`, mounted by the owners page; the lists' shared pages and states in `components/`, and their paused search, page-in-range and focus keeper in `hooks/`.
 
 ## Open findings
 
 - [69](../architecture/findings/69-the-owners-endpoint-refuses-a-deleted-space-with-a-code-the-contract-does-not-name.md): the owners endpoint refuses a deleted space with a code the contract does not name.
 - [83](../architecture/findings/83-already-owner-names-no-account.md): `ALREADY_OWNER` names no account, so the add form cannot open the link dialog for that owner.
+- [84](../architecture/findings/84-a-person-cannot-work-at-two-spaces-front-desks.md): a person cannot work at two spaces' front desks.
 - [87](../architecture/findings/87-the-owners-shell-cold-loads-the-space-links-index.md): the owners shell cold-loads the whole `space-links` index.
 - [88](../architecture/findings/88-the-upgrade-confirm-shows-no-front-desks.md): the upgrade confirm cannot show a receptionist's front desks.
 - [89](../architecture/findings/89-check-the-email-stands-for-three-causes.md): «تحقّق من البريد» stands for three causes, a right email among them.
+- [90](../architecture/findings/90-the-staff-refusals-reuse-the-admins-messages.md): the staff refusals reuse the admin's messages.
+- [91](../architecture/findings/91-an-address-held-by-a-pending-account-is-locked-out-until-the-admin-acts.md): an address held by a pending account is locked out until the admin acts.
+- [92](../architecture/findings/92-an-owner-can-end-the-sessions-of-another-spaces-owner-at-will.md): an owner can end the sessions of another space's owner at will.
+- [93](../architecture/findings/93-three-staff-refusals-have-no-test-of-their-own.md): three staff refusals have no test of their own.
 
 ## History
 
@@ -175,6 +187,7 @@ screen and staff-management API remain planned.
 - #82 — the active owners of one space, for the single-space admin read (`ownersFor`).
 - #83 — the active-link access boundary used by the owner/reception managed-space API.
 - #86 — `ownersFor` reads the names in its caller's transaction.
+- #90 — the owner's staff: created and listed.
 
 ### Web history
 

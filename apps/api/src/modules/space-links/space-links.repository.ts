@@ -8,6 +8,12 @@ export interface ActiveLink {
   role: SpaceManagerRole;
 }
 
+/** A reception link of a space, active or not. */
+export interface ReceptionLink {
+  userId: number;
+  deactivatedAt: Date | null;
+}
+
 /** An active OWNER link: the owner and the space it verifies. */
 export interface OwnerLink {
   spaceId: number;
@@ -65,6 +71,23 @@ export function createSpaceLinksRepository(db: PrismaClient = prisma) {
         create: { spaceId, userId, role: 'OWNER' },
         update: { role: 'OWNER', deactivatedAt: null },
         select: { spaceId: true },
+      });
+    },
+
+    /** Links a new account to the space as its reception: a new row, as a new account has none. */
+    async linkReception(spaceId: number, userId: number, tx: Tx): Promise<void> {
+      await tx.spaceManager.create({
+        data: { spaceId, userId, role: 'RECEPTION' },
+        select: { spaceId: true },
+      });
+    },
+
+    /** Every RECEPTION link of the space, deactivated ones included, oldest first. */
+    findReceptionLinksAt(spaceId: number, tx: Tx = db): Promise<ReceptionLink[]> {
+      return tx.spaceManager.findMany({
+        where: { spaceId, role: 'RECEPTION' },
+        select: { userId: true, deactivatedAt: true },
+        orderBy: [{ createdAt: 'asc' }, { userId: 'asc' }],
       });
     },
 

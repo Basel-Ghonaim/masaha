@@ -85,6 +85,7 @@ Each step names its goal and points to what supports it:
 ### 6. Staff
 
 **Goal:** an owner adds and deactivates reception accounts.
+- **Built:** its API (#90, [api-contract › Staff (managed)](../api/api-contract.md#staff-managed)); the screen remains planned.
 - **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 22 Staff.
 - **Supported by:** [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md); conventions [§7](../backend/conventions.md#the-modules) (`space-links`).
 
@@ -213,7 +214,7 @@ Built: `GET /lookups`, the active governorates with their active areas and the a
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo and package routes below.
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below.
 An active owner or reception link is required; reception is read-only. The web screen and later
 dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
@@ -225,7 +226,7 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | GET | `/manage/spaces/:spaceId/occupancy` | 🧾 | the live numbers for the space's staff: `{ capacity, present }`; the statistics are under finance (🏢) |
 | PUT / DELETE | `/manage/spaces/:spaceId/status-override` | 🧾 | set a state until a time (30 min, 1 h, 2 h or closing time), or clear it |
 | GET / POST / DELETE / PUT | `/manage/spaces/:spaceId/photos[/:photoId \| /order]` | GET 🧾 · writes 🏢 | list, upload, remove, reorder, on the admin's service ([api-contract › Photos](../api/api-contract.md#photos)) |
-| GET / POST / PATCH | `/manage/spaces/:spaceId/staff[/:userId]` | 🏢 | add reception by name and email (a new account with a temporary password shown once, or an existing account linked); deactivate |
+| GET / POST / PATCH | `/manage/spaces/:spaceId/staff[/:userId]` | 🏢 | reception accounts, created new with a temporary password shown once, listed whole ([api-contract › Staff (managed)](../api/api-contract.md#staff-managed)) |
 | GET / POST / PATCH | `/manage/spaces/:spaceId/packages[/:packageId]` | GET 🧾 · writes 🏢 | subscription templates, listed whole, retired ones included; never public ([api-contract › Packages (managed)](../api/api-contract.md#packages-managed)) |
 | GET / POST | `/manage/spaces/:spaceId/customers` | 🧾 | list (search; filters: subscription type, status, payment), create |
 | GET / PATCH | `/manage/spaces/:spaceId/customers/:customerId` | 🧾 | details with subscriptions, balances and debt; edit |

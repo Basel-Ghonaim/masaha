@@ -83,3 +83,13 @@ export type AdminRoleChoice = (typeof ADMIN_ROLE_CHOICES)[number];
 export const changeRoleSchema = z.object({ role: z.enum(ADMIN_ROLE_CHOICES) });
 
 export type ChangeRoleRequest = z.infer<typeof changeRoleSchema>;
+
+// A space's staff (docs/api/api-contract.md §5, Staff (managed)).
+
+/** A new reception account the owner creates: never an existing account's email (ADR 0009). */
+export const addStaffSchema = z.object({
+  name: textSchema(1, NAME_MAX_LENGTH),
+  email: emailSchema,
+});
+
+export type AddStaffRequest = z.infer<typeof addStaffSchema>;

@@ -60,6 +60,9 @@ import {
   createSpaceLinksController,
   createSpaceLinksMeRouter,
   createSpaceLinksService,
+  createStaffController,
+  createStaffManageRouter,
+  createStaffService,
 } from './modules/space-links/index.ts';
 import { createPlatformSettingsService } from './modules/platform-settings/index.ts';
 import { createSpaceSettingsService } from './modules/space-settings/index.ts';
@@ -300,6 +303,7 @@ export function createApi({
   });
   const adminUsers = createAdminUsersService({ users, spaces });
   const adminRoles = createAdminRolesService({ runInTransaction, users });
+  const staff = createStaffService({ runInTransaction, audit: writeAudit, spaces, users });
   const adminOwners = createAdminOwnersService({
     runInTransaction,
     audit: writeAudit,
@@ -360,6 +364,7 @@ export function createApi({
     createPhotosManageRouter({ photos: createPhotosController(photos), limiter }),
   );
   manage.use('/packages', createPackagesManageRouter(createPackagesController(packages)));
+  manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
   api.use(
     '/manage/spaces/:spaceId',
     requireAuth(),

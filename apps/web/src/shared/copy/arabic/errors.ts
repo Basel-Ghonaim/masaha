@@ -50,4 +50,6 @@ export const ERRORS = {
   GOOGLE_ONLY_ACCOUNT:
     'هذا الحساب يسجّل الدخول باستخدام Google فقط، وليست له كلمة مرور لاستبدالها.',
   ACCOUNT_HAS_LINKS: 'هذا الشخص مرتبط بمساحة، ودوره يتبع روابطه. فُكّ ربطه أولًا.',
+  ACCOUNT_PASSWORD_PENDING:
+    'لم يغيّر صاحب هذا الحساب كلمة المرور المؤقتة بعد؛ لا يُرقّى ولا يُربط حتى يدخل ويغيّرها.',
 } satisfies Catalogue['errors'];
