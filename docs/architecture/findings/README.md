@@ -40,6 +40,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [79. The users' names reader keeps an optional transaction](79-the-users-names-reader-keeps-an-optional-transaction.md)
 - [80. The database still takes a package with a price of zero](80-the-database-still-takes-a-package-with-a-price-of-zero.md)
 - [81. A retired package that keeps its shift stops the owner from removing that shift](81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)
+- [82. The users feature keeps several operations flat](82-the-users-feature-keeps-several-operations-flat.md)
 
 ## Accepted
 

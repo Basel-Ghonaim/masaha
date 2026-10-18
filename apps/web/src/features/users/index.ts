@@ -3,3 +3,4 @@ export { AccountMenuSection } from './components/AccountMenuSection';
 export { CompactAccountMenu } from './components/CompactAccountMenu';
 export { ForcedPasswordChangeForm } from './components/ForcedPasswordChangeForm';
 export { SignOutButton } from './components/SignOutButton';
+export { TemporaryPasswordDialog } from './components/temporary-password/TemporaryPasswordDialog';

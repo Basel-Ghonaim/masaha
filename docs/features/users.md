@@ -15,7 +15,7 @@
 - Issues a temporary password for the admin, the recovery of a person who lost their email, again when the first was lost.
 - Reads the account for the guard on every signed-in request, so a suspension, a role change and a pending password change hold from the account's next request, and an access token signed before every session of the account last ended is refused.
 - Changes the global role when `space-links` finds that a person's owner links give another, or the admin's role change allows it, ending every session of theirs.
-- On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, and the forced password change's form.
+- On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, the forced password change's form, and the one-time password dialog with its handover.
 
 The account's settings (`GET` and `PATCH /me`) and the temporary passwords of the owner's reception accounts are not built.
 
@@ -48,6 +48,11 @@ The account's settings (`GET` and `PATCH /me`) and the temporary passwords of th
 
 **The forced change.** The gate sends a user with a temporary password to the change page, whose header shows the wordmark and sign-out only. The form asks for the new password alone, with the policy as a checklist that ticks as the user types. On success the hook, in its own callback, hands the new token to the session of the user who started the change, so it never reaches another user signed in meanwhile, and says the password is saved. Where the user goes next is the guard's.
 
+**The one-time password.** When the admin creates an account, its temporary password shows once, in a dialog that names the person («{name} · {email}», the email left to right) and offers no way to dismiss it by accident: no close button, and neither Escape nor a click outside closes it. The password reads left to right, selectable whole, with «نسخ».
+- **«تم» waits for the copy:** it is disabled until «نسخ» is pressed, and says why («انسخها أولًا — لن تظهر مرة أخرى»). A copy the browser refuses still enables «تم», with «تعذّر النسخ — حدّدها وانسخها يدويًا».
+- **The handover is asked, then recorded:** «طريقة التسليم» — واتساب · شفهيًا · أخرى. «تم» with no choice says «اختر طريقة التسليم» and moves the focus to the choices, sending nothing. Once recorded (`POST /admin/users/:userId/temporary-password/handover`), a toast names the person and the way, and the dialog closes.
+- **Its failures:** a password no longer pending, or an account not found, closes the dialog with «لم تُسجَّل طريقة التسليم»: there is nothing left to record. Any other failure keeps it open with its reason, «تم» trying again; a 429 blocks «تم» while its wait counts down.
+
 ## Decisions
 
 ### API decisions
@@ -74,6 +79,11 @@ The account's settings (`GET` and `PATCH /me`) and the temporary passwords of th
 - **The menus lead to the dashboard** for the admin or a user with active links. 2026-10-05, #39.
 - **A "password saved" toast follows the forced change.** 2026-10-06, #42.
 - **The change keeps no password in the cache.** *Why:* passwords never stay in memory after the form ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)). 2026-10-06, #45.
+- **The one-time password dialog lives in `users`, and a page shows it through another feature's slot** (the plan's D1.3). *Why:* the temporary password and its handover are this capability's, and the users page's issued password will show the same dialog; `space-links`, whose add sheet answers the password, cannot import `users`, so the owners page puts the dialog in the sheet's slot. 2026-10-18, #89.
+- **No close button, no Escape, no click outside; «تم» only after «نسخ»** (the owner's A5). *Why:* the password is shown once and never again; a dialog closed by a stray key loses it. 2026-10-18, #89.
+- **A refused copy still enables «تم», saying to copy by hand** (design issue 5). *Why:* the clipboard can be refused by the browser; the admin can still select the password, and a dialog that could never finish would trap them. 2026-10-18, #89.
+- **A password no longer pending closes the dialog with «لم تُسجَّل طريقة التسليم»; any other failure keeps it open** (design issue 6). *Why:* once the password is no longer pending there is nothing to record and no reason to hold the admin; any other failure can still be recorded by trying again. 2026-10-18, #89.
+- **The handover keeps nothing in the cache.** *Why:* the dialog's password stays in the page's state alone, and the handover's mutation (`gcTime: 0`) holds only the person and the way ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)). 2026-10-18, #89.
 
 Owned by security.md and linked: the change's limit and its double check of a pending change, and a Google-only account's first password through the reset email ([security › Passwords](../backend/security.md#passwords)); Google's linking rule ([security › Sign-in methods](../backend/security.md#sign-in-methods)). Owned by the session and linked: sign-out ends the session only once the server agrees ([architecture §4](../frontend/architecture.md#4-session-and-preferences)).
 
@@ -81,11 +91,11 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 
 - **API:** `apps/api/src/modules/users/`, entry `index.ts`: the service, its `me` and `admin` routers, the password hashing and its limits, and the temporary password's pure rule.
 - **Shared:** `packages/shared/src/users/`: the account, the change's request and answer, the password policy, and the handover's request.
-- **Web:** `apps/web/src/features/users/`, entry `index.ts`: `AccountMenu`, `AccountMenuSection`, `CompactAccountMenu`, `SignOutButton`, `ForcedPasswordChangeForm`. Mounted by `pages/site/shell/`, `pages/site/auth/` and `pages/dashboard/shell/`.
+- **Web:** `apps/web/src/features/users/`, entry `index.ts`: `AccountMenu`, `AccountMenuSection`, `CompactAccountMenu`, `SignOutButton`, `ForcedPasswordChangeForm`, and `TemporaryPasswordDialog` in `components/temporary-password/`, with its hook in `hooks/temporary-password/`. Mounted by `pages/site/shell/`, `pages/site/auth/` and `pages/dashboard/shell/`; the dialog is handed to a page through a slot.
 
 ## Open findings
 
-None.
+- [82. The users feature keeps several operations flat](../architecture/findings/82-the-users-feature-keeps-several-operations-flat.md) — the new dialog takes `temporary-password/` folders; the older files are left alone.
 
 ## History
 
@@ -106,3 +116,4 @@ None.
 - #39 — the compact menu in the dashboard.
 - #42 — the "password saved" toast.
 - #45 — no password kept in the cache.
+- #89 — the one-time password dialog: shown once, no close button, no Escape and no click outside; «تم» only after «نسخ»; the handover recorded, with a toast; nothing kept in the cache.

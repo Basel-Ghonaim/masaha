@@ -57,4 +57,19 @@ describe('the users repository', () => {
     expect(failure).toBeInstanceOf(AppError);
     expect(failure).toMatchObject({ type: 'forbidden', status: 403, code: 'ACCOUNT_SUSPENDED' });
   });
+
+  it('POSTs the handover to /admin/users/:userId/temporary-password/handover with its channel', async () => {
+    const requests = serve({ status: 204, data: { success: true, data: undefined } });
+
+    await expect(
+      createUsersRepository().handOver(42, { channel: 'WHATSAPP' }),
+    ).resolves.toBeUndefined();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      method: 'post',
+      baseURL: '/api/v1',
+      url: '/admin/users/42/temporary-password/handover',
+    });
+    expect(JSON.parse(String(requests[0]?.data))).toEqual({ channel: 'WHATSAPP' });
+  });
 });

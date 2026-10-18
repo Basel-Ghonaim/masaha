@@ -22,4 +22,25 @@ export const USERS = {
     /** The toast once the new password is saved. */
     saved: 'Your new password is saved',
   },
+  /** The one-time password shown once, and how it was handed over. */
+  temporaryPassword: {
+    title: 'Temporary password',
+    copy: 'Copy',
+    copied: 'Copied',
+    copyFailed: 'We couldn’t copy it — select it and copy it by hand.',
+    line: 'Hand it over; they’ll be asked to change it at their first sign-in.',
+    channel: 'How it was handed over',
+    channels: {
+      WHATSAPP: 'WhatsApp',
+      IN_PERSON: 'In person',
+      OTHER: 'Other',
+    },
+    chooseChannel: 'Choose how it was handed over',
+    copyFirst: 'Copy it first — it won’t be shown again',
+    done: 'Done',
+    recorded: ({ name, channel }: { name: string; channel: string }) =>
+      `Handover recorded: ${name} · ${channel}`,
+    failed: 'We couldn’t record the handover',
+    notRecorded: 'The handover wasn’t recorded',
+  },
 } as const;
