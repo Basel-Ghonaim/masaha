@@ -14,7 +14,11 @@ import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
 import { createSessionsService, type SessionsService } from '../sessions/index.ts';
 import { hashPassword, verifyPassword } from './password.ts';
-import { temporaryPassword } from './temporaryPassword.ts';
+import {
+  temporaryPassword,
+  temporaryPasswordExpired,
+  temporaryPasswordExpiry,
+} from './temporaryPassword.ts';
 import { PASSWORD_CHANGE } from './users.limits.ts';
 import { toUserView } from './users.mapper.ts';
 import {
@@ -36,7 +40,7 @@ interface Dependencies {
   accessTokens: AccessTokens;
   limiter: Limiter;
   audit: AuditWriter;
-  /** The one clock (conventions §11): when an account is suspended. */
+  /** The one clock (conventions §11): suspensions, and temporary passwords' expiry. */
   now: () => Date;
   repository?: UsersRepository;
   sessions?: SessionsService;
@@ -138,6 +142,16 @@ export function createUsersService({
   }
 
   /**
+   * A password sign-in with a temporary password past its expiry is refused (docs/backend/security.md
+   * › Passwords): only once the password matched, so only its holder learns it expired.
+   */
+  function assertTemporaryPasswordLive(account: Account): void {
+    if (temporaryPasswordExpired(account, now())) {
+      throw AppError.forbidden('TEMPORARY_PASSWORD_EXPIRED', 'Temporary password expired');
+    }
+  }
+
+  /**
    * Takes the user's session lock, and reads the account under it (conventions §13). Every
    * transaction that writes the user's refresh tokens takes it first, so a revocation and a new
    * session never interleave. Nothing when the account no longer exists.
@@ -235,6 +249,7 @@ export function createUsersService({
         throw AppError.unauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
       }
       assertMaySignIn(found.account);
+      assertTemporaryPasswordLive(found.account);
       const { id } = found.account;
       return {
         account: found.account,
@@ -246,6 +261,7 @@ export function createUsersService({
             throw AppError.unauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
           }
           assertMaySignIn(locked);
+          assertTemporaryPasswordLive(locked);
           return locked;
         },
       };
@@ -392,7 +408,14 @@ export function createUsersService({
       tx: Tx,
     ): Promise<Account | null> {
       const created = await repository.create(
-        { name, email, passwordHash, role, mustChangePassword: true },
+        {
+          name,
+          email,
+          passwordHash,
+          role,
+          mustChangePassword: true,
+          temporaryPasswordExpiresAt: temporaryPasswordExpiry(now()),
+        },
         tx,
       );
       if (!('account' in created)) return null;
@@ -428,7 +451,12 @@ export function createUsersService({
         if (!(await repository.findPasswordHash(userId, tx))) {
           throw AppError.conflict('GOOGLE_ONLY_ACCOUNT', 'No password to replace');
         }
-        await repository.setTemporaryPassword(userId, temporary.hash, tx);
+        await repository.setTemporaryPassword(
+          userId,
+          temporary.hash,
+          temporaryPasswordExpiry(now()),
+          tx,
+        );
         await endSessions(userId, tx);
         await sessions.endResetTokens(userId, tx);
         await audit(

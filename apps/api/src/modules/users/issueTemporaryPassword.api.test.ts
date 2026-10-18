@@ -142,6 +142,46 @@ describe('POST /admin/users/:userId/temporary-password', () => {
     expect((await adminRequest(app, user, 'get', '/users')).status).toBe(401);
   });
 
+  it('a temporary password the admin issues expires 7 days after it, and replaces the pending one’s expiry', async () => {
+    const user = await createAccount();
+    const WEEK = 7 * 24 * 60 * 60_000;
+    const expiryOfAnIssue = async () => {
+      const before = Date.now();
+      expect((await issue(user.id)).status).toBe(200);
+      const after = Date.now();
+      const expiresAt = (await stored(user.id)).temporaryPasswordExpiresAt?.getTime() ?? 0;
+      expect(expiresAt).toBeGreaterThanOrEqual(before + WEEK);
+      expect(expiresAt).toBeLessThanOrEqual(after + WEEK);
+      return expiresAt;
+    };
+
+    const first = await expiryOfAnIssue();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { temporaryPasswordExpiresAt: new Date(first - 60_000) },
+    });
+    const second = await expiryOfAnIssue();
+
+    expect(second).toBeGreaterThanOrEqual(first);
+  });
+
+  it('the forced change clears the expiry', async () => {
+    const user = await createAccount();
+    const signedIn = await login(issued(await issue(user.id)));
+    const { accessToken } = (signedIn.body as { data: { accessToken: string } }).data;
+
+    const changed = await request(app)
+      .post('/api/v1/me/password')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ password: 'mine2026x' });
+
+    expect(changed.status).toBe(200);
+    expect(await stored(user.id)).toMatchObject({
+      mustChangePassword: false,
+      temporaryPasswordExpiresAt: null,
+    });
+  });
+
   it('replaces a pending temporary password when issued again (finding 49)', async () => {
     const user = await createAccount();
     const first = issued(await issue(user.id));

@@ -2,7 +2,13 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { errorOf } from '../../../test/admin.ts';
-import { accessTokens, createAccount, createTestApp, PASSWORD } from '../../../test/app.ts';
+import {
+  accessTokens,
+  createAccount,
+  createTestApp,
+  inAWeek,
+  PASSWORD,
+} from '../../../test/app.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma } from '../../db/index.ts';
 
@@ -80,7 +86,11 @@ describe('requireAuth: the account now', () => {
     // As the admin's temporary password leaves the account: another password, to change first.
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: 'temporary-hash', mustChangePassword: true },
+      data: {
+        passwordHash: 'temporary-hash',
+        mustChangePassword: true,
+        temporaryPasswordExpiresAt: inAWeek(),
+      },
     });
 
     for (const response of [

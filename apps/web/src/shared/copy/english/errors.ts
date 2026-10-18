@@ -51,6 +51,8 @@ export const ERRORS = {
     'This account has no password yet. Set one from the link we email you under “Forgot password”.',
   TEMPORARY_PASSWORD_NOT_PENDING:
     'This account has no temporary password waiting to be changed, so there is no handover to record.',
+  TEMPORARY_PASSWORD_EXPIRED:
+    'This temporary password has expired. Ask whoever created your account for a new one.',
   OWN_ACCOUNT: 'You can’t do this to your own account.',
   LAST_ADMIN: 'The platform must keep at least one active admin.',
   GOOGLE_ONLY_ACCOUNT: 'This account signs in with Google only, so it has no password to replace.',

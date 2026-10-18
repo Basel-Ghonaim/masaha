@@ -11,6 +11,7 @@ const ACCOUNT = {
   role: true,
   language: true,
   mustChangePassword: true,
+  temporaryPasswordExpiresAt: true,
   suspendedAt: true,
   sessionVersion: true,
 } as const satisfies Prisma.UserSelect;
@@ -26,6 +27,8 @@ export interface NewAccount {
   role?: Role;
   /** A temporary password, set by someone else, to be changed first. */
   mustChangePassword?: boolean;
+  /** When that temporary password expires: given with it, and only with it. */
+  temporaryPasswordExpiresAt?: Date;
 }
 
 /** A user's id and name, as another module lists them. */
@@ -149,7 +152,12 @@ export function createUsersRepository(db: PrismaClient = prisma) {
     async linkGoogleIfUnlinked(id: number, googleSubject: string, tx: Tx = db): Promise<boolean> {
       const { count } = await tx.user.updateMany({
         where: { id, googleSubject: null },
-        data: { googleSubject, passwordHash: null, mustChangePassword: false },
+        data: {
+          googleSubject,
+          passwordHash: null,
+          mustChangePassword: false,
+          temporaryPasswordExpiresAt: null,
+        },
       });
       return count === 1;
     },
@@ -169,7 +177,7 @@ export function createUsersRepository(db: PrismaClient = prisma) {
     async setPassword(id: number, passwordHash: string, tx: Tx = db): Promise<Account> {
       return tx.user.update({
         where: { id },
-        data: { passwordHash, mustChangePassword: false },
+        data: { passwordHash, mustChangePassword: false, temporaryPasswordExpiresAt: null },
         select: ACCOUNT,
       });
     },
@@ -200,11 +208,16 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return rows.map((row) => row.id);
     },
 
-    /** Replaces the password with a temporary one, which must be changed first. */
-    async setTemporaryPassword(id: number, passwordHash: string, tx: Tx): Promise<void> {
+    /** Replaces the password with a temporary one, which must be changed first, before it expires. */
+    async setTemporaryPassword(
+      id: number,
+      passwordHash: string,
+      expiresAt: Date,
+      tx: Tx,
+    ): Promise<void> {
       await tx.user.update({
         where: { id },
-        data: { passwordHash, mustChangePassword: true },
+        data: { passwordHash, mustChangePassword: true, temporaryPasswordExpiresAt: expiresAt },
         select: { id: true },
       });
     },
@@ -227,7 +240,7 @@ export function createUsersRepository(db: PrismaClient = prisma) {
     ): Promise<Account | null> {
       const { count } = await tx.user.updateMany({
         where: { id, ...expected },
-        data: { passwordHash, mustChangePassword: false },
+        data: { passwordHash, mustChangePassword: false, temporaryPasswordExpiresAt: null },
       });
       return count === 1 ? tx.user.findUnique({ where: { id }, select: ACCOUNT }) : null;
     },

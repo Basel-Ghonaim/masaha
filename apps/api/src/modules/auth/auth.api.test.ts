@@ -244,6 +244,36 @@ describe('POST /auth/login', () => {
     expect(right.status).toBe(403);
     expect(right.body).toMatchObject({ error: { type: 'forbidden', code: 'ACCOUNT_SUSPENDED' } });
   });
+
+  it('refuses a sign-in with an expired temporary password with TEMPORARY_PASSWORD_EXPIRED, only once it matches', async () => {
+    await createAccount({
+      mustChangePassword: true,
+      temporaryPasswordExpiresAt: new Date(Date.now() - 1_000),
+    });
+
+    const wrong = await login('sara@example.com', 'wrong-pass1');
+    const right = await login();
+
+    expect(wrong.status).toBe(401);
+    expect(wrong.body).toMatchObject({ error: { code: 'INVALID_CREDENTIALS' } });
+    expect(right.status).toBe(403);
+    expect(right.body).toMatchObject({
+      error: { type: 'forbidden', code: 'TEMPORARY_PASSWORD_EXPIRED' },
+    });
+    expect(setCookies(right).masaha_refresh).toBeUndefined();
+  });
+
+  it('a temporary password still signs in until it expires', async () => {
+    await createAccount({
+      mustChangePassword: true,
+      temporaryPasswordExpiresAt: new Date(Date.now() + 60_000),
+    });
+
+    const response = await login();
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ data: { user: { mustChangePassword: true } } });
+  });
 });
 
 describe('the sign-in limits', () => {

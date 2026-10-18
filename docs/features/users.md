@@ -1,13 +1,13 @@
 # Users
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
 > **Authority:** The `users` capability: the account, its credentials, who may sign in, the password change and the forced change, the accounts the admin reads and creates, a temporary password's handover, the account menu and sign-out. Its endpoints are owned by the API contract: [*Me*](../api/api-contract.md#me) and [*Users (the admin)*](../api/api-contract.md#users-the-admin); the `User` entity by the [data model](../architecture/data-model.md#users-and-sessions); every password and sign-in rule by [security.md](../backend/security.md#passwords).
 > **Scope:** the API module `users` (L1); `@masaha/shared/users`; the web feature `features/users`.
 
 ## What it does
 
 - Holds the accounts: creates one at registration, at a first Google sign-in, or as an account the admin creates, with a temporary password, links Google to an existing one, hashes and verifies passwords, and refuses a suspended account.
-- Changes a password, and settles a temporary one in the forced change.
+- Changes a password, and settles a temporary one in the forced change. A temporary password expires 7 days after it is issued: a password sign-in with an expired one is refused.
 - Answers the account's view (`User`) for the session, and the names of a set of users for a list.
 - Answers a page of the accounts for the admin's users list, filtered by name or email, role and state, each with how it signs in.
 - Records how a temporary password was handed over, in the audit, for the admin.
@@ -69,6 +69,7 @@ The account's settings (`GET` and `PATCH /me`) and the temporary passwords of th
 - **The admin's temporary password is generated before its transaction and set under the account's session lock,** which keeps its refusals (a suspended or a Google-only account) true until the write; it ends every session and reset link, as a reset does, and is answered once, as an added owner's is (D6). *Why:* bcrypt stays outside every transaction, and issuing it again resolves a lost answer ([finding 49](../architecture/findings/49-a-lost-answer-to-adding-an-owner-loses-its-temporary-password.md)). 2026-10-11, the users item.
 
 - **Every session of an account ends through one function, `endSessions`,** which raises the account's session version and deletes its refresh tokens, in the caller's transaction, under the session lock it took; nothing else revokes them, and the guard refuses an access token signed under another version. A password change signs its device's new token after the raise; a Google link ends every session too. *Why:* an access token outlived the end of its session ([finding 51](../architecture/findings/51-an-access-token-outlives-the-end-of-its-session.md)); a version is exact where a time has a same-second window, and needs no clock shared between instances. 2026-10-13, #78.
+- **A temporary password's expiry is stored on the account, not its issue time,** set by every write that makes one pending and cleared by every write that settles one, with a database `CHECK` tying the two; it is checked at the password sign-in only, once the password matches. *Why:* the rule is one comparison, a later change of the lifetime changes the next issues only, and a session or a Google sign-in that proved the person before keeps working ([security › Passwords](../backend/security.md#passwords)). 2026-10-18, #90.
 
 ### Web decisions
 
@@ -108,6 +109,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #60 — the page of accounts for the admin's users list; the role change that follows an owner's links; the accounts the admin creates with a temporary password, and its handover.
 - The users item — the account read by the guard on every signed-in request; suspension and restore; the role change's lock and its write, for `space-links`; the admin's temporary password.
 - #78 — the session version: every access token ends with its session; the service hashes through its own helpers, with no parameter for them ([finding 39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md)).
+- #90 — the temporary password's expiry.
 
 ### Web history
 

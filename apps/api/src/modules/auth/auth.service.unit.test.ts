@@ -17,6 +17,7 @@ const sara: Account = {
   role: 'USER',
   language: 'ar',
   mustChangePassword: false,
+  temporaryPasswordExpiresAt: null,
   suspendedAt: null,
   sessionVersion: 0,
 };

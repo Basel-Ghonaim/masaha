@@ -7,7 +7,7 @@ import {
   REFUSED_CALLERS,
   signIn,
 } from '../../../test/admin.ts';
-import { createTestApp } from '../../../test/app.ts';
+import { createTestApp, inAWeek } from '../../../test/app.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma } from '../../db/index.ts';
 
@@ -29,6 +29,7 @@ function account(pending = true) {
       role: 'OWNER',
       passwordHash: 'x',
       mustChangePassword: pending,
+      temporaryPasswordExpiresAt: pending ? inAWeek() : null,
     },
   });
 }

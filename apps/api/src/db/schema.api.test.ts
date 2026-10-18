@@ -347,4 +347,20 @@ describe('a user', () => {
       code: 'P2002',
     });
   });
+
+  it('refuses a pending temporary password without an expiry, and an expiry without one', async () => {
+    const settled = await user('a@example.com', { passwordHash: 'x' });
+
+    await expect(
+      prisma.user.create({
+        data: { email: 'b@example.com', name: 'Sara', passwordHash: 'x', mustChangePassword: true },
+      }),
+    ).rejects.toThrow(/users_temporary_password_expiry_check/);
+    await expect(
+      prisma.user.update({
+        where: { id: settled.id },
+        data: { temporaryPasswordExpiresAt: new Date() },
+      }),
+    ).rejects.toThrow(/users_temporary_password_expiry_check/);
+  });
 });
