@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -61,7 +61,8 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 **Exceptions**, lists a screen shows whole, so they are answered whole, without `page` or `meta`:
 - the admin's lookup lists (`GET /admin/governorates`, `GET /admin/amenities`) (§5, *Lookups*; why: [lookups › Decisions](../features/lookups.md#decisions));
 - the public catalogue of the lookups (`GET /lookups`), the same bounded lists, active rows only (§5, *Lookups (public)*);
-- the map's pins (`GET /map/spaces`), the whole filtered set up to a ceiling of 1,000 (§5, *Directory (public)*).
+- the map's pins (`GET /map/spaces`), the whole filtered set up to a ceiling of 1,000 (§5, *Directory (public)*);
+- a space's packages (`GET /manage/spaces/:spaceId/packages`), retired ones included: a space keeps tens at most, typed by hand, and the owner's list and the front desk's picker both read them whole (§5, *Packages (managed)*; why: [packages › Decisions](../features/packages.md#api-decisions)).
 
 ## 5. Endpoints
 
@@ -201,6 +202,31 @@ Every route below needs an active `OWNER` or `RECEPTION` link at the named live 
 - **`PUT /manage/spaces/:spaceId/photos/order` · 🏢:** the same ordering validation and audit
   behavior.
 - Reception may list photos; its upload, removal or order answers `forbidden` (403) before the request is counted or its body read.
+
+### Packages (managed)
+
+A space's packages: the subscription templates its owner keeps, private to its staff ([data-model › Operations](../architecture/data-model.md#operations)); the public's packages are the space's published prices. The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The list is the staff's (🧾); every write is the owner's (🏢).
+
+- **Order:** a list's order is its array's: by place, then by name.
+
+```ts
+SpacePackage = {
+  id: number,
+  name: string,
+  validityDays: number,
+  totalDays: number | null, daysPerWeek: number | null,   // its limits; null: none
+  hoursPerDay: number | null, totalHours: number | null,
+  billing: "FIXED" | "PER_HOUR" | "PER_DAY",              // SUBSCRIPTION_BILLINGS
+  priceAgorot: number,                                   // whole agorot: the price, or the rate per hour or day
+  audience: "GENERAL" | "STUDENT",                       // PRICE_AUDIENCES
+  shiftId: number | null,                                // one of the space's shifts
+  isActive: boolean                                      // false: retired, no longer offered
+}
+```
+
+#### `GET /manage/spaces/:spaceId/packages` · 🧾
+- **200:** `SpacePackage[]` (`@masaha/shared/packages`): every package of the space, retired ones included, in order. Not paginated (§4).
+- **Errors:** `not_found` (404).
 
 ### Lookups (public)
 
