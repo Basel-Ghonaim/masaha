@@ -1,7 +1,7 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
-> **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the API-only managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list. The owner/reception web screen, capacity and packages remain planned.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
+> **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the API-only managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list. The owner/reception web screen and capacity remain planned.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
 ## What it does
@@ -15,13 +15,14 @@
 
 The managed API lets an active owner read and edit the profile and facts, confirm groups and
 manage photos; reception can read the complete space and photo response but cannot mutate it.
-It reuses the admin services and shapes. The owner/reception web screen, capacity and packages
-remain planned; the admin's editor already carries the photo gallery.
+It reuses the admin services and shapes. The owner/reception web screen and capacity remain
+planned; the admin's editor already carries the photo gallery.
 
 ## Who uses it
 
 - **The admin,** through the API, the dashboard's add-space page, the space editor, and the row menu of the dashboard's spaces list.
 - **`space-links`,** which names the spaces of a user's links from the summaries, and composes the admin's spaces list on the listing page.
+- **[`packages`](packages.md),** whose writes take the space's lock first.
 
 ## Responsibility boundary
 

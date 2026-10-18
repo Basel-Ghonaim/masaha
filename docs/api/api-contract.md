@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -61,7 +61,8 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 **Exceptions**, lists a screen shows whole, so they are answered whole, without `page` or `meta`:
 - the admin's lookup lists (`GET /admin/governorates`, `GET /admin/amenities`) (§5, *Lookups*; why: [lookups › Decisions](../features/lookups.md#decisions));
 - the public catalogue of the lookups (`GET /lookups`), the same bounded lists, active rows only (§5, *Lookups (public)*);
-- the map's pins (`GET /map/spaces`), the whole filtered set up to a ceiling of 1,000 (§5, *Directory (public)*).
+- the map's pins (`GET /map/spaces`), the whole filtered set up to a ceiling of 1,000 (§5, *Directory (public)*);
+- a space's packages (`GET /manage/spaces/:spaceId/packages`), retired ones included: a space keeps tens at most, typed by hand, and the owner's list and the front desk's picker both read them whole (§5, *Packages (managed)*; why: [packages › Decisions](../features/packages.md#api-decisions)).
 
 ## 5. Endpoints
 
@@ -201,6 +202,52 @@ Every route below needs an active `OWNER` or `RECEPTION` link at the named live 
 - **`PUT /manage/spaces/:spaceId/photos/order` · 🏢:** the same ordering validation and audit
   behavior.
 - Reception may list photos; its upload, removal or order answers `forbidden` (403) before the request is counted or its body read.
+
+### Packages (managed)
+
+A space's packages: the subscription templates its owner keeps, private to its staff ([data-model › Operations](../architecture/data-model.md#operations)); the public's packages are the space's published prices. The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The list is the staff's (🧾); every write is the owner's (🏢), and reception's is refused with `forbidden` (403) before its body is read.
+
+- **The terms**:
+  - `name`, required, 1–60 characters, NFC-normalised and trimmed, with no bidirectional controls and no control characters or line separators (`invalid_format`): one name, in the language the owner types. Another package of the space, retired or not, may not hold it;
+  - `validityDays`, required: a subscription made from the package ends this many days after it starts;
+  - the limits, each optional (absent or `null`): `totalDays`, `daysPerWeek` (at most 7), `hoursPerDay` (at most 24) and `totalHours`; they combine freely;
+  - every count is a whole number from 1 (`out_of_range`; `invalid_format` when not whole), at most 2,147,483,647;
+  - `billing`: `FIXED`, `PER_HOUR` or `PER_DAY` (`SUBSCRIPTION_BILLINGS`, `@masaha/shared/packages`), from its list (`invalid_choice`);
+  - `priceAgorot`: the whole price when `FIXED`, else the rate per hour or per day, in whole agorot from 1 to 10,000,000, as a space's prices: `out_of_range` outside it (no package is free), `invalid_format` when not whole;
+  - `audience`: `GENERAL` or `STUDENT` (`PRICE_AUDIENCES`, `@masaha/shared/spaces`), from its list (`invalid_choice`);
+  - `shiftId`, optional: one of the space's shifts.
+- **Order:** a list's order is its array's: by place, then by name. A new package is placed after the last; no endpoint reorders them.
+- **Retired, never deleted:** `isActive: false` retires a package, which stays listed; `true` offers it again. A subscription made from a package keeps its own copy of the terms ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)): an edit or a retirement changes none.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the package as the entity and its space as the entry's: `package.created` (`after`: its terms) and `package.edited` (`before` and `after`: only the fields that changed, `isActive` included); an edit that changes nothing writes nothing.
+
+```ts
+SpacePackage = {
+  id: number,
+  name: string,
+  validityDays: number,
+  totalDays: number | null, daysPerWeek: number | null,   // its limits; null: none
+  hoursPerDay: number | null, totalHours: number | null,
+  billing: "FIXED" | "PER_HOUR" | "PER_DAY",              // SUBSCRIPTION_BILLINGS
+  priceAgorot: number,                                   // whole agorot: the price, or the rate per hour or day
+  audience: "GENERAL" | "STUDENT",                       // PRICE_AUDIENCES
+  shiftId: number | null,                                // one of the space's shifts
+  isActive: boolean                                      // false: retired, no longer offered
+}
+```
+
+#### `GET /manage/spaces/:spaceId/packages` · 🧾
+- **200:** `SpacePackage[]` (`@masaha/shared/packages`): every package of the space, retired ones included, in order. Not paginated (§4).
+- **Errors:** `not_found` (404).
+
+#### `POST /manage/spaces/:spaceId/packages` · 🏢
+- **Body:** `{ name, validityDays, totalDays?, daysPerWeek?, hoursPerDay?, totalHours?, billing, priceAgorot, audience, shiftId? }`.
+- **201:** `SpacePackage`, active and placed last. Audited `package.created`.
+- **Errors:** `validation` (422), with `invalid_choice` on `shiftId` for a shift that is not one of the space's; `conflict` (409), with `errors.name = ["not_unique"]`, when another package of the space, retired or not, has the name; `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `not_found` (404).
+
+#### `PATCH /manage/spaces/:spaceId/packages/:packageId` · 🏢
+- **Body:** any of the terms, and `isActive`; what is absent is kept, and a limit or the shift is cleared with `null`.
+- **200:** `SpacePackage`. Audited `package.edited`.
+- **Errors:** as the create's; `not_found` (404) for a package that is not the space's.
 
 ### Lookups (public)
 

@@ -38,6 +38,11 @@ import {
   createLookupsService,
 } from './modules/lookups/index.ts';
 import {
+  createPackagesController,
+  createPackagesManageRouter,
+  createPackagesService,
+} from './modules/packages/index.ts';
+import {
   createRecoveryCookie,
   createSessionCookies,
   createSessionsService,
@@ -280,6 +285,7 @@ export function createApi({
   const contacts = createContactsService(facts);
   const confirm = createConfirmService(facts);
   const photos = createPhotosService({ runInTransaction, audit: writeAudit, storage, logger });
+  const packages = createPackagesService({ runInTransaction, audit: writeAudit, spaces });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const directory = createDirectoryService({
     lookups,
@@ -353,6 +359,7 @@ export function createApi({
     '/photos',
     createPhotosManageRouter({ photos: createPhotosController(photos), limiter }),
   );
+  manage.use('/packages', createPackagesManageRouter(createPackagesController(packages)));
   api.use(
     '/manage/spaces/:spaceId',
     requireAuth(),
