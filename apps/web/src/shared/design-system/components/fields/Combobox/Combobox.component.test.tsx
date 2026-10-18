@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState, type ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { Combobox, ComboboxContent, ComboboxItem, ComboboxTrigger, type ComboboxProps } from '.';
@@ -39,6 +40,34 @@ function AreaFilter({ summary = 'Area: all', ...props }: AreaFilterProps) {
       <ComboboxTrigger>{summary}</ComboboxTrigger>
       <AreaList />
     </Combobox>
+  );
+}
+
+/** The same list, for a caller that finds its own options: its own search text, and its loading. */
+function CallerList({
+  search,
+  loading,
+  options = AREAS,
+}: {
+  search?: { value: string; onValueChange: (value: string) => void };
+  loading?: ReactNode;
+  options?: { value: string; label: string }[];
+}) {
+  return (
+    <ComboboxContent
+      searchLabel="Search the areas"
+      searchPlaceholder="Type an area"
+      search={search}
+      listLabel="Areas"
+      emptyText="No area matches"
+      loading={loading}
+    >
+      {options.map((area) => (
+        <ComboboxItem key={area.value} value={area.value}>
+          {area.label}
+        </ComboboxItem>
+      ))}
+    </ComboboxContent>
   );
 }
 
@@ -157,5 +186,62 @@ describe('Combobox', () => {
     await userEvent.click(screen.getByRole('combobox', { name: 'Area: all' }));
 
     expect(await axe(document.body, options)).toHaveNoViolations();
+  });
+
+  it("with its caller's search, hands each change of the text to the caller and keeps the options it is given", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    function CallerSearch() {
+      const [text, setText] = useState('');
+      return (
+        <Combobox type="single">
+          <ComboboxTrigger>Area: all</ComboboxTrigger>
+          <CallerList
+            search={{
+              value: text,
+              onValueChange: (value) => {
+                onValueChange(value);
+                setText(value);
+              },
+            }}
+          />
+        </Combobox>
+      );
+    }
+    render(<CallerSearch />);
+
+    await user.click(screen.getByRole('combobox', { name: 'Area: all' }));
+    const searchBox = screen.getByRole('combobox', { name: 'Search the areas' });
+    await user.type(searchBox, 'zzz');
+
+    expect(onValueChange).toHaveBeenCalledTimes(3);
+    expect(onValueChange).toHaveBeenLastCalledWith('zzz');
+    expect(searchBox).toHaveValue('zzz');
+    // The caller's search owns the filtering, so its options stand as it gave them.
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Rimal',
+      'Tal al-Hawa',
+      'Nuseirat camp',
+    ]);
+  });
+
+  it('shows the loading text in place of the empty text while its options come, with no accessibility violations', async () => {
+    const user = userEvent.setup();
+    render(
+      <Combobox type="single">
+        <ComboboxTrigger>Area: all</ComboboxTrigger>
+        {/* While the caller's options are on their way there are none: the empty line would be a lie. */}
+        <CallerList loading="Searching the areas" options={[]} />
+      </Combobox>,
+    );
+
+    await user.click(screen.getByRole('combobox', { name: 'Area: all' }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('Searching the areas');
+    expect(screen.queryByText('No area matches')).not.toBeInTheDocument();
+    // The list is portalled to <body>, so the whole body is checked. Landmarks belong to a page.
+    expect(
+      await axe(document.body, { rules: { region: { enabled: false } } }),
+    ).toHaveNoViolations();
   });
 });

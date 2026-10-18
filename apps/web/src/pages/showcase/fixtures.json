@@ -592,6 +592,17 @@
               "بلاغ بيانات مرفوض"
             ]
           }
+        },
+        "caller": {
+          "caption": "قائمة تجد خياراتها الجهة المنادية، كبحث في الخادم",
+          "label": "مساحة المالك الجديد",
+          "placeholder": "اختر مساحة",
+          "search": "البحث في المساحات في الخادم",
+          "searchPlaceholder": "اكتب جزءاً من اسم المساحة",
+          "list": "المساحات التي وجدتها في الخادم",
+          "loading": "جارٍ البحث…",
+          "empty": "لم تُعثر على أي مساحة",
+          "options": ["فوكس هب", "نوك", "Palm Hub", "White Space", "The Corner"]
         }
       },
       "calendar": {
@@ -1340,6 +1351,17 @@
               "Rejected data report"
             ]
           }
+        },
+        "caller": {
+          "caption": "A list whose options the caller finds, such as a server search",
+          "label": "Space of the new owner",
+          "placeholder": "Choose a space",
+          "search": "Search the spaces on the server",
+          "searchPlaceholder": "Type part of the space name",
+          "list": "Spaces found on the server",
+          "loading": "Searching…",
+          "empty": "No space was found",
+          "options": ["Focus Hub", "Nook", "Palm Hub", "White Space", "The Corner"]
         }
       },
       "calendar": {
