@@ -1,16 +1,14 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { filtersOf, paramsOf, requestOf, type ListStatus } from '../../services/filtersOf';
 import type { AdminSpacesFilters } from '../../types/AdminSpacesFilters';
 import type { PlaceFilter } from '../../types/PlaceFilter';
-
-/** How long the search waits after the last key before it asks again. */
-const SEARCH_PAUSE_MS = 400;
+import { usePausedSearch } from '../usePausedSearch';
 
 /** The search a field's text makes, read by the server's rule: trimmed, and none when empty. */
 const searchOf = (text: string) => filtersOf(new URLSearchParams({ q: text })).q;
 
-const search = (params: URLSearchParams) => {
+const addressOf = (params: URLSearchParams) => {
   const text = params.toString();
   return text === '' ? '' : `?${text}`;
 };
@@ -32,16 +30,6 @@ export function useAdminSpacesFilters() {
     latest.current = params;
   }, [params]);
 
-  // The search field's text, which reaches the address once typing pauses; an address changed
-  // elsewhere (Back, a link, Clear) sets it again. The text the address already reads keeps its own
-  // spaces, so a word typed after a pause follows the space before it.
-  const [text, setText] = useState(filters.q ?? '');
-  const [shownQ, setShownQ] = useState(filters.q);
-  if (filters.q !== shownQ) {
-    setShownQ(filters.q);
-    if (searchOf(text) !== filters.q) setText(filters.q ?? '');
-  }
-
   // The address is set at once, so two changes in one event build on each other.
   const write = (next: AdminSpacesFilters) => {
     latest.current = paramsOf(next);
@@ -51,19 +39,15 @@ export function useAdminSpacesFilters() {
     write({ ...filtersOf(latest.current), ...change, page: 1 });
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
+  // The search field's text, which reaches the address once typing pauses.
+  const search = usePausedSearch({
+    q: filters.q,
+    searchOf,
+    write: (q) => {
       const current = filtersOf(latest.current);
-      const q = searchOf(text);
-      if (q !== current.q) {
-        latest.current = paramsOf({ ...current, q, page: 1 });
-        setParams(latest.current, { replace: true });
-      }
-    }, SEARCH_PAUSE_MS);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [text, setParams]);
+      if (q !== current.q) write({ ...current, q, page: 1 });
+    },
+  });
 
   // The stale filter is a chip above the sheet on every width, so the sheet's own count and its
   // clear are the two fields it holds (the design counts the same two).
@@ -72,7 +56,7 @@ export function useAdminSpacesFilters() {
   return {
     filters,
     request: requestOf(filters),
-    search: { text, change: setText },
+    search: { text: search.text, change: search.change },
     chooseStatus: (status: ListStatus | undefined) => {
       apply({ status });
     },
@@ -92,11 +76,11 @@ export function useAdminSpacesFilters() {
     },
     /** Takes off every filter, the search included. */
     clearAll: () => {
-      setText('');
+      search.clear();
       write({ place: null, stale: false, page: 1 });
     },
     /** The address of a page, with the filters kept. */
-    searchOf: (page: number) => search(paramsOf({ ...filters, page })),
+    searchOf: (page: number) => addressOf(paramsOf({ ...filters, page })),
     /** Shows another page in place of this one, such as the last when this one is past it. */
     replacePage: (page: number) => {
       write({ ...filtersOf(latest.current), page });

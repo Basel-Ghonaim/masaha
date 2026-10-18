@@ -9,17 +9,13 @@ import {
   PaginationSummary,
 } from '@shared/design-system';
 import { Link } from 'react-router';
-import type { AdminSpacesListView } from '../../types/AdminSpacesListView';
+import type { PaginationView } from '../types/PaginationView';
 
 /**
- * The list's pages, each a link to its own address, so a page opens in a new tab and Back returns to
+ * A paged list's pages, each a link to its own address, so a page opens in a new tab and Back returns to
  * the page before. A step with no page to go to stays in place, unavailable.
  */
-export function AdminSpacesPagination({
-  pagination,
-}: {
-  pagination: NonNullable<AdminSpacesListView['pagination']>;
-}) {
+export function ListPagination({ pagination }: { pagination: PaginationView }) {
   const { previous, next } = pagination;
 
   return (

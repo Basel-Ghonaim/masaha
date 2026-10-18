@@ -1,10 +1,10 @@
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
 import { useLanguage } from '@shared/localisation';
-import { useEffect } from 'react';
 import { LIST_STATUSES } from '../../services/filtersOf';
-import { pageItems } from '../../services/pageItems';
+import { paginationView } from '../../services/paginationView';
 import { rowView } from '../../services/rowView';
+import { usePageInRange } from '../usePageInRange';
 import { useAdminSpacesFilters } from './useAdminSpacesFilters';
 import { useAdminSpacesQuery } from './useAdminSpacesQuery';
 
@@ -32,17 +32,12 @@ export function useAdminSpacesList() {
     lines.loadFailed,
   );
 
-  const lastPage = answer?.meta.totalPages ?? 0;
-  const pastLast =
-    answer !== undefined &&
-    !query.isPlaceholderData &&
-    answer.data.length === 0 &&
-    lastPage > 0 &&
-    filters.filters.page > lastPage;
-  const { replacePage } = filters;
-  useEffect(() => {
-    if (pastLast) replacePage(lastPage);
-  }, [pastLast, lastPage, replacePage]);
+  const pastLast = usePageInRange({
+    answer,
+    placeholder: query.isPlaceholderData,
+    page: filters.filters.page,
+    replacePage: filters.replacePage,
+  });
 
   const now = new Date();
   const rows = (answer?.data ?? []).map((row) => rowView(row, { lines, english, now }));
@@ -66,33 +61,12 @@ export function useAdminSpacesList() {
     columns: lines.columns,
     noOwner: lines.noOwner,
     count: answer === undefined ? undefined : lines.count({ count: answer.meta.totalRecords }),
-    pagination:
-      lastPage > 1
-        ? {
-            label: lines.pagination.label,
-            more: lines.pagination.more,
-            summary: lines.pagination.summary({ page: current, total: lastPage }),
-            previous: {
-              label: lines.pagination.previous,
-              search: current > 1 ? filters.searchOf(current - 1) : null,
-            },
-            next: {
-              label: lines.pagination.next,
-              search: current < lastPage ? filters.searchOf(current + 1) : null,
-            },
-            items: pageItems(current, lastPage).map((item) =>
-              typeof item === 'number'
-                ? {
-                    kind: 'page' as const,
-                    page: item,
-                    label: lines.pagination.page({ page: item }),
-                    search: filters.searchOf(item),
-                    current: item === current,
-                  }
-                : { kind: 'gap' as const, key: item },
-            ),
-          }
-        : null,
+    pagination: paginationView({
+      current,
+      total: answer?.meta.totalPages ?? 0,
+      words: lines.pagination,
+      searchOf: filters.searchOf,
+    }),
     empty: { title: lines.empty, description: lines.emptyHint },
     noMatch: { title: lines.noMatch, clearLabel: lines.clearFilters, clear: filters.clearAll },
     failure: {
