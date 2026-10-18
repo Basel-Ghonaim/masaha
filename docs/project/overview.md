@@ -1,6 +1,6 @@
 # Project Overview
 
-> **Status:** Active · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
 > **Authority:** What Masaha is, what is built today, what v1 is committed to, and what is explicitly not in v1. It names scope; it does not specify behaviour.
 
 ## What Masaha is
@@ -20,7 +20,8 @@ This section lists a capability only once it is merged and working. Each line li
 - [Space links](../features/space-links.md): the spaces a user works at and the space switcher; the admin's spaces list, with its filters, on the dashboard, the soft-deleted spaces among its statuses; on the API, the soft-deleted spaces as a list of their own, and the admin's owners: added (a new account or an upgraded one), linked and unlinked one space at a time, the space verified while it has one.
 - [Lookups](../features/lookups.md): the admin's governorates and areas, and amenities; the public catalogue, on the API.
 - [Directory](../features/directory.md): on the API, the public directory's list, paged and filtered, with a forgiving search and near me; the map's pins; and a space's public page, with its photos and each card's cover.
-- [Spaces](../features/spaces.md): the admin's: on the API, add, edit the profile and the facts (hours and shifts, prices, amenities with its own beside the platform's, contacts), confirm them, hide, delete and restore, keep its photos (stored through the storage port, re-encoded with no metadata), and the managed-space routes, where active owners read and edit the profile and facts, confirm groups and manage photos, and reception reads the complete space and photos; on the dashboard, add a space with its pin on a map, edit its profile, its hours with the shifts, its prices, its amenities, its contacts and its photos, uploaded and ordered from its own section, on its own page, opened after a creation and from its row, a verified one read-only, and on its spaces list, hide, show, delete with an undo, and restore a deleted space from the «deleted» rows. The owner/reception web screen, capacity and packages remain planned.
+- [Spaces](../features/spaces.md): the admin's: on the API, add, edit the profile and the facts (hours and shifts, prices, amenities with its own beside the platform's, contacts), confirm them, hide, delete and restore, keep its photos (stored through the storage port, re-encoded with no metadata), and the managed-space routes, where active owners read and edit the profile and facts, confirm groups and manage photos, and reception reads the complete space and photos; on the dashboard, add a space with its pin on a map, edit its profile, its hours with the shifts, its prices, its amenities, its contacts and its photos, uploaded and ordered from its own section, on its own page, opened after a creation and from its row, a verified one read-only, and on its spaces list, hide, show, delete with an undo, and restore a deleted space from the «deleted» rows. The owner/reception web screen and capacity remain planned.
+- [Packages](../features/packages.md): on the API, a space's packages, its owner's subscription templates: listed whole to its staff, retired ones included, added and edited by its owner, retired rather than deleted; never public.
 
 ## Committed scope — v1
 

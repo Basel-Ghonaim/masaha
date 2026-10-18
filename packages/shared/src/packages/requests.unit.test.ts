@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
-import { createPackageSchema } from './requests.ts';
+import { createPackageSchema, updatePackageSchema } from './requests.ts';
 
 const VALID = {
   name: 'Morning',
@@ -14,6 +14,12 @@ const VALID = {
 /** The field errors a create request fails with, or null when it passes. */
 function errorsOf(body: object) {
   const result = createPackageSchema.safeParse(body);
+  return result.success ? null : toFieldErrors(result.error.issues, body);
+}
+
+/** The field errors an edit request fails with, or null when it passes. */
+function errorsOfEdit(body: object) {
+  const result = updatePackageSchema.safeParse(body);
   return result.success ? null : toFieldErrors(result.error.issues, body);
 }
 
@@ -102,5 +108,27 @@ describe('createPackageSchema', () => {
       priceAgorot: ['required'],
       audience: ['invalid_choice'],
     });
+  });
+});
+
+describe('updatePackageSchema', () => {
+  it('takes any part of the terms and the active flag on an edit, and nothing', () => {
+    expect(updatePackageSchema.parse({})).toEqual({});
+    expect(updatePackageSchema.parse({ isActive: false })).toEqual({ isActive: false });
+    expect(updatePackageSchema.parse({ totalDays: null, shiftId: null })).toEqual({
+      totalDays: null,
+      shiftId: null,
+    });
+  });
+
+  it('never clears a required term on an edit', () => {
+    // The two choices answer `invalid_choice`, as they do when absent: `toFieldErrors` maps an
+    // enum's failure to it whether the value is absent or one it cannot take.
+    expect(errorsOfEdit({ name: null })).toEqual({ name: ['invalid_format'] });
+    expect(errorsOfEdit({ validityDays: null })).toEqual({ validityDays: ['invalid_format'] });
+    expect(errorsOfEdit({ priceAgorot: null })).toEqual({ priceAgorot: ['invalid_format'] });
+    expect(errorsOfEdit({ isActive: null })).toEqual({ isActive: ['invalid_format'] });
+    expect(errorsOfEdit({ billing: null })).toEqual({ billing: ['invalid_choice'] });
+    expect(errorsOfEdit({ audience: null })).toEqual({ audience: ['invalid_choice'] });
   });
 });

@@ -1,11 +1,15 @@
-import type { CreatePackageRequest, SpacePackage } from '@masaha/shared/packages';
+import type {
+  CreatePackageRequest,
+  SpacePackage,
+  UpdatePackageRequest,
+} from '@masaha/shared/packages';
 
 import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
-import { packageValues, toPackageTerms } from './packageTerms.ts';
+import { packageChange, packageValues, toPackageTerms } from './packageTerms.ts';
 import { toSpacePackage } from './packages.mapper.ts';
 import {
   createPackagesRepository,
@@ -77,6 +81,45 @@ export function createPackagesService({ runInTransaction, audit, spaces }: Depen
             entityId: row.id,
             spaceId: space.id,
             after: packageValues(terms),
+          },
+          tx,
+        );
+        return toSpacePackage(row);
+      });
+    },
+
+    /**
+     * Edits a package, in one transaction and in this order: the space's lock; `can()` on the links
+     * read under it; the package, found among the space's own through its compound key; only the
+     * fields the edit sets to a new value, `null` clearing a limit or the shift; its audit entry
+     * (D8). An edit that changes nothing writes and audits nothing, and answers the package as it
+     * is. A package that is not the space's is `not_found`; a name another package holds, and a
+     * shift that is not one of the space's, are refused by the database's keys on their own fields,
+     * so nothing of the change survives the refusal.
+     */
+    update(
+      actor: Actor,
+      space: LoadedSpace,
+      packageId: number,
+      edit: UpdatePackageRequest,
+    ): Promise<SpacePackage> {
+      return runInTransaction(async (tx) => {
+        await lockFor(actor, space, tx);
+        const current = await packages.findIn(space.id, packageId, tx);
+        if (!current) throw AppError.notFound(undefined, 'Package not found');
+        const { data, before, after } = packageChange(current, edit);
+        if (Object.keys(data).length === 0) return toSpacePackage(current);
+
+        const row = packageOf(await packages.update(space.id, packageId, data, tx));
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'package.edited',
+            entityType: 'package',
+            entityId: row.id,
+            spaceId: space.id,
+            before,
+            after,
           },
           tx,
         );

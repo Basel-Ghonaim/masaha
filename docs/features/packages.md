@@ -9,16 +9,17 @@
 - Keeps a space's packages: a name, a validity in days, optional limits (total days, days a week, hours a day, total hours), a billing (a whole price, or a rate per hour or per day) with its price, an audience, an optional shift of the space, and whether the package is still offered.
 - Answers the space's staff every package, retired ones included, in order, whole.
 - Lets the owner add a package, placed last.
+- Lets the owner edit any of a package's terms, and retire it; a package is never deleted.
 
 ## Who uses it
 
-- **The space's owner,** through the API: reads and adds.
+- **The space's owner,** through the API: reads, adds and edits.
 - **The space's reception,** through the API: reads them, for the front desk, which will choose from them when it makes a subscription.
 - No web screen reads it yet. The public never does: its packages are the space's published prices ([glossary](../project/glossary.md)).
 
 ## Responsibility boundary
 
-- **Owns** the `packages` table and the order of a space's packages.
+- **Owns** the `packages` table, the order of a space's packages, and the rule of what an edit changes.
 - **Leaves** the space, its lock and its shifts to [`spaces`](spaces.md); who may read or write to `can()` ([security › Authorization](../backend/security.md#authorization)); the subscriptions made from a package, which copy its terms, to `subscriptions` (not built).
 
 ## How it composes the platform
@@ -34,6 +35,10 @@
 **The list.** One query reads the space's packages, by place, then by name, retired ones included, each saying whether it is offered.
 
 **Add.** In one transaction: the space's lock; `can()` on the links as they are under it; the package written after the last, active; its audit entry. A name another package of the space holds, retired or not, is refused by the database's key; so is a shift that is not one of the space's. Each refusal names its field.
+
+**Edit.** The same lock and `can()`, then the package, found among the space's own; only the fields the edit sets to a new value are written and audited, `null` clearing a limit or the shift. An edit that changes nothing writes nothing. Retiring is the same edit, `isActive: false`; a retired package stays listed, and `true` offers it again.
+
+A retired package keeps its shift: the shift's own save refuses to remove a shift anything names ([finding 81](../architecture/findings/81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)), so clearing it on the retired package — `PATCH { shiftId: null }` — is the way out.
 
 ## Decisions
 
@@ -52,10 +57,13 @@
 - **The limits combine freely, each only bounded** ([data model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). *Why:* they only warn at check-in. 2026-10-18, #87.
 - **Each create is audited, `package.created`, with its terms** (D8). 2026-10-18, #87.
 - **No idempotency key on a create.** *Why:* a package is the owner's setup, not a desk create ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)); a create retried after a lost answer meets its own name, and the list shows it. 2026-10-18, #87.
+- **A package is retired, never deleted:** `isActive: false`, and offered again with `true` (D1, the model). *Why:* the subscriptions made from it name it. 2026-10-18, #87.
+- **An edit writes and audits only what it changes, `package.edited`, the flag included; one that changes nothing writes nothing** (D8). *Why:* as the space profile's edit; one entry per edit, since a package's flag has no public effect. 2026-10-18, #87.
+- **Editing or retiring a package changes no subscription** (D9). *Why:* a subscription copies its terms when it is made ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)). 2026-10-18, #87.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/packages/`, entry `index.ts`: the service, the repository, the mapper, the manage router, and beside them the pure rule of a package's terms (`packageTerms.ts`).
+- **API:** `apps/api/src/modules/packages/`, entry `index.ts`: the service, the repository, the mapper, the manage router, and beside them the pure rule of a package's terms and of what an edit changes (`packageTerms.ts`).
 - **Shared:** `packages/shared/src/packages/`: the requests, with the billings and the limits' bounds, and the response.
 
 ## Open findings
@@ -66,4 +74,4 @@
 
 ### API history
 
-- #87 — a space's packages, on the API: listed whole to its staff, added by its owner.
+- #87 — a space's packages, on the API: listed whole to its staff, added and edited by its owner, retired rather than deleted.

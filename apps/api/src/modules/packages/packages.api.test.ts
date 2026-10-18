@@ -127,6 +127,10 @@ describe("a space's packages", () => {
   });
 
   it('answers not_found to a stranger, an owner of another space and an unlinked admin', async () => {
+    const seeded = await prisma.package.create({
+      data: { spaceId, name: 'Alpha', validityDays: 30, billing: 'FIXED', priceAgorot: 5000 },
+    });
+
     for (const caller of [stranger, unrelatedOwner, admin]) {
       const read = await packages(caller, 'get');
       expect(read.status).toBe(404);
@@ -135,8 +139,16 @@ describe("a space's packages", () => {
       const create = await packages(caller, 'post', '', VALID);
       expect(create.status).toBe(404);
       expect(errorOf(create).type).toBe('not_found');
+
+      const edit = await packages(caller, 'patch', `/${String(seeded.id)}`, { priceAgorot: 1 });
+      expect(edit.status).toBe(404);
+      expect(errorOf(edit).type).toBe('not_found');
     }
-    expect(await prisma.package.count()).toBe(0);
+
+    // Only the seeded one: no refused create wrote a row, and the edit changed none.
+    expect(await prisma.package.count()).toBe(1);
+    const stored = await prisma.package.findUniqueOrThrow({ where: { id: seeded.id } });
+    expect(stored.priceAgorot).toBe(5000);
   });
 
   it('creates an active package with its terms, placed after the last, and audits package.created', async () => {
@@ -303,6 +315,25 @@ describe("a space's packages", () => {
     expect(await auditEntries()).toEqual([]);
   });
 
+  it('refuses reception’s edit with 403 before reading its body, and changes nothing', async () => {
+    const created = await prisma.package.create({
+      data: { spaceId, name: 'Alpha', validityDays: 30, billing: 'FIXED', priceAgorot: 5000 },
+    });
+
+    const empty = await packages(reception, 'patch', `/${String(created.id)}`, { priceAgorot: 0 });
+    const valid = await packages(reception, 'patch', `/${String(created.id)}`, {
+      priceAgorot: 6000,
+    });
+
+    for (const refused of [empty, valid]) {
+      expect(refused.status).toBe(403);
+      expect(errorOf(refused).type).toBe('forbidden');
+    }
+    const stored = await prisma.package.findUniqueOrThrow({ where: { id: created.id } });
+    expect(stored.priceAgorot).toBe(5000);
+    expect(await auditEntries()).toEqual([]);
+  });
+
   it('decides a write on the links under the space’s lock: an owner unlinked meanwhile is refused', async () => {
     const response = await whileHeld(
       (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
@@ -330,5 +361,182 @@ describe("a space's packages", () => {
     expect(response.status).toBe(404);
     expect(errorOf(response).type).toBe('not_found');
     expect(await prisma.package.count()).toBe(0);
+  });
+
+  it('edits what the patch sets, clears a limit with null, and audits package.edited with the fields that changed', async () => {
+    const created = await packages(owner, 'post', '', {
+      ...VALID,
+      name: 'Alpha',
+      totalDays: 10,
+      hoursPerDay: 5,
+    });
+    const id = (dataOf(created) as { id: number }).id;
+
+    const edited = await packages(owner, 'patch', `/${String(id)}`, {
+      name: 'Alpha',
+      priceAgorot: 6000,
+      totalDays: null,
+    });
+    expect(edited.status).toBe(200);
+    expect(dataOf(edited)).toEqual({
+      id,
+      name: 'Alpha',
+      validityDays: 30,
+      totalDays: null,
+      daysPerWeek: null,
+      hoursPerDay: 5,
+      totalHours: null,
+      billing: 'FIXED',
+      priceAgorot: 6000,
+      audience: 'GENERAL',
+      shiftId: null,
+      isActive: true,
+    });
+
+    const entries = await auditEntries();
+    expect(entries.at(-1)).toEqual({
+      actorId: owner.id,
+      action: 'package.edited',
+      entityType: 'package',
+      entityId: id,
+      spaceId,
+      before: { priceAgorot: 5000, totalDays: 10 },
+      after: { priceAgorot: 6000, totalDays: null },
+    });
+  });
+
+  it('retires a package with isActive false, keeps it in the list, and offers it again', async () => {
+    const created = await packages(owner, 'post', '', { ...VALID, name: 'Alpha' });
+    const id = (dataOf(created) as { id: number }).id;
+
+    const retired = await packages(owner, 'patch', `/${String(id)}`, { isActive: false });
+    expect(retired.status).toBe(200);
+    expect((dataOf(retired) as { isActive: boolean }).isActive).toBe(false);
+
+    const listed = await packages(owner, 'get');
+    expect(dataOf(listed)).toEqual([expect.objectContaining({ id, isActive: false })]);
+
+    const entries = await auditEntries();
+    expect(entries.at(-1)).toEqual({
+      actorId: owner.id,
+      action: 'package.edited',
+      entityType: 'package',
+      entityId: id,
+      spaceId,
+      before: { isActive: true },
+      after: { isActive: false },
+    });
+
+    const offered = await packages(owner, 'patch', `/${String(id)}`, { isActive: true });
+    expect(offered.status).toBe(200);
+    expect((dataOf(offered) as { isActive: boolean }).isActive).toBe(true);
+  });
+
+  it('writes nothing for a patch that changes nothing', async () => {
+    const created = await packages(owner, 'post', '', { ...VALID, name: 'Alpha' });
+    const id = (dataOf(created) as { id: number }).id;
+    const before = await prisma.package.findUniqueOrThrow({ where: { id } });
+
+    for (const body of [{}, { name: 'Alpha', priceAgorot: 5000 }]) {
+      const answer = await packages(owner, 'patch', `/${String(id)}`, body);
+      expect(answer.status).toBe(200);
+      expect(dataOf(answer)).toEqual(dataOf(created));
+    }
+
+    const after = await prisma.package.findUniqueOrThrow({ where: { id } });
+    expect(after.updatedAt).toEqual(before.updatedAt);
+    expect(await auditEntries()).toHaveLength(1);
+  });
+
+  it('answers not_found for a package of another space, or an id no package has, changing nothing', async () => {
+    const other = await prisma.package.create({
+      data: {
+        spaceId: otherSpaceId,
+        name: 'Other',
+        validityDays: 30,
+        billing: 'FIXED',
+        priceAgorot: 5000,
+      },
+    });
+
+    const foreign = await packages(owner, 'patch', `/${String(other.id)}`, { priceAgorot: 1 });
+    expect(foreign.status).toBe(404);
+    expect(errorOf(foreign).type).toBe('not_found');
+    const untouched = await prisma.package.findUniqueOrThrow({ where: { id: other.id } });
+    expect(untouched.priceAgorot).toBe(5000);
+
+    for (const suffix of ['/999999', '/abc']) {
+      const unknown = await packages(owner, 'patch', suffix, { priceAgorot: 1 });
+      expect(unknown.status).toBe(404);
+      expect(errorOf(unknown).type).toBe('not_found');
+    }
+  });
+
+  it('refuses renaming to another package’s name, and a shift that is not the space’s own, on their fields', async () => {
+    const alpha = await packages(owner, 'post', '', { ...VALID, name: 'Alpha' });
+    const beta = await packages(owner, 'post', '', { ...VALID, name: 'Beta' });
+    const betaId = (dataOf(beta) as { id: number }).id;
+
+    const renamed = await packages(owner, 'patch', `/${String(betaId)}`, { name: 'Alpha' });
+    expect(renamed.status).toBe(409);
+    expect(errorOf(renamed).type).toBe('conflict');
+    expect(errorOf(renamed).errors).toEqual({ name: ['not_unique'] });
+
+    const shifted = await packages(owner, 'patch', `/${String(betaId)}`, {
+      shiftId: otherShift.id,
+    });
+    expect(shifted.status).toBe(422);
+    expect(errorOf(shifted).type).toBe('validation');
+    expect(errorOf(shifted).errors).toEqual({ shiftId: ['invalid_choice'] });
+
+    const stored = await prisma.package.findUniqueOrThrow({ where: { id: betaId } });
+    expect(stored.name).toBe('Beta');
+    expect(stored.shiftId).toBeNull();
+    const untouched = await prisma.package.findUniqueOrThrow({
+      where: { id: (dataOf(alpha) as { id: number }).id },
+    });
+    expect(untouched.name).toBe('Alpha');
+    expect(untouched.shiftId).toBeNull();
+    expect(await auditEntries()).toHaveLength(2);
+  });
+
+  it('decides an edit on the links under the space’s lock: an owner unlinked meanwhile is refused', async () => {
+    const seeded = await prisma.package.create({
+      data: { spaceId, name: 'Alpha', validityDays: 30, billing: 'FIXED', priceAgorot: 5000 },
+    });
+
+    const response = await whileHeld(
+      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+      () => packages(owner, 'patch', `/${String(seeded.id)}`, { priceAgorot: 6000 }),
+      (tx) =>
+        tx.spaceManager.update({
+          where: { spaceId_userId: { spaceId, userId: owner.id } },
+          data: { deactivatedAt: new Date() },
+        }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(errorOf(response).type).toBe('forbidden');
+    const stored = await prisma.package.findUniqueOrThrow({ where: { id: seeded.id } });
+    expect(stored.priceAgorot).toBe(5000);
+    expect(await auditEntries()).toEqual([]);
+  });
+
+  it('refuses an edit to a space deleted while it waited for its lock, and writes nothing', async () => {
+    const seeded = await prisma.package.create({
+      data: { spaceId, name: 'Alpha', validityDays: 30, billing: 'FIXED', priceAgorot: 5000 },
+    });
+
+    const response = await whileHeld(
+      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+      () => packages(owner, 'patch', `/${String(seeded.id)}`, { priceAgorot: 6000 }),
+      (tx) => tx.space.update({ where: { id: spaceId }, data: { deletedAt: new Date() } }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(errorOf(response).type).toBe('not_found');
+    const stored = await prisma.package.findUniqueOrThrow({ where: { id: seeded.id } });
+    expect(stored.priceAgorot).toBe(5000);
+    expect(await auditEntries()).toEqual([]);
   });
 });

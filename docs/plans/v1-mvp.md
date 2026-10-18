@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -213,7 +213,7 @@ Built: `GET /lookups`, the active governorates with their active areas and the a
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations and photo routes below.
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo and package routes below.
 An active owner or reception link is required; reception is read-only. The web screen and later
 dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
@@ -226,7 +226,7 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | PUT / DELETE | `/manage/spaces/:spaceId/status-override` | 🧾 | set a state until a time (30 min, 1 h, 2 h or closing time), or clear it |
 | GET / POST / DELETE / PUT | `/manage/spaces/:spaceId/photos[/:photoId \| /order]` | GET 🧾 · writes 🏢 | list, upload, remove, reorder, on the admin's service ([api-contract › Photos](../api/api-contract.md#photos)) |
 | GET / POST / PATCH | `/manage/spaces/:spaceId/staff[/:userId]` | 🏢 | add reception by name and email (a new account with a temporary password shown once, or an existing account linked); deactivate |
-| GET / POST / PATCH | `/manage/spaces/:spaceId/packages[/:id]` | GET 🧾 · write 🏢 | subscription templates; private ones are never public |
+| GET / POST / PATCH | `/manage/spaces/:spaceId/packages[/:packageId]` | GET 🧾 · writes 🏢 | subscription templates, listed whole, retired ones included; never public ([api-contract › Packages (managed)](../api/api-contract.md#packages-managed)) |
 | GET / POST | `/manage/spaces/:spaceId/customers` | 🧾 | list (search; filters: subscription type, status, payment), create |
 | GET / PATCH | `/manage/spaces/:spaceId/customers/:customerId` | 🧾 | details with subscriptions, balances and debt; edit |
 | POST | `/manage/spaces/:spaceId/customers/:customerId/subscriptions` | 🧾 | new or renewal, from a package or custom; warns when the customer has a balance |

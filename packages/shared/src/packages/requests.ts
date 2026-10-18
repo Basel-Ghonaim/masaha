@@ -46,3 +46,10 @@ const terms = {
 
 export const createPackageSchema = z.object(terms);
 export type CreatePackageRequest = z.infer<typeof createPackageSchema>;
+
+/**
+ * Edits a package: any part of its terms, and the flag that retires it or offers it again. What is
+ * absent is kept; a limit or the shift is cleared with `null`; a required term is never cleared.
+ */
+export const updatePackageSchema = z.object({ ...terms, isActive: z.boolean() }).partial();
+export type UpdatePackageRequest = z.infer<typeof updatePackageSchema>;

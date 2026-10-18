@@ -1,4 +1,4 @@
-import { createPackageSchema } from '@masaha/shared/packages';
+import { createPackageSchema, updatePackageSchema } from '@masaha/shared/packages';
 import { Router } from 'express';
 
 import { requireCan } from '../../shared/auth/index.ts';
@@ -16,5 +16,6 @@ export function createPackagesManageRouter(controller: PackagesController): Rout
   const mayManage = requireCan('packages.manage');
   router.get('/', controller.list);
   router.post('/', mayManage, validate(createPackageSchema), controller.create);
+  router.patch('/:packageId', mayManage, validate(updatePackageSchema), controller.update);
   return router;
 }

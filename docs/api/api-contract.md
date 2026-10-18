@@ -217,7 +217,8 @@ A space's packages: the subscription templates its owner keeps, private to its s
   - `audience`: `GENERAL` or `STUDENT` (`PRICE_AUDIENCES`, `@masaha/shared/spaces`), from its list (`invalid_choice`);
   - `shiftId`, optional: one of the space's shifts.
 - **Order:** a list's order is its array's: by place, then by name. A new package is placed after the last; no endpoint reorders them.
-- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the package as the entity and its space as the entry's: `package.created` (`after`: its terms).
+- **Retired, never deleted:** `isActive: false` retires a package, which stays listed; `true` offers it again. A subscription made from a package keeps its own copy of the terms ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)): an edit or a retirement changes none.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the package as the entity and its space as the entry's: `package.created` (`after`: its terms) and `package.edited` (`before` and `after`: only the fields that changed, `isActive` included); an edit that changes nothing writes nothing.
 
 ```ts
 SpacePackage = {
@@ -242,6 +243,11 @@ SpacePackage = {
 - **Body:** `{ name, validityDays, totalDays?, daysPerWeek?, hoursPerDay?, totalHours?, billing, priceAgorot, audience, shiftId? }`.
 - **201:** `SpacePackage`, active and placed last. Audited `package.created`.
 - **Errors:** `validation` (422), with `invalid_choice` on `shiftId` for a shift that is not one of the space's; `conflict` (409), with `errors.name = ["not_unique"]`, when another package of the space, retired or not, has the name; `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `not_found` (404).
+
+#### `PATCH /manage/spaces/:spaceId/packages/:packageId` · 🏢
+- **Body:** any of the terms, and `isActive`; what is absent is kept, and a limit or the shift is cleared with `null`.
+- **200:** `SpacePackage`. Audited `package.edited`.
+- **Errors:** as the create's; `not_found` (404) for a package that is not the space's.
 
 ### Lookups (public)
 

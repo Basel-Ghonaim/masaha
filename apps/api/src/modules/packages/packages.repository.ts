@@ -76,6 +76,21 @@ export function createPackagesRepository() {
         tx.package.create({ data: { ...terms, spaceId, sortOrder }, select: PACKAGE }),
       );
     },
+
+    /**
+     * One package of the space, through the compound key `(id, spaceId)`, so it names no row of
+     * another space even when the caller passes that space's id.
+     */
+    findIn(spaceId: number, id: number, tx: Tx = prisma): Promise<PackageRow | null> {
+      return tx.package.findUnique({ where: { id_spaceId: { id, spaceId } }, select: PACKAGE });
+    },
+
+    /** The edit, through the same compound key, so it can touch no other space's row. */
+    update(spaceId: number, id: number, data: PackageData, tx: Tx): Promise<PackageWrite> {
+      return written(
+        tx.package.update({ where: { id_spaceId: { id, spaceId } }, data, select: PACKAGE }),
+      );
+    },
   };
 }
 
