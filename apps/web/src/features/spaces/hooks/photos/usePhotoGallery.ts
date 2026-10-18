@@ -35,8 +35,8 @@ export function usePhotoGallery(
   };
   const loaded = useRefusalView(query.error ?? null, words.loadFailed);
   // A refusal of a write belongs to the tile it was for; the rest of the gallery is as it is.
-  const tileFailure = useRefusalView(order.refusal, words.loadFailed, lines);
-  const removalFailure = useRefusalView(removal.refusal, words.loadFailed, lines);
+  const tileFailure = useRefusalView(order.refusal, words.orderFailed, lines);
+  const removalFailure = useRefusalView(removal.refusal, words.removeFailed, lines);
 
   /** One photo as the gallery shows it: its place in the order, and its own place in the list. */
   const tileOf = (photo: SpacePhoto, index: number): PhotoTileView => ({

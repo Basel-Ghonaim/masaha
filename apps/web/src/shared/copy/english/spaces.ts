@@ -300,6 +300,8 @@ export const SPACES = {
       intro:
         'Up to 10 photos · JPEG, PNG or WebP · 4 MB each. The first is the cover, and every change is saved at once.',
       loadFailed: 'We couldn’t load the photos',
+      orderFailed: 'We couldn’t change the photos’ order',
+      removeFailed: 'We couldn’t delete the photo',
       empty: {
         title: 'No photos yet',
         text: 'The first photo becomes the cover.',

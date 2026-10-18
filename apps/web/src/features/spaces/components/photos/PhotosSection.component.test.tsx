@@ -201,6 +201,22 @@ describe('the editor’s photos section', () => {
     expect(screen.getByRole('alertdialog')).toBeInTheDocument();
   });
 
+  it('titles a refused removal in its dialog by the removal', async () => {
+    const user = userEvent.setup();
+    renderSection(PHOTOS, (request) =>
+      request.method === 'delete' ? refused(500, { type: 'server' }) : { status: 204 },
+    );
+
+    await user.click(
+      within((await tiles())[1] as HTMLElement).getByRole('button', { name: 'Remove Photo 2' }),
+    );
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete Photo 2?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    expect(await within(dialog).findByText('We couldn’t delete the photo')).toBeVisible();
+    expect(screen.queryByText('We couldn’t load the photos')).toBeNull();
+  });
+
   it('removes the photo, fetches the gallery again and says so once the server has answered', async () => {
     const user = userEvent.setup();
     const { requests } = renderSection();
@@ -264,6 +280,20 @@ describe('the editor’s photos section', () => {
     expect(notice).not.toHaveClass('sr-only');
     expect(notice).toHaveTextContent('refreshed');
     expect(notice).not.toHaveTextContent('Reload');
+  });
+
+  it('titles a refused move by the move, not by a failed load', async () => {
+    const user = userEvent.setup();
+    renderSection(PHOTOS, (request) =>
+      request.method === 'put' ? refused(500, { type: 'server' }) : { status: 204 },
+    );
+
+    await user.click(
+      within((await tiles())[2] as HTMLElement).getByRole('button', { name: 'Before: Photo 3' }),
+    );
+
+    expect(await screen.findByText('We couldn’t change the photos’ order')).toBeVisible();
+    expect(screen.queryByText('We couldn’t load the photos')).toBeNull();
   });
 
   it('keeps «Add photos» available while a photo uploads', async () => {

@@ -11,7 +11,7 @@ export type MultipartUpload = {
   url: string;
   fieldName: string;
   file: File;
-  onProgress?: UploadProgress;
+  onProgress: UploadProgress;
   /** Aborts the request in flight, as when the page that sent it is left. */
   signal?: AbortSignal;
 };
@@ -40,12 +40,8 @@ export async function sendMultipart<T>({
   return api.post<T>(url, body, {
     timeout: UPLOAD_TIMEOUT_MS,
     ...(signal === undefined ? {} : { signal }),
-    ...(onProgress === undefined
-      ? {}
-      : {
-          onUploadProgress: (event: ProgressEvent) => {
-            if (event.total !== undefined) onProgress(event.loaded, event.total);
-          },
-        }),
+    onUploadProgress: (event: ProgressEvent) => {
+      if (event.total !== undefined) onProgress(event.loaded, event.total);
+    },
   });
 }
