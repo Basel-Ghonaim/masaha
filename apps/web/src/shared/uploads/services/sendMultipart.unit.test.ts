@@ -82,25 +82,22 @@ describe('sendMultipart', () => {
       url: '/admin/spaces/7/photos',
       fieldName: 'photo',
       file: PHOTO,
+      onProgress: vi.fn(),
     }).catch((error: unknown) => error);
 
     expect(refusal).toBeInstanceOf(AppError);
     expect(refusal).toMatchObject({ type: 'payload_too_large', status: 413, requestId: 'req-1' });
   });
 
-  it('sends no progress callback when the caller wants none', async () => {
-    const requests = serve(() => ({ status: 200, data: { success: true, data: ANSWERED } }));
-
-    await expect(
-      sendMultipart({ url: '/admin/spaces/7/photos', fieldName: 'photo', file: PHOTO }),
-    ).resolves.toEqual(ANSWERED);
-    expect(requests[0]?.onUploadProgress).toBeUndefined();
-  });
-
   it('gives the upload its own, longer timeout than the client’s 15 s', async () => {
     const requests = serve(() => ({ status: 200, data: { success: true, data: ANSWERED } }));
 
-    await sendMultipart({ url: '/admin/spaces/7/photos', fieldName: 'photo', file: PHOTO });
+    await sendMultipart({
+      url: '/admin/spaces/7/photos',
+      fieldName: 'photo',
+      file: PHOTO,
+      onProgress: vi.fn(),
+    });
 
     expect(requests[0]?.timeout).toBe(120_000);
   });
@@ -113,6 +110,7 @@ describe('sendMultipart', () => {
       url: '/admin/spaces/7/photos',
       fieldName: 'photo',
       file: PHOTO,
+      onProgress: vi.fn(),
       signal: leaving.signal,
     });
 

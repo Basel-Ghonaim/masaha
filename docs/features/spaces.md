@@ -273,3 +273,4 @@ planned; the admin's editor already carries the photo gallery.
 - #84 — a deleted space's row action, **Restore**, beside the delete's Undo; findings 44 and 50 resolved.
 - #85 — the delete confirmation naming the place a deleted space is restored from, and the row's Restore documented in the Actions the design draws it in.
 - #85 — the editor's «الصور»: the gallery in the server's order, its cover, the arrows, the removal that asks, and the uploads — one at a time, each with its own tile, its own percentage and its own retry where one can work.
+- #88 — the gallery's failed moves and removals titled by their action, and `sendMultipart`'s progress always passed.

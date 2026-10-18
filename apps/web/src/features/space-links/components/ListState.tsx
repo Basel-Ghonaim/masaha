@@ -1,11 +1,11 @@
 import { Button, EmptyState, SearchXIcon } from '@shared/design-system';
-import type { AdminSpacesListView } from '../../types/AdminSpacesListView';
+import type { ListStateView } from '../types/ListStateView';
 
 /**
  * What stands in for the rows when there are none to show: the failure to load, with its reference
- * and Try again; no spaces yet; or no space matching the filters, with a button that clears them.
+ * and Try again; no rows yet; or none matching the filters, with a button that clears them.
  */
-export function AdminSpacesState({ list }: { list: AdminSpacesListView }) {
+export function ListState({ list }: { list: ListStateView }) {
   if (list.status === 'error') {
     const { failure } = list;
     return (

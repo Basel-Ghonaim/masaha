@@ -771,3 +771,45 @@ describe("the admin's spaces page", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("the admin's owners page", () => {
+  it('shows the admin’s owners page under its title, with the owners', async () => {
+    signIn({ role: 'ADMIN' });
+    fakeTransport((request) =>
+      request.url === '/admin/users'
+        ? {
+            status: 200,
+            data: {
+              success: true,
+              data: [
+                {
+                  id: 5,
+                  name: 'Rima',
+                  email: 'rima@example.com',
+                  role: 'OWNER',
+                  isSuspended: false,
+                  signIn: { password: true, google: false },
+                  joinedAt: '2026-09-01T08:00:00Z',
+                  spaces: [{ id: 7, nameEn: 'Focus Hub', nameAr: null }],
+                },
+              ],
+              meta: {
+                currentPage: 1,
+                limit: 20,
+                totalPages: 1,
+                totalRecords: 1,
+                hasNextPage: false,
+                hasPreviousPage: false,
+              },
+            },
+          }
+        : ok([]),
+    );
+    renderDashboard('/dashboard/admin/owners');
+
+    expect(await topBarTitle('Space owners')).toBeInTheDocument();
+    const table = await screen.findByRole('table', { name: 'Space owners' });
+    expect(await within(table).findByText('Rima')).toBeInTheDocument();
+    expect(within(table).getByText('Focus Hub')).toBeInTheDocument();
+  });
+});

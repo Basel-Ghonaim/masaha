@@ -42,7 +42,7 @@ export interface SpacesRepository {
   uploadPhoto(
     spaceId: number,
     file: File,
-    onProgress?: UploadProgress,
+    onProgress: UploadProgress,
     signal?: AbortSignal,
   ): Promise<SpacePhoto>;
   /** Removes a photo: it leaves the space's page at once and the ones after it move up. */
@@ -72,7 +72,7 @@ export function createSpacesRepository(): SpacesRepository {
         url: `${path(spaceId)}/photos`,
         fieldName: 'photo',
         file,
-        ...(onProgress === undefined ? {} : { onProgress }),
+        onProgress,
         ...(signal === undefined ? {} : { signal }),
       }),
     removePhoto: (spaceId, photoId) =>

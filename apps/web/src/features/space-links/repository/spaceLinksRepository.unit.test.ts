@@ -1,4 +1,4 @@
-import type { AdminSpaceRow, ManagedSpace } from '@masaha/shared/space-links';
+import type { AdminSpaceRow, AdminUserRow, ManagedSpace } from '@masaha/shared/space-links';
 import { apiClient, setupApiClient } from '@shared/api';
 import { AppError } from '@shared/errors';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -27,6 +27,17 @@ const ROW: AdminSpaceRow = {
   staleGroups: [],
   missingGroups: ['hours'],
   lastUpdatedAt: '2026-09-27T08:00:00.000Z',
+};
+
+const USER: AdminUserRow = {
+  id: 5,
+  name: 'Rima',
+  email: 'rima@example.com',
+  role: 'OWNER',
+  isSuspended: false,
+  signIn: { password: true, google: false },
+  joinedAt: '2026-09-01T08:00:00.000Z',
+  spaces: [{ id: 7, nameEn: 'Focus Hub', nameAr: null }],
 };
 
 /** The app's one client, wired as bootstrap wires it, answering every request with `answer`. */
@@ -90,6 +101,32 @@ describe('the space-links repository', () => {
     await createSpaceLinksRepository().adminSpaces(request);
 
     expect(apiClient.getUri(requests[0])).toBe(`/api/v1/admin/spaces?${query}`);
+  });
+
+  it('reads a page of the admin’s users with the request’s filters', async () => {
+    const meta = {
+      currentPage: 2,
+      limit: 20,
+      totalPages: 2,
+      totalRecords: 21,
+      hasNextPage: false,
+      hasPreviousPage: true,
+    };
+    const requests = serve({ status: 200, data: { success: true, data: [USER], meta } });
+
+    await expect(
+      createSpaceLinksRepository().adminUsers({
+        q: 'Rima',
+        role: 'owner',
+        state: 'active',
+        page: 2,
+      }),
+    ).resolves.toEqual({ data: [USER], meta });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ method: 'get', url: '/admin/users' });
+    expect(apiClient.getUri(requests[0])).toBe(
+      '/api/v1/admin/users?q=Rima&role=owner&state=active&page=2',
+    );
   });
 
   it('rejects a refusal as an AppError, with its type and code', async () => {

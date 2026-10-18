@@ -1,6 +1,9 @@
 import type { FactGroup } from '@masaha/shared/spaces';
 
-/** The user's links to spaces, in the dashboard: the space switcher and the admin's spaces list. */
+/**
+ * The user's links to spaces, in the dashboard: the space switcher, the admin's spaces list and the
+ * admin's owners page.
+ */
 export const SPACE_LINKS = {
   /** The switcher's name, with the space it shows. */
   switchSpace: ({ name }: { name: string }) => `Switch space: ${name}`,
@@ -72,6 +75,48 @@ export const SPACE_LINKS = {
     loadFailed: 'We couldn’t load the spaces',
     pagination: {
       label: 'Pages of the spaces list',
+      previous: 'Previous',
+      next: 'Next',
+      page: ({ page }: { page: number }) => `Page ${String(page)}`,
+      /** Where the list is, on a phone. */
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `Page ${String(page)} of ${String(total)}`,
+      more: 'More pages',
+    },
+  },
+  /** The admin's owners page: the users list filtered to the owners, its search and its state. */
+  ownersList: {
+    /** Names the list: the table, the cards on a phone. */
+    label: 'Space owners',
+    intro:
+      'Linking an owner makes a space verified; from then on the owner edits it and alone sees its operations.',
+    search: 'Search',
+    searchPlaceholder: 'Name or email',
+    /** Names the state chips. */
+    state: 'Status',
+    states: {
+      all: 'All',
+      active: 'Active',
+      suspended: 'Suspended',
+    },
+    columns: {
+      name: 'Name',
+      email: 'Email',
+      spaces: 'Linked spaces',
+      state: 'Status',
+      actions: 'Actions',
+    },
+    /** An owner whose every space is deleted, the whole line a link to the deleted spaces. */
+    allSpacesDeleted: 'All their spaces are deleted — restore the space to unlink them',
+    /** The count of owners the filters keep, by the search. */
+    count: ({ count }: { count: number }) => `Space owners: ${String(count)}`,
+    empty: 'No space owners yet',
+    emptyHint: 'Add an owner and link their space to verify it.',
+    noMatch: 'No space owners match',
+    clearFilters: 'Clear filters',
+    loadFailed: 'We couldn’t load the space owners',
+    pagination: {
+      label: 'Pages of the space owners list',
       previous: 'Previous',
       next: 'Next',
       page: ({ page }: { page: number }) => `Page ${String(page)}`,

@@ -1,6 +1,6 @@
 # Space Links
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
 > **Authority:** The `space-links` capability: a user's links to spaces and their role at each ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)), as the session, the caller's own list, the space switcher, the admin's spaces list and users list, the admin's owners (added, linked and unlinked) and the links loader use them. Its endpoints are owned by the API contract: [*Managed spaces*](../api/api-contract.md#managed-spaces), [*Owners (the admin)*](../api/api-contract.md#owners-the-admin) and [*Users (the admin)*](../api/api-contract.md#users-the-admin); the `SpaceManager` entity and "verified" by the [data model](../architecture/data-model.md#spaces).
 > **Scope:** the API module `space-links` (L2); `@masaha/shared/space-links`; the web feature `features/space-links`, dashboard-only.
 
@@ -12,7 +12,7 @@
 - Composes the admin's spaces list: its filters, its owners and its verified state, and on the API the soft-deleted spaces as a list of their own; and shows it on the dashboard's spaces page, its deleted spaces included, with its filters kept in the address.
 - Loads a space's links for the routes on one space, so `can()` knows the caller's role there and whether the space is verified.
 - Answers the [directory](directory.md) which spaces are verified, every one in one query: its filter, and the stale prices it hides.
-- Composes the admin's users list, on the API: its filters, and the spaces each person owns; the owners page is that list filtered to the owners.
+- Composes the admin's users list, on the API: its filters, and the spaces each person owns; the owners page is that list filtered to the owners, and shows it on the dashboard's owners page, with its search and its state kept in the address.
 - Adds an owner for the admin, on the API: a new account with a temporary password, or an existing one upgraded on purpose, linked to one space.
 - Links a space's owners for the admin, and ends their links, one space at a time, on the API; the person's global role follows their owner links.
 - Changes a person's global role for the admin, between `USER` and `ADMIN`, on the API, while they hold no active link.
@@ -24,7 +24,7 @@ screen and staff-management API remain planned.
 ## Who uses it
 
 - **Every signed-in user with links,** through the switcher and the session's links, which the dashboard's guards and landing read.
-- **The admin,** through the spaces list, on the dashboard's spaces page, the admin's routes on one space, the users list, and adding an owner.
+- **The admin,** through the spaces list, on the dashboard's spaces page, the admin's routes on one space, the users list, on the dashboard's owners page, and adding an owner.
 - **`auth`,** which puts the links in every `Session` it builds.
 
 ## Responsibility boundary
@@ -45,6 +45,7 @@ screen and staff-management API remain planned.
 - **The admin's users list** is a composed read too: every filter is the account's own, so `users` filters and pages its accounts; the page's active owner links follow, and their spaces' names from `spaces`, which leaves a soft-deleted space out, one query per module.
 - **The web** reads through the transport and TanStack Query, the caller's spaces under the user's own key scope and the admin's list under the admin's ([architecture §7](../frontend/architecture.md#7-server-state)); the dashboard-only rule keeps it out of the site's download ([architecture §3](../frontend/architecture.md#3-capabilities-features)).
 - **The admin's list on the web** is one section that the spaces page sets, with two slots it fills from other capabilities: each row's actions, from [`spaces`](spaces.md), and the place field, from [`lookups`](lookups.md) ([architecture › What a feature exports](../frontend/architecture.md#what-a-feature-exports)); and the path each space's name leads to, the space's editor (`spaceLink`). Its filters and page live in the address ([architecture › Where state lives](../frontend/architecture.md#where-state-lives)).
+- **The owners page on the web** reads the users list under `['admin', 'space-links', 'users', request]`, in the admin's scope, with `role=owner` fixed by its own hook; the section takes from the page only the path of the deleted spaces, where an owner whose every space is deleted is led.
 
 ## Behaviour and flows
 
@@ -70,6 +71,12 @@ screen and staff-management API remain planned.
 - **A deleted row**, under «محذوفة», is muted: its name is text and leads nowhere, since its editor would only say that it is gone; it carries no badge of its own, one muted line «محذوفة · …» by the same short date as the last update standing where its state was, and a dash, read aloud as nothing, where its freshness was — nothing will fill a deleted space's gaps. Its owners and its pages are the others'. Every other status leaves the deleted spaces out. Its one action, **Restore**, belongs to [`spaces`](spaces.md#behaviour-and-flows), and the way out of a deleted space to a user — restore it, unlink its owner, delete it again — is written there ([finding 50](../architecture/findings/50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md)); of the three steps, only the restore has a screen, the unlink arriving with the owners page.
 - **Its states:** placeholder rows while the first page loads; while another page or filter loads, the rows and the pages shown stay, the list marked busy, so a page chosen from the keyboard keeps the focus; a failure, with its reference and "Try again", which waits out a 429; "No spaces yet"; and, while a filter applies, "No spaces match the filters", with a button that clears them all. A failed refetch keeps the rows.
 - **The focus:** when the row that held it leaves the list, as a deleted space's does, the focus moves to the list rather than being lost.
+
+**The owners page on the web.** `OwnersList` is the users list with its role fixed to the owners (`GET /admin/users?role=owner`), under a line that says what linking an owner does. From 768 px a table: the owner's name, their email (under the name until 1024 px, its own column from there, left to right), their linked spaces (a neutral badge each, an English-only name marked as English in the Arabic interface) and their state, «نشط» on a success badge or «موقوف» on a neutral one; on a phone, a card per owner with the same facts.
+- **The search and the state:** part of a name or an email, written once typing pauses; the state is chips, «الكل · نشط · موقوف», beside the count the filters keep, at every width — a single filter of three choices is chips, not a field in a sheet (P5, A7). A chip applies at once and returns to the first page; the chip already on stays on.
+- **The address** keeps them, `?q=&state=&page=`, each read by the contract's own rule, so a value the server would refuse falls back to its default; the defaults are left out. A choice replaces the address; the pages are links. A page past the last shows the last page.
+- **An owner whose every space is deleted** has no space in the row, since the list leaves a deleted space out, while their role still counts its link ([finding 50](../architecture/findings/50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md)): the row reads «كل مساحاته محذوفة — استرجع المساحة لفك ربطه», the whole line a link to the deleted spaces, where the restore begins the way out.
+- **Its states** are the spaces list's: placeholder rows while the first page loads; the rows kept, marked busy, while another page or filter loads; a failure with its reference and "Try again", which waits out a 429; «لا يوجد أصحاب مساحات بعد»; and, while a filter applies, «لا يوجد أصحاب مساحات يطابقون البحث», with a button that clears them. When the row that held the focus leaves the list, the focus moves to the list.
 
 ## Decisions
 
@@ -118,6 +125,11 @@ screen and staff-management API remain planned.
 - **The search field keeps what was typed;** it changes only when the address reads another search. *Why:* the address's search is trimmed, so a field reset to it after a pause ate the space before the next word (#50's review). 2026-10-08, #50.
 - **When the row that held the focus leaves, the focus moves to the list.** *Why:* a deleted space's row takes its menu with it, and the focus would otherwise fall to the page's start. 2026-10-07, #50.
 - **The admin's list reads under `['admin', 'space-links', 'spaces', request]`,** and the admin's writes on a space refresh the admin scope whole ([spaces › Decisions](spaces.md#decisions)). *Why:* the admin's scope, and no feature names another's keys. 2026-10-07, #50.
+- **The users list lives in `space-links`, beside the spaces list,** with its read, its row, its search and its state filter. *Why:* a web capability carries the name of the backend module it calls, and `GET /admin/users` is this module's composed read, as the spaces list is; the paged list's pieces are reused, not copied; the users page will fill its row actions through a slot, as `spaces` fills the spaces list's. 2026-10-18, #88.
+- **The owners page is the users list with `role=owner` fixed by its own hook;** the search and the state are the users list's (`?q=&state=&page=`). *Why:* the users page reuses the read, the row, the filters' address and the query. 2026-10-18, #88.
+- **The owners page's state filter is chips, «الكل · نشط · موقوف», at every width, with no sheet.** *Why:* a single status filter of four or fewer choices is a `ToggleGroup` (P5), and a filter is a chip (A7); the design's sheet held that one filter only. 2026-10-18, #88.
+- **An owner with no space reads that every space is deleted, the whole line a link to the deleted spaces.** *Why:* the list leaves a deleted space out while the role still counts its link, so the row would otherwise show an owner of nothing; the restore is where the way out begins ([finding 50](../architecture/findings/50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md)). 2026-10-18, #88.
+- **The list's pages, states, paused search, return to the last page and focus keeper are pieces of the capability,** shared by the spaces and owners lists. *Why:* the owners list is their second instance (engineering principles §1). 2026-10-18, #88.
 - *Superseded 2026-10-15 by #84's decisions, below.* **The row's badge stays one, hidden first, else verified or unverified,** read from the row's facts. *Why:* the list looks as it did until A3's screen shows the two facts apart. 2026-10-12, the deleted-spaces item.
 - *Superseded 2026-10-15 by #84's decisions, below.* **The list keeps its own statuses, the contract's but `deleted`,** read from the address and offered in the filter; `?status=deleted` falls back to all. *Why:* the deleted spaces' screen (A3) is not built, and their rows would offer Hide and Delete. 2026-10-12, the deleted-spaces item.
 - **A live row's state is badges, one per fact:** the verification always, then «مخفية» when hidden; the row view decides the set, so the table and the card cannot disagree. *Why:* A3 — a state is two facts, and hiding a space no longer erases who edits it. It replaced #50's one badge, hidden first. 2026-10-15, #84.
@@ -130,7 +142,7 @@ screen and staff-management API remain planned.
 
 - **API:** `apps/api/src/modules/space-links/`, entry `index.ts`: the links, the caller's spaces and the loader in the module's root service, with its `me` router; `admin-spaces/` for the admin's list and its router; `admin-users/` for the admin's users list, `admin-owners/` for adding, linking and unlinking, and `admin-roles/` for the role change, on the same router, with the pure rule of the role the links give beside them.
 - **Shared:** `packages/shared/src/space-links/`: the caller's spaces, the admin's list query and its rows, the users list's query and its rows, and the owner's add and link requests and the added owner.
-- **Web:** `apps/web/src/features/space-links/`, entry `index.ts`: `SpaceSwitcher` (`components/switcher/`, `hooks/switcher/`), and `useMySpacesQuery` for the shell's public link, mounted by `pages/dashboard/shell/`; `AdminSpacesList` (`components/admin-list/`, `hooks/admin-list/`, with the pure address, row, date and page rules in `services/`), mounted by `pages/dashboard/admin/`.
+- **Web:** `apps/web/src/features/space-links/`, entry `index.ts`: `SpaceSwitcher` (`components/switcher/`, `hooks/switcher/`), and `useMySpacesQuery` for the shell's public link, mounted by `pages/dashboard/shell/`; `AdminSpacesList` (`components/admin-list/`, `hooks/admin-list/`, with the pure address, row, date and page rules in `services/`) and `OwnersList` (`components/owners-list/`, `hooks/owners-list/`, the users list's read and filters in `hooks/users-list/`, its address and row rules in `services/`), both mounted by `pages/dashboard/admin/`; the lists' shared pages and states in `components/`, and their paused search, page-in-range and focus keeper in `hooks/`.
 
 ## Open findings
 
@@ -163,3 +175,4 @@ screen and staff-management API remain planned.
 - The deleted-spaces item — the row's badge read from its facts; the list's own statuses, without `deleted`.
 - #84 — the state's badges apart, the fourth status, the deleted row muted with its date, and the stale chip by the count.
 - #85 — a deleted row as one muted line in place of its badges, the phone's sheet counting and clearing only its own two fields, and the chip's Arabic words as the design writes them.
+- #88 — the admin's owners page: the users list filtered to the owners, its search and state chips, and an owner whose spaces are all deleted led to the deleted spaces; the lists' paging shared.

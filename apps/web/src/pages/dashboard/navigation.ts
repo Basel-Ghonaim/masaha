@@ -39,6 +39,8 @@ export const SPACE_NAV: readonly SpaceNavItem[] = [
  */
 export const ADMIN_SPACES_PATH = `${DASHBOARD_PATHS.admin}/spaces`;
 export const ADMIN_ADD_SPACE_PATH = `${ADMIN_SPACES_PATH}/new`;
+/** The spaces list showing the deleted spaces, where a deleted space is restored. */
+export const ADMIN_DELETED_SPACES_PATH = `${ADMIN_SPACES_PATH}?status=deleted`;
 /** A space's editor, reached from the list and after a creation; never a sidebar item either. */
 export const ADMIN_SPACE_PATH = `${ADMIN_SPACES_PATH}/:spaceId`;
 

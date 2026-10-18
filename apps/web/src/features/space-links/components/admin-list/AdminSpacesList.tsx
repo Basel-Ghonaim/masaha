@@ -1,12 +1,13 @@
 import type { AdminSpaceRow } from '@masaha/shared/space-links';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useAdminSpacesList } from '../../hooks/admin-list/useAdminSpacesList';
+import { useFocusKeeper } from '../../hooks/useFocusKeeper';
 import type { AdminSpaceRowView } from '../../types/AdminSpaceRowView';
 import type { PlaceField } from '../../types/PlaceField';
+import { ListPagination } from '../ListPagination';
+import { ListState } from '../ListState';
 import { AdminSpaceCard } from './AdminSpaceCard';
-import { AdminSpacesPagination } from './AdminSpacesPagination';
-import { AdminSpacesState } from './AdminSpacesState';
 import { AdminSpacesToolbar } from './AdminSpacesToolbar';
 import { BadgeList } from './BadgeList';
 import { OwnersText } from './OwnersText';
@@ -36,19 +37,7 @@ export function AdminSpacesList({
   spaceLink: (space: AdminSpaceRow) => string;
 }) {
   const list = useAdminSpacesList();
-  const region = useRef<HTMLElement>(null);
-  // The last element inside the list that held the focus.
-  const focused = useRef<Element | null>(null);
-
-  useEffect(() => {
-    const element = focused.current;
-    // Only a focus lost with its element: one moved elsewhere on purpose stays there.
-    const lost = document.activeElement === null || document.activeElement === document.body;
-    if (element !== null && !element.isConnected && lost) {
-      focused.current = null;
-      region.current?.focus();
-    }
-  }, [list.rows]);
+  const { region, onFocus } = useFocusKeeper(list.rows);
 
   // The table draws each cell as a component of its own, so new columns would draw every row anew,
   // losing the focus inside it: they change only with their words and the actions handed in.
@@ -127,9 +116,7 @@ export function AdminSpacesList({
       aria-busy={list.busy || undefined}
       tabIndex={-1}
       className="outline-none"
-      onFocus={(event) => {
-        if (event.target !== region.current) focused.current = event.target;
-      }}
+      onFocus={onFocus}
     >
       <DataTable
         label={list.label}
@@ -140,13 +127,11 @@ export function AdminSpacesList({
           <AdminSpaceCard row={row} actions={actions(row.row)} spaceLink={spaceLink(row.row)} />
         )}
         loading={list.status === 'loading'}
-        empty={<AdminSpacesState list={list} />}
+        empty={<ListState list={list} />}
         toolbar={
           <AdminSpacesToolbar filters={list.filters} placeField={placeField} count={list.count} />
         }
-        pagination={
-          list.pagination !== null && <AdminSpacesPagination pagination={list.pagination} />
-        }
+        pagination={list.pagination !== null && <ListPagination pagination={list.pagination} />}
       />
     </section>
   );
