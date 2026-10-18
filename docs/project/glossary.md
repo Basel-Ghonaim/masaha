@@ -1,6 +1,6 @@
 # Glossary
 
-> **Status:** Active · **Last Updated:** 2026-10-12 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
 > **Authority:** The canonical vocabulary. Code, documents and copy use these terms.
 
 | Term | Arabic | Meaning |
@@ -8,7 +8,7 @@
 | **Space** | مساحة | A coworking space listed in the directory |
 | **Verified space** | مساحة موثّقة | A space linked to at least one Owner account by the admin |
 | **Unverified space** | مساحة غير موثّقة | A listed space with no linked owner; data comes from the admin |
-| **Owner** | صاحب المساحة | A user with an `OWNER` link to a space, who manages it; the global `OWNER` role labels such users ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)) |
+| **Owner** | صاحب المساحة | A user with an `OWNER` link to a space, who manages it; the global `OWNER` role labels such users ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). The dashboard's actions and short phrases use the short form «مالك» («إضافة مالك»، «ربط مالك»); «صاحب المساحة» stays the role's name |
 | **Space manager link** | ربط الإدارة | The record linking a user to a Space with a role, `OWNER` or `RECEPTION` (`SpaceManager`) |
 | **Reception** | الاستقبال | Front-desk staff of a space, added by its owner (a `RECEPTION` link). No finance, voids, staff or space settings |
 | **Front desk** | مكتب الاستقبال | Where visits, check-ins and payments are recorded, by the owner or reception |

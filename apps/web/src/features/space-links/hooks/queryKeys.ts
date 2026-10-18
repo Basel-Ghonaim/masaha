@@ -1,4 +1,5 @@
 import type { AdminSpacesRequest } from '../types/AdminSpacesRequest';
+import type { AdminUsersRequest } from '../types/AdminUsersRequest';
 
 /** The capability's query keys, scoped as docs/frontend/architecture.md §7 says. */
 export const spaceLinksKeys = {
@@ -10,4 +11,6 @@ export const spaceLinksKeys = {
    */
   adminSpaces: (request: AdminSpacesRequest) =>
     ['admin', 'space-links', 'spaces', request] as const,
+  /** A page of the admin's users list, one key per request, under the admin's scope too. */
+  adminUsers: (request: AdminUsersRequest) => ['admin', 'space-links', 'users', request] as const,
 };
