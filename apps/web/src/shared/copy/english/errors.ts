@@ -46,14 +46,18 @@ export const ERRORS = {
   RESEND_LIMIT_REACHED:
     'You’ve asked for the link too many times. Enter your email again to ask for another.',
   GOOGLE_LINK_NOT_ALLOWED:
-    'An account with this email already exists. Sign in with its password, or reset the password, to continue.',
+    'An account with this email already exists. Sign in with its password; if you don’t know it, reset it, or ask whoever created your account.',
   PASSWORD_NOT_SET:
     'This account has no password yet. Set one from the link we email you under “Forgot password”.',
   TEMPORARY_PASSWORD_NOT_PENDING:
     'This account has no temporary password waiting to be changed, so there is no handover to record.',
+  TEMPORARY_PASSWORD_EXPIRED:
+    'This temporary password has expired. Ask whoever created your account for a new one.',
   OWN_ACCOUNT: 'You can’t do this to your own account.',
   LAST_ADMIN: 'The platform must keep at least one active admin.',
   GOOGLE_ONLY_ACCOUNT: 'This account signs in with Google only, so it has no password to replace.',
   ACCOUNT_HAS_LINKS:
     'This person is linked to a space, and their role follows those links. Unlink them first.',
+  ACCOUNT_PASSWORD_PENDING:
+    'This person hasn’t changed their temporary password yet; the account can’t be upgraded or linked until they sign in and change it.',
 } as const satisfies Record<AppErrorType | DomainErrorCode, string>;

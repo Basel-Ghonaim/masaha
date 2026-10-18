@@ -7,7 +7,7 @@ import {
   REFUSED_CALLERS,
   signIn,
 } from '../../../../test/admin.ts';
-import { createAccount, createTestApp } from '../../../../test/app.ts';
+import { createAccount, createTestApp, inAWeek } from '../../../../test/app.ts';
 import { createSpace } from '../../../../test/factories.ts';
 import { lockUsers, whileHeld } from '../../../../test/locks.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
@@ -181,6 +181,19 @@ describe('PUT /admin/users/:userId/role', () => {
     expect(response.status).toBe(409);
     expect(errorOf(response).code).toBe('ACCOUNT_HAS_LINKS');
     expect(await roleOf(owner.id)).toBe('OWNER');
+  });
+
+  it('refuses to make an admin of a person whose temporary password is pending, and still makes a pending admin a user', async () => {
+    const pending = { mustChangePassword: true, temporaryPasswordExpiresAt: inAWeek() };
+    const person = await createAccount(pending);
+    const other = await createAccount({ email: 'other@example.com', role: 'ADMIN', ...pending });
+
+    const refused = await changeRole(person.id, 'ADMIN');
+
+    expect(refused.status).toBe(409);
+    expect(errorOf(refused)).toMatchObject({ type: 'conflict', code: 'ACCOUNT_PASSWORD_PENDING' });
+    expect(await roleOf(person.id)).toBe('USER');
+    expect((await changeRole(other.id, 'USER')).status).toBe(204);
   });
 
   it('makes an admin of a person whose links have all ended', async () => {

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { temporaryPassword } from './temporaryPassword.ts';
+import {
+  temporaryPassword,
+  temporaryPasswordExpired,
+  temporaryPasswordExpiry,
+} from './temporaryPassword.ts';
 
 // Enough draws that one breaking the policy, a letter or a digit missing, would show.
 const draws = Array.from({ length: 500 }, () => temporaryPassword());
@@ -21,5 +25,29 @@ describe('temporaryPassword', () => {
 
   it('is a new password each time', () => {
     expect(new Set(draws).size).toBe(draws.length);
+  });
+});
+
+describe('the expiry of a temporary password', () => {
+  it('expires a temporary password exactly 7 days after its issue', () => {
+    expect(temporaryPasswordExpiry(new Date('2026-10-18T10:00:00.000Z'))).toEqual(
+      new Date('2026-10-25T10:00:00.000Z'),
+    );
+  });
+
+  it('counts a pending temporary password as expired from its expiry’s instant, and never one not pending', () => {
+    const expiresAt = new Date('2026-10-25T10:00:00.000Z');
+    const pending = { mustChangePassword: true, temporaryPasswordExpiresAt: expiresAt };
+    const at = (ms: number) => new Date(expiresAt.getTime() + ms);
+
+    expect(temporaryPasswordExpired(pending, at(-1))).toBe(false);
+    expect(temporaryPasswordExpired(pending, at(0))).toBe(true);
+    expect(temporaryPasswordExpired(pending, at(60_000))).toBe(true);
+    expect(
+      temporaryPasswordExpired(
+        { mustChangePassword: false, temporaryPasswordExpiresAt: expiresAt },
+        at(60_000),
+      ),
+    ).toBe(false);
   });
 });

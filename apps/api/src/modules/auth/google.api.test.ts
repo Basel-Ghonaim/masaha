@@ -91,7 +91,7 @@ describe('POST /auth/google', () => {
   ])(
     'links Google to the account of %s, removes its password and ends its sessions',
     async (_case, idToken, email) => {
-      const existing = await createAccount({ email, mustChangePassword: true });
+      const existing = await createAccount({ email });
       const before = cookieValue(await login(email), 'masaha_refresh') ?? '';
 
       const first = await signInWithGoogle(idToken);
@@ -145,6 +145,21 @@ describe('POST /auth/google', () => {
     const stored = await prisma.user.findUniqueOrThrow({ where: { id: existing.id } });
     expect(stored.googleSubject).toBeNull();
     expect(stored.passwordHash).not.toBeNull();
+  });
+
+  it('refuses to link Google to an account whose temporary password is pending, linking nothing', async () => {
+    const existing = await createAccount({ email: 'sara@gmail.com', mustChangePassword: true });
+
+    const response = await signInWithGoogle('gmail');
+
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({
+      error: { type: 'conflict', code: 'GOOGLE_LINK_NOT_ALLOWED' },
+    });
+    expect(cookieValue(response, 'masaha_refresh')).toBeUndefined();
+    const stored = await prisma.user.findUniqueOrThrow({ where: { id: existing.id } });
+    expect(stored).toMatchObject({ googleSubject: null, passwordHash: existing.passwordHash });
+    expect(await prisma.refreshToken.count()).toBe(0);
   });
 
   it('keeps a pending temporary password pending on an account Google already opens', async () => {

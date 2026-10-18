@@ -60,4 +60,27 @@ export interface AdminUserRow {
   joinedAt: string;
   /** The spaces of its active owner links, oldest first; a soft-deleted space's is left out. */
   spaces: { id: number; nameEn: string; nameAr: string | null }[];
+  /** The spaces of its active reception links, oldest first; a soft-deleted space's is left out. */
+  receptionSpaces: { id: number; nameEn: string; nameAr: string | null }[];
+}
+
+/** A reception account the owner created (POST /manage/spaces/:spaceId/staff). */
+export interface AddedStaff {
+  userId: number;
+  /** Its temporary password, shown once. */
+  temporaryPassword: string;
+}
+
+/** One reception link of the space, active or not (GET /manage/spaces/:spaceId/staff). */
+export interface StaffMember {
+  userId: number;
+  name: string;
+  email: string;
+  /** `false` once the owner deactivated the link; re-activated through the same route. */
+  isActive: boolean;
+  /**
+   * The temporary password still to be changed, and when it expires (ISO 8601); `null` once
+   * changed.
+   */
+  temporaryPassword: { expiresAt: string } | null;
 }

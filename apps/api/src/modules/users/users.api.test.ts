@@ -72,6 +72,95 @@ describe('POST /me/password: the forced change', () => {
   });
 });
 
+describe('POST /me/password: the email at the forced change', () => {
+  const emailChanges = () =>
+    prisma.auditLog.findMany({
+      where: { action: 'user.emailChanged' },
+      select: { actorId: true, entityType: true, entityId: true, before: true, after: true },
+    });
+
+  it('the forced change corrects the email, audited with the old and the new address', async () => {
+    const user = await createAccount({ mustChangePassword: true });
+    const { accessToken } = await signIn();
+
+    const changed = await changePassword(accessToken, {
+      password: NEW_PASSWORD,
+      email: 'nour@example.com',
+    });
+
+    expect(changed.status).toBe(200);
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({
+      email: 'nour@example.com',
+      mustChangePassword: false,
+    });
+    expect(await emailChanges()).toEqual([
+      {
+        actorId: user.id,
+        entityType: 'user',
+        entityId: user.id,
+        before: { email: 'sara@example.com' },
+        after: { email: 'nour@example.com' },
+      },
+    ]);
+  });
+
+  it('the forced change refuses an email another account holds, changing nothing', async () => {
+    const user = await createAccount({ mustChangePassword: true });
+    await createAccount({ email: 'taken@example.com' });
+    const { accessToken } = await signIn();
+
+    const refused = await changePassword(accessToken, {
+      password: NEW_PASSWORD,
+      email: 'taken@example.com',
+    });
+
+    expect(refused.status).toBe(409);
+    expect(refused.body).toMatchObject({
+      error: { type: 'conflict', code: 'EMAIL_TAKEN', errors: { email: ['not_unique'] } },
+    });
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({
+      email: 'sara@example.com',
+      passwordHash: user.passwordHash,
+      mustChangePassword: true,
+    });
+    expect(await prisma.auditLog.count()).toBe(0);
+  });
+
+  it('refuses an email outside the forced change', async () => {
+    const user = await createAccount();
+    const { accessToken } = await signIn();
+
+    const refused = await changePassword(accessToken, {
+      currentPassword: PASSWORD,
+      password: NEW_PASSWORD,
+      email: 'nour@example.com',
+    });
+
+    expect(refused.status).toBe(422);
+    expect(refused.body).toMatchObject({ error: { errors: { email: ['invalid_choice'] } } });
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({
+      email: 'sara@example.com',
+      passwordHash: user.passwordHash,
+    });
+  });
+
+  it('the same email confirms it: nothing audited', async () => {
+    const user = await createAccount({ mustChangePassword: true });
+    const { accessToken } = await signIn();
+
+    const changed = await changePassword(accessToken, {
+      password: NEW_PASSWORD,
+      email: ' Sara@Example.com ',
+    });
+
+    expect(changed.status).toBe(200);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).email).toBe(
+      'sara@example.com',
+    );
+    expect(await emailChanges()).toEqual([]);
+  });
+});
+
 describe('POST /me/password: a voluntary change', () => {
   it('needs the current password', async () => {
     await createAccount();

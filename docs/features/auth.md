@@ -1,6 +1,6 @@
 # Auth
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-13 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
 > **Authority:** The `auth` capability: the sign-in flows, as an orchestrator with no data of its own: registration, sign-in with a password or with Google, refresh, sign-out, and the forgotten password's recovery. Its endpoints are owned by the [API contract](../api/api-contract.md#session); every rule whose reason is security by [security.md](../backend/security.md); the recovery session's design by [ADR 0017](../architecture/decisions/0017-recovery-session.md).
 > **Scope:** the API module `auth` (L3), with its email and Google ports; `@masaha/shared/auth`; the web feature `features/auth`.
 
@@ -33,11 +33,11 @@
 
 **Sign-in and register.** Register sends the interface's language, which the new account takes. Where the user lands is the guard's.
 
-**Google.** The web's client id is `VITE_GOOGLE_CLIENT_ID` ([setup › The web](../development/setup.md#the-web)); without the API's `GOOGLE_CLIENT_ID`, the API answers 503, and production refuses to start. A new account takes Google's name when it is valid user text, else the email's local part.
+**Google.** The web's client id is `VITE_GOOGLE_CLIENT_ID` ([setup › The web](../development/setup.md#the-web)); without the API's `GOOGLE_CLIENT_ID`, the API answers 503, and production refuses to start. A new account takes Google's name when it is valid user text, else the email's local part. An account whose temporary password is pending is never linked ([security › Sign-in methods](../backend/security.md#sign-in-methods)).
 
 **Refresh.** The cookie's token names its session. The account is read from `users`, a suspended one refused, and the token rotated by `sessions`, which refuses a session past its 30 days ([security › Tokens and cookies](../backend/security.md#tokens-and-cookies), [conventions › Concurrency](../backend/conventions.md#concurrency)). The `Session` is the user's view, their active links and a new access token.
 
-**The forgotten password.** A request for a link opens a recovery in the browser, held by the server and found by its cookie, and answers where it stands ([the contract](../api/api-contract.md#the-forgotten-password)). The page then offers another link without the email. Opening the link checks it: the reset page takes the token from the address's fragment, removes it, and sends it once; the answer names the account before the form is sent. Setting the password ends the recovery. An answer that sends no email waits about as long as a send would ([security › Passwords](../backend/security.md#passwords)).
+**The forgotten password.** A request for a link opens a recovery in the browser, held by the server and found by its cookie, and answers where it stands ([the contract](../api/api-contract.md#the-forgotten-password)). The page then offers another link without the email. Opening the link checks it: the reset page takes the token from the address's fragment, removes it, and sends it once; the answer names the account before the form is sent. Setting the password ends the recovery. An answer that sends no email waits about as long as a send would ([security › Passwords](../backend/security.md#passwords)). An account whose temporary password is pending gets no email, and its links are refused ([security › Passwords](../backend/security.md#passwords)).
 
 **The reset email** is bilingual, Arabic then English, as designed ([SCREENS.md](../design/SCREENS.md) row 7), except the greeting by name ([security › Passwords](../backend/security.md#passwords)). Its words live with the module, in both languages held to one shape, since the API has no copy catalogue.
 
@@ -52,6 +52,7 @@
 - **The email goes from a single Gmail account with an app password,** through `nodemailer` and any SMTP relay. *Why:* without a domain of its own, no domain-verified provider is possible ([ADR 0014](../architecture/decisions/0014-deployment.md)), and Gmail's own mail passes DMARC; another account or relay changes configuration, not code. 2026-10-03, #25.
 - **A session ends 30 days after its sign-in,** its deadline carried by each of its tokens and copied on rotation, not capped into the token's own expiry, so a refresh past it reaches the lock and deletes the family, even with a token past its own 7 days; the families alive at the migration got 30 days from it. *Why:* a session refreshed weekly never ended ([finding 20](../architecture/findings/20-a-session-has-no-absolute-lifetime.md)); its sign-in time is unknown once its first token is gone. 2026-10-13, #78.
 - **An answer that sends no email waits as a send would, and only then:** a request for a link or a resend that delivers nothing waits a time drawn anew within one constant's bounds, `NO_SEND_WAIT`, through the timer port; a delivered email adds no wait. *Why:* the send cannot move after the answer ([ADR 0014](../architecture/decisions/0014-deployment.md)), so the answers that send nothing are made as slow; padding the real sends too would push them later than the padded ones ([finding 16](../architecture/findings/16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists.md)). 2026-10-13, #78.
+- **Whether the reset email may open an account is asked of `users` (`mayRecoverByEmail`), at the request and the resend, and again under the session lock at the check and the reset.** *Why:* a link asked before a temporary password was issued could be inserted after the issue ended the links; the guard under the lock refuses it, writing nothing ([ADR 0013](../architecture/decisions/0013-identity-modules.md): the rule is the account's). 2026-10-18, #90.
 
 ### Web decisions
 
@@ -90,6 +91,7 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 - #34 — the shared package split by capability.
 - #38 — the recovery session.
 - #78 — a session's 30 days; the access tokens end with the session, through `users`' `endSessions`, after a reset and a refused refresh; the forgotten password's wait when it sends nothing.
+- #90 — no reset email, no reset with an older link and no Google link while a temporary password is pending.
 
 ### Web history
 

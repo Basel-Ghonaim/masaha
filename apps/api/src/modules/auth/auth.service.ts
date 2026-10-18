@@ -266,8 +266,9 @@ export function createAuthService({
 
     /**
      * Opens a recovery in this browser, ending the one it held, and emails a reset link when the
-     * email has an account that may sign in. The caller learns nothing either way: the position and
-     * the cookie are the same for every address, and a failed send is only logged.
+     * email has an account that may sign in, with no temporary password pending. The caller learns
+     * nothing either way: the position and the cookie are the same for every address, and a failed
+     * send is only logged.
      */
     async forgotPassword(
       { email }: ForgotPasswordRequest,
@@ -279,7 +280,7 @@ export function createAuthService({
       await limiter.count(PASSWORD_EMAIL, clientAddress, digest);
 
       const account = await users.findByEmail(email);
-      const holder = account && users.maySignIn(account) ? account : undefined;
+      const holder = account && users.mayRecoverByEmail(account) ? account : undefined;
       const { key, recovery } = await sessions.openRecovery({
         userId: holder?.id,
         maskedEmail: maskEmail(email),
@@ -309,7 +310,9 @@ export function createAuthService({
       let delivered = false;
       if (renewed.userId !== null) {
         const account = await users.get(renewed.userId);
-        if (users.maySignIn(account)) delivered = await sendResetLink(account, clientAddress);
+        if (users.mayRecoverByEmail(account)) {
+          delivered = await sendResetLink(account, clientAddress);
+        }
       }
       await answerAsASend(delivered);
       return { position: positionOf(renewed), key, maxAgeMs: renewed.remainingMs };
@@ -338,7 +341,8 @@ export function createAuthService({
       if (!owner) throw invalidResetLink();
       const opened = await runInTransaction(async (tx) => {
         const account = await users.lockAccount(owner, tx);
-        if (!account) return undefined;
+        // A temporary password made pending after the link was sent: the link opens nothing.
+        if (!account || !users.mayRecoverByEmail(account)) return undefined;
         return sessions.bindRecovery(
           token,
           { key: heldKey, maskedEmail: maskEmail(account.email) },
@@ -371,7 +375,9 @@ export function createAuthService({
       if (owner === null) throw invalidRecovery();
       const passwordHash = await users.hashPassword(password);
       await runInTransaction(async (tx) => {
-        await users.lockAccount(owner, tx);
+        const account = await users.lockAccount(owner, tx);
+        // Before the link is used: a temporary password made pending since its check is kept.
+        if (!account || !users.mayRecoverByEmail(account)) throw invalidRecovery();
         if ((await sessions.consumeRecoveryLink(key, tx)) !== owner) throw invalidRecovery();
         await users.setPassword(owner, passwordHash, tx);
         await users.endSessions(owner, tx);

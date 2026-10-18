@@ -25,6 +25,7 @@ const RIMA: AdminUserRow = {
     { id: 7, nameEn: 'Focus Hub', nameAr: null },
     { id: 9, nameEn: 'Palm Hub', nameAr: 'بالم' },
   ],
+  receptionSpaces: [],
 };
 const SAMI: AdminUserRow = {
   id: 6,
@@ -36,6 +37,7 @@ const SAMI: AdminUserRow = {
   joinedAt: '2026-09-02T08:00:00Z',
   // Every one of his spaces is deleted: the list leaves them out.
   spaces: [],
+  receptionSpaces: [],
 };
 
 /** A page of `rows`, the only one. */

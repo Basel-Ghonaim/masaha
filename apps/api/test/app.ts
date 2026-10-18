@@ -57,15 +57,27 @@ export const PASSWORD = 'gaza2026';
 // bcrypt at cost 12 takes a while, so each password is hashed once per test file.
 const hashes = new Map<string, Promise<string>>();
 
-/** An account that signs in with `PASSWORD`, unless overridden. */
+/** A week from now: a pending temporary password's expiry, as an issue sets it. */
+export function inAWeek(): Date {
+  return new Date(Date.now() + 7 * 24 * 60 * 60_000);
+}
+
+/**
+ * An account that signs in with `PASSWORD`, unless overridden. A pending temporary password gets
+ * an expiry a week ahead unless one is given: the database refuses one without (S4).
+ */
 export async function createAccount(
   data: Partial<Prisma.UserUncheckedCreateInput> & { email?: string; password?: string } = {},
 ) {
   const { password = PASSWORD, email = 'sara@example.com', ...rest } = data;
   const passwordHash = hashes.get(password) ?? hashPassword(password);
   hashes.set(password, passwordHash);
+  const expiry =
+    rest.mustChangePassword && rest.temporaryPasswordExpiresAt === undefined
+      ? { temporaryPasswordExpiresAt: inAWeek() }
+      : {};
   return prisma.user.create({
-    data: { email, name: 'Sara', passwordHash: await passwordHash, ...rest },
+    data: { email, name: 'Sara', passwordHash: await passwordHash, ...expiry, ...rest },
   });
 }
 

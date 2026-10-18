@@ -63,6 +63,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - the public catalogue of the lookups (`GET /lookups`), the same bounded lists, active rows only (§5, *Lookups (public)*);
 - the map's pins (`GET /map/spaces`), the whole filtered set up to a ceiling of 1,000 (§5, *Directory (public)*);
 - a space's packages (`GET /manage/spaces/:spaceId/packages`), retired ones included: a space keeps tens at most, typed by hand, and the owner's list and the front desk's picker both read them whole (§5, *Packages (managed)*; why: [packages › Decisions](../features/packages.md#api-decisions)).
+- a space's staff (`GET /manage/spaces/:spaceId/staff`), every reception link, active or not: a space has few, and the owner's page reads them whole (§5, *Staff (managed)*; why: [space-links › Decisions](../features/space-links.md#api-decisions)).
 
 ## 5. Endpoints
 
@@ -95,12 +96,12 @@ Every endpoint with a body may answer `validation` (422), and every endpoint may
 #### `POST /auth/login` · 🌐
 - **Body:** `{ email, password }`. The policy is not checked here.
 - **200:** `Session`.
-- **Errors:** `validation` (422); `unauthorized` (401) `INVALID_CREDENTIALS` for an unknown email, a wrong password or a Google-only account alike; `forbidden` (403) `ACCOUNT_SUSPENDED`, only once the password matches; `rate_limit` (429) under the sign-in limits.
+- **Errors:** `validation` (422); `unauthorized` (401) `INVALID_CREDENTIALS` for an unknown email, a wrong password or a Google-only account alike; `forbidden` (403) `ACCOUNT_SUSPENDED`, only once the password matches; `forbidden` (403) `TEMPORARY_PASSWORD_EXPIRED`, only once the password matches, for a temporary password past its expiry ([security.md](../backend/security.md#passwords)); `rate_limit` (429) under the sign-in limits.
 
 #### `POST /auth/google` · 🌐
 - **Body:** `{ idToken, language? }`: a Google OpenID Connect ID token from Google's sign-in on the web, and the interface language for an account this creates.
 - **200:** `Session & { linked }`. The account linked to this Google account; else the account with its email, linked now where security allows it (`linked: true`); else a new `USER` without a password ([security.md](../backend/security.md#sign-in-methods)).
-- **Errors:** `validation` (422); `unauthorized` (401) `GOOGLE_TOKEN_INVALID` for a token that fails verification, or whose email's account is linked to another Google account; `conflict` (409) `GOOGLE_LINK_NOT_ALLOWED` when the email has an account and Google is not the authority for the address; `forbidden` (403) `ACCOUNT_SUSPENDED`; `service_unavailable` (503) while the API has no Google client id, or cannot load Google's keys; a 503 counts no failure.
+- **Errors:** `validation` (422); `unauthorized` (401) `GOOGLE_TOKEN_INVALID` for a token that fails verification, or whose email's account is linked to another Google account; `conflict` (409) `GOOGLE_LINK_NOT_ALLOWED` when the email has an account and Google is not the authority for the address, or the account has a temporary password pending ([security.md](../backend/security.md#passwords)); `forbidden` (403) `ACCOUNT_SUSPENDED`; `service_unavailable` (503) while the API has no Google client id, or cannot load Google's keys; a 503 counts no failure.
 
 #### `POST /auth/refresh` · the refresh cookie
 - **Body:** none.
@@ -128,12 +129,12 @@ RecoveryPosition =
 
 #### `POST /auth/password/forgot` · 🌐 · sets the recovery cookie
 - **Body:** `{ email }`.
-- **202:** `RecoveryPosition` at `sent`, and the recovery cookie, the same for every address, whether or not it has an account. A recovery the browser held is ended. When the address has an account that may sign in, the reset email is sent.
+- **202:** `RecoveryPosition` at `sent`, and the recovery cookie, the same for every address, whether or not it has an account. A recovery the browser held is ended. When the address has an account that may sign in and has no temporary password pending, the reset email is sent.
 - **Errors:** `validation` (422); `forbidden` (403) for a cross-site request; `rate_limit` (429).
 
 #### `POST /auth/password/resend` · the recovery cookie
 - **Body:** none. The address is the recovery's: any field is refused.
-- **202:** `RecoveryPosition` at `sent`, with the window started again, and the recovery cookie renewed for the new link's life. When the recovery's address has an account that may sign in, another reset email is sent. The answer is the same either way.
+- **202:** `RecoveryPosition` at `sent`, with the window started again, and the recovery cookie renewed for the new link's life. When the recovery's address has an account that may sign in and has no temporary password pending, another reset email is sent. The answer is the same either way.
 - **Errors:** `validation` (422) for a field in the body; `bad_request` (400) `RECOVERY_INVALID` without a recovery at `sent` (none, ended or expired); `bad_request` (400) `RESEND_LIMIT_REACHED` once its resends are spent; `rate_limit` (429) inside the window, with `Retry-After` the seconds left; `forbidden` (403) for a cross-site request.
 
 #### `GET /auth/password/recovery` · the recovery cookie
@@ -143,21 +144,21 @@ RecoveryPosition =
 #### `POST /auth/password/reset/check` · 🌐 · sets the recovery cookie
 - **Body:** `{ token }`, read by the web from the link's fragment. It is the last time the web holds it.
 - **200:** `RecoveryPosition` at `password`, and the recovery cookie, now lasting as long as the link. The link is bound to the browser's recovery, or to a new one when the browser holds none, and a recovery elsewhere that held it ends. The token is neither used nor extended.
-- **Errors:** `validation` (422) for a missing or empty token; `bad_request` (400) `RESET_TOKEN_INVALID`, the same for an unknown, expired or used link; `forbidden` (403) for a cross-site request; `rate_limit` (429).
+- **Errors:** `validation` (422) for a missing or empty token; `bad_request` (400) `RESET_TOKEN_INVALID`, the same for an unknown, expired or used link, and for a link of an account whose temporary password became pending; `forbidden` (403) for a cross-site request; `rate_limit` (429).
 
 #### `POST /auth/password/reset` · the recovery cookie
 - **Body:** `{ password }`, following the policy. The link is the recovery's: a `token` in the body is refused.
-- **204:** the password is set with the link the recovery holds, a pending temporary one is settled, and every session, and every recovery bound to a link of the user, ended. The link is used, and the recovery cookie cleared.
-- **Errors:** `validation` (422), with `errors.token = ["invalid_format"]` for a token in the body; `bad_request` (400) `RECOVERY_INVALID` without a recovery at `password`, or when its link was used, has expired or was replaced meanwhile; `forbidden` (403) for a cross-site request, which keeps the cookie; `rate_limit` (429).
+- **204:** the password is set with the link the recovery holds, and every session, and every recovery bound to a link of the user, ended. The link is used, and the recovery cookie cleared.
+- **Errors:** `validation` (422), with `errors.token = ["invalid_format"]` for a token in the body; `bad_request` (400) `RECOVERY_INVALID` without a recovery at `password`, or when its link was used, has expired or was replaced meanwhile, or its account's temporary password became pending; `forbidden` (403) for a cross-site request, which keeps the cookie; `rate_limit` (429).
 
 ### Me
 
 The signed-in user's own account. Each endpoint needs the access token.
 
 #### `POST /me/password` · 👤, also while a temporary password is pending
-- **Body:** `{ currentPassword?, password }`. The new password follows the policy. `currentPassword` is required unless a temporary password is pending (the forced change), as both the access token and the account say.
-- **200:** `{ accessToken }`, and a new refresh cookie: this device's session goes on in a new one ([security.md](../backend/security.md#passwords)).
-- **Errors:** `unauthorized` (401) without a valid access token, for a suspended account, or for a token signed before the account's sessions last ended (§1); `validation` (422), with `currentPassword: ["required"]` when it is missing; `bad_request` (400) `CURRENT_PASSWORD_INCORRECT`, which is not a 401, so it never looks like an expired session, also when a reset changed the password meanwhile; `bad_request` (400) `PASSWORD_NOT_SET` for an account without a password, which sets one through the reset email; `forbidden` (403) `ACCOUNT_SUSPENDED` for an account suspended while the change ran; `rate_limit` (429) under its failures limit.
+- **Body:** `{ currentPassword?, password, email? }`. The new password follows the policy. `currentPassword` is required unless a temporary password is pending (the forced change), as both the access token and the account say. `email` is taken only during the forced change: the address someone else typed, confirmed, or corrected, which is audited `user.emailChanged` ([security.md](../backend/security.md#passwords)); the same address changes nothing.
+- **200:** `{ accessToken }`, and a new refresh cookie: this device's session goes on in a new one ([security.md](../backend/security.md#passwords)). The answer is the same with an `email`; the session's user reads the corrected address at its next refresh.
+- **Errors:** `unauthorized` (401) without a valid access token, for a suspended account, or for a token signed before the account's sessions last ended (§1); `validation` (422), with `currentPassword: ["required"]` when it is missing, and `email: ["invalid_choice"]` for an `email` outside the forced change; `conflict` (409) `EMAIL_TAKEN`, with `errors.email = ["not_unique"]`, for an address another account holds, changing nothing; `bad_request` (400) `CURRENT_PASSWORD_INCORRECT`, which is not a 401, so it never looks like an expired session, also when a reset changed the password meanwhile; `bad_request` (400) `PASSWORD_NOT_SET` for an account without a password, which sets one through the reset email; `forbidden` (403) `ACCOUNT_SUSPENDED` for an account suspended while the change ran; `rate_limit` (429) under its failures limit.
 
 ### Managed spaces
 
@@ -248,6 +249,43 @@ SpacePackage = {
 - **Body:** any of the terms, and `isActive`; what is absent is kept, and a limit or the shift is cleared with `null`.
 - **200:** `SpacePackage`. Audited `package.edited`.
 - **Errors:** as the create's; `not_found` (404) for a package that is not the space's.
+
+### Staff (managed)
+
+A space's staff: the reception accounts its owner creates ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md), revised). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Every route is the owner's (🏢): reception is refused with `forbidden` (403) before a body is read or the request counted. The creation and the re-issue count under the staff-accounts limit ([security.md](../backend/security.md#rate-limits-fixed-window)).
+
+```ts
+StaffMember = {
+  userId: number, name: string, email: string,
+  isActive: boolean,                                // false: the owner deactivated the link
+  temporaryPassword: { expiresAt: string } | null   // pending, and when it expires (ISO 8601); null once changed
+}
+AddedStaff = { userId: number, temporaryPassword: string }   // shown once
+```
+
+#### `GET /manage/spaces/:spaceId/staff` · 🏢
+- **200:** `StaffMember[]` (`@masaha/shared/space-links`): every `RECEPTION` link of the space, deactivated ones included, oldest first. An expired temporary password is still listed, with its past `expiresAt`. Not paginated (§4).
+- **Errors:** `forbidden` (403) for reception; `not_found` (404).
+
+#### `POST /manage/spaces/:spaceId/staff` · 🏢
+- **Body:** `{ name, email }`: a name as a user's, and the email, trimmed and lowercased.
+- **201:** `AddedStaff`, under `Cache-Control: no-store`: a new `USER` account with a temporary password ([security.md](../backend/security.md#passwords)), linked to the space as its `RECEPTION`. Audited `user.created` and `space.staffAdded` (`after: { userId }`).
+- **Errors:** `conflict` (409) `EMAIL_HAS_ACCOUNT`, with `errors.email = ["not_unique"]`, for an email that already has an account, which is never linked, writing nothing; `validation` (422); `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `rate_limit` (429); `not_found` (404).
+
+#### `PATCH /manage/spaces/:spaceId/staff/:userId` · 🏢
+- **Body:** `{ isActive }`.
+- **200:** `StaffMember`, as it now is. `false` deactivates the person's reception link and ends every session they hold ([security.md](../backend/security.md#tokens-and-cookies)); `true` re-activates it, ending nothing. The same state as asked writes nothing. Audited `space.staffDeactivated` or `space.staffReactivated` (`before` and `after`: `{ userId, isActive }`).
+- **Errors:** `not_found` (404) for a person without a reception link at the space, an owner's link included (a co-owner is never changed here); `conflict` (409) `ACCOUNT_SUSPENDED` or `ACCOUNT_IS_ADMIN` for a re-activation of a suspended account or an admin; `validation` (422); `forbidden` (403) for reception, before the body is read.
+
+#### `POST /manage/spaces/:spaceId/staff/:userId/temporary-password` · 🏢
+- **Body:** none.
+- **200:** `IssuedTemporaryPassword` (`@masaha/shared/users`), under `Cache-Control: no-store`: a new temporary password, only while one is pending (lost, or expired), whoever issued it: the owner's own, or an admin's recovery. It replaces the pending one, with a new expiry, and ends every session and pending reset link, as the admin's does. Audited `user.temporaryPasswordIssued`, with the space. Counts under the staff-accounts limit.
+- **Errors**, a refusal writing nothing: `not_found` (404) without an active reception link of the person at the space; `conflict` (409) `TEMPORARY_PASSWORD_NOT_PENDING` while none is pending (the person's recovery is then the email, or the admin); `conflict` (409) `ACCOUNT_SUSPENDED`; `conflict` (409) `ACCOUNT_HAS_LINKS` for an account that is not a `USER` or holds another active link; `forbidden` (403) for reception, before the request is counted; `rate_limit` (429).
+
+#### `POST /manage/spaces/:spaceId/staff/:userId/temporary-password/handover` · 🏢
+- **Body:** `{ channel }`, as the admin's handover's.
+- **204:** how the temporary password just shown was handed over, audited `user.temporaryPasswordHandedOver` (`after: { channel }`), with the space.
+- **Errors:** `validation` (422), with `invalid_choice` on `channel`; `conflict` (409) `TEMPORARY_PASSWORD_NOT_PENDING` once nothing is pending; `not_found` (404) without an active reception link of the person at the space; `forbidden` (403) for reception, before the body is read.
 
 ### Lookups (public)
 
@@ -594,12 +632,12 @@ A space's owners, as the admin links them ([ADR 0009](../architecture/decisions/
     temporaryPassword: string | null   // the new account's, in this answer only, never again; null for an upgrade
   }
   ```
-- **Errors**, a refusal writing nothing: `validation` (422), with `errors.spaceId = ["invalid_choice"]` for a soft-deleted or unknown space; for an email with an account, in this order: `conflict` (409) `ACCOUNT_IS_ADMIN`, `conflict` (409) `ACCOUNT_SUSPENDED`, `conflict` (409) `ALREADY_OWNER` for an owner, who is linked instead, `conflict` (409) `EMAIL_HAS_ACCOUNT` without `upgradeExisting` (also when another creation took the email meanwhile), and `conflict` (409) `RECEPTION_LINK_ACTIVE`.
+- **Errors**, a refusal writing nothing: `validation` (422), with `errors.spaceId = ["invalid_choice"]` for a soft-deleted or unknown space; for an email with an account, in this order: `conflict` (409) `ACCOUNT_IS_ADMIN`, `conflict` (409) `ACCOUNT_SUSPENDED`, `conflict` (409) `ALREADY_OWNER` for an owner, who is linked instead, `conflict` (409) `EMAIL_HAS_ACCOUNT` without `upgradeExisting` (also when another creation took the email meanwhile), `conflict` (409) `RECEPTION_LINK_ACTIVE`, and `conflict` (409) `ACCOUNT_PASSWORD_PENDING` for an account whose temporary password is pending, which the person changes first ([security.md](../backend/security.md#passwords)).
 
 #### `POST /admin/spaces/:spaceId/owners` · 🛡
 - **Body:** `{ userId }`: a user, who becomes an owner, or an owner, who owns one more space.
 - **204:** the person is the space's owner; the space is verified. A person already the space's active owner: nothing is written.
-- **Errors:** `validation` (422), with `errors.userId = ["invalid_choice"]` for an unknown person; `conflict` (409) `ACCOUNT_IS_ADMIN` for an admin; `conflict` (409) `ACCOUNT_SUSPENDED` for a suspended account; `conflict` (409) `RECEPTION_LINK_ACTIVE` for a person with an active reception link at this space, which its owner deactivates first; `not_found` (404) for a soft-deleted or unknown space. A refusal writes nothing.
+- **Errors:** `validation` (422), with `errors.userId = ["invalid_choice"]` for an unknown person; `conflict` (409) `ACCOUNT_IS_ADMIN` for an admin; `conflict` (409) `ACCOUNT_SUSPENDED` for a suspended account; `conflict` (409) `RECEPTION_LINK_ACTIVE` for a person with an active reception link at this space, which its owner deactivates first; `conflict` (409) `ACCOUNT_PASSWORD_PENDING` for an account whose temporary password is pending, which the person changes first ([security.md](../backend/security.md#passwords)); `not_found` (404) for a soft-deleted or unknown space. A refusal writes nothing.
 
 #### `DELETE /admin/spaces/:spaceId/owners/:userId` · 🛡
 - **204:** the person's owner link to the space is ended; the last one leaves the space unverified, its facts the admin's again ([security › Authorization](../backend/security.md#authorization)). Without an active owner link of the person there, nothing is written: a reception link is never ended here.
@@ -625,6 +663,7 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
     joinedAt: string,                             // when the account was created
     spaces: { id: number, nameEn: string, nameAr: string | null }[]   // its active OWNER links, oldest first;
                                                   // none to a soft-deleted space
+    receptionSpaces: { id: number, nameEn: string, nameAr: string | null }[]   // its active RECEPTION links, the same way
   }
   ```
 - **Errors:** `validation` (422), for an unknown `role` or `state` (`invalid_choice`) or a page out of range.
@@ -648,7 +687,7 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 #### `PUT /admin/users/:userId/role` · 🛡
 - **Body:** `{ role }`: `"USER"` or `"ADMIN"` (`ADMIN_ROLE_CHOICES`, `@masaha/shared/space-links`). `OWNER` is never given: it follows the person's active owner links ([Owners (the admin)](#owners-the-admin)).
 - **204:** the person's global role is the one asked, every session of theirs ended: their access tokens are refused from their next request, and they sign in again with the new role ([security.md](../backend/security.md#authorization)). Audited `user.roleChanged` (`before` and `after`: `{ role }`), with the person as the entity. Asking the role they already have writes nothing and ends no session.
-- **Errors**, a refusal writing nothing: `validation` (422), with `invalid_choice` on `role`; `conflict` (409) `OWN_ACCOUNT` for the admin's own account, whatever the role asked; `conflict` (409) `ACCOUNT_HAS_LINKS` for a person with any active link, owner or reception, a soft-deleted space's included: an owner is not made a user, and no linked person an admin, until the links end; `conflict` (409) `LAST_ADMIN` when it would leave the platform with no active admin, which only a change made meanwhile by another admin can cause; `not_found` (404) for an unknown account.
+- **Errors**, a refusal writing nothing: `validation` (422), with `invalid_choice` on `role`; `conflict` (409) `OWN_ACCOUNT` for the admin's own account, whatever the role asked; `conflict` (409) `ACCOUNT_HAS_LINKS` for a person with any active link, owner or reception, a soft-deleted space's included: an owner is not made a user, and no linked person an admin, until the links end; `conflict` (409) `ACCOUNT_PASSWORD_PENDING` for making an admin of an account whose temporary password is pending; `conflict` (409) `LAST_ADMIN` when it would leave the platform with no active admin, which only a change made meanwhile by another admin can cause; `not_found` (404) for an unknown account.
 
 #### `PUT /admin/users/:userId/suspended` · 🛡
 - **Body:** `{ isSuspended: boolean }`.
@@ -659,4 +698,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING`.

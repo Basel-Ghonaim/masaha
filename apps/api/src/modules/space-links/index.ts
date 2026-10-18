@@ -10,3 +10,6 @@ export { createSpaceLinksAdminRouter } from './space-links.admin.routes.ts';
 export { createSpaceLinksController } from './space-links.controller.ts';
 export { createSpaceLinksMeRouter } from './space-links.routes.ts';
 export { createSpaceLinksService, type SpaceLinksService } from './space-links.service.ts';
+export { createStaffManageRouter } from './space-links.manage.routes.ts';
+export { createStaffController } from './staff/staff.controller.ts';
+export { createStaffService } from './staff/staff.service.ts';

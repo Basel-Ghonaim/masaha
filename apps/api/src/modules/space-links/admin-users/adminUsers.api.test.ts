@@ -109,6 +109,7 @@ describe('GET /admin/users', () => {
         signIn: { password: false, google: true },
         joinedAt: '2026-09-27T09:00:00.000Z',
         spaces: [],
+        receptionSpaces: [],
       },
       {
         id: nour.id,
@@ -119,6 +120,7 @@ describe('GET /admin/users', () => {
         signIn: { password: true, google: true },
         joinedAt: '2026-09-23T09:00:00.000Z',
         spaces: [{ id: hub.id, nameEn: 'Focus Hub', nameAr: 'فوكس هاب' }],
+        receptionSpaces: [],
       },
       {
         id: khaled.id,
@@ -129,6 +131,7 @@ describe('GET /admin/users', () => {
         signIn: { password: true, google: false },
         joinedAt: '2026-08-02T09:00:00.000Z',
         spaces: [],
+        receptionSpaces: [],
       },
       {
         id: admin.id,
@@ -139,6 +142,7 @@ describe('GET /admin/users', () => {
         signIn: { password: true, google: false },
         joinedAt: '2025-01-10T09:00:00.000Z',
         spaces: [],
+        receptionSpaces: [],
       },
     ]);
   });
@@ -160,6 +164,31 @@ describe('GET /admin/users', () => {
     const { rows } = await list('?role=owner');
 
     expect(rows.map(({ spaces }) => spaces.map(({ id }) => id))).toEqual([[earlier.id, later.id]]);
+  });
+
+  it('each row lists the person’s active reception links, beside the spaces they own', async () => {
+    const receptionist = await account('Nour');
+    const owner = await account('Ahmad', { role: 'OWNER' });
+    const desk = await createSpace('desk');
+    const left = await createSpace('left');
+    const deleted = await createSpace('deleted');
+    await link(desk.id, receptionist.id, { role: 'RECEPTION' });
+    await link(left.id, receptionist.id, { role: 'RECEPTION', deactivated: true });
+    await link(deleted.id, receptionist.id, { role: 'RECEPTION' });
+    await prisma.space.update({ where: { id: deleted.id }, data: { deletedAt: NOW } });
+    await link(desk.id, owner.id);
+
+    const { rows } = await list();
+
+    const rowOf = (id: number) => rows.find((row) => row.id === id);
+    expect(rowOf(receptionist.id)).toMatchObject({
+      spaces: [],
+      receptionSpaces: [{ id: desk.id, nameEn: desk.nameEn, nameAr: desk.nameAr }],
+    });
+    expect(rowOf(owner.id)).toMatchObject({
+      spaces: [{ id: desk.id }],
+      receptionSpaces: [],
+    });
   });
 
   it('orders the newest first, 20 to a page, with the total', async () => {

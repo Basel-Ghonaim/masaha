@@ -4,7 +4,7 @@ import type { RunInTransaction, Tx } from '../../../db/index.ts';
 import type { AuditWriter } from '../../../shared/audit/index.ts';
 import { AppError } from '../../../shared/errors/index.ts';
 import type { SpacesService } from '../../spaces/index.ts';
-import type { Account, UsersService } from '../../users/index.ts';
+import { assertNoPasswordPending, type Account, type UsersService } from '../../users/index.ts';
 import { ownerRoleFor } from '../ownerRole.ts';
 import { createSpaceLinksRepository } from '../space-links.repository.ts';
 
@@ -81,7 +81,8 @@ export function createAdminOwnersService({
 
   /**
    * Links the locked person to the locked space as its owner, unless they may not own it: an admin,
-   * a suspended account, or the space's active reception. An owner already linked writes nothing.
+   * a suspended account, the space's active reception, or an account whose temporary password is
+   * pending (S6). An owner already linked writes nothing.
    */
   async function linkLocked(
     actorId: number,
@@ -97,6 +98,7 @@ export function createAdminOwnersService({
       }
       return;
     }
+    assertNoPasswordPending(account);
     await repository.linkOwner(spaceId, account.id, tx);
     // A reception row the owner had deactivated becomes an owner's: the entry says the role changed.
     await audited(actorId, spaceId, account.id, tx, link?.role === 'RECEPTION');

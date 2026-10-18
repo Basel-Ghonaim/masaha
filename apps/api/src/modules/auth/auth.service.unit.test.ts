@@ -17,6 +17,7 @@ const sara: Account = {
   role: 'USER',
   language: 'ar',
   mustChangePassword: false,
+  temporaryPasswordExpiresAt: null,
   suspendedAt: null,
   sessionVersion: 0,
 };
@@ -70,6 +71,8 @@ function setup({ sent = true, account = sara, recovery = askable } = {}) {
       return Promise.resolve('hash');
     },
     maySignIn: (candidate: Account) => !candidate.suspendedAt,
+    mayRecoverByEmail: (candidate: Account) =>
+      !candidate.suspendedAt && !candidate.mustChangePassword,
     lockAccount: () => Promise.resolve(account),
     endSessions: record('endSessions'),
     assertMaySignIn: () => {

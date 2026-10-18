@@ -14,7 +14,11 @@ import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
 import { createSessionsService, type SessionsService } from '../sessions/index.ts';
 import { hashPassword, verifyPassword } from './password.ts';
-import { temporaryPassword } from './temporaryPassword.ts';
+import {
+  temporaryPassword,
+  temporaryPasswordExpired,
+  temporaryPasswordExpiry,
+} from './temporaryPassword.ts';
 import { PASSWORD_CHANGE } from './users.limits.ts';
 import { toUserView } from './users.mapper.ts';
 import {
@@ -22,6 +26,7 @@ import {
   type Account,
   type AccountsFilter,
   type ListedAccount,
+  type StaffAccount,
   type UserName,
   type UsersRepository,
 } from './users.repository.ts';
@@ -36,7 +41,7 @@ interface Dependencies {
   accessTokens: AccessTokens;
   limiter: Limiter;
   audit: AuditWriter;
-  /** The one clock (conventions §11): when an account is suspended. */
+  /** The one clock (conventions §11): suspensions, and temporary passwords' expiry. */
   now: () => Date;
   repository?: UsersRepository;
   sessions?: SessionsService;
@@ -109,6 +114,17 @@ export function assertKeepsAnAdmin({ account, otherActiveAdmins }: LockedAmongAd
   }
 }
 
+/**
+ * An account whose temporary password is pending gains no power (S6): its password is known to
+ * whoever created the account, so an owner's link, or the admin's role, would be theirs too
+ * (docs/backend/security.md › Passwords). The person changes it first.
+ */
+export function assertNoPasswordPending(account: Account): void {
+  if (account.mustChangePassword) {
+    throw AppError.conflict('ACCOUNT_PASSWORD_PENDING', 'A temporary password is pending');
+  }
+}
+
 /** A changed password: the device's session goes on with these, and every other one has ended. */
 export interface PasswordChange {
   accessToken: string;
@@ -133,8 +149,36 @@ export function createUsersService({
     return !account.suspendedAt;
   }
 
+  /**
+   * Whether the reset email may open the account: one that may sign in, with no temporary password
+   * pending (accounts created by someone else, docs/backend/security.md › Passwords).
+   */
+  function mayRecoverByEmail(account: Account): boolean {
+    return maySignIn(account) && !account.mustChangePassword;
+  }
+
+  /**
+   * No Google link while a temporary password is pending: its email was typed by someone else, so
+   * Google proving the address proves nothing of the person (docs/backend/security.md › Sign-in methods).
+   */
+  function assertMayLinkGoogle(account: Account): void {
+    if (account.mustChangePassword) {
+      throw AppError.conflict('GOOGLE_LINK_NOT_ALLOWED', 'A temporary password is pending');
+    }
+  }
+
   function assertMaySignIn(account: Account): void {
     if (!maySignIn(account)) throw AppError.forbidden('ACCOUNT_SUSPENDED', 'Account suspended');
+  }
+
+  /**
+   * A password sign-in with a temporary password past its expiry is refused (docs/backend/security.md
+   * › Passwords): only once the password matched, so only its holder learns it expired.
+   */
+  function assertTemporaryPasswordLive(account: Account): void {
+    if (temporaryPasswordExpired(account, now())) {
+      throw AppError.forbidden('TEMPORARY_PASSWORD_EXPIRED', 'Temporary password expired');
+    }
   }
 
   /**
@@ -196,6 +240,62 @@ export function createUsersService({
     await sessions.revokeAll(userId, tx);
   }
 
+  /**
+   * Replaces the account's password with a temporary one already hashed, expiring 7 days from now,
+   * under the session lock its caller took: every session and pending reset link ends, as a reset
+   * does, and the issue is audited `user.temporaryPasswordIssued`, with the space when an owner
+   * issues it. The admin's recovery and the owner's re-issue both write through here.
+   */
+  async function replaceWithTemporaryPassword(
+    actorId: number,
+    userId: number,
+    passwordHash: string,
+    tx: Tx,
+    spaceId?: number,
+  ): Promise<void> {
+    await repository.setTemporaryPassword(userId, passwordHash, temporaryPasswordExpiry(now()), tx);
+    await endSessions(userId, tx);
+    await sessions.endResetTokens(userId, tx);
+    await audit(
+      {
+        actorId,
+        action: 'user.temporaryPasswordIssued',
+        entityType: 'user',
+        entityId: userId,
+        ...(spaceId !== undefined && { spaceId }),
+        after: { mustChangePassword: true },
+      },
+      tx,
+    );
+  }
+
+  /**
+   * The account's handover, under its session lock, which the caller took (with `lockAccount`).
+   * Only while its temporary password is pending. `spaceId` names the space for an owner's staff.
+   */
+  async function recordHandoverLocked(
+    actorId: number,
+    account: Account,
+    channel: HandoverChannel,
+    tx: Tx,
+    spaceId?: number,
+  ): Promise<void> {
+    if (!account.mustChangePassword) {
+      throw AppError.conflict('TEMPORARY_PASSWORD_NOT_PENDING', 'No temporary password pending');
+    }
+    await audit(
+      {
+        actorId,
+        action: 'user.temporaryPasswordHandedOver',
+        entityType: 'user',
+        entityId: account.id,
+        ...(spaceId !== undefined && { spaceId }),
+        after: { channel },
+      },
+      tx,
+    );
+  }
+
   return {
     accessClaims,
     endSessions,
@@ -211,6 +311,7 @@ export function createUsersService({
       return { role, mustChangePassword, sessionVersion, suspended: !maySignIn(account) };
     },
     maySignIn,
+    mayRecoverByEmail,
     assertMaySignIn,
     lockAccount,
     lockForAdminChange,
@@ -235,6 +336,7 @@ export function createUsersService({
         throw AppError.unauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
       }
       assertMaySignIn(found.account);
+      assertTemporaryPasswordLive(found.account);
       const { id } = found.account;
       return {
         account: found.account,
@@ -246,6 +348,7 @@ export function createUsersService({
             throw AppError.unauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
           }
           assertMaySignIn(locked);
+          assertTemporaryPasswordLive(locked);
           return locked;
         },
       };
@@ -275,6 +378,7 @@ export function createUsersService({
             // Another Google account is already linked to this email's account: never replaced.
             throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
           }
+          assertMayLinkGoogle(byEmail.account);
           if (!googleIsAuthoritative(google)) {
             throw AppError.conflict(
               'GOOGLE_LINK_NOT_ALLOWED',
@@ -311,6 +415,8 @@ export function createUsersService({
       const locked = await lockAccount(userId, tx);
       if (!locked) throw AppError.unauthorized(undefined, 'Account not found');
       assertMaySignIn(locked);
+      // A temporary password issued since the read: refused under the lock, before anything links.
+      assertMayLinkGoogle(locked);
       const linked = await repository.linkGoogleIfUnlinked(userId, google.subject, tx);
       if (!linked && (await repository.findGoogleSubject(userId, tx)) !== google.subject) {
         throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
@@ -373,6 +479,11 @@ export function createUsersService({
       return repository.findNames(ids, tx);
     },
 
+    /** These users' accounts as the owner's staff list shows them, in one query. */
+    staffAccounts(ids: readonly number[], tx?: Tx): Promise<StaffAccount[]> {
+      return repository.findStaffAccounts(ids, tx);
+    },
+
     /** The account with this email, if there is one. */
     async findByEmail(email: string, tx?: Tx): Promise<Account | null> {
       return (await repository.findByEmail(email, tx))?.account ?? null;
@@ -392,7 +503,14 @@ export function createUsersService({
       tx: Tx,
     ): Promise<Account | null> {
       const created = await repository.create(
-        { name, email, passwordHash, role, mustChangePassword: true },
+        {
+          name,
+          email,
+          passwordHash,
+          role,
+          mustChangePassword: true,
+          temporaryPasswordExpiresAt: temporaryPasswordExpiry(now()),
+        },
         tx,
       );
       if (!('account' in created)) return null;
@@ -428,22 +546,13 @@ export function createUsersService({
         if (!(await repository.findPasswordHash(userId, tx))) {
           throw AppError.conflict('GOOGLE_ONLY_ACCOUNT', 'No password to replace');
         }
-        await repository.setTemporaryPassword(userId, temporary.hash, tx);
-        await endSessions(userId, tx);
-        await sessions.endResetTokens(userId, tx);
-        await audit(
-          {
-            actorId,
-            action: 'user.temporaryPasswordIssued',
-            entityType: 'user',
-            entityId: userId,
-            after: { mustChangePassword: true },
-          },
-          tx,
-        );
+        await replaceWithTemporaryPassword(actorId, userId, temporary.hash, tx);
       });
       return temporary.password;
     },
+
+    replaceWithTemporaryPassword,
+    recordHandoverLocked,
 
     /**
      * Records how the account's temporary password was handed over, after it was shown (the
@@ -455,22 +564,7 @@ export function createUsersService({
       return runInTransaction(async (tx) => {
         const account = await lockAccount(userId, tx);
         if (!account) throw AppError.notFound(undefined, 'Account not found');
-        if (!account.mustChangePassword) {
-          throw AppError.conflict(
-            'TEMPORARY_PASSWORD_NOT_PENDING',
-            'No temporary password pending',
-          );
-        }
-        await audit(
-          {
-            actorId,
-            action: 'user.temporaryPasswordHandedOver',
-            entityType: 'user',
-            entityId: userId,
-            after: { channel },
-          },
-          tx,
-        );
+        await recordHandoverLocked(actorId, account, channel, tx);
       });
     },
 
@@ -526,11 +620,12 @@ export function createUsersService({
      * account must still say is pending. An account without a password (Google only) sets its
      * first one through the reset email instead. Wrong current passwords count under a per-user
      * limit. Every session of the user ends, any pending reset link with them, and this device's
-     * goes on in a new one.
+     * goes on in a new one. The forced change also takes the email, confirmed or corrected (its
+     * address was typed by someone else): a correction is audited, and a taken one changes nothing.
      */
     async changePassword(
       userId: number,
-      { currentPassword, password }: ChangePasswordRequest,
+      { currentPassword, password, email }: ChangePasswordRequest,
       { pendingChange }: { pendingChange: boolean },
     ): Promise<PasswordChange> {
       const account = await get(userId);
@@ -543,6 +638,8 @@ export function createUsersService({
       if (!forced && currentPassword === undefined) {
         throw AppError.validation({ currentPassword: ['required'] });
       }
+      // Outside the forced change the address is not this route's: refused, never dropped.
+      if (!forced && email !== undefined) throw AppError.validation({ email: ['invalid_choice'] });
 
       return limiter.limitFailures(
         [{ policy: PASSWORD_CHANGE, by: [String(userId)] }],
@@ -564,6 +661,23 @@ export function createUsersService({
             assertMaySignIn(locked);
             if (!(await repository.setPasswordIf(userId, passwordHash, expected, tx))) {
               throw AppError.badRequest('CURRENT_PASSWORD_INCORRECT', 'Password changed meanwhile');
+            }
+            if (email !== undefined && email !== locked.email) {
+              // The last statement before the throw: a unique violation aborts the transaction.
+              if ((await repository.setEmail(userId, email, tx)) === 'taken') {
+                throw AppError.conflict('EMAIL_TAKEN', 'Email taken', { email: ['not_unique'] });
+              }
+              await audit(
+                {
+                  actorId: userId,
+                  action: 'user.emailChanged',
+                  entityType: 'user',
+                  entityId: userId,
+                  before: { email: locked.email },
+                  after: { email },
+                },
+                tx,
+              );
             }
             await endSessions(userId, tx);
             await sessions.endResetTokens(userId, tx);
