@@ -103,7 +103,7 @@ Inside a module, each layer calls only the one below it.
   - a space's packages created and edited, a retirement included;
   - check-in and check-out, for visits and subscriptions;
   - payments recorded and voided ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md));
-  - space links: linking owners, adding and deactivating staff;
+  - space links: linking owners, adding, deactivating and re-activating staff;
   - role changes, suspensions and temporary passwords ([security.md](security.md#passwords));
   - a person's email corrected at the forced change;
   - settings changes, for spaces and the platform.

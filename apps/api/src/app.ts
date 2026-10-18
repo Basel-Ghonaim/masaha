@@ -303,7 +303,13 @@ export function createApi({
   });
   const adminUsers = createAdminUsersService({ users, spaces });
   const adminRoles = createAdminRolesService({ runInTransaction, users });
-  const staff = createStaffService({ runInTransaction, audit: writeAudit, spaces, users });
+  const staff = createStaffService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    users,
+    now: clock,
+  });
   const adminOwners = createAdminOwnersService({
     runInTransaction,
     audit: writeAudit,

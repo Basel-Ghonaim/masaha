@@ -3,10 +3,10 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { auditEntries, dataOf, errorOf, signIn } from '../../../../test/admin.ts';
-import { createTestApp } from '../../../../test/app.ts';
+import { cookieValue, createAccount, createTestApp, PASSWORD } from '../../../../test/app.ts';
 import { createSpace } from '../../../../test/factories.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
-import { signInOwnerOf } from '../../../../test/spaces.ts';
+import { seedSettings, signInOwnerOf } from '../../../../test/spaces.ts';
 import { prisma } from '../../../db/index.ts';
 
 const app = createTestApp();
@@ -52,6 +52,7 @@ function routes(): { method: Method; suffix: string; body: object }[] {
   return [
     { method: 'get', suffix: '', body: {} },
     { method: 'post', suffix: '', body: { name: '' } },
+    { method: 'patch', suffix: `/${String(reception.id)}`, body: { isActive: 'no' } },
   ];
 }
 
@@ -210,5 +211,115 @@ describe('GET /manage/spaces/:spaceId/staff', () => {
         },
       ],
     });
+  });
+});
+
+/** A receptionist of the space who signs in with a password: their access token and refresh cookie. */
+async function signedInReceptionist(email = 'nour@example.com') {
+  const account = await createAccount({ email });
+  await prisma.spaceManager.create({ data: { spaceId, userId: account.id, role: 'RECEPTION' } });
+  const response = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ email, password: PASSWORD });
+  const { accessToken } = (response.body as { data: { accessToken: string } }).data;
+  return {
+    id: account.id,
+    authorization: `Bearer ${accessToken}`,
+    refreshToken: cookieValue(response, 'masaha_refresh') ?? '',
+  };
+}
+
+/** The receptionist signed in again, after a re-activation. */
+async function signInAgain(userId: number) {
+  const { email } = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  const response = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ email, password: PASSWORD });
+  const { accessToken } = (response.body as { data: { accessToken: string } }).data;
+  return { authorization: `Bearer ${accessToken}` };
+}
+
+function refresh(refreshToken: string) {
+  return request(app).post('/api/v1/auth/refresh').set('Cookie', `masaha_refresh=${refreshToken}`);
+}
+
+function readSpace(caller: { authorization: string }) {
+  return request(app)
+    .get(`/api/v1/manage/spaces/${String(spaceId)}`)
+    .set('Authorization', caller.authorization);
+}
+
+const staffChanges = async () =>
+  (await auditEntries()).filter(({ action }) => action.startsWith('space.staff'));
+
+describe('PATCH /manage/spaces/:spaceId/staff/:userId', () => {
+  // The space's read, which proves a session's reach, needs the platform's settings.
+  beforeEach(seedSettings);
+
+  it('deactivating ends the person’s link and every session', async () => {
+    const nour = await signedInReceptionist();
+    expect((await readSpace(nour)).status).toBe(200);
+
+    const response = await staff(owner, 'patch', `/${String(nour.id)}`, { isActive: false });
+
+    expect(response.status).toBe(200);
+    expect(dataOf(response)).toEqual({
+      userId: nour.id,
+      name: 'Sara',
+      email: 'nour@example.com',
+      isActive: false,
+      temporaryPassword: null,
+    });
+    expect((await readSpace(nour)).status).toBe(401);
+    expect((await refresh(nour.refreshToken)).status).toBe(401);
+    expect(await staffChanges()).toEqual([
+      {
+        actorId: owner.id,
+        action: 'space.staffDeactivated',
+        entityType: 'space',
+        entityId: spaceId,
+        spaceId,
+        before: { userId: nour.id, isActive: true },
+        after: { userId: nour.id, isActive: false },
+      },
+    ]);
+  });
+
+  it('re-activating restores the link, ends nothing, and the same state writes nothing', async () => {
+    const nour = await signedInReceptionist();
+    await staff(owner, 'patch', `/${String(nour.id)}`, { isActive: false });
+
+    const restored = await staff(owner, 'patch', `/${String(nour.id)}`, { isActive: true });
+    const again = await staff(owner, 'patch', `/${String(nour.id)}`, { isActive: true });
+
+    expect(restored.status).toBe(200);
+    expect(dataOf(restored)).toMatchObject({ isActive: true });
+    expect(again.status).toBe(200);
+    const back = await signInAgain(nour.id);
+    expect((await readSpace(back)).status).toBe(200);
+    expect((await staffChanges()).map(({ action }) => action)).toEqual([
+      'space.staffDeactivated',
+      'space.staffReactivated',
+    ]);
+
+    await staff(owner, 'patch', `/${String(nour.id)}`, { isActive: false });
+    await prisma.user.update({ where: { id: nour.id }, data: { suspendedAt: new Date() } });
+    const suspended = await staff(owner, 'patch', `/${String(nour.id)}`, { isActive: true });
+    expect(suspended.status).toBe(409);
+    expect(errorOf(suspended).code).toBe('ACCOUNT_SUSPENDED');
+  });
+
+  it('an owner cannot deactivate a co-owner, or anyone without a reception link here', async () => {
+    const coOwner = await signInOwnerOf(spaceId);
+    const elsewhere = await signIn('USER', 'elsewhere@example.com');
+    await prisma.spaceManager.create({
+      data: { spaceId: otherSpaceId, userId: elsewhere.id, role: 'RECEPTION' },
+    });
+
+    for (const userId of [coOwner.id, stranger.id, elsewhere.id, 999_999]) {
+      const response = await staff(owner, 'patch', `/${String(userId)}`, { isActive: false });
+      expect(response.status).toBe(404);
+    }
+    expect(await prisma.spaceManager.count({ where: { deactivatedAt: { not: null } } })).toBe(0);
   });
 });

@@ -1,8 +1,14 @@
-import type { AddedStaff, AddStaffRequest, StaffMember } from '@masaha/shared/space-links';
+import type {
+  AddedStaff,
+  AddStaffRequest,
+  SetStaffActiveRequest,
+  StaffMember,
+} from '@masaha/shared/space-links';
 import type { Request, Response } from 'express';
 
 import { signedIn, spaceOf } from '../../../shared/auth/index.ts';
 import { sendSuccess } from '../../../shared/http/index.ts';
+import { parseId } from '../../../shared/validation/index.ts';
 import type { StaffService } from './staff.service.ts';
 
 export function createStaffController(service: StaffService) {
@@ -22,6 +28,17 @@ export function createStaffController(service: StaffService) {
       // The temporary password is answered once: no cache keeps the answer.
       res.set('Cache-Control', 'no-store');
       sendSuccess(res, added satisfies AddedStaff, { status: 201 });
+    },
+
+    setActive: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const member = await service.setActive(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.userId),
+        (req.body as SetStaffActiveRequest).isActive,
+      );
+      sendSuccess(res, member satisfies StaffMember);
     },
   };
 }

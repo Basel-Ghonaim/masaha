@@ -1,4 +1,4 @@
-import { addStaffSchema } from '@masaha/shared/space-links';
+import { addStaffSchema, setStaffActiveSchema } from '@masaha/shared/space-links';
 import { Router } from 'express';
 
 import { requireCan, signedIn } from '../../shared/auth/index.ts';
@@ -27,5 +27,6 @@ export function createStaffManageRouter({
   );
   router.get('/', mayManage, staff.list);
   router.post('/', mayManage, counted, validate(addStaffSchema), staff.add);
+  router.patch('/:userId', mayManage, validate(setStaffActiveSchema), staff.setActive);
   return router;
 }

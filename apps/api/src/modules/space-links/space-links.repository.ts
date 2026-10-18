@@ -91,6 +91,35 @@ export function createSpaceLinksRepository(db: PrismaClient = prisma) {
       });
     },
 
+    /** The user's RECEPTION link to the space, active or not; an owner's link is never one. */
+    findReceptionLink(spaceId: number, userId: number, tx: Tx): Promise<ReceptionLink | null> {
+      return tx.spaceManager.findFirst({
+        where: { spaceId, userId, role: 'RECEPTION' },
+        select: { userId: true, deactivatedAt: true },
+      });
+    },
+
+    /** Deactivates the user's RECEPTION link to the space at `at`. */
+    async deactivateReceptionLink(
+      spaceId: number,
+      userId: number,
+      at: Date,
+      tx: Tx,
+    ): Promise<void> {
+      await tx.spaceManager.updateMany({
+        where: { spaceId, userId, role: 'RECEPTION' },
+        data: { deactivatedAt: at },
+      });
+    },
+
+    /** Re-activates the user's RECEPTION link to the space. */
+    async reactivateReceptionLink(spaceId: number, userId: number, tx: Tx): Promise<void> {
+      await tx.spaceManager.updateMany({
+        where: { spaceId, userId, role: 'RECEPTION' },
+        data: { deactivatedAt: null },
+      });
+    },
+
     /** Deactivates the user's active OWNER link to the space, if any. Whether there was one. */
     async deactivateOwnerLink(spaceId: number, userId: number, at: Date, tx: Tx): Promise<boolean> {
       const { count } = await tx.spaceManager.updateMany({

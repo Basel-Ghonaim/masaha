@@ -93,3 +93,8 @@ export const addStaffSchema = z.object({
 });
 
 export type AddStaffRequest = z.infer<typeof addStaffSchema>;
+
+/** The owner deactivates a reception link, or re-activates it. */
+export const setStaffActiveSchema = z.object({ isActive: z.boolean() });
+
+export type SetStaffActiveRequest = z.infer<typeof setStaffActiveSchema>;

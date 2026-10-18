@@ -16,7 +16,7 @@
 - Adds an owner for the admin, on the API: a new account with a temporary password, or an existing one upgraded on purpose, linked to one space.
 - Links a space's owners for the admin, and ends their links, one space at a time, on the API; the person's global role follows their owner links.
 - Changes a person's global role for the admin, between `USER` and `ADMIN`, on the API, while they hold no active link.
-- Keeps a space's staff for its owner, on the API: creates a new reception account with a temporary password (never an existing account's email), and lists the space's reception links whole.
+- Keeps a space's staff for its owner, on the API: creates a new reception account with a temporary password (never an existing account's email), lists the space's reception links whole, and deactivates (ending every session of the person) and re-activates them.
 
 Reception accounts' management API access is built: an active `RECEPTION` link can read its
 space and its photos, but cannot mutate profile, facts, confirmations or photos. The dashboard
@@ -117,6 +117,7 @@ screen remains planned.
 - **The owner creates new reception accounts only,** inserted without a lookup, so the users' unique key refuses an email that has an account (`EMAIL_HAS_ACCOUNT`) and no existing account is ever linked by an owner (ADR 0009, revised). *Why:* the email is typed by the owner and may be wrong: linking would hand a stranger's account the desk, or the desk to a stranger ([finding 84](../architecture/findings/84-a-person-cannot-work-at-two-spaces-front-desks.md)). 2026-10-18, #90.
 - **The staff list is answered whole,** every reception link, deactivated ones included, oldest first, each with its pending temporary password's expiry. *Why:* a space has few staff, and the owner's page shows each one's state, an expired password included. 2026-10-18, #90.
 - **The staff live in `space-links`,** in `staff/`, its routes in `space-links.manage.routes.ts`, every account write a `users` function. *Why:* the links are this module's table; the account is `users`' ([ADR 0013](../architecture/decisions/0013-identity-modules.md)). 2026-10-18, #90.
+- **A deactivation or a re-activation takes the space's lock, then the person's, and acts on a reception link only,** read by its role, so a co-owner's link is never touched (404); the deactivation ends every session of the person, and a re-activation is refused for a suspended account or an admin; the answer is the member as it now is. *Why:* the desk's device must not stay signed in; an admin or a suspended account must not regain a desk through it (P6); the screen updates its row without another read (P7). 2026-10-18, #90.
 - **The admin links, upgrades or makes an admin no account whose temporary password is pending** (`ACCOUNT_PASSWORD_PENDING`, S6), under the account's lock, after the other refusals; the admin's own new owners are created, not linked, so they are not concerned. *Why:* the owner who created a receptionist holds their temporary password: an upgrade to another space's owner, or the admin's role, would be the owner's too ([security › Passwords](../backend/security.md#passwords)). 2026-10-18, #90.
 - **Staff accounts count under their own limit, 10 an hour per owner,** after `requireCan` and before the body is read. *Why:* each costs a bcrypt hash, and a creation an account row ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). 2026-10-18, #90.
 
@@ -187,7 +188,7 @@ screen remains planned.
 - #82 — the active owners of one space, for the single-space admin read (`ownersFor`).
 - #83 — the active-link access boundary used by the owner/reception managed-space API.
 - #86 — `ownersFor` reads the names in its caller's transaction.
-- #90 — the owner's staff: created and listed.
+- #90 — the owner's staff: created, listed, deactivated and re-activated.
 
 ### Web history
 

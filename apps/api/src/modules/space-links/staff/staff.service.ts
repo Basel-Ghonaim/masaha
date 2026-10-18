@@ -6,7 +6,7 @@ import { can, type Actor, type LoadedSpace } from '../../../shared/auth/index.ts
 import { AppError } from '../../../shared/errors/index.ts';
 import type { SpacesService } from '../../spaces/index.ts';
 import type { UsersService } from '../../users/index.ts';
-import { createSpaceLinksRepository } from '../space-links.repository.ts';
+import { createSpaceLinksRepository, type ReceptionLink } from '../space-links.repository.ts';
 import { toStaffMember } from './staff.mapper.ts';
 
 interface Dependencies {
@@ -14,6 +14,8 @@ interface Dependencies {
   audit: AuditWriter;
   spaces: SpacesService;
   users: UsersService;
+  /** The one clock (conventions §11): when a link is deactivated. */
+  now: () => Date;
 }
 
 /**
@@ -22,7 +24,7 @@ interface Dependencies {
  * on the links as they are (finding 43), then the person's session lock where it changes them
  * (conventions §13). Every account write is a `users` function (ADR 0013).
  */
-export function createStaffService({ runInTransaction, audit, spaces, users }: Dependencies) {
+export function createStaffService({ runInTransaction, audit, spaces, users, now }: Dependencies) {
   const repository = createSpaceLinksRepository();
 
   /** Locks the space and decides whether `actor` may manage its staff, on the links under it. */
@@ -31,6 +33,13 @@ export function createStaffService({ runInTransaction, audit, spaces, users }: D
     if (!can(actor, 'staff.manage', { links: await space.linksUnder(tx) })) {
       throw AppError.forbidden();
     }
+  }
+
+  /** The member as the list shows them, read in the change's transaction. */
+  async function memberOf(link: ReceptionLink, tx: Tx): Promise<StaffMember> {
+    const [account] = await users.staffAccounts([link.userId], tx);
+    if (!account) throw AppError.notFound(undefined, 'Account not found');
+    return toStaffMember(link, account);
   }
 
   return {
@@ -94,6 +103,54 @@ export function createStaffService({ runInTransaction, audit, spaces, users }: D
         return account.id;
       });
       return { userId, temporaryPassword: temporary.password };
+    },
+
+    /**
+     * Deactivates the person's reception link, ending every session they hold (the desk's shared
+     * device must not stay signed in), or re-activates it, in one transaction: the space's lock and
+     * `can()`, then the person's session lock. Only a reception link of this space: an owner's
+     * link, a co-owner's, is never touched here. The same state writes nothing. A re-activation is
+     * refused for a suspended account and an admin (P6).
+     */
+    setActive(
+      actor: Actor,
+      space: LoadedSpace,
+      userId: number,
+      isActive: boolean,
+    ): Promise<StaffMember> {
+      return runInTransaction(async (tx) => {
+        await lockFor(actor, space, tx);
+        const account = await users.lockAccount(userId, tx);
+        const link = account ? await repository.findReceptionLink(space.id, userId, tx) : null;
+        if (!account || !link) throw AppError.notFound(undefined, 'No reception link here');
+        if ((link.deactivatedAt === null) === isActive) return memberOf(link, tx);
+
+        const at = now();
+
+        if (isActive) {
+          if (!users.maySignIn(account)) {
+            throw AppError.conflict('ACCOUNT_SUSPENDED', 'Account suspended');
+          }
+          if (account.role === 'ADMIN') throw AppError.conflict('ACCOUNT_IS_ADMIN', 'An admin');
+          await repository.reactivateReceptionLink(space.id, userId, tx);
+        } else {
+          await repository.deactivateReceptionLink(space.id, userId, at, tx);
+          await users.endSessions(userId, tx);
+        }
+        await audit(
+          {
+            actorId: actor.id,
+            action: isActive ? 'space.staffReactivated' : 'space.staffDeactivated',
+            entityType: 'space',
+            entityId: space.id,
+            spaceId: space.id,
+            before: { userId, isActive: !isActive },
+            after: { userId, isActive },
+          },
+          tx,
+        );
+        return memberOf({ userId, deactivatedAt: isActive ? null : at }, tx);
+      });
     },
   };
 }
