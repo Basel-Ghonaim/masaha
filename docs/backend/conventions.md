@@ -100,6 +100,7 @@ Inside a module, each layer calls only the one below it.
   - lookup changes: a governorate, area or amenity added, edited, hidden or restored;
   - data reports resolved or dismissed;
   - customer create, edit and archive; subscriptions created, corrected and ended;
+  - a space's packages created and edited, a retirement included;
   - check-in and check-out, for visits and subscriptions;
   - payments recorded and voided ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md));
   - space links: linking owners, adding and deactivating staff;

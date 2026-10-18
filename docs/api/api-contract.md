@@ -205,9 +205,19 @@ Every route below needs an active `OWNER` or `RECEPTION` link at the named live 
 
 ### Packages (managed)
 
-A space's packages: the subscription templates its owner keeps, private to its staff ([data-model › Operations](../architecture/data-model.md#operations)); the public's packages are the space's published prices. The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The list is the staff's (🧾); every write is the owner's (🏢).
+A space's packages: the subscription templates its owner keeps, private to its staff ([data-model › Operations](../architecture/data-model.md#operations)); the public's packages are the space's published prices. The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The list is the staff's (🧾); every write is the owner's (🏢), and reception's is refused with `forbidden` (403) before its body is read.
 
-- **Order:** a list's order is its array's: by place, then by name.
+- **The terms**:
+  - `name`, required, 1–60 characters, NFC-normalised and trimmed, with no bidirectional controls and no control characters or line separators (`invalid_format`): one name, in the language the owner types. Another package of the space, retired or not, may not hold it;
+  - `validityDays`, required: a subscription made from the package ends this many days after it starts;
+  - the limits, each optional (absent or `null`): `totalDays`, `daysPerWeek` (at most 7), `hoursPerDay` (at most 24) and `totalHours`; they combine freely;
+  - every count is a whole number from 1 (`out_of_range`; `invalid_format` when not whole), at most 2,147,483,647;
+  - `billing`: `FIXED`, `PER_HOUR` or `PER_DAY` (`SUBSCRIPTION_BILLINGS`, `@masaha/shared/packages`), from its list (`invalid_choice`);
+  - `priceAgorot`: the whole price when `FIXED`, else the rate per hour or per day, in whole agorot from 1 to 10,000,000, as a space's prices: `out_of_range` outside it (no package is free), `invalid_format` when not whole;
+  - `audience`: `GENERAL` or `STUDENT` (`PRICE_AUDIENCES`, `@masaha/shared/spaces`), from its list (`invalid_choice`);
+  - `shiftId`, optional: one of the space's shifts.
+- **Order:** a list's order is its array's: by place, then by name. A new package is placed after the last; no endpoint reorders them.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the package as the entity and its space as the entry's: `package.created` (`after`: its terms).
 
 ```ts
 SpacePackage = {
@@ -227,6 +237,11 @@ SpacePackage = {
 #### `GET /manage/spaces/:spaceId/packages` · 🧾
 - **200:** `SpacePackage[]` (`@masaha/shared/packages`): every package of the space, retired ones included, in order. Not paginated (§4).
 - **Errors:** `not_found` (404).
+
+#### `POST /manage/spaces/:spaceId/packages` · 🏢
+- **Body:** `{ name, validityDays, totalDays?, daysPerWeek?, hoursPerDay?, totalHours?, billing, priceAgorot, audience, shiftId? }`.
+- **201:** `SpacePackage`, active and placed last. Audited `package.created`.
+- **Errors:** `validation` (422), with `invalid_choice` on `shiftId` for a shift that is not one of the space's; `conflict` (409), with `errors.name = ["not_unique"]`, when another package of the space, retired or not, has the name; `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `not_found` (404).
 
 ### Lookups (public)
 

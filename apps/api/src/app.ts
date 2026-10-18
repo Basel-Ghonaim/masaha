@@ -285,7 +285,7 @@ export function createApi({
   const contacts = createContactsService(facts);
   const confirm = createConfirmService(facts);
   const photos = createPhotosService({ runInTransaction, audit: writeAudit, storage, logger });
-  const packages = createPackagesService();
+  const packages = createPackagesService({ runInTransaction, audit: writeAudit, spaces });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const directory = createDirectoryService({
     lookups,

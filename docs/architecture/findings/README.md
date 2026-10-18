@@ -38,6 +38,8 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [77. The race helper counts any waiting backend, and its reach sits under Vitest's timeout](77-the-race-helper-counts-any-waiting-backend-and-its-reach-sits-under-vitests-timeout.md)
 - [78. The owners' names test assumes nothing reads `users` before them](78-the-owners-names-test-assumes-nothing-reads-users-before-them.md)
 - [79. The users' names reader keeps an optional transaction](79-the-users-names-reader-keeps-an-optional-transaction.md)
+- [80. The database still takes a package with a price of zero](80-the-database-still-takes-a-package-with-a-price-of-zero.md)
+- [81. A retired package that keeps its shift stops the owner from removing that shift](81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)
 
 ## Accepted
 

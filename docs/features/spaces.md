@@ -22,6 +22,7 @@ remain planned; the admin's editor already carries the photo gallery.
 
 - **The admin,** through the API, the dashboard's add-space page, the space editor, and the row menu of the dashboard's spaces list.
 - **`space-links`,** which names the spaces of a user's links from the summaries, and composes the admin's spaces list on the listing page.
+- **[`packages`](packages.md),** whose writes take the space's lock first.
 
 ## Responsibility boundary
 

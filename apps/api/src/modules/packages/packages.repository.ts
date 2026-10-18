@@ -1,4 +1,4 @@
-import { prisma, type Tx } from '../../db/index.ts';
+import { isForeignKeyViolation, isUniqueViolation, prisma, type Tx } from '../../db/index.ts';
 import type { Prisma } from '../../generated/prisma/client.ts';
 
 const PACKAGE = {
@@ -18,7 +18,32 @@ const PACKAGE = {
 
 export type PackageRow = Prisma.PackageGetPayload<{ select: typeof PACKAGE }>;
 
-/** A space's packages (docs/api/api-contract.md Â§5, Packages (managed)). */
+/** The ten terms a create writes; an inactive package is a create's decision, never its request's. */
+export type PackageTerms = Omit<PackageRow, 'id' | 'isActive'>;
+
+/** What an edit writes: the fields it sets, each with its new value. */
+export type PackageData = Partial<Omit<PackageRow, 'id'>>;
+
+/** A written package, or the key that refused the write. */
+export type PackageWrite = { package: PackageRow } | { refused: 'name' | 'shiftId' };
+
+/**
+ * A write, or the key that refused it, turned into its field. Two keys can refuse one: the name's own
+ * `packages_space_id_name_key` (P2002), and `(shift_id, space_id) → space_shifts(id, space_id)` (P2003),
+ * which refuses another space's shift. Under the space's lock those are the only two: a locked row is
+ * never hard-deleted, so the space's own key cannot miss. Anything else is rethrown.
+ */
+async function written(write: Promise<PackageRow>): Promise<PackageWrite> {
+  try {
+    return { package: await write };
+  } catch (error) {
+    if (isUniqueViolation(error, 'packages_space_id_name_key')) return { refused: 'name' };
+    if (isForeignKeyViolation(error)) return { refused: 'shiftId' };
+    throw error;
+  }
+}
+
+/** A space's packages (docs/api/api-contract.md §5, Packages (managed)). */
 export function createPackagesRepository() {
   return {
     /**
@@ -31,6 +56,25 @@ export function createPackagesRepository() {
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
         select: PACKAGE,
       });
+    },
+
+    /**
+     * The place after the last package's, retired ones included, so it is after every one of them.
+     * Read under the space's lock, which every write takes first, so two creates never share it.
+     */
+    async nextPlace(spaceId: number, tx: Tx): Promise<number> {
+      const { _max } = await tx.package.aggregate({
+        _max: { sortOrder: true },
+        where: { spaceId },
+      });
+      return (_max.sortOrder ?? -1) + 1;
+    },
+
+    /** The new package, written with the place the caller read. */
+    create(spaceId: number, terms: PackageTerms, sortOrder: number, tx: Tx): Promise<PackageWrite> {
+      return written(
+        tx.package.create({ data: { ...terms, spaceId, sortOrder }, select: PACKAGE }),
+      );
     },
   };
 }
