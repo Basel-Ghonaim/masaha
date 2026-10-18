@@ -13,4 +13,6 @@ export const spaceLinksKeys = {
     ['admin', 'space-links', 'spaces', request] as const,
   /** A page of the admin's users list, one key per request, under the admin's scope too. */
   adminUsers: (request: AdminUsersRequest) => ['admin', 'space-links', 'users', request] as const,
+  /** Up to fifty spaces by name, for choosing one in a dialog. */
+  spaceChoices: (q: string | undefined) => ['admin', 'space-links', 'space-choices', q] as const,
 };

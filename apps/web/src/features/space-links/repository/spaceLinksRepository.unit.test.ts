@@ -129,6 +129,41 @@ describe('the space-links repository', () => {
     );
   });
 
+  it('adds an owner', async () => {
+    const requests = serve({
+      status: 201,
+      data: { success: true, data: { userId: 12, temporaryPassword: 'Tmp-4821-xk' } },
+    });
+
+    await expect(
+      createSpaceLinksRepository().addOwner({
+        name: 'Rima',
+        email: 'rima@example.com',
+        spaceId: 7,
+        upgradeExisting: true,
+      }),
+    ).resolves.toEqual({ userId: 12, temporaryPassword: 'Tmp-4821-xk' });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ method: 'post', baseURL: '/api/v1', url: '/admin/owners' });
+    expect(JSON.parse(String(requests[0]?.data))).toEqual({
+      name: 'Rima',
+      email: 'rima@example.com',
+      spaceId: 7,
+      upgradeExisting: true,
+    });
+  });
+
+  it('finds up to fifty spaces by name', async () => {
+    const requests = serve({ status: 200, data: { success: true, data: [ROW], meta: {} } });
+
+    await expect(createSpaceLinksRepository().spaceChoices('Focus')).resolves.toMatchObject({
+      data: [ROW],
+    });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ method: 'get', url: '/admin/spaces' });
+    expect(apiClient.getUri(requests[0])).toBe('/api/v1/admin/spaces?q=Focus&limit=50');
+  });
+
   it('rejects a refusal as an AppError, with its type and code', async () => {
     serve({
       status: 403,

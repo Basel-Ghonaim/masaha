@@ -126,4 +126,58 @@ export const SPACE_LINKS = {
       more: 'More pages',
     },
   },
+  /** The space search shared by the add-owner sheet and the link dialog. */
+  choices: {
+    search: 'Search',
+    spacesPlaceholder: 'Space name',
+    spaces: 'Spaces',
+    noResults: 'No results',
+    searching: 'Searching…',
+    searchFailed: 'We couldn’t search; type again to retry.',
+  },
+  /** Adding an owner from the owners page. */
+  addOwner: {
+    open: 'Add owner',
+    title: 'Add owner',
+    description: 'Linked to one space; link more afterwards.',
+    close: 'Close',
+    name: 'Name',
+    email: 'Email address',
+    emailPlaceholder: 'name@example.com',
+    space: 'Space',
+    chooseSpace: 'Choose the space',
+    willCreate:
+      'An account will be created and a temporary password shown once — have a way to hand it over ready.',
+    hasAccount: 'This email has an account',
+    checkingAccount: 'Checking whose account this is…',
+    account: { name: 'Name', joined: 'Joined', spaces: 'Spaces', noSpaces: 'None' },
+    confirmAccount: 'Make sure this is the person you mean: they’ll become an owner of this space',
+    accountUnconfirmed:
+      'We couldn’t show whose account this is, so it can’t be upgraded here — check the email.',
+    willUpgrade:
+      'Their account will be upgraded to owner and linked to the space; it keeps its name and its way of signing in, and no password is shown.',
+    create: 'Create account and link',
+    upgrade: 'Upgrade and link',
+    failed: 'The owner wasn’t added',
+    fieldErrors: {
+      name: { required: 'Enter the name' },
+      email: {
+        required: 'Enter the email',
+        invalid_format: 'Enter a valid email, e.g. name@example.com',
+      },
+      spaceId: {
+        required: 'Choose the space',
+        invalid_choice: 'That space is no longer available — choose another',
+      },
+    },
+    refusals: {
+      ACCOUNT_IS_ADMIN:
+        'This email is an admin’s account, and an admin can’t be linked to a space.',
+      ACCOUNT_SUSPENDED: 'This account is suspended; it can’t be linked until it’s restored.',
+      ALREADY_OWNER:
+        'This email is already an owner’s — link them to the space from their row in the list.',
+    },
+    upgraded: ({ name, space }: { name: string; space: string }) =>
+      `${name} upgraded to owner and linked to ${space}`,
+  },
 } as const;
