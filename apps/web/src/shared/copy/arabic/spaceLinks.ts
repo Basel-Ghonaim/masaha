@@ -97,4 +97,59 @@ export const SPACE_LINKS = {
       more: 'صفحات أخرى',
     },
   },
+  /** The space search shared by the add-owner sheet and the link dialog. */
+  choices: {
+    search: 'بحث',
+    spacesPlaceholder: 'اسم المساحة',
+    spaces: 'المساحات',
+    noResults: 'لا نتائج',
+    searching: 'جارٍ البحث…',
+    searchFailed: 'تعذّر البحث؛ اكتب من جديد لإعادة المحاولة.',
+  },
+  /** Adding an owner from the owners page. */
+  addOwner: {
+    open: 'إضافة مالك',
+    title: 'إضافة مالك',
+    description: 'يُربط بمساحة واحدة؛ اربطه بغيرها بعد ذلك.',
+    close: 'إغلاق',
+    name: 'الاسم',
+    email: 'البريد الإلكتروني',
+    emailPlaceholder: 'name@example.com',
+    space: 'المساحة',
+    chooseSpace: 'اختر المساحة',
+    willCreate: 'سيُنشأ حساب ويظهر رمز مرور مؤقت مرة واحدة — جهّز طريقة تسليمه.',
+    hasAccount: 'لهذا البريد حساب',
+    checkingAccount: 'جارٍ التحقق من صاحب الحساب…',
+    account: {
+      name: 'الاسم',
+      joined: 'تاريخ الانضمام',
+      spaces: 'المساحات',
+      noSpaces: 'لا مساحات',
+    },
+    confirmAccount: 'تأكّد أنه الشخص المقصود: سيصبح مالكًا لهذه المساحة',
+    accountUnconfirmed: 'تعذّر عرض صاحب هذا الحساب، فلا يُرقّى من هنا — تحقّق من البريد.',
+    willUpgrade:
+      'سيُرقّى حسابه إلى مالك ويُربط بالمساحة، ويحتفظ باسمه وطريقة دخوله، ولا تظهر كلمة مرور.',
+    create: 'إنشاء حساب وربط',
+    upgrade: 'ترقية وربط',
+    failed: 'لم يُضَف المالك',
+    fieldErrors: {
+      name: { required: 'أدخل الاسم' },
+      email: {
+        required: 'أدخل البريد الإلكتروني',
+        invalid_format: 'أدخل بريدًا صحيحًا، مثل name@example.com',
+      },
+      spaceId: {
+        required: 'اختر المساحة',
+        invalid_choice: 'لم تعد هذه المساحة متاحة — اختر غيرها',
+      },
+    },
+    refusals: {
+      ACCOUNT_IS_ADMIN: 'هذا البريد لحساب أدمن، ولا يُربط أدمن بمساحة.',
+      ACCOUNT_SUSPENDED: 'هذا الحساب موقوف؛ لا يُربط حتى يُسترجع.',
+      ALREADY_OWNER: 'هذا البريد لمالك مسبقًا — اربطه بالمساحة من صفّه في القائمة.',
+    },
+    upgraded: ({ name, space }: { name: string; space: string }) =>
+      `رُقّي ${name} إلى مالك ورُبط بـ ${space}`,
+  },
 } satisfies Catalogue['spaceLinks'];

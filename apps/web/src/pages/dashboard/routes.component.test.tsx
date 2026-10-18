@@ -812,4 +812,28 @@ describe("the admin's owners page", () => {
     expect(await within(table).findByText('Rima')).toBeInTheDocument();
     expect(within(table).getByText('Focus Hub')).toBeInTheDocument();
   });
+
+  it('offers «Add owner» above the owners list', async () => {
+    signIn({ role: 'ADMIN' });
+    fakeTransport(() => ({
+      status: 200,
+      data: {
+        success: true,
+        data: [],
+        meta: {
+          currentPage: 1,
+          limit: 20,
+          totalPages: 0,
+          totalRecords: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+    }));
+    renderDashboard('/dashboard/admin/owners');
+
+    const add = await screen.findByRole('button', { name: 'Add owner' });
+    const list = await screen.findByText('No space owners yet');
+    expect(add.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

@@ -40,6 +40,11 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [79. The users' names reader keeps an optional transaction](79-the-users-names-reader-keeps-an-optional-transaction.md)
 - [80. The database still takes a package with a price of zero](80-the-database-still-takes-a-package-with-a-price-of-zero.md)
 - [81. A retired package that keeps its shift stops the owner from removing that shift](81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)
+- [82. The users feature keeps several operations flat](82-the-users-feature-keeps-several-operations-flat.md)
+- [83. ALREADY_OWNER names no account](83-already-owner-names-no-account.md)
+- [87. The owners shell cold-loads the whole space-links index](87-the-owners-shell-cold-loads-the-space-links-index.md)
+- [88. The upgrade confirm shows no front desks](88-the-upgrade-confirm-shows-no-front-desks.md)
+- [89. «Check the email» stands for three causes](89-check-the-email-stands-for-three-causes.md)
 
 ## Accepted
 

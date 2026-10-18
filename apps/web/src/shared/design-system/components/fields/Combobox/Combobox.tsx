@@ -163,23 +163,33 @@ export type ComboboxContentProps = Omit<ComponentProps<typeof PopoverContent>, '
   searchLabel: string;
   /** Shown in the empty search box. */
   searchPlaceholder?: string;
+  /**
+   * The caller's own search, for options it finds elsewhere, such as a server's: the text and its
+   * change. With it the list shows the options it is given as they are, never filtered.
+   */
+  search?: { value: string; onValueChange: (value: string) => void };
   /** Names the list of options, such as "Areas". */
   listLabel: string;
   /** Shown when nothing matches the search. */
   emptyText: ReactNode;
+  /** Stands in for the empty text while the caller's options are on their way. */
+  loading?: ReactNode;
 };
 
 /**
  * The search box and the list, in a Popover at least as wide as the trigger. Typing filters the
- * options; arrow keys move through them and Enter chooses.
+ * options; arrow keys move through them and Enter chooses. A caller with its own search passes it,
+ * and the list then shows the options it hands over as they are.
  */
 export function ComboboxContent({
   className,
   children,
   searchLabel,
   searchPlaceholder,
+  search,
   listLabel,
   emptyText,
+  loading,
   align = 'start',
   ...props
 }: ComboboxContentProps) {
@@ -192,7 +202,13 @@ export function ComboboxContent({
       className={cn('w-(--radix-popover-trigger-width) min-w-56 gap-0 p-0', className)}
       {...props}
     >
-      <CommandPrimitive label={searchLabel} loop className="flex flex-col">
+      <CommandPrimitive
+        label={searchLabel}
+        loop
+        // The caller's search owns the filtering: the options it gives are the options found.
+        shouldFilter={search === undefined}
+        className="flex flex-col"
+      >
         {/* The search box has the focus while the list is open, so it shows it by its divider, in
             `ring`, rather than by the outline every other control uses. */}
         <div className="flex items-center gap-2 border-b border-border px-3 transition-colors focus-within:border-ring">
@@ -200,16 +216,27 @@ export function ComboboxContent({
           <CommandPrimitive.Input
             data-slot="combobox-search"
             placeholder={searchPlaceholder}
+            value={search?.value}
+            onValueChange={search?.onValueChange}
             className="h-(--control-height) w-full min-w-0 bg-transparent text-(length:--control-text-size) leading-(--type-body-line-height) text-foreground outline-hidden placeholder:text-muted-foreground"
           />
         </div>
+        {loading !== undefined && (
+          // The empty line would be a lie while options are on their way, so it is a status, and it
+          // stands outside the list, which holds options only.
+          <div role="status" className="px-2 py-6 text-center text-body-sm text-muted-foreground">
+            {loading}
+          </div>
+        )}
         <CommandPrimitive.List
           label={listLabel}
           className="max-h-72 scroll-py-1 overflow-x-hidden overflow-y-auto p-1"
         >
-          <CommandPrimitive.Empty className="px-2 py-6 text-center text-body-sm text-muted-foreground">
-            {emptyText}
-          </CommandPrimitive.Empty>
+          {loading === undefined && (
+            <CommandPrimitive.Empty className="px-2 py-6 text-center text-body-sm text-muted-foreground">
+              {emptyText}
+            </CommandPrimitive.Empty>
+          )}
           {children}
         </CommandPrimitive.List>
       </CommandPrimitive>

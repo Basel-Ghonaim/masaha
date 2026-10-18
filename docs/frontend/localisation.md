@@ -62,7 +62,7 @@ The mechanism (`shared/localisation`) and the content (`shared/copy`) are separa
 
 **Server codes.** `errors` has a line for every error type and domain code, and `validation` one for every field-error code. English types both sections against the codes in `@masaha/shared`, so a code added to the contract without its line, or a line for no code, fails the typecheck. `errors` also has a line for each of the client's own error types (`network`, `timeout`, `canceled`, `unknown`), through `AppErrorType` from `shared/errors` ([architecture.md §5](architecture.md#5-errors)). A screen reads `copy.errors[error.code ?? error.type]` unless it has something more specific to say.
 
-**Writing a line.** A key addresses a whole line, never a fragment. A varying value comes in through a function's named parameters, never by concatenation. No markup travels with text.
+**Writing a line.** A key addresses a whole line, never a fragment. A varying value comes in through a function's named parameters, never by concatenation. No markup travels with text. A line that names a record whose language may not be the interface's is cut around the name with `lineParts`, so the name is set as its own element with its `lang` and `dir`; the line stays whole in the catalogue.
 
 **Registration.** `app/bootstrap.ts` runs before the first render and calls `setupLocalisation({ catalogues: CATALOGUES, language })`. The fallback language, `ar`, must have a catalogue, or setup throws. Reading the language or a catalogue before setup throws.
 

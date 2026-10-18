@@ -1,7 +1,6 @@
 import { toast } from '@shared/design-system';
 import type { AppError } from '@shared/errors';
-import { isolate } from '@shared/localisation';
-import { lineParts } from '../../services/lineParts';
+import { isolate, lineParts } from '@shared/localisation';
 import type { SpaceNameView } from '../../types/SpaceNameView';
 import { ActionRefusal } from './ActionRefusal';
 import { NamedLine } from './NamedLine';
