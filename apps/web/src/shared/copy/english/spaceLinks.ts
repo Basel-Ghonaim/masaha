@@ -126,6 +126,74 @@ export const SPACE_LINKS = {
       more: 'More pages',
     },
   },
+  /** The admin's users page: every account, its role, sign-in, spaces and state. */
+  usersList: {
+    /** Names the list: the table, the cards below 1024 px. */
+    label: 'Users',
+    search: 'Search',
+    searchPlaceholder: 'Name or email',
+    /** Names the role chips. */
+    role: 'Role',
+    roles: {
+      all: 'All',
+      user: 'User',
+      owner: 'Owner',
+      admin: 'Admin',
+    },
+    /** Names the state chips. */
+    state: 'Status',
+    states: {
+      all: 'All',
+      active: 'Active',
+      suspended: 'Suspended',
+    },
+    columns: {
+      name: 'Name',
+      email: 'Email',
+      role: 'Role',
+      signIn: 'Sign-in',
+      joined: 'Joined',
+      spaces: 'Spaces',
+      state: 'Status',
+      actions: 'Actions',
+    },
+    /** One row's words: its state, its role and how the account signs in. */
+    row: {
+      states: { active: 'Active', suspended: 'Suspended' },
+      roles: { USER: 'User', OWNER: 'Owner', ADMIN: 'Admin' },
+      signIn: { password: 'Password', google: 'Google', both: 'Password and Google' },
+    },
+    /** Before the spaces a person owns. */
+    owned: 'Owner',
+    /** Before the spaces whose front desk a person works. */
+    desk: 'Front desk',
+    /** A person with no space, read in place of the dash. */
+    noSpaces: 'No spaces',
+    /** An owner whose every space is deleted, the whole line a link to the deleted spaces. */
+    allSpacesDeleted: 'All their spaces are deleted — restore the space to unlink them',
+    /** In place of the actions, on the signed-in admin's own row. */
+    you: 'You',
+    /** A card's line under the email. */
+    cardLine: ({ role, signIn, joined }: { role: string; signIn: string; joined: string }) =>
+      `${role} · ${signIn} · ${joined}`,
+    /** The count of users the filters keep. */
+    count: ({ count }: { count: number }) => `Users: ${String(count)}`,
+    empty: 'No users yet',
+    emptyHint: 'Everyone who creates an account shows here.',
+    noMatch: 'No users match',
+    clearFilters: 'Clear filters',
+    loadFailed: 'We couldn’t load the users',
+    pagination: {
+      label: 'Pages of the users list',
+      previous: 'Previous',
+      next: 'Next',
+      page: ({ page }: { page: number }) => `Page ${String(page)}`,
+      /** Where the list is, on a phone. */
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `Page ${String(page)} of ${String(total)}`,
+      more: 'More pages',
+    },
+  },
   /** The space and person searches shared by the add-owner sheet and the link dialog. */
   choices: {
     search: 'Search',
@@ -138,6 +206,8 @@ export const SPACE_LINKS = {
     searchFailed: 'We couldn’t search; type again to retry.',
     /** A space already the person's, offered but not to be chosen. */
     linked: 'Linked',
+    /** A space whose front desk the person works, offered but not to be chosen. */
+    atDesk: 'Front desk',
     /** What a person offered is: an owner with their spaces, an owner, or a user. */
     owner: ({ spaces }: { spaces: string }) => `Owner · ${spaces}`,
     ownerOfNone: 'Owner',
@@ -264,5 +334,12 @@ export const SPACE_LINKS = {
     link: 'Link to a space',
     suspended: 'The account is suspended — restore it first',
     unlinkFrom: ({ space }: { space: string }) => `Unlink from ${space}`,
+  },
+  /** A person's row actions on the users page that read their links. */
+  userActions: {
+    menu: ({ name }: { name: string }) => `Actions: ${name}`,
+    link: 'Link to a space',
+    isAdmin: 'An admin’s account — never linked to a space',
+    suspended: 'The account is suspended — restore it first',
   },
 } as const;

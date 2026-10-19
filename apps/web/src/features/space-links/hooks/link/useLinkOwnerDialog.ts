@@ -14,12 +14,12 @@ import { usePersonChoices } from './usePersonChoices';
 
 /**
  * The link dialog, ready to render, from either end: from a space, one person to choose (owners and
- * users, by name or email); from a person, one space (each with its state and owners, theirs already
- * offered but not to be chosen). Before the act it says what the link does, from the chosen option's
- * own facts: an unverified space becomes verified, a verified one gains another owner, and a user's
- * account becomes an owner's — said only when it is certain. Nothing chosen sends nothing and points
- * to the field. A refusal is worded in the dialog, which stays open; a new choice forgets it. Linked,
- * the dialog closes (`close`).
+ * users, by name or email); from a person, one space (each with its state and owners, theirs
+ * already and those whose front desk they work offered but not to be chosen). Before the act it
+ * says what the link does, from the chosen option's own facts: an unverified space becomes
+ * verified, a verified one gains another owner, and a user's account becomes an owner's — said only
+ * when it is certain. Nothing chosen sends nothing and points to the field. A refusal is worded in
+ * the dialog, which stays open; a new choice forgets it. Linked, the dialog closes (`close`).
  */
 export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
   const copy = useCopy();
@@ -30,6 +30,7 @@ export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
   const spaces = useSpaceChoices({
     enabled: !fromSpace,
     linked: target.from === 'person' ? target.person.spaceIds : [],
+    desks: target.from === 'person' ? target.person.deskIds : [],
   });
   const [person, setPerson] = useState<PersonChoiceView | null>(null);
   const [chosenSpace, setSpace] = useState<SpaceChoiceView | null>(null);
@@ -55,7 +56,7 @@ export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
         : { space: target.space.name, verified: false, user: person.role === 'USER' }
       : space === null
         ? null
-        : { space: space.name, verified: space.isVerified, user: false };
+        : { space: space.name, verified: space.isVerified, user: target.person.role === 'USER' };
 
   const consequence: (NamedLineView | string)[] =
     facts === null

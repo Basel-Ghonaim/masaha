@@ -8,6 +8,12 @@ export type UserRowView = {
   row: AdminUserRow;
   name: string;
   email: string;
+  /** Its global role: «مستخدم», «مالك» or «أدمن». */
+  role: string;
+  /** How it signs in: a password, Google, or both. */
+  signIn: string;
+  /** When it joined, as the lists write a date. */
+  joined: string;
   /** Whether the account may sign in: active on a success badge, suspended on a neutral one. */
   state: { label: string; variant: 'success' | 'neutral' };
   /** The spaces of its active owner links, each named in the interface's language. */

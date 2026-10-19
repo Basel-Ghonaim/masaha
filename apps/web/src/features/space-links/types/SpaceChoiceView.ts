@@ -10,4 +10,6 @@ export type SpaceChoiceView = {
   isVerified: boolean;
   /** Already the person's: offered, but not to be chosen. */
   linked: boolean;
+  /** The person works its front desk: offered, but not to be chosen. */
+  atDesk: boolean;
 };

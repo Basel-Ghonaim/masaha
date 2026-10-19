@@ -52,6 +52,11 @@ export function adminSpacePath(spaceId: number): string {
 /** The owners page, where an owner with no account is added before a space is linked to them. */
 export const ADMIN_OWNERS_PATH = `${DASHBOARD_PATHS.admin}/owners`;
 
+/** The owners page searched for `q`, such as a person's email: their row, and its unlinks. */
+export function adminOwnersSearchPath(q: string): string {
+  return `${ADMIN_OWNERS_PATH}?q=${encodeURIComponent(q)}`;
+}
+
 /** The lookups page on its amenities' tab, where an amenity is added to every space's list. */
 export const ADMIN_AMENITIES_PATH = `${DASHBOARD_PATHS.admin}/lookups?tab=amenities`;
 

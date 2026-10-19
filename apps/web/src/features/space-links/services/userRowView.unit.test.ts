@@ -18,8 +18,9 @@ const RIMA: AdminUserRow = {
   receptionSpaces: [],
 };
 
-const english = { lines: CATALOGUES.en.spaceLinks.ownersList, english: true };
-const arabic = { lines: CATALOGUES.ar.spaceLinks.ownersList, english: false };
+const NOW = new Date('2026-10-19T09:00:00Z');
+const english = { words: CATALOGUES.en.spaceLinks.usersList.row, english: true, now: NOW };
+const arabic = { words: CATALOGUES.ar.spaceLinks.usersList.row, english: false, now: NOW };
 
 describe('userRowView', () => {
   it('words the state: active as success, suspended as neutral', () => {
@@ -29,6 +30,39 @@ describe('userRowView', () => {
       variant: 'neutral',
     });
   });
+
+  it.each([
+    [
+      'a user with a password',
+      { role: 'USER', signIn: { password: true, google: false } },
+      ['User', 'Password'],
+      ['مستخدم', 'كلمة مرور'],
+    ],
+    [
+      'an owner with Google only',
+      { role: 'OWNER', signIn: { password: false, google: true } },
+      ['Owner', 'Google'],
+      ['مالك', 'Google'],
+    ],
+    [
+      'an admin with both',
+      { role: 'ADMIN', signIn: { password: true, google: true } },
+      ['Admin', 'Password and Google'],
+      ['أدمن', 'كلمة مرور وGoogle'],
+    ],
+  ] as const)(
+    'words the role, how the account signs in, and when it joined: %s',
+    (_case, facts, [roleEn, signInEn], [roleAr, signInAr]) => {
+      const row: AdminUserRow = { ...RIMA, ...facts, signIn: { ...facts.signIn } };
+
+      expect(userRowView(row, english)).toMatchObject({
+        role: roleEn,
+        signIn: signInEn,
+        joined: '1 Sept',
+      });
+      expect(userRowView(row, arabic)).toMatchObject({ role: roleAr, signIn: signInAr });
+    },
+  );
 
   it('names each space in the interface’s language, an English-only one marked as English', () => {
     expect(userRowView(RIMA, english).spaces).toEqual([

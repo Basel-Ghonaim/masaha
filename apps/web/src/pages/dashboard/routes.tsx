@@ -34,6 +34,10 @@ const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
     const { OwnersPage } = await import('./admin/OwnersPage');
     return { element: <OwnersPage /> };
   },
+  users: async () => {
+    const { UsersPage } = await import('./admin/UsersPage');
+    return { element: <UsersPage /> };
+  },
   lookups: async () => {
     const { LookupsPage } = await import('./admin/LookupsPage');
     return { element: <LookupsPage /> };

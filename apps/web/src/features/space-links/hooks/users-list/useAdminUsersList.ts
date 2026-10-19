@@ -1,14 +1,15 @@
-import { ACCOUNT_STATES } from '@masaha/shared/space-links';
+import { ACCOUNT_STATES, USER_ROLE_FILTERS } from '@masaha/shared/space-links';
 import { useCopy, type Catalogue } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
 import { useLanguage } from '@shared/localisation';
 import { paginationView } from '../../services/paginationView';
 import { userRowView } from '../../services/userRowView';
+import type { UserRoleFilter } from '../../types/UsersFilters';
 import { usePageInRange } from '../usePageInRange';
 import { useAdminUsersQuery } from './useAdminUsersQuery';
 import { useUsersFilters } from './useUsersFilters';
 
-/** The state chip that applies no filter, as `ToggleGroup` values name it. */
+/** The role or state chip that applies no filter, as `ToggleGroup` values name it. */
 const ALL = 'all';
 
 /** The words a users list is said in: the owners and the users pages each have their own. */
@@ -28,32 +29,31 @@ export type AdminUsersListWords = Pick<
   | 'pagination'
 >;
 
+/** The words of the role chips, offered when the role is not fixed. */
+type RoleWords = Pick<Catalogue['spaceLinks']['usersList'], 'role' | 'roles'>;
+
 /**
  * The admin's users list, ready to render: its state (loading, failed, empty, no match, or the
  * rows), a page of rows worded in the interface's language, the count the filters keep, the pages,
- * the search and the state chips, and the words of each state, in the list's own `words`. With
- * `fixedRole`, the list asks for that role alone. The rows, their order and the filters' meaning
- * are the server's; this words them.
+ * the search, the role chips and the state chips, and the words of each state, in the list's own
+ * `words`. With `fixedRole`, the list asks for that role alone, and offers no role chips. The rows,
+ * their order and the filters' meaning are the server's; this words them.
  *
  * A failure to load is read as any refusal is, with its line, its request's reference and, for too
  * many requests, the wait, during which the retry waits too; a failed refetch keeps the rows. While
  * another page or filter loads, the rows and the pages shown stay, the list marked busy. A page
  * past the last shows the last page in its place.
  */
-export function useAdminUsersList({
-  fixedRole,
-  words,
-}: {
-  fixedRole: 'owner' | undefined;
-  words: AdminUsersListWords;
-}) {
+export function useAdminUsersList(
+  options:
+    | { fixedRole: UserRoleFilter; words: AdminUsersListWords }
+    | { fixedRole?: undefined; words: AdminUsersListWords & RoleWords },
+) {
+  const { fixedRole, words } = options;
   const copy = useCopy();
   const english = useLanguage() === 'en';
-  const filters = useUsersFilters();
-  const query = useAdminUsersQuery({
-    ...filters.request,
-    ...(fixedRole !== undefined && { role: fixedRole }),
-  });
+  const filters = useUsersFilters(fixedRole === undefined ? {} : { fixedRole });
+  const query = useAdminUsersQuery(filters.request);
   const answer = query.data;
   const { view, blocked } = useRefusalView(
     answer === undefined ? query.error : null,
@@ -67,7 +67,10 @@ export function useAdminUsersList({
     replacePage: filters.replacePage,
   });
 
-  const rows = (answer?.data ?? []).map((row) => userRowView(row, { lines: words, english }));
+  const now = new Date();
+  const rows = (answer?.data ?? []).map((row) =>
+    userRowView(row, { words: copy.spaceLinks.usersList.row, english, now }),
+  );
 
   return {
     status:
@@ -123,6 +126,21 @@ export function useAdminUsersList({
           filters.chooseState(ACCOUNT_STATES.find((state) => state === value));
         },
       },
+      ...(options.fixedRole === undefined && {
+        role: {
+          label: options.words.role,
+          value: filters.filters.role ?? ALL,
+          options: [
+            { value: ALL, label: options.words.roles.all },
+            ...USER_ROLE_FILTERS.map((role) => ({ value: role, label: options.words.roles[role] })),
+          ],
+          choose: (value: string) => {
+            // The chip already on hands `''` when clicked again: it stays on.
+            if (value === '') return;
+            filters.chooseRole(USER_ROLE_FILTERS.find((role) => role === value));
+          },
+        },
+      }),
     },
   };
 }

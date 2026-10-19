@@ -128,7 +128,10 @@ describe('LinkOwnerDialog', () => {
   });
 
   it('from a person: offers spaces, the ones already theirs unavailable', async () => {
-    renderDialog({ from: 'person', person: { id: 3, name: 'Hadi', spaceIds: [9] } });
+    renderDialog({
+      from: 'person',
+      person: { id: 3, name: 'Hadi', role: 'OWNER', spaceIds: [9], deskIds: [] },
+    });
 
     const dialog = screen.getByRole('dialog', { name: heard('Link Hadi to a space') });
     expect(dialog).toHaveAccessibleDescription('One space at a time.');
@@ -141,6 +144,22 @@ describe('LinkOwnerDialog', () => {
     const focus = screen.getByRole('option', { name: /Focus Hub/ });
     expect(focus).toHaveAttribute('aria-disabled', 'false');
     expect(within(focus).queryByText('Linked')).not.toBeInTheDocument();
+  });
+
+  it('from a person, offers their reception desks as unavailable, saying so', async () => {
+    renderDialog({
+      from: 'person',
+      person: { id: 5, name: 'Rima', role: 'USER', spaceIds: [], deskIds: [7] },
+    });
+
+    await userEvent.click(screen.getByRole('combobox', { name: /^Space/ }));
+
+    const focus = await screen.findByRole('option', { name: /Focus Hub/ });
+    expect(focus).toHaveAttribute('aria-disabled', 'true');
+    expect(within(focus).getByText('Front desk')).toBeInTheDocument();
+    const palm = screen.getByRole('option', { name: /Palm Hub/ });
+    expect(palm).toHaveAttribute('aria-disabled', 'false');
+    expect(within(palm).queryByText('Front desk')).not.toBeInTheDocument();
   });
 
   it('has no accessibility violations', async () => {

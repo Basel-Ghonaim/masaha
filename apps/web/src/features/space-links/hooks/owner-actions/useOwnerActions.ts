@@ -34,7 +34,12 @@ export function useOwnerActions(row: UserRowView) {
           kind: 'link',
           target: {
             from: 'person',
-            person: { ...owner, spaceIds: spaces.map((space) => space.id) },
+            person: {
+              ...owner,
+              role: 'OWNER',
+              spaceIds: spaces.map((space) => space.id),
+              deskIds: row.row.receptionSpaces.map((desk) => desk.id),
+            },
           },
         });
       },

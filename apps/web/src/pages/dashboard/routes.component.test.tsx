@@ -838,3 +838,47 @@ describe("the admin's owners page", () => {
     expect(add.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
+
+describe("the admin's users page", () => {
+  it('shows the admin’s users page under its title, with the users', async () => {
+    signIn({ role: 'ADMIN' });
+    fakeTransport((request) =>
+      request.url === '/admin/users'
+        ? {
+            status: 200,
+            data: {
+              success: true,
+              data: [
+                {
+                  id: 8,
+                  name: 'Nour',
+                  email: 'nour@example.com',
+                  role: 'USER',
+                  isSuspended: false,
+                  signIn: { password: true, google: false },
+                  joinedAt: '2026-09-01T08:00:00Z',
+                  spaces: [],
+                  receptionSpaces: [{ id: 7, nameEn: 'Focus Hub', nameAr: null }],
+                },
+              ],
+              meta: {
+                currentPage: 1,
+                limit: 20,
+                totalPages: 1,
+                totalRecords: 1,
+                hasNextPage: false,
+                hasPreviousPage: false,
+              },
+            },
+          }
+        : ok([]),
+    );
+    renderDashboard('/dashboard/admin/users');
+
+    expect(await topBarTitle('Users')).toBeInTheDocument();
+    const table = await screen.findByRole('table', { name: 'Users' });
+    expect(await within(table).findByText('Nour')).toBeInTheDocument();
+    expect(within(table).getByText('Focus Hub')).toBeInTheDocument();
+    expect(within(table).getByRole('button', { name: heard('Actions: Nour') })).toBeInTheDocument();
+  });
+});
