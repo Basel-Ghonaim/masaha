@@ -320,6 +320,26 @@ SpaceSettings = {
 - **200:** `SpaceSettings`, as they now are. Audited `space.settingsEdited`.
 - **Errors:** `validation` (422), each field with its codes; `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
 
+### Capacity (managed)
+
+A space's capacity: the most people it seats, private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)); the full warning and the live status will read it ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Both routes are the owner's (🏢): reception is refused with `forbidden` (403) before a body is read. A change applies from then on.
+
+- **`capacity`** (`@masaha/shared/occupancy`): a whole number from 1 to 1,000 (`CAPACITY_MAX`; `out_of_range` outside it, `invalid_format` when not whole), or `null` for none.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the space as the entity and the entry's space: `space.capacityEdited` (`before` and `after`: `{ capacity }`, `null` before a first one); the capacity the space already has writes nothing.
+
+```ts
+SpaceCapacity = { capacity: number | null }   // null: none set
+```
+
+#### `GET /manage/spaces/:spaceId/capacity` · 🏢
+- **200:** `SpaceCapacity`; `null` before one is set.
+- **Errors:** `forbidden` (403) for reception; `not_found` (404).
+
+#### `PUT /manage/spaces/:spaceId/capacity` · 🏢
+- **Body:** `{ capacity }`, required: the number, or `null` to clear it.
+- **200:** `SpaceCapacity`, as it now is. The space's occupancy row is created on the first write; a later one changes the capacity only. Audited `space.capacityEdited`.
+- **Errors:** `validation` (422), `required` when `capacity` is absent; `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+
 ### Lookups (public)
 
 #### `GET /lookups` · 🌐

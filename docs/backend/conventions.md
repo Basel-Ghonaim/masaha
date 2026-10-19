@@ -106,7 +106,7 @@ Inside a module, each layer calls only the one below it.
   - space links: linking owners, adding, deactivating and re-activating staff;
   - role changes, suspensions and temporary passwords ([security.md](security.md#passwords));
   - a person's email corrected at the forced change;
-  - settings changes, for spaces and the platform.
+  - settings changes, for spaces and the platform, and a space's capacity.
 - **Reading is a module**, `audit` (L5, §7). It owns no table and has a `manage` and an `admin` router.
 - **Privacy is a default-deny allowlist.** The admin sees only the platform event types on the audit module's list, never an entry about a space's customers, visits, subscriptions or payments ([ADR 0002](../architecture/decisions/0002-authorization-model.md), [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)). An event type not on the list stays hidden from the admin. The owner sees their space's entries.
 - The owner's audit screen is in v1 scope ([overview.md](../project/overview.md)) but has no design yet ([finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md)).

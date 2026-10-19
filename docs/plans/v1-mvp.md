@@ -78,7 +78,7 @@ Each step names its goal and points to what supports it:
 **Goal:** an owner keeps the space's public facts and prices true, and confirms them.
 - **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 20 Space profile, 21 Prices & packages.
 - **Supported by:**
-  - conventions [§7](../backend/conventions.md#the-modules) (`spaces`, `packages`) and §9 [occupancy](../backend/conventions.md#occupancy-the-spaces-state-now) (capacity);
+  - conventions [§7](../backend/conventions.md#the-modules) (`spaces`, `packages`);
   - [ADR 0014](../architecture/decisions/0014-deployment.md) (the request size limit).
 - **Settles:** photos. Their API is built for the admin (the gallery, the storage port, the public covers and photos); the owner's routes reuse its service.
 
@@ -138,7 +138,7 @@ Each step names its goal and points to what supports it:
   - [ADR 0014](../architecture/decisions/0014-deployment.md) (the response size limit);
   - [overview.md](../project/overview.md#dashboard--owner-and-reception) (what drops first if time is short).
 - **Closes:** [finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md): the owner's audit screen.
-- **Built early:** the space's settings, on the API (#92, [api-contract › Settings (managed)](../api/api-contract.md#settings-managed)), ahead of the front desk; screen 24 remains here.
+- **Built early:** the space's settings and its capacity, on the API (#92, [api-contract › Settings (managed)](../api/api-contract.md#settings-managed)), ahead of the front desk; screen 24 remains here.
 - **Settles:** charts and CSV exports.
 
 ### 12. Overviews
@@ -215,13 +215,13 @@ Built: `GET /lookups`, the active governorates with their active areas and the a
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, and the settings routes ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed)).
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, and the settings and capacity routes ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed)).
 An active owner or reception link is required; reception is read-only. The web screen and later
 dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | the profile and all facts (read), the profile (edit); capacity remains planned |
+| GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | the profile and all facts (read), the profile (edit) |
 | PUT | `/manage/spaces/:spaceId/:group` | 🏢 | the facts, one group at a time (`hours` with the shifts, `prices`, `amenities`, `contacts`), on the same logic as the admin's ([api-contract §5](../api/api-contract.md#spaces-the-admin)) |
 | POST | `/manage/spaces/:spaceId/:group/confirm` | 🏢 | «المعلومات ما زالت صحيحة»: resets that group's freshness date, as the admin's confirm does ([api-contract §5](../api/api-contract.md#spaces-the-admin)) |
 | GET | `/manage/spaces/:spaceId/occupancy` | 🧾 | the live numbers for the space's staff: `{ capacity, present }`; the statistics are under finance (🏢) |

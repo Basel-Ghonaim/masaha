@@ -1,7 +1,7 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
-> **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the API-only managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list. The owner/reception web screen and capacity remain planned.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-19 · **Owner:** Basel Ghoneim
+> **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the API-only managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list. The owner/reception web screen remains planned.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
 ## What it does
@@ -15,7 +15,7 @@
 
 The managed API lets an active owner read and edit the profile and facts, confirm groups and
 manage photos; reception can read the complete space and photo response but cannot mutate it.
-It reuses the admin services and shapes. The owner/reception web screen and capacity remain
+It reuses the admin services and shapes. The owner/reception web screen remains
 planned; the admin's editor already carries the photo gallery.
 
 ## Who uses it
@@ -28,7 +28,7 @@ planned; the admin's editor already carries the photo gallery.
 
 - **Owns** the `spaces` table and its profile, the slug, the hide flag, the soft delete, the fact groups' dates, the staleness rule and the rule of the hidden prices; the hours and the shifts, the prices, the space's amenity links and its own amenities, and its contacts.
 - **Leaves** whether a space is verified and its active owners to `space-links`, which the composition root injects ([conventions › Space access](../backend/conventions.md#space-access)); `spaces` never imports `space-links`.
-- **Leaves** a space's settings to `space-settings`, the defaults and thresholds to `platform-settings`, and the areas and the amenities, and whether an amenity is active, to [`lookups`](lookups.md).
+- **Leaves** a space's settings to `space-settings`, its capacity to [`occupancy`](occupancy.md), the defaults and thresholds to `platform-settings`, and the areas and the amenities, and whether an amenity is active, to [`lookups`](lookups.md).
 - **Leaves** who may edit a profile or a fact to `can()` ([security › Authorization](../backend/security.md#authorization)).
 
 ## How it composes the platform

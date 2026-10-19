@@ -38,6 +38,11 @@ import {
   createLookupsService,
 } from './modules/lookups/index.ts';
 import {
+  createOccupancyController,
+  createOccupancyManageRouter,
+  createOccupancyService,
+} from './modules/occupancy/index.ts';
+import {
   createPackagesController,
   createPackagesManageRouter,
   createPackagesService,
@@ -298,6 +303,7 @@ export function createApi({
   const confirm = createConfirmService(facts);
   const photos = createPhotosService({ runInTransaction, audit: writeAudit, storage, logger });
   const packages = createPackagesService({ runInTransaction, audit: writeAudit, spaces });
+  const occupancy = createOccupancyService({ runInTransaction, audit: writeAudit, spaces });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const directory = createDirectoryService({
     lookups,
@@ -383,6 +389,7 @@ export function createApi({
     '/settings',
     createSpaceSettingsManageRouter(createSpaceSettingsController(spaceSettings)),
   );
+  manage.use(createOccupancyManageRouter(createOccupancyController(occupancy)));
   manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
   api.use(
     '/manage/spaces/:spaceId',
