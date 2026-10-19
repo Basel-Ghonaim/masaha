@@ -1,5 +1,12 @@
 import { AmenityChecklist, AmenityNames, AreaName, AreaSelect } from '@features/lookups';
-import { SpaceEditor, useSpaceName, type AmenitiesField, type AreaField } from '@features/spaces';
+import { SpaceOwnersActions } from '@features/space-links';
+import {
+  SpaceEditor,
+  useSpaceName,
+  type AmenitiesField,
+  type AreaField,
+  type OwnersSlot,
+} from '@features/spaces';
 import { useCopy } from '@shared/copy';
 import {
   Breadcrumb,
@@ -11,7 +18,7 @@ import {
 } from '@shared/design-system';
 import { NotFoundState, parseSpaceId, publicSpacePath, useRecordTitle } from '@shared/routing';
 import { Link, useParams } from 'react-router';
-import { ADMIN_AMENITIES_PATH, ADMIN_SPACES_PATH } from '../navigation';
+import { ADMIN_AMENITIES_PATH, ADMIN_OWNERS_PATH, ADMIN_SPACES_PATH } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
 
 /** The editor's area field, from `lookups`, made once so the form keeps it from render to render. */
@@ -26,10 +33,16 @@ const amenitiesField: AmenitiesField = (props) => <AmenityChecklist {...props} /
 /** A space's amenities named, from `lookups`, for a verified space's read-only page. */
 const amenityNames = (ids: number[]) => <AmenityNames ids={ids} />;
 
+/** The space's owners' actions, from `space-links`, in the editor's notice, made once as the fields are. */
+const ownerActions: OwnersSlot = (space) => (
+  <SpaceOwnersActions space={space} addOwnerLink={ADMIN_OWNERS_PATH} />
+);
+
 /**
  * The admin edits a space: titled by its name once it has loaded, with the trail back to the spaces
  * list, then the editor of `spaces` with the fields of `lookups` and the way to its amenities' tab. An id that names no space shows
- * the 404.
+ * the 404. Its notice holds the owners' actions of `space-links`: unlink a verified space's owners,
+ * or link one to an unverified space, a new owner being added on the owners page.
  */
 export function SpaceEditPage() {
   const spaceId = parseSpaceId(useParams().spaceId);
@@ -69,6 +82,7 @@ function SpaceEdit({ spaceId }: { spaceId: number }) {
           amenityNames={amenityNames}
           amenitiesListLink={ADMIN_AMENITIES_PATH}
           publicLink={publicSpacePath}
+          ownerActions={ownerActions}
         />
       </div>
     </>

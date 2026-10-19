@@ -1,8 +1,11 @@
 import { FACT_GROUPS, type AdminSpace, type FactGroup } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import type { BadgeProps } from '@shared/design-system';
+import { isolate, useLanguage } from '@shared/localisation';
 import { useIsMutating } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { spaceNameOf } from '../../services/spaceName';
+import type { OwnedSpace } from '../../types/OwnersSlot';
 import { spaceWriteKey } from '../mutationKeys';
 import { useLeaveGuard } from './useLeaveGuard';
 import { useSectionInView } from './useSectionInView';
@@ -13,7 +16,8 @@ const SECTIONS = [...FACT_GROUPS, 'photos'] as const;
 
 /**
  * A space's editor, ready to render: its loading, failure and not-found states; then its state's
- * badges, the notice that says whether it is edited here or read-only, the groups still missing, the
+ * badges, the notice that says whether it is edited here or read-only (a verified one naming its
+ * owners), the space as the owners' actions take it, the groups still missing, the
  * sections' navigation with the one in view marked, and the guard that asks before the page is left
  * with unsaved changes, which each section reports (`onDirtyChange`), and says they are being saved
  * while one of the space's writes is pending. A space found deleted is the 404, whatever was read
@@ -23,6 +27,7 @@ const SECTIONS = [...FACT_GROUPS, 'photos'] as const;
 export function useSpaceEditor(spaceId: number) {
   const copy = useCopy();
   const words = copy.spaces.editor;
+  const english = useLanguage() === 'en';
   const query = useSpaceQuery(spaceId);
   const [dirty, setDirty] = useState<FactGroup[]>([]);
   const onDirtyChange = useCallback((group: FactGroup, isDirty: boolean) => {
@@ -75,7 +80,21 @@ export function useSpaceEditor(spaceId: number) {
     readOnly: space.isVerified,
     badges: badgesOf(space, words.status),
     unverified: words.unverified,
-    verified: words.verified,
+    verified: {
+      // Each name isolated, so a name in one direction never reorders its neighbours.
+      title: words.verified.ownedBy({
+        names: space.owners.map(({ name }) => isolate(name)).join(words.verified.namesSeparator),
+      }),
+      description: words.verified.description,
+      viewOnSite: words.verified.viewOnSite,
+    },
+    owned: {
+      id: space.id,
+      name: spaceNameOf(space, english),
+      isVerified: space.isVerified,
+      owners: space.owners,
+      unsaved: dirty.length > 0,
+    } satisfies Omit<OwnedSpace, 'focusFallback'>,
     checklist: space.isVerified ? null : checklistOf(space, words),
     navigation: {
       label: words.navigation,

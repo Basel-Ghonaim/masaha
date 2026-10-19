@@ -244,6 +244,13 @@ export const SPACE_LINKS = {
       `${person} unlinked from ${space}`,
     nowUnverified: 'The space is now unverified',
   },
+  /** A space's owners' actions in its editor: an unlink per owner, or the link while it has none. */
+  spaceOwners: {
+    unlink: ({ name }: { name: string }) => `Unlink ${name}`,
+    link: 'Link an owner',
+    /** Why the link waits while the editor has unsaved changes, which the link would drop. */
+    unsavedReason: 'Save or discard your changes first',
+  },
   /** An owner's row actions on the owners page. */
   ownerActions: {
     menu: ({ name }: { name: string }) => `Actions: ${name}`,

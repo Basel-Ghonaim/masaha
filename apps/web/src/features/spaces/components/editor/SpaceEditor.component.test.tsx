@@ -21,12 +21,17 @@ import { findToast } from '../../../../test/findToast';
 import { startPreferences } from '../../../../test/startPreferences';
 import type { AmenitiesField } from '../../types/AmenitiesField';
 import type { AreaField } from '../../types/AreaField';
+import type { OwnedSpace } from '../../types/OwnersSlot';
 import { SpaceEditor } from './SpaceEditor';
 
 type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
 
 // 10:00 in Gaza.
 const NOW = new Date('2026-10-13T07:00:00Z');
+
+/** The marks that isolate a name inside a line, so it never reorders the words around it. */
+const FSI = String.fromCodePoint(0x2068);
+const PDI = String.fromCodePoint(0x2069);
 
 /** A space just added: unverified, shown, its profile dated three days ago, its facts missing. */
 const SPACE: AdminSpace = {
@@ -131,6 +136,12 @@ function renderEditor({
     if (request.method !== 'get') return write(request);
     return request.url?.endsWith('/photos') === true ? photos() : read();
   });
+  // The owners' actions the page would put in the notice: here a button, and what the editor gave it.
+  const owned: OwnedSpace[] = [];
+  const ownerActions = (space: OwnedSpace) => {
+    owned.push(space);
+    return <button type="button">Owners’ actions</button>;
+  };
   const router = createMemoryRouter(
     [
       {
@@ -144,6 +155,7 @@ function renderEditor({
             amenityNames={(ids) => ids.map((id) => `Amenity ${String(id)}`).join(', ')}
             amenitiesListLink="/lookups?tab=amenities"
             publicLink={(slug) => `/spaces/${slug}`}
+            ownerActions={ownerActions}
           />
         ),
       },
@@ -158,8 +170,12 @@ function renderEditor({
     </QueryClientProvider>,
   );
   const writes = () => requests.filter((request) => request.method !== 'get');
-  return { requests, writes, router };
+  return { requests, writes, router, owned };
 }
+
+/** The notice whose title is `title`, with what it holds. */
+const notice = (title: string) =>
+  screen.getByText(title).closest('[data-slot=alert]') as HTMLElement;
 
 /** The section whose title is `name`. */
 const section = (name: string) =>
@@ -264,6 +280,31 @@ describe('the space editor', () => {
       'href',
       '/spaces/7#prices',
     );
+  });
+
+  it('places the owners’ actions in an unverified space’s notice', async () => {
+    const user = userEvent.setup();
+    const { owned } = renderEditor();
+
+    await screen.findByText('You’re editing an unverified space');
+    const unverified = notice('You’re editing an unverified space');
+    expect(within(unverified).getByRole('button', { name: 'Owners’ actions' })).toBeInTheDocument();
+    expect(owned.at(-1)).toMatchObject({
+      id: 7,
+      name: { text: 'Focus Hub' },
+      isVerified: false,
+      owners: [],
+      unsaved: false,
+    });
+    // The element around the notice, which stays while its content is swapped, takes the focus a
+    // link or an unlink leaves.
+    const fallback = owned.at(-1)?.focusFallback.current;
+    expect(fallback).toHaveAttribute('tabindex', '-1');
+    expect(fallback).toContainElement(unverified);
+
+    // Unsaved changes would be dropped by a link, which turns the editor read-only: the slot knows.
+    await user.type(screen.getByRole('textbox', { name: 'Name in English' }), ' Gaza');
+    expect(owned.at(-1)).toMatchObject({ unsaved: true });
   });
 
   it('lists its sections in a navigation, the one in view marked', async () => {
@@ -535,6 +576,7 @@ describe('a verified space', () => {
         ok({
           ...SPACE,
           isVerified: true,
+          owners: [{ id: 5, name: 'Rima' }],
           amenityIds: [1, 3],
           ownAmenities: [{ nameAr: 'غرفة صلاة', nameEn: null }],
           contacts: [{ type: 'PHONE', value: '+970569123456' }],
@@ -563,7 +605,7 @@ describe('a verified space', () => {
         }),
     });
 
-    expect(await screen.findByText('Edited by its owner')).toBeInTheDocument();
+    expect(await screen.findByText(`Edited by ${FSI}Rima${PDI}`)).toBeInTheDocument();
     expect(screen.getByText('Verified')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View on the site' })).toHaveAttribute(
       'href',
@@ -596,6 +638,29 @@ describe('a verified space', () => {
     const photos = section('Photos');
     expect(await within(photos).findByText('Cover')).toBeInTheDocument();
     expect(within(photos).queryByRole('button')).toBeNull();
+  });
+
+  it('names a verified space’s owners, and places the owners’ actions in its notice', async () => {
+    const owners = [
+      { id: 5, name: 'Rima' },
+      { id: 6, name: 'Sami' },
+    ];
+    const { owned } = renderEditor({ read: () => ok({ ...SPACE, isVerified: true, owners }) });
+
+    // Each name isolated, so a name in one direction never reorders its neighbours.
+    const title = `Edited by ${FSI}Rima${PDI}, ${FSI}Sami${PDI}`;
+    expect(await screen.findByText(title)).toBeInTheDocument();
+    expect(
+      within(notice(title)).getByRole('button', { name: 'Owners’ actions' }),
+    ).toBeInTheDocument();
+    expect(owned.at(-1)).toMatchObject({
+      id: 7,
+      name: { text: 'Focus Hub' },
+      isVerified: true,
+      owners,
+      unsaved: false,
+    });
+    expect(owned.at(-1)?.focusFallback.current).toContainElement(notice(title));
   });
 });
 

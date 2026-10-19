@@ -20,17 +20,20 @@ import { PersonCombobox } from './PersonCombobox';
 /**
  * Links an owner to a space, from either end (`target`): one choice, what the link does said before
  * it is made, and «ربط». A refusal shows inside, and the dialog stays open; linked, or dismissed, it
- * closes (`onClose`) and the focus returns to the control that opened it (`returnFocus`). From a
- * space, a line leads to the owners page, where an owner with no account is added.
+ * closes (`onClose`) and the focus returns to the control that opened it (`returnFocus`), or, when
+ * that control is gone, to `fallbackFocus`. From a space, a line leads to the owners page, where an
+ * owner with no account is added.
  */
 export function LinkOwnerDialog({
   target,
   onClose,
   returnFocus,
+  fallbackFocus,
 }: {
   target: LinkTarget;
   onClose: () => void;
   returnFocus: RefObject<HTMLElement | null>;
+  fallbackFocus?: RefObject<HTMLElement | null>;
 }) {
   const dialog = useLinkOwnerDialog(target, onClose);
   const { picker } = dialog;
@@ -46,7 +49,10 @@ export function LinkOwnerDialog({
         closeLabel={dialog.closeLabel}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-          returnFocus.current?.focus();
+          (returnFocus.current?.isConnected
+            ? returnFocus.current
+            : fallbackFocus?.current
+          )?.focus();
         }}
       >
         <DialogHeader>

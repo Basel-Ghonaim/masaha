@@ -17,6 +17,7 @@ const SPACE = {
   nameAr: null,
   isHidden: false,
   isVerified: false,
+  owners: [],
   missingGroups: ['hours', 'prices', 'amenities', 'contacts'],
 } as unknown as AdminSpace;
 

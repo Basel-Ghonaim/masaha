@@ -1,9 +1,10 @@
 import { Alert, AlertDescription, AlertTitle } from '@shared/design-system';
 import { NotFoundState } from '@shared/routing';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { useSpaceEditor } from '../../hooks/editor/useSpaceEditor';
 import type { AmenitiesField } from '../../types/AmenitiesField';
 import type { AreaField } from '../../types/AreaField';
+import type { OwnersSlot } from '../../types/OwnersSlot';
 import { AmenitiesSection } from '../amenities/AmenitiesSection';
 import { ReadOnlyAmenities } from '../amenities/ReadOnlyAmenities';
 import { ContactsSection } from '../contacts/ContactsSection';
@@ -33,7 +34,9 @@ import { VerifiedNotice } from './VerifiedNotice';
  *
  * The page fills what comes from elsewhere: the area field and the area's name, the amenities'
  * checklist and their names (`lookups`), the way to the platform's amenities list (`amenitiesListLink`),
- * and the space's page on the public site (`publicLink`, by its slug).
+ * the space's page on the public site (`publicLink`, by its slug), and the owners' actions in its
+ * notice (`ownerActions`, from `space-links`): an unlink per owner of a verified space, the link on an
+ * unverified one.
  */
 export function SpaceEditor({
   spaceId,
@@ -43,6 +46,7 @@ export function SpaceEditor({
   amenityNames,
   amenitiesListLink,
   publicLink,
+  ownerActions,
 }: {
   spaceId: number;
   areaField: AreaField;
@@ -51,8 +55,11 @@ export function SpaceEditor({
   amenityNames: (ids: number[]) => ReactNode;
   amenitiesListLink: string;
   publicLink: (slug: string) => string;
+  ownerActions: OwnersSlot;
 }) {
   const editor = useSpaceEditor(spaceId);
+  // The notice stays while its content is swapped, so it takes the focus a link or an unlink leaves.
+  const notice = useRef<HTMLDivElement>(null);
 
   if (editor.state === 'loading') return <EditorLoading label={editor.label} />;
   if (editor.state === 'notFound') return <NotFoundState />;
@@ -64,14 +71,25 @@ export function SpaceEditor({
   return (
     <div className="flex flex-col gap-4">
       <SpaceStatusBadges badges={editor.badges} />
-      {editor.readOnly ? (
-        <VerifiedNotice words={editor.verified} publicHref={publicLink(space.slug)} />
-      ) : (
-        <Alert variant="warning">
-          <AlertTitle>{editor.unverified.title}</AlertTitle>
-          <AlertDescription>{editor.unverified.description}</AlertDescription>
-        </Alert>
-      )}
+      <div ref={notice} tabIndex={-1} className="outline-none">
+        {editor.readOnly ? (
+          <VerifiedNotice words={editor.verified} publicHref={publicLink(space.slug)}>
+            <div className="flex flex-wrap gap-2">
+              {ownerActions({ ...editor.owned, focusFallback: notice })}
+            </div>
+          </VerifiedNotice>
+        ) : (
+          <Alert variant="warning">
+            <AlertTitle>{editor.unverified.title}</AlertTitle>
+            <AlertDescription>
+              <p>{editor.unverified.description}</p>
+              <div className="flex flex-wrap gap-2">
+                {ownerActions({ ...editor.owned, focusFallback: notice })}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
         <SectionNav
           label={editor.navigation.label}

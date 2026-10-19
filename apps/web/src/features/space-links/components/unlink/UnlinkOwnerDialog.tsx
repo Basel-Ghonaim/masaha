@@ -18,14 +18,20 @@ import { NamedLine } from '../NamedLine';
  * Asks before an owner is unlinked from a space: its title names both, its line says what follows,
  * read from the space's owners as it opens. It opens on Back, so a stray Enter never unlinks; its
  * action is destructive and stays until the answer, so a refusal shows inside (P8). Closed, the focus
- * returns to the control that opened it (`returnFocus`).
+ * returns to the control that opened it (`returnFocus`), or, when that control is gone, to
+ * `fallbackFocus`.
  */
 export function UnlinkOwnerDialog({
   space,
   owner,
   onClose,
   returnFocus,
-}: UnlinkSubject & { onClose: () => void; returnFocus: RefObject<HTMLElement | null> }) {
+  fallbackFocus,
+}: UnlinkSubject & {
+  onClose: () => void;
+  returnFocus: RefObject<HTMLElement | null>;
+  fallbackFocus?: RefObject<HTMLElement | null>;
+}) {
   const dialog = useUnlinkOwnerDialog({ space, owner }, onClose);
 
   return (
@@ -38,7 +44,10 @@ export function UnlinkOwnerDialog({
       <AlertDialogContent
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-          returnFocus.current?.focus();
+          (returnFocus.current?.isConnected
+            ? returnFocus.current
+            : fallbackFocus?.current
+          )?.focus();
         }}
       >
         <AlertDialogHeader>

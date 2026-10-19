@@ -52,7 +52,8 @@ export const SPACES = {
       description: 'يظهر للزوار أن فريق مساحة جمع هذه المعلومات. كل قسم يُحفظ وحده.',
     },
     verified: {
-      title: 'يعدّلها مالكها',
+      ownedBy: ({ names }: { names: string }) => `يعدّلها ${names}`,
+      namesSeparator: '، ',
       description: 'هذه مساحة موثّقة، فتظهر هنا للقراءة فقط.',
       viewOnSite: 'عرض في الموقع',
     },

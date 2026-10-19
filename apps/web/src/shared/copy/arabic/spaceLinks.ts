@@ -205,6 +205,11 @@ export const SPACE_LINKS = {
       `فُك ربط ${person} من ${space}`,
     nowUnverified: 'المساحة غير موثّقة الآن',
   },
+  spaceOwners: {
+    unlink: ({ name }: { name: string }) => `فك ربط ${name}`,
+    link: 'ربط مالك',
+    unsavedReason: 'احفظ التغييرات أو تجاهلها أولًا',
+  },
   ownerActions: {
     menu: ({ name }: { name: string }) => `إجراءات: ${name}`,
     link: 'ربط بمساحة',
