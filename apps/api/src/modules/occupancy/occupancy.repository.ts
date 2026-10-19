@@ -54,5 +54,32 @@ export function createOccupancyRepository() {
         select: { spaceId: true },
       });
     },
+
+    /**
+     * Sets the manual override, creating the space's row, with no capacity, on its first write. Only
+     * the override's three columns are written, so a capacity is never touched.
+     */
+    async setOverride(
+      spaceId: number,
+      { state, until, byId }: Override & { byId: number },
+      tx: Tx,
+    ): Promise<void> {
+      const override = { stateOverride: state, stateOverrideUntil: until, stateOverrideById: byId };
+      await tx.spaceOccupancy.upsert({
+        where: { spaceId },
+        create: { spaceId, capacity: null, ...override },
+        update: override,
+        select: { spaceId: true },
+      });
+    },
+
+    /** Clears the manual override's three columns. */
+    async clearOverride(spaceId: number, tx: Tx): Promise<void> {
+      await tx.spaceOccupancy.update({
+        where: { spaceId },
+        data: { stateOverride: null, stateOverrideUntil: null, stateOverrideById: null },
+        select: { spaceId: true },
+      });
+    },
   };
 }

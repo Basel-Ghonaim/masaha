@@ -1,12 +1,13 @@
-import { gazaClockOf } from '@masaha/shared/core';
+import { gazaClockOf, gazaInstant } from '@masaha/shared/core';
 import type {
   PresentPerson,
   SetCapacityRequest,
+  SetStatusOverrideRequest,
   SpaceCapacity,
   SpaceOccupancyNow,
 } from '@masaha/shared/occupancy';
 
-import type { RunInTransaction } from '../../db/index.ts';
+import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import { can, isVerified, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
@@ -15,8 +16,9 @@ import type { CustomersService } from '../customers/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import type { SubscriptionsService } from '../subscriptions/index.ts';
 import type { VisitsService } from '../visits/index.ts';
-import { liveStatus } from './liveStatus.ts';
+import { liveStatus, openRangeAt, type Override } from './liveStatus.ts';
 import { createOccupancyRepository } from './occupancy.repository.ts';
+import { overrideUntil } from './overrideUntil.ts';
 
 interface Dependencies {
   runInTransaction: RunInTransaction;
@@ -32,6 +34,9 @@ interface Dependencies {
 
 /** The kinds of stay in the order a tie on the check-in time lists them. */
 const KIND_ORDER = { VISIT: 0, CHECK_IN: 1 } as const;
+
+/** An override as its audit entry records it. */
+const audited = ({ state, until }: Override) => ({ state, until: until.toISOString() });
 
 /**
  * A space's state now (docs/backend/conventions.md › occupancy): its capacity, private to its staff
@@ -86,7 +91,26 @@ export function createOccupancyService({
     );
   }
 
-  return {
+  /** The override stored for the space, when it is still in force at `now`. */
+  async function overrideInForce(spaceId: number, now: Date, tx?: Tx): Promise<Override | null> {
+    const { override } = await occupancy.stateOf(spaceId, tx);
+    return override && override.until > now ? override : null;
+  }
+
+  /**
+   * Opens a write on the override: the space's lock, then `can()` on the links read under it, so a
+   * link ended meanwhile still decides (finding 43).
+   */
+  async function lockForOverride(actor: Actor, space: LoadedSpace, tx: Tx): Promise<void> {
+    if (!(await spaces.lock(space.id, tx))) {
+      throw AppError.notFound(undefined, 'Space not found');
+    }
+    if (!can(actor, 'space.liveStatus.override', { links: await space.linksUnder(tx) })) {
+      throw AppError.forbidden();
+    }
+  }
+
+  const service = {
     /**
      * The space's state now, as its staff see it, whole: the live status, the capacity, how many
      * are present and who, and the override in force.
@@ -116,6 +140,68 @@ export function createOccupancyService({
         override: override && { state: override.state, until: override.until.toISOString() },
         people,
       };
+    },
+
+    /**
+     * Sets the manual override, in one transaction: the space's lock and `can()`; then, only while
+     * the space is open by its hours, the override until `min(now + duration, today's closing)`,
+     * replacing the one in force, audited with both. Answers the state now.
+     */
+    async setOverride(
+      actor: Actor,
+      space: LoadedSpace,
+      { state, duration }: SetStatusOverrideRequest,
+    ): Promise<SpaceOccupancyNow> {
+      await runInTransaction(async (tx) => {
+        await lockForOverride(actor, space, tx);
+        const now = clock();
+        const at = gazaClockOf(now);
+        const open = openRangeAt(await spaces.weekOf(space.id, tx), at);
+        if (!open) throw AppError.conflict('SPACE_NOT_OPEN');
+
+        const until = overrideUntil(duration, now, gazaInstant(at.date, open.closesMinute));
+        const before = await overrideInForce(space.id, now, tx);
+        await occupancy.setOverride(space.id, { state, until, byId: actor.id }, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'space.statusOverridden',
+            entityType: 'space',
+            entityId: space.id,
+            spaceId: space.id,
+            before: before ? audited(before) : undefined,
+            after: audited({ state, until }),
+          },
+          tx,
+        );
+      });
+      return service.now(space);
+    },
+
+    /**
+     * Clears the override in force, in one transaction under the space's lock, audited; with none in
+     * force it writes nothing. Answers the state now.
+     */
+    async clearOverride(actor: Actor, space: LoadedSpace): Promise<SpaceOccupancyNow> {
+      await runInTransaction(async (tx) => {
+        await lockForOverride(actor, space, tx);
+        const before = await overrideInForce(space.id, clock(), tx);
+        if (!before) return;
+
+        await occupancy.clearOverride(space.id, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'space.statusOverrideCleared',
+            entityType: 'space',
+            entityId: space.id,
+            spaceId: space.id,
+            before: audited(before),
+          },
+          tx,
+        );
+      });
+      return service.now(space);
     },
 
     /** The space's capacity; `null` before one is set. */
@@ -161,6 +247,7 @@ export function createOccupancyService({
       });
     },
   };
+  return service;
 }
 
 export type OccupancyService = ReturnType<typeof createOccupancyService>;

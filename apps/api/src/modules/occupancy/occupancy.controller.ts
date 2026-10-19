@@ -1,5 +1,6 @@
 import type {
   SetCapacityRequest,
+  SetStatusOverrideRequest,
   SpaceCapacity,
   SpaceOccupancyNow,
 } from '@masaha/shared/occupancy';
@@ -29,6 +30,22 @@ export function createOccupancyController(service: OccupancyService) {
         req.body as SetCapacityRequest,
       );
       sendSuccess(res, set satisfies SpaceCapacity);
+    },
+
+    setOverride: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const now = await service.setOverride(
+        { id: userId, role },
+        spaceOf(req),
+        req.body as SetStatusOverrideRequest,
+      );
+      sendSuccess(res, now satisfies SpaceOccupancyNow);
+    },
+
+    clearOverride: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const now = await service.clearOverride({ id: userId, role }, spaceOf(req));
+      sendSuccess(res, now satisfies SpaceOccupancyNow);
     },
   };
 }

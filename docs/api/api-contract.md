@@ -343,7 +343,10 @@ SpaceCapacity = { capacity: number | null }   // null: none set
 
 ### Occupancy (managed)
 
-A space's state now, as its staff see it: who is present (the open visits plus the open subscription check-ins), the capacity and the live status ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored); [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The read is the staff's (🧾). Built 2026-10-19, #94.
+A space's state now, as its staff see it: who is present (the open visits plus the open subscription check-ins), the capacity and the live status, with its manual override ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored); [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Every route is the staff's (🧾). Built 2026-10-19, #94.
+
+- **The override** (`@masaha/shared/occupancy`): `state`, one of `LiveStatus`, and `duration`, one of `MINUTES_30`, `HOUR_1`, `HOURS_2`, `UNTIL_CLOSING` (`OVERRIDE_DURATIONS`); each `invalid_choice` when absent or not one of them. It ends at `min(now + duration, today's closing)`, `UNTIL_CLOSING` at today's closing, so it never outlives its day; it counts only while its end is after now.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the space as the entity and the entry's space: `space.statusOverridden` (`before`: the override in force, `{ state, until }`, or none; `after`: the new one), `space.statusOverrideCleared` (`before`: the override cleared); clearing with none in force writes nothing.
 
 ```ts
 LiveStatus = 'AVAILABLE' | 'FULL' | 'CLOSED'
@@ -362,6 +365,15 @@ SpaceOccupancyNow = {
 #### `GET /manage/spaces/:spaceId/occupancy` · 🧾
 - **200:** `SpaceOccupancyNow`, answered whole (§4's exceptions). Read without a lock: a check-in committed meanwhile may show only on the next read.
 - **Errors:** `not_found` (404).
+
+#### `PUT /manage/spaces/:spaceId/status-override` · 🧾
+- **Body:** `{ state, duration }`, both required.
+- **200:** `SpaceOccupancyNow`, with the new override. It replaces the one in force; the space's occupancy row is created, with no capacity, on the first write; a capacity is never touched. Audited `space.statusOverridden`.
+- **Errors:** `validation` (422), before anything is read; `conflict` (409) `SPACE_NOT_OPEN` while the space is not open by its hours (before opening, from its closing minute, on a closed day) or has no hours at all; `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+
+#### `DELETE /manage/spaces/:spaceId/status-override` · 🧾
+- **200:** `SpaceOccupancyNow`, with no override. Clears the override in force, audited `space.statusOverrideCleared`; with none in force, writes nothing.
+- **Errors:** `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
 
 ### Lookups (public)
 
@@ -774,4 +786,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours).
