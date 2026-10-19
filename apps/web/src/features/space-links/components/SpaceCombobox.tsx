@@ -5,7 +5,7 @@ import {
   ComboboxItem,
   ComboboxTrigger,
 } from '@shared/design-system';
-
+import { useCopy } from '@shared/copy';
 import type { SpaceChoiceView } from '../types/SpaceChoiceView';
 import type * as React from 'react';
 import type { useSpaceChoices } from '../hooks/useSpaceChoices';
@@ -27,6 +27,7 @@ export function SpaceCombobox({
   triggerRef?: React.Ref<HTMLButtonElement>;
   disabled?: boolean;
 }) {
+  const words = useCopy().spaceLinks.choices;
   return (
     <Combobox
       type="single"
@@ -46,10 +47,10 @@ export function SpaceCombobox({
         )}
       </ComboboxTrigger>
       <ComboboxContent
-        searchLabel={placeholder}
-        searchPlaceholder={placeholder}
+        searchLabel={words.search}
+        searchPlaceholder={words.spacesPlaceholder}
         search={choices.search}
-        listLabel={placeholder}
+        listLabel={words.spaces}
         emptyText={choices.empty}
         loading={choices.loading}
       >

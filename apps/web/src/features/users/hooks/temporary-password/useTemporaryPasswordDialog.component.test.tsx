@@ -13,6 +13,10 @@ type Dialog = ReturnType<typeof useTemporaryPasswordDialog>;
 
 const PERSON = { userId: 12, name: 'Rima', email: 'rima@example.com' };
 
+/** The marks that isolate a name inside a line, so it never reorders the words around it. */
+const FSI = String.fromCodePoint(0x2068);
+const PDI = String.fromCodePoint(0x2069);
+
 /** The browser's clipboard, a platform seam jsdom leaves out, writing as `writeText` does. */
 function stubClipboard(writeText: (text: string) => Promise<void>) {
   const spy = vi.fn(writeText);
@@ -130,7 +134,8 @@ describe('useTemporaryPasswordDialog', () => {
     await waitFor(() => {
       expect(onDone).toHaveBeenCalledTimes(1);
     });
-    expect(await findToast('Handover recorded: Rima · WhatsApp')).toBeInTheDocument();
+    // The person's name isolated inside the line.
+    expect(await findToast(`Handover recorded: ${FSI}Rima${PDI} · WhatsApp`)).toBeInTheDocument();
   });
 
   it('keeps the dialog open on a failure, with its reason', async () => {

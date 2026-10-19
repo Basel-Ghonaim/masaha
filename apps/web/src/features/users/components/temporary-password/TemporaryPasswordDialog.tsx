@@ -35,7 +35,7 @@ export function TemporaryPasswordDialog(props: TemporaryPasswordDialogInput) {
         <DialogHeader>
           <DialogTitle>{dialog.title}</DialogTitle>
           <DialogDescription>
-            <span>{dialog.person.name}</span>
+            <bdi>{dialog.person.name}</bdi>
             <span> · </span>
             <span dir="ltr">{dialog.person.email}</span>
           </DialogDescription>

@@ -55,6 +55,8 @@ describe('TemporaryPasswordDialog', () => {
     expect(within(dialog).getByText('Tmp-4821-xk').closest('[dir]')).toHaveAttribute('dir', 'ltr');
     expect(dialog).toHaveAccessibleDescription(/^Rima\s?·\s?rima@example\.com$/);
     expect(within(dialog).getByText('rima@example.com')).toHaveAttribute('dir', 'ltr');
+    // The name isolated from the line around it, whatever its direction.
+    expect(within(dialog).getByText('Rima').tagName).toBe('BDI');
   });
 
   it('names «Done»’s reason until the password is copied, then marks the copy', async () => {

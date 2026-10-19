@@ -20,6 +20,10 @@ import { startPreferences } from '../../../../test/startPreferences';
 import type { AddedOwnerView } from '../../types/TemporaryPasswordSlot';
 import { AddOwner } from './AddOwner';
 
+/** The marks that isolate a name inside a line, so it never reorders the words around it. */
+const FSI = String.fromCodePoint(0x2068);
+const PDI = String.fromCodePoint(0x2069);
+
 /** A request the fake server received. */
 type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
 
@@ -122,6 +126,13 @@ function noticeTitled(title: string): HTMLElement {
   return notice as HTMLElement;
 }
 
+/** The toast whose title reads `text`, isolates and all, once it shows. */
+const toastTitled = (text: string) =>
+  findToast(
+    (_content, element) =>
+      element?.hasAttribute('data-title') === true && element.textContent === text,
+  );
+
 const adds = (requests: Request[]) =>
   requests.filter((request) => request.url === '/admin/owners').map(bodyOf);
 
@@ -164,11 +175,25 @@ describe('AddOwner', () => {
 
     const option = await screen.findByRole('option', { name: /Focus Hub/ });
     expect(within(option).getByText('Verified')).toBeInTheDocument();
-    expect(within(option).getByText('Hidden')).toBeInTheDocument();
-    expect(within(option).getByText('Hadi')).toBeInTheDocument();
+    // Worded as the spaces list words it: a hidden space carries the list's own badge.
+    expect(within(option).getByText('Hidden')).toHaveAttribute('data-variant', 'warning');
+    // Each owner's name isolated, as the list's row has it.
+    expect(within(option).getByText(`${FSI}Hadi${PDI}`)).toBeInTheDocument();
     expect(requests.find((request) => request.url === '/admin/spaces')?.params).toEqual({
       limit: 50,
     });
+  });
+
+  it('names the space search by its own words, apart from the field it fills', async () => {
+    renderSheet();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add owner' }));
+    await userEvent.click(screen.getByRole('combobox', { name: /^Space/ }));
+
+    const search = await screen.findByRole('combobox', { name: 'Search' });
+    expect(search).toHaveAttribute('placeholder', 'Space name');
+    expect(screen.getByRole('listbox', { name: 'Spaces' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Choose the space' })).not.toBeInTheDocument();
   });
 
   it('shows the page’s password dialog once the owner is added, until it is done', async () => {
@@ -230,9 +255,11 @@ describe('AddOwner', () => {
       spaceId: 7,
       upgradeExisting: true,
     });
-    expect(
-      await findToast('Rima Haddad upgraded to owner and linked to Focus Hub'),
-    ).toBeInTheDocument();
+    // The person's name isolated, the space's its own element.
+    const title = await toastTitled(
+      `${FSI}Rima Haddad${PDI} upgraded to owner and linked to Focus Hub`,
+    );
+    expect(within(title).getByText('Focus Hub').tagName).toBe('SPAN');
   });
 
   it('offers no upgrade when no account has exactly this email', async () => {
