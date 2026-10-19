@@ -8,6 +8,7 @@ import type { Logger } from 'pino';
 
 import { secureCookiesOf, trustProxyOf, type Env } from './config/index.ts';
 import { createRunInTransaction, type Tx } from './db/index.ts';
+import { createAnnouncementsService } from './modules/announcements/index.ts';
 import {
   createAuthController,
   createAuthRouter,
@@ -19,6 +20,7 @@ import {
   type EmailSender,
   type GoogleIdentity,
 } from './modules/auth/index.ts';
+import { createCustomersService } from './modules/customers/index.ts';
 import {
   createDirectoryController,
   createDirectoryPublicRouter,
@@ -100,12 +102,14 @@ import {
   createSpacesManageRouter,
   createSpacesService,
 } from './modules/spaces/index.ts';
+import { createSubscriptionsService } from './modules/subscriptions/index.ts';
 import {
   createUsersAdminRouter,
   createUsersController,
   createUsersMeRouter,
   createUsersService,
 } from './modules/users/index.ts';
+import { createVisitsService } from './modules/visits/index.ts';
 import { writeAudit } from './shared/audit/index.ts';
 import {
   createAccessTokens,
@@ -303,7 +307,16 @@ export function createApi({
   const confirm = createConfirmService(facts);
   const photos = createPhotosService({ runInTransaction, audit: writeAudit, storage, logger });
   const packages = createPackagesService({ runInTransaction, audit: writeAudit, spaces });
-  const occupancy = createOccupancyService({ runInTransaction, audit: writeAudit, spaces });
+  const occupancy = createOccupancyService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    visits: createVisitsService(),
+    subscriptions: createSubscriptionsService(),
+    customers: createCustomersService(),
+    announcements: createAnnouncementsService(),
+    now: clock,
+  });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const directory = createDirectoryService({
     lookups,

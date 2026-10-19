@@ -64,6 +64,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - the map's pins (`GET /map/spaces`), the whole filtered set up to a ceiling of 1,000 (§5, *Directory (public)*);
 - a space's packages (`GET /manage/spaces/:spaceId/packages`), retired ones included: a space keeps tens at most, typed by hand, and the owner's list and the front desk's picker both read them whole (§5, *Packages (managed)*; why: [packages › Decisions](../features/packages.md#api-decisions)).
 - a space's staff (`GET /manage/spaces/:spaceId/staff`), every reception link, active or not: a space has few, and the owner's page reads them whole (§5, *Staff (managed)*; why: [space-links › Decisions](../features/space-links.md#api-decisions)).
+- the people present at a space (`GET /manage/spaces/:spaceId/occupancy`), bounded by who is there: the desk's main view reads its state in one request on a weak connection (§5, *Occupancy (managed)*; why: [occupancy › Decisions](../features/occupancy.md#api-decisions)).
 
 ## 5. Endpoints
 
@@ -322,7 +323,7 @@ SpaceSettings = {
 
 ### Capacity (managed)
 
-A space's capacity: the most people it seats, private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)); the full warning and the live status will read it ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Both routes are the owner's (🏢): reception is refused with `forbidden` (403) before a body is read. A change applies from then on.
+A space's capacity: the most people it seats, private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)); the live status reads it (*Occupancy (managed)*), and the full warning will ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Both routes are the owner's (🏢): reception is refused with `forbidden` (403) before a body is read. A change applies from then on.
 
 - **`capacity`** (`@masaha/shared/occupancy`): a whole number from 1 to 1,000 (`CAPACITY_MAX`; `out_of_range` outside it, `invalid_format` when not whole), or `null` for none.
 - **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the space as the entity and the entry's space: `space.capacityEdited` (`before` and `after`: `{ capacity }`, `null` before a first one); the capacity the space already has writes nothing.
@@ -339,6 +340,28 @@ SpaceCapacity = { capacity: number | null }   // null: none set
 - **Body:** `{ capacity }`, required: the number, or `null` to clear it.
 - **200:** `SpaceCapacity`, as it now is. The space's occupancy row is created on the first write; a later one changes the capacity only. Audited `space.capacityEdited`.
 - **Errors:** `validation` (422), `required` when `capacity` is absent; `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+
+### Occupancy (managed)
+
+A space's state now, as its staff see it: who is present (the open visits plus the open subscription check-ins), the capacity and the live status ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored); [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The read is the staff's (🧾). Built 2026-10-19, #94.
+
+```ts
+LiveStatus = 'AVAILABLE' | 'FULL' | 'CLOSED'
+PresentPerson =
+  | { kind: 'VISIT', id, name, since }                 // name: the visitor's, or their customer's
+  | { kind: 'CHECK_IN', id, customerId, name, since }  // name: the customer's; since: the check-in time
+SpaceOccupancyNow = {
+  status: LiveStatus | null,                    // null: unverified, no opening hours, or open with no capacity
+  capacity: number | null,
+  present: number,                              // the open visits plus the open subscription check-ins
+  override: { state: LiveStatus, until } | null, // the manual override in force
+  people: PresentPerson[]                       // the earliest checked in first; a tie: visits first, then by id
+}
+```
+
+#### `GET /manage/spaces/:spaceId/occupancy` · 🧾
+- **200:** `SpaceOccupancyNow`, answered whole (§4's exceptions). Read without a lock: a check-in committed meanwhile may show only on the next read.
+- **Errors:** `not_found` (404).
 
 ### Lookups (public)
 

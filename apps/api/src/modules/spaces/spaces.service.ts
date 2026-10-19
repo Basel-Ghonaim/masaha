@@ -1,16 +1,25 @@
+import type { OpeningRange } from '@masaha/shared/spaces';
+
 import type { Tx } from '../../db/index.ts';
+import { createHoursRepository } from './hours/hours.repository.ts';
 import { createSpacesRepository, type SpaceRow } from './spaces.repository.ts';
 
 /**
  * The listed coworking spaces, as the modules above read them: the summaries of many spaces at
- * once, and the space's lock, which a change of its links takes.
+ * once, a space's week, and the space's lock, which a change of its links takes.
  */
 export function createSpacesService() {
   const repository = createSpacesRepository();
+  const hours = createHoursRepository();
   return {
     /** The summaries of these spaces, in one query; a soft-deleted space has none. */
     summariesFor(ids: readonly number[], tx?: Tx): Promise<SpaceRow[]> {
       return repository.findSummaries(ids, tx);
+    },
+
+    /** The space's week, Sunday (0) to Saturday (6), `null` for a closed day; null without hours. */
+    weekOf(spaceId: number, tx?: Tx): Promise<(OpeningRange | null)[] | null> {
+      return hours.listFor(spaceId, tx);
     },
 
     /**

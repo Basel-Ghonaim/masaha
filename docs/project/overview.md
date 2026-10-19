@@ -23,7 +23,7 @@ This section lists a capability only once it is merged and working. Each line li
 - [Spaces](../features/spaces.md): the admin's: on the API, add, edit the profile and the facts (hours and shifts, prices, amenities with its own beside the platform's, contacts), confirm them, hide, delete and restore, keep its photos (stored through the storage port, re-encoded with no metadata), and the managed-space routes, where active owners read and edit the profile and facts, confirm groups and manage photos, and reception reads the complete space and photos; on the dashboard, add a space with its pin on a map, edit its profile, its hours with the shifts, its prices, its amenities, its contacts and its photos, uploaded and ordered from its own section, on its own page, opened after a creation and from its row, a verified one read-only, naming its owners, and on its spaces list, hide, show, delete with an undo, and restore a deleted space from the «deleted» rows. The owner/reception web screen remains planned.
 - [Packages](../features/packages.md): on the API, a space's packages, its owner's subscription templates: listed whole to its staff, retired ones included, added and edited by its owner, retired rather than deleted; never public.
 - [Space settings](../features/space-settings.md): on the API, a space's settings read and edited by its owner, reception's hand-typed prices off by default.
-- [Occupancy](../features/occupancy.md): on the API, a space's private capacity, set by its owner.
+- [Occupancy](../features/occupancy.md): on the API, a space's private capacity, set by its owner, and its state now for its staff: who is present, the count and the live status.
 
 ## Committed scope — v1
 
