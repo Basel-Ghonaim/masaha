@@ -196,16 +196,21 @@ function sharedDependencies({ guardPackages }) {
           to: { element: { type: ['core', ...lowerThan(from)], fileInternalPath: 'index.ts' } },
         },
       })),
-      // Core imports no package but zod: no Node module either, since the web runs it too.
+      // Core imports no package but zod and @date-fns/tz (Gaza's calendar): no Node module either,
+      // since the web runs it too.
       ...(guardPackages
         ? [
             {
               from: { element: { type: 'core' } },
               disallow: { to: { module: { origin: ['external', 'core'] } } },
               message:
-                'core → {{ dependency.source }} is not allowed. Core imports nothing but zod (docs/architecture/shared-package.md, R3).',
+                'core → {{ dependency.source }} is not allowed. Core imports nothing but zod and @date-fns/tz (docs/architecture/shared-package.md, R3).',
             },
             { from: { element: { type: 'core' } }, allow: { to: { module: { source: 'zod' } } } },
+            {
+              from: { element: { type: 'core' } },
+              allow: { to: { module: { source: '@date-fns/tz' } } },
+            },
           ]
         : []),
       // The package never imports itself by name, which would reach past the rule (and its dist).

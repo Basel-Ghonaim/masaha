@@ -1,6 +1,7 @@
 # The Shared Package
 
-> **Status:** Active · **Class:** Contract — rules to build against; R3 is enforced by lint, R4 by the package's `exports` · **Last Updated:** 2026-10-04 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — rules to build against; R3 is enforced by lint, R4 by the package's `exports` · **Last Updated:** 2026-10-19 · **Owner:** Basel Ghoneim
+> **Revised:** 2026-10-19 — R3: `core` may also import `@date-fns/tz`, for Gaza's calendar ([conventions §11](../backend/conventions.md#11-time)), #94
 > **Authority:** How `packages/shared` is structured and what belongs in it. The payloads themselves are owned by the [API contract](../api/api-contract.md), and the levels by [backend conventions §7](../backend/conventions.md#7-modules).
 
 ## Purpose
@@ -21,7 +22,7 @@ packages/shared/src/
 |---|---|
 | **R1** One folder per backend module that has a contract, with the module's own name and level ([conventions §7](../backend/conventions.md#7-modules)). | You find a fact from its capability's name, the same in the API, the web and here. |
 | **R2** Each folder has `index.ts`, its only entry; `requests.ts` for what enters the server (Zod schemas and their inferred types); `responses.ts` for what the server answers (types); a rule both sides compute gets its own file named after it (`passwordPolicy.ts`). A file that would be empty is absent. | One predictable shape per capability. |
-| **R3** `core` imports nothing but zod. A capability imports `core` and capabilities at **lower** levels only, through their `index.ts`. Lint enforces it. | No cycles or tangles as it grows. |
+| **R3** `core` imports nothing but zod and `@date-fns/tz`, Gaza's calendar. A capability imports `core` and capabilities at **lower** levels only, through their `index.ts`. Lint enforces it. | No cycles or tangles as it grows. |
 | **R4** Consumers import by capability path, `@masaha/shared/auth` or `@masaha/shared/core`. There is no root barrel, and deep paths are blocked by the package's `exports`. | An import says where a fact lives. |
 | **R5** Only what crosses the wire, or a rule both sides must compute, belongs here. Never a web-only type or a database type. | The package stays small and means one thing. |
 | **R6** Requests are Zod schemas with inferred types; responses are types only, with no runtime validation on the web. | Validation happens where data enters the server; the typecheck on both sides keeps the shapes in step. |
