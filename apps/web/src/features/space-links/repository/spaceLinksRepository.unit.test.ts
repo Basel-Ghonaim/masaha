@@ -165,6 +165,57 @@ describe('the space-links repository', () => {
     expect(apiClient.getUri(requests[0])).toBe('/api/v1/admin/spaces?q=Focus&limit=50');
   });
 
+  it('links a person to a space as its owner', async () => {
+    const requests = serve({ status: 204 });
+
+    await expect(createSpaceLinksRepository().linkOwner(7, 5)).resolves.toBeUndefined();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      method: 'post',
+      baseURL: '/api/v1',
+      url: '/admin/spaces/7/owners',
+    });
+    expect(JSON.parse(String(requests[0]?.data))).toEqual({ userId: 5 });
+  });
+
+  it('unlinks an owner from a space', async () => {
+    const requests = serve({ status: 204 });
+
+    await expect(createSpaceLinksRepository().unlinkOwner(7, 5)).resolves.toBeUndefined();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      method: 'delete',
+      baseURL: '/api/v1',
+      url: '/admin/spaces/7/owners/5',
+    });
+  });
+
+  it('finds up to fifty active people by name or email', async () => {
+    const requests = serve({ status: 200, data: { success: true, data: [USER], meta: {} } });
+
+    await expect(createSpaceLinksRepository().personChoices('rim')).resolves.toMatchObject({
+      data: [USER],
+    });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ method: 'get', url: '/admin/users' });
+    expect(apiClient.getUri(requests[0])).toBe('/api/v1/admin/users?q=rim&state=active&limit=50');
+  });
+
+  it('reads a space’s owners from the space as the admin reads it', async () => {
+    const owners = [
+      { id: 5, name: 'Rima' },
+      { id: 6, name: 'Sami' },
+    ];
+    const requests = serve({
+      status: 200,
+      data: { success: true, data: { id: 7, isVerified: true, owners } },
+    });
+
+    await expect(createSpaceLinksRepository().spaceOwners(7)).resolves.toEqual(owners);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ method: 'get', url: '/admin/spaces/7' });
+  });
+
   it('rejects a refusal as an AppError, with its type and code', async () => {
     serve({
       status: 403,

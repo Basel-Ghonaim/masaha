@@ -2,6 +2,7 @@ import { useCopy } from '@shared/copy';
 import { toast } from '@shared/design-system';
 import { toAppError, type AppError } from '@shared/errors';
 import { useRefusalView } from '@shared/forms';
+import { isolate } from '@shared/localisation';
 import { HANDOVER_CHANNELS, type HandoverChannel } from '@masaha/shared/users';
 import { useState } from 'react';
 import { useHandover } from './useHandover';
@@ -61,7 +62,7 @@ export function useTemporaryPasswordDialog({
     try {
       await handover.mutateAsync({ userId: person.userId, channel });
       const channelWord = lines.channels[channel];
-      toast(lines.recorded({ name: person.name, channel: channelWord }));
+      toast(lines.recorded({ name: isolate(person.name), channel: channelWord }));
       onDone();
     } catch (error) {
       const refused = toAppError(error);

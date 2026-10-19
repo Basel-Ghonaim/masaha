@@ -5,6 +5,7 @@ import type {
   AdminUserRow,
   ManagedSpace,
 } from '@masaha/shared/space-links';
+import type { AdminSpace } from '@masaha/shared/spaces';
 import { api, type Page } from '@shared/api';
 import type { AdminSpacesRequest } from '../types/AdminSpacesRequest';
 import type { AdminUsersRequest } from '../types/AdminUsersRequest';
@@ -21,7 +22,18 @@ export interface SpaceLinksRepository {
   addOwner(request: AddOwnerRequest): Promise<AddedOwner>;
   /** Up to fifty spaces by name, for choosing one in a dialog. */
   spaceChoices(q?: string): Promise<Page<AdminSpaceRow[]>>;
+  /** Links a person to a space as its owner. */
+  linkOwner(spaceId: number, userId: number): Promise<undefined>;
+  /** Ends a person's owner link to a space. */
+  unlinkOwner(spaceId: number, userId: number): Promise<undefined>;
+  /** Up to fifty active people by name or email, for choosing one in a dialog. */
+  personChoices(q?: string): Promise<Page<AdminUserRow[]>>;
+  /** A space's active owners, oldest first, as the server reads them now. */
+  spaceOwners(spaceId: number): Promise<AdminSpace['owners']>;
 }
+
+/** A space's owners, as the admin's routes name them. */
+const ownersPath = (spaceId: number) => `/admin/spaces/${String(spaceId)}/owners`;
 
 export function createSpaceLinksRepository(): SpaceLinksRepository {
   return {
@@ -31,5 +43,12 @@ export function createSpaceLinksRepository(): SpaceLinksRepository {
     addOwner: (request) => api.post<AddedOwner>('/admin/owners', request),
     spaceChoices: (q) =>
       api.getPage<AdminSpaceRow[]>('/admin/spaces', { params: { q, limit: 50 } }),
+    linkOwner: (spaceId, userId) => api.post<undefined>(ownersPath(spaceId), { userId }),
+    unlinkOwner: (spaceId, userId) =>
+      api.delete<undefined>(`${ownersPath(spaceId)}/${String(userId)}`),
+    personChoices: (q) =>
+      api.getPage<AdminUserRow[]>('/admin/users', { params: { q, state: 'active', limit: 50 } }),
+    spaceOwners: (spaceId) =>
+      api.get<AdminSpace>(`/admin/spaces/${String(spaceId)}`).then((space) => space.owners),
   };
 }

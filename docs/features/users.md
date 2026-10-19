@@ -123,3 +123,4 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #42 — the "password saved" toast.
 - #45 — no password kept in the cache.
 - #89 — the one-time password dialog: shown once, no close button, no Escape and no click outside; «تم» only after «نسخ»; the handover recorded, with a toast; nothing kept in the cache.
+- #91 — the one-time password dialog's person isolated, in its description and its handover toast.

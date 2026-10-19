@@ -102,9 +102,15 @@ export const SPACE_LINKS = {
     search: 'بحث',
     spacesPlaceholder: 'اسم المساحة',
     spaces: 'المساحات',
+    peoplePlaceholder: 'الاسم أو البريد',
+    people: 'الأشخاص',
     noResults: 'لا نتائج',
     searching: 'جارٍ البحث…',
     searchFailed: 'تعذّر البحث؛ اكتب من جديد لإعادة المحاولة.',
+    linked: 'مربوطة',
+    owner: ({ spaces }: { spaces: string }) => `مالك · ${spaces}`,
+    ownerOfNone: 'مالك',
+    user: 'مستخدم',
   },
   /** Adding an owner from the owners page. */
   addOwner: {
@@ -151,5 +157,63 @@ export const SPACE_LINKS = {
     },
     upgraded: ({ name, space }: { name: string; space: string }) =>
       `رُقّي ${name} إلى مالك ورُبط بـ ${space}`,
+  },
+  link: {
+    titleFromSpace: ({ space }: { space: string }) => `ربط مالك بـ ${space}`,
+    titleFromPerson: ({ name }: { name: string }) => `ربط ${name} بمساحة`,
+    close: 'إغلاق',
+    noOwner: 'ليس لها مالك اليوم.',
+    oneAtATime: 'مساحة واحدة في كل مرة.',
+    person: 'الشخص',
+    personHelper: 'المالكون والمستخدمون، بالاسم أو البريد. الحسابات الموقوفة لا تُربط.',
+    choosePerson: 'اختر شخصًا',
+    space: 'المساحة',
+    chooseSpace: 'اختر مساحة',
+    becomesVerified: ({ space }: { space: string }) =>
+      `تصبح ${space} موثّقة ويعدّلها مالكها، ولا يعدّلها فريق مساحة بعد الآن.`,
+    anotherOwner: ({ space }: { space: string }) => `يصبح مالكًا آخر لـ ${space}؛ تبقى موثّقة.`,
+    becomesOwner: 'ويصبح حسابه حساب مالك، ويُطلب منه الدخول من جديد.',
+    addOwner: 'مالك جديد بلا حساب؟ أضفه من صفحة أصحاب المساحات.',
+    submit: 'ربط',
+    failed: 'لم يُربط',
+    refusals: {
+      RECEPTION_LINK_ACTIVE: 'لهذا الشخص رابط استقبال في هذه المساحة؛ يفكّه مالكها أولًا.',
+      ACCOUNT_IS_ADMIN: 'هذا حساب أدمن، ولا يُربط أدمن بمساحة.',
+      ACCOUNT_SUSPENDED: 'هذا الحساب موقوف؛ لا يُربط حتى يُسترجع.',
+      ACCOUNT_PASSWORD_PENDING:
+        'لم يغيّر هذا الشخص كلمة المرور المؤقتة بعد؛ لا يُربط حتى يدخل ويغيّرها.',
+      validation: 'لم يعد هذا الحساب موجودًا.',
+      not_found: 'حُذفت المساحة في هذه الأثناء.',
+    },
+    linked: ({ person, space }: { person: string; space: string }) => `رُبط ${person} بـ ${space}`,
+    nowVerified: 'المساحة موثّقة الآن',
+  },
+  unlink: {
+    title: ({ person, space }: { person: string; space: string }) =>
+      `فك ربط ${person} من ${space}؟`,
+    lastOwner: ({ space }: { space: string }) =>
+      `تصبح ${space} غير موثّقة وتختفي حالتها المباشرة، ويعدّلها فريق مساحة.`,
+    othersStay: 'يبقى المالكون الآخرون، وتبقى موثّقة.',
+    ifLast: 'إن كان مالكها الوحيد، تصبح غير موثّقة وتختفي حالتها المباشرة.',
+    confirm: 'فك الربط',
+    cancel: 'رجوع',
+    failed: 'لم يُفك الربط',
+    refusals: {
+      not_found: 'حُذفت المساحة في هذه الأثناء.',
+    },
+    unlinked: ({ person, space }: { person: string; space: string }) =>
+      `فُك ربط ${person} من ${space}`,
+    nowUnverified: 'المساحة غير موثّقة الآن',
+  },
+  spaceOwners: {
+    unlink: ({ name }: { name: string }) => `فك ربط ${name}`,
+    link: 'ربط مالك',
+    unsavedReason: 'احفظ التغييرات أو تجاهلها أولًا',
+  },
+  ownerActions: {
+    menu: ({ name }: { name: string }) => `إجراءات: ${name}`,
+    link: 'ربط بمساحة',
+    suspended: 'الحساب موقوف — استرجعه أولًا',
+    unlinkFrom: ({ space }: { space: string }) => `فك الربط من ${space}`,
   },
 } satisfies Catalogue['spaceLinks'];

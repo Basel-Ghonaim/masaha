@@ -27,7 +27,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [46. The deployment's headers must let the map's tiles load](46-the-deployments-headers-must-let-the-maps-tiles-load.md)
 - [48. `db:up` from another folder recreates the shared container](48-db-up-from-another-folder-recreates-the-shared-container.md)
 - [55. A file's first wait for a lazy shell outlasts three seconds on a busy machine](55-a-files-first-wait-for-a-lazy-shell-outlasts-three-seconds-on-a-busy-machine.md)
-- [59. The verified space's editor cannot name its owner](59-the-verified-spaces-editor-cannot-name-its-owner.md)
 - [63. A photo's files can outlive it](63-a-photos-files-can-outlive-it.md)
 - [64. The deployment's headers must let Cloudinary's photos load](64-the-deployments-headers-must-let-cloudinarys-photos-load.md)
 - [65. The forgotten password's wait is an estimate, not a measurement](65-the-forgotten-passwords-wait-is-an-estimate-not-a-measurement.md)
@@ -50,6 +49,8 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [91. An address held by a pending account is locked out until the admin acts](91-an-address-held-by-a-pending-account-is-locked-out-until-the-admin-acts.md)
 - [92. An owner can end the sessions of another space's owner at will](92-an-owner-can-end-the-sessions-of-another-spaces-owner-at-will.md)
 - [93. Three staff refusals have no test of their own](93-three-staff-refusals-have-no-test-of-their-own.md)
+- [94. The person search calls a receptionist a user](94-the-person-search-calls-a-receptionist-a-user.md)
+- [95. A link from the editor words the space from the editor's read](95-a-link-from-the-editor-words-the-space-from-the-editors-read.md)
 
 ## Accepted
 
@@ -95,4 +96,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [50. An owner whose only spaces are deleted stays an owner](50-an-owner-whose-only-spaces-are-deleted-stays-an-owner.md)
 - [51. An access token outlives the end of its session](51-an-access-token-outlives-the-end-of-its-session.md)
 - [52. The race tests wait a fixed time](52-the-race-tests-wait-a-fixed-time.md)
+- [59. The verified space's editor cannot name its owner](59-the-verified-spaces-editor-cannot-name-its-owner.md)
 - [60. The area field shows no area for a space whose area was hidden since](60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)

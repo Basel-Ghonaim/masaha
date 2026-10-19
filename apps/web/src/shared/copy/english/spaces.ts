@@ -59,7 +59,9 @@ export const SPACES = {
         'Visitors see that the Masaha team collected this information. Each section saves on its own.',
     },
     verified: {
-      title: 'Edited by its owner',
+      /** Names who edits it: its owners, each isolated, joined by `namesSeparator`. */
+      ownedBy: ({ names }: { names: string }) => `Edited by ${names}`,
+      namesSeparator: ', ',
       description: 'This space is verified, so it shows here read-only.',
       viewOnSite: 'View on the site',
     },
