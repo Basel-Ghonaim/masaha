@@ -375,6 +375,8 @@ model SpaceSettings {
   visitCapAtDayPrice    Boolean       @map("visit_cap_at_day_price")
   /// The desk may charge a visit at the student prices.
   visitStudentPrices    Boolean       @default(true) @map("visit_student_prices")
+  /// Reception may type a price by hand at the desk; the owner always may. Off by default.
+  receptionMayTypePrices Boolean      @default(false) @map("reception_may_type_prices")
   /// The WhatsApp debt reminder; null = the default text from the copy catalogue.
   reminderTemplate      String?       @map("reminder_template")
   createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
