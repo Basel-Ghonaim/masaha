@@ -168,7 +168,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('AdminSpacesList, from 768 px', () => {
+describe('AdminSpacesList, from 1024 px', () => {
   beforeEach(() => {
     stubScreenWidth(1280);
   });
@@ -436,6 +436,19 @@ describe('AdminSpacesList, from 768 px', () => {
     await screen.findByText('Focus Hub');
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('AdminSpacesList, from 768 px to 1023 px', () => {
+  it('keeps a card per space until 1024 px, as A7 draws it', async () => {
+    stubScreenWidth(768);
+    renderList('/spaces');
+    await screen.findByText('Focus Hub');
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('list', { name: 'Spaces' })).getAllByRole('listitem'),
+    ).toHaveLength(2);
   });
 });
 

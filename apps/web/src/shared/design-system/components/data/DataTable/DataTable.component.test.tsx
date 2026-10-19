@@ -148,6 +148,27 @@ describe('DataTable', () => {
     ).toBeInTheDocument();
   });
 
+  it('keeps each row a card until 1024px when asked, and shows the table from there', () => {
+    screenWidth = 768;
+    const { rerender } = render(<Members cardsBelow="lg" />);
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('list', { name: 'Members of the space' })).getAllByRole('listitem'),
+    ).toHaveLength(3);
+
+    screenWidth = 1023;
+    rerender(<Members cardsBelow="lg" key="1023" />);
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+
+    screenWidth = 1024;
+    rerender(<Members cardsBelow="lg" key="1024" />);
+
+    expect(screen.getByRole('table', { name: 'Members of the space' })).toBeInTheDocument();
+    expect(names()).toEqual(['Sara Helou', 'Ahmed Siam', 'Layan Awad']);
+  });
+
   it('marks the list of cards busy while loading, and shows the empty content when there are none', () => {
     screenWidth = 360;
     const { rerender } = render(<Members loading />);

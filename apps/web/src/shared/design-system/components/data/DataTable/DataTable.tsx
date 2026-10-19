@@ -71,10 +71,15 @@ export type DataTableProps<TData extends RowData> = {
   /** A row's stable id, such as its record id. By default, its position. */
   getRowId?: (row: TData) => string;
   /**
-   * A row as a card, below 768px. The feature decides what the card shows; the layer draws the card
-   * and the list around it.
+   * A row as a card, below the `cardsBelow` width. The feature decides what the card shows; the
+   * layer draws the card and the list around it.
    */
   renderCard: (row: TData) => ReactNode;
+  /**
+   * The width below which each row is a card: `'md'` (768px, the default) or `'lg'` (1024px), for a
+   * list the design draws as cards until 1024px (A7: the spaces, users and data-report lists).
+   */
+  cardsBelow?: 'md' | 'lg';
   /** Shown in place of the rows when there are none, such as an EmptyState. */
   empty: ReactNode;
   /** The rows are loading: placeholder rows stand in for them. */
@@ -90,14 +95,14 @@ export type DataTableProps<TData extends RowData> = {
   manualSorting?: boolean;
   /** Search and filters above the rows. */
   toolbar?: ReactNode;
-  /** Where the list is, such as "Showing 1–8 of 38": at the start of the footer, from 768px. */
+  /** Where the list is, such as "Showing 1–8 of 38": at the start of the footer, with the table. */
   summary?: ReactNode;
   /** The Pagination: at the end of the footer, or under the cards on a phone. */
   pagination?: ReactNode;
   className?: string;
 };
 
-const TABLET_UP = '(min-width: 768px)';
+const TABLE_UP = { md: '(min-width: 768px)', lg: '(min-width: 1024px)' } as const;
 
 // The frame of the Owner › Members stress test: one card holding the toolbar, the table and the
 // footer. On a phone there is no frame; each row is a card of its own.
@@ -121,10 +126,11 @@ function SortIcon({ direction }: { direction: SortDirection }) {
 }
 
 /**
- * A list of records: a table from 768px, framed as a card with its toolbar and pagination, and a
- * list of cards below it, as in the Owner › Members stress test. Columns sort when they ask to; the
- * header then is a button, and `aria-sort` says the order. Placeholder rows stand in while loading,
- * and `empty` stands in when there are no rows. Every word arrives as a prop or through the columns.
+ * A list of records: a table from 768px (from 1024px with `cardsBelow="lg"`), framed as a card with
+ * its toolbar and pagination, and a list of cards below it, as in the Owner › Members stress test.
+ * Columns sort when they ask to; the header then is a button, and `aria-sort` says the order.
+ * Placeholder rows stand in while loading, and `empty` stands in when there are no rows. Every word
+ * arrives as a prop or through the columns.
  */
 export function DataTable<TData extends RowData>({
   label,
@@ -132,6 +138,7 @@ export function DataTable<TData extends RowData>({
   data,
   getRowId,
   renderCard,
+  cardsBelow = 'md',
   empty,
   loading = false,
   loadingRows = 5,
@@ -144,7 +151,7 @@ export function DataTable<TData extends RowData>({
   pagination,
   className,
 }: DataTableProps<TData>) {
-  const tabletUp = useMediaQuery(TABLET_UP);
+  const tableUp = useMediaQuery(TABLE_UP[cardsBelow]);
   const [innerSorting, setInnerSorting] = useState<DataTableSorting>(defaultSorting ?? []);
   const currentSorting = sorting ?? innerSorting;
 
@@ -169,7 +176,7 @@ export function DataTable<TData extends RowData>({
   const columnCount = table.getAllLeafColumns().length;
   const placeholders = Array.from({ length: loadingRows }, (_, index) => index);
 
-  if (!tabletUp) {
+  if (!tableUp) {
     return (
       <div
         data-slot="data-table"
