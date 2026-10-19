@@ -14,7 +14,10 @@ import type { UserRowView } from '../types/UserRowView';
  */
 export function userRowView(
   row: AdminUserRow,
-  { lines, english }: { lines: Catalogue['spaceLinks']['ownersList']; english: boolean },
+  {
+    lines,
+    english,
+  }: { lines: Pick<Catalogue['spaceLinks']['ownersList'], 'states'>; english: boolean },
 ): UserRowView {
   const nameOf = (space: AdminUserRow['spaces'][number]): SpaceNameView => {
     const arabicName = english ? null : space.nameAr;

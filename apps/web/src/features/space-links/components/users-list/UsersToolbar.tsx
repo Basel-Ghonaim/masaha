@@ -1,16 +1,16 @@
 import { NAME_MAX_LENGTH } from '@masaha/shared/users';
 import { Field, Input, SearchIcon, ToggleGroup, ToggleGroupItem } from '@shared/design-system';
-import type { OwnersListView } from '../../types/OwnersListView';
+import type { AdminUsersListView } from '../../hooks/users-list/useAdminUsersList';
 
 /**
- * The search above the owners list, then the count the filters keep and the state chips: a single
+ * The search above a users list, then the count the filters keep and the state chips: a single
  * state filter of three choices is chips, at every width, not a field in a sheet (the owner's A7, P5).
  */
-export function OwnersToolbar({
+export function UsersToolbar({
   filters,
   count,
 }: {
-  filters: OwnersListView['filters'];
+  filters: AdminUsersListView['filters'];
   /** The count the filters keep, said once loading has settled. */
   count: string | undefined;
 }) {
