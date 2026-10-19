@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { paragraphSchema } from '../core/index.ts';
+import { reminderTemplateSchema } from './reminderTemplate.ts';
 
 // The request of the managed settings endpoint (docs/api/api-contract.md §5, Settings (managed)).
 
@@ -15,8 +15,6 @@ export const MAX_STAY_MINUTES = { min: 60, max: 1_380, step: 60 } as const;
 
 /** The N of "up after N minutes": 0 would round every started minute up, 60 never. */
 export const ROUNDING_MINUTES = { min: 1, max: 59 } as const;
-
-export const REMINDER_TEMPLATE_MAX_LENGTH = 500;
 
 interface RoundingValues {
   visitRounding?: (typeof VISIT_ROUNDINGS)[number] | undefined;
@@ -72,7 +70,7 @@ export const updateSpaceSettingsSchema = z
     visitCapAtDayPrice: z.boolean(),
     visitStudentPrices: z.boolean(),
     receptionMayTypePrices: z.boolean(),
-    reminderTemplate: paragraphSchema(1, REMINDER_TEMPLATE_MAX_LENGTH).nullable(),
+    reminderTemplate: reminderTemplateSchema.nullable(),
   })
   .partial()
   .superRefine(roundingPair);

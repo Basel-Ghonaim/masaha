@@ -51,6 +51,7 @@ A change applies from then on ([data model › Front desk and money](../architec
 - **The stay limit is whole hours, 1 to 23, or none** (the design's S9). *Why:* a visit is a same-day stay, so closing time already ends every stay; kept in minutes, so a finer step is a validation change. 2026-10-19, #92.
 - **The rounding rule and its minutes are sent together, the minutes 1 to 59 for "up after N minutes" only** (OW-021). *Why:* they are one choice; a patch is checked alone, never against the stored row, so no partial patch can reach the database's check. 2026-10-19, #92.
 - **The reminder is a paragraph of 1–500 characters, or `null` for the catalogue's text.** *Why:* a reminder is a few lines; 500 keeps a `wa.me` link of Arabic text inside every browser's URL limit. 2026-10-19, #92.
+- **The reminder's placeholders are `{الاسم}`, `{المبلغ}` and `{المساحة}`, typed in Arabic whatever the interface language; the amount is required, and any other `{…}` refused, with a code of its own** (D1b, the design's O2). *Why:* the customer is told what they owe, and never receives a literal placeholder; the form can say which rule failed. The rule is in its own shared file, for the web's form and the finance step that fills it. 2026-10-19, #92.
 - **A switch is never `null`; what a patch leaves out is kept; unknown keys are stripped.** *Why:* a switch has two states; as every other managed write. 2026-10-19, #92.
 - **Reception may type prices by hand only where the space allows it, off by default; not a new-space default** (D4). *Why:* a fraud guard whose safe value is fixed, as student prices' default is; the rule is the [data model's](../architecture/data-model.md#front-desk-and-money) and [ADR 0009's](../architecture/decisions/0009-space-scoped-reception-role.md). 2026-10-19, #92.
 - **An edit writes and audits only what it changes, `space.settingsEdited`; one that changes nothing writes nothing** (D6). 2026-10-19, #92.
@@ -60,7 +61,7 @@ A change applies from then on ([data model › Front desk and money](../architec
 ## Code map
 
 - **API:** `apps/api/src/modules/space-settings/`, entry `index.ts`: the service, the repository, the mapper, the manage router, and beside them the pure rule of what an edit changes (`settingsChange.ts`).
-- **Shared:** `packages/shared/src/space-settings/`: the request, with the rounding rules and the bounds, and the response.
+- **Shared:** `packages/shared/src/space-settings/`: the request, with the rounding rules and the bounds, the reminder's rule (`reminderTemplate.ts`), and the response.
 
 ## Open findings
 

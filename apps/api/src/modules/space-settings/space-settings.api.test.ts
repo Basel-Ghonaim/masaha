@@ -238,6 +238,8 @@ describe("a space's settings", () => {
         { visitRoundingMinutes: ['out_of_range'] },
       ],
       [{ visitRounding: 'PER_MINUTE' }, { visitRoundingMinutes: ['required'] }],
+      [{ reminderTemplate: 'مرحبًا {الاسم}' }, { reminderTemplate: ['invalid_format'] }],
+      [{ reminderTemplate: 'عليك {name} {المبلغ}' }, { reminderTemplate: ['invalid_choice'] }],
     ] as const;
 
     for (const [body, errors] of refusals) {
