@@ -91,11 +91,12 @@ Summaries only: the schema owns the fields.
 
 The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.md); who may do what in [ADR 0009](decisions/0009-space-scoped-reception-role.md). Amounts are in agorot; days and times are Asia/Gaza.
 
-- **Visit charge.** When a visit is checked in, its rates are copied from the space's prices: the hour and day prices of its audience (student when chosen and the space's settings allow student prices for visits, otherwise general) and, for a visit in a shift, that shift's prices. At check-out, the stay is rounded by the space's rounding rule and multiplied by the hour rate, capped at the day price unless the space's settings turn the cap off. The charge is stored on the visit. Fallbacks:
+- **Visit charge.** When a visit is checked in, its rates are copied from the space's prices: the hour and day prices of its audience (student when chosen and the space's settings allow student prices for visits, otherwise general) and, for a visit in a shift, that shift's prices. Each student price the space does not publish falls back to the general one, the hour and the day apart; the desk offers the student audience only where it changes a rate (the owner's design decision DI-41, 2026-10-19, #92). At check-out, the stay is rounded by the space's rounding rule and multiplied by the hour rate, capped at the day price unless the space's settings turn the cap off. The charge is stored on the visit. Fallbacks:
   - no hour price → the charge is the day price;
   - no day price → no cap;
   - neither → the desk types the amount, under the rule of [hand-typed prices](#front-desk-and-money), recorded as a desk-set price with who set it.
 - **Hand-typed prices.** A price typed by hand at the desk — a custom subscription's price, or a visit's charge where the space has no rate — is typed by the owner always, and by reception only where the space's settings allow it (off by default). Every hand-typed price, by anyone, carries a required reason, recorded with who typed it (2026-10-19, #92).
+- **A change to the space's settings applies from then on:** a visit's rates (and its audience's student prices) are copied at check-in, its rounding rule and the cap are read at its check-out, and the closing-time check-out and the stay limit apply at once, to the stays already open too (2026-10-19, #92).
 - **Unpaid visit:** a visit may be left unpaid only with a phone number. It then belongs to the customer with that phone (created if new), and its charge counts in that customer's debt.
 - **Uncollected visits:** visits closed by the auto check-out and left unpaid.
 - **Full warning:** a check-in (visit or subscription) while present ≥ capacity warns, never blocks.

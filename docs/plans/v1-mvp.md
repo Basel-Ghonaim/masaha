@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-19 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -138,6 +138,7 @@ Each step names its goal and points to what supports it:
   - [ADR 0014](../architecture/decisions/0014-deployment.md) (the response size limit);
   - [overview.md](../project/overview.md#dashboard--owner-and-reception) (what drops first if time is short).
 - **Closes:** [finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md): the owner's audit screen.
+- **Built early:** the space's settings, on the API (#92, [api-contract › Settings (managed)](../api/api-contract.md#settings-managed)), ahead of the front desk; screen 24 remains here.
 - **Settles:** charts and CSV exports.
 
 ### 12. Overviews
@@ -157,7 +158,7 @@ Each step names its goal and points to what supports it:
 - The space page's announcements, its report button and the favourite action arrive with step 10.
 - Owners are linked (step 4) before they edit their space (5) or add staff (6). The admin's *Spaces* screen gains its owner linking in step 4.
 - Payments (step 9) follow the desk (7) and subscriptions (8), which record the first payments.
-- Until step 11, a space runs on the new-space defaults copied at its creation, and the platform on its seeded settings.
+- A space runs on the new-space defaults copied at its creation until its owner edits its settings (on the API since #92; screen 24 in step 11); the platform runs on its seeded settings until step 11.
 - The overviews come last: they compose figures from every module.
 
 ## Documentation milestones
@@ -214,7 +215,7 @@ Built: `GET /lookups`, the active governorates with their active areas and the a
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below.
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, and the settings routes ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed)).
 An active owner or reception link is required; reception is read-only. The web screen and later
 dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
@@ -244,7 +245,6 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | POST | `/manage/spaces/:spaceId/announcements/:id/extend-subscriptions` | 🏢 | closure notices only; once per closure |
 | GET | `/manage/spaces/:spaceId/finance/...` | 🏢 | summary, income by month, visit income per day, debtors and payers, collections per staff member, occupancy (by hour, by day, peaks, average stay); CSV export |
 | GET / PATCH | `/manage/spaces/:spaceId/data-reports[/:id]` | 🏢 | resolve with an optional note, or dismiss (the owner keeps them once the space is verified) |
-| GET / PATCH | `/manage/spaces/:spaceId/settings` | 🏢 | auto check-out rule, visit rounding rule |
 | GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | |
 
 #### Admin (`/admin/...`, 🛡)

@@ -65,7 +65,11 @@ import {
   createStaffService,
 } from './modules/space-links/index.ts';
 import { createPlatformSettingsService } from './modules/platform-settings/index.ts';
-import { createSpaceSettingsService } from './modules/space-settings/index.ts';
+import {
+  createSpaceSettingsController,
+  createSpaceSettingsManageRouter,
+  createSpaceSettingsService,
+} from './modules/space-settings/index.ts';
 import {
   createConfirmController,
   createConfirmService,
@@ -257,8 +261,13 @@ export function createApi({
   const amenities = createAmenitiesService({ runInTransaction, audit: writeAudit });
   const catalogue = createCatalogueService();
   const platformSettings = createPlatformSettingsService();
-  const spaceSettings = createSpaceSettingsService();
   const spaces = createSpacesService();
+  // The space's lock is `spaces`' (conventions §13), a level above the settings: passed in.
+  const spaceSettings = createSpaceSettingsService({
+    runInTransaction,
+    audit: writeAudit,
+    lockSpace: (spaceId: number, tx: Tx) => spaces.lock(spaceId, tx),
+  });
   const adminSpaces = createAdminSpacesService({
     listing: createListingService({ platformSettings, now: clock }),
     lookups,
@@ -370,6 +379,10 @@ export function createApi({
     createPhotosManageRouter({ photos: createPhotosController(photos), limiter }),
   );
   manage.use('/packages', createPackagesManageRouter(createPackagesController(packages)));
+  manage.use(
+    '/settings',
+    createSpaceSettingsManageRouter(createSpaceSettingsController(spaceSettings)),
+  );
   manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
   api.use(
     '/manage/spaces/:spaceId',

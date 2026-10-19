@@ -51,6 +51,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [93. Three staff refusals have no test of their own](93-three-staff-refusals-have-no-test-of-their-own.md)
 - [94. The person search calls a receptionist a user](94-the-person-search-calls-a-receptionist-a-user.md)
 - [95. A link from the editor words the space from the editor's read](95-a-link-from-the-editor-words-the-space-from-the-editors-read.md)
+- [97. The visit-rounding rule is written twice](97-the-visit-rounding-rule-is-written-twice.md)
 
 ## Accepted
 
