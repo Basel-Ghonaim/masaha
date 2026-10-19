@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-19 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -286,6 +286,59 @@ AddedStaff = { userId: number, temporaryPassword: string }   // shown once
 - **Body:** `{ channel }`, as the admin's handover's.
 - **204:** how the temporary password just shown was handed over, audited `user.temporaryPasswordHandedOver` (`after: { channel }`), with the space.
 - **Errors:** `validation` (422), with `invalid_choice` on `channel`; `conflict` (409) `TEMPORARY_PASSWORD_NOT_PENDING` once nothing is pending; `not_found` (404) without an active reception link of the person at the space; `forbidden` (403) for reception, before the body is read.
+
+### Settings (managed)
+
+A space's settings ([data-model › Spaces](../architecture/data-model.md#spaces)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404), so the admin never reaches them. Both routes are the owner's (🏢): reception is refused with `forbidden` (403) before a body is read. A change applies from then on ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)).
+
+- **The settings** (`@masaha/shared/space-settings`):
+  - `autoCheckoutAtClosing`, `visitCapAtDayPrice`, `visitStudentPrices` and `receptionMayTypePrices`: switches, `true` or `false`, never `null` (`invalid_format`). `receptionMayTypePrices` is `false` for every new space;
+  - `maxStayMinutes`: the stay limit, whole hours from 1 to 23 (60 to 1,380 minutes, a multiple of 60: `out_of_range` outside it or between hours, `invalid_format` when not whole), or `null` for none: stays then end at closing only;
+  - `visitRounding`: `UP_AFTER_MINUTES`, `NEAREST_HALF_HOUR` or `PER_MINUTE` (`VISIT_ROUNDINGS`), from its list (`invalid_choice`); and `visitRoundingMinutes`, its N: a whole number from 1 to 59 for `UP_AFTER_MINUTES` (`out_of_range`), `null` for the two others. The two are one choice, sent together: one without the other answers `required` on the missing one; `null` minutes for `UP_AFTER_MINUTES` answer `required`, and minutes for another rule `invalid_format`;
+  - `reminderTemplate`: the WhatsApp debt reminder, a paragraph of 1–500 characters, NFC-normalised and trimmed, its line breaks kept, with no bidirectional controls and no other control characters (`too_short`, `too_long`, `invalid_format`); or `null` for the copy catalogue's default text. It may hold three placeholders, typed as they are whatever the interface language, each any number of times: `{الاسم}` the customer's name, `{المبلغ}` the amount they owe, `{المساحة}` the space's name (`REMINDER_PLACEHOLDERS`). `{المبلغ}` is required (`invalid_format` without it); any other `{…}` is refused (`invalid_choice`), so a customer never receives one; a lone brace is text. The debt reminder (not built) fills them.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the space as the entity and the entry's space: `space.settingsEdited` (`before` and `after`: only the fields that changed); an edit that changes nothing writes nothing.
+
+```ts
+SpaceSettings = {
+  autoCheckoutAtClosing: boolean,
+  maxStayMinutes: number | null,                                      // null: at closing only
+  visitRounding: "UP_AFTER_MINUTES" | "NEAREST_HALF_HOUR" | "PER_MINUTE",   // VISIT_ROUNDINGS
+  visitRoundingMinutes: number | null,                                // set exactly for UP_AFTER_MINUTES
+  visitCapAtDayPrice: boolean,
+  visitStudentPrices: boolean,
+  receptionMayTypePrices: boolean,                                    // false for every new space
+  reminderTemplate: string | null                                     // null: the copy catalogue's default text
+}
+```
+
+#### `GET /manage/spaces/:spaceId/settings` · 🏢
+- **200:** `SpaceSettings`: the space's eight settings.
+- **Errors:** `forbidden` (403) for reception; `not_found` (404).
+
+#### `PATCH /manage/spaces/:spaceId/settings` · 🏢
+- **Body:** any of the eight; what is absent is kept, and `null` clears the stay limit or the reminder.
+- **200:** `SpaceSettings`, as they now are. Audited `space.settingsEdited`.
+- **Errors:** `validation` (422), each field with its codes; `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+
+### Capacity (managed)
+
+A space's capacity: the most people it seats, private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)); the full warning and the live status will read it ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Both routes are the owner's (🏢): reception is refused with `forbidden` (403) before a body is read. A change applies from then on.
+
+- **`capacity`** (`@masaha/shared/occupancy`): a whole number from 1 to 1,000 (`CAPACITY_MAX`; `out_of_range` outside it, `invalid_format` when not whole), or `null` for none.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the space as the entity and the entry's space: `space.capacityEdited` (`before` and `after`: `{ capacity }`, `null` before a first one); the capacity the space already has writes nothing.
+
+```ts
+SpaceCapacity = { capacity: number | null }   // null: none set
+```
+
+#### `GET /manage/spaces/:spaceId/capacity` · 🏢
+- **200:** `SpaceCapacity`; `null` before one is set.
+- **Errors:** `forbidden` (403) for reception; `not_found` (404).
+
+#### `PUT /manage/spaces/:spaceId/capacity` · 🏢
+- **Body:** `{ capacity }`, required: the number, or `null` to clear it.
+- **200:** `SpaceCapacity`, as it now is. The space's occupancy row is created on the first write; a later one changes the capacity only. Audited `space.capacityEdited`.
+- **Errors:** `validation` (422), `required` when `capacity` is absent; `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
 
 ### Lookups (public)
 

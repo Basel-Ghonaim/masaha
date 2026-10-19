@@ -267,6 +267,19 @@ describe("a space's settings", () => {
       prisma.spaceSettings.update({ where: { spaceId: space.id }, data: { maxStayMinutes: 0 } }),
     ).rejects.toThrow(/space_settings_max_stay_minutes_check/);
   });
+
+  it("turn reception's hand-typed prices off by default", async () => {
+    const space = await createSpace();
+
+    // Written without Prisma, which would send the schema's default itself: the database's own
+    // default is what the existing rows took.
+    await prisma.$executeRaw`INSERT INTO "space_settings" ("space_id", "auto_checkout_at_closing",
+      "visit_rounding", "visit_rounding_minutes", "visit_cap_at_day_price", "updated_at")
+      VALUES (${space.id}, true, 'UP_AFTER_MINUTES', 15, true, now())`;
+    await expect(
+      prisma.spaceSettings.findUniqueOrThrow({ where: { spaceId: space.id } }),
+    ).resolves.toMatchObject({ receptionMayTypePrices: false });
+  });
 });
 
 describe('an announcement', () => {
