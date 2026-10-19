@@ -43,7 +43,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [83. ALREADY_OWNER names no account](83-already-owner-names-no-account.md)
 - [84. A person cannot work at two spaces' front desks](84-a-person-cannot-work-at-two-spaces-front-desks.md)
 - [87. The owners shell cold-loads the whole space-links index](87-the-owners-shell-cold-loads-the-space-links-index.md)
-- [88. The upgrade confirm shows no front desks](88-the-upgrade-confirm-shows-no-front-desks.md)
 - [89. «Check the email» stands for three causes](89-check-the-email-stands-for-three-causes.md)
 - [90. The staff refusals reuse the admin's messages](90-the-staff-refusals-reuse-the-admins-messages.md)
 - [91. An address held by a pending account is locked out until the admin acts](91-an-address-held-by-a-pending-account-is-locked-out-until-the-admin-acts.md)
@@ -98,3 +97,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [52. The race tests wait a fixed time](52-the-race-tests-wait-a-fixed-time.md)
 - [59. The verified space's editor cannot name its owner](59-the-verified-spaces-editor-cannot-name-its-owner.md)
 - [60. The area field shows no area for a space whose area was hidden since](60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)
+- [88. The upgrade confirm shows no front desks](88-the-upgrade-confirm-shows-no-front-desks.md)

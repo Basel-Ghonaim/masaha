@@ -158,7 +158,14 @@ export const SPACE_LINKS = {
       'An account will be created and a temporary password shown once — have a way to hand it over ready.',
     hasAccount: 'This email has an account',
     checkingAccount: 'Checking whose account this is…',
-    account: { name: 'Name', joined: 'Joined', spaces: 'Spaces', noSpaces: 'None' },
+    account: {
+      name: 'Name',
+      joined: 'Joined',
+      spaces: 'Spaces',
+      noSpaces: 'None',
+      reception: 'Front desk',
+      noReception: 'None',
+    },
     confirmAccount: 'Make sure this is the person you mean: they’ll become an owner of this space',
     accountUnconfirmed:
       'We couldn’t show whose account this is, so it can’t be upgraded here — check the email.',

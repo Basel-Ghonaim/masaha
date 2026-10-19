@@ -32,12 +32,14 @@ export function useEmailAccount(email: string | null): EmailAccountState {
   if (query.isPending) return { status: 'reading' };
   const row = query.data?.data.find((user) => user.email === email);
   if (row === undefined) return { status: 'notFound' };
+  const view = userRowView(row, { lines, english });
   return {
     status: 'found',
     account: {
       name: row.name,
       joined: updatedOn(row.joinedAt, english ? 'en' : 'ar', new Date()),
-      spaces: userRowView(row, { lines, english }).spaces,
+      spaces: view.spaces,
+      receptionSpaces: view.receptionSpaces,
     },
   };
 }

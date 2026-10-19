@@ -131,6 +131,8 @@ export const SPACE_LINKS = {
       joined: 'تاريخ الانضمام',
       spaces: 'المساحات',
       noSpaces: 'لا مساحات',
+      reception: 'الاستقبال',
+      noReception: 'لا مكاتب استقبال',
     },
     confirmAccount: 'تأكّد أنه الشخص المقصود: سيصبح مالكًا لهذه المساحة',
     accountUnconfirmed: 'تعذّر عرض صاحب هذا الحساب، فلا يُرقّى من هنا — تحقّق من البريد.',

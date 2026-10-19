@@ -126,6 +126,11 @@ function noticeTitled(title: string): HTMLElement {
   return notice as HTMLElement;
 }
 
+/** What the notice's account says for `term`, such as «Spaces». */
+function described(notice: HTMLElement, term: string): string | null | undefined {
+  return within(notice).getByText(term, { selector: 'dt' }).nextElementSibling?.textContent;
+}
+
 /** The toast whose title reads `text`, isolates and all, once it shows. */
 const toastTitled = (text: string) =>
   findToast(
@@ -236,7 +241,8 @@ describe('AddOwner', () => {
     const account = noticeTitled('This email has an account');
     expect(within(account).getByText('Rima Haddad')).toBeInTheDocument();
     expect(within(account).getByText(/^1 Sept/)).toBeInTheDocument();
-    expect(within(account).getByText('None')).toBeInTheDocument();
+    expect(described(account, 'Spaces')).toBe('None');
+    expect(described(account, 'Front desk')).toBe('None');
     expect(
       within(account).getByText(
         'Make sure this is the person you mean: they’ll become an owner of this space',
@@ -260,6 +266,22 @@ describe('AddOwner', () => {
       `${FSI}Rima Haddad${PDI} upgraded to owner and linked to Focus Hub`,
     );
     expect(within(title).getByText('Focus Hub').tagName).toBe('SPAN');
+  });
+
+  it('shows the account’s reception desks beside its spaces before the upgrade', async () => {
+    const desk: AdminUserRow = {
+      ...RIMA,
+      receptionSpaces: [{ id: 9, nameEn: 'Palm Hub', nameAr: null }],
+    };
+    renderSheet({ add: hasAccount, users: [desk] });
+
+    await fill();
+    await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
+
+    await screen.findByRole('button', { name: 'Upgrade and link' });
+    const account = noticeTitled('This email has an account');
+    expect(described(account, 'Spaces')).toBe('None');
+    expect(described(account, 'Front desk')).toBe('Palm Hub');
   });
 
   it('offers no upgrade when no account has exactly this email', async () => {

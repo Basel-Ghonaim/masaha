@@ -12,6 +12,8 @@ export type UserRowView = {
   state: { label: string; variant: 'success' | 'neutral' };
   /** The spaces of its active owner links, each named in the interface's language. */
   spaces: SpaceNameView[];
+  /** The spaces of its active reception links, each named in the interface's language. */
+  receptionSpaces: SpaceNameView[];
   /** An owner whose every space is deleted: the list leaves a deleted space out (finding 50). */
   allSpacesDeleted: boolean;
 };

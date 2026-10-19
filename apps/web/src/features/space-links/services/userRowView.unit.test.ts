@@ -41,6 +41,25 @@ describe('userRowView', () => {
     ]);
   });
 
+  it('names each reception desk in the interface’s language, an English-only one marked as English', () => {
+    const desks: AdminUserRow = {
+      ...RIMA,
+      receptionSpaces: [
+        { id: 11, nameEn: 'Olive Desk', nameAr: null },
+        { id: 12, nameEn: 'Sea View', nameAr: 'إطلالة البحر' },
+      ],
+    };
+
+    expect(userRowView(desks, english).receptionSpaces).toEqual([
+      { text: 'Olive Desk' },
+      { text: 'Sea View' },
+    ]);
+    expect(userRowView(desks, arabic).receptionSpaces).toEqual([
+      { text: 'Olive Desk', lang: 'en', dir: 'ltr' },
+      { text: 'إطلالة البحر' },
+    ]);
+  });
+
   it('marks an owner with no space as one whose spaces are all deleted, and never a user', () => {
     expect(userRowView(RIMA, english).allSpacesDeleted).toBe(false);
     expect(userRowView({ ...RIMA, spaces: [] }, english).allSpacesDeleted).toBe(true);

@@ -791,6 +791,7 @@ describe("the admin's owners page", () => {
                   signIn: { password: true, google: false },
                   joinedAt: '2026-09-01T08:00:00Z',
                   spaces: [{ id: 7, nameEn: 'Focus Hub', nameAr: null }],
+                  receptionSpaces: [],
                 },
               ],
               meta: {

@@ -35,6 +35,7 @@ export function userRowView(
       ? { label: lines.states.suspended, variant: 'neutral' }
       : { label: lines.states.active, variant: 'success' },
     spaces: row.spaces.map(nameOf),
+    receptionSpaces: row.receptionSpaces.map(nameOf),
     allSpacesDeleted: row.role === 'OWNER' && row.spaces.length === 0,
   };
 }
