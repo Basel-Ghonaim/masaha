@@ -12,6 +12,11 @@ export function createSubscriptionsService() {
     openCheckInsIn(spaceId: number, tx?: Tx): Promise<OpenCheckIn[]> {
       return repository.openCheckInsIn(spaceId, tx);
     },
+
+    /** How many check-ins are open at each of these spaces, in one query; none is absent. */
+    openCheckInCountsIn(spaceIds: readonly number[]): Promise<Map<number, number>> {
+      return repository.openCheckInCountsIn(spaceIds);
+    },
   };
 }
 

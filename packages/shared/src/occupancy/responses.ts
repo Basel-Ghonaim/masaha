@@ -23,6 +23,12 @@ export type PresentPerson =
     }
   | { kind: 'CHECK_IN'; id: number; customerId: number; name: string; since: string };
 
+/** A space's state now, as the public sees it: its live status, never a count (ADR 0008). */
+export interface PublicOccupancy {
+  /** `null` when the space has none (unverified, no hours, or no capacity). */
+  status: LiveStatus | null;
+}
+
 /** A space's state now, as its staff see it: whole, the people present included. */
 export interface SpaceOccupancyNow {
   /** The live status; `null` when the space has none (unverified, no hours, or no capacity). */

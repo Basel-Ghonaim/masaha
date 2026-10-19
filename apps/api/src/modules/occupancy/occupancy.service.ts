@@ -1,5 +1,6 @@
 import { gazaClockOf, gazaInstant } from '@masaha/shared/core';
 import type {
+  LiveStatus,
   PresentPerson,
   SetCapacityRequest,
   SetStatusOverrideRequest,
@@ -16,7 +17,7 @@ import type { CustomersService } from '../customers/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import type { SubscriptionsService } from '../subscriptions/index.ts';
 import type { VisitsService } from '../visits/index.ts';
-import { liveStatus, openRangeAt, type Override } from './liveStatus.ts';
+import { liveStatus, openRangeAt, type Override, type Week } from './liveStatus.ts';
 import { createOccupancyRepository } from './occupancy.repository.ts';
 import { overrideUntil } from './overrideUntil.ts';
 
@@ -111,6 +112,54 @@ export function createOccupancyService({
   }
 
   const service = {
+    /**
+     * The live status of each of these spaces now, set-based: one query each for their rows, their
+     * open visits, their open check-ins, their closures, and the weeks not given. For the directory,
+     * with no N+1.
+     */
+    async liveStatusFor(
+      targets: readonly { id: number; verified: boolean; week?: Week }[],
+    ): Promise<Map<number, LiveStatus | null>> {
+      if (targets.length === 0) return new Map();
+      const now = clock();
+      const ids = targets.map(({ id }) => id);
+      const withoutWeek = targets.filter(({ week }) => week === undefined).map(({ id }) => id);
+      const [states, visitCounts, checkInCounts, closed, weeks] = await Promise.all([
+        occupancy.statesFor(ids),
+        visits.openCountsIn(ids),
+        subscriptions.openCheckInCountsIn(ids),
+        announcements.closedAt(ids, now),
+        withoutWeek.length === 0 ? new Map<number, Week>() : spaces.weeksFor(withoutWeek),
+      ]);
+      const at = gazaClockOf(now);
+      return new Map(
+        targets.map(({ id, verified, week }) => {
+          const state = states.get(id);
+          return [
+            id,
+            liveStatus({
+              verified,
+              closureNow: closed.has(id),
+              week: week === undefined ? (weeks.get(id) ?? null) : week,
+              at,
+              now,
+              override: state?.override ?? null,
+              capacity: state?.capacity ?? null,
+              present: (visitCounts.get(id) ?? 0) + (checkInCounts.get(id) ?? 0),
+            }),
+          ];
+        }),
+      );
+    },
+
+    /** Which of these verified spaces are `AVAILABLE` now: the directory's filter, resolved to ids. */
+    async availableAmong(verifiedIds: readonly number[]): Promise<number[]> {
+      const statuses = await service.liveStatusFor(
+        verifiedIds.map((id) => ({ id, verified: true })),
+      );
+      return verifiedIds.filter((id) => statuses.get(id) === 'AVAILABLE');
+    },
+
     /**
      * The space's state now, as its staff see it, whole: the live status, the capacity, how many
      * are present and who, and the override in force.

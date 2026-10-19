@@ -1,4 +1,5 @@
 import type { AmenityIconKey } from '../lookups/index.ts';
+import type { LiveStatus } from '../occupancy/index.ts';
 import type {
   Contact,
   FactGroup,
@@ -10,7 +11,8 @@ import type {
 } from '../spaces/index.ts';
 
 // The public directory's answers (docs/api/api-contract.md §5, Directory (public)). Nothing here
-// carries a capacity, a count or a live status (ADR 0008), nor a price but on a space's page.
+// carries a capacity or a count (ADR 0008), nor a price but on a space's page; the card and the pin
+// carry the live status.
 
 /** A space's area, named in both languages; its governorate is the public catalogue's. */
 export interface DirectoryArea {
@@ -34,6 +36,8 @@ export interface DirectorySpace {
   distanceMeters?: number;
   /** The cover's card-size URL (its first photo), or `null`: the web then draws the space's mark. */
   cover: string | null;
+  /** The live status now; `null` when the space has none (data-model › Live status). */
+  liveStatus: LiveStatus | null;
 }
 
 /** A space on the map, with what its selected card shows. */
@@ -49,6 +53,8 @@ export interface MapPin {
   days: (OpeningRange | null)[] | null;
   /** The cover's card-size URL, for the selected card, or `null`. */
   cover: string | null;
+  /** The live status now; `null` when the space has none. */
+  liveStatus: LiveStatus | null;
 }
 
 /** The map's pins: the whole filtered set, or its first `MAP_PINS_CEILING` by id, `truncated`. */

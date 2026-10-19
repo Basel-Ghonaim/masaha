@@ -40,6 +40,7 @@ function setup(links: ActiveLink[]) {
       return Promise.resolve(SPACES.filter(({ id }) => ids.includes(id)));
     },
     weekOf: () => Promise.reject(new Error('not asked here')),
+    weeksFor: () => Promise.reject(new Error('not asked here')),
     lock: () => Promise.reject(new Error('not asked here')),
   };
   const lookups: LookupsService = {

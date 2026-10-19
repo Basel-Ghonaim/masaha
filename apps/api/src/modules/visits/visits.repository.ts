@@ -8,6 +8,11 @@ export interface OpenVisit {
   checkedInAt: Date;
 }
 
+/** Each space's count of rows, by space; a space with none is absent. */
+function countsBySpace(groups: readonly { spaceId: number; _count: { _all: number } }[]) {
+  return new Map(groups.map(({ spaceId, _count }) => [spaceId, _count._all]));
+}
+
 /** The `visits` table (docs/backend/conventions.md › the front desk). So far its open visits. */
 export function createVisitsRepository() {
   return {
@@ -18,6 +23,17 @@ export function createVisitsRepository() {
         select: { id: true, visitorName: true, customerId: true, checkedInAt: true },
         orderBy: [{ checkedInAt: 'asc' }, { id: 'asc' }],
       });
+    },
+
+    /** How many visits are open at each of these spaces, in one query; a space with none is absent. */
+    async openCountsIn(spaceIds: readonly number[]): Promise<Map<number, number>> {
+      if (spaceIds.length === 0) return new Map();
+      const groups = await prisma.visit.groupBy({
+        by: ['spaceId'],
+        where: { spaceId: { in: [...spaceIds] }, checkedOutAt: null },
+        _count: { _all: true },
+      });
+      return countsBySpace(groups);
     },
   };
 }

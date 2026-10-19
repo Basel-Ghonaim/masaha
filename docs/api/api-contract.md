@@ -390,7 +390,7 @@ SpaceOccupancyNow = {
 
 ### Directory (public)
 
-What anyone reads without signing in, over the **publicly listed** spaces only ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)): not deleted, not hidden, in an active area of an active governorate. Why each rule: [directory › Decisions](../features/directory.md#decisions). No answer carries a capacity, a count or a live status ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)).
+What anyone reads without signing in, over the **publicly listed** spaces only ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)): not deleted, not hidden, in an active area of an active governorate. Why each rule: [directory › Decisions](../features/directory.md#decisions). No answer carries a capacity or a count; the card and the pin carry the live status ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md); the rule: [data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)), 2026-10-19, #94.
 
 - **The filters** the list and the map share, each optional, every one applied before a page is cut:
   - `area`: a comma list of area ids, at most 50, each once (`invalid_format`, `too_long`); an id of an area that is not listed narrows to nothing;
@@ -399,6 +399,7 @@ What anyone reads without signing in, over the **publicly listed** spaces only (
   - both price filters leave out an unverified space whose prices are stale, which its page hides;
   - `openFriday=true`: Friday open in its hours; a space whose hours were never saved is left out;
   - `verified=true`: an active `OWNER` link;
+  - `availableNow=true`: the live status `AVAILABLE` now, which only a verified space can have; `availableNow`, as each `true` filter, takes `true` or `false` (`invalid_choice` otherwise), and `false` filters nothing;
   - `q`, 1–80 characters: either name of the space, or either name of its area, matched forgivingly. Both sides are normalised (lowercased; tashkeel and tatweel removed; أ إ آ ٱ → ا, ة → ه, ى → ي), and a part of a name, or a near match (a typo), passes. A `q` with nothing but tashkeel or tatweel, spaces around them included, is `invalid_format`; one of spaces only is empty once trimmed, `too_short`, as every text is.
 - **The location** travels in the `Masaha-Near: lat,lng` request header, never in the query, and only to sort by distance ([security › Location](../backend/security.md#location)): each coordinate with at most 3 decimals (`invalid_format` on `near` otherwise), inside the Gaza Strip's box (`out_of_range`).
 - **Caching:** an answer carries `Cache-Control: public, max-age=30` and a validator (`ETag`): the same request with `If-None-Match` answers `304` while it is unchanged. Every answer to a request that carries the `Masaha-Near` header, a refusal or a failure included, carries `Cache-Control: no-store`.
@@ -411,15 +412,19 @@ DirectorySpace = {
   isVerified: boolean,
   days: (OpeningRange | null)[] | null,    // the week, Sunday first; null while never saved
   distanceMeters?: number,                 // ordered by distance only: straight-line, to the nearest 100 m
-  cover: string | null                     // the first photo's card-size URL; null: the web draws the space's mark
+  cover: string | null,                    // the first photo's card-size URL; null: the web draws the space's mark
+  liveStatus: LiveStatus | null            // now; null: unverified, no opening hours, or open with no capacity
 }
 
 MapPin = {
   id: number, slug: string, nameEn: string, nameAr: string | null,
   areaId: number, location: { lat: number, lng: number },
   isVerified: boolean, days: (OpeningRange | null)[] | null,
-  cover: string | null                     // as the card's, for the selected card
+  cover: string | null,                    // as the card's, for the selected card
+  liveStatus: LiveStatus | null            // as the card's
 }
+
+PublicOccupancy = { status: LiveStatus | null }   // LiveStatus: Occupancy (managed)
 
 PublicSpace = {
   id, slug, nameEn, nameAr, descriptionAr, descriptionEn,
@@ -439,7 +444,7 @@ PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | 
 ```
 
 #### `GET /spaces` · 🌐
-- **Query:** the filters, `sort`, `lang` and the page (§4): `?area=&period=&priceMin=&priceMax=&studentPrices=&openFriday=&verified=&q=&sort=&lang=&page=&limit=`.
+- **Query:** the filters, `sort`, `lang` and the page (§4): `?area=&period=&priceMin=&priceMax=&studentPrices=&openFriday=&verified=&availableNow=&q=&sort=&lang=&page=&limit=`.
   - `sort`: `updated`, the latest of the space's groups' dates first, the default without `q`; `name`, by the name in `lang` (`ar`, the default: the Arabic name, else the English one; `en`: the English name), in that language's collation; `relevance`, best match first, the default with `q` and refused without it (`invalid_choice` on `sort`); `distance`, nearest first, from the `Masaha-Near` header. Every order ends with the id, so ties keep their places across pages.
   - `sort=distance` without the header is `required` on `near`; the header with any other order is `invalid_choice` on `near`.
 - **200:** `DirectorySpace[]` (`@masaha/shared/directory`), with `meta`.
@@ -453,6 +458,10 @@ PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | 
 #### `GET /spaces/:slug` · 🌐
 - **200:** `PublicSpace`. Read whole, as the admin's read is, so a save in progress is never half shown.
 - **Errors:** `not_found` (404) for an unknown slug, and for a space that is deleted, hidden, or in an area or a governorate that is not active.
+
+#### `GET /spaces/:slug/occupancy` · 🌐
+- **200:** `PublicOccupancy`: the space's live status now and nothing else, never a count or a capacity ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)), so the page refreshes the state alone; `null` when it has none. Cached as every answer is (30 seconds).
+- **Errors:** `not_found` (404), as for the page.
 
 ### Lookups (the admin)
 

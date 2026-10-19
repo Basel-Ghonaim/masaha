@@ -328,6 +328,7 @@ export function createApi({
       now: clock,
       storage,
     }),
+    occupancy,
   });
   const adminUsers = createAdminUsersService({ users, spaces });
   const adminRoles = createAdminRolesService({ runInTransaction, users });

@@ -22,6 +22,11 @@ export function createSpacesService() {
       return hours.listFor(spaceId, tx);
     },
 
+    /** The weeks of these spaces, by space, in one query; a space without hours is absent. */
+    weeksFor(spaceIds: readonly number[], tx?: Tx): Promise<Map<number, (OpeningRange | null)[]>> {
+      return hours.weeksFor(spaceIds, tx);
+    },
+
     /**
      * Takes the space's lock, which every change of the space, its facts or its links takes first
      * (conventions §13). Whether the space exists and is not soft-deleted.
