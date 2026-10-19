@@ -15,4 +15,8 @@ export const spaceLinksKeys = {
   adminUsers: (request: AdminUsersRequest) => ['admin', 'space-links', 'users', request] as const,
   /** Up to fifty spaces by name, for choosing one in a dialog. */
   spaceChoices: (q: string | undefined) => ['admin', 'space-links', 'space-choices', q] as const,
+  /** Up to fifty active people by name or email, for choosing one in a dialog. */
+  personChoices: (q: string | undefined) => ['admin', 'space-links', 'person-choices', q] as const,
+  /** A space's owners, read when an unlink asks, so its consequence is the server's. */
+  spaceOwners: (spaceId: number) => ['admin', 'space-links', 'space-owners', spaceId] as const,
 };

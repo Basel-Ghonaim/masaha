@@ -126,14 +126,22 @@ export const SPACE_LINKS = {
       more: 'More pages',
     },
   },
-  /** The space search shared by the add-owner sheet and the link dialog. */
+  /** The space and person searches shared by the add-owner sheet and the link dialog. */
   choices: {
     search: 'Search',
     spacesPlaceholder: 'Space name',
     spaces: 'Spaces',
+    peoplePlaceholder: 'Name or email',
+    people: 'People',
     noResults: 'No results',
     searching: 'Searching…',
     searchFailed: 'We couldn’t search; type again to retry.',
+    /** A space already the person's, offered but not to be chosen. */
+    linked: 'Linked',
+    /** What a person offered is: an owner with their spaces, an owner, or a user. */
+    owner: ({ spaces }: { spaces: string }) => `Owner · ${spaces}`,
+    ownerOfNone: 'Owner',
+    user: 'User',
   },
   /** Adding an owner from the owners page. */
   addOwner: {
@@ -179,5 +187,68 @@ export const SPACE_LINKS = {
     },
     upgraded: ({ name, space }: { name: string; space: string }) =>
       `${name} upgraded to owner and linked to ${space}`,
+  },
+  /** Linking an owner, from a space's editor or from an owner's row. */
+  link: {
+    titleFromSpace: ({ space }: { space: string }) => `Link an owner to ${space}`,
+    titleFromPerson: ({ name }: { name: string }) => `Link ${name} to a space`,
+    close: 'Close',
+    /** From a space, which is linked from its editor only while it has no owner. */
+    noOwner: 'It has no owner today.',
+    oneAtATime: 'One space at a time.',
+    person: 'Person',
+    personHelper: 'Owners and users, by name or email. Suspended accounts can’t be linked.',
+    choosePerson: 'Choose a person',
+    space: 'Space',
+    chooseSpace: 'Choose a space',
+    /** What the link does, said before it is made. */
+    becomesVerified: ({ space }: { space: string }) =>
+      `${space} becomes verified and its owner edits it; the Masaha team no longer does.`,
+    anotherOwner: ({ space }: { space: string }) =>
+      `They become another owner of ${space}; it stays verified.`,
+    becomesOwner: 'Their account becomes an owner’s, and they’re asked to sign in again.',
+    addOwner: 'A new owner with no account? Add them on the space owners page.',
+    submit: 'Link',
+    failed: 'Not linked',
+    refusals: {
+      RECEPTION_LINK_ACTIVE:
+        'This person has a reception link at this space; its owner ends it first.',
+      ACCOUNT_IS_ADMIN: 'This is an admin’s account; an admin can’t be linked to a space.',
+      ACCOUNT_SUSPENDED: 'This account is suspended; it can’t be linked until it’s restored.',
+      ACCOUNT_PASSWORD_PENDING:
+        'This person hasn’t changed their temporary password yet; they can’t be linked until they sign in and change it.',
+      validation: 'That account no longer exists.',
+      not_found: 'The space was deleted meanwhile.',
+    },
+    linked: ({ person, space }: { person: string; space: string }) =>
+      `${person} linked to ${space}`,
+    nowVerified: 'The space is now verified',
+  },
+  /** Unlinking an owner from a space, which asks first. */
+  unlink: {
+    title: ({ person, space }: { person: string; space: string }) =>
+      `Unlink ${person} from ${space}?`,
+    /** What the unlink does, from the space's owners as the server reads them. */
+    lastOwner: ({ space }: { space: string }) =>
+      `${space} becomes unverified, its live status disappears, and the Masaha team edits it.`,
+    othersStay: 'The other owners stay, and it stays verified.',
+    /** When the space's owners could not be read. */
+    ifLast: 'If they are its only owner, it becomes unverified and its live status disappears.',
+    confirm: 'Unlink',
+    cancel: 'Back',
+    failed: 'Not unlinked',
+    refusals: {
+      not_found: 'The space was deleted meanwhile.',
+    },
+    unlinked: ({ person, space }: { person: string; space: string }) =>
+      `${person} unlinked from ${space}`,
+    nowUnverified: 'The space is now unverified',
+  },
+  /** An owner's row actions on the owners page. */
+  ownerActions: {
+    menu: ({ name }: { name: string }) => `Actions: ${name}`,
+    link: 'Link to a space',
+    suspended: 'The account is suspended — restore it first',
+    unlinkFrom: ({ space }: { space: string }) => `Unlink from ${space}`,
   },
 } as const;

@@ -9,7 +9,17 @@ import { spaceLinksKeys } from './queryKeys';
 import { usePausedText } from './usePausedText';
 import type { SpaceChoiceView } from '../types/SpaceChoiceView';
 
-export function useSpaceChoices({ enabled }: { enabled: boolean }) {
+/**
+ * The spaces to choose one from, searched on the server once typing pauses: up to fifty, each worded
+ * as the spaces list's row. `linked` are the spaces already the person's, offered but not to be chosen.
+ */
+export function useSpaceChoices({
+  enabled,
+  linked = [],
+}: {
+  enabled: boolean;
+  linked?: readonly number[];
+}) {
   const copy = useCopy();
   const lines = copy.spaceLinks.adminList;
   const english = useLanguage() === 'en';
@@ -42,6 +52,7 @@ export function useSpaceChoices({ enabled }: { enabled: boolean }) {
       badges: view.state,
       owners: view.owners ?? lines.noOwner,
       isVerified: space.isVerified,
+      linked: linked.includes(space.id),
     };
   });
 

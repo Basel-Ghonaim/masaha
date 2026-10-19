@@ -1,10 +1,11 @@
 import { Badge } from '@shared/design-system';
 import type { UserRowView } from '../../types/UserRowView';
+import { OwnerActionsMenu } from '../owner-actions/OwnerActionsMenu';
 import { OwnerSpaces } from './OwnerSpaces';
 
 /**
- * An owner as a card, on a phone: their name and email, their state at the end, and their spaces
- * under them, which wrap.
+ * An owner as a card, on a phone: their name and email, their state and their actions at the end,
+ * and their spaces under them, which wrap.
  */
 export function OwnerCard({
   row,
@@ -26,7 +27,10 @@ export function OwnerCard({
             <span dir="ltr">{row.email}</span>
           </span>
         </div>
-        <Badge variant={row.state.variant}>{row.state.label}</Badge>
+        <div className="flex shrink-0 items-center gap-1">
+          <Badge variant={row.state.variant}>{row.state.label}</Badge>
+          <OwnerActionsMenu row={row} />
+        </div>
       </div>
       <OwnerSpaces
         row={row}

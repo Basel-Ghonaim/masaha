@@ -15,7 +15,6 @@ export const DASHBOARD_ONLY_CAPABILITIES: readonly string[] = [
   'finance',
   'overview',
   'staff',
-  'owners',
   'audit',
   'space-links',
 ];

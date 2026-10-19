@@ -28,6 +28,7 @@ const FOCUS_HUB: SpaceChoiceView = {
   badges: [],
   owners: 'No owner',
   isVerified: false,
+  linked: false,
 };
 
 const RIMA: AdminUserRow = {

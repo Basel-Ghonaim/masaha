@@ -102,7 +102,7 @@ describe('OwnersList, from 1024 px', () => {
     stubScreenWidth(1280);
   });
 
-  it('shows each owner with their email, their spaces and their state', async () => {
+  it('shows each owner with their email, their spaces, their state and their actions', async () => {
     renderList();
 
     const table = await screen.findByRole('table', { name: 'Space owners' });
@@ -111,7 +111,7 @@ describe('OwnersList, from 1024 px', () => {
       within(table)
         .getAllByRole('columnheader')
         .map((cell) => cell.textContent),
-    ).toEqual(['Name', 'Email', 'Linked spaces', 'Status']);
+    ).toEqual(['Name', 'Email', 'Linked spaces', 'Status', 'Actions']);
     const [, rima] = within(table).getAllByRole('row');
     // The email under the name is hidden from 1024 px, where it has its own column.
     expect(cellsOf(rima)).toEqual([
@@ -119,7 +119,13 @@ describe('OwnersList, from 1024 px', () => {
       'rima@example.com',
       'Focus HubPalm Hub',
       'Active',
+      '',
     ]);
+    expect(
+      within(rima as HTMLElement).getByRole('button', {
+        name: (name) => name.replace(/[⁦-⁩]/g, '') === 'Actions: Rima',
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Space owners: 2')).toBeVisible();
   });
 

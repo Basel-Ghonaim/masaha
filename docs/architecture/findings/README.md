@@ -50,6 +50,8 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [91. An address held by a pending account is locked out until the admin acts](91-an-address-held-by-a-pending-account-is-locked-out-until-the-admin-acts.md)
 - [92. An owner can end the sessions of another space's owner at will](92-an-owner-can-end-the-sessions-of-another-spaces-owner-at-will.md)
 - [93. Three staff refusals have no test of their own](93-three-staff-refusals-have-no-test-of-their-own.md)
+- [94. The person search calls a receptionist a user](94-the-person-search-calls-a-receptionist-a-user.md)
+- [95. A link from the editor words the space from the editor's read](95-a-link-from-the-editor-words-the-space-from-the-editors-read.md)
 
 ## Accepted
 

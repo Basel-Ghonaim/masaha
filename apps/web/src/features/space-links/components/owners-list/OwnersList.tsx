@@ -6,6 +6,7 @@ import { useFocusKeeper } from '../../hooks/useFocusKeeper';
 import type { UserRowView } from '../../types/UserRowView';
 import { ListPagination } from '../ListPagination';
 import { ListState } from '../ListState';
+import { OwnerActionsMenu } from '../owner-actions/OwnerActionsMenu';
 import { OwnerCard } from './OwnerCard';
 import { OwnerSpaces } from './OwnerSpaces';
 import { OwnersToolbar } from './OwnersToolbar';
@@ -16,8 +17,8 @@ const column = createDataTableColumnHelper<UserRowView>();
  * The admin's owners: the search and the state chips, then a table of the page's owners from 768 px,
  * or a card per owner on a phone, with the count the filters keep and the pages. Each row names the
  * owner, their email (under the name until 1024 px, its own column from there), their spaces and
- * their state; an owner whose every space is deleted leads to the deleted spaces, by the path the
- * page gives (`deletedSpacesLink`). It shows its own loading, failure, empty and no-match states;
+ * their state, and its actions (link, and an unlink per space); an owner whose every space is deleted
+ * leads to the deleted spaces, by the path the page gives (`deletedSpacesLink`). It shows its own loading, failure, empty and no-match states;
  * while another page or filter loads, it keeps the rows shown, marked busy. When the row that held
  * the focus leaves the list, the focus moves to the list rather than being lost.
  */
@@ -72,6 +73,12 @@ export function OwnersList({ deletedSpacesLink }: { deletedSpacesLink: string })
           cell: (info) => (
             <Badge variant={info.row.original.state.variant}>{info.row.original.state.label}</Badge>
           ),
+        }),
+        column.display({
+          id: 'actions',
+          header: headers.actions,
+          cell: (info) => <OwnerActionsMenu row={info.row.original} />,
+          meta: { className: 'w-px' },
         }),
       ]),
     [headers, allSpacesDeleted, deletedSpacesLink],
