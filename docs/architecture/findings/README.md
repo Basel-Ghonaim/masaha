@@ -52,6 +52,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [97. The visit-rounding rule is written twice](97-the-visit-rounding-rule-is-written-twice.md)
 - [98. The capability documents outgrow their size guide](98-the-capability-documents-outgrow-their-size-guide.md)
 - [99. The owner's checklist cannot name a retired amenity](99-the-owners-checklist-cannot-name-a-retired-amenity.md)
+- [100. An unpaid check-out moves a visit's customer to the phone's](100-an-unpaid-check-out-moves-a-visits-customer-to-the-phones.md)
 
 ## Accepted
 

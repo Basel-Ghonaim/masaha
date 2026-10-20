@@ -22,7 +22,8 @@
 
 - **Owns** the `visits` table; the visit's rates and charge rules (`visitCharge.ts`, pure); the visit's audit entries.
 - **Reads** the space's prices and shifts from [`spaces`](spaces.md), and the settings (student prices, the rounding, the cap, reception's switch) from [`space-settings`](space-settings.md).
-- **Leaves** the transaction, the space's lock, `can()` and who may type a price to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
+- **Asks** `can()`'s `prices.typeByHand` for the terms' `mayTypePrice`, from the boundary's links.
+- **Leaves** the transaction, the space's lock, and the decision under it of who may type a price to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
 
 ## How it composes the platform
 
