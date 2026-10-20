@@ -43,9 +43,9 @@ export function createSpaceSettingsService({ runInTransaction, audit, lockSpace 
       return repository.create(spaceId, settings, tx);
     },
 
-    /** The space's settings, whole. */
-    async read(spaceId: number): Promise<SpaceSettings> {
-      return toSpaceSettings(present(spaceId, await repository.find(spaceId)));
+    /** The space's settings, whole; in the caller's transaction when given one. */
+    async read(spaceId: number, tx?: Tx): Promise<SpaceSettings> {
+      return toSpaceSettings(present(spaceId, await repository.find(spaceId, tx)));
     },
 
     /**

@@ -22,6 +22,11 @@ import {
 } from './modules/auth/index.ts';
 import { createCustomersService } from './modules/customers/index.ts';
 import {
+  createDeskController,
+  createDeskManageRouter,
+  createDeskService,
+} from './modules/desk/index.ts';
+import {
   createDirectoryController,
   createDirectoryPublicRouter,
   createDirectoryService,
@@ -307,16 +312,18 @@ export function createApi({
   const confirm = createConfirmService(facts);
   const photos = createPhotosService({ runInTransaction, audit: writeAudit, storage, logger });
   const packages = createPackagesService({ runInTransaction, audit: writeAudit, spaces });
+  const visits = createVisitsService({ audit: writeAudit, spaces, spaceSettings });
   const occupancy = createOccupancyService({
     runInTransaction,
     audit: writeAudit,
     spaces,
-    visits: createVisitsService(),
+    visits,
     subscriptions: createSubscriptionsService(),
     customers: createCustomersService(),
     announcements: createAnnouncementsService(),
     now: clock,
   });
+  const desk = createDeskService({ runInTransaction, spaces, visits, occupancy, now: clock });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const directory = createDirectoryService({
     lookups,
@@ -404,6 +411,7 @@ export function createApi({
     createSpaceSettingsManageRouter(createSpaceSettingsController(spaceSettings)),
   );
   manage.use(createOccupancyManageRouter(createOccupancyController(occupancy)));
+  manage.use(createDeskManageRouter(createDeskController(desk)));
   manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
   api.use(
     '/manage/spaces/:spaceId',

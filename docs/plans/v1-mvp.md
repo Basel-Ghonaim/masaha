@@ -92,7 +92,7 @@ Each step names its goal and points to what supports it:
 ### 7. Front desk and visits
 
 **Goal:** the staff run the day at the desk: check in and out, the visit charge and its payment at check-out, live status with the manual override, auto check-out, uncollected visits.
-- **Built:** the staff's read of a space's state now: who is present, the capacity and the live status, and the manual override; the live status in the directory (#94, [api-contract › Occupancy (managed)](../api/api-contract.md#occupancy-managed)); the rest of the step remains planned.
+- **Built:** the staff's read of a space's state now: who is present, the capacity and the live status, and the manual override; the live status in the directory (#94, [api-contract › Occupancy (managed)](../api/api-contract.md#occupancy-managed)); a visitor's check-in by name, idempotent, with its warnings (#95, [api-contract › Front desk (managed)](../api/api-contract.md#front-desk-managed)); the rest of the step remains planned.
 - **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 13 Front desk.
 - **Supported by:**
   - [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md), [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md) and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md);
@@ -214,8 +214,8 @@ Built: `GET /lookups`, the active governorates with their active areas and the a
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, and the staff's read of the space's state now with its override ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed)).
-An active owner or reception link is required; reception reads, and sets and clears the live status's override. The web screen and later
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, the staff's read of the space's state now with its override, and a visitor's check-in (`POST …/visits`) ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed), [Front desk (managed)](../api/api-contract.md#front-desk-managed)).
+An active owner or reception link is required; reception reads, sets and clears the live status's override, and checks visitors in. The web screen and later
 dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Access | Notes |
@@ -231,7 +231,7 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | POST | `/manage/spaces/:spaceId/customers/:customerId/subscriptions` | 🧾 | new or renewal, from a package or custom; warns when the customer has a balance |
 | GET / PATCH | `/manage/spaces/:spaceId/subscriptions/:id` | 🧾 | progress and statement; correct one |
 | POST | `/manage/spaces/:spaceId/subscriptions/:id/end` | 🧾 | end early: the end becomes today |
-| GET / POST | `/manage/spaces/:spaceId/visits` | 🧾 | `?open=true`, `?uncollected=true` or a date range; check in by name; a warning in `meta.warnings` when the space is full |
+| GET | `/manage/spaces/:spaceId/visits` | 🧾 | `?open=true`, `?uncollected=true` or a date range |
 | POST | `/manage/spaces/:spaceId/visits/:visitId/check-out` | 🧾 | → the charge; records its payment, or leaves it unpaid with a phone number |
 | GET / POST | `/manage/spaces/:spaceId/check-ins` | 🧾 | subscription check-ins: `?open=true` or a date range; limit and full-space warnings in `meta.warnings` |
 | POST | `/manage/spaces/:spaceId/check-ins/:checkInId/check-out` | 🧾 | |

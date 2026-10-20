@@ -89,6 +89,7 @@ export const DOMAIN_ERROR_CODES = [
   // occupancy
   'SPACE_CAPACITY_NOT_SET',
   'SPACE_NOT_OPEN',
+  'SPACE_FULL',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

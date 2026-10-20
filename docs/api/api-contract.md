@@ -9,7 +9,7 @@
 - Auth: `Authorization: Bearer <accessToken>` on protected endpoints; the refresh token travels only as its cookie. A protected endpoint reads the account on every request: a token whose account does not exist or is suspended, or that was signed before every session of the account last ended (a password change, a reset, a suspension even once restored, a role change, a temporary password, a Google link), answers `unauthorized` (401), and the role it acts with is the account's now ([security.md](../backend/security.md#authorization)).
 - The server **never sends display text** for the UI. It sends error `type`, an optional domain `code`, and field-error codes; the client translates ([ADR 0006](../architecture/decisions/0006-localisation-approach.md)).
 - **Request id:** every response carries an `X-Request-Id` header, a UUID the server generates for each request, and an error repeats it in the envelope (§2). It matches the request's log lines ([backend conventions §10](../backend/conventions.md#10-logging)). The server ignores any id the client sends.
-- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Not built yet: the desk slices build the idempotency key.
+- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in ([Front desk (managed)](#front-desk-managed)); a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
 
 ## 2. Response envelope
 
@@ -323,7 +323,7 @@ SpaceSettings = {
 
 ### Capacity (managed)
 
-A space's capacity: the most people it seats, private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)); the live status reads it (*Occupancy (managed)*), and the full warning will ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Both routes are the owner's (🏢): reception is refused with `forbidden` (403) before a body is read. A change applies from then on.
+A space's capacity: the most people it seats, private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)); the live status reads it (*Occupancy (managed)*), and so does the check-in's full warning (*Front desk (managed)*) ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Both routes are the owner's (🏢): reception is refused with `forbidden` (403) before a body is read. A change applies from then on.
 
 - **`capacity`** (`@masaha/shared/occupancy`): a whole number from 1 to 1,000 (`CAPACITY_MAX`; `out_of_range` outside it, `invalid_format` when not whole), or `null` for none.
 - **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the space as the entity and the entry's space: `space.capacityEdited` (`before` and `after`: `{ capacity }`, `null` before a first one); the capacity the space already has writes nothing.
@@ -374,6 +374,40 @@ SpaceOccupancyNow = {
 #### `DELETE /manage/spaces/:spaceId/status-override` · 🧾
 - **200:** `SpaceOccupancyNow`, with no override. Clears the override in force, audited `space.statusOverrideCleared`; with none in force, writes nothing.
 - **Errors:** `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+
+### Front desk (managed)
+
+The desk's day: a visitor checked in by name ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Every route is the staff's (🧾). Each write sends an `Idempotency-Key` (§1), read before its body; a retry with the same key answers the first result. Built 2026-10-20, #95.
+
+- **The check-in** (`@masaha/shared/visits`): `visitorName`, 1–60 characters, required; `audience`, `GENERAL` or `STUDENT` (`invalid_choice` otherwise), `GENERAL` when absent; `shiftId`, one of the space's shifts, or absent or `null` for none.
+- **The rates** are copied at check-in from the space's prices as they are then ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Visit charge*); a later price change never touches an open visit.
+- **The warnings** (`DESK_WARNINGS`, `@masaha/shared/desk`), in `meta.warnings`, in this order, never a refusal: `SPACE_FULL` when as many are present as the space seats (none without a capacity); `OUTSIDE_OPENING_HOURS` when the space has hours and is not open by them. Without a warning, no `meta`. A retry answers them as of the retry, the visit counted present.
+- **Audit**, in the check-in's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the visit as the entity and the entry's space: `visit.checkedIn` (`after`: `{ visitorName, audience, shiftId, hourRateAgorot, dayRateAgorot }`).
+
+```ts
+VisitCharge = {
+  amountAgorot: number,
+  roundingRule: VisitRounding | null,   // the rounding in force at the check-out; null when typed
+  roundingMinutes: number | null,
+  capApplied: boolean | null,
+  typedById: number | null,             // who typed it at the desk, with why
+  reason: string | null
+}
+DeskVisit = {
+  id, visitorName: string | null,
+  customer: { id, name, phone: string | null } | null,   // the visit's customer, or the one it was left unpaid to
+  audience: 'GENERAL' | 'STUDENT', shiftId: number | null,
+  hourRateAgorot: number | null, dayRateAgorot: number | null,   // copied at check-in; null: no such price
+  checkedInAt, checkedOutAt: string | null,
+  checkoutMethod: 'MANUAL' | 'AUTO' | null,
+  charge: VisitCharge | null            // null while open
+}
+```
+
+#### `POST /manage/spaces/:spaceId/visits` · 🧾 · `Idempotency-Key`
+- **Body:** `{ visitorName, audience?, shiftId? }`.
+- **201:** `DeskVisit`, open, with `meta: { warnings }` when there are some; a retry with the same key answers the same visit, 201, and writes nothing.
+- **Errors:** `validation` (422): on `idempotencyKey` (§1); on the body, before anything is read; `invalid_choice` on `audience` for `STUDENT` where the space turns student prices off; `invalid_choice` on `shiftId` for a shift that is not the space's, writing nothing; `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
 
 ### Lookups (public)
 
@@ -795,4 +829,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified).
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`).

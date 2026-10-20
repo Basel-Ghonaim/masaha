@@ -36,6 +36,7 @@ export const ERRORS = {
   SPACE_NOT_OPEN:
     'The status can’t be set now: the space is closed, outside its hours, or has no active owner.',
   OUTSIDE_OPENING_HOURS: 'This check-in is outside the space’s opening hours.',
+  SPACE_FULL: 'The space is full; the check-in was recorded anyway.',
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:
     'This person works at this space’s reception. Its owner deactivates that link first.',

@@ -1,4 +1,4 @@
-import { gazaClockOf, gazaInstant } from '@masaha/shared/core';
+import { gazaClockOf, gazaInstant, type DomainErrorCode } from '@masaha/shared/core';
 import type {
   LiveStatus,
   PresentPerson,
@@ -18,6 +18,7 @@ import type { SpacesService } from '../spaces/index.ts';
 import type { SubscriptionsService } from '../subscriptions/index.ts';
 import type { VisitsService } from '../visits/index.ts';
 import {
+  isFull,
   liveStatus,
   openRangeAt,
   overrideInUse,
@@ -266,6 +267,25 @@ export function createOccupancyService({
         );
       });
       return service.now(space);
+    },
+
+    /**
+     * What a check-in at the space warns of now, in the caller's transaction, never refusing it:
+     * `SPACE_FULL` when as many are present as it seats (none without a capacity), then
+     * `OUTSIDE_OPENING_HOURS` when it has hours and is not open by them.
+     */
+    async checkInWarnings(spaceId: number, now: Date, tx: Tx): Promise<DomainErrorCode[]> {
+      const { capacity } = await occupancy.stateOf(spaceId, tx);
+      const present =
+        (await visits.openIn(spaceId, tx)).length +
+        (await subscriptions.openCheckInsIn(spaceId, tx)).length;
+      const week = await spaces.weekOf(spaceId, tx);
+      const warnings: DomainErrorCode[] = [];
+      if (isFull(present, capacity)) warnings.push('SPACE_FULL');
+      if (week !== null && !openRangeAt(week, gazaClockOf(now))) {
+        warnings.push('OUTSIDE_OPENING_HOURS');
+      }
+      return warnings;
     },
 
     /** The space's capacity; `null` before one is set. */

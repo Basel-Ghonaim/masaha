@@ -19,6 +19,8 @@ Each owns one capability's flows, decisions and code map, and links the platform
 - [packages.md](features/packages.md) — a space's packages, the subscription templates its owner keeps, private to its staff: listed whole, added, edited and retired (API only).
 - [space-settings.md](features/space-settings.md) — a space's settings, read and edited by its owner (API only).
 - [occupancy.md](features/occupancy.md) — a space's state now: its private capacity, who is present, the live status and its override (API only).
+- [visits.md](features/visits.md) — a visitor's stay at a space, checked in by name, and its rates (API only).
+- [desk.md](features/desk.md) — the front desk's orchestrations: a visitor's check-in, idempotent, with its warnings (API only).
 - [directory.md](features/directory.md) — what anyone reads without signing in: the directory's list, the map's pins and a space's public page; the search; near me (API only).
 - [space-links.md](features/space-links.md) — a user's links to spaces: the session's links, the caller's spaces, the space switcher, the admin's spaces list and the links loader.
 - [users.md](features/users.md) — the account: credentials, who may sign in, the password change and the forced change, the account menu and sign-out.

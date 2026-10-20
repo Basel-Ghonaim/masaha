@@ -41,6 +41,7 @@ function setup(links: ActiveLink[]) {
     },
     weekOf: () => Promise.reject(new Error('not asked here')),
     weeksFor: () => Promise.reject(new Error('not asked here')),
+    pricesOf: () => Promise.reject(new Error('not asked here')),
     lock: () => Promise.reject(new Error('not asked here')),
   };
   const lookups: LookupsService = {
