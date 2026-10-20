@@ -3,6 +3,8 @@ export type {
   Action,
   Actor,
   OwnedResource,
+  PriceTypingAction,
+  PriceTypingResource,
   SelfAction,
   SpaceAction,
   SpaceLink,

@@ -90,6 +90,11 @@ export const DOMAIN_ERROR_CODES = [
   'SPACE_CAPACITY_NOT_SET',
   'SPACE_NOT_OPEN',
   'SPACE_FULL',
+  // the price typed by hand (can())
+  'PRICE_TYPING_NOT_ALLOWED',
+  // payments: the ledger's rules, from the database's constraints
+  'PAYMENT_EXCEEDS_DUE',
+  'VISIT_NOT_PRICED',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

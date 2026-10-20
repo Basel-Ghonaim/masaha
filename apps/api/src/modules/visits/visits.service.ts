@@ -1,3 +1,4 @@
+import type { SpaceSettings } from '@masaha/shared/space-settings';
 import type { CheckInVisitRequest, DeskVisit, Rates } from '@masaha/shared/visits';
 
 import type { Tx } from '../../db/index.ts';
@@ -5,9 +6,36 @@ import type { AuditWriter } from '../../shared/audit/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
-import { ratesFor } from './visitCharge.ts';
+import { chargeOf, ratesFor, type Charge } from './visitCharge.ts';
 import { toDeskVisit } from './visits.mapper.ts';
-import { createVisitsRepository, type NewVisit, type OpenVisit } from './visits.repository.ts';
+import {
+  createVisitsRepository,
+  type DeskVisitRow,
+  type NewVisit,
+  type OpenVisit,
+  type VisitClosing,
+} from './visits.repository.ts';
+
+/** A visit locked for its check-out: what the desk answers, and what it decides on. */
+export interface LockedVisit {
+  visit: DeskVisit;
+  visitorName: string | null;
+  customerId: number | null;
+  checkedInAt: Date;
+  open: boolean;
+  rates: Rates;
+}
+
+function toLocked(row: DeskVisitRow): LockedVisit {
+  return {
+    visit: toDeskVisit(row),
+    visitorName: row.visitorName,
+    customerId: row.customer?.id ?? null,
+    checkedInAt: row.checkedInAt,
+    open: row.checkedOutAt === null,
+    rates: { hourAgorot: row.hourRateAgorot, dayAgorot: row.dayRateAgorot },
+  };
+}
 
 interface Dependencies {
   audit: AuditWriter;
@@ -64,6 +92,63 @@ export function createVisitsService({ audit, spaces, spaceSettings }: Dependenci
             shiftId: visit.shiftId,
             hourRateAgorot: visit.rates.hourAgorot,
             dayRateAgorot: visit.rates.dayAgorot,
+          },
+        },
+        tx,
+      );
+      return toDeskVisit(row);
+    },
+
+    /**
+     * Locks the visit's row for its check-out, in the caller's transaction (after the space's lock);
+     * `null` when it is not the space's.
+     */
+    async lockIn(spaceId: number, visitId: number, tx: Tx): Promise<LockedVisit | null> {
+      const row = await repository.lockIn(spaceId, visitId, tx);
+      return row && toLocked(row);
+    },
+
+    /**
+     * The visit's charge for its stay up to `to`, from the rates it copied at check-in and the
+     * rounding and cap of these settings, the ones in force (data model › Visit charge); `null`
+     * with no rate.
+     */
+    chargeOf(visit: LockedVisit, to: Date, settings: SpaceSettings): Charge | null {
+      return chargeOf({ from: visit.checkedInAt, to }, visit.rates, {
+        rounding: settings.visitRounding,
+        roundingMinutes: settings.visitRoundingMinutes,
+        capAtDayPrice: settings.visitCapAtDayPrice,
+      });
+    },
+
+    /**
+     * Closes the visit at the desk, in the caller's transaction, audited `visit.checkedOut` with the
+     * quote's time it was closed at and the request's own time.
+     */
+    async close(
+      actorId: number,
+      spaceId: number,
+      visitId: number,
+      closing: VisitClosing & { requestedAt: Date },
+      tx: Tx,
+    ): Promise<DeskVisit> {
+      const row = await repository.close(visitId, closing, tx);
+      const { checkedOutAt, requestedAt, charge, customerId } = closing;
+      await audit(
+        {
+          actorId,
+          action: 'visit.checkedOut',
+          entityType: 'visit',
+          entityId: visitId,
+          spaceId,
+          after: {
+            checkedOutAt: checkedOutAt.toISOString(),
+            requestedAt: requestedAt.toISOString(),
+            chargeAgorot: charge?.amountAgorot ?? null,
+            capApplied: charge?.capApplied ?? null,
+            typedById: charge?.typedById ?? null,
+            reason: charge?.reason ?? null,
+            customerId,
           },
         },
         tx,

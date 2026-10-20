@@ -1,3 +1,4 @@
+import { checkOutVisitSchema } from '@masaha/shared/desk';
 import { checkInVisitSchema } from '@masaha/shared/visits';
 import { Router } from 'express';
 
@@ -21,6 +22,13 @@ export function createDeskManageRouter(controller: DeskController): Router {
     requireIdempotencyKey,
     validate(checkInVisitSchema),
     controller.checkInVisit,
+  );
+  router.post(
+    '/visits/:visitId/check-out',
+    mayRecord,
+    requireIdempotencyKey,
+    validate(checkOutVisitSchema),
+    controller.checkOutVisit,
   );
   return router;
 }

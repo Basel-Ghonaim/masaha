@@ -1,8 +1,10 @@
+import type { CheckOutVisitRequest, VisitCheckOut } from '@masaha/shared/desk';
 import type { CheckInVisitRequest, DeskVisit } from '@masaha/shared/visits';
 import type { Request, Response } from 'express';
 
 import { signedIn, spaceOf } from '../../shared/auth/index.ts';
 import { idempotencyKeyOf, sendSuccess } from '../../shared/http/index.ts';
+import { parseId } from '../../shared/validation/index.ts';
 import type { DeskService } from './desk.service.ts';
 
 export function createDeskController(service: DeskService) {
@@ -20,6 +22,19 @@ export function createDeskController(service: DeskService) {
         status: 201,
         ...(warnings.length > 0 && { meta: { warnings } }),
       });
+    },
+
+    /** 200, a retry included, with the first result. */
+    checkOutVisit: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const checkOut = await service.checkOutVisit(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.visitId),
+        idempotencyKeyOf(res),
+        req.body as CheckOutVisitRequest,
+      );
+      sendSuccess(res, checkOut satisfies VisitCheckOut);
     },
   };
 }

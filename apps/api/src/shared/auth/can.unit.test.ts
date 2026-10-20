@@ -4,6 +4,7 @@ import {
   ACTIONS,
   can,
   type Actor,
+  type PriceTypingAction,
   type SelfAction,
   type SpaceAction,
   type SpaceLink,
@@ -116,6 +117,9 @@ const SELF_ACTIONS: readonly SelfAction[] = [
   'dataReports.readOwn',
 ];
 
+// A price typed by hand: the owner always; reception only where the space's switch allows it.
+const PRICE_TYPING_ACTIONS: readonly PriceTypingAction[] = ['prices.typeByHand'];
+
 const ALL_ACTORS = [
   ['a USER', USER],
   ['the reception of this space', RECEPTION_OF_THIS_SPACE],
@@ -195,11 +199,39 @@ describe('can', () => {
     });
   });
 
+  describe.each(PRICE_TYPING_ACTIONS)('%s', (action) => {
+    it.each([
+      ['a USER', USER, false, false],
+      ['the reception of this space', RECEPTION_OF_THIS_SPACE, false, true],
+      ['the reception of another space', RECEPTION_OF_ANOTHER_SPACE, false, false],
+      ['an OWNER of another space', OWNER_OF_ANOTHER_SPACE, false, false],
+      ['the OWNER of this space', OWNER_OF_THIS_SPACE, true, true],
+      ['an ADMIN', ADMIN, false, false],
+    ] as const)('for %s: with the switch off %s, on %s', (_who, actor, off, on) => {
+      expect(can(actor, action, { ...VERIFIED, receptionMayTypePrices: false })).toBe(off);
+      expect(can(actor, action, { ...VERIFIED, receptionMayTypePrices: true })).toBe(on);
+    });
+
+    it('grants nothing through a deactivated link', () => {
+      const deactivated = {
+        links: [
+          link(OWNER_OF_THIS_SPACE.id, 'OWNER', new Date('2026-09-29T10:00:00Z')),
+          link(RECEPTION_OF_THIS_SPACE.id, 'RECEPTION', new Date('2026-09-29T10:00:00Z')),
+        ],
+        receptionMayTypePrices: true,
+      };
+
+      expect(can(OWNER_OF_THIS_SPACE, action, deactivated)).toBe(false);
+      expect(can(RECEPTION_OF_THIS_SPACE, action, deactivated)).toBe(false);
+    });
+  });
+
   it('has an expectation for every action in the table', () => {
     const expected = [
       ...Object.keys(SPACE_EXPECTATIONS),
       ...Object.keys(UNSCOPED_EXPECTATIONS),
       ...SELF_ACTIONS,
+      ...PRICE_TYPING_ACTIONS,
     ];
 
     expect([...expected].sort()).toEqual([...ACTIONS].sort());

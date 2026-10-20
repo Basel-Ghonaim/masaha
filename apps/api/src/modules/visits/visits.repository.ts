@@ -1,4 +1,4 @@
-import type { Rates } from '@masaha/shared/visits';
+import type { Rates, VisitCharge } from '@masaha/shared/visits';
 
 import { isForeignKeyViolation, prisma, type Tx } from '../../db/index.ts';
 import type { Prisma } from '../../generated/prisma/client.ts';
@@ -44,6 +44,13 @@ export interface NewVisit {
   checkedInAt: Date;
 }
 
+/** How a visit is closed: when, its charge (or none), and the customer it is left unpaid to. */
+export interface VisitClosing {
+  checkedOutAt: Date;
+  charge: VisitCharge | null;
+  customerId: number | null;
+}
+
 /** Each space's count of rows, by space; a space with none is absent. */
 function countsBySpace(groups: readonly { spaceId: number; _count: { _all: number } }[]) {
   return new Map(groups.map(({ spaceId, _count }) => [spaceId, _count._all]));
@@ -84,6 +91,36 @@ export function createVisitsRepository() {
         if (isForeignKeyViolation(error)) return null;
         throw error;
       }
+    },
+
+    /**
+     * Locks the visit's row (`FOR UPDATE`, the payments trigger's own mode) and reads it; `null`
+     * when it is not the space's.
+     */
+    async lockIn(spaceId: number, visitId: number, tx: Tx): Promise<DeskVisitRow | null> {
+      const locked = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM visits WHERE id = ${visitId} AND space_id = ${spaceId} FOR UPDATE`;
+      if (locked.length === 0) return null;
+      return tx.visit.findUniqueOrThrow({ where: { id: visitId }, select: DESK_VISIT });
+    },
+
+    /** Closes the visit by the desk, with its charge and its customer. */
+    close(visitId: number, { checkedOutAt, charge, customerId }: VisitClosing, tx: Tx) {
+      return tx.visit.update({
+        where: { id: visitId },
+        data: {
+          checkedOutAt,
+          checkoutMethod: 'MANUAL',
+          roundingRule: charge?.roundingRule ?? null,
+          roundingMinutes: charge?.roundingMinutes ?? null,
+          capApplied: charge?.capApplied ?? null,
+          chargeAgorot: charge?.amountAgorot ?? null,
+          chargeSetById: charge?.typedById ?? null,
+          chargeReason: charge?.reason ?? null,
+          customerId,
+        },
+        select: DESK_VISIT,
+      });
     },
 
     /** The space's open visits, the earliest checked in first, then by id. */

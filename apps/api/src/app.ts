@@ -21,6 +21,7 @@ import {
   type GoogleIdentity,
 } from './modules/auth/index.ts';
 import { createCustomersService } from './modules/customers/index.ts';
+import { createPaymentsService } from './modules/payments/index.ts';
 import {
   createDeskController,
   createDeskManageRouter,
@@ -313,17 +314,27 @@ export function createApi({
   const photos = createPhotosService({ runInTransaction, audit: writeAudit, storage, logger });
   const packages = createPackagesService({ runInTransaction, audit: writeAudit, spaces });
   const visits = createVisitsService({ audit: writeAudit, spaces, spaceSettings });
+  const customers = createCustomersService({ audit: writeAudit });
   const occupancy = createOccupancyService({
     runInTransaction,
     audit: writeAudit,
     spaces,
     visits,
     subscriptions: createSubscriptionsService(),
-    customers: createCustomersService(),
+    customers,
     announcements: createAnnouncementsService(),
     now: clock,
   });
-  const desk = createDeskService({ runInTransaction, spaces, visits, occupancy, now: clock });
+  const desk = createDeskService({
+    runInTransaction,
+    spaces,
+    spaceSettings,
+    visits,
+    customers,
+    payments: createPaymentsService({ audit: writeAudit }),
+    occupancy,
+    now: clock,
+  });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const directory = createDirectoryService({
     lookups,
