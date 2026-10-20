@@ -42,7 +42,7 @@ function renderRemove(
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const rendered = renderHook(() => usePhotoRemove(7), { wrapper });
+  const rendered = renderHook(() => usePhotoRemove('admin', 7), { wrapper });
   render(<Toaster label="Notifications" closeLabel="Close notification" />);
   return { ...rendered, requests, client };
 }

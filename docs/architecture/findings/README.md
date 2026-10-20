@@ -29,7 +29,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [63. A photo's files can outlive it](63-a-photos-files-can-outlive-it.md)
 - [64. The deployment's headers must let Cloudinary's photos load](64-the-deployments-headers-must-let-cloudinarys-photos-load.md)
 - [65. The forgotten password's wait is an estimate, not a measurement](65-the-forgotten-passwords-wait-is-an-estimate-not-a-measurement.md)
-- [67. The prices table cuts its shift at 768 px](67-the-prices-table-cuts-its-shift-at-768-px.md)
 - [69. The owners endpoint refuses a deleted space with a code the contract does not name](69-the-owners-endpoint-refuses-a-deleted-space-with-a-code-the-contract-does-not-name.md)
 - [73. The gallery's per-tile progress has no component in the layer](73-the-gallerys-per-tile-progress-has-no-component-in-the-layer.md)
 - [74. The design's gallery copy states limits the contract no longer has](74-the-designs-gallery-copy-states-limits-the-contract-no-longer-has.md)
@@ -52,6 +51,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [96. The attendance card saves two capabilities in one save](96-the-attendance-card-saves-two-capabilities-in-one-save.md)
 - [97. The visit-rounding rule is written twice](97-the-visit-rounding-rule-is-written-twice.md)
 - [98. The capability documents outgrow their size guide](98-the-capability-documents-outgrow-their-size-guide.md)
+- [99. The owner's checklist cannot name a retired amenity](99-the-owners-checklist-cannot-name-a-retired-amenity.md)
 
 ## Accepted
 
@@ -100,4 +100,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [52. The race tests wait a fixed time](52-the-race-tests-wait-a-fixed-time.md)
 - [59. The verified space's editor cannot name its owner](59-the-verified-spaces-editor-cannot-name-its-owner.md)
 - [60. The area field shows no area for a space whose area was hidden since](60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)
+- [67. The prices table cuts its shift at 768 px](67-the-prices-table-cuts-its-shift-at-768-px.md)
 - [88. The upgrade confirm shows no front desks](88-the-upgrade-confirm-shows-no-front-desks.md)

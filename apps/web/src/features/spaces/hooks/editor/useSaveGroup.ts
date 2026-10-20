@@ -3,7 +3,8 @@ import { currentCopy } from '@shared/copy';
 import { toast } from '@shared/design-system';
 import type { AppError } from '@shared/errors';
 import { useMutation } from '@tanstack/react-query';
-import { spaceWriteKey } from '../mutationKeys';
+import type { EditorPlace } from '../../types/EditorPlace';
+import { EDITOR_SCOPES } from './editorScope';
 import { useSpaceAnswer } from './useSpaceAnswer';
 
 /**
@@ -11,13 +12,14 @@ import { useSpaceAnswer } from './useSpaceAnswer';
  * state, and said in a toast that names the section. A refusal is the section's to show.
  */
 export function useSaveGroup<Request>(
+  place: EditorPlace,
   spaceId: number,
   group: FactGroup,
   send: (request: Request) => Promise<AdminSpace>,
 ) {
-  const answer = useSpaceAnswer(spaceId);
+  const answer = useSpaceAnswer(place, spaceId);
   return useMutation<AdminSpace, AppError, Request>({
-    mutationKey: spaceWriteKey(spaceId),
+    mutationKey: EDITOR_SCOPES[place].writeKey(spaceId),
     mutationFn: send,
     onSuccess: (space) => {
       answer.keep(space);

@@ -41,7 +41,7 @@ function renderSection(
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   const rendered = renderHook(
-    ({ current }) => useContactsSection({ space: current, onDirtyChange }),
+    ({ current }) => useContactsSection({ place: 'admin', space: current, onDirtyChange }),
     { wrapper, initialProps: { current: space } },
   );
   const writes = () => requests.filter(({ method }) => method !== 'get');

@@ -6,8 +6,8 @@ import { fakeIntersectionObserver } from '../../../../test/fakeIntersectionObser
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { renderHookInRouter } from '../../../../test/renderHookInRouter';
 import { startPreferences } from '../../../../test/startPreferences';
-import { spaceWriteKey } from '../mutationKeys';
-import { spacesKeys } from '../queryKeys';
+import type { EditorPlace } from '../../types/EditorPlace';
+import { EDITOR_SCOPES } from './editorScope';
 import { useSpaceEditor } from './useSpaceEditor';
 
 const SPACE = {
@@ -21,11 +21,31 @@ const SPACE = {
   missingGroups: ['hours', 'prices', 'amenities', 'contacts'],
 } as unknown as AdminSpace;
 
-/** The editor of space 7, the server answering its read with `read`. */
-function renderEditor(read: () => FakeAnswer | Promise<FakeAnswer> = () => ok(SPACE)) {
-  fakeTransport(read);
-  return renderHookInRouter(() => useSpaceEditor(7), { path: '/spaces/7' });
+/** The editor of space 7 at `place`, the server answering its read with `read`. */
+function renderEditor(
+  read: () => FakeAnswer | Promise<FakeAnswer> = () => ok(SPACE),
+  place: EditorPlace = 'admin',
+) {
+  const requests = fakeTransport(read);
+  return {
+    ...renderHookInRouter(() => useSpaceEditor(place, 7), { path: '/spaces/7' }),
+    requests,
+  };
 }
+
+/** The space as its owner reads it: verified, its prices dated two days before 13 October. */
+const OWNED = {
+  ...SPACE,
+  isVerified: true,
+  updatedAt: {
+    profile: null,
+    hours: null,
+    prices: '2026-10-11T08:00:00Z',
+    amenities: null,
+    contacts: null,
+  },
+  staleGroups: [],
+} as unknown as AdminSpace;
 
 /** The editor once its space has loaded. */
 async function ready(result: { current: ReturnType<typeof useSpaceEditor> }) {
@@ -71,7 +91,7 @@ describe('useSpaceEditor', () => {
     await ready(result);
 
     deleted = true;
-    await act(() => client.invalidateQueries({ queryKey: spacesKeys.space(7) }));
+    await act(() => client.invalidateQueries({ queryKey: EDITOR_SCOPES.admin.spaceKey(7) }));
 
     await waitFor(() => {
       expect(result.current.state).toBe('notFound');
@@ -128,6 +148,66 @@ describe('useSpaceEditor', () => {
 
     expect(editor.readOnly).toBe(true);
     expect(editor.checklist).toBeNull();
+  });
+
+  it('gives the owner the head line and the public link, no notice and no privacy line', async () => {
+    const { result, requests } = renderEditor(() => ok(OWNED), 'owner');
+
+    const editor = await ready(result);
+
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'get /manage/spaces/7',
+    ]);
+    expect(editor.head).toEqual({
+      intro: 'Each section saves on its own and shows to visitors as soon as it’s saved.',
+      viewPublic: 'View public page',
+    });
+    expect(editor.notice).toBeNull();
+    expect(editor.privacy).toBeNull();
+    // Its own space is the owner's to edit, the groups still missing listed.
+    expect(editor.readOnly).toBe(false);
+    expect(editor.checklist).not.toBeNull();
+    // The admin's editor keeps its notice and its privacy line, and has no head line.
+    const admin = await ready(renderEditor().result);
+    expect(admin.head).toBeNull();
+    expect(admin.notice?.unverified.title).toBe('You’re editing an unverified space');
+    expect(admin.privacy).not.toBeNull();
+  });
+
+  it('draws the prices as a link to Packages & prices on the owner’s place, with its date, stale and missing', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-13T07:00:00Z'));
+    const dated = await ready(renderEditor(() => ok(OWNED), 'owner').result);
+    expect(dated.pricesLink).toEqual({
+      title: 'Prices',
+      description: 'Edited and confirmed in Packages & prices',
+      date: 'Updated 2 days ago',
+      missing: false,
+      stale: null,
+      action: { label: 'Packages & prices' },
+    });
+
+    const stale = await ready(
+      renderEditor(() => ok({ ...OWNED, staleGroups: ['prices'] }), 'owner').result,
+    );
+    expect(stale.pricesLink?.stale).toBe('Out of date');
+
+    const missing = await ready(
+      renderEditor(() => ok({ ...OWNED, updatedAt: { ...OWNED.updatedAt, prices: null } }), 'owner')
+        .result,
+    );
+    expect(missing.pricesLink).toMatchObject({ date: 'Not added yet', missing: true, stale: null });
+
+    // The admin edits the prices in the editor itself: no link.
+    expect((await ready(renderEditor().result)).pricesLink).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('shows the owner only that the space is hidden from visitors, when it is', async () => {
+    expect((await ready(renderEditor(() => ok(OWNED), 'owner').result)).badges).toEqual([]);
+    expect(
+      (await ready(renderEditor(() => ok({ ...OWNED, isHidden: true }), 'owner').result)).badges,
+    ).toEqual([{ label: 'Hidden from visitors', variant: 'warning' }]);
   });
 
   it('shows its state as two facts: whether it is verified, and hidden', async () => {
@@ -190,7 +270,7 @@ describe('useSpaceEditor', () => {
       void client
         .getMutationCache()
         .build(client, {
-          mutationKey: spaceWriteKey(7),
+          mutationKey: EDITOR_SCOPES.admin.writeKey(7),
           mutationFn: () => new Promise(() => undefined),
         })
         .execute(undefined);

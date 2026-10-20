@@ -65,6 +65,23 @@ export const SPACES = {
       description: 'This space is verified, so it shows here read-only.',
       viewOnSite: 'View on the site',
     },
+    /** What an owner's editor says that the admin's does not. */
+    owner: {
+      intro: 'Each section saves on its own and shows to visitors as soon as it’s saved.',
+      viewPublic: 'View public page',
+      /** The space's one state an owner is shown: whether the platform's team hid it. */
+      hidden: 'Hidden from visitors',
+      /** The prices, edited on Packages & prices: a row that leads there. */
+      pricesLink: {
+        description: 'Edited and confirmed in Packages & prices',
+        action: 'Packages & prices',
+      },
+      /** A write's refusal when the space is no longer the owner's to write. */
+      meanwhile: {
+        forbidden: 'This is no longer open to you at this space; nothing was saved.',
+        notFound: 'This space is no longer available to you.',
+      },
+    },
     privacy:
       'A space’s operating data is private to its management — customers, visits, subscriptions, payments and finance.',
     /** Each fact group's section, by one name in the navigation and on its card, and the gallery's. */

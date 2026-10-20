@@ -1,6 +1,7 @@
 import type { AdminSpace, FactGroup } from '@masaha/shared/spaces';
 import { Button, Field, Input, Separator, Switch, XIcon } from '@shared/design-system';
 import { useHoursSection } from '../../hooks/hours/useHoursSection';
+import type { EditorPlace } from '../../types/EditorPlace';
 import { SectionCard } from '../editor/SectionCard';
 import { OptionalMark } from '../profile/OptionalMark';
 
@@ -33,13 +34,15 @@ function TimeInput({
  * confirmed as one group.
  */
 export function HoursSection({
+  place,
   space,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
-  const view = useHoursSection({ space, onDirtyChange });
+  const view = useHoursSection({ place, space, onDirtyChange });
 
   return (
     <SectionCard

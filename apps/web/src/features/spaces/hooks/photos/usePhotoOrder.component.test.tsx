@@ -28,7 +28,7 @@ function renderOrder(
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const rendered = renderHook(() => usePhotoOrder(7, PHOTOS), { wrapper });
+  const rendered = renderHook(() => usePhotoOrder('admin', 7, PHOTOS), { wrapper });
   return { ...rendered, requests, client };
 }
 

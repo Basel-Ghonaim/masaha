@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
-import { spacesKeys } from '../queryKeys';
+import { EDITOR_SCOPES } from './editorScope';
 import { useSpaceName } from './useSpaceName';
 
 const SPACE = { id: 7, nameEn: 'Focus Hub', nameAr: null } as unknown as AdminSpace;
@@ -48,7 +48,7 @@ describe('useSpaceName', () => {
     });
 
     deleted = true;
-    await act(() => client.invalidateQueries({ queryKey: spacesKeys.space(7) }));
+    await act(() => client.invalidateQueries({ queryKey: EDITOR_SCOPES.admin.spaceKey(7) }));
 
     await waitFor(() => {
       expect(result.current).toBeUndefined();

@@ -2,38 +2,43 @@ import type { AdminSpace, FactGroup } from '@masaha/shared/spaces';
 import { Button, Field, Input, Separator, XIcon } from '@shared/design-system';
 import { Link } from 'react-router';
 import { useAmenitiesSection } from '../../hooks/amenities/useAmenitiesSection';
+import type { EditorPlace } from '../../types/EditorPlace';
 import type { AmenitiesField } from '../../types/AmenitiesField';
 import { SectionCard } from '../editor/SectionCard';
 import { OptionalMark } from '../profile/OptionalMark';
 
 /**
  * «المرافق»: the platform's amenities to tick (`amenitiesField`), with the way to the list itself
- * (`listLink`), then «مرافق إضافية», the space's own, a row each, added up to the limit and removed;
+ * (`listLink`) where the page has one, then «مرافق إضافية», the space's own, a row each, added up to the limit and removed;
  * one form, saved, dated and confirmed as one group.
  */
 export function AmenitiesSection({
+  place,
   space,
   amenitiesField,
   listLink,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   amenitiesField: AmenitiesField;
-  listLink: string;
+  listLink: string | null;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
-  const view = useAmenitiesSection({ space, onDirtyChange });
+  const view = useAmenitiesSection({ place, space, onDirtyChange });
   const { own } = view;
 
   return (
     <SectionCard frame={view.frame}>
       {amenitiesField(view.checklist)}
-      <p className="text-body-sm text-muted-foreground">
-        {view.manage.lead}{' '}
-        <Link to={listLink} className="text-primary underline underline-offset-4">
-          {view.manage.label}
-        </Link>
-      </p>
+      {listLink !== null && (
+        <p className="text-body-sm text-muted-foreground">
+          {view.manage.lead}{' '}
+          <Link to={listLink} className="text-primary underline underline-offset-4">
+            {view.manage.label}
+          </Link>
+        </p>
+      )}
       <Separator />
       <section aria-labelledby="own-amenities-title" className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">

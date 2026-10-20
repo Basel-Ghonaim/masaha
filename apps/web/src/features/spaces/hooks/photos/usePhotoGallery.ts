@@ -1,8 +1,10 @@
 import type { SpacePhoto } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
+import type { EditorPlace } from '../../types/EditorPlace';
 import type { PhotoGalleryView, PhotoRemoveDialogView } from '../../types/PhotoGalleryView';
 import type { PhotoTileView } from '../../types/PhotoTileView';
+import { meanwhileLines } from '../editor/meanwhileLines';
 import { usePhotoOrder } from './usePhotoOrder';
 import { usePhotoRemove } from './usePhotoRemove';
 import { usePhotosQuery } from './usePhotosQuery';
@@ -19,20 +21,18 @@ import { usePhotoUploads } from './usePhotoUploads';
  * meanwhile changes the page's shape rather than leaving a control that cannot work.
  */
 export function usePhotoGallery(
+  place: EditorPlace,
   spaceId: number,
   onUploadingChange: (uploading: boolean) => void,
 ): PhotoGalleryView {
   const copy = useCopy();
   const words = copy.spaces.editor.photos;
-  const query = usePhotosQuery(spaceId);
+  const query = usePhotosQuery(place, spaceId);
   const photos = query.data ?? [];
-  const order = usePhotoOrder(spaceId, photos);
-  const removal = usePhotoRemove(spaceId);
-  const uploads = usePhotoUploads(spaceId, photos, onUploadingChange);
-  const lines = {
-    forbidden: words.verifiedMeanwhile,
-    not_found: words.deletedMeanwhile,
-  };
+  const order = usePhotoOrder(place, spaceId, photos);
+  const removal = usePhotoRemove(place, spaceId);
+  const uploads = usePhotoUploads(place, spaceId, photos, onUploadingChange);
+  const lines = meanwhileLines(place, copy, 'photos');
   const loaded = useRefusalView(query.error ?? null, words.loadFailed);
   // A refusal of a write belongs to the tile it was for; the rest of the gallery is as it is.
   const tileFailure = useRefusalView(order.refusal, words.orderFailed, lines);

@@ -3,12 +3,10 @@ import { useCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
-import { createSpacesRepository } from '../../repository/spacesRepository';
+import type { EditorPlace } from '../../types/EditorPlace';
+import { EDITOR_SCOPES } from '../editor/editorScope';
 import { useSpaceAnswer } from '../editor/useSpaceAnswer';
-import { spacesKeys } from '../queryKeys';
 import { staleGallery } from './staleGallery';
-
-const repository = createSpacesRepository();
 
 /** One move: the whole gallery, every id, first to last, and the photo the admin acted on. */
 type Move = { ids: number[]; photoId: number };
@@ -30,11 +28,12 @@ function permutation(photos: SpacePhoto[], id: number, to: number): number[] {
  * 403 or a 404 goes through the space's own answer, so a space verified or deleted meanwhile shows as
  * it is now, and the refusal is the tile's, read as any refusal is.
  */
-export function usePhotoOrder(spaceId: number, photos: SpacePhoto[]) {
+export function usePhotoOrder(place: EditorPlace, spaceId: number, photos: SpacePhoto[]) {
+  const scope = EDITOR_SCOPES[place];
   const copy = useCopy();
   const words = copy.spaces.editor.photos;
   const client = useQueryClient();
-  const answer = useSpaceAnswer(spaceId);
+  const answer = useSpaceAnswer(place, spaceId);
   const [said, setSaid] = useState<string | null>(null);
   const [changed, setChanged] = useState<string | null>(null);
   const [refusedId, setRefusedId] = useState<number | null>(null);
@@ -43,17 +42,17 @@ export function usePhotoOrder(spaceId: number, photos: SpacePhoto[]) {
   const sending = useRef(false);
 
   const move = useMutation<undefined, AppError, Move>({
-    mutationFn: ({ ids }) => repository.orderPhotos(spaceId, ids),
+    mutationFn: ({ ids }) => scope.repository.orderPhotos(spaceId, ids),
     // Returned, so the move is pending until the gallery is fetched again.
     onSuccess: () => {
       setRefusedId(null);
-      return client.invalidateQueries({ queryKey: spacesKeys.photos(spaceId) });
+      return client.invalidateQueries({ queryKey: scope.photosKey(spaceId) });
     },
     onError: (refusal, { photoId }) => {
       setRefusedId(photoId);
       if (refusal.type === 'conflict') setChanged(words.orderChanged);
       else answer.refused(refusal);
-      return staleGallery(client, spaceId, refusal);
+      return staleGallery(client, place, spaceId, refusal);
     },
     onSettled: () => {
       sending.current = false;

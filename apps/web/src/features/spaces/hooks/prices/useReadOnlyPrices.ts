@@ -1,8 +1,8 @@
 import type { AdminSpace } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { isolated } from '@shared/forms';
+import { priceText } from '@shared/lib';
 import { useLanguage } from '@shared/localisation';
-import { priceText } from '../../services/priceText';
 
 /**
  * A verified space's prices to read, every one: its period and audience, then its shift and its

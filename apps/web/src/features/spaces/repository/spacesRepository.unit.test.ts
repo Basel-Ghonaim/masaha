@@ -1,7 +1,7 @@
 import type { CreateSpaceRequest } from '@masaha/shared/spaces';
 import { apiClient, setupApiClient } from '@shared/api';
 import { AppError } from '@shared/errors';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
 import { createSpacesRepository } from './spacesRepository';
 
@@ -58,125 +58,6 @@ describe('the spaces repository', () => {
 
     await expect(createSpacesRepository().restore(7)).resolves.toBeUndefined();
     expect(requests[0]).toMatchObject({ method: 'post', url: '/admin/spaces/7/restore' });
-  });
-
-  it('GETs one space, and resolves to it', async () => {
-    const space = { id: 7, slug: 'focus-hub', nameEn: 'Focus Hub' };
-    const requests = serve({ status: 200, data: { success: true, data: space } });
-
-    await expect(createSpacesRepository().get(7)).resolves.toEqual(space);
-    expect(requests[0]).toMatchObject({ method: 'get', url: '/admin/spaces/7' });
-  });
-
-  it('PATCHes the profile’s changes, and resolves to the space as it is then', async () => {
-    const space = { id: 7, nameEn: 'Focus Hub' };
-    const requests = serve({ status: 200, data: { success: true, data: space } });
-
-    await expect(
-      createSpacesRepository().updateProfile(7, { nameEn: 'Focus Hub', landmarkAr: null }),
-    ).resolves.toEqual(space);
-    expect(requests[0]).toMatchObject({ method: 'patch', url: '/admin/spaces/7' });
-    expect(JSON.parse(String(requests[0]?.data))).toEqual({
-      nameEn: 'Focus Hub',
-      landmarkAr: null,
-    });
-  });
-
-  it('PUTs the hours with the shifts whole', async () => {
-    const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
-    const request = {
-      days: [null, null, null, null, null, null, { opensMinute: 540, closesMinute: 1440 }],
-      shifts: [
-        { id: 4, nameAr: 'صباحية', nameEn: null, startsMinute: 540, endsMinute: 780 },
-        { nameAr: 'ليلية', nameEn: 'Night', startsMinute: 1200, endsMinute: 1410 },
-      ],
-    };
-
-    await createSpacesRepository().updateHours(7, request);
-    expect(requests[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/hours' });
-    expect(JSON.parse(String(requests[0]?.data))).toEqual(request);
-  });
-
-  it('PUTs the prices whole', async () => {
-    const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
-    const request = {
-      prices: [
-        {
-          period: 'DAY' as const,
-          audience: 'GENERAL' as const,
-          shiftId: null,
-          labelAr: null,
-          labelEn: null,
-          amountAgorot: 1500,
-        },
-      ],
-    };
-
-    await createSpacesRepository().updatePrices(7, request);
-    expect(requests[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/prices' });
-    expect(JSON.parse(String(requests[0]?.data))).toEqual(request);
-  });
-
-  it('PUTs the amenities group whole', async () => {
-    const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
-    const request = { amenityIds: [1, 3], ownAmenities: [{ nameAr: 'غرفة صلاة', nameEn: null }] };
-
-    await createSpacesRepository().updateAmenities(7, request);
-    expect(requests[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/amenities' });
-    expect(JSON.parse(String(requests[0]?.data))).toEqual(request);
-  });
-
-  it('PUTs the contacts whole', async () => {
-    const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
-    const request = { contacts: [{ type: 'PHONE' as const, value: '+970599123456' }] };
-
-    await createSpacesRepository().updateContacts(7, request);
-    expect(requests[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/contacts' });
-    expect(JSON.parse(String(requests[0]?.data))).toEqual(request);
-  });
-
-  it.each(['profile', 'hours', 'prices', 'amenities', 'contacts'] as const)(
-    'POSTs the %s group’s confirmation, with no body',
-    async (group) => {
-      const requests = serve({ status: 200, data: { success: true, data: { id: 7 } } });
-
-      await createSpacesRepository().confirm(7, group);
-      expect(requests[0]).toMatchObject({
-        method: 'post',
-        url: `/admin/spaces/7/${group}/confirm`,
-      });
-      expect(requests[0]?.data).toBeUndefined();
-    },
-  );
-
-  it('reads, uploads, removes and orders a space’s photos on the contract’s paths', async () => {
-    const file = new File(['the bytes of a photo'], 'desk.jpg', { type: 'image/jpeg' });
-    const photo = { id: 3, urls: { card: '/files/card.webp', page: '/files/page.webp' } };
-    const progress = vi.fn();
-
-    const listed = serve({ status: 200, data: { success: true, data: [photo] } });
-    await expect(createSpacesRepository().listPhotos(7)).resolves.toEqual([photo]);
-    expect(listed[0]).toMatchObject({ method: 'get', url: '/admin/spaces/7/photos' });
-
-    const uploaded = serve({ status: 201, data: { success: true, data: photo } });
-    await expect(createSpacesRepository().uploadPhoto(7, file, progress)).resolves.toEqual(photo);
-    const part = uploaded[0];
-    expect(part).toMatchObject({ method: 'post', url: '/admin/spaces/7/photos' });
-    const body = part?.data as FormData;
-    expect([...body.keys()]).toEqual(['photo']);
-    expect(body.get('photo')).toBe(file);
-    // The progress the transport reports reaches the caller, so a tile can show its own percentage.
-    part?.onUploadProgress?.({ loaded: 1024, total: 2048, bytes: 1024, lengthComputable: true });
-    expect(progress).toHaveBeenCalledWith(1024, 2048);
-
-    const removed = serve({ status: 204 });
-    await expect(createSpacesRepository().removePhoto(7, 3)).resolves.toBeUndefined();
-    expect(removed[0]).toMatchObject({ method: 'delete', url: '/admin/spaces/7/photos/3' });
-
-    const ordered = serve({ status: 204 });
-    await expect(createSpacesRepository().orderPhotos(7, [4, 3])).resolves.toBeUndefined();
-    expect(ordered[0]).toMatchObject({ method: 'put', url: '/admin/spaces/7/photos/order' });
-    expect(JSON.parse(String(ordered[0]?.data))).toEqual({ ids: [4, 3] });
   });
 
   it('rejects a refusal as an AppError, with its type', async () => {

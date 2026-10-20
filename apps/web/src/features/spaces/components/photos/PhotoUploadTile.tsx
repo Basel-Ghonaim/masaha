@@ -13,13 +13,19 @@ import type { PhotoUploadTileView } from '../../types/PhotoTileView';
  * A file the browser could not read never became a request: its line says so, and no retry is
  * offered, because re-choosing it would meet the same refusal.
  */
-export function PhotoUploadTile({ tile }: { tile: PhotoUploadTileView }) {
+export function PhotoUploadTile({
+  tile,
+  meanwhile,
+}: {
+  tile: PhotoUploadTileView;
+  /** What a 403 and a 404 say, as the editor's place words them. */
+  meanwhile: { forbidden: string; not_found: string };
+}) {
   const words = useCopy().spaces.editor.photos;
   // Each tile reads its own refusal, so each counts down its own wait and none disturbs another.
   const { view } = useRefusalView(tile.refusal, tile.fileName, {
     payload_too_large: words.tooLarge,
-    forbidden: words.verifiedMeanwhile,
-    not_found: words.deletedMeanwhile,
+    ...meanwhile,
     conflict: words.galleryFull,
   });
   const waiting =

@@ -14,7 +14,7 @@ import { ADMIN_SPACES_PATH, adminSpacePath } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
 
 /** The form's area field, from `lookups`, made once so the form keeps it from render to render. */
-const areaField: AreaField = (props) => <AreaSelect {...props} />;
+const areaField: AreaField = (props) => <AreaSelect source="admin" {...props} />;
 
 /**
  * The admin adds a space: the page's title in the top bar, the trail back to the spaces list, and

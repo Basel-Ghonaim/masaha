@@ -12,6 +12,7 @@ import {
   XIcon,
 } from '@shared/design-system';
 import { useContactsSection } from '../../hooks/contacts/useContactsSection';
+import type { EditorPlace } from '../../types/EditorPlace';
 import { SectionCard } from '../editor/SectionCard';
 
 /**
@@ -20,13 +21,15 @@ import { SectionCard } from '../editor/SectionCard';
  * one group.
  */
 export function ContactsSection({
+  place,
   space,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
-  const view = useContactsSection({ space, onDirtyChange });
+  const view = useContactsSection({ place, space, onDirtyChange });
 
   return (
     <SectionCard frame={view.frame}>

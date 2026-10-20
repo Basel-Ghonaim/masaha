@@ -1,5 +1,6 @@
 import { useCopy } from '@shared/copy';
 import { useLanguage } from '@shared/localisation';
+import type { LookupsSource } from '../../types/LookupsSource';
 import { useGovernoratesQuery } from '../list/useGovernoratesQuery';
 import { useCatalogueQuery } from './useCatalogueQuery';
 
@@ -9,15 +10,19 @@ import { useCatalogueQuery } from './useCatalogueQuery';
  * only an area that may take a space is offered: never a hidden one, nor one of a hidden
  * governorate. While the catalogue loads, or once it has failed, it says so.
  *
- * A space keeps its area when the admin hides it later: `kept` is then that one area, named from the
- * admin's lists and marked hidden, so the field still shows it; it is never among the groups, so no
- * other space is offered it. The admin's lists are read only then, and `kept` is null while they load
- * or once they have failed.
+ * A space keeps its area when the admin hides it later: `kept` is then that one area, so the field
+ * still shows it; it is never among the groups, so no other space is offered it. For the admin
+ * (`source`), it is named from the admin's lists and marked hidden, those lists read only then, and
+ * `kept` is null while they load or once they have failed. The public catalogue names no hidden area,
+ * so for an owner it is «the current area», no longer offered: never sent, since a save sends only
+ * the fields changed.
  */
 export function useAreaOptions({
+  source,
   value,
   onValueChange,
 }: {
+  source: LookupsSource;
   value: number | null;
   onValueChange: (areaId: number) => void;
 }) {
@@ -31,10 +36,13 @@ export function useAreaOptions({
     value === null ||
     query.data === undefined ||
     governorates.some(({ areas }) => areas.some(({ id }) => id === value));
-  const adminLists = useGovernoratesQuery({ enabled: !offered });
+  const adminLists = useGovernoratesQuery({ enabled: !offered && source === 'admin' });
 
   const kept = (() => {
     if (offered) return null;
+    if (source === 'public') {
+      return { value: String(value), label: copy.lookups.areaSelect.unavailable };
+    }
     for (const governorate of adminLists.data ?? []) {
       const area = governorate.areas.find(({ id }) => id === value);
       if (area !== undefined) {

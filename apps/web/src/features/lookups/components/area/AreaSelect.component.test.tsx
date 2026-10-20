@@ -49,7 +49,7 @@ function renderSelect(value: number | null) {
   const rendered = render(
     <Wrapper>
       <Field label="Area">
-        <AreaSelect value={value} onValueChange={onValueChange} />
+        <AreaSelect source="admin" value={value} onValueChange={onValueChange} />
       </Field>
     </Wrapper>,
   );

@@ -94,9 +94,19 @@ export const LOOKUPS = {
     `${area} · ${governorate}`,
   amenityChecklist: {
     empty: 'لا مرافق في القائمة بعد',
+    retiredKept: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `يبقى ${String(count)} مرفق لم تعد في قائمة المنصة مرتبطة بالمساحة.`,
+        one: 'يبقى مرفق واحد لم يعد في قائمة المنصة مرتبطًا بالمساحة.',
+        two: 'يبقى مرفقان لم يعودا في قائمة المنصة مرتبطين بالمساحة.',
+        few: `تبقى ${String(count)} مرافق لم تعد في قائمة المنصة مرتبطة بالمساحة.`,
+        many: `يبقى ${String(count)} مرفقًا لم تعد في قائمة المنصة مرتبطة بالمساحة.`,
+        other: `يبقى ${String(count)} مرفق لم تعد في قائمة المنصة مرتبطة بالمساحة.`,
+      }),
   },
   areaSelect: {
     placeholder: 'اختر المنطقة',
     hidden: ({ name }: { name: string }) => `${name} (مخفية)`,
+    unavailable: 'المنطقة الحالية — لم تعد متاحة للاختيار',
   },
 } satisfies Catalogue['lookups'];

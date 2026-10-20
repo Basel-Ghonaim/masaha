@@ -36,9 +36,9 @@ function renderSection(
   const rendered = render(
     <QueryClientProvider client={createQueryClient()}>
       {draw === 'editable' ? (
-        <PhotosSection spaceId={7} onUploadingChange={vi.fn()} />
+        <PhotosSection place="admin" spaceId={7} onUploadingChange={vi.fn()} />
       ) : (
-        <ReadOnlyPhotos spaceId={7} />
+        <ReadOnlyPhotos place="admin" spaceId={7} />
       )}
       <Toaster label="Notifications" closeLabel="Close notification" />
     </QueryClientProvider>,

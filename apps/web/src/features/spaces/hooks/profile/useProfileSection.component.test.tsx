@@ -14,7 +14,7 @@ import {
 } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
 import type { ProfileValues } from '../../types/ProfileValues';
-import { spacesKeys } from '../queryKeys';
+import { EDITOR_SCOPES } from '../editor/editorScope';
 import { useProfileSection } from './useProfileSection';
 
 type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
@@ -48,15 +48,18 @@ function renderSection(
     request.method === 'get' ? ok(SPACE) : write(request),
   );
   const client = createQueryClient();
-  client.setQueryData(spacesKeys.space(7), SPACE);
+  client.setQueryData(EDITOR_SCOPES.admin.spaceKey(7), SPACE);
   const onDirtyChange = vi.fn<(group: FactGroup, dirty: boolean) => void>();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const rendered = renderHook(({ space }) => useProfileSection({ space, onDirtyChange }), {
-    wrapper,
-    initialProps: { space: SPACE },
-  });
+  const rendered = renderHook(
+    ({ space }) => useProfileSection({ place: 'admin', space, onDirtyChange }),
+    {
+      wrapper,
+      initialProps: { space: SPACE },
+    },
+  );
   const writes = () => requests.filter(({ method }) => method !== 'get');
   return { ...rendered, writes, client, onDirtyChange };
 }
@@ -163,7 +166,7 @@ describe('useProfileSection', () => {
       await waitFor(() => {
         expect(result.current.frame.failure).toMatchObject({ message: line });
       });
-      expect(client.getQueryState(spacesKeys.space(7))?.isInvalidated).toBe(true);
+      expect(client.getQueryState(EDITOR_SCOPES.admin.spaceKey(7))?.isInvalidated).toBe(true);
     },
   );
 
@@ -190,9 +193,11 @@ describe('useProfileSection', () => {
     save(result);
 
     await waitFor(() => {
-      expect(client.getQueryData(spacesKeys.space(7))).toMatchObject({ nameEn: 'Focus Hub Gaza' });
+      expect(client.getQueryData(EDITOR_SCOPES.admin.spaceKey(7))).toMatchObject({
+        nameEn: 'Focus Hub Gaza',
+      });
     });
-    expect(client.getQueryState(spacesKeys.space(7))?.isInvalidated).toBe(false);
+    expect(client.getQueryState(EDITOR_SCOPES.admin.spaceKey(7))?.isInvalidated).toBe(false);
   });
 
   it('clears “nothing changed” and a save’s failure on Discard', async () => {

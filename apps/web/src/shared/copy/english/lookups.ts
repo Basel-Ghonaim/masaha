@@ -114,11 +114,19 @@ export const LOOKUPS = {
   /** A space's amenities to tick, from the platform's list. */
   amenityChecklist: {
     empty: 'The list has no amenities yet',
+    /** The retired amenities a space keeps, which the public catalogue no longer names. */
+    retiredKept: ({ count }: { count: number }) =>
+      englishPlural(count, {
+        one: 'One amenity no longer on the platform’s list stays linked to the space.',
+        other: `${String(count)} amenities no longer on the platform’s list stay linked to the space.`,
+      }),
   },
   /** The field that chooses one area for a space, its areas grouped under their governorates. */
   areaSelect: {
     placeholder: 'Choose an area',
     /** A space's own area that was hidden since it took it. */
     hidden: ({ name }: { name: string }) => `${name} (hidden)`,
+    /** A space's own area that is no longer offered, as the public catalogue cannot name it. */
+    unavailable: 'Current area — no longer offered',
   },
 } as const;
