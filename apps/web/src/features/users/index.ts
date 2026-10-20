@@ -5,6 +5,8 @@ export { CompactAccountMenu } from './components/CompactAccountMenu';
 export { ForcedPasswordChangeForm } from './components/ForcedPasswordChangeForm';
 export { SignOutButton } from './components/SignOutButton';
 export { TemporaryPasswordDialog } from './components/temporary-password/TemporaryPasswordDialog';
+export { recordAdminHandover } from './repository/adminHandover';
+export type { RecordHandover } from './types/RecordHandover';
 export { useAccountActions } from './hooks/account-actions/useAccountActions';
 export {
   useAccountDialog,

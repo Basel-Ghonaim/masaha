@@ -5,6 +5,7 @@ import { useRefusalView } from '@shared/forms';
 import { isolate } from '@shared/localisation';
 import { HANDOVER_CHANNELS, type HandoverChannel } from '@masaha/shared/users';
 import { useState } from 'react';
+import type { RecordHandover } from '../../types/RecordHandover';
 import { useHandover } from './useHandover';
 
 export type TemporaryPasswordPerson = { userId: number; name: string; email: string };
@@ -15,25 +16,31 @@ export type TemporaryPasswordDialogInput = {
   /** A new account's password, changed at the first sign-in, or one issued, changed at the next. */
   kind: 'created' | 'issued';
   onDone: () => void;
+  /**
+   * Records the handover on the route of the place that issued the password: the admin's
+   * (`recordAdminHandover`) or a space's, its staff's write.
+   */
+  recordHandover: RecordHandover;
   /** The element to focus when no channel is chosen; created by the caller so its ref is not read during render. */
   channelRef?: { current: HTMLDivElement | null };
 };
 
 /**
  * The one-time password dialog's state: the password is copied before it can be finished, the
- * handover channel is chosen before it is sent, and a refusal that is not "no longer pending"
- * keeps the dialog open with its reason.
+ * handover channel is chosen before it is sent through the caller's write (`recordHandover`), and
+ * a refusal that is not "no longer pending" (or a 404) keeps the dialog open with its reason.
  */
 export function useTemporaryPasswordDialog({
   person,
   password,
   kind,
   onDone,
+  recordHandover,
   channelRef,
 }: TemporaryPasswordDialogInput) {
   const copy = useCopy();
   const lines = copy.users.temporaryPassword;
-  const handover = useHandover();
+  const handover = useHandover(recordHandover);
 
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState<string | null>(null);

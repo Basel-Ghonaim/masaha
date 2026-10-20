@@ -12,6 +12,7 @@ import { FormFailure } from '@shared/forms';
 import type { RefObject } from 'react';
 import { useIssuePasswordDialog } from '../../hooks/issue-password/useIssuePasswordDialog';
 import type { AccountPerson } from '../../types/AccountPerson';
+import { recordAdminHandover } from '../../repository/adminHandover';
 import { TemporaryPasswordDialog } from '../temporary-password/TemporaryPasswordDialog';
 
 /**
@@ -40,6 +41,7 @@ export function IssuePasswordDialog({
         person={{ userId: person.id, name: person.name, email: person.email }}
         password={dialog.issued}
         returnFocus={returnFocus}
+        recordHandover={recordAdminHandover}
         onDone={dialog.done}
       />
     );

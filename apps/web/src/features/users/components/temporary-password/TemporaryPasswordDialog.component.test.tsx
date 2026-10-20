@@ -8,6 +8,7 @@ import { axe } from 'vitest-axe';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { fakeTransport, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
+import { recordAdminHandover } from '../../repository/adminHandover';
 import { TemporaryPasswordDialog } from './TemporaryPasswordDialog';
 
 /** The dialog for Rima's password, the handover answered as recorded. */
@@ -22,6 +23,7 @@ function renderDialog(title = 'Temporary password', kind: 'created' | 'issued' =
         person={{ userId: 12, name: 'Rima', email: 'rima@example.com' }}
         password="Tmp-4821-xk"
         kind={kind}
+        recordHandover={recordAdminHandover}
         onDone={onDone}
       />
     </QueryClientProvider>,
@@ -44,6 +46,7 @@ function Opener() {
           password="Tmp-4821-xk"
           kind="issued"
           returnFocus={opener}
+          recordHandover={recordAdminHandover}
           onDone={() => {
             setOpen(false);
           }}
