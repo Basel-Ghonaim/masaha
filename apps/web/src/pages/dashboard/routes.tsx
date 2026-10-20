@@ -7,6 +7,7 @@ import {
   RouteErrorState,
   type TitledHandle,
 } from '@shared/routing';
+import type { ReactElement } from 'react';
 import type { RouteObject } from 'react-router';
 import {
   ADMIN_ADD_SPACE_PATH,
@@ -41,6 +42,14 @@ const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
   lookups: async () => {
     const { LookupsPage } = await import('./admin/LookupsPage');
     return { element: <LookupsPage /> };
+  },
+};
+
+/** The space's pages that have a screen, each loaded lazily; the others show their placeholder. */
+const SPACE_PAGES: Partial<Record<DashboardPageName, () => Promise<ReactElement>>> = {
+  profile: async () => {
+    const { ProfilePage } = await import('./space/ProfilePage');
+    return <ProfilePage />;
   },
 };
 
@@ -135,14 +144,13 @@ export const dashboardRoutes: RouteObject[] = [
             ...placeOf(segment),
             handle: titleOf(name),
             lazy: async () => {
-              const { PlaceholderPage } = await import('./PlaceholderPage');
-              return {
-                element: (
-                  <RequireSpaceRole roles={roles}>
+              const page = SPACE_PAGES[name];
+              const element = page
+                ? await page()
+                : await import('./PlaceholderPage').then(({ PlaceholderPage }) => (
                     <PlaceholderPage />
-                  </RequireSpaceRole>
-                ),
-              };
+                  ));
+              return { element: <RequireSpaceRole roles={roles}>{element}</RequireSpaceRole> };
             },
           })),
           { path: '*', handle: NOT_FOUND, element: <NotFoundState /> },

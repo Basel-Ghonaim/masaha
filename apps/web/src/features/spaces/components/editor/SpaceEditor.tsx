@@ -21,6 +21,8 @@ import { EditorFailure } from './EditorFailure';
 import { EditorLoading } from './EditorLoading';
 import { LeaveDialog } from './LeaveDialog';
 import { MissingChecklist } from './MissingChecklist';
+import { OwnerHead } from './OwnerHead';
+import { PricesLinkCard } from './PricesLinkCard';
 import { PrivacyNote } from './PrivacyNote';
 import { SectionNav } from './SectionNav';
 import { SpaceStatusBadges } from './SpaceStatusBadges';
@@ -30,7 +32,9 @@ import { VerifiedNotice } from './VerifiedNotice';
  * A space's editor, the admin's or an owner's (`place`): its state, then its sections, each fact
  * group saved, dated and confirmed alone, with the groups still missing at their head and their
  * navigation beside them; a space the place may not edit, read-only. It shows its own loading,
- * failure and not-found states, and asks before the page is left with unsaved changes.
+ * failure and not-found states, and asks before the page is left with unsaved changes. On an
+ * owner's place it has no notice: a head line with the public page instead, its prices a row that
+ * leads to Packages & prices (`pricesLink`), and no way to the platform's amenities list.
  *
  * The page fills what comes from elsewhere: the area field and the amenities' checklist
  * (`lookups`), and the space's page on the public site (`publicLink`, by its slug). The admin's place
@@ -68,20 +72,26 @@ export function SpaceEditor({
   const sectionPlace = place.kind;
   return (
     <div className="flex flex-col gap-4">
-      <SpaceStatusBadges badges={editor.badges} />
-      {place.kind === 'admin' && (
+      {editor.badges.length > 0 && <SpaceStatusBadges badges={editor.badges} />}
+      {editor.head && (
+        <OwnerHead
+          intro={editor.head.intro}
+          publicLink={{ label: editor.head.viewPublic, href: publicLink(space.slug) }}
+        />
+      )}
+      {place.kind === 'admin' && editor.notice && (
         <div ref={notice} tabIndex={-1} className="outline-none">
           {editor.readOnly ? (
-            <VerifiedNotice words={editor.verified} publicHref={publicLink(space.slug)}>
+            <VerifiedNotice words={editor.notice.verified} publicHref={publicLink(space.slug)}>
               <div className="flex flex-wrap gap-2">
                 {place.ownerActions({ ...editor.owned, focusFallback: notice })}
               </div>
             </VerifiedNotice>
           ) : (
             <Alert variant="warning">
-              <AlertTitle>{editor.unverified.title}</AlertTitle>
+              <AlertTitle>{editor.notice.unverified.title}</AlertTitle>
               <AlertDescription>
-                <p>{editor.unverified.description}</p>
+                <p>{editor.notice.unverified.description}</p>
                 <div className="flex flex-wrap gap-2">
                   {place.ownerActions({ ...editor.owned, focusFallback: notice })}
                 </div>
@@ -120,12 +130,16 @@ export function SpaceEditor({
                 space={space}
                 onDirtyChange={editor.onDirtyChange}
               />
-              <PricesSection
-                place={sectionPlace}
-                space={space}
-                hoursUnsaved={editor.hoursUnsaved}
-                onDirtyChange={editor.onDirtyChange}
-              />
+              {place.kind === 'owner' && editor.pricesLink ? (
+                <PricesLinkCard view={editor.pricesLink} href={place.pricesLink} />
+              ) : (
+                <PricesSection
+                  place={sectionPlace}
+                  space={space}
+                  hoursUnsaved={editor.hoursUnsaved}
+                  onDirtyChange={editor.onDirtyChange}
+                />
+              )}
               <AmenitiesSection
                 place={sectionPlace}
                 space={space}
@@ -145,7 +159,7 @@ export function SpaceEditor({
               />
             </>
           )}
-          <PrivacyNote text={editor.privacy} />
+          {editor.privacy && <PrivacyNote text={editor.privacy} />}
         </div>
       </div>
       <LeaveDialog guard={editor.guard} />

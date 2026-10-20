@@ -1,6 +1,6 @@
 import type { SessionSpaceLink } from '@masaha/shared/space-links';
 import type { Catalogue } from '@shared/copy';
-import { DASHBOARD_PATHS } from '@shared/routing';
+import { DASHBOARD_PATHS, spaceOverviewPath } from '@shared/routing';
 
 /** A dashboard page, named as the catalogue names its title. */
 export type DashboardPageName = keyof Catalogue['dashboard']['pages'];
@@ -32,6 +32,13 @@ export const SPACE_NAV: readonly SpaceNavItem[] = [
   { name: 'staff', segment: 'staff', roles: OWNER },
   { name: 'settings', segment: 'settings', roles: OWNER },
 ];
+
+/** The page `name` of the space `spaceId`, by its segment below the space's own path. */
+export function spacePagePath(spaceId: number, name: DashboardPageName): string {
+  const segment = SPACE_NAV.find((item) => item.name === name)?.segment ?? '';
+  const base = spaceOverviewPath(spaceId);
+  return segment === '' ? base : `${base}/${segment}`;
+}
 
 /**
  * The admin's spaces list and its sub-pages, by path. The add page and a space's editor are reached

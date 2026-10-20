@@ -119,18 +119,20 @@ const PHOTOS = [
 ];
 
 /**
- * The editor of space 7 at `/spaces/7`, beside another page, `/elsewhere`. The server answers the
- * space's read with `read` (the space as it is), the gallery's read with its photos, and every write
- * with `write`.
+ * The editor of space 7 at `/spaces/7`, beside another page, `/elsewhere`: the admin's, or an
+ * owner's (`owner`), whose prices lead to `/packages`. The server answers the space's read with
+ * `read` (the space as it is), the gallery's read with its photos, and every write with `write`.
  */
 function renderEditor({
   read = () => ok(SPACE),
   photos = () => ok(PHOTOS),
   write = () => ok(savedNow(SPACE)),
+  owner = false,
 }: {
   read?: () => FakeAnswer | Promise<FakeAnswer>;
   photos?: () => FakeAnswer | Promise<FakeAnswer>;
   write?: (request: Request) => FakeAnswer | Promise<FakeAnswer>;
+  owner?: boolean;
 } = {}) {
   const requests = fakeTransport((request) => {
     if (request.method !== 'get') return write(request);
@@ -149,13 +151,17 @@ function renderEditor({
         element: (
           <SpaceEditor
             spaceId={7}
-            place={{
-              kind: 'admin',
-              ownerActions,
-              amenitiesListLink: '/lookups?tab=amenities',
-              areaName: (areaId) => `Area ${String(areaId)}`,
-              amenityNames: (ids) => ids.map((id) => `Amenity ${String(id)}`).join(', '),
-            }}
+            place={
+              owner
+                ? { kind: 'owner', pricesLink: '/packages' }
+                : {
+                    kind: 'admin',
+                    ownerActions,
+                    amenitiesListLink: '/lookups?tab=amenities',
+                    areaName: (areaId) => `Area ${String(areaId)}`,
+                    amenityNames: (ids) => ids.map((id) => `Amenity ${String(id)}`).join(', '),
+                  }
+            }
             areaField={areaField}
             amenitiesField={amenitiesField}
             publicLink={(slug) => `/spaces/${slug}`}
@@ -664,6 +670,62 @@ describe('a verified space', () => {
       unsaved: false,
     });
     expect(owned.at(-1)?.focusFallback.current).toContainElement(notice(title));
+  });
+});
+
+describe('an owner’s editor', () => {
+  /** The owner's space: verified, with its owner, its prices never added. */
+  const OWNED: AdminSpace = {
+    ...SPACE,
+    isVerified: true,
+    owners: [{ id: 5, name: 'Rima' }],
+  };
+
+  it('shows the owner «الباقات والأسعار» in place of the prices’ fields, and no «يعدّلها»', async () => {
+    startPreferences('ar');
+    const { requests } = renderEditor({ read: () => ok(OWNED), owner: true });
+    const prices = await waitFor(() => section('الأسعار'));
+
+    expect(within(prices).getByRole('link', { name: 'الباقات والأسعار' })).toHaveAttribute(
+      'href',
+      '/packages',
+    );
+    expect(within(prices).getByText('لم تُضف بعد')).toBeInTheDocument();
+    expect(within(prices).queryByRole('combobox')).toBeNull();
+    expect(within(prices).queryByRole('button')).toBeNull();
+    expect(screen.queryByText(/يعدّلها/)).toBeNull();
+    expect(screen.getByRole('link', { name: 'عرض الصفحة العامة' })).toHaveAttribute(
+      'href',
+      '/spaces/focus-hub',
+    );
+    // The other sections are the owner's to save, and the calls are the managed routes.
+    expect(section('المساحة')).toBeInTheDocument();
+    expect(requests.every(({ url }) => url?.startsWith('/manage/spaces/7') === true)).toBe(true);
+  });
+
+  it('shows the owner «مخفية عن الزوار» only while hidden', async () => {
+    startPreferences('ar');
+    renderEditor({ read: () => ok(OWNED), owner: true });
+    await waitFor(() => section('المساحة'));
+    expect(screen.queryByText('مخفية عن الزوار')).toBeNull();
+    expect(screen.queryByText('موثّقة')).toBeNull();
+  });
+
+  it('shows the owner «مخفية عن الزوار» while the space is hidden', async () => {
+    startPreferences('ar');
+    renderEditor({ read: () => ok({ ...OWNED, isHidden: true }), owner: true });
+    expect(await screen.findByText('مخفية عن الزوار')).toBeInTheDocument();
+    expect(screen.queryByText('موثّقة')).toBeNull();
+  });
+
+  it('offers the owner no way to the platform’s amenities list', async () => {
+    renderEditor({ read: () => ok(OWNED), owner: true });
+    const amenities = await waitFor(() => section('Amenities'));
+
+    expect(
+      within(amenities).getByRole('group', { name: 'The list’s amenities' }),
+    ).toBeInTheDocument();
+    expect(within(amenities).queryByRole('link')).toBeNull();
   });
 });
 

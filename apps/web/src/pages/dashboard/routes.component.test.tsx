@@ -635,6 +635,41 @@ describe("the admin's space editor", () => {
   });
 });
 
+describe("the owner's space profile", () => {
+  // The profile loads lazily, as the admin's editor does: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/ProfilePage');
+  });
+
+  beforeEach(() => {
+    fakeIntersectionObserver();
+  });
+
+  it('shows the owner the space profile under its title, read from the managed route', async () => {
+    asOwner();
+    const requests = fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7') return ok({ ...ADDED, isVerified: true });
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      if (request.url === '/lookups') return ok({ governorates: [], amenities: [] });
+      return ok([]);
+    });
+    renderDashboard('/dashboard/spaces/7/profile');
+
+    await topBarTitle('Space profile');
+    expect(await screen.findByRole('heading', { level: 2, name: 'The space' })).toBeInTheDocument();
+    expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7');
+    expect(requests.filter(({ url }) => url?.startsWith('/admin/') === true)).toEqual([]);
+  });
+
+  it('refuses reception the space profile with the 403', async () => {
+    asReception();
+    renderDashboard('/dashboard/spaces/7/profile');
+
+    expect(await stateInMain('You don’t have access to this page')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'The space' })).toBeNull();
+  });
+});
+
 describe("the admin's spaces page", () => {
   const PALM: AdminSpaceRow = {
     id: 9,

@@ -1,5 +1,7 @@
 import { useRef } from 'react';
 import { Button, EmptyState, Skeleton } from '@shared/design-system';
+import { useCopy } from '@shared/copy';
+import { meanwhileLines } from '../../hooks/editor/meanwhileLines';
 import { usePhotoGallery } from '../../hooks/photos/usePhotoGallery';
 import type { EditorPlace } from '../../types/EditorPlace';
 import { EditorFailure } from '../editor/EditorFailure';
@@ -26,6 +28,7 @@ export function PhotosSection({
   onUploadingChange: (uploading: boolean) => void;
 }) {
   const gallery = usePhotoGallery(place, spaceId, onUploadingChange);
+  const meanwhile = meanwhileLines(place, useCopy(), 'photos');
   const picker = useRef<HTMLInputElement>(null);
 
   return (
@@ -51,7 +54,7 @@ export function PhotosSection({
             <PhotoTile key={tile.key} tile={tile} />
           ))}
           {gallery.uploads.tiles.map((tile) => (
-            <PhotoUploadTile key={tile.key} tile={tile} />
+            <PhotoUploadTile key={tile.key} tile={tile} meanwhile={meanwhile} />
           ))}
         </ul>
       )}
