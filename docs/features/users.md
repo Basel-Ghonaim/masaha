@@ -15,7 +15,7 @@
 - Issues a temporary password for the admin, the recovery of a person who lost their email, again when the first was lost; and, through `space-links`, for an owner's reception account while its first is pending, with its handover.
 - Reads the account for the guard on every signed-in request, so a suspension, a role change and a pending password change hold from the account's next request, and an access token signed before every session of the account last ended is refused.
 - Changes the global role when `space-links` finds that a person's owner links give another, or the admin's role change allows it, ending every session of theirs.
-- On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, the forced password change's form, and the one-time password dialog with its handover.
+- On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, the forced password change's form, and the one-time password dialog with its handover; the suspension and restore of an account, from the admin's users page.
 
 The account's settings (`GET` and `PATCH /me`) are not built.
 
@@ -53,6 +53,10 @@ The account's settings (`GET` and `PATCH /me`) are not built.
 - **The handover is asked, then recorded:** «طريقة التسليم» — واتساب · شفهيًا · أخرى. «تم» with no choice says «اختر طريقة التسليم» and moves the focus to the choices, sending nothing. Once recorded (`POST /admin/users/:userId/temporary-password/handover`), a toast names the person and the way, and the dialog closes.
 - **Its failures:** a password no longer pending, or an account not found, closes the dialog with «لم تُسجَّل طريقة التسليم»: there is nothing left to record. Any other failure keeps it open with its reason, «تم» trying again; a 429 blocks «تم» while its wait counts down.
 
+**Suspending and restoring on the web.** Each person's menu on the admin's users page ([space-links › Behaviour and flows](space-links.md#behaviour-and-flows)) ends, after a separator, with «إيقاف» for an active account or «استرجاع الحساب» for a suspended one; the admin's own row has no menu.
+- **«إيقاف» asks first:** «إيقاف {name}؟», «تنتهي كل جلساته فورًا ولا يدخل حتى تسترجع حسابه.», with, for an owner of spaces (not one whose every space is deleted), «تبقى مساحاته موثّقة، ولا يعدّلها فريق مساحة إلا بعد فك ربطه.», and for a receptionist, «يبقى رابطه بمكتب الاستقبال، ولا يعمل فيه حتى يُسترجع.». It opens on «رجوع»; «إيقاف» is destructive and stays until the answer, so `OWN_ACCOUNT`, `LAST_ADMIN` and an account gone are worded inside; while the request is pending, neither «رجوع» nor Escape closes it. Suspended, it closes once the admin's views have arrived again, and a toast names the person and says their sessions ended.
+- **«استرجاع الحساب» acts at once:** restored, once the admin's views have arrived again, a toast «استُرجع حساب {name}»; refused, a toast that stays, «تعذّر استرجاع حساب {name}», with the refusal under it.
+
 ## Decisions
 
 ### API decisions
@@ -88,6 +92,11 @@ The account's settings (`GET` and `PATCH /me`) are not built.
 - **No close button, no Escape, no click outside; «تم» only after «نسخ»** (the owner's A5). *Why:* the password is shown once and never again; a dialog closed by a stray key loses it. 2026-10-18, #89.
 - **A refused copy still enables «تم», saying to copy by hand** (design issue 5). *Why:* the clipboard can be refused by the browser; the admin can still select the password, and a dialog that could never finish would trap them. 2026-10-18, #89.
 - **A password no longer pending closes the dialog with «لم تُسجَّل طريقة التسليم»; any other failure keeps it open** (design issue 6). *Why:* once the password is no longer pending there is nothing to record and no reason to hold the admin; any other failure can still be recorded by trying again. 2026-10-18, #89.
+- **The account's actions on the users page are exported as hooks and a dialog (`useAccountActions` for the items, `useAccountDialog` for the open dialog's state, `AccountActionDialog`), which the page composes into the row's menu beside `space-links`' items,** the person handed in as `users`' own facts (`AccountPerson`), the dialog held by the page above the list (#93's review, the owner's decision). *Why:* the suspension and the restore are this module's routes; a row is drawn again after an action and swapped between card and table at 1024 px, and a dialog held in it closed with it; a component that combines capabilities lives in neither ([architecture › What a feature exports](../frontend/architecture.md#what-a-feature-exports)). 2026-10-19, #93.
+- **The suspension asks first, its action destructive, naming what follows for an owner's spaces and a receptionist's desk** (design issue 5). *Why:* it ends every session at once; the design said nothing of a receptionist's desk, which the link keeps. 2026-10-19, #93.
+- **A restore acts at once, with a toast and no «تراجع»** (design issue 6, the design kept). *Why:* its undo would be a suspension, which asks first. 2026-10-19, #93.
+- **The suspension and the restore refresh the admin scope whole, and stay pending until it has arrived,** with `users`' own `useRefreshAdmin`. *Why:* the row's state, its menu and the lists' filters all read it; each feature invalidates the admin scope itself (architecture §7). 2026-10-19, #93.
+- **The new operations take their own folders** (`suspend/`, `account-actions/`), the older flat files left alone ([finding 82](../architecture/findings/82-the-users-feature-keeps-several-operations-flat.md)). 2026-10-19, #93.
 - **The handover keeps nothing in the cache.** *Why:* the dialog's password stays in the page's state alone, and the handover's mutation (`gcTime: 0`) holds only the person and the way ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)). 2026-10-18, #89.
 
 Owned by security.md and linked: the change's limit and its double check of a pending change, and a Google-only account's first password through the reset email ([security › Passwords](../backend/security.md#passwords)); Google's linking rule ([security › Sign-in methods](../backend/security.md#sign-in-methods)). Owned by the session and linked: sign-out ends the session only once the server agrees ([architecture §4](../frontend/architecture.md#4-session-and-preferences)).
@@ -96,7 +105,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 
 - **API:** `apps/api/src/modules/users/`, entry `index.ts`: the service, its `me` and `admin` routers, the password hashing and its limits, and the temporary password's pure rule.
 - **Shared:** `packages/shared/src/users/`: the account, the change's request and answer, the password policy, and the handover's request.
-- **Web:** `apps/web/src/features/users/`, entry `index.ts`: `AccountMenu`, `AccountMenuSection`, `CompactAccountMenu`, `SignOutButton`, `ForcedPasswordChangeForm`, and `TemporaryPasswordDialog` in `components/temporary-password/`, with its hook in `hooks/temporary-password/`. Mounted by `pages/site/shell/`, `pages/site/auth/` and `pages/dashboard/shell/`; the dialog is handed to a page through a slot.
+- **Web:** `apps/web/src/features/users/`, entry `index.ts`: `AccountMenu`, `AccountMenuSection`, `CompactAccountMenu`, `SignOutButton`, `ForcedPasswordChangeForm`, and `TemporaryPasswordDialog` in `components/temporary-password/`, with its hook in `hooks/temporary-password/`; the account actions, `useAccountActions`, `useAccountDialog` and `AccountActionDialog`, in `hooks/account-actions/` and `components/account-actions/`, the suspension's dialog in `components/suspend/` and `hooks/suspend/`, the person's facts in `types/AccountPerson.ts`. Mounted by `pages/site/shell/`, `pages/site/auth/` and `pages/dashboard/shell/`; the dialog is handed to a page through a slot, and the account actions are composed by the users page's row menu.
 
 ## Open findings
 
@@ -124,3 +133,4 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #45 — no password kept in the cache.
 - #89 — the one-time password dialog: shown once, no close button, no Escape and no click outside; «تم» only after «نسخ»; the handover recorded, with a toast; nothing kept in the cache.
 - #91 — the one-time password dialog's person isolated, in its description and its handover toast.
+- #93 — suspending and restoring an account from the admin's users page.

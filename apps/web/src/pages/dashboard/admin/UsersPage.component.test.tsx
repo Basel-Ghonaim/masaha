@@ -160,9 +160,26 @@ describe('UsersPage', () => {
       'Change roleTheir role follows their links — unlink them first',
       'Unlink them',
       'Link to a space',
+      'Suspend',
     ]);
     expect(items[0]).toHaveAttribute('aria-disabled', 'true');
     expect(items[1]).toHaveAttribute('href', '/dashboard/admin/owners?q=hadi%40example.com');
+  });
+
+  it('says nothing of spaces staying verified when suspending an owner whose every space is deleted', async () => {
+    renderPage(() => [user({ id: 9, name: 'Omar', role: 'OWNER' }), HADI]);
+
+    await choose('Omar', 'Suspend');
+    const omar = await screen.findByRole('alertdialog', { name: heard('Suspend Omar?') });
+    expect(omar).toHaveAccessibleDescription(
+      'All their sessions end at once, and they can’t sign in until you restore the account.',
+    );
+    await userEvent.click(within(omar).getByRole('button', { name: 'Back' }));
+
+    await choose('Hadi', 'Suspend');
+    expect(
+      await screen.findByRole('alertdialog', { name: heard('Suspend Hadi?') }),
+    ).toHaveAccessibleDescription(/Their spaces stay verified/);
   });
 
   it('keeps an open dialog through a refresh that changes the list, and returns the focus to the row’s menu', async () => {

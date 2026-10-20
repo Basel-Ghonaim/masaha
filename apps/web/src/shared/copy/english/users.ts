@@ -43,4 +43,23 @@ export const USERS = {
     failed: 'We couldn’t record the handover',
     notRecorded: 'The handover wasn’t recorded',
   },
+  /** A person's account items on the admin's users page. */
+  accountActions: {
+    suspend: 'Suspend',
+    restore: 'Restore the account',
+    restored: ({ name }: { name: string }) => `${name}’s account restored`,
+    restoreFailed: ({ name }: { name: string }) => `We couldn’t restore ${name}’s account`,
+  },
+  /** Suspending an account, after the admin confirms. */
+  suspend: {
+    title: ({ name }: { name: string }) => `Suspend ${name}?`,
+    line: 'All their sessions end at once, and they can’t sign in until you restore the account.',
+    ownerLine: 'Their spaces stay verified; the Masaha team edits them only once they’re unlinked.',
+    deskLine: 'Their front-desk link is kept; they can’t work the desk until restored.',
+    confirm: 'Suspend',
+    cancel: 'Back',
+    failed: 'The account wasn’t suspended',
+    refusals: { not_found: 'This account no longer exists.' },
+    suspended: ({ name }: { name: string }) => `${name} suspended; their sessions ended`,
+  },
 } as const;

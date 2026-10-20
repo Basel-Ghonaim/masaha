@@ -36,6 +36,22 @@ describe('the users repository', () => {
     expect(JSON.parse(String(requests[0]?.data))).toEqual({ password: 'mine2026x' });
   });
 
+  it('suspends and restores an account', async () => {
+    const requests = serve({ status: 204 });
+    const repository = createUsersRepository();
+
+    await expect(repository.setSuspended(5, { isSuspended: true })).resolves.toBeUndefined();
+    await expect(repository.setSuspended(5, { isSuspended: false })).resolves.toBeUndefined();
+    expect(requests).toMatchObject([
+      { method: 'put', baseURL: '/api/v1', url: '/admin/users/5/suspended' },
+      { method: 'put', baseURL: '/api/v1', url: '/admin/users/5/suspended' },
+    ]);
+    expect(requests.map((request) => JSON.parse(String(request.data)) as unknown)).toEqual([
+      { isSuspended: true },
+      { isSuspended: false },
+    ]);
+  });
+
   it('rejects a refusal as an AppError, with its type and code', async () => {
     serve({
       status: 403,
