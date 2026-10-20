@@ -5,6 +5,7 @@ import { ERRORS } from './errors';
 import { FORMS } from './forms';
 import { LOOKUPS } from './lookups';
 import { MAP } from './map';
+import { PACKAGES } from './packages';
 import { PREFERENCES } from './preferences';
 import { SITE } from './site';
 import { SPACE_LINKS } from './spaceLinks';
@@ -22,6 +23,7 @@ export const ARABIC = {
   forms: FORMS,
   lookups: LOOKUPS,
   map: MAP,
+  packages: PACKAGES,
   preferences: PREFERENCES,
   site: SITE,
   spaceLinks: SPACE_LINKS,

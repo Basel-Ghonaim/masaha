@@ -676,7 +676,7 @@ describe("the owner's packages and prices", () => {
     await import('./space/PackagesPage');
   });
 
-  it('shows the owner Packages & prices under its title, its prices read from the managed route', async () => {
+  it('shows the owner Packages & prices under its title, its prices and packages read from the managed routes', async () => {
     asOwner();
     const requests = fakeTransport((request) => {
       if (request.url === '/manage/spaces/7') return ok({ ...ADDED, isVerified: true });
@@ -689,6 +689,10 @@ describe("the owner's packages and prices", () => {
     expect(
       await screen.findByRole('heading', { level: 2, name: 'Published prices' }),
     ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Private packages' }),
+    ).toBeInTheDocument();
+    expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7/packages');
     expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7');
     expect(requests.filter(({ url }) => url?.startsWith('/admin/') === true)).toEqual([]);
   });

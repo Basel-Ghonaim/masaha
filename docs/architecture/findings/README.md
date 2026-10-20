@@ -36,7 +36,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [78. The owners' names test assumes nothing reads `users` before them](78-the-owners-names-test-assumes-nothing-reads-users-before-them.md)
 - [79. The users' names reader keeps an optional transaction](79-the-users-names-reader-keeps-an-optional-transaction.md)
 - [80. The database still takes a package with a price of zero](80-the-database-still-takes-a-package-with-a-price-of-zero.md)
-- [81. A retired package that keeps its shift stops the owner from removing that shift](81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)
 - [82. The users feature keeps several operations flat](82-the-users-feature-keeps-several-operations-flat.md)
 - [83. ALREADY_OWNER names no account](83-already-owner-names-no-account.md)
 - [84. A person cannot work at two spaces' front desks](84-a-person-cannot-work-at-two-spaces-front-desks.md)
@@ -53,6 +52,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [98. The capability documents outgrow their size guide](98-the-capability-documents-outgrow-their-size-guide.md)
 - [99. The owner's checklist cannot name a retired amenity](99-the-owners-checklist-cannot-name-a-retired-amenity.md)
 - [100. An unpaid check-out moves a visit's customer to the phone's](100-an-unpaid-check-out-moves-a-visits-customer-to-the-phones.md)
+- [101. The end sheet is not full width on a phone](101-the-end-sheet-is-not-full-width-on-a-phone.md)
 
 ## Accepted
 
@@ -102,4 +102,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [59. The verified space's editor cannot name its owner](59-the-verified-spaces-editor-cannot-name-its-owner.md)
 - [60. The area field shows no area for a space whose area was hidden since](60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)
 - [67. The prices table cuts its shift at 768 px](67-the-prices-table-cuts-its-shift-at-768-px.md)
+- [81. A retired package that keeps its shift stops the owner from removing that shift](81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)
 - [88. The upgrade confirm shows no front desks](88-the-upgrade-confirm-shows-no-front-desks.md)
