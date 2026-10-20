@@ -8,6 +8,7 @@
 
 - Checks a visitor in, with what the check-in warns of: the space full, or outside its hours.
 - Answers a retried check-in the visit its idempotency key already made.
+- Leaves the stays it does not close to the auto check-out, which [`visits`](visits.md) and `subscriptions` run as timed jobs.
 - Checks a visit out: the charge at the quote's time, the payment taken, the rest left unpaid to a customer found or created by phone, and a price typed by hand where the visit has no rate, or an unpriced close; a retry answers the first result.
 
 ## Who uses it

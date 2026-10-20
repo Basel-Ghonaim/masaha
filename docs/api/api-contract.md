@@ -442,6 +442,18 @@ VisitTerms = {
 - **200:** `VisitTerms`: the rounding and the cap in force; whether the caller may type a price; the rates a visit would copy now, with no shift and in each shift, the student rates only where the space allows student prices and they change a rate (DI-41).
 - **Errors:** `not_found` (404).
 
+### Internal
+
+The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conventions §12](../backend/conventions.md#12-environments)): online, an external cron calls this endpoint every 5 minutes; locally, the server runs the same jobs from a timer. It carries no access token, so the general limit counts it by address ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). Built 2026-10-20, #97.
+
+#### `POST /internal/jobs/run`
+- **Mounted only when `JOBS_SECRET` is set;** otherwise `not_found` (404), as any unknown path.
+- **Auth:** `Authorization: Bearer <JOBS_SECRET>`, compared in constant time; a missing or wrong secret is `unauthorized` (401), no code, and runs nothing.
+- **Runs** each job in turn, each at the run's time: `visits.autoCheckOut` and `subscriptions.autoCheckOut` close every open stay whose due time has passed, at that due time, never at the run's ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Auto check-out*), up to 500 a job a run; `remaining` counts the due stays left to the next run. A second run closes nothing more.
+- **200:** `{ ranAt, jobs: [{ name, done }] }`, `done` each job's counts (`{ visits, remaining }`, `{ checkIns, remaining }`).
+- **Errors:** `server` (500) when any job failed: the others still ran, and the failure is logged with the job's name, so the cron service shows it.
+- **Audit:** `visit.autoCheckedOut` (`after`: `{ checkedOutAt, chargeAgorot }`) and `checkIn.autoCheckedOut` (`after`: `{ checkedOutAt }`), each with no actor, in the closing's own transaction.
+
 ### Lookups (public)
 
 #### `GET /lookups` · 🌐

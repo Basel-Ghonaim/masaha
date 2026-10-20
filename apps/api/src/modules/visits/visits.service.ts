@@ -7,7 +7,7 @@ import type {
   VisitTerms,
 } from '@masaha/shared/visits';
 
-import type { Tx } from '../../db/index.ts';
+import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
@@ -51,6 +51,7 @@ function toLocked(row: DeskVisitRow): LockedVisit {
 }
 
 interface Dependencies {
+  runInTransaction: RunInTransaction;
   audit: AuditWriter;
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
@@ -76,7 +77,16 @@ const sameRates = (a: Rates, b: Rates) =>
  * its rates, its check-in, which `desk` orchestrates, and the reads `occupancy` composes *present*
  * from.
  */
-export function createVisitsService({ audit, spaces, spaceSettings, now }: Dependencies) {
+/** How many stays one run of a job closes at most; the next run continues (`remaining`). */
+const AUTO_CHECKOUT_BATCH = 500;
+
+export function createVisitsService({
+  runInTransaction,
+  audit,
+  spaces,
+  spaceSettings,
+  now,
+}: Dependencies) {
   const repository = createVisitsRepository();
   return {
     /** The space's visit created with this idempotency key, or `null`: a retried check-in. */
@@ -261,6 +271,63 @@ export function createVisitsService({ audit, spaces, spaceSettings, now }: Depen
         tx,
       );
       return toDeskVisit(row);
+    },
+
+    /**
+     * The auto check-out of visits (data model › Auto check-out): every open visit whose due time,
+     * by its space's week and settings as they are now, has passed by `at`, the earliest first, up
+     * to a batch. Each is closed in its own transaction, under its row's lock and only while still
+     * open, at its due time, never at the run's, charged for the stay up to then; audited
+     * `visit.autoCheckedOut` with no actor. A soft-deleted or hidden space's visits are closed too.
+     */
+    async autoCheckOut(at: Date): Promise<{ visits: number; remaining: number }> {
+      const open = await repository.openEverywhere();
+      const spaceIds = [...new Set(open.map(({ spaceId }) => spaceId))];
+      const [weeks, settings] = await Promise.all([
+        spaces.weeksFor(spaceIds),
+        spaceSettings.settingsFor(spaceIds),
+      ]);
+      const due = open.flatMap((stay) => {
+        const rules = settings.get(stay.spaceId);
+        if (!rules) return [];
+        const dueAt = spaces.autoCheckoutDue({
+          checkedInAt: stay.checkedInAt,
+          week: weeks.get(stay.spaceId) ?? null,
+          autoCheckoutAtClosing: rules.autoCheckoutAtClosing,
+          maxStayMinutes: rules.maxStayMinutes,
+        });
+        return dueAt && dueAt <= at ? [{ stay, dueAt, rules }] : [];
+      });
+
+      let closed = 0;
+      for (const { stay, dueAt, rules } of due.slice(0, AUTO_CHECKOUT_BATCH)) {
+        const done = await runInTransaction(async (tx) => {
+          if (!(await repository.lockOpen(stay.id, tx))) return false;
+          const charge = chargeOf(
+            { from: stay.checkedInAt, to: dueAt },
+            { hourAgorot: stay.hourRateAgorot, dayAgorot: stay.dayRateAgorot },
+            ruleOf(rules),
+          );
+          await repository.closeAuto(stay.id, { checkedOutAt: dueAt, charge }, tx);
+          await audit(
+            {
+              actorId: null,
+              action: 'visit.autoCheckedOut',
+              entityType: 'visit',
+              entityId: stay.id,
+              spaceId: stay.spaceId,
+              after: {
+                checkedOutAt: dueAt.toISOString(),
+                chargeAgorot: charge?.amountAgorot ?? null,
+              },
+            },
+            tx,
+          );
+          return true;
+        });
+        if (done) closed += 1;
+      }
+      return { visits: closed, remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0) };
     },
 
     /** The space's open visits, the earliest checked in first, then by id. */

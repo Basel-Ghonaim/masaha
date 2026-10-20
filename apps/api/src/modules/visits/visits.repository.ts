@@ -2,6 +2,7 @@ import type { Rates, VisitCharge } from '@masaha/shared/visits';
 
 import { isForeignKeyViolation, prisma, type Tx } from '../../db/index.ts';
 import type { Prisma } from '../../generated/prisma/client.ts';
+import type { Charge } from './visitCharge.ts';
 
 /** A visit still open: who, and since when. */
 export interface OpenVisit {
@@ -49,6 +50,15 @@ export interface VisitClosing {
   checkedOutAt: Date;
   charge: VisitCharge | null;
   customerId: number | null;
+}
+
+/** An open visit as the auto check-out reads it: its space, its check-in and its rates. */
+export interface OpenStay {
+  id: number;
+  spaceId: number;
+  checkedInAt: Date;
+  hourRateAgorot: number | null;
+  dayRateAgorot: number | null;
 }
 
 /** Each space's count of rows, by space; a space with none is absent. */
@@ -133,6 +143,48 @@ export function createVisitsRepository() {
           customerId,
         },
         select: DESK_VISIT,
+      });
+    },
+
+    /** Every open visit, of every space, the earliest checked in first, then by id. */
+    openEverywhere(): Promise<OpenStay[]> {
+      return prisma.visit.findMany({
+        where: { checkedOutAt: null },
+        select: {
+          id: true,
+          spaceId: true,
+          checkedInAt: true,
+          hourRateAgorot: true,
+          dayRateAgorot: true,
+        },
+        orderBy: [{ checkedInAt: 'asc' }, { id: 'asc' }],
+      });
+    },
+
+    /** Locks the visit's row (`FOR UPDATE`) while it is still open: whether it was. */
+    async lockOpen(visitId: number, tx: Tx): Promise<boolean> {
+      const locked = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM visits WHERE id = ${visitId} AND checked_out_at IS NULL FOR UPDATE`;
+      return locked.length > 0;
+    },
+
+    /** Closes the visit by the auto check-out, at its due time, with its charge or none. */
+    async closeAuto(
+      visitId: number,
+      { checkedOutAt, charge }: { checkedOutAt: Date; charge: Charge | null },
+      tx: Tx,
+    ): Promise<void> {
+      await tx.visit.update({
+        where: { id: visitId },
+        data: {
+          checkedOutAt,
+          checkoutMethod: 'AUTO',
+          roundingRule: charge?.roundingRule ?? null,
+          roundingMinutes: charge?.roundingMinutes ?? null,
+          capApplied: charge?.capApplied ?? null,
+          chargeAgorot: charge?.amountAgorot ?? null,
+        },
+        select: { id: true },
       });
     },
 

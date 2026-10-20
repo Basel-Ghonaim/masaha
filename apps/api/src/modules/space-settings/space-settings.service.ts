@@ -48,6 +48,20 @@ export function createSpaceSettingsService({ runInTransaction, audit, lockSpace 
       return toSpaceSettings(present(spaceId, await repository.find(spaceId, tx)));
     },
 
+    /** These spaces' settings, by space, in one query; in the caller's transaction when given one. */
+    async settingsFor(spaceIds: readonly number[], tx?: Tx): Promise<Map<number, SpaceSettings>> {
+      if (spaceIds.length === 0) return new Map();
+      const rows = new Map(
+        (await repository.findMany(spaceIds, tx)).map(({ spaceId, ...row }) => [spaceId, row]),
+      );
+      return new Map(
+        spaceIds.map((spaceId) => [
+          spaceId,
+          toSpaceSettings(present(spaceId, rows.get(spaceId) ?? null)),
+        ]),
+      );
+    },
+
     /**
      * Edits the space's settings, in one transaction and in this order: the space's lock; `can()` on
      * the links read under it, so a link ended meanwhile still decides (finding 43); only the fields

@@ -92,7 +92,7 @@ Each step names its goal and points to what supports it:
 ### 7. Front desk and visits
 
 **Goal:** the staff run the day at the desk: check in and out, the visit charge and its payment at check-out, live status with the manual override, auto check-out, uncollected visits.
-- **Built:** the staff's read of a space's state now: who is present, the capacity and the live status, and the manual override; the live status in the directory (#94, [api-contract › Occupancy (managed)](../api/api-contract.md#occupancy-managed)); a visitor's check-in by name and check-out, with the charge, the first payment, the unpaid rest left to a customer by phone, and a price typed by hand or an unpriced close, each idempotent; a visit's quote and the desk's terms (#95, [api-contract › Front desk (managed)](../api/api-contract.md#front-desk-managed)); the rest of the step remains planned.
+- **Built:** the staff's read of a space's state now: who is present, the capacity and the live status, and the manual override; the live status in the directory (#94, [api-contract › Occupancy (managed)](../api/api-contract.md#occupancy-managed)); a visitor's check-in by name and check-out, with the charge, the first payment, the unpaid rest left to a customer by phone, and a price typed by hand or an unpriced close, each idempotent; a visit's quote and the desk's terms (#95, [api-contract › Front desk (managed)](../api/api-contract.md#front-desk-managed)); the auto check-out of open visits and subscription check-ins at their due time, run every 5 minutes (#97, [api-contract › Internal](../api/api-contract.md#internal)); the rest of the step remains planned.
 - **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 13 Front desk.
 - **Supported by:**
   - [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md), [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md) and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md);
@@ -100,7 +100,7 @@ Each step names its goal and points to what supports it:
   - conventions [§11](../backend/conventions.md#11-time) (time) and [§13](../backend/conventions.md#13-idempotency-and-concurrency) (idempotency and concurrency);
   - data-model.md: [derived values](../architecture/data-model.md#derived-values-computed-not-stored).
 - **Closes:** [finding 15](../architecture/findings/15-the-payments-migration-predates-adr-0015.md): the first payment is written at a visit's check-out. Done (#95).
-- **Settles:** the auto check-out scheduling mechanism, within ADR 0014.
+- **Settles:** the auto check-out scheduling mechanism, within ADR 0014. Done (#97): an in-process timer locally, and online an external cron calling a secret-protected endpoint ([conventions §12](../backend/conventions.md#12-environments)).
 
 ### 8. Customers and subscriptions
 

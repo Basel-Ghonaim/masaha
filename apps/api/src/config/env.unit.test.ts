@@ -22,6 +22,8 @@ const cloudinary = {
   CLOUDINARY_URL: 'cloudinary://123456789012345:a-test-api-secret@demo-cloud',
 };
 
+const JOBS_SECRET = 'a-jobs-secret-of-at-least-32-characters';
+
 describe('loadEnv', () => {
   it('applies the defaults', () => {
     expect(loadEnv(valid)).toEqual({
@@ -33,6 +35,7 @@ describe('loadEnv', () => {
       LOG_LEVEL: 'info',
       TRUST_PROXY: undefined,
       GOOGLE_CLIENT_ID: undefined,
+      JOBS_SECRET: undefined,
       EMAIL: { mode: 'log' },
       STORAGE: { mode: 'local' },
     });
@@ -60,6 +63,7 @@ describe('loadEnv', () => {
         NODE_ENV: 'production',
         GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com',
         TRUST_PROXY: '1',
+        JOBS_SECRET,
       }).GOOGLE_CLIENT_ID,
     ).toBe('id.apps.googleusercontent.com');
   });
@@ -99,6 +103,7 @@ describe('loadEnv', () => {
         NODE_ENV: 'production',
         GOOGLE_CLIENT_ID: 'id',
         TRUST_PROXY: '1',
+        JOBS_SECRET,
       }).NODE_ENV,
     ).toBe('production');
   });
@@ -110,6 +115,7 @@ describe('loadEnv', () => {
       NODE_ENV: 'production',
       GOOGLE_CLIENT_ID: 'id',
       TRUST_PROXY: '1',
+      JOBS_SECRET,
     };
 
     expect(loadEnv({ ...valid, NODE_ENV: 'test', ...smtp }).STORAGE).toEqual({ mode: 'local' });
@@ -148,11 +154,29 @@ describe('loadEnv', () => {
       ...cloudinary,
       NODE_ENV: 'production',
       GOOGLE_CLIENT_ID: 'id',
+      JOBS_SECRET,
     };
 
     expect(() => loadEnv(production)).toThrow(/TRUST_PROXY/);
     expect(trustProxyOf(loadEnv({ ...production, TRUST_PROXY: '1' }))).toBe(1);
     expect(trustProxyOf(loadEnv(valid))).toBe('loopback');
+  });
+
+  it('JOBS_SECRET is at least 32 characters when set, and required in production', () => {
+    expect(loadEnv({ ...valid, JOBS_SECRET: '' }).JOBS_SECRET).toBeUndefined();
+    expect(loadEnv({ ...valid, JOBS_SECRET }).JOBS_SECRET).toBe(JOBS_SECRET);
+    expect(() => loadEnv({ ...valid, JOBS_SECRET: 'x'.repeat(31) })).toThrow(/JOBS_SECRET/);
+
+    const production = {
+      ...valid,
+      ...smtp,
+      ...cloudinary,
+      NODE_ENV: 'production',
+      GOOGLE_CLIENT_ID: 'id',
+      TRUST_PROXY: '1',
+    };
+    expect(() => loadEnv(production)).toThrow(/JOBS_SECRET/);
+    expect(loadEnv({ ...production, JOBS_SECRET }).JOBS_SECRET).toBe(JOBS_SECRET);
   });
 
   it('makes the cookies Secure everywhere but development', () => {

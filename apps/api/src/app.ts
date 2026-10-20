@@ -130,6 +130,7 @@ import {
   requireRole,
 } from './shared/auth/index.ts';
 import { errorHandler, notFoundHandler } from './shared/errors/index.ts';
+import { createJobs, createJobsRouter } from './shared/jobs/index.ts';
 import { requestLogger } from './shared/http/index.ts';
 import {
   clientAddress,
@@ -149,6 +150,8 @@ import {
 // is scoped to the auth router's path, and the recovery cookie to its password routes.
 const API_BASE = '/api/v1';
 const AUTH_PATH = '/auth';
+// The timed jobs' endpoint an external cron calls online (ADR 0014).
+const JOBS_PATH = '/internal/jobs';
 const PASSWORD_PATH = '/password';
 
 // Where the local storage serves its own files, in development and the tests (conventions §12):
@@ -236,6 +239,10 @@ export interface ApiOptions {
   clock?: () => Date;
   /** The timer every wait uses (conventions §11). Tests pass one that waits no real time. */
   wait?: (ms: number) => Promise<void>;
+  /** The secret the timed jobs' endpoint asks for (JOBS_SECRET); without it, it is not mounted. */
+  jobsSecret?: string;
+  /** Starts the in-process timer of the timed jobs, given their run (the local server's). */
+  startJobs?: (run: () => Promise<unknown>) => void;
 }
 
 /**
@@ -252,6 +259,8 @@ export function createApi({
   logger,
   clock = () => new Date(),
   wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  jobsSecret,
+  startJobs,
 }: ApiOptions): Router {
   const limiter = createLimiter(createCounter(), clock);
   const accessTokens = createAccessTokens(jwtSecret);
@@ -317,14 +326,26 @@ export function createApi({
   const confirm = createConfirmService(facts);
   const photos = createPhotosService({ runInTransaction, audit: writeAudit, storage, logger });
   const packages = createPackagesService({ runInTransaction, audit: writeAudit, spaces });
-  const visits = createVisitsService({ audit: writeAudit, spaces, spaceSettings, now: clock });
+  const visits = createVisitsService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    spaceSettings,
+    now: clock,
+  });
+  const subscriptions = createSubscriptionsService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    spaceSettings,
+  });
   const customers = createCustomersService({ audit: writeAudit });
   const occupancy = createOccupancyService({
     runInTransaction,
     audit: writeAudit,
     spaces,
     visits,
-    subscriptions: createSubscriptionsService(),
+    subscriptions,
     customers,
     announcements: createAnnouncementsService(),
     now: clock,
@@ -381,6 +402,17 @@ export function createApi({
     wait,
   });
 
+  // The timed jobs (ADR 0014; conventions §12): each module closes its own stays.
+  const jobs = createJobs({
+    jobs: [
+      { name: 'visits.autoCheckOut', run: (at) => visits.autoCheckOut(at) },
+      { name: 'subscriptions.autoCheckOut', run: (at) => subscriptions.autoCheckOut(at) },
+    ],
+    now: clock,
+    logger,
+  });
+  startJobs?.(() => jobs.run());
+
   const api = Router();
   // The local storage's own files, before the general limit: a page of photos is many requests.
   if (storage.files) api.use(FILES_PATH, storage.files);
@@ -392,6 +424,8 @@ export function createApi({
         : { policy: GENERAL_GUEST, by: [clientAddress(req.ip)] };
     }),
   );
+  // Only with its secret: without one, nothing online could call it, and locally the timer runs.
+  if (jobsSecret) api.use(JOBS_PATH, createJobsRouter(jobs, jobsSecret));
   api.use(
     AUTH_PATH,
     createAuthRouter(createAuthController(auth, cookies, recoveryCookie), webOrigin),
@@ -483,7 +517,15 @@ export function createApi({
  */
 export function createAppFromEnv(
   env: Env,
-  { logger, checkDatabase }: { logger: Logger; checkDatabase: () => Promise<boolean> },
+  {
+    logger,
+    checkDatabase,
+    startJobs,
+  }: {
+    logger: Logger;
+    checkDatabase: () => Promise<boolean>;
+    startJobs?: (run: () => Promise<unknown>) => void;
+  },
 ) {
   return createApp({
     corsOrigin: env.CORS_ORIGIN,
@@ -510,6 +552,8 @@ export function createAppFromEnv(
             })
           : createLocalStorage({ root: LOCAL_STORAGE_ROOT, urlBase: LOCAL_FILES_URL }),
       logger,
+      jobsSecret: env.JOBS_SECRET,
+      startJobs,
     }),
   });
 }

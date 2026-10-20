@@ -12,16 +12,18 @@
 - Answers a visit with its quote while it is open: what it costs now, at a time the desk sends back to check it out.
 - Answers the desk's terms: the rounding and the cap in force, whether the caller may type a price, and the rates with no shift and in each shift.
 - Answers the open visits of a space, how many, and what each costs so far, for *present* ([occupancy](occupancy.md)).
+- Closes every open visit whose auto check-out time has passed, at that time, charged to it: the timed job `visits.autoCheckOut`.
 
 ## Who uses it
 
 - **The front desk** ([desk](desk.md)), which orchestrates the check-in and the check-out, for the space's owner and reception; they read the quote and the terms through this module's own routes.
 - **`occupancy`**, which reads the open visits for *present*. No web screen reads it yet.
+- **The timed jobs** (`shared/jobs`, wired in the composition root), which run its auto check-out.
 
 ## Responsibility boundary
 
 - **Owns** the `visits` table; the visit's rates and charge rules (`visitCharge.ts`, pure); the visit's audit entries.
-- **Reads** the space's prices and shifts from [`spaces`](spaces.md), and the settings (student prices, the rounding, the cap, reception's switch) from [`space-settings`](space-settings.md).
+- **Reads** the space's prices and shifts, its week and a stay's auto check-out time from [`spaces`](spaces.md), and the settings (student prices, the rounding, the cap, reception's switch) from [`space-settings`](space-settings.md).
 - **Asks** `can()`'s `prices.typeByHand` for the terms' `mayTypePrice`, from the boundary's links.
 - **Leaves** the transaction, the space's lock, and the decision under it of who may type a price to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
 
@@ -42,6 +44,8 @@
 
 **The reads.** The quote: the visit, and while it is open its charge at the clock's now, with its billed minutes, read without a lock. The terms: the settings, the prices and the shifts; the rates by the same rule as a check-in's; the student rates only where student prices are on and change a rate. The charges so far: one query for the open visits' rates, one for the settings.
 
+**The auto check-out.** Every open visit, of every space, a soft-deleted or hidden one's too, the earliest first; the weeks and the settings of their spaces, as they are now, in one query each; each visit's due time by `spaces`' rule; the ones due by the run's time, up to 500. Each in its own transaction: its row locked (`FOR UPDATE`) only while still open, so a check-out at the desk meanwhile wins and is left as it is; closed `AUTO` at its due time, charged for the stay up to then (none without a rate, left uncollected with no customer), and audited `visit.autoCheckedOut` with no actor.
+
 ## Decisions
 
 ### API decisions
@@ -55,10 +59,13 @@
 - **The quote is answered with the visit, and its `at` is the time the check-out charges.** *Why:* the desk shows a price and charges exactly that price (desk › the check-out's quote time). 2026-10-20, #95.
 - **The terms answer the student rates only where they change a rate, and whether this caller may type a price.** *Why:* the desk offers the student audience only where it matters (DI-41), and shows the typed-price field only to whoever may use it. 2026-10-20, #95.
 - **Audited `visit.checkedOut` with both the quote's time and the request's own time.** *Why:* the check-out is priced at the quote the desk showed, up to five minutes before the request; both times say which (the owner's decision). 2026-10-20, #95.
+- **The auto check-out closes a visit at its due time, never at the run's, each in its own transaction under its row's lock.** *Why:* a run every 5 minutes, or one after a pause, must charge what the closing would have; one failure must not undo the others, and a check-out at the desk meanwhile wins. 2026-10-20, #97.
+- **It reads the week and the settings at the run.** *Why:* a change applies from then on, so a stay limit set later closes an open stay at its new due time (data model, *Auto check-out*). 2026-10-20, #97.
+- **At most 500 visits a run; the rest are counted in `remaining` and closed by the next.** *Why:* one run stays short, online as locally; a backlog is caught up run by run. 2026-10-20, #97.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/visits/`, entry `index.ts`: the service, the repository, the mapper, the controller and the manage router, and the rates and charge rules (`visitCharge.ts`).
+- **API:** `apps/api/src/modules/visits/`, entry `index.ts`: the service (the auto check-out included), the repository, the mapper, the controller and the manage router, and the rates and charge rules (`visitCharge.ts`).
 - **Shared:** `packages/shared/src/visits/`: the check-in's request (`checkInVisitSchema`); the responses (`DeskVisit`, `VisitCharge`, `QuotedVisit`, `VisitTerms`, `Rates`).
 
 ## History
@@ -67,3 +74,4 @@
 
 - #94 — the open visits and their counts, which `occupancy` reads for *present*.
 - #95 — the check-in by name, its rates and its idempotency key's lookup; the charge and the check-out; the quote, the terms and the charges so far.
+- #97 — the auto check-out of visits.

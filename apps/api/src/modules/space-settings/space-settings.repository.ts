@@ -37,6 +37,14 @@ export function createSpaceSettingsRepository(db: PrismaClient = prisma) {
       return tx.spaceSettings.findUnique({ where: { spaceId }, select: SETTINGS });
     },
 
+    /** These spaces' settings rows, in one query; a space without one is absent. */
+    findMany(spaceIds: readonly number[], tx: Tx = db) {
+      return tx.spaceSettings.findMany({
+        where: { spaceId: { in: [...spaceIds] } },
+        select: { spaceId: true, ...SETTINGS },
+      });
+    },
+
     /** The edit, by the space's key, so it can touch no other space's row. */
     update(spaceId: number, data: SettingsData, tx: Tx): Promise<SettingsRow> {
       return tx.spaceSettings.update({ where: { spaceId }, data, select: SETTINGS });
