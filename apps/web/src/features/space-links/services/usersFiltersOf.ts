@@ -17,33 +17,37 @@ function read<T>(rule: Rule<T>, value: string | null): T | undefined {
 }
 
 /**
- * The users list's filters and page from the address (`?q=&state=&page=`), each read by the rule the
- * server applies, so a value the server would refuse falls back to its default.
+ * The users list's filters and page from the address (`?q=&role=&state=&page=`), each read by the
+ * rule the server applies, so a value the server would refuse falls back to its default.
  */
 export function usersFiltersOf(params: URLSearchParams): UsersFilters {
   const q = read(RULES.q, params.get('q'));
+  const role = read(RULES.role, params.get('role'));
   const state = read(RULES.state, params.get('state'));
 
   return {
     ...(q !== undefined && { q }),
+    ...(role !== undefined && { role }),
     ...(state !== undefined && { state }),
     page: read(RULES.page, params.get('page')) ?? 1,
   };
 }
 
 /** The address of the filters and page, the defaults left out. */
-export function usersParamsOf({ q, state, page }: UsersFilters): URLSearchParams {
+export function usersParamsOf({ q, role, state, page }: UsersFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (q !== undefined) params.set('q', q);
+  if (role !== undefined) params.set('role', role);
   if (state !== undefined) params.set('state', state);
   if (page !== 1) params.set('page', String(page));
   return params;
 }
 
 /** The request the filters and page make, named as the contract names them. */
-export function usersRequestOf({ q, state, page }: UsersFilters): AdminUsersRequest {
+export function usersRequestOf({ q, role, state, page }: UsersFilters): AdminUsersRequest {
   return {
     ...(q !== undefined && { q }),
+    ...(role !== undefined && { role }),
     ...(state !== undefined && { state }),
     page,
   };

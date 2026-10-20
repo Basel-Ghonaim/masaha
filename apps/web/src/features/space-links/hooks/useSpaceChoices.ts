@@ -11,14 +11,17 @@ import type { SpaceChoiceView } from '../types/SpaceChoiceView';
 
 /**
  * The spaces to choose one from, searched on the server once typing pauses: up to fifty, each worded
- * as the spaces list's row. `linked` are the spaces already the person's, offered but not to be chosen.
+ * as the spaces list's row. `linked` are the spaces already the person's, and `desks` those whose
+ * front desk they work, each offered but not to be chosen.
  */
 export function useSpaceChoices({
   enabled,
   linked = [],
+  desks = [],
 }: {
   enabled: boolean;
   linked?: readonly number[];
+  desks?: readonly number[];
 }) {
   const copy = useCopy();
   const lines = copy.spaceLinks.adminList;
@@ -53,6 +56,7 @@ export function useSpaceChoices({
       owners: view.owners ?? lines.noOwner,
       isVerified: space.isVerified,
       linked: linked.includes(space.id),
+      atDesk: desks.includes(space.id),
     };
   });
 

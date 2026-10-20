@@ -16,7 +16,7 @@ import { usePausedText } from '../usePausedText';
 export function usePersonChoices({ enabled }: { enabled: boolean }) {
   const copy = useCopy();
   const words = copy.spaceLinks.choices;
-  const lines = copy.spaceLinks.ownersList;
+  const rowWords = copy.spaceLinks.usersList.row;
   const english = useLanguage() === 'en';
   const [text, setText] = useState('');
   const paused = usePausedText(text);
@@ -31,7 +31,7 @@ export function usePersonChoices({ enabled }: { enabled: boolean }) {
 
   const options: PersonChoiceView[] = (query.data?.data ?? []).flatMap((row) => {
     if (row.role === 'ADMIN') return [];
-    const spaces = userRowView(row, { lines, english })
+    const spaces = userRowView(row, { words: rowWords, english, now: new Date() })
       .spaces.map((space) => isolate(space.text))
       .join(copy.spaceLinks.adminList.separator);
     return [

@@ -1,15 +1,17 @@
 import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useRef, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
-import { fakeTransport, restoreTransport } from '../../../../test/fakeTransport';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { fakeTransport, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
 import { TemporaryPasswordDialog } from './TemporaryPasswordDialog';
 
 /** The dialog for Rima's password, the handover answered as recorded. */
-function renderDialog(title = 'Temporary password') {
+function renderDialog(title = 'Temporary password', kind: 'created' | 'issued' = 'created') {
   fakeTransport(() => ({ status: 204 }));
   const onDone = vi.fn();
   // user-event's setup puts its clipboard stub on the navigator, the seam jsdom leaves out.
@@ -19,11 +21,36 @@ function renderDialog(title = 'Temporary password') {
       <TemporaryPasswordDialog
         person={{ userId: 12, name: 'Rima', email: 'rima@example.com' }}
         password="Tmp-4821-xk"
+        kind={kind}
         onDone={onDone}
       />
     </QueryClientProvider>,
   );
   return { user, onDone, dialog: screen.getByRole('dialog', { name: title }) };
+}
+
+/** The control that opened the dialog, and the dialog, gone once done, as a page holds them. */
+function Opener() {
+  const [open, setOpen] = useState(true);
+  const opener = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button ref={opener} type="button">
+        Opener
+      </button>
+      {open && (
+        <TemporaryPasswordDialog
+          person={{ userId: 12, name: 'Rima', email: 'rima@example.com' }}
+          password="Tmp-4821-xk"
+          kind="issued"
+          returnFocus={opener}
+          onDone={() => {
+            setOpen(false);
+          }}
+        />
+      )}
+    </>
+  );
 }
 
 beforeEach(() => {
@@ -84,9 +111,60 @@ describe('TemporaryPasswordDialog', () => {
     expect(group.contains(document.activeElement)).toBe(true);
   });
 
+  it('says an issued password is changed at the next sign-in, a new account’s at the first', () => {
+    const created = renderDialog().dialog;
+    expect(
+      within(created).getByText(
+        'Hand it over; they’ll be asked to change it at their first sign-in.',
+      ),
+    ).toBeInTheDocument();
+    cleanup();
+
+    const issued = renderDialog('Temporary password', 'issued').dialog;
+    expect(
+      within(issued).getByText(
+        'Hand it over once you’ve confirmed who they are; they’ll be asked to change it at their next sign-in.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(issued).queryByText(
+        'Hand it over; they’ll be asked to change it at their first sign-in.',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   it('has no accessibility violations', async () => {
     renderDialog();
 
     expect(await axe(document.body)).toHaveNoViolations();
   });
+
+  it.each([
+    ['the handover recorded', { status: 204 }],
+    [
+      'the handover refused, the password no longer pending',
+      refused(409, { type: 'conflict', code: 'TEMPORARY_PASSWORD_NOT_PENDING' }),
+    ],
+  ] as [string, FakeAnswer][])(
+    'returns the focus to the control that opened it once done: %s',
+    async (_case, answer) => {
+      fakeTransport(() => answer);
+      const user = userEvent.setup();
+      render(
+        <QueryClientProvider client={createQueryClient()}>
+          <Opener />
+        </QueryClientProvider>,
+      );
+      const dialog = screen.getByRole('dialog', { name: 'Temporary password' });
+
+      await user.click(within(dialog).getByRole('button', { name: 'Copy' }));
+      await user.click(within(dialog).getByRole('radio', { name: 'In person' }));
+      await user.click(within(dialog).getByRole('button', { name: 'Done' }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: 'Opener' })).toHaveFocus();
+    },
+  );
 });

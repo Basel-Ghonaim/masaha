@@ -12,6 +12,8 @@ export type TemporaryPasswordPerson = { userId: number; name: string; email: str
 export type TemporaryPasswordDialogInput = {
   person: TemporaryPasswordPerson;
   password: string;
+  /** A new account's password, changed at the first sign-in, or one issued, changed at the next. */
+  kind: 'created' | 'issued';
   onDone: () => void;
   /** The element to focus when no channel is chosen; created by the caller so its ref is not read during render. */
   channelRef?: { current: HTMLDivElement | null };
@@ -25,6 +27,7 @@ export type TemporaryPasswordDialogInput = {
 export function useTemporaryPasswordDialog({
   person,
   password,
+  kind,
   onDone,
   channelRef,
 }: TemporaryPasswordDialogInput) {
@@ -86,7 +89,7 @@ export function useTemporaryPasswordDialog({
       run: copyRun,
     },
     copyFailed,
-    line: lines.line,
+    line: kind === 'issued' ? lines.issuedLine : lines.line,
     channel: {
       label: lines.channel,
       value: channel,

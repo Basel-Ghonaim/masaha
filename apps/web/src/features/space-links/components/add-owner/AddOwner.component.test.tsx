@@ -77,6 +77,8 @@ type Server = {
 /** The sheet as the owners page shows it, the server answering as `server` says. */
 function renderSheet(server: Server = {}) {
   const shown: AddedOwnerView[] = [];
+  // Where the page's dialog returns the focus once done, as the slot was handed it.
+  const returnTo: (HTMLElement | null)[] = [];
   const requests = fakeTransport((request) => {
     if (request.url === '/admin/spaces') return page([FOCUS_HUB]);
     if (request.url === '/admin/users') return page(server.users ?? []);
@@ -85,8 +87,9 @@ function renderSheet(server: Server = {}) {
   render(
     <QueryClientProvider client={createQueryClient()}>
       <AddOwner
-        temporaryPassword={(added, done) => {
+        temporaryPassword={(added, done, returnFocus) => {
           shown.push(added);
+          returnTo.push(returnFocus.current);
           return (
             <div role="dialog" aria-label="Password slot">
               <button type="button" onClick={done}>
@@ -98,7 +101,7 @@ function renderSheet(server: Server = {}) {
       />
     </QueryClientProvider>,
   );
-  return { requests, shown };
+  return { requests, shown, returnTo };
 }
 
 /** Opens the sheet and fills it: `name`, `email`, and Focus Hub chosen. */
@@ -124,6 +127,11 @@ function noticeTitled(title: string): HTMLElement {
     .find((element) => within(element).queryByText(title) !== null);
   expect(notice).toBeDefined();
   return notice as HTMLElement;
+}
+
+/** What the notice's account says for `term`, such as «Spaces». */
+function described(notice: HTMLElement, term: string): string | null | undefined {
+  return within(notice).getByText(term, { selector: 'dt' }).nextElementSibling?.textContent;
 }
 
 /** The toast whose title reads `text`, isolates and all, once it shows. */
@@ -197,7 +205,7 @@ describe('AddOwner', () => {
   });
 
   it('shows the page’s password dialog once the owner is added, until it is done', async () => {
-    const { requests, shown } = renderSheet();
+    const { requests, shown, returnTo } = renderSheet();
 
     await fill('new@example.com');
     await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
@@ -210,6 +218,8 @@ describe('AddOwner', () => {
       email: 'new@example.com',
       temporaryPassword: 'Tmp-4821-xk',
     });
+    // The sheet is gone, so the page's dialog returns the focus to «Add owner», which opened it.
+    expect(returnTo.at(-1)).toBe(screen.getByRole('button', { name: 'Add owner' }));
     await userEvent.click(within(slot).getByRole('button', { name: 'Slot done' }));
     expect(screen.queryByRole('dialog', { name: 'Password slot' })).not.toBeInTheDocument();
   });
@@ -236,7 +246,8 @@ describe('AddOwner', () => {
     const account = noticeTitled('This email has an account');
     expect(within(account).getByText('Rima Haddad')).toBeInTheDocument();
     expect(within(account).getByText(/^1 Sept/)).toBeInTheDocument();
-    expect(within(account).getByText('None')).toBeInTheDocument();
+    expect(described(account, 'Spaces')).toBe('None');
+    expect(described(account, 'Front desk')).toBe('None');
     expect(
       within(account).getByText(
         'Make sure this is the person you mean: they’ll become an owner of this space',
@@ -260,6 +271,22 @@ describe('AddOwner', () => {
       `${FSI}Rima Haddad${PDI} upgraded to owner and linked to Focus Hub`,
     );
     expect(within(title).getByText('Focus Hub').tagName).toBe('SPAN');
+  });
+
+  it('shows the account’s reception desks beside its spaces before the upgrade', async () => {
+    const desk: AdminUserRow = {
+      ...RIMA,
+      receptionSpaces: [{ id: 9, nameEn: 'Palm Hub', nameAr: null }],
+    };
+    renderSheet({ add: hasAccount, users: [desk] });
+
+    await fill();
+    await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
+
+    await screen.findByRole('button', { name: 'Upgrade and link' });
+    const account = noticeTitled('This email has an account');
+    expect(described(account, 'Spaces')).toBe('None');
+    expect(described(account, 'Front desk')).toBe('Palm Hub');
   });
 
   it('offers no upgrade when no account has exactly this email', async () => {

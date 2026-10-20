@@ -31,7 +31,9 @@ export function useUnlinkOwnerDialog({ space, owner }: UnlinkSubject, close: () 
   const { view: failure, blocked } = useRefusalView(refusal, lines.failed, lines.refusals);
 
   // Only this opening's read counts: a cached answer refetching, or kept after a failed refetch, does not.
-  const reading = owners.isFetching;
+  // Once the unlink is sent, the line stays as it was read: the refresh that follows the unlink
+  // reads the space again before the dialog closes, and that read is not a new question.
+  const reading = owners.isFetching && !unlink.isPending;
   const read = reading || owners.isError ? undefined : owners.data;
   const others = read?.filter((candidate) => candidate.id !== owner.id);
   const last = others !== undefined && others.length === 0;

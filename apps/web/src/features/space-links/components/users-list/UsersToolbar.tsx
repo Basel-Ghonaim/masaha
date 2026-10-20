@@ -1,16 +1,17 @@
 import { NAME_MAX_LENGTH } from '@masaha/shared/users';
 import { Field, Input, SearchIcon, ToggleGroup, ToggleGroupItem } from '@shared/design-system';
-import type { OwnersListView } from '../../types/OwnersListView';
+import type { AdminUsersListView } from '../../hooks/users-list/useAdminUsersList';
 
 /**
- * The search above the owners list, then the count the filters keep and the state chips: a single
- * state filter of three choices is chips, at every width, not a field in a sheet (the owner's A7, P5).
+ * The search above a users list, then the count the filters keep, the role chips when the list
+ * offers them, and the state chips: a status filter of four choices or fewer is chips, at every
+ * width, not a field in a sheet (the owner's A7, P5).
  */
-export function OwnersToolbar({
+export function UsersToolbar({
   filters,
   count,
 }: {
-  filters: OwnersListView['filters'];
+  filters: AdminUsersListView['filters'];
   /** The count the filters keep, said once loading has settled. */
   count: string | undefined;
 }) {
@@ -35,6 +36,20 @@ export function OwnersToolbar({
           <p className="text-body-sm text-muted-foreground" aria-live="polite">
             {count}
           </p>
+        )}
+        {filters.role !== undefined && (
+          <ToggleGroup
+            type="single"
+            value={filters.role.value}
+            onValueChange={filters.role.choose}
+            aria-label={filters.role.label}
+          >
+            {filters.role.options.map((option) => (
+              <ToggleGroupItem key={option.value} value={option.value}>
+                {option.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         )}
         <ToggleGroup
           type="single"

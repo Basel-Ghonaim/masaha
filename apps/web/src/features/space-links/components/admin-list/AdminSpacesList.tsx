@@ -16,10 +16,10 @@ import { SpaceNameText } from './SpaceNameText';
 const column = createDataTableColumnHelper<AdminSpaceRowView>();
 
 /**
- * The admin's spaces list: the search and the filters, then a table of the page's spaces from 768 px,
- * or a card per space on a phone, with the count the filters keep and the pages. It shows its own
- * loading, failure, empty and no-match states; while another page or filter loads, it keeps the rows
- * shown, marked busy.
+ * The admin's spaces list: the search and the filters, then a table of the page's spaces from
+ * 1024 px, or a card per space below it (A7), with the count the filters
+ * keep and the pages. It shows its own loading, failure, empty and no-match states; while another
+ * page or filter loads, it keeps the rows shown, marked busy.
  *
  * The page that sets it fills two slots from other capabilities: each row's `actions`, in the last
  * column and at a card's end, and the `placeField`, inside the list's own "Governorate / area" field.
@@ -123,6 +123,7 @@ export function AdminSpacesList({
         columns={columns}
         data={list.rows}
         getRowId={(row) => String(row.id)}
+        cardsBelow="lg"
         renderCard={(row) => (
           <AdminSpaceCard row={row} actions={actions(row.row)} spaceLink={spaceLink(row.row)} />
         )}

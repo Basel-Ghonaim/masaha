@@ -1,6 +1,7 @@
 export { FormFailure } from './components/FormFailure';
 export { PasswordInput, type PasswordInputProps } from './components/PasswordInput';
 export { PasswordRules, type PasswordRulesProps } from './components/PasswordRules';
+export { RefusalText } from './components/RefusalText';
 export { clock } from './services/clock';
 export { isolated } from './services/isolated';
 export { usePasswordRules } from './hooks/usePasswordRules';

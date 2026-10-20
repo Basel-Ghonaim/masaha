@@ -55,8 +55,13 @@ export function SpaceCombobox({
         loading={choices.loading}
       >
         {choices.options.map((choice) => (
-          // A space already the person's is offered, but cannot be chosen.
-          <ComboboxItem key={choice.value} value={choice.value} disabled={choice.linked}>
+          // A space already the person's, or whose front desk they work, is offered, but cannot be
+          // chosen.
+          <ComboboxItem
+            key={choice.value}
+            value={choice.value}
+            disabled={choice.linked || choice.atDesk}
+          >
             <span lang={choice.name.lang} dir={choice.name.dir}>
               {choice.name.text}
             </span>
@@ -67,7 +72,7 @@ export function SpaceCombobox({
                 </Badge>
               ))}
               <span className="text-caption text-muted-foreground">
-                {choice.linked ? words.linked : choice.owners}
+                {choice.linked ? words.linked : choice.atDesk ? words.atDesk : choice.owners}
               </span>
             </span>
           </ComboboxItem>

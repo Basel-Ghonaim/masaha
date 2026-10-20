@@ -74,7 +74,16 @@ const FROM_SPACE: LinkTarget = {
 };
 
 /** From Hadi's row, an owner of Palm Hub. */
-const FROM_PERSON: LinkTarget = { from: 'person', person: { id: 3, name: 'Hadi', spaceIds: [9] } };
+const FROM_PERSON: LinkTarget = {
+  from: 'person',
+  person: { id: 3, name: 'Hadi', role: 'OWNER', spaceIds: [9], deskIds: [] },
+};
+
+/** From Rima's row, a user with no link. */
+const FROM_USER: LinkTarget = {
+  from: 'person',
+  person: { id: 5, name: 'Rima', role: 'USER', spaceIds: [], deskIds: [] },
+};
 
 /** A page of `rows`, the only one. */
 function page(rows: unknown[]): FakeAnswer {
@@ -172,6 +181,17 @@ describe('useLinkOwnerDialog', () => {
 
     expect(result.current.consequence.map(text)).toEqual([
       'They become another owner of Focus Hub; it stays verified.',
+    ]);
+  });
+
+  it('from a user’s row, says their account becomes an owner’s', async () => {
+    const { result } = renderDialog(FROM_USER);
+
+    await choose(() => result.current, 'Focus Hub');
+
+    expect(result.current.consequence.map(text)).toEqual([
+      'They become another owner of Focus Hub; it stays verified.',
+      'Their account becomes an owner’s, and they’re asked to sign in again.',
     ]);
   });
 

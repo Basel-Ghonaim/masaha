@@ -7,9 +7,9 @@ import type { UserRowView } from '../../types/UserRowView';
 import { ListPagination } from '../ListPagination';
 import { ListState } from '../ListState';
 import { OwnerActionsMenu } from '../owner-actions/OwnerActionsMenu';
+import { UsersToolbar } from '../users-list/UsersToolbar';
 import { OwnerCard } from './OwnerCard';
 import { OwnerSpaces } from './OwnerSpaces';
-import { OwnersToolbar } from './OwnersToolbar';
 
 const column = createDataTableColumnHelper<UserRowView>();
 
@@ -108,7 +108,7 @@ export function OwnersList({ deletedSpacesLink }: { deletedSpacesLink: string })
         )}
         loading={list.status === 'loading'}
         empty={<ListState list={list} />}
-        toolbar={<OwnersToolbar filters={list.filters} count={list.count} />}
+        toolbar={<UsersToolbar filters={list.filters} count={list.count} />}
         pagination={list.pagination !== null && <ListPagination pagination={list.pagination} />}
       />
     </section>

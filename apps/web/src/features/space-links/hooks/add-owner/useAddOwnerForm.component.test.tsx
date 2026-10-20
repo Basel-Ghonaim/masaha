@@ -29,6 +29,7 @@ const FOCUS_HUB: SpaceChoiceView = {
   owners: 'No owner',
   isVerified: false,
   linked: false,
+  atDesk: false,
 };
 
 const RIMA: AdminUserRow = {

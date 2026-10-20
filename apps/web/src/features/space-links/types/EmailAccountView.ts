@@ -7,6 +7,8 @@ export type EmailAccountView = {
   joined: string;
   /** The spaces of its active owner links, each named in the interface's language. */
   spaces: SpaceNameView[];
+  /** The spaces of its active reception links, each named in the interface's language. */
+  receptionSpaces: SpaceNameView[];
 };
 
 /** Reading the account an email belongs to: only an exact email match is `found`. */

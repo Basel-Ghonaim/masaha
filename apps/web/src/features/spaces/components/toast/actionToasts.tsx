@@ -1,8 +1,8 @@
 import { toast } from '@shared/design-system';
 import type { AppError } from '@shared/errors';
+import { RefusalText } from '@shared/forms';
 import { isolate, lineParts } from '@shared/localisation';
 import type { SpaceNameView } from '../../types/SpaceNameView';
-import { ActionRefusal } from './ActionRefusal';
 import { NamedLine } from './NamedLine';
 
 type Line = (values: { name: string }) => string;
@@ -25,7 +25,7 @@ export function toastDone(
  */
 export function toastFailed(line: Line, name: SpaceNameView, refusal: AppError) {
   toast.error(<NamedLine line={namedLine(line, name)} />, {
-    description: <ActionRefusal refusal={refusal} title={line({ name: isolate(name.text) })} />,
+    description: <RefusalText refusal={refusal} title={line({ name: isolate(name.text) })} />,
     duration: Infinity,
   });
 }

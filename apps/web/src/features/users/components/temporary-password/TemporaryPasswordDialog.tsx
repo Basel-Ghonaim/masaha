@@ -12,13 +12,22 @@ import {
   RadioGroupItem,
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
-import { useRef } from 'react';
+import { useRef, type RefObject } from 'react';
 import {
   useTemporaryPasswordDialog,
   type TemporaryPasswordDialogInput,
 } from '../../hooks/temporary-password/useTemporaryPasswordDialog';
 
-export function TemporaryPasswordDialog(props: TemporaryPasswordDialogInput) {
+/**
+ * The one-time password dialog: the password shown once, «تم» only after «نسخ», the handover asked
+ * and recorded; no close button, and neither Escape nor a click outside closes it. Once it is done
+ * and gone, the focus returns to `returnFocus` when the page gives one: the control that opened the
+ * dialog before it, which the dialog itself never knew.
+ */
+export function TemporaryPasswordDialog({
+  returnFocus,
+  ...props
+}: TemporaryPasswordDialogInput & { returnFocus?: RefObject<HTMLElement | null> }) {
   const channelRef = useRef<HTMLDivElement | null>(null);
   const dialog = useTemporaryPasswordDialog({ ...props, channelRef });
 
@@ -30,6 +39,13 @@ export function TemporaryPasswordDialog(props: TemporaryPasswordDialogInput) {
         }}
         onInteractOutside={(event) => {
           event.preventDefault();
+        }}
+        // Radix returns the focus, on unmount too, to what it held when it opened: here, nothing
+        // that is left. The page's control takes it instead.
+        onCloseAutoFocus={(event) => {
+          if (returnFocus === undefined) return;
+          event.preventDefault();
+          returnFocus.current?.focus();
         }}
       >
         <DialogHeader>

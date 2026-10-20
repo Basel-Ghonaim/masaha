@@ -13,6 +13,7 @@ import {
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
 import { useCopy } from '@shared/copy';
+import { useState } from 'react';
 import { SpaceCombobox } from '../SpaceCombobox';
 import { AddOwnerNotice } from './AddOwnerNotice';
 import { useAddOwnerForm } from '../../hooks/add-owner/useAddOwnerForm';
@@ -22,12 +23,14 @@ export function AddOwner({ temporaryPassword }: { temporaryPassword: TemporaryPa
   const copy = useCopy();
   const lines = copy.spaceLinks.addOwner;
   const form = useAddOwnerForm();
+  // «إضافة مالك», where the page's password dialog returns the focus once done.
+  const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null);
 
   return (
     <>
       <Sheet open={form.open} onOpenChange={form.setOpen}>
         <SheetTrigger asChild>
-          <Button>{lines.open}</Button>
+          <Button ref={setTrigger}>{lines.open}</Button>
         </SheetTrigger>
         <SheetContent side="end" closeLabel={lines.close}>
           <SheetHeader>
@@ -68,7 +71,7 @@ export function AddOwner({ temporaryPassword }: { temporaryPassword: TemporaryPa
         </SheetContent>
       </Sheet>
       {/* Outside the sheet, which closes once the owner is added. */}
-      {form.added !== null && temporaryPassword(form.added, form.done)}
+      {form.added !== null && temporaryPassword(form.added, form.done, { current: trigger })}
     </>
   );
 }

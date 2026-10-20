@@ -29,6 +29,9 @@ export const USERS = {
     copied: 'Copied',
     copyFailed: 'We couldn’t copy it — select it and copy it by hand.',
     line: 'Hand it over; they’ll be asked to change it at their first sign-in.',
+    /** An issued password's line, in place of a new account's. */
+    issuedLine:
+      'Hand it over once you’ve confirmed who they are; they’ll be asked to change it at their next sign-in.',
     channel: 'How it was handed over',
     channels: {
       WHATSAPP: 'WhatsApp',
@@ -42,5 +45,39 @@ export const USERS = {
       `Handover recorded: ${name} · ${channel}`,
     failed: 'We couldn’t record the handover',
     notRecorded: 'The handover wasn’t recorded',
+  },
+  /** A person's account items on the admin's users page. */
+  accountActions: {
+    suspend: 'Suspend',
+    restore: 'Restore the account',
+    restored: ({ name }: { name: string }) => `${name}’s account restored`,
+    restoreFailed: ({ name }: { name: string }) => `We couldn’t restore ${name}’s account`,
+    issue: 'Issue a temporary password',
+    googleOnly: 'A Google account — they recover it through Google',
+    suspendedFirst: 'The account is suspended — restore it first',
+  },
+  /** Suspending an account, after the admin confirms. */
+  suspend: {
+    title: ({ name }: { name: string }) => `Suspend ${name}?`,
+    line: 'All their sessions end at once, and they can’t sign in until you restore the account.',
+    ownerLine: 'Their spaces stay verified; the Masaha team edits them only once they’re unlinked.',
+    deskLine: 'Their front-desk link is kept; they can’t work the desk until restored.',
+    confirm: 'Suspend',
+    cancel: 'Back',
+    failed: 'The account wasn’t suspended',
+    refusals: { not_found: 'This account no longer exists.' },
+    suspended: ({ name }: { name: string }) => `${name} suspended; their sessions ended`,
+  },
+  /** Issuing a temporary password, after the admin confirms. */
+  issuePassword: {
+    title: ({ name }: { name: string }) => `Issue a temporary password for ${name}?`,
+    line: 'To recover the account once you’ve confirmed who they are. Their current password stops working and their sessions end; they must change it at the next sign-in.',
+    confirm: 'Issue',
+    cancel: 'Back',
+    failed: 'No password was issued',
+    refusals: {
+      ACCOUNT_SUSPENDED: 'The account is suspended — restore it first.',
+      not_found: 'This account no longer exists.',
+    },
   },
 } as const;
