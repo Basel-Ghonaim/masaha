@@ -670,6 +670,30 @@ describe("the owner's space profile", () => {
   });
 });
 
+describe("the owner's packages and prices", () => {
+  // The page loads lazily, as the profile does: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/PackagesPage');
+  });
+
+  it('shows the owner Packages & prices under its title, its prices read from the managed route', async () => {
+    asOwner();
+    const requests = fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7') return ok({ ...ADDED, isVerified: true });
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+    renderDashboard('/dashboard/spaces/7/packages');
+
+    await topBarTitle('Packages & prices');
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Published prices' }),
+    ).toBeInTheDocument();
+    expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7');
+    expect(requests.filter(({ url }) => url?.startsWith('/admin/') === true)).toEqual([]);
+  });
+});
+
 describe("the admin's spaces page", () => {
   const PALM: AdminSpaceRow = {
     id: 9,

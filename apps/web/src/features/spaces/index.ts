@@ -3,6 +3,7 @@ export { SpaceActionsHold } from './components/hold/SpaceActionsHold';
 export type { AreaField } from './types/AreaField';
 export { SpaceActionsMenu } from './components/menu/SpaceActionsMenu';
 export { SpaceEditor } from './components/editor/SpaceEditor';
+export { SpacePricesEditor } from './components/prices/SpacePricesEditor';
 export { useSpaceName } from './hooks/editor/useSpaceName';
 export type { AmenitiesField } from './types/AmenitiesField';
 export type { AdminPlace, OwnerPlace } from './types/EditorPlace';
