@@ -17,9 +17,9 @@ import { OptionalMark } from '../profile/OptionalMark';
 
 type Row = ReturnType<typeof usePricesSection>['rows'][number];
 
-/** A row's label: seen on a phone's card, said by a screen reader at every width. */
+/** A row's label: seen on a card below 1024 px, said by a screen reader at every width. */
 function RowLabel({ text }: { text: string }) {
-  return <span className="md:sr-only">{text}</span>;
+  return <span className="lg:sr-only">{text}</span>;
 }
 
 /** A select of a price's row, its options each in its own language; `ref` reaches its trigger. */
@@ -70,7 +70,7 @@ export function PricesSection({
 }) {
   const view = usePricesSection({ place, space, hoursUnsaved, onDirtyChange });
   const optional = (
-    <span className="md:hidden">
+    <span className="lg:hidden">
       <OptionalMark label={view.columns.optional} />
     </span>
   );
@@ -87,30 +87,30 @@ export function PricesSection({
         <div className="flex flex-col gap-2">
           <div
             aria-hidden="true"
-            className="hidden text-label text-muted-foreground md:grid md:grid-cols-12 md:gap-3"
+            className="hidden text-label text-muted-foreground lg:grid lg:grid-cols-12 lg:gap-3"
           >
-            <span className="md:col-span-2">{view.columns.period}</span>
-            <span className="md:col-span-2">{view.columns.audience}</span>
-            <span className="md:col-span-2">{view.columns.shift}</span>
-            <span className="flex flex-col md:col-span-3">
+            <span className="lg:col-span-2">{view.columns.period}</span>
+            <span className="lg:col-span-2">{view.columns.audience}</span>
+            <span className="lg:col-span-2">{view.columns.shift}</span>
+            <span className="flex flex-col lg:col-span-3">
               {view.columns.label}
               <OptionalMark label={view.columns.optional} />
             </span>
-            <span className="md:col-span-2">{view.columns.amount}</span>
-            <span className="md:col-span-1" />
+            <span className="lg:col-span-2">{view.columns.amount}</span>
+            <span className="lg:col-span-1" />
           </div>
-          <ul className="flex flex-col gap-4 md:gap-2">
+          <ul className="flex flex-col gap-4 lg:gap-2">
             {view.rows.map((row) => (
               <li
                 key={row.key}
                 role="group"
                 aria-label={row.label}
-                className="grid gap-3 rounded-lg border p-4 md:grid-cols-12 md:items-start md:gap-3 md:rounded-none md:border-0 md:p-0"
+                className="grid gap-3 rounded-lg border p-4 lg:grid-cols-12 lg:items-start lg:gap-3 lg:rounded-none lg:border-0 lg:p-0"
               >
-                <RowSelect {...row.period} className="md:col-span-2" />
-                <RowSelect {...row.audience} className="md:col-span-2" />
-                <RowSelect {...row.shift} className="md:col-span-2" />
-                <div className="flex flex-col gap-2 md:col-span-3">
+                <RowSelect {...row.period} className="lg:col-span-2" />
+                <RowSelect {...row.audience} className="lg:col-span-2" />
+                <RowSelect {...row.shift} className="lg:col-span-2" />
+                <div className="flex flex-col gap-2 lg:col-span-3">
                   <Field
                     label={<RowLabel text={row.labelAr.label} />}
                     labelEnd={optional}
@@ -134,11 +134,11 @@ export function PricesSection({
                 <Field
                   label={<RowLabel text={row.amount.label} />}
                   error={row.amount.error}
-                  className="md:col-span-2"
+                  className="lg:col-span-2"
                 >
                   <Input dir="ltr" inputMode="decimal" autoComplete="off" {...row.amount.binding} />
                 </Field>
-                <div className="flex justify-end md:col-span-1">
+                <div className="flex justify-end lg:col-span-1">
                   <Button
                     type="button"
                     variant="ghost"
