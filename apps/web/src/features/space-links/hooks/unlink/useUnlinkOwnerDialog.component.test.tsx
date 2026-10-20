@@ -133,6 +133,37 @@ describe('useUnlinkOwnerDialog', () => {
     expect(second.result.current.confirm.disabled).toBe(false);
   });
 
+  it('keeps its line once the unlink is sent, while the admin’s views are fetched again', async () => {
+    // The unlink's refresh reads the space again; that read is held until the test lets it go.
+    const reread = deferred<FakeAnswer>();
+    let reads = 0;
+    const { result, close } = renderDialog(() =>
+      reads++ === 0 ? spaceWith([RIMA, SAMI]) : reread.promise,
+    );
+    const line = 'The other owners stay, and it stays verified.';
+    await waitFor(() => {
+      expect(text(result.current.consequence)).toBe(line);
+    });
+
+    let running: Promise<void> | undefined;
+    act(() => {
+      running = result.current.confirm.run();
+    });
+    await waitFor(() => {
+      expect(reads).toBe(2);
+    });
+
+    // The space is read again while the unlink waits for the views: the line stays as it was.
+    expect(text(result.current.consequence)).toBe(line);
+    expect(result.current.confirm.busy).toBe(true);
+
+    await act(async () => {
+      reread.resolve(spaceWith([SAMI]));
+      await running;
+    });
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
   it('holds the action until the owners are read', async () => {
     const read = deferred<FakeAnswer>();
     const { result } = renderDialog(() => read.promise);
