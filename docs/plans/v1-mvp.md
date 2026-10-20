@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-19 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -92,14 +92,14 @@ Each step names its goal and points to what supports it:
 ### 7. Front desk and visits
 
 **Goal:** the staff run the day at the desk: check in and out, the visit charge and its payment at check-out, live status with the manual override, auto check-out, uncollected visits.
-- **Built:** the staff's read of a space's state now: who is present, the capacity and the live status, and the manual override; the live status in the directory (#94, [api-contract › Occupancy (managed)](../api/api-contract.md#occupancy-managed)); the rest of the step remains planned.
+- **Built:** the staff's read of a space's state now: who is present, the capacity and the live status, and the manual override; the live status in the directory (#94, [api-contract › Occupancy (managed)](../api/api-contract.md#occupancy-managed)); a visitor's check-in by name and check-out, with the charge, the first payment, the unpaid rest left to a customer by phone, and a price typed by hand or an unpriced close, each idempotent; a visit's quote and the desk's terms (#95, [api-contract › Front desk (managed)](../api/api-contract.md#front-desk-managed)); the rest of the step remains planned.
 - **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 13 Front desk.
 - **Supported by:**
   - [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md), [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md) and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md);
   - conventions §9: [the front desk](../backend/conventions.md#the-front-desk-desk), [occupancy](../backend/conventions.md#occupancy-the-spaces-state-now) and [composed reads](../backend/conventions.md#composed-reads) (uncollected visits);
   - conventions [§11](../backend/conventions.md#11-time) (time) and [§13](../backend/conventions.md#13-idempotency-and-concurrency) (idempotency and concurrency);
   - data-model.md: [derived values](../architecture/data-model.md#derived-values-computed-not-stored).
-- **Closes:** [finding 15](../architecture/findings/15-the-payments-migration-predates-adr-0015.md): the first payment is written at a visit's check-out.
+- **Closes:** [finding 15](../architecture/findings/15-the-payments-migration-predates-adr-0015.md): the first payment is written at a visit's check-out. Done (#95).
 - **Settles:** the auto check-out scheduling mechanism, within ADR 0014.
 
 ### 8. Customers and subscriptions
@@ -214,8 +214,8 @@ Built: `GET /lookups`, the active governorates with their active areas and the a
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, and the staff's read of the space's state now with its override ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed)).
-An active owner or reception link is required; reception is read-only. The web screen and later
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, the staff's read of the space's state now with its override, and a visitor's check-in and check-out (`POST …/visits`, `POST …/visits/:visitId/check-out`) ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed), [Front desk (managed)](../api/api-contract.md#front-desk-managed)).
+An active owner or reception link is required; reception reads, sets and clears the live status's override, and checks visitors in and out. The web screen and later
 dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
 | Method | Path | Access | Notes |
@@ -231,8 +231,7 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | POST | `/manage/spaces/:spaceId/customers/:customerId/subscriptions` | 🧾 | new or renewal, from a package or custom; warns when the customer has a balance |
 | GET / PATCH | `/manage/spaces/:spaceId/subscriptions/:id` | 🧾 | progress and statement; correct one |
 | POST | `/manage/spaces/:spaceId/subscriptions/:id/end` | 🧾 | end early: the end becomes today |
-| GET / POST | `/manage/spaces/:spaceId/visits` | 🧾 | `?open=true`, `?uncollected=true` or a date range; check in by name; a warning in `meta.warnings` when the space is full |
-| POST | `/manage/spaces/:spaceId/visits/:visitId/check-out` | 🧾 | → the charge; records its payment, or leaves it unpaid with a phone number |
+| GET | `/manage/spaces/:spaceId/visits` | 🧾 | `?open=true`, `?uncollected=true` or a date range |
 | GET / POST | `/manage/spaces/:spaceId/check-ins` | 🧾 | subscription check-ins: `?open=true` or a date range; limit and full-space warnings in `meta.warnings` |
 | POST | `/manage/spaces/:spaceId/check-ins/:checkInId/check-out` | 🧾 | |
 | GET / POST | `/manage/spaces/:spaceId/payments` | 🧾 | record one payment for one visit or subscription; list: the owner sees all (date, staff and method filters), reception its own today |

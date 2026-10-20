@@ -1,3 +1,4 @@
+import type { Tx } from '../../db/index.ts';
 import { createAnnouncementsRepository } from './announcements.repository.ts';
 
 /**
@@ -8,8 +9,8 @@ export function createAnnouncementsService() {
   const repository = createAnnouncementsRepository();
   return {
     /** Which of these spaces an active closure covers at `now`, in one query. */
-    closedAt(spaceIds: readonly number[], now: Date): Promise<Set<number>> {
-      return repository.closedAt(spaceIds, now);
+    closedAt(spaceIds: readonly number[], now: Date, tx?: Tx): Promise<Set<number>> {
+      return repository.closedAt(spaceIds, now, tx);
     },
   };
 }

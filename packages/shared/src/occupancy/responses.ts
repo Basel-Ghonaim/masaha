@@ -20,6 +20,8 @@ export type PresentPerson =
       name: string;
       /** When they checked in. */
       since: string;
+      /** What the stay costs so far, at the visit's rates; `null` with no rate. */
+      chargeNowAgorot: number | null;
     }
   | { kind: 'CHECK_IN'; id: number; customerId: number; name: string; since: string };
 

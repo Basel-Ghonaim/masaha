@@ -1,4 +1,4 @@
-import { gazaClockOf, gazaInstant } from '@masaha/shared/core';
+import { gazaClockOf, gazaInstant, type DomainErrorCode } from '@masaha/shared/core';
 import type {
   LiveStatus,
   PresentPerson,
@@ -17,7 +17,15 @@ import type { CustomersService } from '../customers/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import type { SubscriptionsService } from '../subscriptions/index.ts';
 import type { VisitsService } from '../visits/index.ts';
-import { liveStatus, openRangeAt, type Override, type Week } from './liveStatus.ts';
+import {
+  isFull,
+  liveStatus,
+  openRangeAt,
+  overrideInUse,
+  type LiveStatusInput,
+  type Override,
+  type Week,
+} from './liveStatus.ts';
 import { createOccupancyRepository } from './occupancy.repository.ts';
 import { overrideUntil } from './overrideUntil.ts';
 
@@ -68,13 +76,20 @@ export function createOccupancyService({
       ...openCheckIns.map(({ customerId }) => customerId),
       ...openVisits.flatMap(({ customerId }) => (customerId === null ? [] : [customerId])),
     ];
-    const names = await customers.namesOf(spaceId, [...new Set(customerIds)]);
+    const [names, charges] = await Promise.all([
+      customers.namesOf(spaceId, [...new Set(customerIds)]),
+      visits.chargesNow(
+        spaceId,
+        openVisits.map(({ id }) => id),
+      ),
+    ]);
     const people: PresentPerson[] = [
       ...openVisits.map(({ id, visitorName, customerId, checkedInAt }) => ({
         kind: 'VISIT' as const,
         id,
         name: visitorName ?? (customerId === null ? '' : (names.get(customerId) ?? '')),
         since: checkedInAt.toISOString(),
+        chargeNowAgorot: charges.get(id) ?? null,
       })),
       ...openCheckIns.map(({ id, customerId, checkedInAt }) => ({
         kind: 'CHECK_IN' as const,
@@ -100,15 +115,17 @@ export function createOccupancyService({
 
   /**
    * Opens a write on the override: the space's lock, then `can()` on the links read under it, so a
-   * link ended meanwhile still decides (finding 43).
+   * link ended meanwhile still decides (finding 43). Answers those links.
    */
-  async function lockForOverride(actor: Actor, space: LoadedSpace, tx: Tx): Promise<void> {
+  async function lockForOverride(actor: Actor, space: LoadedSpace, tx: Tx) {
     if (!(await spaces.lock(space.id, tx))) {
       throw AppError.notFound(undefined, 'Space not found');
     }
-    if (!can(actor, 'space.liveStatus.override', { links: await space.linksUnder(tx) })) {
+    const links = await space.linksUnder(tx);
+    if (!can(actor, 'space.liveStatus.override', { links })) {
       throw AppError.forbidden();
     }
+    return links;
   }
 
   const service = {
@@ -172,18 +189,20 @@ export function createOccupancyService({
         announcements.closedAt([space.id], now),
         spaces.weekOf(space.id),
       ]);
-      const override = state.override && state.override.until > now ? state.override : null;
+      const input: LiveStatusInput = {
+        verified: isVerified(space),
+        closureNow: closed.has(space.id),
+        week,
+        at: gazaClockOf(now),
+        now,
+        override: state.override,
+        capacity: state.capacity,
+        present: people.length,
+      };
+      // The override is answered only while the rule uses it: a closure hides it.
+      const override = overrideInUse(input);
       return {
-        status: liveStatus({
-          verified: isVerified(space),
-          closureNow: closed.has(space.id),
-          week,
-          at: gazaClockOf(now),
-          now,
-          override,
-          capacity: state.capacity,
-          present: people.length,
-        }),
+        status: liveStatus(input),
         capacity: state.capacity,
         present: people.length,
         override: override && { state: override.state, until: override.until.toISOString() },
@@ -193,8 +212,9 @@ export function createOccupancyService({
 
     /**
      * Sets the manual override, in one transaction: the space's lock and `can()`; then, only while
-     * the space is open by its hours, the override until `min(now + duration, today's closing)`,
-     * replacing the one in force, audited with both. Answers the state now.
+     * the rule would use it (the space verified, under no closure, open by its hours), the override
+     * until `min(now + duration, today's closing)`, replacing the one in force, audited with both.
+     * Answers the state now.
      */
     async setOverride(
       actor: Actor,
@@ -202,11 +222,14 @@ export function createOccupancyService({
       { state, duration }: SetStatusOverrideRequest,
     ): Promise<SpaceOccupancyNow> {
       await runInTransaction(async (tx) => {
-        await lockForOverride(actor, space, tx);
+        const links = await lockForOverride(actor, space, tx);
         const now = clock();
         const at = gazaClockOf(now);
         const open = openRangeAt(await spaces.weekOf(space.id, tx), at);
-        if (!open) throw AppError.conflict('SPACE_NOT_OPEN');
+        const closed = await announcements.closedAt([space.id], now, tx);
+        if (!open || closed.has(space.id) || !isVerified({ links })) {
+          throw AppError.conflict('SPACE_NOT_OPEN');
+        }
 
         const until = overrideUntil(duration, now, gazaInstant(at.date, open.closesMinute));
         const before = await overrideInForce(space.id, now, tx);
@@ -251,6 +274,25 @@ export function createOccupancyService({
         );
       });
       return service.now(space);
+    },
+
+    /**
+     * What a check-in at the space warns of now, in the caller's transaction, never refusing it:
+     * `SPACE_FULL` when as many are present as it seats (none without a capacity), then
+     * `OUTSIDE_OPENING_HOURS` when it has hours and is not open by them.
+     */
+    async checkInWarnings(spaceId: number, now: Date, tx: Tx): Promise<DomainErrorCode[]> {
+      const { capacity } = await occupancy.stateOf(spaceId, tx);
+      const present =
+        (await visits.openIn(spaceId, tx)).length +
+        (await subscriptions.openCheckInsIn(spaceId, tx)).length;
+      const week = await spaces.weekOf(spaceId, tx);
+      const warnings: DomainErrorCode[] = [];
+      if (isFull(present, capacity)) warnings.push('SPACE_FULL');
+      if (week !== null && !openRangeAt(week, gazaClockOf(now))) {
+        warnings.push('OUTSIDE_OPENING_HOURS');
+      }
+      return warnings;
     },
 
     /** The space's capacity; `null` before one is set. */

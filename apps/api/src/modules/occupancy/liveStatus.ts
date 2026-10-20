@@ -41,21 +41,31 @@ export function isFull(present: number, capacity: number | null): boolean {
   return capacity !== null && present >= capacity;
 }
 
-/** The live status, in the data model's order; `null` when the space has none. */
-export function liveStatus({
+/**
+ * The override the rule uses: one in force while the space is verified, under no closure and open
+ * by its hours; else `null`, however it is stored.
+ */
+export function overrideInUse({
   verified,
   closureNow,
   week,
   at,
   now,
   override,
-  capacity,
-  present,
-}: LiveStatusInput): LiveStatus | null {
+}: LiveStatusInput): Override | null {
+  return verified && !closureNow && openRangeAt(week, at) && override && override.until > now
+    ? override
+    : null;
+}
+
+/** The live status, in the data model's order; `null` when the space has none. */
+export function liveStatus(input: LiveStatusInput): LiveStatus | null {
+  const { verified, closureNow, week, at, capacity, present } = input;
   if (!verified) return null;
   if (closureNow) return 'CLOSED';
   if (week !== null && !openRangeAt(week, at)) return 'CLOSED';
-  if (week !== null && override && override.until > now) return override.state;
+  const override = overrideInUse(input);
+  if (override) return override.state;
   if (week === null || capacity === null) return null;
   return isFull(present, capacity) ? 'FULL' : 'AVAILABLE';
 }

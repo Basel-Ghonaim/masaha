@@ -184,12 +184,12 @@ describe('the due', () => {
     await expect(pay(space.id, staff.id, item, 500)).resolves.toBeDefined();
   });
 
-  it('waits for the visit to be charged', async () => {
+  it('a visit is paid only once its charge is set: payments_visit_uncharged', async () => {
     const { space, staff } = await setup();
     const open = await createVisit(space.id, { visitorName: 'Rami' });
 
     await expect(pay(space.id, staff.id, { visitId: open.id }, 500)).rejects.toThrow(
-      /payments_within_due/,
+      /payments_visit_uncharged/,
     );
   });
 

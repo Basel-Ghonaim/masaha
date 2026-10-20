@@ -1,16 +1,20 @@
-import type { OpeningRange } from '@masaha/shared/spaces';
+import type { OpeningRange, Price, Shift } from '@masaha/shared/spaces';
 
 import type { Tx } from '../../db/index.ts';
 import { createHoursRepository } from './hours/hours.repository.ts';
+import { createShiftsRepository } from './hours/shifts.repository.ts';
+import { createPricesRepository } from './prices/prices.repository.ts';
 import { createSpacesRepository, type SpaceRow } from './spaces.repository.ts';
 
 /**
  * The listed coworking spaces, as the modules above read them: the summaries of many spaces at
- * once, a space's week, and the space's lock, which a change of its links takes.
+ * once, a space's week, shifts and prices, and the space's lock, which a change of its links takes.
  */
 export function createSpacesService() {
   const repository = createSpacesRepository();
   const hours = createHoursRepository();
+  const prices = createPricesRepository();
+  const shifts = createShiftsRepository();
   return {
     /** The summaries of these spaces, in one query; a soft-deleted space has none. */
     summariesFor(ids: readonly number[], tx?: Tx): Promise<SpaceRow[]> {
@@ -25,6 +29,16 @@ export function createSpacesService() {
     /** The weeks of these spaces, by space, in one query; a space without hours is absent. */
     weeksFor(spaceIds: readonly number[], tx?: Tx): Promise<Map<number, (OpeningRange | null)[]>> {
       return hours.weeksFor(spaceIds, tx);
+    },
+
+    /** The space's shifts, in the order they are shown in. */
+    shiftsOf(spaceId: number, tx?: Tx): Promise<Shift[]> {
+      return shifts.listFor(spaceId, tx);
+    },
+
+    /** The space's published prices, in the order they are shown in. */
+    pricesOf(spaceId: number, tx?: Tx): Promise<Price[]> {
+      return prices.listFor(spaceId, tx);
     },
 
     /**

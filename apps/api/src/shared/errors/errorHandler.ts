@@ -1,7 +1,9 @@
 import { errorTypeOfStatus, type ErrorEnvelope } from '@masaha/shared/core';
 import type { ErrorRequestHandler, RequestHandler, Response } from 'express';
 
+import { checkViolationOf } from '../../db/index.ts';
 import { AppError, type RateLimitState } from './appError.ts';
+import { CONSTRAINT_CODES } from './constraintCodes.ts';
 
 /** Registered after every route: anything unmatched is a `not_found`. */
 export const notFoundHandler: RequestHandler = (req) => {
@@ -53,6 +55,11 @@ function toAppError(error: unknown): AppError {
     const type = errorTypeOfStatus(error.status);
     if (type) return new AppError(type);
   }
+
+  // A rule the database owns, named by its constraint: the translation table's domain error.
+  const constraint = checkViolationOf(error);
+  const translated = constraint === null ? undefined : CONSTRAINT_CODES[constraint];
+  if (translated) return new AppError(translated.type, translated.code);
 
   // Anything else is a bug: the client gets a generic error, never the message or the stack.
   return AppError.server();

@@ -26,6 +26,11 @@ export interface SpaceResource {
   readonly links: readonly SpaceLink[];
 }
 
+/** A space with its switch that lets reception type a price by hand (its settings). */
+export interface PriceTypingResource extends SpaceResource {
+  readonly receptionMayTypePrices: boolean;
+}
+
 /** A resource that belongs to one user: their profile, favourites or data reports. */
 export interface OwnedResource {
   readonly userId: number;
@@ -40,6 +45,8 @@ type Rule =
   | 'staff'
   /** ADMIN, or the space's OWNER. */
   | 'adminOrOwner'
+  /** The space's OWNER; its RECEPTION too where the space's settings allow it. */
+  | 'ownerOrAllowedReception'
   /** ADMIN while the space is unverified; once verified, only its OWNER, and no longer ADMIN. */
   | 'adminWhileUnverifiedElseOwner'
   /** Any role, on their own resource only. */
@@ -68,6 +75,8 @@ const PERMISSIONS = {
   'payments.readOwn': 'staff',
   'announcements.manage': 'staff',
   'space.liveStatus.override': 'staff',
+  /** A price typed by hand at the desk, where there is no rate (data model › Hand-typed prices). */
+  'prices.typeByHand': 'ownerOrAllowedReception',
 
   // The owner's own: money, the space's setup and its staff.
   'payments.read': 'owner',
@@ -107,6 +116,8 @@ type ActionWith<R extends Rule> = {
 export type SpaceAction = ActionWith<
   'owner' | 'staff' | 'adminOrOwner' | 'adminWhileUnverifiedElseOwner'
 >;
+/** Actions decided by the space's switch too; they take a `PriceTypingResource`. */
+export type PriceTypingAction = ActionWith<'ownerOrAllowedReception'>;
 /** Actions on a user's own resource; they take an `OwnedResource`. */
 export type SelfAction = ActionWith<'self'>;
 /** Actions decided by the role alone; they take no resource. */
@@ -122,6 +133,7 @@ interface RuleResources {
   owner: [resource: SpaceResource];
   staff: [resource: SpaceResource];
   adminOrOwner: [resource: SpaceResource];
+  ownerOrAllowedReception: [resource: PriceTypingResource];
   adminWhileUnverifiedElseOwner: [resource: SpaceResource];
 }
 
@@ -133,7 +145,7 @@ export function can<A extends Action>(
 ): boolean {
   const rule: Rule = PERMISSIONS[action];
   // The signature guarantees each rule the resource it reads.
-  const resource = (args as readonly (OwnedResource | SpaceResource)[])[0];
+  const resource = (args as readonly (OwnedResource | SpaceResource | PriceTypingResource)[])[0];
 
   switch (rule) {
     case 'admin':
@@ -148,6 +160,11 @@ export function can<A extends Action>(
       return roleAt(actor, resource as SpaceResource) !== undefined;
     case 'adminOrOwner':
       return isAdmin(actor) || roleAt(actor, resource as SpaceResource) === 'OWNER';
+    case 'ownerOrAllowedReception': {
+      const space = resource as PriceTypingResource;
+      const role = roleAt(actor, space);
+      return role === 'OWNER' || (role === 'RECEPTION' && space.receptionMayTypePrices);
+    }
     case 'adminWhileUnverifiedElseOwner': {
       const space = resource as SpaceResource;
       return isVerified(space) ? roleAt(actor, space) === 'OWNER' : isAdmin(actor);

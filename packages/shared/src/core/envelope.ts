@@ -12,6 +12,11 @@ export interface SuccessEnvelope<T, M = unknown> {
   meta?: M;
 }
 
+/** The `meta` of an answer that succeeded with advice: the front desk's warnings (§6's codes). */
+export interface WarningsMeta {
+  warnings: DomainErrorCode[];
+}
+
 /** An error answer. */
 export interface ErrorEnvelope {
   success: false;

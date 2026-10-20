@@ -15,7 +15,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 
 - [8. The stress test's applied-filter tag has no component](8-the-stress-tests-applied-filter-tag-has-no-component.md)
 - [14. The owner's audit screen has no design](14-the-owners-audit-screen-has-no-design.md)
-- [15. The payments migration predates ADR 0015](15-the-payments-migration-predates-adr-0015.md)
 - [17. Expired rate-limit counters and abandoned sessions are never swept](17-expired-rate-limit-counters-and-abandoned-sessions-are-never-swept.md)
 - [21. A token replayed within the grace window starts its own branch](21-a-token-replayed-within-the-grace-window-starts-its-own-branch.md)
 - [22. The reset email's words live outside the web's copy catalogue](22-the-reset-emails-words-live-outside-the-webs-copy-catalogue.md)
@@ -52,6 +51,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [95. A link from the editor words the space from the editor's read](95-a-link-from-the-editor-words-the-space-from-the-editors-read.md)
 - [96. The attendance card saves two capabilities in one save](96-the-attendance-card-saves-two-capabilities-in-one-save.md)
 - [97. The visit-rounding rule is written twice](97-the-visit-rounding-rule-is-written-twice.md)
+- [98. The capability documents outgrow their size guide](98-the-capability-documents-outgrow-their-size-guide.md)
 
 ## Accepted
 
@@ -72,6 +72,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [11. Nested writes in an interactive transaction trigger a `pg` deprecation warning](11-nested-writes-in-an-interactive-transaction-trigger-a-pg-deprecation-warning.md)
 - [12. The admin's settings list a "default auto check-out" that the model has no place for](12-the-admins-settings-list-a-default-auto-check-out-that-the-model-has-no-place-for.md)
 - [13. Two documents still say "member" for the renamed customer](13-two-documents-still-say-member-for-the-renamed-customer.md)
+- [15. The payments migration predates ADR 0015](15-the-payments-migration-predates-adr-0015.md)
 - [16. The forgotten password's timing can tell whether an account exists](16-the-forgotten-passwords-timing-can-tell-whether-an-account-exists.md)
 - [18. Whether a link to a deleted space still counts](18-whether-a-link-to-a-deleted-space-still-counts.md)
 - [20. A session has no absolute lifetime](20-a-session-has-no-absolute-lifetime.md)

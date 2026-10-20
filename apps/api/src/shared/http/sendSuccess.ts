@@ -1,9 +1,9 @@
-import type { PaginationMeta, SuccessEnvelope } from '@masaha/shared/core';
+import type { PaginationMeta, SuccessEnvelope, WarningsMeta } from '@masaha/shared/core';
 import type { Response } from 'express';
 
 interface SuccessOptions {
   status?: number;
-  meta?: PaginationMeta;
+  meta?: PaginationMeta | WarningsMeta;
 }
 
 /** Sends the success envelope (docs/api/api-contract.md §2). */
@@ -12,7 +12,7 @@ export function sendSuccess(
   data: unknown,
   { status = 200, meta }: SuccessOptions = {},
 ) {
-  const body: SuccessEnvelope<unknown, PaginationMeta> = {
+  const body: SuccessEnvelope<unknown, PaginationMeta | WarningsMeta> = {
     success: true,
     data,
     ...(meta && { meta }),

@@ -21,6 +21,12 @@ import {
   type GoogleIdentity,
 } from './modules/auth/index.ts';
 import { createCustomersService } from './modules/customers/index.ts';
+import { createPaymentsService } from './modules/payments/index.ts';
+import {
+  createDeskController,
+  createDeskManageRouter,
+  createDeskService,
+} from './modules/desk/index.ts';
 import {
   createDirectoryController,
   createDirectoryPublicRouter,
@@ -109,7 +115,11 @@ import {
   createUsersMeRouter,
   createUsersService,
 } from './modules/users/index.ts';
-import { createVisitsService } from './modules/visits/index.ts';
+import {
+  createVisitsController,
+  createVisitsManageRouter,
+  createVisitsService,
+} from './modules/visits/index.ts';
 import { writeAudit } from './shared/audit/index.ts';
 import {
   createAccessTokens,
@@ -307,14 +317,26 @@ export function createApi({
   const confirm = createConfirmService(facts);
   const photos = createPhotosService({ runInTransaction, audit: writeAudit, storage, logger });
   const packages = createPackagesService({ runInTransaction, audit: writeAudit, spaces });
+  const visits = createVisitsService({ audit: writeAudit, spaces, spaceSettings, now: clock });
+  const customers = createCustomersService({ audit: writeAudit });
   const occupancy = createOccupancyService({
     runInTransaction,
     audit: writeAudit,
     spaces,
-    visits: createVisitsService(),
+    visits,
     subscriptions: createSubscriptionsService(),
-    customers: createCustomersService(),
+    customers,
     announcements: createAnnouncementsService(),
+    now: clock,
+  });
+  const desk = createDeskService({
+    runInTransaction,
+    spaces,
+    spaceSettings,
+    visits,
+    customers,
+    payments: createPaymentsService({ audit: writeAudit }),
+    occupancy,
     now: clock,
   });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
@@ -404,6 +426,8 @@ export function createApi({
     createSpaceSettingsManageRouter(createSpaceSettingsController(spaceSettings)),
   );
   manage.use(createOccupancyManageRouter(createOccupancyController(occupancy)));
+  manage.use(createDeskManageRouter(createDeskController(desk)));
+  manage.use(createVisitsManageRouter(createVisitsController(visits)));
   manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
   api.use(
     '/manage/spaces/:spaceId',

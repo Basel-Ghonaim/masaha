@@ -1,6 +1,6 @@
 # Occupancy
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-19 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
 > **Authority:** The `occupancy` capability: a space's state now: its capacity, private to its staff and set by its owner, who is present, and the live status. Its endpoints are owned by the API contract ([Capacity](../api/api-contract.md#capacity-managed), [Occupancy](../api/api-contract.md#occupancy-managed)); its entity by the [data model](../architecture/data-model.md#spaces), and the live-status rule by its [derived values](../architecture/data-model.md#derived-values-computed-not-stored). The API is built; no web screen yet.
 > **Scope:** the API module `occupancy` (L4); `@masaha/shared/occupancy`. No web feature yet.
 
@@ -9,7 +9,7 @@
 - Keeps a space's capacity: the most people it seats, or none.
 - Answers the space's owner its capacity.
 - Lets the owner set it, change it or clear it.
-- Answers the space's staff its state now, whole: who is present (the open visits plus the open subscription check-ins), how many, the capacity, the override in force and the live status.
+- Answers the space's staff its state now, whole: who is present (the open visits plus the open subscription check-ins), each visit with its charge so far, how many, the capacity, the override in force and the live status.
 - Lets the staff override the live status for 30 minutes, an hour, two hours or until closing, never past today's closing, and clear it early.
 
 ## Who uses it
@@ -17,12 +17,12 @@
 - **The space's owner,** through the API: reads and sets the capacity, reads the state now, and sets and clears the override.
 - **The space's reception,** through the API: reads the state now, the capacity in it, but not the capacity's own route; sets and clears the override.
 - **The directory,** for the public: each listed space's live status, and which are available now, set-based ([directory](directory.md)); never a count or a capacity.
-- The front desk's full warning will read *present* (step 7). The admin never reaches any of it: a space's capacity and its counts are private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). No web screen reads it yet.
+- **The front desk** ([desk](desk.md)): a check-in's warnings, in its transaction: full when *present* reaches the capacity, outside the hours. The admin never reaches any of it: a space's capacity and its counts are private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). No web screen reads it yet.
 
 ## Responsibility boundary
 
 - **Owns** the `space_occupancy` table, created on its first write, and the capacity's bound; the one definition of *present* and the one list of who is present; the pure live-status rule (`liveStatus.ts`) and the override's end (`overrideUntil.ts`) ([conventions › occupancy](../backend/conventions.md#occupancy-the-spaces-state-now)).
-- **Reads** the open visits from `visits`, the open subscription check-ins from `subscriptions`, the customers' names from `customers`, the closures in force from `announcements`, and the week from [`spaces`](spaces.md); each through its service, which alone reads its table. Those four modules hold only these reads so far, with no capability document of their own.
+- **Reads** the open visits and their charges so far from [`visits`](visits.md), the open subscription check-ins from `subscriptions`, the customers' names from `customers`, the closures in force from `announcements`, and the week from [`spaces`](spaces.md); each through its service, which alone reads its table. `subscriptions`, `customers` and `announcements` hold only these reads so far, with no capability document of their own.
 - **Leaves** the space and its lock to [`spaces`](spaces.md); who may read or write to `can()` ([security › Authorization](../backend/security.md#authorization)); the stay limit and the other settings to [`space-settings`](space-settings.md).
 
 ## How it composes the platform
@@ -35,9 +35,11 @@
 
 ## Behaviour and flows
 
-**The state now.** Several statements, with no lock: the space's row, its open visits and open check-ins, their customers' names, whether a closure is in force, and its week. *Present* is the people listed. The override counts only while its end is after now, and is answered only then. The live status is the rule's, from those inputs and whether the space is verified, read from its links.
+**The state now.** Several statements, with no lock: the space's row, its open visits and open check-ins, their customers' names, each open visit's charge so far (from `visits`), whether a closure is in force, and its week. *Present* is the people listed. The override counts only while its end is after now and the space is verified, under no closure and open by its hours, and is answered only then: a closure announced after it hides it. The live status is the rule's, from those inputs and whether the space is verified, read from its links.
 
-**The override.** In one transaction: the space's lock; `can()` on the links as they are under it; the week, and today's range on Gaza's clock. Outside it, or with no hours, it is refused `SPACE_NOT_OPEN`. Otherwise it ends at `min(now + duration, today's closing)`, replaces the one in force, the row created with no capacity on its first write, and is audited with both. Clearing takes the same lock and `can()`, and writes and audits only when an override is in force. An ended override is never cleared by a job: it simply stops counting.
+**The override.** In one transaction: the space's lock; `can()` on the links as they are under it; the week, and today's range on Gaza's clock; the closures in force. Outside that range, with no hours, under a closure in force, or on an unverified space (no active owner among those links), it is refused `SPACE_NOT_OPEN`. Otherwise it ends at `min(now + duration, today's closing)`, replaces the one in force, the row created with no capacity on its first write, and is audited with both. Clearing takes the same lock and `can()`, and writes and audits only when an override is in force. An ended override is never cleared by a job: it simply stops counting.
+
+**The check-in's warnings.** In the desk's transaction, under the space's lock: the capacity, *present* (the open visits plus the open check-ins), and the week; `SPACE_FULL` when *present* reaches the capacity (never without one), then `OUTSIDE_OPENING_HOURS` when the space has hours and is not open by them now. They never refuse the check-in.
 
 **The directory's read.** `liveStatusFor` decides many spaces at once: one query each for their rows, their open visits and open check-ins (counted), their closures, and the weeks the directory did not pass; `availableAmong` keeps the verified spaces `AVAILABLE` now, for the directory's filter.
 
@@ -63,6 +65,7 @@ A change applies from then on ([data model › Front desk and money](../architec
 - **The people present: the earliest checked in first; on a tie, visits before check-ins, then by id.** *Why:* the desk sees who has stayed longest first, in a stable order. 2026-10-19, #94.
 - **An override ends at the next closing at the latest: `min(now + duration, today's closing)`; its end is derived at read time, with no job.** *Why:* no override outlives its day, and nothing needs to run to end one. 2026-10-19, #94.
 - **An override is refused with `SPACE_NOT_OPEN` while the space is not open by its hours, or has none.** *Why:* the rule counts an override only while the space is open; stored outside its hours it would be a silent no-op, and the refusal tells the desk why. 2026-10-19, #94.
+- **An override is also refused with `SPACE_NOT_OPEN` under a closure in force or on an unverified space; the staff's read answers it only while the rule uses it.** *Why:* in both cases the rule ignores the override, so storing it would be the same silent no-op; and an override shown "in force" beside `CLOSED` would tell the desk what does not apply. 2026-10-20, #95.
 - **The override is the staff's, set and cleared under the space's lock, `can()` decided on the links read there; the answer is the state now.** *Why:* a reception link ended meanwhile refuses (finding 43); the desk redraws from one answer. 2026-10-19, #94.
 - **Audited `space.statusOverridden` (the one in force and the new one) and `space.statusOverrideCleared`; clearing none writes nothing.** 2026-10-19, #94.
 
@@ -81,3 +84,4 @@ A change applies from then on ([data model › Front desk and money](../architec
 
 - #92 — a space's capacity, read and set by its owner on the API; the module's first slice.
 - #94 — the staff's read of the state now: who is present, the count, the capacity and the live status; the manual override, set and cleared by the staff; the live status of many spaces at once, for the directory.
+- #95 — the override refused under a closure or on an unverified space, and answered only while the status uses it; a check-in's warnings, for the desk; each visit present with its charge so far.
