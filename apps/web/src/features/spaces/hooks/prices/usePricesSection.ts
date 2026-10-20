@@ -54,19 +54,23 @@ const NO_SHIFT = 'none';
  * period, an audience, one of the space's saved shifts or none, a custom label (its Arabic before its
  * English) and an amount typed in shekels. A repeated price is refused on the field that would tell
  * it apart, and an amount empty, zero or not an amount on its own, before anything is sent. While the
- * space has no saved shift, or the opening hours have unsaved changes, a line above the rows says so.
- * A save sends nothing when the prices are as the form was last filled from; a shift removed meanwhile
- * is said on its row, and the space is fetched again.
+ * space has no saved shift, or the opening hours have unsaved changes, a line above the rows says so,
+ * the first with the way to the hours where the page gives one (`hoursLink`). A save sends nothing
+ * when the prices are as the form was last filled from; a shift removed meanwhile is said on its row,
+ * and the space is fetched again. On the owner's place, Packages & prices, the section is titled
+ * «الأسعار المعلنة», with its own intro.
  */
 export function usePricesSection({
   place,
   space,
   hoursUnsaved,
+  hoursLink,
   onDirtyChange,
 }: {
   place: EditorPlace;
   space: AdminSpace;
   hoursUnsaved: boolean;
+  hoursLink: string | null;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
   const copy = useCopy();
@@ -211,12 +215,20 @@ export function usePricesSection({
   };
   const full = list.fields.length >= MAX_PRICES;
 
+  const owner = place === 'owner';
   return {
-    frame,
-    intro: words.intro,
+    frame: owner ? { ...frame, title: words.publishedTitle } : frame,
+    intro: owner ? words.publishedIntro : words.intro,
     notes: [
-      ...(shifts.length === 0 ? [words.noShifts] : []),
-      ...(hoursUnsaved ? [words.hoursUnsaved] : []),
+      ...(shifts.length === 0
+        ? [
+            {
+              text: words.noShifts,
+              link: hoursLink === null ? null : { label: words.noShiftsLink, href: hoursLink },
+            },
+          ]
+        : []),
+      ...(hoursUnsaved ? [{ text: words.hoursUnsaved, link: null }] : []),
     ],
     columns: {
       period: words.period,

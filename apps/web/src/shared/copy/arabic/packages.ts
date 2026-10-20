@@ -1,0 +1,141 @@
+import { arabicPlural } from '../plural';
+import type { Catalogue } from '../shape';
+
+export const PACKAGES = {
+  title: 'الباقات الخاصة',
+  description: 'لا تظهر للزوار.',
+  add: 'باقة جديدة',
+  loadFailed: 'تعذّر تحميل الباقات',
+  empty: {
+    title: 'لا توجد باقات خاصة',
+    text: 'أنشئ باقة مثل «10 أيام» أو «20 ساعة».',
+  },
+  paused: 'موقوفة',
+  available: 'متاحة',
+  availableNamed: ({ name }: { name: string }) => `${name}: متاحة`,
+  edit: 'تعديل',
+  editNamed: ({ name }: { name: string }) => `تعديل ${name}`,
+  toggleFailed: ({ name }: { name: string }) => `تعذّر تغيير إتاحة ${name}`,
+  heldShift: ({ shift }: { shift: string }) =>
+    `موقوفة وما زالت تحجز وردية «${shift}»؛ لا تُحذف الوردية قبل إزالتها منها.`,
+  clearShift: 'إزالة الوردية',
+  clearShiftFailed: ({ name }: { name: string }) => `تعذّرت إزالة وردية ${name}`,
+  summary: {
+    validity: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `صالحة ${String(count)} يوم`,
+        one: 'صالحة يومًا واحدًا',
+        two: 'صالحة يومين',
+        few: `صالحة ${String(count)} أيام`,
+        many: `صالحة ${String(count)} يومًا`,
+        other: `صالحة ${String(count)} يوم`,
+      }),
+    totalDays: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `${String(count)} يوم`,
+        one: 'يوم واحد',
+        two: 'يومان',
+        few: `${String(count)} أيام`,
+        many: `${String(count)} يومًا`,
+        other: `${String(count)} يوم`,
+      }),
+    daysPerWeek: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `${String(count)} يوم بالأسبوع`,
+        one: 'يوم واحد بالأسبوع',
+        two: 'يومان بالأسبوع',
+        few: `${String(count)} أيام بالأسبوع`,
+        many: `${String(count)} يوم بالأسبوع`,
+        other: `${String(count)} يوم بالأسبوع`,
+      }),
+    hoursPerDay: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `${String(count)} ساعة باليوم`,
+        one: 'ساعة واحدة باليوم',
+        two: 'ساعتان باليوم',
+        few: `${String(count)} ساعات باليوم`,
+        many: `${String(count)} ساعة باليوم`,
+        other: `${String(count)} ساعة باليوم`,
+      }),
+    totalHours: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `رصيد ${String(count)} ساعة`,
+        one: 'رصيد ساعة واحدة',
+        two: 'رصيد ساعتين',
+        few: `رصيد ${String(count)} ساعات`,
+        many: `رصيد ${String(count)} ساعة`,
+        other: `رصيد ${String(count)} ساعة`,
+      }),
+    students: 'للطلاب',
+    separator: ' · ',
+  },
+  price: {
+    perHour: ({ price }: { price: string }) => `${price} للساعة`,
+    perDay: ({ price }: { price: string }) => `${price} لليوم`,
+  },
+  sheet: {
+    newTitle: 'باقة جديدة',
+    editTitle: 'تعديل الباقة',
+    description: 'باقة خاصة — لا تظهر للزوار.',
+    close: 'إغلاق',
+    name: 'اسم الباقة',
+    validity: 'الصلاحية (أيام)',
+    validityHelp: 'ينتهي الاشتراك بعد هذه المدة من بدايته.',
+    limits: 'الحدود',
+    limitsHelp: 'اختر ما ينطبق؛ يظهر لكل حد حقله.',
+    optional: 'اختياري',
+    limitNames: {
+      totalDays: 'عدد الأيام',
+      daysPerWeek: 'أيام بالأسبوع',
+      hoursPerDay: 'ساعات باليوم',
+      totalHours: 'مجموع الساعات',
+    },
+    billing: 'طريقة الحساب',
+    billings: { FIXED: 'سعر ثابت', PER_HOUR: 'بالساعة', PER_DAY: 'باليوم' },
+    amount: {
+      FIXED: 'السعر الكلي (₪)',
+      PER_HOUR: 'سعر الساعة (₪)',
+      PER_DAY: 'سعر اليوم (₪)',
+    },
+    audience: 'لمن',
+    audiences: { GENERAL: 'الجميع', STUDENT: 'الطلاب' },
+    shift: 'الوردية',
+    noShift: 'بدون وردية',
+    noShifts: 'لا ورديات محفوظة بعد.',
+    addShifts: 'أضف ورديات في ساعات العمل',
+    shiftsLoading: 'جارٍ تحميل الورديات…',
+    summary: 'الملخّص',
+    unnamed: 'باقة بدون اسم',
+    noPrice: 'بدون سعر بعد',
+    submit: 'حفظ الباقة',
+    failed: 'تعذّر حفظ الباقة',
+  },
+  saved: ({ name }: { name: string }) => `حُفظت الباقة ${name}`,
+  fieldErrors: {
+    name: {
+      required: 'أدخل اسم الباقة',
+      too_short: 'أدخل اسم الباقة',
+      not_unique: 'اسم مستخدم لباقة أخرى، موقوفة أو متاحة',
+      too_long: 'الاسم أطول من 60 حرفًا',
+      invalid_format: 'احذف الرموز غير المسموحة من الاسم',
+    },
+    count: {
+      required: 'أدخل العدد',
+      out_of_range: 'عدد صحيح من 1 فأكثر',
+      invalid_format: 'عدد صحيح من 1 فأكثر',
+    },
+    limitEmpty: 'أدخل العدد أو أطفئ هذا الحد',
+    daysPerWeek: { out_of_range: 'من 1 إلى 7' },
+    hoursPerDay: { out_of_range: 'من 1 إلى 24' },
+    amount: {
+      required: 'أدخل السعر',
+      out_of_range: 'أدخل مبلغًا أكبر من صفر، حتى 100,000 ₪',
+      invalid_format: 'أدخل مبلغًا بالشيكل، حتى منزلتين عشريتين',
+    },
+    shift: { invalid_choice: 'لم تعد هذه الوردية موجودة؛ اختر غيرها.' },
+  },
+  refusals: {
+    forbidden: 'لم يعد هذا متاحًا لك في هذه المساحة؛ لم يُحفظ شيء.',
+    not_found: 'لم تعد هذه الباقة موجودة، أو لم تعد المساحة متاحة لك.',
+  },
+} satisfies Catalogue['packages'];

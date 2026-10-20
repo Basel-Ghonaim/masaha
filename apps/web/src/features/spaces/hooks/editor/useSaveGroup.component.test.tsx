@@ -5,7 +5,7 @@ import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { act, render, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
 import { EDITOR_SCOPES } from './editorScope';
 import { useSaveGroup } from './useSaveGroup';
@@ -64,5 +64,40 @@ describe('useSaveGroup', () => {
     );
     expect(client.getQueryData(EDITOR_SCOPES.owner.spaceKey(7))).toEqual(RENAMED);
     expect(client.getQueryState(EDITOR_SCOPES.owner.spaceKey(7))?.isInvalidated).toBe(false);
+  });
+
+  it('fetches the user’s spaces again when an owner’s write finds the space no longer theirs (404)', async () => {
+    const requests = fakeTransport((request) =>
+      request.url === '/manage/spaces' ? ok([]) : refused(404, { type: 'not_found' }),
+    );
+    const client = createQueryClient();
+    client.setQueryData(EDITOR_SCOPES.owner.spaceKey(7), SPACE);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(
+      () => {
+        const spaces = useQuery({
+          queryKey: ['me', 'spaces'],
+          queryFn: () => api.get<unknown[]>('/manage/spaces'),
+        });
+        const save = useSaveGroup('owner', 7, 'profile', (request: { nameAr: string }) =>
+          EDITOR_SCOPES.owner.repository.updateProfile(7, request),
+        );
+        return { spaces, save };
+      },
+      { wrapper },
+    );
+    await waitFor(() => {
+      expect(result.current.spaces.isSuccess).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.save.mutateAsync({ nameAr: 'مركز فوكس' }).catch(() => undefined);
+    });
+
+    await waitFor(() => {
+      expect(requests.filter(({ url }) => url === '/manage/spaces')).toHaveLength(2);
+    });
   });
 });

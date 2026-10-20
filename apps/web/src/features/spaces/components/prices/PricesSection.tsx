@@ -10,6 +10,7 @@ import {
   SelectValue,
   XIcon,
 } from '@shared/design-system';
+import { Link } from 'react-router';
 import { usePricesSection } from '../../hooks/prices/usePricesSection';
 import type { EditorPlace } from '../../types/EditorPlace';
 import { SectionCard } from '../editor/SectionCard';
@@ -52,23 +53,26 @@ function RowSelect({
 }
 
 /**
- * «الأسعار»: the prices, for display only; from 768 px a small table, its columns named once in its
+ * «الأسعار»: the prices, for display only; from 1024 px a small table, its columns named once in its
  * header, and below it a card per price; each a period, an audience, a shift of the space's saved
  * ones, a custom label in Arabic then English, and an amount in shekels; added up to the limit and
- * removed; saved, dated and confirmed as one group.
+ * removed; saved, dated and confirmed as one group. Its lines above the rows may lead to the opening
+ * hours (`hoursLink`), where the page has them elsewhere.
  */
 export function PricesSection({
   place,
   space,
   hoursUnsaved,
+  hoursLink,
   onDirtyChange,
 }: {
   place: EditorPlace;
   space: AdminSpace;
   hoursUnsaved: boolean;
+  hoursLink: string | null;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
-  const view = usePricesSection({ place, space, hoursUnsaved, onDirtyChange });
+  const view = usePricesSection({ place, space, hoursUnsaved, hoursLink, onDirtyChange });
   const optional = (
     <span className="lg:hidden">
       <OptionalMark label={view.columns.optional} />
@@ -79,8 +83,16 @@ export function PricesSection({
     <SectionCard frame={view.frame}>
       <p className="text-caption text-muted-foreground">{view.intro}</p>
       {view.notes.map((note) => (
-        <p key={note} className="text-caption text-muted-foreground">
-          {note}
+        <p key={note.text} className="text-caption text-muted-foreground">
+          {note.text}
+          {note.link && (
+            <>
+              {' '}
+              <Link to={note.link.href} className="text-primary underline underline-offset-4">
+                {note.link.label}
+              </Link>
+            </>
+          )}
         </p>
       ))}
       {view.rows.length > 0 && (

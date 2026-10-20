@@ -26,7 +26,8 @@ export function PricesLinkCard({ view, href }: { view: PricesLinkView; href: str
           <h2>{view.title}</h2>
         </CardTitle>
         <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span>{view.description} ·</span>
+          <span>{view.description}</span>
+          <span aria-hidden>·</span>
           <span>{view.date}</span>
           {view.stale && <Badge variant="warning">{view.stale}</Badge>}
         </CardDescription>

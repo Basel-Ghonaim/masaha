@@ -1,8 +1,8 @@
 # Packages
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
-> **Authority:** The `packages` capability: a space's packages, the subscription templates its owner keeps, private to its staff. Its endpoints are owned by the [API contract](../api/api-contract.md#packages-managed); its entity by the [data model](../architecture/data-model.md#operations). The API is built; no web screen yet.
-> **Scope:** the API module `packages` (L2); `@masaha/shared/packages`. No web feature yet.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Authority:** The `packages` capability: a space's packages, the subscription templates its owner keeps, private to its staff. Its endpoints are owned by the [API contract](../api/api-contract.md#packages-managed); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the web, the owner's private packages on Packages & prices.
+> **Scope:** the API module `packages` (L2); `@masaha/shared/packages`; the web feature `features/packages`, dashboard-only.
 
 ## What it does
 
@@ -10,12 +10,13 @@
 - Answers the space's staff every package, retired ones included, in order, whole.
 - Lets the owner add a package, placed last.
 - Lets the owner edit any of a package's terms, and retire it; a package is never deleted.
+- On the dashboard, shows the owner the space's private packages on Packages & prices: each offered or paused by its switch, added and edited in the package sheet, and a paused one that still holds a shift cleared of it.
 
 ## Who uses it
 
-- **The space's owner,** through the API: reads, adds and edits.
+- **The space's owner,** on the dashboard's Packages & prices (`/dashboard/spaces/:spaceId/packages`): reads, adds and edits.
 - **The space's reception,** through the API: reads them, for the front desk, which will choose from them when it makes a subscription.
-- No web screen reads it yet. The public never does: its packages are the space's published prices ([glossary](../project/glossary.md)).
+- Reception's desk does not read it on the web yet. The public never does: its packages are the space's published prices ([glossary](../project/glossary.md)).
 
 ## Responsibility boundary
 
@@ -28,7 +29,8 @@
 - Its list is one of the contract's exceptions to pagination ([api-contract §4](../api/api-contract.md#4-pagination)).
 - Its writes ask `can()` at the route, through `requireCan`, then again under the space's lock, taken through `spaces` ([conventions › Space access](../backend/conventions.md#space-access)).
 - Each change is audited by the audit writer, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the names the [contract](../api/api-contract.md#packages-managed) gives.
-- Its requests are checked by the shared schemas ([shared-package.md](../architecture/shared-package.md)).
+- Its requests are checked by the shared schemas ([shared-package.md](../architecture/shared-package.md)), in the browser too.
+- On the web, the page sets the space's shifts in the section, as [`spaces`](spaces.md) reads them (`useSpaceShifts`), so the feature reads no space; a save refused for a shift gone meanwhile fetches the whole `['space', spaceId]` scope again, since the shifts are `spaces`' ([architecture §7](../frontend/architecture.md#7-server-state)).
 
 ## Behaviour and flows
 
@@ -38,7 +40,13 @@
 
 **Edit.** The same lock and `can()`, then the package, found among the space's own; only the fields the edit sets to a new value are written and audited, `null` clearing a limit or the shift. An edit that changes nothing writes nothing. Retiring is the same edit, `isActive: false`; a retired package stays listed, and `true` offers it again.
 
-A retired package keeps its shift: the shift's own save refuses to remove a shift anything names ([finding 81](../architecture/findings/81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)), so clearing it on the retired package — `PATCH { shiftId: null }` — is the way out.
+A retired package keeps its shift: the shift's own save refuses to remove a shift anything names ([finding 81](../architecture/findings/81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)), so clearing it on the retired package — `PATCH { shiftId: null }` — is the way out, which the owner's screen offers (below).
+
+**The owner's packages on the web.** «الباقات الخاصة», under the published prices on Packages & prices (`PackagesSection`), says «لا تظهر للزوار.» and offers «باقة جديدة» at its row's end:
+- **The list** is every package, in the server's order, a row each: the name, «موقوفة» on a muted row for a paused one, its terms in one line — the validity, each limit set, «للطلاب», the shift's name, every count in its plural form — and its price, the amount for a fixed price or the rate «… للساعة», «… لليوم». It has its own loading, its failure with the request's reference and «إعادة المحاولة», and an empty state with «باقة جديدة».
+- **The switch «متاحة»** (named «{name}: متاحة») offers or pauses the package at once; while its change waits it stays in the focus order and a press does nothing; the server's answer replaces the row; a refusal is a toast that stays, «تعذّر تغيير إتاحة {name}», with its reason.
+- **A paused package that still holds a shift** says «موقوفة وما زالت تحجز وردية «{shift}»؛ لا تُحذف الوردية قبل إزالتها منها.» and offers «إزالة الوردية», which clears it at once, as the switch acts ([finding 81](../architecture/findings/81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md), resolved).
+- **The package sheet** (from the end, «باقة خاصة — لا تظهر للزوار.»), new or «تعديل الباقة», holds the name; the validity in days (30 for a new one); «الحدود» as chips, each one turned on showing its field and turned off clearing it; «طريقة الحساب» (fixed, per hour, per day) and the amount labelled by it, in shekels with up to two decimals, Arabic digits read; «لمن»; and the space's shifts as chips, «بدون وردية» first — or, with no shift saved, «لا ورديات محفوظة بعد.» and a link to the profile's opening hours. A summary under them follows what is typed. The terms are checked in the browser by the contract's schema before anything is sent: a limit on and empty asks «أدخل العدد أو أطفئ هذا الحد». A save waits until the list has arrived again, then closes and says «حُفظت الباقة {name}»; a repeated name is refused on the name, a shift gone meanwhile on the shift; a 403 says only that it is no longer open to the owner, a 404 that the package is gone or the space no longer open to them.
 
 ## Decisions
 
@@ -61,17 +69,34 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 - **An edit writes and audits only what it changes, `package.edited`, the flag included; one that changes nothing writes nothing** (D8). *Why:* as the space profile's edit; one entry per edit, since a package's flag has no public effect. 2026-10-18, #87.
 - **Editing or retiring a package changes no subscription** (D9). *Why:* a subscription copies its terms when it is made ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)). 2026-10-18, #87.
 
+### Web decisions
+
+- **The packages are rows under the published prices, each offered or paused by its switch and edited in a sheet** (O8). *Why:* the design's Packages & prices; a switch on the row is one action, reversible, its result on the row. 2026-10-20, #98.
+- **An edit sends the terms whole, a limit off as `null`, and is checked in the browser as a new package is** (S11). *Why:* one preparation for add and edit, and no client diff to drift; the server writes and audits only what changed. The edit's own schema takes every term as optional, so it would let a cleared term through as absent. 2026-10-20, #98.
+- **The section and the sheet say the packages are never shown to visitors, and nothing of the desk** (design issue 4). *Why:* the desk that will choose from them is not built; the switch is «متاحة». 2026-10-20, #98.
+- **The shift chips start with «بدون وردية», one always on** (design issue 5). *Why:* no shift is a choice, and a single choice must be seen. 2026-10-20, #98.
+- **An amount is typed in shekels, up to two decimals, Arabic digits read, as the prices'** (design issue 6). *Why:* one rule for the money a space types. 2026-10-20, #98.
+- **A paused package that holds a shift says so and clears it at once** (design issue 7, finding 81). *Why:* the hours refuse to remove that shift, and nothing else tells the owner why; the clear is reversible and touches no one else. 2026-10-20, #98.
+- **A limit turned on and left empty is refused on its field, «أدخل العدد أو أطفئ هذا الحد».** *Why:* the shared rule reads an empty count as a wrong type, `invalid_format`, so the line is chosen by the field being empty. 2026-10-20, #98.
+- **The sheet is the layer's end sheet as it is** ([finding 101](../architecture/findings/101-the-end-sheet-is-not-full-width-on-a-phone.md)). *Why:* no design-system change in a feature's item. 2026-10-20, #98.
+
 ## Code map
 
 - **API:** `apps/api/src/modules/packages/`, entry `index.ts`: the service, the repository, the mapper, the manage router, and beside them the pure rule of a package's terms and of what an edit changes (`packageTerms.ts`).
 - **Shared:** `packages/shared/src/packages/`: the requests, with the billings and the limits' bounds, and the response.
+- **Web:** `apps/web/src/features/packages/`, entry `index.ts` (`PackagesSection`, `ShiftChoice`), mounted by `pages/dashboard/space/PackagesPage.tsx`: the repository in `repository/`; in `hooks/` the keys, `list/` (the query, the section, a row's write), `sheet/` (the sheet's form and its save); in `services/` a package's values as the sheet holds them and the request they make, and its summary and price lines; the row, the sheet with its limits and chips, and the row's failure toast in `components/`.
 
 ## Open findings
 
 - [80](../architecture/findings/80-the-database-still-takes-a-package-with-a-price-of-zero.md): the database still takes a package of price zero.
+- [101](../architecture/findings/101-the-end-sheet-is-not-full-width-on-a-phone.md): the package sheet is not full width on a phone.
 
 ## History
 
 ### API history
 
 - #87 — a space's packages, on the API: listed whole to its staff, added and edited by its owner, retired rather than deleted.
+
+### Web history
+
+- #98 — the owner's private packages on Packages & prices: the list, the switch, the sheet, and a paused package's shift cleared (finding 81).

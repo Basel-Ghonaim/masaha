@@ -22,12 +22,12 @@ const SECTIONS = [...FACT_GROUPS, 'photos'] as const;
  * state's badges, whether its fields are offered to edit here (`mayEdit`), the admin's notice that
  * says so (a verified one naming its owners), or an owner's head line with the way to the public
  * page and the prices as a row leading to Packages & prices (`pricesLink`), the space as the owners'
- * actions take it, the groups still
- * missing while it is edited here, the sections' navigation with the one in view marked, and the
- * guard that asks before the page is left with unsaved changes, which each section reports
- * (`onDirtyChange`), and says they are being saved while one of the space's writes is pending. A space found deleted is the 404, whatever was read
- * before. The gallery is a section like the rest, and no fact group: it is never in the checklist,
- * which still maps the five groups.
+ * actions take it, the groups still missing while it is edited here, the sections' navigation with
+ * the one in view marked, and the guard that asks before the page is left with unsaved changes,
+ * which each section reports (`onDirtyChange`), and says they are being saved while one of the
+ * space's writes is pending. A space found deleted is the 404, whatever was read before. The gallery
+ * is a section like the rest, and no fact group: it is never in the checklist, which still maps the
+ * five groups.
  */
 export function useSpaceEditor(place: EditorPlace, spaceId: number) {
   const copy = useCopy();

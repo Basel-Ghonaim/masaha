@@ -691,6 +691,8 @@ describe('an owner’s editor', () => {
       '/packages',
     );
     expect(within(prices).getByText('لم تُضف بعد')).toBeInTheDocument();
+    // The dot between the line and the date is no word: never read aloud.
+    expect(within(prices).getByText('·')).toHaveAttribute('aria-hidden');
     expect(within(prices).queryByRole('combobox')).toBeNull();
     expect(within(prices).queryByRole('button')).toBeNull();
     expect(screen.queryByText(/يعدّلها/)).toBeNull();

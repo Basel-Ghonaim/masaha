@@ -65,7 +65,13 @@ function renderSection(
   );
   const rendered = renderHook(
     ({ current, unsaved }) =>
-      usePricesSection({ place: 'admin', space: current, hoursUnsaved: unsaved, onDirtyChange }),
+      usePricesSection({
+        place: 'admin',
+        space: current,
+        hoursUnsaved: unsaved,
+        hoursLink: null,
+        onDirtyChange,
+      }),
     { wrapper, initialProps: { current: space, unsaved: hoursUnsaved } },
   );
   const writes = () => requests.filter(({ method }) => method !== 'get');
@@ -199,7 +205,9 @@ describe('usePricesSection', () => {
 
     const none = renderSection({ ...SPACE, hours: null });
     expect(none.result.current.rows[0]?.shift.disabled).toBe(true);
-    expect(none.result.current.notes).toEqual(['No saved shifts — add shifts first.']);
+    expect(none.result.current.notes).toEqual([
+      { text: 'No saved shifts — add shifts first.', link: null },
+    ]);
   });
 
   it('says to save the opening hours while they have unsaved changes', () => {
@@ -208,7 +216,9 @@ describe('usePricesSection', () => {
 
     rerender({ current: SPACE, unsaved: true });
 
-    expect(result.current.notes).toEqual(['Save the opening hours for a new shift to show here.']);
+    expect(result.current.notes).toEqual([
+      { text: 'Save the opening hours for a new shift to show here.', link: null },
+    ]);
   });
 
   it.each([

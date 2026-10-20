@@ -206,6 +206,11 @@ export const SPACES = {
     /** «الأسعار»: the prices, for display only; each a period, an audience, a shift, a label. */
     prices: {
       intro: 'For display only: payment is at the space. Leave out the periods it doesn’t offer.',
+      /** The section's title and intro on Packages & prices, the owner's page of them. */
+      publishedTitle: 'Published prices',
+      publishedIntro: 'Shown on the space’s page · display only · paid at the space',
+      /** The no-shift line's way to the opening hours, on the owner's page. */
+      noShiftsLink: 'Add shifts in the opening hours',
       /** Above the rows, while the space has no saved shift. */
       noShifts: 'No saved shifts — add shifts first.',
       /** Above the rows, while the opening hours have unsaved changes. */

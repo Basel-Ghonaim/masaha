@@ -16,7 +16,7 @@ Where each fact lives, what each kind of document may contain, and the classes a
 Each owns one capability's flows, decisions and code map, and links the platform sections it uses ([the rules](architecture/documentation.md#5-capability-documents)) · read it first when your task changes that capability, then only the sections it links.
 - [lookups.md](features/lookups.md) — the governorates, areas and amenities: the admin's screen and the public catalogue.
 - [spaces.md](features/spaces.md) — a space's profile and facts, their freshness and its life on the platform, as the admin keeps it and the owner edits it.
-- [packages.md](features/packages.md) — a space's packages, the subscription templates its owner keeps, private to its staff: listed whole, added, edited and retired (API only).
+- [packages.md](features/packages.md) — a space's packages, the subscription templates its owner keeps, private to its staff: listed whole, added, edited and retired, and the owner's screen of them.
 - [space-settings.md](features/space-settings.md) — a space's settings, read and edited by its owner (API only).
 - [occupancy.md](features/occupancy.md) — a space's state now: its private capacity, who is present, the live status and its override (API only).
 - [visits.md](features/visits.md) — a visitor's stay at a space: checked in by name, its rates, its charge and its check-out (API only).

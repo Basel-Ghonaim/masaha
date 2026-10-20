@@ -33,7 +33,7 @@ const refused = (error: unknown): AppError | null => (isAppError(error) ? error 
 const waitingOn = (items: Pending[]) => items.filter((item) => item.state !== 'failed').length;
 
 /**
- * The gallery's queue: the files the admin chose, one at a time and in the order chosen, each with
+ * The gallery's queue: the files chosen, one at a time and in the order chosen, each with
  * its own state, its own percentage and its own failure. A file is shrunk in the browser first, so a
  * photo that cannot be read there is refused where it was chosen and no request is made for it.
  *
@@ -122,7 +122,7 @@ export function usePhotoUploads(
         if (hasLeft()) return;
         const refusal = refused(error);
         if (refusal !== null) {
-          // A verified or deleted space turns the page read-only or shows the 404, as for any write.
+          // The space is fetched again, so the page shows it as it is now, as for any write.
           answer.refused(refusal);
           void staleGallery(client, place, spaceId, refusal);
         }

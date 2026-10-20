@@ -137,6 +137,7 @@ export function SpaceEditor({
                   place={sectionPlace}
                   space={space}
                   hoursUnsaved={editor.hoursUnsaved}
+                  hoursLink={null}
                   onDirtyChange={editor.onDirtyChange}
                 />
               )}

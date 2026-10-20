@@ -23,7 +23,6 @@ export function usePricesLink(space: AdminSpace | undefined, place: EditorPlace)
     date: missing
       ? words.section.notAdded
       : words.section.updated({ ago: updatedAgo(date, language, new Date()) }),
-    missing,
     stale: !missing && space.staleGroups.includes('prices') ? words.section.stale : null,
     action: { label: words.owner.pricesLink.action },
   };
