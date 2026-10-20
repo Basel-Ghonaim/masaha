@@ -279,5 +279,30 @@ export const SPACE_LINKS = {
     link: 'ربط بمساحة',
     isAdmin: 'حساب أدمن — لا يُربط بمساحة',
     suspended: 'الحساب موقوف — استرجعه أولًا',
+    changeRole: 'تغيير الدور',
+    roleFollowsLinks: 'دوره يتبع روابطه — فُكّ ربطه أولًا',
+    unlinkThem: 'فك روابطه',
+    deletedSpaces: 'المساحات المحذوفة',
+    atDesk: 'يعمل في مكتب استقبال — يفكّه مالك المساحة أولًا',
+  },
+  role: {
+    toAdminTitle: ({ name }: { name: string }) => `جعل ${name} أدمن؟`,
+    toAdminLine:
+      'يحصل على كل صلاحيات الإدارة على المنصة وكل مساحاتها، وتنتهي جلساته فيدخل من جديد.',
+    toAdmin: 'جعله أدمن',
+    toUserTitle: ({ name }: { name: string }) => `إعادة ${name} مستخدمًا؟`,
+    toUserLine: 'يفقد لوحة الإدارة فورًا، وتنتهي جلساته.',
+    toUser: 'إعادته مستخدمًا',
+    cancel: 'رجوع',
+    failed: 'لم يتغيّر الدور',
+    refusals: {
+      ACCOUNT_HAS_LINKS:
+        'له رابط بمساحة لا تُظهره القائمة — بمساحة محذوفة، أو رابط جديد؛ لا يتغيّر دوره حتى ينتهي.',
+      ACCOUNT_PASSWORD_PENDING:
+        'لم يغيّر كلمة المرور المؤقتة بعد؛ لا يُجعل أدمن حتى يدخل ويغيّرها.',
+      not_found: 'لم يعد هذا الحساب موجودًا.',
+    },
+    nowAdmin: ({ name }: { name: string }) => `أصبح ${name} أدمن، وانتهت جلساته`,
+    nowUser: ({ name }: { name: string }) => `عاد ${name} مستخدمًا، وانتهت جلساته`,
   },
 } satisfies Catalogue['spaceLinks'];

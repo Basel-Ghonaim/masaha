@@ -190,6 +190,19 @@ describe('the space-links repository', () => {
     });
   });
 
+  it('changes a person’s role', async () => {
+    const requests = serve({ status: 204 });
+
+    await expect(createSpaceLinksRepository().changeRole(5, 'ADMIN')).resolves.toBeUndefined();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      method: 'put',
+      baseURL: '/api/v1',
+      url: '/admin/users/5/role',
+    });
+    expect(JSON.parse(String(requests[0]?.data))).toEqual({ role: 'ADMIN' });
+  });
+
   it('finds up to fifty active people by name or email', async () => {
     const requests = serve({ status: 200, data: { success: true, data: [USER], meta: {} } });
 

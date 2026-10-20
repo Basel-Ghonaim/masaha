@@ -1,8 +1,11 @@
 import { useCallback, useState } from 'react';
 import type { LinkTarget } from '../../types/LinkTarget';
+import type { RolePerson } from '../role/useRoleDialog';
 
 /** The dialog a person's link actions open, and whose row opened it. */
-export type UserLinkDialogState = { kind: 'link'; personId: number; target: LinkTarget };
+export type UserLinkDialogState =
+  | { kind: 'link'; personId: number; target: LinkTarget }
+  | { kind: 'role'; personId: number; person: RolePerson };
 
 /**
  * The link actions' open dialog, held by the page above the list, so a row's re-render, the list's

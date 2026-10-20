@@ -5,7 +5,11 @@ export { SpaceOwnersActions } from './components/space-owners/SpaceOwnersActions
 export { SpaceSwitcher } from './components/switcher/SpaceSwitcher';
 export { UserLinkDialog } from './components/user-actions/UserLinkDialog';
 export { UsersList } from './components/users-list/UsersList';
-export { useUserLinkActions, type UserActionItem } from './hooks/user-actions/useUserLinkActions';
+export {
+  useUserLinkActions,
+  type UserActionItem,
+  type UserActionLead,
+} from './hooks/user-actions/useUserLinkActions';
 export {
   useUserLinkDialog,
   type UserLinkDialogState,

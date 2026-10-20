@@ -341,5 +341,33 @@ export const SPACE_LINKS = {
     link: 'Link to a space',
     isAdmin: 'An admin’s account — never linked to a space',
     suspended: 'The account is suspended — restore it first',
+    changeRole: 'Change role',
+    /** Why an owner's role is held, and the way to their links. */
+    roleFollowsLinks: 'Their role follows their links — unlink them first',
+    unlinkThem: 'Unlink them',
+    /** An owner whose every space is deleted, and the way to the deleted spaces. */
+    deletedSpaces: 'Deleted spaces',
+    atDesk: 'They work a front desk — its space’s owner ends that first',
+  },
+  /** Changing a person's global role, between a user and an admin. */
+  role: {
+    toAdminTitle: ({ name }: { name: string }) => `Make ${name} an admin?`,
+    toAdminLine:
+      'They get every admin power over the platform and all its spaces, and their sessions end so they sign in again.',
+    toAdmin: 'Make them an admin',
+    toUserTitle: ({ name }: { name: string }) => `Make ${name} a user again?`,
+    toUserLine: 'They lose the admin dashboard at once, and their sessions end.',
+    toUser: 'Make them a user',
+    cancel: 'Back',
+    failed: 'The role didn’t change',
+    refusals: {
+      ACCOUNT_HAS_LINKS:
+        'They hold a link the list doesn’t show — to a deleted space, or one made meanwhile; their role can’t change until it ends.',
+      ACCOUNT_PASSWORD_PENDING:
+        'They haven’t changed their temporary password yet; they can’t be made an admin until they sign in and change it.',
+      not_found: 'This account no longer exists.',
+    },
+    nowAdmin: ({ name }: { name: string }) => `${name} is now an admin; their sessions ended`,
+    nowUser: ({ name }: { name: string }) => `${name} is a user again; their sessions ended`,
   },
 } as const;

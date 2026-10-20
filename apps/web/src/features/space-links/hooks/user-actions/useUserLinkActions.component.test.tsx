@@ -32,10 +32,16 @@ const HADI = user({
 const SARA = user({ id: 2, name: 'Sara', role: 'ADMIN' });
 const SUSPENDED = user({ id: 4, name: 'Rami', isSuspended: true });
 
+/** Where the held role leads: the owners page searched by the email, and the deleted spaces. */
+const LINKS = {
+  ownersLink: '/owners?q=hadi%40example.com',
+  deletedSpacesLink: '/spaces?status=deleted',
+};
+
 /** The row's link actions, in English, and where they open their dialog (`open`). */
 function renderActions(row: AdminUserRow) {
   const open = vi.fn();
-  const rendered = renderHook(() => useUserLinkActions(row, { open }), {
+  const rendered = renderHook(() => useUserLinkActions(row, { ...LINKS, open }), {
     wrapper: queryWrapper(),
   });
   return { ...rendered, open };
@@ -85,5 +91,58 @@ describe('useUserLinkActions', () => {
     });
 
     expect(open).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'an owner, leading to their links',
+      HADI,
+      'Their role follows their links — unlink them first',
+      { label: 'Unlink them', to: '/owners?q=hadi%40example.com' },
+    ],
+    [
+      'an owner of deleted spaces, leading to the deleted spaces',
+      user({ id: 6, name: 'Sami', role: 'OWNER' }),
+      'All their spaces are deleted — restore the space to unlink them',
+      { label: 'Deleted spaces', to: '/spaces?status=deleted' },
+    ],
+    [
+      'a receptionist',
+      NOUR,
+      'They work a front desk — its space’s owner ends that first',
+      undefined,
+    ],
+  ])('holds the role change, with its reason, for %s', (_who, row, reason, lead) => {
+    const { result, open } = renderActions(row);
+
+    expect(result.current.role).toMatchObject({ label: 'Change role', disabled: true, reason });
+    expect(result.current.role.lead).toEqual(lead);
+
+    act(() => {
+      result.current.role.run();
+    });
+
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a user with no link', user({ id: 5, name: 'Rima' }), 'USER'],
+    ['an admin', SARA, 'ADMIN'],
+  ] as const)('offers the role change to %s', (_who, row, role) => {
+    const { result, open } = renderActions(row);
+
+    expect(result.current.role).toMatchObject({ label: 'Change role', disabled: false });
+    expect(result.current.role.reason).toBeUndefined();
+    expect(result.current.role.lead).toBeUndefined();
+
+    act(() => {
+      result.current.role.run();
+    });
+
+    expect(open).toHaveBeenCalledExactlyOnceWith({
+      kind: 'role',
+      personId: row.id,
+      person: { id: row.id, name: row.name, role },
+    });
   });
 });

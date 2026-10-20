@@ -1,8 +1,10 @@
 import type {
   AddOwnerRequest,
   AddedOwner,
+  AdminRoleChoice,
   AdminSpaceRow,
   AdminUserRow,
+  ChangeRoleRequest,
   ManagedSpace,
 } from '@masaha/shared/space-links';
 import type { AdminSpace } from '@masaha/shared/spaces';
@@ -30,6 +32,8 @@ export interface SpaceLinksRepository {
   personChoices(q?: string): Promise<Page<AdminUserRow[]>>;
   /** A space's active owners, oldest first, as the server reads them now. */
   spaceOwners(spaceId: number): Promise<AdminSpace['owners']>;
+  /** Makes a person an admin, or a user again, while they hold no active link. */
+  changeRole(userId: number, role: AdminRoleChoice): Promise<undefined>;
 }
 
 /** A space's owners, as the admin's routes name them. */
@@ -50,5 +54,9 @@ export function createSpaceLinksRepository(): SpaceLinksRepository {
       api.getPage<AdminUserRow[]>('/admin/users', { params: { q, state: 'active', limit: 50 } }),
     spaceOwners: (spaceId) =>
       api.get<AdminSpace>(`/admin/spaces/${String(spaceId)}`).then((space) => space.owners),
+    changeRole: (userId, role) =>
+      api.put<undefined>(`/admin/users/${String(userId)}/role`, {
+        role,
+      } satisfies ChangeRoleRequest),
   };
 }

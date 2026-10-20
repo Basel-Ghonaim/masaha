@@ -150,6 +150,21 @@ describe('UsersPage', () => {
     expect(within(link).getByText('An admin’s account — never linked to a space')).toBeVisible();
   });
 
+  it('puts the role change first, with its lead when held', async () => {
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: heard('Actions: Hadi') }));
+
+    const items = await screen.findAllByRole('menuitem');
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Change roleTheir role follows their links — unlink them first',
+      'Unlink them',
+      'Link to a space',
+    ]);
+    expect(items[0]).toHaveAttribute('aria-disabled', 'true');
+    expect(items[1]).toHaveAttribute('href', '/dashboard/admin/owners?q=hadi%40example.com');
+  });
+
   it('keeps an open dialog through a refresh that changes the list, and returns the focus to the row’s menu', async () => {
     let rows = [NOUR, HADI, SARA];
     const { client } = renderPage(() => rows);
