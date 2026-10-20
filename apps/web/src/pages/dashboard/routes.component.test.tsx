@@ -698,6 +698,46 @@ describe("the owner's packages and prices", () => {
   });
 });
 
+describe("the owner's staff", () => {
+  // The page loads lazily, as the profile does: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/StaffPage');
+  });
+
+  it('shows the owner the staff page under its title, its list read from the managed route', async () => {
+    asOwner();
+    const requests = fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/staff') {
+        return ok([
+          {
+            userId: 15,
+            name: 'Rahaf',
+            email: 'rahaf@example.com',
+            isActive: true,
+            temporaryPassword: null,
+          },
+        ]);
+      }
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+    renderDashboard('/dashboard/spaces/7/staff');
+
+    await topBarTitle('Staff');
+    expect(await screen.findByText('rahaf@example.com')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add staff member' })).toBeInTheDocument();
+    expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7/staff');
+  });
+
+  it('refuses reception the staff page with the 403', async () => {
+    asReception();
+    renderDashboard('/dashboard/spaces/7/staff');
+
+    expect(await stateInMain('You don’t have access to this page')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add staff member' })).toBeNull();
+  });
+});
+
 describe("the admin's spaces page", () => {
   const PALM: AdminSpaceRow = {
     id: 9,

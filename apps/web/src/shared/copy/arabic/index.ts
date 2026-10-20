@@ -10,6 +10,7 @@ import { PREFERENCES } from './preferences';
 import { SITE } from './site';
 import { SPACE_LINKS } from './spaceLinks';
 import { SPACES } from './spaces';
+import { STAFF } from './staff';
 import { STATUS } from './status';
 import { TERMS } from './terms';
 import { USERS } from './users';
@@ -28,6 +29,7 @@ export const ARABIC = {
   site: SITE,
   spaceLinks: SPACE_LINKS,
   spaces: SPACES,
+  staff: STAFF,
   status: STATUS,
   terms: TERMS,
   users: USERS,
