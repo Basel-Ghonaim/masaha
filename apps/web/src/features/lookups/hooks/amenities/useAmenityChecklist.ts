@@ -12,7 +12,8 @@ import { useAmenitiesQuery } from '../list/useAmenitiesQuery';
  *
  * That is the admin's list (`source`). The public catalogue an owner reads names only the active
  * amenities: a retired one the space still has stays in the value, unseen, never toggled, and one
- * line counts them (`retiredKept`).
+ * line counts them (`retiredKept`). On either list, one ticked but not linked that is retired
+ * before the save is no longer offered, and the next toggle drops it from the value.
  */
 export function useAmenityChecklist({
   source,
@@ -34,10 +35,14 @@ export function useAmenityChecklist({
     source === 'admin'
       ? (adminList.data ?? []).filter((amenity) => amenity.isActive || linked.includes(amenity.id))
       : (catalogue.data?.amenities ?? []).map((amenity) => ({ ...amenity, isActive: true }));
+  const isOffered = (id: number) => offered.some((amenity) => amenity.id === id);
   const unseen =
     source === 'public' && catalogue.data !== undefined
-      ? value.filter((id) => !offered.some((amenity) => amenity.id === id)).length
+      ? value.filter((id) => linked.includes(id) && !isOffered(id)).length
       : 0;
+  // An amenity ticked and retired before the save is neither offered nor linked: unseen, it cannot
+  // be unticked, so the next tick or untick leaves it out.
+  const kept = value.filter((id) => isOffered(id) || linked.includes(id));
 
   return {
     status: query.isPending
@@ -51,7 +56,7 @@ export function useAmenityChecklist({
       checked: value.includes(amenity.id),
       inactive: !amenity.isActive,
       toggle: (checked: boolean) => {
-        onValueChange(checked ? [...value, amenity.id] : value.filter((id) => id !== amenity.id));
+        onValueChange(checked ? [...kept, amenity.id] : kept.filter((id) => id !== amenity.id));
       },
     })),
     retiredKept: unseen === 0 ? null : copy.lookups.amenityChecklist.retiredKept({ count: unseen }),

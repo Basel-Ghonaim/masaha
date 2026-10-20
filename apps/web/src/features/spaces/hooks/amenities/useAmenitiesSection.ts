@@ -43,7 +43,8 @@ const FIELDS: Path<AmenitiesValues>[] = [
  * English optional, refused on its own row when empty, too long or repeated. Both are one group,
  * saved, dated and confirmed together; a save that changes nothing sends nothing, unless the group
  * was never saved. An amenity ticked that the server no longer offers is said in the section, beside
- * any refusal on the rows, and the admin's lists are fetched again, so the checklist marks it.
+ * any refusal on the rows, and the lists the checklist reads are fetched again: one the space has
+ * stays, marked or counted, and one only ticked leaves the list, and the value at the next toggle.
  */
 export function useAmenitiesSection({
   place,

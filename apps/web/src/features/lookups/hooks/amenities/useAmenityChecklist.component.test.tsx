@@ -91,6 +91,32 @@ describe('useAmenityChecklist', () => {
     expect(onValueChange).toHaveBeenLastCalledWith([2]);
   });
 
+  it('counts only the linked amenities the catalogue no longer names, and drops on a toggle one ticked and retired meanwhile', async () => {
+    const { result, onValueChange } = renderChecklist([3, 4], [3], () => ok(CATALOGUE), 'public');
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+    expect(result.current.retiredKept).toBeNull();
+    act(() => {
+      result.current.items[0]?.toggle(true);
+    });
+    expect(onValueChange).toHaveBeenLastCalledWith([3, 1]);
+  });
+
+  it('drops for the admin, on a toggle, an amenity ticked and retired meanwhile, which the list no longer shows', async () => {
+    const { result, onValueChange } = renderChecklist([3, 4], [3]);
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+    expect(result.current.items.map(({ id }) => id)).toEqual([1, 3]);
+    act(() => {
+      result.current.items[0]?.toggle(true);
+    });
+    expect(onValueChange).toHaveBeenLastCalledWith([3, 1]);
+  });
+
   it('counts nothing for the admin, whose list names every amenity', async () => {
     const { result } = renderChecklist([2], [2]);
 
