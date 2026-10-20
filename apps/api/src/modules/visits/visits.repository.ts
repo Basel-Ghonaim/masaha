@@ -210,6 +210,37 @@ export function createVisitsRepository() {
       return { rows, total };
     },
 
+    /** The space's visits closed by the auto check-out, each with its charge. */
+    autoClosedIn(spaceId: number): Promise<{ id: number; chargeAgorot: number | null }[]> {
+      return prisma.visit.findMany({
+        where: { spaceId, checkoutMethod: 'AUTO' },
+        select: { id: true, chargeAgorot: true },
+      });
+    },
+
+    /**
+     * A page of the space's visits closed by the auto check-out, but these, the latest closed
+     * first, then by id, and how many there are.
+     */
+    async autoClosedPage(
+      spaceId: number,
+      exceptIds: readonly number[],
+      { skip, take }: { skip: number; take: number },
+    ): Promise<{ rows: DeskVisitRow[]; total: number }> {
+      const where = { spaceId, checkoutMethod: 'AUTO' as const, id: { notIn: [...exceptIds] } };
+      const [rows, total] = await Promise.all([
+        prisma.visit.findMany({
+          where,
+          select: DESK_VISIT,
+          orderBy: [{ checkedOutAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take,
+        }),
+        prisma.visit.count({ where }),
+      ]);
+      return { rows, total };
+    },
+
     /** Sets a closed visit's charge typed by hand, with who typed it and why. */
     price(
       visitId: number,

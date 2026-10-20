@@ -14,11 +14,13 @@
 - Answers the open visits of a space, how many, and what each costs so far, for *present* ([occupancy](occupancy.md)).
 - Closes every open visit whose auto check-out time has passed, at that time, charged to it: the timed job `visits.autoCheckOut`.
 - Lists a space's unpriced visits, and prices one by hand, with its reason, for whoever may type a price.
+- Answers the visits closed by the auto check-out, with their charges, and a page of them but the settled ones, for the uncollected visits [`payments`](payments.md) composes.
 
 ## Who uses it
 
 - **The front desk** ([desk](desk.md)), which orchestrates the check-in and the check-out, for the space's owner and reception; they read the quote and the terms through this module's own routes.
 - **`occupancy`**, which reads the open visits for *present*. No web screen reads it yet.
+- **`payments`**, which reads the visits closed by the auto check-out for the uncollected visits.
 - **The timed jobs** (`shared/jobs`, wired in the composition root), which run its auto check-out.
 
 ## Responsibility boundary
@@ -78,4 +80,4 @@
 
 - #94 — the open visits and their counts, which `occupancy` reads for *present*.
 - #95 — the check-in by name, its rates and its idempotency key's lookup; the charge and the check-out; the quote, the terms and the charges so far.
-- #97 — the auto check-out of visits; the unpriced visits and their pricing.
+- #97 — the auto check-out of visits; the unpriced visits and their pricing; the auto-closed visits the uncollected read pages.

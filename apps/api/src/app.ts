@@ -21,7 +21,11 @@ import {
   type GoogleIdentity,
 } from './modules/auth/index.ts';
 import { createCustomersService } from './modules/customers/index.ts';
-import { createPaymentsService } from './modules/payments/index.ts';
+import {
+  createPaymentsController,
+  createPaymentsManageRouter,
+  createPaymentsService,
+} from './modules/payments/index.ts';
 import {
   createDeskController,
   createDeskManageRouter,
@@ -350,13 +354,14 @@ export function createApi({
     announcements: createAnnouncementsService(),
     now: clock,
   });
+  const payments = createPaymentsService({ audit: writeAudit, visits });
   const desk = createDeskService({
     runInTransaction,
     spaces,
     spaceSettings,
     visits,
     customers,
-    payments: createPaymentsService({ audit: writeAudit }),
+    payments,
     occupancy,
     now: clock,
   });
@@ -462,6 +467,7 @@ export function createApi({
   manage.use(createOccupancyManageRouter(createOccupancyController(occupancy)));
   manage.use(createDeskManageRouter(createDeskController(desk)));
   manage.use(createVisitsManageRouter(createVisitsController(visits)));
+  manage.use(createPaymentsManageRouter(createPaymentsController(payments)));
   manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
   api.use(
     '/manage/spaces/:spaceId',

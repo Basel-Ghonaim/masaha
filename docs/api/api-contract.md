@@ -453,6 +453,19 @@ VisitTerms = {
 - **Errors:** `validation` (422) on the body, before anything is read; `forbidden` (403) `PRICE_TYPING_NOT_ALLOWED` for reception where the space's settings do not allow it, and no code for an owner or reception whose link ended meanwhile; `conflict` (409) `VISIT_ALREADY_PRICED` for a visit with a charge, and no code for a visit still open (it is priced at its check-out); `not_found` (404), also for a visit that is not the space's.
 - **Audit:** `visit.priced` (`after`: `{ chargeAgorot, reason }`), in the change's own transaction.
 
+#### `GET /manage/spaces/:spaceId/uncollected-visits` · 🧾
+- **Query:** `page`, `limit` (§4).
+- **200:** a page of `UncollectedVisit` (`@masaha/shared/payments`): the space's visits closed by the auto check-out and not fully paid, the unpriced ones included, the latest closed first, then by id; a voided payment counts for nothing. A manual check-out's visit is never listed: its unpaid rest is a customer's debt. `meta` the pagination. Built 2026-10-20, #97.
+- **Errors:** `validation` (422) on the query; `not_found` (404).
+
+```ts
+UncollectedVisit = {
+  visit: DeskVisit,
+  paidAgorot: number,             // what was paid on it, voided payments left out
+  balanceAgorot: number | null    // what is still owed; null while it has no charge (unpriced)
+}
+```
+
 ### Internal
 
 The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conventions §12](../backend/conventions.md#12-environments)): online, an external cron calls this endpoint every 5 minutes; locally, the server runs the same jobs from a timer. It carries no access token, so the general limit counts it by address ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). Built 2026-10-20, #97.

@@ -92,7 +92,7 @@ Each step names its goal and points to what supports it:
 ### 7. Front desk and visits
 
 **Goal:** the staff run the day at the desk: check in and out, the visit charge and its payment at check-out, live status with the manual override, auto check-out, uncollected visits.
-- **Built:** the staff's read of a space's state now: who is present, the capacity and the live status, and the manual override; the live status in the directory (#94, [api-contract › Occupancy (managed)](../api/api-contract.md#occupancy-managed)); a visitor's check-in by name and check-out, with the charge, the first payment, the unpaid rest left to a customer by phone, and a price typed by hand or an unpriced close, each idempotent; a visit's quote and the desk's terms (#95, [api-contract › Front desk (managed)](../api/api-contract.md#front-desk-managed)); the auto check-out of open visits and subscription check-ins at their due time, run every 5 minutes (#97, [api-contract › Internal](../api/api-contract.md#internal)); the rest of the step remains planned.
+- **Built:** the staff's read of a space's state now: who is present, the capacity and the live status, and the manual override; the live status in the directory (#94, [api-contract › Occupancy (managed)](../api/api-contract.md#occupancy-managed)); a visitor's check-in by name and check-out, with the charge, the first payment, the unpaid rest left to a customer by phone, and a price typed by hand or an unpriced close, each idempotent; a visit's quote and the desk's terms (#95, [api-contract › Front desk (managed)](../api/api-contract.md#front-desk-managed)); the auto check-out of open visits and subscription check-ins at their due time, run every 5 minutes (#97, [api-contract › Internal](../api/api-contract.md#internal)); the unpriced visits and their pricing, and the uncollected visits (#97). The step's API is built; its screen remains planned.
 - **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 13 Front desk.
 - **Supported by:**
   - [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md), [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md) and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md);
@@ -231,7 +231,7 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | POST | `/manage/spaces/:spaceId/customers/:customerId/subscriptions` | 🧾 | new or renewal, from a package or custom; warns when the customer has a balance |
 | GET / PATCH | `/manage/spaces/:spaceId/subscriptions/:id` | 🧾 | progress and statement; correct one |
 | POST | `/manage/spaces/:spaceId/subscriptions/:id/end` | 🧾 | end early: the end becomes today |
-| GET | `/manage/spaces/:spaceId/visits` | 🧾 | `?open=true`, `?uncollected=true` or a date range |
+| GET | `/manage/spaces/:spaceId/visits` | 🧾 | a date range (the open visits are answered by `…/occupancy`, the uncollected by `…/uncollected-visits`, since step 7) |
 | GET / POST | `/manage/spaces/:spaceId/check-ins` | 🧾 | subscription check-ins: `?open=true` or a date range; limit and full-space warnings in `meta.warnings` |
 | POST | `/manage/spaces/:spaceId/check-ins/:checkInId/check-out` | 🧾 | |
 | GET / POST | `/manage/spaces/:spaceId/payments` | 🧾 | record one payment for one visit or subscription; list: the owner sees all (date, staff and method filters), reception its own today |

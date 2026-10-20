@@ -99,7 +99,7 @@ The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.m
 - **Hand-typed prices.** A price typed by hand at the desk — a custom subscription's price, or a visit's charge where the space has no rate — is typed by the owner always, and by reception only where the space's settings allow it (off by default). Every hand-typed price, by anyone, carries a required reason, recorded with who typed it (2026-10-19, #92).
 - **A change to the space's settings or capacity applies from then on:** a visit's rates (and its audience's student prices) are copied at check-in, its rounding rule and the cap are read at its check-out, and the closing-time check-out and the stay limit apply at once, to the stays already open too; the capacity at the next check-in and in the live status (2026-10-19, #92).
 - **Unpaid visit:** a visit may be left unpaid only with a phone number. It then belongs to the space's customer with that phone among those not archived (created if new, with the name given or the visit's), and its charge counts in that customer's debt (2026-10-20, #95).
-- **Uncollected visits:** visits closed by the auto check-out and left unpaid.
+- **Uncollected visits:** visits closed by the auto check-out and left unpaid, the unpriced ones included (2026-10-20, #97).
 - **Full warning:** a check-in (visit or subscription) while present ≥ capacity warns, never blocks.
 - **Subscription limits:** any of a date range, total days, days per week, hours per day and total hours, freely combined, all optional. They produce warnings at check-in, never blocks.
 - **Subscription progress**, from its check-ins: days used, days this week (Saturday to Friday), hours today and hours used.
