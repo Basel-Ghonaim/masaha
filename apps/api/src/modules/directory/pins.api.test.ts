@@ -84,6 +84,8 @@ describe('GET /map/spaces', () => {
             isVerified: true,
             days: Array.from({ length: 7 }, () => ({ opensMinute: 480, closesMinute: 1080 })),
             cover: photoUrl('cover', 'card'),
+            // Open, but with no capacity: no live state.
+            liveStatus: null,
           },
         ],
         truncated: false,

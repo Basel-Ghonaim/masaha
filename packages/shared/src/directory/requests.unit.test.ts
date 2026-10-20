@@ -147,3 +147,19 @@ describe('mapPinsQuerySchema', () => {
     expect(mapErrors({ priceMax: '5000' })).toEqual({ period: ['required'] });
   });
 });
+
+describe('availableNow', () => {
+  it('availableNow takes true only', () => {
+    expect(directoryQuerySchema.parse({ availableNow: 'true' })).toMatchObject({
+      availableNow: true,
+    });
+    expect(directoryQuerySchema.parse({ availableNow: 'false' })).toMatchObject({
+      availableNow: false,
+    });
+    expect(mapPinsQuerySchema.parse({ availableNow: 'true' })).toMatchObject({
+      availableNow: true,
+    });
+    expect(listErrors({ availableNow: 'maybe' })).toEqual({ availableNow: ['invalid_choice'] });
+    expect(mapErrors({ availableNow: '' })).toEqual({ availableNow: ['invalid_choice'] });
+  });
+});

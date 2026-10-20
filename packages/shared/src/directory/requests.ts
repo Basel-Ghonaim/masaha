@@ -87,6 +87,8 @@ const filters = {
   studentPrices: z.stringbool().optional(),
   openFriday: z.stringbool().optional(),
   verified: z.stringbool().optional(),
+  /** Only the spaces whose live status is `AVAILABLE` now. */
+  availableNow: z.stringbool().optional(),
   q: searchText.optional(),
 };
 

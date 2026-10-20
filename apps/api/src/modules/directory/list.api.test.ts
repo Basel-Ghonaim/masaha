@@ -64,7 +64,7 @@ describe('GET /spaces', () => {
     expect(await namesListed()).toEqual(['Listed']);
   });
 
-  it('answers a card with no price, capacity or live status: its names, area, verified and week', async () => {
+  it('answers a card with no price or capacity: its names, area, verified, week and live status', async () => {
     const space = await createPublicSpace(areaId, 'Focus Hub', { nameAr: 'فوكس هب' });
     await setWeek(space.id, SAT_TO_THU);
     await addPrice(space.id, 'DAY', 2000);
@@ -83,6 +83,8 @@ describe('GET /spaces', () => {
           isVerified: false,
           days: SAT_TO_THU.map((day) => day && { opensMinute: day[0], closesMinute: day[1] }),
           cover: null,
+          // Unverified: no live state.
+          liveStatus: null,
         },
       ],
       meta: {

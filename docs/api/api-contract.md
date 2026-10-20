@@ -64,6 +64,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - the map's pins (`GET /map/spaces`), the whole filtered set up to a ceiling of 1,000 (§5, *Directory (public)*);
 - a space's packages (`GET /manage/spaces/:spaceId/packages`), retired ones included: a space keeps tens at most, typed by hand, and the owner's list and the front desk's picker both read them whole (§5, *Packages (managed)*; why: [packages › Decisions](../features/packages.md#api-decisions)).
 - a space's staff (`GET /manage/spaces/:spaceId/staff`), every reception link, active or not: a space has few, and the owner's page reads them whole (§5, *Staff (managed)*; why: [space-links › Decisions](../features/space-links.md#api-decisions)).
+- the people present at a space (`GET /manage/spaces/:spaceId/occupancy`), bounded by who is there: the desk's main view reads its state in one request on a weak connection (§5, *Occupancy (managed)*; why: [occupancy › Decisions](../features/occupancy.md#api-decisions)).
 
 ## 5. Endpoints
 
@@ -322,7 +323,7 @@ SpaceSettings = {
 
 ### Capacity (managed)
 
-A space's capacity: the most people it seats, private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)); the full warning and the live status will read it ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Both routes are the owner's (🏢): reception is refused with `forbidden` (403) before a body is read. A change applies from then on.
+A space's capacity: the most people it seats, private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)); the live status reads it (*Occupancy (managed)*), and the full warning will ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Both routes are the owner's (🏢): reception is refused with `forbidden` (403) before a body is read. A change applies from then on.
 
 - **`capacity`** (`@masaha/shared/occupancy`): a whole number from 1 to 1,000 (`CAPACITY_MAX`; `out_of_range` outside it, `invalid_format` when not whole), or `null` for none.
 - **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the space as the entity and the entry's space: `space.capacityEdited` (`before` and `after`: `{ capacity }`, `null` before a first one); the capacity the space already has writes nothing.
@@ -340,6 +341,40 @@ SpaceCapacity = { capacity: number | null }   // null: none set
 - **200:** `SpaceCapacity`, as it now is. The space's occupancy row is created on the first write; a later one changes the capacity only. Audited `space.capacityEdited`.
 - **Errors:** `validation` (422), `required` when `capacity` is absent; `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
 
+### Occupancy (managed)
+
+A space's state now, as its staff see it: who is present (the open visits plus the open subscription check-ins), the capacity and the live status, with its manual override ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored); [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Every route is the staff's (🧾). Built 2026-10-19, #94.
+
+- **The override** (`@masaha/shared/occupancy`): `state`, one of `LiveStatus`, and `duration`, one of `MINUTES_30`, `HOUR_1`, `HOURS_2`, `UNTIL_CLOSING` (`OVERRIDE_DURATIONS`); each `invalid_choice` when absent or not one of them. It ends at `min(now + duration, today's closing)`, `UNTIL_CLOSING` at today's closing, so it never outlives its day; it counts only while its end is after now.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the space as the entity and the entry's space: `space.statusOverridden` (`before`: the override in force, `{ state, until }`, or none; `after`: the new one), `space.statusOverrideCleared` (`before`: the override cleared); clearing with none in force writes nothing.
+
+```ts
+LiveStatus = 'AVAILABLE' | 'FULL' | 'CLOSED'
+PresentPerson =
+  | { kind: 'VISIT', id, name, since }                 // name: the visitor's, or their customer's
+  | { kind: 'CHECK_IN', id, customerId, name, since }  // name: the customer's; since: the check-in time
+SpaceOccupancyNow = {
+  status: LiveStatus | null,                    // null: unverified, no opening hours, or open with no capacity
+  capacity: number | null,
+  present: number,                              // the open visits plus the open subscription check-ins
+  override: { state: LiveStatus, until } | null, // the manual override in force
+  people: PresentPerson[]                       // the earliest checked in first; a tie: visits first, then by id
+}
+```
+
+#### `GET /manage/spaces/:spaceId/occupancy` · 🧾
+- **200:** `SpaceOccupancyNow`, answered whole (§4's exceptions). Read without a lock: a check-in committed meanwhile may show only on the next read.
+- **Errors:** `not_found` (404).
+
+#### `PUT /manage/spaces/:spaceId/status-override` · 🧾
+- **Body:** `{ state, duration }`, both required.
+- **200:** `SpaceOccupancyNow`, with the new override. It replaces the one in force; the space's occupancy row is created, with no capacity, on the first write; a capacity is never touched. Audited `space.statusOverridden`.
+- **Errors:** `validation` (422), before anything is read; `conflict` (409) `SPACE_NOT_OPEN` while the space is not open by its hours (before opening, from its closing minute, on a closed day) or has no hours at all; `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+
+#### `DELETE /manage/spaces/:spaceId/status-override` · 🧾
+- **200:** `SpaceOccupancyNow`, with no override. Clears the override in force, audited `space.statusOverrideCleared`; with none in force, writes nothing.
+- **Errors:** `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+
 ### Lookups (public)
 
 #### `GET /lookups` · 🌐
@@ -355,7 +390,7 @@ SpaceCapacity = { capacity: number | null }   // null: none set
 
 ### Directory (public)
 
-What anyone reads without signing in, over the **publicly listed** spaces only ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)): not deleted, not hidden, in an active area of an active governorate. Why each rule: [directory › Decisions](../features/directory.md#decisions). No answer carries a capacity, a count or a live status ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)).
+What anyone reads without signing in, over the **publicly listed** spaces only ([data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)): not deleted, not hidden, in an active area of an active governorate. Why each rule: [directory › Decisions](../features/directory.md#decisions). No answer carries a capacity or a count; the card and the pin carry the live status ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md); the rule: [data-model › Derived values](../architecture/data-model.md#derived-values-computed-not-stored)), 2026-10-19, #94.
 
 - **The filters** the list and the map share, each optional, every one applied before a page is cut:
   - `area`: a comma list of area ids, at most 50, each once (`invalid_format`, `too_long`); an id of an area that is not listed narrows to nothing;
@@ -364,6 +399,7 @@ What anyone reads without signing in, over the **publicly listed** spaces only (
   - both price filters leave out an unverified space whose prices are stale, which its page hides;
   - `openFriday=true`: Friday open in its hours; a space whose hours were never saved is left out;
   - `verified=true`: an active `OWNER` link;
+  - `availableNow=true`: the live status `AVAILABLE` now, which only a verified space can have; `availableNow`, as each `true` filter, takes `true` or `false` (`invalid_choice` otherwise), and `false` filters nothing;
   - `q`, 1–80 characters: either name of the space, or either name of its area, matched forgivingly. Both sides are normalised (lowercased; tashkeel and tatweel removed; أ إ آ ٱ → ا, ة → ه, ى → ي), and a part of a name, or a near match (a typo), passes. A `q` with nothing but tashkeel or tatweel, spaces around them included, is `invalid_format`; one of spaces only is empty once trimmed, `too_short`, as every text is.
 - **The location** travels in the `Masaha-Near: lat,lng` request header, never in the query, and only to sort by distance ([security › Location](../backend/security.md#location)): each coordinate with at most 3 decimals (`invalid_format` on `near` otherwise), inside the Gaza Strip's box (`out_of_range`).
 - **Caching:** an answer carries `Cache-Control: public, max-age=30` and a validator (`ETag`): the same request with `If-None-Match` answers `304` while it is unchanged. Every answer to a request that carries the `Masaha-Near` header, a refusal or a failure included, carries `Cache-Control: no-store`.
@@ -376,15 +412,19 @@ DirectorySpace = {
   isVerified: boolean,
   days: (OpeningRange | null)[] | null,    // the week, Sunday first; null while never saved
   distanceMeters?: number,                 // ordered by distance only: straight-line, to the nearest 100 m
-  cover: string | null                     // the first photo's card-size URL; null: the web draws the space's mark
+  cover: string | null,                    // the first photo's card-size URL; null: the web draws the space's mark
+  liveStatus: LiveStatus | null            // now; null: unverified, no opening hours, or open with no capacity
 }
 
 MapPin = {
   id: number, slug: string, nameEn: string, nameAr: string | null,
   areaId: number, location: { lat: number, lng: number },
   isVerified: boolean, days: (OpeningRange | null)[] | null,
-  cover: string | null                     // as the card's, for the selected card
+  cover: string | null,                    // as the card's, for the selected card
+  liveStatus: LiveStatus | null            // as the card's
 }
+
+PublicOccupancy = { status: LiveStatus | null }   // LiveStatus: Occupancy (managed)
 
 PublicSpace = {
   id, slug, nameEn, nameAr, descriptionAr, descriptionEn,
@@ -404,7 +444,7 @@ PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | 
 ```
 
 #### `GET /spaces` · 🌐
-- **Query:** the filters, `sort`, `lang` and the page (§4): `?area=&period=&priceMin=&priceMax=&studentPrices=&openFriday=&verified=&q=&sort=&lang=&page=&limit=`.
+- **Query:** the filters, `sort`, `lang` and the page (§4): `?area=&period=&priceMin=&priceMax=&studentPrices=&openFriday=&verified=&availableNow=&q=&sort=&lang=&page=&limit=`.
   - `sort`: `updated`, the latest of the space's groups' dates first, the default without `q`; `name`, by the name in `lang` (`ar`, the default: the Arabic name, else the English one; `en`: the English name), in that language's collation; `relevance`, best match first, the default with `q` and refused without it (`invalid_choice` on `sort`); `distance`, nearest first, from the `Masaha-Near` header. Every order ends with the id, so ties keep their places across pages.
   - `sort=distance` without the header is `required` on `near`; the header with any other order is `invalid_choice` on `near`.
 - **200:** `DirectorySpace[]` (`@masaha/shared/directory`), with `meta`.
@@ -418,6 +458,10 @@ PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | 
 #### `GET /spaces/:slug` · 🌐
 - **200:** `PublicSpace`. Read whole, as the admin's read is, so a save in progress is never half shown.
 - **Errors:** `not_found` (404) for an unknown slug, and for a space that is deleted, hidden, or in an area or a governorate that is not active.
+
+#### `GET /spaces/:slug/occupancy` · 🌐
+- **200:** `PublicOccupancy`: the space's live status now and nothing else, never a count or a capacity ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)), so the page refreshes the state alone; `null` when it has none. Cached as every answer is (30 seconds).
+- **Errors:** `not_found` (404), as for the page.
 
 ### Lookups (the admin)
 
@@ -751,4 +795,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING`.
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours).

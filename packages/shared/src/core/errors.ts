@@ -88,6 +88,7 @@ export const DOMAIN_ERROR_CODES = [
   'OUTSIDE_OPENING_HOURS',
   // occupancy
   'SPACE_CAPACITY_NOT_SET',
+  'SPACE_NOT_OPEN',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

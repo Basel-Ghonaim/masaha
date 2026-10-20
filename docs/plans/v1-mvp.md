@@ -92,6 +92,7 @@ Each step names its goal and points to what supports it:
 ### 7. Front desk and visits
 
 **Goal:** the staff run the day at the desk: check in and out, the visit charge and its payment at check-out, live status with the manual override, auto check-out, uncollected visits.
+- **Built:** the staff's read of a space's state now: who is present, the capacity and the live status, and the manual override; the live status in the directory (#94, [api-contract › Occupancy (managed)](../api/api-contract.md#occupancy-managed)); the rest of the step remains planned.
 - **Screens:** [owner and reception dashboard](../design/SCREENS.md#owner-and-reception-dashboard-13): 13 Front desk.
 - **Supported by:**
   - [ADR 0008](../architecture/decisions/0008-live-status-not-counts.md), [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md) and [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md);
@@ -154,7 +155,7 @@ Each step names its goal and points to what supports it:
 - The foundation comes first: every screen needs the session and a shell.
 - The API may run one step ahead of the screens; what runs in parallel is [workflow §9](../development/workflow.md#9-parallel-work)'s.
 - The directory follows the admin's spaces: it lists the spaces the admin entered.
-- Until the front desk (step 7), Home, the directory and the space page show no live state.
+- The directory's API carries the live state since step 7 (#94); Home, the directory and the space page show it with their screens.
 - The space page's announcements, its report button and the favourite action arrive with step 10.
 - Owners are linked (step 4) before they edit their space (5) or add staff (6). The admin's *Spaces* screen gains its owner linking in step 4.
 - Payments (step 9) follow the desk (7) and subscriptions (8), which record the first payments.
@@ -204,18 +205,16 @@ Built: `POST /me/password`, the password change and the forced change at first s
 | GET | `/me/reports` | 👤 with the resolution note |
 
 #### Public directory
-Built: `GET /lookups`, the active governorates with their active areas and the active amenities; `GET /spaces`, the directory's list, paged and filtered on the server, with its search and near me (the device's location in a header, only to sort); `GET /map/spaces`, the map's pins; and `GET /spaces/:slug`, a space's public page, without announcements ([api-contract §5](../api/api-contract.md#directory-public)).
+Built: `GET /lookups`, the active governorates with their active areas and the active amenities; `GET /spaces`, the directory's list, paged and filtered on the server, with its search and near me (the device's location in a header, only to sort); `GET /map/spaces`, the map's pins; and `GET /spaces/:slug`, a space's public page, without announcements; the live status on the cards and the pins, the `availableNow` filter, and `GET /spaces/:slug/occupancy`, a space's live status alone ([api-contract §5](../api/api-contract.md#directory-public)).
 
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| GET | `/spaces?availableNow=` | 🌐 | the list's filter by live status `AVAILABLE`, with the occupancy (step 7) |
 | GET | `/spaces/:slug` | 🌐 | its announcements, with step 10 |
-| GET | `/spaces/:slug/occupancy` | 🌐 | `{ status: "AVAILABLE" \| "FULL" \| "CLOSED" }`, never counts ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)) — verified spaces only |
 | POST | `/spaces/:slug/reports` | 👤 | report wrong information |
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, and the settings and capacity routes ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed)).
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, and the staff's read of the space's state now with its override ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed)).
 An active owner or reception link is required; reception is read-only. The web screen and later
 dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
@@ -224,8 +223,6 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | GET / PATCH | `/manage/spaces/:spaceId` | GET 🧾 · PATCH 🏢 | the profile and all facts (read), the profile (edit) |
 | PUT | `/manage/spaces/:spaceId/:group` | 🏢 | the facts, one group at a time (`hours` with the shifts, `prices`, `amenities`, `contacts`), on the same logic as the admin's ([api-contract §5](../api/api-contract.md#spaces-the-admin)) |
 | POST | `/manage/spaces/:spaceId/:group/confirm` | 🏢 | «المعلومات ما زالت صحيحة»: resets that group's freshness date, as the admin's confirm does ([api-contract §5](../api/api-contract.md#spaces-the-admin)) |
-| GET | `/manage/spaces/:spaceId/occupancy` | 🧾 | the live numbers for the space's staff: `{ capacity, present }`; the statistics are under finance (🏢) |
-| PUT / DELETE | `/manage/spaces/:spaceId/status-override` | 🧾 | set a state until a time (30 min, 1 h, 2 h or closing time), or clear it |
 | GET / POST / DELETE / PUT | `/manage/spaces/:spaceId/photos[/:photoId \| /order]` | GET 🧾 · writes 🏢 | list, upload, remove, reorder, on the admin's service ([api-contract › Photos](../api/api-contract.md#photos)) |
 | GET / POST / PATCH | `/manage/spaces/:spaceId/staff[/:userId]` | 🏢 | reception accounts, created new with a temporary password shown once, listed whole, deactivated and re-activated, a pending temporary password re-issued and handed over ([api-contract › Staff (managed)](../api/api-contract.md#staff-managed)) |
 | GET / POST / PATCH | `/manage/spaces/:spaceId/packages[/:packageId]` | GET 🧾 · writes 🏢 | subscription templates, listed whole, retired ones included; never public ([api-contract › Packages (managed)](../api/api-contract.md#packages-managed)) |

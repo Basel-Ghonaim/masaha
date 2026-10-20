@@ -29,6 +29,12 @@ export function createDirectoryController(directory: DirectoryService) {
       cachePublicly(res);
       sendSuccess(res, space);
     },
+
+    occupancy: async (req: Request, res: Response) => {
+      const occupancy = await directory.occupancy(String(req.params.slug));
+      cachePublicly(res);
+      sendSuccess(res, occupancy);
+    },
   };
 }
 

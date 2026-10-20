@@ -6,7 +6,7 @@ import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace } from '../../../test/factories.ts';
 import { whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
-import { signInOwnerOf } from '../../../test/spaces.ts';
+import { setWeek, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
 
 const app = createTestApp();
@@ -150,6 +150,35 @@ describe("a space's capacity", () => {
       { action: 'space.capacityEdited', before: { capacity: 30 }, after: { capacity: 50 } },
       { action: 'space.capacityEdited', before: { capacity: 50 }, after: { capacity: null } },
     ]);
+  });
+
+  it('setting the capacity keeps an override in force', async () => {
+    const sundayAt10 = createTestApp({ clock: () => new Date('2026-10-18T10:00:00+03:00') });
+    await setWeek(
+      spaceId,
+      Array.from({ length: 7 }, () => [8 * 60, 18 * 60] as [number, number]),
+    );
+    const path = `/api/v1/manage/spaces/${String(spaceId)}`;
+    const overridden = await request(sundayAt10)
+      .put(`${path}/status-override`)
+      .set('Authorization', reception.authorization)
+      .send({ state: 'FULL', duration: 'HOUR_1' });
+    expect(overridden.status).toBe(200);
+
+    const set = await request(sundayAt10)
+      .put(`${path}/capacity`)
+      .set('Authorization', owner.authorization)
+      .send({ capacity: 40 });
+    expect(set.status).toBe(200);
+
+    const now = await request(sundayAt10)
+      .get(`${path}/occupancy`)
+      .set('Authorization', owner.authorization);
+    expect(dataOf(now)).toMatchObject({
+      status: 'FULL',
+      capacity: 40,
+      override: { state: 'FULL', until: '2026-10-18T08:00:00.000Z' },
+    });
   });
 
   it('writes nothing for the capacity it already has, a null with no row included', async () => {

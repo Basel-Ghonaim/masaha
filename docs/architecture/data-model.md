@@ -74,7 +74,7 @@ Summaries only: the schema owns the fields.
 - **Live status** — public, a state and never a count ([ADR 0008](decisions/0008-live-status-not-counts.md)). Evaluated in this order, in Asia/Gaza time:
   1. an unverified space has **no live state**;
   2. **`CLOSED`** (مغلق الآن) while an active `CLOSURE` announcement covers now (not deleted, `startsAt ≤ now`, and `endsAt` after now or not set), or outside today's opening hours;
-  3. while the space is open by its hours, a **manual override** in force gives its state: `AVAILABLE`, `FULL` or `CLOSED`, even when capacity is not set. The owner or reception sets it for 30 min, 1 h, 2 h or until today's closing time. A new override replaces the previous one, and staff can clear it early;
+  3. while the space is open by its hours, a **manual override** in force gives its state: `AVAILABLE`, `FULL` or `CLOSED`, even when capacity is not set. The owner or reception sets it for 30 min, 1 h, 2 h or until today's closing time, never past it, and only while the space is open by its hours (2026-10-19, #94). A new override replaces the previous one, and staff can clear it early;
   4. **no live state** when the space has no opening hours at all, or is open but its capacity is not set;
   5. **`FULL`** (ممتلئ) when present ≥ capacity, where *present* is the open visits plus the open subscription check-ins;
   6. otherwise **`AVAILABLE`** (متاح).

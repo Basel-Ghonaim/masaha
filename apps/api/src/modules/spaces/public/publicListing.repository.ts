@@ -23,6 +23,8 @@ export interface PublicFilter {
   areaIds: readonly number[];
   /** Every verified space's id, from `space-links`. */
   verifiedIds: readonly number[];
+  /** Only these spaces: another module's filter, resolved to ids (the live status's, `occupancy`). */
+  onlyIds?: readonly number[] | undefined;
   verifiedOnly?: boolean | undefined;
   /** A general price of this period, within the bounds, inclusive. */
   price?: { period: Price['period']; min?: number | undefined; max?: number | undefined };
@@ -80,6 +82,7 @@ function listed(filter: PublicFilter, from?: Location): Prisma.Sql {
     sql`s.area_id = ANY(${[...filter.areaIds]}::int[])`,
   ];
   if (filter.verifiedOnly) conditions.push(verified);
+  if (filter.onlyIds) conditions.push(sql`s.id = ANY(${[...filter.onlyIds]}::int[])`);
   if (filter.price) {
     const { period, min, max } = filter.price;
     conditions.push(sql`${pricesShown} AND EXISTS (
