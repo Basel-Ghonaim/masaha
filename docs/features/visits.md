@@ -25,7 +25,7 @@
 
 ## Responsibility boundary
 
-- **Owns** the `visits` table; the visit's rates and charge rules (`visitCharge.ts`, pure); the visit's audit entries.
+- **Owns** the `visits` table, the write-off's columns included; the visit's rates and charge rules (`visitCharge.ts`, pure); the visit's audit entries.
 - **Reads** the space's prices and shifts, its week and a stay's auto check-out time from [`spaces`](spaces.md), and the settings (student prices, the rounding, the cap, reception's switch) from [`space-settings`](space-settings.md).
 - **Asks** `can()`'s `prices.typeByHand` for the terms' `mayTypePrice`, from the boundary's links; and, under the space's lock (`spaces.lock`), for pricing an unpriced visit.
 - **Leaves** the check-out's transaction, the space's lock and the check-out's typed-price decision to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
@@ -82,3 +82,4 @@
 - #94 — the open visits and their counts, which `occupancy` reads for *present*.
 - #95 — the check-in by name, its rates and its idempotency key's lookup; the charge and the check-out; the quote, the terms and the charges so far.
 - #97 — the auto check-out of visits; the unpriced visits and their pricing; the auto-closed visits the uncollected read pages.
+- #100 — a stay closed by its day's end, and one that cannot be closed logged without halting the job; a visit's write-off, its columns and `writeOff` on every visit answered.

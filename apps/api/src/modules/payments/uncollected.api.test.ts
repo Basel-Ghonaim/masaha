@@ -115,6 +115,7 @@ describe('the uncollected visits', () => {
         typedById: null,
         reason: null,
       },
+      writeOff: null,
     });
   });
 

@@ -88,6 +88,7 @@ describe('checking a visitor in', () => {
       checkedOutAt: null,
       checkoutMethod: null,
       charge: null,
+      writeOff: null,
     });
     expect(general.body).not.toHaveProperty('meta');
 

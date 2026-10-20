@@ -101,6 +101,7 @@ describe("a visit's quote and the visit terms", () => {
         checkedOutAt: null,
         checkoutMethod: null,
         charge: null,
+        writeOff: null,
         // 2 h 20 min, up after 15 minutes: 3 hours at 5 ₪.
         quote: {
           at: '2026-10-18T07:20:00.000Z',

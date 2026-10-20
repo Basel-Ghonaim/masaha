@@ -29,6 +29,9 @@ const DESK_VISIT = {
   chargeAgorot: true,
   chargeSetById: true,
   chargeReason: true,
+  writtenOffAt: true,
+  writtenOffById: true,
+  writeOffReason: true,
   customer: { select: { id: true, name: true, phone: true } },
 } as const satisfies Prisma.VisitSelect;
 

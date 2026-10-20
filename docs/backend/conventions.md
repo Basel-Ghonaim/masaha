@@ -355,6 +355,6 @@ Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
   - API tests hold the row in a test transaction while each of these runs.
 
 ### The ledger's rules
-- **The database owns the three payment rules its triggers enforce:** append-only, voided once, and never above the amount due ([data-model.md](../architecture/data-model.md#constraints-worth-stating)). The last one locks the item's row, so concurrent payments are counted one after the other.
+- **The database owns the four payment rules its triggers enforce:** append-only, voided once, never above the amount due, and a written-off visit takes no payment ([data-model.md](../architecture/data-model.md#constraints-worth-stating)). The last one locks the item's row, so concurrent payments are counted one after the other.
 - **Services do not repeat these rules.** They write, and the error handler translates a violation through the constraint table (§4). Who may void a payment is not a ledger rule: it stays with `can()`.
 - **Each trigger is reached by an API integration test**, which checks the code the endpoint returns ([testing.md](../development/testing.md)).

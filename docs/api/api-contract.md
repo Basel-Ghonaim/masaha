@@ -404,7 +404,8 @@ DeskVisit = {
   hourRateAgorot: number | null, dayRateAgorot: number | null,   // copied at check-in; null: no such price
   checkedInAt, checkedOutAt: string | null,
   checkoutMethod: 'MANUAL' | 'AUTO' | null,
-  charge: VisitCharge | null            // null while open, and once closed unpriced
+  charge: VisitCharge | null,           // null while open, and once closed unpriced
+  writeOff: { at, byId, reason } | null // set while written off
 }
 VisitPayment = { id, amountAgorot, method: 'CASH' | 'TRANSFER', note: string | null, receivedAt, recordedById }
 VisitCheckOut = { visit: DeskVisit, payment: VisitPayment | null }

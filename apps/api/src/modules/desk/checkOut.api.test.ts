@@ -126,6 +126,7 @@ describe('checking a visit out', () => {
           typedById: null,
           reason: null,
         },
+        writeOff: null,
       },
       payment: {
         id: payment.id,

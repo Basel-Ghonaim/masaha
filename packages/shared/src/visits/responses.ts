@@ -19,6 +19,13 @@ export interface VisitCharge {
   reason: string | null;
 }
 
+/** The owner's write-off of what a closed visit still owed (K6): when, by whom and why. */
+export interface VisitWriteOff {
+  at: string;
+  byId: number;
+  reason: string;
+}
+
 /** A visit as the desk sees it: who, at which rates, since when, and once closed its charge. */
 export interface DeskVisit {
   id: number;
@@ -34,6 +41,8 @@ export interface DeskVisit {
   checkedOutAt: string | null;
   checkoutMethod: 'MANUAL' | 'AUTO' | null;
   charge: VisitCharge | null;
+  /** Set while the visit is written off; `null` otherwise, and again once the write-off is undone. */
+  writeOff: VisitWriteOff | null;
 }
 
 /** What an open visit costs now, as the desk shows it before the check-out. */
