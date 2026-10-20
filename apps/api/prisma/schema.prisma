@@ -740,6 +740,8 @@ model Visit {
   chargeAgorot    Int?            @map("charge_agorot")
   /// Who typed the charge at the desk, when there was no rate to compute it.
   chargeSetById   Int?            @map("charge_set_by_id")
+  /// Why the desk typed the charge; set with chargeSetById.
+  chargeReason    String?         @map("charge_reason")
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 

@@ -191,12 +191,39 @@ describe('a visit', () => {
     const staff = await createUser();
     const closed = stay('2026-10-01', '08:00', '10:00');
 
-    await expect(createVisit(space.id, { ...closed, chargeSetById: staff.id })).rejects.toThrow(
-      /visits_charge_set_by_check/,
+    const reason = 'No price for the evening';
+
+    await expect(
+      createVisit(space.id, { ...closed, chargeSetById: staff.id, chargeReason: reason }),
+    ).rejects.toThrow(/visits_charge_set_by_check/);
+    await expect(
+      createVisit(space.id, {
+        ...closed,
+        chargeAgorot: 1_200,
+        chargeSetById: staff.id,
+        chargeReason: reason,
+      }),
+    ).resolves.toMatchObject({ chargeSetById: staff.id });
+  });
+
+  it("a typed charge's reason comes with who typed it, and is never blank", async () => {
+    const space = await createSpace();
+    const staff = await createUser();
+    const charged = { ...stay('2026-10-01', '08:00', '10:00'), chargeAgorot: 1_200 };
+    const reason = 'No price for the evening';
+
+    await expect(createVisit(space.id, { ...charged, chargeSetById: staff.id })).rejects.toThrow(
+      /visits_charge_reason_check/,
+    );
+    await expect(createVisit(space.id, { ...charged, chargeReason: reason })).rejects.toThrow(
+      /visits_charge_reason_check/,
     );
     await expect(
-      createVisit(space.id, { ...closed, chargeAgorot: 1_200, chargeSetById: staff.id }),
-    ).resolves.toMatchObject({ chargeSetById: staff.id });
+      createVisit(space.id, { ...charged, chargeSetById: staff.id, chargeReason: '   ' }),
+    ).rejects.toThrow(/visits_charge_reason_check/);
+    await expect(
+      createVisit(space.id, { ...charged, chargeSetById: staff.id, chargeReason: reason }),
+    ).resolves.toMatchObject({ chargeSetById: staff.id, chargeReason: reason });
   });
 
   it('keeps rounding minutes for the "up after N minutes" rule only, from 1 to 59', async () => {
