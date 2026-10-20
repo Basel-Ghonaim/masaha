@@ -46,7 +46,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [93. Three staff refusals have no test of their own](93-three-staff-refusals-have-no-test-of-their-own.md)
 - [94. The person search calls a receptionist a user](94-the-person-search-calls-a-receptionist-a-user.md)
 - [95. A link from the editor words the space from the editor's read](95-a-link-from-the-editor-words-the-space-from-the-editors-read.md)
-- [96. The attendance card saves two capabilities in one save](96-the-attendance-card-saves-two-capabilities-in-one-save.md)
 - [97. The visit-rounding rule is written twice](97-the-visit-rounding-rule-is-written-twice.md)
 - [98. The capability documents outgrow their size guide](98-the-capability-documents-outgrow-their-size-guide.md)
 - [99. The owner's checklist cannot name a retired amenity](99-the-owners-checklist-cannot-name-a-retired-amenity.md)
@@ -111,4 +110,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [81. A retired package that keeps its shift stops the owner from removing that shift](81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)
 - [88. The upgrade confirm shows no front desks](88-the-upgrade-confirm-shows-no-front-desks.md)
 - [90. The staff refusals reuse the admin's messages](90-the-staff-refusals-reuse-the-admins-messages.md)
+- [96. The attendance card saves two capabilities in one save](96-the-attendance-card-saves-two-capabilities-in-one-save.md)
 - [100. An unpaid check-out moves a visit's customer to the phone's](100-an-unpaid-check-out-moves-a-visits-customer-to-the-phones.md)

@@ -39,6 +39,29 @@ export const SPACE_SETTINGS = {
       },
     },
   },
+  attendance: {
+    title: 'Attendance and the live status',
+    capacity: 'Capacity',
+    capacityHelp:
+      'Never shown to visitors. It decides when the space shows “Full”; without it there is no live status.',
+    autoOut: 'Automatic check-out at closing',
+    autoOutHelp: 'Whoever is still in is checked out at closing time.',
+    maxStay: 'Automatic check-out after (hours)',
+    maxStayHelp:
+      'Whoever stays longer is checked out, before closing. Leave it empty to check out at closing only.',
+    optional: 'Optional',
+    fieldErrors: {
+      capacity: {
+        out_of_range: 'A whole number from 1 to 1,000',
+        invalid_format: 'A whole number from 1 to 1,000',
+      },
+      maxStay: { out_of_range: 'From 1 to 23 hours', invalid_format: 'A whole number of hours' },
+    },
+    /** The capacity saved, then the check-out settings refused: what was saved and what was not. */
+    partial: 'The capacity was saved; the automatic check-out settings were not',
+    /** A 403 on the settings once the capacity is saved: something was. */
+    forbiddenAfterCapacity: 'This is no longer open to you at this space.',
+  },
   reception: {
     title: 'Reception',
     switch: 'Reception may type a price by hand',

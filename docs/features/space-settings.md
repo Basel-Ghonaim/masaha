@@ -10,7 +10,7 @@
 - Creates the row with the space, from the platform's new-space defaults.
 - Answers the space's owner its settings, whole.
 - Lets the owner edit any of them.
-- On the dashboard, shows the owner the space's settings as cards on «الإعدادات», each saved alone: visit pricing and reception.
+- On the dashboard, shows the owner the space's settings as cards on «الإعدادات», each saved alone: visit pricing and reception; with `occupancy`'s capacity, the attendance card.
 
 ## Who uses it
 
@@ -41,8 +41,9 @@
 
 A change applies from then on ([data model › Front desk and money](../architecture/data-model.md#front-desk-and-money)).
 
-**The owner's settings on the web.** «الإعدادات» is one column of cards (`SpaceSettingsCards`), each saved, discarded and confirmed alone:
+**The owner's settings on the web.** «الإعدادات» is one column of cards, each saved and discarded alone — first the attendance card, which the page composes, then this capability's (`SpaceSettingsCards`):
 - **Every card** is titled by its `h2`; while its fields differ from the saved settings it says «تغييرات غير محفوظة» and offers «تجاهل التغييرات»; «حفظ» sends only what changed, and when nothing did, sends nothing and says «لم يتغيّر شيء»; saved, a toast says «حُفظت إعدادات «{card}»». The fields are checked in the browser by the contract's schema; a 403 says only that it is no longer open to the owner, nothing saved; a 404 that the space no longer is, and, as any 404 on the settings' route, the read's included, fetches the owner's own spaces again (`shared/api`'s `useLinkEnded`). While the settings load, a placeholder stands for each card; if they cannot be read, one alert says so, with its reference and «إعادة المحاولة».
+- **«الحضور والحالة المباشرة»** (`pages/dashboard/space/settings/`): the capacity (`occupancy`'s, «لا تظهر للزوار…», optional), «خروج تلقائي عند الإغلاق», and the stay limit in hours («خروج تلقائي بعد (ساعات)», optional, sent in minutes), checked in the browser by both contracts at once, each refusal on its field. One «حفظ» sends the capacity first, then the two settings, each only when it changed, and says «حُفظت إعدادات «الحضور والحالة المباشرة»» once. If the settings fail after the capacity was saved, whatever the second request's failure — a refusal, a field's, a wait, or no answer at all — the card's note says «حُفظت السعة، ولم تُحفظ إعدادات الخروج التلقائي» beside the failure, a 403 then saying only «لم يعد هذا متاحًا لك في هذه المساحة.», the saved capacity becomes its own, and every value typed stays, so the next save sends only the settings.
 - **«تسعير الزيارات»**, its description leading to Packages & prices, where the hour and day prices are: the rounding — «تقريب لأعلى بعد» N «دقائق» (its minutes field enabled only for that rule, Arabic digits read, 1 to 59), with an example following N, «ساعتان و9 دقائق = ساعتان · ساعتان و11 دقيقة = 3 ساعات»; «لأقرب نصف ساعة»; or «بالدقيقة» — then «لا يتجاوز سعر اليوم» and «استخدام أسعار الطلاب للزيارات عند توفرها». The rule and its minutes are sent together whenever either changed, the minutes `null` for the two other rules.
 - **«الاستقبال»**: one switch, «يكتب الاستقبال سعرًا يدويًا», and what it allows — a custom subscription, or a visit with no price, with a reason recorded — and that the owner always may.
 
@@ -66,6 +67,7 @@ A change applies from then on ([data model › Front desk and money](../architec
 
 ### Web decisions
 
+- **The attendance card is one card and one save over two capabilities, composed in the page: the capacity first, then the settings; a second part that fails, whatever its failure, says what was saved in the card's note, the capacity becomes the card's own and every value stays** (the owner's O2, S8; [finding 96](../architecture/findings/96-the-attendance-card-saves-two-capabilities-in-one-save.md)). *Why:* the design draws one card; a component of two capabilities lives in neither; and its form is checked by a schema that runs both contracts, so no zod internals are needed. 2026-10-20, #99.
 - **The settings are cards, each saved alone, sending only what changed** (the design's screen 24). *Why:* each card is one decision, and a save that changes nothing writes nothing on the server either. 2026-10-20, #99.
 - **The rounding rule and its minutes are sent together whenever either changed.** *Why:* the contract checks the pair alone, never against the stored row. 2026-10-20, #99.
 - **No «حسابي» card** (design issue 13). *Why:* it leads to `/me`, which is not built. 2026-10-20, #99.
@@ -90,4 +92,4 @@ A change applies from then on ([data model › Front desk and money](../architec
 
 ### Web history
 
-- #99 — the owner's «الإعدادات»: visit pricing and reception, each card saved alone.
+- #99 — the owner's «الإعدادات»: visit pricing and reception, each card saved alone; the attendance card, with `occupancy`'s capacity, in one save (finding 96).

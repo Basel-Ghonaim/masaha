@@ -1,8 +1,8 @@
 # Occupancy
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
-> **Authority:** The `occupancy` capability: a space's state now: its capacity, private to its staff and set by its owner, who is present, and the live status. Its endpoints are owned by the API contract ([Capacity](../api/api-contract.md#capacity-managed), [Occupancy](../api/api-contract.md#occupancy-managed)); its entity by the [data model](../architecture/data-model.md#spaces), and the live-status rule by its [derived values](../architecture/data-model.md#derived-values-computed-not-stored). The API is built; no web screen yet.
-> **Scope:** the API module `occupancy` (L4); `@masaha/shared/occupancy`. No web feature yet.
+> **Authority:** The `occupancy` capability: a space's state now: its capacity, private to its staff and set by its owner, who is present, and the live status. Its endpoints are owned by the API contract ([Capacity](../api/api-contract.md#capacity-managed), [Occupancy](../api/api-contract.md#occupancy-managed)); its entity by the [data model](../architecture/data-model.md#spaces), and the live-status rule by its [derived values](../architecture/data-model.md#derived-values-computed-not-stored). The API is built; on the web, the settings page's attendance card reads and sets the capacity.
+> **Scope:** the API module `occupancy` (L4); `@masaha/shared/occupancy`; the web feature `features/occupancy`, its capacity's hooks only (not dashboard-only: the directory will read the live status).
 
 ## What it does
 
@@ -14,10 +14,10 @@
 
 ## Who uses it
 
-- **The space's owner,** through the API: reads and sets the capacity, reads the state now, and sets and clears the override.
+- **The space's owner,** through the API: reads and sets the capacity, reads the state now, and sets and clears the override; on the dashboard, sets the capacity in the settings page's attendance card ([space-settings › Behaviour and flows](space-settings.md#behaviour-and-flows)).
 - **The space's reception,** through the API: reads the state now, the capacity in it, but not the capacity's own route; sets and clears the override.
 - **The directory,** for the public: each listed space's live status, and which are available now, set-based ([directory](directory.md)); never a count or a capacity.
-- **The front desk** ([desk](desk.md)): a check-in's warnings, in its transaction: full when *present* reaches the capacity, outside the hours. The admin never reaches any of it: a space's capacity and its counts are private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). No web screen reads it yet.
+- **The front desk** ([desk](desk.md)): a check-in's warnings, in its transaction: full when *present* reaches the capacity, outside the hours. The admin never reaches any of it: a space's capacity and its counts are private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). No web screen reads the state now yet; the owner's settings page reads and sets the capacity.
 
 ## Responsibility boundary
 
@@ -69,14 +69,19 @@ A change applies from then on ([data model › Front desk and money](../architec
 - **The override is the staff's, set and cleared under the space's lock, `can()` decided on the links read there; the answer is the state now.** *Why:* a reception link ended meanwhile refuses (finding 43); the desk redraws from one answer. 2026-10-19, #94.
 - **Audited `space.statusOverridden` (the one in force and the new one) and `space.statusOverrideCleared`; clearing none writes nothing.** 2026-10-19, #94.
 
+### Web decisions
+
+- **The capacity is saved through the settings page's attendance card, before the settings** (the owner's O2, S8). *Why:* the design draws one card and one save; the page composes it from this capability's hooks (`useCapacityQuery`, `useSetCapacity`) and `space-settings`' — a component of two capabilities lives in neither — and the capacity goes first, so a refused second part says exactly what was saved ([finding 96](../architecture/findings/96-the-attendance-card-saves-two-capabilities-in-one-save.md)). 2026-10-20, #99.
+
 ## Code map
 
 - **API:** `apps/api/src/modules/occupancy/`, entry `index.ts`: the service, the repository, the manage router, the live-status rule (`liveStatus.ts`) and the override's end (`overrideUntil.ts`). The reads it composes: `modules/visits/`, `modules/subscriptions/`, `modules/customers/`, `modules/announcements/`, and `spaces.weekOf`.
 - **Shared:** `packages/shared/src/occupancy/`: the request, with the capacity's bound, and the override's (`setStatusOverrideSchema`, `OVERRIDE_DURATIONS`); the responses (`SpaceOccupancyNow`, `PresentPerson`, `LiveStatus`).
+- **Web:** `apps/web/src/features/occupancy/`, entry `index.ts` (`useCapacityQuery`, `useSetCapacity`), read by `pages/dashboard/space/settings/`: the repository in `repository/`, the keys and the two hooks in `hooks/`; a 404 on the capacity's route, read or save, fetches the owner's own spaces again (`shared/api`'s `useLinkEnded`).
 
 ## Open findings
 
-- [96](../architecture/findings/96-the-attendance-card-saves-two-capabilities-in-one-save.md): the attendance card saves two capabilities in one save.
+None.
 
 ## History
 
@@ -85,3 +90,7 @@ A change applies from then on ([data model › Front desk and money](../architec
 - #92 — a space's capacity, read and set by its owner on the API; the module's first slice.
 - #94 — the staff's read of the state now: who is present, the count, the capacity and the live status; the manual override, set and cleared by the staff; the live status of many spaces at once, for the directory.
 - #95 — the override refused under a closure or on an unverified space, and answered only while the status uses it; a check-in's warnings, for the desk; each visit present with its charge so far.
+
+### Web history
+
+- #99 — the capacity's read and its save, for the owner's settings page.
