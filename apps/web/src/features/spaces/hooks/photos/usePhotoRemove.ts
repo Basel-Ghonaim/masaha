@@ -10,10 +10,10 @@ import { useSpaceAnswer } from '../editor/useSpaceAnswer';
 import { staleGallery } from './staleGallery';
 
 /**
- * Removing one photo, which asks first: the tile the admin chose is held until it is confirmed, and
- * only then is the photo removed, the gallery fetched again and a toast says what was deleted. A
- * refusal keeps the dialog open with its reason — a 403 or a 404 also fetches the space again, so a
- * space verified or deleted meanwhile shows as it is now.
+ * Removing one photo, which asks first: the tile chosen is held until it is confirmed, and only then
+ * is the photo removed, the gallery fetched again and a toast says what was deleted. A refusal keeps
+ * the dialog open with its reason — a 403 or a 404 also fetches the space again, so the page shows
+ * the space as it is now, whatever changed meanwhile.
  */
 export function usePhotoRemove(place: EditorPlace, spaceId: number) {
   const scope = EDITOR_SCOPES[place];

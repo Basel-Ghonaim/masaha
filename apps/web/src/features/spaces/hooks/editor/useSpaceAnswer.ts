@@ -10,7 +10,7 @@ import { EDITOR_SCOPES } from './editorScope';
  * are only marked out of date, to be fetched again when shown, so the save waits on nothing more;
  * an owner's own spaces are fetched again now, since the space switcher on the page names the
  * space. A refusal that says the space changed meanwhile (403, 404) fetches the space again, so the
- * page shows it as it is now.
+ * page shows it as it is now; an owner's 404 fetches their own spaces again too.
  */
 export function useSpaceAnswer(place: EditorPlace, spaceId: number) {
   const client = useQueryClient();
@@ -27,6 +27,10 @@ export function useSpaceAnswer(place: EditorPlace, spaceId: number) {
     refused: (error: AppError) => {
       if (error.status === 403 || error.status === 404) {
         void client.invalidateQueries({ queryKey: scope.spaceKey(spaceId) });
+      }
+      // An owner's 404 is a link ended meanwhile: the switcher must stop offering the space.
+      if (place === 'owner' && error.status === 404) {
+        void client.invalidateQueries({ queryKey: scope.answered });
       }
     },
   };

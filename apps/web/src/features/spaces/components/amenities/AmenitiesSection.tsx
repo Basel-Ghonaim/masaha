@@ -9,8 +9,8 @@ import { OptionalMark } from '../profile/OptionalMark';
 
 /**
  * «المرافق»: the platform's amenities to tick (`amenitiesField`), with the way to the list itself
- * (`listLink`) where the page has one, then «مرافق إضافية», the space's own, a row each, added up to the limit and removed;
- * one form, saved, dated and confirmed as one group.
+ * (`listLink`) where the page has one, then «مرافق إضافية», the space's own, a row each, added up to
+ * the limit and removed; one form, saved, dated and confirmed as one group.
  */
 export function AmenitiesSection({
   place,

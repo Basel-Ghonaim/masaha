@@ -8,7 +8,7 @@ import { EDITOR_SCOPES } from '../editor/editorScope';
 import { useSpaceAnswer } from '../editor/useSpaceAnswer';
 import { staleGallery } from './staleGallery';
 
-/** One move: the whole gallery, every id, first to last, and the photo the admin acted on. */
+/** One move: the whole gallery, every id, first to last, and the photo moved. */
 type Move = { ids: number[]; photoId: number };
 
 /** The order the gallery has, with one photo taken out and put at `to`. */
@@ -24,9 +24,9 @@ function permutation(photos: SpacePhoto[], id: number, to: number): number[] {
  * screen until the server has answered with 204 and the gallery has been fetched again — a move is no
  * guess about what the server will do.
  *
- * A 409 means the gallery changed since it was read: it is fetched again and the admin is told so. A
- * 403 or a 404 goes through the space's own answer, so a space verified or deleted meanwhile shows as
- * it is now, and the refusal is the tile's, read as any refusal is.
+ * A 409 means the gallery changed since it was read: it is fetched again and the user is told so. A
+ * 403 or a 404 goes through the space's own answer, so the page shows the space as it is now,
+ * whatever changed meanwhile, and the refusal is the tile's, read as any refusal is.
  */
 export function usePhotoOrder(place: EditorPlace, spaceId: number, photos: SpacePhoto[]) {
   const scope = EDITOR_SCOPES[place];

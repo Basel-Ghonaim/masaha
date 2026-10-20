@@ -80,7 +80,7 @@ Reception's web screens remain planned.
 - **No notice and no privacy line:** its head is one line, «كل قسم يُحفظ وحده، ويظهر للزوار فور حفظه.», with «عرض الصفحة العامة», the space's public page in a new tab. Its only badge is «مخفية عن الزوار», while the platform's team hides the space.
 - **«الأسعار» is a row,** not the prices' fields: its date, «قديمة» when stale or «لم تُضف بعد», «تُعدَّل وتُؤكَّد في الباقات والأسعار», and a link to «الباقات والأسعار» (the page is not built yet: it shows its placeholder).
 - **The area and the amenities read the public catalogue** (`lookups`' public source): a hidden area shows as «المنطقة الحالية — لم تعد متاحة للاختيار», and a retired amenity stays linked, counted in one line ([finding 99](../architecture/findings/99-the-owners-checklist-cannot-name-a-retired-amenity.md)); «المرافق» has no way to the platform's amenities list. No `/admin/` request leaves the page.
-- **A refusal names no cause it cannot know:** a 403 says «لم يعد هذا متاحًا لك في هذه المساحة؛ لم يُحفظ شيء.», a 404 «لم تعد هذه المساحة متاحة لك.» (the managed routes answer 404 to a link ended meanwhile), and the space is fetched again.
+- **A refusal names no cause it cannot know:** a 403 says «لم يعد هذا متاحًا لك في هذه المساحة؛ لم يُحفظ شيء.», a 404 «لم تعد هذه المساحة متاحة لك.» (the managed routes answer 404 to a link ended meanwhile), and the space is fetched again; a 404 fetches the owner's own spaces again too, so the switcher stops offering it.
 - **A save fetches the owner's own spaces again,** so the space switcher follows a new name.
 
 **The row actions on the web.** `SpaceActionsMenu` is a row's actions in the admin's spaces list: for a live space a menu — **Edit**, which leads to the space's editor by the path the page gives, **Hide**, or **Show** for a hidden space, then **Delete**; for a deleted space, **Restore** alone, a button named after the space, since a deleted space has nothing to edit, hide, show or delete. The row's name leads to the editor too ([space-links](space-links.md)).
@@ -293,3 +293,4 @@ Reception's web screens remain planned.
 - #88 — the gallery's failed moves and removals titled by their action, and `sendMultipart`'s progress always passed.
 - #91 — the verified notice naming its owners, with an unlink per owner, and the unverified editor's link, through the page's owners' slot; finding 59 resolved.
 - #96 — the editor's place, admin or owner; the owner's «ملف المساحة» on the managed routes, with the public lookups and the prices as a row to Packages & prices; the prices table from 1024 px (finding 67).
+- #98 — #96's review: an owner's 404 fetches their spaces again; the prices row's separator unread; the checklist's retired amenities as `lookups` says.

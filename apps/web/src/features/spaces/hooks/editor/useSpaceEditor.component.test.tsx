@@ -174,7 +174,7 @@ describe('useSpaceEditor', () => {
     expect(admin.privacy).not.toBeNull();
   });
 
-  it('draws the prices as a link to Packages & prices on the owner’s place, with its date, stale and missing', async () => {
+  it('draws the prices as a link to Packages & prices on the owner’s place, with its date, stale or never added', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-13T07:00:00Z'));
     const dated = await ready(renderEditor(() => ok(OWNED), 'owner').result);
@@ -182,7 +182,6 @@ describe('useSpaceEditor', () => {
       title: 'Prices',
       description: 'Edited and confirmed in Packages & prices',
       date: 'Updated 2 days ago',
-      missing: false,
       stale: null,
       action: { label: 'Packages & prices' },
     });
@@ -196,7 +195,7 @@ describe('useSpaceEditor', () => {
       renderEditor(() => ok({ ...OWNED, updatedAt: { ...OWNED.updatedAt, prices: null } }), 'owner')
         .result,
     );
-    expect(missing.pricesLink).toMatchObject({ date: 'Not added yet', missing: true, stale: null });
+    expect(missing.pricesLink).toMatchObject({ date: 'Not added yet', stale: null });
 
     // The admin edits the prices in the editor itself: no link.
     expect((await ready(renderEditor().result)).pricesLink).toBeNull();
