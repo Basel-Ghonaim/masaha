@@ -43,6 +43,9 @@ function setup(links: ActiveLink[]) {
     weeksFor: () => Promise.reject(new Error('not asked here')),
     pricesOf: () => Promise.reject(new Error('not asked here')),
     shiftsOf: () => Promise.reject(new Error('not asked here')),
+    autoCheckoutDue: () => {
+      throw new Error('not asked here');
+    },
     lock: () => Promise.reject(new Error('not asked here')),
   };
   const lookups: LookupsService = {
