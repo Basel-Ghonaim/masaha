@@ -188,6 +188,46 @@ describe('the live status in the directory', () => {
     expect((all.body as { meta: { totalRecords: number } }).meta.totalRecords).toBe(6);
   });
 
+  it('a closure in force closes a space and an override in force gives its state, on the card, the pin and /occupancy', async () => {
+    // Open now with seats free: AVAILABLE but for the closure, and but for the override.
+    const closed = await space('Closure Room', { capacity: 5 });
+    await prisma.announcement.create({
+      data: { spaceId: closed.id, type: 'CLOSURE', textAr: 'مغلق', startsAt: sunday('08:00') },
+    });
+    const overridden = await space('Override Room');
+    await prisma.spaceOccupancy.create({
+      data: {
+        spaceId: overridden.id,
+        capacity: 5,
+        stateOverride: 'FULL',
+        stateOverrideUntil: sunday('11:00'),
+        stateOverrideById: (
+          await prisma.spaceManager.findFirstOrThrow({
+            where: { spaceId: overridden.id },
+          })
+        ).userId,
+      },
+    });
+    const expected = { 'Closure Room': 'CLOSED', 'Override Room': 'FULL' };
+
+    const list = await request(app).get('/api/v1/spaces?limit=50');
+    expect(
+      statusesOf((list.body as { data: { nameEn: string; liveStatus: unknown }[] }).data),
+    ).toMatchObject(expected);
+    const map = await request(app).get('/api/v1/map/spaces');
+    const { pins } = (map.body as { data: { pins: { nameEn: string; liveStatus: unknown }[] } })
+      .data;
+    expect(statusesOf(pins)).toMatchObject(expected);
+
+    for (const [slug, status] of [
+      ['closure-room', 'CLOSED'],
+      ['override-room', 'FULL'],
+    ] as const) {
+      const response = await request(app).get(`/api/v1/spaces/${slug}/occupancy`);
+      expect(response.body).toEqual({ success: true, data: { status } });
+    }
+  });
+
   it('availableNow on the map keeps the same spaces', async () => {
     const response = await request(app).get('/api/v1/map/spaces?availableNow=true');
     expect(response.status).toBe(200);
