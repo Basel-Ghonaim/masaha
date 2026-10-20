@@ -2,6 +2,7 @@ import type { Rates, VisitCharge } from '@masaha/shared/visits';
 
 import { isForeignKeyViolation, prisma, type Tx } from '../../db/index.ts';
 import type { Prisma } from '../../generated/prisma/client.ts';
+import type { Charge } from './visitCharge.ts';
 
 /** A visit still open: who, and since when. */
 export interface OpenVisit {
@@ -49,6 +50,15 @@ export interface VisitClosing {
   checkedOutAt: Date;
   charge: VisitCharge | null;
   customerId: number | null;
+}
+
+/** An open visit as the auto check-out reads it: its space, its check-in and its rates. */
+export interface OpenStay {
+  id: number;
+  spaceId: number;
+  checkedInAt: Date;
+  hourRateAgorot: number | null;
+  dayRateAgorot: number | null;
 }
 
 /** Each space's count of rows, by space; a space with none is absent. */
@@ -131,6 +141,125 @@ export function createVisitsRepository() {
           chargeSetById: charge?.typedById ?? null,
           chargeReason: charge?.reason ?? null,
           customerId,
+        },
+        select: DESK_VISIT,
+      });
+    },
+
+    /** Every open visit, of every space, the earliest checked in first, then by id. */
+    openEverywhere(): Promise<OpenStay[]> {
+      return prisma.visit.findMany({
+        where: { checkedOutAt: null },
+        select: {
+          id: true,
+          spaceId: true,
+          checkedInAt: true,
+          hourRateAgorot: true,
+          dayRateAgorot: true,
+        },
+        orderBy: [{ checkedInAt: 'asc' }, { id: 'asc' }],
+      });
+    },
+
+    /** Locks the visit's row (`FOR UPDATE`) while it is still open: whether it was. */
+    async lockOpen(visitId: number, tx: Tx): Promise<boolean> {
+      const locked = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM visits WHERE id = ${visitId} AND checked_out_at IS NULL FOR UPDATE`;
+      return locked.length > 0;
+    },
+
+    /** Closes the visit by the auto check-out, at its due time, with its charge or none. */
+    async closeAuto(
+      visitId: number,
+      { checkedOutAt, charge }: { checkedOutAt: Date; charge: Charge | null },
+      tx: Tx,
+    ): Promise<void> {
+      await tx.visit.update({
+        where: { id: visitId },
+        data: {
+          checkedOutAt,
+          checkoutMethod: 'AUTO',
+          roundingRule: charge?.roundingRule ?? null,
+          roundingMinutes: charge?.roundingMinutes ?? null,
+          capApplied: charge?.capApplied ?? null,
+          chargeAgorot: charge?.amountAgorot ?? null,
+        },
+        select: { id: true },
+      });
+    },
+
+    /**
+     * A page of the space's closed visits with no charge, the latest closed first, then by id, and
+     * how many there are.
+     */
+    async unpricedIn(
+      spaceId: number,
+      { skip, take }: { skip: number; take: number },
+    ): Promise<{ rows: DeskVisitRow[]; total: number }> {
+      const where = { spaceId, checkedOutAt: { not: null }, chargeAgorot: null };
+      const [rows, total] = await Promise.all([
+        prisma.visit.findMany({
+          where,
+          select: DESK_VISIT,
+          orderBy: [{ checkedOutAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take,
+        }),
+        prisma.visit.count({ where }),
+      ]);
+      return { rows, total };
+    },
+
+    /** The space's visits closed by the auto check-out, each with its charge. */
+    autoClosedIn(spaceId: number): Promise<{ id: number; chargeAgorot: number | null }[]> {
+      return prisma.visit.findMany({
+        where: { spaceId, checkoutMethod: 'AUTO' },
+        select: { id: true, chargeAgorot: true },
+      });
+    },
+
+    /**
+     * A page of the space's visits closed by the auto check-out, but these, the latest closed
+     * first, then by id, and how many there are.
+     */
+    async autoClosedPage(
+      spaceId: number,
+      exceptIds: readonly number[],
+      { skip, take }: { skip: number; take: number },
+    ): Promise<{ rows: DeskVisitRow[]; total: number }> {
+      const where = { spaceId, checkoutMethod: 'AUTO' as const, id: { notIn: [...exceptIds] } };
+      const [rows, total] = await Promise.all([
+        prisma.visit.findMany({
+          where,
+          select: DESK_VISIT,
+          orderBy: [{ checkedOutAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take,
+        }),
+        prisma.visit.count({ where }),
+      ]);
+      return { rows, total };
+    },
+
+    /** Sets a closed visit's charge typed by hand, with who typed it and why. */
+    price(
+      visitId: number,
+      {
+        amountAgorot,
+        typedById,
+        reason,
+      }: { amountAgorot: number; typedById: number; reason: string },
+      tx: Tx,
+    ): Promise<DeskVisitRow> {
+      return tx.visit.update({
+        where: { id: visitId },
+        data: {
+          chargeAgorot: amountAgorot,
+          chargeSetById: typedById,
+          chargeReason: reason,
+          roundingRule: null,
+          roundingMinutes: null,
+          capApplied: null,
         },
         select: DESK_VISIT,
       });

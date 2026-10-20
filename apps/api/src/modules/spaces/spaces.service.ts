@@ -1,6 +1,7 @@
 import type { OpeningRange, Price, Shift } from '@masaha/shared/spaces';
 
 import type { Tx } from '../../db/index.ts';
+import { autoCheckoutDue, type AutoCheckoutInput } from './autoCheckout.ts';
 import { createHoursRepository } from './hours/hours.repository.ts';
 import { createShiftsRepository } from './hours/shifts.repository.ts';
 import { createPricesRepository } from './prices/prices.repository.ts';
@@ -8,7 +9,8 @@ import { createSpacesRepository, type SpaceRow } from './spaces.repository.ts';
 
 /**
  * The listed coworking spaces, as the modules above read them: the summaries of many spaces at
- * once, a space's week, shifts and prices, and the space's lock, which a change of its links takes.
+ * once, a space's week, shifts and prices, a stay's auto check-out time, and the space's lock, which
+ * a change of its links takes.
  */
 export function createSpacesService() {
   const repository = createSpacesRepository();
@@ -39,6 +41,11 @@ export function createSpacesService() {
     /** The space's published prices, in the order they are shown in. */
     pricesOf(spaceId: number, tx?: Tx): Promise<Price[]> {
       return prices.listFor(spaceId, tx);
+    },
+
+    /** When a stay is closed by itself, by the space's week and settings now (`autoCheckout.ts`). */
+    autoCheckoutDue(input: AutoCheckoutInput): Date | null {
+      return autoCheckoutDue(input);
     },
 
     /**

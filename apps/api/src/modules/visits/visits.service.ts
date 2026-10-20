@@ -1,16 +1,19 @@
+import type { PaginationQuery } from '@masaha/shared/core';
 import type { SpaceSettings } from '@masaha/shared/space-settings';
 import type {
   CheckInVisitRequest,
   DeskVisit,
+  PriceVisitRequest,
   QuotedVisit,
   Rates,
   VisitTerms,
 } from '@masaha/shared/visits';
 
-import type { Tx } from '../../db/index.ts';
+import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
+import { toSkip } from '../../shared/http/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import {
@@ -51,6 +54,7 @@ function toLocked(row: DeskVisitRow): LockedVisit {
 }
 
 interface Dependencies {
+  runInTransaction: RunInTransaction;
   audit: AuditWriter;
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
@@ -76,7 +80,16 @@ const sameRates = (a: Rates, b: Rates) =>
  * its rates, its check-in, which `desk` orchestrates, and the reads `occupancy` composes *present*
  * from.
  */
-export function createVisitsService({ audit, spaces, spaceSettings, now }: Dependencies) {
+/** How many stays one run of a job closes at most; the next run continues (`remaining`). */
+const AUTO_CHECKOUT_BATCH = 500;
+
+export function createVisitsService({
+  runInTransaction,
+  audit,
+  spaces,
+  spaceSettings,
+  now,
+}: Dependencies) {
   const repository = createVisitsRepository();
   return {
     /** The space's visit created with this idempotency key, or `null`: a retried check-in. */
@@ -261,6 +274,149 @@ export function createVisitsService({ audit, spaces, spaceSettings, now }: Depen
         tx,
       );
       return toDeskVisit(row);
+    },
+
+    /**
+     * The auto check-out of visits (data model › Auto check-out): every open visit whose due time,
+     * by its space's week and settings as they are now, has passed by `at`, the earliest first, up
+     * to a batch. Each is closed in its own transaction, under its row's lock and only while still
+     * open, at its due time, never at the run's, charged for the stay up to then; audited
+     * `visit.autoCheckedOut` with no actor. A soft-deleted or hidden space's visits are closed too.
+     */
+    async autoCheckOut(at: Date): Promise<{ visits: number; remaining: number }> {
+      const open = await repository.openEverywhere();
+      const spaceIds = [...new Set(open.map(({ spaceId }) => spaceId))];
+      const [weeks, settings] = await Promise.all([
+        spaces.weeksFor(spaceIds),
+        spaceSettings.settingsFor(spaceIds),
+      ]);
+      const due = open.flatMap((stay) => {
+        const rules = settings.get(stay.spaceId);
+        if (!rules) return [];
+        const dueAt = spaces.autoCheckoutDue({
+          checkedInAt: stay.checkedInAt,
+          week: weeks.get(stay.spaceId) ?? null,
+          autoCheckoutAtClosing: rules.autoCheckoutAtClosing,
+          maxStayMinutes: rules.maxStayMinutes,
+        });
+        return dueAt && dueAt <= at ? [{ stay, dueAt, rules }] : [];
+      });
+
+      let closed = 0;
+      for (const { stay, dueAt, rules } of due.slice(0, AUTO_CHECKOUT_BATCH)) {
+        const done = await runInTransaction(async (tx) => {
+          if (!(await repository.lockOpen(stay.id, tx))) return false;
+          const charge = chargeOf(
+            { from: stay.checkedInAt, to: dueAt },
+            { hourAgorot: stay.hourRateAgorot, dayAgorot: stay.dayRateAgorot },
+            ruleOf(rules),
+          );
+          await repository.closeAuto(stay.id, { checkedOutAt: dueAt, charge }, tx);
+          await audit(
+            {
+              actorId: null,
+              action: 'visit.autoCheckedOut',
+              entityType: 'visit',
+              entityId: stay.id,
+              spaceId: stay.spaceId,
+              after: {
+                checkedOutAt: dueAt.toISOString(),
+                chargeAgorot: charge?.amountAgorot ?? null,
+              },
+            },
+            tx,
+          );
+          return true;
+        });
+        if (done) closed += 1;
+      }
+      return { visits: closed, remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0) };
+    },
+
+    /**
+     * A page of the space's closed visits with no charge, for the owner to price: the latest closed
+     * first, then by id; and how many there are. Read without a lock.
+     */
+    async unpricedIn(
+      spaceId: number,
+      query: PaginationQuery,
+    ): Promise<{ rows: DeskVisit[]; total: number }> {
+      const { rows, total } = await repository.unpricedIn(spaceId, {
+        skip: toSkip(query),
+        take: query.limit,
+      });
+      return { rows: rows.map(toDeskVisit), total };
+    },
+
+    /** The space's visits closed by the auto check-out, each with its charge (or none). */
+    autoClosedIn(spaceId: number): Promise<{ id: number; chargeAgorot: number | null }[]> {
+      return repository.autoClosedIn(spaceId);
+    },
+
+    /**
+     * A page of the space's visits closed by the auto check-out, but these (the settled ones, which
+     * `payments` decides), the latest closed first, then by id; and how many there are.
+     */
+    async autoClosedPage(
+      spaceId: number,
+      exceptIds: readonly number[],
+      query: PaginationQuery,
+    ): Promise<{ rows: DeskVisit[]; total: number }> {
+      const { rows, total } = await repository.autoClosedPage(spaceId, exceptIds, {
+        skip: toSkip(query),
+        take: query.limit,
+      });
+      return { rows: rows.map(toDeskVisit), total };
+    },
+
+    /**
+     * Prices a closed visit with no charge, in one transaction and in this order: the space's lock;
+     * `can()` on the links read under it, the staff's, then `prices.typeByHand` by the space's
+     * switch; the visit's row (`FOR UPDATE`), not the space's → 404, still open → 409, already
+     * charged → `VISIT_ALREADY_PRICED`; its charge typed with who typed it and why, audited
+     * `visit.priced`.
+     */
+    price(
+      actor: Actor,
+      space: LoadedSpace,
+      visitId: number,
+      { amountAgorot, reason }: PriceVisitRequest,
+    ): Promise<DeskVisit> {
+      return runInTransaction(async (tx) => {
+        if (!(await spaces.lock(space.id, tx))) {
+          throw AppError.notFound(undefined, 'Space not found');
+        }
+        const links = await space.linksUnder(tx);
+        if (!can(actor, 'attendance.record', { links })) throw AppError.forbidden();
+        const { receptionMayTypePrices } = await spaceSettings.read(space.id, tx);
+        if (!can(actor, 'prices.typeByHand', { links, receptionMayTypePrices })) {
+          throw AppError.forbidden('PRICE_TYPING_NOT_ALLOWED');
+        }
+        const locked = await repository.lockIn(space.id, visitId, tx);
+        if (!locked) throw AppError.notFound(undefined, 'Visit not found');
+        if (locked.checkedOutAt === null) {
+          throw AppError.conflict(undefined, 'An open visit is priced at its check-out');
+        }
+        if (locked.chargeAgorot !== null) throw AppError.conflict('VISIT_ALREADY_PRICED');
+
+        const row = await repository.price(
+          visitId,
+          { amountAgorot, typedById: actor.id, reason },
+          tx,
+        );
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'visit.priced',
+            entityType: 'visit',
+            entityId: visitId,
+            spaceId: space.id,
+            after: { chargeAgorot: amountAgorot, reason },
+          },
+          tx,
+        );
+        return toDeskVisit(row);
+      });
     },
 
     /** The space's open visits, the earliest checked in first, then by id. */

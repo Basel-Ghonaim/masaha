@@ -111,7 +111,8 @@ export function createDeskService({
     /**
      * Checks a visit out, in one transaction and in this order: the space's lock and `can()`; the
      * visit's row (`FOR UPDATE`); for a visit already closed, the first result when this key made
-     * it, else the visit as it is, recording nothing. Otherwise its charge, at the quote's time,
+     * it, else the visit as it is, recording nothing, or `VISIT_ALREADY_CLOSED` when the request
+     * carries a payment. Otherwise its charge, at the quote's time, never before its check-in,
      * from its rates and the rounding and cap in force; or, with no rate, the price typed by whoever
      * may type one, which they must; or none, an unpriced close. Any part left unpaid needs a phone,
      * whose customer it is then left to; the visit is closed, then the payment recorded, which the
@@ -135,9 +136,16 @@ export function createDeskService({
         if (recorded && recorded.visitId !== visitId) {
           throw AppError.conflict(undefined, 'This idempotency key paid another item');
         }
-        if (!locked.open) return { visit: locked.visit, payment: recorded?.payment ?? null };
+        if (!locked.open) {
+          // Closed by another key: a payment taken for it now would be in no ledger.
+          if (!recorded && request.payment) throw AppError.conflict('VISIT_ALREADY_CLOSED');
+          return { visit: locked.visit, payment: recorded?.payment ?? null };
+        }
 
         const checkedOutAt = pricedAt(request.checkedOutAt, requestedAt);
+        if (checkedOutAt < locked.checkedInAt) {
+          throw AppError.validation({ checkedOutAt: ['out_of_range'] });
+        }
         const computed = visits.chargeOf(locked, checkedOutAt, settings);
         const mayType = can(actor, 'prices.typeByHand', {
           links,

@@ -80,7 +80,7 @@ Summaries only: the schema owns the fields.
   6. otherwise **`AVAILABLE`** (متاح).
 
   The directory's "available now" filter selects `AVAILABLE`. Capacity and the exact numbers (present / capacity) are shown only to the space's staff (owner and reception).
-- **Auto check-out:** open visits and check-ins are closed at the space's closing time, or at 23:59 when the space has no opening hours, unless the owner turns closing-time check-out off in the space's settings; and earlier, after `maxStayMinutes`, when the owner sets it.
+- **Auto check-out:** open visits and check-ins are closed at the space's closing time, or at 23:59 when the space has no opening hours, unless the owner turns closing-time check-out off in the space's settings; and earlier, after `maxStayMinutes`, when the owner sets it. The closing is that of the check-in's Gaza day: a check-in before it is due at it (a range closing at midnight at 23:59); a check-in on a closed day or after that day's closing is due at 23:59, as without hours; a stay never crosses into the next day, nor is it due before its check-in (2026-10-20, #97). The job closes each stay at its due time, never at the run's, and charges a visit for the stay up to then, by its rates and the rounding and cap in force at the run; a change of the settings applies from then on, so a stay limit set later closes an open stay at its new due time, possibly past (2026-10-20, #97).
 - **Stale:** a fact group whose `…UpdatedAt` is older than its threshold: `priceStalenessDays` (default 30) for prices, `stalenessDays` (default 60) for the others. Both are admin settings.
 - **Missing:** a fact group never saved, its `…UpdatedAt` null. It is never stale; the admin's "stale or missing" filter keeps it, as it keeps a stale one.
 - **Stale prices:**
@@ -95,10 +95,11 @@ The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.m
   - no hour price → the charge is the day price;
   - no day price → no cap;
   - neither → the desk types the amount, under the rule of [hand-typed prices](#front-desk-and-money), recorded as a desk-set price with who set it and why; checked out by whoever may not type a price, the visit closes **unpriced**: no charge and no payment, never free, left to a customer by phone, for the owner to price (2026-10-20, #95).
+- **Unpriced visit:** a closed visit with no charge — closed unpriced at the desk, or by the auto check-out with no rate. It is priced later, once, by whoever may type a price, with its reason, recorded with who typed it; it takes no payment until then (2026-10-20, #97).
 - **Hand-typed prices.** A price typed by hand at the desk — a custom subscription's price, or a visit's charge where the space has no rate — is typed by the owner always, and by reception only where the space's settings allow it (off by default). Every hand-typed price, by anyone, carries a required reason, recorded with who typed it (2026-10-19, #92).
 - **A change to the space's settings or capacity applies from then on:** a visit's rates (and its audience's student prices) are copied at check-in, its rounding rule and the cap are read at its check-out, and the closing-time check-out and the stay limit apply at once, to the stays already open too; the capacity at the next check-in and in the live status (2026-10-19, #92).
 - **Unpaid visit:** a visit may be left unpaid only with a phone number. It then belongs to the space's customer with that phone among those not archived (created if new, with the name given or the visit's), and its charge counts in that customer's debt (2026-10-20, #95).
-- **Uncollected visits:** visits closed by the auto check-out and left unpaid.
+- **Uncollected visits:** visits closed by the auto check-out and left unpaid, the unpriced ones included (2026-10-20, #97).
 - **Full warning:** a check-in (visit or subscription) while present ≥ capacity warns, never blocks.
 - **Subscription limits:** any of a date range, total days, days per week, hours per day and total hours, freely combined, all optional. They produce warnings at check-in, never blocks.
 - **Subscription progress**, from its check-ins: days used, days this week (Saturday to Friday), hours today and hours used.

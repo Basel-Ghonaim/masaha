@@ -1,6 +1,6 @@
 # Setup
 
-> **Status:** Active · **Last Updated:** 2026-10-10 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
 > **Authority:** How to install, run, check and test the repository locally, and what CI runs. Which lane proves a behaviour is owned by [testing.md](testing.md); how work is executed by [workflow.md](workflow.md).
 
 ## Prerequisites
@@ -154,6 +154,12 @@ The API reads its settings from `apps/api/.env`, loaded by Node's `--env-file`. 
 `GET /health` reports the API and the database ([api-contract §1](../api/api-contract.md#1-conventions)): 200 while the database is up, 503 while it is unreachable. Everything else lives under `/api/v1`.
 
 In development, tests and typechecking, the API reads `@masaha/shared` from its source through the package's `@masaha/source` export condition, so the shared package does not need building first. Only `build` and `start` use its `dist`.
+
+### Timed jobs
+
+The auto check-out runs as a timed job ([api-contract › Internal](../api/api-contract.md#internal)). Locally, the API runs it itself: 10 s after start, then every 5 minutes, logging one `job ran` line per job. `JOBS_SECRET` is optional locally: without it, the endpoint is not mounted.
+
+Online, set `JOBS_SECRET` (a random value of at least 32 characters) in the host's settings, and create one job on a free external cron service (for example cron-job.org): `POST https://<host>/api/v1/internal/jobs/run` every 5 minutes, with the header `Authorization: Bearer <JOBS_SECRET>`. A failed run answers 500, which the service shows; a missed run is caught up by the next.
 
 ## The API test lane
 

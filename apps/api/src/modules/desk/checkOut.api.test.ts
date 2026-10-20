@@ -55,9 +55,9 @@ beforeEach(async () => {
   await addPrice(spaceId, 'DAY', 2_500);
 });
 
-/** Checks a visitor in at 08:00, through the API; answers the visit's id. */
-async function checkedIn(visitorName = 'Omar') {
-  const response = await request(at('08:00:00'))
+/** Checks a visitor in at 08:00 unless told, through the API; answers the visit's id. */
+async function checkedIn(visitorName = 'Omar', through = at('08:00:00')) {
+  const response = await request(through)
     .post(`/api/v1/manage/spaces/${String(spaceId)}/visits`)
     .set('Authorization', owner.authorization)
     .set('Idempotency-Key', randomUUID())
@@ -282,21 +282,44 @@ describe('checking a visit out', () => {
     expect(await storedPayments()).toHaveLength(1);
   });
 
-  it('a check-out of a visit already closed answers it closed and records no payment', async () => {
+  it('a check-out of a visit already closed answers it closed without a payment, and refuses one with 409 VISIT_ALREADY_CLOSED', async () => {
     const visitId = await checkedIn();
     const body = { payment: { amountAgorot: 1_500, method: 'CASH' } };
     const first = await checkOut(owner, visitId, body);
 
-    const again = await checkOut(reception, visitId, body, randomUUID(), at('10:40:00'));
+    const again = await checkOut(
+      reception,
+      visitId,
+      { phone: PHONE },
+      randomUUID(),
+      at('10:40:00'),
+    );
     expect(again.status).toBe(200);
     expect(dataOf(again)).toEqual({
       visit: (dataOf(first) as { visit: unknown }).visit,
       payment: null,
     });
+
+    const paying = await checkOut(reception, visitId, body, randomUUID(), at('10:40:00'));
+    expect(paying.status).toBe(409);
+    expect(errorOf(paying).code).toBe('VISIT_ALREADY_CLOSED');
     expect(await storedPayments()).toHaveLength(1);
   });
 
-  it('two check-outs of one visit at once record one payment', async () => {
+  it("a check-out time before the visit's check-in is refused (422 out_of_range), writing nothing", async () => {
+    const visitId = await checkedIn('Omar', at('10:18:00'));
+
+    const response = await checkOut(owner, visitId, {
+      checkedOutAt: '2026-10-18T10:16:00+03:00',
+      phone: PHONE,
+    });
+    expect(response.status).toBe(422);
+    expect(errorOf(response).errors).toEqual({ checkedOutAt: ['out_of_range'] });
+    expect(await storedVisit(visitId)).toMatchObject({ checkedOutAt: null });
+    expect(await actionsAfterCheckIn()).toEqual([]);
+  });
+
+  it('two check-outs of one visit at once record one payment; the other is refused, its cash unrecorded', async () => {
     const visitId = await checkedIn();
     const body = { payment: { amountAgorot: 1_500, method: 'CASH' } };
     const pending: Promise<request.Response>[] = [];
@@ -311,9 +334,9 @@ describe('checking a visit out', () => {
     });
 
     const answers = await Promise.all(pending);
-    expect(answers.map(({ status }) => status)).toEqual([200, 200]);
-    const payments = answers.map((answer) => (dataOf(answer) as { payment: unknown }).payment);
-    expect(payments.filter((payment) => payment !== null)).toHaveLength(1);
+    expect(answers.map(({ status }) => status).sort()).toEqual([200, 409]);
+    const refused = answers.find(({ status }) => status === 409);
+    expect(refused && errorOf(refused).code).toBe('VISIT_ALREADY_CLOSED');
     expect(await storedPayments()).toHaveLength(1);
   });
 

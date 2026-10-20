@@ -95,6 +95,10 @@ export const DOMAIN_ERROR_CODES = [
   // payments: the ledger's rules, from the database's constraints
   'PAYMENT_EXCEEDS_DUE',
   'VISIT_NOT_PRICED',
+  // the visit's charge typed later (visits)
+  'VISIT_ALREADY_PRICED',
+  // the check-out (desk)
+  'VISIT_ALREADY_CLOSED',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

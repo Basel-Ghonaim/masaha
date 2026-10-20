@@ -2,8 +2,11 @@ import { createAppFromEnv } from './app.ts';
 import { EnvError, loadEnv, type Env } from './config/index.ts';
 import { isDatabaseUp, prisma } from './db/index.ts';
 import { createLogger } from './shared/http/index.ts';
+import { startEvery } from './shared/jobs/index.ts';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
+// How often this process runs the timed jobs (ADR 0014), as the external cron does online.
+const JOBS_EVERY_MS = 5 * 60_000;
 
 function readEnv(): Env {
   try {
@@ -30,7 +33,11 @@ try {
   process.exit(1);
 }
 
-const app = createAppFromEnv(env, { logger, checkDatabase: () => isDatabaseUp(prisma) });
+const app = createAppFromEnv(env, {
+  logger,
+  checkDatabase: () => isDatabaseUp(prisma),
+  startJobs: (run) => startEvery(JOBS_EVERY_MS, run, logger),
+});
 
 const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, 'API listening');

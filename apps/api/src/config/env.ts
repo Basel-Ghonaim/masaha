@@ -51,9 +51,13 @@ const envSchema = z
     // them in Cloudinary, from its account's URL, a secret.
     STORAGE_MODE: z.enum(['local', 'cloudinary']).default('local'),
     CLOUDINARY_URL: optional,
+    // The secret an external cron sends to run the timed jobs (docs/backend/security.md › HTTP
+    // hardening): at least 32 characters. Without it, the endpoint is not mounted; production
+    // requires it, since online nothing else runs the jobs.
+    JOBS_SECRET: optional.pipe(z.string().min(32).optional()),
   })
   .superRefine((env, context) => {
-    for (const name of ['GOOGLE_CLIENT_ID', 'TRUST_PROXY'] as const) {
+    for (const name of ['GOOGLE_CLIENT_ID', 'TRUST_PROXY', 'JOBS_SECRET'] as const) {
       if (env.NODE_ENV === 'production' && env[name] === undefined) {
         context.addIssue({ code: 'custom', path: [name], message: 'Required in production' });
       }

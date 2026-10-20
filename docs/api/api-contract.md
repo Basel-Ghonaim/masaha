@@ -385,13 +385,13 @@ The desk's day: a visitor checked in by name, and checked out with the charge an
 - **The check-out** (`@masaha/shared/desk`): `checkedOutAt`, an ISO time, the `quote.at` of the visit's quote the desk showed, at most 5 minutes old and not in the future (`out_of_range` otherwise), absent for now; `payment`, `{ amountAgorot, method, note? }` (`@masaha/shared/payments`: whole agorot from 1 to 10,000,000, `CASH` or `TRANSFER`, a note of 1–200 characters), absent or `null` for none; `phone` (normalised, `invalid_format` otherwise) and `customerName` (1–60 characters), for a part left unpaid; `charge`, `{ amountAgorot, reason }` (1–10,000,000 agorot; a reason of 1–200 characters, required), a price typed by hand.
 - **The charge** is the stay's, up to the check-out's time, from the rates copied at check-in and the rounding and the cap in force at check-out ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). A visit with no rate has none: whoever may type a price (the owner always; reception where the space's settings allow it) must type it, with its reason; whoever may not closes it **unpriced**, with no charge and no payment, for the owner to price. A typed price where the visit has a rate is refused.
 - **A part left unpaid,** the whole of an unpriced close included, needs a `phone`: the visit is then left to the space's customer with that phone among those not archived, or to a new one named `customerName` (else the visit's name), and counts in that customer's debt. The payment is checked by the ledger against the charge.
-- **A retry** with the same key answers the first result: the same visit and payment. A check-out of a visit already closed, with another key, answers it as it is and records nothing; a key that paid another visit is `conflict` (409), no code.
+- **A retry** with the same key answers the first result: the same visit and payment. A check-out of a visit already closed, with another key, answers it as it is and records nothing; with a `payment`, it is refused (409 `VISIT_ALREADY_CLOSED`), so the desk knows the cash it took is in no ledger (2026-10-20, #97). A key that paid another visit is `conflict` (409), no code.
 - **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the visit, the payment or the customer as the entity and the entry's space: `visit.checkedIn` (`after`: `{ visitorName, audience, shiftId, hourRateAgorot, dayRateAgorot }`); `visit.checkedOut` (`after`: `{ checkedOutAt, requestedAt, chargeAgorot, capApplied, typedById, reason, customerId }`: the quote's time it was priced at and the request's own time); `payment.recorded` (`after`: `{ visitId, amountAgorot, method }`); `customer.created` (`after`: `{ name, phone }`) when the phone is new.
 
 ```ts
 VisitCharge = {
   amountAgorot: number,
-  roundingRule: VisitRounding | null,   // the rounding in force at the check-out; null when typed
+  roundingRule: VisitRounding | null,   // the rounding in force at the check-out; null when typed, or when the charge is the day price alone
   roundingMinutes: number | null,
   capApplied: boolean | null,
   typedById: number | null,             // who typed it at the desk, with why
@@ -432,7 +432,7 @@ VisitTerms = {
 #### `POST /manage/spaces/:spaceId/visits/:visitId/check-out` · 🧾 · `Idempotency-Key`
 - **Body:** `{ checkedOutAt?, payment?, phone?, customerName?, charge? }`.
 - **200:** `VisitCheckOut`: the visit closed, its charge or none, and the payment taken, if any.
-- **Errors:** `validation` (422), each writing nothing: on `idempotencyKey` (§1); on the body, before anything is read; `out_of_range` on `checkedOutAt`; `required` on `phone` when any part is left unpaid; `required` on `charge` when the visit has no rate and the caller may type a price; `invalid_choice` on `charge` when the visit has a rate; `forbidden` (403) `PRICE_TYPING_NOT_ALLOWED` for a typed price reception may not type, and no code for an owner or reception whose link ended meanwhile; `conflict` (409) `PAYMENT_EXCEEDS_DUE` for a payment above the charge, `VISIT_NOT_PRICED` for a payment on an unpriced close, both from the ledger, and no code for a key that paid another visit; `not_found` (404) for a visit that is not the space's, also for a space deleted meanwhile.
+- **Errors:** `validation` (422), each writing nothing: on `idempotencyKey` (§1); on the body, before anything is read; `out_of_range` on `checkedOutAt`, also for a time before the visit's check-in; `required` on `phone` when any part is left unpaid; `required` on `charge` when the visit has no rate and the caller may type a price; `invalid_choice` on `charge` when the visit has a rate; `forbidden` (403) `PRICE_TYPING_NOT_ALLOWED` for a typed price reception may not type, and no code for an owner or reception whose link ended meanwhile; `conflict` (409) `PAYMENT_EXCEEDS_DUE` for a payment above the charge, `VISIT_NOT_PRICED` for a payment on an unpriced close, both from the ledger, `VISIT_ALREADY_CLOSED` for a payment on a visit another key already closed, and no code for a key that paid another visit; `not_found` (404) for a visit that is not the space's, also for a space deleted meanwhile.
 
 #### `GET /manage/spaces/:spaceId/visits/:visitId` · 🧾
 - **200:** `QuotedVisit`: the visit, with its quote while it is open, its charge now by the rates it copied and the rounding and cap in force; the desk sends the quote's `at` back as the check-out's `checkedOutAt`. Read without a lock.
@@ -441,6 +441,42 @@ VisitTerms = {
 #### `GET /manage/spaces/:spaceId/visit-terms` · 🧾
 - **200:** `VisitTerms`: the rounding and the cap in force; whether the caller may type a price; the rates a visit would copy now, with no shift and in each shift, the student rates only where the space allows student prices and they change a rate (DI-41).
 - **Errors:** `not_found` (404).
+
+#### `GET /manage/spaces/:spaceId/unpriced-visits` · 🧾
+- **Query:** `page`, `limit` (§4).
+- **200:** a page of `DeskVisit`: the space's closed visits with no charge — closed unpriced at the desk, or by the auto check-out with no rate — the latest closed first, then by id; `meta` the pagination. Built 2026-10-20, #97.
+- **Errors:** `validation` (422) on the query; `not_found` (404).
+
+#### `PUT /manage/spaces/:spaceId/visits/:visitId/charge` · 🧾
+- **Body** (`priceVisitSchema`, `@masaha/shared/visits`): `amountAgorot`, whole agorot from 1 to 10,000,000; `reason`, 1–200 characters, required. The check-out's typed `charge` takes the same shape.
+- **200:** `DeskVisit`, its charge typed: `typedById` the caller, its `reason`, no rounding. Whoever may type a price types it, by the space's settings (the owner always; reception where they allow it). Built 2026-10-20, #97.
+- **Errors:** `validation` (422) on the body, before anything is read; `forbidden` (403) `PRICE_TYPING_NOT_ALLOWED` for reception where the space's settings do not allow it, and no code for an owner or reception whose link ended meanwhile; `conflict` (409) `VISIT_ALREADY_PRICED` for a visit with a charge, and no code for a visit still open (it is priced at its check-out); `not_found` (404), also for a visit that is not the space's.
+- **Audit:** `visit.priced` (`after`: `{ chargeAgorot, reason }`), in the change's own transaction.
+
+#### `GET /manage/spaces/:spaceId/uncollected-visits` · 🧾
+- **Query:** `page`, `limit` (§4).
+- **200:** a page of `UncollectedVisit` (`@masaha/shared/payments`): the space's visits closed by the auto check-out and not fully paid, the unpriced ones included, the latest closed first, then by id; a voided payment counts for nothing. A manual check-out's visit is never listed: its unpaid rest is a customer's debt. `meta` the pagination. Built 2026-10-20, #97.
+- **Errors:** `validation` (422) on the query; `not_found` (404).
+
+```ts
+UncollectedVisit = {
+  visit: DeskVisit,
+  paidAgorot: number,             // what was paid on it, voided payments left out
+  balanceAgorot: number | null    // what is still owed; null while it has no charge (unpriced)
+}
+```
+
+### Internal
+
+The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conventions §12](../backend/conventions.md#12-environments)): online, an external cron calls this endpoint every 5 minutes; locally, the server runs the same jobs from a timer. It carries no access token, so the general limit counts it by address ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). Built 2026-10-20, #97.
+
+#### `POST /internal/jobs/run`
+- **Mounted only when `JOBS_SECRET` is set;** otherwise `not_found` (404), as any unknown path.
+- **Auth:** `Authorization: Bearer <JOBS_SECRET>`, compared in constant time; a missing or wrong secret is `unauthorized` (401), no code, and runs nothing.
+- **Runs** each job in turn, each at the run's time: `visits.autoCheckOut` and `subscriptions.autoCheckOut` close every open stay whose due time has passed, at that due time, never at the run's ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Auto check-out*), up to 500 a job a run; `remaining` counts the due stays left to the next run. A second run closes nothing more.
+- **200:** `{ ranAt, jobs: [{ name, done }] }`, `done` each job's counts (`{ visits, remaining }`, `{ checkIns, remaining }`).
+- **Errors:** `server` (500) when any job failed: the others still ran, and the failure is logged with the job's name, so the cron service shows it.
+- **Audit:** `visit.autoCheckedOut` (`after`: `{ checkedOutAt, chargeAgorot }`) and `checkIn.autoCheckedOut` (`after`: `{ checkedOutAt }`), each with no actor, in the closing's own transaction.
 
 ### Lookups (public)
 
@@ -862,4 +898,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on a visit with no charge, from the ledger).
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on a visit with no charge, from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge).

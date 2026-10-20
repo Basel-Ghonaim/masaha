@@ -1,6 +1,6 @@
 import type { PaymentRequest } from '@masaha/shared/payments';
 
-import type { Tx } from '../../db/index.ts';
+import { prisma, type Tx } from '../../db/index.ts';
 
 const VISIT_PAYMENT = {
   id: true,
@@ -44,6 +44,21 @@ export function createPaymentsRepository() {
         where: { spaceId_idempotencyKey: { spaceId, idempotencyKey: key } },
         select: VISIT_PAYMENT,
       });
+    },
+
+    /** What was paid on each of these visits of the space, voided payments left out; none is absent. */
+    async paidFor(spaceId: number, visitIds: readonly number[]): Promise<Map<number, number>> {
+      if (visitIds.length === 0) return new Map();
+      const groups = await prisma.payment.groupBy({
+        by: ['visitId'],
+        where: { spaceId, visitId: { in: [...visitIds] }, voidedAt: null },
+        _sum: { amountAgorot: true },
+      });
+      return new Map(
+        groups.flatMap(({ visitId, _sum }) =>
+          visitId === null ? [] : [[visitId, _sum.amountAgorot ?? 0] as const],
+        ),
+      );
     },
 
     /** Inserts the payment; the insert trigger checks it against the visit's charge. */
