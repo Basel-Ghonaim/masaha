@@ -52,6 +52,23 @@ describe('the users repository', () => {
     ]);
   });
 
+  it('issues a temporary password', async () => {
+    const requests = serve({
+      status: 201,
+      data: { success: true, data: { temporaryPassword: 'Tmp-4821-xk' } },
+    });
+
+    await expect(createUsersRepository().issueTemporaryPassword(5)).resolves.toEqual({
+      temporaryPassword: 'Tmp-4821-xk',
+    });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      method: 'post',
+      baseURL: '/api/v1',
+      url: '/admin/users/5/temporary-password',
+    });
+  });
+
   it('rejects a refusal as an AppError, with its type and code', async () => {
     serve({
       status: 403,

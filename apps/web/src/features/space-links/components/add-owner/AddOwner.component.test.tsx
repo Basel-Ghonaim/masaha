@@ -77,6 +77,8 @@ type Server = {
 /** The sheet as the owners page shows it, the server answering as `server` says. */
 function renderSheet(server: Server = {}) {
   const shown: AddedOwnerView[] = [];
+  // Where the page's dialog returns the focus once done, as the slot was handed it.
+  const returnTo: (HTMLElement | null)[] = [];
   const requests = fakeTransport((request) => {
     if (request.url === '/admin/spaces') return page([FOCUS_HUB]);
     if (request.url === '/admin/users') return page(server.users ?? []);
@@ -85,8 +87,9 @@ function renderSheet(server: Server = {}) {
   render(
     <QueryClientProvider client={createQueryClient()}>
       <AddOwner
-        temporaryPassword={(added, done) => {
+        temporaryPassword={(added, done, returnFocus) => {
           shown.push(added);
+          returnTo.push(returnFocus.current);
           return (
             <div role="dialog" aria-label="Password slot">
               <button type="button" onClick={done}>
@@ -98,7 +101,7 @@ function renderSheet(server: Server = {}) {
       />
     </QueryClientProvider>,
   );
-  return { requests, shown };
+  return { requests, shown, returnTo };
 }
 
 /** Opens the sheet and fills it: `name`, `email`, and Focus Hub chosen. */
@@ -202,7 +205,7 @@ describe('AddOwner', () => {
   });
 
   it('shows the page’s password dialog once the owner is added, until it is done', async () => {
-    const { requests, shown } = renderSheet();
+    const { requests, shown, returnTo } = renderSheet();
 
     await fill('new@example.com');
     await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
@@ -215,6 +218,8 @@ describe('AddOwner', () => {
       email: 'new@example.com',
       temporaryPassword: 'Tmp-4821-xk',
     });
+    // The sheet is gone, so the page's dialog returns the focus to «Add owner», which opened it.
+    expect(returnTo.at(-1)).toBe(screen.getByRole('button', { name: 'Add owner' }));
     await userEvent.click(within(slot).getByRole('button', { name: 'Slot done' }));
     expect(screen.queryByRole('dialog', { name: 'Password slot' })).not.toBeInTheDocument();
   });

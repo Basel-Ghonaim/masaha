@@ -1,4 +1,4 @@
-import { AddOwner, OwnersList, type AddedOwnerView } from '@features/space-links';
+import { AddOwner, OwnersList, type TemporaryPasswordSlot } from '@features/space-links';
 import { TemporaryPasswordDialog } from '@features/users';
 import { ADMIN_DELETED_SPACES_PATH } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
@@ -8,8 +8,10 @@ import { PageHeader } from '../shell/PageHeader';
  * every space is deleted leading to the deleted spaces, where the restore begins. Adding an owner
  * sits above the list, at its end.
  */
-const temporaryPassword = (added: AddedOwnerView, done: () => void) => (
+const temporaryPassword: TemporaryPasswordSlot = (added, done, returnFocus) => (
   <TemporaryPasswordDialog
+    kind="created"
+    returnFocus={returnFocus}
     person={{ userId: added.userId, name: added.name, email: added.email }}
     password={added.temporaryPassword}
     onDone={done}

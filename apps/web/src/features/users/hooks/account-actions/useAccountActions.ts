@@ -15,10 +15,12 @@ export type AccountActionItem = {
 };
 
 /**
- * A person's account items on the users page, ready for the page's menu: «إيقاف» for an active
- * account, destructive, which asks first; «استرجاع الحساب» for a suspended one, which restores it
- * at once and says so, or says why not in a toast that stays. The dialog chosen is opened where the
- * page holds it (`open`, from `useAccountDialog`), so it outlives the closed menu and the row.
+ * A person's account items on the users page, ready for the page's menu: «إصدار كلمة مرور مؤقتة»,
+ * which asks first, held, its reason said, for a suspended account and for one that signs in with
+ * Google only (AD-021); «إيقاف» for an active account, destructive, which asks first; «استرجاع
+ * الحساب» for a suspended one, which restores it at once and says so, or says why not in a toast
+ * that stays. The dialog chosen is opened where the page holds it (`open`, from
+ * `useAccountDialog`), so it outlives the closed menu and the row.
  */
 export function useAccountActions(
   person: AccountPerson,
@@ -52,5 +54,17 @@ export function useAccountActions(
         },
       };
 
-  return { state };
+  const issue: AccountActionItem = person.isSuspended
+    ? { label: lines.issue, disabled: true, reason: lines.suspendedFirst, run: () => undefined }
+    : !person.hasPassword
+      ? { label: lines.issue, disabled: true, reason: lines.googleOnly, run: () => undefined }
+      : {
+          label: lines.issue,
+          disabled: false,
+          run: () => {
+            open({ kind: 'issue', person });
+          },
+        };
+
+  return { issue, state };
 }

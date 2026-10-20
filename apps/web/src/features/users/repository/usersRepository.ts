@@ -1,6 +1,7 @@
 import type {
   ChangePasswordRequest,
   HandoverRequest,
+  IssuedTemporaryPassword,
   PasswordChanged,
   SetSuspendedRequest,
 } from '@masaha/shared/users';
@@ -17,6 +18,8 @@ export interface UsersRepository {
   handOver: (userId: number, request: HandoverRequest) => Promise<undefined>;
   /** Suspends an account, ending its sessions, or restores it. */
   setSuspended: (userId: number, request: SetSuspendedRequest) => Promise<undefined>;
+  /** Issues a new temporary password for an account, answered once. */
+  issueTemporaryPassword: (userId: number) => Promise<IssuedTemporaryPassword>;
 }
 
 /** The users capability's calls, through the app's one client. */
@@ -27,5 +30,7 @@ export function createUsersRepository(): UsersRepository {
       api.post<undefined>(`/admin/users/${String(userId)}/temporary-password/handover`, request),
     setSuspended: (userId, request) =>
       api.put<undefined>(`/admin/users/${String(userId)}/suspended`, request),
+    issueTemporaryPassword: (userId) =>
+      api.post<IssuedTemporaryPassword>(`/admin/users/${String(userId)}/temporary-password`),
   };
 }

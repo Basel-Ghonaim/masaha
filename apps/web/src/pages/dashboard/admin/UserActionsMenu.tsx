@@ -29,8 +29,9 @@ function accountPersonOf(row: AdminUserRow): AccountPerson {
 
 /**
  * A person's row menu on the users page, composed here from the capabilities that own its actions:
- * `space-links`' role change (first, with its way out when it is held) and link to a space; then,
- * after a separator, `users`' suspension (destructive, asking first) or restore (at once). A held
+ * `space-links`' role change (first, with its way out when it is held) and link to a space, and
+ * `users`' temporary password, which asks first; then, after a separator, `users`' suspension
+ * (destructive, asking first) or restore (at once). A held
  * owner's role leads to the owners page searched by their email, where their unlinks are, or to the
  * deleted spaces.
  *
@@ -66,6 +67,7 @@ export function UserActionsMenu({
       <DropdownMenuContent align="end">
         <MenuActionItem item={links.role} />
         <MenuActionItem item={links.link} />
+        <MenuActionItem item={account.issue} />
         <DropdownMenuSeparator />
         <MenuActionItem item={account.state} destructive={account.state.destructive} />
       </DropdownMenuContent>

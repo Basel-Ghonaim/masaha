@@ -104,4 +104,39 @@ describe('useAccountActions', () => {
     expect(await findToast('We couldn’t find what you were looking for.')).toBeInTheDocument();
     expect(refusedOne.open).not.toHaveBeenCalled();
   });
+
+  it('offers to issue a temporary password to an active account with a password', () => {
+    const { result, open } = renderActions(RIMA);
+
+    expect(result.current.issue).toMatchObject({
+      label: 'Issue a temporary password',
+      disabled: false,
+    });
+    expect(result.current.issue.reason).toBeUndefined();
+
+    act(() => {
+      result.current.issue.run();
+    });
+
+    expect(open).toHaveBeenCalledExactlyOnceWith({ kind: 'issue', person: RIMA });
+  });
+
+  it.each([
+    ['a suspended account', SUSPENDED, 'The account is suspended — restore it first'],
+    [
+      'a Google-only one',
+      { ...RIMA, hasPassword: false },
+      'A Google account — they recover it through Google',
+    ],
+  ])('holds the temporary password, with its reason, for %s', (_who, person, reason) => {
+    const { result, open } = renderActions(person);
+
+    expect(result.current.issue).toMatchObject({ disabled: true, reason });
+
+    act(() => {
+      result.current.issue.run();
+    });
+
+    expect(open).not.toHaveBeenCalled();
+  });
 });

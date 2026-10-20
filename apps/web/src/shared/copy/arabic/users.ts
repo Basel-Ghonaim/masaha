@@ -20,6 +20,7 @@ export const USERS = {
     copied: 'نُسخت',
     copyFailed: 'تعذّر النسخ — حدّدها وانسخها يدويًا.',
     line: 'سلّمها لصاحبها؛ سيُطلب منه تغييرها عند أول دخول.',
+    issuedLine: 'سلّمها له بعد التأكد من هويته؛ سيُطلب منه تغييرها عند الدخول التالي.',
     channel: 'طريقة التسليم',
     channels: {
       WHATSAPP: 'واتساب',
@@ -39,6 +40,9 @@ export const USERS = {
     restore: 'استرجاع الحساب',
     restored: ({ name }: { name: string }) => `استُرجع حساب ${name}`,
     restoreFailed: ({ name }: { name: string }) => `تعذّر استرجاع حساب ${name}`,
+    issue: 'إصدار كلمة مرور مؤقتة',
+    googleOnly: 'حساب Google — يستعيده من Google',
+    suspendedFirst: 'الحساب موقوف — استرجعه أولًا',
   },
   suspend: {
     title: ({ name }: { name: string }) => `إيقاف ${name}؟`,
@@ -50,5 +54,16 @@ export const USERS = {
     failed: 'لم يُوقَف الحساب',
     refusals: { not_found: 'لم يعد هذا الحساب موجودًا.' },
     suspended: ({ name }: { name: string }) => `أُوقف ${name}، وانتهت جلساته`,
+  },
+  issuePassword: {
+    title: ({ name }: { name: string }) => `إصدار كلمة مرور مؤقتة لـ ${name}؟`,
+    line: 'لاستعادة الحساب بعد التأكد من هويته. تُلغى كلمة مروره الحالية وتنتهي جلساته، ويُطلب منه تغييرها عند الدخول التالي.',
+    confirm: 'إصدار',
+    cancel: 'رجوع',
+    failed: 'لم تُصدَر كلمة مرور',
+    refusals: {
+      ACCOUNT_SUSPENDED: 'الحساب موقوف — استرجعه أولًا.',
+      not_found: 'لم يعد هذا الحساب موجودًا.',
+    },
   },
 } satisfies Catalogue['users'];

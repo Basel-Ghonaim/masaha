@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../test/fakeAdapter';
-import { fakeTransport, restoreTransport } from '../../../test/fakeTransport';
+import { fakeTransport, ok, restoreTransport } from '../../../test/fakeTransport';
 import { startPreferences } from '../../../test/startPreferences';
 import { UsersPage } from './UsersPage';
 
@@ -91,7 +91,14 @@ function resize(width: number) {
 
 /** The users page; the server answers the users list with `rows`, and the spaces with Focus Hub. */
 function renderPage(rows: () => AdminUserRow[] = () => [NOUR, HADI, SARA]) {
-  fakeTransport((request) => (request.url === '/admin/users' ? page(rows()) : page([FOCUS])));
+  fakeTransport((request) => {
+    if (request.url === '/admin/users') return page(rows());
+    if (request.url?.endsWith('/temporary-password') === true) {
+      return ok({ temporaryPassword: 'Tmp-4821-xk' }, 201);
+    }
+    if (request.url?.endsWith('/handover') === true) return { status: 204 };
+    return page([FOCUS]);
+  });
   const client = createQueryClient();
   const router = createMemoryRouter([{ path: '/users', element: <UsersPage /> }], {
     initialEntries: ['/users'],
@@ -160,6 +167,7 @@ describe('UsersPage', () => {
       'Change roleTheir role follows their links — unlink them first',
       'Unlink them',
       'Link to a space',
+      'Issue a temporary password',
       'Suspend',
     ]);
     expect(items[0]).toHaveAttribute('aria-disabled', 'true');
@@ -223,6 +231,57 @@ describe('UsersPage', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(triggerOf('Nour')).toHaveFocus();
+  });
+
+  it('keeps the issued password through a refresh that changes the list and the switch from cards to the table, and returns the focus once done', async () => {
+    screenWidth = 768;
+    let rows = [NOUR, HADI, SARA];
+    const { client } = renderPage(() => rows);
+    // user-event's setup puts its clipboard stub on the navigator, the seam jsdom leaves out.
+    const user = userEvent.setup();
+    await choose('Nour', 'Issue a temporary password');
+    await user.click(await screen.findByRole('button', { name: 'Issue' }));
+    await screen.findByRole('dialog', { name: 'Temporary password' });
+
+    rows = [{ ...NOUR, signIn: { password: true, google: true } }, HADI, SARA];
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ['admin'] });
+    });
+    resize(1280);
+    await waitFor(() => {
+      expect(screen.getByRole('row', { name: /Nour/, hidden: true })).toHaveTextContent(
+        'Password and Google',
+      );
+    });
+
+    const dialog = screen.getByRole('dialog', { name: 'Temporary password' });
+    expect(within(dialog).getByText('Tmp-4821-xk')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Copy' }));
+    await user.click(within(dialog).getByRole('radio', { name: 'In person' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Done' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(triggerOf('Nour')).toHaveFocus();
+  });
+
+  it.each([
+    ['the role change', 'Change role'],
+    ['the suspension', 'Suspend'],
+    ['the temporary password', 'Issue a temporary password'],
+  ])('returns the focus to the row’s menu when %s is dismissed', async (_case, item) => {
+    renderPage();
+
+    await choose('Nour', item);
+    await userEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Back' }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     });
     expect(triggerOf('Nour')).toHaveFocus();
   });

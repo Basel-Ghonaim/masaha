@@ -32,7 +32,13 @@ function renderDialog(answer: () => FakeAnswer | Promise<FakeAnswer> = () => ({ 
   const focus = vi.spyOn(channelRef.current, 'focus');
   const rendered = renderHook(
     () =>
-      useTemporaryPasswordDialog({ person: PERSON, password: 'Tmp-4821-xk', onDone, channelRef }),
+      useTemporaryPasswordDialog({
+        person: PERSON,
+        password: 'Tmp-4821-xk',
+        kind: 'created',
+        onDone,
+        channelRef,
+      }),
     { wrapper: queryWrapper() },
   );
   return { ...rendered, requests, onDone, focus };
