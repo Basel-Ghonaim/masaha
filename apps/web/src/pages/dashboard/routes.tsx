@@ -55,6 +55,10 @@ const SPACE_PAGES: Partial<Record<DashboardPageName, () => Promise<ReactElement>
     const { ProfilePage } = await import('./space/ProfilePage');
     return <ProfilePage />;
   },
+  settings: async () => {
+    const { SettingsPage } = await import('./space/SettingsPage');
+    return <SettingsPage />;
+  },
   staff: async () => {
     const { StaffPage } = await import('./space/StaffPage');
     return <StaffPage />;

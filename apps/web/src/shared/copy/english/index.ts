@@ -8,6 +8,7 @@ import { PACKAGES } from './packages';
 import { PREFERENCES } from './preferences';
 import { SITE } from './site';
 import { SPACE_LINKS } from './spaceLinks';
+import { SPACE_SETTINGS } from './spaceSettings';
 import { SPACES } from './spaces';
 import { STAFF } from './staff';
 import { STATUS } from './status';
@@ -34,6 +35,7 @@ export const ENGLISH = {
   preferences: PREFERENCES,
   site: SITE,
   spaceLinks: SPACE_LINKS,
+  spaceSettings: SPACE_SETTINGS,
   spaces: SPACES,
   staff: STAFF,
   status: STATUS,

@@ -738,6 +738,48 @@ describe("the owner's staff", () => {
   });
 });
 
+describe("the owner's settings", () => {
+  // The page loads lazily, as the profile does: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/SettingsPage');
+  });
+
+  it('shows the owner the settings page under its title, read from the managed route', async () => {
+    asOwner();
+    const requests = fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/settings') {
+        return ok({
+          autoCheckoutAtClosing: true,
+          maxStayMinutes: null,
+          visitRounding: 'PER_MINUTE',
+          visitRoundingMinutes: null,
+          visitCapAtDayPrice: true,
+          visitStudentPrices: false,
+          receptionMayTypePrices: false,
+          reminderTemplate: null,
+        });
+      }
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok({ capacity: null });
+    });
+    renderDashboard('/dashboard/spaces/7/settings');
+
+    await topBarTitle('Settings');
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Visit pricing' }),
+    ).toBeInTheDocument();
+    expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7/settings');
+  });
+
+  it('refuses reception the settings page with the 403', async () => {
+    asReception();
+    renderDashboard('/dashboard/spaces/7/settings');
+
+    expect(await stateInMain('You don’t have access to this page')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Visit pricing' })).toBeNull();
+  });
+});
+
 describe("the admin's spaces page", () => {
   const PALM: AdminSpaceRow = {
     id: 9,

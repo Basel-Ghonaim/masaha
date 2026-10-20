@@ -1,8 +1,8 @@
 # Space settings
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
-> **Authority:** The `space-settings` capability: a space's settings, the rules its front desk will run on. Its endpoints are owned by the [API contract](../api/api-contract.md#settings-managed); its entity by the [data model](../architecture/data-model.md#spaces). The API is built; no web screen yet.
-> **Scope:** the API module `space-settings` (L0); `@masaha/shared/space-settings`. No web feature yet.
+> **Authority:** The `space-settings` capability: a space's settings, the rules its front desk will run on. Its endpoints are owned by the [API contract](../api/api-contract.md#settings-managed); its entity by the [data model](../architecture/data-model.md#spaces). The API is built; on the web, the owner's settings page.
+> **Scope:** the API module `space-settings` (L0); `@masaha/shared/space-settings`; the web feature `features/space-settings`, dashboard-only.
 
 ## What it does
 
@@ -10,12 +10,13 @@
 - Creates the row with the space, from the platform's new-space defaults.
 - Answers the space's owner its settings, whole.
 - Lets the owner edit any of them.
+- On the dashboard, shows the owner the space's settings as cards on «الإعدادات», each saved alone: visit pricing and reception.
 
 ## Who uses it
 
-- **The space's owner,** through the API: reads and edits.
+- **The space's owner,** on the dashboard's «الإعدادات» (`/dashboard/spaces/:spaceId/settings`): reads and edits.
 - **The front desk's modules** will read the values they apply: visits and subscriptions (auto check-out, the stay limit, hand-typed prices), visits (the rounding, the cap, student prices); finance, the reminder. None is built yet.
-- Reception reads nothing here, and the admin never reaches it. No web screen reads it yet.
+- Reception reads nothing here, and the admin never reaches it.
 
 ## Responsibility boundary
 
@@ -28,7 +29,7 @@
 - Both routes ask `can()` at the route, through `requireCan`; the edit asks it again under the space's lock, which the composition root passes in ([conventions › Space access](../backend/conventions.md#space-access), [§13](../backend/conventions.md#13-idempotency-and-concurrency)).
 - The space's creation calls it in its own transaction, with the new-space defaults ([spaces › How it composes the platform](spaces.md#how-it-composes-the-platform)).
 - Each edit is audited by the audit writer, in the edit's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the name the [contract](../api/api-contract.md#settings-managed) gives.
-- Its request is checked by the shared schema ([shared-package.md](../architecture/shared-package.md)).
+- Its request is checked by the shared schema ([shared-package.md](../architecture/shared-package.md)), in the browser too.
 
 ## Behaviour and flows
 
@@ -39,6 +40,11 @@
 **The edit.** In one transaction: the space's lock; `can()` on the links as they are under it; the row; only the fields the edit sets to a new value are written and audited, `null` clearing the stay limit or the reminder. An edit that changes nothing writes nothing.
 
 A change applies from then on ([data model › Front desk and money](../architecture/data-model.md#front-desk-and-money)).
+
+**The owner's settings on the web.** «الإعدادات» is one column of cards (`SpaceSettingsCards`), each saved, discarded and confirmed alone:
+- **Every card** is titled by its `h2`; while its fields differ from the saved settings it says «تغييرات غير محفوظة» and offers «تجاهل التغييرات»; «حفظ» sends only what changed, and when nothing did, sends nothing and says «لم يتغيّر شيء»; saved, a toast says «حُفظت إعدادات «{card}»». The fields are checked in the browser by the contract's schema; a 403 says only that it is no longer open to the owner, nothing saved; a 404 that the space no longer is, and, as any 404 on the settings' route, the read's included, fetches the owner's own spaces again (`shared/api`'s `useLinkEnded`). While the settings load, a placeholder stands for each card; if they cannot be read, one alert says so, with its reference and «إعادة المحاولة».
+- **«تسعير الزيارات»**, its description leading to Packages & prices, where the hour and day prices are: the rounding — «تقريب لأعلى بعد» N «دقائق» (its minutes field enabled only for that rule, Arabic digits read, 1 to 59), with an example following N, «ساعتان و9 دقائق = ساعتان · ساعتان و11 دقيقة = 3 ساعات»; «لأقرب نصف ساعة»; or «بالدقيقة» — then «لا يتجاوز سعر اليوم» and «استخدام أسعار الطلاب للزيارات عند توفرها». The rule and its minutes are sent together whenever either changed, the minutes `null` for the two other rules.
+- **«الاستقبال»**: one switch, «يكتب الاستقبال سعرًا يدويًا», and what it allows — a custom subscription, or a visit with no price, with a reason recorded — and that the owner always may.
 
 ## Decisions
 
@@ -58,17 +64,30 @@ A change applies from then on ([data model › Front desk and money](../architec
 - **A missing settings row is a fault (500), never a 404 or a creation** (P2). *Why:* every space has one, created with it. 2026-10-19, #92. The auto check-out's read of many spaces (`settingsFor`) leaves such a space out instead, and the job logs each of its stays as not closed, so one space never halts the others. 2026-10-20, #100.
 - **A missing student price falls back to the general one** (the owner's design decision DI-41) and **a change applies from then on** — both the [data model's](../architecture/data-model.md#front-desk-and-money). 2026-10-19, #92.
 
+### Web decisions
+
+- **The settings are cards, each saved alone, sending only what changed** (the design's screen 24). *Why:* each card is one decision, and a save that changes nothing writes nothing on the server either. 2026-10-20, #99.
+- **The rounding rule and its minutes are sent together whenever either changed.** *Why:* the contract checks the pair alone, never against the stored row. 2026-10-20, #99.
+- **No «حسابي» card** (design issue 13). *Why:* it leads to `/me`, which is not built. 2026-10-20, #99.
+- **Hand-typed prices are a card of their own, «الاستقبال»** (design issue 14). *Why:* the design has no place for the switch #92 added. 2026-10-20, #99.
+- **Visit pricing's description leads to Packages & prices, and its examples name no money** (design issue 16). *Why:* the hour and day prices are not on this page. 2026-10-20, #99.
+
 ## Code map
 
 - **API:** `apps/api/src/modules/space-settings/`, entry `index.ts`: the service, the repository, the mapper, the manage router, and beside them the pure rule of what an edit changes (`settingsChange.ts`).
 - **Shared:** `packages/shared/src/space-settings/`: the request, with the rounding rules and the bounds, the reminder's rule (`reminderTemplate.ts`), and the response.
+- **Web:** `apps/web/src/features/space-settings/`, entry `index.ts` (`SpaceSettingsCards`), mounted by `pages/dashboard/space/SettingsPage.tsx`: the repository in `repository/`; in `hooks/` the keys, the query, the save, the cards' state (`useSpaceSettingsCards`), a card's form and frame (`card/`, with the rule of what a card changes), `pricing/`, `reception/`; the rounding's example in `services/`; the card's frame, the cards and each card in `components/`.
 
 ## Open findings
 
-None.
+- [103](../architecture/findings/103-arabic-indic-digits-are-read-by-five-helpers.md): Arabic-Indic digits are read by five helpers, `wholeNumberOf` among them.
 
 ## History
 
 ### API history
 
 - #92 — a space's settings, read and edited by its owner on the API; reception's hand-typed prices switch.
+
+### Web history
+
+- #99 — the owner's «الإعدادات»: visit pricing and reception, each card saved alone.
