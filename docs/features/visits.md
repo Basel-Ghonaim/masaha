@@ -14,6 +14,7 @@
 - Answers the open visits of a space, how many, and what each costs so far, for *present* ([occupancy](occupancy.md)).
 - Closes every open visit whose auto check-out time has passed, at that time, charged to it: the timed job `visits.autoCheckOut`.
 - Lists a space's unpriced visits, and prices one by hand, with its reason, for whoever may type a price.
+- Writes a closed visit off, and undoes it, in the desk's transaction: audited `visit.writtenOff` and `visit.writeOffUndone`.
 - Answers the visits closed by the auto check-out, with their charges, and a page of them but the settled ones, for the uncollected visits [`payments`](payments.md) composes.
 
 ## Who uses it

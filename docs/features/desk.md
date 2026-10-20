@@ -10,10 +10,11 @@
 - Answers a retried check-in the visit its idempotency key already made.
 - Leaves the stays it does not close to the auto check-out, which [`visits`](visits.md) and `subscriptions` run as timed jobs.
 - Checks a visit out: the charge at the quote's time, the payment taken, the rest left unpaid to a customer found or created by phone, and a price typed by hand where the visit has no rate, or an unpriced close; a retry answers the first result.
+- Writes off, as the owner, what a closed, priced visit still owes, with a reason, and undoes it.
 
 ## Who uses it
 
-- **The space's owner and reception,** through the API. The admin never reaches it: the desk is private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). No web screen yet; the shared desk device is not settled (who signs out an idle reception account, and switching staff on one device): step 9.
+- **The space's owner and reception,** through the API. The admin never reaches it: the desk is private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). No web screen yet; the shared desk device is not settled (who signs out an idle reception account, and switching staff on one device): the desk's screen item.
 
 ## Responsibility boundary
 
@@ -23,13 +24,15 @@
 ## How it composes the platform
 
 - Its manage router sits below `/manage/spaces/:spaceId`, behind the one boundary that admits the space's staff ([security › Authorization](../backend/security.md#authorization)).
-- Each write asks `can()` (`attendance.record`, the staff's) at the route, then reads its `Idempotency-Key`, both before the body is read; the service asks `can()` again under the space's lock.
+- Each write asks `can()` at the route, before the body is read: `attendance.record` (the staff's) for the check-in and the check-out, which then read their `Idempotency-Key`; `visits.writeOff` (the owner's) for the write-off and its undo. The service asks `can()` again under the space's lock.
 
 ## Behaviour and flows
 
 **The check-in.** In one transaction, in this order: the space's lock; `can()` on the links as they are under it; the warnings as of now; the visit this key already made, for a retry; else the visit, with its rates (through `visits`). Answered 201 every time, the warnings in `meta` only when there are some.
 
 **The check-out.** In one transaction, in this order: the space's lock and `can()`; the settings; the visit's row (`FOR UPDATE`), not the space's → 404; the payment this key recorded. A visit already closed answers as it is, with that payment for a retry, and records nothing; closed by another key, a request with a payment is refused (`VISIT_ALREADY_CLOSED`). Else the time it is priced at (the quote's, at most five minutes old and never before the check-in; absent, now); the charge from `visits`; with no rate, the typed price of whoever may type one (`can()`'s `prices.typeByHand`), who must, or none for whoever may not: an unpriced close, which the owner prices later through [`visits`](visits.md). Any part left unpaid needs a phone: the customer with it is found or created. Then the visit is closed, and the payment recorded, which the ledger checks; its refusal undoes the whole check-out. The rows are taken in one order: the space's, the visit's, the customer, the payment.
+
+**The write-off and its undo.** The owner's, each in one transaction, in this order: the space's lock and `can()` (`visits.writeOff`); the visit's row (`FOR UPDATE`), not the space's → 404, still open → 409 with no code. The write-off: a visit already written off is answered as it is; no charge → `VISIT_NOT_PRICED`; then what it was paid and still owes, read from [`payments`](payments.md) under the visit's lock; nothing owed → `VISIT_ALREADY_PAID`; else `visits` writes it off with the amount, now, by the caller, with the reason. The undo: a visit not written off is answered as it is; else `visits` clears it, audited with what it was.
 
 ## Decisions
 
@@ -45,6 +48,9 @@
 - **A check-out of a visit already closed answers it as it is and records nothing; a key that paid another visit is a `conflict`.** *Why:* updates are idempotent by design ([conventions §13](../backend/conventions.md#idempotency)); a reused key is a client's bug. 2026-10-20, #95.
 - **A check-out that carries a payment, of a visit another key already closed, is refused (`VISIT_ALREADY_CLOSED`).** *Why:* two desks, or a slow connection, could otherwise each take the cash and only one be recorded; a 200 with `payment: null` reads as success while the money is in no ledger (the owner's decision on #95's review). 2026-10-20, #97.
 - **A check-out time before the visit's check-in is refused (`out_of_range`).** *Why:* the database refuses a visit closed before it opened, which would answer 500. 2026-10-20, #97.
+- **The write-off is a sub-resource: `POST` writes it off, `DELETE` undoes it; a second of either answers the visit as it is.** *Why:* a repeated write is idempotent by design, as a repeated check-out is, so it needs no key ([conventions §13](../backend/conventions.md#idempotency)); the first reason is kept. 2026-10-20, #100.
+- **The balance is read under the visit's lock, and nothing owed is refused (`VISIT_ALREADY_PAID`).** *Why:* two desks can collect the last part while the owner writes the visit off; the one that waits decides on what was committed. 2026-10-20, #100.
+- **An unpriced visit is refused with the payment's own code, `VISIT_NOT_PRICED`.** *Why:* one rule — a visit with no price is priced first — so one code (the owner's answer, Q2 of the plan). 2026-10-20, #100.
 
 ## Code map
 
@@ -57,3 +63,4 @@
 
 - #95 — the check-in of a visitor by name, idempotent, with its warnings; the check-out with its charge and payment.
 - #97 — a payment on a visit another key closed refused; a check-out time before the check-in refused.
+- #100 — the owner's write-off of a visit's unpaid rest, and its undo.

@@ -8,6 +8,7 @@ import { PRICE_AUDIENCES, PRICE_MAX_AGOROT } from '../spaces/index.ts';
 
 export const VISITOR_NAME_MAX_LENGTH = 60;
 export const CHARGE_REASON_MAX_LENGTH = 200;
+export const WRITE_OFF_REASON_MAX_LENGTH = 200;
 
 // The largest id an Int column holds.
 const id = z.number().int().positive().max(2_147_483_647);
@@ -33,3 +34,9 @@ export const priceVisitSchema = z.object({
   reason: textSchema(1, CHARGE_REASON_MAX_LENGTH),
 });
 export type PriceVisitRequest = z.infer<typeof priceVisitSchema>;
+
+/** The owner's write-off of what a closed visit still owes (K6): why, 1–200 characters. */
+export const writeOffVisitSchema = z.object({
+  reason: textSchema(1, WRITE_OFF_REASON_MAX_LENGTH),
+});
+export type WriteOffVisitRequest = z.infer<typeof writeOffVisitSchema>;

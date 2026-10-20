@@ -39,9 +39,10 @@ export const ERRORS = {
   SPACE_FULL: 'The space is full; the check-in was recorded anyway.',
   PRICE_TYPING_NOT_ALLOWED: 'The space’s settings do not let reception type a price.',
   PAYMENT_EXCEEDS_DUE: 'The amount is more than what is due.',
-  VISIT_NOT_PRICED: 'A visit without a price takes no payment; price it first.',
+  VISIT_NOT_PRICED: 'This visit has no price yet; price it first.',
   VISIT_ALREADY_PRICED: 'This visit already has a price.',
   VISIT_ALREADY_CLOSED: 'This visit was already checked out; this payment was not recorded.',
+  VISIT_ALREADY_PAID: 'This visit is already paid in full.',
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:
     'This person works at this space’s reception. Its owner deactivates that link first.',

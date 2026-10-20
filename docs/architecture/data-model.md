@@ -99,7 +99,8 @@ The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.m
 - **Hand-typed prices.** A price typed by hand at the desk — a custom subscription's price, or a visit's charge where the space has no rate — is typed by the owner always, and by reception only where the space's settings allow it (off by default). Every hand-typed price, by anyone, carries a required reason, recorded with who typed it (2026-10-19, #92).
 - **A change to the space's settings or capacity applies from then on:** a visit's rates (and its audience's student prices) are copied at check-in, its rounding rule and the cap are read at its check-out, and the closing-time check-out and the stay limit apply at once, to the stays already open too; the capacity at the next check-in and in the live status (2026-10-19, #92).
 - **Unpaid visit:** a visit may be left unpaid only with a phone number. It then belongs to the space's customer with that phone among those not archived (created if new, with the name given or the visit's), and its charge counts in that customer's debt (2026-10-20, #95).
-- **Uncollected visits:** visits closed by the auto check-out and left unpaid, the unpriced ones included (2026-10-20, #97).
+- **Uncollected visits:** visits closed by the auto check-out, left unpaid and not written off, the unpriced ones included (2026-10-20, #97; #100).
+- **Written-off visit** (K6): the owner may write off what is still owed on a closed, priced visit, with a required reason, recorded with who and when. The payments made stay; it is never a payment and never a deletion. It can be undone, and the audit keeps both. A written-off visit takes no payment until then, and leaves the uncollected visits and the customer's debt (2026-10-20, #100).
 - **Full warning:** a check-in (visit or subscription) while present ≥ capacity warns, never blocks.
 - **Subscription limits:** any of a date range, total days, days per week, hours per day and total hours, freely combined, all optional. They produce warnings at check-in, never blocks.
 - **Subscription progress**, from its check-ins: days used, days this week (Saturday to Friday), hours today and hours used.
@@ -111,7 +112,7 @@ The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.m
   - The desk can end any subscription early («إنهاء الاشتراك»): its end becomes today, and who ended it is recorded.
 - **Amount due:** a subscription's fixed price or, when it is usage-based, its attendance × its rate (days used × the day rate, or hours used × the hour rate). A visit's due is its charge.
 - **Balance:** amount due − the payments that are not voided. **Payment status:** *paid* when the balance is ≤ 0, *partly paid* when a payment exists and the balance is > 0, *unpaid* when there is none. A negative balance, possible only on a usage-based subscription, is **credit** («له رصيد»).
-- **Customer debt:** the sum of the positive balances of the customer's subscriptions and unpaid visits. Credit on one subscription never offsets another.
+- **Customer debt:** the sum of the positive balances of the customer's subscriptions and unpaid visits not written off (2026-10-20, #100). Credit on one subscription never offsets another.
 - **Income:** the payments that are not voided, counted by the day received: today, this month (against last month) and all time, split into visits and subscriptions.
 - **Collections:** the same payments grouped by who recorded them. Reception sees its own for today; the owner sees every staff member.
 - **Occupancy statistics:** peak hours and average stay, from visits and subscription check-ins.

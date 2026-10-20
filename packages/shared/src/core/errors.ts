@@ -99,6 +99,8 @@ export const DOMAIN_ERROR_CODES = [
   'VISIT_ALREADY_PRICED',
   // the check-out (desk)
   'VISIT_ALREADY_CLOSED',
+  // a visit's debt: its write-off (desk)
+  'VISIT_ALREADY_PAID',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

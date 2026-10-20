@@ -8,6 +8,7 @@ import type {
   QuotedVisit,
   Rates,
   VisitTerms,
+  VisitWriteOff,
 } from '@masaha/shared/visits';
 
 import type { RunInTransaction, Tx } from '../../db/index.ts';
@@ -242,6 +243,62 @@ export function createVisitsService({
           )?.amountAgorot ?? null,
         ]),
       );
+    },
+
+    /**
+     * Writes the visit off, in the caller's transaction (under the space's lock and the visit's),
+     * now, by the actor, with why; audited `visit.writtenOff` with the balance written off.
+     */
+    async writeOff(
+      actorId: number,
+      spaceId: number,
+      visitId: number,
+      { reason, balanceAgorot }: { reason: string; balanceAgorot: number },
+      tx: Tx,
+    ): Promise<DeskVisit> {
+      const row = await repository.writeOff(visitId, { at: now(), byId: actorId, reason }, tx);
+      await audit(
+        {
+          actorId,
+          action: 'visit.writtenOff',
+          entityType: 'visit',
+          entityId: visitId,
+          spaceId,
+          after: { reason, balanceAgorot },
+        },
+        tx,
+      );
+      return toDeskVisit(row);
+    },
+
+    /**
+     * Undoes the visit's write-off, in the caller's transaction; audited `visit.writeOffUndone`
+     * with what the write-off was.
+     */
+    async undoWriteOff(
+      actorId: number,
+      spaceId: number,
+      visitId: number,
+      writeOff: VisitWriteOff,
+      tx: Tx,
+    ): Promise<DeskVisit> {
+      const row = await repository.undoWriteOff(visitId, tx);
+      await audit(
+        {
+          actorId,
+          action: 'visit.writeOffUndone',
+          entityType: 'visit',
+          entityId: visitId,
+          spaceId,
+          before: {
+            writtenOffAt: writeOff.at,
+            writtenOffById: writeOff.byId,
+            reason: writeOff.reason,
+          },
+        },
+        tx,
+      );
+      return toDeskVisit(row);
     },
 
     /**

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
-import { checkInVisitSchema, priceVisitSchema } from './requests.ts';
+import { checkInVisitSchema, priceVisitSchema, writeOffVisitSchema } from './requests.ts';
 
 /** The field errors of a check-in, or null when it passes. */
 function errorsOf(input: unknown) {
@@ -61,5 +61,22 @@ describe("a visit's price typed by hand", () => {
     expect(errorsOf({ amountAgorot: 100, reason: 'x'.repeat(201) })).toEqual({
       reason: ['too_long'],
     });
+  });
+});
+
+describe("a visit's write-off", () => {
+  it('takes a reason of 1–200 characters, never blank', () => {
+    expect(writeOffVisitSchema.parse({ reason: '  Left without paying ' })).toEqual({
+      reason: 'Left without paying',
+    });
+    expect(writeOffVisitSchema.safeParse({ reason: 'x'.repeat(200) }).success).toBe(true);
+
+    const errorsOf = (input: unknown) => {
+      const result = writeOffVisitSchema.safeParse(input);
+      return result.success ? null : toFieldErrors(result.error.issues, input);
+    };
+    expect(errorsOf({})).toEqual({ reason: ['required'] });
+    expect(errorsOf({ reason: '   ' })).toEqual({ reason: ['too_short'] });
+    expect(errorsOf({ reason: 'x'.repeat(201) })).toEqual({ reason: ['too_long'] });
   });
 });

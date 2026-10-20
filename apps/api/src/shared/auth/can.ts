@@ -88,6 +88,8 @@ const PERMISSIONS = {
   'space.settings.manage': 'owner',
   'staff.manage': 'owner',
   'space.auditLog.read': 'owner',
+  /** A visit's unpaid rest written off, and the write-off undone (K6). */
+  'visits.writeOff': 'owner',
 
   // The platform. Hiding, soft-deleting and linking apply to every space, verified or not.
   'platform.spaces.manage': 'admin',

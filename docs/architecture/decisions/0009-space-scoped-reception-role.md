@@ -5,6 +5,7 @@
 > **Revised:** 2026-10-11 — rule 2's `OWNER` follows the active owner links both ways, each change ending the person's sessions; a link that leaves the role as it is ends none. The admin's role change offers `USER` or `ADMIN` only.
 > **Revised:** 2026-10-18 — rule 4: the owner creates new accounts only; an email that already has an account is refused, never linked (a typed email can be wrong: a stranger would reach the desk). A person at two spaces' desks waits for a proof they give in person ([finding 84](../findings/84-a-person-cannot-work-at-two-spaces-front-desks.md)). #90
 > **Revised:** 2026-10-19 — rule 5: reception types a price by hand only where the space's settings allow it, off by default; every hand-typed price, the owner's included, carries a reason. #92
+> **Revised:** 2026-10-20 — rule 5: the owner alone writes off a visit's unpaid rest that will not be collected, with a reason, and may undo it (K6). #100
 
 ## Context
 ADR 0002 deferred a receptionist role: the front desk was to use the owner's account, with the audit log recording every action. Reviewing the screen designs (2026-09-29) showed that this no longer holds. Payments are now recorded at the desk ([ADR 0010](0010-manual-payment-ledger.md)), so the owner needs to know who received each payment (shift handover, collections per staff member), and front-desk staff must not see finance, void payments or edit the space. ADR 0002 left room for this: a new `SpaceManager.role` value and new rows in the permission table.
@@ -31,6 +32,7 @@ ADR 0002 deferred a receptionist role: the front desk was to use the owner's acc
    | Announcements (including a closure notice); manual state override | ✓ | ✓ |
    | Extend all active subscriptions after a closure | – | ✓ |
    | Void a payment (with a reason) | – | ✓ |
+   | Write off a visit's unpaid rest that will not be collected, with a reason; undo it | – | ✓ |
    | Finance and statistics | – | ✓ |
    | Space profile, prices, packages | – | ✓ |
    | Staff, data reports, settings, audit log | – | ✓ |

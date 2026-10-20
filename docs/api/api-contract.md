@@ -377,7 +377,7 @@ SpaceOccupancyNow = {
 
 ### Front desk (managed)
 
-The desk's day: a visitor checked in by name, and checked out with the charge and its payment ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Every route is the staff's (🧾). Each write sends an `Idempotency-Key` (§1), read before its body; a retry with the same key answers the first result. Built 2026-10-20, #95.
+The desk's day: a visitor checked in by name, and checked out with the charge and its payment; once closed, what a visit still owes, which the owner may write off ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)), 2026-10-20, #100. The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Every route is the staff's (🧾), except the write-off's, the owner's (🏢). The check-in and the check-out send an `Idempotency-Key` (§1), read before the body; a retry with the same key answers the first result. Built 2026-10-20, #95.
 
 - **The check-in** (`@masaha/shared/visits`): `visitorName`, 1–60 characters, required; `audience`, `GENERAL` or `STUDENT` (`invalid_choice` otherwise), `GENERAL` when absent; `shiftId`, one of the space's shifts, or absent or `null` for none.
 - **The rates** are copied at check-in from the space's prices as they are then ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Visit charge*); a later price change never touches an open visit.
@@ -456,7 +456,7 @@ VisitTerms = {
 
 #### `GET /manage/spaces/:spaceId/uncollected-visits` · 🧾
 - **Query:** `page`, `limit` (§4).
-- **200:** a page of `UncollectedVisit` (`@masaha/shared/payments`): the space's visits closed by the auto check-out and not fully paid, the unpriced ones included, the latest closed first, then by id; a voided payment counts for nothing. A manual check-out's visit is never listed: its unpaid rest is a customer's debt. `meta` the pagination. Built 2026-10-20, #97.
+- **200:** a page of `UncollectedVisit` (`@masaha/shared/payments`): the space's visits closed by the auto check-out, not fully paid and not written off (2026-10-20, #100), the unpriced ones included, the latest closed first, then by id; a voided payment counts for nothing. A manual check-out's visit is never listed: its unpaid rest is a customer's debt. `meta` the pagination. Built 2026-10-20, #97.
 - **Errors:** `validation` (422) on the query; `not_found` (404).
 
 ```ts
@@ -466,6 +466,17 @@ UncollectedVisit = {
   balanceAgorot: number | null    // what is still owed; null while it has no charge (unpriced)
 }
 ```
+
+#### `POST /manage/spaces/:spaceId/visits/:visitId/write-off` · 🏢
+- **Body** (`writeOffVisitSchema`, `@masaha/shared/visits`): `reason`, 1–200 characters, required.
+- **200:** `DeskVisit`, its `writeOff` set: now, by the caller, with the reason. What the visit still owed is written off (K6); its payments stay, and the write-off is never a payment. A visit already written off is answered as it is, its first reason kept, writing nothing. Built 2026-10-20, #100.
+- **Errors:** `forbidden` (403) for reception, at the route before the body is read, and for an owner whose link ended meanwhile; `validation` (422) on the body, before anything is read; `conflict` (409) `VISIT_NOT_PRICED` for a visit with no charge, `VISIT_ALREADY_PAID` for one with nothing owed, and no code for a visit still open (it is settled at its check-out); `not_found` (404), also for a visit that is not the space's.
+- **Audit:** `visit.writtenOff` (`after`: `{ reason, balanceAgorot }`, the amount written off), in the change's own transaction.
+
+#### `DELETE /manage/spaces/:spaceId/visits/:visitId/write-off` · 🏢
+- **200:** `DeskVisit`, its `writeOff` cleared: it is uncollected again (or its customer's debt), and takes payments. A visit not written off is answered as it is, writing nothing. Built 2026-10-20, #100.
+- **Errors:** `forbidden` (403) for reception, and for an owner whose link ended meanwhile; `not_found` (404), also for a visit that is not the space's.
+- **Audit:** `visit.writeOffUndone` (`before`: `{ writtenOffAt, writtenOffById, reason }`), in the change's own transaction.
 
 ### Internal
 
@@ -899,4 +910,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on a visit with no charge, from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge).
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off a visit with nothing owed, 2026-10-20, #100).

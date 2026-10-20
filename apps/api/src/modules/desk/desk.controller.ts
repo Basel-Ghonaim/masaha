@@ -1,5 +1,5 @@
 import type { CheckOutVisitRequest, VisitCheckOut } from '@masaha/shared/desk';
-import type { CheckInVisitRequest, DeskVisit } from '@masaha/shared/visits';
+import type { CheckInVisitRequest, DeskVisit, WriteOffVisitRequest } from '@masaha/shared/visits';
 import type { Request, Response } from 'express';
 
 import { signedIn, spaceOf } from '../../shared/auth/index.ts';
@@ -35,6 +35,29 @@ export function createDeskController(service: DeskService) {
         req.body as CheckOutVisitRequest,
       );
       sendSuccess(res, checkOut satisfies VisitCheckOut);
+    },
+
+    /** 200 with the visit; a second write-off answers it as it is. */
+    writeOffVisit: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const visit = await service.writeOffVisit(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.visitId),
+        req.body as WriteOffVisitRequest,
+      );
+      sendSuccess(res, visit satisfies DeskVisit);
+    },
+
+    /** 200 with the visit; one not written off is answered as it is. */
+    undoWriteOff: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const visit = await service.undoWriteOff(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.visitId),
+      );
+      sendSuccess(res, visit satisfies DeskVisit);
     },
   };
 }

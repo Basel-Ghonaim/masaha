@@ -267,6 +267,7 @@ The modules that apply them read them: visits and subscriptions (auto check-out;
 `desk` orchestrates the operations that span the desk's modules, each in one transaction:
 - **check-in** of a visit or a subscription, with the full-space warning from `occupancy`;
 - **check-out of a visit** with its charge and its payment;
+- **the write-off of a visit's unpaid rest** by the owner, and its undo;
 - **subscribing or renewing** with its payment, and the warning when the customer has a balance.
 
 ### Composed reads

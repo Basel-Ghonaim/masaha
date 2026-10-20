@@ -8,7 +8,8 @@
 
 - Records the payment of a visit, taken at its check-out, once per idempotency key.
 - Finds the payment a check-out's idempotency key already recorded, so a retry never records a second one.
-- Answers a space's uncollected visits: closed by the auto check-out and not fully paid, with what was paid and what is still owed.
+- Answers a space's uncollected visits: closed by the auto check-out, not fully paid and not written off, with what was paid and what is still owed.
+- Answers what one visit was paid and still owes, in the desk's transaction (`balanceOfVisit`), for the write-off.
 
 ## Who uses it
 
@@ -29,7 +30,7 @@
 
 **A visit's payment.** Inserted with the check-out's idempotency key; the insert trigger checks it against the visit's charge. A payment above the charge is refused (`payments_within_due` → `PAYMENT_EXCEEDS_DUE`); one on a visit with no charge, an unpriced close, is refused too (`payments_visit_uncharged` → `VISIT_NOT_PRICED`); the whole check-out then writes nothing.
 
-**The uncollected visits.** `visits` names the space's visits closed by the auto check-out, with their charges; the ledger sums what was paid on each in one grouped query, voided payments left out, and computes each balance; the settled ones (balance ≤ 0) are left out before `visits` pages the rest, the latest closed first, so every page is full and the total right. An unpriced visit has no due and is never settled. Read without a lock.
+**The uncollected visits.** `visits` names the space's visits closed by the auto check-out and not written off, with their charges; the ledger sums what was paid on each in one grouped query, voided payments left out, and computes each balance; the settled ones (balance ≤ 0) are left out before `visits` pages the rest, the latest closed first, so every page is full and the total right. An unpriced visit has no due and is never settled. Read without a lock.
 
 ## Decisions
 
