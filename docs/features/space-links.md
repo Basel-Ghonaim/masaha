@@ -233,6 +233,7 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - [95](../architecture/findings/95-a-link-from-the-editor-words-the-space-from-the-editors-read.md): a link from the editor words the space from the editor's read.
 - [104](../architecture/findings/104-the-staff-menus-row-triggers-copy-the-admin-pages.md): the staff menu's row triggers copy the admin page's.
 - [105](../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md): a held menu item may be unreachable by the keyboard.
+- [106](../architecture/findings/106-two-approved-owner-lines-miss-a-case-or-the-label-in-name.md): a re-issue refused for an admin's account says it holds another space.
 
 ## History
 

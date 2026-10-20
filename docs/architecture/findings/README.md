@@ -54,6 +54,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [103. Arabic-Indic digits are read by five helpers](103-arabic-indic-digits-are-read-by-five-helpers.md)
 - [104. The staff menu's row triggers copy the admin page's](104-the-staff-menus-row-triggers-copy-the-admin-pages.md)
 - [105. A held menu item may be unreachable by the keyboard](105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md)
+- [106. Two approved owner lines miss a case, or the label in the name](106-two-approved-owner-lines-miss-a-case-or-the-label-in-name.md)
 - [110. The desk prototype's uncollected visits disagree with the owner's decisions](110-the-desk-prototypes-uncollected-visits-disagree-with-the-owners-decisions.md)
 - [111. The check-in's warnings count *present* a second time](111-the-check-ins-warnings-count-present-a-second-time.md)
 - [112. A key that closed a visit with no payment is not remembered](112-a-key-that-closed-a-visit-with-no-payment-is-not-remembered.md)

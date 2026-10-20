@@ -31,7 +31,7 @@ function renderCards(answer: () => FakeAnswer) {
         path: '/',
         element: (
           <main>
-            <SpaceSettingsCards spaceId={7} pricesLink="/packages" />
+            <SpaceSettingsCards spaceId={7} pricesLink="/packages" spaceName="Focus Hub" />
           </main>
         ),
       },

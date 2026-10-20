@@ -67,6 +67,32 @@ export const SPACE_SETTINGS = {
     switch: 'Reception may type a price by hand',
     help: 'For a custom subscription, or a visit with no price, with a reason recorded. You can always type one yourself.',
   },
+  reminder: {
+    title: 'Reminder message',
+    description: 'A ready WhatsApp message to remind a customer of a debt; you send it yourself.',
+    text: 'Message text',
+    insert: 'Insert:',
+    insertNamed: {
+      name: 'Insert the name',
+      amount: 'Insert the amount',
+      space: 'Insert the space',
+    },
+    preview: 'Preview',
+    /** The customer's name the preview shows. */
+    sampleName: 'Rahaf',
+    restore: 'Restore the default text',
+    /** The catalogue's reminder, sent while the space keeps none of its own. */
+    defaultText:
+      'Hello {الاسم}, a reminder from {المساحة}: you owe {المبلغ}. You can pay at the space. Thank you.',
+    fieldErrors: {
+      too_short: 'Write the message',
+      too_long: 'The message is longer than 500 characters',
+      missingAmount: 'Add {المبلغ} so the customer knows how much they owe.',
+      unknown: ({ token }: { token: string }) =>
+        `${token} isn’t one of the words you can use; use the buttons to insert {الاسم}, {المبلغ} or {المساحة}.`,
+      badCharacters: 'Remove the characters that aren’t allowed',
+    },
+  },
   /** A save's refusals, in the owner's words: the space's route, whose 404 is the space's. */
   refusals: {
     forbidden: 'This is no longer open to you at this space; nothing was saved.',

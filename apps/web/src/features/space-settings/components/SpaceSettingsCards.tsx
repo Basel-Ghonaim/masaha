@@ -2,18 +2,22 @@ import { Alert, AlertDescription, AlertTitle, Button, Skeleton } from '@shared/d
 import { useSpaceSettingsCards } from '../hooks/useSpaceSettingsCards';
 import { PricingCard } from './pricing/PricingCard';
 import { ReceptionCard } from './reception/ReceptionCard';
+import { ReminderCard } from './reminder/ReminderCard';
 
 /**
  * The space's settings, a card each: visit pricing, its description leading to Packages & prices
- * (`pricesLink`), and reception. While the settings load, a placeholder stands for each card; if
- * they cannot be read, one alert says so, with its reference and «إعادة المحاولة».
+ * (`pricesLink`), reception, and the debt reminder, its preview naming the space (`spaceName`).
+ * While the settings load, a placeholder stands for each card; if they cannot be read, one alert
+ * says so, with its reference and «إعادة المحاولة».
  */
 export function SpaceSettingsCards({
   spaceId,
   pricesLink,
+  spaceName,
 }: {
   spaceId: number;
   pricesLink: string;
+  spaceName: string;
 }) {
   const cards = useSpaceSettingsCards(spaceId);
 
@@ -23,6 +27,7 @@ export function SpaceSettingsCards({
         <span className="sr-only">{cards.loadingLabel}</span>
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -51,6 +56,7 @@ export function SpaceSettingsCards({
     <div className="flex flex-col gap-6">
       <PricingCard spaceId={spaceId} settings={cards.settings} pricesLink={pricesLink} />
       <ReceptionCard spaceId={spaceId} settings={cards.settings} />
+      <ReminderCard spaceId={spaceId} settings={cards.settings} spaceName={spaceName} />
     </div>
   );
 }
