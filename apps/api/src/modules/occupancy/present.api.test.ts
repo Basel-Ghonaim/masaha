@@ -33,6 +33,15 @@ let admin: { id: number; authorization: string };
 beforeEach(async () => {
   await resetDatabase(prisma);
   ({ id: spaceId } = await createSpace());
+  await prisma.spaceSettings.create({
+    data: {
+      spaceId,
+      autoCheckoutAtClosing: true,
+      visitRounding: 'UP_AFTER_MINUTES',
+      visitRoundingMinutes: 15,
+      visitCapAtDayPrice: true,
+    },
+  });
   owner = await signInOwnerOf(spaceId);
   reception = await signIn('USER', 'reception@example.com');
   stranger = await signIn('USER', 'stranger@example.com');
@@ -80,7 +89,13 @@ describe("a space's state now", () => {
         present: 2,
         override: null,
         people: [
-          { kind: 'VISIT', id: visit.id, name: 'Omar', since: '2026-10-18T05:30:00.000Z' },
+          {
+            kind: 'VISIT',
+            id: visit.id,
+            name: 'Omar',
+            since: '2026-10-18T05:30:00.000Z',
+            chargeNowAgorot: null,
+          },
           {
             kind: 'CHECK_IN',
             id: layla.id,
@@ -222,6 +237,26 @@ describe("a space's state now", () => {
       data: { deactivatedAt: sunday('09:00') },
     });
     expect(dataOf(await occupancyNow(reception))).toMatchObject({ status: null, override: null });
+  });
+
+  it('each visit present carries its charge so far, or none without a rate', async () => {
+    // Checked in at 08:00 and read at 10:00: two hours at 5 ₪, up after 15 minutes.
+    const rated = await createVisit(spaceId, {
+      checkedInAt: sunday('08:00'),
+      hourRateAgorot: 500,
+      dayRateAgorot: 2_500,
+    });
+    const unrated = await createVisit(spaceId, { checkedInAt: sunday('08:10') });
+    await checkIn('Layla', sunday('08:20'));
+
+    const { people } = dataOf(await occupancyNow(reception)) as {
+      people: { kind: string; id: number; chargeNowAgorot?: unknown }[];
+    };
+    expect(people.map(({ kind, id, chargeNowAgorot }) => ({ kind, id, chargeNowAgorot }))).toEqual([
+      { kind: 'VISIT', id: rated.id, chargeNowAgorot: 1_000 },
+      { kind: 'VISIT', id: unrated.id, chargeNowAgorot: null },
+      { kind: 'CHECK_IN', id: expect.any(Number) as number, chargeNowAgorot: undefined },
+    ]);
   });
 
   it('a CLOSURE announcement in force closes it; a deleted, ended or other-type one does not', async () => {

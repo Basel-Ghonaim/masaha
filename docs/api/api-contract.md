@@ -351,7 +351,7 @@ A space's state now, as its staff see it: who is present (the open visits plus t
 ```ts
 LiveStatus = 'AVAILABLE' | 'FULL' | 'CLOSED'
 PresentPerson =
-  | { kind: 'VISIT', id, name, since }                 // name: the visitor's, or their customer's
+  | { kind: 'VISIT', id, name, since, chargeNowAgorot: number | null }  // name: the visitor's, or their customer's; the charge so far, null with no rate
   | { kind: 'CHECK_IN', id, customerId, name, since }  // name: the customer's; since: the check-in time
 SpaceOccupancyNow = {
   status: LiveStatus | null,                    // null: unverified, no opening hours, or open with no capacity
@@ -408,6 +408,20 @@ DeskVisit = {
 }
 VisitPayment = { id, amountAgorot, method: 'CASH' | 'TRANSFER', note: string | null, receivedAt, recordedById }
 VisitCheckOut = { visit: DeskVisit, payment: VisitPayment | null }
+VisitQuote = {
+  at,                                   // when it was quoted: the check-out's checkedOutAt that charges this
+  chargeAgorot: number | null,          // null: no rate, so the price is typed or the close unpriced
+  billedMinutes: number,
+  capApplied: boolean | null
+}
+QuotedVisit = DeskVisit & { quote: VisitQuote | null }   // null once closed
+Rates = { hourAgorot: number | null, dayAgorot: number | null }
+VisitTerms = {
+  rounding: { rule: VisitRounding, minutes: number | null },
+  capAtDayPrice: boolean,
+  mayTypePrice: boolean,                // the caller, where a visit has no rate
+  rates: { shiftId: number | null, general: Rates, student: Rates | null }[]   // no shift first, then each shift in its order
+}
 ```
 
 #### `POST /manage/spaces/:spaceId/visits` · 🧾 · `Idempotency-Key`
@@ -419,6 +433,14 @@ VisitCheckOut = { visit: DeskVisit, payment: VisitPayment | null }
 - **Body:** `{ checkedOutAt?, payment?, phone?, customerName?, charge? }`.
 - **200:** `VisitCheckOut`: the visit closed, its charge or none, and the payment taken, if any.
 - **Errors:** `validation` (422), each writing nothing: on `idempotencyKey` (§1); on the body, before anything is read; `out_of_range` on `checkedOutAt`; `required` on `phone` when any part is left unpaid; `required` on `charge` when the visit has no rate and the caller may type a price; `invalid_choice` on `charge` when the visit has a rate; `forbidden` (403) `PRICE_TYPING_NOT_ALLOWED` for a typed price reception may not type, and no code for an owner or reception whose link ended meanwhile; `conflict` (409) `PAYMENT_EXCEEDS_DUE` for a payment above the charge, `VISIT_NOT_PRICED` for a payment on an unpriced close, both from the ledger, and no code for a key that paid another visit; `not_found` (404) for a visit that is not the space's, also for a space deleted meanwhile.
+
+#### `GET /manage/spaces/:spaceId/visits/:visitId` · 🧾
+- **200:** `QuotedVisit`: the visit, with its quote while it is open, its charge now by the rates it copied and the rounding and cap in force; the desk sends the quote's `at` back as the check-out's `checkedOutAt`. Read without a lock.
+- **Errors:** `not_found` (404), also for a visit that is not the space's.
+
+#### `GET /manage/spaces/:spaceId/visit-terms` · 🧾
+- **200:** `VisitTerms`: the rounding and the cap in force; whether the caller may type a price; the rates a visit would copy now, with no shift and in each shift, the student rates only where the space allows student prices and they change a rate (DI-41).
+- **Errors:** `not_found` (404).
 
 ### Lookups (public)
 

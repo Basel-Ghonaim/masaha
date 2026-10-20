@@ -93,6 +93,19 @@ export function createVisitsRepository() {
       }
     },
 
+    /** The space's visit, or `null` when it is not the space's. */
+    findIn(spaceId: number, visitId: number): Promise<DeskVisitRow | null> {
+      return prisma.visit.findFirst({ where: { id: visitId, spaceId }, select: DESK_VISIT });
+    },
+
+    /** These visits of the space, with their check-in time and rates; another space's are not read. */
+    ratesOf(spaceId: number, visitIds: readonly number[]) {
+      return prisma.visit.findMany({
+        where: { spaceId, id: { in: [...visitIds] } },
+        select: { id: true, checkedInAt: true, hourRateAgorot: true, dayRateAgorot: true },
+      });
+    },
+
     /**
      * Locks the visit's row (`FOR UPDATE`, the payments trigger's own mode) and reads it; `null`
      * when it is not the space's.

@@ -76,13 +76,20 @@ export function createOccupancyService({
       ...openCheckIns.map(({ customerId }) => customerId),
       ...openVisits.flatMap(({ customerId }) => (customerId === null ? [] : [customerId])),
     ];
-    const names = await customers.namesOf(spaceId, [...new Set(customerIds)]);
+    const [names, charges] = await Promise.all([
+      customers.namesOf(spaceId, [...new Set(customerIds)]),
+      visits.chargesNow(
+        spaceId,
+        openVisits.map(({ id }) => id),
+      ),
+    ]);
     const people: PresentPerson[] = [
       ...openVisits.map(({ id, visitorName, customerId, checkedInAt }) => ({
         kind: 'VISIT' as const,
         id,
         name: visitorName ?? (customerId === null ? '' : (names.get(customerId) ?? '')),
         since: checkedInAt.toISOString(),
+        chargeNowAgorot: charges.get(id) ?? null,
       })),
       ...openCheckIns.map(({ id, customerId, checkedInAt }) => ({
         kind: 'CHECK_IN' as const,

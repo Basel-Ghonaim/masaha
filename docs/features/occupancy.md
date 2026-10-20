@@ -9,7 +9,7 @@
 - Keeps a space's capacity: the most people it seats, or none.
 - Answers the space's owner its capacity.
 - Lets the owner set it, change it or clear it.
-- Answers the space's staff its state now, whole: who is present (the open visits plus the open subscription check-ins), how many, the capacity, the override in force and the live status.
+- Answers the space's staff its state now, whole: who is present (the open visits plus the open subscription check-ins), each visit with its charge so far, how many, the capacity, the override in force and the live status.
 - Lets the staff override the live status for 30 minutes, an hour, two hours or until closing, never past today's closing, and clear it early.
 
 ## Who uses it
@@ -22,7 +22,7 @@
 ## Responsibility boundary
 
 - **Owns** the `space_occupancy` table, created on its first write, and the capacity's bound; the one definition of *present* and the one list of who is present; the pure live-status rule (`liveStatus.ts`) and the override's end (`overrideUntil.ts`) ([conventions › occupancy](../backend/conventions.md#occupancy-the-spaces-state-now)).
-- **Reads** the open visits from `visits`, the open subscription check-ins from `subscriptions`, the customers' names from `customers`, the closures in force from `announcements`, and the week from [`spaces`](spaces.md); each through its service, which alone reads its table. Those four modules hold only these reads so far, with no capability document of their own.
+- **Reads** the open visits and their charges so far from [`visits`](visits.md), the open subscription check-ins from `subscriptions`, the customers' names from `customers`, the closures in force from `announcements`, and the week from [`spaces`](spaces.md); each through its service, which alone reads its table. `subscriptions`, `customers` and `announcements` hold only these reads so far, with no capability document of their own.
 - **Leaves** the space and its lock to [`spaces`](spaces.md); who may read or write to `can()` ([security › Authorization](../backend/security.md#authorization)); the stay limit and the other settings to [`space-settings`](space-settings.md).
 
 ## How it composes the platform
@@ -35,7 +35,7 @@
 
 ## Behaviour and flows
 
-**The state now.** Several statements, with no lock: the space's row, its open visits and open check-ins, their customers' names, whether a closure is in force, and its week. *Present* is the people listed. The override counts only while its end is after now and the space is verified, under no closure and open by its hours, and is answered only then: a closure announced after it hides it. The live status is the rule's, from those inputs and whether the space is verified, read from its links.
+**The state now.** Several statements, with no lock: the space's row, its open visits and open check-ins, their customers' names, each open visit's charge so far (from `visits`), whether a closure is in force, and its week. *Present* is the people listed. The override counts only while its end is after now and the space is verified, under no closure and open by its hours, and is answered only then: a closure announced after it hides it. The live status is the rule's, from those inputs and whether the space is verified, read from its links.
 
 **The override.** In one transaction: the space's lock; `can()` on the links as they are under it; the week, and today's range on Gaza's clock; the closures in force. Outside that range, with no hours, under a closure in force, or on an unverified space (no active owner among those links), it is refused `SPACE_NOT_OPEN`. Otherwise it ends at `min(now + duration, today's closing)`, replaces the one in force, the row created with no capacity on its first write, and is audited with both. Clearing takes the same lock and `can()`, and writes and audits only when an override is in force. An ended override is never cleared by a job: it simply stops counting.
 
@@ -84,4 +84,4 @@ A change applies from then on ([data model › Front desk and money](../architec
 
 - #92 — a space's capacity, read and set by its owner on the API; the module's first slice.
 - #94 — the staff's read of the state now: who is present, the count, the capacity and the live status; the manual override, set and cleared by the staff; the live status of many spaces at once, for the directory.
-- #95 — the override refused under a closure or on an unverified space, and answered only while the status uses it; a check-in's warnings, for the desk.
+- #95 — the override refused under a closure or on an unverified space, and answered only while the status uses it; a check-in's warnings, for the desk; each visit present with its charge so far.

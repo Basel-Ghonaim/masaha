@@ -62,6 +62,11 @@ export interface Charge {
 
 const MINUTE_MS = 60_000;
 
+/** The minutes a stay is billed for: its whole minutes, at least one. */
+export function billedMinutesOf({ from, to }: { from: Date; to: Date }): number {
+  return Math.max(1, Math.floor((to.getTime() - from.getTime()) / MINUTE_MS));
+}
+
 /** The hours' charge, by the rounding rule, before the cap; every fraction of an agora half up. */
 function byRounding(minutes: number, hourAgorot: number, rule: ChargeRule): number {
   switch (rule.rounding) {
@@ -88,10 +93,7 @@ export function chargeOf(
   rates: Rates,
   rule: ChargeRule,
 ): Charge | null {
-  const billedMinutes = Math.max(
-    1,
-    Math.floor((stay.to.getTime() - stay.from.getTime()) / MINUTE_MS),
-  );
+  const billedMinutes = billedMinutesOf(stay);
   const { hourAgorot, dayAgorot } = rates;
   if (hourAgorot === null) {
     return dayAgorot === null

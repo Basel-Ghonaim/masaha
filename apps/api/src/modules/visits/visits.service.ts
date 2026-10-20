@@ -1,12 +1,25 @@
 import type { SpaceSettings } from '@masaha/shared/space-settings';
-import type { CheckInVisitRequest, DeskVisit, Rates } from '@masaha/shared/visits';
+import type {
+  CheckInVisitRequest,
+  DeskVisit,
+  QuotedVisit,
+  Rates,
+  VisitTerms,
+} from '@masaha/shared/visits';
 
 import type { Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
+import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
-import { chargeOf, ratesFor, type Charge } from './visitCharge.ts';
+import {
+  billedMinutesOf,
+  chargeOf,
+  ratesFor,
+  type Charge,
+  type ChargeRule,
+} from './visitCharge.ts';
 import { toDeskVisit } from './visits.mapper.ts';
 import {
   createVisitsRepository,
@@ -41,14 +54,29 @@ interface Dependencies {
   audit: AuditWriter;
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
+  /** The one clock (conventions §11). */
+  now: () => Date;
 }
+
+/** The rounding and the cap in force, from the space's settings. */
+function ruleOf(settings: SpaceSettings): ChargeRule {
+  return {
+    rounding: settings.visitRounding,
+    roundingMinutes: settings.visitRoundingMinutes,
+    capAtDayPrice: settings.visitCapAtDayPrice,
+  };
+}
+
+/** Whether two rates are the same, hour and day. */
+const sameRates = (a: Rates, b: Rates) =>
+  a.hourAgorot === b.hourAgorot && a.dayAgorot === b.dayAgorot;
 
 /**
  * A visitor's stay at a space, checked in by name (docs/backend/conventions.md › the front desk):
  * its rates, its check-in, which `desk` orchestrates, and the reads `occupancy` composes *present*
  * from.
  */
-export function createVisitsService({ audit, spaces, spaceSettings }: Dependencies) {
+export function createVisitsService({ audit, spaces, spaceSettings, now }: Dependencies) {
   const repository = createVisitsRepository();
   return {
     /** The space's visit created with this idempotency key, or `null`: a retried check-in. */
@@ -114,11 +142,90 @@ export function createVisitsService({ audit, spaces, spaceSettings }: Dependenci
      * with no rate.
      */
     chargeOf(visit: LockedVisit, to: Date, settings: SpaceSettings): Charge | null {
-      return chargeOf({ from: visit.checkedInAt, to }, visit.rates, {
-        rounding: settings.visitRounding,
-        roundingMinutes: settings.visitRoundingMinutes,
-        capAtDayPrice: settings.visitCapAtDayPrice,
+      return chargeOf({ from: visit.checkedInAt, to }, visit.rates, ruleOf(settings));
+    },
+
+    /**
+     * The space's visit, with its quote while it is open: its charge now, by the rates it copied
+     * and the rounding and cap in force, at the time the desk can send back as the check-out's.
+     * Read without a lock.
+     */
+    async quote(spaceId: number, visitId: number): Promise<QuotedVisit> {
+      const row = await repository.findIn(spaceId, visitId);
+      if (!row) throw AppError.notFound(undefined, 'Visit not found');
+      const visit = toDeskVisit(row);
+      if (row.checkedOutAt !== null) return { ...visit, quote: null };
+
+      const at = now();
+      const stay = { from: row.checkedInAt, to: at };
+      const rates = { hourAgorot: row.hourRateAgorot, dayAgorot: row.dayRateAgorot };
+      const charge = chargeOf(stay, rates, ruleOf(await spaceSettings.read(spaceId)));
+      return {
+        ...visit,
+        quote: {
+          at: at.toISOString(),
+          chargeAgorot: charge?.amountAgorot ?? null,
+          billedMinutes: billedMinutesOf(stay),
+          capApplied: charge?.capApplied ?? null,
+        },
+      };
+    },
+
+    /**
+     * The desk's terms for the caller: the rounding and the cap in force, whether they may type a
+     * price, and the rates a visit would copy now with no shift and in each shift; the student
+     * rates only where the space allows them and they change one (DI-41).
+     */
+    async terms(actor: Actor, space: LoadedSpace): Promise<VisitTerms> {
+      const [settings, prices, shifts] = await Promise.all([
+        spaceSettings.read(space.id),
+        spaces.pricesOf(space.id),
+        spaces.shiftsOf(space.id),
+      ]);
+      const rates = [null, ...shifts.map(({ id }) => id)].map((shiftId) => {
+        const general = ratesFor(prices, { audience: 'GENERAL', shiftId });
+        const student = ratesFor(prices, { audience: 'STUDENT', shiftId });
+        return {
+          shiftId,
+          general,
+          student: settings.visitStudentPrices && !sameRates(student, general) ? student : null,
+        };
       });
+      return {
+        rounding: { rule: settings.visitRounding, minutes: settings.visitRoundingMinutes },
+        capAtDayPrice: settings.visitCapAtDayPrice,
+        mayTypePrice: can(actor, 'prices.typeByHand', {
+          links: space.links,
+          receptionMayTypePrices: settings.receptionMayTypePrices,
+        }),
+        rates,
+      };
+    },
+
+    /**
+     * What each of these open visits of the space costs so far, now, by id; `null` for a visit with
+     * no rate. One query for the visits, one for the settings.
+     */
+    async chargesNow(
+      spaceId: number,
+      visitIds: readonly number[],
+    ): Promise<Map<number, number | null>> {
+      if (visitIds.length === 0) return new Map();
+      const [rows, settings] = await Promise.all([
+        repository.ratesOf(spaceId, visitIds),
+        spaceSettings.read(spaceId),
+      ]);
+      const to = now();
+      return new Map(
+        rows.map(({ id, checkedInAt, hourRateAgorot, dayRateAgorot }) => [
+          id,
+          chargeOf(
+            { from: checkedInAt, to },
+            { hourAgorot: hourRateAgorot, dayAgorot: dayRateAgorot },
+            ruleOf(settings),
+          )?.amountAgorot ?? null,
+        ]),
+      );
     },
 
     /**

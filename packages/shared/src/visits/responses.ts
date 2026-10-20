@@ -36,6 +36,34 @@ export interface DeskVisit {
   charge: VisitCharge | null;
 }
 
+/** What an open visit costs now, as the desk shows it before the check-out. */
+export interface VisitQuote {
+  /** When it was quoted: the check-out's `checkedOutAt` that charges this. */
+  at: string;
+  /** `null` when the visit has no rate: its price is typed, or it closes unpriced. */
+  chargeAgorot: number | null;
+  billedMinutes: number;
+  capApplied: boolean | null;
+}
+
+/** A visit with its quote while it is open; `null` once closed. */
+export type QuotedVisit = DeskVisit & { quote: VisitQuote | null };
+
+/** The desk's terms for visits: the rounding and the cap in force, and the rates it offers. */
+export interface VisitTerms {
+  rounding: { rule: VisitRounding; minutes: number | null };
+  capAtDayPrice: boolean;
+  /** Whether the caller may type a price where a visit has no rate. */
+  mayTypePrice: boolean;
+  /** With no shift first, then each of the space's shifts in its order. */
+  rates: {
+    shiftId: number | null;
+    general: Rates;
+    /** Only where the space allows student prices and they change a rate (DI-41). */
+    student: Rates | null;
+  }[];
+}
+
 /** A visit's hour and day rates, in agorot; `null` where there is no such price. */
 export interface Rates {
   hourAgorot: number | null;
