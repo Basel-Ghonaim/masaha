@@ -51,4 +51,45 @@ export const STAFF = {
       not_found: 'This space is no longer available to you.',
     },
   },
+  /** A row's menu, named by its person. */
+  menu: ({ name }: { name: string }) => `Actions: ${name}`,
+  deactivate: {
+    item: 'Remove access',
+    title: ({ name }: { name: string }) => `Remove ${name}’s access?`,
+    description:
+      'Every session of theirs ends on every device now, and they can’t reach this space until you give their access back. Their name stays on the payments and in the log.',
+    cancel: 'Back',
+    confirm: 'Remove access',
+    failed: 'Couldn’t remove the access',
+  },
+  reactivate: {
+    item: 'Give access back',
+    failed: ({ name }: { name: string }) => `Couldn’t give ${name} their access back`,
+  },
+  reissue: {
+    item: 'New temporary password',
+    title: ({ name }: { name: string }) => `A new temporary password for ${name}?`,
+    description:
+      'It replaces the previous temporary password and ends their sessions; they’ll be asked to change it at their first sign-in.',
+    cancel: 'Back',
+    confirm: 'Issue',
+    failed: 'Couldn’t issue a temporary password',
+    /** Why the item is held, said under it. */
+    heldSettled:
+      'They’ve changed the temporary password; if they forget their password, they recover it by email.',
+    heldInactive: 'Give their access back first.',
+  },
+  /** A staff member's refusals, in the owner's words: a 404 cannot tell its two causes apart. */
+  refusals: {
+    ACCOUNT_SUSPENDED:
+      'Their account is suspended by the Masaha team; their access comes back once it’s restored.',
+    ACCOUNT_IS_ADMIN: 'This account is now an admin’s and doesn’t work at reception.',
+    ACCOUNT_HAS_LINKS:
+      'This account now has another space; they recover their password from the Masaha team.',
+    TEMPORARY_PASSWORD_NOT_PENDING:
+      'They’ve already changed the temporary password; no new one is needed.',
+    not_found:
+      'This person is no longer on the space’s staff, or the space is no longer open to you.',
+    forbidden: 'This is no longer open to you at this space.',
+  },
 } as const;

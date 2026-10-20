@@ -22,7 +22,7 @@ export function useStaffList(spaceId: number) {
   const members = query.data ?? [];
   const now = new Date();
 
-  const rows = members.map((member): StaffRowView & { member: typeof member } => ({
+  const rows = members.map((member): StaffRowView => ({
     key: member.userId,
     name: member.name,
     email: member.email,
