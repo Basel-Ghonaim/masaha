@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import { mayEdit } from '../../services/mayEdit';
 import type { EditorPlace } from '../../types/EditorPlace';
 import { EDITOR_SCOPES } from '../editor/editorScope';
+import { sectionName } from '../editor/sectionName';
 import { useLeaveGuard } from '../editor/useLeaveGuard';
 import { useSpaceQuery } from '../editor/useSpaceQuery';
 
@@ -23,7 +24,7 @@ export function useSpacePricesEditor(place: EditorPlace, spaceId: number) {
     setDirty(isDirty);
   }, []);
   const saving = useIsMutating({ mutationKey: EDITOR_SCOPES[place].writeKey(spaceId) }) > 0;
-  const title = place === 'owner' ? words.prices.publishedTitle : words.sections.prices;
+  const title = sectionName(place, 'prices', copy);
   const guard = useLeaveGuard(dirty ? [title] : [], saving, false);
   const space = query.data;
 

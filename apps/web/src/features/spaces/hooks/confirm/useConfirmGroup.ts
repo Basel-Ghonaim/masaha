@@ -5,6 +5,7 @@ import type { AppError } from '@shared/errors';
 import { useMutation } from '@tanstack/react-query';
 import type { EditorPlace } from '../../types/EditorPlace';
 import { EDITOR_SCOPES } from '../editor/editorScope';
+import { sectionName } from '../editor/sectionName';
 import { useSpaceAnswer } from '../editor/useSpaceAnswer';
 
 /**
@@ -19,8 +20,8 @@ export function useConfirmGroup(place: EditorPlace, spaceId: number, group: Fact
     mutationFn: () => scope.repository.confirm(spaceId, group),
     onSuccess: (space) => {
       answer.keep(space);
-      const words = currentCopy().spaces.editor;
-      toast(words.section.confirmed({ section: words.sections[group] }));
+      const copy = currentCopy();
+      toast(copy.spaces.editor.section.confirmed({ section: sectionName(place, group, copy) }));
     },
     onError: answer.refused,
   });

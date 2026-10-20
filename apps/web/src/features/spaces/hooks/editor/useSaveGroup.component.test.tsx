@@ -6,6 +6,7 @@ import { act, render, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { findToast } from '../../../../test/findToast';
 import { startPreferences } from '../../../../test/startPreferences';
 import { EDITOR_SCOPES } from './editorScope';
 import { useSaveGroup } from './useSaveGroup';
@@ -27,6 +28,26 @@ afterEach(() => {
 });
 
 describe('useSaveGroup', () => {
+  it('names the owner’s prices in its toast as their card is titled, and the admin’s as their section', async () => {
+    fakeTransport(() => ok(SPACE));
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={createQueryClient()}>{children}</QueryClientProvider>
+    );
+    const owner = renderHook(
+      () => useSaveGroup('owner', 7, 'prices', () => EDITOR_SCOPES.owner.repository.get(7)),
+      { wrapper },
+    );
+    await act(() => owner.result.current.mutateAsync(undefined));
+    expect(await findToast('Published prices saved')).toBeInTheDocument();
+
+    const admin = renderHook(
+      () => useSaveGroup('admin', 7, 'prices', () => EDITOR_SCOPES.admin.repository.get(7)),
+      { wrapper },
+    );
+    await act(() => admin.result.current.mutateAsync(undefined));
+    expect(await findToast('Prices saved')).toBeInTheDocument();
+  });
+
   it('keeps an owner’s answer under the space’s scope and fetches the user’s spaces again', async () => {
     const requests = fakeTransport((request) =>
       request.url === '/manage/spaces' ? ok([]) : ok(RENAMED),
