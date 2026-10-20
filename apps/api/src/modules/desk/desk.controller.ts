@@ -1,5 +1,6 @@
 import type {
   CheckOutVisitRequest,
+  LeaveToCustomerRequest,
   ReceivedPayment,
   ReceivePaymentRequest,
   VisitCheckOut,
@@ -52,6 +53,18 @@ export function createDeskController(service: DeskService) {
         req.body as ReceivePaymentRequest,
       );
       sendSuccess(res, received satisfies ReceivedPayment, { status: 201 });
+    },
+
+    /** 200 with the visit; the same phone again answers it as it is. */
+    leaveToCustomer: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const visit = await service.leaveToCustomer(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.visitId),
+        req.body as LeaveToCustomerRequest,
+      );
+      sendSuccess(res, visit satisfies DeskVisit);
     },
 
     /** 200 with the visit; a second write-off answers it as it is. */

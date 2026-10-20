@@ -1,6 +1,7 @@
 import type { DomainErrorCode } from '@masaha/shared/core';
 import type {
   CheckOutVisitRequest,
+  LeaveToCustomerRequest,
   ReceivedPayment,
   ReceivePaymentRequest,
   VisitCheckOut,
@@ -331,6 +332,33 @@ export function createDeskService({
           }
         }
         return { visit, payment: received, paidAgorot, balanceAgorot: rest };
+      });
+    },
+
+    /**
+     * «تسجيل دينًا» (DK-012): leaves a closed visit's unpaid rest to the phone's customer, with no
+     * payment, in one transaction and in this order: the space's lock and `can()`; the visit's row;
+     * open → `conflict`; written off → `VISIT_WRITTEN_OFF`; nothing owed → `VISIT_ALREADY_PAID` (an
+     * unpriced visit has a debt to leave); the unpaid-part rule; the visit's own customer again →
+     * the visit as it is.
+     */
+    leaveToCustomer(
+      actor: Actor,
+      space: LoadedSpace,
+      visitId: number,
+      request: LeaveToCustomerRequest,
+    ): Promise<DeskVisit> {
+      return runInTransaction(async (tx) => {
+        await lockAtDesk(actor, space, tx, 'payments.record');
+        const locked = await lockClosed(space, visitId, tx);
+        if (locked.visit.writeOff) throw AppError.conflict('VISIT_WRITTEN_OFF');
+        const { balanceAgorot } = await balanceOf(space, locked, tx);
+        if (balanceAgorot !== null && balanceAgorot <= 0) {
+          throw AppError.conflict('VISIT_ALREADY_PAID');
+        }
+        const customerId = await customerFor(actor, space, locked, request, tx);
+        if (customerId === locked.customerId) return locked.visit;
+        return visits.leaveTo(actor.id, space.id, visitId, customerId, tx);
       });
     },
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
-import { checkOutVisitSchema, receivePaymentSchema } from './requests.ts';
+import { checkOutVisitSchema, leaveToCustomerSchema, receivePaymentSchema } from './requests.ts';
 
 /** The field errors of a check-out, or null when it passes. */
 function errorsOf(input: unknown) {
@@ -90,5 +90,21 @@ describe("a visit's payment after its check-out", () => {
     expect(errorsOf({ visitId: 7, ...payment, phone: '12345' })).toEqual({
       phone: ['invalid_format'],
     });
+  });
+});
+
+describe("a visit's debt left to a customer by phone", () => {
+  it('a debt by phone needs the phone', () => {
+    expect(leaveToCustomerSchema.parse({ phone: '059-900 0123', customerName: ' Omar ' })).toEqual({
+      phone: '+970599000123',
+      customerName: 'Omar',
+    });
+
+    const errorsOf = (input: unknown) => {
+      const result = leaveToCustomerSchema.safeParse(input);
+      return result.success ? null : toFieldErrors(result.error.issues, input);
+    };
+    expect(errorsOf({})).toEqual({ phone: ['required'] });
+    expect(errorsOf({ phone: '12345' })).toEqual({ phone: ['invalid_format'] });
   });
 });

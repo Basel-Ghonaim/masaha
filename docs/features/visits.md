@@ -15,6 +15,7 @@
 - Closes every open visit whose auto check-out time has passed, at that time, charged to it: the timed job `visits.autoCheckOut`.
 - Lists a space's unpriced visits, and prices one by hand, with its reason, for whoever may type a price.
 - Writes a closed visit off, and undoes it, in the desk's transaction: audited `visit.writtenOff` and `visit.writeOffUndone`.
+- Leaves a closed visit's unpaid rest to a customer, in the desk's transaction (`leaveTo`), audited `visit.leftToCustomer`.
 - Answers the visits closed by the auto check-out, with their charges, and a page of them but the settled ones, for the uncollected visits [`payments`](payments.md) composes.
 
 ## Who uses it
@@ -83,4 +84,4 @@
 - #94 — the open visits and their counts, which `occupancy` reads for *present*.
 - #95 — the check-in by name, its rates and its idempotency key's lookup; the charge and the check-out; the quote, the terms and the charges so far.
 - #97 — the auto check-out of visits; the unpriced visits and their pricing; the auto-closed visits the uncollected read pages.
-- #100 — a stay closed by its day's end, and one that cannot be closed logged without halting the job; a visit's write-off, its columns and `writeOff` on every visit answered.
+- #100 — a stay closed by its day's end, and one that cannot be closed logged without halting the job; a visit's write-off, its columns and `writeOff` on every visit answered; a closed visit left to a customer (`leaveTo`).
