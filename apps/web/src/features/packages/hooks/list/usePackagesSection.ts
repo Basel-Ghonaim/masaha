@@ -1,8 +1,9 @@
 import type { SpacePackage } from '@masaha/shared/packages';
+import { useLinkEnded } from '@shared/api';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
 import { isolate, useLanguage } from '@shared/localisation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { priceLineOf, shiftNameOf, summaryOf } from '../../services/packageSummary';
 import type { PackageRowView } from '../../types/PackageRowView';
 import type { ShiftChoice } from '../../types/ShiftChoice';
@@ -15,7 +16,8 @@ import { useRowWrite } from './useRowWrite';
  * offered or paused at once by its switch, which waits on the server, and edited in the package
  * sheet; a paused package that still holds a shift says so and clears it (finding 81). «باقة جديدة»
  * opens the sheet for a new package. The space's shifts come from the page (`shifts`, `null` while
- * they load).
+ * they load, when a held shift is said without its name). A list refused 404 fetches the owner's
+ * own spaces again.
  */
 export function usePackagesSection({
   spaceId,
@@ -29,6 +31,10 @@ export function usePackagesSection({
   const language = useLanguage() === 'en' ? 'en' : 'ar';
   const query = usePackagesQuery(spaceId);
   const write = useRowWrite(spaceId);
+  const linkEnded = useLinkEnded();
+  useEffect(() => {
+    linkEnded(query.error);
+  }, [query.error, linkEnded]);
   // The sheet: closed, or open on a package (`null`: a new one).
   const [sheet, setSheet] = useState<{ editing: SpacePackage | null } | null>(null);
   // A failed refetch keeps the list already loaded: only a list that never arrived is an error.
@@ -67,9 +73,10 @@ export function usePackagesSection({
       heldShift:
         !pkg.isActive && pkg.shiftId !== null
           ? {
-              text: words.heldShift({
-                shift: isolate(shift === undefined ? '' : shiftNameOf(shift, language)),
-              }),
+              text:
+                shift === undefined
+                  ? words.heldShiftUnnamed
+                  : words.heldShift({ shift: isolate(shiftNameOf(shift, language)) }),
               clear: {
                 label: words.clearShift,
                 pending,

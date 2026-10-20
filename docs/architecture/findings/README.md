@@ -52,6 +52,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [98. The capability documents outgrow their size guide](98-the-capability-documents-outgrow-their-size-guide.md)
 - [99. The owner's checklist cannot name a retired amenity](99-the-owners-checklist-cannot-name-a-retired-amenity.md)
 - [101. The end sheet is not full width on a phone](101-the-end-sheet-is-not-full-width-on-a-phone.md)
+- [102. The package sheet's summary is announced on every keystroke](102-the-package-sheets-summary-is-announced-on-every-keystroke.md)
 - [110. The desk prototype's uncollected visits disagree with the owner's decisions](110-the-desk-prototypes-uncollected-visits-disagree-with-the-owners-decisions.md)
 - [111. The check-in's warnings count *present* a second time](111-the-check-ins-warnings-count-present-a-second-time.md)
 - [112. A key that closed a visit with no payment is not remembered](112-a-key-that-closed-a-visit-with-no-payment-is-not-remembered.md)

@@ -12,6 +12,7 @@ import { useServerForm } from '@shared/forms';
 import { agorotOf } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { useWatch, type Path } from 'react-hook-form';
 import { priceLineOf, shiftNameOf, summaryOf } from '../../services/packageSummary';
 import {
@@ -51,7 +52,8 @@ const counted = (value: unknown) =>
  * the contract's schema, whole, and an edit sends them whole (S11). A summary follows what is typed.
  * Saved: the list has arrived again, the sheet closes (`close`) and a toast names the package. A
  * repeated name (409) lands on the name; a shift gone meanwhile (422) on the shift, and the space's
- * scope is fetched again, since its shifts are `spaces`'.
+ * scope is fetched again, since its shifts are `spaces`'; a shift the space no longer has is no longer
+ * chosen, so the save can go on without it. A new package refused 404 can only be the space's.
  */
 export function usePackageSheet({
   spaceId,
@@ -104,10 +106,20 @@ export function usePackageSheet({
       priceAgorot: lines.amount,
       shiftId: lines.shift,
     },
-    failureLines: words.refusals,
+    failureLines:
+      editing === null ? { ...words.refusals, not_found: words.spaceGone } : words.refusals,
   });
   const { control, setValue } = form.form;
   const values = useWatch({ control }) as PackageValues;
+  const chosenShift = values.shiftId;
+
+  // A shift chosen and since removed: its chip has gone, and the last one leaves none to clear it.
+  useEffect(() => {
+    if (shifts === null || chosenShift === '') return;
+    if (!shifts.some(({ id }) => String(id) === chosenShift)) {
+      setValue('shiftId', '', { shouldDirty: true });
+    }
+  }, [shifts, chosenShift, setValue]);
 
   /** A limit's error: one turned on and left empty asks for its number, or to turn it off. */
   const limitError = (name: LimitName) =>
