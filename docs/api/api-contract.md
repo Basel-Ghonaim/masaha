@@ -475,7 +475,7 @@ The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conve
 - **Auth:** `Authorization: Bearer <JOBS_SECRET>`, compared in constant time; a missing or wrong secret is `unauthorized` (401), no code, and runs nothing.
 - **Runs** each job in turn, each at the run's time: `visits.autoCheckOut` and `subscriptions.autoCheckOut` close every open stay whose due time has passed, at that due time, never at the run's ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Auto check-out*), up to 500 a job a run; `remaining` counts the due stays left to the next run. A second run closes nothing more.
 - **200:** `{ ranAt, jobs: [{ name, done }] }`, `done` each job's counts (`{ visits, remaining }`, `{ checkIns, remaining }`).
-- **Errors:** `server` (500) when any job failed: the others still ran, and the failure is logged with the job's name, so the cron service shows it.
+- **Errors:** `server` (500) when any job failed: the others still ran, and the failure is logged with the job's name, so the cron service shows it. A job fails when any of its stays could not be closed: the stays after it are still closed, and each one not closed is logged with its id (`stay not closed`).
 - **Audit:** `visit.autoCheckedOut` (`after`: `{ checkedOutAt, chargeAgorot }`) and `checkIn.autoCheckedOut` (`after`: `{ checkedOutAt }`), each with no actor, in the closing's own transaction.
 
 ### Lookups (public)

@@ -1,6 +1,6 @@
 # Space settings
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-19 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
 > **Authority:** The `space-settings` capability: a space's settings, the rules its front desk will run on. Its endpoints are owned by the [API contract](../api/api-contract.md#settings-managed); its entity by the [data model](../architecture/data-model.md#spaces). The API is built; no web screen yet.
 > **Scope:** the API module `space-settings` (L0); `@masaha/shared/space-settings`. No web feature yet.
 
@@ -55,7 +55,7 @@ A change applies from then on ([data model › Front desk and money](../architec
 - **A switch is never `null`; what a patch leaves out is kept; unknown keys are stripped.** *Why:* a switch has two states; as every other managed write. 2026-10-19, #92.
 - **Reception may type prices by hand only where the space allows it, off by default; not a new-space default** (D4). *Why:* a fraud guard whose safe value is fixed, as student prices' default is; the rule is the [data model's](../architecture/data-model.md#front-desk-and-money) and [ADR 0009's](../architecture/decisions/0009-space-scoped-reception-role.md). 2026-10-19, #92.
 - **An edit writes and audits only what it changes, `space.settingsEdited`; one that changes nothing writes nothing** (D6). 2026-10-19, #92.
-- **A missing settings row is a fault (500), never a 404 or a creation** (P2). *Why:* every space has one, created with it. 2026-10-19, #92.
+- **A missing settings row is a fault (500), never a 404 or a creation** (P2). *Why:* every space has one, created with it. 2026-10-19, #92. The auto check-out's read of many spaces (`settingsFor`) leaves such a space out instead, and the job logs each of its stays as not closed, so one space never halts the others. 2026-10-20, #100.
 - **A missing student price falls back to the general one** (the owner's design decision DI-41) and **a change applies from then on** — both the [data model's](../architecture/data-model.md#front-desk-and-money). 2026-10-19, #92.
 
 ## Code map

@@ -28,12 +28,13 @@
 - **Owns** the `visits` table; the visit's rates and charge rules (`visitCharge.ts`, pure); the visit's audit entries.
 - **Reads** the space's prices and shifts, its week and a stay's auto check-out time from [`spaces`](spaces.md), and the settings (student prices, the rounding, the cap, reception's switch) from [`space-settings`](space-settings.md).
 - **Asks** `can()`'s `prices.typeByHand` for the terms' `mayTypePrice`, from the boundary's links; and, under the space's lock (`spaces.lock`), for pricing an unpriced visit.
-- **Leaves** the transaction, the space's lock, and the decision under it of who may type a price to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
+- **Leaves** the check-out's transaction, the space's lock and the check-out's typed-price decision to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
 
 ## How it composes the platform
 
 - Its manage router holds the reads, behind the boundary that admits the space's staff, which is their check, and the pricing, behind `requireCan('attendance.record')`; the check-in's and the check-out's routes are the desk's ([conventions › the front desk](../backend/conventions.md#the-front-desk-desk)).
-- Each change is audited by the audit writer, in the caller's transaction ([conventions §6](../backend/conventions.md#6-audit)).
+- It runs its own transactions for the auto check-out (one per visit) and the pricing of an unpriced visit (under the space's lock); the check-in and the check-out run in the desk's.
+- Each change is audited by the audit writer, in its transaction ([conventions §6](../backend/conventions.md#6-audit)).
 
 ## Behaviour and flows
 
@@ -64,7 +65,7 @@
 - **The quote is answered with the visit, and its `at` is the time the check-out charges.** *Why:* the desk shows a price and charges exactly that price (desk › the check-out's quote time). 2026-10-20, #95.
 - **The terms answer the student rates only where they change a rate, and whether this caller may type a price.** *Why:* the desk offers the student audience only where it matters (DI-41), and shows the typed-price field only to whoever may use it. 2026-10-20, #95.
 - **Audited `visit.checkedOut` with both the quote's time and the request's own time.** *Why:* the check-out is priced at the quote the desk showed, up to five minutes before the request; both times say which (the owner's decision). 2026-10-20, #95.
-- **The auto check-out closes a visit at its due time, never at the run's, each in its own transaction under its row's lock.** *Why:* a run every 5 minutes, or one after a pause, must charge what the closing would have; one failure must not undo the others, and a check-out at the desk meanwhile wins. 2026-10-20, #97.
+- **The auto check-out closes a visit at its due time, never at the run's, each in its own transaction under its row's lock.** *Why:* a run every 5 minutes, or one after a pause, must charge what the closing would have; one failure must not undo the others, and a check-out at the desk meanwhile wins. 2026-10-20, #97. A visit that cannot be closed is logged, the next ones are still closed, and the job then fails, so the cron service shows it; a space without its settings row fails only its own visits. *Why:* one bad stay must not halt the job for every space (#97's review). 2026-10-20, #100.
 - **It reads the week and the settings at the run.** *Why:* a change applies from then on, so a stay limit set later closes an open stay at its new due time (data model, *Auto check-out*). 2026-10-20, #97.
 - **An unpriced visit is priced once, by whoever may type a price, under the space's lock; a visit with a charge is refused (`VISIT_ALREADY_PRICED`), an open one too.** *Why:* a typed charge is the owner's decision with its reason, not to be overwritten silently; an open visit is priced at its check-out (Q4 of the desk's plan). 2026-10-20, #97.
 - **At most 500 visits a run; the rest are counted in `remaining` and closed by the next.** *Why:* one run stays short, online as locally; a backlog is caught up run by run. 2026-10-20, #97.

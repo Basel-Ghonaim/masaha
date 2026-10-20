@@ -1,5 +1,6 @@
 import type { PaginationQuery } from '@masaha/shared/core';
 import type { SpaceSettings } from '@masaha/shared/space-settings';
+import type { Logger } from 'pino';
 import type {
   CheckInVisitRequest,
   DeskVisit,
@@ -60,6 +61,7 @@ interface Dependencies {
   spaceSettings: SpaceSettingsService;
   /** The one clock (conventions §11). */
   now: () => Date;
+  logger: Logger;
 }
 
 /** The rounding and the cap in force, from the space's settings. */
@@ -89,6 +91,7 @@ export function createVisitsService({
   spaces,
   spaceSettings,
   now,
+  logger,
 }: Dependencies) {
   const repository = createVisitsRepository();
   return {
@@ -282,6 +285,8 @@ export function createVisitsService({
      * to a batch. Each is closed in its own transaction, under its row's lock and only while still
      * open, at its due time, never at the run's, charged for the stay up to then; audited
      * `visit.autoCheckedOut` with no actor. A soft-deleted or hidden space's visits are closed too.
+     * A visit that cannot be closed is logged and the next one still is; the run then throws, so the
+     * job counts as failed.
      */
     async autoCheckOut(at: Date): Promise<{ visits: number; remaining: number }> {
       const open = await repository.openEverywhere();
@@ -290,9 +295,17 @@ export function createVisitsService({
         spaces.weeksFor(spaceIds),
         spaceSettings.settingsFor(spaceIds),
       ]);
+      let failed = 0;
+      const notClosed = (stayId: number, err: unknown) => {
+        logger.error({ err, job: 'visits.autoCheckOut', stayId }, 'stay not closed');
+        failed += 1;
+      };
       const due = open.flatMap((stay) => {
         const rules = settings.get(stay.spaceId);
-        if (!rules) return [];
+        if (!rules) {
+          notClosed(stay.id, new Error(`The space ${String(stay.spaceId)} has no settings row.`));
+          return [];
+        }
         const dueAt = spaces.autoCheckoutDue({
           checkedInAt: stay.checkedInAt,
           week: weeks.get(stay.spaceId) ?? null,
@@ -327,9 +340,13 @@ export function createVisitsService({
             tx,
           );
           return true;
+        }).catch((err: unknown) => {
+          notClosed(stay.id, err);
+          return false;
         });
         if (done) closed += 1;
       }
+      if (failed > 0) throw new Error(`${String(failed)} visit(s) could not be closed.`);
       return { visits: closed, remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0) };
     },
 
