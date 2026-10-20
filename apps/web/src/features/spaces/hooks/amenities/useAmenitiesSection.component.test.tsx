@@ -184,9 +184,31 @@ describe('useAmenitiesSection', () => {
 
     await waitFor(() => {
       expect(result.current.frame.failure).toMatchObject({
-        message: 'An amenity you ticked is no longer offered. Untick it, or reload the page.',
+        message: 'We took an amenity no longer offered out of your choice; save again.',
       });
     });
+  });
+
+  it('takes the amenity refused out of the choice, so the next save goes without it', async () => {
+    let answer: () => FakeAnswer = () =>
+      refused(422, { type: 'validation', errors: { 'amenityIds.1': ['invalid_choice'] } });
+    const { result, writes } = renderSection(MISSING, () => answer());
+    act(() => {
+      result.current.checklist.onValueChange([2, 5]);
+    });
+    save(result);
+    await waitFor(() => {
+      expect(result.current.frame.failure).not.toBeNull();
+    });
+
+    expect(result.current.checklist.value).toEqual([2]);
+    answer = () => ok(MISSING);
+    save(result);
+
+    await waitFor(() => {
+      expect(writes()).toHaveLength(2);
+    });
+    expect(bodyOf(writes()[1])).toMatchObject({ amenityIds: [2] });
   });
 
   it('keeps that refusal beside one on its own rows, and fetches the admin’s lists again', async () => {
@@ -209,7 +231,7 @@ describe('useAmenitiesSection', () => {
       expect(result.current.own.rows[0]?.nameAr.error).toBe('A repeated amenity');
     });
     expect(result.current.frame.failure).toMatchObject({
-      message: 'An amenity you ticked is no longer offered. Untick it, or reload the page.',
+      message: 'We took an amenity no longer offered out of your choice; save again.',
     });
     expect(client.getQueryState(['admin', 'lookups', 'amenities'])?.isInvalidated).toBe(true);
   });
