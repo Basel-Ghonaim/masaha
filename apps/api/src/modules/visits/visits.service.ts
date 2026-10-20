@@ -1,7 +1,9 @@
+import type { PaginationQuery } from '@masaha/shared/core';
 import type { SpaceSettings } from '@masaha/shared/space-settings';
 import type {
   CheckInVisitRequest,
   DeskVisit,
+  PriceVisitRequest,
   QuotedVisit,
   Rates,
   VisitTerms,
@@ -11,6 +13,7 @@ import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
+import { toSkip } from '../../shared/http/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import {
@@ -328,6 +331,71 @@ export function createVisitsService({
         if (done) closed += 1;
       }
       return { visits: closed, remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0) };
+    },
+
+    /**
+     * A page of the space's closed visits with no charge, for the owner to price: the latest closed
+     * first, then by id; and how many there are. Read without a lock.
+     */
+    async unpricedIn(
+      spaceId: number,
+      query: PaginationQuery,
+    ): Promise<{ rows: DeskVisit[]; total: number }> {
+      const { rows, total } = await repository.unpricedIn(spaceId, {
+        skip: toSkip(query),
+        take: query.limit,
+      });
+      return { rows: rows.map(toDeskVisit), total };
+    },
+
+    /**
+     * Prices a closed visit with no charge, in one transaction and in this order: the space's lock;
+     * `can()` on the links read under it, the staff's, then `prices.typeByHand` by the space's
+     * switch; the visit's row (`FOR UPDATE`), not the space's → 404, still open → 409, already
+     * charged → `VISIT_ALREADY_PRICED`; its charge typed with who typed it and why, audited
+     * `visit.priced`.
+     */
+    price(
+      actor: Actor,
+      space: LoadedSpace,
+      visitId: number,
+      { amountAgorot, reason }: PriceVisitRequest,
+    ): Promise<DeskVisit> {
+      return runInTransaction(async (tx) => {
+        if (!(await spaces.lock(space.id, tx))) {
+          throw AppError.notFound(undefined, 'Space not found');
+        }
+        const links = await space.linksUnder(tx);
+        if (!can(actor, 'attendance.record', { links })) throw AppError.forbidden();
+        const { receptionMayTypePrices } = await spaceSettings.read(space.id, tx);
+        if (!can(actor, 'prices.typeByHand', { links, receptionMayTypePrices })) {
+          throw AppError.forbidden('PRICE_TYPING_NOT_ALLOWED');
+        }
+        const locked = await repository.lockIn(space.id, visitId, tx);
+        if (!locked) throw AppError.notFound(undefined, 'Visit not found');
+        if (locked.checkedOutAt === null) {
+          throw AppError.conflict(undefined, 'An open visit is priced at its check-out');
+        }
+        if (locked.chargeAgorot !== null) throw AppError.conflict('VISIT_ALREADY_PRICED');
+
+        const row = await repository.price(
+          visitId,
+          { amountAgorot, typedById: actor.id, reason },
+          tx,
+        );
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'visit.priced',
+            entityType: 'visit',
+            entityId: visitId,
+            spaceId: space.id,
+            after: { chargeAgorot: amountAgorot, reason },
+          },
+          tx,
+        );
+        return toDeskVisit(row);
+      });
     },
 
     /** The space's open visits, the earliest checked in first, then by id. */

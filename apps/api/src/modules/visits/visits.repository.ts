@@ -188,6 +188,52 @@ export function createVisitsRepository() {
       });
     },
 
+    /**
+     * A page of the space's closed visits with no charge, the latest closed first, then by id, and
+     * how many there are.
+     */
+    async unpricedIn(
+      spaceId: number,
+      { skip, take }: { skip: number; take: number },
+    ): Promise<{ rows: DeskVisitRow[]; total: number }> {
+      const where = { spaceId, checkedOutAt: { not: null }, chargeAgorot: null };
+      const [rows, total] = await Promise.all([
+        prisma.visit.findMany({
+          where,
+          select: DESK_VISIT,
+          orderBy: [{ checkedOutAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take,
+        }),
+        prisma.visit.count({ where }),
+      ]);
+      return { rows, total };
+    },
+
+    /** Sets a closed visit's charge typed by hand, with who typed it and why. */
+    price(
+      visitId: number,
+      {
+        amountAgorot,
+        typedById,
+        reason,
+      }: { amountAgorot: number; typedById: number; reason: string },
+      tx: Tx,
+    ): Promise<DeskVisitRow> {
+      return tx.visit.update({
+        where: { id: visitId },
+        data: {
+          chargeAgorot: amountAgorot,
+          chargeSetById: typedById,
+          chargeReason: reason,
+          roundingRule: null,
+          roundingMinutes: null,
+          capApplied: null,
+        },
+        select: DESK_VISIT,
+      });
+    },
+
     /** The space's open visits, the earliest checked in first, then by id. */
     openIn(spaceId: number, tx: Tx = prisma): Promise<OpenVisit[]> {
       return tx.visit.findMany({

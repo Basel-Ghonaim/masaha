@@ -40,6 +40,7 @@ export const ERRORS = {
   PRICE_TYPING_NOT_ALLOWED: 'The space’s settings do not let reception type a price.',
   PAYMENT_EXCEEDS_DUE: 'The amount is more than what is due.',
   VISIT_NOT_PRICED: 'A visit without a price takes no payment; price it first.',
+  VISIT_ALREADY_PRICED: 'This visit already has a price.',
   VISIT_ALREADY_CLOSED: 'This visit was already checked out; this payment was not recorded.',
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:

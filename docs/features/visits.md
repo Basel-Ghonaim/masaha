@@ -13,6 +13,7 @@
 - Answers the desk's terms: the rounding and the cap in force, whether the caller may type a price, and the rates with no shift and in each shift.
 - Answers the open visits of a space, how many, and what each costs so far, for *present* ([occupancy](occupancy.md)).
 - Closes every open visit whose auto check-out time has passed, at that time, charged to it: the timed job `visits.autoCheckOut`.
+- Lists a space's unpriced visits, and prices one by hand, with its reason, for whoever may type a price.
 
 ## Who uses it
 
@@ -24,12 +25,12 @@
 
 - **Owns** the `visits` table; the visit's rates and charge rules (`visitCharge.ts`, pure); the visit's audit entries.
 - **Reads** the space's prices and shifts, its week and a stay's auto check-out time from [`spaces`](spaces.md), and the settings (student prices, the rounding, the cap, reception's switch) from [`space-settings`](space-settings.md).
-- **Asks** `can()`'s `prices.typeByHand` for the terms' `mayTypePrice`, from the boundary's links.
+- **Asks** `can()`'s `prices.typeByHand` for the terms' `mayTypePrice`, from the boundary's links; and, under the space's lock (`spaces.lock`), for pricing an unpriced visit.
 - **Leaves** the transaction, the space's lock, and the decision under it of who may type a price to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
 
 ## How it composes the platform
 
-- Its manage router holds the two reads, behind the boundary that admits the space's staff, which is their check; the check-in's and the check-out's routes are the desk's ([conventions › the front desk](../backend/conventions.md#the-front-desk-desk)).
+- Its manage router holds the reads, behind the boundary that admits the space's staff, which is their check, and the pricing, behind `requireCan('attendance.record')`; the check-in's and the check-out's routes are the desk's ([conventions › the front desk](../backend/conventions.md#the-front-desk-desk)).
 - Each change is audited by the audit writer, in the caller's transaction ([conventions §6](../backend/conventions.md#6-audit)).
 
 ## Behaviour and flows
@@ -46,6 +47,8 @@
 
 **The auto check-out.** Every open visit, of every space, a soft-deleted or hidden one's too, the earliest first; the weeks and the settings of their spaces, as they are now, in one query each; each visit's due time by `spaces`' rule; the ones due by the run's time, up to 500. Each in its own transaction: its row locked (`FOR UPDATE`) only while still open, so a check-out at the desk meanwhile wins and is left as it is; closed `AUTO` at its due time, charged for the stay up to then (none without a rate, left uncollected with no customer), and audited `visit.autoCheckedOut` with no actor.
 
+**The unpriced visits.** The space's closed visits with no charge, the latest closed first, then by id, paged, read without a lock. **The pricing:** in one transaction, the space's lock; `can()` on the links read under it, the staff's, then `prices.typeByHand` by the space's switch; the visit's row (`FOR UPDATE`), the space's only; refused while open, or once it has a charge; its charge, who typed it and why, no rounding; audited `visit.priced`.
+
 ## Decisions
 
 ### API decisions
@@ -61,12 +64,13 @@
 - **Audited `visit.checkedOut` with both the quote's time and the request's own time.** *Why:* the check-out is priced at the quote the desk showed, up to five minutes before the request; both times say which (the owner's decision). 2026-10-20, #95.
 - **The auto check-out closes a visit at its due time, never at the run's, each in its own transaction under its row's lock.** *Why:* a run every 5 minutes, or one after a pause, must charge what the closing would have; one failure must not undo the others, and a check-out at the desk meanwhile wins. 2026-10-20, #97.
 - **It reads the week and the settings at the run.** *Why:* a change applies from then on, so a stay limit set later closes an open stay at its new due time (data model, *Auto check-out*). 2026-10-20, #97.
+- **An unpriced visit is priced once, by whoever may type a price, under the space's lock; a visit with a charge is refused (`VISIT_ALREADY_PRICED`), an open one too.** *Why:* a typed charge is the owner's decision with its reason, not to be overwritten silently; an open visit is priced at its check-out (Q4 of the desk's plan). 2026-10-20, #97.
 - **At most 500 visits a run; the rest are counted in `remaining` and closed by the next.** *Why:* one run stays short, online as locally; a backlog is caught up run by run. 2026-10-20, #97.
 
 ## Code map
 
 - **API:** `apps/api/src/modules/visits/`, entry `index.ts`: the service (the auto check-out included), the repository, the mapper, the controller and the manage router, and the rates and charge rules (`visitCharge.ts`).
-- **Shared:** `packages/shared/src/visits/`: the check-in's request (`checkInVisitSchema`); the responses (`DeskVisit`, `VisitCharge`, `QuotedVisit`, `VisitTerms`, `Rates`).
+- **Shared:** `packages/shared/src/visits/`: the check-in's request (`checkInVisitSchema`) and a price typed by hand (`priceVisitSchema`, which the check-out's typed charge reuses); the responses (`DeskVisit`, `VisitCharge`, `QuotedVisit`, `VisitTerms`, `Rates`).
 
 ## History
 
@@ -74,4 +78,4 @@
 
 - #94 — the open visits and their counts, which `occupancy` reads for *present*.
 - #95 — the check-in by name, its rates and its idempotency key's lookup; the charge and the check-out; the quote, the terms and the charges so far.
-- #97 — the auto check-out of visits.
+- #97 — the auto check-out of visits; the unpriced visits and their pricing.
