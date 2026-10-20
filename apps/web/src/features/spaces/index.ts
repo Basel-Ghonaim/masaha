@@ -5,4 +5,5 @@ export { SpaceActionsMenu } from './components/menu/SpaceActionsMenu';
 export { SpaceEditor } from './components/editor/SpaceEditor';
 export { useSpaceName } from './hooks/editor/useSpaceName';
 export type { AmenitiesField } from './types/AmenitiesField';
+export type { AdminPlace, OwnerPlace } from './types/EditorPlace';
 export type { OwnedSpace, OwnersSlot } from './types/OwnersSlot';

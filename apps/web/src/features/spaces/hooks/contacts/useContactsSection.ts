@@ -12,12 +12,12 @@ import { useCopy } from '@shared/copy';
 import { isolated, useServerForm } from '@shared/forms';
 import { useEffect, useState } from 'react';
 import { useFieldArray, useWatch, type Path } from 'react-hook-form';
-import { createSpacesRepository } from '../../repository/spacesRepository';
+import type { EditorPlace } from '../../types/EditorPlace';
 import { carrierOf } from '../../services/carrierOf';
+import { EDITOR_SCOPES } from '../editor/editorScope';
+import { meanwhileLines } from '../editor/meanwhileLines';
 import { useSaveGroup } from '../editor/useSaveGroup';
 import { useSectionFrame } from '../editor/useSectionFrame';
-
-const repository = createSpacesRepository();
 
 /** The contacts as their form holds them: each value as typed. */
 type ContactsValues = { contacts: { type: ContactType; value: string }[] };
@@ -45,16 +45,20 @@ const NEW_TYPE: ContactType = 'WHATSAPP';
  * that cannot be stored, or a repeat once stored, is refused on its own row before anything is sent.
  */
 export function useContactsSection({
+  place,
   space,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
   const copy = useCopy();
+  const scope = EDITOR_SCOPES[place];
+  const { repository } = scope;
   const words = copy.spaces.editor.contacts;
   const section = copy.spaces.editor.section;
-  const save = useSaveGroup(space.id, 'contacts', (request: UpdateSpaceContactsRequest) =>
+  const save = useSaveGroup(place, space.id, 'contacts', (request: UpdateSpaceContactsRequest) =>
     repository.updateContacts(space.id, request),
   );
   const [unchanged, setUnchanged] = useState(false);
@@ -75,10 +79,7 @@ export function useContactsSection({
       form.form.reset(contactsValues(answer));
     },
     failureTitle: section.failureTitle({ section: copy.spaces.editor.sections.contacts }),
-    failureLines: {
-      forbidden: section.verifiedMeanwhile,
-      not_found: section.deletedMeanwhile,
-    },
+    failureLines: meanwhileLines(place, copy),
   });
   const { control, formState, setValue } = form.form;
   const list = useFieldArray({ control, name: 'contacts' });
@@ -91,6 +92,7 @@ export function useContactsSection({
   }, [savedKey, form.form]);
 
   const frame = useSectionFrame({
+    place,
     space,
     group: 'contacts',
     form: {

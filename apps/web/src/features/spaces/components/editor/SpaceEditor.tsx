@@ -1,10 +1,10 @@
 import { Alert, AlertDescription, AlertTitle } from '@shared/design-system';
-import { NotFoundState } from '@shared/routing';
-import { useRef, type ReactNode } from 'react';
+import { ForbiddenState, NotFoundState } from '@shared/routing';
+import { useRef } from 'react';
 import { useSpaceEditor } from '../../hooks/editor/useSpaceEditor';
 import type { AmenitiesField } from '../../types/AmenitiesField';
 import type { AreaField } from '../../types/AreaField';
-import type { OwnersSlot } from '../../types/OwnersSlot';
+import type { AdminPlace, OwnerPlace } from '../../types/EditorPlace';
 import { AmenitiesSection } from '../amenities/AmenitiesSection';
 import { ReadOnlyAmenities } from '../amenities/ReadOnlyAmenities';
 import { ContactsSection } from '../contacts/ContactsSection';
@@ -27,37 +27,31 @@ import { SpaceStatusBadges } from './SpaceStatusBadges';
 import { VerifiedNotice } from './VerifiedNotice';
 
 /**
- * A space's editor, with no interface only the admin's page uses: its state, then its sections, each fact
+ * A space's editor, the admin's or an owner's (`place`): its state, then its sections, each fact
  * group saved, dated and confirmed alone, with the groups still missing at their head and their
- * navigation beside them; a verified space's values, read-only. It shows its own loading, failure
- * and not-found states, and asks before the page is left with unsaved changes.
+ * navigation beside them; a space the place may not edit, read-only. It shows its own loading,
+ * failure and not-found states, and asks before the page is left with unsaved changes.
  *
- * The page fills what comes from elsewhere: the area field and the area's name, the amenities'
- * checklist and their names (`lookups`), the way to the platform's amenities list (`amenitiesListLink`),
- * the space's page on the public site (`publicLink`, by its slug), and the owners' actions in its
- * notice (`ownerActions`, from `space-links`): an unlink per owner of a verified space, the link on an
- * unverified one.
+ * The page fills what comes from elsewhere: the area field and the amenities' checklist
+ * (`lookups`), and the space's page on the public site (`publicLink`, by its slug). The admin's place
+ * adds the area's and the amenities' names for a verified space, the way to the platform's amenities
+ * list, and the owners' actions in its notice (`ownerActions`, from `space-links`): an unlink per
+ * owner of a verified space, the link on an unverified one.
  */
 export function SpaceEditor({
   spaceId,
+  place,
   areaField,
-  areaName,
   amenitiesField,
-  amenityNames,
-  amenitiesListLink,
   publicLink,
-  ownerActions,
 }: {
   spaceId: number;
+  place: AdminPlace | OwnerPlace;
   areaField: AreaField;
-  areaName: (areaId: number) => ReactNode;
   amenitiesField: AmenitiesField;
-  amenityNames: (ids: number[]) => ReactNode;
-  amenitiesListLink: string;
   publicLink: (slug: string) => string;
-  ownerActions: OwnersSlot;
 }) {
-  const editor = useSpaceEditor(spaceId);
+  const editor = useSpaceEditor(place.kind, spaceId);
   // The notice stays while its content is swapped, so it takes the focus a link or an unlink leaves.
   const notice = useRef<HTMLDivElement>(null);
 
@@ -67,29 +61,35 @@ export function SpaceEditor({
     return <EditorFailure message={editor.message} retry={editor.retry} />;
   }
 
+  // An owner's link is what verifies a space, so an owner is never shown one they may not edit.
+  if (editor.readOnly && place.kind === 'owner') return <ForbiddenState />;
+
   const { space } = editor;
+  const sectionPlace = place.kind;
   return (
     <div className="flex flex-col gap-4">
       <SpaceStatusBadges badges={editor.badges} />
-      <div ref={notice} tabIndex={-1} className="outline-none">
-        {editor.readOnly ? (
-          <VerifiedNotice words={editor.verified} publicHref={publicLink(space.slug)}>
-            <div className="flex flex-wrap gap-2">
-              {ownerActions({ ...editor.owned, focusFallback: notice })}
-            </div>
-          </VerifiedNotice>
-        ) : (
-          <Alert variant="warning">
-            <AlertTitle>{editor.unverified.title}</AlertTitle>
-            <AlertDescription>
-              <p>{editor.unverified.description}</p>
+      {place.kind === 'admin' && (
+        <div ref={notice} tabIndex={-1} className="outline-none">
+          {editor.readOnly ? (
+            <VerifiedNotice words={editor.verified} publicHref={publicLink(space.slug)}>
               <div className="flex flex-wrap gap-2">
-                {ownerActions({ ...editor.owned, focusFallback: notice })}
+                {place.ownerActions({ ...editor.owned, focusFallback: notice })}
               </div>
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
+            </VerifiedNotice>
+          ) : (
+            <Alert variant="warning">
+              <AlertTitle>{editor.unverified.title}</AlertTitle>
+              <AlertDescription>
+                <p>{editor.unverified.description}</p>
+                <div className="flex flex-wrap gap-2">
+                  {place.ownerActions({ ...editor.owned, focusFallback: notice })}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
         <SectionNav
           label={editor.navigation.label}
@@ -98,36 +98,51 @@ export function SpaceEditor({
         />
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-9">
           {editor.checklist && <MissingChecklist {...editor.checklist} />}
-          {editor.readOnly ? (
+          {editor.readOnly && place.kind === 'admin' ? (
             <>
-              <ReadOnlyProfile space={space} areaName={areaName} />
+              <ReadOnlyProfile space={space} areaName={place.areaName} />
               <ReadOnlyHours space={space} />
               <ReadOnlyPrices space={space} />
-              <ReadOnlyAmenities space={space} amenityNames={amenityNames} />
+              <ReadOnlyAmenities space={space} amenityNames={place.amenityNames} />
               <ReadOnlyContacts space={space} />
-              <ReadOnlyPhotos spaceId={spaceId} />
+              <ReadOnlyPhotos place={sectionPlace} spaceId={spaceId} />
             </>
           ) : (
             <>
               <ProfileSection
+                place={sectionPlace}
                 space={space}
                 areaField={areaField}
                 onDirtyChange={editor.onDirtyChange}
               />
-              <HoursSection space={space} onDirtyChange={editor.onDirtyChange} />
+              <HoursSection
+                place={sectionPlace}
+                space={space}
+                onDirtyChange={editor.onDirtyChange}
+              />
               <PricesSection
+                place={sectionPlace}
                 space={space}
                 hoursUnsaved={editor.hoursUnsaved}
                 onDirtyChange={editor.onDirtyChange}
               />
               <AmenitiesSection
+                place={sectionPlace}
                 space={space}
                 amenitiesField={amenitiesField}
-                listLink={amenitiesListLink}
+                listLink={place.kind === 'admin' ? place.amenitiesListLink : null}
                 onDirtyChange={editor.onDirtyChange}
               />
-              <ContactsSection space={space} onDirtyChange={editor.onDirtyChange} />
-              <PhotosSection spaceId={spaceId} onUploadingChange={editor.onUploadingChange} />
+              <ContactsSection
+                place={sectionPlace}
+                space={space}
+                onDirtyChange={editor.onDirtyChange}
+              />
+              <PhotosSection
+                place={sectionPlace}
+                spaceId={spaceId}
+                onUploadingChange={editor.onUploadingChange}
+              />
             </>
           )}
           <PrivacyNote text={editor.privacy} />

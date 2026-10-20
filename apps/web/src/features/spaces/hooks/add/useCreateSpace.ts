@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toastDone } from '../../components/toast/actionToasts';
 import { createSpacesRepository } from '../../repository/spacesRepository';
 import { spaceNameOf } from '../../services/spaceName';
-import { spacesKeys } from '../queryKeys';
+import { EDITOR_SCOPES } from '../editor/editorScope';
 import { useRefreshAdmin } from '../useRefreshAdmin';
 
 const repository = createSpacesRepository();
@@ -25,7 +25,7 @@ export function useCreateSpace() {
     mutationFn: (request) => repository.create(request),
     onSuccess: async (space) => {
       await refresh();
-      client.setQueryData(spacesKeys.space(space.id), space);
+      client.setQueryData(EDITOR_SCOPES.admin.spaceKey(space.id), space);
       // Worded when it lands, in the language the interface speaks then.
       toastDone(currentCopy().spaces.toasts.added, spaceNameOf(space, currentLanguage() === 'en'));
     },

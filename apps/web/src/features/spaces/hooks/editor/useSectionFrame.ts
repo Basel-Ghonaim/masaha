@@ -4,8 +4,10 @@ import { useRefusalView, type FormFailureView } from '@shared/forms';
 import { useLanguage } from '@shared/localisation';
 import { useEffect, useState, type BaseSyntheticEvent } from 'react';
 import { updatedAgo } from '../../services/updatedAgo';
+import type { EditorPlace } from '../../types/EditorPlace';
 import type { SectionFrameView } from '../../types/SectionFrameView';
 import { useConfirmGroup } from '../confirm/useConfirmGroup';
+import { meanwhileLines } from './meanwhileLines';
 
 /** What a section's own form hands its frame. */
 export type SectionForm = {
@@ -30,11 +32,13 @@ export type SectionForm = {
  * it has unsaved changes (`onDirtyChange`), and no longer once it has gone.
  */
 export function useSectionFrame({
+  place,
   space,
   group,
   form,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   group: FactGroup;
   form: SectionForm;
@@ -44,15 +48,11 @@ export function useSectionFrame({
   const words = copy.spaces.editor.section;
   const language = useLanguage() === 'en' ? 'en' : 'ar';
   const title = copy.spaces.editor.sections[group];
-  const confirm = useConfirmGroup(space.id, group);
+  const confirm = useConfirmGroup(place, space.id, group);
   const confirmFailure = useRefusalView(
     confirm.error,
     words.confirmFailureTitle({ section: title }),
-    {
-      forbidden: words.verifiedMeanwhile,
-      not_found: words.deletedMeanwhile,
-      conflict: words.notSavedYet,
-    },
+    { ...meanwhileLines(place, copy), conflict: words.notSavedYet },
   );
   const { isDirty } = form;
   // A save's failure set aside by a Discard or a confirmation, until the next save.

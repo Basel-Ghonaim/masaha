@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { Button, EmptyState, Skeleton } from '@shared/design-system';
 import { usePhotoGallery } from '../../hooks/photos/usePhotoGallery';
+import type { EditorPlace } from '../../types/EditorPlace';
 import { EditorFailure } from '../editor/EditorFailure';
 import { PhotoRemoveDialog } from './PhotoRemoveDialog';
 import { PhotoTile } from './PhotoTile';
@@ -15,14 +16,16 @@ import { PhotosCard } from './PhotosCard';
  * are the editor's own, reused.
  */
 export function PhotosSection({
+  place,
   spaceId,
   onUploadingChange,
 }: {
+  place: EditorPlace;
   spaceId: number;
   /** The editor's leave guard: only an unfinished upload is lost by leaving. */
   onUploadingChange: (uploading: boolean) => void;
 }) {
-  const gallery = usePhotoGallery(spaceId, onUploadingChange);
+  const gallery = usePhotoGallery(place, spaceId, onUploadingChange);
   const picker = useRef<HTMLInputElement>(null);
 
   return (

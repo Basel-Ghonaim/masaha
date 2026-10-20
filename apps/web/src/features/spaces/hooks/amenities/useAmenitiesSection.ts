@@ -11,7 +11,7 @@ import { toAppError } from '@shared/errors';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useController, useFieldArray, type Path } from 'react-hook-form';
-import { createSpacesRepository } from '../../repository/spacesRepository';
+import type { EditorPlace } from '../../types/EditorPlace';
 import {
   amenitiesInput,
   amenitiesValues,
@@ -20,10 +20,10 @@ import {
   type AmenitiesValues,
 } from '../../services/amenitiesForm';
 import type { AmenitiesFieldProps } from '../../types/AmenitiesField';
+import { EDITOR_SCOPES } from '../editor/editorScope';
+import { meanwhileLines } from '../editor/meanwhileLines';
 import { useSaveGroup } from '../editor/useSaveGroup';
 import { useSectionFrame } from '../editor/useSectionFrame';
-
-const repository = createSpacesRepository();
 
 const OWN_INDEXES = Array.from({ length: MAX_OWN_AMENITIES }, (_, index) => index);
 
@@ -46,16 +46,20 @@ const FIELDS: Path<AmenitiesValues>[] = [
  * any refusal on the rows, and the admin's lists are fetched again, so the checklist marks it.
  */
 export function useAmenitiesSection({
+  place,
   space,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
   const copy = useCopy();
+  const scope = EDITOR_SCOPES[place];
+  const { repository } = scope;
   const words = copy.spaces.editor.amenities;
   const section = copy.spaces.editor.section;
-  const save = useSaveGroup(space.id, 'amenities', (request: UpdateSpaceAmenitiesRequest) =>
+  const save = useSaveGroup(place, space.id, 'amenities', (request: UpdateSpaceAmenitiesRequest) =>
     repository.updateAmenities(space.id, request),
   );
   const client = useQueryClient();
@@ -84,8 +88,8 @@ export function useAmenitiesSection({
         const refused = Object.keys(toAppError(error).errors ?? {});
         if (refused.some((field) => field.startsWith('amenityIds'))) {
           setUnavailable(true);
-          // The lists this capability's section shows come from another one: the admin scope.
-          void client.invalidateQueries({ queryKey: ['admin'] });
+          // The lists this capability's section shows come from another one: their scope.
+          void client.invalidateQueries({ queryKey: scope.lists });
         }
         throw error;
       }
@@ -98,8 +102,7 @@ export function useAmenitiesSection({
       ]),
     ),
     failureLines: {
-      forbidden: section.verifiedMeanwhile,
-      not_found: section.deletedMeanwhile,
+      ...meanwhileLines(place, copy),
       validation: words.unavailable,
     },
   });
@@ -119,6 +122,7 @@ export function useAmenitiesSection({
     message: words.unavailable,
   };
   const frame = useSectionFrame({
+    place,
     space,
     group: 'amenities',
     form: {

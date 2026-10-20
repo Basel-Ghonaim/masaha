@@ -40,9 +40,12 @@ function renderUploads(
   const rendered = renderHook(
     () => {
       // The section reads the gallery and hands the queue what it holds, as it does.
-      const query = usePhotosQuery(7);
+      const query = usePhotosQuery('admin', 7);
       const photos = query.data ?? [];
-      return { photos, uploads: usePhotoUploads(7, photos, (value) => uploading.push(value)) };
+      return {
+        photos,
+        uploads: usePhotoUploads('admin', 7, photos, (value) => uploading.push(value)),
+      };
     },
     { wrapper },
   );

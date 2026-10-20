@@ -149,13 +149,16 @@ function renderEditor({
         element: (
           <SpaceEditor
             spaceId={7}
+            place={{
+              kind: 'admin',
+              ownerActions,
+              amenitiesListLink: '/lookups?tab=amenities',
+              areaName: (areaId) => `Area ${String(areaId)}`,
+              amenityNames: (ids) => ids.map((id) => `Amenity ${String(id)}`).join(', '),
+            }}
             areaField={areaField}
-            areaName={(areaId) => `Area ${String(areaId)}`}
             amenitiesField={amenitiesField}
-            amenityNames={(ids) => ids.map((id) => `Amenity ${String(id)}`).join(', ')}
-            amenitiesListLink="/lookups?tab=amenities"
             publicLink={(slug) => `/spaces/${slug}`}
-            ownerActions={ownerActions}
           />
         ),
       },

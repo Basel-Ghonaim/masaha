@@ -4,9 +4,11 @@ import type { BadgeProps } from '@shared/design-system';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useIsMutating } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { mayEdit } from '../../services/mayEdit';
 import { spaceNameOf } from '../../services/spaceName';
+import type { EditorPlace } from '../../types/EditorPlace';
 import type { OwnedSpace } from '../../types/OwnersSlot';
-import { spaceWriteKey } from '../mutationKeys';
+import { EDITOR_SCOPES } from './editorScope';
 import { useLeaveGuard } from './useLeaveGuard';
 import { useSectionInView } from './useSectionInView';
 import { useSpaceQuery } from './useSpaceQuery';
@@ -15,20 +17,20 @@ import { useSpaceQuery } from './useSpaceQuery';
 const SECTIONS = [...FACT_GROUPS, 'photos'] as const;
 
 /**
- * A space's editor, ready to render: its loading, failure and not-found states; then its state's
- * badges, the notice that says whether it is edited here or read-only (a verified one naming its
- * owners), the space as the owners' actions take it, the groups still missing, the
- * sections' navigation with the one in view marked, and the guard that asks before the page is left
- * with unsaved changes, which each section reports (`onDirtyChange`), and says they are being saved
- * while one of the space's writes is pending. A space found deleted is the 404, whatever was read
+ * A space's editor at `place`, ready to render: its loading, failure and not-found states; then its
+ * state's badges, whether its fields are offered to edit here (`mayEdit`), the notice that says so
+ * (a verified one naming its owners), the space as the owners' actions take it, the groups still
+ * missing while it is edited here, the sections' navigation with the one in view marked, and the
+ * guard that asks before the page is left with unsaved changes, which each section reports
+ * (`onDirtyChange`), and says they are being saved while one of the space's writes is pending. A space found deleted is the 404, whatever was read
  * before. The gallery is a section like the rest, and no fact group: it is never in the checklist,
  * which still maps the five groups.
  */
-export function useSpaceEditor(spaceId: number) {
+export function useSpaceEditor(place: EditorPlace, spaceId: number) {
   const copy = useCopy();
   const words = copy.spaces.editor;
   const english = useLanguage() === 'en';
-  const query = useSpaceQuery(spaceId);
+  const query = useSpaceQuery(place, spaceId);
   const [dirty, setDirty] = useState<FactGroup[]>([]);
   const onDirtyChange = useCallback((group: FactGroup, isDirty: boolean) => {
     setDirty((groups) =>
@@ -39,7 +41,7 @@ export function useSpaceEditor(spaceId: number) {
         : groups.filter((candidate) => candidate !== group),
     );
   }, []);
-  const saving = useIsMutating({ mutationKey: spaceWriteKey(spaceId) }) > 0;
+  const saving = useIsMutating({ mutationKey: EDITOR_SCOPES[place].writeKey(spaceId) }) > 0;
   // Photos are immediate actions, so nothing there is "unsaved": only an upload still travelling is
   // lost by leaving, and the gallery says so while it is.
   const [uploading, setUploading] = useState(false);
@@ -52,10 +54,8 @@ export function useSpaceEditor(spaceId: number) {
     uploading,
   );
   const space = query.data;
-  const inView = useSectionInView(
-    space === undefined ? [] : SECTIONS,
-    space?.isVerified ? 'read' : 'edit',
-  );
+  const readOnly = space !== undefined && !mayEdit(place, space.isVerified);
+  const inView = useSectionInView(space === undefined ? [] : SECTIONS, readOnly ? 'read' : 'edit');
 
   // A space found deleted is gone, even when an earlier read of it is still at hand.
   if (query.error?.status === 404) return { state: 'notFound' as const, guard };
@@ -77,7 +77,7 @@ export function useSpaceEditor(spaceId: number) {
   return {
     state: 'ready' as const,
     space,
-    readOnly: space.isVerified,
+    readOnly,
     badges: badgesOf(space, words.status),
     unverified: words.unverified,
     verified: {
@@ -95,7 +95,7 @@ export function useSpaceEditor(spaceId: number) {
       owners: space.owners,
       unsaved: dirty.length > 0,
     } satisfies Omit<OwnedSpace, 'focusFallback'>,
-    checklist: space.isVerified ? null : checklistOf(space, words),
+    checklist: readOnly ? null : checklistOf(space, words),
     navigation: {
       label: words.navigation,
       items: SECTIONS.map((section) => ({

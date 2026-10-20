@@ -3,9 +3,9 @@ import { SpaceOwnersActions } from '@features/space-links';
 import {
   SpaceEditor,
   useSpaceName,
+  type AdminPlace,
   type AmenitiesField,
   type AreaField,
-  type OwnersSlot,
 } from '@features/spaces';
 import { useCopy } from '@shared/copy';
 import {
@@ -33,10 +33,17 @@ const amenitiesField: AmenitiesField = (props) => <AmenityChecklist {...props} /
 /** A space's amenities named, from `lookups`, for a verified space's read-only page. */
 const amenityNames = (ids: number[]) => <AmenityNames ids={ids} />;
 
-/** The space's owners' actions, from `space-links`, in the editor's notice, made once as the fields are. */
-const ownerActions: OwnersSlot = (space) => (
-  <SpaceOwnersActions space={space} addOwnerLink={ADMIN_OWNERS_PATH} />
-);
+/**
+ * The admin's place: the space's owners' actions, from `space-links`, in the editor's notice, the
+ * way to the amenities' tab, and a verified space's names, made once as the fields are.
+ */
+const place: AdminPlace = {
+  kind: 'admin',
+  ownerActions: (space) => <SpaceOwnersActions space={space} addOwnerLink={ADMIN_OWNERS_PATH} />,
+  amenitiesListLink: ADMIN_AMENITIES_PATH,
+  areaName,
+  amenityNames,
+};
 
 /**
  * The admin edits a space: titled by its name once it has loaded, with the trail back to the spaces
@@ -76,13 +83,10 @@ function SpaceEdit({ spaceId }: { spaceId: number }) {
         </Breadcrumb>
         <SpaceEditor
           spaceId={spaceId}
+          place={place}
           areaField={areaField}
-          areaName={areaName}
           amenitiesField={amenitiesField}
-          amenityNames={amenityNames}
-          amenitiesListLink={ADMIN_AMENITIES_PATH}
           publicLink={publicSpacePath}
-          ownerActions={ownerActions}
         />
       </div>
     </>

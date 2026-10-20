@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { spacesKeys } from './queryKeys';
+import { EDITOR_SCOPES } from './editor/editorScope';
 
 /**
  * Fetches the admin's views again after a write on a space. A space's life shows in another
@@ -30,6 +30,6 @@ export function useRefreshAdmin({ includeInactive = false }: { includeInactive?:
 /** Whether a key is one space's, as its editor reads it. */
 function isSpaceKey(queryKey: readonly unknown[]): boolean {
   const [scope, capability, kind] = queryKey;
-  const [spaceScope, spaceCapability, spaceKind] = spacesKeys.space(0);
+  const [spaceScope, spaceCapability, spaceKind] = EDITOR_SCOPES.admin.spaceKey(0);
   return scope === spaceScope && capability === spaceCapability && kind === spaceKind;
 }

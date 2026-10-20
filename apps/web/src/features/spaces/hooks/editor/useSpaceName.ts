@@ -10,7 +10,7 @@ import { useSpaceQuery } from './useSpaceQuery';
  */
 export function useSpaceName(spaceId: number): SpaceNameView | undefined {
   const english = useLanguage() === 'en';
-  const query = useSpaceQuery(spaceId);
+  const query = useSpaceQuery('admin', spaceId);
   const space = query.error?.status === 404 ? undefined : query.data;
   return space === undefined ? undefined : spaceNameOf(space, english);
 }

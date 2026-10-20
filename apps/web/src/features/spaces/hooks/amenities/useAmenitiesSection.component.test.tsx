@@ -51,7 +51,7 @@ function renderSection(
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   const rendered = renderHook(
-    ({ current }) => useAmenitiesSection({ space: current, onDirtyChange }),
+    ({ current }) => useAmenitiesSection({ place: 'admin', space: current, onDirtyChange }),
     { wrapper, initialProps: { current: space } },
   );
   const writes = () => requests.filter(({ method }) => method !== 'get');

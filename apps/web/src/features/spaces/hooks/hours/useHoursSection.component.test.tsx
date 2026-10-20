@@ -74,10 +74,13 @@ function renderSection(
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const rendered = renderHook(({ current }) => useHoursSection({ space: current, onDirtyChange }), {
-    wrapper,
-    initialProps: { current: space },
-  });
+  const rendered = renderHook(
+    ({ current }) => useHoursSection({ place: 'admin', space: current, onDirtyChange }),
+    {
+      wrapper,
+      initialProps: { current: space },
+    },
+  );
   const writes = () => requests.filter(({ method }) => method !== 'get');
   return { ...rendered, writes, client };
 }

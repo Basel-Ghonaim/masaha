@@ -1,5 +1,6 @@
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
+import type { EditorPlace } from '../../types/EditorPlace';
 import type { PhotoTileView } from '../../types/PhotoTileView';
 import { usePhotosQuery } from './usePhotosQuery';
 
@@ -8,10 +9,10 @@ import { usePhotosQuery } from './usePhotosQuery';
  * server's `can()` refuses every write on a verified space, so the web draws nothing that could
  * change one; this is the editor's `readOnly`, not a rule of its own.
  */
-export function useReadOnlyPhotos(spaceId: number) {
+export function useReadOnlyPhotos(place: EditorPlace, spaceId: number) {
   const copy = useCopy();
   const words = copy.spaces.editor.photos;
-  const query = usePhotosQuery(spaceId);
+  const query = usePhotosQuery(place, spaceId);
   const loaded = useRefusalView(query.error ?? null, words.loadFailed);
   const ready = query.isSuccess;
   const tiles: PhotoTileView[] = (query.data ?? []).map((photo, index) => ({

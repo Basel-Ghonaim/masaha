@@ -7,17 +7,17 @@ import {
 import { useCopy } from '@shared/copy';
 import { useServerForm } from '@shared/forms';
 import { useEffect, useRef, useState } from 'react';
-import { createSpacesRepository } from '../../repository/spacesRepository';
+import type { EditorPlace } from '../../types/EditorPlace';
 import { profileChanges, profileOf, type SpaceProfile } from '../../services/profileChanges';
 import { profileEditInput } from '../../services/profileEditInput';
 import { profileValues } from '../../services/profileValues';
 import type { ProfileValues } from '../../types/ProfileValues';
+import { EDITOR_SCOPES } from '../editor/editorScope';
+import { meanwhileLines } from '../editor/meanwhileLines';
 import { useSaveGroup } from '../editor/useSaveGroup';
 import { useSectionFrame } from '../editor/useSectionFrame';
 import { PROFILE_FIELDS } from '../profileFieldOrder';
 import { useProfileFields } from '../useProfileFields';
-
-const repository = createSpacesRepository();
 
 /**
  * The editor's «المساحة» section, ready to render: the space's basics and location as one form,
@@ -27,16 +27,21 @@ const repository = createSpacesRepository();
  * it follows the space as the server answers it; once saved, it holds the server's answer.
  */
 export function useProfileSection({
+  place,
   space,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
   const copy = useCopy();
+  const scope = EDITOR_SCOPES[place];
+  const { repository } = scope;
   const words = copy.spaces.add;
   const section = copy.spaces.editor.section;
   const save = useSaveGroup(
+    place,
     space.id,
     'profile',
     (request: Parameters<typeof repository.updateProfile>[1]) =>
@@ -67,10 +72,7 @@ export function useProfileSection({
     },
     failureTitle: section.failureTitle({ section: copy.spaces.editor.sections.profile }),
     fieldLines: words.fieldErrors,
-    failureLines: {
-      forbidden: section.verifiedMeanwhile,
-      not_found: section.deletedMeanwhile,
-    },
+    failureLines: meanwhileLines(place, copy),
   });
   const { isDirty } = form.form.formState;
   const profileKey = JSON.stringify(profile);
@@ -85,6 +87,7 @@ export function useProfileSection({
   }, [profileKey, form.form]);
 
   const frame = useSectionFrame({
+    place,
     space,
     group: 'profile',
     form: {

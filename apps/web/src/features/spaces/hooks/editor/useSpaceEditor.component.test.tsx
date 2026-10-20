@@ -6,8 +6,7 @@ import { fakeIntersectionObserver } from '../../../../test/fakeIntersectionObser
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { renderHookInRouter } from '../../../../test/renderHookInRouter';
 import { startPreferences } from '../../../../test/startPreferences';
-import { spaceWriteKey } from '../mutationKeys';
-import { spacesKeys } from '../queryKeys';
+import { EDITOR_SCOPES } from './editorScope';
 import { useSpaceEditor } from './useSpaceEditor';
 
 const SPACE = {
@@ -24,7 +23,7 @@ const SPACE = {
 /** The editor of space 7, the server answering its read with `read`. */
 function renderEditor(read: () => FakeAnswer | Promise<FakeAnswer> = () => ok(SPACE)) {
   fakeTransport(read);
-  return renderHookInRouter(() => useSpaceEditor(7), { path: '/spaces/7' });
+  return renderHookInRouter(() => useSpaceEditor('admin', 7), { path: '/spaces/7' });
 }
 
 /** The editor once its space has loaded. */
@@ -71,7 +70,7 @@ describe('useSpaceEditor', () => {
     await ready(result);
 
     deleted = true;
-    await act(() => client.invalidateQueries({ queryKey: spacesKeys.space(7) }));
+    await act(() => client.invalidateQueries({ queryKey: EDITOR_SCOPES.admin.spaceKey(7) }));
 
     await waitFor(() => {
       expect(result.current.state).toBe('notFound');
@@ -190,7 +189,7 @@ describe('useSpaceEditor', () => {
       void client
         .getMutationCache()
         .build(client, {
-          mutationKey: spaceWriteKey(7),
+          mutationKey: EDITOR_SCOPES.admin.writeKey(7),
           mutationFn: () => new Promise(() => undefined),
         })
         .execute(undefined);

@@ -13,7 +13,7 @@ import { useLanguage } from '@shared/localisation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useFieldArray, useWatch, type Path } from 'react-hook-form';
-import { createSpacesRepository } from '../../repository/spacesRepository';
+import type { EditorPlace } from '../../types/EditorPlace';
 import { settledClock } from '../../services/clockTime';
 import {
   DAY_KEYS,
@@ -25,11 +25,10 @@ import {
   sameHours,
   type HoursValues,
 } from '../../services/hoursForm';
-import { spacesKeys } from '../queryKeys';
+import { EDITOR_SCOPES } from '../editor/editorScope';
+import { meanwhileLines } from '../editor/meanwhileLines';
 import { useSaveGroup } from '../editor/useSaveGroup';
 import { useSectionFrame } from '../editor/useSectionFrame';
-
-const repository = createSpacesRepository();
 
 type DayTime = 'opensMinute' | 'closesMinute';
 type ShiftPart = 'nameAr' | 'nameEn' | 'startsMinute' | 'endsMinute';
@@ -79,18 +78,22 @@ type TimeField = {
  * is said, and the space is fetched again.
  */
 export function useHoursSection({
+  place,
   space,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
   const copy = useCopy();
+  const scope = EDITOR_SCOPES[place];
+  const { repository } = scope;
   const words = copy.spaces.editor.hours;
   const section = copy.spaces.editor.section;
   const language = useLanguage() === 'en' ? 'en' : 'ar';
   const client = useQueryClient();
-  const save = useSaveGroup(space.id, 'hours', (request: UpdateSpaceHoursRequest) =>
+  const save = useSaveGroup(place, space.id, 'hours', (request: UpdateSpaceHoursRequest) =>
     repository.updateHours(space.id, request),
   );
   const [unchanged, setUnchanged] = useState(false);
@@ -134,7 +137,7 @@ export function useHoursSection({
           (field) => field.startsWith('shifts.') && field.endsWith('.id'),
         );
         if (refused.status === 409 || shiftGone) {
-          void client.invalidateQueries({ queryKey: spacesKeys.space(space.id) });
+          void client.invalidateQueries({ queryKey: scope.spaceKey(space.id) });
         }
         throw error;
       }
@@ -142,8 +145,7 @@ export function useHoursSection({
     failureTitle: section.failureTitle({ section: copy.spaces.editor.sections.hours }),
     fieldLines,
     failureLines: {
-      forbidden: section.verifiedMeanwhile,
-      not_found: section.deletedMeanwhile,
+      ...meanwhileLines(place, copy),
       conflict: words.inUse409,
       validation: words.shiftsChanged,
     },
@@ -165,6 +167,7 @@ export function useHoursSection({
   }, [hoursKey, form.form]);
 
   const frame = useSectionFrame({
+    place,
     space,
     group: 'hours',
     form: {

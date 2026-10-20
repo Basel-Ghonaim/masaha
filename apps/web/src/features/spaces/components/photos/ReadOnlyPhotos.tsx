@@ -1,5 +1,6 @@
 import { EmptyState, Skeleton } from '@shared/design-system';
 import { useReadOnlyPhotos } from '../../hooks/photos/useReadOnlyPhotos';
+import type { EditorPlace } from '../../types/EditorPlace';
 import { EditorFailure } from '../editor/EditorFailure';
 import { PhotoTile } from './PhotoTile';
 import { PhotosCard } from './PhotosCard';
@@ -9,8 +10,8 @@ import { PhotosCard } from './PhotosCard';
  * no control to change anything — the server's `can()` refuses every write on such a space, and the
  * web's part is that it draws none.
  */
-export function ReadOnlyPhotos({ spaceId }: { spaceId: number }) {
-  const gallery = useReadOnlyPhotos(spaceId);
+export function ReadOnlyPhotos({ place, spaceId }: { place: EditorPlace; spaceId: number }) {
+  const gallery = useReadOnlyPhotos(place, spaceId);
 
   return (
     <PhotosCard id="photos" title={gallery.title}>

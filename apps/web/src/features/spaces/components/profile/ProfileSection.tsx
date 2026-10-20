@@ -1,6 +1,7 @@
 import type { AdminSpace, FactGroup } from '@masaha/shared/spaces';
 import { Separator } from '@shared/design-system';
 import { useProfileSection } from '../../hooks/profile/useProfileSection';
+import type { EditorPlace } from '../../types/EditorPlace';
 import type { AreaField } from '../../types/AreaField';
 import { SectionCard } from '../editor/SectionCard';
 import { BasicsFields } from './BasicsFields';
@@ -11,15 +12,17 @@ import { LocationFields } from './LocationFields';
  * separator, each keeping its own anchor (`#basics`, `#location`), saved, dated and confirmed as one.
  */
 export function ProfileSection({
+  place,
   space,
   areaField,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   areaField: AreaField;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
-  const { frame, fields } = useProfileSection({ space, onDirtyChange });
+  const { frame, fields } = useProfileSection({ place, space, onDirtyChange });
 
   return (
     <SectionCard frame={frame}>

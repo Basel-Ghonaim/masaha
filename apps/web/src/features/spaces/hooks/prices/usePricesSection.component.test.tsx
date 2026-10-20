@@ -65,7 +65,7 @@ function renderSection(
   );
   const rendered = renderHook(
     ({ current, unsaved }) =>
-      usePricesSection({ space: current, hoursUnsaved: unsaved, onDirtyChange }),
+      usePricesSection({ place: 'admin', space: current, hoursUnsaved: unsaved, onDirtyChange }),
     { wrapper, initialProps: { current: space, unsaved: hoursUnsaved } },
   );
   const writes = () => requests.filter(({ method }) => method !== 'get');

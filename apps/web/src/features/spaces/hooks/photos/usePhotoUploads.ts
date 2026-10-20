@@ -4,13 +4,11 @@ import { isAppError, type AppError } from '@shared/errors';
 import { canRetryUpload, shrinkImage, UnsupportedImageError } from '@shared/uploads';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createSpacesRepository } from '../../repository/spacesRepository';
+import type { EditorPlace } from '../../types/EditorPlace';
 import type { PhotoUploadState, PhotoUploadTileView } from '../../types/PhotoTileView';
+import { EDITOR_SCOPES } from '../editor/editorScope';
 import { useSpaceAnswer } from '../editor/useSpaceAnswer';
-import { spacesKeys } from '../queryKeys';
 import { staleGallery } from './staleGallery';
-
-const repository = createSpacesRepository();
 
 /** One chosen file, as the queue holds it while it travels. */
 type Pending = {
@@ -46,6 +44,7 @@ const waitingOn = (items: Pending[]) => items.filter((item) => item.state !== 'f
  * long: an unfinished upload is the one thing this section could lose.
  */
 export function usePhotoUploads(
+  place: EditorPlace,
   spaceId: number,
   photos: SpacePhoto[],
   onUploadingChange: (uploading: boolean) => void,
@@ -53,7 +52,7 @@ export function usePhotoUploads(
   const copy = useCopy();
   const words = copy.spaces.editor.photos;
   const client = useQueryClient();
-  const answer = useSpaceAnswer(spaceId);
+  const answer = useSpaceAnswer(place, spaceId);
   const [items, setItems] = useState<Pending[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   // The queue the loop reads; the state above is what the section draws.
@@ -104,7 +103,7 @@ export function usePhotoUploads(
       const request = new AbortController();
       flight.current = request;
       try {
-        const photo = await repository.uploadPhoto(
+        const photo = await EDITOR_SCOPES[place].repository.uploadPhoto(
           spaceId,
           file,
           (sent, total) => {
@@ -114,10 +113,10 @@ export function usePhotoUploads(
         );
         const batch = batches.current.get(item.batch);
         if (batch !== undefined) batch.uploaded += 1;
-        client.setQueryData(spacesKeys.photos(spaceId), (stored: SpacePhoto[] | undefined) => [
-          ...(stored ?? []),
-          photo,
-        ]);
+        client.setQueryData(
+          EDITOR_SCOPES[place].photosKey(spaceId),
+          (stored: SpacePhoto[] | undefined) => [...(stored ?? []), photo],
+        );
         write(queue.current.filter((pending) => pending.key !== item.key));
       } catch (error) {
         if (hasLeft()) return;
@@ -125,14 +124,14 @@ export function usePhotoUploads(
         if (refusal !== null) {
           // A verified or deleted space turns the page read-only or shows the 404, as for any write.
           answer.refused(refusal);
-          void staleGallery(client, spaceId, refusal);
+          void staleGallery(client, place, spaceId, refusal);
         }
         change(item.key, { state: 'failed', progress: null, unsupported: false, refusal });
       } finally {
         flight.current = null;
       }
     },
-    [answer, change, client, spaceId, write],
+    [answer, change, client, place, spaceId, write],
   );
 
   /** Drains the queue: one file at a time, the next only once the previous has been answered. */

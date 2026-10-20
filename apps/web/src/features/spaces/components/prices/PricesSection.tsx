@@ -11,6 +11,7 @@ import {
   XIcon,
 } from '@shared/design-system';
 import { usePricesSection } from '../../hooks/prices/usePricesSection';
+import type { EditorPlace } from '../../types/EditorPlace';
 import { SectionCard } from '../editor/SectionCard';
 import { OptionalMark } from '../profile/OptionalMark';
 
@@ -57,15 +58,17 @@ function RowSelect({
  * removed; saved, dated and confirmed as one group.
  */
 export function PricesSection({
+  place,
   space,
   hoursUnsaved,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   hoursUnsaved: boolean;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
-  const view = usePricesSection({ space, hoursUnsaved, onDirtyChange });
+  const view = usePricesSection({ place, space, hoursUnsaved, onDirtyChange });
   const optional = (
     <span className="md:hidden">
       <OptionalMark label={view.columns.optional} />

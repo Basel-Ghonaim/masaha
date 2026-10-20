@@ -15,7 +15,7 @@ import { useLanguage } from '@shared/localisation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useFieldArray, useWatch, type Path } from 'react-hook-form';
-import { createSpacesRepository } from '../../repository/spacesRepository';
+import type { EditorPlace } from '../../types/EditorPlace';
 import {
   NEW_PRICE,
   pricesInput,
@@ -23,11 +23,10 @@ import {
   samePrices,
   type PricesValues,
 } from '../../services/pricesForm';
-import { spacesKeys } from '../queryKeys';
+import { EDITOR_SCOPES } from '../editor/editorScope';
+import { meanwhileLines } from '../editor/meanwhileLines';
 import { useSaveGroup } from '../editor/useSaveGroup';
 import { useSectionFrame } from '../editor/useSectionFrame';
-
-const repository = createSpacesRepository();
 
 type PricePart = keyof PricesValues['prices'][number];
 
@@ -60,21 +59,25 @@ const NO_SHIFT = 'none';
  * is said on its row, and the space is fetched again.
  */
 export function usePricesSection({
+  place,
   space,
   hoursUnsaved,
   onDirtyChange,
 }: {
+  place: EditorPlace;
   space: AdminSpace;
   hoursUnsaved: boolean;
   onDirtyChange: (group: FactGroup, dirty: boolean) => void;
 }) {
   const copy = useCopy();
+  const scope = EDITOR_SCOPES[place];
+  const { repository } = scope;
   const words = copy.spaces.editor.prices;
   const lines = words.fieldErrors;
   const section = copy.spaces.editor.section;
   const english = useLanguage() === 'en';
   const client = useQueryClient();
-  const save = useSaveGroup(space.id, 'prices', (request: UpdateSpacePricesRequest) =>
+  const save = useSaveGroup(place, space.id, 'prices', (request: UpdateSpacePricesRequest) =>
     repository.updatePrices(space.id, request),
   );
   const [unchanged, setUnchanged] = useState(false);
@@ -122,17 +125,14 @@ export function usePricesSection({
         // A shift removed meanwhile (422 on a row's shift): the space as it is, with its shifts.
         const refused = Object.keys(toAppError(error).errors ?? {});
         if (refused.some((field) => field.endsWith('.shiftId'))) {
-          void client.invalidateQueries({ queryKey: spacesKeys.space(space.id) });
+          void client.invalidateQueries({ queryKey: scope.spaceKey(space.id) });
         }
         throw error;
       }
     },
     failureTitle: section.failureTitle({ section: copy.spaces.editor.sections.prices }),
     fieldLines,
-    failureLines: {
-      forbidden: section.verifiedMeanwhile,
-      not_found: section.deletedMeanwhile,
-    },
+    failureLines: meanwhileLines(place, copy),
   });
   const { control, formState, setValue, register, trigger } = form.form;
   const list = useFieldArray({ control, name: 'prices' });
@@ -149,6 +149,7 @@ export function usePricesSection({
   }, [pricesKey, form.form]);
 
   const frame = useSectionFrame({
+    place,
     space,
     group: 'prices',
     form: {
