@@ -101,6 +101,9 @@ export const DOMAIN_ERROR_CODES = [
   'VISIT_ALREADY_CLOSED',
   // a visit's debt: its write-off (desk)
   'VISIT_ALREADY_PAID',
+  // a visit's debt: a payment, from the ledger, or a customer for it (desk)
+  'VISIT_WRITTEN_OFF',
+  'VISIT_HAS_CUSTOMER',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

@@ -10,4 +10,5 @@ export const CONSTRAINT_CODES: Readonly<
 > = {
   payments_within_due: { type: 'conflict', code: 'PAYMENT_EXCEEDS_DUE' },
   payments_visit_uncharged: { type: 'conflict', code: 'VISIT_NOT_PRICED' },
+  payments_visit_written_off: { type: 'conflict', code: 'VISIT_WRITTEN_OFF' },
 };

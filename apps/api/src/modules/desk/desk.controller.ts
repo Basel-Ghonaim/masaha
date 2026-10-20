@@ -1,4 +1,9 @@
-import type { CheckOutVisitRequest, VisitCheckOut } from '@masaha/shared/desk';
+import type {
+  CheckOutVisitRequest,
+  ReceivedPayment,
+  ReceivePaymentRequest,
+  VisitCheckOut,
+} from '@masaha/shared/desk';
 import type { CheckInVisitRequest, DeskVisit, WriteOffVisitRequest } from '@masaha/shared/visits';
 import type { Request, Response } from 'express';
 
@@ -35,6 +40,18 @@ export function createDeskController(service: DeskService) {
         req.body as CheckOutVisitRequest,
       );
       sendSuccess(res, checkOut satisfies VisitCheckOut);
+    },
+
+    /** 201 every time, a retry included, with the first payment and the sums as of now. */
+    receivePayment: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const received = await service.receivePayment(
+        { id: userId, role },
+        spaceOf(req),
+        idempotencyKeyOf(res),
+        req.body as ReceivePaymentRequest,
+      );
+      sendSuccess(res, received satisfies ReceivedPayment, { status: 201 });
     },
 
     /** 200 with the visit; a second write-off answers it as it is. */

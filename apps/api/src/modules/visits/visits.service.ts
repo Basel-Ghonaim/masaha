@@ -246,6 +246,32 @@ export function createVisitsService({
     },
 
     /**
+     * Leaves a closed visit's unpaid rest to this customer, in the caller's transaction (under the
+     * space's lock and the visit's); audited `visit.leftToCustomer`.
+     */
+    async leaveTo(
+      actorId: number,
+      spaceId: number,
+      visitId: number,
+      customerId: number,
+      tx: Tx,
+    ): Promise<DeskVisit> {
+      const row = await repository.leaveTo(visitId, customerId, tx);
+      await audit(
+        {
+          actorId,
+          action: 'visit.leftToCustomer',
+          entityType: 'visit',
+          entityId: visitId,
+          spaceId,
+          after: { customerId },
+        },
+        tx,
+      );
+      return toDeskVisit(row);
+    },
+
+    /**
      * Writes the visit off, in the caller's transaction (under the space's lock and the visit's),
      * now, by the actor, with why; audited `visit.writtenOff` with the balance written off.
      */

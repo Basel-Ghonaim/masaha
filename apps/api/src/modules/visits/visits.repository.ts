@@ -286,6 +286,11 @@ export function createVisitsRepository() {
       });
     },
 
+    /** Sets the customer the visit's unpaid rest is left to. */
+    leaveTo(visitId: number, customerId: number, tx: Tx): Promise<DeskVisitRow> {
+      return tx.visit.update({ where: { id: visitId }, data: { customerId }, select: DESK_VISIT });
+    },
+
     /** Clears the visit's write-off. */
     undoWriteOff(visitId: number, tx: Tx): Promise<DeskVisitRow> {
       return tx.visit.update({

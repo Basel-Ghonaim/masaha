@@ -98,7 +98,7 @@ The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.m
 - **Unpriced visit:** a closed visit with no charge — closed unpriced at the desk, or by the auto check-out with no rate. It is priced later, once, by whoever may type a price, with its reason, recorded with who typed it; it takes no payment until then (2026-10-20, #97).
 - **Hand-typed prices.** A price typed by hand at the desk — a custom subscription's price, or a visit's charge where the space has no rate — is typed by the owner always, and by reception only where the space's settings allow it (off by default). Every hand-typed price, by anyone, carries a required reason, recorded with who typed it (2026-10-19, #92).
 - **A change to the space's settings or capacity applies from then on:** a visit's rates (and its audience's student prices) are copied at check-in, its rounding rule and the cap are read at its check-out, and the closing-time check-out and the stay limit apply at once, to the stays already open too; the capacity at the next check-in and in the live status (2026-10-19, #92).
-- **Unpaid visit:** a visit may be left unpaid only with a phone number. It then belongs to the space's customer with that phone among those not archived (created if new, with the name given or the visit's), and its charge counts in that customer's debt (2026-10-20, #95).
+- **Unpaid visit:** a visit may be left unpaid, at its check-out or a later payment, only with a phone number. It then belongs to the space's customer with that phone among those not archived (created if new, with the name given or the visit's), and its charge counts in that customer's debt (2026-10-20, #95); unless the visit already has a customer, which it keeps (2026-10-20, #100).
 - **Uncollected visits:** visits closed by the auto check-out, left unpaid and not written off, the unpriced ones included (2026-10-20, #97; #100).
 - **Written-off visit** (K6): the owner may write off what is still owed on a closed, priced visit, with a required reason, recorded with who and when. The payments made stay; it is never a payment and never a deletion. It can be undone, and the audit keeps both. A written-off visit takes no payment until then, and leaves the uncollected visits and the customer's debt (2026-10-20, #100).
 - **Full warning:** a check-in (visit or subscription) while present ≥ capacity warns, never blocks.
@@ -151,7 +151,7 @@ The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove eac
 
 These rules span rows the database checks one at a time, so the services own them:
 - every space has a settings row, created in the same transaction as the space, from the new-space defaults ([conventions §9](../backend/conventions.md#new-space-defaults));
-- a visit left unpaid at a manual check-out has a customer (the payment and the check-out are separate writes; a visit closed by the auto check-out may have none: it is uncollected);
+- a visit left unpaid at a manual check-out, or at a later payment, has a customer (the payment and the check-out are separate writes; a visit closed by the auto check-out may have none: it is uncollected);
 - a customer is present at most once across visits and check-ins (each table has its own index);
 - a closure extension belongs to a `CLOSURE` announcement, and extends only that space's active subscriptions;
 - a void by the owner: who may void is a permission, checked by `can()`.

@@ -206,6 +206,30 @@ describe('checking a visit out', () => {
     expect(await actionsAfterCheckIn()).toEqual([]);
   });
 
+  it("a visit with a customer keeps it at an unpaid check-out; another customer's phone is refused 409 VISIT_HAS_CUSTOMER", async () => {
+    const sara = await createCustomer(spaceId, { phone: PHONE });
+    await createCustomer(spaceId, { name: 'Huda', phone: '+970599000124' });
+    const { id } = await createVisit(spaceId, {
+      checkedInAt: sunday('08:00:00'),
+      customerId: sara.id,
+      hourRateAgorot: 500,
+      dayRateAgorot: 2_500,
+    });
+
+    const refused = await checkOut(owner, id, { phone: '+970599000124' });
+    expect(refused.status).toBe(409);
+    expect(errorOf(refused).code).toBe('VISIT_HAS_CUSTOMER');
+    expect(await storedVisit(id)).toMatchObject({ checkedOutAt: null, customerId: sara.id });
+
+    const kept = await checkOut(owner, id, {});
+    expect(kept.status).toBe(200);
+    expect(dataOf(kept)).toMatchObject({
+      visit: { customer: { id: sara.id, phone: PHONE }, charge: { amountAgorot: 1_500 } },
+      payment: null,
+    });
+    expect(await storedVisit(id)).toMatchObject({ customerId: sara.id });
+  });
+
   it("with a phone, the rest is the debt of the customer with that phone, created with the visit's name when new, audited customer.created", async () => {
     const omar = await checkedIn('Omar');
     const first = await checkOut(owner, omar, {
