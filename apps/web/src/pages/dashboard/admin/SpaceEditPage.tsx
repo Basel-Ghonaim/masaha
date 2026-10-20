@@ -22,13 +22,13 @@ import { ADMIN_AMENITIES_PATH, ADMIN_OWNERS_PATH, ADMIN_SPACES_PATH } from '../n
 import { PageHeader } from '../shell/PageHeader';
 
 /** The editor's area field, from `lookups`, made once so the form keeps it from render to render. */
-const areaField: AreaField = (props) => <AreaSelect {...props} />;
+const areaField: AreaField = (props) => <AreaSelect source="admin" {...props} />;
 
 /** A space's area named, from `lookups`, for a verified space's read-only page. */
 const areaName = (areaId: number) => <AreaName areaId={areaId} />;
 
 /** The platform's amenities to tick, from `lookups`, made once as the area field is. */
-const amenitiesField: AmenitiesField = (props) => <AmenityChecklist {...props} />;
+const amenitiesField: AmenitiesField = (props) => <AmenityChecklist source="admin" {...props} />;
 
 /** A space's amenities named, from `lookups`, for a verified space's read-only page. */
 const amenityNames = (ids: number[]) => <AmenityNames ids={ids} />;

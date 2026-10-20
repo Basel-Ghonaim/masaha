@@ -5,3 +5,4 @@ export { AreaName } from './components/area/AreaName';
 export { AreaSelect } from './components/area/AreaSelect';
 export { GovernorateAreaSelect } from './components/place/GovernorateAreaSelect';
 export { GovernoratesSection } from './components/list/GovernoratesSection';
+export type { LookupsSource } from './types/LookupsSource';

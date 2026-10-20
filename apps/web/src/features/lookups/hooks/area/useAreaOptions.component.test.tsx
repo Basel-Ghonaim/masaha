@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { startPreferences } from '../../../../test/startPreferences';
+import type { LookupsSource } from '../../types/LookupsSource';
 import { useAreaOptions } from './useAreaOptions';
 
 // The public catalogue holds the active governorates and their active areas only.
@@ -43,14 +44,18 @@ const ADMIN_GOVERNORATES: AdminGovernorateWithAreas[] = [
   },
 ];
 
-/** The options for `value`, the catalogue answered by `answer`; `onValueChange` records choices. */
+/**
+ * The options for `value` from `source`'s lists, the catalogue answered by `answer`;
+ * `onValueChange` records choices.
+ */
 function renderOptions(
   value: number | null,
   answer: Parameters<typeof fakeTransport>[0] = () => ok(CATALOGUE),
+  source: LookupsSource = 'admin',
 ) {
   const requests = fakeTransport(answer);
   const onValueChange = vi.fn<(areaId: number) => void>();
-  const rendered = renderHook(() => useAreaOptions({ value, onValueChange }), {
+  const rendered = renderHook(() => useAreaOptions({ source, value, onValueChange }), {
     wrapper: queryWrapper(),
   });
   return { ...rendered, onValueChange, requests };
@@ -145,6 +150,26 @@ describe('useAreaOptions', () => {
       'get /admin/governorates',
     ]);
     // Offered to no other space: the groups stay the catalogue's.
+    expect(
+      result.current.groups.flatMap(({ options }) => options.map(({ value }) => value)),
+    ).toEqual(['11', '13', '31']);
+  });
+
+  it('reads only the public catalogue for an owner, a hidden area kept as “no longer offered”', async () => {
+    startPreferences('en');
+    const { result, requests } = renderOptions(
+      12,
+      ({ url }) => (url === '/lookups' ? ok(CATALOGUE) : ok(ADMIN_GOVERNORATES)),
+      'public',
+    );
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+    expect(result.current.kept).toEqual({ value: '12', label: 'Current area — no longer offered' });
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'get /lookups',
+    ]);
     expect(
       result.current.groups.flatMap(({ options }) => options.map(({ value }) => value)),
     ).toEqual(['11', '13', '31']);

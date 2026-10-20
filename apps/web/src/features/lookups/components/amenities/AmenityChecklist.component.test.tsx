@@ -28,6 +28,7 @@ function renderChecklist(answer: () => FakeAnswer = () => ok(AMENITIES), disable
   const rendered = render(
     <Wrapper>
       <AmenityChecklist
+        source="admin"
         label="The list's amenities"
         value={[2]}
         linked={[2]}

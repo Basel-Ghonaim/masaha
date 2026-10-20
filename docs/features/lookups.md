@@ -1,6 +1,6 @@
 # Lookups
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-14 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
 > **Authority:** The `lookups` capability: the bilingual lists of governorates, areas and amenities, the admin's screen that keeps them, and the public catalogue. Its endpoints are owned by the [API contract](../api/api-contract.md#lookups-public); its entities by the [data model](../architecture/data-model.md#lookups).
 > **Scope:** the API module `lookups` (L0); `@masaha/shared/lookups`; the web feature `features/lookups`, for the admin.
 
@@ -15,7 +15,7 @@
 ## Who uses it
 
 - **The admin**, on the dashboard's lookups page, through the place field of the spaces list ([space-links](space-links.md)), and through the area field, the amenities' checklist and the names the space's pages set ([spaces](spaces.md)).
-- **Anyone,** through the public catalogue. No page of the site reads it yet; the admin's area field does.
+- **Anyone,** through the public catalogue. No page of the site reads it yet; the admin's area field does, and so do both fields when a page sets them for an owner (`source`).
 - **Other modules:** `spaces` checks a space's area and names it; `space-links` names the areas of the spaces it lists and resolves a governorate filter to its areas.
 
 ## Responsibility boundary
@@ -49,9 +49,9 @@ Nothing changes before the server answers. A write stays pending until the list 
 
 **The place field.** `GovernorateAreaSelect` offers "All areas", then each governorate followed by its areas, in order, named in the interface's language; each governorate's options are a group named after it, its areas indented. It reads the admin's lists, so hidden governorates and areas are offered too, marked "(hidden)". While they load, or once they have failed, one disabled option says so, and "All areas" stays. It takes its value and hands back the choice, a governorate's id or an area's, and sits in the Field of the list that sets it, which the page hands it to.
 
-**The area field.** `AreaSelect` offers one area, each governorate a group named after it with its areas under it, in order, named in the interface's language, and asks to choose one until it holds one. It reads the public catalogue, so only an area that may take a space is offered: no hidden area, nor one of a hidden governorate. While the catalogue loads, or once it has failed, one disabled option says so. A space keeps its area when the admin hides it later: the field then shows that area first, named from the admin's lists and marked "(hidden)", and offers it to no other space; it reads the admin's lists only then ([finding 60](../architecture/findings/60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)). It takes the area's id and hands back the one chosen, sits in the Field of the form that sets it, which the page hands it to, and lends that form its trigger, so a refusal can focus it.
+**The area field.** `AreaSelect` offers one area, each governorate a group named after it with its areas under it, in order, named in the interface's language, and asks to choose one until it holds one. It reads the public catalogue, so only an area that may take a space is offered: no hidden area, nor one of a hidden governorate. While the catalogue loads, or once it has failed, one disabled option says so. A space keeps its area when the admin hides it later: the field then shows that area first, named from the admin's lists and marked "(hidden)", and offers it to no other space; it reads the admin's lists only then ([finding 60](../architecture/findings/60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)). That is for the admin; the page says which lists the field reads (`source`): set for an owner, it reads the public catalogue only, and a space's own area hidden since shows first as "Current area — no longer offered", offered to no other space. It takes the area's id and hands back the one chosen, sits in the Field of the form that sets it, which the page hands it to, and lends that form its trigger, so a refusal can focus it.
 
-**The amenities' checklist.** `AmenityChecklist` is a group, named by the label it is given, of the platform's amenities to tick for a space: the active ones, in order, named in the interface's language, and any retired one the space still has (`linked`), ticked, with "Inactive" beside it, until a save leaves it out; a retired one the space does not have is never offered. It reads the admin's amenities, so it shares the lookups page's cache, takes the amenities chosen and hands back the new set, and shows its own loading and failure, with "Try again".
+**The amenities' checklist.** `AmenityChecklist` is a group, named by the label it is given, of the platform's amenities to tick for a space: the active ones, in order, named in the interface's language, and any retired one the space still has (`linked`), ticked, with "Inactive" beside it, until a save leaves it out; a retired one the space does not have is never offered. It reads the admin's amenities, so it shares the lookups page's cache, takes the amenities chosen and hands back the new set, and shows its own loading and failure, with "Try again". Set for an owner (`source`), it reads the public catalogue only, which names no retired amenity: one the space still has stays in the value, unseen and never toggled, and one line under the list counts them ([finding 99](../architecture/findings/99-the-owners-checklist-cannot-name-a-retired-amenity.md)).
 
 **The names, read-only.** `AmenityNames` names a space's amenities as one line, in the list's order, retired ones included; `AreaName` names its area with its governorate ("Al-Rimal · Gaza"), a hidden one included. Both read the admin's lists, and show nothing while they load.
 
@@ -97,6 +97,7 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **The area field keeps a space's own area hidden since, from the admin's lists, read only then.** *Why:* the catalogue has no name for a hidden area, and the field would show nothing, as if the space had none ([finding 60](../architecture/findings/60-the-area-field-shows-no-area-for-a-space-whose-area-was-hidden-since.md)); read for every space, the admin's lists would cost a request the catalogue already answers. 2026-10-13, #79.
 - **The area field's governorates are groups with a visible name,** its areas under them, with no helper naming the governorate. *Why:* the design's helper named one governorate of a list that held one; the grouped list names each as the area is chosen (design issue 4). 2026-10-10, #57.
 - **A space's amenities are ticked in a checklist this capability offers, the editor's slot** (S5). *Why:* the amenities are this capability's list. **It reads the admin's amenities,** not the catalogue, and offers a retired amenity the space still has, marked, until a save leaves it out. *Why:* the catalogue has no name for a retired amenity, which would stay linked unseen. 2026-10-13, #74.
+- **The area and amenity fields read the admin's lists or the public catalogue, as the page says (`source`).** *Why:* an owner is refused the admin's lists; the space's own fields must still save. The public area field names a hidden area «the current area, no longer offered», never sent, since a save sends only the fields changed; the public checklist keeps a retired amenity in the value and counts it ([finding 99](../architecture/findings/99-the-owners-checklist-cannot-name-a-retired-amenity.md)). 2026-10-20, #96.
 - **A read-only page names a space's area and amenities through two small exports,** `AreaName` and `AmenityNames`, over the admin's lists, hidden and retired rows included. *Why:* a verified space's page shows what it has, whatever its rows' flags since. 2026-10-13, #74.
 
 ## Code map
@@ -107,7 +108,7 @@ Nothing changes before the server answers. A write stays pending until the list 
 
 ## Open findings
 
-None.
+- [99](../architecture/findings/99-the-owners-checklist-cannot-name-a-retired-amenity.md): the owner's checklist cannot name a retired amenity.
 
 ## History
 
@@ -132,3 +133,4 @@ None.
 - #64 — no amenity filter: the switch, its badge and the card's line removed.
 - #74 — the amenities' checklist and the area's and amenities' names, for the space editor.
 - #79 — the area field keeps a space's own area hidden since, marked hidden (finding 60).
+- #96 — the area field and the amenities' checklist read the public catalogue for an owner (`source`); finding 99 recorded.

@@ -1,25 +1,30 @@
 import { Badge, Button, Checkbox, Field } from '@shared/design-system';
 import { useAmenityChecklist } from '../../hooks/amenities/useAmenityChecklist';
+import type { LookupsSource } from '../../types/LookupsSource';
 
 /**
  * A space's amenities to tick, from the platform's list, as a group named by `label`: the active
  * ones, and a retired one the space still has (`linked`), marked inactive. It hands back the
  * amenities chosen. While the list loads, or once it has failed, it says so, with a way to try again.
+ * Read from the public catalogue (`source`), a retired one the space has stays chosen, unseen, and a
+ * line under the list counts them.
  */
 export function AmenityChecklist({
+  source,
   label,
   value,
   linked,
   onValueChange,
   disabled,
 }: {
+  source: LookupsSource;
   label: string;
   value: number[];
   linked: number[];
   onValueChange: (ids: number[]) => void;
   disabled: boolean;
 }) {
-  const checklist = useAmenityChecklist({ value, linked, onValueChange });
+  const checklist = useAmenityChecklist({ source, value, linked, onValueChange });
   const { words } = checklist;
 
   return (
@@ -64,6 +69,9 @@ export function AmenityChecklist({
             </li>
           ))}
         </ul>
+      )}
+      {checklist.retiredKept !== null && (
+        <p className="text-body-sm text-muted-foreground">{checklist.retiredKept}</p>
       )}
     </div>
   );
