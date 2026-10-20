@@ -36,11 +36,23 @@ describe('autoCheckoutDue', () => {
     expect(due({ checkedInAt: sunday('20:15:00') })).toEqual(sunday('23:59:00'));
   });
 
-  it('is never due when the closing check-out is off and there is no stay limit', () => {
-    expect(due({ checkedInAt: sunday('10:20:00'), autoCheckoutAtClosing: false })).toBeNull();
+  it("is due at 23:59 of its check-in's day when the closing check-out is off and there is no stay limit", () => {
+    expect(due({ checkedInAt: sunday('10:20:00'), autoCheckoutAtClosing: false })).toEqual(
+      sunday('23:59:00'),
+    );
     expect(
       due({ checkedInAt: sunday('10:20:00'), autoCheckoutAtClosing: false, week: null }),
-    ).toBeNull();
+    ).toEqual(sunday('23:59:00'));
+  });
+
+  it('a stay limit never carries a stay into the next day', () => {
+    // 23 hours from 20:00 would be 19:00 on Monday.
+    expect(
+      due({ checkedInAt: sunday('20:00:00'), maxStayMinutes: 1_380, autoCheckoutAtClosing: false }),
+    ).toEqual(sunday('23:59:00'));
+    expect(due({ checkedInAt: sunday('20:00:00'), maxStayMinutes: 1_380 })).toEqual(
+      sunday('23:59:00'),
+    );
   });
 
   it('is due at the stay limit when it ends sooner, and at closing when closing comes first', () => {

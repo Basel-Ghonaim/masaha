@@ -4,7 +4,7 @@ import type { OpeningRange } from '@masaha/shared/spaces';
 // The auto check-out's due time (docs/architecture/data-model.md › Auto check-out): pure, so the
 // job decides every stay alike. The caller reads the space's week and settings as they are now.
 
-/** The last minute of a Gaza day: a stay never crosses into the next. */
+/** The last minute of a Gaza day: every stay is due by it, so none crosses into the next. */
 const LAST_MINUTE = 23 * 60 + 59;
 
 export interface AutoCheckoutInput {
@@ -27,22 +27,21 @@ function closingMinute(week: AutoCheckoutInput['week'], dayOfWeek: number, minut
 }
 
 /**
- * When a stay is closed by itself: at the check-in day's closing (when the space checks out at
- * closing), or once the stay limit has passed (when it has one), whichever comes first; never
- * before the check-in. `null` when neither applies.
+ * When a stay is closed by itself: the earliest of the check-in day's closing (when the space checks
+ * out at closing), the end of the stay limit (when it has one) and 23:59 of the check-in's Gaza day,
+ * always; never before the check-in.
  */
 export function autoCheckoutDue({
   checkedInAt,
   week,
   autoCheckoutAtClosing,
   maxStayMinutes,
-}: AutoCheckoutInput): Date | null {
-  const dues: number[] = [];
+}: AutoCheckoutInput): Date {
+  const at = gazaClockOf(checkedInAt);
+  const dues = [gazaInstant(at.date, LAST_MINUTE).getTime()];
   if (autoCheckoutAtClosing) {
-    const at = gazaClockOf(checkedInAt);
     dues.push(gazaInstant(at.date, closingMinute(week, at.dayOfWeek, at.minute)).getTime());
   }
   if (maxStayMinutes !== null) dues.push(checkedInAt.getTime() + maxStayMinutes * 60_000);
-  if (dues.length === 0) return null;
   return new Date(Math.max(Math.min(...dues), checkedInAt.getTime()));
 }

@@ -74,7 +74,7 @@ export function createSubscriptionsService({
           autoCheckoutAtClosing: rules.autoCheckoutAtClosing,
           maxStayMinutes: rules.maxStayMinutes,
         });
-        return dueAt && dueAt <= at ? [{ checkIn, dueAt }] : [];
+        return dueAt <= at ? [{ checkIn, dueAt }] : [];
       });
 
       let closed = 0;

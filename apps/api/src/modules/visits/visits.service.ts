@@ -312,7 +312,7 @@ export function createVisitsService({
           autoCheckoutAtClosing: rules.autoCheckoutAtClosing,
           maxStayMinutes: rules.maxStayMinutes,
         });
-        return dueAt && dueAt <= at ? [{ stay, dueAt, rules }] : [];
+        return dueAt <= at ? [{ stay, dueAt, rules }] : [];
       });
 
       let closed = 0;
