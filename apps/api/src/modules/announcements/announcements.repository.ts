@@ -1,4 +1,4 @@
-import { prisma } from '../../db/index.ts';
+import { prisma, type Tx } from '../../db/index.ts';
 
 /** The `announcements` table: a space's announcements. So far its closures. */
 export function createAnnouncementsRepository() {
@@ -7,9 +7,9 @@ export function createAnnouncementsRepository() {
      * Which of these spaces an active closure covers at `now`: a `CLOSURE` not deleted, started, and
      * not yet ended (docs/architecture/data-model.md › Live status).
      */
-    async closedAt(spaceIds: readonly number[], now: Date): Promise<Set<number>> {
+    async closedAt(spaceIds: readonly number[], now: Date, tx?: Tx): Promise<Set<number>> {
       if (spaceIds.length === 0) return new Set();
-      const rows = await prisma.announcement.findMany({
+      const rows = await (tx ?? prisma).announcement.findMany({
         where: {
           spaceId: { in: [...spaceIds] },
           type: 'CLOSURE',

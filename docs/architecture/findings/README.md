@@ -52,6 +52,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [95. A link from the editor words the space from the editor's read](95-a-link-from-the-editor-words-the-space-from-the-editors-read.md)
 - [96. The attendance card saves two capabilities in one save](96-the-attendance-card-saves-two-capabilities-in-one-save.md)
 - [97. The visit-rounding rule is written twice](97-the-visit-rounding-rule-is-written-twice.md)
+- [98. The capability documents outgrow their size guide](98-the-capability-documents-outgrow-their-size-guide.md)
 
 ## Accepted
 

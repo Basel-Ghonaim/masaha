@@ -182,6 +182,34 @@ describe("a space's live-status override", () => {
     expect(await auditEntries()).toEqual([]);
   });
 
+  it('refuses an override under a closure in force or on an unverified space: 409 SPACE_NOT_OPEN, writing nothing', async () => {
+    await setWeek(spaceId, EVERY_DAY);
+    const refused = async (caller: { authorization: string }) => {
+      const response = await setOverride(caller, { state: 'AVAILABLE', duration: 'HOUR_1' });
+      expect(response.status).toBe(409);
+      expect(errorOf(response).type).toBe('conflict');
+      expect(errorOf(response).code).toBe('SPACE_NOT_OPEN');
+    };
+
+    // A closure in force, though the space is open by its hours.
+    const closure = await prisma.announcement.create({
+      data: { spaceId, type: 'CLOSURE', textAr: 'مغلق', startsAt: sunday('08:00') },
+    });
+    await refused(owner);
+    await refused(reception);
+    await prisma.announcement.delete({ where: { id: closure.id } });
+
+    // No active owner: the space is unverified, and an override would count for nothing.
+    await prisma.spaceManager.updateMany({
+      where: { spaceId, role: 'OWNER' },
+      data: { deactivatedAt: sunday('09:00') },
+    });
+    await refused(reception);
+
+    expect(await storedOccupancy()).toBeNull();
+    expect(await auditEntries()).toEqual([]);
+  });
+
   it('clears the override in force, audited space.statusOverrideCleared; clearing none writes nothing', async () => {
     await setWeek(spaceId, EVERY_DAY);
     await prisma.spaceOccupancy.create({ data: { spaceId, capacity: 10 } });

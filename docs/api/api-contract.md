@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-19 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -357,7 +357,7 @@ SpaceOccupancyNow = {
   status: LiveStatus | null,                    // null: unverified, no opening hours, or open with no capacity
   capacity: number | null,
   present: number,                              // the open visits plus the open subscription check-ins
-  override: { state: LiveStatus, until } | null, // the manual override in force
+  override: { state: LiveStatus, until } | null, // the manual override in force, while the status uses it
   people: PresentPerson[]                       // the earliest checked in first; a tie: visits first, then by id
 }
 ```
@@ -369,7 +369,7 @@ SpaceOccupancyNow = {
 #### `PUT /manage/spaces/:spaceId/status-override` · 🧾
 - **Body:** `{ state, duration }`, both required.
 - **200:** `SpaceOccupancyNow`, with the new override. It replaces the one in force; the space's occupancy row is created, with no capacity, on the first write; a capacity is never touched. Audited `space.statusOverridden`.
-- **Errors:** `validation` (422), before anything is read; `conflict` (409) `SPACE_NOT_OPEN` while the space is not open by its hours (before opening, from its closing minute, on a closed day) or has no hours at all; `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+- **Errors:** `validation` (422), before anything is read; `conflict` (409) `SPACE_NOT_OPEN` while the space is not open by its hours (before opening, from its closing minute, on a closed day) or has no hours at all, while a closure is in force, or while it is unverified (no active owner), when the status would ignore it; `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
 
 #### `DELETE /manage/spaces/:spaceId/status-override` · 🧾
 - **200:** `SpaceOccupancyNow`, with no override. Clears the override in force, audited `space.statusOverrideCleared`; with none in force, writes nothing.
@@ -795,4 +795,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours).
+`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified).

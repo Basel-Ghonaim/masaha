@@ -195,6 +195,35 @@ describe("a space's state now", () => {
     });
   });
 
+  it('answers the override only while the rule uses it: a closure announced after it, or no active owner, hides it', async () => {
+    await setWeek(spaceId, EVERY_DAY);
+    await prisma.spaceOccupancy.create({
+      data: {
+        spaceId,
+        capacity: 5,
+        stateOverride: 'FULL',
+        stateOverrideUntil: sunday('11:00'),
+        stateOverrideById: owner.id,
+      },
+    });
+    expect(dataOf(await occupancyNow(owner))).toMatchObject({
+      status: 'FULL',
+      override: { state: 'FULL', until: '2026-10-18T08:00:00.000Z' },
+    });
+
+    const closure = await prisma.announcement.create({
+      data: { spaceId, type: 'CLOSURE', textAr: 'مغلق', startsAt: sunday('09:30') },
+    });
+    expect(dataOf(await occupancyNow(owner))).toMatchObject({ status: 'CLOSED', override: null });
+
+    await prisma.announcement.delete({ where: { id: closure.id } });
+    await prisma.spaceManager.updateMany({
+      where: { spaceId, role: 'OWNER' },
+      data: { deactivatedAt: sunday('09:00') },
+    });
+    expect(dataOf(await occupancyNow(reception))).toMatchObject({ status: null, override: null });
+  });
+
   it('a CLOSURE announcement in force closes it; a deleted, ended or other-type one does not', async () => {
     await setWeek(spaceId, EVERY_DAY);
     await prisma.spaceOccupancy.create({ data: { spaceId, capacity: 5 } });

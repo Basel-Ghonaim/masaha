@@ -17,7 +17,14 @@ import type { CustomersService } from '../customers/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import type { SubscriptionsService } from '../subscriptions/index.ts';
 import type { VisitsService } from '../visits/index.ts';
-import { liveStatus, openRangeAt, type Override, type Week } from './liveStatus.ts';
+import {
+  liveStatus,
+  openRangeAt,
+  overrideInUse,
+  type LiveStatusInput,
+  type Override,
+  type Week,
+} from './liveStatus.ts';
 import { createOccupancyRepository } from './occupancy.repository.ts';
 import { overrideUntil } from './overrideUntil.ts';
 
@@ -100,15 +107,17 @@ export function createOccupancyService({
 
   /**
    * Opens a write on the override: the space's lock, then `can()` on the links read under it, so a
-   * link ended meanwhile still decides (finding 43).
+   * link ended meanwhile still decides (finding 43). Answers those links.
    */
-  async function lockForOverride(actor: Actor, space: LoadedSpace, tx: Tx): Promise<void> {
+  async function lockForOverride(actor: Actor, space: LoadedSpace, tx: Tx) {
     if (!(await spaces.lock(space.id, tx))) {
       throw AppError.notFound(undefined, 'Space not found');
     }
-    if (!can(actor, 'space.liveStatus.override', { links: await space.linksUnder(tx) })) {
+    const links = await space.linksUnder(tx);
+    if (!can(actor, 'space.liveStatus.override', { links })) {
       throw AppError.forbidden();
     }
+    return links;
   }
 
   const service = {
@@ -172,18 +181,20 @@ export function createOccupancyService({
         announcements.closedAt([space.id], now),
         spaces.weekOf(space.id),
       ]);
-      const override = state.override && state.override.until > now ? state.override : null;
+      const input: LiveStatusInput = {
+        verified: isVerified(space),
+        closureNow: closed.has(space.id),
+        week,
+        at: gazaClockOf(now),
+        now,
+        override: state.override,
+        capacity: state.capacity,
+        present: people.length,
+      };
+      // The override is answered only while the rule uses it: a closure hides it.
+      const override = overrideInUse(input);
       return {
-        status: liveStatus({
-          verified: isVerified(space),
-          closureNow: closed.has(space.id),
-          week,
-          at: gazaClockOf(now),
-          now,
-          override,
-          capacity: state.capacity,
-          present: people.length,
-        }),
+        status: liveStatus(input),
         capacity: state.capacity,
         present: people.length,
         override: override && { state: override.state, until: override.until.toISOString() },
@@ -193,8 +204,9 @@ export function createOccupancyService({
 
     /**
      * Sets the manual override, in one transaction: the space's lock and `can()`; then, only while
-     * the space is open by its hours, the override until `min(now + duration, today's closing)`,
-     * replacing the one in force, audited with both. Answers the state now.
+     * the rule would use it (the space verified, under no closure, open by its hours), the override
+     * until `min(now + duration, today's closing)`, replacing the one in force, audited with both.
+     * Answers the state now.
      */
     async setOverride(
       actor: Actor,
@@ -202,11 +214,14 @@ export function createOccupancyService({
       { state, duration }: SetStatusOverrideRequest,
     ): Promise<SpaceOccupancyNow> {
       await runInTransaction(async (tx) => {
-        await lockForOverride(actor, space, tx);
+        const links = await lockForOverride(actor, space, tx);
         const now = clock();
         const at = gazaClockOf(now);
         const open = openRangeAt(await spaces.weekOf(space.id, tx), at);
-        if (!open) throw AppError.conflict('SPACE_NOT_OPEN');
+        const closed = await announcements.closedAt([space.id], now, tx);
+        if (!open || closed.has(space.id) || !isVerified({ links })) {
+          throw AppError.conflict('SPACE_NOT_OPEN');
+        }
 
         const until = overrideUntil(duration, now, gazaInstant(at.date, open.closesMinute));
         const before = await overrideInForce(space.id, now, tx);
