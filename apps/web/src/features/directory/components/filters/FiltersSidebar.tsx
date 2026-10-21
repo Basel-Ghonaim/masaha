@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from '@shared/design-system';
 import type { ReactNode } from 'react';
+import { FILTERS_SIDEBAR_ID } from '../../services/focusFilters';
 import type { FiltersView } from '../../types/FiltersView';
 
 /** From 1024 px, the filters beside the results: a named aside holding a card, with «مسح». */
@@ -18,7 +19,7 @@ export function FiltersSidebar({
   children: ReactNode;
 }) {
   return (
-    <aside id="directory-filters" aria-label={sidebar.title} className="lg:col-span-3">
+    <aside id={FILTERS_SIDEBAR_ID} aria-label={sidebar.title} className="lg:col-span-3">
       <Card>
         <CardHeader>
           <CardTitle>

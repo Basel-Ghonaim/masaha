@@ -48,7 +48,7 @@ describe('the directory repository', () => {
     const repository = createDirectoryRepository();
     const requests = serve({ status: 200, data: { success: true, data: [SPACE], meta: META } });
 
-    await expect(repository.list({ limit: 20, q: 'Focus', page: 2 })).resolves.toEqual({
+    await expect(repository.list({ limit: 20, q: 'Focus', page: 2 }, null)).resolves.toEqual({
       data: [SPACE],
       meta: META,
     });
@@ -58,6 +58,7 @@ describe('the directory repository', () => {
       url: '/spaces',
       params: { limit: 20, q: 'Focus', page: 2 },
     });
+    expect(requests[0]?.headers['Masaha-Near']).toBeUndefined();
 
     serve({
       status: 422,
@@ -67,8 +68,19 @@ describe('the directory repository', () => {
         error: { message: 'Invalid', requestId: 'req-9', type: 'validation' },
       },
     });
-    const failure = await repository.list({ limit: 20 }).catch((error: unknown) => error);
+    const failure = await repository.list({ limit: 20 }, null).catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(AppError);
     expect(failure).toMatchObject({ type: 'validation', status: 422 });
+  });
+
+  it('sends the location only in Masaha-Near, never in the query', async () => {
+    const repository = createDirectoryRepository();
+    const requests = serve({ status: 200, data: { success: true, data: [SPACE], meta: META } });
+
+    await repository.list({ limit: 20, sort: 'distance' }, { lat: 31.521, lng: 34.453 });
+
+    expect(requests[0]?.params).toEqual({ limit: 20, sort: 'distance' });
+    expect(requests[0]?.headers['Masaha-Near']).toBe('31.521,34.453');
+    expect(JSON.stringify(requests[0]?.params)).not.toContain('31.521');
   });
 });

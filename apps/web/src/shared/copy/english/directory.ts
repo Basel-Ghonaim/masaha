@@ -19,6 +19,8 @@ export const DIRECTORY = {
       name: 'By name',
       /** Offered only while a search is typed: the server's order then. */
       relevance: 'Best match',
+      /** Offered, chosen, only while near me sorts the list. */
+      distance: 'By distance',
     },
   },
   count: {
@@ -65,6 +67,8 @@ export const DIRECTORY = {
     today: ({ range }: { range: string }) => `Today ${range}`,
     closedToday: 'Closed today',
     openAllDay: 'Open around the clock today',
+    /** The straight-line distance from the visitor's point, the number left to right. */
+    distance: ({ km }: { km: string }) => `${km} km away`,
   },
   status: {
     /** A space with no live status: unverified, or with no hours or capacity yet. */
@@ -113,5 +117,28 @@ export const DIRECTORY = {
     other: 'Other',
     studentPrices: 'Student prices',
     openFriday: 'Open on Friday',
+  },
+  /** Near me: the button, its state line and the privacy line. */
+  near: {
+    button: 'Nearest to me',
+    locating: 'Finding your location…',
+    /** Shown only while a location is being sent. */
+    privacy: 'Your location is sent rounded, only to sort spaces by distance, and is never stored.',
+    sorted: {
+      device: 'Sorted by distance from your location.',
+      pin: 'Sorted by distance from the point you set on the map.',
+    },
+    approximate: 'Distances are approximate, in a straight line.',
+    stop: 'Stop sorting by distance',
+    clear: 'Clear my location',
+    denied: {
+      title: 'We couldn’t find your location',
+      text: 'Choose your area to browse its spaces.',
+    },
+    imprecise: {
+      title: 'We couldn’t find your location precisely',
+      text: 'Your position seems to be outside the Gaza Strip, or off by more than 2 km, so we didn’t use it.',
+    },
+    chooseArea: 'Choose your area',
   },
 } as const;

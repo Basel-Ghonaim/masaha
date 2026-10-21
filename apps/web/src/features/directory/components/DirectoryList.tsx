@@ -5,13 +5,15 @@ import { FiltersForm } from './filters/FiltersForm';
 import { FiltersSheet } from './filters/FiltersSheet';
 import { FiltersSidebar } from './filters/FiltersSidebar';
 import { DirectoryResults } from './list/DirectoryResults';
+import { LocationStatus } from './near/LocationStatus';
+import { NearMeButton } from './near/NearMeButton';
 import { DirectorySearch } from './search/DirectorySearch';
 import { SortSelect } from './sort/SortSelect';
 
 /**
  * The directory's list: the search, the filters' button below 1024 px and the order (one row from a
- * tablet up), the count, then the filters' sidebar from 1024 px beside the cards a page at a time,
- * and the pages. The filters are drawn once, in the sheet or the sidebar. The page sets the links to
+ * tablet up), the count with «الأقرب إليّ» and its state line, then the filters' sidebar from 1024 px
+ * beside the cards a page at a time, and the pages. The filters are drawn once, in the sheet or the sidebar. The page sets the links to
  * the spaces, the areas' names and the place filter.
  */
 export function DirectoryList(slots: DirectorySlots) {
@@ -33,9 +35,15 @@ export function DirectoryList(slots: DirectorySlots) {
           <SortSelect sort={list.sort} />
         </div>
       </div>
-      <p aria-live="polite" className="text-body-sm text-muted-foreground">
-        {list.count}
-      </p>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p aria-live="polite" className="text-body-sm text-muted-foreground">
+            {list.count}
+          </p>
+          <NearMeButton button={list.near.button} />
+        </div>
+        <LocationStatus view={list.near.status} />
+      </div>
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
         {filters.wide && <FiltersSidebar sidebar={filters.sidebar}>{form}</FiltersSidebar>}
         <div className="lg:col-span-9">

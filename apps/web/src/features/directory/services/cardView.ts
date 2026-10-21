@@ -1,8 +1,10 @@
 import type { DirectorySpace } from '@masaha/shared/directory';
 import type { LiveStatus } from '@masaha/shared/occupancy';
 import type { Catalogue } from '@shared/copy';
+import { isolated } from '@shared/forms';
 import { spaceNameOf } from '@shared/lib';
 import type { SpaceCardView } from '../types/SpaceCardView';
+import { distanceText } from './distanceText';
 import { todayHours } from './todayHours';
 
 /** Each live state's word and role (DECISIONS_SHARED, 2026-10-10): full is a warning, closed neutral. */
@@ -17,7 +19,8 @@ const STATUS_VIEWS = {
 
 /**
  * A space's card, worded in the interface's language: its name, its mark, its live status by word
- * and role (or that it has none), whether it is verified, and today's hours. No price.
+ * and role (or that it has none), whether it is verified, today's hours, and how far it is when
+ * the answer is ordered by distance. No price.
  */
 export function cardViewOf(
   space: DirectorySpace,
@@ -40,5 +43,11 @@ export function cardViewOf(
     noStatus: words.status.none,
     verified: space.isVerified ? words.card.verified : null,
     today: todayHours(space.days, now, words.card),
+    distance:
+      space.distanceMeters === undefined
+        ? null
+        : words.card.distance({
+            km: isolated(distanceText(space.distanceMeters, english ? 'en' : 'ar')),
+          }),
   };
 }

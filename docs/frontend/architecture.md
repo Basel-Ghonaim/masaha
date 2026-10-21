@@ -202,6 +202,7 @@ features/<capability>/
 - Where a flow stands, when the server holds it, such as a password recovery ([ADR 0017](../architecture/decisions/0017-recovery-session.md)) → TanStack Query, read on load and written with each answer; never browser storage, so a reload or another tab shows the server's step.
 - What must survive a reload or be shared by a link (filters, views, the selected space) → the URL ([ADR 0016](../architecture/decisions/0016-dashboard-urls.md)).
 - What this device keeps for its user (the language, the theme, the last space) → the browser's storage, through `shared/storage` only (§4).
+- The device's location for near me → memory only: the rounded point, in `directory`'s store; never the URL or the browser's storage (2026-10-21, #103).
 - One component's own state → `useState`.
 
 > **Context inside a feature** *(experimental: not part of the stable core; to be judged after its first use)*: only when several components of the capability, in one subtree, share client state that none of the places above fits. The capability's own component mounts it; it is never exported.

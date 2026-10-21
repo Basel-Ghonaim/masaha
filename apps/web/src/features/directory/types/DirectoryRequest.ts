@@ -1,6 +1,6 @@
 import type { PRICE_PERIODS } from '@masaha/shared/spaces';
 import type { Language } from '@shared/copy';
-import type { DirectoryOrder } from './DirectoryFilters';
+import type { DirectorySort } from '@masaha/shared/directory';
 
 /** The list's query, named as the contract names it (docs/api/api-contract.md › Directory (public)). */
 export type DirectoryRequest = {
@@ -15,7 +15,8 @@ export type DirectoryRequest = {
   openFriday?: true;
   verified?: true;
   availableNow?: true;
-  sort?: DirectoryOrder;
+  /** `distance` only with the point in `Masaha-Near`. */
+  sort?: DirectorySort;
   lang?: Language;
   page?: number;
 };

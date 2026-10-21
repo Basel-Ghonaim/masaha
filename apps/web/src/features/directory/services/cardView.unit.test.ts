@@ -45,7 +45,9 @@ describe('cardViewOf', () => {
       cover: '/api/v1/files/spaces/x/card.webp',
       verified: 'موثّقة',
       today: null,
+      distance: null,
     });
+    expect(card({ ...SPACE, distanceMeters: 700 }).distance).toBe('على بعد \u20660.7\u2069 كم');
     expect(card({ ...SPACE, nameAr: null, isVerified: false })).toMatchObject({
       name: { text: 'Focus Hub', lang: 'en', dir: 'ltr' },
       mark: 'F',

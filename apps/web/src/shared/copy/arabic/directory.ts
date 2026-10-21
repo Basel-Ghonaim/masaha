@@ -15,6 +15,7 @@ export const DIRECTORY = {
       updated: 'الأحدث تحديثًا',
       name: 'حسب الاسم',
       relevance: 'الأفضل تطابقًا',
+      distance: 'حسب المسافة',
     },
   },
   count: {
@@ -63,6 +64,7 @@ export const DIRECTORY = {
     today: ({ range }: { range: string }) => `اليوم ${range}`,
     closedToday: 'مغلقة اليوم',
     openAllDay: 'مفتوحة اليوم على مدار الساعة',
+    distance: ({ km }: { km: string }) => `على بعد ${km} كم`,
   },
   status: {
     none: 'لا تتوفر حالة مباشرة',
@@ -112,5 +114,26 @@ export const DIRECTORY = {
     other: 'أخرى',
     studentPrices: 'أسعار للطلاب',
     openFriday: 'مفتوحة يوم الجمعة',
+  },
+  near: {
+    button: 'الأقرب إليّ',
+    locating: 'جارٍ تحديد موقعك…',
+    privacy: 'يُرسَل موقعك مقرَّبًا لترتيب المساحات حسب المسافة فقط، ولا يُحفظ.',
+    sorted: {
+      device: 'مرتبة حسب المسافة من موقعك.',
+      pin: 'مرتبة حسب المسافة من الموقع الذي حدّدته على الخريطة.',
+    },
+    approximate: 'المسافات تقريبية بخط مستقيم.',
+    stop: 'إيقاف الترتيب حسب المسافة',
+    clear: 'مسح موقعي',
+    denied: {
+      title: 'تعذّر تحديد موقعك',
+      text: 'اختر منطقتك لتصفّح مساحاتها.',
+    },
+    imprecise: {
+      title: 'تعذّر تحديد موقعك بدقة',
+      text: 'يبدو أن موقعك خارج قطاع غزة، أو أن هامش الخطأ فيه أكبر من 2 كم، فلم نستخدمه.',
+    },
+    chooseArea: 'اختر منطقتك',
   },
 } satisfies Catalogue['directory'];

@@ -1,5 +1,6 @@
 import type { PaginationView } from '@shared/lists';
 import type { FiltersView } from './FiltersView';
+import type { LocationStatusView } from './LocationStatusView';
 import type { SpaceCardView } from './SpaceCardView';
 
 /** A failure to load the list, or to refresh it over the cards shown: its words and its retry. */
@@ -29,6 +30,11 @@ export type DirectoryListView = {
   /** Empty until the first answer; worded from a real answer, never the one shown meanwhile. */
   count: string;
   filters: FiltersView;
+  /** «الأقرب إليّ» and its state line. */
+  near: {
+    button: { label: string; on: boolean; locating: boolean; press: () => void };
+    status: LocationStatusView;
+  };
   results: {
     heading: string;
     /** A fetch is in flight over the cards shown. */

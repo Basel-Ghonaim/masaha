@@ -5,9 +5,11 @@ import type { ReactNode } from 'react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { fakeGeolocation } from '../../../../test/fakeGeolocation';
 import { fakeTransport, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { startPreferences } from '../../../../test/startPreferences';
+import { nearMeStore } from '../near/nearMeStore';
 import { useDirectoryList } from './useDirectoryList';
 
 const space = (id: number): DirectorySpace => ({
@@ -64,6 +66,7 @@ function renderList(path: string, answer: Parameters<typeof fakeTransport>[0]) {
 
 beforeEach(() => {
   startPreferences('ar');
+  nearMeStore.clear();
 });
 
 afterEach(() => {
@@ -302,5 +305,56 @@ describe('useDirectoryList', () => {
     await waitFor(() => {
       expect(result.current.list.count).toBe('مساحتان مطابقتان');
     });
+  });
+
+  it('sorts nearest first through the header while the button is pressed, and words each card’s distance', async () => {
+    const device = fakeGeolocation();
+    const { result, requests } = renderList('/spaces?sort=name', (request) =>
+      (request.params as { sort?: string }).sort === 'distance'
+        ? page([{ ...space(1), distanceMeters: 700 }])
+        : page([space(1)]),
+    );
+    await waitFor(() => {
+      expect(result.current.list.results.state).toBe('ready');
+    });
+    expect(result.current.list.sort.options.map((option) => option.value)).toEqual([
+      'updated',
+      'name',
+    ]);
+
+    act(() => {
+      result.current.list.near.button.press();
+    });
+    act(() => {
+      device.succeed(31.501_234, 34.466_789, 30);
+    });
+
+    await waitFor(() => {
+      expect(result.current.list.results.cards[0]?.distance).toBe('على بعد \u20660.7\u2069 كم');
+    });
+    expect(requests.at(-1)?.params).toEqual({ limit: 20, sort: 'distance' });
+    expect(requests.at(-1)?.headers['Masaha-Near']).toBe('31.501,34.467');
+    expect(result.current.list.near.button.on).toBe(true);
+    expect(result.current.list.sort.value).toBe('distance');
+    expect(result.current.list.sort.options.map((option) => option.value)).toEqual([
+      'distance',
+      'updated',
+      'name',
+    ]);
+
+    act(() => {
+      result.current.list.sort.choose('updated');
+    });
+    await waitFor(() => {
+      expect(result.current.list.near.button.on).toBe(false);
+    });
+    await waitFor(() => {
+      expect(result.current.list.results.cards[0]?.distance).toBeNull();
+    });
+    expect(requests.at(-1)?.headers['Masaha-Near']).toBeUndefined();
+    expect(result.current.search).toBe('');
+    for (const request of requests) {
+      expect(JSON.stringify(request.params)).not.toMatch(/31\.50|34\.46/);
+    }
   });
 });

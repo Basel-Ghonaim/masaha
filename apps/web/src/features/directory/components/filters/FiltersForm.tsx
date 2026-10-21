@@ -1,5 +1,6 @@
 import { Field, Switch, ToggleGroup, ToggleGroupItem } from '@shared/design-system';
 import { useId, type ReactNode } from 'react';
+import { FILTERS_FORM_ID } from '../../services/focusFilters';
 import type { FiltersView } from '../../types/FiltersView';
 import { PriceFilter } from './PriceFilter';
 
@@ -12,7 +13,7 @@ export function FiltersForm({ filters, place }: { filters: FiltersView; place: R
   const { spaces, others } = filters;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div id={FILTERS_FORM_ID} className="flex flex-col gap-6">
       {place}
       <div role="group" aria-labelledby={spacesId} className="flex flex-col gap-3">
         <p id={spacesId} className="text-label">

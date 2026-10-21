@@ -15,8 +15,8 @@ import { SpaceCover } from './SpaceCover';
 /**
  * A space in the directory: the whole card one link to its page, named by the space's name and
  * described by each detail in turn, so a screen reader that reads a link by its name reads them
- * after it. Its cover or mark, its name, its area, its live status, whether it is verified, and today's
- * hours. No price.
+ * after it. Its cover or mark, its name, its area, its live status, whether it is verified, today's
+ * hours, and how far it is while the list is ordered by distance. No price.
  */
 export function SpaceCard({
   card,
@@ -33,11 +33,13 @@ export function SpaceCard({
   const statusId = `${ids}-status`;
   const verifiedId = `${ids}-verified`;
   const todayId = `${ids}-today`;
+  const distanceId = `${ids}-distance`;
   const details = [
     areaId,
     statusId,
     ...(card.verified === null ? [] : [verifiedId]),
     ...(card.today === null ? [] : [todayId]),
+    ...(card.distance === null ? [] : [distanceId]),
   ];
 
   return (
@@ -72,6 +74,11 @@ export function SpaceCard({
           {card.today !== null && (
             <p id={todayId} className="text-body-sm text-muted-foreground">
               {card.today}
+            </p>
+          )}
+          {card.distance !== null && (
+            <p id={distanceId} className="text-body-sm text-muted-foreground">
+              {card.distance}
             </p>
           )}
         </CardContent>
