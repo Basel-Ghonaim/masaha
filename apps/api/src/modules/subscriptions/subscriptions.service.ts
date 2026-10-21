@@ -45,9 +45,9 @@ export function createSubscriptionsService({
      * every open check-in due by `at`, by its space's week and settings now, the earliest first, up
      * to a batch, each in its own transaction under its row's lock while still open, at its due
      * time; audited `checkIn.autoCheckedOut` with no actor. One that cannot be closed is logged and
-     * the next one still is; the run then throws, so the job counts as failed.
+     * the next one still is; the run counts them in `failed`, and throws only when it cannot run.
      */
-    async autoCheckOut(at: Date): Promise<{ checkIns: number; remaining: number }> {
+    async autoCheckOut(at: Date): Promise<{ checkIns: number; remaining: number; failed: number }> {
       const open = await repository.openEverywhere();
       const spaceIds = [...new Set(open.map(({ spaceId }) => spaceId))];
       const [weeks, settings] = await Promise.all([
@@ -100,8 +100,11 @@ export function createSubscriptionsService({
         });
         if (done) closed += 1;
       }
-      if (failed > 0) throw new Error(`${String(failed)} check-in(s) could not be closed.`);
-      return { checkIns: closed, remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0) };
+      return {
+        checkIns: closed,
+        remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0),
+        failed,
+      };
     },
   };
 }

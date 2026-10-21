@@ -75,8 +75,8 @@ describe('the jobs endpoint', () => {
     expect(dataOf(response)).toEqual({
       ranAt: '2026-10-18T16:00:00.000Z',
       jobs: [
-        { name: 'visits.autoCheckOut', done: { visits: 1, remaining: 0 } },
-        { name: 'subscriptions.autoCheckOut', done: { checkIns: 0, remaining: 0 } },
+        { name: 'visits.autoCheckOut', done: { visits: 1, remaining: 0, failed: 0 } },
+        { name: 'subscriptions.autoCheckOut', done: { checkIns: 0, remaining: 0, failed: 0 } },
       ],
     });
     expect(await stored()).toMatchObject({ checkoutMethod: 'AUTO' });
@@ -91,8 +91,8 @@ describe('the jobs endpoint', () => {
     expect(await stored()).toMatchObject({ checkedOutAt: null });
   });
 
-  it('a failing job answers 500, logs it, and the other jobs still ran', async () => {
-    // A space without its settings row is a fault by space-settings' rule: the visits' job throws.
+  it('a space without its settings row fails only its own stays: 200, counted, the rest closed', async () => {
+    // A space without its settings row is a fault by space-settings' rule: its stays are not closed.
     await prisma.spaceSettings.delete({ where: { spaceId } });
     const { id: otherId } = await createSpace('other-space');
     await prisma.spaceSettings.create({
@@ -113,14 +113,18 @@ describe('the jobs endpoint', () => {
       .post(RUN)
       .set('Authorization', `Bearer ${SECRET}`);
 
-    expect(response.status).toBe(500);
-    expect(errorOf(response).type).toBe('server');
-    expect(lines.filter(({ msg }) => msg === 'job failed')).toMatchObject([
-      { level: 50, job: 'visits.autoCheckOut', err: { type: 'Error' } },
+    expect(response.status).toBe(200);
+    expect(dataOf(response)).toEqual({
+      ranAt: '2026-10-18T16:00:00.000Z',
+      jobs: [
+        { name: 'visits.autoCheckOut', done: { visits: 0, remaining: 0, failed: 1 } },
+        { name: 'subscriptions.autoCheckOut', done: { checkIns: 1, remaining: 0, failed: 0 } },
+      ],
+    });
+    expect(lines.filter(({ msg }) => msg === 'stay not closed')).toMatchObject([
+      { level: 50, job: 'visits.autoCheckOut', stayId: visitId },
     ]);
-    expect(lines.filter(({ msg }) => msg === 'job ran')).toMatchObject([
-      { level: 30, job: 'subscriptions.autoCheckOut', checkIns: 1, remaining: 0 },
-    ]);
+    expect(lines.filter(({ msg }) => msg === 'job failed')).toEqual([]);
     expect(await prisma.checkIn.findUniqueOrThrow({ where: { id: checkIn.id } })).toMatchObject({
       checkedOutAt: new Date('2026-10-17T23:59:00+03:00'),
       checkoutMethod: 'AUTO',
@@ -128,7 +132,7 @@ describe('the jobs endpoint', () => {
     expect(await stored()).toMatchObject({ checkedOutAt: null });
   });
 
-  it('a stay that cannot be closed is logged, and the stays after it are still closed', async () => {
+  it('a stay that cannot be closed is logged, the stays after it are still closed, and the run answers 200 counting it', async () => {
     // Earlier, so read first: a charge past the column's range fails its own transaction.
     const { id: failingId } = await createVisit(spaceId, {
       checkedInAt: new Date('2026-10-17T09:00:00+03:00'),
@@ -140,12 +144,16 @@ describe('the jobs endpoint', () => {
       .post(RUN)
       .set('Authorization', `Bearer ${SECRET}`);
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(200);
+    expect(dataOf(response)).toMatchObject({
+      jobs: [{ name: 'visits.autoCheckOut', done: { visits: 1, remaining: 0, failed: 1 } }, {}],
+    });
     expect(lines.filter(({ msg }) => msg === 'stay not closed')).toMatchObject([
       { level: 50, job: 'visits.autoCheckOut', stayId: failingId },
     ]);
-    expect(lines.filter(({ msg }) => msg === 'job failed')).toMatchObject([
-      { level: 50, job: 'visits.autoCheckOut' },
+    expect(lines.filter(({ msg }) => msg === 'job ran')).toMatchObject([
+      { level: 30, job: 'visits.autoCheckOut', visits: 1, failed: 1 },
+      { level: 30, job: 'subscriptions.autoCheckOut', checkIns: 0, failed: 0 },
     ]);
     expect(await prisma.visit.findUniqueOrThrow({ where: { id: failingId } })).toMatchObject({
       checkedOutAt: null,

@@ -368,10 +368,10 @@ export function createVisitsService({
      * to a batch. Each is closed in its own transaction, under its row's lock and only while still
      * open, at its due time, never at the run's, charged for the stay up to then; audited
      * `visit.autoCheckedOut` with no actor. A soft-deleted or hidden space's visits are closed too.
-     * A visit that cannot be closed is logged and the next one still is; the run then throws, so the
-     * job counts as failed.
+     * A visit that cannot be closed is logged and the next one still is; the run counts them in
+     * `failed`, and throws only when it cannot run at all.
      */
-    async autoCheckOut(at: Date): Promise<{ visits: number; remaining: number }> {
+    async autoCheckOut(at: Date): Promise<{ visits: number; remaining: number; failed: number }> {
       const open = await repository.openEverywhere();
       const spaceIds = [...new Set(open.map(({ spaceId }) => spaceId))];
       const [weeks, settings] = await Promise.all([
@@ -429,8 +429,11 @@ export function createVisitsService({
         });
         if (done) closed += 1;
       }
-      if (failed > 0) throw new Error(`${String(failed)} visit(s) could not be closed.`);
-      return { visits: closed, remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0) };
+      return {
+        visits: closed,
+        remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0),
+        failed,
+      };
     },
 
     /**
