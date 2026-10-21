@@ -3,6 +3,7 @@ import type { AppError } from '@shared/errors';
 import { useRefusalView } from '@shared/forms';
 import { paginationView, usePageInRange } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
+import { useState } from 'react';
 import { cardViewOf } from '../../services/cardView';
 import type { DirectoryOrder } from '../../types/DirectoryFilters';
 import type { DirectoryListView, ListFailureView } from '../../types/DirectoryListView';
@@ -65,6 +66,17 @@ export function useDirectoryList(): DirectoryListView {
   const orders: DirectoryOrder[] = searching
     ? ['relevance', 'updated', 'name']
     : ['updated', 'name'];
+  // The count is worded from a real answer only: while the shown answer is the one before, the
+  // live region keeps its last line rather than announce the old total under the new filters.
+  const settled =
+    answer === undefined || query.isPlaceholderData
+      ? null
+      : filters.anyApplied
+        ? words.count.matching({ count: answer.meta.totalRecords })
+        : words.count.all({ count: answer.meta.totalRecords });
+  const [count, setCount] = useState('');
+  if (settled !== null && settled !== count) setCount(settled);
+
   const now = new Date();
   const cards = (answer?.data ?? []).map((space) => cardViewOf(space, { english, now, copy }));
 
@@ -86,12 +98,7 @@ export function useDirectoryList(): DirectoryListView {
         if (chosen !== undefined) filters.apply({ sort: chosen });
       },
     },
-    count:
-      answer === undefined
-        ? ''
-        : filters.anyApplied
-          ? words.count.matching({ count: answer.meta.totalRecords })
-          : words.count.all({ count: answer.meta.totalRecords }),
+    count,
     results: {
       heading: words.results,
       busy: answer !== undefined && query.isFetching,

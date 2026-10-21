@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
+import type { FakeAnswer } from '../../../test/fakeAdapter';
 import { fakeTransport, restoreTransport } from '../../../test/fakeTransport';
 import { queryWrapper } from '../../../test/queryWrapper';
 import { stubScreenWidth } from '../../../test/screenWidth';
@@ -48,8 +49,8 @@ function answerFor(params: unknown) {
 }
 
 /** The list on the directory's page at `path`, its slots as the page sets them. */
-function renderDirectory(path = '/spaces') {
-  const requests = fakeTransport((request) => answerFor(request.params));
+function renderDirectory(path = '/spaces', answer: (params: unknown) => unknown = answerFor) {
+  const requests = fakeTransport((request) => answer(request.params) as FakeAnswer);
   const router = createMemoryRouter(
     [
       {
@@ -125,6 +126,52 @@ describe('DirectoryList', () => {
 
     await screen.findByRole('link', { name: 'مساحة 3' });
     expect(heading).toHaveFocus();
+  });
+
+  it('leaves the focus in the search when a search typed on page 2 brings the first page back', async () => {
+    startPreferences('ar');
+    const user = userEvent.setup();
+    const { router } = renderDirectory('/spaces?page=2');
+    await screen.findByRole('link', { name: 'مساحة 3' });
+    const search = screen.getByRole('searchbox', { name: 'ابحث عن مساحة' });
+
+    await user.type(search, 'Space');
+
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('?q=Space');
+    });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+    expect(search).toHaveFocus();
+    expect(screen.getByRole('heading', { level: 2, name: 'النتائج' })).not.toHaveFocus();
+  });
+
+  it('moves nothing when a pasted page past the last is replaced by the last', async () => {
+    startPreferences('ar');
+    const { router } = renderDirectory('/spaces?page=5', (params) => {
+      const asked = (params as { page?: number }).page ?? 1;
+      return asked === 5
+        ? {
+            status: 200,
+            data: {
+              success: true,
+              data: [],
+              meta: {
+                currentPage: 5,
+                limit: 20,
+                totalPages: 2,
+                totalRecords: 4,
+                hasNextPage: false,
+                hasPreviousPage: true,
+              },
+            },
+          }
+        : answerFor(params);
+    });
+
+    await screen.findByRole('link', { name: 'مساحة 3' });
+    expect(router.state.location.search).toBe('?page=2');
+    expect(screen.getByRole('heading', { level: 2, name: 'النتائج' })).not.toHaveFocus();
+    expect(document.body).toHaveFocus();
   });
 
   it('a cover that fails to load shows the space’s mark in its place', async () => {

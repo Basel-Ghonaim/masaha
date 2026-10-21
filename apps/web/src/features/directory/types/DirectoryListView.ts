@@ -25,7 +25,7 @@ export type DirectoryListView = {
     options: { value: string; label: string }[];
     choose: (value: string) => void;
   };
-  /** Empty until the first answer. */
+  /** Empty until the first answer; worded from a real answer, never the one shown meanwhile. */
   count: string;
   results: {
     heading: string;

@@ -209,4 +209,33 @@ describe('useDirectoryList', () => {
       expect(narrowed.result.current.list.count).toBe('مساحتان مطابقتان');
     });
   });
+
+  it('keeps the last count while the next answer loads, and words the new one once it comes', async () => {
+    let release: (answer: FakeAnswer) => void = () => undefined;
+    const { result } = renderList('/spaces', (request) =>
+      (request.params as { q?: string }).q === 'Space'
+        ? new Promise<FakeAnswer>((resolve) => {
+            release = resolve;
+          })
+        : page([space(1)], { total: 2, records: 21 }),
+    );
+    await waitFor(() => {
+      expect(result.current.list.count).toBe('21 مساحة في قطاع غزة');
+    });
+
+    act(() => {
+      void result.current.navigate('/spaces?q=Space');
+    });
+    await waitFor(() => {
+      expect(result.current.list.results.busy).toBe(true);
+    });
+    expect(result.current.list.count).toBe('21 مساحة في قطاع غزة');
+
+    act(() => {
+      release(page([space(1), space(2)]));
+    });
+    await waitFor(() => {
+      expect(result.current.list.count).toBe('مساحتان مطابقتان');
+    });
+  });
 });
