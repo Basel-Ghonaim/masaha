@@ -1,8 +1,8 @@
+import { usePausedSearch } from '@shared/lists';
 import { useLayoutEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { usersFiltersOf, usersParamsOf, usersRequestOf } from '../../services/usersFiltersOf';
 import type { AccountState, UserRoleFilter, UsersFilters } from '../../types/UsersFilters';
-import { usePausedSearch } from '../usePausedSearch';
 
 /** The search a field's text makes, read by the server's rule: trimmed, and none when empty. */
 const searchOf = (text: string) => usersFiltersOf(new URLSearchParams({ q: text })).q;

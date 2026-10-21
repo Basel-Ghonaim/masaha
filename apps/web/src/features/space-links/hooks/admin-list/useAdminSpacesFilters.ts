@@ -1,9 +1,9 @@
+import { usePausedSearch } from '@shared/lists';
 import { useLayoutEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { filtersOf, paramsOf, requestOf, type ListStatus } from '../../services/filtersOf';
 import type { AdminSpacesFilters } from '../../types/AdminSpacesFilters';
 import type { PlaceFilter } from '../../types/PlaceFilter';
-import { usePausedSearch } from '../usePausedSearch';
 
 /** The search a field's text makes, read by the server's rule: trimmed, and none when empty. */
 const searchOf = (text: string) => filtersOf(new URLSearchParams({ q: text })).q;

@@ -1,8 +1,8 @@
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
+import { paginationView } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
 import { LIST_STATUSES } from '../../services/filtersOf';
-import { paginationView } from '../../services/paginationView';
 import { rowView } from '../../services/rowView';
 import { usePageInRange } from '../usePageInRange';
 import { useAdminSpacesFilters } from './useAdminSpacesFilters';

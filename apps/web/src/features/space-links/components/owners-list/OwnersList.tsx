@@ -1,10 +1,10 @@
 import { Badge } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
+import { ListPagination } from '@shared/lists';
 import { useMemo } from 'react';
 import { useOwnersList } from '../../hooks/owners-list/useOwnersList';
 import { useFocusKeeper } from '../../hooks/useFocusKeeper';
 import type { UserRowView } from '../../types/UserRowView';
-import { ListPagination } from '../ListPagination';
 import { ListState } from '../ListState';
 import { OwnerActionsMenu } from '../owner-actions/OwnerActionsMenu';
 import { UsersToolbar } from '../users-list/UsersToolbar';
