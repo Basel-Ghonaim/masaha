@@ -47,12 +47,15 @@ export function filtersOf(params: URLSearchParams): DirectoryFilters {
   const period = PRICE_PERIODS.find((value) => value === params.get('period'));
   const sort = ORDERS.find((value) => value === params.get('sort'));
   const flag = (key: string) => params.get(key) === '1';
+  const min = wholeIn(params.get('min'), MAX_SHEKELS);
+  const max = wholeIn(params.get('max'), MAX_SHEKELS);
   return {
     q,
     areas: areasOf(params.get('area')),
     period: period ?? DEFAULT_PERIOD,
-    min: wholeIn(params.get('min'), MAX_SHEKELS),
-    max: wholeIn(params.get('max'), MAX_SHEKELS),
+    min,
+    // A maximum under the minimum is refused by the server; it is left out, the minimum kept.
+    max: min !== undefined && max !== undefined && max < min ? undefined : max,
     availableNow: flag('available'),
     verified: flag('verified'),
     studentPrices: flag('students'),

@@ -76,7 +76,7 @@ The announcements, the reports and the favourites' cards are not built.
 ### Web decisions
 
 - **The site's directory is a web feature of its own, `directory`, for any page group** (S1). *Why:* this capability owns the public reads; `spaces` stays the dashboard's editor. 2026-10-21, #101.
-- **The address holds the search, the filters, the order and the page, no default written** (S5): `q`, `area`, `period`, `min`, `max` (whole shekels), `available`, `verified`, `students`, `friday`, `sort`, `page`. A value the server would refuse falls back to its default; a change replaces the address and returns to page 1. *Why:* a reload, Back and a shared link show the same list. 2026-10-21, #101.
+- **The address holds the search, the filters, the order and the page, no default written** (S5): `q`, `area`, `period`, `min`, `max` (whole shekels), `available`, `verified`, `students`, `friday`, `sort`, `page`. A value the server would refuse falls back to its default, and a maximum under the minimum is left out; a change replaces the address and returns to page 1. *Why:* a reload, Back and a shared link show the same list. 2026-10-21, #101; the budget's order, #103.
 - **The page sets `lookups`' area name in the list's slot** (S7). *Why:* no feature imports another; the governorate is the catalogue's. 2026-10-21, #101.
 - **«الأفضل تطابقًا» is offered only while a search applies** (S10, design issue 7). *Why:* it is the server's order for a search and refused without one; the trigger never shows an order its list lacks. 2026-10-21, #101.
 - **The cards shown stay while the next page or filter loads** (S13). *Why:* on a weak connection the list never blanks between two answers. 2026-10-21, #101.
@@ -111,4 +111,4 @@ The announcements, the reports and the favourites' cards are not built.
 ### Web history
 
 - #101 — the site's list: the card, the search, the order, the pages, and the address.
-- #103 — carried from #101: the focus moves only for a page the visitor chose; the count is worded from a real answer; the retry stays after too many requests.
+- #103 — carried from #101: the focus moves only for a page the visitor chose; the count is worded from a real answer; the retry stays after too many requests; a maximum under the minimum never reaches the server.
