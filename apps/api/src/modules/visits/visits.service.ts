@@ -494,27 +494,6 @@ export function createVisitsService({
       return { rows: rows.map(toDeskVisit), total };
     },
 
-    /** The space's visits closed by the auto check-out, each with its charge (or none). */
-    autoClosedIn(spaceId: number): Promise<{ id: number; chargeAgorot: number | null }[]> {
-      return repository.autoClosedIn(spaceId);
-    },
-
-    /**
-     * A page of the space's visits closed by the auto check-out, but these (the settled ones, which
-     * `payments` decides), the latest closed first, then by id; and how many there are.
-     */
-    async autoClosedPage(
-      spaceId: number,
-      exceptIds: readonly number[],
-      query: PaginationQuery,
-    ): Promise<{ rows: DeskVisit[]; total: number }> {
-      const { rows, total } = await repository.autoClosedPage(spaceId, exceptIds, {
-        skip: toSkip(query),
-        take: query.limit,
-      });
-      return { rows: rows.map(toDeskVisit), total };
-    },
-
     /**
      * Prices a closed visit with no charge, in one transaction and in this order: the space's lock;
      * `can()` on the links read under it, the staff's, then `prices.typeByHand` by the space's

@@ -220,6 +220,37 @@ export function createPaymentsRepository() {
       });
     },
 
+    /**
+     * A page of the space's uncollected visits (data model › Uncollected visits): closed by the auto
+     * check-out, not written off, not settled (balance > 0, or no charge yet), the latest closed
+     * first, then by id; each with what was paid, voided payments left out; and how many there are.
+     * One query and its count, so a read costs what its page holds (finding 113).
+     */
+    async uncollectedPage(
+      spaceId: number,
+      { skip, take }: { skip: number; take: number },
+    ): Promise<{ rows: { id: number; paidAgorot: number }[]; total: number }> {
+      const uncollected = Prisma.sql`
+        FROM visits v
+        LEFT JOIN (
+          SELECT visit_id, sum(amount_agorot)::integer AS paid FROM payments
+          WHERE space_id = ${spaceId} AND visit_id IS NOT NULL AND voided_at IS NULL
+          GROUP BY visit_id
+        ) p ON p.visit_id = v.id
+        WHERE v.space_id = ${spaceId} AND v.checkout_method = 'AUTO' AND v.written_off_at IS NULL
+          AND (v.charge_agorot IS NULL OR v.charge_agorot - coalesce(p.paid, 0) > 0)`;
+      const [rows, [count]] = await Promise.all([
+        prisma.$queryRaw<{ id: number; paid: number }[]>`
+          SELECT v.id, coalesce(p.paid, 0)::integer AS paid ${uncollected}
+          ORDER BY v.checked_out_at DESC, v.id DESC LIMIT ${take} OFFSET ${skip}`,
+        prisma.$queryRaw<{ total: number }[]>`SELECT count(*)::integer AS total ${uncollected}`,
+      ]);
+      return {
+        rows: rows.map(({ id, paid }) => ({ id, paidAgorot: paid })),
+        total: count?.total ?? 0,
+      };
+    },
+
     /** Inserts the payment; the insert trigger checks it against the visit's charge. */
     createForVisit(payment: NewVisitPayment, tx: Tx): Promise<VisitPaymentRow> {
       const { spaceId, visitId, key, amountAgorot, method, note, recordedById, receivedAt } =

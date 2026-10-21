@@ -7,6 +7,7 @@ import type {
 } from '@masaha/shared/payments';
 
 import type { Tx } from '../../db/index.ts';
+import { toSkip } from '../../shared/http/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import { calendarOf } from '../subscriptions/index.ts';
 import type { VisitsService } from '../visits/index.ts';
@@ -49,32 +50,34 @@ export function createPaymentsService({ audit, visits }: Dependencies) {
 
     /**
      * A page of the space's uncollected visits (data model › Uncollected visits; conventions §9,
-     * composed reads): `visits` names the ones closed by the auto check-out, with their charges;
-     * this ledger sums what was paid on each, voided payments left out, and leaves out the settled
-     * ones (balance ≤ 0); `visits` then pages the rest, the unpriced ones included.
+     * composed reads): this ledger pages them in one query over the visits and their non-voided
+     * payments, the settled ones (balance ≤ 0) left out and the unpriced ones kept; `visits` then
+     * answers those visits as the desk sees them.
      */
     async uncollectedIn(
       spaceId: number,
       query: PaginationQuery,
     ): Promise<{ rows: UncollectedVisit[]; total: number }> {
-      const closed = await visits.autoClosedIn(spaceId);
-      const paid = await repository.paidFor(
-        spaceId,
-        closed.map(({ id }) => id),
-      );
-      const settled = closed.flatMap(({ id, chargeAgorot }) => {
-        const balance = balanceOf(chargeAgorot, paid.get(id) ?? 0);
-        return balance !== null && balance <= 0 ? [id] : [];
+      const { rows, total } = await repository.uncollectedPage(spaceId, {
+        skip: toSkip(query),
+        take: query.limit,
       });
-      const { rows, total } = await visits.autoClosedPage(spaceId, settled, query);
+      const deskVisits = await visits.deskVisitsOf(
+        spaceId,
+        rows.map(({ id }) => id),
+      );
       return {
-        rows: rows.map((visit) => {
-          const paidAgorot = paid.get(visit.id) ?? 0;
-          return {
-            visit,
-            paidAgorot,
-            balanceAgorot: balanceOf(visit.charge?.amountAgorot ?? null, paidAgorot),
-          };
+        rows: rows.flatMap(({ id, paidAgorot }) => {
+          const visit = deskVisits.get(id);
+          return visit
+            ? [
+                {
+                  visit,
+                  paidAgorot,
+                  balanceAgorot: balanceOf(visit.charge?.amountAgorot ?? null, paidAgorot),
+                },
+              ]
+            : [];
         }),
         total,
       };

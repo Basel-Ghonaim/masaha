@@ -16,13 +16,13 @@
 - Lists a space's unpriced visits, and prices one by hand, with its reason, for whoever may type a price.
 - Writes a closed visit off, and undoes it, in the desk's transaction: audited `visit.writtenOff` and `visit.writeOffUndone`.
 - Leaves a closed visit's unpaid rest to a customer, in the desk's transaction (`leaveTo`), audited `visit.leftToCustomer`.
-- Answers the visits closed by the auto check-out, with their charges, and a page of them but the settled ones, for the uncollected visits [`payments`](payments.md) composes.
+- Answers visits of a space as the desk sees them, by id, for the uncollected visits [`payments`](payments.md) pages and a customer's file ([desk](desk.md)).
 
 ## Who uses it
 
 - **The front desk** ([desk](desk.md)), which orchestrates the check-in and the check-out, for the space's owner and reception; they read the quote and the terms through this module's own routes.
 - **`occupancy`**, which reads the open visits for *present*. No web screen reads it yet.
-- **`payments`**, which reads the visits closed by the auto check-out for the uncollected visits.
+- **`payments`**, which pages the uncollected visits and reads their visits here; **[`desk`](desk.md)**, for a customer's unpaid visits.
 - **The timed jobs** (`shared/jobs`, wired in the composition root), which run its auto check-out.
 
 ## Responsibility boundary
@@ -85,4 +85,4 @@
 - #95 — the check-in by name, its rates and its idempotency key's lookup; the charge and the check-out; the quote, the terms and the charges so far.
 - #97 — the auto check-out of visits; the unpriced visits and their pricing; the auto-closed visits the uncollected read pages.
 - #100 — a stay closed by its day's end, and one that cannot be closed logged without halting the job; a visit's write-off, its columns and `writeOff` on every visit answered; a closed visit left to a customer (`leaveTo`).
-- #102 — the auto check-out counts the visits it could not close (`failed`), and fails only when it cannot run; a stay's charge never past its due time, at the check-out, in the quote and in the charges so far (`stayEndAt`).
+- #102 — the auto check-out counts the visits it could not close (`failed`), and fails only when it cannot run; a stay's charge never past its due time, at the check-out, in the quote and in the charges so far (`stayEndAt`); visits by id as the desk sees them (`deskVisitsOf`), and the auto-closed readers gone (finding 113).

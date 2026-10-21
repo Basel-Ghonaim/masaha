@@ -286,7 +286,7 @@ A screen that shows or filters by values from several modules is composed by a m
 - **"Verified" on the write side** ([security › Authorization](security.md#authorization)).
   - `spaces` never imports `space-links` for it. The space middleware resolves the links on the space routes (§8), and `can()` decides.
   - `data-reports` sits above `space-links` and may call it directly for a report's space.
-- **Uncollected visits** (closed by the auto check-out and left unpaid) → `payments`, which owns the balance: `visits` names the space's visits closed by the auto check-out, with their charges; `payments` sums their payments in one grouped query and computes each balance by its pure rule (`balance.ts`), so the settled ids are known before `visits` pages the rest, newest closed first (§5) (2026-10-20, #97).
+- **Uncollected visits** (closed by the auto check-out and left unpaid) → `payments`, which owns the balance: it pages them in one query over the visits and their payments, the settled ones left out by the balance's subtraction, newest closed first (§5), and `visits` answers the page's visits (2026-10-20, #97; one query since 2026-10-21, #102, finding 113).
 - **The public directory** (the list, the map's pins and a space's page) → `directory` ([how it composes them](../features/directory.md#how-it-composes-the-platform)). The listed areas and the areas a search matches resolve to ids first, from `lookups`, and the verified spaces from `space-links`; `spaces` then filters, searches, orders and pages.
 - **The favourites' cards** (live status and prices) → `directory`, from the ids that `favorites` records. `favorites` never reads live status.
 

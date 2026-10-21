@@ -19,7 +19,7 @@
 ## Responsibility boundary
 
 - **Owns** the `payments` table and its audit entries; the balance's pure rule (`balance.ts`: the due less what was paid). The ledger's rules are the database's: a payment settles one item of its own space, above zero; it is never updated or deleted, only voided once; the payments of an item never add up to more than its due; a visit is paid only once its charge is set; a written-off visit takes no payment. The service repeats none of them.
-- **Reads** from [`visits`](visits.md) the visits closed by the auto check-out, with their charges, and a page of them. Its balance query reads the `visits` table and a subscription's due through [`subscriptions`](subscriptions.md)' function `subscription_usage`, and writes neither ([conventions §9](../backend/conventions.md#composed-reads)).
+- **Reads** from [`visits`](visits.md) a page's visits as the desk sees them. Its uncollected and balance queries read the `visits` table and a subscription's due through [`subscriptions`](subscriptions.md)' function `subscription_usage`, and writes neither ([conventions §9](../backend/conventions.md#composed-reads)).
 - **Leaves** the visit, its charge and its customer to [`visits`](visits.md) and `customers`; the transaction, the space's lock and `can()` to [`desk`](desk.md); the translation of the ledger's refusals to the error handler's table ([conventions §4](../backend/conventions.md#4-errors)).
 
 ## How it composes the platform
@@ -35,7 +35,7 @@
 
 **The balances.** One query shape over the space's items (`balancesOf`): its subscriptions, their due from `subscription_usage`, and its closed visits with a customer, not written off, their charge; each with what was paid, voided payments left out. A customer's debt is the sum of the positive balances (an unpriced visit owes nothing until priced); their credit, what was paid above the due on a usage-based subscription only. The payment filter takes the ids of those whose debt, or credit, is above zero. One customer's items are answered oldest first, a visit before a subscription made at the same instant, each balance by the one rule (`balance.ts`). The calendar's days are the caller's (`calendarOf`).
 
-**The uncollected visits.** `visits` names the space's visits closed by the auto check-out and not written off, with their charges; the ledger sums what was paid on each in one grouped query, voided payments left out, and computes each balance; the settled ones (balance ≤ 0) are left out before `visits` pages the rest, the latest closed first, so every page is full and the total right. An unpriced visit has no due and is never settled. Read without a lock.
+**The uncollected visits.** One query and its count over the space's visits closed by the auto check-out and not written off, each with what was paid on it, voided payments left out: the settled ones (charge − paid ≤ 0) are left out in SQL, the unpriced ones kept, the latest closed first, so every page is full and the total right; `visits` then answers the page's visits as the desk sees them, each balance by the one rule (2026-10-21, #102). An unpriced visit has no due and is never settled. Read without a lock.
 
 ## Decisions
 
@@ -48,7 +48,7 @@
 - **A written-off visit's refusal is the trigger's fourth rule (`payments_visit_written_off`), not a check in the desk.** *Why:* the ledger's rules have one owner, so every insert path is covered; the trigger already locks the visit's row, so a write-off and a payment racing are decided there (S1 of the plan). 2026-10-20, #100.
 - **The constraint is read from the database's message.** *Why:* through the driver adapter, Prisma reports a check violation with the database's code and message but no constraint field; a trigger names its constraint at the start of its message. 2026-10-20, #95.
 - **Audited `payment.recorded`, with the visit, the amount and the method.** 2026-10-20, #95.
-- **The uncollected visits are composed without repeating the balance: `visits` names them, the ledger decides which are settled, before the page is cut.** *Why:* the balance is the ledger's rule, in one place; filtering a page after it is fetched would leave pages short ([conventions §5](../backend/conventions.md#5-pagination)). Three queries over the space's auto-closed visits, fine at v1's scale. 2026-10-20, #97.
+- **The uncollected visits are composed without repeating the balance: `visits` names them, the ledger decides which are settled, before the page is cut.** *Why:* the balance is the ledger's rule, in one place; filtering a page after it is fetched would leave pages short ([conventions §5](../backend/conventions.md#5-pagination)). Three queries over the space's auto-closed visits, fine at v1's scale. 2026-10-20, #97. Revised: the ledger pages them in one SQL query, the settled ones left out by the same subtraction, and `visits` answers only the page's visits. *Why:* the old read sent every settled id back as bound parameters, growing with every auto-closed visit ([finding 113](../architecture/findings/113-the-uncollected-read-grows-with-every-auto-closed-visit.md)). 2026-10-21, #102.
 
 ## Code map
 
@@ -62,4 +62,4 @@
 - #95 — a visit's payment at its check-out; the ledger's translation table; finding 15 resolved.
 - #97 — the uncollected visits.
 - #100 — the ledger's fourth rule, a written-off visit takes no payment; `balanceOfVisit`, with `paidFor` reading in the caller's transaction; a visit's payment after its check-out, through the desk.
-- #102 — customers' debt and credit, the payment filter's ids and a customer's items with their balances, in the database.
+- #102 — customers' debt and credit, the payment filter's ids and a customer's items with their balances, in the database; the payments of visits, voided ones marked; the uncollected visits paged in one query (finding 113 resolved).
