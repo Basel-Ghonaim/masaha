@@ -128,6 +128,38 @@ describe('the site shell', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Spaces' })).toBeInTheDocument();
   });
 
+  it('offers «تخطَّ إلى المحتوى» first, leading to the page’s main content', async () => {
+    startPreferences('ar');
+    const user = userEvent.setup();
+    await renderSite('/');
+
+    await user.tab();
+
+    const skip = screen.getByRole('link', { name: 'تخطَّ إلى المحتوى' });
+    expect(skip).toHaveFocus();
+    expect(skip).toHaveAttribute('href', '#main');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
+  });
+
+  it('moves the focus to the main content when another page opens, not on the first load nor when only the search changes', async () => {
+    const user = userEvent.setup();
+    const router = await renderSite('/');
+    expect(screen.getByRole('main')).not.toHaveFocus();
+
+    await user.click(within(desktopNavigation()).getByRole('link', { name: 'About Masaha' }));
+    await screen.findByRole('heading', { level: 1, name: 'About Masaha' });
+    await waitFor(() => {
+      expect(screen.getByRole('main')).toHaveFocus();
+    });
+
+    const home = within(desktopNavigation()).getByRole('link', { name: 'Home' });
+    home.focus();
+    await act(async () => {
+      await router.navigate('/about?from=home');
+    });
+    expect(home).toHaveFocus();
+  });
+
   it('closes the phone menu when the history moves under it', async () => {
     const user = userEvent.setup();
     const router = await renderSite('/spaces', '/');

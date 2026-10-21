@@ -3,6 +3,7 @@ import type { Catalogue } from '../shape';
 export const SITE = {
   wordmark: 'مساحة',
   documentTitle: ({ page }: { page: string }) => `${page} · مساحة`,
+  skipToContent: 'تخطَّ إلى المحتوى',
   navigation: 'التنقّل الرئيسي',
   links: {
     home: 'الرئيسية',

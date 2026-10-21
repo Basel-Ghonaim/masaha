@@ -59,6 +59,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [111. The check-in's warnings count *present* a second time](111-the-check-ins-warnings-count-present-a-second-time.md)
 - [112. A key that closed a visit with no payment is not remembered](112-a-key-that-closed-a-visit-with-no-payment-is-not-remembered.md)
 - [113. The uncollected read grows with every auto-closed visit](113-the-uncollected-read-grows-with-every-auto-closed-visit.md)
+- [130. The dashboard's shells have no skip link](130-the-dashboards-shells-have-no-skip-link.md)
 
 ## Accepted
 
