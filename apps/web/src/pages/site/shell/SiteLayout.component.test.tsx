@@ -2,6 +2,8 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeTransport, restoreTransport } from '../../../test/fakeTransport';
+import { queryWrapper } from '../../../test/queryWrapper';
 import { startPreferences } from '../../../test/startPreferences';
 import { siteRoutes } from '../routes';
 
@@ -14,10 +16,24 @@ async function renderSite(...history: [string, ...string[]]) {
     initialEntries: history,
     initialIndex: history.length - 1,
   });
-  render(<RouterProvider router={router} />);
+  const Wrapper = queryWrapper();
+  render(
+    <Wrapper>
+      <RouterProvider router={router} />
+    </Wrapper>,
+  );
   await screen.findByRole('heading', { level: 1 });
   return router;
 }
+
+const EMPTY_PAGE = {
+  currentPage: 1,
+  limit: 20,
+  totalPages: 0,
+  totalRecords: 0,
+  hasNextPage: false,
+  hasPreviousPage: false,
+};
 
 function desktopNavigation() {
   return within(screen.getByRole('banner')).getByRole('navigation', { name: 'Main navigation' });
@@ -25,9 +41,12 @@ function desktopNavigation() {
 
 beforeEach(() => {
   startPreferences('en');
+  // The directory's page reads its list: an empty directory.
+  fakeTransport(() => ({ status: 200, data: { success: true, data: [], meta: EMPTY_PAGE } }));
 });
 
 afterEach(() => {
+  restoreTransport();
   vi.unstubAllGlobals();
 });
 
@@ -125,7 +144,9 @@ describe('the site shell', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
-    expect(await screen.findByRole('heading', { level: 1, name: 'Spaces' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Workspaces' }),
+    ).toBeInTheDocument();
   });
 
   it('offers «تخطَّ إلى المحتوى» first, leading to the page’s main content', async () => {
@@ -173,6 +194,8 @@ describe('the site shell', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
-    expect(await screen.findByRole('heading', { level: 1, name: 'Spaces' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Workspaces' }),
+    ).toBeInTheDocument();
   });
 });

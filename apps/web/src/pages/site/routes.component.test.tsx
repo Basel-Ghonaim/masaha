@@ -1,6 +1,9 @@
-import { render, screen, within } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router';
+import { DocumentTitle } from '@shared/routing';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import { createMemoryRouter, Outlet, RouterProvider, type RouteObject } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeTransport, restoreTransport } from '../../test/fakeTransport';
+import { queryWrapper } from '../../test/queryWrapper';
 import { startPreferences } from '../../test/startPreferences';
 import { siteRoutes } from './routes';
 
@@ -59,6 +62,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  restoreTransport();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -86,6 +90,51 @@ describe("the site's routes", () => {
 
     expect(await pageTitle()).toHaveTextContent('No internet connection');
     expectTheShell();
+  });
+
+  it('shows the Directory under its title', async () => {
+    fakeTransport(() => ({
+      status: 200,
+      data: {
+        success: true,
+        data: [],
+        meta: {
+          currentPage: 1,
+          limit: 20,
+          totalPages: 0,
+          totalRecords: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+    }));
+    const router = createMemoryRouter(
+      [
+        {
+          HydrateFallback: () => null,
+          element: (
+            <>
+              <DocumentTitle />
+              <Outlet />
+            </>
+          ),
+          children: siteRoutes,
+        },
+      ],
+      { initialEntries: ['/spaces'] },
+    );
+    const Wrapper = queryWrapper();
+    render(
+      <Wrapper>
+        <RouterProvider router={router} />
+      </Wrapper>,
+    );
+
+    expect(await pageTitle()).toHaveTextContent('Workspaces');
+    await waitFor(() => {
+      expect(document.title).toBe('Spaces · Masaha');
+    });
+    expect(await screen.findByText('No spaces in the directory yet')).toBeInTheDocument();
   });
 
   it('show offline when a page throws while the browser reports no connection', async () => {

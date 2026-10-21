@@ -81,7 +81,9 @@ describe('the sign-in page', () => {
     await user.type(screen.getByLabelText('Password'), 'gaza2026');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Spaces' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Workspaces' }),
+    ).toBeInTheDocument();
     expect(where(router)).toBe('/spaces');
   });
 
