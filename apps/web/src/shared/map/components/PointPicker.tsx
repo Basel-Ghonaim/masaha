@@ -1,14 +1,20 @@
+import { useCopy } from '@shared/copy';
 import { Skeleton } from '@shared/design-system';
 import { lazy, Suspense } from 'react';
 import type { PointPickerProps } from '../types/PointPickerProps';
 import { MapFailed } from './MapFailed';
+
+/** The picker's line when its code cannot be fetched: the one it shows when its tiles fail. */
+function PickerFailed() {
+  return <MapFailed line={useCopy().map.failed} />;
+}
 
 // Leaflet and its stylesheet load with the map, never before (docs/frontend/architecture.md §6).
 // When its code cannot be fetched, as offline, the map says so as it does when its tiles fail.
 const LeafletPointPicker = lazy(() =>
   import('./LeafletPointPicker').then(
     ({ LeafletPointPicker: picker }) => ({ default: picker }),
-    () => ({ default: MapFailed }),
+    () => ({ default: PickerFailed }),
   ),
 );
 

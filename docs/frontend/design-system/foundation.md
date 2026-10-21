@@ -63,8 +63,8 @@ apps/web/src/shared/design-system/
   lib/useMediaQuery.ts  whether a media query matches now, read during render; exported
   index.ts            the public surface
   data.ts             the second entry: the data components that carry a heavy library (DataTable)
-  leaflet.css         the map's stylesheet: Leaflet's own, then its frame, controls and pin on the
-                      semantic tokens; imported by shared/map only
+  leaflet.css         the map's stylesheet: Leaflet's own, then its frame, controls, pin, marks and
+                      crosshair on the semantic tokens; imported by shared/map only
 ```
 
 **Categories.** A component's category is its **primary role for the user**: what the user does with it or gets from it, never its form. Each component has exactly one. A component that takes another's form is still classed by its role: Select's list floats, and Sidebar becomes a drawer on a phone, but they are a field and navigation.
@@ -90,7 +90,7 @@ A new component goes in the category of its role: the removable filter tag ([fin
 - **Radix primitives, the icon library and variant utilities** (`class-variance-authority`) are imported **only** inside the layer.
 - **No CSS files outside the layer.** Pages and features use Tailwind for layout only (grid, flex, gap, spacing, sizing).
 - **Stylesheet entry:** `tokens/tailwind.css`. `index.html` links it directly, so it blocks first paint in development as well as in the build. This is the one reference into the layer from outside it; it is a document stylesheet, not a module import.
-- **The map's stylesheet** (`leaflet.css`) is the other exception. Leaflet's own stylesheet comes first. Then it gives the map its frame (border, radius, focus outline), its zoom buttons and attribution (the card's colours), and the pin (`.map-pin`, on `primary`), all on the semantic tokens. It also isolates the map, so Leaflet's stacked panes stay under the sticky bar and the overlays. Only `shared/map` imports it, from the part it loads lazily, so it arrives with the map and never in the site's first download ([architecture §6](../architecture.md#6-map)). Lint allows that import alone.
+- **The map's stylesheet** (`leaflet.css`) is the other exception. Leaflet's own stylesheet comes first. Then it gives the map its frame (border, radius, focus outline), its zoom buttons and attribution (the card's colours), the pin (`.map-pin`, on `primary`), the marks of a map of many places (`.map-mark`: a dot filled, barred, hollow or dashed, toned `success`, `warning` or `muted-foreground`, the selected one ringed on `primary`, never filled), the visitor's point (`.map-user`), the crosshair at the centre while a point is picked (`.map-crosshair`) and a mark's name beside it (`.map-tooltip`), all on the semantic tokens. It also isolates the map, so Leaflet's stacked panes stay under the sticky bar and the overlays. Only `shared/map` imports it, from the part it loads lazily, so it arrives with the map and never in the site's first download ([architecture §6](../architecture.md#6-map)). Lint allows that import alone.
 
 **Enforcement:** ESLint forbids (a) imports into the layer's internals, (b) importing Radix, the icon library, `cva`, Sonner, cmdk, react-day-picker or TanStack Table outside the layer, and (c) the layer importing anything outside itself. `check:classes` forbids (d) arbitrary-value classes outside the layer; palette classes do not exist, because the Tailwind palette is reset. A test checks theme key parity (§6).
 
