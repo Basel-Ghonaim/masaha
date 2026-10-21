@@ -1,3 +1,4 @@
+import type { Customer } from '@masaha/shared/customers';
 import type {
   CheckOutVisitRequest,
   LeaveToCustomerRequest,
@@ -88,6 +89,17 @@ export function createDeskController(service: DeskService) {
         parseId(req.params.visitId),
       );
       sendSuccess(res, visit satisfies DeskVisit);
+    },
+
+    /** 200 with the customer; one already archived is answered as it is. */
+    archiveCustomer: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const customer = await service.archiveCustomer(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.customerId),
+      );
+      sendSuccess(res, customer satisfies Customer);
     },
   };
 }

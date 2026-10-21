@@ -1,4 +1,5 @@
 import type { DomainErrorCode } from '@masaha/shared/core';
+import type { Customer } from '@masaha/shared/customers';
 import type {
   CheckOutVisitRequest,
   LeaveToCustomerRequest,
@@ -27,6 +28,7 @@ import type { OccupancyService } from '../occupancy/index.ts';
 import type { PaymentsService } from '../payments/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
+import type { SubscriptionsService } from '../subscriptions/index.ts';
 import type { LockedVisit, VisitsService } from '../visits/index.ts';
 
 interface Dependencies {
@@ -34,6 +36,7 @@ interface Dependencies {
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
   visits: VisitsService;
+  subscriptions: SubscriptionsService;
   customers: CustomersService;
   payments: PaymentsService;
   occupancy: OccupancyService;
@@ -53,6 +56,7 @@ export function createDeskService({
   spaces,
   spaceSettings,
   visits,
+  subscriptions,
   customers,
   payments,
   occupancy,
@@ -386,6 +390,31 @@ export function createDeskService({
           throw AppError.conflict('VISIT_ALREADY_PAID');
         }
         return visits.writeOff(actor.id, space.id, visitId, { reason, balanceAgorot }, tx);
+      });
+    },
+
+    /**
+     * Archives a customer, the owner's, in one transaction and in this order: the space's lock and
+     * `can()` (`customers.archive`); the customer, the space's (else `not_found`); one already
+     * archived answered as it is; one present, by an open check-in or an open visit →
+     * `MEMBER_ALREADY_CHECKED_IN`, since the desk could no longer check them out from its list; then
+     * archived. A customer who owes is archived too: the debt stays theirs.
+     */
+    archiveCustomer(actor: Actor, space: LoadedSpace, customerId: number): Promise<Customer> {
+      return runInTransaction(async (tx) => {
+        await lockAtDesk(actor, space, tx, 'customers.archive');
+        const customer = await customers.findIn(space.id, customerId, tx);
+        if (!customer) throw AppError.notFound(undefined, 'Customer not found');
+        if (customer.archivedAt) return customer;
+        const [openCheckIns, openVisits] = await Promise.all([
+          subscriptions.openCheckInsIn(space.id, tx),
+          visits.openIn(space.id, tx),
+        ]);
+        const present = [...openCheckIns, ...openVisits].some(
+          (stay) => stay.customerId === customerId,
+        );
+        if (present) throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
+        return customers.archive(actor, space, customerId, tx);
       });
     },
 

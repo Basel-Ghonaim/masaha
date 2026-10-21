@@ -13,6 +13,7 @@
 - Receives a payment for a closed visit after its check-out, once per idempotency key; the rest left unpaid by the check-out's rule.
 - Leaves an uncollected visit's debt to a customer by phone, with no payment («تسجيل دينًا»).
 - Writes off, as the owner, what a closed, priced visit still owes, with a reason, and undoes it.
+- Archives a customer, as the owner, unless they are present.
 
 ## Who uses it
 
@@ -21,12 +22,12 @@
 ## Responsibility boundary
 
 - **Owns** the orchestration: the transaction, its order, the space's lock and `can()` on the links read under it, and the retry's lookup before any write.
-- **Leaves** the visit, its rates, its charge and its audit to [`visits`](visits.md); the payment and the ledger to [`payments`](payments.md); the customer found or created by phone to `customers`; the warnings to [`occupancy`](occupancy.md); the lock to [`spaces`](spaces.md); the settings to [`space-settings`](space-settings.md); who may act, and who may type a price, to `can()` ([security › Authorization](../backend/security.md#authorization)).
+- **Leaves** the visit, its rates, its charge and its audit to [`visits`](visits.md); the payment and the ledger to [`payments`](payments.md); the customer found or created by phone, and the archive's column, to [`customers`](customers.md); the warnings to [`occupancy`](occupancy.md); the lock to [`spaces`](spaces.md); the settings to [`space-settings`](space-settings.md); who may act, and who may type a price, to `can()` ([security › Authorization](../backend/security.md#authorization)).
 
 ## How it composes the platform
 
 - Its manage router sits below `/manage/spaces/:spaceId`, behind the one boundary that admits the space's staff ([security › Authorization](../backend/security.md#authorization)).
-- Each write asks `can()` at the route, before the body is read: `attendance.record` (the staff's) for the check-in and the check-out, and `payments.record` (the staff's) for the payment, each then reading its `Idempotency-Key`, and for «تسجيل دينًا», which needs none; `visits.writeOff` (the owner's) for the write-off and its undo. The service asks `can()` again under the space's lock.
+- Each write asks `can()` at the route, before the body is read: `attendance.record` (the staff's) for the check-in and the check-out, and `payments.record` (the staff's) for the payment, each then reading its `Idempotency-Key`, and for «تسجيل دينًا», which needs none; `visits.writeOff` (the owner's) for the write-off and its undo; `customers.archive` (the owner's) for a customer's archive. The service asks `can()` again under the space's lock.
 
 ## Behaviour and flows
 
@@ -40,6 +41,8 @@
 
 **«تسجيل دينًا».** In one transaction, in this order: the space's lock and `can()` (`payments.record`); the visit's row (`FOR UPDATE`), not the space's → 404, still open → 409; written off → `VISIT_WRITTEN_OFF`; nothing owed → `VISIT_ALREADY_PAID` (an unpriced visit has a debt to leave); then the unpaid-part rule; the visit's own customer again → the visit as it is; else its customer is set, audited `visit.leftToCustomer`.
 
+**The archive of a customer.** The owner's, in one transaction, in this order: the space's lock and `can()` (`customers.archive`); the customer, the space's (else 404); one already archived answered as it is; one present — an open check-in (`subscriptions`) or an open visit — refused `MEMBER_ALREADY_CHECKED_IN`; then archived through `customers`. A customer who owes is archived: the debt stays theirs, and the web asks first (DK-014).
+
 **The write-off and its undo.** The owner's, each in one transaction, in this order: the space's lock and `can()` (`visits.writeOff`); the visit's row (`FOR UPDATE`), not the space's → 404, still open → 409 with no code. The write-off: a visit already written off is answered as it is; no charge → `VISIT_NOT_PRICED`; then what it was paid and still owes, read from [`payments`](payments.md) under the visit's lock; nothing owed → `VISIT_ALREADY_PAID`; else `visits` writes it off with the amount, now, by the caller, with the reason. The undo: a visit not written off is answered as it is; else `visits` clears it, audited with what it was.
 
 ## Decisions
@@ -51,6 +54,7 @@
 - **The warnings never refuse; a retry answers them as of now, the visit counted present.** *Why:* the desk decides; the warnings describe now, not the visit, so storing them would add a column for advice — ADR 0015's "same body", weakened for them only (the owner's answer, §13 Q8 of the desk's plan). 2026-10-20, #95.
 - **The key is read from the `Idempotency-Key` header by a route middleware, before the body.** *Why:* a request without one is a client's bug, refused before anything is read. 2026-10-20, #95.
 - **The check-out is priced at the desk's quote, at most five minutes old and not in the future.** *Why:* with per-minute rounding the charge moves every minute; a visitor who paid what the screen said must not owe a few agorot more when the request lands, and five minutes cannot back-date a stay (the owner's bound). 2026-10-20, #95.
+- **A customer who is present is not archived (`MEMBER_ALREADY_CHECKED_IN`); one who owes is.** *Why:* an archived customer present at the desk could not be checked out from its list; a debt stays owed whoever is on file (the plan's S11; the owner's settled rule). The archive is the desk's because it asks who is present, across `subscriptions` and `visits`. 2026-10-21, #102.
 - **A stay checked out after its due time is closed at that due time, its `checkedOutAt`, and charged up to it; the audit keeps the request's own time.** *Why:* every stay is due by 23:59 of its check-in's day, so a stay never crosses into the next day on any path, the job's or the desk's; the record's times then agree with its charge and with what the auto check-out would have recorded, while `requestedAt` says when the desk closed it ([finding 116](../architecture/findings/116-a-desk-check-out-of-an-overdue-stay-is-charged-up-to-now.md)). 2026-10-21, #102.
 - **A visit with no rate, checked out by whoever may not type a price, closes unpriced; whoever may type must.** *Why:* never free, never blocked at the door; the owner prices it later (the owner's answer to Q4, built here rather than after an interim refusal, alternative A1). 2026-10-20, #95.
 - **A part left unpaid needs a phone, whose customer is found among those not archived, or created with the name given, else the visit's.** *Why:* a debt always has someone to collect from (data model › Unpaid visit); a found customer keeps the name they have. 2026-10-20, #95.
@@ -78,4 +82,4 @@
 - #95 — the check-in of a visitor by name, idempotent, with its warnings; the check-out with its charge and payment.
 - #97 — a payment on a visit another key closed refused; a check-out time before the check-in refused.
 - #100 — the owner's write-off of a visit's unpaid rest, and its undo; a visit's payment after its check-out; a visit's customer kept at an unpaid check-out (finding 100); «تسجيل دينًا».
-- #102 — a stay checked out after its due time closed and charged at it (finding 116).
+- #102 — a stay checked out after its due time closed and charged at it (finding 116); a customer archived by the owner, unless present.

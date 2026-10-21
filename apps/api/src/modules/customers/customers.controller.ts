@@ -34,6 +34,17 @@ export function createCustomersController(service: CustomersService) {
       );
       sendSuccess(res, edited satisfies Customer);
     },
+
+    /** 200 with the customer; one not archived is answered as it is. */
+    restore: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const restored = await service.restore(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.customerId),
+      );
+      sendSuccess(res, restored satisfies Customer);
+    },
   };
 }
 

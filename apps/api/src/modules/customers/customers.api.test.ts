@@ -253,6 +253,66 @@ describe('editing a customer', () => {
   });
 });
 
+describe('restoring a customer', () => {
+  const restore = (caller: { authorization: string }, customerId: number) =>
+    request(app)
+      .post(`${customersPath()}/${String(customerId)}/restore`)
+      .set('Authorization', caller.authorization);
+
+  it('the owner restores an archived customer, audited customer.restored; one not archived answers as it is', async () => {
+    const { id } = await createCustomer(spaceId, {
+      name: 'Sara',
+      phone: PHONE,
+      archivedAt: new Date('2026-10-20T09:00:00+03:00'),
+    });
+
+    const restored = await restore(owner, id);
+    expect(restored.status).toBe(200);
+    expect(dataOf(restored)).toEqual({ id, name: 'Sara', phone: PHONE, archivedAt: null });
+    const again = await restore(owner, id);
+    expect(again.status).toBe(200);
+    expect(dataOf(again)).toEqual(dataOf(restored));
+    expect(await auditEntries()).toEqual([
+      {
+        actorId: owner.id,
+        action: 'customer.restored',
+        entityType: 'customer',
+        entityId: id,
+        spaceId,
+        before: { archivedAt: '2026-10-20T06:00:00.000Z' },
+        after: null,
+      },
+    ]);
+  });
+
+  it('reception is refused 403 before anything is read; a phone another customer now holds is PHONE_TAKEN', async () => {
+    const { id } = await createCustomer(spaceId, { phone: PHONE, archivedAt: new Date() });
+
+    // Answered while the space's lock is held: refused at the route, before the service reads.
+    const byReception = await prisma.$transaction(
+      async (tx) => {
+        await lockSpace(tx);
+        return restore(reception, id);
+      },
+      { timeout: 3_000 },
+    );
+    expect(byReception.status).toBe(403);
+    expect(errorOf(byReception).type).toBe('forbidden');
+
+    await createCustomer(spaceId, { name: 'Omar', phone: PHONE });
+    const taken = await restore(owner, id);
+    expect(taken.status).toBe(409);
+    expect(errorOf(taken)).toMatchObject({
+      code: 'PHONE_TAKEN',
+      errors: { phone: ['not_unique'] },
+    });
+    expect(await prisma.customer.findUniqueOrThrow({ where: { id } })).toMatchObject({
+      archivedAt: expect.any(Date) as Date,
+    });
+    expect(await auditEntries()).toEqual([]);
+  });
+});
+
 describe("the customers' routes", () => {
   it("answer not_found to a stranger, another space's owner and the admin, on every route", async () => {
     const { id } = await createCustomer(spaceId, { name: 'Sara' });
@@ -261,6 +321,9 @@ describe("the customers' routes", () => {
       for (const response of [
         await create(caller, { name: 'Omar' }),
         await edit(caller, id, { name: 'Omar' }),
+        await request(app)
+          .post(`${customersPath()}/${String(id)}/restore`)
+          .set('Authorization', caller.authorization),
       ]) {
         expect(response.status).toBe(404);
         expect(errorOf(response).type).toBe('not_found');

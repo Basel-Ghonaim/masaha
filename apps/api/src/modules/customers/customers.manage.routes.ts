@@ -10,7 +10,8 @@ import type { CustomersController } from './customers.controller.ts';
  * The customers' writes of one module, mounted below `/manage/spaces/:spaceId`, behind that boundary
  * (docs/backend/security.md › Authorization). Each asks `can()` here first, before its body is read
  * (the create then reads its idempotency key); the service asks `can()` again under the space's
- * lock. The list, the file and the archive span modules: they are the desk's.
+ * lock. The restore is the owner's (`customers.archive`). The list, the file and the archive span
+ * modules: they are the desk's.
  */
 export function createCustomersManageRouter(controller: CustomersController): Router {
   const router = Router();
@@ -27,6 +28,11 @@ export function createCustomersManageRouter(controller: CustomersController): Ro
     mayManage,
     validate(updateCustomerSchema),
     controller.edit,
+  );
+  router.post(
+    '/customers/:customerId/restore',
+    requireCan('customers.archive'),
+    controller.restore,
   );
   return router;
 }

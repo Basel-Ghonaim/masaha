@@ -46,6 +46,7 @@ export const ERRORS = {
   VISIT_WRITTEN_OFF:
     'This visit was written off; the owner must undo the write-off before it takes a payment.',
   VISIT_HAS_CUSTOMER: "This visit is already another customer's debt.",
+  CUSTOMER_ARCHIVED: 'This customer is archived; the owner restores them first.',
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:
     'This person works at this space’s reception. Its owner deactivates that link first.',

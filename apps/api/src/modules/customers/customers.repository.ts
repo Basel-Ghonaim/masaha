@@ -76,5 +76,10 @@ export function createCustomersRepository() {
     update(id: number, data: CustomerData, tx: Tx): Promise<CustomerRow> {
       return tx.customer.update({ where: { id }, data, select: CUSTOMER });
     },
+
+    /** Archives the customer at this time, or restores them with `null`. */
+    setArchived(id: number, at: Date | null, tx: Tx): Promise<CustomerRow> {
+      return tx.customer.update({ where: { id }, data: { archivedAt: at }, select: CUSTOMER });
+    },
   };
 }

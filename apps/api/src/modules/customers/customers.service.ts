@@ -6,7 +6,7 @@ import type {
 
 import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
-import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
+import { can, type Actor, type LoadedSpace, type SpaceAction } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import { customerChange } from './customerChange.ts';
@@ -17,6 +17,8 @@ interface Dependencies {
   runInTransaction: RunInTransaction;
   audit: AuditWriter;
   spaces: SpacesService;
+  /** The one clock (conventions §11). */
+  now: () => Date;
 }
 
 /** A phone another customer of the space holds: refused on its field. */
@@ -26,7 +28,7 @@ const phoneTaken = () => AppError.conflict('PHONE_TAKEN', 'Phone taken', { phone
  * A space's customers (docs/backend/conventions.md §7): created and edited by the space's staff,
  * the names the desk shows, and the customer an unpaid visit belongs to, found or created by phone.
  */
-export function createCustomersService({ runInTransaction, audit, spaces }: Dependencies) {
+export function createCustomersService({ runInTransaction, audit, spaces, now }: Dependencies) {
   const repository = createCustomersRepository();
 
   /**
@@ -34,9 +36,14 @@ export function createCustomersService({ runInTransaction, audit, spaces }: Depe
    * under the lock: every link change takes that lock, so a link ended meanwhile still decides
    * (finding 43). The lock also serialises the space's customer creates, so a retry is read first.
    */
-  async function lockFor(actor: Actor, space: LoadedSpace, tx: Tx): Promise<void> {
+  async function lockFor(
+    actor: Actor,
+    space: LoadedSpace,
+    tx: Tx,
+    action: SpaceAction = 'customers.manage',
+  ): Promise<void> {
     if (!(await spaces.lock(space.id, tx))) throw AppError.notFound(undefined, 'Space not found');
-    if (!can(actor, 'customers.manage', { links: await space.linksUnder(tx) })) {
+    if (!can(actor, action, { links: await space.linksUnder(tx) })) {
       throw AppError.forbidden();
     }
   }
@@ -91,9 +98,10 @@ export function createCustomersService({ runInTransaction, audit, spaces }: Depe
 
     /**
      * Edits a customer, in one transaction and in this order: the space's lock; `can()` on the links
-     * read under it; the customer, the space's (else `not_found`); only the fields the edit sets to
-     * a new value, `null` clearing the phone; a new phone another customer holds → `PHONE_TAKEN`;
-     * its audit entry. An edit that changes nothing writes and audits nothing.
+     * read under it; the customer, the space's (else `not_found`), not archived (else
+     * `CUSTOMER_ARCHIVED`); only the fields the edit sets to a new value, `null` clearing the phone;
+     * a new phone another customer holds → `PHONE_TAKEN`; its audit entry. An edit that changes
+     * nothing writes and audits nothing.
      */
     edit(
       actor: Actor,
@@ -105,6 +113,7 @@ export function createCustomersService({ runInTransaction, audit, spaces }: Depe
         await lockFor(actor, space, tx);
         const current = await repository.findIn(space.id, customerId, tx);
         if (!current) throw AppError.notFound(undefined, 'Customer not found');
+        if (current.archivedAt) throw AppError.conflict('CUSTOMER_ARCHIVED');
         const { data, before, after } = customerChange(current, request);
         if (Object.keys(data).length === 0) return toCustomer(current);
         if (data.phone && (await heldByAnother(space.id, data.phone, customerId, tx))) {
@@ -121,6 +130,65 @@ export function createCustomersService({ runInTransaction, audit, spaces }: Depe
             spaceId: space.id,
             before,
             after,
+          },
+          tx,
+        );
+        return toCustomer(row);
+      });
+    },
+
+    /** The space's customer with this id, in the caller's transaction when given, or `null`. */
+    async findIn(spaceId: number, customerId: number, tx?: Tx): Promise<Customer | null> {
+      const row = await repository.findIn(spaceId, customerId, tx);
+      return row && toCustomer(row);
+    },
+
+    /**
+     * Archives the customer now, in the caller's transaction (the desk's, which holds the space's
+     * lock and has asked `can()` and whether they are present), audited `customer.archived`.
+     */
+    async archive(actor: Actor, space: LoadedSpace, customerId: number, tx: Tx): Promise<Customer> {
+      const row = await repository.setArchived(customerId, now(), tx);
+      await audit(
+        {
+          actorId: actor.id,
+          action: 'customer.archived',
+          entityType: 'customer',
+          entityId: customerId,
+          spaceId: space.id,
+          after: { archivedAt: row.archivedAt?.toISOString() ?? null },
+        },
+        tx,
+      );
+      return toCustomer(row);
+    },
+
+    /**
+     * Restores an archived customer, the owner's, in one transaction and in this order: the space's
+     * lock; `can()` (`customers.archive`) on the links read under it; the customer, the space's
+     * (else `not_found`); one not archived answered as it is; a phone another customer now holds →
+     * `PHONE_TAKEN`; audited `customer.restored` with when they were archived.
+     */
+    restore(actor: Actor, space: LoadedSpace, customerId: number): Promise<Customer> {
+      return runInTransaction(async (tx) => {
+        await lockFor(actor, space, tx, 'customers.archive');
+        const current = await repository.findIn(space.id, customerId, tx);
+        if (!current) throw AppError.notFound(undefined, 'Customer not found');
+        const { archivedAt } = current;
+        if (!archivedAt) return toCustomer(current);
+        if (current.phone && (await heldByAnother(space.id, current.phone, customerId, tx))) {
+          throw phoneTaken();
+        }
+
+        const row = await repository.setArchived(customerId, null, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'customer.restored',
+            entityType: 'customer',
+            entityId: customerId,
+            spaceId: space.id,
+            before: { archivedAt: archivedAt.toISOString() },
           },
           tx,
         );

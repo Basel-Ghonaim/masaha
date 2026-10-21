@@ -349,7 +349,12 @@ export function createApi({
     spaceSettings,
     logger,
   });
-  const customers = createCustomersService({ runInTransaction, audit: writeAudit, spaces });
+  const customers = createCustomersService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    now: clock,
+  });
   const occupancy = createOccupancyService({
     runInTransaction,
     audit: writeAudit,
@@ -366,6 +371,7 @@ export function createApi({
     spaces,
     spaceSettings,
     visits,
+    subscriptions,
     customers,
     payments,
     occupancy,

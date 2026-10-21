@@ -55,5 +55,10 @@ export function createDeskManageRouter(controller: DeskController): Router {
     controller.writeOffVisit,
   );
   router.delete('/visits/:visitId/write-off', mayWriteOff, controller.undoWriteOff);
+  router.post(
+    '/customers/:customerId/archive',
+    requireCan('customers.archive'),
+    controller.archiveCustomer,
+  );
   return router;
 }
