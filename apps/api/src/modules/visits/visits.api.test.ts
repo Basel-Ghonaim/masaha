@@ -133,6 +133,25 @@ describe("a visit's quote and the visit terms", () => {
     });
   });
 
+  it("the quote of a stay past its day's end charges it up to 23:59 of its check-in's day, at the time sent back", async () => {
+    // Checked in on Saturday at 21:00, after closing, so due at 23:59: 2 h 59 min, up after 15
+    // minutes, is 3 hours at 5 ₪ (up to 10:20, 13 h 20 min, it would be capped at the day price).
+    const { id } = await createVisit(spaceId, {
+      checkedInAt: new Date('2026-10-17T21:00:00+03:00'),
+      hourRateAgorot: 500,
+      dayRateAgorot: 2_500,
+    });
+
+    const response = await read(owner, `/visits/${String(id)}`);
+    expect(response.status).toBe(200);
+    expect((dataOf(response) as { quote: object }).quote).toEqual({
+      at: '2026-10-18T07:20:00.000Z',
+      chargeAgorot: 1_500,
+      billedMinutes: 179,
+      capApplied: false,
+    });
+  });
+
   it('the visit terms: the rounding, the cap, the rates per shift, the student rates only where they change one, and whether the caller may type a price', async () => {
     const terms = await read(owner, '/visit-terms');
     expect(terms.status).toBe(200);

@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -9,7 +9,7 @@
 - Auth: `Authorization: Bearer <accessToken>` on protected endpoints; the refresh token travels only as its cookie. A protected endpoint reads the account on every request: a token whose account does not exist or is suspended, or that was signed before every session of the account last ended (a password change, a reset, a suspension even once restored, a role change, a temporary password, a Google link), answers `unauthorized` (401), and the role it acts with is the account's now ([security.md](../backend/security.md#authorization)).
 - The server **never sends display text** for the UI. It sends error `type`, an optional domain `code`, and field-error codes; the client translates ([ADR 0006](../architecture/decisions/0006-localisation-approach.md)).
 - **Request id:** every response carries an `X-Request-Id` header, a UUID the server generates for each request, and an error repeats it in the envelope (§2). It matches the request's log lines ([backend conventions §10](../backend/conventions.md#10-logging)). The server ignores any id the client sends.
-- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in and check-out, and a visit's payment after its check-out (2026-10-20, #100) ([Front desk (managed)](#front-desk-managed)); a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
+- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in and check-out, and a visit's payment after its check-out (2026-10-20, #100) ([Front desk (managed)](#front-desk-managed)), and a customer's creation (2026-10-21, #102, [Customers (managed)](#customers-managed)); a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
 
 ## 2. Response envelope
 
@@ -65,6 +65,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - a space's packages (`GET /manage/spaces/:spaceId/packages`), retired ones included: a space keeps tens at most, typed by hand, and the owner's list and the front desk's picker both read them whole (§5, *Packages (managed)*; why: [packages › Decisions](../features/packages.md#api-decisions)).
 - a space's staff (`GET /manage/spaces/:spaceId/staff`), every reception link, active or not: a space has few, and the owner's page reads them whole (§5, *Staff (managed)*; why: [space-links › Decisions](../features/space-links.md#api-decisions)).
 - the people present at a space (`GET /manage/spaces/:spaceId/occupancy`), bounded by who is there: the desk's main view reads its state in one request on a weak connection (§5, *Occupancy (managed)*; why: [occupancy › Decisions](../features/occupancy.md#api-decisions)).
+- a customer's subscriptions and unpaid visits in their file (`GET /manage/spaces/:spaceId/customers/:customerId`), bounded by one customer (§5, *Customers (managed)*; 2026-10-21, #102).
 
 ## 5. Endpoints
 
@@ -351,7 +352,7 @@ A space's state now, as its staff see it: who is present (the open visits plus t
 ```ts
 LiveStatus = 'AVAILABLE' | 'FULL' | 'CLOSED'
 PresentPerson =
-  | { kind: 'VISIT', id, name, since, chargeNowAgorot: number | null }  // name: the visitor's, or their customer's; the charge so far, null with no rate
+  | { kind: 'VISIT', id, name, since, chargeNowAgorot: number | null }  // name: the visitor's, or their customer's; the charge so far (up to its due time), null with no rate
   | { kind: 'CHECK_IN', id, customerId, name, since }  // name: the customer's; since: the check-in time
 SpaceOccupancyNow = {
   status: LiveStatus | null,                    // null: unverified, no opening hours, or open with no capacity
@@ -374,6 +375,77 @@ SpaceOccupancyNow = {
 #### `DELETE /manage/spaces/:spaceId/status-override` · 🧾
 - **200:** `SpaceOccupancyNow`, with no override. Clears the override in force, audited `space.statusOverrideCleared`; with none in force, writes nothing.
 - **Errors:** `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+
+### Customers (managed)
+
+A space's customers: everyone it keeps on file, a subscriber or a visitor who left a debt ([data-model › Operations](../architecture/data-model.md#operations)), private to its staff. The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The list, the file, the create and the edit are the staff's (🧾); the archive and the restore are the owner's (🏢). Each is refused with `forbidden` (403) before its body is read for whoever may not, and again for an owner or reception whose link ended meanwhile. Built 2026-10-21, #102.
+
+- **The fields** (`@masaha/shared/customers`): `name`, 1–60 characters, NFC-normalised and trimmed, with no bidirectional controls and no control characters or line separators (`invalid_format`); `phone`, optional, normalised to E.164 (`invalid_format` otherwise), held by at most one customer of the space that is not archived: another one's is refused with `conflict` (409) `PHONE_TAKEN` and `errors.phone = ["not_unique"]`, writing nothing. An archived customer's phone is free.
+- **Archived, never deleted** ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): an archived customer keeps their records and debts, is not edited (`CUSTOMER_ARCHIVED`) until the owner restores them, and frees their phone for another customer.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the customer as the entity and its space as the entry's: `customer.created` (`after`: `{ name, phone }`), `customer.edited` (`before` and `after`: only the fields that changed), `customer.archived` (`after`: `{ archivedAt }`) and `customer.restored` (`before`: `{ archivedAt }`); an edit that changes nothing, and a repeated archive or restore, write nothing.
+
+```ts
+Customer = {
+  id: number,
+  name: string,
+  phone: string | null,          // E.164
+  archivedAt: string | null      // set while archived
+}
+```
+
+#### `POST /manage/spaces/:spaceId/customers` · 🧾 · `Idempotency-Key`
+- **Body:** `{ name, phone? }`.
+- **201:** `Customer`; a retry with the same key answers the first customer as it is now, 201, and writes nothing.
+- **Errors**, each writing nothing: `validation` (422) on `idempotencyKey` (§1), then on the body, before anything is read; `forbidden` (403); `conflict` (409) `PHONE_TAKEN`; `not_found` (404), also for a space deleted meanwhile.
+
+#### `PATCH /manage/spaces/:spaceId/customers/:customerId` · 🧾
+- **Body:** `{ name?, phone? }`: what is absent is kept; `phone: null` clears it.
+- **200:** `Customer`.
+- **Errors**, each writing nothing: `validation` (422) on the body, before anything is read; `forbidden` (403); `not_found` (404) for a customer that is not the space's; `conflict` (409) `CUSTOMER_ARCHIVED` for an archived customer, `PHONE_TAKEN` for a new phone another customer holds.
+
+#### `POST /manage/spaces/:spaceId/customers/:customerId/archive` · 🏢
+- **200:** `Customer`, archived now; one already archived is answered as it is. A customer who owes is archived (the web asks first, DK-014): the debt stays theirs.
+- **Errors**, each writing nothing: `forbidden` (403) for reception, before anything is read, and for an owner whose link ended meanwhile; `not_found` (404) for a customer that is not the space's; `conflict` (409) `MEMBER_ALREADY_CHECKED_IN` for a customer present by an open check-in or an open visit.
+
+#### `POST /manage/spaces/:spaceId/customers/:customerId/restore` · 🏢
+- **200:** `Customer`, no longer archived; one not archived is answered as it is.
+- **Errors**, each writing nothing: `forbidden` (403) for reception, before anything is read, and for an owner whose link ended meanwhile; `not_found` (404) for a customer that is not the space's; `conflict` (409) `PHONE_TAKEN` when another customer now holds their phone.
+
+#### `GET /manage/spaces/:spaceId/customers` · 🧾
+- **Query:** `?q=&status=&kind=&packageId=&payment=&page=&limit=` (`customersQuerySchema`, `@masaha/shared/desk`):
+  - `q`, 1–60 characters: digits only, at least two once spaces and a plus are removed, match the end of a phone; anything else matches a name, Arabic folded as the directory's search folds it (data model › Search);
+  - `status`: `UPCOMING`, `ACTIVE`, `ENDING_SOON` or `EXPIRED`, the customer's current subscription's (the one running, else the next, else the last); `ARCHIVED` lists the archived customers only, the owner's (reception `forbidden`, 403);
+  - `kind`: `PACKAGE`, `CUSTOM` (their current subscription from a package, or not) or `NONE` (no subscription); `packageId`: the current subscription's package, which implies `PACKAGE` (`invalid_choice` on `kind` with another);
+  - `payment`: `OWES` (a debt above zero), `CREDIT` (credit above zero) or `SETTLED` (neither).
+- **200:** `CustomerRow[]`, by name then id, with `meta` (§4). Every filter is applied **before** the page is cut, so every page is full and the total right; archived customers are left out unless `status=ARCHIVED`. Debt, credit and the payment filter are computed in the database ([data-model › Customer debt](../architecture/data-model.md#derived-values-computed-not-stored)). No export of customers or phones exists, for anyone. Read without a lock.
+- **Errors:** `validation` (422) on the query; `forbidden` (403) for reception's `status=ARCHIVED`; `not_found` (404).
+
+#### `GET /manage/spaces/:spaceId/customers/:customerId` · 🧾
+- **200:** `CustomerFile`: the customer, their debt and credit, who of them is present (an open check-in or an open visit), every subscription with its status, progress, due, paid and balance (the latest started first, then by id), and their unpaid visits — closed, not written off, owing or unpriced — the oldest first, each with its payments, voided ones marked. Its lists are answered whole (§4). Read without a lock.
+- **Errors:** `not_found` (404), also for a customer that is not the space's.
+
+```ts
+CustomerBalance = { debtAgorot: number, creditAgorot: number }   // debt: the positive balances; credit: a usage-based subscription's paid ahead
+SubscriptionState = {
+  id, customerId, packageId: number | null, name,
+  startsOn: string | null, endsOn: string | null,                 // Gaza dates, YYYY-MM-DD
+  totalDays, daysPerWeek, hoursPerDay, totalHours: number | null,
+  billing: "FIXED" | "PER_HOUR" | "PER_DAY", priceAgorot, audience, shiftId: number | null,
+  ended: { at, byId } | null,
+  status: "UPCOMING" | "ACTIVE" | "ENDING_SOON" | "EXPIRED",
+  progress: { daysUsed, daysThisWeek, minutesUsed, minutesToday },   // days with a check-in; closed stays' whole minutes
+  dueAgorot: number
+}
+ItemPayment = VisitPayment & { voided: { at, byId, reason } | null }
+CustomerRow = Customer & CustomerBalance & {
+  current: { id, name, packageId: number | null, endsOn: string | null, status } | null
+}
+CustomerFile = { customer: Customer } & CustomerBalance & {
+  present: { kind: "CHECK_IN", id, subscriptionId, since } | { kind: "VISIT", id, since } | null,
+  subscriptions: (SubscriptionState & { paidAgorot, balanceAgorot })[],
+  unpaidVisits: { visit: DeskVisit, payments: ItemPayment[], paidAgorot, balanceAgorot: number | null }[]
+}
+```
 
 ### Front desk (managed)
 
@@ -432,7 +504,7 @@ VisitTerms = {
 
 #### `POST /manage/spaces/:spaceId/visits/:visitId/check-out` · 🧾 · `Idempotency-Key`
 - **Body:** `{ checkedOutAt?, payment?, phone?, customerName?, charge? }`.
-- **200:** `VisitCheckOut`: the visit closed, its charge or none, and the payment taken, if any.
+- **200:** `VisitCheckOut`: the visit closed, its charge or none, and the payment taken, if any. A stay past its due time ([data-model](../architecture/data-model.md#front-desk-and-money), *Auto check-out*) is closed at that due time, its `checkedOutAt`, and charged up to it; the audit keeps the request's own time (2026-10-21, #102).
 - **Errors:** `validation` (422), each writing nothing: on `idempotencyKey` (§1); on the body, before anything is read; `out_of_range` on `checkedOutAt`, also for a time before the visit's check-in; `required` on `phone` when any part is left unpaid on a visit with no customer; `required` on `charge` when the visit has no rate and the caller may type a price; `invalid_choice` on `charge` when the visit has a rate; `forbidden` (403) `PRICE_TYPING_NOT_ALLOWED` for a typed price reception may not type, and no code for an owner or reception whose link ended meanwhile; `conflict` (409) `PAYMENT_EXCEEDS_DUE` for a payment above the charge, `VISIT_NOT_PRICED` for a payment on an unpriced close, both from the ledger, `VISIT_ALREADY_CLOSED` for a payment on a visit another key already closed, `VISIT_HAS_CUSTOMER` for a phone that is not the visit's customer's, and no code for a key that paid another visit; `not_found` (404) for a visit that is not the space's, also for a space deleted meanwhile.
 
 #### `POST /manage/spaces/:spaceId/payments` · 🧾 · `Idempotency-Key`
@@ -447,7 +519,7 @@ ReceivedPayment = { visit: DeskVisit, payment: VisitPayment, paidAgorot: number,
 ```
 
 #### `GET /manage/spaces/:spaceId/visits/:visitId` · 🧾
-- **200:** `QuotedVisit`: the visit, with its quote while it is open, its charge now by the rates it copied and the rounding and cap in force; the desk sends the quote's `at` back as the check-out's `checkedOutAt`. Read without a lock.
+- **200:** `QuotedVisit`: the visit, with its quote while it is open, its charge now by the rates it copied and the rounding and cap in force — a stay past its due time charged up to it, as its check-out will be (2026-10-21, #102); the desk sends the quote's `at` back as the check-out's `checkedOutAt`. Read without a lock.
 - **Errors:** `not_found` (404), also for a visit that is not the space's.
 
 #### `GET /manage/spaces/:spaceId/visit-terms` · 🧾
@@ -504,8 +576,8 @@ The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conve
 - **Mounted only when `JOBS_SECRET` is set;** otherwise `not_found` (404), as any unknown path.
 - **Auth:** `Authorization: Bearer <JOBS_SECRET>`, compared in constant time; a missing or wrong secret is `unauthorized` (401), no code, and runs nothing.
 - **Runs** each job in turn, each at the run's time: `visits.autoCheckOut` and `subscriptions.autoCheckOut` close every open stay whose due time has passed, at that due time, never at the run's ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Auto check-out*), up to 500 a job a run; `remaining` counts the due stays left to the next run. A second run closes nothing more.
-- **200:** `{ ranAt, jobs: [{ name, done }] }`, `done` each job's counts (`{ visits, remaining }`, `{ checkIns, remaining }`).
-- **Errors:** `server` (500) when any job failed: the others still ran, and the failure is logged with the job's name, so the cron service shows it. A job fails when any of its stays could not be closed: the stays after it are still closed, and each one not closed is logged with its id (`stay not closed`).
+- **200:** `{ ranAt, jobs: [{ name, done }] }`, `done` each job's counts (`{ visits, remaining, failed }`, `{ checkIns, remaining, failed }`). `failed` counts the stays the job could not close: the stays after one are still closed, and each one not closed is logged with its id (`stay not closed`); the run still answers 200, so one bad stay never turns every call red (2026-10-21, #102).
+- **Errors:** `server` (500) when a job itself threw, so it could not run: the others still ran, and the failure is logged with the job's name (`job failed`), so the cron service shows it.
 - **Audit:** `visit.autoCheckedOut` (`after`: `{ checkedOutAt, chargeAgorot }`) and `checkIn.autoCheckedOut` (`after`: `{ checkedOutAt }`), each with no actor, in the closing's own transaction.
 
 ### Lookups (public)
@@ -928,4 +1000,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off, or leaving to a customer, a visit with nothing owed, 2026-10-20, #100) · `VISIT_WRITTEN_OFF` (a payment on a written-off visit, from the ledger, or leaving it to a customer, 2026-10-20, #100) · `VISIT_HAS_CUSTOMER` (a phone that is not the customer's of a visit that has one, 2026-10-20, #100).
+`EMAIL_TAKEN` · `PHONE_TAKEN` (a phone another customer of the space holds, not archived, 2026-10-21, #102) · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` (archiving a customer who is present, 2026-10-21, #102) · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off, or leaving to a customer, a visit with nothing owed, 2026-10-20, #100) · `VISIT_WRITTEN_OFF` (a payment on a written-off visit, from the ledger, or leaving it to a customer, 2026-10-20, #100) · `VISIT_HAS_CUSTOMER` (a phone that is not the customer's of a visit that has one, 2026-10-20, #100) · `CUSTOMER_ARCHIVED` (editing an archived customer, 2026-10-21, #102).

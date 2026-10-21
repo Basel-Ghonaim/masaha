@@ -66,7 +66,10 @@ describe('the auto check-out of visits', () => {
     const { id } = await openVisit(sunday('15:46:00'));
 
     const jobs = await runAt(sunday('18:04:00'));
-    expect(jobs[0]).toEqual({ name: 'visits.autoCheckOut', done: { visits: 1, remaining: 0 } });
+    expect(jobs[0]).toEqual({
+      name: 'visits.autoCheckOut',
+      done: { visits: 1, remaining: 0, failed: 0 },
+    });
     expect(await stored(id)).toMatchObject({
       checkedOutAt: sunday('18:00:00'),
       checkoutMethod: 'AUTO',
@@ -85,7 +88,7 @@ describe('the auto check-out of visits', () => {
     const audited = await auditEntries();
 
     const jobs = await runAt(sunday('18:09:00'));
-    expect(jobs[0]?.done).toEqual({ visits: 0, remaining: 0 });
+    expect(jobs[0]?.done).toEqual({ visits: 0, remaining: 0, failed: 0 });
     expect(await auditEntries()).toEqual(audited);
   });
 
@@ -95,7 +98,7 @@ describe('the auto check-out of visits', () => {
     const today = await openVisit(sunday('09:00:00'));
 
     const jobs = await runAt(sunday('10:20:00'));
-    expect(jobs[0]?.done).toEqual({ visits: 2, remaining: 0 });
+    expect(jobs[0]?.done).toEqual({ visits: 2, remaining: 0, failed: 0 });
     expect(await stored(friday.id)).toMatchObject({
       checkedOutAt: on('16', '18:00:00'),
       chargeAgorot: 2_500, // 8 hours, capped at the day price
@@ -112,7 +115,7 @@ describe('the auto check-out of visits', () => {
     const { id } = await openVisit(sunday('10:00:00'));
 
     const jobs = await runAt(sunday('17:59:00'));
-    expect(jobs[0]?.done).toEqual({ visits: 0, remaining: 0 });
+    expect(jobs[0]?.done).toEqual({ visits: 0, remaining: 0, failed: 0 });
     expect(await stored(id)).toMatchObject({ checkedOutAt: null, chargeAgorot: null });
   });
 
@@ -165,7 +168,7 @@ describe('the auto check-out of visits', () => {
     const jobs = await runAt(sunday('18:30:00'));
     expect(jobs[1]).toEqual({
       name: 'subscriptions.autoCheckOut',
-      done: { checkIns: 1, remaining: 0 },
+      done: { checkIns: 1, remaining: 0, failed: 0 },
     });
     expect(await prisma.checkIn.findUniqueOrThrow({ where: { id: checkIn.id } })).toMatchObject({
       checkedOutAt: sunday('18:00:00'),
@@ -204,6 +207,7 @@ describe('the auto check-out of visits', () => {
     expect((dataOf(response) as { jobs: { done: unknown }[] }).jobs[0]?.done).toEqual({
       visits: 0,
       remaining: 0,
+      failed: 0,
     });
     expect(await stored(id)).toMatchObject({
       checkedOutAt: sunday('17:00:00'),

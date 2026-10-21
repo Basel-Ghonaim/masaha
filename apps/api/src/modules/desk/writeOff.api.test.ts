@@ -287,6 +287,48 @@ describe('undoing a write-off', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
+  it("refuses a stranger, another space's owner and the admin with not_found; another space's visit is not_found", async () => {
+    const { id } = await closed(2_500);
+    await writeOff(owner, id);
+    const theirs = await closed(2_500, { space: otherSpaceId });
+    await prisma.visit.update({
+      where: { id: theirs.id },
+      data: { writtenOffAt: new Date(), writtenOffById: unrelatedOwner.id, writeOffReason: REASON },
+    });
+    const audited = await auditEntries();
+
+    for (const caller of [stranger, unrelatedOwner, admin]) {
+      const response = await undo(caller, id);
+      expect(response.status).toBe(404);
+      expect(errorOf(response).type).toBe('not_found');
+    }
+    const response = await undo(owner, theirs.id);
+    expect(response.status).toBe(404);
+    expect(errorOf(response).type).toBe('not_found');
+    expect(await stored(id)).toMatchObject({ writeOffReason: REASON });
+    expect(await stored(theirs.id)).toMatchObject({ writeOffReason: REASON });
+    expect(await auditEntries()).toEqual(audited);
+  });
+
+  it("an owner whose link ended while the undo waited on the space's lock is refused 403, writing nothing", async () => {
+    const { id } = await closed(2_500);
+    await writeOff(owner, id);
+    const audited = await auditEntries();
+
+    const response = await whileHeld(
+      lockSpace,
+      () => undo(owner, id),
+      (tx) =>
+        tx.spaceManager.update({
+          where: { spaceId_userId: { spaceId, userId: owner.id } },
+          data: { deactivatedAt: new Date() },
+        }),
+    );
+    expect(response.status).toBe(403);
+    expect(await stored(id)).toMatchObject({ writeOffReason: REASON });
+    expect(await auditEntries()).toEqual(audited);
+  });
+
   it("reception may not undo (403); the space's other routes still answer it", async () => {
     const { id } = await closed(2_500);
     await writeOff(owner, id);

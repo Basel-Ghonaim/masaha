@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
-import { phoneSchema, textSchema } from '../core/index.ts';
+import { paginationQuerySchema, phoneSchema, textSchema } from '../core/index.ts';
+import { CUSTOMER_NAME_MAX_LENGTH } from '../customers/index.ts';
 import { paymentSchema } from '../payments/index.ts';
+import { SUBSCRIPTION_STATUSES } from '../subscriptions/index.ts';
 import { priceVisitSchema, VISITOR_NAME_MAX_LENGTH } from '../visits/index.ts';
 
 // The requests of the front desk's orchestrations (docs/api/api-contract.md §5, Front desk
@@ -44,3 +46,29 @@ export const leaveToCustomerSchema = z.object({
   customerName: textSchema(1, VISITOR_NAME_MAX_LENGTH).optional(),
 });
 export type LeaveToCustomerRequest = z.infer<typeof leaveToCustomerSchema>;
+
+/** The customers list's status filter: their current subscription's status, or archived (the owner's). */
+export const CUSTOMER_STATUS_FILTERS = [...SUBSCRIPTION_STATUSES, 'ARCHIVED'] as const;
+/** The customers list's kind filter: their current subscription from a package, custom, or none. */
+export const CUSTOMER_KINDS = ['PACKAGE', 'CUSTOM', 'NONE'] as const;
+/** The customers list's payment filter: they owe, they are in credit, or neither. */
+export const PAYMENT_FILTERS = ['OWES', 'CREDIT', 'SETTLED'] as const;
+
+/**
+ * The customers list's page and filters: a search of a name or a phone's last digits; their current
+ * subscription's status, its kind and its package; their payment state. A package implies the kind
+ * `PACKAGE`: with another kind it is `invalid_choice` on `kind`.
+ */
+export const customersQuerySchema = paginationQuerySchema
+  .extend({
+    q: textSchema(1, CUSTOMER_NAME_MAX_LENGTH).optional(),
+    status: z.enum(CUSTOMER_STATUS_FILTERS).optional(),
+    kind: z.enum(CUSTOMER_KINDS).optional(),
+    packageId: z.coerce.number().int().positive().max(2_147_483_647).optional(),
+    payment: z.enum(PAYMENT_FILTERS).optional(),
+  })
+  .refine(
+    ({ packageId, kind }) => packageId === undefined || kind === undefined || kind === 'PACKAGE',
+    { path: ['kind'], params: { code: 'invalid_choice' } },
+  );
+export type CustomersQuery = z.infer<typeof customersQuerySchema>;

@@ -1,6 +1,6 @@
 # Visits
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
 > **Authority:** The `visits` capability: a visitor's stay at a space, checked in by name, its rates and its charge. Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and its money rules by the [data model](../architecture/data-model.md#front-desk-and-money). The API is built; no web screen yet.
 > **Scope:** the API module `visits` (L3); `@masaha/shared/visits`. No web feature yet.
 
@@ -16,13 +16,13 @@
 - Lists a space's unpriced visits, and prices one by hand, with its reason, for whoever may type a price.
 - Writes a closed visit off, and undoes it, in the desk's transaction: audited `visit.writtenOff` and `visit.writeOffUndone`.
 - Leaves a closed visit's unpaid rest to a customer, in the desk's transaction (`leaveTo`), audited `visit.leftToCustomer`.
-- Answers the visits closed by the auto check-out, with their charges, and a page of them but the settled ones, for the uncollected visits [`payments`](payments.md) composes.
+- Answers visits of a space as the desk sees them, by id, for the uncollected visits [`payments`](payments.md) pages and a customer's file ([desk](desk.md)).
 
 ## Who uses it
 
 - **The front desk** ([desk](desk.md)), which orchestrates the check-in and the check-out, for the space's owner and reception; they read the quote and the terms through this module's own routes.
 - **`occupancy`**, which reads the open visits for *present*. No web screen reads it yet.
-- **`payments`**, which reads the visits closed by the auto check-out for the uncollected visits.
+- **`payments`**, which pages the uncollected visits and reads their visits here; **[`desk`](desk.md)**, for a customer's unpaid visits.
 - **The timed jobs** (`shared/jobs`, wired in the composition root), which run its auto check-out.
 
 ## Responsibility boundary
@@ -30,12 +30,12 @@
 - **Owns** the `visits` table, the write-off's columns included; the visit's rates and charge rules (`visitCharge.ts`, pure); the visit's audit entries.
 - **Reads** the space's prices and shifts, its week and a stay's auto check-out time from [`spaces`](spaces.md), and the settings (student prices, the rounding, the cap, reception's switch) from [`space-settings`](space-settings.md).
 - **Asks** `can()`'s `prices.typeByHand` for the terms' `mayTypePrice`, from the boundary's links; and, under the space's lock (`spaces.lock`), for pricing an unpriced visit.
-- **Leaves** the check-out's transaction, the space's lock and the check-out's typed-price decision to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
+- **Leaves** the desk's transactions (the check-in, the check-out, the write-off and its undo, `leaveTo`), the space's lock and the check-out's typed-price decision to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
 
 ## How it composes the platform
 
 - Its manage router holds the reads, behind the boundary that admits the space's staff, which is their check, and the pricing, behind `requireCan('attendance.record')`; the check-in's and the check-out's routes are the desk's ([conventions › the front desk](../backend/conventions.md#the-front-desk-desk)).
-- It runs its own transactions for the auto check-out (one per visit) and the pricing of an unpriced visit (under the space's lock); the check-in and the check-out run in the desk's.
+- It runs its own transactions for the auto check-out (one per visit) and the pricing of an unpriced visit (under the space's lock); the check-in, the check-out, the write-off and its undo, and `leaveTo` run in the desk's.
 - Each change is audited by the audit writer, in its transaction ([conventions §6](../backend/conventions.md#6-audit)).
 
 ## Behaviour and flows
@@ -46,9 +46,9 @@
 
 **The charge.** For the stay from the check-in to the check-out's time: its whole minutes, at least one, rounded by the space's rule in force, times the hour rate copied at check-in, capped at the day rate when the cap is on; with no hour rate, the day rate; with neither, none ([data model](../architecture/data-model.md#front-desk-and-money)).
 
-**The check-out.** In the desk's transaction: the visit's row locked (`FOR UPDATE`) after the space's lock, read only when it is the space's; then closed, `MANUAL`, with its charge and customer, and audited with the quote's time it was priced at and the request's own time.
+**The check-out.** In the desk's transaction: the visit's row locked (`FOR UPDATE`) after the space's lock, read only when it is the space's; the time its stay ends (`stayEndAt`: the quote's, never past the stay's due time); then closed, `MANUAL`, with its charge and customer, and audited with the quote's time it was priced at and the request's own time.
 
-**The reads.** The quote: the visit, and while it is open its charge at the clock's now, with its billed minutes, read without a lock. The terms: the settings, the prices and the shifts; the rates by the same rule as a check-in's; the student rates only where student prices are on and change a rate. The charges so far: one query for the open visits' rates, one for the settings.
+**The reads.** The quote: the visit, and while it is open its charge at the clock's now, with its billed minutes, read without a lock; a stay past its due time (`spaces`' rule, by the space's week and settings now) is charged up to it, as its check-out will be. The terms: the settings, the prices and the shifts; the rates by the same rule as a check-in's; the student rates only where student prices are on and change a rate. The charges so far: one query for the open visits' rates, one for the settings, one for the week; each stay up to now, or its due time if earlier.
 
 **The auto check-out.** Every open visit, of every space, a soft-deleted or hidden one's too, the earliest first; the weeks and the settings of their spaces, as they are now, in one query each; each visit's due time by `spaces`' rule; the ones due by the run's time, up to 500. Each in its own transaction: its row locked (`FOR UPDATE`) only while still open, so a check-out at the desk meanwhile wins and is left as it is; closed `AUTO` at its due time, charged for the stay up to then (none without a rate, left uncollected with no customer), and audited `visit.autoCheckedOut` with no actor.
 
@@ -67,7 +67,7 @@
 - **The quote is answered with the visit, and its `at` is the time the check-out charges.** *Why:* the desk shows a price and charges exactly that price (desk › the check-out's quote time). 2026-10-20, #95.
 - **The terms answer the student rates only where they change a rate, and whether this caller may type a price.** *Why:* the desk offers the student audience only where it matters (DI-41), and shows the typed-price field only to whoever may use it. 2026-10-20, #95.
 - **Audited `visit.checkedOut` with both the quote's time and the request's own time.** *Why:* the check-out is priced at the quote the desk showed, up to five minutes before the request; both times say which (the owner's decision). 2026-10-20, #95.
-- **The auto check-out closes a visit at its due time, never at the run's, each in its own transaction under its row's lock.** *Why:* a run every 5 minutes, or one after a pause, must charge what the closing would have; one failure must not undo the others, and a check-out at the desk meanwhile wins. 2026-10-20, #97. A visit that cannot be closed is logged, the next ones are still closed, and the job then fails, so the cron service shows it; a space without its settings row fails only its own visits. *Why:* one bad stay must not halt the job for every space (#97's review). 2026-10-20, #100.
+- **The auto check-out closes a visit at its due time, never at the run's, each in its own transaction under its row's lock.** *Why:* a run every 5 minutes, or one after a pause, must charge what the closing would have; one failure must not undo the others, and a check-out at the desk meanwhile wins. 2026-10-20, #97. A visit that cannot be closed is logged, the next ones are still closed, and the job then fails, so the cron service shows it; a space without its settings row fails only its own visits. *Why:* one bad stay must not halt the job for every space (#97's review). 2026-10-20, #100. The job no longer fails for it: it counts the visits not closed in `failed`, and the run answers 200; it fails only when it cannot run. *Why:* a stay that always fails would turn every run red, and a cron service may switch a job that keeps failing off for every space ([finding 114](../architecture/findings/114-a-stay-that-always-fails-turns-every-cron-call-red.md)). 2026-10-21, #102.
 - **It reads the week and the settings at the run.** *Why:* a change applies from then on, so a stay limit set later closes an open stay at its new due time (data model, *Auto check-out*). 2026-10-20, #97.
 - **An unpriced visit is priced once, by whoever may type a price, under the space's lock; a visit with a charge is refused (`VISIT_ALREADY_PRICED`), an open one too.** *Why:* a typed charge is the owner's decision with its reason, not to be overwritten silently; an open visit is priced at its check-out (Q4 of the desk's plan). 2026-10-20, #97.
 - **At most 500 visits a run; the rest are counted in `remaining` and closed by the next.** *Why:* one run stays short, online as locally; a backlog is caught up run by run. 2026-10-20, #97.
@@ -85,3 +85,4 @@
 - #95 — the check-in by name, its rates and its idempotency key's lookup; the charge and the check-out; the quote, the terms and the charges so far.
 - #97 — the auto check-out of visits; the unpriced visits and their pricing; the auto-closed visits the uncollected read pages.
 - #100 — a stay closed by its day's end, and one that cannot be closed logged without halting the job; a visit's write-off, its columns and `writeOff` on every visit answered; a closed visit left to a customer (`leaveTo`).
+- #102 — the auto check-out counts the visits it could not close (`failed`), and fails only when it cannot run; a stay's charge never past its due time, at the check-out, in the quote and in the charges so far (`stayEndAt`); visits by id as the desk sees them (`deskVisitsOf`), and the auto-closed readers gone (finding 113).

@@ -1,5 +1,7 @@
 import type { DomainErrorCode } from '../core/index.ts';
-import type { VisitPayment } from '../payments/index.ts';
+import type { Customer } from '../customers/index.ts';
+import type { CustomerBalance, ItemPayment, VisitPayment } from '../payments/index.ts';
+import type { SubscriptionState, SubscriptionStatus } from '../subscriptions/index.ts';
 import type { DeskVisit } from '../visits/index.ts';
 
 // The answers of the front desk's orchestrations (docs/api/api-contract.md §5, Front desk
@@ -28,3 +30,43 @@ export interface ReceivedPayment {
   paidAgorot: number;
   balanceAgorot: number;
 }
+
+/**
+ * A row of the customers list: the customer, their current subscription (the one running, else the
+ * next, else the last), and their debt and credit.
+ */
+export type CustomerRow = Customer &
+  CustomerBalance & {
+    current: {
+      id: number;
+      name: string;
+      packageId: number | null;
+      endsOn: string | null;
+      status: SubscriptionStatus;
+    } | null;
+  };
+
+/** Who of the customer is present now: an open check-in, or an open visit. */
+export type CustomerPresence =
+  | { kind: 'CHECK_IN'; id: number; subscriptionId: number; since: string }
+  | { kind: 'VISIT'; id: number; since: string };
+
+/** A closed visit the customer still owes on, with its payments (voided ones marked). */
+export interface UnpaidVisit {
+  visit: DeskVisit;
+  payments: ItemPayment[];
+  paidAgorot: number;
+  /** `null` while the visit has no charge (unpriced). */
+  balanceAgorot: number | null;
+}
+
+/**
+ * The customer's file: the customer, their debt and credit, who of them is present, every
+ * subscription with its status, progress and money (the latest started first), and their unpaid
+ * visits (the oldest first).
+ */
+export type CustomerFile = { customer: Customer } & CustomerBalance & {
+    present: CustomerPresence | null;
+    subscriptions: (SubscriptionState & { paidAgorot: number; balanceAgorot: number })[];
+    unpaidVisits: UnpaidVisit[];
+  };

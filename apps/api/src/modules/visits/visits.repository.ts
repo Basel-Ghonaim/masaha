@@ -111,6 +111,14 @@ export function createVisitsRepository() {
       return prisma.visit.findFirst({ where: { id: visitId, spaceId }, select: DESK_VISIT });
     },
 
+    /** These visits of the space, as the desk reads them; another space's are not read. */
+    deskVisitsOf(spaceId: number, visitIds: readonly number[], tx: Tx = prisma) {
+      return tx.visit.findMany({
+        where: { spaceId, id: { in: [...visitIds] } },
+        select: DESK_VISIT,
+      });
+    },
+
     /** These visits of the space, with their check-in time and rates; another space's are not read. */
     ratesOf(spaceId: number, visitIds: readonly number[]) {
       return prisma.visit.findMany({
@@ -200,42 +208,6 @@ export function createVisitsRepository() {
       { skip, take }: { skip: number; take: number },
     ): Promise<{ rows: DeskVisitRow[]; total: number }> {
       const where = { spaceId, checkedOutAt: { not: null }, chargeAgorot: null };
-      const [rows, total] = await Promise.all([
-        prisma.visit.findMany({
-          where,
-          select: DESK_VISIT,
-          orderBy: [{ checkedOutAt: 'desc' }, { id: 'desc' }],
-          skip,
-          take,
-        }),
-        prisma.visit.count({ where }),
-      ]);
-      return { rows, total };
-    },
-
-    /** The space's visits closed by the auto check-out and not written off, each with its charge. */
-    autoClosedIn(spaceId: number): Promise<{ id: number; chargeAgorot: number | null }[]> {
-      return prisma.visit.findMany({
-        where: { spaceId, checkoutMethod: 'AUTO', writtenOffAt: null },
-        select: { id: true, chargeAgorot: true },
-      });
-    },
-
-    /**
-     * A page of the space's visits closed by the auto check-out and not written off, but these,
-     * the latest closed first, then by id, and how many there are.
-     */
-    async autoClosedPage(
-      spaceId: number,
-      exceptIds: readonly number[],
-      { skip, take }: { skip: number; take: number },
-    ): Promise<{ rows: DeskVisitRow[]; total: number }> {
-      const where = {
-        spaceId,
-        checkoutMethod: 'AUTO' as const,
-        writtenOffAt: null,
-        id: { notIn: [...exceptIds] },
-      };
       const [rows, total] = await Promise.all([
         prisma.visit.findMany({
           where,

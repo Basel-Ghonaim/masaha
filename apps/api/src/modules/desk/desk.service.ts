@@ -1,9 +1,15 @@
 import type { DomainErrorCode } from '@masaha/shared/core';
+import type { Customer } from '@masaha/shared/customers';
 import type {
   CheckOutVisitRequest,
+  CustomerFile,
+  CustomerPresence,
+  CustomerRow,
+  CustomersQuery,
   LeaveToCustomerRequest,
   ReceivedPayment,
   ReceivePaymentRequest,
+  UnpaidVisit,
   VisitCheckOut,
 } from '@masaha/shared/desk';
 import type {
@@ -27,6 +33,7 @@ import type { OccupancyService } from '../occupancy/index.ts';
 import type { PaymentsService } from '../payments/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
+import type { SubscriptionsService } from '../subscriptions/index.ts';
 import type { LockedVisit, VisitsService } from '../visits/index.ts';
 
 interface Dependencies {
@@ -34,6 +41,7 @@ interface Dependencies {
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
   visits: VisitsService;
+  subscriptions: SubscriptionsService;
   customers: CustomersService;
   payments: PaymentsService;
   occupancy: OccupancyService;
@@ -53,6 +61,7 @@ export function createDeskService({
   spaces,
   spaceSettings,
   visits,
+  subscriptions,
   customers,
   payments,
   occupancy,
@@ -180,8 +189,9 @@ export function createDeskService({
      * Checks a visit out, in one transaction and in this order: the space's lock and `can()`; the
      * visit's row (`FOR UPDATE`); for a visit already closed, the first result when this key made
      * it, else the visit as it is, recording nothing, or `VISIT_ALREADY_CLOSED` when the request
-     * carries a payment. Otherwise its charge, at the quote's time, never before its check-in,
-     * from its rates and the rounding and cap in force; or, with no rate, the price typed by whoever
+     * carries a payment. Otherwise its charge, at the quote's time, never before its check-in, nor
+     * past the stay's due time, which then closes it (a stay never crosses into the next day), from
+     * its rates and the rounding and cap in force; or, with no rate, the price typed by whoever
      * may type one, which they must; or none, an unpriced close. Any part left unpaid needs a phone,
      * whose customer it is then left to; the visit is closed, then the payment recorded, which the
      * ledger checks against the charge.
@@ -210,10 +220,11 @@ export function createDeskService({
           return { visit: locked.visit, payment: recorded?.payment ?? null };
         }
 
-        const checkedOutAt = pricedAt(request.checkedOutAt, requestedAt);
-        if (checkedOutAt < locked.checkedInAt) {
+        const pricedTo = pricedAt(request.checkedOutAt, requestedAt);
+        if (pricedTo < locked.checkedInAt) {
           throw AppError.validation({ checkedOutAt: ['out_of_range'] });
         }
+        const checkedOutAt = await visits.stayEndAt(space.id, locked, pricedTo, settings, tx);
         const computed = visits.chargeOf(locked, checkedOutAt, settings);
         const mayType = can(actor, 'prices.typeByHand', {
           links,
@@ -385,6 +396,167 @@ export function createDeskService({
         }
         return visits.writeOff(actor.id, space.id, visitId, { reason, balanceAgorot }, tx);
       });
+    },
+
+    /**
+     * Archives a customer, the owner's, in one transaction and in this order: the space's lock and
+     * `can()` (`customers.archive`); the customer, the space's (else `not_found`); one already
+     * archived answered as it is; one present, by an open check-in or an open visit →
+     * `MEMBER_ALREADY_CHECKED_IN`, since the desk could no longer check them out from its list; then
+     * archived. A customer who owes is archived too: the debt stays theirs.
+     */
+    archiveCustomer(actor: Actor, space: LoadedSpace, customerId: number): Promise<Customer> {
+      return runInTransaction(async (tx) => {
+        await lockAtDesk(actor, space, tx, 'customers.archive');
+        const customer = await customers.findIn(space.id, customerId, tx);
+        if (!customer) throw AppError.notFound(undefined, 'Customer not found');
+        if (customer.archivedAt) return customer;
+        const [openCheckIns, openVisits] = await Promise.all([
+          subscriptions.openCheckInsIn(space.id, tx),
+          visits.openIn(space.id, tx),
+        ]);
+        const present = [...openCheckIns, ...openVisits].some(
+          (stay) => stay.customerId === customerId,
+        );
+        if (present) throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
+        return customers.archive(actor, space, customerId, tx);
+      });
+    },
+
+    /**
+     * A page of the space's customers (docs/backend/conventions.md › Composed reads), every filter
+     * applied before the page is cut: `subscriptions` answers the ids its status, kind and package
+     * keep, `payments` the ids that owe or are in credit (`SETTLED`: neither, excluded); `customers`
+     * then searches and pages those ids. Each row then gets its current subscription and its debt
+     * and credit, for the page's ids only. Archived customers only under `ARCHIVED`, the owner's.
+     * Read without a lock.
+     */
+    async customers(
+      actor: Actor,
+      space: LoadedSpace,
+      { q, status, kind, packageId, payment, ...page }: CustomersQuery,
+    ): Promise<{ rows: CustomerRow[]; total: number }> {
+      const archived = status === 'ARCHIVED';
+      if (archived && !can(actor, 'customers.archive', { links: space.links })) {
+        throw AppError.forbidden();
+      }
+      const at = now();
+      const include: number[][] = [];
+      const exclude: number[] = [];
+      const bySubscription = await subscriptions.customerIdsBy(
+        space.id,
+        { status: archived ? undefined : status, kind, packageId },
+        at,
+      );
+      if (bySubscription.include) include.push(bySubscription.include);
+      if (bySubscription.exclude) exclude.push(...bySubscription.exclude);
+      if (payment === 'OWES' || payment === 'CREDIT') {
+        include.push(await payments.customerIdsByPayment(space.id, payment, at));
+      } else if (payment === 'SETTLED') {
+        const [owing, inCredit] = await Promise.all([
+          payments.customerIdsByPayment(space.id, 'OWES', at),
+          payments.customerIdsByPayment(space.id, 'CREDIT', at),
+        ]);
+        exclude.push(...owing, ...inCredit);
+      }
+
+      const { rows, total } = await customers.page(
+        space.id,
+        { q, archived, include, exclude },
+        page,
+      );
+      const ids = rows.map(({ id }) => id);
+      const [current, balances] = await Promise.all([
+        subscriptions.currentOf(space.id, ids, at),
+        payments.customerBalances(space.id, ids, at),
+      ]);
+      return {
+        rows: rows.map((customer) => {
+          const state = current.get(customer.id);
+          return {
+            ...customer,
+            current: state
+              ? {
+                  id: state.id,
+                  name: state.name,
+                  packageId: state.packageId,
+                  endsOn: state.endsOn,
+                  status: state.status,
+                }
+              : null,
+            ...(balances.get(customer.id) ?? { debtAgorot: 0, creditAgorot: 0 }),
+          };
+        }),
+        total,
+      };
+    },
+
+    /**
+     * The customer's file: the customer (not the space's → `not_found`); their debt and credit; who
+     * of them is present; every subscription with its state and money; their unpaid visits — closed,
+     * not written off, a balance above zero or none (unpriced) — the oldest first, each with its
+     * payments, voided ones marked. The money from `payments`' one query. Read without a lock.
+     */
+    async customerFile(space: LoadedSpace, customerId: number): Promise<CustomerFile> {
+      const customer = await customers.findIn(space.id, customerId);
+      if (!customer) throw AppError.notFound(undefined, 'Customer not found');
+      const at = now();
+      const [states, items, balances, openCheckIns, openVisits] = await Promise.all([
+        subscriptions.statesOf(space.id, { customerId }, at),
+        payments.itemBalances(space.id, customerId, at),
+        payments.customerBalances(space.id, [customerId], at),
+        subscriptions.openCheckInsIn(space.id),
+        visits.openIn(space.id),
+      ]);
+
+      const subscriptionMoney = new Map(
+        items.flatMap((item) => (item.kind === 'SUBSCRIPTION' ? [[item.id, item] as const] : [])),
+      );
+      const unpaid = items.filter(
+        ({ kind, balanceAgorot }) => kind === 'VISIT' && (balanceAgorot ?? 1) > 0,
+      );
+      const unpaidIds = unpaid.map(({ id }) => id);
+      const [deskVisits, paymentsByVisit] = await Promise.all([
+        visits.deskVisitsOf(space.id, unpaidIds),
+        payments.paymentsFor(space.id, unpaidIds),
+      ]);
+
+      const checkIn = openCheckIns.find((open) => open.customerId === customerId);
+      const visit = openVisits.find((open) => open.customerId === customerId);
+      const present: CustomerPresence | null = checkIn
+        ? {
+            kind: 'CHECK_IN',
+            id: checkIn.id,
+            subscriptionId: checkIn.subscriptionId,
+            since: checkIn.checkedInAt.toISOString(),
+          }
+        : visit
+          ? { kind: 'VISIT', id: visit.id, since: visit.checkedInAt.toISOString() }
+          : null;
+
+      return {
+        customer,
+        ...(balances.get(customerId) ?? { debtAgorot: 0, creditAgorot: 0 }),
+        present,
+        subscriptions: states.map((state) => {
+          const money = subscriptionMoney.get(state.id);
+          const paidAgorot = money?.paidAgorot ?? 0;
+          return { ...state, paidAgorot, balanceAgorot: money?.balanceAgorot ?? state.dueAgorot };
+        }),
+        unpaidVisits: unpaid.flatMap(({ id, paidAgorot, balanceAgorot }): UnpaidVisit[] => {
+          const deskVisit = deskVisits.get(id);
+          return deskVisit
+            ? [
+                {
+                  visit: deskVisit,
+                  payments: paymentsByVisit.get(id) ?? [],
+                  paidAgorot,
+                  balanceAgorot,
+                },
+              ]
+            : [];
+        }),
+      };
     },
 
     /**

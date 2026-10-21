@@ -392,6 +392,34 @@ describe('checking a visit out', () => {
     });
   });
 
+  it("a stay checked out the next morning is closed and charged at 23:59 of its check-in's day; the audit keeps the request's time", async () => {
+    // Checked in on Saturday at 21:00, after closing, so due at 23:59: 2 h 59 min, up after 15
+    // minutes, is 3 hours at 5 ₪ (up to 10:20, 13 h 20 min, it would be capped at the day price).
+    const { id } = await createVisit(spaceId, {
+      checkedInAt: new Date('2026-10-17T21:00:00+03:00'),
+      hourRateAgorot: 500,
+      dayRateAgorot: 2_500,
+    });
+
+    const response = await checkOut(owner, id, {
+      checkedOutAt: '2026-10-18T10:18:00+03:00',
+      payment: { amountAgorot: 1_500, method: 'CASH' },
+    });
+
+    expect(response.status).toBe(200);
+    expect((dataOf(response) as { visit: object }).visit).toMatchObject({
+      checkedOutAt: '2026-10-17T20:59:00.000Z',
+      checkoutMethod: 'MANUAL',
+      charge: { amountAgorot: 1_500, capApplied: false },
+    });
+    const [checkedOut] = await auditEntries();
+    expect(checkedOut?.after).toMatchObject({
+      checkedOutAt: '2026-10-17T20:59:00.000Z',
+      requestedAt: '2026-10-18T07:20:00.000Z',
+      chargeAgorot: 1_500,
+    });
+  });
+
   it('a visit with no rate: the owner types its charge with a reason, recorded with who typed it', async () => {
     await withoutPrices();
     const visitId = await checkedIn();

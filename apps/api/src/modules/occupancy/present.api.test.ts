@@ -259,6 +259,23 @@ describe("a space's state now", () => {
     ]);
   });
 
+  it("a visit present past its day's end is charged so far only up to 23:59 of its check-in's day", async () => {
+    // Checked in on Saturday at 21:00, after closing, so due at 23:59: 2 h 59 min, up after 15
+    // minutes, is 3 hours at 5 ₪ (up to now, 13 hours, it would be capped at the day price).
+    const overdue = await createVisit(spaceId, {
+      checkedInAt: new Date('2026-10-17T21:00:00+03:00'),
+      hourRateAgorot: 500,
+      dayRateAgorot: 2_500,
+    });
+
+    const { people } = dataOf(await occupancyNow(reception)) as {
+      people: { id: number; chargeNowAgorot?: unknown }[];
+    };
+    expect(people.map(({ id, chargeNowAgorot }) => ({ id, chargeNowAgorot }))).toEqual([
+      { id: overdue.id, chargeNowAgorot: 1_500 },
+    ]);
+  });
+
   it('a CLOSURE announcement in force closes it; a deleted, ended or other-type one does not', async () => {
     await setWeek(spaceId, EVERY_DAY);
     await prisma.spaceOccupancy.create({ data: { spaceId, capacity: 5 } });
