@@ -87,6 +87,23 @@ describe('the sign-in page', () => {
     expect(where(router)).toBe('/spaces');
   });
 
+  it('moves the focus to the site’s main content once signed in, the sign-in button gone', async () => {
+    fakeTransport(() => ok(aSession()));
+    renderSite('/login?next=%2Fabout');
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('Email'), 'sara@example.com');
+    await user.type(screen.getByLabelText('Password'), 'gaza2026');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'About Masaha' }),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('main')).toHaveFocus();
+    });
+  });
+
   it('lands an owner in their space’s overview, through RequireGuest, when no page asked for the sign-in', async () => {
     fakeTransport(() => ok(aSession({ role: 'OWNER', spaces: [{ spaceId: 7, role: 'OWNER' }] })));
     const router = renderSite('/login');
