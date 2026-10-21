@@ -84,7 +84,7 @@ afterEach(() => {
 
 describe('DirectoryList', () => {
   it.each([390, 1440])(
-    'names the search, the sort, the results and the pages; each card is one link named by its space; axe-clean at %i px',
+    'names the search, the sort, the results and the pages; each card is one link named by its space, its details read after; axe-clean at %i px',
     async (width) => {
       startPreferences('ar');
       stubScreenWidth(width);
@@ -104,6 +104,9 @@ describe('DirectoryList', () => {
         '/spaces/space-1',
         '/spaces/space-2',
       ]);
+      expect(within(results).getByRole('link', { name: 'مساحة 1' })).toHaveAccessibleDescription(
+        'الرمال · غزة متاح موثّقة',
+      );
       expect(within(results).getByRole('link', { name: 'Space 2' })).toBeInTheDocument();
       expect(within(results).getByText('Space 2', { selector: 'h3 > span' })).toHaveAttribute(
         'lang',
