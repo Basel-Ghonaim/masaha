@@ -30,12 +30,12 @@
 - **Owns** the `visits` table, the write-off's columns included; the visit's rates and charge rules (`visitCharge.ts`, pure); the visit's audit entries.
 - **Reads** the space's prices and shifts, its week and a stay's auto check-out time from [`spaces`](spaces.md), and the settings (student prices, the rounding, the cap, reception's switch) from [`space-settings`](space-settings.md).
 - **Asks** `can()`'s `prices.typeByHand` for the terms' `mayTypePrice`, from the boundary's links; and, under the space's lock (`spaces.lock`), for pricing an unpriced visit.
-- **Leaves** the check-out's transaction, the space's lock and the check-out's typed-price decision to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
+- **Leaves** the desk's transactions (the check-in, the check-out, the write-off and its undo, `leaveTo`), the space's lock and the check-out's typed-price decision to [`desk`](desk.md); the warnings to [`occupancy`](occupancy.md); the payment to [`payments`](payments.md).
 
 ## How it composes the platform
 
 - Its manage router holds the reads, behind the boundary that admits the space's staff, which is their check, and the pricing, behind `requireCan('attendance.record')`; the check-in's and the check-out's routes are the desk's ([conventions › the front desk](../backend/conventions.md#the-front-desk-desk)).
-- It runs its own transactions for the auto check-out (one per visit) and the pricing of an unpriced visit (under the space's lock); the check-in and the check-out run in the desk's.
+- It runs its own transactions for the auto check-out (one per visit) and the pricing of an unpriced visit (under the space's lock); the check-in, the check-out, the write-off and its undo, and `leaveTo` run in the desk's.
 - Each change is audited by the audit writer, in its transaction ([conventions §6](../backend/conventions.md#6-audit)).
 
 ## Behaviour and flows

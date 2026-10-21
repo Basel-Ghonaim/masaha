@@ -1,13 +1,13 @@
 # Payments
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
 > **Authority:** The `payments` capability: the payment ledger of [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md). Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and the ledger's rules by the [data model](../architecture/data-model.md#constraints-worth-stating), the rules' ownership by [conventions §13](../backend/conventions.md#the-ledgers-rules). The API is built for a visit's payment and the uncollected visits; no web screen yet.
 > **Scope:** the API module `payments` (L4); `@masaha/shared/payments`. No web feature yet.
 
 ## What it does
 
 - Records the payment of a visit, taken at its check-out or after it, once per idempotency key.
-- Finds the payment a check-out's idempotency key already recorded, so a retry never records a second one.
+- Finds the payment a check-out's or a payment's idempotency key already recorded, so a retry never records a second one.
 - Answers a space's uncollected visits: closed by the auto check-out, not fully paid and not written off, with what was paid and what is still owed.
 - Answers what one visit was paid and still owes, in the desk's transaction (`balanceOfVisit`), for the write-off and the payment after the check-out.
 
@@ -56,3 +56,4 @@
 
 - #95 — a visit's payment at its check-out; the ledger's translation table; finding 15 resolved.
 - #97 — the uncollected visits.
+- #100 — the ledger's fourth rule, a written-off visit takes no payment; `balanceOfVisit`, with `paidFor` reading in the caller's transaction; a visit's payment after its check-out, through the desk.
