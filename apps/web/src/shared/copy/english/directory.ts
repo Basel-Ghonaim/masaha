@@ -22,7 +22,7 @@ export const DIRECTORY = {
     },
   },
   count: {
-    /** Nothing narrows the list. */
+    /** Nothing narrows the list. Never drawn for none: the empty states say it. */
     all: ({ count }: { count: number }) =>
       englishPlural(count, {
         one: `${String(count)} space in the Gaza Strip`,

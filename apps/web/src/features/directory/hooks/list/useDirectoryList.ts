@@ -68,13 +68,16 @@ export function useDirectoryList(): DirectoryListView {
     ? ['relevance', 'updated', 'name']
     : ['updated', 'name'];
   // The count is worded from a real answer only: while the shown answer is the one before, the
-  // live region keeps its last line rather than announce the old total under the new filters.
+  // live region keeps its last line rather than announce the old total under the new filters. A
+  // count of none draws no line: the empty directory's or no match's own state says it.
   const settled =
     answer === undefined || query.isPlaceholderData
       ? null
-      : filters.anyApplied
-        ? words.count.matching({ count: answer.meta.totalRecords })
-        : words.count.all({ count: answer.meta.totalRecords });
+      : answer.meta.totalRecords === 0
+        ? ''
+        : filters.anyApplied
+          ? words.count.matching({ count: answer.meta.totalRecords })
+          : words.count.all({ count: answer.meta.totalRecords });
   const [count, setCount] = useState('');
   if (settled !== null && settled !== count) setCount(settled);
 

@@ -20,7 +20,7 @@ export const DIRECTORY = {
   count: {
     all: ({ count }: { count: number }) =>
       arabicPlural(count, {
-        zero: 'لا توجد مساحات في قطاع غزة بعد',
+        zero: `${String(count)} مساحة في قطاع غزة`,
         one: 'مساحة واحدة في قطاع غزة',
         two: 'مساحتان في قطاع غزة',
         few: `${String(count)} مساحات في قطاع غزة`,
@@ -29,7 +29,7 @@ export const DIRECTORY = {
       }),
     matching: ({ count }: { count: number }) =>
       arabicPlural(count, {
-        zero: 'لا توجد مساحات مطابقة',
+        zero: `${String(count)} مساحة مطابقة`,
         one: 'مساحة واحدة مطابقة',
         two: 'مساحتان مطابقتان',
         few: `${String(count)} مساحات مطابقة`,

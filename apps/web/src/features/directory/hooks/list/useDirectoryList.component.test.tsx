@@ -184,11 +184,12 @@ describe('useDirectoryList', () => {
     expect(result.current.list.results.failure?.reference).toBeNull();
   });
 
-  it('tells an empty directory from no match; only no match offers clearing the filters', async () => {
+  it('tells an empty directory from no match; only no match offers clearing the filters; neither draws a count', async () => {
     const empty = renderList('/spaces', () => page([]));
     await waitFor(() => {
       expect(empty.result.current.list.results.state).toBe('empty');
     });
+    expect(empty.result.current.list.count).toBe('');
     expect(empty.result.current.list.results.empty).toEqual({
       title: 'لا توجد مساحات في الدليل بعد',
       text: 'نضيف المساحات تباعًا؛ عد قريبًا.',
@@ -200,6 +201,7 @@ describe('useDirectoryList', () => {
     await waitFor(() => {
       expect(none.result.current.list.results.state).toBe('noMatch');
     });
+    expect(none.result.current.list.count).toBe('');
     expect(none.result.current.list.results.noMatch.clear.label).toBe('مسح الفلاتر');
     act(() => {
       none.result.current.list.results.noMatch.clear.run();
