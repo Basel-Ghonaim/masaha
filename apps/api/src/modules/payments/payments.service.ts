@@ -67,6 +67,20 @@ export function createPaymentsService({ audit, visits }: Dependencies) {
       };
     },
 
+    /**
+     * What was paid on this visit of the space and what is still owed, in the caller's transaction
+     * (under the visit's lock, so it is what the ledger checks against); `balanceAgorot` is `null`
+     * for a visit with no charge.
+     */
+    async balanceOfVisit(
+      spaceId: number,
+      { id, chargeAgorot }: { id: number; chargeAgorot: number | null },
+      tx: Tx,
+    ): Promise<{ paidAgorot: number; balanceAgorot: number | null }> {
+      const paidAgorot = (await repository.paidFor(spaceId, [id], tx)).get(id) ?? 0;
+      return { paidAgorot, balanceAgorot: balanceOf(chargeAgorot, paidAgorot) };
+    },
+
     /** Records a visit's payment, in the caller's transaction, audited `payment.recorded`. */
     async recordForVisit(payment: NewVisitPayment, tx: Tx): Promise<VisitPayment> {
       const row = await repository.createForVisit(payment, tx);

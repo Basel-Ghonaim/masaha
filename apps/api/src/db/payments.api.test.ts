@@ -193,6 +193,29 @@ describe('the due', () => {
     );
   });
 
+  it('a written-off visit takes no payment: payments_visit_written_off; once undone it does', async () => {
+    const { space, staff, owner, visit } = await setup();
+    const writtenOff = {
+      writtenOffAt: new Date(),
+      writtenOffById: owner.id,
+      writeOffReason: 'Left',
+    };
+    await prisma.visit.update({ where: { id: visit.id }, data: writtenOff });
+
+    await expect(pay(space.id, staff.id, { visitId: visit.id }, 500)).rejects.toThrow(
+      /payments_visit_written_off/,
+    );
+    expect(await prisma.payment.count()).toBe(0);
+
+    await prisma.visit.update({
+      where: { id: visit.id },
+      data: { writtenOffAt: null, writtenOffById: null, writeOffReason: null },
+    });
+    await expect(pay(space.id, staff.id, { visitId: visit.id }, 500)).resolves.toMatchObject({
+      amountAgorot: 500,
+    });
+  });
+
   it("is a fixed subscription's price, never exceeded", async () => {
     const { space, staff, monthly } = await setup();
     const item = { subscriptionId: monthly.id };

@@ -1,5 +1,6 @@
 import type { PaginationQuery } from '@masaha/shared/core';
 import type { SpaceSettings } from '@masaha/shared/space-settings';
+import type { Logger } from 'pino';
 import type {
   CheckInVisitRequest,
   DeskVisit,
@@ -7,6 +8,7 @@ import type {
   QuotedVisit,
   Rates,
   VisitTerms,
+  VisitWriteOff,
 } from '@masaha/shared/visits';
 
 import type { RunInTransaction, Tx } from '../../db/index.ts';
@@ -60,6 +62,7 @@ interface Dependencies {
   spaceSettings: SpaceSettingsService;
   /** The one clock (conventions §11). */
   now: () => Date;
+  logger: Logger;
 }
 
 /** The rounding and the cap in force, from the space's settings. */
@@ -89,6 +92,7 @@ export function createVisitsService({
   spaces,
   spaceSettings,
   now,
+  logger,
 }: Dependencies) {
   const repository = createVisitsRepository();
   return {
@@ -242,6 +246,88 @@ export function createVisitsService({
     },
 
     /**
+     * Leaves a closed visit's unpaid rest to this customer, in the caller's transaction (under the
+     * space's lock and the visit's); audited `visit.leftToCustomer`.
+     */
+    async leaveTo(
+      actorId: number,
+      spaceId: number,
+      visitId: number,
+      customerId: number,
+      tx: Tx,
+    ): Promise<DeskVisit> {
+      const row = await repository.leaveTo(visitId, customerId, tx);
+      await audit(
+        {
+          actorId,
+          action: 'visit.leftToCustomer',
+          entityType: 'visit',
+          entityId: visitId,
+          spaceId,
+          after: { customerId },
+        },
+        tx,
+      );
+      return toDeskVisit(row);
+    },
+
+    /**
+     * Writes the visit off, in the caller's transaction (under the space's lock and the visit's),
+     * now, by the actor, with why; audited `visit.writtenOff` with the balance written off.
+     */
+    async writeOff(
+      actorId: number,
+      spaceId: number,
+      visitId: number,
+      { reason, balanceAgorot }: { reason: string; balanceAgorot: number },
+      tx: Tx,
+    ): Promise<DeskVisit> {
+      const row = await repository.writeOff(visitId, { at: now(), byId: actorId, reason }, tx);
+      await audit(
+        {
+          actorId,
+          action: 'visit.writtenOff',
+          entityType: 'visit',
+          entityId: visitId,
+          spaceId,
+          after: { reason, balanceAgorot },
+        },
+        tx,
+      );
+      return toDeskVisit(row);
+    },
+
+    /**
+     * Undoes the visit's write-off, in the caller's transaction; audited `visit.writeOffUndone`
+     * with what the write-off was.
+     */
+    async undoWriteOff(
+      actorId: number,
+      spaceId: number,
+      visitId: number,
+      writeOff: VisitWriteOff,
+      tx: Tx,
+    ): Promise<DeskVisit> {
+      const row = await repository.undoWriteOff(visitId, tx);
+      await audit(
+        {
+          actorId,
+          action: 'visit.writeOffUndone',
+          entityType: 'visit',
+          entityId: visitId,
+          spaceId,
+          before: {
+            writtenOffAt: writeOff.at,
+            writtenOffById: writeOff.byId,
+            reason: writeOff.reason,
+          },
+        },
+        tx,
+      );
+      return toDeskVisit(row);
+    },
+
+    /**
      * Closes the visit at the desk, in the caller's transaction, audited `visit.checkedOut` with the
      * quote's time it was closed at and the request's own time.
      */
@@ -282,6 +368,8 @@ export function createVisitsService({
      * to a batch. Each is closed in its own transaction, under its row's lock and only while still
      * open, at its due time, never at the run's, charged for the stay up to then; audited
      * `visit.autoCheckedOut` with no actor. A soft-deleted or hidden space's visits are closed too.
+     * A visit that cannot be closed is logged and the next one still is; the run then throws, so the
+     * job counts as failed.
      */
     async autoCheckOut(at: Date): Promise<{ visits: number; remaining: number }> {
       const open = await repository.openEverywhere();
@@ -290,16 +378,24 @@ export function createVisitsService({
         spaces.weeksFor(spaceIds),
         spaceSettings.settingsFor(spaceIds),
       ]);
+      let failed = 0;
+      const notClosed = (stayId: number, err: unknown) => {
+        logger.error({ err, job: 'visits.autoCheckOut', stayId }, 'stay not closed');
+        failed += 1;
+      };
       const due = open.flatMap((stay) => {
         const rules = settings.get(stay.spaceId);
-        if (!rules) return [];
+        if (!rules) {
+          notClosed(stay.id, new Error(`The space ${String(stay.spaceId)} has no settings row.`));
+          return [];
+        }
         const dueAt = spaces.autoCheckoutDue({
           checkedInAt: stay.checkedInAt,
           week: weeks.get(stay.spaceId) ?? null,
           autoCheckoutAtClosing: rules.autoCheckoutAtClosing,
           maxStayMinutes: rules.maxStayMinutes,
         });
-        return dueAt && dueAt <= at ? [{ stay, dueAt, rules }] : [];
+        return dueAt <= at ? [{ stay, dueAt, rules }] : [];
       });
 
       let closed = 0;
@@ -327,9 +423,13 @@ export function createVisitsService({
             tx,
           );
           return true;
+        }).catch((err: unknown) => {
+          notClosed(stay.id, err);
+          return false;
         });
         if (done) closed += 1;
       }
+      if (failed > 0) throw new Error(`${String(failed)} visit(s) could not be closed.`);
       return { visits: closed, remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0) };
     },
 

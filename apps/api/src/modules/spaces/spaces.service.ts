@@ -44,7 +44,7 @@ export function createSpacesService() {
     },
 
     /** When a stay is closed by itself, by the space's week and settings now (`autoCheckout.ts`). */
-    autoCheckoutDue(input: AutoCheckoutInput): Date | null {
+    autoCheckoutDue(input: AutoCheckoutInput): Date {
       return autoCheckoutDue(input);
     },
 

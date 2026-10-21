@@ -29,6 +29,9 @@ const DESK_VISIT = {
   chargeAgorot: true,
   chargeSetById: true,
   chargeReason: true,
+  writtenOffAt: true,
+  writtenOffById: true,
+  writeOffReason: true,
   customer: { select: { id: true, name: true, phone: true } },
 } as const satisfies Prisma.VisitSelect;
 
@@ -210,24 +213,29 @@ export function createVisitsRepository() {
       return { rows, total };
     },
 
-    /** The space's visits closed by the auto check-out, each with its charge. */
+    /** The space's visits closed by the auto check-out and not written off, each with its charge. */
     autoClosedIn(spaceId: number): Promise<{ id: number; chargeAgorot: number | null }[]> {
       return prisma.visit.findMany({
-        where: { spaceId, checkoutMethod: 'AUTO' },
+        where: { spaceId, checkoutMethod: 'AUTO', writtenOffAt: null },
         select: { id: true, chargeAgorot: true },
       });
     },
 
     /**
-     * A page of the space's visits closed by the auto check-out, but these, the latest closed
-     * first, then by id, and how many there are.
+     * A page of the space's visits closed by the auto check-out and not written off, but these,
+     * the latest closed first, then by id, and how many there are.
      */
     async autoClosedPage(
       spaceId: number,
       exceptIds: readonly number[],
       { skip, take }: { skip: number; take: number },
     ): Promise<{ rows: DeskVisitRow[]; total: number }> {
-      const where = { spaceId, checkoutMethod: 'AUTO' as const, id: { notIn: [...exceptIds] } };
+      const where = {
+        spaceId,
+        checkoutMethod: 'AUTO' as const,
+        writtenOffAt: null,
+        id: { notIn: [...exceptIds] },
+      };
       const [rows, total] = await Promise.all([
         prisma.visit.findMany({
           where,
@@ -261,6 +269,33 @@ export function createVisitsRepository() {
           roundingMinutes: null,
           capApplied: null,
         },
+        select: DESK_VISIT,
+      });
+    },
+
+    /** Writes the visit off: when, by whom and why. */
+    writeOff(
+      visitId: number,
+      { at, byId, reason }: { at: Date; byId: number; reason: string },
+      tx: Tx,
+    ): Promise<DeskVisitRow> {
+      return tx.visit.update({
+        where: { id: visitId },
+        data: { writtenOffAt: at, writtenOffById: byId, writeOffReason: reason },
+        select: DESK_VISIT,
+      });
+    },
+
+    /** Sets the customer the visit's unpaid rest is left to. */
+    leaveTo(visitId: number, customerId: number, tx: Tx): Promise<DeskVisitRow> {
+      return tx.visit.update({ where: { id: visitId }, data: { customerId }, select: DESK_VISIT });
+    },
+
+    /** Clears the visit's write-off. */
+    undoWriteOff(visitId: number, tx: Tx): Promise<DeskVisitRow> {
+      return tx.visit.update({
+        where: { id: visitId },
+        data: { writtenOffAt: null, writtenOffById: null, writeOffReason: null },
         select: DESK_VISIT,
       });
     },

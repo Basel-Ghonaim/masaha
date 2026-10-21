@@ -164,6 +164,7 @@ model User {
   pricedSubscriptions Subscription[]       @relation("SubscriptionPriceSetBy")
   endedSubscriptions  Subscription[]       @relation("SubscriptionEndedBy")
   chargedVisits       Visit[]              @relation("VisitChargeSetBy")
+  visitsWrittenOff    Visit[]              @relation("VisitWrittenOffBy")
   recordedPayments    Payment[]            @relation("PaymentRecordedBy")
   voidedPayments      Payment[]            @relation("PaymentVoidedBy")
   stateOverrides      SpaceOccupancy[]     @relation("SpaceStateOverrideBy")
@@ -742,14 +743,21 @@ model Visit {
   chargeSetById   Int?            @map("charge_set_by_id")
   /// Why the desk typed the charge; set with chargeSetById.
   chargeReason    String?         @map("charge_reason")
+  /// When the owner wrote off what was still owed (K6); cleared when the write-off is undone.
+  writtenOffAt    DateTime?       @map("written_off_at") @db.Timestamptz(3)
+  /// Who wrote it off; set with writtenOffAt.
+  writtenOffById  Int?            @map("written_off_by_id")
+  /// Why it was written off; set with writtenOffAt, never blank.
+  writeOffReason  String?         @map("write_off_reason")
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  space       Space       @relation(fields: [spaceId], references: [id], onDelete: Restrict)
-  customer    Customer?   @relation(fields: [customerId, spaceId], references: [id, spaceId], onDelete: NoAction)
-  shift       SpaceShift? @relation(fields: [shiftId, spaceId], references: [id, spaceId], onDelete: NoAction)
-  chargeSetBy User?       @relation("VisitChargeSetBy", fields: [chargeSetById], references: [id], onDelete: Restrict)
-  payments    Payment[]
+  space        Space       @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  customer     Customer?   @relation(fields: [customerId, spaceId], references: [id, spaceId], onDelete: NoAction)
+  shift        SpaceShift? @relation(fields: [shiftId, spaceId], references: [id, spaceId], onDelete: NoAction)
+  chargeSetBy  User?       @relation("VisitChargeSetBy", fields: [chargeSetById], references: [id], onDelete: Restrict)
+  writtenOffBy User?       @relation("VisitWrittenOffBy", fields: [writtenOffById], references: [id], onDelete: Restrict)
+  payments     Payment[]
 
   @@unique([spaceId, idempotencyKey])
   // At most one open visit per customer.

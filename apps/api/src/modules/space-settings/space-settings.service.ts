@@ -48,17 +48,20 @@ export function createSpaceSettingsService({ runInTransaction, audit, lockSpace 
       return toSpaceSettings(present(spaceId, await repository.find(spaceId, tx)));
     },
 
-    /** These spaces' settings, by space, in one query; in the caller's transaction when given one. */
+    /**
+     * These spaces' settings, by space, in one query; in the caller's transaction when given one. A
+     * space without its row (a fault) is left out, for the caller to report.
+     */
     async settingsFor(spaceIds: readonly number[], tx?: Tx): Promise<Map<number, SpaceSettings>> {
       if (spaceIds.length === 0) return new Map();
       const rows = new Map(
         (await repository.findMany(spaceIds, tx)).map(({ spaceId, ...row }) => [spaceId, row]),
       );
       return new Map(
-        spaceIds.map((spaceId) => [
-          spaceId,
-          toSpaceSettings(present(spaceId, rows.get(spaceId) ?? null)),
-        ]),
+        spaceIds.flatMap((spaceId) => {
+          const row = rows.get(spaceId);
+          return row ? [[spaceId, toSpaceSettings(row)] as const] : [];
+        }),
       );
     },
 

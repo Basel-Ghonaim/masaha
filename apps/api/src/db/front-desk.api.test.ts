@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { Prisma } from '../generated/prisma/client.ts';
 import {
   createCheckIn,
   createCustomer,
@@ -242,6 +243,33 @@ describe('a visit', () => {
     await expect(
       createVisit(space.id, { ...closed, roundingRule: 'NEAREST_HALF_HOUR' }),
     ).resolves.toBeDefined();
+  });
+
+  it('a write-off has its time, who and a non-blank reason together, only on a closed, priced visit', async () => {
+    const space = await createSpace();
+    const owner = await createUser('owner@example.com');
+    const closed = stay('2026-10-01', '08:00', '10:00');
+    const priced = await createVisit(space.id, { ...closed, chargeAgorot: 1_200 });
+    const unpriced = await createVisit(space.id, closed);
+    const open = await createVisit(space.id);
+    const writeOff = { writtenOffAt: new Date(), writtenOffById: owner.id, writeOffReason: 'Left' };
+    const update = (id: number, data: Prisma.VisitUncheckedUpdateInput) =>
+      prisma.visit.update({ where: { id }, data });
+
+    for (const alone of [
+      { writtenOffAt: writeOff.writtenOffAt },
+      { writtenOffById: owner.id },
+      { writeOffReason: 'Left' },
+      { writtenOffAt: writeOff.writtenOffAt, writtenOffById: owner.id },
+    ]) {
+      await expect(update(priced.id, alone)).rejects.toThrow(/visits_write_off_check/);
+    }
+    await expect(update(priced.id, { ...writeOff, writeOffReason: '   ' })).rejects.toThrow(
+      /visits_write_off_check/,
+    );
+    await expect(update(open.id, writeOff)).rejects.toThrow(/visits_write_off_check/);
+    await expect(update(unpriced.id, writeOff)).rejects.toThrow(/visits_write_off_check/);
+    await expect(update(priced.id, writeOff)).resolves.toMatchObject({ writeOffReason: 'Left' });
   });
 
   it('never has a negative rate or charge', async () => {

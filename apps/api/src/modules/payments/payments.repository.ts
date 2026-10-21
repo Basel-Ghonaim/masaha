@@ -47,9 +47,13 @@ export function createPaymentsRepository() {
     },
 
     /** What was paid on each of these visits of the space, voided payments left out; none is absent. */
-    async paidFor(spaceId: number, visitIds: readonly number[]): Promise<Map<number, number>> {
+    async paidFor(
+      spaceId: number,
+      visitIds: readonly number[],
+      tx: Tx = prisma,
+    ): Promise<Map<number, number>> {
       if (visitIds.length === 0) return new Map();
-      const groups = await prisma.payment.groupBy({
+      const groups = await tx.payment.groupBy({
         by: ['visitId'],
         where: { spaceId, visitId: { in: [...visitIds] }, voidedAt: null },
         _sum: { amountAgorot: true },

@@ -1,3 +1,5 @@
+import type { Logger } from 'pino';
+
 import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
@@ -9,6 +11,7 @@ interface Dependencies {
   audit: AuditWriter;
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
+  logger: Logger;
 }
 
 /** How many check-ins one run of the auto check-out closes at most; the next run continues. */
@@ -23,6 +26,7 @@ export function createSubscriptionsService({
   audit,
   spaces,
   spaceSettings,
+  logger,
 }: Dependencies) {
   const repository = createSubscriptionsRepository();
   return {
@@ -40,7 +44,8 @@ export function createSubscriptionsService({
      * The auto check-out of check-ins (data model › Auto check-out), as `visits` closes its visits:
      * every open check-in due by `at`, by its space's week and settings now, the earliest first, up
      * to a batch, each in its own transaction under its row's lock while still open, at its due
-     * time; audited `checkIn.autoCheckedOut` with no actor.
+     * time; audited `checkIn.autoCheckedOut` with no actor. One that cannot be closed is logged and
+     * the next one still is; the run then throws, so the job counts as failed.
      */
     async autoCheckOut(at: Date): Promise<{ checkIns: number; remaining: number }> {
       const open = await repository.openEverywhere();
@@ -49,16 +54,27 @@ export function createSubscriptionsService({
         spaces.weeksFor(spaceIds),
         spaceSettings.settingsFor(spaceIds),
       ]);
+      let failed = 0;
+      const notClosed = (stayId: number, err: unknown) => {
+        logger.error({ err, job: 'subscriptions.autoCheckOut', stayId }, 'stay not closed');
+        failed += 1;
+      };
       const due = open.flatMap((checkIn) => {
         const rules = settings.get(checkIn.spaceId);
-        if (!rules) return [];
+        if (!rules) {
+          notClosed(
+            checkIn.id,
+            new Error(`The space ${String(checkIn.spaceId)} has no settings row.`),
+          );
+          return [];
+        }
         const dueAt = spaces.autoCheckoutDue({
           checkedInAt: checkIn.checkedInAt,
           week: weeks.get(checkIn.spaceId) ?? null,
           autoCheckoutAtClosing: rules.autoCheckoutAtClosing,
           maxStayMinutes: rules.maxStayMinutes,
         });
-        return dueAt && dueAt <= at ? [{ checkIn, dueAt }] : [];
+        return dueAt <= at ? [{ checkIn, dueAt }] : [];
       });
 
       let closed = 0;
@@ -78,9 +94,13 @@ export function createSubscriptionsService({
             tx,
           );
           return true;
+        }).catch((err: unknown) => {
+          notClosed(checkIn.id, err);
+          return false;
         });
         if (done) closed += 1;
       }
+      if (failed > 0) throw new Error(`${String(failed)} check-in(s) could not be closed.`);
       return { checkIns: closed, remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0) };
     },
   };

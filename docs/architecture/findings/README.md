@@ -51,8 +51,11 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [97. The visit-rounding rule is written twice](97-the-visit-rounding-rule-is-written-twice.md)
 - [98. The capability documents outgrow their size guide](98-the-capability-documents-outgrow-their-size-guide.md)
 - [99. The owner's checklist cannot name a retired amenity](99-the-owners-checklist-cannot-name-a-retired-amenity.md)
-- [100. An unpaid check-out moves a visit's customer to the phone's](100-an-unpaid-check-out-moves-a-visits-customer-to-the-phones.md)
 - [101. The end sheet is not full width on a phone](101-the-end-sheet-is-not-full-width-on-a-phone.md)
+- [110. The desk prototype's uncollected visits disagree with the owner's decisions](110-the-desk-prototypes-uncollected-visits-disagree-with-the-owners-decisions.md)
+- [111. The check-in's warnings count *present* a second time](111-the-check-ins-warnings-count-present-a-second-time.md)
+- [112. A key that closed a visit with no payment is not remembered](112-a-key-that-closed-a-visit-with-no-payment-is-not-remembered.md)
+- [113. The uncollected read grows with every auto-closed visit](113-the-uncollected-read-grows-with-every-auto-closed-visit.md)
 
 ## Accepted
 
@@ -104,3 +107,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [67. The prices table cuts its shift at 768 px](67-the-prices-table-cuts-its-shift-at-768-px.md)
 - [81. A retired package that keeps its shift stops the owner from removing that shift](81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md)
 - [88. The upgrade confirm shows no front desks](88-the-upgrade-confirm-shows-no-front-desks.md)
+- [100. An unpaid check-out moves a visit's customer to the phone's](100-an-unpaid-check-out-moves-a-visits-customer-to-the-phones.md)

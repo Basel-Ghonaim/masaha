@@ -127,4 +127,32 @@ describe('the jobs endpoint', () => {
     });
     expect(await stored()).toMatchObject({ checkedOutAt: null });
   });
+
+  it('a stay that cannot be closed is logged, and the stays after it are still closed', async () => {
+    // Earlier, so read first: a charge past the column's range fails its own transaction.
+    const { id: failingId } = await createVisit(spaceId, {
+      checkedInAt: new Date('2026-10-17T09:00:00+03:00'),
+      hourRateAgorot: 2_000_000_000,
+    });
+    const { logger, lines } = recordingLogger();
+
+    const response = await request(withSecret(logger))
+      .post(RUN)
+      .set('Authorization', `Bearer ${SECRET}`);
+
+    expect(response.status).toBe(500);
+    expect(lines.filter(({ msg }) => msg === 'stay not closed')).toMatchObject([
+      { level: 50, job: 'visits.autoCheckOut', stayId: failingId },
+    ]);
+    expect(lines.filter(({ msg }) => msg === 'job failed')).toMatchObject([
+      { level: 50, job: 'visits.autoCheckOut' },
+    ]);
+    expect(await prisma.visit.findUniqueOrThrow({ where: { id: failingId } })).toMatchObject({
+      checkedOutAt: null,
+    });
+    expect(await stored()).toMatchObject({
+      checkedOutAt: new Date('2026-10-17T23:59:00+03:00'),
+      checkoutMethod: 'AUTO',
+    });
+  });
 });

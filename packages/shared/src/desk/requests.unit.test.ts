@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
-import { checkOutVisitSchema } from './requests.ts';
+import { checkOutVisitSchema, leaveToCustomerSchema, receivePaymentSchema } from './requests.ts';
 
 /** The field errors of a check-out, or null when it passes. */
 function errorsOf(input: unknown) {
@@ -55,5 +55,56 @@ describe('a check-out', () => {
     expect(errorsOf({ phone: '12345' })).toEqual({ phone: ['invalid_format'] });
     expect(errorsOf({ checkedOutAt: 'yesterday' })).toEqual({ checkedOutAt: ['invalid_format'] });
     expect(errorsOf({ customerName: 'x'.repeat(61) })).toEqual({ customerName: ['too_long'] });
+  });
+});
+
+describe("a visit's payment after its check-out", () => {
+  it("a payment names its visit and takes the payment's bounds, and an optional phone and name", () => {
+    expect(
+      receivePaymentSchema.parse({
+        visitId: 7,
+        amountAgorot: 1_000,
+        method: 'TRANSFER',
+        phone: '059-900 0123',
+        customerName: ' Omar ',
+      }),
+    ).toEqual({
+      visitId: 7,
+      amountAgorot: 1_000,
+      method: 'TRANSFER',
+      phone: '+970599000123',
+      customerName: 'Omar',
+    });
+
+    const errorsOf = (input: unknown) => {
+      const result = receivePaymentSchema.safeParse(input);
+      return result.success ? null : toFieldErrors(result.error.issues, input);
+    };
+    const payment = { amountAgorot: 1_000, method: 'CASH' };
+    expect(errorsOf({ visitId: 7, ...payment })).toBeNull();
+    expect(errorsOf(payment)).toEqual({ visitId: ['required'] });
+    expect(errorsOf({ visitId: 0, ...payment })).toEqual({ visitId: ['out_of_range'] });
+    expect(errorsOf({ visitId: 7, amountAgorot: 0, method: 'CASH' })).toEqual({
+      amountAgorot: ['out_of_range'],
+    });
+    expect(errorsOf({ visitId: 7, ...payment, phone: '12345' })).toEqual({
+      phone: ['invalid_format'],
+    });
+  });
+});
+
+describe("a visit's debt left to a customer by phone", () => {
+  it('a debt by phone needs the phone', () => {
+    expect(leaveToCustomerSchema.parse({ phone: '059-900 0123', customerName: ' Omar ' })).toEqual({
+      phone: '+970599000123',
+      customerName: 'Omar',
+    });
+
+    const errorsOf = (input: unknown) => {
+      const result = leaveToCustomerSchema.safeParse(input);
+      return result.success ? null : toFieldErrors(result.error.issues, input);
+    };
+    expect(errorsOf({})).toEqual({ phone: ['required'] });
+    expect(errorsOf({ phone: '12345' })).toEqual({ phone: ['invalid_format'] });
   });
 });

@@ -17,3 +17,14 @@ export interface VisitCheckOut {
   visit: DeskVisit;
   payment: VisitPayment | null;
 }
+
+/**
+ * A visit's payment after its check-out: the visit, the payment, and what was paid on the visit and
+ * what it still owes, as of the answer (a retry's too).
+ */
+export interface ReceivedPayment {
+  visit: DeskVisit;
+  payment: VisitPayment;
+  paidAgorot: number;
+  balanceAgorot: number;
+}

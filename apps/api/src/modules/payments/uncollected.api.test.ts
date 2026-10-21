@@ -115,6 +115,7 @@ describe('the uncollected visits', () => {
         typedById: null,
         reason: null,
       },
+      writeOff: null,
     });
   });
 
@@ -151,6 +152,27 @@ describe('the uncollected visits', () => {
     });
     const two = await list(owner, '?page=2&limit=1');
     expect(rowsOf(two).map(({ id }) => id)).toEqual([last.id]);
+  });
+
+  it('a written-off visit is not listed, nor counted; undone, it is again', async () => {
+    const kept = await closed('18:00', 2_000);
+    const writtenOff = await closed('17:00', 2_000);
+    const total = async () =>
+      ((await list(owner)).body as { meta: { totalRecords: number } }).meta.totalRecords;
+    await prisma.visit.update({
+      where: { id: writtenOff.id },
+      data: { writtenOffAt: new Date(), writtenOffById: owner.id, writeOffReason: 'Left' },
+    });
+
+    expect(rowsOf(await list(owner)).map(({ id }) => id)).toEqual([kept.id]);
+    expect(await total()).toBe(1);
+
+    await prisma.visit.update({
+      where: { id: writtenOff.id },
+      data: { writtenOffAt: null, writtenOffById: null, writeOffReason: null },
+    });
+    expect(rowsOf(await list(owner)).map(({ id }) => id)).toEqual([kept.id, writtenOff.id]);
+    expect(await total()).toBe(2);
   });
 
   it('answers the owner and reception; not_found to a stranger, an owner of another space and the admin', async () => {

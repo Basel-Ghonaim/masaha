@@ -159,7 +159,7 @@ In development, tests and typechecking, the API reads `@masaha/shared` from its 
 
 The auto check-out runs as a timed job ([api-contract › Internal](../api/api-contract.md#internal)). Locally, the API runs it itself: 10 s after start, then every 5 minutes, logging one `job ran` line per job. `JOBS_SECRET` is optional locally: without it, the endpoint is not mounted.
 
-Online, set `JOBS_SECRET` (a random value of at least 32 characters) in the host's settings, and create one job on a free external cron service (for example cron-job.org): `POST https://<host>/api/v1/internal/jobs/run` every 5 minutes, with the header `Authorization: Bearer <JOBS_SECRET>`. A failed run answers 500, which the service shows; a missed run is caught up by the next.
+Online, set `JOBS_SECRET` (a random value of at least 32 characters) in the host's settings, and create one job on a free external cron service (for example cron-job.org): `POST https://<host>/api/v1/internal/jobs/run` every 5 minutes, with the header `Authorization: Bearer <JOBS_SECRET>`, written exactly so (`Bearer` with its capital, one space, the secret). A failed run answers 500, which the service shows; a missed run is caught up by the next.
 
 ## The API test lane
 

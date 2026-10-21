@@ -26,5 +26,13 @@ export function toDeskVisit(row: DeskVisitRow): DeskVisit {
             typedById: row.chargeSetById,
             reason: row.chargeReason,
           },
+    writeOff:
+      row.writtenOffAt === null || row.writtenOffById === null || row.writeOffReason === null
+        ? null
+        : {
+            at: row.writtenOffAt.toISOString(),
+            byId: row.writtenOffById,
+            reason: row.writeOffReason,
+          },
   };
 }
