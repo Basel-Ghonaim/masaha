@@ -1,12 +1,20 @@
 import type { PaginationQuery } from '@masaha/shared/core';
-import type { UncollectedVisit, VisitPayment } from '@masaha/shared/payments';
+import type { CustomerBalance, UncollectedVisit, VisitPayment } from '@masaha/shared/payments';
 
 import type { Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
+import { calendarOf } from '../subscriptions/index.ts';
 import type { VisitsService } from '../visits/index.ts';
 import { balanceOf } from './balance.ts';
 import { toVisitPayment } from './payments.mapper.ts';
-import { createPaymentsRepository, type NewVisitPayment } from './payments.repository.ts';
+import {
+  createPaymentsRepository,
+  type ItemBalanceRow,
+  type NewVisitPayment,
+} from './payments.repository.ts';
+
+/** An item a customer may owe on, with what is still owed: `null` while it has no due. */
+export type ItemBalance = ItemBalanceRow & { balanceAgorot: number | null };
 
 interface Dependencies {
   audit: AuditWriter;
@@ -79,6 +87,42 @@ export function createPaymentsService({ audit, visits }: Dependencies) {
     ): Promise<{ paidAgorot: number; balanceAgorot: number | null }> {
       const paidAgorot = (await repository.paidFor(spaceId, [id], tx)).get(id) ?? 0;
       return { paidAgorot, balanceAgorot: balanceOf(chargeAgorot, paidAgorot) };
+    },
+
+    /**
+     * The debt and the credit of each of these customers of the space at `at`, by id, in one query
+     * (data model › Customer debt): computed in the database, never by reading the payments here.
+     */
+    customerBalances(
+      spaceId: number,
+      customerIds: readonly number[],
+      at: Date,
+      tx?: Tx,
+    ): Promise<Map<number, CustomerBalance>> {
+      return repository.customerBalances(spaceId, customerIds, calendarOf(at), tx);
+    },
+
+    /** The ids of the space's customers who owe, or are in credit, at `at`: the list's filter. */
+    customerIdsByPayment(spaceId: number, state: 'OWES' | 'CREDIT', at: Date): Promise<number[]> {
+      return repository.customerIdsByPayment(spaceId, state, calendarOf(at));
+    },
+
+    /**
+     * Every item of one customer of the space at `at` — subscriptions and closed visits not written
+     * off — with its due, what was paid and what is still owed by the one balance rule; the oldest
+     * first, a visit before a subscription made at the same instant.
+     */
+    async itemBalances(
+      spaceId: number,
+      customerId: number,
+      at: Date,
+      tx?: Tx,
+    ): Promise<ItemBalance[]> {
+      const rows = await repository.itemBalances(spaceId, customerId, calendarOf(at), tx);
+      return rows.map((row) => ({
+        ...row,
+        balanceAgorot: balanceOf(row.dueAgorot, row.paidAgorot),
+      }));
     },
 
     /** Records a visit's payment, in the caller's transaction, audited `payment.recorded`. */

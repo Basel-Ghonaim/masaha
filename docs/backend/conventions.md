@@ -277,6 +277,7 @@ A screen that shows or filters by values from several modules is composed by a m
   - Subscription status is computed only by `subscriptions`, and the balance and debt only by `payments`.
   - Each offers a set-based API for many customers at once: no per-customer calls, no N+1.
   - `desk`, `finance` (debtors) and `overview` (total owed) all use the same APIs. None of them computes a status or a balance.
+  - **The balances are one aggregate query in `payments`** (the owner's decision 6): it reads `visits`' closed visits and a subscription's due through its owner's function `subscription_usage`, and writes neither — the one place a module other than a composing one reads other modules' tables (R7's exception, stated). The same subtraction as `balance.ts`, applied in SQL. 2026-10-21, #102.
 - **The customers list and the customer file** → `desk`.
   - The status and payment filters resolve to customer ids first, from `subscriptions` and `payments`.
   - `customers` then applies the search and the pagination to those ids (§5).

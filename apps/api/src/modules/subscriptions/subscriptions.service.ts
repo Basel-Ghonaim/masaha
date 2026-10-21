@@ -1,4 +1,3 @@
-import { gazaClockOf, weekStartOf } from '@masaha/shared/core';
 import type { SubscriptionState } from '@masaha/shared/subscriptions';
 import type { Logger } from 'pino';
 
@@ -6,12 +5,9 @@ import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
+import { calendarOf } from './calendar.ts';
 import { toSubscriptionState } from './subscriptions.mapper.ts';
-import {
-  createSubscriptionsRepository,
-  type Now,
-  type OpenCheckIn,
-} from './subscriptions.repository.ts';
+import { createSubscriptionsRepository, type OpenCheckIn } from './subscriptions.repository.ts';
 
 interface Dependencies {
   runInTransaction: RunInTransaction;
@@ -19,12 +15,6 @@ interface Dependencies {
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
   logger: Logger;
-}
-
-/** The Gaza date of an instant, and its week's Saturday (data model › Subscription progress). */
-function calendarOf(at: Date): Now {
-  const today = gazaClockOf(at).date;
-  return { today, weekStart: weekStartOf(today) };
 }
 
 /** How many check-ins one run of the auto check-out closes at most; the next run continues. */

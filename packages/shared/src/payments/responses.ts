@@ -14,6 +14,15 @@ export interface VisitPayment {
 }
 
 /**
+ * A customer's money at a space (data model › Customer debt): the sum of what their items still owe,
+ * and what a usage-based subscription holds paid ahead; one never offsets the other.
+ */
+export interface CustomerBalance {
+  debtAgorot: number;
+  creditAgorot: number;
+}
+
+/**
  * A visit closed by the auto check-out and not fully paid: the visit, what was paid on it, and what
  * is still owed, `null` while it has no charge (unpriced).
  */
