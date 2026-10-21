@@ -19,10 +19,12 @@ export const DIRECTORY = {
       name: 'By name',
       /** Offered only while a search is typed: the server's order then. */
       relevance: 'Best match',
+      /** Offered, chosen, only while near me sorts the list. */
+      distance: 'By distance',
     },
   },
   count: {
-    /** Nothing narrows the list. */
+    /** Nothing narrows the list. Never drawn for none: the empty states say it. */
     all: ({ count }: { count: number }) =>
       englishPlural(count, {
         one: `${String(count)} space in the Gaza Strip`,
@@ -65,9 +67,78 @@ export const DIRECTORY = {
     today: ({ range }: { range: string }) => `Today ${range}`,
     closedToday: 'Closed today',
     openAllDay: 'Open around the clock today',
+    /** The straight-line distance from the visitor's point, the number left to right. */
+    distance: ({ km }: { km: string }) => `${km} km away`,
   },
   status: {
     /** A space with no live status: unverified, or with no hours or capacity yet. */
     none: 'No live status',
+  },
+  /** The filters: a sidebar from 1024 px, a bottom sheet below it. */
+  filters: {
+    title: 'Filters',
+    description: 'Applied to the results right away',
+    /** The filters button's count, for assistive technology. */
+    applied: ({ count }: { count: number }) =>
+      englishPlural(count, {
+        one: `${String(count)} filter applied`,
+        other: `${String(count)} filters applied`,
+      }),
+    /** The sheet's primary button: the spaces the filters leave. */
+    show: ({ count }: { count: number }) =>
+      englishPlural(count, {
+        one: `Show ${String(count)} space`,
+        other: `Show ${String(count)} spaces`,
+      }),
+    showNone: 'No results — change the filters',
+    /** While the count is not known yet. */
+    showLoading: 'Show results',
+    clear: 'Clear',
+    close: 'Close',
+    spaces: 'Spaces',
+    availableNow: 'Available now only',
+    verified: 'Verified spaces only',
+    availableNote: '“Available now” covers verified spaces only.',
+    price: 'Price',
+    period: 'Period',
+    from: 'From',
+    to: 'To',
+    /** The amount's unit, shown at the start of each bound. */
+    currency: '₪',
+    periods: { HOUR: 'Hour', DAY: 'Day', WEEK: 'Week', MONTH: 'Month' },
+    /** The chosen period, named in the help line. */
+    rangeHelp: ({ period }: { period: string }) => `From and To apply to the ${period} price`,
+    periodPrices: { HOUR: 'hour', DAY: 'day', WEEK: 'week', MONTH: 'month' },
+    priceErrors: {
+      invalid: 'Enter an amount in shekels, above zero',
+      tooHigh: 'Enter an amount up to ₪100,000',
+      belowMin: 'Below the minimum',
+    },
+    other: 'Other',
+    studentPrices: 'Student prices',
+    openFriday: 'Open on Friday',
+  },
+  /** Near me: the button, its state line and the privacy line. */
+  near: {
+    button: 'Nearest to me',
+    locating: 'Finding your location…',
+    /** Shown only while a location is being sent. */
+    privacy: 'Your location is sent rounded, only to sort spaces by distance, and is never stored.',
+    sorted: {
+      device: 'Sorted by distance from your location.',
+      pin: 'Sorted by distance from the point you set on the map.',
+    },
+    approximate: 'Distances are approximate, in a straight line.',
+    stop: 'Stop sorting by distance',
+    clear: 'Clear my location',
+    denied: {
+      title: 'We couldn’t find your location',
+      text: 'Choose your area to browse its spaces.',
+    },
+    imprecise: {
+      title: 'We couldn’t find your location precisely',
+      text: 'Your position seems to be outside the Gaza Strip, or off by more than 2 km, so we didn’t use it.',
+    },
+    chooseArea: 'Choose your area',
   },
 } as const;

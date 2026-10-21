@@ -44,14 +44,16 @@ export function useDirectoryFilters() {
     },
   });
 
-  const narrowed =
-    filters.areas.length > 0 ||
-    filters.min !== undefined ||
-    filters.max !== undefined ||
-    filters.availableNow ||
-    filters.verified ||
-    filters.studentPrices ||
-    filters.openFriday;
+  // The filters in force, each counted once: the place, the price, «متاحة الآن», «موثّقة», student
+  // prices and Friday (design issue 14).
+  const applied = [
+    filters.areas.length > 0,
+    filters.min !== undefined || filters.max !== undefined,
+    filters.availableNow,
+    filters.verified,
+    filters.studentPrices,
+    filters.openFriday,
+  ].filter(Boolean).length;
 
   return {
     filters,
@@ -70,8 +72,15 @@ export function useDirectoryFilters() {
       search.clear();
       write(filtersOf(new URLSearchParams()));
     },
+    /** Takes off the filters, keeping the search and the order. */
+    clearFilters: () => {
+      const current = filtersOf(latest.current);
+      write({ ...filtersOf(new URLSearchParams()), q: current.q, sort: current.sort });
+    },
+    /** How many filters are in force (the search is not one). */
+    applied,
     /** Whether anything narrows the list: a filter or the search. */
-    anyApplied: narrowed || filters.q !== undefined,
+    anyApplied: applied > 0 || filters.q !== undefined,
     /** The address of a page, with the filters kept. */
     searchOf: (page: number) => addressOf(paramsOf({ ...filters, page })),
     /** Shows another page in place of this one, such as the last when this one is past it. */

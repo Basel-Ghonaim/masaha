@@ -15,12 +15,13 @@ export const DIRECTORY = {
       updated: 'الأحدث تحديثًا',
       name: 'حسب الاسم',
       relevance: 'الأفضل تطابقًا',
+      distance: 'حسب المسافة',
     },
   },
   count: {
     all: ({ count }: { count: number }) =>
       arabicPlural(count, {
-        zero: 'لا توجد مساحات في قطاع غزة بعد',
+        zero: `${String(count)} مساحة في قطاع غزة`,
         one: 'مساحة واحدة في قطاع غزة',
         two: 'مساحتان في قطاع غزة',
         few: `${String(count)} مساحات في قطاع غزة`,
@@ -29,7 +30,7 @@ export const DIRECTORY = {
       }),
     matching: ({ count }: { count: number }) =>
       arabicPlural(count, {
-        zero: 'لا توجد مساحات مطابقة',
+        zero: `${String(count)} مساحة مطابقة`,
         one: 'مساحة واحدة مطابقة',
         two: 'مساحتان مطابقتان',
         few: `${String(count)} مساحات مطابقة`,
@@ -63,8 +64,76 @@ export const DIRECTORY = {
     today: ({ range }: { range: string }) => `اليوم ${range}`,
     closedToday: 'مغلقة اليوم',
     openAllDay: 'مفتوحة اليوم على مدار الساعة',
+    distance: ({ km }: { km: string }) => `على بعد ${km} كم`,
   },
   status: {
     none: 'لا تتوفر حالة مباشرة',
+  },
+  filters: {
+    title: 'الفلاتر',
+    description: 'تُطبَّق فورًا على النتائج',
+    applied: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا فلاتر مطبّقة',
+        one: 'فلتر واحد مطبّق',
+        two: 'فلتران مطبّقان',
+        few: `${String(count)} فلاتر مطبّقة`,
+        many: `${String(count)} فلترًا مطبّقًا`,
+        other: `${String(count)} فلتر مطبّق`,
+      }),
+    show: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `عرض ${String(count)} مساحة`,
+        one: 'عرض المساحة',
+        two: 'عرض المساحتين',
+        few: `عرض ${String(count)} مساحات`,
+        many: `عرض ${String(count)} مساحة`,
+        other: `عرض ${String(count)} مساحة`,
+      }),
+    showNone: 'لا نتائج — غيّر الفلاتر',
+    showLoading: 'عرض النتائج',
+    clear: 'مسح',
+    close: 'إغلاق',
+    spaces: 'المساحات',
+    availableNow: 'متاحة الآن فقط',
+    verified: 'المساحات الموثّقة فقط',
+    availableNote: 'تشمل «متاحة الآن» المساحات الموثّقة فقط.',
+    price: 'السعر',
+    period: 'الفترة',
+    from: 'من',
+    to: 'إلى',
+    currency: '₪',
+    periods: { HOUR: 'ساعة', DAY: 'يوم', WEEK: 'أسبوع', MONTH: 'شهر' },
+    rangeHelp: ({ period }: { period: string }) => `يُطبَّق «من» و«إلى» على سعر ${period}`,
+    periodPrices: { HOUR: 'الساعة', DAY: 'اليوم', WEEK: 'الأسبوع', MONTH: 'الشهر' },
+    priceErrors: {
+      invalid: 'اكتب مبلغًا بالشيكل أكبر من صفر',
+      tooHigh: 'اكتب مبلغًا حتى 100,000 ₪',
+      belowMin: 'أقل من الحد الأدنى',
+    },
+    other: 'أخرى',
+    studentPrices: 'أسعار للطلاب',
+    openFriday: 'مفتوحة يوم الجمعة',
+  },
+  near: {
+    button: 'الأقرب إليّ',
+    locating: 'جارٍ تحديد موقعك…',
+    privacy: 'يُرسَل موقعك مقرَّبًا لترتيب المساحات حسب المسافة فقط، ولا يُحفظ.',
+    sorted: {
+      device: 'مرتبة حسب المسافة من موقعك.',
+      pin: 'مرتبة حسب المسافة من الموقع الذي حدّدته على الخريطة.',
+    },
+    approximate: 'المسافات تقريبية بخط مستقيم.',
+    stop: 'إيقاف الترتيب حسب المسافة',
+    clear: 'مسح موقعي',
+    denied: {
+      title: 'تعذّر تحديد موقعك',
+      text: 'اختر منطقتك لتصفّح مساحاتها.',
+    },
+    imprecise: {
+      title: 'تعذّر تحديد موقعك بدقة',
+      text: 'يبدو أن موقعك خارج قطاع غزة، أو أن هامش الخطأ فيه أكبر من 2 كم، فلم نستخدمه.',
+    },
+    chooseArea: 'اختر منطقتك',
   },
 } satisfies Catalogue['directory'];

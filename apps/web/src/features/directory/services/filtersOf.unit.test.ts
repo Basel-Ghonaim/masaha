@@ -50,6 +50,8 @@ describe('filtersOf', () => {
     expect(read('max=abc').max).toBeUndefined();
     expect(read('max=100001').max).toBeUndefined();
     expect(read('max=100000').max).toBe(100_000);
+    expect(read('min=50&max=10')).toMatchObject({ min: 50, max: undefined });
+    expect(read('min=10&max=10')).toMatchObject({ min: 10, max: 10 });
     expect(read('available=true').availableNow).toBe(false);
     expect(read('sort=relevance').sort).toBeUndefined();
     expect(read('sort=distance').sort).toBeUndefined();

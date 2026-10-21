@@ -52,4 +52,12 @@ describe('requestOf', () => {
       requestOf({ ...DEFAULTS, studentPrices: true, openFriday: true, sort: 'name' }, 'en'),
     ).toEqual({ limit: 20, studentPrices: true, openFriday: true, sort: 'name', lang: 'en' });
   });
+
+  it('orders by distance, with no language, while near me sorts the list', () => {
+    expect(requestOf({ ...DEFAULTS, sort: 'name', page: 2 }, 'en', { byDistance: true })).toEqual({
+      limit: 20,
+      sort: 'distance',
+      page: 2,
+    });
+  });
 });

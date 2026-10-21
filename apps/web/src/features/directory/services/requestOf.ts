@@ -6,9 +6,15 @@ import type { DirectoryRequest } from '../types/DirectoryRequest';
 /**
  * The request the filters, order and page make, named as the contract names them: the budget in
  * agorot with its period, only the flags that hold, the language only to order by name, the page
- * from 2. What is left out is the server's default.
+ * from 2. What is left out is the server's default. Ordered by distance (near me), the order is
+ * `distance` whatever the address holds, with no language; the point travels apart, in its header.
  */
-export function requestOf(filters: DirectoryFilters, language: Language): DirectoryRequest {
+export function requestOf(
+  filters: DirectoryFilters,
+  language: Language,
+  { byDistance = false }: { byDistance?: boolean } = {},
+): DirectoryRequest {
+  const sort = byDistance ? 'distance' : filters.sort;
   const bounded = filters.min !== undefined || filters.max !== undefined;
   return {
     limit: DEFAULT_PAGE_SIZE,
@@ -21,8 +27,8 @@ export function requestOf(filters: DirectoryFilters, language: Language): Direct
     ...(filters.openFriday && { openFriday: true }),
     ...(filters.verified && { verified: true }),
     ...(filters.availableNow && { availableNow: true }),
-    ...(filters.sort !== undefined && { sort: filters.sort }),
-    ...(filters.sort === 'name' && { lang: language }),
+    ...(sort !== undefined && { sort }),
+    ...(sort === 'name' && { lang: language }),
     ...(filters.page !== 1 && { page: filters.page }),
   };
 }

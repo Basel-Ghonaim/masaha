@@ -14,4 +14,6 @@ export type SpaceCardView = {
   noStatus: string;
   verified: string | null;
   today: string | null;
+  /** How far, in a straight line, while the list is ordered by distance. */
+  distance: string | null;
 };

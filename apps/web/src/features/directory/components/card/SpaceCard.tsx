@@ -13,9 +13,10 @@ import { LiveStatusBadge } from './LiveStatusBadge';
 import { SpaceCover } from './SpaceCover';
 
 /**
- * A space in the directory: the whole card one link to its page, named by the space's name. Its
- * cover or mark, its name, its area, its live status, whether it is verified, and today's hours. No
- * price.
+ * A space in the directory: the whole card one link to its page, named by the space's name and
+ * described by each detail in turn, so a screen reader that reads a link by its name reads them
+ * after it. Its cover or mark, its name, its area, its live status, whether it is verified, today's
+ * hours, and how far it is while the list is ordered by distance. No price.
  */
 export function SpaceCard({
   card,
@@ -27,11 +28,25 @@ export function SpaceCard({
   areaName: ReactNode;
 }) {
   const nameId = useId();
+  const ids = useId();
+  const areaId = `${ids}-area`;
+  const statusId = `${ids}-status`;
+  const verifiedId = `${ids}-verified`;
+  const todayId = `${ids}-today`;
+  const distanceId = `${ids}-distance`;
+  const details = [
+    areaId,
+    statusId,
+    ...(card.verified === null ? [] : [verifiedId]),
+    ...(card.today === null ? [] : [todayId]),
+    ...(card.distance === null ? [] : [distanceId]),
+  ];
 
   return (
     <Link
       to={href}
       aria-labelledby={nameId}
+      aria-describedby={details.join(' ')}
       className="block h-full rounded-lg text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <Card className="h-full overflow-hidden pt-0 hover:bg-accent">
@@ -44,20 +59,27 @@ export function SpaceCard({
               </span>
             </h3>
           </CardTitle>
-          <CardDescription>{areaName}</CardDescription>
+          <CardDescription id={areaId}>{areaName}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <LiveStatusBadge status={card.status} none={card.noStatus} />
+            <LiveStatusBadge id={statusId} status={card.status} none={card.noStatus} />
             {card.verified !== null && (
-              <span className="flex items-center gap-1 text-body-sm text-primary">
+              <span id={verifiedId} className="flex items-center gap-1 text-body-sm text-primary">
                 <CircleCheckIcon aria-hidden className="size-4" />
                 {card.verified}
               </span>
             )}
           </div>
           {card.today !== null && (
-            <p className="text-body-sm text-muted-foreground">{card.today}</p>
+            <p id={todayId} className="text-body-sm text-muted-foreground">
+              {card.today}
+            </p>
+          )}
+          {card.distance !== null && (
+            <p id={distanceId} className="text-body-sm text-muted-foreground">
+              {card.distance}
+            </p>
           )}
         </CardContent>
       </Card>

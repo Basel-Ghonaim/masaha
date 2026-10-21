@@ -1,7 +1,7 @@
 # Directory
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
-> **Authority:** The `directory` capability: what anyone reads without signing in, over the publicly listed spaces: the directory's list, the map's pins, a space's public page and its live status. Its endpoints are owned by the [API contract](../api/api-contract.md#directory-public); "publicly listed", "verified" and the stale prices by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); the location's rules by [security](../backend/security.md#location). On the web, the directory's list is built.
+> **Authority:** The `directory` capability: what anyone reads without signing in, over the publicly listed spaces: the directory's list, the map's pins, a space's public page and its live status. Its endpoints are owned by the [API contract](../api/api-contract.md#directory-public); "publicly listed", "verified" and the stale prices by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); the location's rules by [security](../backend/security.md#location). On the web, the directory's list, its filters and near me are built.
 > **Scope:** the API module `directory` (L5); `@masaha/shared/directory`; the web feature `features/directory`, for any page group.
 
 ## What it does
@@ -10,7 +10,7 @@
 - Answers the map its pins: every space that passes the same filters, unpaged, up to a ceiling, within the map's viewport when it is given.
 - Answers a space's public page: its profile, hours and shifts, prices, amenities, contacts and each group's freshness.
 - Carries each card's and pin's live status, and answers a space's live status alone.
-- On the site's «المساحات», lists the spaces a page at a time, with a search and an order, each card a link to the space's page.
+- On the site's «المساحات», lists the spaces a page at a time, with a search, filters by place, price and state, and an order, or nearest first from the device's rounded location, each card a link to the space's page.
 
 The announcements, the reports and the favourites' cards are not built.
 
@@ -32,7 +32,7 @@ The announcements, the reports and the favourites' cards are not built.
 - **The search's one rule** is the database's: a function normalises the names and the query alike, and another scores how well they match ([data model › Conventions](../architecture/data-model.md#conventions)).
 - **The page** is read under the space's share lock, as the admin's read is ([conventions §13](../backend/conventions.md#concurrency)); whether it is verified is read from its links under the same lock, through `space-links`, with the facts it decides on.
 - **The location** is read from its header with the query, by one shared schema, and kept off the request, so the request logger, which redacts the header, never writes it ([security › Location](../backend/security.md#location)).
-- **On the web,** the site's Directory page sets the list's slots: the space's link (`publicSpacePath`) and each card's area, named by [lookups](lookups.md)' `AreaName` from the public catalogue. The pages are `shared/lists`' `ListPagination`; the list is read with TanStack Query's app defaults, under `['public', 'directory']`.
+- **On the web,** the site's Directory page sets the list's slots: the space's link (`publicSpacePath`), each card's area, named by [lookups](lookups.md)' `AreaName` from the public catalogue, and the place filter, `lookups`' `AreaFilter`. The filters are drawn once per width with the design system's `useMediaQuery`. Near me keeps its state in a store of the feature's own, in memory. The pages are `shared/lists`' `ListPagination`; the list is read with TanStack Query's app defaults, under `['public', 'directory']`.
 
 ## Behaviour and flows
 
@@ -48,7 +48,11 @@ The announcements, the reports and the favourites' cards are not built.
 
 **Caching.** Every answer may be kept for 30 seconds and revalidated with its `ETag`, except one ordered by distance.
 
-**The directory's list on the web.** `DirectoryList` shows 20 spaces a page. Each card is one link to the space's page, named by its name: the cover, or the space's mark (the shown name's first letter) when it has none or its cover fails to load, in a frame of fixed ratio; the name; the area with its governorate; the live status by its word, or «لا تتوفر حالة مباشرة»; «موثّقة»; today's hours on Gaza's calendar. No price. The search reads both names and the area's, and reaches the address once typing pauses; the order is «الأحدث تحديثًا» or «حسب الاسم», and «الأفضل تطابقًا» while a search applies. The search, the filters, the order and the page live in the address. The count says the Strip's spaces, or the matching ones once anything narrows the list. Loading shows skeleton cards; a failure says so, with its reference and «إعادة المحاولة»; an empty directory and no match (with «مسح الفلاتر») are their own states; a page past the last shows the last. While another page loads, the cards shown stay, the results marked busy; a new page of results takes the focus to the results' heading.
+**The directory's list on the web.** `DirectoryList` shows 20 spaces a page. Each card is one link to the space's page, named by its name and described by its area, its status, «موثّقة» and today's hours, so they are read after the name: the cover, or the space's mark (the shown name's first letter) when it has none or its cover fails to load, in a frame of fixed ratio; the name; the area with its governorate; the live status by its word, or «لا تتوفر حالة مباشرة»; «موثّقة»; today's hours on Gaza's calendar. No price. The search reads both names and the area's, and reaches the address once typing pauses; the order is «الأحدث تحديثًا» or «حسب الاسم», and «الأفضل تطابقًا» while a search applies. The search, the filters, the order and the page live in the address. The count says the Strip's spaces, or the matching ones once anything narrows the list, worded from a real answer only: while the next one loads, it keeps its last line; a count of none draws no line, the empty state saying it. Loading shows skeleton cards; a failure says so, with its reference and «إعادة المحاولة» (too many requests counts down its wait, then offers it again); a failed refresh keeps the cards, the failure above them; an empty directory and no match (with «مسح الفلاتر») are their own states; a page past the last shows the last. While another page loads, the cards shown stay, the results marked busy; a page the visitor chooses takes the focus to the results' heading, while a search, an order or a page past the last, which replace the address, leave it where it is.
+
+**The directory's filters on the web.** The place (any number of areas, `lookups`' `AreaFilter`); «المساحات», two switches, «متاحة الآن فقط» and «المساحات الموثّقة فقط», with the note that available now covers verified spaces only; the price, a period («ساعة · يوم · أسبوع · شهر», two by two) and a budget «من» «إلى» in whole shekels, Arabic digits read, each refused bound said under its field and left out (0, letters, above 100,000, a maximum under the minimum), with a help line naming the period; and «أخرى», student prices and open on Friday. Each applies at once; the budget reaches the address once typing pauses, and a period chosen before any bound waits for one. From 1024 px they are a sidebar beside the results, «الفلاتر» with «مسح»; below it, a button «الفلاتر» that counts the filters in force opens them in a bottom sheet, whose primary button counts the spaces they leave and closes it, with «مسح الفلاتر» under it. Clearing the filters keeps the search and the order.
+
+**Near me on the web.** «الأقرب إليّ» asks for the device's location only when pressed, never on load. The position is judged where it arrives: less precise than 2 km, or outside the Strip's box once rounded, it is not used; otherwise only its point rounded to three decimals is kept, in memory, never in the address or the browser's storage. While the list sorts by distance, it is asked with `sort=distance` and the point in the `Masaha-Near` header, never in the query; the order shows «حسب المسافة», each card «على بعد 0.7 كم», and the state line «مرتبة حسب المسافة من موقعك. المسافات تقريبية بخط مستقيم.» with the privacy line. Pressed again, or «إيقاف الترتيب حسب المسافة», or another order, stops the distance order and keeps the point; «مسح موقعي» drops it and every answer ordered by distance. A denied or unavailable location and an imprecise one each say so, with «اختر منطقتك», which focuses the place filter in the sidebar from 1024 px and opens the sheet below it; the privacy line shows only while a location is asked or sent.
 
 ## Decisions
 
@@ -76,8 +80,8 @@ The announcements, the reports and the favourites' cards are not built.
 ### Web decisions
 
 - **The site's directory is a web feature of its own, `directory`, for any page group** (S1). *Why:* this capability owns the public reads; `spaces` stays the dashboard's editor. 2026-10-21, #101.
-- **The address holds the search, the filters, the order and the page, no default written** (S5): `q`, `area`, `period`, `min`, `max` (whole shekels), `available`, `verified`, `students`, `friday`, `sort`, `page`. A value the server would refuse falls back to its default; a change replaces the address and returns to page 1. *Why:* a reload, Back and a shared link show the same list. 2026-10-21, #101.
-- **The page sets `lookups`' area name in the list's slot** (S7). *Why:* no feature imports another; the governorate is the catalogue's. 2026-10-21, #101.
+- **The address holds the search, the filters, the order and the page, no default written** (S5): `q`, `area`, `period`, `min`, `max` (whole shekels), `available`, `verified`, `students`, `friday`, `sort`, `page`. A value the server would refuse falls back to its default, and a maximum under the minimum is left out; a change replaces the address and returns to page 1. *Why:* a reload, Back and a shared link show the same list. 2026-10-21, #101; the budget's order, #103.
+- **The page sets `lookups`' area name and area filter in the list's slots** (S7). *Why:* no feature imports another; the governorate is the catalogue's. 2026-10-21, #101; the area filter, #103.
 - **«الأفضل تطابقًا» is offered only while a search applies** (S10, design issue 7). *Why:* it is the server's order for a search and refused without one; the trigger never shows an order its list lacks. 2026-10-21, #101.
 - **The cards shown stay while the next page or filter loads** (S13). *Why:* on a weak connection the list never blanks between two answers. 2026-10-21, #101.
 - **The live state's words are `terms`' and its roles DECISIONS_SHARED's:** available `success`, full `warning`, closed `neutral`, none in muted words (S14). 2026-10-21, #101.
@@ -88,12 +92,23 @@ The announcements, the reports and the favourites' cards are not built.
 - **A verified space with no live status reads «لا تتوفر حالة مباشرة», as an unverified one** (design issue 16). *Why:* it is true of both. 2026-10-21, #101.
 - **The card's area is «{area} · {governorate}», from the public catalogue, in either language** (design issue 17). 2026-10-21, #101.
 - **An empty directory has its own state, «لا توجد مساحات في الدليل بعد»,** with no action (design issue 18). 2026-10-21, #101.
+- **The filters are drawn once per width: a sidebar from 1024 px, a bottom sheet below it,** read with the design system's `useMediaQuery` (S6). *Why:* never two copies with duplicate ids, and the switch is provable in the component tests. 2026-10-21, #103.
+- **The budget is whole shekels in the address (`min`, `max`), sent as agorot** (S5). *Why:* one name and one unit in the address; the contract's unit on the wire. 2026-10-21, #103.
+- **«أخرى» (student prices, open on Friday) is a filter of the list** (S9). *Why:* the design and the scope both have it; the API filters by both. 2026-10-21, #103.
+- **The filters' button is the sheet's own trigger, its count's words read in place of the badge** (design issue 2). *Why:* it says whether the sheet is open and how many filters apply. **It counts the filters in force, not their values:** the place, the price, available now, verified, student prices, Friday, six at most (design issue 14). 2026-10-21, #103.
+- **The sheet's primary button counts the spaces, in Arabic agreement** («عرض المساحتين», «عرض 6 مساحات»), «لا نتائج — غيّر الفلاتر» with none, «عرض النتائج» while unknown (design issue 4). 2026-10-21, #103.
+- **The period's four chips sit two by two, and the help line names the period:** «يُطبَّق «من» و«إلى» على سعر اليوم» (design issues 10, 11). 2026-10-21, #103.
+- **Near me's location lives in memory only: the rounded point, in the feature's store,** never the address or the browser's storage (S4). *Why:* the location's rules ([security](../backend/security.md#location)): a URL is logged by hosts and shared by people; a reload asks again with one tap. 2026-10-21, #103.
+- **The privacy line is «يُرسَل موقعك مقرَّبًا لترتيب المساحات حسب المسافة فقط، ولا يُحفظ.», shown only while a location is asked or sent** (decision 8, design issue 5). *Why:* the refused and imprecise states send nothing. 2026-10-21, #103.
+- **Stopping the distance order keeps the location; only «مسح موقعي» drops it** (design issue 6). *Why:* one meaning for the button wherever it stands. 2026-10-21, #103.
+- **A card says «على بعد 0.7 كم», «على بعد 1 كم», «على بعد 12 كم»; the approximation is said once, in the state line** (design issue 9). 2026-10-21, #103.
+- **An imprecise position is said as «يبدو أن موقعك خارج قطاع غزة، أو أن هامش الخطأ فيه أكبر من 2 كم، فلم نستخدمه.»** (design issue 12). 2026-10-21, #103.
 
 ## Code map
 
 - **API:** `apps/api/src/modules/directory/`, entry `index.ts`: the public router, its controller with the caching rule, the list's query read with its header, and the service that composes the reads, the live status from `occupancy` among them.
 - **Shared:** `packages/shared/src/directory/`: the queries (the filters, the orders, the location and the viewport, with their rules) and the answers.
-- **Web:** `apps/web/src/features/directory/`, entry `index.ts` (`DirectoryList`, `DirectorySlots`), mounted by `pages/site/public/directory/`; the address and the request in `services/filtersOf.ts` and `requestOf.ts`, the card's words in `services/cardView.ts` and `todayHours.ts`, the list's hooks in `hooks/list/`, the card in `components/card/`, the results and their states in `components/list/`.
+- **Web:** `apps/web/src/features/directory/`, entry `index.ts` (`DirectoryList`, `DirectorySlots`), mounted by `pages/site/public/directory/`; the address and the request in `services/filtersOf.ts` and `requestOf.ts`, the card's words in `services/cardView.ts`, `todayHours.ts` and `distanceText.ts`, the rounded point and its header in `services/nearPoint.ts`, the budget's rule in `services/priceBounds.ts`, the list's hooks in `hooks/list/`, the filters' in `hooks/filters/`, near me's store and hooks in `hooks/near/`, the card in `components/card/`, the results and their states in `components/list/`, the filters' form, sidebar and sheet in `components/filters/`, the near-me button and state line in `components/near/`.
 
 ## Open findings
 
@@ -111,3 +126,6 @@ The announcements, the reports and the favourites' cards are not built.
 ### Web history
 
 - #101 — the site's list: the card, the search, the order, the pages, and the address.
+- #103 — the filters: the place, the price, the two switches and «أخرى»; the sidebar from 1024 px and the sheet below it.
+- #103 — near me: the rounded point in memory, the distance order through the header, the cards' distances, the state line and the privacy line.
+- #103 — carried from #101: the focus moves only for a page the visitor chose; the count is worded from a real answer; the retry stays after too many requests; a maximum under the minimum never reaches the server; a card's details are its link's description; a count of none draws no line.
