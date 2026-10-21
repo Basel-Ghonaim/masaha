@@ -46,9 +46,9 @@
 
 **The charge.** For the stay from the check-in to the check-out's time: its whole minutes, at least one, rounded by the space's rule in force, times the hour rate copied at check-in, capped at the day rate when the cap is on; with no hour rate, the day rate; with neither, none ([data model](../architecture/data-model.md#front-desk-and-money)).
 
-**The check-out.** In the desk's transaction: the visit's row locked (`FOR UPDATE`) after the space's lock, read only when it is the space's; then closed, `MANUAL`, with its charge and customer, and audited with the quote's time it was priced at and the request's own time.
+**The check-out.** In the desk's transaction: the visit's row locked (`FOR UPDATE`) after the space's lock, read only when it is the space's; the time its stay ends (`stayEndAt`: the quote's, never past the stay's due time); then closed, `MANUAL`, with its charge and customer, and audited with the quote's time it was priced at and the request's own time.
 
-**The reads.** The quote: the visit, and while it is open its charge at the clock's now, with its billed minutes, read without a lock. The terms: the settings, the prices and the shifts; the rates by the same rule as a check-in's; the student rates only where student prices are on and change a rate. The charges so far: one query for the open visits' rates, one for the settings.
+**The reads.** The quote: the visit, and while it is open its charge at the clock's now, with its billed minutes, read without a lock; a stay past its due time (`spaces`' rule, by the space's week and settings now) is charged up to it, as its check-out will be. The terms: the settings, the prices and the shifts; the rates by the same rule as a check-in's; the student rates only where student prices are on and change a rate. The charges so far: one query for the open visits' rates, one for the settings, one for the week; each stay up to now, or its due time if earlier.
 
 **The auto check-out.** Every open visit, of every space, a soft-deleted or hidden one's too, the earliest first; the weeks and the settings of their spaces, as they are now, in one query each; each visit's due time by `spaces`' rule; the ones due by the run's time, up to 500. Each in its own transaction: its row locked (`FOR UPDATE`) only while still open, so a check-out at the desk meanwhile wins and is left as it is; closed `AUTO` at its due time, charged for the stay up to then (none without a rate, left uncollected with no customer), and audited `visit.autoCheckedOut` with no actor.
 
@@ -85,4 +85,4 @@
 - #95 — the check-in by name, its rates and its idempotency key's lookup; the charge and the check-out; the quote, the terms and the charges so far.
 - #97 — the auto check-out of visits; the unpriced visits and their pricing; the auto-closed visits the uncollected read pages.
 - #100 — a stay closed by its day's end, and one that cannot be closed logged without halting the job; a visit's write-off, its columns and `writeOff` on every visit answered; a closed visit left to a customer (`leaveTo`).
-- #102 — the auto check-out counts the visits it could not close (`failed`), and fails only when it cannot run.
+- #102 — the auto check-out counts the visits it could not close (`failed`), and fails only when it cannot run; a stay's charge never past its due time, at the check-out, in the quote and in the charges so far (`stayEndAt`).

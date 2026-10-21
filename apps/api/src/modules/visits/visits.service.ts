@@ -1,5 +1,6 @@
 import type { PaginationQuery } from '@masaha/shared/core';
 import type { SpaceSettings } from '@masaha/shared/space-settings';
+import type { OpeningRange } from '@masaha/shared/spaces';
 import type { Logger } from 'pino';
 import type {
   CheckInVisitRequest,
@@ -95,6 +96,27 @@ export function createVisitsService({
   logger,
 }: Dependencies) {
   const repository = createVisitsRepository();
+
+  /**
+   * The end a stay checked in at `checkedInAt` is charged to, at `to`: `to`, but never past its due
+   * time by the space's week and these settings (data model › Auto check-out), so a charge never
+   * crosses into the next day, whichever path closes or prices the stay.
+   */
+  function stayEnd(
+    checkedInAt: Date,
+    to: Date,
+    week: readonly (OpeningRange | null)[] | null,
+    settings: SpaceSettings,
+  ): Date {
+    const due = spaces.autoCheckoutDue({
+      checkedInAt,
+      week,
+      autoCheckoutAtClosing: settings.autoCheckoutAtClosing,
+      maxStayMinutes: settings.maxStayMinutes,
+    });
+    return to < due ? to : due;
+  }
+
   return {
     /** The space's visit created with this idempotency key, or `null`: a retried check-in. */
     async findByKey(spaceId: number, key: string, tx: Tx): Promise<DeskVisit | null> {
@@ -163,9 +185,24 @@ export function createVisitsService({
     },
 
     /**
+     * When the locked visit's stay ends if it is checked out at `at`, in the caller's transaction:
+     * `at`, but never past its due time by the space's week and these settings, so a stay found open
+     * after it is closed and charged at it, as the auto check-out would have.
+     */
+    async stayEndAt(
+      spaceId: number,
+      visit: LockedVisit,
+      at: Date,
+      settings: SpaceSettings,
+      tx: Tx,
+    ): Promise<Date> {
+      return stayEnd(visit.checkedInAt, at, await spaces.weekOf(spaceId, tx), settings);
+    },
+
+    /**
      * The space's visit, with its quote while it is open: its charge now, by the rates it copied
-     * and the rounding and cap in force, at the time the desk can send back as the check-out's.
-     * Read without a lock.
+     * and the rounding and cap in force, at the time the desk can send back as the check-out's; a
+     * stay past its due time is charged up to it, as its check-out will be. Read without a lock.
      */
     async quote(spaceId: number, visitId: number): Promise<QuotedVisit> {
       const row = await repository.findIn(spaceId, visitId);
@@ -174,9 +211,13 @@ export function createVisitsService({
       if (row.checkedOutAt !== null) return { ...visit, quote: null };
 
       const at = now();
-      const stay = { from: row.checkedInAt, to: at };
+      const [settings, week] = await Promise.all([
+        spaceSettings.read(spaceId),
+        spaces.weekOf(spaceId),
+      ]);
+      const stay = { from: row.checkedInAt, to: stayEnd(row.checkedInAt, at, week, settings) };
       const rates = { hourAgorot: row.hourRateAgorot, dayAgorot: row.dayRateAgorot };
-      const charge = chargeOf(stay, rates, ruleOf(await spaceSettings.read(spaceId)));
+      const charge = chargeOf(stay, rates, ruleOf(settings));
       return {
         ...visit,
         quote: {
@@ -220,24 +261,26 @@ export function createVisitsService({
     },
 
     /**
-     * What each of these open visits of the space costs so far, now, by id; `null` for a visit with
-     * no rate. One query for the visits, one for the settings.
+     * What each of these open visits of the space costs so far, now (a stay past its due time, up
+     * to it), by id; `null` for a visit with no rate. One query each for the visits, the settings
+     * and the week.
      */
     async chargesNow(
       spaceId: number,
       visitIds: readonly number[],
     ): Promise<Map<number, number | null>> {
       if (visitIds.length === 0) return new Map();
-      const [rows, settings] = await Promise.all([
+      const [rows, settings, week] = await Promise.all([
         repository.ratesOf(spaceId, visitIds),
         spaceSettings.read(spaceId),
+        spaces.weekOf(spaceId),
       ]);
-      const to = now();
+      const at = now();
       return new Map(
         rows.map(({ id, checkedInAt, hourRateAgorot, dayRateAgorot }) => [
           id,
           chargeOf(
-            { from: checkedInAt, to },
+            { from: checkedInAt, to: stayEnd(checkedInAt, at, week, settings) },
             { hourAgorot: hourRateAgorot, dayAgorot: dayRateAgorot },
             ruleOf(settings),
           )?.amountAgorot ?? null,

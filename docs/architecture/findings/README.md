@@ -115,3 +115,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [96. The attendance card saves two capabilities in one save](96-the-attendance-card-saves-two-capabilities-in-one-save.md)
 - [100. An unpaid check-out moves a visit's customer to the phone's](100-an-unpaid-check-out-moves-a-visits-customer-to-the-phones.md)
 - [114. A stay that always fails turns every cron call red](114-a-stay-that-always-fails-turns-every-cron-call-red.md)
+- [116. A desk check-out of an overdue stay is charged up to now](116-a-desk-check-out-of-an-overdue-stay-is-charged-up-to-now.md)

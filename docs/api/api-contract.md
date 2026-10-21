@@ -351,7 +351,7 @@ A space's state now, as its staff see it: who is present (the open visits plus t
 ```ts
 LiveStatus = 'AVAILABLE' | 'FULL' | 'CLOSED'
 PresentPerson =
-  | { kind: 'VISIT', id, name, since, chargeNowAgorot: number | null }  // name: the visitor's, or their customer's; the charge so far, null with no rate
+  | { kind: 'VISIT', id, name, since, chargeNowAgorot: number | null }  // name: the visitor's, or their customer's; the charge so far (up to its due time), null with no rate
   | { kind: 'CHECK_IN', id, customerId, name, since }  // name: the customer's; since: the check-in time
 SpaceOccupancyNow = {
   status: LiveStatus | null,                    // null: unverified, no opening hours, or open with no capacity
@@ -432,7 +432,7 @@ VisitTerms = {
 
 #### `POST /manage/spaces/:spaceId/visits/:visitId/check-out` · 🧾 · `Idempotency-Key`
 - **Body:** `{ checkedOutAt?, payment?, phone?, customerName?, charge? }`.
-- **200:** `VisitCheckOut`: the visit closed, its charge or none, and the payment taken, if any.
+- **200:** `VisitCheckOut`: the visit closed, its charge or none, and the payment taken, if any. A stay past its due time ([data-model](../architecture/data-model.md#front-desk-and-money), *Auto check-out*) is closed at that due time, its `checkedOutAt`, and charged up to it; the audit keeps the request's own time (2026-10-21, #102).
 - **Errors:** `validation` (422), each writing nothing: on `idempotencyKey` (§1); on the body, before anything is read; `out_of_range` on `checkedOutAt`, also for a time before the visit's check-in; `required` on `phone` when any part is left unpaid on a visit with no customer; `required` on `charge` when the visit has no rate and the caller may type a price; `invalid_choice` on `charge` when the visit has a rate; `forbidden` (403) `PRICE_TYPING_NOT_ALLOWED` for a typed price reception may not type, and no code for an owner or reception whose link ended meanwhile; `conflict` (409) `PAYMENT_EXCEEDS_DUE` for a payment above the charge, `VISIT_NOT_PRICED` for a payment on an unpriced close, both from the ledger, `VISIT_ALREADY_CLOSED` for a payment on a visit another key already closed, `VISIT_HAS_CUSTOMER` for a phone that is not the visit's customer's, and no code for a key that paid another visit; `not_found` (404) for a visit that is not the space's, also for a space deleted meanwhile.
 
 #### `POST /manage/spaces/:spaceId/payments` · 🧾 · `Idempotency-Key`
@@ -447,7 +447,7 @@ ReceivedPayment = { visit: DeskVisit, payment: VisitPayment, paidAgorot: number,
 ```
 
 #### `GET /manage/spaces/:spaceId/visits/:visitId` · 🧾
-- **200:** `QuotedVisit`: the visit, with its quote while it is open, its charge now by the rates it copied and the rounding and cap in force; the desk sends the quote's `at` back as the check-out's `checkedOutAt`. Read without a lock.
+- **200:** `QuotedVisit`: the visit, with its quote while it is open, its charge now by the rates it copied and the rounding and cap in force — a stay past its due time charged up to it, as its check-out will be (2026-10-21, #102); the desk sends the quote's `at` back as the check-out's `checkedOutAt`. Read without a lock.
 - **Errors:** `not_found` (404), also for a visit that is not the space's.
 
 #### `GET /manage/spaces/:spaceId/visit-terms` · 🧾
