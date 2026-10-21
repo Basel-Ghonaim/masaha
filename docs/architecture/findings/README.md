@@ -60,6 +60,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [112. A key that closed a visit with no payment is not remembered](112-a-key-that-closed-a-visit-with-no-payment-is-not-remembered.md)
 - [113. The uncollected read grows with every auto-closed visit](113-the-uncollected-read-grows-with-every-auto-closed-visit.md)
 - [130. The dashboard's shells have no skip link](130-the-dashboards-shells-have-no-skip-link.md)
+- [132. A paged list shows no sign of the next page loading](132-a-paged-list-shows-no-sign-of-the-next-page-loading.md)
 
 ## Accepted
 
