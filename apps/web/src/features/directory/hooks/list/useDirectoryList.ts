@@ -1,6 +1,4 @@
 import { useCopy } from '@shared/copy';
-import type { AppError } from '@shared/errors';
-import { useRefusalView } from '@shared/forms';
 import { paginationView, usePageInRange } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
 import { useState } from 'react';
@@ -9,12 +7,13 @@ import { cardViewOf } from '../../services/cardView';
 import { focusFilters } from '../../services/focusFilters';
 import { requestOf } from '../../services/requestOf';
 import type { DirectoryOrder } from '../../types/DirectoryFilters';
-import type { DirectoryListView, ListFailureView } from '../../types/DirectoryListView';
+import type { DirectoryListView } from '../../types/DirectoryListView';
 import { useFiltersPanel } from '../filters/useFiltersPanel';
 import { useLocationStatus } from '../near/useLocationStatus';
 import { useNearMe } from '../near/useNearMe';
 import { useDirectoryFilters } from './useDirectoryFilters';
 import { useDirectoryQuery } from './useDirectoryQuery';
+import { useFailureView } from './useFailureView';
 
 /**
  * The directory's list, ready to render: the search, the order, the count, the cards a page at a
@@ -43,32 +42,19 @@ export function useDirectoryList(): DirectoryListView {
   );
   const answer = query.data;
 
-  const failed = answer === undefined ? query.error : null;
-  const load = useRefusalView(failed, words.loadFailed);
-  const refresh = useRefusalView(
+  const retry = () => {
+    void query.refetch();
+  };
+  const failure = useFailureView(
+    answer === undefined ? query.error : null,
+    words.loadFailed,
+    retry,
+  );
+  const refreshFailure = useFailureView(
     answer !== undefined && query.isError ? query.error : null,
     words.refreshFailed,
+    retry,
   );
-  const failureOf = (
-    view: typeof load,
-    error: AppError | null,
-    title: string,
-  ): ListFailureView | null =>
-    error === null
-      ? null
-      : {
-          title,
-          // Too many requests' view is gone once its count ends; the failure stays, with its retry.
-          line: view.view?.message ?? copy.errors.rate_limit,
-          reference: view.view?.kind === 'refused' ? (view.view.reference ?? null) : null,
-          retry: {
-            label: copy.status.retry,
-            blocked: view.blocked,
-            run: () => {
-              void query.refetch();
-            },
-          },
-        };
 
   // A page past the last (as after spaces left the directory) shows the last page in its place.
   const pastLast = usePageInRange({
@@ -175,12 +161,8 @@ export function useDirectoryList(): DirectoryListView {
                 ? 'noMatch'
                 : 'empty',
       cards,
-      failure: failureOf(load, failed, words.loadFailed),
-      refreshFailure: failureOf(
-        refresh,
-        answer !== undefined && query.isError ? query.error : null,
-        words.refreshFailed,
-      ),
+      failure,
+      refreshFailure,
       empty: { title: words.empty.title, text: words.empty.text },
       noMatch: {
         title: words.noMatch.title,

@@ -136,4 +136,21 @@ export const DIRECTORY = {
     },
     chooseArea: 'اختر منطقتك',
   },
+  view: {
+    label: 'طريقة العرض',
+    list: 'قائمة',
+    map: 'خريطة',
+  },
+  map: {
+    label: 'خريطة المساحات',
+    region: 'الخريطة',
+    pin: ({ name, status }: { name: string; status: string }) => `${name} — ${status}`,
+    legend: 'دليل الخريطة',
+    centre: 'مركّز على موقعي',
+    you: 'موقعك',
+    details: 'عرض التفاصيل',
+    close: 'إغلاق',
+    failed: 'لم تُحمَّل الخريطة. تصفّح المساحات في القائمة.',
+    truncated: 'تظهر أول 1000 مساحة؛ قرّب الخريطة لترى ما بقي.',
+  },
 } satisfies Catalogue['directory'];

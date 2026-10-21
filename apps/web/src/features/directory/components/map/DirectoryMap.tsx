@@ -1,0 +1,105 @@
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@shared/design-system';
+import { MarkerMap } from '@shared/map';
+import type { DirectoryMapView } from '../../types/DirectoryMapView';
+import type { DirectorySlots } from '../../types/DirectorySlots';
+import { FailureAlert } from '../list/FailureAlert';
+import { MapLegend } from './MapLegend';
+import { MapNotice } from './MapNotice';
+import { SelectedCard } from './SelectedCard';
+import { SelectedSheet } from './SelectedSheet';
+
+/**
+ * The directory's map, a section named «الخريطة», marked busy while the pins load: a failure above
+ * it, and over it the legend (at the top's end), the empty or no-match card, the line past the
+ * pins' ceiling, the chosen space's card from 768 px (at the foot's start; a bottom sheet below it)
+ * and «مركّز على موقعي» while a point is held. Closing the chosen space hands the focus back to its
+ * mark.
+ */
+export function DirectoryMap({ view, slots }: { view: DirectoryMapView; slots: DirectorySlots }) {
+  const { selected } = view;
+
+  return (
+    <section aria-label={view.region} aria-busy={view.busy} className="flex flex-col gap-3">
+      {view.failure !== null && <FailureAlert failure={view.failure} />}
+      <MarkerMap
+        {...view.map}
+        under={null}
+        overlay={(controls) => {
+          const close = () => {
+            controls.focusSelected();
+            selected?.close();
+          };
+          const nothing =
+            view.state === 'noMatch' ? view.noMatch : view.state === 'empty' ? view.empty : null;
+          const clear = view.state === 'noMatch' ? view.noMatch.clear : null;
+          return (
+            <div className="flex h-full flex-col justify-between gap-3 p-3 pb-8">
+              <div className="flex justify-end">
+                <MapLegend legend={view.legend} />
+              </div>
+              {nothing !== null && (
+                <Card className="pointer-events-auto max-w-sm self-center">
+                  <CardHeader>
+                    <CardTitle>{nothing.title}</CardTitle>
+                    <CardDescription>{nothing.text}</CardDescription>
+                  </CardHeader>
+                  {clear !== null && (
+                    <CardContent>
+                      <Button variant="outline" onClick={clear.run}>
+                        {clear.label}
+                      </Button>
+                    </CardContent>
+                  )}
+                </Card>
+              )}
+              <div className="flex flex-col gap-3">
+                {view.truncated !== null && (
+                  <div className="self-center">
+                    <MapNotice line={view.truncated} />
+                  </div>
+                )}
+                <div className="flex items-end justify-between gap-3">
+                  {selected !== null && !view.phone ? (
+                    <SelectedCard
+                      selected={selected}
+                      href={slots.spaceLink(selected.card.slug)}
+                      areaName={slots.areaName(selected.card.areaId)}
+                      onClose={close}
+                    />
+                  ) : (
+                    <span />
+                  )}
+                  {view.centre !== null && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="pointer-events-auto"
+                      onClick={controls.showUser}
+                    >
+                      {view.centre}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {selected !== null && view.phone && (
+                <SelectedSheet
+                  selected={selected}
+                  href={slots.spaceLink(selected.card.slug)}
+                  areaName={slots.areaName(selected.card.areaId)}
+                  onClose={close}
+                />
+              )}
+            </div>
+          );
+        }}
+      />
+    </section>
+  );
+}

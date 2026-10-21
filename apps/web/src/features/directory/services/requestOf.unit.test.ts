@@ -14,6 +14,7 @@ const DEFAULTS: DirectoryFilters = {
   openFriday: false,
   sort: undefined,
   page: 1,
+  view: 'list',
 };
 
 describe('requestOf', () => {

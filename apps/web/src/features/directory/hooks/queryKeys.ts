@@ -1,5 +1,6 @@
 import type { DirectoryRequest } from '../types/DirectoryRequest';
 import type { NearPoint } from '../types/NearState';
+import type { PinsRequest } from '../types/PinsRequest';
 
 /** The capability's query keys, under the public scope (docs/frontend/architecture.md §7). */
 export const directoryKeys = {
@@ -7,6 +8,8 @@ export const directoryKeys = {
   /** A page of the list, one key per request and the point it is ordered from, if any. */
   list: (request: DirectoryRequest, near: NearPoint | null) =>
     ['public', 'directory', 'list', request, near] as const,
+  /** The map's pins, one key per request. */
+  pins: (request: PinsRequest) => ['public', 'directory', 'pins', request] as const,
 };
 
 /** Whether a list's key holds a point: an answer ordered by distance, dropped with the location. */

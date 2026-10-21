@@ -78,10 +78,15 @@ export function useDirectoryFilters() {
         page: 1,
       });
     },
-    /** Takes off the filters, keeping the search and the order. */
+    /** Takes off the filters, keeping the search, the order and the view. */
     clearFilters: () => {
       const current = filtersOf(latest.current);
-      write({ ...filtersOf(new URLSearchParams()), q: current.q, sort: current.sort });
+      write({
+        ...filtersOf(new URLSearchParams()),
+        q: current.q,
+        sort: current.sort,
+        view: current.view,
+      });
     },
     /** How many filters are in force (the search is not one). */
     applied,

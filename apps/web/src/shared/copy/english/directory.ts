@@ -141,4 +141,28 @@ export const DIRECTORY = {
     },
     chooseArea: 'Choose your area',
   },
+  /** The switch between the list and the map, its label read but not shown. */
+  view: {
+    label: 'View',
+    list: 'List',
+    map: 'Map',
+  },
+  /** The map of the spaces: its pins, its legend, the selected space and its notices. */
+  map: {
+    /** The map's own name, as an application the keys pan. */
+    label: 'Map of spaces',
+    /** The section around it. */
+    region: 'Map',
+    /** A pin's name, as a button: the space's name, isolated, and its live status. */
+    pin: ({ name, status }: { name: string; status: string }) => `${name} — ${status}`,
+    legend: 'Map legend',
+    centre: 'Centre on my location',
+    /** The visitor's point on the map. */
+    you: 'Your location',
+    details: 'View details',
+    close: 'Close',
+    failed: 'The map didn’t load. Browse the spaces in the list.',
+    /** Past 1,000 pins, until the map is asked within its view. */
+    truncated: 'Showing the first 1,000 spaces; zoom in to see the rest.',
+  },
 } as const;
