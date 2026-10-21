@@ -1,9 +1,8 @@
 import { useCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import { useRefusalView } from '@shared/forms';
-import { paginationView } from '@shared/lists';
+import { paginationView, usePageInRange } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
-import { useEffect } from 'react';
 import { cardViewOf } from '../../services/cardView';
 import type { DirectoryOrder } from '../../types/DirectoryFilters';
 import type { DirectoryListView, ListFailureView } from '../../types/DirectoryListView';
@@ -54,17 +53,12 @@ export function useDirectoryList(): DirectoryListView {
         };
 
   // A page past the last (as after spaces left the directory) shows the last page in its place.
-  const lastPage = answer?.meta.totalPages ?? 0;
-  const pastLast =
-    answer !== undefined &&
-    !query.isPlaceholderData &&
-    answer.data.length === 0 &&
-    lastPage > 0 &&
-    filters.filters.page > lastPage;
-  const { replacePage } = filters;
-  useEffect(() => {
-    if (pastLast) replacePage(lastPage);
-  }, [pastLast, lastPage, replacePage]);
+  const pastLast = usePageInRange({
+    answer,
+    placeholder: query.isPlaceholderData,
+    page: filters.filters.page,
+    replacePage: filters.replacePage,
+  });
 
   const searching = filters.filters.q !== undefined;
   const order: DirectoryOrder = filters.filters.sort ?? (searching ? 'relevance' : 'updated');
@@ -128,7 +122,7 @@ export function useDirectoryList(): DirectoryListView {
     page: answer?.meta.currentPage ?? filters.filters.page,
     pagination: paginationView({
       current: answer?.meta.currentPage ?? 1,
-      total: lastPage,
+      total: answer?.meta.totalPages ?? 0,
       words: words.pagination,
       searchOf: filters.searchOf,
     }),

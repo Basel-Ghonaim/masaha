@@ -1,11 +1,10 @@
 import { ACCOUNT_STATES, USER_ROLE_FILTERS } from '@masaha/shared/space-links';
 import { useCopy, type Catalogue } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
-import { paginationView } from '@shared/lists';
+import { paginationView, usePageInRange } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
 import { userRowView } from '../../services/userRowView';
 import type { UserRoleFilter } from '../../types/UsersFilters';
-import { usePageInRange } from '../usePageInRange';
 import { useAdminUsersQuery } from './useAdminUsersQuery';
 import { useUsersFilters } from './useUsersFilters';
 
