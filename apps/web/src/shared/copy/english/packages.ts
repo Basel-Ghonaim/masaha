@@ -25,6 +25,9 @@ export const PACKAGES = {
   /** Under a paused package that still holds a shift (finding 81). */
   heldShift: ({ shift }: { shift: string }) =>
     `Paused, but still holds the shift “${shift}”; the shift can’t be removed until it’s cleared here.`,
+  /** The same, while the space's shifts load or could not be read: the shift unnamed. */
+  heldShiftUnnamed:
+    'Paused, but still holds a shift; the shift can’t be removed until it’s cleared here.',
   clearShift: 'Clear the shift',
   clearShiftFailed: ({ name }: { name: string }) => `Couldn’t clear ${name}’s shift`,
   /** A package's terms, in one line. */
@@ -120,4 +123,6 @@ export const PACKAGES = {
     forbidden: 'This is no longer open to you at this space; nothing was saved.',
     not_found: 'This package no longer exists, or the space is no longer open to you.',
   },
+  /** A new package's 404: no package existed, so only the space can be gone. */
+  spaceGone: 'This space is no longer available to you.',
 } as const;

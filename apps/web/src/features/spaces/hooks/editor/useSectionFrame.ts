@@ -8,6 +8,7 @@ import type { EditorPlace } from '../../types/EditorPlace';
 import type { SectionFrameView } from '../../types/SectionFrameView';
 import { useConfirmGroup } from '../confirm/useConfirmGroup';
 import { meanwhileLines } from './meanwhileLines';
+import { sectionName } from './sectionName';
 
 /** What a section's own form hands its frame. */
 export type SectionForm = {
@@ -47,7 +48,7 @@ export function useSectionFrame({
   const copy = useCopy();
   const words = copy.spaces.editor.section;
   const language = useLanguage() === 'en' ? 'en' : 'ar';
-  const title = copy.spaces.editor.sections[group];
+  const title = sectionName(place, group, copy);
   const confirm = useConfirmGroup(place, space.id, group);
   const confirmFailure = useRefusalView(
     confirm.error,

@@ -217,7 +217,7 @@ export function usePricesSection({
 
   const owner = place === 'owner';
   return {
-    frame: owner ? { ...frame, title: words.publishedTitle } : frame,
+    frame,
     intro: owner ? words.publishedIntro : words.intro,
     notes: [
       ...(shifts.length === 0

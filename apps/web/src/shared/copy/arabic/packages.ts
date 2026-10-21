@@ -18,6 +18,7 @@ export const PACKAGES = {
   toggleFailed: ({ name }: { name: string }) => `تعذّر تغيير إتاحة ${name}`,
   heldShift: ({ shift }: { shift: string }) =>
     `موقوفة وما زالت تحجز وردية «${shift}»؛ لا تُحذف الوردية قبل إزالتها منها.`,
+  heldShiftUnnamed: 'موقوفة وما زالت تحجز وردية؛ لا تُحذف الوردية قبل إزالتها منها.',
   clearShift: 'إزالة الوردية',
   clearShiftFailed: ({ name }: { name: string }) => `تعذّرت إزالة وردية ${name}`,
   summary: {
@@ -138,4 +139,5 @@ export const PACKAGES = {
     forbidden: 'لم يعد هذا متاحًا لك في هذه المساحة؛ لم يُحفظ شيء.',
     not_found: 'لم تعد هذه الباقة موجودة، أو لم تعد المساحة متاحة لك.',
   },
+  spaceGone: 'لم تعد هذه المساحة متاحة لك.',
 } satisfies Catalogue['packages'];

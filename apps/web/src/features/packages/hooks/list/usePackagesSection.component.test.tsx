@@ -1,6 +1,9 @@
 import type { SpacePackage } from '@masaha/shared/packages';
+import { createQueryClient } from '@shared/api';
 import { Toaster, toast } from '@shared/design-system';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import {
@@ -49,15 +52,30 @@ const MORNING: SpacePackage = {
 /** A name with the Unicode isolates around its inserted values removed, as a reader hears it. */
 const heard = (name: string) => name.replace(/[\u2066-\u2069]/g, '');
 
-/** The section of space 7, its list answered `[TEN_DAYS, MORNING]`, every write with `write`. */
-function renderSection(write: (request: Request) => FakeAnswer | Promise<FakeAnswer>) {
+/**
+ * The section of space 7, its list answered `[TEN_DAYS, MORNING]`, every write with `write`, beside
+ * the signed-in owner's spaces as `space-links` keeps them, so a refresh of the user's scope is seen.
+ */
+function renderSection(
+  write: (request: Request) => FakeAnswer | Promise<FakeAnswer>,
+  shifts: ShiftChoice[] | null = SHIFTS,
+) {
   const requests = fakeTransport((request) =>
     request.method === 'get' ? ok([TEN_DAYS, MORNING]) : write(request),
   );
-  const rendered = renderHook(() => usePackagesSection({ spaceId: 7, shifts: SHIFTS }), {
-    wrapper: queryWrapper(),
-  });
-  return { ...rendered, requests };
+  const client = meScope();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const rendered = renderHook(() => usePackagesSection({ spaceId: 7, shifts }), { wrapper });
+  return { ...rendered, requests, client };
+}
+
+/** A client holding the signed-in owner's spaces, as `space-links` keeps them. */
+function meScope() {
+  const client = createQueryClient();
+  client.setQueryData(['me', 'spaces'], []);
+  return client;
 }
 
 /** Waits for the list, and hands back its rows. */
@@ -79,6 +97,7 @@ afterEach(() => {
     toast.dismiss();
   });
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('usePackagesSection', () => {
@@ -144,6 +163,34 @@ describe('usePackagesSection', () => {
     expect(result.current.rows[0]?.available.checked).toBe(true);
   });
 
+  it('words a switch refused on the package’s route as the owner’s, in a toast that stays, and fetches the user’s spaces again', async () => {
+    const { result, client } = renderSection(() => refused(404, { type: 'not_found' }));
+    const shown = vi.spyOn(toast, 'error');
+    const [first] = await rowsOf(result);
+
+    act(() => {
+      first?.available.toggle(false);
+    });
+
+    const line = 'This package no longer exists, or the space is no longer open to you.';
+    expect(await findToast(line)).toBeInTheDocument();
+    expect(client.getQueryState(['me', 'spaces'])?.isInvalidated).toBe(true);
+    // It stays until it is closed, past the toast library's own duration.
+    expect(shown).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ duration: Infinity }),
+    );
+  });
+
+  it('says a paused package holds a shift without naming one while the space’s shifts load', async () => {
+    const { result } = renderSection(() => ok(MORNING), null);
+    const rows = await rowsOf(result);
+
+    expect(heard(rows[1]?.heldShift?.text ?? '')).toBe(
+      'Paused, but still holds a shift; the shift can’t be removed until it’s cleared here.',
+    );
+  });
+
   it('offers a paused package that keeps its shift «إزالة الوردية», and no other package', async () => {
     startPreferences('ar');
     const { result, requests } = renderSection(() => ok({ ...MORNING, shiftId: null }));
@@ -177,13 +224,18 @@ describe('usePackagesSection', () => {
 
     let fail = true;
     fakeTransport(() => (fail ? refused(404, { type: 'not_found' }) : ok([TEN_DAYS])));
+    const client = meScope();
     const failed = renderHook(() => usePackagesSection({ spaceId: 7, shifts: SHIFTS }), {
-      wrapper: queryWrapper(),
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      ),
     });
     await waitFor(() => {
       expect(failed.result.current.status).toBe('error');
     });
     expect(failed.result.current.failure.reference).toMatch(/req-1/);
+    // A list refused 404 is a space no longer the owner's: their own spaces are fetched again.
+    expect(client.getQueryState(['me', 'spaces'])?.isInvalidated).toBe(true);
     fail = false;
     act(() => {
       failed.result.current.failure.retry();

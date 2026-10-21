@@ -1,14 +1,14 @@
 import type { AppError } from '@shared/errors';
 import { useMutation } from '@tanstack/react-query';
-import { createUsersRepository } from '../../repository/usersRepository';
-import type { HandoverChannel, HandoverRequest } from '@masaha/shared/users';
+import type { RecordHandover } from '../../types/RecordHandover';
 
-/** Records how a temporary password just shown reached its person. */
-export function useHandover() {
-  const repository = createUsersRepository();
-  return useMutation<undefined, AppError, { userId: number; channel: HandoverChannel }>({
+/**
+ * Records how a temporary password just shown reached its person, through the write the dialog's
+ * caller gives (`recordHandover`): the dialog holds only its pending state and its outcome.
+ */
+export function useHandover(recordHandover: RecordHandover) {
+  return useMutation<unknown, AppError, Parameters<RecordHandover>[0]>({
     gcTime: 0,
-    mutationFn: ({ userId, channel }) =>
-      repository.handOver(userId, { channel } satisfies HandoverRequest),
+    mutationFn: (request) => recordHandover(request),
   });
 }

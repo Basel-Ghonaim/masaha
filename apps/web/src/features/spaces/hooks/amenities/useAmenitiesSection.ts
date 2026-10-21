@@ -44,7 +44,8 @@ const FIELDS: Path<AmenitiesValues>[] = [
  * saved, dated and confirmed together; a save that changes nothing sends nothing, unless the group
  * was never saved. An amenity ticked that the server no longer offers is said in the section, beside
  * any refusal on the rows, and the lists the checklist reads are fetched again: one the space has
- * stays, marked or counted, and one only ticked leaves the list, and the value at the next toggle.
+ * stays, marked or counted, and one only ticked, which the server names by its place in the request,
+ * leaves the list and the value, so the next save goes without it.
  */
 export function useAmenitiesSection({
   place,
@@ -89,6 +90,17 @@ export function useAmenitiesSection({
         const refused = Object.keys(toAppError(error).errors ?? {});
         if (refused.some((field) => field.startsWith('amenityIds'))) {
           setUnavailable(true);
+          // Unseen once the lists arrive again, it could not be unticked: it is taken out now.
+          const gone = refused.flatMap((field) => {
+            const index = /^amenityIds\.(\d+)$/.exec(field)?.[1];
+            return index === undefined ? [] : [request.amenityIds[Number(index)]];
+          });
+          const ticked = form.form.getValues('amenityIds');
+          form.form.setValue(
+            'amenityIds',
+            ticked.filter((id) => !gone.includes(id)),
+            { shouldDirty: true },
+          );
           // The lists this capability's section shows come from another one: their scope.
           void client.invalidateQueries({ queryKey: scope.lists });
         }

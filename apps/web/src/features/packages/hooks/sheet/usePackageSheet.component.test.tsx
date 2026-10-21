@@ -52,17 +52,19 @@ async function renderSheet(
     request.method === 'get' ? ok([TEN_DAYS]) : write(request),
   );
   const client = createQueryClient();
-  // The space as `spaces` keeps it, under the space's scope, so a refresh of the scope is seen.
+  // The space as `spaces` keeps it, under the space's scope, so a refresh of the scope is seen; the
+  // owner's own spaces as `space-links` keeps them, under the user's.
   client.setQueryData(['space', 7, 'spaces', 'space'], { id: 7 });
+  client.setQueryData(['me', 'spaces'], []);
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   const rendered = renderHook(
-    () => ({
+    ({ shifts }: { shifts: ShiftChoice[] }) => ({
       list: usePackagesQuery(7),
-      sheet: usePackageSheet({ spaceId: 7, editing, shifts: SHIFTS, hoursLink: '/hours', close }),
+      sheet: usePackageSheet({ spaceId: 7, editing, shifts, hoursLink: '/hours', close }),
     }),
-    { wrapper },
+    { wrapper, initialProps: { shifts: SHIFTS } },
   );
   await waitFor(() => {
     expect(rendered.result.current.list.isSuccess).toBe(true);
@@ -161,6 +163,45 @@ describe('usePackageSheet', () => {
       expect(result.current.sheet.shift.error).toBe('This shift no longer exists; choose another.');
     });
     expect(client.getQueryState(['space', 7, 'spaces', 'space'])?.isInvalidated).toBe(true);
+  });
+
+  it('lets a new package go on without a shift removed meanwhile, its last one', async () => {
+    let answer: () => FakeAnswer = () =>
+      refused(422, { type: 'validation', errors: { shiftId: ['invalid_choice'] } });
+    const { result, requests, rerender } = await renderSheet(() => answer());
+    await fillValid(result);
+    const chips = result.current.sheet.shift.state;
+    act(() => {
+      if (chips.kind === 'chips') chips.choose('2');
+    });
+    await send(result);
+    await waitFor(() => {
+      expect(result.current.sheet.shift.error).toBe('This shift no longer exists; choose another.');
+    });
+
+    // The space arrives again with no shift left: no chip remains to clear the one chosen.
+    rerender({ shifts: [] });
+    answer = () => ok(TEN_DAYS, 201);
+    await send(result);
+
+    await waitFor(() => {
+      expect(writes(requests)).toHaveLength(2);
+    });
+    expect(bodyOf(writes(requests)[1])).toMatchObject({ shiftId: null });
+  });
+
+  it('says a new package refused 404 is a space no longer the owner’s, and fetches their spaces again', async () => {
+    const { result, client } = await renderSheet(() => refused(404, { type: 'not_found' }));
+    await fillValid(result);
+
+    await send(result);
+
+    await waitFor(() => {
+      expect(result.current.sheet.failure).toMatchObject({
+        message: 'This space is no longer available to you.',
+      });
+    });
+    expect(client.getQueryState(['me', 'spaces'])?.isInvalidated).toBe(true);
   });
 
   it('sends the terms whole on an edit, a limit turned off as none', async () => {

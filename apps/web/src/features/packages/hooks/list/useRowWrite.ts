@@ -1,4 +1,5 @@
 import type { SpacePackage } from '@masaha/shared/packages';
+import { useLinkEnded } from '@shared/api';
 import { currentCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import { isolate } from '@shared/localisation';
@@ -14,11 +15,13 @@ export type RowWrite = { pkg: SpacePackage; change: { isActive: boolean } | { sh
 
 /**
  * A write on one row of the list, acting at once: the server's answer replaces the package in the
- * list, as the row shows it; a refusal is a toast that stays, naming the package. Which rows wait on
- * one (`pending`, their packages' ids) is read across every write of the space's rows.
+ * list, as the row shows it; a refusal is a toast that stays, naming the package, in the owner's
+ * words. Which rows wait on one (`pending`, their packages' ids) is read across every write of the
+ * space's rows.
  */
 export function useRowWrite(spaceId: number) {
   const client = useQueryClient();
+  const linkEnded = useLinkEnded();
   const write = useMutation<SpacePackage, AppError, RowWrite>({
     mutationKey: packagesKeys.rowWrite(spaceId),
     mutationFn: ({ pkg, change }) => repository.update(spaceId, pkg.id, change),
@@ -28,12 +31,14 @@ export function useRowWrite(spaceId: number) {
       );
     },
     onError: (error, { pkg, change }) => {
+      linkEnded(error);
       // Worded when it lands, in the language the interface speaks then.
       const words = currentCopy().packages;
       const name = isolate(pkg.name);
       toastRowFailed(
         'isActive' in change ? words.toggleFailed({ name }) : words.clearShiftFailed({ name }),
         error,
+        words.refusals,
       );
     },
   });

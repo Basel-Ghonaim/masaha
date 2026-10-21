@@ -17,13 +17,13 @@ Each owns one capability's flows, decisions and code map, and links the platform
 - [lookups.md](features/lookups.md) — the governorates, areas and amenities: the admin's screen and the public catalogue.
 - [spaces.md](features/spaces.md) — a space's profile and facts, their freshness and its life on the platform, as the admin keeps it and the owner edits it.
 - [packages.md](features/packages.md) — a space's packages, the subscription templates its owner keeps, private to its staff: listed whole, added, edited and retired, and the owner's screen of them.
-- [space-settings.md](features/space-settings.md) — a space's settings, read and edited by its owner (API only).
-- [occupancy.md](features/occupancy.md) — a space's state now: its private capacity, who is present, the live status and its override (API only).
+- [space-settings.md](features/space-settings.md) — a space's settings, read and edited by its owner, on the settings page.
+- [occupancy.md](features/occupancy.md) — a space's state now: its private capacity, who is present, the live status and its override; on the web, the capacity's hooks.
 - [visits.md](features/visits.md) — a visitor's stay at a space: checked in by name, its rates, its charge and its check-out (API only).
 - [desk.md](features/desk.md) — the front desk's orchestrations: a visitor's check-in with its warnings, the check-out with its payment and a visit's payment after it, each idempotent; a visit's debt left to a customer by phone; the owner's write-off of a visit's unpaid rest (API only).
 - [payments.md](features/payments.md) — the payment ledger: so far a visit's payment at its check-out or after it, the ledger's rules the database owns and their translation (API only).
 - [directory.md](features/directory.md) — what anyone reads without signing in: the directory's list, the map's pins and a space's public page; the search; near me (API only).
-- [space-links.md](features/space-links.md) — a user's links to spaces: the session's links, the caller's spaces, the space switcher, the admin's spaces list and the links loader.
+- [space-links.md](features/space-links.md) — a user's links to spaces: the session's links, the caller's spaces, the space switcher, the admin's spaces list, the owner's staff and the links loader.
 - [users.md](features/users.md) — the account: credentials, who may sign in, the password change and the forced change, the account menu and sign-out.
 - [auth.md](features/auth.md) — the sign-in flows: registration, sign-in with a password or with Google, refresh, sign-out and the forgotten password.
 

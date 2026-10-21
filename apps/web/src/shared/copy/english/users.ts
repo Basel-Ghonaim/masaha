@@ -14,8 +14,7 @@ export const USERS = {
   /** The change of a temporary password, before any other page. */
   passwordChange: {
     title: 'Choose a new password',
-    description:
-      'This is a temporary password from the Masaha team. Choose your own password to continue.',
+    description: 'This is a temporary password. Choose your own password to continue.',
     newPassword: 'New password',
     submit: 'Save and continue',
     failed: 'Couldn’t save the password',

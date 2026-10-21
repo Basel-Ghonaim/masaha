@@ -5,6 +5,7 @@ import type { AppError } from '@shared/errors';
 import { useMutation } from '@tanstack/react-query';
 import type { EditorPlace } from '../../types/EditorPlace';
 import { EDITOR_SCOPES } from './editorScope';
+import { sectionName } from './sectionName';
 import { useSpaceAnswer } from './useSpaceAnswer';
 
 /**
@@ -24,8 +25,8 @@ export function useSaveGroup<Request>(
     onSuccess: (space) => {
       answer.keep(space);
       // Worded when it lands, in the language the interface speaks then.
-      const words = currentCopy().spaces.editor;
-      toast(words.section.saved({ section: words.sections[group] }));
+      const copy = currentCopy();
+      toast(copy.spaces.editor.section.saved({ section: sectionName(place, group, copy) }));
     },
     onError: answer.refused,
   });

@@ -274,7 +274,7 @@ export const SPACES = {
         nameEn: { too_long: '60 characters at most' },
       },
       /** A ticked amenity retired meanwhile (422 on no field). */
-      unavailable: 'An amenity you ticked is no longer offered. Untick it, or reload the page.',
+      unavailable: 'We took an amenity no longer offered out of your choice; save again.',
       /** A verified space's platform amenities, read-only. */
       available: 'Available',
     },

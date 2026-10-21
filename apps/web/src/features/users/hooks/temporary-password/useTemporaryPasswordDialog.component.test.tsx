@@ -7,6 +7,8 @@ import { bodyOf, fakeTransport, refused, restoreTransport } from '../../../../te
 import { findToast } from '../../../../test/findToast';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { startPreferences } from '../../../../test/startPreferences';
+import { recordAdminHandover } from '../../repository/adminHandover';
+import type { RecordHandover } from '../../types/RecordHandover';
 import { useTemporaryPasswordDialog } from './useTemporaryPasswordDialog';
 
 type Dialog = ReturnType<typeof useTemporaryPasswordDialog>;
@@ -24,8 +26,14 @@ function stubClipboard(writeText: (text: string) => Promise<void>) {
   return spy;
 }
 
-/** The dialog's state for Rima's password, the handover answered by `answer`. */
-function renderDialog(answer: () => FakeAnswer | Promise<FakeAnswer> = () => ({ status: 204 })) {
+/**
+ * The dialog's state for Rima's password, the handover recorded by `recordHandover` (the admin's,
+ * by default), the server answering it with `answer`.
+ */
+function renderDialog(
+  answer: () => FakeAnswer | Promise<FakeAnswer> = () => ({ status: 204 }),
+  recordHandover: RecordHandover = recordAdminHandover,
+) {
   const requests = fakeTransport(answer);
   const onDone = vi.fn();
   const channelRef = { current: document.createElement('div') };
@@ -38,6 +46,7 @@ function renderDialog(answer: () => FakeAnswer | Promise<FakeAnswer> = () => ({ 
         kind: 'created',
         onDone,
         channelRef,
+        recordHandover,
       }),
     { wrapper: queryWrapper() },
   );
@@ -142,6 +151,20 @@ describe('useTemporaryPasswordDialog', () => {
     });
     // The person's name isolated inside the line.
     expect(await findToast(`Handover recorded: ${FSI}Rima${PDI} · WhatsApp`)).toBeInTheDocument();
+  });
+
+  it('records the handover through the write its caller gives', async () => {
+    const recordHandover = vi.fn<RecordHandover>(() => Promise.resolve());
+    const { result, requests, onDone } = renderDialog(undefined, recordHandover);
+
+    await copyAndChoose(() => result.current);
+    await act(async () => {
+      await result.current.done.run();
+    });
+
+    expect(recordHandover).toHaveBeenCalledExactlyOnceWith({ userId: 12, channel: 'WHATSAPP' });
+    expect(requests).toHaveLength(0);
+    expect(onDone).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the dialog open on a failure, with its reason', async () => {

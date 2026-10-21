@@ -44,9 +44,9 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 
 **The owner's packages on the web.** «الباقات الخاصة», under the published prices on Packages & prices (`PackagesSection`), says «لا تظهر للزوار.» and offers «باقة جديدة» at its row's end:
 - **The list** is every package, in the server's order, a row each: the name, «موقوفة» on a muted row for a paused one, its terms in one line — the validity, each limit set, «للطلاب», the shift's name, every count in its plural form — and its price, the amount for a fixed price or the rate «… للساعة», «… لليوم». It has its own loading, its failure with the request's reference and «إعادة المحاولة», and an empty state with «باقة جديدة».
-- **The switch «متاحة»** (named «{name}: متاحة») offers or pauses the package at once; while its change waits it stays in the focus order and a press does nothing; the server's answer replaces the row; a refusal is a toast that stays, «تعذّر تغيير إتاحة {name}», with its reason.
-- **A paused package that still holds a shift** says «موقوفة وما زالت تحجز وردية «{shift}»؛ لا تُحذف الوردية قبل إزالتها منها.» and offers «إزالة الوردية», which clears it at once, as the switch acts ([finding 81](../architecture/findings/81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md), resolved).
-- **The package sheet** (from the end, «باقة خاصة — لا تظهر للزوار.»), new or «تعديل الباقة», holds the name; the validity in days (30 for a new one); «الحدود» as chips, each one turned on showing its field and turned off clearing it; «طريقة الحساب» (fixed, per hour, per day) and the amount labelled by it, in shekels with up to two decimals, Arabic digits read; «لمن»; and the space's shifts as chips, «بدون وردية» first — or, with no shift saved, «لا ورديات محفوظة بعد.» and a link to the profile's opening hours. A summary under them follows what is typed. The terms are checked in the browser by the contract's schema before anything is sent: a limit on and empty asks «أدخل العدد أو أطفئ هذا الحد». A save waits until the list has arrived again, then closes and says «حُفظت الباقة {name}»; a repeated name is refused on the name, a shift gone meanwhile on the shift; a 403 says only that it is no longer open to the owner, a 404 that the package is gone or the space no longer open to them.
+- **The switch «متاحة»** (named «{name}: متاحة») offers or pauses the package at once; while its change waits it stays in the focus order and a press does nothing; the server's answer replaces the row; a refusal is a toast that stays, «تعذّر تغيير إتاحة {name}», with its reason in the owner's words, as the sheet's.
+- **A paused package that still holds a shift** says «موقوفة وما زالت تحجز وردية «{shift}»؛ لا تُحذف الوردية قبل إزالتها منها.» and offers «إزالة الوردية», which clears it at once, as the switch acts — while the space's shifts load, or if they could not be read, the line names no shift ([finding 81](../architecture/findings/81-a-retired-package-that-keeps-its-shift-stops-the-owner-from-removing-that-shift.md), resolved).
+- **The package sheet** (from the end, «باقة خاصة — لا تظهر للزوار.»), new or «تعديل الباقة», holds the name; the validity in days (30 for a new one); «الحدود» as chips, each one turned on showing its field and turned off clearing it; «طريقة الحساب» (fixed, per hour, per day) and the amount labelled by it, in shekels with up to two decimals, Arabic digits read; «لمن»; and the space's shifts as chips, «بدون وردية» first — or, with no shift saved, «لا ورديات محفوظة بعد.» and a link to the profile's opening hours. A summary under them follows what is typed. The terms are checked in the browser by the contract's schema before anything is sent: a limit on and empty asks «أدخل العدد أو أطفئ هذا الحد». A save waits until the list has arrived again, then closes and says «حُفظت الباقة {name}»; a repeated name is refused on the name, a shift gone meanwhile on the shift, and a shift the space no longer has is no longer chosen, so the next save goes on without it; a 403 says only that it is no longer open to the owner, a 404 that the package is gone or the space no longer open to them — for a new package, only that the space is no longer theirs. Any 404 on the packages' routes, the list's included, fetches the owner's own spaces again, so the space switcher stops offering a space whose link ended.
 
 ## Decisions
 
@@ -79,6 +79,8 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 - **A paused package that holds a shift says so and clears it at once** (design issue 7, finding 81). *Why:* the hours refuse to remove that shift, and nothing else tells the owner why; the clear is reversible and touches no one else. 2026-10-20, #98.
 - **A limit turned on and left empty is refused on its field, «أدخل العدد أو أطفئ هذا الحد».** *Why:* the shared rule reads an empty count as a wrong type, `invalid_format`, so the line is chosen by the field being empty. 2026-10-20, #98.
 - **The sheet is the layer's end sheet as it is** ([finding 101](../architecture/findings/101-the-end-sheet-is-not-full-width-on-a-phone.md)). *Why:* no design-system change in a feature's item. 2026-10-20, #98.
+- **A row's refusal is worded as the sheet's, in the owner's words** (carried from #98). *Why:* the switch and the clear write on the package's route, whose 404 has the same two causes; the generic lines would say nothing of them. 2026-10-20, #99.
+- **A 404 on the packages' routes fetches the owner's own spaces again**, through `shared/api`'s `useLinkEnded` (carried from #98). *Why:* the managed routes answer a link ended meanwhile so, and the switcher must stop offering the space, as the space editor's 404 does. 2026-10-20, #99.
 
 ## Code map
 
@@ -90,6 +92,7 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 
 - [80](../architecture/findings/80-the-database-still-takes-a-package-with-a-price-of-zero.md): the database still takes a package of price zero.
 - [101](../architecture/findings/101-the-end-sheet-is-not-full-width-on-a-phone.md): the package sheet is not full width on a phone.
+- [102](../architecture/findings/102-the-package-sheets-summary-is-announced-on-every-keystroke.md): the sheet's summary is announced on every keystroke.
 
 ## History
 
@@ -100,3 +103,4 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 ### Web history
 
 - #98 — the owner's private packages on Packages & prices: the list, the switch, the sheet, and a paused package's shift cleared (finding 81).
+- #99 — carried from #98's review: a row's refusal in the owner's words; a 404 refreshes the owner's spaces; a shift removed meanwhile no longer chosen; finding 102 recorded.

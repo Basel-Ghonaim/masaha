@@ -1,5 +1,5 @@
 import { AddOwner, OwnersList, type TemporaryPasswordSlot } from '@features/space-links';
-import { TemporaryPasswordDialog } from '@features/users';
+import { recordAdminHandover, TemporaryPasswordDialog } from '@features/users';
 import { ADMIN_DELETED_SPACES_PATH } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
 
@@ -14,6 +14,7 @@ const temporaryPassword: TemporaryPasswordSlot = (added, done, returnFocus) => (
     returnFocus={returnFocus}
     person={{ userId: added.userId, name: added.name, email: added.email }}
     password={added.temporaryPassword}
+    recordHandover={recordAdminHandover}
     onDone={done}
   />
 );
