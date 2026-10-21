@@ -111,6 +111,7 @@ Each step names its goal and points to what supports it:
   - conventions §9: [the front desk](../backend/conventions.md#the-front-desk-desk) and [composed reads](../backend/conventions.md#composed-reads) (the customers list and file);
   - data-model.md: [subscription scenarios](../architecture/data-model.md#subscription-scenarios).
 - **Settles:** date inputs.
+- **Built:** customers created, edited, archived and restored; the list and the file, debts in the database (#102).
 
 ### 9. Payments and debts
 
@@ -214,7 +215,7 @@ Built: `GET /lookups`, the active governorates with their active areas and the a
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, the staff's read of the space's state now with its override, a visitor's check-in and check-out (`POST …/visits`, `POST …/visits/:visitId/check-out`), and a visit's debt: its payment after the check-out (`POST …/payments`), «تسجيل دينًا» (`PUT …/visits/:visitId/customer`) and the owner's write-off (`POST` / `DELETE …/visits/:visitId/write-off`) (#100) ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed), [Front desk (managed)](../api/api-contract.md#front-desk-managed)).
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, the staff's read of the space's state now with its override, a visitor's check-in and check-out (`POST …/visits`, `POST …/visits/:visitId/check-out`), and a visit's debt: its payment after the check-out (`POST …/payments`), «تسجيل دينًا» (`PUT …/visits/:visitId/customer`) and the owner's write-off (`POST` / `DELETE …/visits/:visitId/write-off`) (#100), and the customers: the list and the file (`GET …/customers`, `GET …/customers/:customerId`), the create and the edit (`POST …/customers`, `PATCH …/customers/:customerId`), the archive and the restore (`POST …/customers/:customerId/archive`, `…/restore`) (#102) ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed), [Front desk (managed)](../api/api-contract.md#front-desk-managed), [Customers (managed)](../api/api-contract.md#customers-managed)).
 An active owner or reception link is required; reception reads, sets and clears the live status's override, checks visitors in and out, receives a visit's payment and records its debt; the owner writes a visit off. The web screen and later
 dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 

@@ -65,6 +65,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - a space's packages (`GET /manage/spaces/:spaceId/packages`), retired ones included: a space keeps tens at most, typed by hand, and the owner's list and the front desk's picker both read them whole (§5, *Packages (managed)*; why: [packages › Decisions](../features/packages.md#api-decisions)).
 - a space's staff (`GET /manage/spaces/:spaceId/staff`), every reception link, active or not: a space has few, and the owner's page reads them whole (§5, *Staff (managed)*; why: [space-links › Decisions](../features/space-links.md#api-decisions)).
 - the people present at a space (`GET /manage/spaces/:spaceId/occupancy`), bounded by who is there: the desk's main view reads its state in one request on a weak connection (§5, *Occupancy (managed)*; why: [occupancy › Decisions](../features/occupancy.md#api-decisions)).
+- a customer's subscriptions and unpaid visits in their file (`GET /manage/spaces/:spaceId/customers/:customerId`), bounded by one customer (§5, *Customers (managed)*; 2026-10-21, #102).
 
 ## 5. Endpoints
 
@@ -377,7 +378,7 @@ SpaceOccupancyNow = {
 
 ### Customers (managed)
 
-A space's customers: everyone it keeps on file, a subscriber or a visitor who left a debt ([data-model › Operations](../architecture/data-model.md#operations)), private to its staff. The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The create and the edit are the staff's (🧾); the archive and the restore are the owner's (🏢). Each is refused with `forbidden` (403) before its body is read for whoever may not, and again for an owner or reception whose link ended meanwhile. Built 2026-10-21, #102.
+A space's customers: everyone it keeps on file, a subscriber or a visitor who left a debt ([data-model › Operations](../architecture/data-model.md#operations)), private to its staff. The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The list, the file, the create and the edit are the staff's (🧾); the archive and the restore are the owner's (🏢). Each is refused with `forbidden` (403) before its body is read for whoever may not, and again for an owner or reception whose link ended meanwhile. Built 2026-10-21, #102.
 
 - **The fields** (`@masaha/shared/customers`): `name`, 1–60 characters, NFC-normalised and trimmed, with no bidirectional controls and no control characters or line separators (`invalid_format`); `phone`, optional, normalised to E.164 (`invalid_format` otherwise), held by at most one customer of the space that is not archived: another one's is refused with `conflict` (409) `PHONE_TAKEN` and `errors.phone = ["not_unique"]`, writing nothing. An archived customer's phone is free.
 - **Archived, never deleted** ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): an archived customer keeps their records and debts, is not edited (`CUSTOMER_ARCHIVED`) until the owner restores them, and frees their phone for another customer.
@@ -409,6 +410,42 @@ Customer = {
 #### `POST /manage/spaces/:spaceId/customers/:customerId/restore` · 🏢
 - **200:** `Customer`, no longer archived; one not archived is answered as it is.
 - **Errors**, each writing nothing: `forbidden` (403) for reception, before anything is read, and for an owner whose link ended meanwhile; `not_found` (404) for a customer that is not the space's; `conflict` (409) `PHONE_TAKEN` when another customer now holds their phone.
+
+#### `GET /manage/spaces/:spaceId/customers` · 🧾
+- **Query:** `?q=&status=&kind=&packageId=&payment=&page=&limit=` (`customersQuerySchema`, `@masaha/shared/desk`):
+  - `q`, 1–60 characters: digits only, at least two once spaces and a plus are removed, match the end of a phone; anything else matches a name, Arabic folded as the directory's search folds it (data model › Search);
+  - `status`: `UPCOMING`, `ACTIVE`, `ENDING_SOON` or `EXPIRED`, the customer's current subscription's (the one running, else the next, else the last); `ARCHIVED` lists the archived customers only, the owner's (reception `forbidden`, 403);
+  - `kind`: `PACKAGE`, `CUSTOM` (their current subscription from a package, or not) or `NONE` (no subscription); `packageId`: the current subscription's package, which implies `PACKAGE` (`invalid_choice` on `kind` with another);
+  - `payment`: `OWES` (a debt above zero), `CREDIT` (credit above zero) or `SETTLED` (neither).
+- **200:** `CustomerRow[]`, by name then id, with `meta` (§4). Every filter is applied **before** the page is cut, so every page is full and the total right; archived customers are left out unless `status=ARCHIVED`. Debt, credit and the payment filter are computed in the database ([data-model › Customer debt](../architecture/data-model.md#derived-values-computed-not-stored)). No export of customers or phones exists, for anyone. Read without a lock.
+- **Errors:** `validation` (422) on the query; `forbidden` (403) for reception's `status=ARCHIVED`; `not_found` (404).
+
+#### `GET /manage/spaces/:spaceId/customers/:customerId` · 🧾
+- **200:** `CustomerFile`: the customer, their debt and credit, who of them is present (an open check-in or an open visit), every subscription with its status, progress, due, paid and balance (the latest started first, then by id), and their unpaid visits — closed, not written off, owing or unpriced — the oldest first, each with its payments, voided ones marked. Its lists are answered whole (§4). Read without a lock.
+- **Errors:** `not_found` (404), also for a customer that is not the space's.
+
+```ts
+CustomerBalance = { debtAgorot: number, creditAgorot: number }   // debt: the positive balances; credit: a usage-based subscription's paid ahead
+SubscriptionState = {
+  id, customerId, packageId: number | null, name,
+  startsOn: string | null, endsOn: string | null,                 // Gaza dates, YYYY-MM-DD
+  totalDays, daysPerWeek, hoursPerDay, totalHours: number | null,
+  billing: "FIXED" | "PER_HOUR" | "PER_DAY", priceAgorot, audience, shiftId: number | null,
+  ended: { at, byId } | null,
+  status: "UPCOMING" | "ACTIVE" | "ENDING_SOON" | "EXPIRED",
+  progress: { daysUsed, daysThisWeek, minutesUsed, minutesToday },   // days with a check-in; closed stays' whole minutes
+  dueAgorot: number
+}
+ItemPayment = VisitPayment & { voided: { at, byId, reason } | null }
+CustomerRow = Customer & CustomerBalance & {
+  current: { id, name, packageId: number | null, endsOn: string | null, status } | null
+}
+CustomerFile = { customer: Customer } & CustomerBalance & {
+  present: { kind: "CHECK_IN", id, subscriptionId, since } | { kind: "VISIT", id, since } | null,
+  subscriptions: (SubscriptionState & { paidAgorot, balanceAgorot })[],
+  unpaidVisits: { visit: DeskVisit, payments: ItemPayment[], paidAgorot, balanceAgorot: number | null }[]
+}
+```
 
 ### Front desk (managed)
 

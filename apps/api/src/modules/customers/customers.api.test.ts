@@ -10,6 +10,7 @@ import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
+import { createCustomersRepository } from './customers.repository.ts';
 
 const app = createTestApp({ clock: () => new Date('2026-10-21T10:00:00+03:00') });
 const PHONE = '+970599000123';
@@ -310,6 +311,23 @@ describe('restoring a customer', () => {
       archivedAt: expect.any(Date) as Date,
     });
     expect(await auditEntries()).toEqual([]);
+  });
+});
+
+describe("the customers list's page", () => {
+  it('the ids reach the query as one parameter: 70,000 ids that do not exist answer an empty page', async () => {
+    // More ids than PostgreSQL's 65,535 bound parameters: one array parameter each list.
+    const ids = Array.from({ length: 70_000 }, (_, index) => 1_000_000 + index);
+    await createCustomer(spaceId, { name: 'Kept' });
+
+    const page = (filter: { include: number[][]; exclude: number[] }) =>
+      createCustomersRepository().page(
+        spaceId,
+        { archived: false, search: null, ...filter },
+        { skip: 0, take: 20 },
+      );
+    expect(await page({ include: [ids], exclude: [] })).toEqual({ rows: [], total: 0 });
+    expect(await page({ include: [], exclude: ids })).toMatchObject({ total: 1 });
   });
 });
 

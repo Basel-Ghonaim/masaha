@@ -25,6 +25,13 @@ export interface VisitPaymentRow {
   recordedById: number;
 }
 
+/** A payment as a statement reads it: its void too. */
+export interface ItemPaymentRow extends VisitPaymentRow {
+  voidedAt: Date | null;
+  voidedById: number | null;
+  voidReason: string | null;
+}
+
 /** A visit's payment to record, with its idempotency key. */
 export interface NewVisitPayment extends PaymentRequest {
   spaceId: number;
@@ -197,6 +204,20 @@ export function createPaymentsRepository() {
         paidAgorot: paid,
         createdAt: created_at,
       }));
+    },
+
+    /** Every payment of these visits of the space, voided ones too, the earliest received first. */
+    paymentsOfVisits(
+      spaceId: number,
+      visitIds: readonly number[],
+      tx: Tx = prisma,
+    ): Promise<ItemPaymentRow[]> {
+      if (visitIds.length === 0) return Promise.resolve([]);
+      return tx.payment.findMany({
+        where: { spaceId, visitId: { in: [...visitIds] } },
+        select: { ...VISIT_PAYMENT, voidedAt: true, voidedById: true, voidReason: true },
+        orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
+      });
     },
 
     /** Inserts the payment; the insert trigger checks it against the visit's charge. */

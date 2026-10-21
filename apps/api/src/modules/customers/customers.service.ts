@@ -1,3 +1,4 @@
+import type { PaginationQuery } from '@masaha/shared/core';
 import type {
   CreateCustomerRequest,
   Customer,
@@ -8,8 +9,10 @@ import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import { can, type Actor, type LoadedSpace, type SpaceAction } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
+import { toSkip } from '../../shared/http/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import { customerChange } from './customerChange.ts';
+import { searchTermsOf } from './customerSearch.ts';
 import { toCustomer } from './customers.mapper.ts';
 import { createCustomersRepository, type CustomerRow } from './customers.repository.ts';
 
@@ -135,6 +138,34 @@ export function createCustomersService({ runInTransaction, audit, spaces, now }:
         );
         return toCustomer(row);
       });
+    },
+
+    /**
+     * A page of the space's customers, archived ones only when asked, searched by `q` (a phone's
+     * last digits, or a name), kept to the ids every `include` list holds and none of `exclude`
+     * holds, by name then id; and how many there are. Read without a lock.
+     */
+    async page(
+      spaceId: number,
+      {
+        q,
+        archived,
+        include,
+        exclude,
+      }: {
+        q: string | undefined;
+        archived: boolean;
+        include: readonly (readonly number[])[];
+        exclude: readonly number[];
+      },
+      query: PaginationQuery,
+    ): Promise<{ rows: Customer[]; total: number }> {
+      const { rows, total } = await repository.page(
+        spaceId,
+        { archived, search: q === undefined ? null : searchTermsOf(q), include, exclude },
+        { skip: toSkip(query), take: query.limit },
+      );
+      return { rows: rows.map(toCustomer), total };
     },
 
     /** The space's customer with this id, in the caller's transaction when given, or `null`. */

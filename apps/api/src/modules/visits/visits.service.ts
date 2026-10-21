@@ -565,6 +565,17 @@ export function createVisitsService({
       });
     },
 
+    /** These visits of the space as the desk sees them, by id; another space's are absent. */
+    async deskVisitsOf(
+      spaceId: number,
+      visitIds: readonly number[],
+      tx?: Tx,
+    ): Promise<Map<number, DeskVisit>> {
+      if (visitIds.length === 0) return new Map();
+      const rows = await repository.deskVisitsOf(spaceId, visitIds, tx);
+      return new Map(rows.map((row) => [row.id, toDeskVisit(row)]));
+    },
+
     /** The space's open visits, the earliest checked in first, then by id. */
     openIn(spaceId: number, tx?: Tx): Promise<OpenVisit[]> {
       return repository.openIn(spaceId, tx);

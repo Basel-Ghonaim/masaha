@@ -111,6 +111,14 @@ export function createVisitsRepository() {
       return prisma.visit.findFirst({ where: { id: visitId, spaceId }, select: DESK_VISIT });
     },
 
+    /** These visits of the space, as the desk reads them; another space's are not read. */
+    deskVisitsOf(spaceId: number, visitIds: readonly number[], tx: Tx = prisma) {
+      return tx.visit.findMany({
+        where: { spaceId, id: { in: [...visitIds] } },
+        select: DESK_VISIT,
+      });
+    },
+
     /** These visits of the space, with their check-in time and rates; another space's are not read. */
     ratesOf(spaceId: number, visitIds: readonly number[]) {
       return prisma.visit.findMany({

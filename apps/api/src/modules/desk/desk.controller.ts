@@ -1,6 +1,9 @@
 import type { Customer } from '@masaha/shared/customers';
 import type {
   CheckOutVisitRequest,
+  CustomerFile,
+  CustomerRow,
+  CustomersQuery,
   LeaveToCustomerRequest,
   ReceivedPayment,
   ReceivePaymentRequest,
@@ -10,7 +13,7 @@ import type { CheckInVisitRequest, DeskVisit, WriteOffVisitRequest } from '@masa
 import type { Request, Response } from 'express';
 
 import { signedIn, spaceOf } from '../../shared/auth/index.ts';
-import { idempotencyKeyOf, sendSuccess } from '../../shared/http/index.ts';
+import { buildPaginationMeta, idempotencyKeyOf, sendSuccess } from '../../shared/http/index.ts';
 import { parseId } from '../../shared/validation/index.ts';
 import type { DeskService } from './desk.service.ts';
 
@@ -89,6 +92,19 @@ export function createDeskController(service: DeskService) {
         parseId(req.params.visitId),
       );
       sendSuccess(res, visit satisfies DeskVisit);
+    },
+
+    /** 200 with a page of rows and its `meta`. */
+    customers: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const query = req.query as unknown as CustomersQuery;
+      const { rows, total } = await service.customers({ id: userId, role }, spaceOf(req), query);
+      sendSuccess(res, rows satisfies CustomerRow[], { meta: buildPaginationMeta(query, total) });
+    },
+
+    customerFile: async (req: Request, res: Response) => {
+      const customerFile = await service.customerFile(spaceOf(req), parseId(req.params.customerId));
+      sendSuccess(res, customerFile satisfies CustomerFile);
     },
 
     /** 200 with the customer; one already archived is answered as it is. */

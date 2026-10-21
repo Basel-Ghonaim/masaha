@@ -7,6 +7,7 @@
 ## What it does
 
 - Answers a space's subscriptions — of one customer, or by id — each with its status, its progress and its amount due, as of a time.
+- Answers each customer's current subscription, and the customers list's status, kind and package filters as ids ([desk](desk.md)).
 - Answers the space's open check-ins and their counts, for *present* ([occupancy](occupancy.md)).
 - Closes the check-ins due by the auto check-out, as a timed job.
 
@@ -35,7 +36,7 @@
 
 **The status** (`subscriptionStatus.ts`, pure), in this order: ended early → `EXPIRED`; a start after today → `UPCOMING`; its end passed, or a total used up → `EXPIRED`; at most seven days to its end — a subscription of at most seven days by its dates on its last day only — or at most 20 % of a total left → `ENDING_SOON`; else `ACTIVE`.
 
-**The current subscription** (`currentSubscription.ts`, pure): of a customer's subscriptions, the first by status (running, then upcoming, then expired), then the latest start (none last), then the highest id.
+**The current subscription** (`currentSubscription.ts`, pure): of a customer's subscriptions, the first by status (running, then upcoming, then expired), then the latest start (none last), then the highest id. `currentOf` answers it for a page's customers in one query; `customerIdsBy` reads the space's subscriptions once (a compact row each: the status is a pure rule) and answers the customers whose current one has the status, kind and package asked, or, for `NONE`, those with any subscription, to leave out.
 
 ## Decisions
 
@@ -45,6 +46,7 @@
 - **A day is used by any check-in on its Gaza date; minutes count closed stays only, whole minutes each; a per-hour due is minutes × rate ÷ 60, half up.** *Why:* an open stay has no length yet; the owner's attendance rules (Q4). 2026-10-21, #102.
 - **An `UPCOMING` status; an ended subscription is `EXPIRED` at once.** *Why:* a renewal starting later is not running yet, and the desk preselects the one running; ending a subscription changes its status the day it is ended (S4, S5). 2026-10-21, #102.
 - **A subscription of at most seven days by its dates is ending soon on its last day only.** *Why:* "shorter than a week" made exact (Q5). 2026-10-21, #102.
+- **The status and kind filters read the space's subscriptions into memory, one compact row each.** *Why:* the status is a pure TypeScript rule; the read grows with the subscriptions, not with payments or check-ins (S10; alternative A1, the status in SQL, not taken). 2026-10-21, #102.
 - **The calendar's days are passed in, never computed in SQL; dates are read from `@db.Date` at UTC.** *Why:* one clock and one calendar ([conventions §11](../backend/conventions.md#11-time)); PostgreSQL's zone data still dates the check-ins ([finding 120](../architecture/findings/120-gaza-dates-are-read-by-two-zone-databases.md)). 2026-10-21, #102.
 
 ## Code map
@@ -62,4 +64,4 @@
 
 - #94 — the open check-ins and their counts, which `occupancy` reads for *present*.
 - #97 — the auto check-out of check-ins.
-- #102 — the attendance and amount due in the database (`subscription_usage`), the status, progress and current-subscription rules, and the states read.
+- #102 — the attendance and amount due in the database (`subscription_usage`), the status, progress and current-subscription rules, and the states read; each customer's current subscription and the list's filters as ids.

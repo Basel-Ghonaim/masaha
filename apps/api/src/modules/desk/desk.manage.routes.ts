@@ -1,5 +1,6 @@
 import {
   checkOutVisitSchema,
+  customersQuerySchema,
   leaveToCustomerSchema,
   receivePaymentSchema,
 } from '@masaha/shared/desk';
@@ -55,6 +56,9 @@ export function createDeskManageRouter(controller: DeskController): Router {
     controller.writeOffVisit,
   );
   router.delete('/visits/:visitId/write-off', mayWriteOff, controller.undoWriteOff);
+  // The reads are the staff's: the boundary is their check (#86).
+  router.get('/customers', validate(customersQuerySchema, 'query'), controller.customers);
+  router.get('/customers/:customerId', controller.customerFile);
   router.post(
     '/customers/:customerId/archive',
     requireCan('customers.archive'),

@@ -22,7 +22,7 @@ Each owns one capability's flows, decisions and code map, and links the platform
 - [customers.md](features/customers.md) — a space's customers: created, idempotent, and edited by its staff (API only).
 - [subscriptions.md](features/subscriptions.md) — a customer's subscriptions: their status, progress and amount due, and the auto check-out of their check-ins (API only).
 - [visits.md](features/visits.md) — a visitor's stay at a space: checked in by name, its rates, its charge and its check-out (API only).
-- [desk.md](features/desk.md) — the front desk's orchestrations: a visitor's check-in with its warnings, the check-out with its payment and a visit's payment after it, each idempotent; a visit's debt left to a customer by phone; the owner's write-off of a visit's unpaid rest (API only).
+- [desk.md](features/desk.md) — the front desk's orchestrations: a visitor's check-in with its warnings, the check-out with its payment and a visit's payment after it, each idempotent; a visit's debt left to a customer by phone; the owner's write-off of a visit's unpaid rest; the customers list and file, and a customer's archive (API only).
 - [payments.md](features/payments.md) — the payment ledger: so far a visit's payment at its check-out or after it, the ledger's rules the database owns and their translation (API only).
 - [directory.md](features/directory.md) — what anyone reads without signing in: the directory's list, the map's pins and a space's public page; the search; near me.
 - [space-links.md](features/space-links.md) — a user's links to spaces: the session's links, the caller's spaces, the space switcher, the admin's spaces list, the owner's staff and the links loader.

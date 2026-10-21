@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
-import { checkOutVisitSchema, leaveToCustomerSchema, receivePaymentSchema } from './requests.ts';
+import {
+  checkOutVisitSchema,
+  customersQuerySchema,
+  leaveToCustomerSchema,
+  receivePaymentSchema,
+} from './requests.ts';
 
 /** The field errors of a check-out, or null when it passes. */
 function errorsOf(input: unknown) {
@@ -106,5 +111,53 @@ describe("a visit's debt left to a customer by phone", () => {
     };
     expect(errorsOf({})).toEqual({ phone: ['required'] });
     expect(errorsOf({ phone: '12345' })).toEqual({ phone: ['invalid_format'] });
+  });
+});
+
+describe("the customers list's query", () => {
+  /** The field errors of a query, or null when it passes. */
+  const errorsOfQuery = (input: Record<string, string>) => {
+    const result = customersQuerySchema.safeParse(input);
+    return result.success ? null : toFieldErrors(result.error.issues, input);
+  };
+
+  it('takes each filter from its list only, the page and a search of 1–60 characters', () => {
+    expect(
+      customersQuerySchema.parse({
+        q: ' سارة ',
+        status: 'ENDING_SOON',
+        kind: 'PACKAGE',
+        packageId: '7',
+        payment: 'OWES',
+        page: '2',
+        limit: '50',
+      }),
+    ).toEqual({
+      q: 'سارة',
+      status: 'ENDING_SOON',
+      kind: 'PACKAGE',
+      packageId: 7,
+      payment: 'OWES',
+      page: 2,
+      limit: 50,
+    });
+    expect(customersQuerySchema.parse({ status: 'ARCHIVED', kind: 'NONE' })).toMatchObject({
+      status: 'ARCHIVED',
+      kind: 'NONE',
+      page: 1,
+      limit: 20,
+    });
+    expect(errorsOfQuery({ status: 'PAUSED' })).toEqual({ status: ['invalid_choice'] });
+    expect(errorsOfQuery({ kind: 'SHARED' })).toEqual({ kind: ['invalid_choice'] });
+    expect(errorsOfQuery({ payment: 'PAID' })).toEqual({ payment: ['invalid_choice'] });
+    expect(errorsOfQuery({ q: 'a'.repeat(61) })).toEqual({ q: ['too_long'] });
+    expect(errorsOfQuery({ limit: '51' })).toEqual({ limit: ['out_of_range'] });
+  });
+
+  it('a packageId with kind CUSTOM or NONE is invalid_choice on kind; alone, or with PACKAGE, it is taken', () => {
+    expect(errorsOfQuery({ packageId: '7' })).toBeNull();
+    expect(errorsOfQuery({ packageId: '7', kind: 'PACKAGE' })).toBeNull();
+    expect(errorsOfQuery({ packageId: '7', kind: 'CUSTOM' })).toEqual({ kind: ['invalid_choice'] });
+    expect(errorsOfQuery({ packageId: '7', kind: 'NONE' })).toEqual({ kind: ['invalid_choice'] });
   });
 });

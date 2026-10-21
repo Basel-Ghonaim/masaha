@@ -10,7 +10,7 @@
 - Finds the payment a check-out's or a payment's idempotency key already recorded, so a retry never records a second one.
 - Answers a space's uncollected visits: closed by the auto check-out, not fully paid and not written off, with what was paid and what is still owed.
 - Answers what one visit was paid and still owes, in the desk's transaction (`balanceOfVisit`), for the write-off and the payment after the check-out.
-- Answers customers' debt and credit, the ids of those who owe or are in credit, and one customer's items with their balances — each computed in the database, by one aggregate query.
+- Answers customers' debt and credit, the ids of those who owe or are in credit, and one customer's items with their balances — each computed in the database, by one aggregate query — and the payments of visits, voided ones marked, for a customer's file.
 
 ## Who uses it
 

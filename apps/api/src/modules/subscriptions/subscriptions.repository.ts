@@ -1,9 +1,10 @@
 import { prisma, type Tx } from '../../db/index.ts';
 
-/** A subscription check-in still open: whose, and since when. */
+/** A subscription check-in still open: whose, on which subscription, and since when. */
 export interface OpenCheckIn {
   id: number;
   customerId: number;
+  subscriptionId: number;
   checkedInAt: Date;
 }
 
@@ -60,7 +61,7 @@ export function createSubscriptionsRepository() {
     openCheckInsIn(spaceId: number, tx: Tx = prisma): Promise<OpenCheckIn[]> {
       return tx.checkIn.findMany({
         where: { spaceId, checkedOutAt: null },
-        select: { id: true, customerId: true, checkedInAt: true },
+        select: { id: true, customerId: true, subscriptionId: true, checkedInAt: true },
         orderBy: [{ checkedInAt: 'asc' }, { id: 'asc' }],
       });
     },
@@ -91,16 +92,22 @@ export function createSubscriptionsRepository() {
     },
 
     /**
-     * The space's subscriptions, of one customer or with these ids when given, each with its
-     * attendance and amount due as `subscription_usage` counts them on these days: one query, the
-     * ids one array parameter. The latest started first (none last), then the highest id.
+     * The space's subscriptions — of one customer, of these customers, or with these ids, when
+     * given — each with its attendance and amount due as `subscription_usage` counts them on these
+     * days: one query, each id list one array parameter. The latest started first (none last), then
+     * the highest id.
      */
     statesIn(
       spaceId: number,
       {
         customerId = null,
+        customerIds = null,
         ids = null,
-      }: { customerId?: number | null; ids?: readonly number[] | null },
+      }: {
+        customerId?: number | null;
+        customerIds?: readonly number[] | null;
+        ids?: readonly number[] | null;
+      },
       { today, weekStart }: Now,
       tx: Tx = prisma,
     ): Promise<SubscriptionStateRow[]> {
@@ -112,7 +119,8 @@ export function createSubscriptionsRepository() {
                u.days_used, u.days_this_week, u.minutes_used, u.minutes_today, u.due_agorot
         FROM subscription_usage(${spaceId}, ${customerId}::integer, ${today}::date, ${weekStart}::date) u
         JOIN subscriptions s ON s.id = u.subscription_id
-        WHERE ${ids === null}::boolean OR s.id = ANY(${ids ?? []}::integer[])
+        WHERE (${ids === null}::boolean OR s.id = ANY(${ids ?? []}::integer[]))
+          AND (${customerIds === null}::boolean OR s.customer_id = ANY(${customerIds ?? []}::integer[]))
         ORDER BY s.starts_on DESC NULLS LAST, s.id DESC`;
     },
 

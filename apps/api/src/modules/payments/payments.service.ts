@@ -1,12 +1,17 @@
 import type { PaginationQuery } from '@masaha/shared/core';
-import type { CustomerBalance, UncollectedVisit, VisitPayment } from '@masaha/shared/payments';
+import type {
+  CustomerBalance,
+  ItemPayment,
+  UncollectedVisit,
+  VisitPayment,
+} from '@masaha/shared/payments';
 
 import type { Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import { calendarOf } from '../subscriptions/index.ts';
 import type { VisitsService } from '../visits/index.ts';
 import { balanceOf } from './balance.ts';
-import { toVisitPayment } from './payments.mapper.ts';
+import { toItemPayment, toVisitPayment } from './payments.mapper.ts';
 import {
   createPaymentsRepository,
   type ItemBalanceRow,
@@ -123,6 +128,23 @@ export function createPaymentsService({ audit, visits }: Dependencies) {
         ...row,
         balanceAgorot: balanceOf(row.dueAgorot, row.paidAgorot),
       }));
+    },
+
+    /**
+     * Every payment of these visits of the space, voided ones marked, by visit, the earliest received
+     * first; a visit with none is absent. One query.
+     */
+    async paymentsFor(
+      spaceId: number,
+      visitIds: readonly number[],
+      tx?: Tx,
+    ): Promise<Map<number, ItemPayment[]>> {
+      const byVisit = new Map<number, ItemPayment[]>();
+      for (const row of await repository.paymentsOfVisits(spaceId, visitIds, tx)) {
+        if (row.visitId === null) continue;
+        byVisit.set(row.visitId, [...(byVisit.get(row.visitId) ?? []), toItemPayment(row)]);
+      }
+      return byVisit;
     },
 
     /** Records a visit's payment, in the caller's transaction, audited `payment.recorded`. */

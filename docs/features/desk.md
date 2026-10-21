@@ -14,6 +14,7 @@
 - Leaves an uncollected visit's debt to a customer by phone, with no payment («تسجيل دينًا»).
 - Writes off, as the owner, what a closed, priced visit still owes, with a reason, and undoes it.
 - Archives a customer, as the owner, unless they are present.
+- Answers the customers list, paged, searched and filtered by their subscription and payment state, and a customer's file.
 
 ## Who uses it
 
@@ -41,6 +42,10 @@
 
 **«تسجيل دينًا».** In one transaction, in this order: the space's lock and `can()` (`payments.record`); the visit's row (`FOR UPDATE`), not the space's → 404, still open → 409; written off → `VISIT_WRITTEN_OFF`; nothing owed → `VISIT_ALREADY_PAID` (an unpriced visit has a debt to leave); then the unpaid-part rule; the visit's own customer again → the visit as it is; else its customer is set, audited `visit.leftToCustomer`.
 
+**The customers list** (conventions §9, composed reads). `subscriptions` resolves the status, kind and package to ids (`NONE`: the ids to leave out); `payments` the payment state (`SETTLED`: those who owe and those in credit, left out); `customers` searches and pages what is left, by name; then, for the page's ids only, each one's current subscription and their debt and credit. `status=ARCHIVED` lists only the archived, and only for the owner (`can()`'s `customers.archive` on the loaded links). Read without a lock.
+
+**A customer's file.** The customer (404 when not the space's); their subscriptions' states (`subscriptions`); their items' balances, debt and credit (`payments`' one query); who of them is present (an open check-in, else an open visit); and the unpaid visits — closed, not written off, owing or unpriced — with their visits (`visits`) and payments, voided ones marked (`payments`), the oldest first. Read without a lock.
+
 **The archive of a customer.** The owner's, in one transaction, in this order: the space's lock and `can()` (`customers.archive`); the customer, the space's (else 404); one already archived answered as it is; one present — an open check-in ([`subscriptions`](subscriptions.md)) or an open visit — refused `MEMBER_ALREADY_CHECKED_IN`; then archived through `customers`. A customer who owes is archived: the debt stays theirs, and the web asks first (DK-014).
 
 **The write-off and its undo.** The owner's, each in one transaction, in this order: the space's lock and `can()` (`visits.writeOff`); the visit's row (`FOR UPDATE`), not the space's → 404, still open → 409 with no code. The write-off: a visit already written off is answered as it is; no charge → `VISIT_NOT_PRICED`; then what it was paid and still owes, read from [`payments`](payments.md) under the visit's lock; nothing owed → `VISIT_ALREADY_PAID`; else `visits` writes it off with the amount, now, by the caller, with the reason. The undo: a visit not written off is answered as it is; else `visits` clears it, audited with what it was.
@@ -54,6 +59,7 @@
 - **The warnings never refuse; a retry answers them as of now, the visit counted present.** *Why:* the desk decides; the warnings describe now, not the visit, so storing them would add a column for advice — ADR 0015's "same body", weakened for them only (the owner's answer, §13 Q8 of the desk's plan). 2026-10-20, #95.
 - **The key is read from the `Idempotency-Key` header by a route middleware, before the body.** *Why:* a request without one is a client's bug, refused before anything is read. 2026-10-20, #95.
 - **The check-out is priced at the desk's quote, at most five minutes old and not in the future.** *Why:* with per-minute rounding the charge moves every minute; a visitor who paid what the screen said must not owe a few agorot more when the request lands, and five minutes cannot back-date a stay (the owner's bound). 2026-10-20, #95.
+- **The customers list and file are composed here, every filter resolved to ids before the page is cut; their reads ask no `requireCan`.** *Why:* a screen that filters by other modules' values is composed above them (conventions §9), and every page must be full with the total right (§5); a read is the staff's, so the boundary is their check (#86). Archived customers are the owner's to list. 2026-10-21, #102.
 - **A customer who is present is not archived (`MEMBER_ALREADY_CHECKED_IN`); one who owes is.** *Why:* an archived customer present at the desk could not be checked out from its list; a debt stays owed whoever is on file (the plan's S11; the owner's settled rule). The archive is the desk's because it asks who is present, across `subscriptions` and `visits`. 2026-10-21, #102.
 - **A stay checked out after its due time is closed at that due time, its `checkedOutAt`, and charged up to it; the audit keeps the request's own time.** *Why:* every stay is due by 23:59 of its check-in's day, so a stay never crosses into the next day on any path, the job's or the desk's; the record's times then agree with its charge and with what the auto check-out would have recorded, while `requestedAt` says when the desk closed it ([finding 116](../architecture/findings/116-a-desk-check-out-of-an-overdue-stay-is-charged-up-to-now.md)). 2026-10-21, #102.
 - **A visit with no rate, checked out by whoever may not type a price, closes unpriced; whoever may type must.** *Why:* never free, never blocked at the door; the owner prices it later (the owner's answer to Q4, built here rather than after an interim refusal, alternative A1). 2026-10-20, #95.
@@ -82,4 +88,4 @@
 - #95 — the check-in of a visitor by name, idempotent, with its warnings; the check-out with its charge and payment.
 - #97 — a payment on a visit another key closed refused; a check-out time before the check-in refused.
 - #100 — the owner's write-off of a visit's unpaid rest, and its undo; a visit's payment after its check-out; a visit's customer kept at an unpaid check-out (finding 100); «تسجيل دينًا».
-- #102 — a stay checked out after its due time closed and charged at it (finding 116); a customer archived by the owner, unless present.
+- #102 — a stay checked out after its due time closed and charged at it (finding 116); a customer archived by the owner, unless present; the customers list and file.

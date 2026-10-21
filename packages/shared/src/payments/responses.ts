@@ -13,6 +13,11 @@ export interface VisitPayment {
   recordedById: number;
 }
 
+/** A payment of an item as a statement shows it: voided ones too, with when, by whom and why. */
+export type ItemPayment = VisitPayment & {
+  voided: { at: string; byId: number; reason: string } | null;
+};
+
 /**
  * A customer's money at a space (data model › Customer debt): the sum of what their items still owe,
  * and what a usage-based subscription holds paid ahead; one never offsets the other.
