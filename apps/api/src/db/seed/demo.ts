@@ -331,7 +331,7 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
 }
 
 /** Dates and times in Asia/Gaza, counted in days from `now`. */
-function gazaClock(now: Date) {
+export function gazaClock(now: Date) {
   const zone = 'Asia/Gaza';
   const dayOf = (offsetDays: number) =>
     new Date(now.getTime() + offsetDays * 86_400_000).toLocaleDateString('en-CA', {

@@ -1,13 +1,19 @@
+import { fileURLToPath } from 'node:url';
+
 import { passwordSchema } from '@masaha/shared/users';
 import { z } from 'zod';
 
-import { createPrismaClient } from '../prisma.ts';
+import { LOCAL_FILES_URL } from '../../app.ts';
+import { createLocalStorage } from '../../shared/storage/index.ts';
+import { createPrismaClient, prisma } from '../prisma.ts';
 import { seedDemo } from './demo.ts';
+import { seedDemoDirectory } from './demoDirectory.ts';
 import { seed } from './seed.ts';
 
 // `npm run db:seed`: seeds the database at DATABASE_URL from the environment (apps/api/.env). The
 // admin's credentials and the platform contact live only there, never in the repository. With
-// SEED_DEMO=true it adds the development demo data too, never in production.
+// SEED_DEMO=true it adds the development demo data too, never in production: the demo space, and
+// the directory's set, whose photos go to the local storage the API serves in development.
 
 const optional = <T extends z.ZodType>(schema: T) =>
   z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
@@ -57,7 +63,22 @@ try {
       nodeEnv: process.env.NODE_ENV,
     });
     console.log(created ? 'Seeded the demo space.' : 'The demo space exists; left unchanged.');
+    const directory = await seedDemoDirectory(db, {
+      password: env.SEED_DEMO_PASSWORD,
+      nodeEnv: process.env.NODE_ENV,
+      // apps/api/.storage, where the API's local storage keeps and serves its files.
+      storage: createLocalStorage({
+        root: fileURLToPath(new URL('../../../.storage/', import.meta.url)),
+        urlBase: LOCAL_FILES_URL,
+      }),
+    });
+    console.log(
+      directory
+        ? "Seeded the directory's demo set."
+        : "The directory's demo set exists; left unchanged.",
+    );
   }
 } finally {
-  await db.$disconnect();
+  // The photo service reads through the API's own client too.
+  await Promise.all([db.$disconnect(), prisma.$disconnect()]);
 }
