@@ -1,4 +1,4 @@
-import type { SpaceNameView } from '../types/SpaceNameView';
+import type { SpaceNameView } from './SpaceNameView';
 
 /**
  * A space's name in the interface's language. Its English name is required and its Arabic one

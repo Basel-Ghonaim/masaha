@@ -1,11 +1,11 @@
 import type { AdminSpace, CreateSpaceRequest } from '@masaha/shared/spaces';
 import { currentCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
+import { spaceNameOf } from '@shared/lib';
 import { currentLanguage } from '@shared/localisation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toastDone } from '../../components/toast/actionToasts';
 import { createSpacesRepository } from '../../repository/spacesRepository';
-import { spaceNameOf } from '../../services/spaceName';
 import { EDITOR_SCOPES } from '../editor/editorScope';
 import { useRefreshAdmin } from '../useRefreshAdmin';
 

@@ -1,7 +1,7 @@
 import type { AdminSpace } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
+import { clockOf } from '@shared/lib';
 import { useLanguage } from '@shared/localisation';
-import { clockOf } from '../../services/clockTime';
 import { DAY_KEYS, SHOWN_DAYS } from '../../services/hoursForm';
 
 /**
