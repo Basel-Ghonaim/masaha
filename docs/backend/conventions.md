@@ -337,8 +337,8 @@ Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
 **Two ids, never confused.** The **idempotency key** is the client's: one per user action, the same on every retry of that action, sent in the `Idempotency-Key` header and stored with the record it creates. The **request id** is the server's: a new one for every HTTP request, retries included, used only for tracing (§10). A record never stores the request id as its idempotency key, or every retry would look new.
 
 ### Idempotency
-- **Creates at the front desk** store the idempotency key, unique within the space. Today payments, visits and check-ins have it, in the Prisma field `idempotencyKey`, stored in the `request_id` column ([data-model.md](../architecture/data-model.md#conventions)).
-  - Subscriptions and customers have none yet. The slice that builds them adds it ([plan, step 8](../plans/v1-mvp.md#sequence-inside-the-build)).
+- **Creates at the front desk** store the idempotency key, unique within the space. Today payments, visits, check-ins and customers have it, in the Prisma field `idempotencyKey`, stored in the `request_id` column ([data-model.md](../architecture/data-model.md#conventions)).
+  - Customers have it since 2026-10-21, #102, optional: a customer the desk creates from an unpaid visit's phone carries none. Subscriptions have none yet; step 8's next PR adds it ([plan, step 8](../plans/v1-mvp.md#sequence-inside-the-build)).
 - **A retry returns the first result**, with the same status and body, never a conflict. The service reads the record by its key first, under the space's lock, which serialises the space's desk creates, so the read is race-free; inside a transaction PostgreSQL aborts on a unique violation, so the record could not be read after one. The unique key stays the backstop: a violation would be a bug, answered 500. The general `P2002` → `NOT_UNIQUE` mapping (§4) never answers a retry. 2026-10-20, #95.
 - **Updates and deletes are idempotent by design.** A repeated check-out returns the closed record, and a repeated void returns the voided payment.
 - **There is no generic store of responses.**

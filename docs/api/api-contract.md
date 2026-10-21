@@ -9,7 +9,7 @@
 - Auth: `Authorization: Bearer <accessToken>` on protected endpoints; the refresh token travels only as its cookie. A protected endpoint reads the account on every request: a token whose account does not exist or is suspended, or that was signed before every session of the account last ended (a password change, a reset, a suspension even once restored, a role change, a temporary password, a Google link), answers `unauthorized` (401), and the role it acts with is the account's now ([security.md](../backend/security.md#authorization)).
 - The server **never sends display text** for the UI. It sends error `type`, an optional domain `code`, and field-error codes; the client translates ([ADR 0006](../architecture/decisions/0006-localisation-approach.md)).
 - **Request id:** every response carries an `X-Request-Id` header, a UUID the server generates for each request, and an error repeats it in the envelope (§2). It matches the request's log lines ([backend conventions §10](../backend/conventions.md#10-logging)). The server ignores any id the client sends.
-- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in and check-out, and a visit's payment after its check-out (2026-10-20, #100) ([Front desk (managed)](#front-desk-managed)); a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
+- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in and check-out, and a visit's payment after its check-out (2026-10-20, #100) ([Front desk (managed)](#front-desk-managed)), and a customer's creation (2026-10-21, #102, [Customers (managed)](#customers-managed)); a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
 
 ## 2. Response envelope
 
@@ -374,6 +374,32 @@ SpaceOccupancyNow = {
 #### `DELETE /manage/spaces/:spaceId/status-override` · 🧾
 - **200:** `SpaceOccupancyNow`, with no override. Clears the override in force, audited `space.statusOverrideCleared`; with none in force, writes nothing.
 - **Errors:** `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+
+### Customers (managed)
+
+A space's customers: everyone it keeps on file, a subscriber or a visitor who left a debt ([data-model › Operations](../architecture/data-model.md#operations)), private to its staff. The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The create and the edit are the staff's (🧾), each refused with `forbidden` (403) before its body is read for whoever may not, and again for an owner or reception whose link ended meanwhile. Built 2026-10-21, #102.
+
+- **The fields** (`@masaha/shared/customers`): `name`, 1–60 characters, NFC-normalised and trimmed, with no bidirectional controls and no control characters or line separators (`invalid_format`); `phone`, optional, normalised to E.164 (`invalid_format` otherwise), held by at most one customer of the space that is not archived: another one's is refused with `conflict` (409) `PHONE_TAKEN` and `errors.phone = ["not_unique"]`, writing nothing. An archived customer's phone is free.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the customer as the entity and its space as the entry's: `customer.created` (`after`: `{ name, phone }`) and `customer.edited` (`before` and `after`: only the fields that changed); an edit that changes nothing writes nothing.
+
+```ts
+Customer = {
+  id: number,
+  name: string,
+  phone: string | null,          // E.164
+  archivedAt: string | null      // set while archived
+}
+```
+
+#### `POST /manage/spaces/:spaceId/customers` · 🧾 · `Idempotency-Key`
+- **Body:** `{ name, phone? }`.
+- **201:** `Customer`; a retry with the same key answers the first customer as it is now, 201, and writes nothing.
+- **Errors**, each writing nothing: `validation` (422) on `idempotencyKey` (§1), then on the body, before anything is read; `forbidden` (403); `conflict` (409) `PHONE_TAKEN`; `not_found` (404), also for a space deleted meanwhile.
+
+#### `PATCH /manage/spaces/:spaceId/customers/:customerId` · 🧾
+- **Body:** `{ name?, phone? }`: what is absent is kept; `phone: null` clears it.
+- **200:** `Customer`.
+- **Errors**, each writing nothing: `validation` (422) on the body, before anything is read; `forbidden` (403); `conflict` (409) `PHONE_TAKEN` for a new phone another customer holds; `not_found` (404) for a customer that is not the space's.
 
 ### Front desk (managed)
 

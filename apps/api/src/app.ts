@@ -20,7 +20,11 @@ import {
   type EmailSender,
   type GoogleIdentity,
 } from './modules/auth/index.ts';
-import { createCustomersService } from './modules/customers/index.ts';
+import {
+  createCustomersController,
+  createCustomersManageRouter,
+  createCustomersService,
+} from './modules/customers/index.ts';
 import {
   createPaymentsController,
   createPaymentsManageRouter,
@@ -345,7 +349,7 @@ export function createApi({
     spaceSettings,
     logger,
   });
-  const customers = createCustomersService({ audit: writeAudit });
+  const customers = createCustomersService({ runInTransaction, audit: writeAudit, spaces });
   const occupancy = createOccupancyService({
     runInTransaction,
     audit: writeAudit,
@@ -467,6 +471,7 @@ export function createApi({
     createSpaceSettingsManageRouter(createSpaceSettingsController(spaceSettings)),
   );
   manage.use(createOccupancyManageRouter(createOccupancyController(occupancy)));
+  manage.use(createCustomersManageRouter(createCustomersController(customers)));
   manage.use(createDeskManageRouter(createDeskController(desk)));
   manage.use(createVisitsManageRouter(createVisitsController(visits)));
   manage.use(createPaymentsManageRouter(createPaymentsController(payments)));
