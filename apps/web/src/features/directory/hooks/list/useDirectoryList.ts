@@ -15,7 +15,7 @@ import { useDirectoryQuery } from './useDirectoryQuery';
  * time, the pages, and the words of each state (loading, failed, an empty directory, no match).
  *
  * A failure is read as any refusal is: no connection or no answer says so, any other with its
- * request's reference. A failed refresh keeps the cards shown. While another page or filter loads,
+ * request's reference; too many requests counts down its wait, then offers the retry again. A failed refresh keeps the cards shown. While another page or filter loads,
  * the cards shown stay, the results marked busy. A page past the last shows the last in its place.
  * «Best match» is offered only while a search applies: the server's order then.
  */
@@ -38,12 +38,13 @@ export function useDirectoryList(): DirectoryListView {
     error: AppError | null,
     title: string,
   ): ListFailureView | null =>
-    error === null || view.view === null
+    error === null
       ? null
       : {
           title,
-          line: view.view.message,
-          reference: view.view.kind === 'refused' ? (view.view.reference ?? null) : null,
+          // Too many requests' view is gone once its count ends; the failure stays, with its retry.
+          line: view.view?.message ?? copy.errors.rate_limit,
+          reference: view.view?.kind === 'refused' ? (view.view.reference ?? null) : null,
           retry: {
             label: copy.status.retry,
             blocked: view.blocked,

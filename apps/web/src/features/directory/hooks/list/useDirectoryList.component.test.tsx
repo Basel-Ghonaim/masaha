@@ -1,4 +1,5 @@
 import type { DirectorySpace } from '@masaha/shared/directory';
+import { useQueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router';
@@ -50,7 +51,12 @@ function renderList(path: string, answer: Parameters<typeof fakeTransport>[0]) {
     </Query>
   );
   const rendered = renderHook(
-    () => ({ list: useDirectoryList(), search: useLocation().search, navigate: useNavigate() }),
+    () => ({
+      list: useDirectoryList(),
+      search: useLocation().search,
+      navigate: useNavigate(),
+      client: useQueryClient(),
+    }),
     { wrapper },
   );
   return { ...rendered, requests };
@@ -102,6 +108,63 @@ describe('useDirectoryList', () => {
       expect(result.current.list.results.state).toBe('ready');
     });
     expect(requests).toHaveLength(2);
+  });
+
+  it('after too many requests, waits out the count, then offers «إعادة المحاولة» again', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { result, requests } = renderList('/spaces', (_request, index) =>
+      index === 0 ? refused(429, { type: 'rate_limit' }, { 'retry-after': '1' }) : page([space(1)]),
+    );
+    await waitFor(() => {
+      expect(result.current.list.results.state).toBe('failed');
+    });
+    expect(result.current.list.results.failure?.retry.blocked).toBe(true);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_100);
+    });
+
+    const failure = result.current.list.results.failure;
+    expect(failure?.title).toBe('تعذّر تحميل المساحات');
+    expect(failure?.line).toBe('محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.');
+    expect(failure?.retry).toMatchObject({ label: 'إعادة المحاولة', blocked: false });
+    act(() => {
+      failure?.retry.run();
+    });
+    await waitFor(() => {
+      expect(result.current.list.results.state).toBe('ready');
+    });
+    expect(requests).toHaveLength(2);
+  });
+
+  it('a failed refresh keeps the cards and says so, and «إعادة المحاولة» asks again', async () => {
+    const { result, requests } = renderList('/spaces', (_request, index) =>
+      index === 1 ? refused(404, { type: 'not_found' }) : page([space(1)]),
+    );
+    await waitFor(() => {
+      expect(result.current.list.results.state).toBe('ready');
+    });
+    expect(result.current.list.results.refreshFailure).toBeNull();
+
+    await act(async () => {
+      await result.current.client.refetchQueries();
+    });
+    await waitFor(() => {
+      expect(result.current.list.results.refreshFailure).not.toBeNull();
+    });
+
+    const failure = result.current.list.results.refreshFailure;
+    expect(failure?.title).toBe('تعذّر تحديث القائمة');
+    expect(failure?.reference).toContain('req-1');
+    expect(result.current.list.results.state).toBe('ready');
+    expect(result.current.list.results.cards.map((card) => card.slug)).toEqual(['space-1']);
+    act(() => {
+      failure?.retry.run();
+    });
+    await waitFor(() => {
+      expect(result.current.list.results.refreshFailure).toBeNull();
+    });
+    expect(requests).toHaveLength(3);
   });
 
   it('no connection says so, not a server’s failure', async () => {
