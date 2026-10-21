@@ -5,6 +5,7 @@ import { paginationView, usePageInRange } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
 import { useState } from 'react';
 import { cardViewOf } from '../../services/cardView';
+import { useFiltersPanel } from '../filters/useFiltersPanel';
 import type { DirectoryOrder } from '../../types/DirectoryFilters';
 import type { DirectoryListView, ListFailureView } from '../../types/DirectoryListView';
 import { useDirectoryFilters } from './useDirectoryFilters';
@@ -81,6 +82,14 @@ export function useDirectoryList(): DirectoryListView {
   const [count, setCount] = useState('');
   if (settled !== null && settled !== count) setCount(settled);
 
+  const panel = useFiltersPanel({
+    filters: filters.filters,
+    apply: filters.apply,
+    applied: filters.applied,
+    clear: filters.clearFilters,
+    total: answer === undefined || query.isPlaceholderData ? undefined : answer.meta.totalRecords,
+  });
+
   const now = new Date();
   const cards = (answer?.data ?? []).map((space) => cardViewOf(space, { english, now, copy }));
 
@@ -103,6 +112,7 @@ export function useDirectoryList(): DirectoryListView {
       },
     },
     count,
+    filters: panel,
     results: {
       heading: words.results,
       busy: answer !== undefined && query.isFetching,

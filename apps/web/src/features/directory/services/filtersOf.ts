@@ -1,14 +1,13 @@
 import { DIRECTORY_AREAS_MAX, directoryQuerySchema } from '@masaha/shared/directory';
-import { PRICE_MAX_AGOROT, PRICE_PERIODS } from '@masaha/shared/spaces';
+import { PRICE_PERIODS } from '@masaha/shared/spaces';
 import type { DirectoryFilters, DirectoryOrder } from '../types/DirectoryFilters';
+import { MAX_SHEKELS } from './priceBounds';
 
 // The address's keys (S5): q, area, period, min, max, available, verified, students, friday, sort,
 // page. The budget is in whole shekels, named min and max; the request sends agorot.
 
 const ORDERS: readonly DirectoryOrder[] = ['updated', 'name', 'relevance'];
 const DEFAULT_PERIOD = 'DAY';
-/** The highest bound, in whole shekels: the contract's ceiling is in agorot. */
-const MAX_SHEKELS = PRICE_MAX_AGOROT / 100;
 const MAX_ID = 2_147_483_647;
 const WHOLE = /^[1-9]\d*$/;
 

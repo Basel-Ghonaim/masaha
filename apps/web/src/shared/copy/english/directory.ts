@@ -70,4 +70,48 @@ export const DIRECTORY = {
     /** A space with no live status: unverified, or with no hours or capacity yet. */
     none: 'No live status',
   },
+  /** The filters: a sidebar from 1024 px, a bottom sheet below it. */
+  filters: {
+    title: 'Filters',
+    description: 'Applied to the results right away',
+    /** The filters button's count, for assistive technology. */
+    applied: ({ count }: { count: number }) =>
+      englishPlural(count, {
+        one: `${String(count)} filter applied`,
+        other: `${String(count)} filters applied`,
+      }),
+    /** The sheet's primary button: the spaces the filters leave. */
+    show: ({ count }: { count: number }) =>
+      englishPlural(count, {
+        one: `Show ${String(count)} space`,
+        other: `Show ${String(count)} spaces`,
+      }),
+    showNone: 'No results — change the filters',
+    /** While the count is not known yet. */
+    showLoading: 'Show results',
+    clear: 'Clear',
+    close: 'Close',
+    spaces: 'Spaces',
+    availableNow: 'Available now only',
+    verified: 'Verified spaces only',
+    availableNote: '“Available now” covers verified spaces only.',
+    price: 'Price',
+    period: 'Period',
+    from: 'From',
+    to: 'To',
+    /** The amount's unit, shown at the start of each bound. */
+    currency: '₪',
+    periods: { HOUR: 'Hour', DAY: 'Day', WEEK: 'Week', MONTH: 'Month' },
+    /** The chosen period, named in the help line. */
+    rangeHelp: ({ period }: { period: string }) => `From and To apply to the ${period} price`,
+    periodPrices: { HOUR: 'hour', DAY: 'day', WEEK: 'week', MONTH: 'month' },
+    priceErrors: {
+      invalid: 'Enter an amount in shekels, above zero',
+      tooHigh: 'Enter an amount up to ₪100,000',
+      belowMin: 'Below the minimum',
+    },
+    other: 'Other',
+    studentPrices: 'Student prices',
+    openFriday: 'Open on Friday',
+  },
 } as const;

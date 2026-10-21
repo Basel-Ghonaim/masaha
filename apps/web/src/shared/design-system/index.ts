@@ -207,6 +207,7 @@ export {
   TooltipTrigger,
   type TooltipProps,
 } from './components/overlays/Tooltip';
+export { useMediaQuery } from './lib/useMediaQuery';
 export {
   ArrowDownIcon,
   ArrowEndIcon,

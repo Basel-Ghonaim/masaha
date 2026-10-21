@@ -61,6 +61,7 @@ function renderDirectory(path = '/spaces', answer: (params: unknown) => unknown 
             <DirectoryList
               spaceLink={(slug) => `/spaces/${slug}`}
               areaName={() => 'الرمال · غزة'}
+              placeFilter={() => null}
             />
           </main>
         ),

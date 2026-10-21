@@ -104,4 +104,18 @@ describe('useDirectoryFilters', () => {
     expect(result.current.filters.search.text).toBe('');
     expect(result.current.filters.anyApplied).toBe(false);
   });
+
+  it('counts the filters in force, not their values, and clears them keeping the search and the order', () => {
+    const { result } = renderFilters(
+      '/spaces?q=Hub&area=2,3,4&period=DAY&min=10&max=30&verified=1&friday=1&sort=name',
+    );
+    expect(result.current.filters.applied).toBe(4);
+
+    act(() => {
+      result.current.filters.clearFilters();
+    });
+    expect(result.current.location.search).toBe('?q=Hub&sort=name');
+    expect(result.current.filters.applied).toBe(0);
+    expect(result.current.filters.anyApplied).toBe(true);
+  });
 });
