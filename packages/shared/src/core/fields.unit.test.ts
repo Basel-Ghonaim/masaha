@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
-import { emailSchema, paragraphSchema, textSchema } from './fields.ts';
+import { toFieldErrors } from './fieldErrors.ts';
+import { dateSchema, emailSchema, paragraphSchema, textSchema } from './fields.ts';
 
 const name = textSchema(1, 100);
 
@@ -77,5 +79,26 @@ describe('emailSchema', () => {
     ['over 254 characters', `${'s'.repeat(64)}@${'d'.repeat(186)}.com`],
   ])('refuses an address with %s', (_case, email) => {
     expect(emailSchema.safeParse(email).success).toBe(false);
+  });
+});
+
+describe('dateSchema', () => {
+  it('a date is YYYY-MM-DD and exists', () => {
+    expect(dateSchema.parse('2026-10-21')).toBe('2026-10-21');
+    expect(dateSchema.parse('2028-02-29')).toBe('2028-02-29');
+    for (const date of [
+      '2026-02-30',
+      '2027-02-29',
+      '2026-13-01',
+      '2026-1-05',
+      '21-10-2026',
+      '2026-10-21T00:00',
+    ]) {
+      const body = { on: date };
+      const result = z.object({ on: dateSchema }).safeParse(body);
+      expect(result.success ? null : toFieldErrors(result.error.issues, body)).toEqual({
+        on: ['invalid_format'],
+      });
+    }
   });
 });

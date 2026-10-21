@@ -44,3 +44,16 @@ export function paragraphSchema(min: number, max: number) {
       params: { code: 'invalid_format' },
     });
 }
+
+/** Whether `value` is a calendar date written `YYYY-MM-DD` that exists (no 30 February). */
+function isCalendarDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year = 0, month = 0, day = 0] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
+/** A Gaza calendar date, `YYYY-MM-DD`, that exists; anything else is `invalid_format`. */
+export const dateSchema = z.string().refine(isCalendarDate, { params: { code: 'invalid_format' } });

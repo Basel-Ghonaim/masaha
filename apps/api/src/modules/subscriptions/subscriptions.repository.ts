@@ -14,14 +14,45 @@ export interface OpenAttendance {
   checkedInAt: Date;
 }
 
+/** The calendar days a read counts attendance by: today and its week's Saturday, Gaza dates. */
+export interface Now {
+  today: string;
+  weekStart: string;
+}
+
+/** A subscription's row, with its attendance and amount due from `subscription_usage`. */
+export interface SubscriptionStateRow {
+  id: number;
+  customer_id: number;
+  package_id: number | null;
+  name: string;
+  starts_on: Date | null;
+  ends_on: Date | null;
+  total_days: number | null;
+  days_per_week: number | null;
+  hours_per_day: number | null;
+  total_hours: number | null;
+  billing: 'FIXED' | 'PER_HOUR' | 'PER_DAY';
+  price_agorot: number;
+  audience: 'GENERAL' | 'STUDENT';
+  shift_id: number | null;
+  ended_at: Date | null;
+  ended_by_id: number | null;
+  days_used: number;
+  days_this_week: number;
+  minutes_used: number;
+  minutes_today: number;
+  due_agorot: number;
+}
+
 /** Each space's count of rows, by space; a space with none is absent. */
 function countsBySpace(groups: readonly { spaceId: number; _count: { _all: number } }[]) {
   return new Map(groups.map(({ spaceId, _count }) => [spaceId, _count._all]));
 }
 
 /**
- * The `check_ins` table (docs/backend/conventions.md › the front desk). So far its open rows and
- * their auto check-out.
+ * The `subscriptions` and `check_ins` tables (docs/backend/conventions.md › the front desk). So far
+ * the subscriptions' states, the check-ins' open rows and their auto check-out.
  */
 export function createSubscriptionsRepository() {
   return {
@@ -57,6 +88,32 @@ export function createSubscriptionsRepository() {
         data: { checkedOutAt, checkoutMethod: 'AUTO' },
         select: { id: true },
       });
+    },
+
+    /**
+     * The space's subscriptions, of one customer or with these ids when given, each with its
+     * attendance and amount due as `subscription_usage` counts them on these days: one query, the
+     * ids one array parameter. The latest started first (none last), then the highest id.
+     */
+    statesIn(
+      spaceId: number,
+      {
+        customerId = null,
+        ids = null,
+      }: { customerId?: number | null; ids?: readonly number[] | null },
+      { today, weekStart }: Now,
+      tx: Tx = prisma,
+    ): Promise<SubscriptionStateRow[]> {
+      return tx.$queryRaw<SubscriptionStateRow[]>`
+        SELECT s.id, s.customer_id, s.package_id, s.name, s.starts_on, s.ends_on,
+               s.total_days, s.days_per_week, s.hours_per_day, s.total_hours,
+               s.billing::text AS billing, s.price_agorot, s.audience::text AS audience, s.shift_id,
+               s.ended_at, s.ended_by_id,
+               u.days_used, u.days_this_week, u.minutes_used, u.minutes_today, u.due_agorot
+        FROM subscription_usage(${spaceId}, ${customerId}::integer, ${today}::date, ${weekStart}::date) u
+        JOIN subscriptions s ON s.id = u.subscription_id
+        WHERE ${ids === null}::boolean OR s.id = ANY(${ids ?? []}::integer[])
+        ORDER BY s.starts_on DESC NULLS LAST, s.id DESC`;
     },
 
     /** How many check-ins are open at each of these spaces, in one query; none is absent. */

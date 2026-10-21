@@ -103,14 +103,15 @@ The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.m
 - **Written-off visit** (K6): the owner may write off what is still owed on a closed, priced visit, with a required reason, recorded with who and when. The payments made stay; it is never a payment and never a deletion. It can be undone, and the audit keeps both. A written-off visit takes no payment until then, and leaves the uncollected visits and the customer's debt (2026-10-20, #100).
 - **Full warning:** a check-in (visit or subscription) while present ≥ capacity warns, never blocks.
 - **Subscription limits:** any of a date range, total days, days per week, hours per day and total hours, freely combined, all optional. They produce warnings at check-in, never blocks.
-- **Subscription progress**, from its check-ins: days used, days this week (Saturday to Friday), hours today and hours used.
+- **Subscription progress**, from its check-ins: days used, days this week (Saturday to Friday), hours today and hours used. A day is used by any check-in on its Gaza date, open or closed; hours count closed stays only, each its whole minutes (2026-10-21, #102).
 - **Subscription status**, from its end date and its total (days or hours), whichever it has:
-  - *expired* at whichever comes first: the end date passes, or the total is used up;
-  - *ending soon* at whichever comes first: ≤ 7 days before the end date (for a subscription shorter than a week, on its last day), or ≤ 20 % of the total left;
+  - *upcoming* while its start date is after today (2026-10-21, #102);
+  - *expired* at whichever comes first: the end date passes, or the total is used up; and at once when it is ended early (2026-10-21, #102);
+  - *ending soon* at whichever comes first: ≤ 7 days before the end date (for a subscription of at most 7 days by its dates, on its last day only, 2026-10-21, #102), or ≤ 20 % of the total left;
   - otherwise *active*; with neither an end date nor a total, it stays *active* until it is ended.
   - The end date and the total are limits too: past them, a check-in still only warns.
   - The desk can end any subscription early («إنهاء الاشتراك»): its end becomes today, and who ended it is recorded.
-- **Amount due:** a subscription's fixed price or, when it is usage-based, its attendance × its rate (days used × the day rate, or hours used × the hour rate). A visit's due is its charge.
+- **Amount due:** a subscription's fixed price or, when it is usage-based, its attendance × its rate (days used × the day rate, or hours used × the hour rate: its minutes × the rate ÷ 60, rounded half up). A visit's due is its charge. A subscription's attendance and due are computed by one database function, `subscription_usage`, which every read uses (2026-10-21, #102).
 - **Balance:** amount due − the payments that are not voided. **Payment status:** *paid* when the balance is ≤ 0, *partly paid* when a payment exists and the balance is > 0, *unpaid* when there is none. A negative balance, possible only on a usage-based subscription, is **credit** («له رصيد»).
 - **Customer debt:** the sum of the positive balances of the customer's subscriptions and unpaid visits not written off (2026-10-20, #100). Credit on one subscription never offsets another.
 - **Income:** the payments that are not voided, counted by the day received: today, this month (against last month) and all time, split into visits and subscriptions.

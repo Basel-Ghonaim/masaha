@@ -205,7 +205,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 
 Each pure domain rule is a pure file in its owning module, computed nowhere else:
 - the visit charge in `visits`;
-- subscription progress and status in `subscriptions`;
+- subscription progress and status in `subscriptions`, on the attendance and amount due its database function `subscription_usage` counts, the one place they are computed (2026-10-21, #102);
 - the balance in `payments`;
 - the live status in `occupancy`;
 - the auto check-out cut-off time in `spaces`.

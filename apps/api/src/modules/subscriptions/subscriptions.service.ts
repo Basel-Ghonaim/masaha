@@ -1,10 +1,17 @@
+import { gazaClockOf, weekStartOf } from '@masaha/shared/core';
+import type { SubscriptionState } from '@masaha/shared/subscriptions';
 import type { Logger } from 'pino';
 
 import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
-import { createSubscriptionsRepository, type OpenCheckIn } from './subscriptions.repository.ts';
+import { toSubscriptionState } from './subscriptions.mapper.ts';
+import {
+  createSubscriptionsRepository,
+  type Now,
+  type OpenCheckIn,
+} from './subscriptions.repository.ts';
 
 interface Dependencies {
   runInTransaction: RunInTransaction;
@@ -14,12 +21,19 @@ interface Dependencies {
   logger: Logger;
 }
 
+/** The Gaza date of an instant, and its week's Saturday (data model › Subscription progress). */
+function calendarOf(at: Date): Now {
+  const today = gazaClockOf(at).date;
+  return { today, weekStart: weekStartOf(today) };
+}
+
 /** How many check-ins one run of the auto check-out closes at most; the next run continues. */
 const AUTO_CHECKOUT_BATCH = 500;
 
 /**
  * A customer's subscriptions and their check-ins (docs/backend/conventions.md › the front desk). So
- * far the read `occupancy` composes *present* from, and the auto check-out of the check-ins.
+ * far the subscriptions' states, the read `occupancy` composes *present* from, and the auto check-out
+ * of the check-ins.
  */
 export function createSubscriptionsService({
   runInTransaction,
@@ -30,6 +44,22 @@ export function createSubscriptionsService({
 }: Dependencies) {
   const repository = createSubscriptionsRepository();
   return {
+    /**
+     * The space's subscriptions, of one customer or with these ids when given, each with its status,
+     * progress and amount due at `at`: one query, the attendance counted by the database's
+     * `subscription_usage`, the status by the pure rule. The latest started first, then by id desc.
+     */
+    async statesOf(
+      spaceId: number,
+      which: { customerId?: number; ids?: readonly number[] },
+      at: Date,
+      tx?: Tx,
+    ): Promise<SubscriptionState[]> {
+      const now = calendarOf(at);
+      const rows = await repository.statesIn(spaceId, which, now, tx);
+      return rows.map((row) => toSubscriptionState(row, now.today));
+    },
+
     /** The space's open subscription check-ins, the earliest first, then by id. */
     openCheckInsIn(spaceId: number, tx?: Tx): Promise<OpenCheckIn[]> {
       return repository.openCheckInsIn(spaceId, tx);
