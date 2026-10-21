@@ -1,8 +1,8 @@
 # Directory
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-19 · **Owner:** Basel Ghoneim
-> **Authority:** The `directory` capability: what anyone reads without signing in, over the publicly listed spaces: the directory's list, the map's pins, a space's public page and its live status. Its endpoints are owned by the [API contract](../api/api-contract.md#directory-public); "publicly listed", "verified" and the stale prices by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); the location's rules by [security](../backend/security.md#location). Only the API is built.
-> **Scope:** the API module `directory` (L5); `@masaha/shared/directory`.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
+> **Authority:** The `directory` capability: what anyone reads without signing in, over the publicly listed spaces: the directory's list, the map's pins, a space's public page and its live status. Its endpoints are owned by the [API contract](../api/api-contract.md#directory-public); "publicly listed", "verified" and the stale prices by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); the location's rules by [security](../backend/security.md#location). On the web, the directory's list is built.
+> **Scope:** the API module `directory` (L5); `@masaha/shared/directory`; the web feature `features/directory`, for any page group.
 
 ## What it does
 
@@ -10,12 +10,13 @@
 - Answers the map its pins: every space that passes the same filters, unpaged, up to a ceiling, within the map's viewport when it is given.
 - Answers a space's public page: its profile, hours and shifts, prices, amenities, contacts and each group's freshness.
 - Carries each card's and pin's live status, and answers a space's live status alone.
+- On the site's «المساحات», lists the spaces a page at a time, with a search and an order, each card a link to the space's page.
 
 The announcements, the reports and the favourites' cards are not built.
 
 ## Who uses it
 
-- **Anyone,** signed in or not, through the API. No page of the site reads it yet.
+- **Anyone,** signed in or not, through the API, and on the site's «المساحات», the directory's list.
 
 ## Responsibility boundary
 
@@ -31,6 +32,7 @@ The announcements, the reports and the favourites' cards are not built.
 - **The search's one rule** is the database's: a function normalises the names and the query alike, and another scores how well they match ([data model › Conventions](../architecture/data-model.md#conventions)).
 - **The page** is read under the space's share lock, as the admin's read is ([conventions §13](../backend/conventions.md#concurrency)); whether it is verified is read from its links under the same lock, through `space-links`, with the facts it decides on.
 - **The location** is read from its header with the query, by one shared schema, and kept off the request, so the request logger, which redacts the header, never writes it ([security › Location](../backend/security.md#location)).
+- **On the web,** the site's Directory page sets the list's slots: the space's link (`publicSpacePath`) and each card's area, named by [lookups](lookups.md)' `AreaName` from the public catalogue. The pages are `shared/lists`' `ListPagination`; the list is read with TanStack Query's app defaults, under `['public', 'directory']`.
 
 ## Behaviour and flows
 
@@ -45,6 +47,8 @@ The announcements, the reports and the favourites' cards are not built.
 **A space's live status.** The status alone, for a publicly listed space; anything else is not found, as its page. Whether it is verified is read from its links.
 
 **Caching.** Every answer may be kept for 30 seconds and revalidated with its `ETag`, except one ordered by distance.
+
+**The directory's list on the web.** `DirectoryList` shows 20 spaces a page. Each card is one link to the space's page, named by its name: the cover, or the space's mark (the shown name's first letter) when it has none or its cover fails to load, in a frame of fixed ratio; the name; the area with its governorate; the live status by its word, or «لا تتوفر حالة مباشرة»; «موثّقة»; today's hours on Gaza's calendar. No price. The search reads both names and the area's, and reaches the address once typing pauses; the order is «الأحدث تحديثًا» or «حسب الاسم», and «الأفضل تطابقًا» while a search applies. The search, the filters, the order and the page live in the address. The count says the Strip's spaces, or the matching ones once anything narrows the list. Loading shows skeleton cards; a failure says so, with its reference and «إعادة المحاولة»; an empty directory and no match (with «مسح الفلاتر») are their own states; a page past the last shows the last. While another page loads, the cards shown stay, the results marked busy; a new page of results takes the focus to the results' heading.
 
 ## Decisions
 
@@ -69,10 +73,27 @@ The announcements, the reports and the favourites' cards are not built.
 - **The card and the pin carry the live status, never a count; `GET /spaces/:slug/occupancy` answers it alone** ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). *Why:* the directory shows each space's state, and its filter selects by it; the page is cached whole for 30 seconds, and the endpoint refreshes the state without it. A card may lag the state by those 30 seconds. 2026-10-19, #94.
 - **`availableNow` is resolved to ids by `occupancy` before the page is cut, from the verified spaces only** ([conventions §5](../backend/conventions.md#5-pagination)). *Why:* every page full and the total right; only a verified space has a live state. 2026-10-19, #94.
 
+### Web decisions
+
+- **The site's directory is a web feature of its own, `directory`, for any page group** (S1). *Why:* this capability owns the public reads; `spaces` stays the dashboard's editor. 2026-10-21, #101.
+- **The address holds the search, the filters, the order and the page, no default written** (S5): `q`, `area`, `period`, `min`, `max` (whole shekels), `available`, `verified`, `students`, `friday`, `sort`, `page`. A value the server would refuse falls back to its default; a change replaces the address and returns to page 1. *Why:* a reload, Back and a shared link show the same list. 2026-10-21, #101.
+- **The page sets `lookups`' area name in the list's slot** (S7). *Why:* no feature imports another; the governorate is the catalogue's. 2026-10-21, #101.
+- **«الأفضل تطابقًا» is offered only while a search applies** (S10, design issue 7). *Why:* it is the server's order for a search and refused without one; the trigger never shows an order its list lacks. 2026-10-21, #101.
+- **The cards shown stay while the next page or filter loads** (S13). *Why:* on a weak connection the list never blanks between two answers. 2026-10-21, #101.
+- **The live state's words are `terms`' and its roles DECISIONS_SHARED's:** available `success`, full `warning`, closed `neutral`, none in muted words (S14). 2026-10-21, #101.
+- **A search with no letter to match never leaves the browser** (S15): it stays in the field with «اكتب حرفًا من اسم المساحة أو منطقتها», and the list is asked without it. *Why:* the server answers 422, which would replace the list by a failure. 2026-10-21, #101.
+- **The card shows no price** (the decisions' amendments, 2026-10-12). 2026-10-21, #101.
+- **The count says «في قطاع غزة» only when nothing narrows the list** (design issue 3). *Why:* «مساحة واحدة في قطاع غزة» was false under a filter. 2026-10-21, #101.
+- **A cover that fails to load is replaced by the space's mark in the same frame** (design issue 13). 2026-10-21, #101.
+- **A verified space with no live status reads «لا تتوفر حالة مباشرة», as an unverified one** (design issue 16). *Why:* it is true of both. 2026-10-21, #101.
+- **The card's area is «{area} · {governorate}», from the public catalogue, in either language** (design issue 17). 2026-10-21, #101.
+- **An empty directory has its own state, «لا توجد مساحات في الدليل بعد»,** with no action (design issue 18). 2026-10-21, #101.
+
 ## Code map
 
 - **API:** `apps/api/src/modules/directory/`, entry `index.ts`: the public router, its controller with the caching rule, the list's query read with its header, and the service that composes the reads, the live status from `occupancy` among them.
 - **Shared:** `packages/shared/src/directory/`: the queries (the filters, the orders, the location and the viewport, with their rules) and the answers.
+- **Web:** `apps/web/src/features/directory/`, entry `index.ts` (`DirectoryList`, `DirectorySlots`), mounted by `pages/site/public/directory/`; the address and the request in `services/filtersOf.ts` and `requestOf.ts`, the card's words in `services/cardView.ts` and `todayHours.ts`, the list's hooks in `hooks/list/`, the card in `components/card/`, the results and their states in `components/list/`.
 
 ## Open findings
 
@@ -86,3 +107,7 @@ The announcements, the reports and the favourites' cards are not built.
 - #77 — the cover on the card and the pin, and the photos on the page.
 - #77 — Issue #69: the tie-break tests made able to fail, `no-store` on every answer carrying the location, the page's verified under its lock, the spaces-only `q` named `too_short`.
 - #94 — the live status on the card and the pin, the `availableNow` filter, and a space's live status alone.
+
+### Web history
+
+- #101 — the site's list: the card, the search, the order, the pages, and the address.

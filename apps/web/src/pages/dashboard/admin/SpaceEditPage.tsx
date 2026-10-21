@@ -25,7 +25,7 @@ import { PageHeader } from '../shell/PageHeader';
 const areaField: AreaField = (props) => <AreaSelect source="admin" {...props} />;
 
 /** A space's area named, from `lookups`, for a verified space's read-only page. */
-const areaName = (areaId: number) => <AreaName areaId={areaId} />;
+const areaName = (areaId: number) => <AreaName areaId={areaId} source="admin" />;
 
 /** The platform's amenities to tick, from `lookups`, made once as the area field is. */
 const amenitiesField: AmenitiesField = (props) => <AmenityChecklist source="admin" {...props} />;

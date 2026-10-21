@@ -1,4 +1,5 @@
 import { DAY_MINUTES } from '@masaha/shared/spaces';
+import { clockOf } from '@shared/lib';
 
 // A time of day as a field holds it: 24-hour, Western digits, typed as text, so 24:00 can end a day.
 
@@ -9,12 +10,6 @@ function westernDigits(text: string): string {
   return text.replace(/[٠-٩]/g, (digit) =>
     String((digit.codePointAt(0) ?? ARABIC_INDIC_ZERO) - ARABIC_INDIC_ZERO),
   );
-}
-
-/** A minute of the day as `HH:MM`: `510` → `08:30`, the day's end `1440` → `24:00`. */
-export function clockOf(minute: number): string {
-  const hours = Math.floor(minute / 60);
-  return `${String(hours).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
 }
 
 /**

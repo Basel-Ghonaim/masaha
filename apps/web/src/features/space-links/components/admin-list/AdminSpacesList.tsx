@@ -1,11 +1,11 @@
 import type { AdminSpaceRow } from '@masaha/shared/space-links';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
+import { ListPagination } from '@shared/lists';
 import { useMemo, type ReactNode } from 'react';
 import { useAdminSpacesList } from '../../hooks/admin-list/useAdminSpacesList';
 import { useFocusKeeper } from '../../hooks/useFocusKeeper';
 import type { AdminSpaceRowView } from '../../types/AdminSpaceRowView';
 import type { PlaceField } from '../../types/PlaceField';
-import { ListPagination } from '../ListPagination';
 import { ListState } from '../ListState';
 import { AdminSpaceCard } from './AdminSpaceCard';
 import { AdminSpacesToolbar } from './AdminSpacesToolbar';

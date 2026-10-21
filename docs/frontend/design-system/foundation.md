@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-10-13
+> **Last Updated:** 2026-10-21
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -175,9 +175,11 @@ Names follow shadcn/ui's convention so copied components work unchanged, plus Ma
 | Role | Purpose | Domain uses (decided by features, not the layer) |
 |---|---|---|
 | `success` / `success-foreground` | Positive state | Available now, active subscription, paid, verified |
-| `warning` / `warning-foreground` | Attention | Subscription ending soon, partly paid, possibly outdated data |
+| `warning` / `warning-foreground` | Attention | Space full, subscription ending soon, partly paid, possibly outdated data |
 | `info` / `info-foreground` | Neutral notice | Announcements, tips |
-| `destructive` (above) | Negative state | Space full, expired subscription, unpaid, errors |
+| `destructive` (above) | Negative state | Expired subscription, unpaid, errors |
+
+A space closed now is neutral (the `secondary` surface), not a status role (DECISIONS_SHARED, 2026-10-10).
 
 Each status also needs a **subtle** surface for badges and alerts (`success-subtle`, `warning-subtle`, `info-subtle`, `destructive-subtle`) with text that meets AA on it.
 

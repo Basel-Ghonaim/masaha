@@ -25,7 +25,7 @@ function renderName(areaId: number) {
   render(
     <Wrapper>
       <p>
-        <AreaName areaId={areaId} />
+        <AreaName areaId={areaId} source="admin" />
       </p>
     </Wrapper>,
   );

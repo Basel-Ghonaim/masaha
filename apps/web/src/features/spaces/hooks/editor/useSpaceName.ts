@@ -1,6 +1,5 @@
+import { spaceNameOf, type SpaceNameView } from '@shared/lib';
 import { useLanguage } from '@shared/localisation';
-import { spaceNameOf } from '../../services/spaceName';
-import type { SpaceNameView } from '../../types/SpaceNameView';
 import { useSpaceQuery } from './useSpaceQuery';
 
 /**

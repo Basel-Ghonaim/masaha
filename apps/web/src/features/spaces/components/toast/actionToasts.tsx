@@ -1,8 +1,8 @@
 import { toast } from '@shared/design-system';
 import type { AppError } from '@shared/errors';
 import { RefusalText } from '@shared/forms';
+import type { SpaceNameView } from '@shared/lib';
 import { isolate, lineParts } from '@shared/localisation';
-import type { SpaceNameView } from '../../types/SpaceNameView';
 import { NamedLine } from './NamedLine';
 
 type Line = (values: { name: string }) => string;

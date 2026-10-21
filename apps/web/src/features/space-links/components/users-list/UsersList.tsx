@@ -1,11 +1,11 @@
 import type { AdminUserRow } from '@masaha/shared/space-links';
 import { Badge } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
+import { ListPagination } from '@shared/lists';
 import { useMemo, type ReactNode } from 'react';
 import { useUsersList } from '../../hooks/users-list/useUsersList';
 import { useFocusKeeper } from '../../hooks/useFocusKeeper';
 import type { UserRowView } from '../../types/UserRowView';
-import { ListPagination } from '../ListPagination';
 import { ListState } from '../ListState';
 import { UserCard } from './UserCard';
 import { UserSpaces } from './UserSpaces';

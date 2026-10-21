@@ -1,11 +1,11 @@
 import { FACT_GROUPS, type AdminSpace, type FactGroup } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import type { BadgeProps } from '@shared/design-system';
+import { spaceNameOf } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useIsMutating } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { mayEdit } from '../../services/mayEdit';
-import { spaceNameOf } from '../../services/spaceName';
 import type { EditorPlace } from '../../types/EditorPlace';
 import type { OwnedSpace } from '../../types/OwnersSlot';
 import { EDITOR_SCOPES } from './editorScope';

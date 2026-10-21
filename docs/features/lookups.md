@@ -1,8 +1,8 @@
 # Lookups
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
 > **Authority:** The `lookups` capability: the bilingual lists of governorates, areas and amenities, the admin's screen that keeps them, and the public catalogue. Its endpoints are owned by the [API contract](../api/api-contract.md#lookups-public); its entities by the [data model](../architecture/data-model.md#lookups).
-> **Scope:** the API module `lookups` (L0); `@masaha/shared/lookups`; the web feature `features/lookups`, for the admin and the owner's profile.
+> **Scope:** the API module `lookups` (L0); `@masaha/shared/lookups`; the web feature `features/lookups`, for the admin, the owner's profile and the site's Directory.
 
 ## What it does
 
@@ -15,7 +15,7 @@
 ## Who uses it
 
 - **The admin**, on the dashboard's lookups page, through the place field of the spaces list ([space-links](space-links.md)), and through the area field, the amenities' checklist and the names the space's pages set ([spaces](spaces.md)).
-- **Anyone,** through the public catalogue. No page of the site reads it yet; the admin's area field does, and so do both fields when a page sets them for an owner (`source`).
+- **Anyone,** through the public catalogue: on the site's Directory, through its page, the area filter and a card's area name; the admin's area field reads it too, and so do both fields when a page sets them for an owner (`source`).
 - **Other modules:** `spaces` checks a space's area and names it; `space-links` names the areas of the spaces it lists and resolves a governorate filter to its areas.
 
 ## Responsibility boundary
@@ -53,7 +53,9 @@ Nothing changes before the server answers. A write stays pending until the list 
 
 **The amenities' checklist.** `AmenityChecklist` is a group, named by the label it is given, of the platform's amenities to tick for a space: the active ones, in order, named in the interface's language, and any retired one the space still has (`linked`), ticked, with "Inactive" beside it, until a save leaves it out; a retired one the space does not have is never offered. It reads the admin's amenities, so it shares the lookups page's cache, takes the amenities chosen and hands back the new set, and shows its own loading and failure, with "Try again". Set for an owner (`source`), it reads the public catalogue only, which names no retired amenity: one the space still has stays in the value, unseen and never toggled, and one line under the list counts them ([finding 99](../architecture/findings/99-the-owners-checklist-cannot-name-a-retired-amenity.md)). On either list, an amenity ticked but not linked that is retired before the save is no longer offered: the next tick or untick leaves it out of the value (the space editor's section takes it out at once when the save is refused for it), and the line counts only the linked ones.
 
-**The names, read-only.** `AmenityNames` names a space's amenities as one line, in the list's order, retired ones included; `AreaName` names its area with its governorate ("Al-Rimal · Gaza"), a hidden one included. Both read the admin's lists, and show nothing while they load.
+**The names, read-only.** `AmenityNames` names a space's amenities as one line, in the list's order, retired ones included; `AreaName` names its area with its governorate ("Al-Rimal · Gaza"). `AmenityNames` reads the admin's lists; `AreaName` the lists its page names (`source`): the admin's, a hidden area included, or, on the site, the public catalogue only, the admin's lists never asked for. Both show nothing while they load.
+
+**The area filter.** `AreaFilter` chooses any number of areas for the site's Directory, in a field named "Area": the public catalogue's areas, each governorate that has one a group under its name, every area named in the interface's language and found by either of its names. Its trigger sums up the choice: "All areas", the one area by its name, or a count ("2 areas chosen", counted in Arabic's plural forms), an id the catalogue no longer holds counted too. While the catalogue loads, the list says so; once it has failed, the list says so and offers "Try again". It takes the chosen ids and hands back the new set.
 
 **The public catalogue** answers what a form or a filter may offer, active rows only ([the contract](../api/api-contract.md#lookups-public)). The web reads it under `['public', 'lookups', 'catalogue']`.
 
@@ -99,12 +101,13 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **A space's amenities are ticked in a checklist this capability offers, the editor's slot** (S5). *Why:* the amenities are this capability's list. **It reads the admin's amenities,** not the catalogue, and offers a retired amenity the space still has, marked, until a save leaves it out. *Why:* the catalogue has no name for a retired amenity, which would stay linked unseen. 2026-10-13, #74.
 - **The area and amenity fields read the admin's lists or the public catalogue, as the page says (`source`).** *Why:* an owner is refused the admin's lists; the space's own fields must still save. The public area field names a hidden area «the current area, no longer offered», never sent, since a save sends only the fields changed; the public checklist keeps a retired amenity in the value and counts it ([finding 99](../architecture/findings/99-the-owners-checklist-cannot-name-a-retired-amenity.md)). 2026-10-20, #96.
 - **A read-only page names a space's area and amenities through two small exports,** `AreaName` and `AmenityNames`, over the admin's lists, hidden and retired rows included. *Why:* a verified space's page shows what it has, whatever its rows' flags since. 2026-10-13, #74.
+- **The site's Directory filters by `lookups`' `AreaFilter` and names a card's area with `AreaName` on the public source, both set by the page** (S7). *Why:* no feature imports another; the governorate is the catalogue's. 2026-10-21, #101.
 
 ## Code map
 
 - **API:** `apps/api/src/modules/lookups/`, entry `index.ts`: a folder per list (`governorates/`, `areas/`, `amenities/`) and one for the public `catalogue/`; the pure rules beside them (the exact order, a lookup's change and its audit entries, the list order); the public and admin routers.
 - **Shared:** `packages/shared/src/lookups/`: the requests, the responses and the icon keys.
-- **Web:** `apps/web/src/features/lookups/`, entry `index.ts` (`GovernoratesSection`, `AmenitiesSection`, `GovernorateAreaSelect`, `AreaSelect`, `AreaName`, `AmenityChecklist`, `AmenityNames`), mounted by `pages/dashboard/admin/`; an amenity's icon through `components/AmenityIcon.tsx`; the place field in `components/place/` and `hooks/place/`; the area field, with the public catalogue's query, and the area's name in `components/area/` and `hooks/area/`; the amenities' checklist and names in `components/amenities/` and `hooks/amenities/`.
+- **Web:** `apps/web/src/features/lookups/`, entry `index.ts` (`GovernoratesSection`, `AmenitiesSection`, `GovernorateAreaSelect`, `AreaSelect`, `AreaFilter`, `AreaName`, `AmenityChecklist`, `AmenityNames`), mounted by `pages/dashboard/admin/` and the site's Directory page; an amenity's icon through `components/AmenityIcon.tsx`; the place field in `components/place/` and `hooks/place/`; the area field, with the public catalogue's query, the area filter and the area's name in `components/area/` and `hooks/area/`; the amenities' checklist and names in `components/amenities/` and `hooks/amenities/`.
 
 ## Open findings
 
@@ -135,3 +138,4 @@ Nothing changes before the server answers. A write stays pending until the list 
 - #79 — the area field keeps a space's own area hidden since, marked hidden (finding 60).
 - #96 — the area field and the amenities' checklist read the public catalogue for an owner (`source`); finding 99 recorded.
 - #98 — the checklist counts only the linked retired amenities, and drops one ticked and retired meanwhile at the next toggle.
+- #101 — the site's area filter (`AreaFilter`) and `AreaName` on the public catalogue (`source`).

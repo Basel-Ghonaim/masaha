@@ -109,4 +109,23 @@ export const LOOKUPS = {
     hidden: ({ name }: { name: string }) => `${name} (مخفية)`,
     unavailable: 'المنطقة الحالية — لم تعد متاحة للاختيار',
   },
+  areaFilter: {
+    label: 'المنطقة',
+    all: 'كل المناطق',
+    chosen: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `${String(count)} منطقة محددة`,
+        one: 'منطقة واحدة محددة',
+        two: 'منطقتان محددتان',
+        few: `${String(count)} مناطق محددة`,
+        many: `${String(count)} منطقة محددة`,
+        other: `${String(count)} منطقة محددة`,
+      }),
+    search: 'ابحث عن منطقة',
+    searchPlaceholder: 'اسم المنطقة',
+    list: 'المناطق',
+    none: 'لا توجد منطقة بهذا الاسم',
+    loading: 'جارٍ تحميل المناطق…',
+    failed: 'تعذّر تحميل المناطق',
+  },
 } satisfies Catalogue['lookups'];

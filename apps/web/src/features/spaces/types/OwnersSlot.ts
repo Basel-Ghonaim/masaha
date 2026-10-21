@@ -1,5 +1,5 @@
+import type { SpaceNameView } from '@shared/lib';
 import type { ReactNode, RefObject } from 'react';
-import type { SpaceNameView } from './SpaceNameView';
 
 /**
  * The space as its editor hands it to the owners' actions: its name in the interface's language,

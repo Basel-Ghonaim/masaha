@@ -3,6 +3,8 @@ export const SITE = {
   wordmark: 'Masaha',
   /** The document's title, which the browser's tab shows: the page's own, then the site's name. */
   documentTitle: ({ page }: { page: string }) => `${page} · Masaha`,
+  /** The shell's first link, shown once focused: it moves past the header to the page. */
+  skipToContent: 'Skip to content',
   navigation: 'Main navigation',
   /** The header's links; each is also the title of the page it opens. */
   links: {

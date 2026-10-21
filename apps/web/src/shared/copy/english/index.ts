@@ -1,5 +1,6 @@
 import { AUTH } from './auth';
 import { DASHBOARD } from './dashboard';
+import { DIRECTORY } from './directory';
 import { ERRORS } from './errors';
 import { FORMS } from './forms';
 import { LOOKUPS } from './lookups';
@@ -27,6 +28,7 @@ import { VALIDATION } from './validation';
 export const ENGLISH = {
   auth: AUTH,
   dashboard: DASHBOARD,
+  directory: DIRECTORY,
   errors: ERRORS,
   forms: FORMS,
   lookups: LOOKUPS,

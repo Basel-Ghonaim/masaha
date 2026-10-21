@@ -1,5 +1,6 @@
 import type { SpaceHours, UpdateSpaceHoursRequest } from '@masaha/shared/spaces';
-import { clockOf, minuteOf } from './clockTime';
+import { clockOf } from '@shared/lib';
+import { minuteOf } from './clockTime';
 
 /**
  * The opening hours with the shifts as their form holds them: each time as typed. `days` is indexed

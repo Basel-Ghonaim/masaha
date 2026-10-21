@@ -65,7 +65,9 @@ describe('the change password page', () => {
 
     await saveNewPassword();
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Spaces' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Workspaces' }),
+    ).toBeInTheDocument();
     expect(where(router)).toBe('/spaces');
   });
 
