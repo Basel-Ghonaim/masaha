@@ -129,4 +129,21 @@ export const LOOKUPS = {
     /** A space's own area that is no longer offered, as the public catalogue cannot name it. */
     unavailable: 'Current area — no longer offered',
   },
+  /** The site's place filter: any number of areas from the public catalogue. */
+  areaFilter: {
+    label: 'Area',
+    /** The trigger's summary: none chosen, then a count past one area, which is named. */
+    all: 'All areas',
+    chosen: ({ count }: { count: number }) =>
+      englishPlural(count, {
+        one: `${String(count)} area chosen`,
+        other: `${String(count)} areas chosen`,
+      }),
+    search: 'Search for an area',
+    searchPlaceholder: 'Area name',
+    list: 'Areas',
+    none: 'No area by that name',
+    loading: 'Loading the areas…',
+    failed: 'We couldn’t load the areas',
+  },
 } as const;

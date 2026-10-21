@@ -1,4 +1,4 @@
-import type { AdminGovernorateWithAreas } from '@masaha/shared/lookups';
+import type { AdminGovernorateWithAreas, LookupsCatalogue } from '@masaha/shared/lookups';
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
@@ -19,9 +19,27 @@ const GOVERNORATES: AdminGovernorateWithAreas[] = [
   },
 ];
 
-function renderName(areaId: number) {
-  const requests = fakeTransport(() => ok(GOVERNORATES));
-  return { ...renderHook(() => useAreaName(areaId), { wrapper: queryWrapper() }), requests };
+const CATALOGUE: LookupsCatalogue = {
+  governorates: [
+    {
+      id: 1,
+      nameAr: 'غزة',
+      nameEn: 'Gaza',
+      areas: [{ id: 11, nameAr: 'الرمال', nameEn: 'Al-Rimal' }],
+    },
+  ],
+  amenities: [],
+};
+
+/** The name of `areaId` from `source`; the fake server answers the admin's lists and the catalogue. */
+function renderName(areaId: number, source: 'admin' | 'public' = 'admin') {
+  const requests = fakeTransport((request) =>
+    ok(request.url === '/lookups' ? CATALOGUE : GOVERNORATES),
+  );
+  return {
+    ...renderHook(() => useAreaName(areaId, source), { wrapper: queryWrapper() }),
+    requests,
+  };
 }
 
 beforeEach(() => {
@@ -49,6 +67,15 @@ describe('useAreaName', () => {
     await waitFor(() => {
       expect(result.current).toBe('الشجاعية · غزة');
     });
+  });
+
+  it('names an area from the public catalogue for the public source, never asking for the admin’s lists', async () => {
+    const { result, requests } = renderName(11, 'public');
+
+    await waitFor(() => {
+      expect(result.current).toBe('Al-Rimal · Gaza');
+    });
+    expect(requests.map((request) => request.url)).toEqual(['/lookups']);
   });
 
   it('is empty for an area the lists do not hold', async () => {
