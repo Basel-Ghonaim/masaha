@@ -214,6 +214,19 @@ export function createSubscriptionsRepository() {
       });
     },
 
+    /** Ends the subscription early: its new end (a Gaza date), when and by whom. */
+    async end(
+      id: number,
+      { endsOn, endedAt, endedById }: { endsOn: string; endedAt: Date; endedById: number },
+      tx: Tx,
+    ): Promise<void> {
+      await tx.subscription.update({
+        where: { id },
+        data: { endsOn: dateOf(endsOn), endedAt, endedById },
+        select: { id: true },
+      });
+    },
+
     /** Writes a corrected price and billing, with who typed the price and why. */
     async correctPrice(
       id: number,

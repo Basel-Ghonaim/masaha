@@ -111,7 +111,7 @@ Each step names its goal and points to what supports it:
   - conventions §9: [the front desk](../backend/conventions.md#the-front-desk-desk) and [composed reads](../backend/conventions.md#composed-reads) (the customers list and file);
   - data-model.md: [subscription scenarios](../architecture/data-model.md#subscription-scenarios).
 - **Settles:** date inputs.
-- **Built:** customers created, edited, archived and restored; the list and the file, debts in the database (#102).
+- **Built:** customers created, edited, archived and restored; the list and the file, debts in the database (#102); subscriptions made from a package or custom, renewed with a payment allocated oldest debt first, paid, read as a statement, corrected and ended early (#106).
 
 ### 9. Payments and debts
 
@@ -215,7 +215,7 @@ Built: `GET /lookups`, the active governorates with their active areas and the a
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, the staff's read of the space's state now with its override, a visitor's check-in and check-out (`POST …/visits`, `POST …/visits/:visitId/check-out`), and a visit's debt: its payment after the check-out (`POST …/payments`), «تسجيل دينًا» (`PUT …/visits/:visitId/customer`) and the owner's write-off (`POST` / `DELETE …/visits/:visitId/write-off`) (#100), and the customers: the list and the file (`GET …/customers`, `GET …/customers/:customerId`), the create and the edit (`POST …/customers`, `PATCH …/customers/:customerId`), the archive and the restore (`POST …/customers/:customerId/archive`, `…/restore`) (#102) ([api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed), [Front desk (managed)](../api/api-contract.md#front-desk-managed), [Customers (managed)](../api/api-contract.md#customers-managed)).
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, the staff's read of the space's state now with its override, a visitor's check-in and check-out (`POST …/visits`, `POST …/visits/:visitId/check-out`), and a visit's debt: its payment after the check-out (`POST …/payments`), «تسجيل دينًا» (`PUT …/visits/:visitId/customer`) and the owner's write-off (`POST` / `DELETE …/visits/:visitId/write-off`) (#100), and the customers: the list and the file (`GET …/customers`, `GET …/customers/:customerId`), the create and the edit (`POST …/customers`, `PATCH …/customers/:customerId`), the archive and the restore (`POST …/customers/:customerId/archive`, `…/restore`) (#102), and the subscriptions: subscribing and renewing (`POST …/customers/:customerId/subscriptions`), a subscription's payment (`POST …/payments`), its statement (`GET …/subscriptions/:id`), its corrections (`PATCH …/subscriptions/:id`, the owner's `PUT …/subscriptions/:id/price`) and its end (`POST …/subscriptions/:id/end`) (#106) ([Subscriptions (managed)](../api/api-contract.md#subscriptions-managed), [api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed), [Front desk (managed)](../api/api-contract.md#front-desk-managed), [Customers (managed)](../api/api-contract.md#customers-managed)).
 An active owner or reception link is required; reception reads, sets and clears the live status's override, checks visitors in and out, receives a visit's payment and records its debt; the owner writes a visit off. The web screen and later
 dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
@@ -230,8 +230,8 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | GET / POST | `/manage/spaces/:spaceId/customers` | 🧾 | list (search; filters: subscription type, status, payment), create |
 | GET / PATCH | `/manage/spaces/:spaceId/customers/:customerId` | 🧾 | details with subscriptions, balances and debt; edit |
 | POST | `/manage/spaces/:spaceId/customers/:customerId/subscriptions` | 🧾 | new or renewal, from a package or custom; an optional amount the server allocates oldest debt first, one payment per item, under one key; warns while an older debt remains |
-| GET / PATCH | `/manage/spaces/:spaceId/subscriptions/:id` | 🧾 | progress and statement; correct one |
-| POST | `/manage/spaces/:spaceId/subscriptions/:id/end` | 🧾 | end early: the end becomes today |
+| GET / PATCH / PUT | `/manage/spaces/:spaceId/subscriptions/:id[/price]` | 🧾 · the price 🏢 | progress and statement; correct its limits, dates and name; the owner its price and billing, with a reason |
+| POST | `/manage/spaces/:spaceId/subscriptions/:id/end` | 🧾 | end early: the end becomes today (its start, if it has not started) |
 | GET | `/manage/spaces/:spaceId/visits` | 🧾 | a date range (the open visits are answered by `…/occupancy`, the uncollected by `…/uncollected-visits`, since step 7) |
 | GET / POST | `/manage/spaces/:spaceId/check-ins` | 🧾 | subscription check-ins: `?open=true` or a date range; limit and full-space warnings in `meta.warnings` |
 | POST | `/manage/spaces/:spaceId/check-ins/:checkInId/check-out` | 🧾 | |

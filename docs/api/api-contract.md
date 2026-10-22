@@ -452,9 +452,9 @@ CustomerFile = { customer: Customer } & CustomerBalance & {
 
 ### Subscriptions (managed)
 
-A customer's subscriptions, at the desk: made from a package of the space or typed there ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The statement is the staff's read; subscribing and correcting a subscription's limits, dates and name are the staff's (🧾); correcting its price and billing is the owner's (🏢). Each write is refused with `forbidden` (403) before its body is read for whoever may not, and again for an owner or reception whose link ended meanwhile. Built 2026-10-22, #106.
+A customer's subscriptions, at the desk: made from a package of the space or typed there ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The statement is the staff's read; subscribing, correcting a subscription's limits, dates and name, and ending it early are the staff's (🧾); correcting its price and billing is the owner's (🏢). Each write is refused with `forbidden` (403) before its body is read for whoever may not, and again for an owner or reception whose link ended meanwhile. Built 2026-10-22, #106.
 
-- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the subscription as the entity and its space as the entry's: `subscription.created` (`after`: its customer, its terms and dates, `packageId`, `renewalOfId`, and a typed price's `reason`, else `null`); `subscription.corrected` (`before` and `after`: only the fields that changed); `subscription.priceCorrected` (`before`: `{ billing, priceAgorot }`; `after`: the same with `reason`). A correction that changes nothing writes nothing.
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the subscription as the entity and its space as the entry's: `subscription.created` (`after`: its customer, its terms and dates, `packageId`, `renewalOfId`, and a typed price's `reason`, else `null`); `subscription.corrected` (`before` and `after`: only the fields that changed); `subscription.priceCorrected` (`before`: `{ billing, priceAgorot }`; `after`: the same with `reason`); `subscription.ended` (`before`: `{ endsOn }`; `after`: `{ endsOn, endedAt }`). A correction that changes nothing, and a repeated end, write nothing.
 
 ```ts
 NewSubscription = {
@@ -496,6 +496,11 @@ SubscriptionStatement = SubscriptionState & { paidAgorot, balanceAgorot } & {
 - **Body** (`correctPriceSchema`): `{ billing, priceAgorot, reason }`, both terms together, with why (1–200 characters). Reception is refused `forbidden` (403) before the body is read.
 - **200:** `SubscriptionState`: the price recorded as typed by the owner, with the reason (`priceTyped`); the same billing and price answer it as it is and write nothing.
 - **Errors**, each writing nothing: `validation` (422) on the body; `forbidden` (403); `not_found` (404) for a subscription that is not the space's; `conflict` (409) `SUBSCRIPTION_ENDED` for one ended early, and `PRICE_BELOW_PAID`, from the database, for a fixed price below what was paid on it (voided payments left out).
+
+#### `POST /manage/spaces/:spaceId/subscriptions/:subscriptionId/end` · 🧾
+- **No body.** Ends the subscription early («إنهاء الاشتراك»): its end becomes today — its start, if it has not started; never later than its end was — with who ended it and when. It is `EXPIRED` from then. No payment, refund or proration; what is owed stays owed, and an open check-in on it stays open.
+- **200:** `SubscriptionState`; one already ended is answered as it is, writing nothing.
+- **Errors**, each writing nothing: `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404) for a subscription that is not the space's.
 
 ### Front desk (managed)
 

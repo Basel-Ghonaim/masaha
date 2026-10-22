@@ -9,6 +9,7 @@
 - Answers a space's subscriptions — of one customer, or by id — each with its status, its progress and its amount due, as of a time.
 - Writes a subscription the desk makes, from a package's terms or typed ones, with its idempotency key, audited ([desk](desk.md)).
 - Corrects a subscription: its limits, dates and name, by the staff; its price and billing, by the owner, with a reason; each audited.
+- Ends a subscription early, by the staff: its end today (its start if it has not started), audited; no money changes.
 - Answers each customer's current subscription, and the customers list's status, kind and package filters as ids ([desk](desk.md)).
 - Answers the space's open check-ins and their counts, for *present* ([occupancy](occupancy.md)).
 - Closes the check-ins due by the auto check-out, as a timed job.
@@ -27,7 +28,7 @@
 
 ## How it composes the platform
 
-- Its manage router sits below `/manage/spaces/:spaceId`, behind the one boundary that admits the space's staff: the corrections (`requireCan('subscriptions.manage')`; the price `requireCan('subscriptions.correctPrice')`, the owner's). Its reads and the subscribe are composed by the desk ([conventions §9](../backend/conventions.md#9-placements)).
+- Its manage router sits below `/manage/spaces/:spaceId`, behind the one boundary that admits the space's staff: the corrections and the end (`requireCan('subscriptions.manage')`; the price `requireCan('subscriptions.correctPrice')`, the owner's). Its reads and the subscribe are composed by the desk ([conventions §9](../backend/conventions.md#9-placements)).
 - Its attendance is counted in the database, by `subscription_usage`; the status is a pure rule on those counts ([conventions §8](../backend/conventions.md#pure-rules)).
 
 ## Behaviour and flows
@@ -37,6 +38,8 @@
 **The create.** `create` writes the subscription the desk composed, in the desk's transaction: its terms and dates, its key, the package it copies or who typed its price and why; a shift that is not the space's is refused by its foreign key, which it answers as `refused`. Audited `subscription.created` with its terms, `packageId`, `renewalOfId` and the reason. `findByKey` answers a retry's subscription.
 
 **The corrections.** Each in its transaction: the space's lock, `can()` on the links read under it, the subscription's row (`FOR UPDATE`, 404 when not the space's), ended → `SUBSCRIPTION_ENDED`. The staff's: only the fields set to a new value (`subscriptionChange.ts`, pure), `null` clearing a limit or the end, an end before the start → `out_of_range`, audited `subscription.corrected`. The owner's: billing and price together, recorded as the owner's typed price with the reason, audited `subscription.priceCorrected`; a fixed price below what was paid is refused by the trigger `subscriptions_guard_price` (`PRICE_BELOW_PAID`). A correction that changes nothing writes nothing.
+
+**The end.** In its transaction, the same opening as a correction; one already ended is answered as it is; else its end becomes today — its start if it has not started, never later than it was — with who and when, audited `subscription.ended`. The status rule then answers `EXPIRED`.
 
 **The renewal's start** (`renewal.ts`, pure): `proposedStart(renewed, today)` — the day after the renewed one's end while it is not expired and its end is not before today, else today. `lockIn` locks a subscription's row and answers the one that renewed it, if any.
 
@@ -77,4 +80,4 @@
 - #94 — the open check-ins and their counts, which `occupancy` reads for *present*.
 - #97 — the auto check-out of check-ins.
 - #102 — the attendance and amount due in the database (`subscription_usage`), the status, progress and current-subscription rules, and the states read; each customer's current subscription and the list's filters as ids.
-- #106 — a subscription's key, typed price's reason and renewed one; the create, audited; the row's lock; the renewal's proposed start; the corrections, the price the owner's.
+- #106 — a subscription's key, typed price's reason and renewed one; the create, audited; the row's lock; the renewal's proposed start; the corrections, the price the owner's; the end.

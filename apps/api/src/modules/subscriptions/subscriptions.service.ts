@@ -1,3 +1,4 @@
+import { gazaClockOf } from '@masaha/shared/core';
 import type {
   CorrectPriceRequest,
   CorrectSubscriptionRequest,
@@ -92,11 +93,11 @@ export function createSubscriptionsService({
   const repository = createSubscriptionsRepository();
 
   /**
-   * Opens a correction, in its transaction: the space's lock, `can()` of the action on the links read
-   * under it (a link ended meanwhile still decides), then the subscription's row (`FOR UPDATE`), not
-   * the space's → `not_found`; ended → `SUBSCRIPTION_ENDED`. Answers its terms.
+   * Opens a write of one subscription, in its transaction: the space's lock, `can()` of the action on
+   * the links read under it (a link ended meanwhile still decides), then the subscription's row
+   * (`FOR UPDATE`), not the space's → `not_found`. Answers its terms.
    */
-  async function lockForCorrection(
+  async function lockSubscription(
     actor: Actor,
     space: LoadedSpace,
     subscriptionId: number,
@@ -108,7 +109,18 @@ export function createSubscriptionsService({
     if (!(await repository.lockIn(space.id, subscriptionId, tx))) {
       throw AppError.notFound(undefined, 'Subscription not found');
     }
-    const terms = await repository.termsOf(subscriptionId, tx);
+    return repository.termsOf(subscriptionId, tx);
+  }
+
+  /** Opens a correction (`lockSubscription`); one ended early is `SUBSCRIPTION_ENDED`. */
+  async function lockForCorrection(
+    actor: Actor,
+    space: LoadedSpace,
+    subscriptionId: number,
+    action: SpaceAction,
+    tx: Tx,
+  ) {
+    const terms = await lockSubscription(actor, space, subscriptionId, action, tx);
     if (terms.ended) throw AppError.conflict('SUBSCRIPTION_ENDED');
     return terms;
   }
@@ -312,6 +324,44 @@ export function createSubscriptionsService({
             spaceId: space.id,
             before: { billing: current.billing, priceAgorot: current.priceAgorot },
             after: { billing, priceAgorot, reason },
+          },
+          tx,
+        );
+        return stateNow(space.id, subscriptionId, tx);
+      });
+    },
+
+    /**
+     * Ends a subscription early («إنهاء الاشتراك», decision 5), in one transaction:
+     * `lockSubscription` (`subscriptions.manage`); one already ended answered as it is, writing
+     * nothing; else its end becomes today — its start, if it has not started; never later than its
+     * end was — with who ended it and when, audited `subscription.ended`. No payment, refund or
+     * proration; an open check-in on it stays open. It is `EXPIRED` from then (S5).
+     */
+    end(actor: Actor, space: LoadedSpace, subscriptionId: number): Promise<SubscriptionState> {
+      return runInTransaction(async (tx) => {
+        const terms = await lockSubscription(
+          actor,
+          space,
+          subscriptionId,
+          'subscriptions.manage',
+          tx,
+        );
+        if (terms.ended) return stateNow(space.id, subscriptionId, tx);
+        const endedAt = now();
+        const today = gazaClockOf(endedAt).date;
+        let endsOn = terms.startsOn !== null && terms.startsOn > today ? terms.startsOn : today;
+        if (terms.endsOn !== null && terms.endsOn < endsOn) endsOn = terms.endsOn;
+        await repository.end(subscriptionId, { endsOn, endedAt, endedById: actor.id }, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'subscription.ended',
+            entityType: 'subscription',
+            entityId: subscriptionId,
+            spaceId: space.id,
+            before: { endsOn: terms.endsOn },
+            after: { endsOn, endedAt: endedAt.toISOString() },
           },
           tx,
         );
