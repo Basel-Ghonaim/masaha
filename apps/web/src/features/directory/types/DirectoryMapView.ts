@@ -15,7 +15,7 @@ export type DirectoryMapView = {
   map: Omit<MarkerMapProps, 'overlay' | 'under'>;
   /** The section around the map. */
   region: string;
-  /** A fetch is in flight over the marks shown. */
+  /** The pins are first asked for, or a fetch is in flight over the marks shown. */
   busy: boolean;
   legend: { label: string; items: { key: string; mark: MapMark; label: string }[] };
   /** «مركّز على موقعي», while a point is held. */
@@ -33,6 +33,8 @@ export type DirectoryMapView = {
   failure: ListFailureView | null;
   empty: { title: string; text: string };
   noMatch: { title: string; text: string; clear: { label: string; run: () => void } };
+  /** While the pins are first asked for: the map's tiles may arrive before them. */
+  loading: string | null;
   /** Past the pins' ceiling, until the map is asked within its view. */
   truncated: string | null;
   selected: { card: SpaceCardView; close: () => void; closeLabel: string; details: string } | null;

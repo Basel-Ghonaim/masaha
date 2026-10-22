@@ -175,7 +175,8 @@ export function useDirectoryMap(): DirectoryMapView {
       failed: words.map.failed,
     },
     region: words.map.region,
-    busy: answer !== undefined && (whole.isFetching || within.isFetching),
+    // Busy from the first ask, before any pin is drawn, and while a later one is in flight.
+    busy: whole.isPending || whole.isFetching || within.isFetching,
     legend: {
       label: words.map.legend,
       items: [
@@ -216,6 +217,7 @@ export function useDirectoryMap(): DirectoryMapView {
         run: filters.applied > 0 ? panel.sheet.clear.run : filters.clearSearch,
       },
     },
+    loading: whole.isPending ? words.map.loading : null,
     truncated: answer?.truncated === true ? words.map.truncated : null,
     selected:
       chosen === null

@@ -227,6 +227,26 @@ describe('the directory’s map', () => {
     expect(router.state.location.search).toBe('?q=Hub&view=map');
   });
 
+  it('while the pins first load, says so over the map and marks the section busy', async () => {
+    let answer: (value: FakeAnswer) => void = () => undefined;
+    renderDirectory(
+      '/spaces?view=map',
+      1440,
+      () =>
+        new Promise<FakeAnswer>((resolve) => {
+          answer = resolve;
+        }),
+    );
+
+    expect(await screen.findByText('جارٍ تحميل المساحات…')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'الخريطة' })).toHaveAttribute('aria-busy', 'true');
+
+    answer(pins([pin(1)]));
+    expect(await screen.findByRole('button', { name: 'مساحة 1 — متاح' })).toBeInTheDocument();
+    expect(screen.queryByText('جارٍ تحميل المساحات…')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'الخريطة' })).toHaveAttribute('aria-busy', 'false');
+  });
+
   it('a failure says so and tries again', async () => {
     const user = userEvent.setup();
     const { requests } = renderDirectory('/spaces?view=map', 1440, (_request, index) =>

@@ -181,6 +181,8 @@ export const DIRECTORY = {
     detailsBelow: ({ name }: { name: string }) => `${name}: details at the bottom of the page`,
     close: 'Close',
     failed: 'The map didn’t load. Browse the spaces in the list.',
+    /** While the pins are first asked for. */
+    loading: 'Loading spaces…',
     /** Past 1,000 pins, until the map is asked within its view. */
     truncated: 'Showing the first 1,000 spaces; zoom in to see the rest.',
   },

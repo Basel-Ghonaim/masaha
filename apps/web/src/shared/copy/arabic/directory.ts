@@ -163,6 +163,7 @@ export const DIRECTORY = {
     detailsBelow: ({ name }: { name: string }) => `${name}: التفاصيل في أسفل الصفحة`,
     close: 'إغلاق',
     failed: 'لم تُحمَّل الخريطة. تصفّح المساحات في القائمة.',
+    loading: 'جارٍ تحميل المساحات…',
     truncated: 'تظهر أول 1000 مساحة؛ قرّب الخريطة لترى ما بقي.',
   },
 } satisfies Catalogue['directory'];

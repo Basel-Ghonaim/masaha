@@ -18,8 +18,8 @@ import { SelectedSheet } from './SelectedSheet';
 
 /**
  * The directory's map, a section named «الخريطة», marked busy while the pins load: a failure above
- * it, and over it the legend (at the top's end), the empty or no-match card, the line past the
- * pins' ceiling, the chosen space's card from 768 px (at the foot's start; a bottom sheet below it)
+ * it, and over it the legend (at the top's end), the empty or no-match card, the line while the
+ * pins first load and the one past their ceiling, the chosen space's card from 768 px (at the foot's start; a bottom sheet below it)
  * and «مركّز على موقعي» while a point is held, or, while a point is picked, the picking card in the
  * chosen space's place (under the map below 1024 px). Closing the chosen space, by «إغلاق» or
  * Escape, hands the focus back to its mark. The overlay precedes the marks in the tab order; below
@@ -79,6 +79,11 @@ export function DirectoryMap({ view, slots }: { view: DirectoryMapView; slots: D
                 </Card>
               )}
               <div className="flex flex-col gap-3">
+                {view.loading !== null && (
+                  <div className="self-center">
+                    <MapNotice line={view.loading} />
+                  </div>
+                )}
                 {view.truncated !== null && (
                   <div className="self-center">
                     <MapNotice line={view.truncated} />
