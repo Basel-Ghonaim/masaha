@@ -34,6 +34,12 @@ export const correctSubscriptionSchema = z
   .partial();
 export type CorrectSubscriptionRequest = z.infer<typeof correctSubscriptionSchema>;
 
+/** Checks a subscriber in on one of the space's subscriptions, which names its customer. */
+export const checkInSubscriberSchema = z.object({
+  subscriptionId: z.number().int().positive().max(2_147_483_647),
+});
+export type CheckInSubscriberRequest = z.infer<typeof checkInSubscriberSchema>;
+
 /** The owner's correction of a subscription's price and billing, together, with why. */
 export const correctPriceSchema = z.object({
   billing: z.enum(SUBSCRIPTION_BILLINGS),

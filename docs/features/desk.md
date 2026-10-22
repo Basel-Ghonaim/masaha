@@ -8,6 +8,7 @@
 
 - Checks a visitor in, with what the check-in warns of: the space full, or outside its hours.
 - Answers a retried check-in the visit its idempotency key already made.
+- Checks a subscriber in on one of their subscriptions, unless archived or present, with what it warns of: the space full, outside its hours, the subscription not started or expired, this week's days or today's hours used up; a retry answers the same check-in and the same warnings.
 - Leaves the stays it does not close to the auto check-out, which [`visits`](visits.md) and `subscriptions` run as timed jobs.
 - Checks a visit out: the charge at the quote's time, the payment taken, the rest left unpaid to a customer found or created by phone, and a price typed by hand where the visit has no rate, or an unpriced close; a retry answers the first result.
 - Receives a payment for a closed visit after its check-out, once per idempotency key; the rest left unpaid by the check-out's rule. Or a payment on a subscription of the space.
@@ -34,6 +35,8 @@
 ## Behaviour and flows
 
 **The check-in.** In one transaction, in this order: the space's lock; `can()` on the links as they are under it; the warnings as of now; the visit this key already made, for a retry; else the visit, with its rates (through `visits`). Answered 201 every time, the warnings in `meta` only when there are some.
+
+**A subscriber's check-in.** In one transaction, in this order: the space's lock and `can()` (`attendance.record`); the check-in this key already made — on another subscription → 409, else a retry; the subscription's row (`FOR UPDATE`, through `subscriptions`), not the space's → 422 `invalid_choice`; its customer archived → `CUSTOMER_ARCHIVED`; present by `occupancy`'s *present* → `MEMBER_ALREADY_CHECKED_IN`; the warnings, `occupancy`'s then `subscriptions`' (`limitWarnings`: the state by `subscription_usage`'s counts, and whether today is counted already); then the check-in, audited by `subscriptions`. A retry's limit warnings leave the check-in itself out (its day unless another shares it, and its minutes), so it answers what the first request did. Answered 201, with the customer and the subscription's state as of now.
 
 **The check-out.** In one transaction, in this order: the space's lock and `can()`; the settings; the visit's row (`FOR UPDATE`), not the space's → 404; the payment this key recorded. A visit already closed answers as it is, with that payment for a retry, and records nothing; closed by another key, a request with a payment is refused (`VISIT_ALREADY_CLOSED`). Else the time it is priced at (the quote's, at most five minutes old and never before the check-in; absent, now), but never past the stay's due time, which then closes it; the charge from `visits`; with no rate, the typed price of whoever may type one (`can()`'s `prices.typeByHand`), who must, or none for whoever may not: an unpriced close, which the owner prices later through [`visits`](visits.md). Any part left unpaid follows the one unpaid-part rule (below). Then the visit is closed, and the payment recorded, which the ledger checks; its refusal undoes the whole check-out. The rows are taken in one order: the space's, the visit's, the customer, the payment.
 
@@ -98,3 +101,4 @@
 - #100 — the owner's write-off of a visit's unpaid rest, and its undo; a visit's payment after its check-out; a visit's customer kept at an unpaid check-out (finding 100); «تسجيل دينًا».
 - #102 — a stay checked out after its due time closed and charged at it (finding 116); a customer archived by the owner, unless present; the customers list and file.
 - #106 — subscribing a customer, from a package or custom terms; a payment on a subscription; a renewal with its payment allocated oldest debt first; a subscription's statement.
+- #109 — a subscribe's key that made another customer's subscription refused; the debt warning on older items only; a subscriber's check-in, with its warnings.

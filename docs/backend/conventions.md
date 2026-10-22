@@ -265,7 +265,7 @@ The modules that apply them read them: visits and subscriptions (auto check-out;
 
 ### The front desk: `desk`
 `desk` orchestrates the operations that span the desk's modules, each in one transaction:
-- **check-in** of a visit or a subscription, with the full-space warning from `occupancy`;
+- **check-in** of a visit or a subscription, with the full-space warning from `occupancy`; a subscriber's names the subscription, is refused while the customer is archived or present (`occupancy`'s *present*), and adds the subscription's warnings (`subscriptions`' `limitWarnings`, pure on the function's counts; a retry's leave the check-in itself out) (2026-10-22, #109);
 - **check-out of a visit** with its charge and its payment;
 - **a visit's payment after its check-out**, its unpaid rest left to a customer by the same rule as the check-out's, and **its debt left to a customer by phone** («تسجيل دينًا»);
 - **the write-off of a visit's unpaid rest** by the owner, and its undo;

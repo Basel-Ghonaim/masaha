@@ -7,10 +7,17 @@ import type { DeskVisit } from '../visits/index.ts';
 // The answers of the front desk's orchestrations (docs/api/api-contract.md §5, Front desk
 // (managed)).
 
-/** What a check-in warns of, in `meta.warnings`, in this order; it never refuses for them. */
+/**
+ * What a check-in warns of, in `meta.warnings`, in this order; it never refuses for them. A visit's
+ * only the first two; a subscriber's also the subscription's dates and limits.
+ */
 export const DESK_WARNINGS = [
   'SPACE_FULL',
   'OUTSIDE_OPENING_HOURS',
+  'SUBSCRIPTION_NOT_STARTED',
+  'SUBSCRIPTION_EXPIRED',
+  'DAYS_PER_WEEK_USED',
+  'HOURS_PER_DAY_USED',
 ] as const satisfies readonly DomainErrorCode[];
 export type DeskWarning = (typeof DESK_WARNINGS)[number];
 

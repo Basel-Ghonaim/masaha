@@ -17,7 +17,11 @@ import type {
   VisitCheckOut,
 } from '@masaha/shared/desk';
 import type { PaymentRequest } from '@masaha/shared/payments';
-import type { SubscriptionState } from '@masaha/shared/subscriptions';
+import type {
+  CheckInSubscriberRequest,
+  DeskCheckIn,
+  SubscriptionState,
+} from '@masaha/shared/subscriptions';
 import type {
   CheckInVisitRequest,
   DeskVisit,
@@ -43,6 +47,7 @@ import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import {
   proposedStart,
+  type CheckInRow,
   type SubscriptionsService,
   type SubscriptionToCreate,
 } from '../subscriptions/index.ts';
@@ -339,6 +344,46 @@ export function createDeskService({
   }
 
   /**
+   * A subscriber's check-in as the desk answers it, as of `at`, in the caller's transaction: its
+   * customer and its subscription's state.
+   */
+  async function deskCheckIn(
+    space: LoadedSpace,
+    row: CheckInRow,
+    at: Date,
+    tx?: Tx,
+  ): Promise<DeskCheckIn> {
+    const [[subscription], customer] = await Promise.all([
+      subscriptions.statesOf(space.id, { ids: [row.subscriptionId] }, at, tx),
+      customers.findIn(space.id, row.customerId, tx),
+    ]);
+    if (!subscription || !customer) {
+      throw new Error(`The check-in ${String(row.id)} is not the space's.`);
+    }
+    return {
+      id: row.id,
+      customer: { id: customer.id, name: customer.name, phone: customer.phone },
+      subscription,
+      checkedInAt: row.checkedInAt.toISOString(),
+      checkedOutAt: row.checkedOutAt?.toISOString() ?? null,
+      checkoutMethod: row.checkoutMethod,
+    };
+  }
+
+  /** What a subscriber's check-in warns of at `at`: the space's, then the subscription's. */
+  async function subscriberWarnings(
+    space: LoadedSpace,
+    subscriptionId: number,
+    at: Date,
+    withoutId: number | null,
+    tx: Tx,
+  ): Promise<DomainErrorCode[]> {
+    const spaceWarnings = await occupancy.checkInWarnings(space.id, at, tx);
+    const limits = await subscriptions.limitWarnings(space.id, subscriptionId, at, withoutId, tx);
+    return [...spaceWarnings, ...limits];
+  }
+
+  /**
    * The time a check-out is priced at: the quote's the desk showed, at most five minutes old and
    * not in the future, else `out_of_range`; absent, now.
    */
@@ -385,6 +430,56 @@ export function createDeskService({
             tx,
           ));
         return { visit, warnings };
+      });
+    },
+
+    /**
+     * Checks a subscriber in (the owner's decision 9), in one transaction and in this order: the
+     * space's lock and `can()`; the check-in this key already made — on another subscription →
+     * `conflict`, else a retry, answered with the warnings as of now, the check-in itself left out
+     * of the limits'; the subscription's row (`FOR UPDATE`), not the space's → `invalid_choice` on
+     * `subscriptionId`; its customer archived → `CUSTOMER_ARCHIVED`; present, by an open check-in
+     * or an open visit → `MEMBER_ALREADY_CHECKED_IN`; then the warnings — the space full, outside
+     * its hours, the subscription not started or expired, this week's days or today's hours used
+     * up — which never refuse it; then the check-in, audited.
+     */
+    checkInSubscriber(
+      actor: Actor,
+      space: LoadedSpace,
+      key: string,
+      { subscriptionId }: CheckInSubscriberRequest,
+    ): Promise<{ checkIn: DeskCheckIn; warnings: DomainErrorCode[] }> {
+      return runInTransaction(async (tx) => {
+        await lockAtDesk(actor, space, tx);
+        const at = now();
+        const made = await subscriptions.findCheckInByKey(space.id, key, tx);
+        if (made && made.subscriptionId !== subscriptionId) {
+          throw AppError.conflict(
+            undefined,
+            'This idempotency key checked in another subscription',
+          );
+        }
+        if (made) {
+          const warnings = await subscriberWarnings(space, subscriptionId, at, made.id, tx);
+          return { checkIn: await deskCheckIn(space, made, at, tx), warnings };
+        }
+
+        const locked = await subscriptions.lockIn(space.id, subscriptionId, tx);
+        if (!locked) throw AppError.validation({ subscriptionId: ['invalid_choice'] });
+        const customer = await customers.findIn(space.id, locked.customerId, tx);
+        if (!customer)
+          throw new Error(`The subscription ${String(subscriptionId)} has no customer.`);
+        if (customer.archivedAt) throw AppError.conflict('CUSTOMER_ARCHIVED');
+        if (await occupancy.isPresent(space.id, customer.id, tx)) {
+          throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
+        }
+        const warnings = await subscriberWarnings(space, subscriptionId, at, null, tx);
+        const created = await subscriptions.checkIn(
+          actor.id,
+          { spaceId: space.id, key, customerId: customer.id, subscriptionId, checkedInAt: at },
+          tx,
+        );
+        return { checkIn: await deskCheckIn(space, created, at, tx), warnings };
       });
     },
 

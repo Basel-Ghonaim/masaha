@@ -1,4 +1,6 @@
 import { isForeignKeyViolation, prisma, type Tx } from '../../db/index.ts';
+import { Prisma } from '../../generated/prisma/client.ts';
+import type { OwnAttendance } from './limits.ts';
 import type { CorrectableTerms } from './subscriptionChange.ts';
 
 /** A subscription check-in still open: whose, on which subscription, and since when. */
@@ -81,6 +83,44 @@ export interface SubscriptionCheckIn {
   /** `null` while it is open. */
   minutes: number | null;
 }
+
+/** A subscriber's check-in row. */
+export interface CheckInRow {
+  id: number;
+  customerId: number;
+  subscriptionId: number;
+  checkedInAt: Date;
+  checkedOutAt: Date | null;
+  checkoutMethod: 'MANUAL' | 'AUTO' | null;
+}
+
+/** A check-in to write: its space, its key, its subscription and the subscription's customer. */
+export interface NewCheckIn {
+  spaceId: number;
+  key: string;
+  customerId: number;
+  subscriptionId: number;
+  checkedInAt: Date;
+}
+
+const CHECK_IN_ROW = {
+  id: true,
+  customerId: true,
+  subscriptionId: true,
+  checkedInAt: true,
+  checkedOutAt: true,
+  checkoutMethod: true,
+} as const;
+
+/**
+ * A closed stay's whole minutes, `null` while open: `subscription_usage`'s own expression, on
+ * `check_ins`' columns, so every count of minutes is the function's rule.
+ */
+const STAY_MINUTES = Prisma.sql`CASE WHEN checked_out_at IS NULL THEN NULL
+  ELSE floor(extract(epoch FROM checked_out_at - checked_in_at) / 60)::integer END`;
+
+/** A check-in's Gaza date, dated by PostgreSQL as `subscription_usage` dates it. */
+const GAZA_DAY = Prisma.sql`(checked_in_at AT TIME ZONE 'Asia/Gaza')::date`;
 
 /** A subscription's row as its lock answers it. */
 export interface LockedSubscription {
@@ -268,9 +308,7 @@ export function createSubscriptionsRepository() {
         }[]
       >`
         SELECT id, checked_in_at, checked_out_at, checkout_method::text AS checkout_method,
-               CASE WHEN checked_out_at IS NULL THEN NULL
-                    ELSE floor(extract(epoch FROM checked_out_at - checked_in_at) / 60)::integer
-               END AS minutes
+               ${STAY_MINUTES} AS minutes
         FROM check_ins WHERE space_id = ${spaceId} AND subscription_id = ${subscriptionId}
         ORDER BY checked_in_at, id`;
       return rows.map((row) => ({
@@ -280,6 +318,67 @@ export function createSubscriptionsRepository() {
         checkoutMethod: row.checkout_method,
         minutes: row.minutes,
       }));
+    },
+
+    /** The space's check-in made with this idempotency key, or `null`. */
+    findCheckInByKey(spaceId: number, key: string, tx: Tx): Promise<CheckInRow | null> {
+      return tx.checkIn.findUnique({
+        where: { spaceId_idempotencyKey: { spaceId, idempotencyKey: key } },
+        select: CHECK_IN_ROW,
+      });
+    },
+
+    /** Inserts an open check-in, by the desk. */
+    createCheckIn(
+      { spaceId, key, customerId, subscriptionId, checkedInAt }: NewCheckIn,
+      tx: Tx,
+    ): Promise<CheckInRow> {
+      return tx.checkIn.create({
+        data: { spaceId, idempotencyKey: key, customerId, subscriptionId, checkedInAt },
+        select: CHECK_IN_ROW,
+      });
+    },
+
+    /**
+     * What a check-in's limits read beyond the function's counts, in one query: whether another
+     * check-in of the subscription than `withoutId` is on `today`; and, for `withoutId`, its own
+     * day, its minutes and whether another check-in shares the day (`null` without one).
+     */
+    async attendanceOf(
+      subscriptionId: number,
+      today: string,
+      withoutId: number | null,
+      tx: Tx,
+    ): Promise<{ checkedInToday: boolean; own: OwnAttendance | null }> {
+      const [row] = await tx.$queryRaw<
+        {
+          checked_in_today: boolean;
+          own_day: string | null;
+          own_minutes: number | null;
+          own_day_shared: boolean;
+        }[]
+      >`
+        SELECT
+          EXISTS (SELECT 1 FROM check_ins WHERE subscription_id = ${subscriptionId}
+                  AND id IS DISTINCT FROM ${withoutId}::integer AND ${GAZA_DAY} = ${today}::date)
+            AS checked_in_today,
+          own.day::text AS own_day, own.minutes AS own_minutes,
+          EXISTS (SELECT 1 FROM check_ins WHERE subscription_id = ${subscriptionId}
+                  AND id IS DISTINCT FROM ${withoutId}::integer AND ${GAZA_DAY} = own.day)
+            AS own_day_shared
+        FROM (SELECT 1) one
+        LEFT JOIN LATERAL (
+          SELECT ${GAZA_DAY} AS day, ${STAY_MINUTES} AS minutes
+          FROM check_ins WHERE id = ${withoutId}::integer
+        ) own ON true`;
+      if (!row) throw new Error('The attendance query answered no row.');
+      return {
+        checkedInToday: row.checked_in_today,
+        own:
+          row.own_day === null
+            ? null
+            : { day: row.own_day, minutes: row.own_minutes, dayShared: row.own_day_shared },
+      };
     },
 
     /** The subscription that renewed this one of the space, or `null`. */

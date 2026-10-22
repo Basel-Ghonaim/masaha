@@ -114,6 +114,11 @@ export const DOMAIN_ERROR_CODES = [
   'SUBSCRIPTION_ENDED',
   // a fixed price below what was paid on it, from the database (subscriptions)
   'PRICE_BELOW_PAID',
+  // warnings only: a subscriber checked in anyway, against the subscription's dates or limits (desk)
+  'SUBSCRIPTION_NOT_STARTED',
+  'SUBSCRIPTION_EXPIRED',
+  'DAYS_PER_WEEK_USED',
+  'HOURS_PER_DAY_USED',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

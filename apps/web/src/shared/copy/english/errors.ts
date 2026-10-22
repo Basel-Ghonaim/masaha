@@ -51,6 +51,11 @@ export const ERRORS = {
   CUSTOMER_HAS_DEBT: 'The customer still owes on an earlier item.',
   SUBSCRIPTION_ENDED: 'This subscription was ended early; it is no longer corrected.',
   PRICE_BELOW_PAID: 'The new price is less than what was already paid; void a payment first.',
+  SUBSCRIPTION_NOT_STARTED:
+    'The subscription has not started yet; the check-in was recorded anyway.',
+  SUBSCRIPTION_EXPIRED: 'The subscription has expired; the check-in was recorded anyway.',
+  DAYS_PER_WEEK_USED: "This week's days are used up; the check-in was recorded anyway.",
+  HOURS_PER_DAY_USED: "Today's hours are used up; the check-in was recorded anyway.",
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:
     'This person works at this space’s reception. Its owner deactivates that link first.',

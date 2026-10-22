@@ -1,4 +1,4 @@
-import { gazaClockOf } from '@masaha/shared/core';
+import { gazaClockOf, type DomainErrorCode } from '@masaha/shared/core';
 import type {
   CorrectPriceRequest,
   CorrectSubscriptionRequest,
@@ -15,11 +15,14 @@ import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import { calendarOf } from './calendar.ts';
 import { currentSubscription } from './currentSubscription.ts';
+import { progressWithout, subscriptionWarnings } from './limits.ts';
 import { subscriptionChange } from './subscriptionChange.ts';
 import { toSubscriptionState } from './subscriptions.mapper.ts';
 import {
   createSubscriptionsRepository,
+  type CheckInRow,
   type LockedSubscription,
+  type NewCheckIn,
   type OpenCheckIn,
   type SubscriptionCheckIn,
   type SubscriptionToCreate,
@@ -367,6 +370,67 @@ export function createSubscriptionsService({
         );
         return stateNow(space.id, subscriptionId, tx);
       });
+    },
+
+    /** The space's check-in made with this idempotency key, in the caller's transaction. */
+    findCheckInByKey(spaceId: number, key: string, tx: Tx): Promise<CheckInRow | null> {
+      return repository.findCheckInByKey(spaceId, key, tx);
+    },
+
+    /**
+     * What a check-in on the space's subscription warns of at `at` (`subscriptionWarnings`), in the
+     * caller's transaction: its state by the function's counts, and whether today is counted
+     * already. With `withoutId`, a retry's, that check-in is left out (`progressWithout`), so the
+     * retry answers the warnings its first request did.
+     */
+    async limitWarnings(
+      spaceId: number,
+      subscriptionId: number,
+      at: Date,
+      withoutId: number | null,
+      tx: Tx,
+    ): Promise<DomainErrorCode[]> {
+      const now = calendarOf(at);
+      const [row] = await repository.statesIn(spaceId, { ids: [subscriptionId] }, now, tx);
+      if (!row) throw new Error(`The subscription ${String(subscriptionId)} is not the space's.`);
+      const { checkedInToday, own } = await repository.attendanceOf(
+        subscriptionId,
+        now.today,
+        withoutId,
+        tx,
+      );
+      let counted = row;
+      if (own) {
+        const before = progressWithout(toSubscriptionState(row, now.today).progress, own, now);
+        counted = {
+          ...row,
+          days_used: before.daysUsed,
+          days_this_week: before.daysThisWeek,
+          minutes_used: before.minutesUsed,
+          minutes_today: before.minutesToday,
+        };
+      }
+      return subscriptionWarnings(toSubscriptionState(counted, now.today), { checkedInToday });
+    },
+
+    /**
+     * Writes a subscriber's check-in in the caller's transaction, audited `checkIn.checkedIn` with
+     * its subscription and customer.
+     */
+    async checkIn(actorId: number, checkIn: NewCheckIn, tx: Tx): Promise<CheckInRow> {
+      const created = await repository.createCheckIn(checkIn, tx);
+      await audit(
+        {
+          actorId,
+          action: 'checkIn.checkedIn',
+          entityType: 'checkIn',
+          entityId: created.id,
+          spaceId: checkIn.spaceId,
+          after: { subscriptionId: checkIn.subscriptionId, customerId: checkIn.customerId },
+        },
+        tx,
+      );
+      return created;
     },
 
     /** Every check-in of the space's subscription, the earliest first, then by id. */

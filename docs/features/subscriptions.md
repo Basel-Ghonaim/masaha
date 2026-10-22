@@ -9,6 +9,7 @@
 - Answers a space's subscriptions — of one customer, or by id — each with its status, its progress and its amount due, as of a time.
 - Writes a subscription the desk makes, from a package's terms or typed ones, with its idempotency key, audited ([desk](desk.md)).
 - Corrects a subscription: its limits, dates and name, by the staff; its price and billing, by the owner, with a reason; each audited.
+- Writes a subscriber's check-in the desk makes, audited, and answers what a check-in on a subscription warns of: not started, expired, this week's days or today's hours used up ([desk](desk.md)).
 - Ends a subscription early, by the staff: its end today (its start if it has not started), audited; no money changes.
 - Answers each customer's current subscription, and the customers list's status, kind and package filters as ids ([desk](desk.md)).
 - Answers the space's open check-ins and their counts, for *present* ([occupancy](occupancy.md)).
@@ -16,7 +17,7 @@
 
 ## Who uses it
 
-- **The front desk** ([desk](desk.md)), which subscribes a customer through it.
+- **The front desk** ([desk](desk.md)), which subscribes a customer and checks a subscriber in through it.
 - **[`occupancy`](occupancy.md),** which counts the check-ins present.
 - **The timed jobs** (`shared/jobs`), which run its auto check-out.
 
@@ -43,6 +44,8 @@
 
 **The end.** In its transaction, the same opening as a correction; one already ended is answered as it is; else its end becomes today — its start if it has not started, never later than it was — with who and when, audited `subscription.ended`. The status rule then answers `EXPIRED`.
 
+**A check-in's limits** (`limits.ts`, pure). `subscriptionWarnings(state, { checkedInToday })`, in this order: `UPCOMING` → `SUBSCRIPTION_NOT_STARTED`; `EXPIRED` → `SUBSCRIPTION_EXPIRED`; days per week and the days this week at it, with today not counted yet → `DAYS_PER_WEEK_USED`; hours per day and today's minutes at it → `HOURS_PER_DAY_USED`. `limitWarnings` reads the state through the function and, in one query, whether another check-in is on today (dated in SQL, as the function dates them); for a retry it leaves the check-in itself out (`progressWithout`). `checkIn` writes the check-in, audited `checkIn.checkedIn`; `findCheckInByKey` answers a retry's.
+
 **The renewal's start** (`renewal.ts`, pure): `proposedStart(renewed, today)` — the day after the renewed one's end while it is not expired and its end is not before today, else today. `lockIn` locks a subscription's row and answers the one that renewed it, if any.
 
 **The states.** `statesOf` reads the space's subscriptions joined to the function in one query, the ids one array parameter, the latest started first, then by id; each is answered with its terms, its progress, its due and its status.
@@ -62,14 +65,16 @@
 - **A typed price's reason is stored beside who typed it, and the database keeps them together, never blank.** *Why:* every hand-typed price carries a reason (data model › Hand-typed prices); a `CHECK` is the one place both writers meet. 2026-10-22, #106.
 - **The price and billing are corrected on a route of their own, the owner's; the limits, dates and name on another, the staff's.** *Why:* a route the owner alone may call is refused before its body is read (security › Authorization), as the visit's charge; the owner chose the name correctable by the staff (Q8, A3). 2026-10-22, #106.
 - **A fixed price never falls below what was paid on it: a database trigger.** *Why:* changing the price is the other way round the payments' ceiling; the ledger's rules are the database's (S2). 2026-10-22, #106.
+- **The limits warn at their bound, and the days per week only for a new day: a second check-in on a day already counted uses none.** *Why:* K5's count; the limits never block (data model › Subscription limits). 2026-10-22, #109.
+- **A retry's limit warnings leave the check-in itself out.** *Why:* the warnings describe the request; counted with it, a retry would warn of the day it used itself (S7). 2026-10-22, #109.
 - **A subscription of at most seven days by its dates is ending soon on its last day only.** *Why:* "shorter than a week" made exact (Q5). 2026-10-21, #102.
 - **The status and kind filters read the space's subscriptions into memory, one compact row each.** *Why:* the status is a pure TypeScript rule; the read grows with the subscriptions, not with payments or check-ins (S10; alternative A1, the status in SQL, not taken). 2026-10-21, #102.
 - **The calendar's days are passed in, never computed in SQL; dates are read from `@db.Date` at UTC.** *Why:* one clock and one calendar ([conventions §11](../backend/conventions.md#11-time)); PostgreSQL's zone data still dates the check-ins ([finding 120](../architecture/findings/120-gaza-dates-are-read-by-two-zone-databases.md)). 2026-10-21, #102.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/subscriptions/`, entry `index.ts`: the service (the create and the auto check-out included), the repository, the mapper, and the pure rules (`subscriptionStatus.ts`, `currentSubscription.ts`, `renewal.ts`, `subscriptionChange.ts`), the controller and the manage router (the corrections). The function is the migration `subscription_usage`'s.
-- **Shared:** `packages/shared/src/subscriptions/`: `SUBSCRIPTION_STATUSES`, the corrections' requests (`correctSubscriptionSchema`, `correctPriceSchema`) and the responses (`DeskSubscription`, with its renewed one and its typed price, `SubscriptionProgress`, `SubscriptionState`).
+- **API:** `apps/api/src/modules/subscriptions/`, entry `index.ts`: the service (the create and the auto check-out included), the repository, the mapper, and the pure rules (`subscriptionStatus.ts`, `currentSubscription.ts`, `renewal.ts`, `subscriptionChange.ts`, `limits.ts`), the controller and the manage router (the corrections). The function is the migration `subscription_usage`'s.
+- **Shared:** `packages/shared/src/subscriptions/`: `SUBSCRIPTION_STATUSES`, the check-in's request (`checkInSubscriberSchema`) and answer (`DeskCheckIn`), the corrections' requests (`correctSubscriptionSchema`, `correctPriceSchema`) and the responses (`DeskSubscription`, with its renewed one and its typed price, `SubscriptionProgress`, `SubscriptionState`).
 
 ## Open findings
 

@@ -12,6 +12,7 @@ import type {
   SubscriptionStatement,
   VisitCheckOut,
 } from '@masaha/shared/desk';
+import type { CheckInSubscriberRequest, DeskCheckIn } from '@masaha/shared/subscriptions';
 import type { CheckInVisitRequest, DeskVisit, WriteOffVisitRequest } from '@masaha/shared/visits';
 import type { Request, Response } from 'express';
 
@@ -32,6 +33,21 @@ export function createDeskController(service: DeskService) {
         req.body as CheckInVisitRequest,
       );
       sendSuccess(res, visit satisfies DeskVisit, {
+        status: 201,
+        ...(warnings.length > 0 && { meta: { warnings } }),
+      });
+    },
+
+    /** 201 every time, a retry included; the warnings in `meta` only when there are some. */
+    checkInSubscriber: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const { checkIn, warnings } = await service.checkInSubscriber(
+        { id: userId, role },
+        spaceOf(req),
+        idempotencyKeyOf(res),
+        req.body as CheckInSubscriberRequest,
+      );
+      sendSuccess(res, checkIn satisfies DeskCheckIn, {
         status: 201,
         ...(warnings.length > 0 && { meta: { warnings } }),
       });
