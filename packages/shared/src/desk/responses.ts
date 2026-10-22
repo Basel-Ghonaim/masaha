@@ -1,18 +1,31 @@
 import type { DomainErrorCode } from '../core/index.ts';
 import type { Customer } from '../customers/index.ts';
 import type { CustomerBalance, ItemPayment, VisitPayment } from '../payments/index.ts';
-import type { SubscriptionState, SubscriptionStatus } from '../subscriptions/index.ts';
+import type { DeskCheckIn, SubscriptionState, SubscriptionStatus } from '../subscriptions/index.ts';
 import type { DeskVisit } from '../visits/index.ts';
 
 // The answers of the front desk's orchestrations (docs/api/api-contract.md §5, Front desk
 // (managed)).
 
-/** What a check-in warns of, in `meta.warnings`, in this order; it never refuses for them. */
+/**
+ * What a check-in warns of, in `meta.warnings`, in this order; it never refuses for them. A visit's
+ * only the first two; a subscriber's also the subscription's dates and limits.
+ */
 export const DESK_WARNINGS = [
   'SPACE_FULL',
   'OUTSIDE_OPENING_HOURS',
+  'SUBSCRIPTION_NOT_STARTED',
+  'SUBSCRIPTION_EXPIRED',
+  'DAYS_PER_WEEK_USED',
+  'HOURS_PER_DAY_USED',
 ] as const satisfies readonly DomainErrorCode[];
 export type DeskWarning = (typeof DESK_WARNINGS)[number];
+
+/**
+ * A subscriber's check-out: the check-in, closed, with what was paid on its subscription and what it
+ * still owes, as of the answer (a usage-based one's stay now counted).
+ */
+export type CheckInCheckOut = DeskCheckIn & { paidAgorot: number; balanceAgorot: number };
 
 /** A visit's check-out: the visit, closed, and the payment taken at it, if any. */
 export interface VisitCheckOut {

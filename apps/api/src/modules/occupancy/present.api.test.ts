@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -12,7 +14,7 @@ import {
   stay,
 } from '../../../test/factories.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
-import { setWeek, signInOwnerOf } from '../../../test/spaces.ts';
+import { seedSettings, setWeek, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
 
 // Gaza is UTC+3 until 2026-10-24: Sunday 2026-10-18 at 10:00 there is 07:00 UTC.
@@ -294,5 +296,33 @@ describe("a space's state now", () => {
 
     await announcement({ endsAt: sunday('12:00') });
     expect(dataOf(await occupancyNow(owner))).toMatchObject({ status: 'CLOSED' });
+  });
+});
+
+describe('present, defined once', () => {
+  it("the read, the check-in's warning and the directory count the same people present", async () => {
+    await seedSettings();
+    await setWeek(spaceId, EVERY_DAY);
+    await prisma.spaceOccupancy.create({ data: { spaceId, capacity: 2 } });
+    await createVisit(spaceId, { checkedInAt: sunday('08:00') });
+    await checkIn('Layla', sunday('08:30'));
+
+    // The staff's read: two present of two.
+    expect(dataOf(await occupancyNow(owner))).toMatchObject({ present: 2, status: 'FULL' });
+
+    // The directory: the same two, so full.
+    const list = await request(app).get('/api/v1/spaces?limit=50');
+    expect(list.status).toBe(200);
+    const cards = (list.body as { data: { slug: string; liveStatus: unknown }[] }).data;
+    expect(cards.find(({ slug }) => slug === 'focus-hub')?.liveStatus).toBe('FULL');
+
+    // The next check-in is warned the space is full, and recorded.
+    const next = await request(app)
+      .post(`/api/v1/manage/spaces/${String(spaceId)}/visits`)
+      .set('Authorization', reception.authorization)
+      .set('Idempotency-Key', randomUUID())
+      .send({ visitorName: 'Omar' });
+    expect(next.status).toBe(201);
+    expect(next.body).toMatchObject({ meta: { warnings: ['SPACE_FULL'] } });
   });
 });

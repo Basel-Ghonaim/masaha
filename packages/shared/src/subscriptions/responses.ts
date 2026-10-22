@@ -51,3 +51,13 @@ export type SubscriptionState = DeskSubscription & {
   progress: SubscriptionProgress;
   dueAgorot: number;
 };
+
+/** A subscriber's check-in: its customer, its subscription's state as of the answer, its times. */
+export interface DeskCheckIn {
+  id: number;
+  customer: { id: number; name: string; phone: string | null };
+  subscription: SubscriptionState;
+  checkedInAt: string;
+  checkedOutAt: string | null;
+  checkoutMethod: 'MANUAL' | 'AUTO' | null;
+}

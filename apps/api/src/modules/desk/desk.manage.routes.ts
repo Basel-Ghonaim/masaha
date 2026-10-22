@@ -5,6 +5,7 @@ import {
   receivePaymentSchema,
   subscribeSchema,
 } from '@masaha/shared/desk';
+import { checkInSubscriberSchema } from '@masaha/shared/subscriptions';
 import { checkInVisitSchema, writeOffVisitSchema } from '@masaha/shared/visits';
 import { Router } from 'express';
 
@@ -36,6 +37,14 @@ export function createDeskManageRouter(controller: DeskController): Router {
     validate(checkOutVisitSchema),
     controller.checkOutVisit,
   );
+  router.post(
+    '/check-ins',
+    mayRecord,
+    requireIdempotencyKey,
+    validate(checkInSubscriberSchema),
+    controller.checkInSubscriber,
+  );
+  router.post('/check-ins/:checkInId/check-out', mayRecord, controller.checkOutSubscriber);
   router.post(
     '/payments',
     requireCan('payments.record'),

@@ -243,7 +243,7 @@ The modules that apply them read them: visits and subscriptions (auto check-out;
 
 ### `occupancy`: the space's state now
 - **It owns:**
-  - the single definition of *present* (open visits plus open subscription check-ins), the count, and the one list of who is present;
+  - the single definition of *present* (open visits plus open subscription check-ins), the count, and the one list of who is present, written once in `present.ts` and used by the staff's read, the check-ins' warnings and refusal, the archive's refusal, the customer's file and the directory (2026-10-22, #109);
   - capacity and the manual override, in the 1:1 `space_occupancy` table. A space without a row has no capacity and no override. `occupancy` creates the row on its first write, so no lower module ever does;
   - the pure live-status rule;
   - `liveStatusFor(spaceIds)`, set-based, so the directory has no N+1.
@@ -265,7 +265,8 @@ The modules that apply them read them: visits and subscriptions (auto check-out;
 
 ### The front desk: `desk`
 `desk` orchestrates the operations that span the desk's modules, each in one transaction:
-- **check-in** of a visit or a subscription, with the full-space warning from `occupancy`;
+- **check-in** of a visit or a subscription, with the full-space warning from `occupancy`; a subscriber's names the subscription, is refused while the customer is archived or present (`occupancy`'s *present*), and adds the subscription's warnings (`subscriptions`' `limitWarnings`, pure on the function's counts; a retry's leave the check-in itself out) (2026-10-22, #109);
+- **check-out of a subscriber**: the check-in's row locked after the space's, closed `MANUAL`, answered with the subscription's balance from `payments` (2026-10-22, #109);
 - **check-out of a visit** with its charge and its payment;
 - **a visit's payment after its check-out**, its unpaid rest left to a customer by the same rule as the check-out's, and **its debt left to a customer by phone** («تسجيل دينًا»);
 - **the write-off of a visit's unpaid rest** by the owner, and its undo;

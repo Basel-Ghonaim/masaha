@@ -5,6 +5,7 @@ export {
 export { createSubscriptionsManageRouter } from './subscriptions.manage.routes.ts';
 export { calendarOf } from './calendar.ts';
 export type {
+  CheckInRow,
   LockedSubscription,
   Now,
   OpenCheckIn,

@@ -172,6 +172,29 @@ describe("a subscription's statement", () => {
     });
   });
 
+  it("each check-in's minutes are counted as the attendance is: their sum is progress.minutesUsed", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara' });
+    const hours = await createSubscription(sara, { billing: 'PER_HOUR', priceAgorot: 500 });
+    // Whole minutes each, the seconds dropped: 30 and 44.
+    await createCheckIn(hours, {
+      checkedInAt: new Date('2026-10-19T09:00:00.000+03:00'),
+      checkedOutAt: new Date('2026-10-19T09:30:59.999+03:00'),
+      checkoutMethod: 'MANUAL',
+    });
+    await createCheckIn(hours, {
+      checkedInAt: new Date('2026-10-20T10:00:30.000+03:00'),
+      checkedOutAt: new Date('2026-10-20T10:45:10.000+03:00'),
+      checkoutMethod: 'MANUAL',
+    });
+
+    const { checkIns, progress } = dataOf(await statement(reception, hours.id)) as {
+      checkIns: { minutes: number | null }[];
+      progress: { minutesUsed: number };
+    };
+    expect(checkIns.map(({ minutes }) => minutes)).toEqual([30, 44]);
+    expect(progress.minutesUsed).toBe(74);
+  });
+
   it("a running subscription proposes its renewal's start; a renewed one answers renewedById and no proposal", async () => {
     const sara = await createCustomer(spaceId);
     const monthly = await createSubscription(sara, {

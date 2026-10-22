@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { dateSchema, textSchema } from '../core/index.ts';
+import { addDays, dateSchema, paginationQuerySchema, textSchema } from '../core/index.ts';
 import {
   MAX_DAYS_PER_WEEK,
   MAX_HOURS_PER_DAY,
@@ -33,6 +33,45 @@ export const correctSubscriptionSchema = z
   })
   .partial();
 export type CorrectSubscriptionRequest = z.infer<typeof correctSubscriptionSchema>;
+
+/** Checks a subscriber in on one of the space's subscriptions, which names its customer. */
+export const checkInSubscriberSchema = z.object({
+  subscriptionId: z.number().int().positive().max(2_147_483_647),
+});
+export type CheckInSubscriberRequest = z.infer<typeof checkInSubscriberSchema>;
+
+/** The longest range of Gaza dates the dated check-ins list reads at once. */
+export const CHECK_IN_RANGE_MAX_DAYS = 92;
+
+/**
+ * The check-ins list: `open=true`, the space's open check-ins, whole; or a range of Gaza dates,
+ * `from` to `to`, both included, `to` not before `from` and at most 92 days after it, paged. Neither,
+ * half a range, or both: refused.
+ */
+export const checkInsQuerySchema = paginationQuerySchema
+  .extend({
+    open: z
+      .enum(['true'])
+      .transform(() => true as const)
+      .optional(),
+    from: dateSchema.optional(),
+    to: dateSchema.optional(),
+  })
+  .superRefine(({ open, from, to }, ctx) => {
+    const issue = (path: string, code: string) => {
+      ctx.addIssue({ code: 'custom', path: [path], params: { code } });
+    };
+    if (open) {
+      if (from !== undefined || to !== undefined) issue('open', 'invalid_choice');
+      return;
+    }
+    if (from === undefined) issue('from', 'required');
+    if (to === undefined) issue('to', 'required');
+    if (from !== undefined && to !== undefined) {
+      if (to < from || to > addDays(from, CHECK_IN_RANGE_MAX_DAYS)) issue('to', 'out_of_range');
+    }
+  });
+export type CheckInsQuery = z.infer<typeof checkInsQuerySchema>;
 
 /** The owner's correction of a subscription's price and billing, together, with why. */
 export const correctPriceSchema = z.object({

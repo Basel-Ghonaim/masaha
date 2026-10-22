@@ -1,6 +1,7 @@
 import { addDays, gazaClockOf, type DomainErrorCode } from '@masaha/shared/core';
 import type { Customer } from '@masaha/shared/customers';
 import type {
+  CheckInCheckOut,
   CheckOutVisitRequest,
   CustomerFile,
   CustomerPresence,
@@ -17,7 +18,11 @@ import type {
   VisitCheckOut,
 } from '@masaha/shared/desk';
 import type { PaymentRequest } from '@masaha/shared/payments';
-import type { SubscriptionState } from '@masaha/shared/subscriptions';
+import type {
+  CheckInSubscriberRequest,
+  DeskCheckIn,
+  SubscriptionState,
+} from '@masaha/shared/subscriptions';
 import type {
   CheckInVisitRequest,
   DeskVisit,
@@ -43,6 +48,7 @@ import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import {
   proposedStart,
+  type CheckInRow,
   type SubscriptionsService,
   type SubscriptionToCreate,
 } from '../subscriptions/index.ts';
@@ -239,10 +245,11 @@ export function createDeskService({
     const subscription = await withMoney(space, made, at, tx);
     const items = await payments.itemBalances(space.id, made.customerId, at, tx);
     const balances = await payments.customerBalances(space.id, [made.customerId], at, tx);
-    const olderDebt = items.some(
-      (item) =>
-        !(item.kind === 'SUBSCRIPTION' && item.id === made.id) && (item.balanceAgorot ?? 0) > 0,
-    );
+    // Older by the order `itemBalances` answers, the allocation's: a retry's later items (its own
+    // renewal) are not "earlier" debts.
+    const own = items.findIndex((item) => item.kind === 'SUBSCRIPTION' && item.id === made.id);
+    if (own < 0) throw new Error(`The subscription ${String(made.id)} is not its customer's.`);
+    const olderDebt = items.slice(0, own).some((item) => (item.balanceAgorot ?? 0) > 0);
     return {
       result: {
         subscription,
@@ -338,6 +345,34 @@ export function createDeskService({
   }
 
   /**
+   * A subscriber's check-in as the desk answers it, as of `at`, in the caller's transaction: its
+   * customer and its subscription's state.
+   */
+  async function deskCheckIn(
+    space: LoadedSpace,
+    row: CheckInRow,
+    at: Date,
+    tx?: Tx,
+  ): Promise<DeskCheckIn> {
+    const [checkIn] = await subscriptions.deskCheckIns(space.id, [row], at, tx);
+    if (!checkIn) throw new Error(`The check-in ${String(row.id)} was not answered.`);
+    return checkIn;
+  }
+
+  /** What a subscriber's check-in warns of at `at`: the space's, then the subscription's. */
+  async function subscriberWarnings(
+    space: LoadedSpace,
+    subscriptionId: number,
+    at: Date,
+    withoutId: number | null,
+    tx: Tx,
+  ): Promise<DomainErrorCode[]> {
+    const spaceWarnings = await occupancy.checkInWarnings(space.id, at, tx);
+    const limits = await subscriptions.limitWarnings(space.id, subscriptionId, at, withoutId, tx);
+    return [...spaceWarnings, ...limits];
+  }
+
+  /**
    * The time a check-out is priced at: the quote's the desk showed, at most five minutes old and
    * not in the future, else `out_of_range`; absent, now.
    */
@@ -384,6 +419,87 @@ export function createDeskService({
             tx,
           ));
         return { visit, warnings };
+      });
+    },
+
+    /**
+     * Checks a subscriber in (the owner's decision 9), in one transaction and in this order: the
+     * space's lock and `can()`; the check-in this key already made — on another subscription →
+     * `conflict`, else a retry, answered with the warnings as of now, the check-in itself left out
+     * of the limits'; the subscription's row (`FOR UPDATE`), not the space's → `invalid_choice` on
+     * `subscriptionId`; its customer archived → `CUSTOMER_ARCHIVED`; present, by an open check-in
+     * or an open visit → `MEMBER_ALREADY_CHECKED_IN`; then the warnings — the space full, outside
+     * its hours, the subscription not started or expired, this week's days or today's hours used
+     * up — which never refuse it; then the check-in, audited.
+     */
+    checkInSubscriber(
+      actor: Actor,
+      space: LoadedSpace,
+      key: string,
+      { subscriptionId }: CheckInSubscriberRequest,
+    ): Promise<{ checkIn: DeskCheckIn; warnings: DomainErrorCode[] }> {
+      return runInTransaction(async (tx) => {
+        await lockAtDesk(actor, space, tx);
+        const at = now();
+        const made = await subscriptions.findCheckInByKey(space.id, key, tx);
+        if (made && made.subscriptionId !== subscriptionId) {
+          throw AppError.conflict(
+            undefined,
+            'This idempotency key checked in another subscription',
+          );
+        }
+        if (made) {
+          const warnings = await subscriberWarnings(space, subscriptionId, at, made.id, tx);
+          return { checkIn: await deskCheckIn(space, made, at, tx), warnings };
+        }
+
+        const locked = await subscriptions.lockIn(space.id, subscriptionId, tx);
+        if (!locked) throw AppError.validation({ subscriptionId: ['invalid_choice'] });
+        const customer = await customers.findIn(space.id, locked.customerId, tx);
+        if (!customer)
+          throw new Error(`The subscription ${String(subscriptionId)} has no customer.`);
+        if (customer.archivedAt) throw AppError.conflict('CUSTOMER_ARCHIVED');
+        if (await occupancy.isPresent(space.id, customer.id, tx)) {
+          throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
+        }
+        const warnings = await subscriberWarnings(space, subscriptionId, at, null, tx);
+        const created = await subscriptions.checkIn(
+          actor.id,
+          { spaceId: space.id, key, customerId: customer.id, subscriptionId, checkedInAt: at },
+          tx,
+        );
+        return { checkIn: await deskCheckIn(space, created, at, tx), warnings };
+      });
+    },
+
+    /**
+     * Checks a subscriber out, in one transaction and in this order: the space's lock and `can()`;
+     * the check-in's row (`FOR UPDATE`), not the space's → `not_found`; one closed already is
+     * answered as it is, nothing written; else closed now, `MANUAL`, audited. Answered with what was
+     * paid on its subscription and what it owes, a usage-based one's stay now counted; a payment is
+     * `POST …/payments`' (no key: closing is idempotent by design).
+     */
+    checkOutSubscriber(
+      actor: Actor,
+      space: LoadedSpace,
+      checkInId: number,
+    ): Promise<CheckInCheckOut> {
+      return runInTransaction(async (tx) => {
+        await lockAtDesk(actor, space, tx);
+        const at = now();
+        const locked = await subscriptions.lockCheckInIn(space.id, checkInId, tx);
+        if (!locked) throw AppError.notFound(undefined, 'Check-in not found');
+        const row =
+          locked.checkedOutAt === null
+            ? await subscriptions.checkOut(actor.id, { spaceId: space.id, checkInId }, at, tx)
+            : locked;
+        const { paidAgorot, balanceAgorot } = await withMoney(
+          space,
+          { id: row.subscriptionId, customerId: row.customerId },
+          at,
+          tx,
+        );
+        return { ...(await deskCheckIn(space, row, at, tx)), paidAgorot, balanceAgorot };
       });
     },
 
@@ -609,8 +725,9 @@ export function createDeskService({
 
     /**
      * Subscribes a customer, in one transaction and in this order: the space's lock and `can()`
-     * (`subscriptions.manage`); the subscription this key already made, for a retry, answered with
-     * the payments of its derived keys and the money as of now; the customer, the space's (else
+     * (`subscriptions.manage`); the subscription this key already made, another customer's →
+     * `conflict`, else a retry, answered with the payments of its derived keys and the money as of
+     * now; the customer, the space's (else
      * `not_found`) and not archived (`CUSTOMER_ARCHIVED`); the subscription it renews, locked, the
      * customer's own (else `invalid_choice` on `renewalOfId`) and not renewed yet
      * (`SUBSCRIPTION_ALREADY_RENEWED`); the package, the space's and offered (else `invalid_choice`
@@ -631,6 +748,9 @@ export function createDeskService({
         const links = await lockAtDesk(actor, space, tx, 'subscriptions.manage');
         const at = now();
         const made = await subscriptions.findByKey(space.id, key, tx);
+        if (made && made.customerId !== customerId) {
+          throw AppError.conflict(undefined, 'This idempotency key made another subscription');
+        }
         if (made) {
           const allocated = await payments.findByKeys(space.id, derivedKeys(key), tx);
           return subscribed(space, made, allocated, at, tx);
@@ -700,14 +820,9 @@ export function createDeskService({
         const customer = await customers.findIn(space.id, customerId, tx);
         if (!customer) throw AppError.notFound(undefined, 'Customer not found');
         if (customer.archivedAt) return customer;
-        const [openCheckIns, openVisits] = await Promise.all([
-          subscriptions.openCheckInsIn(space.id, tx),
-          visits.openIn(space.id, tx),
-        ]);
-        const present = [...openCheckIns, ...openVisits].some(
-          (stay) => stay.customerId === customerId,
-        );
-        if (present) throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
+        if (await occupancy.isPresent(space.id, customerId, tx)) {
+          throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
+        }
         return customers.archive(actor, space, customerId, tx);
       });
     },
@@ -790,13 +905,13 @@ export function createDeskService({
       const customer = await customers.findIn(space.id, customerId);
       if (!customer) throw AppError.notFound(undefined, 'Customer not found');
       const at = now();
-      const [states, items, balances, openCheckIns, openVisits] = await Promise.all([
-        subscriptions.statesOf(space.id, { customerId }, at),
-        payments.itemBalances(space.id, customerId, at),
-        payments.customerBalances(space.id, [customerId], at),
-        subscriptions.openCheckInsIn(space.id),
-        visits.openIn(space.id),
-      ]);
+      const [states, items, balances, { checkIns: openCheckIns, visits: openVisits }] =
+        await Promise.all([
+          subscriptions.statesOf(space.id, { customerId }, at),
+          payments.itemBalances(space.id, customerId, at),
+          payments.customerBalances(space.id, [customerId], at),
+          occupancy.presentIn(space.id),
+        ]);
 
       const subscriptionMoney = new Map(
         items.flatMap((item) => (item.kind === 'SUBSCRIPTION' ? [[item.id, item] as const] : [])),
@@ -851,8 +966,8 @@ export function createDeskService({
     /**
      * A subscription's statement (docs/backend/conventions.md › Composed reads): the subscription,
      * the space's (else `not_found`), with its state and money; its customer; its check-ins, each with
-     * a closed stay's whole minutes; its payments, voided ones marked; and, while it is not renewed,
-     * the start its renewal would take (`proposedStart`), else who renewed it. Its lists are whole,
+     * a closed stay's whole minutes (counted in SQL, as its progress); its payments, voided ones
+     * marked; and, while it is not renewed, the start its renewal would take (`proposedStart`), else who renewed it. Its lists are whole,
      * bounded by one subscription. Read without a lock.
      */
     async statement(space: LoadedSpace, subscriptionId: number): Promise<SubscriptionStatement> {
@@ -870,14 +985,12 @@ export function createDeskService({
       return {
         ...subscription,
         customer: { id: customer.id, name: customer.name, phone: customer.phone },
-        checkIns: checkIns.map(({ id, checkedInAt, checkedOutAt, checkoutMethod }) => ({
+        checkIns: checkIns.map(({ id, checkedInAt, checkedOutAt, checkoutMethod, minutes }) => ({
           id,
           checkedInAt: checkedInAt.toISOString(),
           checkedOutAt: checkedOutAt?.toISOString() ?? null,
           checkoutMethod,
-          minutes: checkedOutAt
-            ? Math.floor((checkedOutAt.getTime() - checkedInAt.getTime()) / 60_000)
-            : null,
+          minutes,
         })),
         payments: paymentsMade,
         renewal:

@@ -47,6 +47,20 @@ export function createCustomersRepository() {
       return new Map(rows.map(({ id, name }) => [id, name]));
     },
 
+    /** These customers of the space, by id: their names and phones; another space's are not read. */
+    async contactsOf(
+      spaceId: number,
+      ids: readonly number[],
+      tx: Tx = prisma,
+    ): Promise<Map<number, { id: number; name: string; phone: string | null }>> {
+      if (ids.length === 0) return new Map();
+      const rows = await tx.customer.findMany({
+        where: { spaceId, id: { in: [...ids] } },
+        select: { id: true, name: true, phone: true },
+      });
+      return new Map(rows.map((row) => [row.id, row]));
+    },
+
     /** The space's customer with this phone among those not archived, or `null`. */
     findByPhone(spaceId: number, phone: string, tx: Tx): Promise<CustomerRow | null> {
       return tx.customer.findFirst({
@@ -92,8 +106,8 @@ export function createCustomersRepository() {
      * A page of the space's customers the filter keeps, by name then id, and how many it keeps.
      * Raw SQL: each id list is one array parameter, read as a set (`IN (SELECT unnest(…))`), so
      * no list, however long, meets PostgreSQL's bound on parameters. A phone is searched whole or
-     * by its last digits, a name as the directory searches (`masaha_search_text`, data model ›
-     * Search).
+     * by its last digits (a whole one also by its national digits), a name as the directory
+     * searches (`masaha_search_text`, data model › Search).
      */
     async page(
       spaceId: number,
@@ -108,12 +122,12 @@ export function createCustomersRepository() {
       if (exclude.length > 0) {
         conditions.push(Prisma.sql`id NOT IN (SELECT unnest(${[...exclude]}::integer[]))`);
       }
+      const endsWith = (digits: string) =>
+        Prisma.sql`regexp_replace(coalesce(phone, ''), '[^0-9]', '', 'g') LIKE '%' || ${digits}`;
       if (search && 'phone' in search) {
-        conditions.push(Prisma.sql`phone = ${search.phone}`);
+        conditions.push(Prisma.sql`(phone = ${search.phone} OR ${endsWith(search.phoneDigits)})`);
       } else if (search && 'phoneDigits' in search) {
-        conditions.push(
-          Prisma.sql`regexp_replace(coalesce(phone, ''), '[^0-9]', '', 'g') LIKE '%' || ${search.phoneDigits}`,
-        );
+        conditions.push(endsWith(search.phoneDigits));
       } else if (search) {
         conditions.push(
           Prisma.sql`strpos(masaha_search_text(name), masaha_search_text(${search.name})) > 0`,
