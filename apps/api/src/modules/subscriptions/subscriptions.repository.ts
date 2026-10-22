@@ -71,6 +71,14 @@ export interface SubscriptionToCreate {
   priceTyped: { byId: number; reason: string } | null;
 }
 
+/** A check-in of a subscription, as a statement shows it. */
+export interface SubscriptionCheckIn {
+  id: number;
+  checkedInAt: Date;
+  checkedOutAt: Date | null;
+  checkoutMethod: 'MANUAL' | 'AUTO' | null;
+}
+
 /** A subscription's row as its lock answers it. */
 export interface LockedSubscription {
   id: number;
@@ -148,6 +156,24 @@ export function createSubscriptionsRepository() {
       return locked
         ? { id: locked.id, customerId: locked.customer_id, renewedById: locked.renewed_by_id }
         : null;
+    },
+
+    /** Every check-in of the space's subscription, the earliest first, then by id. */
+    checkInsOf(spaceId: number, subscriptionId: number): Promise<SubscriptionCheckIn[]> {
+      return prisma.checkIn.findMany({
+        where: { spaceId, subscriptionId },
+        select: { id: true, checkedInAt: true, checkedOutAt: true, checkoutMethod: true },
+        orderBy: [{ checkedInAt: 'asc' }, { id: 'asc' }],
+      });
+    },
+
+    /** The subscription that renewed this one of the space, or `null`. */
+    async renewedBy(spaceId: number, subscriptionId: number): Promise<number | null> {
+      const renewal = await prisma.subscription.findFirst({
+        where: { spaceId, renewalOfId: subscriptionId },
+        select: { id: true },
+      });
+      return renewal?.id ?? null;
     },
 
     /** The space's open check-ins, the earliest first, then by id. */

@@ -94,3 +94,25 @@ export interface NewSubscription {
   payments: AllocatedPayment[];
   debtAgorot: number;
 }
+
+/** One check-in of a statement; `minutes` are a closed stay's whole minutes, `null` while open. */
+export interface StatementCheckIn {
+  id: number;
+  checkedInAt: string;
+  checkedOutAt: string | null;
+  checkoutMethod: 'MANUAL' | 'AUTO' | null;
+  minutes: number | null;
+}
+
+/**
+ * A subscription's statement, as of the answer: its state and money, its customer, every check-in
+ * (the earliest first) and every payment (voided ones marked), and the renewal's proposed start
+ * while it is not renewed, or who renewed it.
+ */
+export type SubscriptionStatement = SubscriptionWithMoney & {
+  customer: { id: number; name: string; phone: string | null };
+  checkIns: StatementCheckIn[];
+  payments: ItemPayment[];
+  renewal: { startsOn: string } | null;
+  renewedById: number | null;
+};

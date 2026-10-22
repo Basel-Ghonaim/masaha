@@ -11,6 +11,7 @@ import type {
   ReceivedPayment,
   ReceivePaymentRequest,
   SubscribeRequest,
+  SubscriptionStatement,
   SubscriptionWithMoney,
   UnpaidVisit,
   VisitCheckOut,
@@ -210,7 +211,7 @@ export function createDeskService({
     space: LoadedSpace,
     { id, customerId }: { id: number; customerId: number },
     at: Date,
-    tx: Tx,
+    tx?: Tx,
   ): Promise<SubscriptionWithMoney> {
     const [state] = await subscriptions.statesOf(space.id, { ids: [id] }, at, tx);
     if (!state) throw new Error(`The subscription ${String(id)} is not the space's.`);
@@ -844,6 +845,44 @@ export function createDeskService({
               ]
             : [];
         }),
+      };
+    },
+
+    /**
+     * A subscription's statement (docs/backend/conventions.md › Composed reads): the subscription,
+     * the space's (else `not_found`), with its state and money; its customer; its check-ins, each with
+     * a closed stay's whole minutes; its payments, voided ones marked; and, while it is not renewed,
+     * the start its renewal would take (`proposedStart`), else who renewed it. Its lists are whole,
+     * bounded by one subscription. Read without a lock.
+     */
+    async statement(space: LoadedSpace, subscriptionId: number): Promise<SubscriptionStatement> {
+      const at = now();
+      const [state] = await subscriptions.statesOf(space.id, { ids: [subscriptionId] }, at);
+      if (!state) throw AppError.notFound(undefined, 'Subscription not found');
+      const [subscription, customer, checkIns, paymentsMade, renewedById] = await Promise.all([
+        withMoney(space, state, at),
+        customers.findIn(space.id, state.customerId),
+        subscriptions.checkInsOf(space.id, subscriptionId),
+        payments.paymentsOfSubscription(space.id, subscriptionId),
+        subscriptions.renewedBy(space.id, subscriptionId),
+      ]);
+      if (!customer) throw new Error(`The subscription ${String(subscriptionId)} has no customer.`);
+      return {
+        ...subscription,
+        customer: { id: customer.id, name: customer.name, phone: customer.phone },
+        checkIns: checkIns.map(({ id, checkedInAt, checkedOutAt, checkoutMethod }) => ({
+          id,
+          checkedInAt: checkedInAt.toISOString(),
+          checkedOutAt: checkedOutAt?.toISOString() ?? null,
+          checkoutMethod,
+          minutes: checkedOutAt
+            ? Math.floor((checkedOutAt.getTime() - checkedInAt.getTime()) / 60_000)
+            : null,
+        })),
+        payments: paymentsMade,
+        renewal:
+          renewedById === null ? { startsOn: proposedStart(state, gazaClockOf(at).date) } : null,
+        renewedById,
       };
     },
 

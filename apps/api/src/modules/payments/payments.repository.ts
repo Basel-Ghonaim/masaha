@@ -220,6 +220,15 @@ export function createPaymentsRepository() {
       }));
     },
 
+    /** Every payment of the space's subscription, voided ones too, the earliest received first. */
+    paymentsOfSubscription(spaceId: number, subscriptionId: number): Promise<ItemPaymentRow[]> {
+      return prisma.payment.findMany({
+        where: { spaceId, subscriptionId },
+        select: { ...VISIT_PAYMENT, voidedAt: true, voidedById: true, voidReason: true },
+        orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
+      });
+    },
+
     /** Every payment of these visits of the space, voided ones too, the earliest received first. */
     paymentsOfVisits(
       spaceId: number,

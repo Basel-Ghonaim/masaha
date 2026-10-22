@@ -15,7 +15,7 @@
 - Writes off, as the owner, what a closed, priced visit still owes, with a reason, and undoes it.
 - Archives a customer, as the owner, unless they are present.
 - Subscribes a customer, from a package of the space or terms typed by whoever may type a price, once per idempotency key; renews one of their subscriptions, at most once; allocates an amount given over their debts, oldest first, the rest to the new subscription; warns while an older debt remains.
-- Answers the customers list, paged, searched and filtered by their subscription and payment state, and a customer's file.
+- Answers the customers list, paged, searched and filtered by their subscription and payment state, a customer's file, and a subscription's statement.
 
 ## Who uses it
 
@@ -48,6 +48,8 @@
 **The customers list** (conventions §9, composed reads). `subscriptions` resolves the status, kind and package to ids (`NONE`: the ids to leave out); `payments` the payment state (`SETTLED`: those who owe and those in credit, left out); `customers` searches and pages what is left, by name; then, for the page's ids only, each one's current subscription and their debt and credit. `status=ARCHIVED` lists only the archived, and only for the owner (`can()`'s `customers.archive` on the loaded links). Read without a lock.
 
 **A customer's file.** The customer (404 when not the space's); their subscriptions' states (`subscriptions`); their items' balances, debt and credit (`payments`' one query); who of them is present (an open check-in, else an open visit); and the unpaid visits — closed, not written off, owing or unpriced — with their visits (`visits`) and payments, voided ones marked (`payments`), the oldest first. Read without a lock.
+
+**A subscription's statement.** The subscription's state (404 when not the space's), with its money from `payments`' one query; its customer; its check-ins (`subscriptions`), each with a closed stay's whole minutes; its payments, voided ones marked (`payments`); and the renewal's proposed start (`proposedStart`) while `subscriptions` names no renewal, else who renewed it. Read without a lock.
 
 **The archive of a customer.** The owner's, in one transaction, in this order: the space's lock and `can()` (`customers.archive`); the customer, the space's (else 404); one already archived answered as it is; one present — an open check-in ([`subscriptions`](subscriptions.md)) or an open visit — refused `MEMBER_ALREADY_CHECKED_IN`; then archived through `customers`. A customer who owes is archived: the debt stays theirs, and the web asks first (DK-014).
 
@@ -95,4 +97,4 @@
 - #97 — a payment on a visit another key closed refused; a check-out time before the check-in refused.
 - #100 — the owner's write-off of a visit's unpaid rest, and its undo; a visit's payment after its check-out; a visit's customer kept at an unpaid check-out (finding 100); «تسجيل دينًا».
 - #102 — a stay checked out after its due time closed and charged at it (finding 116); a customer archived by the owner, unless present; the customers list and file.
-- #106 — subscribing a customer, from a package or custom terms; a payment on a subscription; a renewal with its payment allocated oldest debt first.
+- #106 — subscribing a customer, from a package or custom terms; a payment on a subscription; a renewal with its payment allocated oldest debt first; a subscription's statement.

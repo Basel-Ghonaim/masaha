@@ -72,5 +72,6 @@ export function createDeskManageRouter(controller: DeskController): Router {
     validate(subscribeSchema),
     controller.subscribe,
   );
+  router.get('/subscriptions/:subscriptionId', controller.statement);
   return router;
 }

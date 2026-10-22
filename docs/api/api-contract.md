@@ -65,7 +65,8 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - a space's packages (`GET /manage/spaces/:spaceId/packages`), retired ones included: a space keeps tens at most, typed by hand, and the owner's list and the front desk's picker both read them whole (§5, *Packages (managed)*; why: [packages › Decisions](../features/packages.md#api-decisions)).
 - a space's staff (`GET /manage/spaces/:spaceId/staff`), every reception link, active or not: a space has few, and the owner's page reads them whole (§5, *Staff (managed)*; why: [space-links › Decisions](../features/space-links.md#api-decisions)).
 - the people present at a space (`GET /manage/spaces/:spaceId/occupancy`), bounded by who is there: the desk's main view reads its state in one request on a weak connection (§5, *Occupancy (managed)*; why: [occupancy › Decisions](../features/occupancy.md#api-decisions)).
-- a customer's subscriptions and unpaid visits in their file (`GET /manage/spaces/:spaceId/customers/:customerId`), bounded by one customer (§5, *Customers (managed)*; 2026-10-21, #102).
+- a customer's subscriptions and unpaid visits in their file (`GET /manage/spaces/:spaceId/customers/:customerId`), bounded by one customer (§5, *Customers (managed)*; 2026-10-21, #102);
+- a subscription's check-ins and payments in its statement (`GET /manage/spaces/:spaceId/subscriptions/:subscriptionId`), bounded by one subscription (§5, *Subscriptions (managed)*; 2026-10-22, #106).
 
 ## 5. Endpoints
 
@@ -451,7 +452,7 @@ CustomerFile = { customer: Customer } & CustomerBalance & {
 
 ### Subscriptions (managed)
 
-A customer's subscriptions, at the desk: made from a package of the space or typed there ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Subscribing is the staff's (🧾), refused with `forbidden` (403) before its body is read for whoever may not, and again for an owner or reception whose link ended meanwhile. Built 2026-10-22, #106.
+A customer's subscriptions, at the desk: made from a package of the space or typed there ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The statement is the staff's read; subscribing is the staff's (🧾), refused with `forbidden` (403) before its body is read for whoever may not, and again for an owner or reception whose link ended meanwhile. Built 2026-10-22, #106.
 
 - **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the subscription as the entity and its space as the entry's: `subscription.created` (`after`: its customer, its terms and dates, `packageId`, `renewalOfId`, and a typed price's `reason`, else `null`).
 
@@ -460,6 +461,14 @@ NewSubscription = {
   subscription: SubscriptionState & { paidAgorot, balanceAgorot },   // as of the answer
   payments: { item: { visitId } | { subscriptionId }, payment: VisitPayment }[],
   debtAgorot: number                                                 // the customer's, as of the answer
+}
+SubscriptionStatement = SubscriptionState & { paidAgorot, balanceAgorot } & {
+  customer: { id, name, phone: string | null },
+  checkIns: { id, checkedInAt, checkedOutAt: string | null, checkoutMethod: "MANUAL" | "AUTO" | null,
+              minutes: number | null }[],                            // a closed stay's whole minutes; the earliest first
+  payments: ItemPayment[],                                           // voided ones marked; the earliest received first
+  renewal: { startsOn: string } | null,                              // while not renewed: the start a renewal would take
+  renewedById: number | null
 }
 ```
 
@@ -473,6 +482,10 @@ NewSubscription = {
   - **Warning:** `meta.warnings` holds `CUSTOMER_HAS_DEBT` while an item older than the new subscription still owes after the payments (ADR 0010 rule 7); it never refuses.
 - **201:** `NewSubscription`; a retry with the same key answers the first subscription and the payments of its derived keys, the money and the warning as of now, 201, and writes nothing.
 - **Errors**, in this order, each writing nothing: `validation` (422) on `idempotencyKey` (§1), then on the body, before anything is read; `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404) for a customer that is not the space's, also for a space deleted meanwhile; `conflict` (409) `CUSTOMER_ARCHIVED` for an archived customer; `validation` (422) `invalid_choice` on `renewalOfId` for a subscription that is not the customer's, `conflict` (409) `SUBSCRIPTION_ALREADY_RENEWED` for one renewed already; `validation` (422) `invalid_choice` on `packageId` for a package that is not the space's or is retired; `forbidden` (403) `PRICE_TYPING_NOT_ALLOWED` for custom terms reception may not type; `validation` (422) `out_of_range` on `custom.endsOn` for an end before the start, `invalid_choice` on `custom.shiftId` for a shift that is not the space's; `conflict` (409) `PAYMENT_EXCEEDS_DUE` from the ledger.
+
+#### `GET /manage/spaces/:spaceId/subscriptions/:subscriptionId` · 🧾
+- **200:** `SubscriptionStatement`: the subscription's state, what was paid and what it owes, its customer, every check-in with a closed stay's whole minutes (an open one's are `null`), every payment, voided ones marked, and, while no subscription renews it, the start a renewal would take (the day after its end while it is not expired and its end is not before today, else today); once renewed, `renewal` is `null` and `renewedById` names the renewal. Its lists are answered whole (§4). Read without a lock.
+- **Errors:** `not_found` (404), also for a subscription that is not the space's.
 
 ### Front desk (managed)
 

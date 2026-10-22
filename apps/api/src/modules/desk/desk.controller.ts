@@ -9,6 +9,7 @@ import type {
   ReceivedPayment,
   ReceivePaymentRequest,
   SubscribeRequest,
+  SubscriptionStatement,
   VisitCheckOut,
 } from '@masaha/shared/desk';
 import type { CheckInVisitRequest, DeskVisit, WriteOffVisitRequest } from '@masaha/shared/visits';
@@ -123,6 +124,11 @@ export function createDeskController(service: DeskService) {
         status: 201,
         ...(warnings.length > 0 && { meta: { warnings } }),
       });
+    },
+
+    statement: async (req: Request, res: Response) => {
+      const statement = await service.statement(spaceOf(req), parseId(req.params.subscriptionId));
+      sendSuccess(res, statement satisfies SubscriptionStatement);
     },
 
     /** 200 with the customer; one already archived is answered as it is. */

@@ -193,6 +193,11 @@ export function createPaymentsService({ audit, visits }: Dependencies) {
       return byVisit;
     },
 
+    /** Every payment of the space's subscription, voided ones marked, the earliest received first. */
+    async paymentsOfSubscription(spaceId: number, subscriptionId: number): Promise<ItemPayment[]> {
+      return (await repository.paymentsOfSubscription(spaceId, subscriptionId)).map(toItemPayment);
+    },
+
     /**
      * Records a payment on a visit or a subscription, in the caller's transaction, audited
      * `payment.recorded` with its item; the ledger's trigger checks it against the item's due.

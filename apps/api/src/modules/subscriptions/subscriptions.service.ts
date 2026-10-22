@@ -12,6 +12,7 @@ import {
   createSubscriptionsRepository,
   type LockedSubscription,
   type OpenCheckIn,
+  type SubscriptionCheckIn,
   type SubscriptionToCreate,
 } from './subscriptions.repository.ts';
 
@@ -186,6 +187,16 @@ export function createSubscriptionsService({
           (packageId === undefined || state.packageId === packageId),
       );
       return { include: include.map(({ customerId }) => customerId) };
+    },
+
+    /** Every check-in of the space's subscription, the earliest first, then by id. */
+    checkInsOf(spaceId: number, subscriptionId: number): Promise<SubscriptionCheckIn[]> {
+      return repository.checkInsOf(spaceId, subscriptionId);
+    },
+
+    /** The subscription that renewed this one of the space, or `null` while none has. */
+    renewedBy(spaceId: number, subscriptionId: number): Promise<number | null> {
+      return repository.renewedBy(spaceId, subscriptionId);
     },
 
     /** The space's open subscription check-ins, the earliest first, then by id. */
