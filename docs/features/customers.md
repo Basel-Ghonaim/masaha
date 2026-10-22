@@ -62,3 +62,4 @@
 - #95 — a customer found or created by phone for an unpaid visit.
 - #102 — a customer created, idempotent, and edited by the staff; the customers' key; a customer archived (for the desk) and restored by the owner; the list's page and its search.
 - #106 — the search finds a whole phone in any form (a local, international or separated number).
+- #109 — a whole phone is also found stored under the other country code (by its national digits).

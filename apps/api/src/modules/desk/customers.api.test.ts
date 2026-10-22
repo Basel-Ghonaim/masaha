@@ -173,13 +173,15 @@ describe('the customers list', () => {
     await createCustomer(spaceId, { name: 'أسامة علي', phone: '+970599000205' });
     await createCustomer(spaceId, { name: 'سارة', phone: '+970599000777' });
     await createCustomer(spaceId, { name: 'Dana', phone: '+972521234567' });
+    // A mobile stored under the other country code is still found by its national number.
+    await createCustomer(spaceId, { name: 'Huda', phone: '+970521234567' });
 
     expect(names(await list(owner, `?q=${encodeURIComponent('اسامه')}`))).toEqual(['أسامة علي']);
     expect(names(await list(owner, `?q=${encodeURIComponent('ساره')}`))).toEqual(['سارة']);
     expect(names(await list(owner, '?q=0205'))).toEqual(['أسامة علي']);
     expect(names(await list(owner, '?q=0599000205'))).toEqual(['أسامة علي']);
     expect(names(await list(owner, '?q=4444'))).toEqual([]);
-    expect(names(await list(owner, '?q=0521234567'))).toEqual(['Dana']);
+    expect(names(await list(owner, '?q=0521234567'))).toEqual(['Dana', 'Huda']);
     expect(names(await list(owner, '?q=00970599000205'))).toEqual(['أسامة علي']);
     expect(names(await list(owner, '?q=059-900-0777'))).toEqual(['سارة']);
     expect(names(await list(owner, '?q=02-05'))).toEqual(['أسامة علي']);
