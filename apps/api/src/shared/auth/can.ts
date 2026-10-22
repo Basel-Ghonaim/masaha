@@ -92,6 +92,8 @@ const PERMISSIONS = {
   'visits.writeOff': 'owner',
   /** A customer archived, and restored. */
   'customers.archive': 'owner',
+  /** A subscription's price and billing corrected, with a reason. */
+  'subscriptions.correctPrice': 'owner',
 
   // The platform. Hiding, soft-deleting and linking apply to every space, verified or not.
   'platform.spaces.manage': 'admin',

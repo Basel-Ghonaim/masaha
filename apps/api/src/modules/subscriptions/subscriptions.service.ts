@@ -1,12 +1,20 @@
-import type { SubscriptionState, SubscriptionStatus } from '@masaha/shared/subscriptions';
+import type {
+  CorrectPriceRequest,
+  CorrectSubscriptionRequest,
+  SubscriptionState,
+  SubscriptionStatus,
+} from '@masaha/shared/subscriptions';
 import type { Logger } from 'pino';
 
 import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditValues, AuditWriter } from '../../shared/audit/index.ts';
+import { can, type Actor, type LoadedSpace, type SpaceAction } from '../../shared/auth/index.ts';
+import { AppError } from '../../shared/errors/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import { calendarOf } from './calendar.ts';
 import { currentSubscription } from './currentSubscription.ts';
+import { subscriptionChange } from './subscriptionChange.ts';
 import { toSubscriptionState } from './subscriptions.mapper.ts';
 import {
   createSubscriptionsRepository,
@@ -22,6 +30,8 @@ interface Dependencies {
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
   logger: Logger;
+  /** The one clock (conventions §11). */
+  now: () => Date;
 }
 
 /** Each customer's current subscription, from their states. */
@@ -77,8 +87,38 @@ export function createSubscriptionsService({
   spaces,
   spaceSettings,
   logger,
+  now,
 }: Dependencies) {
   const repository = createSubscriptionsRepository();
+
+  /**
+   * Opens a correction, in its transaction: the space's lock, `can()` of the action on the links read
+   * under it (a link ended meanwhile still decides), then the subscription's row (`FOR UPDATE`), not
+   * the space's → `not_found`; ended → `SUBSCRIPTION_ENDED`. Answers its terms.
+   */
+  async function lockForCorrection(
+    actor: Actor,
+    space: LoadedSpace,
+    subscriptionId: number,
+    action: SpaceAction,
+    tx: Tx,
+  ) {
+    if (!(await spaces.lock(space.id, tx))) throw AppError.notFound(undefined, 'Space not found');
+    if (!can(actor, action, { links: await space.linksUnder(tx) })) throw AppError.forbidden();
+    if (!(await repository.lockIn(space.id, subscriptionId, tx))) {
+      throw AppError.notFound(undefined, 'Subscription not found');
+    }
+    const terms = await repository.termsOf(subscriptionId, tx);
+    if (terms.ended) throw AppError.conflict('SUBSCRIPTION_ENDED');
+    return terms;
+  }
+
+  /** The subscription's state as of now, in the caller's transaction. */
+  async function stateNow(spaceId: number, subscriptionId: number, tx: Tx) {
+    const [state] = await statesOf(spaceId, { ids: [subscriptionId] }, now(), tx);
+    if (!state) throw new Error(`The subscription ${String(subscriptionId)} is not the space's.`);
+    return state;
+  }
 
   /**
    * The space's subscriptions, of one customer, of these customers or with these ids when given, each with its status,
@@ -187,6 +227,96 @@ export function createSubscriptionsService({
           (packageId === undefined || state.packageId === packageId),
       );
       return { include: include.map(({ customerId }) => customerId) };
+    },
+
+    /**
+     * The staff's correction of a subscription's limits, dates and name, in one transaction:
+     * `lockForCorrection` (`subscriptions.manage`); only the fields set to a new value
+     * (`subscriptionChange`), `null` clearing a limit or the end; an end before the start →
+     * `out_of_range` on `endsOn`; nothing changed → nothing written; else audited
+     * `subscription.corrected` with the changed fields before and after. Answers its state.
+     */
+    correct(
+      actor: Actor,
+      space: LoadedSpace,
+      subscriptionId: number,
+      edit: CorrectSubscriptionRequest,
+    ): Promise<SubscriptionState> {
+      return runInTransaction(async (tx) => {
+        const current = await lockForCorrection(
+          actor,
+          space,
+          subscriptionId,
+          'subscriptions.manage',
+          tx,
+        );
+        const { data, before, after } = subscriptionChange(current, edit);
+        if (Object.keys(data).length === 0) return stateNow(space.id, subscriptionId, tx);
+        const startsOn = data.startsOn === undefined ? current.startsOn : data.startsOn;
+        const endsOn = data.endsOn === undefined ? current.endsOn : data.endsOn;
+        if (startsOn !== null && endsOn !== null && endsOn < startsOn) {
+          throw AppError.validation({ endsOn: ['out_of_range'] });
+        }
+        await repository.correct(subscriptionId, data, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'subscription.corrected',
+            entityType: 'subscription',
+            entityId: subscriptionId,
+            spaceId: space.id,
+            before,
+            after,
+          },
+          tx,
+        );
+        return stateNow(space.id, subscriptionId, tx);
+      });
+    },
+
+    /**
+     * The owner's correction of a subscription's price and billing, in one transaction:
+     * `lockForCorrection` (`subscriptions.correctPrice`); the same billing and price → nothing
+     * written; else both, recorded as a price typed by the owner with the reason, audited
+     * `subscription.priceCorrected`. A fixed price below what was paid is the database's refusal
+     * (`PRICE_BELOW_PAID`). Answers its state.
+     */
+    correctPrice(
+      actor: Actor,
+      space: LoadedSpace,
+      subscriptionId: number,
+      { billing, priceAgorot, reason }: CorrectPriceRequest,
+    ): Promise<SubscriptionState> {
+      return runInTransaction(async (tx) => {
+        const current = await lockForCorrection(
+          actor,
+          space,
+          subscriptionId,
+          'subscriptions.correctPrice',
+          tx,
+        );
+        if (current.billing === billing && current.priceAgorot === priceAgorot) {
+          return stateNow(space.id, subscriptionId, tx);
+        }
+        await repository.correctPrice(
+          subscriptionId,
+          { billing, priceAgorot, byId: actor.id, reason },
+          tx,
+        );
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'subscription.priceCorrected',
+            entityType: 'subscription',
+            entityId: subscriptionId,
+            spaceId: space.id,
+            before: { billing: current.billing, priceAgorot: current.priceAgorot },
+            after: { billing, priceAgorot, reason },
+          },
+          tx,
+        );
+        return stateNow(space.id, subscriptionId, tx);
+      });
     },
 
     /** Every check-in of the space's subscription, the earliest first, then by id. */

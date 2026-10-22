@@ -1,4 +1,5 @@
 import { isForeignKeyViolation, prisma, type Tx } from '../../db/index.ts';
+import type { CorrectableTerms } from './subscriptionChange.ts';
 
 /** A subscription check-in still open: whose, on which subscription, and since when. */
 export interface OpenCheckIn {
@@ -90,6 +91,9 @@ export interface LockedSubscription {
 /** A Gaza calendar date as a `@db.Date` value: its UTC midnight (conventions §11). */
 const dateOf = (date: string | null) => (date === null ? null : new Date(`${date}T00:00:00.000Z`));
 
+/** A `@db.Date` as its calendar date, read at UTC, never through a zone (conventions §11). */
+const calendarDateOf = (date: Date | null) => date?.toISOString().slice(0, 10) ?? null;
+
 /** Each space's count of rows, by space; a space with none is absent. */
 function countsBySpace(groups: readonly { spaceId: number; _count: { _all: number } }[]) {
   return new Map(groups.map(({ spaceId, _count }) => [spaceId, _count._all]));
@@ -156,6 +160,81 @@ export function createSubscriptionsRepository() {
       return locked
         ? { id: locked.id, customerId: locked.customer_id, renewedById: locked.renewed_by_id }
         : null;
+    },
+
+    /**
+     * A locked subscription's correctable terms, its price and billing, and whether it was ended, in
+     * the caller's transaction (dates as Gaza dates).
+     */
+    async termsOf(
+      id: number,
+      tx: Tx,
+    ): Promise<
+      CorrectableTerms & {
+        billing: SubscriptionToCreate['billing'];
+        priceAgorot: number;
+        ended: boolean;
+      }
+    > {
+      const row = await tx.subscription.findUniqueOrThrow({
+        where: { id },
+        select: {
+          name: true,
+          startsOn: true,
+          endsOn: true,
+          totalDays: true,
+          daysPerWeek: true,
+          hoursPerDay: true,
+          totalHours: true,
+          billing: true,
+          priceAgorot: true,
+          endedAt: true,
+        },
+      });
+      const { startsOn, endsOn, endedAt, ...rest } = row;
+      return {
+        ...rest,
+        startsOn: calendarDateOf(startsOn),
+        endsOn: calendarDateOf(endsOn),
+        ended: endedAt !== null,
+      };
+    },
+
+    /** Writes a correction of the terms (dates as Gaza dates). */
+    async correct(id: number, data: Partial<CorrectableTerms>, tx: Tx): Promise<void> {
+      const { startsOn, endsOn, ...rest } = data;
+      await tx.subscription.update({
+        where: { id },
+        data: {
+          ...rest,
+          ...(startsOn !== undefined && { startsOn: dateOf(startsOn) }),
+          ...(endsOn !== undefined && { endsOn: dateOf(endsOn) }),
+        },
+        select: { id: true },
+      });
+    },
+
+    /** Writes a corrected price and billing, with who typed the price and why. */
+    async correctPrice(
+      id: number,
+      price: {
+        billing: SubscriptionToCreate['billing'];
+        priceAgorot: number;
+        byId: number;
+        reason: string;
+      },
+      tx: Tx,
+    ): Promise<void> {
+      await tx.subscription.update({
+        where: { id },
+        data: {
+          billing: price.billing,
+          priceAgorot: price.priceAgorot,
+          priceSetById: price.byId,
+          priceReason: price.reason,
+        },
+        select: { id: true },
+      });
     },
 
     /** Every check-in of the space's subscription, the earliest first, then by id. */

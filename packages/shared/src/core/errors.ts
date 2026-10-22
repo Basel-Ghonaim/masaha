@@ -110,6 +110,10 @@ export const DOMAIN_ERROR_CODES = [
   'SUBSCRIPTION_ALREADY_RENEWED',
   // warning only: the customer still owes on an earlier item after a subscribe's payment (desk)
   'CUSTOMER_HAS_DEBT',
+  // a subscription ended early: corrected no more (subscriptions)
+  'SUBSCRIPTION_ENDED',
+  // a fixed price below what was paid on it, from the database (subscriptions)
+  'PRICE_BELOW_PAID',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

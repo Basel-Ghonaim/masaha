@@ -42,6 +42,8 @@ export const ERRORS = {
   CUSTOMER_ARCHIVED: 'هذا الزبون مؤرشف؛ يسترجعه المالك أولًا.',
   SUBSCRIPTION_ALREADY_RENEWED: 'جُدّد هذا الاشتراك بالفعل.',
   CUSTOMER_HAS_DEBT: 'ما زال على الزبون دين سابق.',
+  SUBSCRIPTION_ENDED: 'أُنهي هذا الاشتراك مبكرًا، فلم يعد يُعدَّل.',
+  PRICE_BELOW_PAID: 'السعر الجديد أقل مما دُفع؛ تُلغى دفعة أولًا.',
   ACCOUNT_IS_ADMIN: 'لا يمكن لحساب أدمن أن يكون صاحب مساحة.',
   RECEPTION_LINK_ACTIVE: 'هذا الشخص يعمل في استقبال هذه المساحة. يوقف صاحبها ذلك الربط أولًا.',
   EMAIL_HAS_ACCOUNT: 'لهذا البريد حساب بالفعل. يمكن ترقيته إلى صاحب مساحة وربطه.',

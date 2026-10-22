@@ -9,6 +9,7 @@ export const CONSTRAINT_CODES: Readonly<
   Partial<Record<string, { type: ErrorType; code: DomainErrorCode }>>
 > = {
   payments_within_due: { type: 'conflict', code: 'PAYMENT_EXCEEDS_DUE' },
+  subscriptions_price_below_paid: { type: 'conflict', code: 'PRICE_BELOW_PAID' },
   payments_visit_uncharged: { type: 'conflict', code: 'VISIT_NOT_PRICED' },
   payments_visit_written_off: { type: 'conflict', code: 'VISIT_WRITTEN_OFF' },
 };

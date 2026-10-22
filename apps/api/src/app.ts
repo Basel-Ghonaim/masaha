@@ -116,7 +116,11 @@ import {
   createSpacesManageRouter,
   createSpacesService,
 } from './modules/spaces/index.ts';
-import { createSubscriptionsService } from './modules/subscriptions/index.ts';
+import {
+  createSubscriptionsController,
+  createSubscriptionsManageRouter,
+  createSubscriptionsService,
+} from './modules/subscriptions/index.ts';
 import {
   createUsersAdminRouter,
   createUsersController,
@@ -348,6 +352,7 @@ export function createApi({
     spaces,
     spaceSettings,
     logger,
+    now: clock,
   });
   const customers = createCustomersService({
     runInTransaction,
@@ -480,6 +485,7 @@ export function createApi({
   manage.use(createOccupancyManageRouter(createOccupancyController(occupancy)));
   manage.use(createCustomersManageRouter(createCustomersController(customers)));
   manage.use(createDeskManageRouter(createDeskController(desk)));
+  manage.use(createSubscriptionsManageRouter(createSubscriptionsController(subscriptions)));
   manage.use(createVisitsManageRouter(createVisitsController(visits)));
   manage.use(createPaymentsManageRouter(createPaymentsController(payments)));
   manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
