@@ -32,6 +32,23 @@ const pins = (list: MapPin[], truncated = false) =>
     data: { success: true, data: { pins: list, truncated } },
   }) satisfies FakeAnswer;
 
+/** An empty page of the list, as the server gives it. */
+const emptyPage = {
+  status: 200,
+  data: {
+    success: true,
+    data: [],
+    meta: {
+      currentPage: 1,
+      limit: 20,
+      totalPages: 0,
+      totalRecords: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  },
+} satisfies FakeAnswer;
+
 /** The directory's page at `path` and `width`: the view switch, then the directory. */
 function renderDirectory(
   path: string,
@@ -98,6 +115,52 @@ describe('the directory’s map', () => {
 
     fireEvent.click(within(card).getByRole('button', { name: 'إغلاق' }));
     expect(screen.queryByRole('region', { name: 'مساحة 1' })).not.toBeInTheDocument();
+    expect(mark).toHaveFocus();
+  });
+
+  it('Escape closes the card from 768 px, and the focus returns to its mark', async () => {
+    const user = userEvent.setup();
+    renderDirectory('/spaces?view=map', 1024);
+    const mark = await screen.findByRole('button', { name: 'مساحة 1 — متاح' });
+
+    mark.focus();
+    fireEvent.keyDown(mark, { key: 'Enter' });
+    expect(await screen.findByRole('region', { name: 'مساحة 1' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('region', { name: 'مساحة 1' })).not.toBeInTheDocument();
+    expect(mark).toHaveFocus();
+
+    fireEvent.keyDown(mark, { key: 'Enter' });
+    const card = await screen.findByRole('region', { name: 'مساحة 1' });
+    within(card).getByRole('link', { name: 'عرض التفاصيل' }).focus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('region', { name: 'مساحة 1' })).not.toBeInTheDocument();
+    expect(mark).toHaveFocus();
+  });
+
+  it('the sheet’s «إغلاق» and Escape return the focus to its mark', async () => {
+    const user = userEvent.setup();
+    renderDirectory('/spaces?view=map', 390);
+    const mark = await screen.findByRole('button', { name: 'مساحة 1 — متاح' });
+
+    mark.focus();
+    fireEvent.keyDown(mark, { key: 'Enter' });
+    const sheet = await screen.findByRole('dialog', { name: 'مساحة 1' });
+    await user.click(within(sheet).getByRole('button', { name: 'إغلاق' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'مساحة 1' })).not.toBeInTheDocument();
+    });
+    expect(mark).toHaveFocus();
+
+    fireEvent.keyDown(mark, { key: 'Enter' });
+    await screen.findByRole('dialog', { name: 'مساحة 1' });
+    within(await screen.findByRole('dialog', { name: 'مساحة 1' }))
+      .getByRole('link', { name: 'عرض التفاصيل' })
+      .focus();
+    await user.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'مساحة 1' })).not.toBeInTheDocument();
+    });
     expect(mark).toHaveFocus();
   });
 
@@ -194,15 +257,46 @@ describe('the directory’s map', () => {
     expect(screen.getByRole('button', { name: 'تغيير الموقع' })).toBeInTheDocument();
   });
 
-  it('below 768 px, the picking card stands under the map, clear of its centre', async () => {
+  it('below 1024 px, the picking card stands under the map, clear of its centre', async () => {
     nearMeStore.startPick();
-    renderDirectory('/spaces?view=map', 390);
+    renderDirectory('/spaces?view=map', 1000);
 
     const card = await screen.findByRole('region', { name: 'حدّد موقعك على الخريطة' });
     // Not in the map's overlay, which lies over the map (absolutely placed).
     expect(card.closest('.absolute')).toBeNull();
     const map = screen.getByRole('application', { name: 'خريطة المساحات' });
     expect(map.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('the pick ends with the map: the list shows the location from before, and the map opens again without the crosshair', async () => {
+    const user = userEvent.setup();
+    nearMeStore.placePin({ lat: 31.501, lng: 34.467 });
+    const { requests } = renderDirectory('/spaces?view=map', 1440, (request) =>
+      request.url === '/map/spaces' ? pins([pin(1)]) : emptyPage,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'تغيير الموقع' }));
+    expect(
+      await screen.findByRole('region', { name: 'حدّد موقعك على الخريطة' }),
+    ).toBeInTheDocument();
+    const views = screen.getByRole('radiogroup', { name: 'طريقة العرض' });
+    await user.click(within(views).getByRole('radio', { name: 'قائمة' }));
+
+    expect(
+      await screen.findByText('مرتبة حسب المسافة من الموقع الذي حدّدته على الخريطة.', {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'تغيير الموقع' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(requests.at(-1)?.headers['Masaha-Near']).toBe('31.501,34.467');
+    });
+    expect(requests.at(-1)?.params).toMatchObject({ sort: 'distance' });
+
+    await user.click(within(views).getByRole('radio', { name: 'خريطة' }));
+    expect(await screen.findByRole('application', { name: 'خريطة المساحات' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'حدّد موقعك على الخريطة' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).toBeInTheDocument();
   });
 
   it('the view switch changes the view in the address, keeping every filter', async () => {

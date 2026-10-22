@@ -18,6 +18,8 @@ import { useSelectedPin } from './useSelectedPin';
 
 /** From here up the selected space is a card over the map; below it, a bottom sheet. */
 const TABLET_UP = '(min-width: 768px)';
+/** From here up the map is tall enough for the picking card over it; below it, the card goes under. */
+const DESKTOP_UP = '(min-width: 1024px)';
 /** How long the map waits after a move before it asks within its view, as the search waits. */
 const VIEW_PAUSE_MS = 400;
 
@@ -37,8 +39,24 @@ export function useDirectoryMap(): DirectoryMapView {
   const words = copy.directory;
   const english = useLanguage() === 'en';
   const phone = !useMediaQuery(TABLET_UP);
+  const short = !useMediaQuery(DESKTOP_UP);
   const filters = useDirectoryFilters();
   const near = useNearMe();
+
+  // The pick ends with the map: leaving the map's view while picking restores the location from
+  // before. Judged a moment after the cleanup, so React's development double run of the effects
+  // (StrictMode) does not end a pick the map has just opened for.
+  const { cancelPick } = near;
+  const shown = useRef(false);
+  useEffect(() => {
+    shown.current = true;
+    return () => {
+      shown.current = false;
+      queueMicrotask(() => {
+        if (!shown.current) cancelPick();
+      });
+    };
+  }, [cancelPick]);
 
   const filtersKey = JSON.stringify(pinsRequestOf(filters.filters, null));
   const selection = useSelectedPin(filtersKey);
@@ -207,5 +225,6 @@ export function useDirectoryMap(): DirectoryMapView {
             details: words.map.details,
           },
     phone,
+    pickUnder: short,
   };
 }

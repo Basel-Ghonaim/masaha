@@ -16,7 +16,8 @@ import { SpaceSummary } from './SpaceSummary';
 
 /**
  * From 768 px, the chosen space as a card over the map's foot, a region named by the space: its
- * name, its area, its status and today's hours, «عرض التفاصيل» to its page, and «إغلاق».
+ * name, its area, its status and today's hours, «عرض التفاصيل» to its page, and «إغلاق», which
+ * Escape within the card also does.
  */
 export function SelectedCard({
   selected,
@@ -37,6 +38,11 @@ export function SelectedCard({
       role="region"
       aria-labelledby={titleId}
       className="pointer-events-auto w-80 shadow-overlay"
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+        onClose();
+      }}
     >
       <CardHeader>
         <CardTitle>

@@ -38,4 +38,6 @@ export type DirectoryMapView = {
   selected: { card: SpaceCardView; close: () => void; closeLabel: string; details: string } | null;
   /** Below 768 px: the selected space is a bottom sheet, not a card over the map. */
   phone: boolean;
+  /** Below 1024 px, where the map is shorter: the picking card stands under the map, not over it. */
+  pickUnder: boolean;
 };

@@ -21,19 +21,32 @@ import { SelectedSheet } from './SelectedSheet';
  * it, and over it the legend (at the top's end), the empty or no-match card, the line past the
  * pins' ceiling, the chosen space's card from 768 px (at the foot's start; a bottom sheet below it)
  * and «مركّز على موقعي» while a point is held, or, while a point is picked, the picking card in the
- * chosen space's place (under the map below 768 px). Closing the chosen space hands the focus back to its mark.
+ * chosen space's place (under the map below 1024 px). Closing the chosen space, by «إغلاق» or
+ * Escape, hands the focus back to its mark.
  */
 export function DirectoryMap({ view, slots }: { view: DirectoryMapView; slots: DirectorySlots }) {
   const { selected } = view;
 
   return (
-    <section aria-label={view.region} aria-busy={view.busy} className="flex flex-col gap-3">
+    <section
+      aria-label={view.region}
+      aria-busy={view.busy}
+      className="flex flex-col gap-3"
+      onKeyDown={(event) => {
+        // Escape on the map closes the card, as «إغلاق» does; the focus is on its mark already.
+        // From the card itself, the card closes it and hands the focus back.
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
+        if (selected !== null && !view.phone) selected.close();
+      }}
+    >
       {view.failure !== null && <FailureAlert failure={view.failure} />}
       <MarkerMap
         {...view.map}
-        // On a phone the picking card stands under the map, so it never hides the crosshair.
+        // Where the map is short, the picking card stands under it, so it never hides the crosshair.
         under={(controls) =>
-          view.pick !== null && view.phone ? <PickCard pick={view.pick} map={controls} /> : null
+          view.pick !== null && view.pickUnder ? (
+            <PickCard pick={view.pick} map={controls} />
+          ) : null
         }
         overlay={(controls) => {
           const close = () => {
@@ -71,7 +84,7 @@ export function DirectoryMap({ view, slots }: { view: DirectoryMapView; slots: D
                 )}
                 <div className="flex items-end justify-between gap-3">
                   {view.pick !== null ? (
-                    !view.phone && <PickCard pick={view.pick} map={controls} />
+                    !view.pickUnder && <PickCard pick={view.pick} map={controls} />
                   ) : selected !== null && !view.phone ? (
                     <SelectedCard
                       selected={selected}
