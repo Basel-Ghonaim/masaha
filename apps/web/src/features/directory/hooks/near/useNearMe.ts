@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { judgePosition } from '../../services/nearPoint';
+import { judgePosition, pinnedPoint } from '../../services/nearPoint';
 import type { NearState } from '../../types/NearState';
 import { directoryKeys, hasNear } from '../queryKeys';
 import { nearMeStore, useNearState } from './nearMeStore';
@@ -19,12 +19,17 @@ const NO_ANSWER_MS = 15_000;
  * with a point, it sorts again without asking. A refusal, an unavailable location, or a position
  * too imprecise or outside the Strip keeps nothing; no answer within 15 s is a refusal, and an
  * answer after it is dropped. Clearing drops the point and every answer ordered by distance from it.
+ * A point may instead be placed by hand on the map (U7): rounded and kept as the device's is, and
+ * «رجوع» restores whatever was there before the pick.
  */
 export function useNearMe(): {
   state: NearState;
   press: () => void;
   stop: () => void;
   clear: () => void;
+  startPick: () => void;
+  cancelPick: () => void;
+  placePin: (point: { lat: number; lng: number }) => void;
 } {
   const state = useNearState();
   const client = useQueryClient();
@@ -76,6 +81,11 @@ export function useNearMe(): {
       );
     },
     stop: nearMeStore.stopSorting,
+    startPick: nearMeStore.startPick,
+    cancelPick: nearMeStore.cancelPick,
+    placePin: (point) => {
+      nearMeStore.placePin(pinnedPoint(point));
+    },
     clear: () => {
       nearMeStore.clear();
       client.removeQueries({

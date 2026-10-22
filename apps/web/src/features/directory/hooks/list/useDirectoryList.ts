@@ -103,6 +103,11 @@ export function useDirectoryList(): DirectoryListView {
       if (panel.wide) focusFilters();
       else panel.sheet.setOpen(true);
     },
+    // A point set by hand: on the map, with every filter kept.
+    pickOnMap: () => {
+      near.startPick();
+      filters.apply({ view: 'map' });
+    },
   });
 
   const now = new Date();

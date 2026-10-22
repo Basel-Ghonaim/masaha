@@ -162,6 +162,49 @@ describe('the directory’s map', () => {
     expect(requests).toHaveLength(2);
   });
 
+  it('picks a point at the centre: the map takes the focus, «ثبّت الموقع هنا» places it, «رجوع» restores the one before', async () => {
+    const user = userEvent.setup();
+    nearMeStore.startPick();
+    renderDirectory('/spaces?view=map', 1440);
+
+    const card = await screen.findByRole('region', { name: 'حدّد موقعك على الخريطة' });
+    const map = screen.getByRole('application', { name: 'خريطة المساحات' });
+    await waitFor(() => {
+      expect(map).toHaveFocus();
+    });
+    expect(map).toHaveAccessibleDescription('الأسهم تحرّك الخريطة تحت العلامة في الوسط.');
+    expect(screen.queryByRole('button', { name: 'الأقرب إليّ' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'مساحة 1 — متاح' })).not.toBeInTheDocument();
+
+    await user.click(within(card).getByRole('button', { name: 'ثبّت الموقع هنا' }));
+
+    expect(await screen.findByRole('img', { name: 'موقعي (يدوي)' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).toHaveFocus();
+    });
+    expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'تغيير الموقع' }));
+    const again = await screen.findByRole('region', { name: 'حدّد موقعك على الخريطة' });
+    await user.click(within(again).getByRole('button', { name: 'رجوع' }));
+    expect(await screen.findByRole('img', { name: 'موقعي (يدوي)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'تغيير الموقع' })).toBeInTheDocument();
+  });
+
+  it('below 768 px, the picking card stands under the map, clear of its centre', async () => {
+    nearMeStore.startPick();
+    renderDirectory('/spaces?view=map', 390);
+
+    const card = await screen.findByRole('region', { name: 'حدّد موقعك على الخريطة' });
+    // Not in the map's overlay, which lies over the map (absolutely placed).
+    expect(card.closest('.absolute')).toBeNull();
+    const map = screen.getByRole('application', { name: 'خريطة المساحات' });
+    expect(map.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('the view switch changes the view in the address, keeping every filter', async () => {
     const user = userEvent.setup();
     const { router } = renderDirectory('/spaces?verified=1&q=Hub&page=2', 1440, (request) =>

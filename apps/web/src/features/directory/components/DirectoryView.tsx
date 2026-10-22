@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { useDirectoryMap } from '../hooks/map/useDirectoryMap';
 import { filtersOf } from '../services/filtersOf';
@@ -26,12 +26,19 @@ export function DirectoryView(slots: DirectorySlots) {
 
 /**
  * The map's view: the search and the filters' sheet (at every width, with no order), «الأقرب إليّ»
- * and its state line, then the map.
+ * and its state line, then the map. While a point is picked, the button is hidden; once placed or
+ * given up, the focus returns to it.
  */
 function MapView({ slots }: { slots: DirectorySlots }) {
   const view = useDirectoryMap();
   const nearButton = useRef<HTMLButtonElement>(null);
   const { filters } = view;
+  const picking = view.pick !== null;
+  const wasPicking = useRef(picking);
+  useEffect(() => {
+    if (wasPicking.current && !picking) nearButton.current?.focus();
+    wasPicking.current = picking;
+  }, [picking]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -47,9 +54,11 @@ function MapView({ slots }: { slots: DirectorySlots }) {
         </div>
       </div>
       <div className="flex flex-col">
-        <div className="flex justify-end">
-          <NearMeButton ref={nearButton} button={view.near.button} />
-        </div>
+        {!picking && (
+          <div className="flex justify-end">
+            <NearMeButton ref={nearButton} button={view.near.button} />
+          </div>
+        )}
         <LocationStatus
           view={view.near.status}
           returnFocus={() => {

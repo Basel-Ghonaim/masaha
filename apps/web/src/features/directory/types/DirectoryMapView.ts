@@ -20,6 +20,15 @@ export type DirectoryMapView = {
   legend: { label: string; items: { key: string; mark: MapMark; label: string }[] };
   /** «مركّز على موقعي», while a point is held. */
   centre: string | null;
+  /** Picking a point by hand: the card over the map, placing the centre or going back. */
+  pick: {
+    title: string;
+    text: string;
+    confirm: string;
+    back: string;
+    place: (point: { lat: number; lng: number }) => void;
+    cancel: () => void;
+  } | null;
   state: 'loading' | 'failed' | 'empty' | 'noMatch' | 'ready';
   failure: ListFailureView | null;
   empty: { title: string; text: string };

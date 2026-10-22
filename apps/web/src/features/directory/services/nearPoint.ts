@@ -1,5 +1,5 @@
 import { NEAR_DECIMALS } from '@masaha/shared/directory';
-import { isInGazaStrip } from '@masaha/shared/spaces';
+import { GAZA_STRIP_BOUNDS, isInGazaStrip } from '@masaha/shared/spaces';
 import type { NearPoint } from '../types/NearState';
 
 /** A position less precise than this is not used: "near" would mean nothing. */
@@ -31,6 +31,19 @@ export function judgePosition(coords: {
   if (coords.accuracy > MAX_ACCURACY_METRES) return { status: 'imprecise' };
   const point = roundedPoint(coords);
   return isInGazaStrip(point) ? { status: 'granted', point } : { status: 'imprecise' };
+}
+
+/**
+ * A point placed by hand on the map, rounded as the device's is and held inside the Strip's box,
+ * whose edge the map lets the visitor pan a little past.
+ */
+export function pinnedPoint({ lat, lng }: { lat: number; lng: number }): NearPoint {
+  const { south, north, west, east } = GAZA_STRIP_BOUNDS;
+  const rounded = roundedPoint({ latitude: lat, longitude: lng });
+  return {
+    lat: Math.min(Math.max(rounded.lat, south), north),
+    lng: Math.min(Math.max(rounded.lng, west), east),
+  };
 }
 
 /** The `Masaha-Near` header's value: `lat,lng`. */

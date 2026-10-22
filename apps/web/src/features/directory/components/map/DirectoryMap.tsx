@@ -12,6 +12,7 @@ import type { DirectorySlots } from '../../types/DirectorySlots';
 import { FailureAlert } from '../list/FailureAlert';
 import { MapLegend } from './MapLegend';
 import { MapNotice } from './MapNotice';
+import { PickCard } from './PickCard';
 import { SelectedCard } from './SelectedCard';
 import { SelectedSheet } from './SelectedSheet';
 
@@ -19,8 +20,8 @@ import { SelectedSheet } from './SelectedSheet';
  * The directory's map, a section named «الخريطة», marked busy while the pins load: a failure above
  * it, and over it the legend (at the top's end), the empty or no-match card, the line past the
  * pins' ceiling, the chosen space's card from 768 px (at the foot's start; a bottom sheet below it)
- * and «مركّز على موقعي» while a point is held. Closing the chosen space hands the focus back to its
- * mark.
+ * and «مركّز على موقعي» while a point is held, or, while a point is picked, the picking card in the
+ * chosen space's place (under the map below 768 px). Closing the chosen space hands the focus back to its mark.
  */
 export function DirectoryMap({ view, slots }: { view: DirectoryMapView; slots: DirectorySlots }) {
   const { selected } = view;
@@ -30,7 +31,10 @@ export function DirectoryMap({ view, slots }: { view: DirectoryMapView; slots: D
       {view.failure !== null && <FailureAlert failure={view.failure} />}
       <MarkerMap
         {...view.map}
-        under={null}
+        // On a phone the picking card stands under the map, so it never hides the crosshair.
+        under={(controls) =>
+          view.pick !== null && view.phone ? <PickCard pick={view.pick} map={controls} /> : null
+        }
         overlay={(controls) => {
           const close = () => {
             controls.focusSelected();
@@ -66,7 +70,9 @@ export function DirectoryMap({ view, slots }: { view: DirectoryMapView; slots: D
                   </div>
                 )}
                 <div className="flex items-end justify-between gap-3">
-                  {selected !== null && !view.phone ? (
+                  {view.pick !== null ? (
+                    !view.phone && <PickCard pick={view.pick} map={controls} />
+                  ) : selected !== null && !view.phone ? (
                     <SelectedCard
                       selected={selected}
                       href={slots.spaceLink(selected.card.slug)}

@@ -133,13 +133,26 @@ export const DIRECTORY = {
     clear: 'Clear my location',
     denied: {
       title: 'We couldn’t find your location',
-      text: 'Choose your area to browse its spaces.',
+      text: 'Choose your area or set your location on the map to sort the spaces by distance.',
     },
     imprecise: {
       title: 'We couldn’t find your location precisely',
       text: 'Your position seems to be outside the Gaza Strip, or off by more than 2 km, so we didn’t use it.',
     },
     chooseArea: 'Choose your area',
+    /** The refused states' other way: a point set by hand on the map. */
+    pickOnMap: 'Set my location on the map',
+    /** Beside a point set by hand: set it again. */
+    change: 'Change location',
+  },
+  /** Setting one's location by hand, at the map's centre. */
+  pick: {
+    title: 'Set your location on the map',
+    text: 'Move the map until the mark is on your approximate location, or tap it. We sort the spaces by distance from it; it is sent rounded and never stored.',
+    /** Read with the map while picking. */
+    keys: 'The arrow keys move the map under the mark in the centre.',
+    confirm: 'Set location here',
+    back: 'Back',
   },
   /** The switch between the list and the map, its label read but not shown. */
   view: {
@@ -159,6 +172,8 @@ export const DIRECTORY = {
     centre: 'Centre on my location',
     /** The visitor's point on the map. */
     you: 'Your location',
+    /** The visitor's point when set by hand. */
+    yourPin: 'My location (manual)',
     details: 'View details',
     close: 'Close',
     failed: 'The map didn’t load. Browse the spaces in the list.',

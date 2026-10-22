@@ -28,7 +28,9 @@ const VIEW_PAUSE_MS = 400;
  * and the states. The filters are the list's, from the address; on the map they open in the sheet
  * at every width, and there is no order. Past the pins' ceiling, the answer says so, and once the
  * map has moved and paused it is asked again within the box in view, whose answer replaces the
- * marks; a change of filter asks for the whole set again and clears the choice.
+ * marks; a change of filter asks for the whole set again and clears the choice. While a point is
+ * picked by hand (U7), a crosshair stands at the centre, the marks cannot be chosen, and near me's
+ * button, its line, «مركّز على موقعي» and the chosen space are hidden.
  */
 export function useDirectoryMap(): DirectoryMapView {
   const copy = useCopy();
@@ -94,12 +96,16 @@ export function useDirectoryMap(): DirectoryMapView {
     chooseArea: () => {
       panel.sheet.setOpen(true);
     },
+    pickOnMap: near.startPick,
   });
 
   const now = new Date();
   const cardOf = (pin: (typeof shownPins)[number]) =>
     cardViewOf(pin, { english, now, copy, byDistance: false });
-  const chosen = shownPins.find((pin) => pin.id === selection.selectedId) ?? null;
+  const picking = near.state.status === 'picking';
+  const chosen = picking
+    ? null
+    : (shownPins.find((pin) => pin.id === selection.selectedId) ?? null);
   const point = near.state.point;
 
   return {
@@ -138,9 +144,12 @@ export function useDirectoryMap(): DirectoryMapView {
       selectedId: chosen?.id ?? null,
       onSelect: selection.select,
       bounds: GAZA_STRIP_BOUNDS,
-      user: point === null ? null : { point, label: words.map.you },
+      user:
+        point === null
+          ? null
+          : { point, label: near.state.source === 'pin' ? words.map.yourPin : words.map.you },
       focus: chosen === null ? null : { point: chosen.location, place: phone ? 'upper' : 'centre' },
-      pick: null,
+      pick: picking ? { onPick: near.placePin, keys: words.pick.keys } : null,
       onViewChange,
       label: words.map.label,
       failed: words.map.failed,
@@ -156,7 +165,17 @@ export function useDirectoryMap(): DirectoryMapView {
         { key: 'none', mark: pinMark(null), label: words.status.none },
       ],
     },
-    centre: point === null ? null : words.map.centre,
+    centre: point === null || picking ? null : words.map.centre,
+    pick: picking
+      ? {
+          title: words.pick.title,
+          text: words.pick.text,
+          confirm: words.pick.confirm,
+          back: words.pick.back,
+          place: near.placePin,
+          cancel: near.cancelPick,
+        }
+      : null,
     state: whole.isPending
       ? 'loading'
       : whole.data === undefined

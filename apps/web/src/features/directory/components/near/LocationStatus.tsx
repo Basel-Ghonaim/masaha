@@ -38,7 +38,7 @@ function StatusContent({
         </p>
       );
     case 'granted': {
-      const { stop, clear } = view;
+      const { stop, change, clear } = view;
       return (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {view.line !== null && (
@@ -56,6 +56,11 @@ function StatusContent({
               }}
             >
               {stop.label}
+            </Button>
+          )}
+          {change !== null && (
+            <Button variant="link" size="sm" onClick={change.run}>
+              {change.label}
             </Button>
           )}
           <Button
