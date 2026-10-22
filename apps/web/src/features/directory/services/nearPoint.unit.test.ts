@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { judgePosition, nearHeader, roundedPoint } from './nearPoint';
+import { judgePosition, nearHeader, pinnedPoint, roundedPoint } from './nearPoint';
 
 describe('nearPoint', () => {
+  it('rounds a point placed by hand, and holds it inside the Strip’s box', () => {
+    expect(pinnedPoint({ lat: 31.523_456, lng: 34.441_789 })).toEqual({ lat: 31.523, lng: 34.442 });
+    expect(pinnedPoint({ lat: 31.7, lng: 34.1 })).toEqual({ lat: 31.64, lng: 34.17 });
+  });
+
   it('rounds a point to three decimals', () => {
     expect(roundedPoint({ latitude: 31.521_449_7, longitude: 34.452_550_1 })).toEqual({
       lat: 31.521,

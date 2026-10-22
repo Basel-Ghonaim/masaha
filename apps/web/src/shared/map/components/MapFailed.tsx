@@ -1,12 +1,8 @@
-import { useCopy } from '@shared/copy';
-
-/** The line shown when the map cannot load, its tiles or its code, pointing to the coordinates. */
-export function MapFailed() {
-  const copy = useCopy();
-
+/** The line shown when the map cannot load, its tiles or its code, in the caller's words. */
+export function MapFailed({ line }: { line: string }) {
   return (
     <p role="status" className="text-caption text-muted-foreground">
-      {copy.map.failed}
+      {line}
     </p>
   );
 }

@@ -1,33 +1,16 @@
 import '@shared/design-system/leaflet.css';
 import { useCopy } from '@shared/copy';
-import { directionOf, isolate, useLanguage } from '@shared/localisation';
-import {
-  divIcon,
-  type LatLngBoundsExpression,
-  type Map as LeafletMap,
-  type Marker as LeafletMarker,
-} from 'leaflet';
+import { isolate, useLanguage } from '@shared/localisation';
+import { divIcon, type Map as LeafletMap, type Marker as LeafletMarker } from 'leaflet';
 import { useEffect, useRef, useState } from 'react';
-import {
-  AttributionControl,
-  MapContainer,
-  Marker,
-  TileLayer,
-  ZoomControl,
-  useMap,
-  useMapEvents,
-} from 'react-leaflet';
+import { MapContainer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import { useTileStatus } from '../hooks/useTileStatus';
 import { formatCoordinates } from '../services/coordinates';
-import type { MapBounds } from '../types/MapBounds';
+import { cornersOf } from '../services/mapBox';
 import type { MapPoint } from '../types/MapPoint';
 import type { PointPickerProps } from '../types/PointPickerProps';
 import { MapFailed } from './MapFailed';
-
-// OpenStreetMap's standard tiles, in both themes, and the page its attribution links to.
-const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const COPYRIGHT = 'https://www.openstreetmap.org/copyright';
-const MAX_ZOOM = 19;
+import { MapLayers, MAX_ZOOM } from './MapLayers';
 
 // The pin, drawn by the layer's stylesheet from the tokens (.map-pin), never Leaflet's default
 // image. Its point, the drop's tip, is on the place.
@@ -37,22 +20,6 @@ const PIN = divIcon({
   iconSize: [28, 28],
   iconAnchor: [14, 34],
 });
-
-/** A box as Leaflet takes it: its south-west and north-east corners. */
-function cornersOf({ south, north, west, east }: MapBounds, margin = 0): LatLngBoundsExpression {
-  const lat = (north - south) * margin;
-  const lng = (east - west) * margin;
-  return [
-    [south - lat, west - lng],
-    [north + lat, east + lng],
-  ];
-}
-
-/** The attribution, linked to OpenStreetMap's copyright page; Leaflet writes it as markup. */
-function attributionOf(words: string): string {
-  const text = words.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-  return `<a href="${COPYRIGHT}" target="_blank" rel="noreferrer">${text}</a>`;
-}
 
 /** Places the pin where the map is clicked. */
 function ClickToPlace({ onPlace }: { onPlace: (point: MapPoint) => void }) {
@@ -88,8 +55,6 @@ export function LeafletPointPicker(props: PointPickerProps) {
 /** The map itself, with its tiles' status; built anew for each language. */
 function PickerMap({ value, onChange, bounds, label }: PointPickerProps) {
   const copy = useCopy();
-  const language = useLanguage();
-  const rtl = directionOf(language) === 'rtl';
   const tiles = useTileStatus();
   const [map, setMap] = useState<LeafletMap | null>(null);
   const marker = useRef<LeafletMarker>(null);
@@ -119,18 +84,7 @@ function PickerMap({ value, onChange, bounds, label }: PointPickerProps) {
           attributionControl={false}
           className="h-100 w-full"
         >
-          <TileLayer
-            url={TILES}
-            maxZoom={MAX_ZOOM}
-            attribution={attributionOf(copy.map.attribution)}
-            eventHandlers={tiles.handlers}
-          />
-          <ZoomControl
-            position={rtl ? 'topright' : 'topleft'}
-            zoomInTitle={copy.map.zoomIn}
-            zoomOutTitle={copy.map.zoomOut}
-          />
-          <AttributionControl position={rtl ? 'bottomleft' : 'bottomright'} prefix={false} />
+          <MapLayers tileEvents={tiles.handlers} />
           <ClickToPlace onPlace={onChange} />
           <FollowPin value={value} />
           {value && (
@@ -150,7 +104,7 @@ function PickerMap({ value, onChange, bounds, label }: PointPickerProps) {
           )}
         </MapContainer>
       </div>
-      {tiles.failed && <MapFailed />}
+      {tiles.failed && <MapFailed line={copy.map.failed} />}
     </div>
   );
 }

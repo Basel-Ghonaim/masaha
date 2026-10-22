@@ -91,18 +91,18 @@ describe('useDirectoryFilters', () => {
     expect(result.current.filters.request).toEqual({ limit: 20 });
   });
 
-  it('clears every filter and the search, and words each page’s address with the filters kept', () => {
-    const { result } = renderFilters('/spaces?q=Focus&area=3&verified=1&page=2');
+  it('clears the search alone, best match with it, and words each page’s address with the filters kept', () => {
+    const { result } = renderFilters('/spaces?q=Focus&area=3&verified=1&sort=name&page=2');
 
-    expect(result.current.filters.searchOf(3)).toBe('?q=Focus&area=3&verified=1&page=3');
-    expect(result.current.filters.searchOf(1)).toBe('?q=Focus&area=3&verified=1');
+    expect(result.current.filters.searchOf(3)).toBe('?q=Focus&area=3&verified=1&sort=name&page=3');
+    expect(result.current.filters.searchOf(1)).toBe('?q=Focus&area=3&verified=1&sort=name');
 
     act(() => {
-      result.current.filters.clearAll();
+      result.current.filters.clearSearch();
     });
-    expect(result.current.location.search).toBe('');
+    expect(result.current.location.search).toBe('?area=3&verified=1&sort=name');
     expect(result.current.filters.search.text).toBe('');
-    expect(result.current.filters.anyApplied).toBe(false);
+    expect(result.current.filters.anyApplied).toBe(true);
   });
 
   it('counts the filters in force, not their values, and clears them keeping the search and the order', () => {

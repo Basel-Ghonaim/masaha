@@ -4,10 +4,11 @@ import type { DirectoryFilters, DirectoryOrder } from '../types/DirectoryFilters
 import { MAX_SHEKELS } from './priceBounds';
 
 // The address's keys (S5): q, area, period, min, max, available, verified, students, friday, sort,
-// page. The budget is in whole shekels, named min and max; the request sends agorot.
+// page, view. The budget is in whole shekels, named min and max; the request sends agorot.
 
 const ORDERS: readonly DirectoryOrder[] = ['updated', 'name', 'relevance'];
-const DEFAULT_PERIOD = 'DAY';
+/** The period the budget applies to when the address names none. */
+export const DEFAULT_PERIOD = 'DAY';
 const MAX_ID = 2_147_483_647;
 const WHOLE = /^[1-9]\d*$/;
 
@@ -62,12 +63,14 @@ export function filtersOf(params: URLSearchParams): DirectoryFilters {
     // Best match is the server's order for a search, and refused without one.
     sort: sort === 'relevance' && q === undefined ? undefined : sort,
     page: wholeIn(params.get('page'), Number.MAX_SAFE_INTEGER) ?? 1,
+    view: params.get('view') === 'map' ? 'map' : 'list',
   };
 }
 
 /**
- * The address of the filters, order and page, no default written: the period only with a bound,
- * the page from 2, the order only when it differs from the one the search gives.
+ * The address of the filters, order, page and view, no default written: the period only with a
+ * bound, the page from 2, the order only when it differs from the one the search gives, the view only
+ * for the map.
  */
 export function paramsOf(filters: DirectoryFilters): URLSearchParams {
   const params = new URLSearchParams();
@@ -83,5 +86,6 @@ export function paramsOf(filters: DirectoryFilters): URLSearchParams {
   const defaultOrder = filters.q === undefined ? 'updated' : 'relevance';
   if (filters.sort !== undefined && filters.sort !== defaultOrder) params.set('sort', filters.sort);
   if (filters.page !== 1) params.set('page', String(filters.page));
+  if (filters.view === 'map') params.set('view', 'map');
   return params;
 }

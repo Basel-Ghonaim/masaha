@@ -14,6 +14,7 @@ const DEFAULTS: DirectoryFilters = {
   openFriday: false,
   sort: undefined,
   page: 1,
+  view: 'list',
 };
 
 const read = (address: string) => filtersOf(new URLSearchParams(address));
@@ -37,6 +38,7 @@ describe('filtersOf', () => {
       openFriday: true,
       sort: 'name',
       page: 2,
+      view: 'list',
     });
     expect(read('q=Focus&sort=relevance')).toMatchObject({ q: 'Focus', sort: 'relevance' });
   });
@@ -57,6 +59,15 @@ describe('filtersOf', () => {
     expect(read('sort=distance').sort).toBeUndefined();
     expect(read('page=0').page).toBe(1);
     expect(read('page=2.5').page).toBe(1);
+    expect(read('view=grid').view).toBe('list');
+  });
+
+  it('reads and writes view=map, the list unwritten', () => {
+    expect(read('view=map&verified=1')).toMatchObject({ view: 'map', verified: true });
+    expect(paramsOf({ ...DEFAULTS, view: 'map', verified: true }).toString()).toBe(
+      'verified=1&view=map',
+    );
+    expect(paramsOf({ ...DEFAULTS, view: 'list' }).toString()).toBe('');
   });
 
   it('keeps a search of diacritics only off the request, and says so', () => {

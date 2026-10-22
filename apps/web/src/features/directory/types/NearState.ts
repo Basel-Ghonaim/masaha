@@ -3,11 +3,11 @@ export type NearPoint = { lat: number; lng: number };
 
 /**
  * Near me, in memory only: whether it is asking, has a point, or was refused (denied or
- * unavailable) or given a position too imprecise or outside the Strip; where the point came from;
- * and whether the lists sort by distance from it.
+ * unavailable) or given a position too imprecise or outside the Strip, or a point is being picked
+ * on the map; where the point came from; and whether the lists sort by distance from it.
  */
 export type NearState = {
-  status: 'idle' | 'locating' | 'granted' | 'denied' | 'imprecise';
+  status: 'idle' | 'locating' | 'granted' | 'denied' | 'imprecise' | 'picking';
   point: NearPoint | null;
   source: 'device' | 'pin' | null;
   sorting: boolean;

@@ -1,9 +1,10 @@
 type Action = { label: string; run: () => void };
 
 /**
- * Near me's state line: nothing; asking, with the privacy line; a location in use, said by where it
- * came from, with the approximation and the privacy line while it sorts the list, and the ways to
- * stop and to clear it; or refused or imprecise, with the fallbacks.
+ * Near me's state line: nothing (also while a point is picked on the map); asking, with the privacy
+ * line; a location in use, said by where it came from, with the approximation and the privacy line
+ * while it sorts the list, and the ways to stop, change and clear it; or refused or imprecise, with
+ * the fallbacks.
  */
 export type LocationStatusView =
   | { kind: 'none' }
@@ -14,6 +15,8 @@ export type LocationStatusView =
       approximate: string | null;
       privacy: string | null;
       stop: Action | null;
+      /** Beside a point set by hand: set it again on the map. */
+      change: Action | null;
       clear: Action;
     }
   | { kind: 'denied' | 'imprecise'; title: string; text: string; fallbacks: Action[] };

@@ -1,4 +1,4 @@
-import type { DirectorySpace } from '@masaha/shared/directory';
+import type { DirectorySpace, MapPin } from '@masaha/shared/directory';
 import type { LiveStatus } from '@masaha/shared/occupancy';
 import type { Catalogue } from '@shared/copy';
 import { isolated } from '@shared/forms';
@@ -19,12 +19,18 @@ const STATUS_VIEWS = {
 
 /**
  * A space's card, worded in the interface's language: its name, its mark, its live status by word
- * and role (or that it has none), whether it is verified, today's hours, and how far it is when
- * the answer is ordered by distance. No price.
+ * and role (or that it has none), whether it is verified, today's hours, and how far it is while
+ * the list is ordered by distance (`byDistance`): an answer asked by distance and still shown once
+ * the order stops says no distance. A map's pin makes the same card, its area by its id. No price.
  */
 export function cardViewOf(
-  space: DirectorySpace,
-  { english, now, copy }: { english: boolean; now: Date; copy: Catalogue },
+  space: DirectorySpace | MapPin,
+  {
+    english,
+    now,
+    copy,
+    byDistance,
+  }: { english: boolean; now: Date; copy: Catalogue; byDistance: boolean },
 ): SpaceCardView {
   const words = copy.directory;
   const name = spaceNameOf(space, english);
@@ -34,7 +40,7 @@ export function cardViewOf(
     slug: space.slug,
     name,
     mark: Array.from(name.text)[0] ?? '',
-    areaId: space.area.id,
+    areaId: 'areaId' in space ? space.areaId : space.area.id,
     cover: space.cover,
     status:
       status === null
@@ -44,7 +50,7 @@ export function cardViewOf(
     verified: space.isVerified ? words.card.verified : null,
     today: todayHours(space.days, now, words.card),
     distance:
-      space.distanceMeters === undefined
+      !byDistance || !('distanceMeters' in space) || space.distanceMeters === undefined
         ? null
         : words.card.distance({
             km: isolated(distanceText(space.distanceMeters, english ? 'en' : 'ar')),

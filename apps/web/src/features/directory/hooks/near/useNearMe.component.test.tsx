@@ -36,6 +36,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -115,6 +116,79 @@ describe('useNearMe', () => {
       device.succeed(30.044, 31.236, 20);
     });
     expect(result.current.near.state).toMatchObject({ status: 'imprecise', point: null });
+  });
+
+  it('ends asking as denied when no answer comes within 15 s, and drops an answer that comes after', () => {
+    vi.useFakeTimers();
+    const device = fakeGeolocation();
+    const { result } = renderNearMe();
+
+    act(() => {
+      result.current.near.press();
+    });
+    act(() => {
+      vi.advanceTimersByTime(14_999);
+    });
+    expect(result.current.near.state.status).toBe('locating');
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(result.current.near.state).toMatchObject({ status: 'denied', point: null });
+
+    act(() => {
+      device.succeed(31.5, 34.46, 30);
+    });
+    expect(result.current.near.state).toMatchObject({ status: 'denied', point: null });
+  });
+
+  it('a point placed by hand is kept rounded, from a pin, and sorts by distance; «رجوع» restores the location before', () => {
+    const device = fakeGeolocation();
+    const { result } = renderNearMe();
+    act(() => {
+      result.current.near.press();
+    });
+    act(() => {
+      device.succeed(31.5, 34.46, 30);
+    });
+    act(() => {
+      result.current.near.stop();
+    });
+    const before = result.current.near.state;
+
+    act(() => {
+      result.current.near.startPick();
+    });
+    expect(result.current.near.state.status).toBe('picking');
+    act(() => {
+      result.current.near.cancelPick();
+    });
+    expect(result.current.near.state).toEqual(before);
+
+    act(() => {
+      result.current.near.startPick();
+    });
+    act(() => {
+      result.current.near.placePin({ lat: 31.523_456, lng: 34.441_789 });
+    });
+    expect(result.current.near.state).toEqual({
+      status: 'granted',
+      point: { lat: 31.523, lng: 34.442 },
+      source: 'pin',
+      sorting: true,
+    });
+    expect(result.current.search).toBe('');
+
+    act(() => {
+      result.current.near.startPick();
+    });
+    act(() => {
+      result.current.near.cancelPick();
+    });
+    expect(result.current.near.state).toMatchObject({
+      status: 'granted',
+      point: { lat: 31.523, lng: 34.442 },
+      source: 'pin',
+    });
   });
 
   it('stopping keeps the point; clearing drops it and every answer ordered by distance', () => {

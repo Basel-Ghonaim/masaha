@@ -200,7 +200,7 @@ describe('useDirectoryList', () => {
     empty.unmount();
     restoreTransport();
 
-    const none = renderList('/spaces?verified=1&q=Focus', () => page([]));
+    const none = renderList('/spaces?verified=1&q=Focus&sort=name', () => page([]));
     await waitFor(() => {
       expect(none.result.current.list.results.state).toBe('noMatch');
     });
@@ -209,7 +209,22 @@ describe('useDirectoryList', () => {
     act(() => {
       none.result.current.list.results.noMatch.clear.run();
     });
-    expect(none.result.current.search).toBe('');
+    // A filter in force: the filters go, the search and the order stay.
+    expect(none.result.current.search).toBe('?q=Focus&sort=name');
+  });
+
+  it('no match’s «مسح الفلاتر» clears the search when the search alone narrows the list to nothing', async () => {
+    const { result } = renderList('/spaces?q=Focus&sort=name', () => page([]));
+    await waitFor(() => {
+      expect(result.current.list.results.state).toBe('noMatch');
+    });
+
+    act(() => {
+      result.current.list.results.noMatch.clear.run();
+    });
+
+    expect(result.current.search).toBe('?sort=name');
+    expect(result.current.list.search.text).toBe('');
   });
 
   it('keeps the cards while the next page loads, marked busy', async () => {
@@ -356,5 +371,43 @@ describe('useDirectoryList', () => {
     for (const request of requests) {
       expect(JSON.stringify(request.params)).not.toMatch(/31\.50|34\.46/);
     }
+  });
+
+  it('words no distance once the distance order stops, while the answer shown is still the one by distance', async () => {
+    const device = fakeGeolocation();
+    const { result } = renderList('/spaces', (request) => {
+      const params = request.params as { sort?: string; verified?: boolean };
+      if (params.sort === 'distance') return page([{ ...space(1), distanceMeters: 700 }]);
+      // The list a filter changed while sorting, asked once the order stops, never answers.
+      if (params.verified === true) return new Promise<FakeAnswer>(() => undefined);
+      return page([space(1)]);
+    });
+    await waitFor(() => {
+      expect(result.current.list.results.state).toBe('ready');
+    });
+    act(() => {
+      result.current.list.near.button.press();
+    });
+    act(() => {
+      device.succeed(31.5, 34.46, 30);
+    });
+    act(() => {
+      result.current.list.filters.spaces.verified.toggle(true);
+    });
+    await waitFor(() => {
+      expect(result.current.list.results.busy).toBe(false);
+    });
+    expect(result.current.list.results.cards[0]?.distance).not.toBeNull();
+
+    act(() => {
+      result.current.list.near.button.press();
+    });
+
+    await waitFor(() => {
+      expect(result.current.list.results.busy).toBe(true);
+    });
+    expect(result.current.list.near.button.on).toBe(false);
+    expect(result.current.list.results.cards.map((card) => card.slug)).toEqual(['space-1']);
+    expect(result.current.list.results.cards[0]?.distance).toBeNull();
   });
 });

@@ -28,8 +28,13 @@ const space = (id: number): DirectorySpace => ({
 
 /** The directory's list at `width`, the place filter a button the page's slot would draw. */
 function renderDirectory(width: number) {
+  return renderDirectoryRouter(width).requests;
+}
+
+/** The same, with its router, to read the address. */
+function renderDirectoryRouter(width: number) {
   stubScreenWidth(width);
-  fakeTransport(() => ({
+  const requests = fakeTransport(() => ({
     status: 200,
     data: {
       success: true,
@@ -65,6 +70,7 @@ function renderDirectory(width: number) {
       <RouterProvider router={router} />
     </Wrapper>,
   );
+  return { requests, router };
 }
 
 beforeEach(() => {
@@ -81,7 +87,7 @@ describe('LocationStatus', () => {
   it('shows the privacy line while locating and in use, never once the location was refused or imprecise', async () => {
     const device = fakeGeolocation();
     const user = userEvent.setup();
-    renderDirectory(390);
+    const requests = renderDirectory(390);
     await screen.findByRole('link', { name: 'مساحة 1' });
     expect(screen.queryByText(PRIVACY, { exact: false })).not.toBeInTheDocument();
 
@@ -101,6 +107,19 @@ describe('LocationStatus', () => {
       'true',
     );
     expect(screen.getByRole('button', { name: 'إيقاف الترتيب حسب المسافة' })).toBeInTheDocument();
+
+    // Stopped, the point is kept but nothing is sent: no privacy line, and no header on the next ask.
+    await user.click(screen.getByRole('button', { name: 'إيقاف الترتيب حسب المسافة' }));
+    expect(screen.queryByText(PRIVACY, { exact: false })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    await user.type(screen.getByRole('searchbox'), 'مساحة');
+    await waitFor(() => {
+      expect(requests.at(-1)?.params).toMatchObject({ q: 'مساحة' });
+    });
+    expect(requests.at(-1)?.headers['Masaha-Near']).toBeUndefined();
 
     await user.click(screen.getByRole('button', { name: 'مسح موقعي' }));
     expect(screen.queryByText(PRIVACY, { exact: false })).not.toBeInTheDocument();
@@ -123,6 +142,71 @@ describe('LocationStatus', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(PRIVACY, { exact: false })).not.toBeInTheDocument();
+  });
+
+  it('says each state in one live region and keeps the focus on «الأقرب إليّ» after stopping and clearing by keyboard', async () => {
+    const device = fakeGeolocation();
+    const user = userEvent.setup();
+    renderDirectory(390);
+    await screen.findByRole('link', { name: 'مساحة 1' });
+    const region = screen.getByRole('status');
+    expect(region).toBeEmptyDOMElement();
+
+    const button = screen.getByRole('button', { name: 'الأقرب إليّ' });
+    button.focus();
+    await user.keyboard('{Enter}');
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    expect(button).toBeEnabled();
+    expect(button).toHaveFocus();
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region).toHaveTextContent(`جارٍ تحديد موقعك… ${PRIVACY}`);
+
+    act(() => {
+      device.succeed(31.5, 34.46, 30);
+    });
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region).toHaveTextContent('مرتبة حسب المسافة من موقعك.');
+    expect(button).not.toHaveAttribute('aria-busy');
+
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'إيقاف الترتيب حسب المسافة' })).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).toHaveFocus();
+
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'مسح موقعي' })).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).toHaveFocus();
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region).toBeEmptyDOMElement();
+  });
+
+  it('the refused states offer setting the location on the map; a pin’s line offers «تغيير الموقع»', async () => {
+    const device = fakeGeolocation();
+    const user = userEvent.setup();
+    const { router } = renderDirectoryRouter(390);
+    await screen.findByRole('link', { name: 'مساحة 1' });
+    await user.click(screen.getByRole('button', { name: 'الأقرب إليّ' }));
+    act(() => {
+      device.fail();
+    });
+    expect(
+      screen.getByText('اختر منطقتك أو حدّد موقعك على الخريطة لنرتّب المساحات حسب المسافة.'),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'حدّد موقعي على الخريطة' }));
+
+    expect(router.state.location.search).toBe('?view=map');
+    act(() => {
+      nearMeStore.placePin({ lat: 31.52, lng: 34.44 });
+    });
+    expect(
+      screen.getByText(
+        `مرتبة حسب المسافة من الموقع الذي حدّدته على الخريطة. المسافات تقريبية بخط مستقيم. ${PRIVACY}`,
+      ),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'تغيير الموقع' }));
+    expect(screen.queryByRole('button', { name: 'تغيير الموقع' })).not.toBeInTheDocument();
   });
 
   it('the refused states offer «اختر منطقتك», which focuses the place filter from 1024 px', async () => {

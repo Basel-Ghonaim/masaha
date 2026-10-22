@@ -1,4 +1,4 @@
-import type { DirectorySpace } from '@masaha/shared/directory';
+import type { DirectorySpace, MapPin } from '@masaha/shared/directory';
 import { apiClient, setupApiClient } from '@shared/api';
 import { AppError } from '@shared/errors';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -82,5 +82,35 @@ describe('the directory repository', () => {
     expect(requests[0]?.params).toEqual({ limit: 20, sort: 'distance' });
     expect(requests[0]?.headers['Masaha-Near']).toBe('31.521,34.453');
     expect(JSON.stringify(requests[0]?.params)).not.toContain('31.521');
+  });
+
+  it('asks for the map’s pins with the filters and the box in view', async () => {
+    const repository = createDirectoryRepository();
+    const pin: MapPin = {
+      id: 7,
+      slug: 'focus-hub',
+      nameEn: 'Focus Hub',
+      nameAr: null,
+      areaId: 2,
+      location: { lat: 31.52, lng: 34.45 },
+      isVerified: true,
+      days: null,
+      cover: null,
+      liveStatus: 'AVAILABLE',
+    };
+    const requests = serve({
+      status: 200,
+      data: { success: true, data: { pins: [pin], truncated: false } },
+    });
+
+    await expect(
+      repository.pins({ verified: true, bounds: '31.4,34.3,31.55,34.5' }),
+    ).resolves.toEqual({ pins: [pin], truncated: false });
+    expect(requests[0]).toMatchObject({
+      method: 'get',
+      url: '/map/spaces',
+      params: { verified: true, bounds: '31.4,34.3,31.55,34.5' },
+    });
+    expect(requests[0]?.headers['Masaha-Near']).toBeUndefined();
   });
 });
