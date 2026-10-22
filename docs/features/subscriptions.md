@@ -13,6 +13,7 @@
 - Ends a subscription early, by the staff: its end today (its start if it has not started), audited; no money changes.
 - Answers each customer's current subscription, and the customers list's status, kind and package filters as ids ([desk](desk.md)).
 - Answers the space's open check-ins and their counts, for *present* ([occupancy](occupancy.md)).
+- Lists the space's check-ins for the staff: the open ones, whole, or a range of Gaza dates, paged, each with its customer and its subscription's state.
 - Closes the check-ins due by the auto check-out, as a timed job.
 
 ## Who uses it
@@ -24,12 +25,12 @@
 ## Responsibility boundary
 
 - **Owns** the `subscriptions` and `check_ins` tables, the database function `subscription_usage`, and the pure status and current-subscription rules.
-- **Reads** a stay's auto check-out time and the space's week from [`spaces`](spaces.md), and the settings from [`space-settings`](space-settings.md).
+- **Reads** a stay's auto check-out time and the space's week from [`spaces`](spaces.md), the settings from [`space-settings`](space-settings.md), and the customers' names and phones for the check-ins' lists from [`customers`](customers.md).
 - **Leaves** the money paid on a subscription to [`payments`](payments.md), which reads a subscription's due through this module's function.
 
 ## How it composes the platform
 
-- Its manage router sits below `/manage/spaces/:spaceId`, behind the one boundary that admits the space's staff: the corrections and the end (`requireCan('subscriptions.manage')`; the price `requireCan('subscriptions.correctPrice')`, the owner's). Its reads and the subscribe are composed by the desk ([conventions §9](../backend/conventions.md#9-placements)).
+- Its manage router sits below `/manage/spaces/:spaceId`, behind the one boundary that admits the space's staff: the check-ins' lists (the boundary its check, #86); the corrections and the end (`requireCan('subscriptions.manage')`; the price `requireCan('subscriptions.correctPrice')`, the owner's). Its reads and the subscribe are composed by the desk ([conventions §9](../backend/conventions.md#9-placements)).
 - Its attendance is counted in the database, by `subscription_usage`; the status is a pure rule on those counts ([conventions §8](../backend/conventions.md#pure-rules)).
 
 ## Behaviour and flows
@@ -45,6 +46,8 @@
 **The end.** In its transaction, the same opening as a correction; one already ended is answered as it is; else its end becomes today — its start if it has not started, never later than it was — with who and when, audited `subscription.ended`. The status rule then answers `EXPIRED`.
 
 **A check-in's limits** (`limits.ts`, pure). `subscriptionWarnings(state, { checkedInToday })`, in this order: `UPCOMING` → `SUBSCRIPTION_NOT_STARTED`; `EXPIRED` → `SUBSCRIPTION_EXPIRED`; days per week and the days this week at it, with today not counted yet → `DAYS_PER_WEEK_USED`; hours per day and today's minutes at it → `HOURS_PER_DAY_USED`. `limitWarnings` reads the state through the function and, in one query, whether another check-in is on today (dated in SQL, as the function dates them); for a retry it leaves the check-in itself out (`progressWithout`). `checkIn` writes the check-in, audited `checkIn.checkedIn`; `findCheckInByKey` answers a retry's. `lockCheckInIn` locks a check-in's row (the space's only) and `checkOut` closes it, `MANUAL`, audited `checkIn.checkedOut`.
+
+**The check-ins' lists.** `open=true`: the open rows, the earliest first, whole. A range: one raw query pages the check-ins whose Gaza date (dated in SQL, as the function dates them) is in it, the latest first, then by id, with a count. `deskCheckIns` answers each with its customer (`customers.contactsOf`) and its subscription's state, two queries for the lot; the desk's check-in and check-out answer through it too.
 
 **The renewal's start** (`renewal.ts`, pure): `proposedStart(renewed, today)` — the day after the renewed one's end while it is not expired and its end is not before today, else today. `lockIn` locks a subscription's row and answers the one that renewed it, if any.
 
@@ -88,3 +91,4 @@
 - #97 — the auto check-out of check-ins.
 - #102 — the attendance and amount due in the database (`subscription_usage`), the status, progress and current-subscription rules, and the states read; each customer's current subscription and the list's filters as ids.
 - #106 — a subscription's key, typed price's reason and renewed one; the create, audited; the row's lock; the renewal's proposed start; the corrections, the price the owner's; the end.
+- #109 — a check-in's minutes in SQL; a subscriber's check-in and check-out, audited, and the limits' warnings (`limits.ts`); the check-ins' lists.

@@ -18,6 +18,7 @@
 - **The space's owner and reception,** through the API. The admin never reaches it: customers are private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). No web screen yet (screens 14–16: worker A's later items).
 - **The front desk** ([desk](desk.md)), which leaves an unpaid visit to a customer found or created by phone, in its own transaction.
 - **[`occupancy`](occupancy.md),** which names the customers present.
+- **[`subscriptions`](subscriptions.md),** which reads its check-ins' customers' names and phones.
 
 ## Responsibility boundary
 
@@ -62,4 +63,4 @@
 - #95 — a customer found or created by phone for an unpaid visit.
 - #102 — a customer created, idempotent, and edited by the staff; the customers' key; a customer archived (for the desk) and restored by the owner; the list's page and its search.
 - #106 — the search finds a whole phone in any form (a local, international or separated number).
-- #109 — a whole phone is also found stored under the other country code (by its national digits).
+- #109 — a whole phone is also found stored under the other country code (by its national digits); the contacts of a set of customers, for the check-ins' lists.

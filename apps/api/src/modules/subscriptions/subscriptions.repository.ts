@@ -345,6 +345,59 @@ export function createSubscriptionsRepository() {
       });
     },
 
+    /**
+     * The space's open check-ins, the earliest first, then by id: whole, bounded by who is
+     * present.
+     */
+    openCheckInRowsIn(spaceId: number): Promise<CheckInRow[]> {
+      return prisma.checkIn.findMany({
+        where: { spaceId, checkedOutAt: null },
+        select: CHECK_IN_ROW,
+        orderBy: [{ checkedInAt: 'asc' }, { id: 'asc' }],
+      });
+    },
+
+    /**
+     * A page of the space's check-ins whose Gaza date (dated as `subscription_usage` dates them) is
+     * from `from` to `to`, both included, the latest first, then by id; and how many there are.
+     */
+    async checkInsBetween(
+      spaceId: number,
+      { from, to }: { from: string; to: string },
+      { skip, take }: { skip: number; take: number },
+    ): Promise<{ rows: CheckInRow[]; total: number }> {
+      const where = Prisma.sql`space_id = ${spaceId} AND ${GAZA_DAY} BETWEEN ${from}::date AND ${to}::date`;
+      const [rows, [count]] = await Promise.all([
+        prisma.$queryRaw<
+          {
+            id: number;
+            customer_id: number;
+            subscription_id: number;
+            checked_in_at: Date;
+            checked_out_at: Date | null;
+            checkout_method: 'MANUAL' | 'AUTO' | null;
+          }[]
+        >`
+          SELECT id, customer_id, subscription_id, checked_in_at, checked_out_at,
+                 checkout_method::text AS checkout_method
+          FROM check_ins WHERE ${where}
+          ORDER BY checked_in_at DESC, id DESC OFFSET ${skip} LIMIT ${take}`,
+        prisma.$queryRaw<{ total: number }[]>`
+          SELECT count(*)::integer AS total FROM check_ins WHERE ${where}`,
+      ]);
+      return {
+        rows: rows.map((row) => ({
+          id: row.id,
+          customerId: row.customer_id,
+          subscriptionId: row.subscription_id,
+          checkedInAt: row.checked_in_at,
+          checkedOutAt: row.checked_out_at,
+          checkoutMethod: row.checkout_method,
+        })),
+        total: count?.total ?? 0,
+      };
+    },
+
     /** Inserts an open check-in, by the desk. */
     createCheckIn(
       { spaceId, key, customerId, subscriptionId, checkedInAt }: NewCheckIn,

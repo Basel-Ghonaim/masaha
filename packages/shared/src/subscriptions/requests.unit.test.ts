@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
-import { correctPriceSchema, correctSubscriptionSchema } from './requests.ts';
+import { checkInsQuerySchema, correctPriceSchema, correctSubscriptionSchema } from './requests.ts';
 
 const errorsOf =
   (schema: typeof correctPriceSchema | typeof correctSubscriptionSchema) => (input: unknown) => {
@@ -36,5 +36,35 @@ describe("a subscription's corrections", () => {
       priceAgorot: ['out_of_range'],
       reason: ['required'],
     });
+  });
+});
+
+describe('the check-ins query', () => {
+  const errors = (input: unknown) => {
+    const result = checkInsQuerySchema.safeParse(input);
+    return result.success ? null : toFieldErrors(result.error.issues, input);
+  };
+
+  it('open=true, or a range of Gaza dates of at most 92 days, to not before from', () => {
+    expect(checkInsQuerySchema.parse({ open: 'true' })).toMatchObject({ open: true });
+    expect(checkInsQuerySchema.parse({ from: '2026-07-21', to: '2026-10-21', page: '2' })).toEqual({
+      from: '2026-07-21',
+      to: '2026-10-21',
+      page: 2,
+      limit: 20,
+    });
+    expect(errors({ from: '2026-10-21', to: '2026-10-21' })).toBeNull();
+    expect(errors({ from: '2026-07-20', to: '2026-10-21' })).toEqual({ to: ['out_of_range'] });
+    expect(errors({ from: '2026-10-21', to: '2026-10-20' })).toEqual({ to: ['out_of_range'] });
+  });
+
+  it('neither, a range half given, or both: each is refused', () => {
+    expect(errors({})).toEqual({ from: ['required'], to: ['required'] });
+    expect(errors({ from: '2026-10-21' })).toEqual({ to: ['required'] });
+    expect(errors({ open: 'true', from: '2026-10-21', to: '2026-10-21' })).toEqual({
+      open: ['invalid_choice'],
+    });
+    expect(errors({ open: 'false' })).toEqual({ open: ['invalid_choice'] });
+    expect(errors({ from: '2026-02-30', to: '2026-03-01' })).toEqual({ from: ['invalid_format'] });
   });
 });

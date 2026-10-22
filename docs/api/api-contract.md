@@ -66,7 +66,8 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - a space's staff (`GET /manage/spaces/:spaceId/staff`), every reception link, active or not: a space has few, and the owner's page reads them whole (§5, *Staff (managed)*; why: [space-links › Decisions](../features/space-links.md#api-decisions)).
 - the people present at a space (`GET /manage/spaces/:spaceId/occupancy`), bounded by who is there: the desk's main view reads its state in one request on a weak connection (§5, *Occupancy (managed)*; why: [occupancy › Decisions](../features/occupancy.md#api-decisions)).
 - a customer's subscriptions and unpaid visits in their file (`GET /manage/spaces/:spaceId/customers/:customerId`), bounded by one customer (§5, *Customers (managed)*; 2026-10-21, #102);
-- a subscription's check-ins and payments in its statement (`GET /manage/spaces/:spaceId/subscriptions/:subscriptionId`), bounded by one subscription (§5, *Subscriptions (managed)*; 2026-10-22, #106).
+- a subscription's check-ins and payments in its statement (`GET /manage/spaces/:spaceId/subscriptions/:subscriptionId`), bounded by one subscription (§5, *Subscriptions (managed)*; 2026-10-22, #106);
+- the open check-ins (`GET /manage/spaces/:spaceId/check-ins?open=true`), bounded by who is present (§5, *Front desk (managed)*; 2026-10-22, #109).
 
 ## 5. Endpoints
 
@@ -578,6 +579,12 @@ A subscriber's check-out, 2026-10-22, #109. No body and no key: closing is idemp
 - **200:** `CheckInCheckOut`: the check-in closed now, `MANUAL`, with what was paid on its subscription and what it still owes (a usage-based one's stay now counted; below zero while it holds credit). A check-in closed already (by the desk or the auto check-out) is answered as it is and nothing is written. The payment, if any, is `POST …/payments` with the `subscriptionId`, after it.
 - **Errors:** `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404) for a check-in that is not the space's, also for a space deleted meanwhile.
 - **Audit:** `checkIn.checkedOut`, with the check-in as the entity (`after`: `{ checkedOutAt }`).
+
+#### `GET /manage/spaces/:spaceId/check-ins` · 🧾
+The space's subscriber check-ins, 2026-10-22, #109. Read without a lock.
+- **Query** (`checkInsQuerySchema`, `@masaha/shared/subscriptions`): `open=true`, or `from` and `to`, Gaza dates, both included, `to` not before `from` and at most 92 days after it (`out_of_range` on `to`), with `page` and `limit` (§4). Neither is `required` on `from` and `to`; both is `invalid_choice` on `open`.
+- **200:** `DeskCheckIn[]`, each with its customer and its subscription's state as of the answer. `open=true`: every open check-in, the earliest first, whole, with no `meta` (§4's exceptions); a range: the check-ins whose Gaza check-in date is in it, the latest first, then by id, paged with `meta`.
+- **Errors:** `validation` (422) on the query.
 
 #### `POST /manage/spaces/:spaceId/visits/:visitId/check-out` · 🧾 · `Idempotency-Key`
 - **Body:** `{ checkedOutAt?, payment?, phone?, customerName?, charge? }`.

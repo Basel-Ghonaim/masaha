@@ -1,7 +1,9 @@
 import { gazaClockOf, type DomainErrorCode } from '@masaha/shared/core';
 import type {
+  CheckInsQuery,
   CorrectPriceRequest,
   CorrectSubscriptionRequest,
+  DeskCheckIn,
   SubscriptionState,
   SubscriptionStatus,
 } from '@masaha/shared/subscriptions';
@@ -11,6 +13,7 @@ import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditValues, AuditWriter } from '../../shared/audit/index.ts';
 import { can, type Actor, type LoadedSpace, type SpaceAction } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
+import type { CustomersService } from '../customers/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import { calendarOf } from './calendar.ts';
@@ -33,6 +36,7 @@ interface Dependencies {
   audit: AuditWriter;
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
+  customers: CustomersService;
   logger: Logger;
   /** The one clock (conventions §11). */
   now: () => Date;
@@ -90,6 +94,7 @@ export function createSubscriptionsService({
   audit,
   spaces,
   spaceSettings,
+  customers,
   logger,
   now,
 }: Dependencies) {
@@ -151,9 +156,67 @@ export function createSubscriptionsService({
     return rows.map((row) => toSubscriptionState(row, now.today));
   }
 
+  /**
+   * Check-ins of the space as the desk answers them, as of `at`: each with its customer and its
+   * subscription's state, two queries for the lot, in the caller's transaction when given.
+   */
+  async function deskCheckIns(
+    spaceId: number,
+    rows: readonly CheckInRow[],
+    at: Date,
+    tx?: Tx,
+  ): Promise<DeskCheckIn[]> {
+    if (rows.length === 0) return [];
+    const [states, contacts] = await Promise.all([
+      statesOf(spaceId, { ids: [...new Set(rows.map((row) => row.subscriptionId))] }, at, tx),
+      customers.contactsOf(spaceId, [...new Set(rows.map((row) => row.customerId))], tx),
+    ]);
+    const stateOf = new Map(states.map((state) => [state.id, state]));
+    return rows.map((row) => {
+      const subscription = stateOf.get(row.subscriptionId);
+      const customer = contacts.get(row.customerId);
+      if (!subscription || !customer) {
+        throw new Error(`The check-in ${String(row.id)} is not the space's.`);
+      }
+      return {
+        id: row.id,
+        customer,
+        subscription,
+        checkedInAt: row.checkedInAt.toISOString(),
+        checkedOutAt: row.checkedOutAt?.toISOString() ?? null,
+        checkoutMethod: row.checkoutMethod,
+      };
+    });
+  }
+
   return {
     /** The space's subscriptions with their states (above). */
     statesOf,
+
+    /** Check-ins of the space as the desk answers them (above). */
+    deskCheckIns,
+
+    /**
+     * The space's check-ins, as of now: `open`, every open one, the earliest first, whole (bounded
+     * by who is present); else a page of those whose Gaza date is in the range, the latest first,
+     * and how many there are. Read without a lock.
+     */
+    async checkInsIn(
+      spaceId: number,
+      { open, from, to, page, limit }: CheckInsQuery,
+    ): Promise<{ rows: DeskCheckIn[]; total: number | null }> {
+      const at = now();
+      if (open || from === undefined || to === undefined) {
+        const rows = await repository.openCheckInRowsIn(spaceId);
+        return { rows: await deskCheckIns(spaceId, rows, at), total: null };
+      }
+      const { rows, total } = await repository.checkInsBetween(
+        spaceId,
+        { from, to },
+        { skip: (page - 1) * limit, take: limit },
+      );
+      return { rows: await deskCheckIns(spaceId, rows, at), total };
+    },
 
     /**
      * Locks the space's subscription's row (`FOR UPDATE`), after the space's lock: its id, its

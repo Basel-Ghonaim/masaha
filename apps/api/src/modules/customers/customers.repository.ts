@@ -47,6 +47,20 @@ export function createCustomersRepository() {
       return new Map(rows.map(({ id, name }) => [id, name]));
     },
 
+    /** These customers of the space, by id: their names and phones; another space's are not read. */
+    async contactsOf(
+      spaceId: number,
+      ids: readonly number[],
+      tx: Tx = prisma,
+    ): Promise<Map<number, { id: number; name: string; phone: string | null }>> {
+      if (ids.length === 0) return new Map();
+      const rows = await tx.customer.findMany({
+        where: { spaceId, id: { in: [...ids] } },
+        select: { id: true, name: true, phone: true },
+      });
+      return new Map(rows.map((row) => [row.id, row]));
+    },
+
     /** The space's customer with this phone among those not archived, or `null`. */
     findByPhone(spaceId: number, phone: string, tx: Tx): Promise<CustomerRow | null> {
       return tx.customer.findFirst({

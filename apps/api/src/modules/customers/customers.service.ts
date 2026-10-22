@@ -63,6 +63,15 @@ export function createCustomersService({ runInTransaction, audit, spaces, now }:
       return repository.namesOf(spaceId, ids, tx);
     },
 
+    /** These customers of the space, by id, with their names and phones, in one query. */
+    contactsOf(
+      spaceId: number,
+      ids: readonly number[],
+      tx?: Tx,
+    ): Promise<Map<number, { id: number; name: string; phone: string | null }>> {
+      return repository.contactsOf(spaceId, ids, tx);
+    },
+
     /**
      * Creates a customer, in one transaction and in this order: the space's lock; `can()` on the
      * links read under it; the customer this key already made, for a retry, answered as it is now;

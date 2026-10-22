@@ -1,17 +1,30 @@
 import type {
+  CheckInsQuery,
   CorrectPriceRequest,
   CorrectSubscriptionRequest,
+  DeskCheckIn,
   SubscriptionState,
 } from '@masaha/shared/subscriptions';
 import type { Request, Response } from 'express';
 
 import { signedIn, spaceOf } from '../../shared/auth/index.ts';
-import { sendSuccess } from '../../shared/http/index.ts';
+import { buildPaginationMeta, sendSuccess } from '../../shared/http/index.ts';
 import { parseId } from '../../shared/validation/index.ts';
 import type { SubscriptionsService } from './subscriptions.service.ts';
 
 export function createSubscriptionsController(service: SubscriptionsService) {
   return {
+    /** 200: the open check-ins whole, with no `meta`; or a page of a date range, with its `meta`. */
+    checkIns: async (req: Request, res: Response) => {
+      const query = req.query as unknown as CheckInsQuery;
+      const { rows, total } = await service.checkInsIn(spaceOf(req).id, query);
+      sendSuccess(
+        res,
+        rows satisfies DeskCheckIn[],
+        total === null ? undefined : { meta: buildPaginationMeta(query, total) },
+      );
+    },
+
     /** 200 with the subscription's state; a correction that changes nothing answers it as it is. */
     correct: async (req: Request, res: Response) => {
       const { userId, role } = signedIn(req);

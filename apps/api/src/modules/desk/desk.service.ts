@@ -354,21 +354,9 @@ export function createDeskService({
     at: Date,
     tx?: Tx,
   ): Promise<DeskCheckIn> {
-    const [[subscription], customer] = await Promise.all([
-      subscriptions.statesOf(space.id, { ids: [row.subscriptionId] }, at, tx),
-      customers.findIn(space.id, row.customerId, tx),
-    ]);
-    if (!subscription || !customer) {
-      throw new Error(`The check-in ${String(row.id)} is not the space's.`);
-    }
-    return {
-      id: row.id,
-      customer: { id: customer.id, name: customer.name, phone: customer.phone },
-      subscription,
-      checkedInAt: row.checkedInAt.toISOString(),
-      checkedOutAt: row.checkedOutAt?.toISOString() ?? null,
-      checkoutMethod: row.checkoutMethod,
-    };
+    const [checkIn] = await subscriptions.deskCheckIns(space.id, [row], at, tx);
+    if (!checkIn) throw new Error(`The check-in ${String(row.id)} was not answered.`);
+    return checkIn;
   }
 
   /** What a subscriber's check-in warns of at `at`: the space's, then the subscription's. */
