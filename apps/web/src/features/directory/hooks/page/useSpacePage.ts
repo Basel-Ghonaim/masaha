@@ -17,6 +17,7 @@ import type { SectionMeta, SpacePageView } from '../../types/SpacePageView';
 import { useFailureView } from '../list/useFailureView';
 import { useNearState } from '../near/nearMeStore';
 import { useSpacePageQuery } from './useSpacePageQuery';
+import { useLiveStatusQuery } from '../status/useLiveStatusQuery';
 
 /** From here up the status and the contacts are an aside; below it, a card and a section. */
 const DESKTOP_UP = '(min-width: 1024px)';
@@ -46,6 +47,7 @@ export function useSpacePage(slug: string): SpacePageView {
   const near = useNearState();
   const [allDays, setAllDays] = useState(false);
   const query = useSpacePageQuery(slug);
+  const liveQuery = useLiveStatusQuery(slug);
   const notFound = query.error?.status === 404;
   const failure = useFailureView(
     query.data === undefined && !notFound ? query.error : null,
@@ -88,6 +90,32 @@ export function useSpacePage(slug: string): SpacePageView {
   const shiftNames = (space?.hours?.shifts ?? []).map(
     (shift) => localText(shift.nameAr, shift.nameEn, english)?.text ?? shift.nameAr,
   );
+  const live = liveQuery.isPending
+    ? ({ kind: 'loading', label: words.liveStatus.live } as const)
+    : liveQuery.isError
+      ? ({ kind: 'line', line: words.liveStatus.failed } as const)
+      : space?.isVerified === false
+        ? ({ kind: 'line', line: words.liveStatus.unverified } as const)
+        : liveQuery.data.status === null
+          ? ({ kind: 'line', line: words.liveStatus.unset } as const)
+          : {
+              kind: 'badge' as const,
+              live: words.liveStatus.live,
+              label:
+                copy.terms.liveStatuses[
+                  liveQuery.data.status === 'AVAILABLE'
+                    ? 'available'
+                    : liveQuery.data.status === 'FULL'
+                      ? 'full'
+                      : 'closedNow'
+                ],
+              variant:
+                liveQuery.data.status === 'AVAILABLE'
+                  ? ('success' as const)
+                  : liveQuery.data.status === 'FULL'
+                    ? ('warning' as const)
+                    : ('neutral' as const),
+            };
 
   return {
     state: query.isPending
@@ -135,7 +163,9 @@ export function useSpacePage(slug: string): SpacePageView {
       title: wide && contacts.length > 0 ? words.statusContact.title : words.status.title,
       today: todayHours(space?.hours?.days ?? null, now, copy.directory.card),
       distance: meters === null ? null : words.distance({ km: distanceText(meters, language) }),
+      live,
     },
+    photos: space?.photos ?? [],
     prices: {
       title: words.sections.prices,
       meta: metaOf('prices', ...(prices && prices.length > 0 ? [words.prices.displayOnly] : [])),

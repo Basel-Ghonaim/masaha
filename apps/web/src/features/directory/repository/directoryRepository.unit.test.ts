@@ -129,4 +129,15 @@ describe('the directory repository', () => {
     expect(failure).toBeInstanceOf(AppError);
     expect((failure as AppError).status).toBe(404);
   });
+
+  it('asks for a space’s live status by its encoded slug', async () => {
+    const repository = createDirectoryRepository();
+    const requests = serve({ status: 200, data: { success: true, data: { status: 'AVAILABLE' } } });
+
+    await expect(repository.status('noor hub')).resolves.toEqual({ status: 'AVAILABLE' });
+    expect(requests[0]).toMatchObject({
+      method: 'get',
+      url: '/spaces/noor%20hub/occupancy',
+    });
+  });
 });

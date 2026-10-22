@@ -12,6 +12,7 @@ export const directoryKeys = {
   pins: (request: PinsRequest) => ['public', 'directory', 'pins', request] as const,
   /** A space's page, by its slug. */
   space: (slug: string) => ['public', 'directory', 'space', slug] as const,
+  status: (slug: string) => ['public', 'directory', 'status', slug] as const,
 };
 
 /** Whether a list's key holds a point: an answer ordered by distance, dropped with the location. */
