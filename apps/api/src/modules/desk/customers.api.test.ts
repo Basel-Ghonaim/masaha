@@ -243,8 +243,9 @@ describe('the customers list', () => {
       SELECT ${spaceId}, 'Paid ' || lpad(n::text, 4, '0'), now() FROM generate_series(1, 1000) n`;
     await prisma.$executeRaw`ANALYZE customers`;
     await prisma.$executeRaw`
-      INSERT INTO subscriptions (space_id, customer_id, name, billing, price_agorot, updated_at)
-      SELECT space_id, id, 'Monthly', 'FIXED', 3000, now() FROM customers WHERE space_id = ${spaceId}`;
+      INSERT INTO subscriptions (space_id, customer_id, request_id, name, billing, price_agorot, updated_at)
+      SELECT space_id, id, gen_random_uuid(), 'Monthly', 'FIXED', 3000, now()
+      FROM customers WHERE space_id = ${spaceId}`;
     await prisma.$executeRaw`ANALYZE subscriptions`;
     await prisma.$executeRaw`
       INSERT INTO payments (space_id, subscription_id, request_id, amount_agorot, method, recorded_by_id)

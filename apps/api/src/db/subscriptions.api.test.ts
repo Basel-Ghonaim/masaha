@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -87,6 +89,7 @@ describe('the subscription scenarios', () => {
       billing: 'FIXED',
       priceAgorot: 20_000,
       priceSetById: staff.id,
+      priceReason: 'Every other day, agreed at the desk',
     });
 
     expect(subscription).toMatchObject({
@@ -94,6 +97,7 @@ describe('the subscription scenarios', () => {
       totalDays: null,
       daysPerWeek: 3,
       priceSetById: staff.id,
+      priceReason: 'Every other day, agreed at the desk',
     });
   });
 
@@ -205,6 +209,78 @@ describe('a subscription', () => {
         data: { endsOn: day('2026-10-12'), endedAt: new Date(), endedById: staff.id },
       }),
     ).resolves.toMatchObject({ endedById: staff.id });
+  });
+
+  it("carries a typed price's reason with who typed it, never blank", async () => {
+    const space = await createSpace();
+    const staff = await createUser();
+    const customer = await createCustomer(space.id);
+
+    for (const typed of [
+      { priceSetById: staff.id },
+      { priceSetById: staff.id, priceReason: '   ' },
+      { priceReason: 'Agreed at the desk' },
+    ]) {
+      await expect(createSubscription(customer, typed)).rejects.toThrow(
+        /subscriptions_price_reason_check/,
+      );
+    }
+    await expect(
+      createSubscription(customer, { priceSetById: staff.id, priceReason: 'Agreed at the desk' }),
+    ).resolves.toMatchObject({ priceReason: 'Agreed at the desk' });
+  });
+
+  it('costs more than nothing, as a package does (finding 80)', async () => {
+    const space = await createSpace();
+
+    await expect(
+      createSubscription(await createCustomer(space.id), { priceAgorot: 0 }),
+    ).rejects.toThrow(/subscriptions_price_check/);
+    await expect(
+      prisma.package.create({
+        data: {
+          spaceId: space.id,
+          name: 'مجاني',
+          validityDays: 30,
+          billing: 'FIXED',
+          priceAgorot: 0,
+        },
+      }),
+    ).rejects.toThrow(/packages_price_check/);
+  });
+
+  it("is renewed once, by one of the same customer's subscriptions", async () => {
+    const space = await createSpace();
+    const customer = await createCustomer(space.id);
+    const other = await createCustomer(space.id, { name: 'Other' });
+    const first = await createSubscription(customer);
+
+    await expect(createSubscription(customer, { renewalOfId: first.id })).resolves.toMatchObject({
+      renewalOfId: first.id,
+    });
+    await expect(createSubscription(customer, { renewalOfId: first.id })).rejects.toMatchObject({
+      code: 'P2002',
+    });
+    const othersOwn = await createSubscription(other);
+    await expect(createSubscription(customer, { renewalOfId: othersOwn.id })).rejects.toMatchObject(
+      { code: 'P2003' },
+    );
+  });
+
+  it('never shares its key with another subscription of the space', async () => {
+    const space = await createSpace();
+    const branch = await createSpace('branch-hub');
+    const key = randomUUID();
+    await createSubscription(await createCustomer(space.id), { idempotencyKey: key });
+
+    await expect(
+      createSubscription(await createCustomer(space.id, { name: 'Other' }), {
+        idempotencyKey: key,
+      }),
+    ).rejects.toMatchObject({ code: 'P2002' });
+    await expect(
+      createSubscription(await createCustomer(branch.id), { idempotencyKey: key }),
+    ).resolves.toMatchObject({ idempotencyKey: key });
   });
 });
 
