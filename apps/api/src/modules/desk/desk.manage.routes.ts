@@ -44,6 +44,7 @@ export function createDeskManageRouter(controller: DeskController): Router {
     validate(checkInSubscriberSchema),
     controller.checkInSubscriber,
   );
+  router.post('/check-ins/:checkInId/check-out', mayRecord, controller.checkOutSubscriber);
   router.post(
     '/payments',
     requireCan('payments.record'),

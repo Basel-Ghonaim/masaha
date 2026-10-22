@@ -1,5 +1,6 @@
 import type { Customer } from '@masaha/shared/customers';
 import type {
+  CheckInCheckOut,
   CheckOutVisitRequest,
   CustomerFile,
   CustomerRow,
@@ -51,6 +52,17 @@ export function createDeskController(service: DeskService) {
         status: 201,
         ...(warnings.length > 0 && { meta: { warnings } }),
       });
+    },
+
+    /** 200; a check-in closed already is answered as it is. */
+    checkOutSubscriber: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const checkOut = await service.checkOutSubscriber(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.checkInId),
+      );
+      sendSuccess(res, checkOut satisfies CheckInCheckOut);
     },
 
     /** 200, a retry included, with the first result. */

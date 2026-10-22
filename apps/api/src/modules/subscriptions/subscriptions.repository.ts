@@ -328,6 +328,23 @@ export function createSubscriptionsRepository() {
       });
     },
 
+    /** Locks the space's check-in's row (`FOR UPDATE`): the row, or `null` when not the space's. */
+    async lockCheckInIn(spaceId: number, id: number, tx: Tx): Promise<CheckInRow | null> {
+      const locked = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM check_ins WHERE id = ${id} AND space_id = ${spaceId} FOR UPDATE`;
+      if (locked.length === 0) return null;
+      return tx.checkIn.findUniqueOrThrow({ where: { id }, select: CHECK_IN_ROW });
+    },
+
+    /** Closes the check-in at the desk, now. */
+    closeManual(id: number, checkedOutAt: Date, tx: Tx): Promise<CheckInRow> {
+      return tx.checkIn.update({
+        where: { id },
+        data: { checkedOutAt, checkoutMethod: 'MANUAL' },
+        select: CHECK_IN_ROW,
+      });
+    },
+
     /** Inserts an open check-in, by the desk. */
     createCheckIn(
       { spaceId, key, customerId, subscriptionId, checkedInAt }: NewCheckIn,

@@ -433,6 +433,39 @@ export function createSubscriptionsService({
       return created;
     },
 
+    /**
+     * Locks the space's check-in's row (`FOR UPDATE`), after the space's lock: the row, or `null`
+     * when it is not the space's.
+     */
+    lockCheckInIn(spaceId: number, checkInId: number, tx: Tx): Promise<CheckInRow | null> {
+      return repository.lockCheckInIn(spaceId, checkInId, tx);
+    },
+
+    /**
+     * Closes a locked, open check-in at `at`, by the desk (`MANUAL`), in the caller's transaction,
+     * audited `checkIn.checkedOut` with its time.
+     */
+    async checkOut(
+      actorId: number,
+      { spaceId, checkInId }: { spaceId: number; checkInId: number },
+      at: Date,
+      tx: Tx,
+    ): Promise<CheckInRow> {
+      const closed = await repository.closeManual(checkInId, at, tx);
+      await audit(
+        {
+          actorId,
+          action: 'checkIn.checkedOut',
+          entityType: 'checkIn',
+          entityId: checkInId,
+          spaceId,
+          after: { checkedOutAt: at.toISOString() },
+        },
+        tx,
+      );
+      return closed;
+    },
+
     /** Every check-in of the space's subscription, the earliest first, then by id. */
     checkInsOf(spaceId: number, subscriptionId: number): Promise<SubscriptionCheckIn[]> {
       return repository.checkInsOf(spaceId, subscriptionId);

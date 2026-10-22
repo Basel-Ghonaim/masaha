@@ -1,6 +1,7 @@
 import { addDays, gazaClockOf, type DomainErrorCode } from '@masaha/shared/core';
 import type { Customer } from '@masaha/shared/customers';
 import type {
+  CheckInCheckOut,
   CheckOutVisitRequest,
   CustomerFile,
   CustomerPresence,
@@ -480,6 +481,37 @@ export function createDeskService({
           tx,
         );
         return { checkIn: await deskCheckIn(space, created, at, tx), warnings };
+      });
+    },
+
+    /**
+     * Checks a subscriber out, in one transaction and in this order: the space's lock and `can()`;
+     * the check-in's row (`FOR UPDATE`), not the space's → `not_found`; one closed already is
+     * answered as it is, nothing written; else closed now, `MANUAL`, audited. Answered with what was
+     * paid on its subscription and what it owes, a usage-based one's stay now counted; a payment is
+     * `POST …/payments`' (no key: closing is idempotent by design).
+     */
+    checkOutSubscriber(
+      actor: Actor,
+      space: LoadedSpace,
+      checkInId: number,
+    ): Promise<CheckInCheckOut> {
+      return runInTransaction(async (tx) => {
+        await lockAtDesk(actor, space, tx);
+        const at = now();
+        const locked = await subscriptions.lockCheckInIn(space.id, checkInId, tx);
+        if (!locked) throw AppError.notFound(undefined, 'Check-in not found');
+        const row =
+          locked.checkedOutAt === null
+            ? await subscriptions.checkOut(actor.id, { spaceId: space.id, checkInId }, at, tx)
+            : locked;
+        const { paidAgorot, balanceAgorot } = await withMoney(
+          space,
+          { id: row.subscriptionId, customerId: row.customerId },
+          at,
+          tx,
+        );
+        return { ...(await deskCheckIn(space, row, at, tx)), paidAgorot, balanceAgorot };
       });
     },
 
