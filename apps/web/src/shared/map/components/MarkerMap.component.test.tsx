@@ -88,6 +88,10 @@ describe('MarkerMap', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to the selected mark' }));
     expect(sea).toHaveFocus();
 
+    // The overlay comes before the marks, so it precedes them in the tab order.
+    const overlay = screen.getByRole('button', { name: 'Back to the selected mark' });
+    expect(overlay.compareDocumentPosition(focus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
     fireEvent.click(focus);
     expect(onSelect).toHaveBeenLastCalledWith(1);
     fireEvent.keyDown(sea, { key: 'Enter' });

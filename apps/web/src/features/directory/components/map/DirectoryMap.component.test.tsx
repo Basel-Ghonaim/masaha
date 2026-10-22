@@ -112,6 +112,16 @@ describe('the directory’s map', () => {
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(mark).toHaveAttribute('aria-pressed', 'true');
+    // The card, the legend and the rest of the overlay come before the marks in the tab order.
+    const details = within(card).getByRole('link', { name: 'عرض التفاصيل' });
+    for (const other of screen.getAllByRole('button', { name: /^مساحة/ })) {
+      expect(
+        details.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+    expect(screen.getByRole('list', { name: 'دليل الخريطة' }).compareDocumentPosition(mark)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
 
     fireEvent.click(within(card).getByRole('button', { name: 'إغلاق' }));
     expect(screen.queryByRole('region', { name: 'مساحة 1' })).not.toBeInTheDocument();
@@ -183,6 +193,11 @@ describe('the directory’s map', () => {
     await waitFor(() => {
       expect(mark).toHaveFocus();
     });
+    // The sheet takes no focus, so one polite line says where the details are.
+    expect(screen.getByText('مساحة 1: التفاصيل في أسفل الصفحة')).toBeInTheDocument();
+    expect(
+      screen.getByText('مساحة 1: التفاصيل في أسفل الصفحة').closest('[role="status"]'),
+    ).not.toBeNull();
   });
 
   it('the legend names each state beside its mark; the map is axe-clean', async () => {
@@ -295,7 +310,9 @@ describe('the directory’s map', () => {
 
     await user.click(within(views).getByRole('radio', { name: 'خريطة' }));
     expect(await screen.findByRole('application', { name: 'خريطة المساحات' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'حدّد موقعك على الخريطة' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'حدّد موقعك على الخريطة' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).toBeInTheDocument();
   });
 

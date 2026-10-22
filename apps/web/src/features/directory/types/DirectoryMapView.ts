@@ -36,6 +36,8 @@ export type DirectoryMapView = {
   /** Past the pins' ceiling, until the map is asked within its view. */
   truncated: string | null;
   selected: { card: SpaceCardView; close: () => void; closeLabel: string; details: string } | null;
+  /** Below 768 px, while a space is chosen: where its details are, read politely (the sheet takes no focus). */
+  announce: string | null;
   /** Below 768 px: the selected space is a bottom sheet, not a card over the map. */
   phone: boolean;
   /** Below 1024 px, where the map is shorter: the picking card stands under the map, not over it. */

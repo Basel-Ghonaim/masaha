@@ -224,6 +224,8 @@ export function useDirectoryMap(): DirectoryMapView {
             closeLabel: words.map.close,
             details: words.map.details,
           },
+    announce:
+      chosen !== null && phone ? words.map.detailsBelow({ name: cardOf(chosen).name.text }) : null,
     phone,
     pickUnder: short,
   };

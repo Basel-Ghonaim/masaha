@@ -159,6 +159,7 @@ export const DIRECTORY = {
     you: 'موقعك',
     yourPin: 'موقعي (يدوي)',
     details: 'عرض التفاصيل',
+    detailsBelow: ({ name }: { name: string }) => `${name}: التفاصيل في أسفل الصفحة`,
     close: 'إغلاق',
     failed: 'لم تُحمَّل الخريطة. تصفّح المساحات في القائمة.',
     truncated: 'تظهر أول 1000 مساحة؛ قرّب الخريطة لترى ما بقي.',

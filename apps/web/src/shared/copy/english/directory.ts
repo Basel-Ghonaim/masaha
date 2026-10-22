@@ -175,6 +175,8 @@ export const DIRECTORY = {
     /** The visitor's point when set by hand. */
     yourPin: 'My location (manual)',
     details: 'View details',
+    /** Below 768 px, read when a space is chosen: its sheet takes no focus. */
+    detailsBelow: ({ name }: { name: string }) => `${name}: details at the bottom of the page`,
     close: 'Close',
     failed: 'The map didn’t load. Browse the spaces in the list.',
     /** Past 1,000 pins, until the map is asked within its view. */
