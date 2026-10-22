@@ -95,6 +95,7 @@ export function useDirectoryList(): DirectoryListView {
 
   const { replacePage } = filters;
   const status = useLocationStatus({
+    view: 'list',
     state: near.state,
     stop: near.stop,
     clear: near.clear,

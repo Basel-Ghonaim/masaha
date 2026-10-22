@@ -316,6 +316,29 @@ describe('the directory’s map', () => {
     expect(screen.getByRole('button', { name: 'الأقرب إليّ' })).toBeInTheDocument();
   });
 
+  it('on the map, a location in use says it is shown there and orders the list, with no privacy line and no stop', async () => {
+    nearMeStore.granted({ lat: 31.501, lng: 34.467 }, 'device');
+    const { requests } = renderDirectory('/spaces?view=map', 1440);
+
+    const line = await screen.findByText(
+      'موقعك ظاهر على الخريطة. تُرتَّب القائمة حسب المسافة منه.',
+    );
+    const status = line.closest('[role="status"]');
+    expect(status).not.toBeNull();
+    expect(status).not.toHaveTextContent('يُرسَل موقعك');
+    expect(
+      screen.queryByRole('button', { name: 'إيقاف الترتيب حسب المسافة' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'مسح موقعي' })).toBeInTheDocument();
+    for (const request of requests) expect(request.headers['Masaha-Near']).toBeUndefined();
+
+    nearMeStore.placePin({ lat: 31.52, lng: 34.44 });
+    expect(
+      await screen.findByText('موقعك ظاهر على الخريطة. تُرتَّب القائمة حسب المسافة منه.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'تغيير الموقع' })).toBeInTheDocument();
+  });
+
   it('the view switch changes the view in the address, keeping every filter', async () => {
     const user = userEvent.setup();
     const { router } = renderDirectory('/spaces?verified=1&q=Hub&page=2', 1440, (request) =>

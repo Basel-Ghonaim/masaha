@@ -108,6 +108,7 @@ export function useDirectoryMap(): DirectoryMapView {
     sheetOnly: true,
   });
   const status = useLocationStatus({
+    view: 'map',
     state: near.state,
     stop: near.stop,
     clear: near.clear,

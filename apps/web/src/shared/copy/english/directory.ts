@@ -129,6 +129,8 @@ export const DIRECTORY = {
       pin: 'Sorted by distance from the point you set on the map.',
     },
     approximate: 'Distances are approximate, in a straight line.',
+    /** On the map, which sends no location: the point is drawn there and orders the list. */
+    onMap: 'Your location is shown on the map. The list is sorted by distance from it.',
     stop: 'Stop sorting by distance',
     clear: 'Clear my location',
     denied: {
