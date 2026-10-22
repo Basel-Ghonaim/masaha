@@ -10,10 +10,10 @@ import {
 } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { isolated, useServerForm } from '@shared/forms';
+import { carrierOf } from '@shared/lib';
 import { useEffect, useState } from 'react';
 import { useFieldArray, useWatch, type Path } from 'react-hook-form';
 import type { EditorPlace } from '../../types/EditorPlace';
-import { carrierOf } from '../../services/carrierOf';
 import { EDITOR_SCOPES } from '../editor/editorScope';
 import { meanwhileLines } from '../editor/meanwhileLines';
 import { useSaveGroup } from '../editor/useSaveGroup';

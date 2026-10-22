@@ -1,6 +1,6 @@
 import type { AdminSpace } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
-import { carrierOf } from '../../services/carrierOf';
+import { carrierOf } from '@shared/lib';
 
 /** A verified space's contacts to read: each by its type, its value as stored, a phone's carrier. */
 export function useReadOnlyContacts(space: AdminSpace) {
