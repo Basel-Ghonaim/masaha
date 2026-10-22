@@ -197,6 +197,16 @@ export const DIRECTORY = {
       text: 'It may have been removed from the directory, or the link is wrong.',
     },
     noPhotos: 'No photos yet',
+    gallery: {
+      label: ({ name }: { name: string }) => `Photos of ${name}`,
+      view: ({ n }: { n: number }) => `View photo ${String(n)}`,
+      all: ({ count }: { count: number }) => `View all photos (${String(count)})`,
+      photo: ({ n, total, name }: { n: number; total: number; name: string }) =>
+        `Photo ${String(n)} of ${String(total)} — ${name}`,
+      previous: 'Previous',
+      next: 'Next',
+      close: 'Close',
+    },
     unverified: {
       /** An unverified space's notice, dated by its information's last update. */
       text: ({ ago }: { ago: string }) =>
@@ -212,6 +222,12 @@ export const DIRECTORY = {
     },
     status: { title: 'Status' },
     statusContact: { title: 'Status & contact' },
+    liveStatus: {
+      live: 'Live right now',
+      unverified: 'Live status is shown for verified spaces only',
+      unset: 'This space’s live status isn’t set up yet.',
+      failed: 'We couldn’t read the status just now',
+    },
     /** The straight-line distance from the visitor's point, the number left to right. */
     distance: ({ km }: { km: string }) => `About ${km} km away`,
     sections: {

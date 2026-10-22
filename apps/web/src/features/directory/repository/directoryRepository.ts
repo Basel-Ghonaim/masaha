@@ -4,6 +4,7 @@ import {
   type MapPins,
   type PublicSpace,
 } from '@masaha/shared/directory';
+import type { PublicOccupancy } from '@masaha/shared/occupancy';
 import { api, type Page } from '@shared/api';
 import { nearHeader } from '../services/nearPoint';
 import type { DirectoryRequest } from '../types/DirectoryRequest';
@@ -21,6 +22,8 @@ export interface DirectoryRepository {
   pins(request: PinsRequest): Promise<MapPins>;
   /** A publicly listed space's page, by its slug; a hidden, deleted or unknown one is a 404. */
   space(slug: string): Promise<PublicSpace>;
+  /** A publicly listed space's live status, by its slug. */
+  status(slug: string): Promise<PublicOccupancy>;
 }
 
 export function createDirectoryRepository(): DirectoryRepository {
@@ -32,5 +35,6 @@ export function createDirectoryRepository(): DirectoryRepository {
       }),
     pins: (request) => api.get<MapPins>('/map/spaces', { params: request }),
     space: (slug) => api.get<PublicSpace>(`/spaces/${encodeURIComponent(slug)}`),
+    status: (slug) => api.get<PublicOccupancy>(`/spaces/${encodeURIComponent(slug)}/occupancy`),
   };
 }

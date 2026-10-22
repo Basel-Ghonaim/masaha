@@ -1,7 +1,9 @@
 import { Badge, Button, cn, EmptyState } from '@shared/design-system';
+import { useCopy } from '@shared/copy';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useSpacePage } from '../../hooks/page/useSpacePage';
+import { useGallery } from '../../hooks/page/useGallery';
 import type { DirectorySlots } from '../../types/DirectorySlots';
 import { FailureAlert } from '../list/FailureAlert';
 import { AboutSection } from './AboutSection';
@@ -9,6 +11,7 @@ import { AmenitiesSection } from './AmenitiesSection';
 import { ContactBar } from './ContactBar';
 import { ContactList } from './ContactList';
 import { HoursSection } from './HoursSection';
+import { Gallery } from './Gallery';
 import { LocationSection } from './LocationSection';
 import { PageSkeleton } from './PageSkeleton';
 import { PricesSection } from './PricesSection';
@@ -36,9 +39,17 @@ export function SpaceDetails({
   /** The platform's contact, in the unverified notice's dialog. */
   ownerContact: ReactNode;
 }) {
+  const copy = useCopy();
   const view = useSpacePage(slug);
+  const gallery = useGallery(view.photos, view.header?.name.text ?? '');
 
-  if (view.state === 'loading') return <PageSkeleton />;
+  if (view.state === 'loading')
+    return (
+      <>
+        <h1 className="sr-only">{copy.site.links.space}</h1>
+        <PageSkeleton />
+      </>
+    );
   if (view.state === 'notFound')
     return (
       <EmptyState titleAs="h1" title={view.notFound.title} description={view.notFound.text}>
@@ -48,7 +59,12 @@ export function SpaceDetails({
       </EmptyState>
     );
   if (view.state === 'failed' || view.header === null)
-    return view.failure === null ? null : <FailureAlert failure={view.failure} />;
+    return view.failure === null ? null : (
+      <>
+        <h1 className="sr-only">{copy.site.links.space}</h1>
+        <FailureAlert failure={view.failure} />
+      </>
+    );
 
   const { panel, contacts, bar } = view;
   const panelShown = panel.today !== null || panel.distance !== null;
@@ -62,7 +78,7 @@ export function SpaceDetails({
       )}
     >
       <div className="flex min-w-0 flex-col gap-10 lg:col-span-8">
-        {/* The gallery's place, before the head (PR 3b). */}
+        <Gallery gallery={gallery} />
         <SpaceHeader header={view.header} areaName={areaName(view.header.areaId)} />
         {view.unverified !== null && (
           <UnverifiedNotice unverified={view.unverified} ownerContact={ownerContact} />

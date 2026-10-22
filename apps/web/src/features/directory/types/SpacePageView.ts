@@ -7,6 +7,7 @@ import type { PriceTab } from '../services/priceGroups';
 import type { WeekRow } from '../services/weekRows';
 import type { ListFailureView } from './DirectoryListView';
 import type { PriceGroupView } from './PriceGroupView';
+import type { PhotoUrls } from '@masaha/shared/spaces';
 
 /** A section's meta under its heading: its date, what else it says, and its stale badge. */
 export type SectionMeta = { lines: string[]; stale: string | null };
@@ -31,7 +32,16 @@ export type SpacePageView = {
     dialog: { title: string; text: string; close: string; none: string };
   } | null;
   /** The status card: today's hours and, while a point is held, the distance. */
-  panel: { title: string; today: string | null; distance: string | null };
+  panel: {
+    title: string;
+    today: string | null;
+    distance: string | null;
+    live:
+      | { kind: 'loading'; label: string }
+      | { kind: 'badge'; label: string; variant: 'success' | 'warning' | 'neutral'; live: string }
+      | { kind: 'line'; line: string };
+  };
+  photos: PhotoUrls[];
   prices: {
     title: string;
     meta: SectionMeta;

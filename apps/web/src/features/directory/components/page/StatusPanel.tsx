@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@shared/design-system';
+import { Badge, Card, CardContent, CardHeader, CardTitle, Skeleton } from '@shared/design-system';
 import type { ReactNode } from 'react';
 import type { SpacePageView } from '../../types/SpacePageView';
 
@@ -21,6 +21,16 @@ export function StatusPanel({
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1 text-body-sm">
+          {panel.live.kind === 'loading' && <Skeleton className="h-6 w-32" />}
+          {panel.live.kind === 'line' && <p>{panel.live.line}</p>}
+          {panel.live.kind === 'badge' && (
+            <>
+              <Badge variant={panel.live.variant}>{panel.live.label}</Badge>
+              <p className="text-muted-foreground">{panel.live.live}</p>
+            </>
+          )}
+        </div>
         {(panel.today !== null || panel.distance !== null) && (
           <div className="flex flex-col gap-1 text-body-sm">
             {panel.today !== null && <p>{panel.today}</p>}

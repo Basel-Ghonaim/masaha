@@ -1,9 +1,9 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
-import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { publicSpace } from '../../../../test/publicSpace';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { stubScreenWidth } from '../../../../test/screenWidth';
@@ -14,9 +14,20 @@ import { SpaceDetails } from './SpaceDetails';
 const NOW = new Date('2026-10-22T10:00:00Z');
 
 /** The page's details at `width`, the server answering with `space`. */
-function renderDetails(width: number, space = publicSpace(), ownerContact = <p>البريد</p>) {
+function renderDetails(
+  width: number,
+  space = publicSpace(),
+  ownerContact = <p>البريد</p>,
+  status: 'AVAILABLE' | 'FULL' | 'CLOSED' | null | 'ERROR' = 'AVAILABLE',
+) {
   stubScreenWidth(width);
-  fakeTransport(() => ok(space));
+  fakeTransport((request) =>
+    request.url?.endsWith('/occupancy')
+      ? status === 'ERROR'
+        ? refused(404, { type: 'not_found' })
+        : ok({ status })
+      : ok(space),
+  );
   const router = createMemoryRouter(
     [
       {
@@ -169,5 +180,55 @@ describe('SpaceDetails', () => {
       'aria-expanded',
       'true',
     );
+  });
+
+  it('shows the gallery pill for more than one photo and circles in its viewer', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    renderDetails(
+      390,
+      publicSpace({
+        photos: [
+          { card: '/one-card.jpg', page: '/one-page.jpg' },
+          { card: '/two-card.jpg', page: '/two-page.jpg' },
+          { card: '/three-card.jpg', page: '/three-page.jpg' },
+        ],
+      }),
+    );
+
+    expect(await screen.findByRole('button', { name: 'عرض الصورة 1' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'عرض الصورة 1' }));
+    expect(await screen.findByRole('dialog', { name: 'صور نور هب' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'الصورة 1 من 3 — نور هب' })).toHaveAttribute(
+      'src',
+      '/one-page.jpg',
+    );
+    await user.click(screen.getByRole('button', { name: 'التالية' }));
+    expect(screen.getByRole('img', { name: 'الصورة 2 من 3 — نور هب' })).toHaveAttribute(
+      'src',
+      '/two-page.jpg',
+    );
+    await user.click(screen.getByRole('button', { name: 'السابقة' }));
+    expect(screen.getByRole('img', { name: 'الصورة 1 من 3 — نور هب' })).toBeInTheDocument();
+  });
+
+  it('says when a verified space has no live status and when the first read fails', async () => {
+    renderDetails(390, publicSpace());
+    expect(await screen.findByText('الحالة مباشرة الآن')).toBeInTheDocument();
+
+    cleanup();
+    renderDetails(390, publicSpace(), <p>البريد</p>, null);
+    expect(
+      await screen.findByText('لم تكتمل معلومات الحالة المباشرة لهذه المساحة بعد.'),
+    ).toBeInTheDocument();
+    restoreTransport();
+    cleanup();
+    renderDetails(390, publicSpace({ isVerified: false }), <p>البريد</p>, null);
+    expect(
+      await screen.findByText('الحالة المباشرة تظهر للمساحات الموثّقة فقط'),
+    ).toBeInTheDocument();
+    restoreTransport();
+    cleanup();
+    renderDetails(390, publicSpace(), <p>البريد</p>, 'ERROR');
+    expect(await screen.findByText('تعذّر قراءة الحالة الآن')).toBeInTheDocument();
   });
 });

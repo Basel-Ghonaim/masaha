@@ -1,5 +1,6 @@
 import { DocumentTitle, RecordTitleProvider } from '@shared/routing';
 import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider, type RouteObject } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, ok, restoreTransport } from '../../test/fakeTransport';
@@ -149,7 +150,9 @@ describe("the site's routes", () => {
         ? ok([], 200)
         : request.url === '/lookups'
           ? ok({ governorates: [], areas: [], amenities: [] })
-          : ok(publicSpace({ nameAr: null })),
+          : request.url?.endsWith('/occupancy')
+            ? ok({ status: null })
+            : ok(publicSpace({ nameAr: null })),
     );
     const router = createMemoryRouter(
       [
@@ -180,6 +183,7 @@ describe("the site's routes", () => {
     await waitFor(() => {
       expect(document.title).toBe('Noor Hub · Masaha');
     });
+
     if (width >= 768) {
       const trail = main.getByRole('navigation', { name: 'Breadcrumb' });
       expect(within(trail).getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
@@ -196,6 +200,48 @@ describe("the site's routes", () => {
       );
       expect(main.queryByRole('navigation', { name: 'Breadcrumb' })).not.toBeInTheDocument();
     }
+  });
+
+  it('wires the unverified contact dialog with its none line and configured email', async () => {
+    stubScreenWidth(1440);
+    vi.stubEnv('VITE_CONTACT_EMAIL', '');
+    fakeTransport((request) =>
+      request.url === '/spaces'
+        ? ok([], 200)
+        : request.url === '/lookups'
+          ? ok({ governorates: [], areas: [], amenities: [] })
+          : request.url?.endsWith('/occupancy')
+            ? ok({ status: null })
+            : ok(publicSpace({ isVerified: false, contacts: [] })),
+    );
+    const router = createMemoryRouter(
+      [
+        {
+          HydrateFallback: () => null,
+          element: (
+            <RecordTitleProvider>
+              <DocumentTitle />
+              <Outlet />
+            </RecordTitleProvider>
+          ),
+          children: siteRoutes,
+        },
+      ],
+      { initialEntries: ['/spaces/noor-hub'] },
+    );
+    const Wrapper = queryWrapper();
+    render(
+      <Wrapper>
+        <RouterProvider router={router} />
+      </Wrapper>,
+    );
+    await screen.findByRole('heading', { level: 1, name: 'Noor Hub' });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Do you run this space? Contact us' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('There’s no way to reach us set up yet.');
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('show offline when a page throws while the browser reports no connection', async () => {

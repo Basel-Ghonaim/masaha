@@ -46,9 +46,12 @@ describe('useSpacePage', () => {
     missing.unmount();
 
     // The transport tries a GET twice more, after 1 s and 2 s, before it gives up.
-    const failed = renderPage((_request, index) =>
-      index < 3 ? refused(500, { type: 'server' }) : ok(publicSpace()),
-    );
+    let pageAttempts = 0;
+    const failed = renderPage((request) => {
+      if (request.url?.includes('/occupancy')) return ok({ status: 'AVAILABLE' });
+      pageAttempts += 1;
+      return pageAttempts <= 3 ? refused(500, { type: 'server' }) : ok(publicSpace());
+    });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3_100);
     });
@@ -65,7 +68,9 @@ describe('useSpacePage', () => {
     await waitFor(() => {
       expect(failed.result.current.state).toBe('ready');
     });
-    expect(failed.requests).toHaveLength(4);
+    expect(failed.requests.filter((request) => !request.url?.includes('/occupancy'))).toHaveLength(
+      4,
+    );
     const serverLine = failed.result.current.failure?.line;
     failed.unmount();
 

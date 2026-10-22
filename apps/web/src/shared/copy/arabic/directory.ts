@@ -176,6 +176,16 @@ export const DIRECTORY = {
       text: 'ربما أُزيلت من الدليل، أو أن الرابط غير صحيح.',
     },
     noPhotos: 'لا توجد صور بعد',
+    gallery: {
+      label: ({ name }: { name: string }) => `صور ${name}`,
+      view: ({ n }: { n: number }) => `عرض الصورة ${String(n)}`,
+      all: ({ count }: { count: number }) => `عرض كل الصور (${String(count)})`,
+      photo: ({ n, total, name }: { n: number; total: number; name: string }) =>
+        `الصورة ${String(n)} من ${String(total)} — ${name}`,
+      previous: 'السابقة',
+      next: 'التالية',
+      close: 'إغلاق',
+    },
     unverified: {
       text: ({ ago }: { ago: string }) =>
         `جمع فريقنا هذه المعلومات، ولم تؤكّدها إدارة المساحة بعد · آخر تحديث للمعلومات ${ago}`,
@@ -189,6 +199,12 @@ export const DIRECTORY = {
     },
     status: { title: 'الحالة' },
     statusContact: { title: 'الحالة والتواصل' },
+    liveStatus: {
+      live: 'الحالة مباشرة الآن',
+      unverified: 'الحالة المباشرة تظهر للمساحات الموثّقة فقط',
+      unset: 'لم تكتمل معلومات الحالة المباشرة لهذه المساحة بعد.',
+      failed: 'تعذّر قراءة الحالة الآن',
+    },
     distance: ({ km }: { km: string }) => `نحو ${km} كم`,
     sections: {
       prices: 'الأسعار',
