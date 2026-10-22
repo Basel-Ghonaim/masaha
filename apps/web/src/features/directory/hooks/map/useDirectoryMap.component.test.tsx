@@ -130,6 +130,19 @@ describe('useDirectoryMap', () => {
     expect(result.current.view.truncated).toBeNull();
   });
 
+  it('while a point is picked, hands no box back, so the centre is never sent', async () => {
+    const { result } = renderMap('/spaces?view=map', () => pins([pin(1), pin(2)], true));
+    await waitFor(() => {
+      expect(result.current.view.map.onViewChange).not.toBeNull();
+    });
+
+    act(() => {
+      nearMeStore.startPick();
+    });
+    expect(result.current.view.map.pick).not.toBeNull();
+    expect(result.current.view.map.onViewChange).toBeNull();
+  });
+
   it('asks only once when the whole set fits, and hands no box back', async () => {
     const { result, requests } = renderMap('/spaces?view=map', () => pins([pin(1)]));
     await waitFor(() => {

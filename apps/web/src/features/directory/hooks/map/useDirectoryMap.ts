@@ -72,7 +72,8 @@ export function useDirectoryMap(): DirectoryMapView {
   const answer = inView !== null && within.data !== undefined ? within.data : whole.data;
   const shownPins = answer?.pins ?? [];
 
-  // A move asks within the box in view only once the map has paused, and only past the ceiling.
+  // A move asks within the box in view only once the map has paused, and only past the ceiling;
+  // never while a point is picked, which needs no pins and whose box would carry its centre.
   const pause = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(
     () => () => {
@@ -81,7 +82,7 @@ export function useDirectoryMap(): DirectoryMapView {
     [],
   );
   const onViewChange =
-    whole.data?.truncated === true
+    whole.data?.truncated === true && near.state.status !== 'picking'
       ? (bounds: MapBounds) => {
           clearTimeout(pause.current);
           pause.current = setTimeout(() => {
