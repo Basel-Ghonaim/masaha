@@ -104,7 +104,7 @@ export const DOMAIN_ERROR_CODES = [
   // a visit's debt: a payment, from the ledger, or a customer for it (desk)
   'VISIT_WRITTEN_OFF',
   'VISIT_HAS_CUSTOMER',
-  // a customer archived: edited or checked in no more until restored (customers, desk)
+  // a customer archived: edited no more until restored (customers, desk)
   'CUSTOMER_ARCHIVED',
 ] as const;
 

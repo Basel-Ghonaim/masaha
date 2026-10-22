@@ -1,6 +1,6 @@
 # Occupancy
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
 > **Authority:** The `occupancy` capability: a space's state now: its capacity, private to its staff and set by its owner, who is present, and the live status. Its endpoints are owned by the API contract ([Capacity](../api/api-contract.md#capacity-managed), [Occupancy](../api/api-contract.md#occupancy-managed)); its entity by the [data model](../architecture/data-model.md#spaces), and the live-status rule by its [derived values](../architecture/data-model.md#derived-values-computed-not-stored). The API is built; on the web, the settings page's attendance card reads and sets the capacity.
 > **Scope:** the API module `occupancy` (L4); `@masaha/shared/occupancy`; the web feature `features/occupancy`, its capacity's hooks only (not dashboard-only: the directory will read the live status).
 
@@ -22,7 +22,7 @@
 ## Responsibility boundary
 
 - **Owns** the `space_occupancy` table, created on its first write, and the capacity's bound; the one definition of *present* and the one list of who is present; the pure live-status rule (`liveStatus.ts`) and the override's end (`overrideUntil.ts`) ([conventions › occupancy](../backend/conventions.md#occupancy-the-spaces-state-now)).
-- **Reads** the open visits and their charges so far from [`visits`](visits.md), the open subscription check-ins from `subscriptions`, the customers' names from `customers`, the closures in force from `announcements`, and the week from [`spaces`](spaces.md); each through its service, which alone reads its table. `subscriptions`, `customers` and `announcements` hold only these reads so far, with no capability document of their own.
+- **Reads** the open visits and their charges so far from [`visits`](visits.md), the open subscription check-ins from [`subscriptions`](subscriptions.md), the customers' names from [`customers`](customers.md), the closures in force from `announcements`, and the week from [`spaces`](spaces.md); each through its service, which alone reads its table. `announcements` holds only these reads so far, with no capability document of its own.
 - **Leaves** the space and its lock to [`spaces`](spaces.md); who may read or write to `can()` ([security › Authorization](../backend/security.md#authorization)); the stay limit and the other settings to [`space-settings`](space-settings.md).
 
 ## How it composes the platform

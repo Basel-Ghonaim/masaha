@@ -60,6 +60,9 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [112. A key that closed a visit with no payment is not remembered](112-a-key-that-closed-a-visit-with-no-payment-is-not-remembered.md)
 - [115. A write-off and its undo carry no key](115-a-write-off-and-its-undo-carry-no-key.md)
 - [120. Gaza dates are read by two zone databases](120-gaza-dates-are-read-by-two-zone-databases.md)
+- [121. The auto check-out can stall behind stays that always fail](121-the-auto-check-out-can-stall-behind-stays-that-always-fail.md)
+- [122. `subscription_usage` overflows on extreme usage-based prices](122-subscription-usage-overflows-on-extreme-usage-based-prices.md)
+- [123. A delayed retry of a customer edit can revert another desk's edit](123-a-delayed-retry-of-a-customer-edit-can-revert-another-desks-edit.md)
 - [130. The dashboard's shells have no skip link](130-the-dashboards-shells-have-no-skip-link.md)
 - [132. A paged list shows no sign of the next page loading](132-a-paged-list-shows-no-sign-of-the-next-page-loading.md)
 
