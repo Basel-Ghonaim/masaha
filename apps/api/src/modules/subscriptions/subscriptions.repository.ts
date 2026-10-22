@@ -72,12 +72,14 @@ export interface SubscriptionToCreate {
   priceTyped: { byId: number; reason: string } | null;
 }
 
-/** A check-in of a subscription, as a statement shows it. */
+/** A check-in of a subscription, as a statement shows it, with a closed stay's whole minutes. */
 export interface SubscriptionCheckIn {
   id: number;
   checkedInAt: Date;
   checkedOutAt: Date | null;
   checkoutMethod: 'MANUAL' | 'AUTO' | null;
+  /** `null` while it is open. */
+  minutes: number | null;
 }
 
 /** A subscription's row as its lock answers it. */
@@ -250,13 +252,34 @@ export function createSubscriptionsRepository() {
       });
     },
 
-    /** Every check-in of the space's subscription, the earliest first, then by id. */
-    checkInsOf(spaceId: number, subscriptionId: number): Promise<SubscriptionCheckIn[]> {
-      return prisma.checkIn.findMany({
-        where: { spaceId, subscriptionId },
-        select: { id: true, checkedInAt: true, checkedOutAt: true, checkoutMethod: true },
-        orderBy: [{ checkedInAt: 'asc' }, { id: 'asc' }],
-      });
+    /**
+     * Every check-in of the space's subscription, the earliest first, then by id, each closed one
+     * with its whole minutes by `subscription_usage`'s expression, so the statement's minutes add
+     * up to its progress (one rule, in SQL).
+     */
+    async checkInsOf(spaceId: number, subscriptionId: number): Promise<SubscriptionCheckIn[]> {
+      const rows = await prisma.$queryRaw<
+        {
+          id: number;
+          checked_in_at: Date;
+          checked_out_at: Date | null;
+          checkout_method: 'MANUAL' | 'AUTO' | null;
+          minutes: number | null;
+        }[]
+      >`
+        SELECT id, checked_in_at, checked_out_at, checkout_method::text AS checkout_method,
+               CASE WHEN checked_out_at IS NULL THEN NULL
+                    ELSE floor(extract(epoch FROM checked_out_at - checked_in_at) / 60)::integer
+               END AS minutes
+        FROM check_ins WHERE space_id = ${spaceId} AND subscription_id = ${subscriptionId}
+        ORDER BY checked_in_at, id`;
+      return rows.map((row) => ({
+        id: row.id,
+        checkedInAt: row.checked_in_at,
+        checkedOutAt: row.checked_out_at,
+        checkoutMethod: row.checkout_method,
+        minutes: row.minutes,
+      }));
     },
 
     /** The subscription that renewed this one of the space, or `null`. */

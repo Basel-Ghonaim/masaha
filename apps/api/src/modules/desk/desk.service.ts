@@ -856,8 +856,8 @@ export function createDeskService({
     /**
      * A subscription's statement (docs/backend/conventions.md › Composed reads): the subscription,
      * the space's (else `not_found`), with its state and money; its customer; its check-ins, each with
-     * a closed stay's whole minutes; its payments, voided ones marked; and, while it is not renewed,
-     * the start its renewal would take (`proposedStart`), else who renewed it. Its lists are whole,
+     * a closed stay's whole minutes (counted in SQL, as its progress); its payments, voided ones
+     * marked; and, while it is not renewed, the start its renewal would take (`proposedStart`), else who renewed it. Its lists are whole,
      * bounded by one subscription. Read without a lock.
      */
     async statement(space: LoadedSpace, subscriptionId: number): Promise<SubscriptionStatement> {
@@ -875,14 +875,12 @@ export function createDeskService({
       return {
         ...subscription,
         customer: { id: customer.id, name: customer.name, phone: customer.phone },
-        checkIns: checkIns.map(({ id, checkedInAt, checkedOutAt, checkoutMethod }) => ({
+        checkIns: checkIns.map(({ id, checkedInAt, checkedOutAt, checkoutMethod, minutes }) => ({
           id,
           checkedInAt: checkedInAt.toISOString(),
           checkedOutAt: checkedOutAt?.toISOString() ?? null,
           checkoutMethod,
-          minutes: checkedOutAt
-            ? Math.floor((checkedOutAt.getTime() - checkedInAt.getTime()) / 60_000)
-            : null,
+          minutes,
         })),
         payments: paymentsMade,
         renewal:
