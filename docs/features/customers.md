@@ -1,6 +1,6 @@
 # Customers
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
 > **Authority:** The `customers` capability: everyone a space keeps on file. Its endpoints are owned by the API contract ([Customers (managed)](../api/api-contract.md#customers-managed)); its entity by the [data model](../architecture/data-model.md#operations). The API is built; no web screen yet.
 > **Scope:** the API module `customers` (L2); `@masaha/shared/customers`. No web feature yet.
 
@@ -10,7 +10,7 @@
 - Edits a customer's name and phone; clearing the phone is allowed; an archived customer is not edited.
 - Restores an archived customer, as the owner, unless another customer now holds their phone; archives one for the desk, which decides whether they may be ([desk](desk.md)).
 - Keeps one phone to one customer of the space that is not archived.
-- Answers a page of the space's customers kept to the ids the desk's filters resolved, searched by a name or a phone's last digits, by name ([desk](desk.md)).
+- Answers a page of the space's customers kept to the ids the desk's filters resolved, searched by a name, a whole phone number or a phone's last digits, by name ([desk](desk.md)).
 - Answers the names the desk shows, and finds or creates the customer an unpaid visit is left to, by phone ([desk](desk.md)).
 
 ## Who uses it
@@ -36,7 +36,7 @@
 
 **The edit.** In one transaction: the space's lock and `can()`; the customer, found among the space's own (else `not_found`), not archived (else `CUSTOMER_ARCHIVED`); only the fields set to a new value (`customerChange`, pure), `null` clearing the phone; a new phone another customer holds → `PHONE_TAKEN`; `customer.edited` with only what changed. An edit that changes nothing writes nothing.
 
-**The page.** One raw query and its count: archived or not; `q` by `searchTermsOf` (pure) — digits only, two or more once spaces and a plus are removed, the end of the phone's digits; else the name, through the directory's `masaha_search_text`; each id list a filter resolved to, one array parameter read as a set (`IN (SELECT unnest(…))`); by name, then id.
+**The page.** One raw query and its count: archived or not; `q` by `searchTermsOf` (pure) — a whole number `normalisePhone` reads, that phone exactly; else digits only, two or more once a phone's separators are removed, the end of the phone's digits; else the name, through the directory's `masaha_search_text`; each id list a filter resolved to, one array parameter read as a set (`IN (SELECT unnest(…))`); by name, then id.
 
 **The archive and the restore.** The archive is the desk's transaction, which asks this module to set the column now, audited `customer.archived`. The restore is this module's: the space's lock and `can()` (`customers.archive`); the customer, the space's; one not archived answered as it is; a phone another customer now holds → `PHONE_TAKEN`; the column cleared, audited `customer.restored` with when they were archived.
 
@@ -61,3 +61,4 @@
 - #94 — the names of the customers present, for `occupancy`.
 - #95 — a customer found or created by phone for an unpaid visit.
 - #102 — a customer created, idempotent, and edited by the staff; the customers' key; a customer archived (for the desk) and restored by the owner; the list's page and its search.
+- #106 — the search finds a whole phone in any form (a local, international or separated number).

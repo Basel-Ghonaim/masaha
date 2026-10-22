@@ -90,9 +90,10 @@ export function createCustomersRepository() {
 
     /**
      * A page of the space's customers the filter keeps, by name then id, and how many it keeps.
-     * Raw SQL: each id list is one array parameter, read as a set (`IN (SELECT unnest(…))`), so no
-     * list, however long, meets PostgreSQL's bound on parameters. A phone is searched by its last
-     * digits, a name as the directory searches (`masaha_search_text`, data model › Search).
+     * Raw SQL: each id list is one array parameter, read as a set (`IN (SELECT unnest(…))`), so
+     * no list, however long, meets PostgreSQL's bound on parameters. A phone is searched whole or
+     * by its last digits, a name as the directory searches (`masaha_search_text`, data model ›
+     * Search).
      */
     async page(
       spaceId: number,
@@ -107,7 +108,9 @@ export function createCustomersRepository() {
       if (exclude.length > 0) {
         conditions.push(Prisma.sql`id NOT IN (SELECT unnest(${[...exclude]}::integer[]))`);
       }
-      if (search && 'phoneDigits' in search) {
+      if (search && 'phone' in search) {
+        conditions.push(Prisma.sql`phone = ${search.phone}`);
+      } else if (search && 'phoneDigits' in search) {
         conditions.push(
           Prisma.sql`regexp_replace(coalesce(phone, ''), '[^0-9]', '', 'g') LIKE '%' || ${search.phoneDigits}`,
         );

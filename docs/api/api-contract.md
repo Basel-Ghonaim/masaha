@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -413,7 +413,7 @@ Customer = {
 
 #### `GET /manage/spaces/:spaceId/customers` · 🧾
 - **Query:** `?q=&status=&kind=&packageId=&payment=&page=&limit=` (`customersQuerySchema`, `@masaha/shared/desk`):
-  - `q`, 1–60 characters: digits only, at least two once spaces and a plus are removed, match the end of a phone; anything else matches a name, Arabic folded as the directory's search folds it (data model › Search);
+  - `q`, 1–60 characters: a whole phone number in any form the phone field takes matches that phone; else digits only, at least two once a phone's separators (spaces, `+`, `-`, `.`, parentheses) are removed, match the end of a phone; anything else matches a name, Arabic folded as the directory's search folds it (data model › Search);
   - `status`: `UPCOMING`, `ACTIVE`, `ENDING_SOON` or `EXPIRED`, the customer's current subscription's (the one running, else the next, else the last); `ARCHIVED` lists the archived customers only, the owner's (reception `forbidden`, 403);
   - `kind`: `PACKAGE`, `CUSTOM` (their current subscription from a package, or not) or `NONE` (no subscription); `packageId`: the current subscription's package, which implies `PACKAGE` (`invalid_choice` on `kind` with another);
   - `payment`: `OWES` (a debt above zero), `CREDIT` (credit above zero) or `SETTLED` (neither).
