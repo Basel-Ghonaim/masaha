@@ -67,10 +67,16 @@ export function useDirectoryFilters() {
     apply: (change: Partial<DirectoryFilters>) => {
       write({ ...filtersOf(latest.current), ...change, page: 1 });
     },
-    /** Takes off every filter, the search and the order. */
-    clearAll: () => {
+    /** Takes off the search alone, keeping the filters and the order; best match goes with it. */
+    clearSearch: () => {
       search.clear();
-      write(filtersOf(new URLSearchParams()));
+      const current = filtersOf(latest.current);
+      write({
+        ...current,
+        q: undefined,
+        sort: current.sort === 'relevance' ? undefined : current.sort,
+        page: 1,
+      });
     },
     /** Takes off the filters, keeping the search and the order. */
     clearFilters: () => {

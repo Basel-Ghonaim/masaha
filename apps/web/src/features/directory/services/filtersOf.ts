@@ -7,7 +7,8 @@ import { MAX_SHEKELS } from './priceBounds';
 // page. The budget is in whole shekels, named min and max; the request sends agorot.
 
 const ORDERS: readonly DirectoryOrder[] = ['updated', 'name', 'relevance'];
-const DEFAULT_PERIOD = 'DAY';
+/** The period the budget applies to when the address names none. */
+export const DEFAULT_PERIOD = 'DAY';
 const MAX_ID = 2_147_483_647;
 const WHOLE = /^[1-9]\d*$/;
 

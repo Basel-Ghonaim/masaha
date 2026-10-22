@@ -120,7 +120,11 @@ export function useDirectoryList(): DirectoryListView {
   });
 
   const now = new Date();
-  const cards = (answer?.data ?? []).map((space) => cardViewOf(space, { english, now, copy }));
+  // A distance only while the list is ordered by distance, never from an answer kept once it stops.
+  const byDistance = point !== null;
+  const cards = (answer?.data ?? []).map((space) =>
+    cardViewOf(space, { english, now, copy, byDistance }),
+  );
 
   return {
     search: {
@@ -181,7 +185,12 @@ export function useDirectoryList(): DirectoryListView {
       noMatch: {
         title: words.noMatch.title,
         text: words.noMatch.text,
-        clear: { label: words.clearFilters, run: filters.clearAll },
+        // «مسح الفلاتر» takes off the filters, as the sheet's does, keeping the search and the
+        // order; when the search alone finds nothing, it takes off the search.
+        clear: {
+          label: words.clearFilters,
+          run: filters.applied > 0 ? panel.sheet.clear.run : filters.clearSearch,
+        },
       },
     },
     page: answer?.meta.currentPage ?? filters.filters.page,

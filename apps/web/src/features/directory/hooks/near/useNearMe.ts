@@ -8,11 +8,17 @@ import { nearMeStore, useNearState } from './nearMeStore';
 const ASK = { enableHighAccuracy: true, timeout: 8000, maximumAge: 300_000 } as const;
 
 /**
+ * How long near me waits for any answer. The device's own timeout counts only once the permission
+ * is given, and a permission prompt dismissed without a choice (as Firefox allows) answers nothing.
+ */
+const NO_ANSWER_MS = 15_000;
+
+/**
  * «الأقرب إليّ»: asks for the device's location only when pressed, never on load, and keeps only its
  * rounded point, in memory. Pressed while sorting, it stops sorting and keeps the point; pressed
  * with a point, it sorts again without asking. A refusal, an unavailable location, or a position
- * too imprecise or outside the Strip keeps nothing. Clearing drops the point and every answer
- * ordered by distance from it.
+ * too imprecise or outside the Strip keeps nothing; no answer within 15 s is a refusal, and an
+ * answer after it is dropped. Clearing drops the point and every answer ordered by distance from it.
  */
 export function useNearMe(): {
   state: NearState;
@@ -41,15 +47,30 @@ export function useNearMe(): {
         nearMeStore.refused('denied');
         return;
       }
-      nearMeStore.locating();
+      const asked = nearMeStore.locating();
+      // The first of the answer and the wait settles the ask; whatever comes after is dropped.
+      const settle = (write: () => void) => {
+        if (!nearMeStore.awaits(asked)) return;
+        clearTimeout(watchdog);
+        write();
+      };
+      const watchdog = setTimeout(() => {
+        settle(() => {
+          nearMeStore.refused('denied');
+        });
+      }, NO_ANSWER_MS);
       geolocation.getCurrentPosition(
         (position) => {
-          const judged = judgePosition(position.coords);
-          if (judged.status === 'granted') nearMeStore.granted(judged.point, 'device');
-          else nearMeStore.refused('imprecise');
+          settle(() => {
+            const judged = judgePosition(position.coords);
+            if (judged.status === 'granted') nearMeStore.granted(judged.point, 'device');
+            else nearMeStore.refused('imprecise');
+          });
         },
         () => {
-          nearMeStore.refused('denied');
+          settle(() => {
+            nearMeStore.refused('denied');
+          });
         },
         ASK,
       );

@@ -36,6 +36,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -115,6 +116,29 @@ describe('useNearMe', () => {
       device.succeed(30.044, 31.236, 20);
     });
     expect(result.current.near.state).toMatchObject({ status: 'imprecise', point: null });
+  });
+
+  it('ends asking as denied when no answer comes within 15 s, and drops an answer that comes after', () => {
+    vi.useFakeTimers();
+    const device = fakeGeolocation();
+    const { result } = renderNearMe();
+
+    act(() => {
+      result.current.near.press();
+    });
+    act(() => {
+      vi.advanceTimersByTime(14_999);
+    });
+    expect(result.current.near.state.status).toBe('locating');
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(result.current.near.state).toMatchObject({ status: 'denied', point: null });
+
+    act(() => {
+      device.succeed(31.5, 34.46, 30);
+    });
+    expect(result.current.near.state).toMatchObject({ status: 'denied', point: null });
   });
 
   it('stopping keeps the point; clearing drops it and every answer ordered by distance', () => {

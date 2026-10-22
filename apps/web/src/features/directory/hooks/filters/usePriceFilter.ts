@@ -1,6 +1,7 @@
 import { PRICE_PERIODS } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { DEFAULT_PERIOD } from '../../services/filtersOf';
 import { priceBounds } from '../../services/priceBounds';
 import type { DirectoryFilters } from '../../types/DirectoryFilters';
 import type { PriceFilterView } from '../../types/FiltersView';
@@ -18,8 +19,10 @@ const textsOf = ({ min, max }: Budget) => ({
 /**
  * The price filter: the period applies at once; the two bounds reach the address once typing
  * pauses, only their valid values, each refused one said under its field. An address changed
- * elsewhere (Back, «مسح») sets the texts again. The address writes a period only with a bound, so a
- * period chosen before any bound is kept here until one is typed.
+ * elsewhere (Back, a link) sets the texts again. The address writes a period only with a bound, so a
+ * period chosen before any bound is kept here until one is typed. Clearing the filters calls `reset`,
+ * which empties the fields, a refused text included, returns the period to the default and drops a
+ * bound still waiting for its pause.
  */
 export function usePriceFilter({
   filters,
@@ -27,7 +30,7 @@ export function usePriceFilter({
 }: {
   filters: DirectoryFilters;
   apply: (change: Partial<DirectoryFilters>) => void;
-}): PriceFilterView {
+}): { view: PriceFilterView; reset: () => void } {
   const words = useCopy().directory.filters;
   const bounded = filters.min !== undefined || filters.max !== undefined;
 
@@ -67,7 +70,7 @@ export function usePriceFilter({
   }, [texts]);
 
   const typed = priceBounds(texts.min, texts.max);
-  return {
+  const view: PriceFilterView = {
     label: words.price,
     period: {
       label: words.period,
@@ -98,5 +101,13 @@ export function usePriceFilter({
     },
     currency: words.currency,
     help: words.rangeHelp({ period: words.periodPrices[period] }),
+  };
+  return {
+    view,
+    // New texts restart the pause, so a bound typed just before is never written after the clear.
+    reset: () => {
+      setTexts({ min: '', max: '' });
+      setChosen(DEFAULT_PERIOD);
+    },
   };
 }

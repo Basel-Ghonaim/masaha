@@ -16,8 +16,8 @@ const SPACE: DirectorySpace = {
 };
 
 const NOW = new Date('2026-10-21T12:00:00Z');
-const card = (space: DirectorySpace, english = false) =>
-  cardViewOf(space, { english, now: NOW, copy: CATALOGUES.ar });
+const card = (space: DirectorySpace, { english = false, byDistance = false } = {}) =>
+  cardViewOf(space, { english, now: NOW, copy: CATALOGUES.ar, byDistance });
 
 describe('cardViewOf', () => {
   it('shows a live state by its word and its role: available success, full warning, closed neutral, none in words', () => {
@@ -47,7 +47,10 @@ describe('cardViewOf', () => {
       today: null,
       distance: null,
     });
-    expect(card({ ...SPACE, distanceMeters: 700 }).distance).toBe('على بعد \u20660.7\u2069 كم');
+    expect(card({ ...SPACE, distanceMeters: 700 }).distance).toBeNull();
+    expect(card({ ...SPACE, distanceMeters: 700 }, { byDistance: true }).distance).toBe(
+      'على بعد \u20660.7\u2069 كم',
+    );
     expect(card({ ...SPACE, nameAr: null, isVerified: false })).toMatchObject({
       name: { text: 'Focus Hub', lang: 'en', dir: 'ltr' },
       mark: 'F',

@@ -31,8 +31,18 @@ export function useFiltersPanel({
   const words = copy.directory.filters;
   const wide = useMediaQuery(WIDE);
   const [open, setOpen] = useState(false);
+  // The sheet closes once the screen reaches the sidebar's width, so it never reopens by itself on
+  // the way back below it.
+  if (wide && open) setOpen(false);
   const price = usePriceFilter({ filters, apply });
-  const clearAction = { disabled: applied === 0, run: clear };
+  // Clearing also resets the price's own fields, which hold what the address does not.
+  const clearAction = {
+    disabled: applied === 0,
+    run: () => {
+      price.reset();
+      clear();
+    },
+  };
 
   return {
     wide,
@@ -42,7 +52,7 @@ export function useFiltersPanel({
         apply({ areas: ids });
       },
     },
-    price,
+    price: price.view,
     spaces: {
       label: words.spaces,
       availableNow: {

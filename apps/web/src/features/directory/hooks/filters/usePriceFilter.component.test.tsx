@@ -16,7 +16,7 @@ function renderPrice(path = '/spaces') {
       const filters = useDirectoryFilters();
       return {
         filters,
-        price: usePriceFilter({ filters: filters.filters, apply: filters.apply }),
+        price: usePriceFilter({ filters: filters.filters, apply: filters.apply }).view,
         search: useLocation().search,
         navigate: useNavigate(),
       };
