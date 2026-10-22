@@ -21,11 +21,13 @@ export interface VisitCheckOut {
 }
 
 /**
- * A visit's payment after its check-out: the visit, the payment, and what was paid on the visit and
- * what it still owes, as of the answer (a retry's too).
+ * A payment on one item: the visit it paid after its check-out, or the subscription, the other
+ * `null`; the payment; and what was paid on the item and what it still owes, as of the answer (a
+ * retry's too). A usage-based subscription's balance is below zero while it holds credit.
  */
 export interface ReceivedPayment {
-  visit: DeskVisit;
+  visit: DeskVisit | null;
+  subscription: SubscriptionState | null;
   payment: VisitPayment;
   paidAgorot: number;
   balanceAgorot: number;

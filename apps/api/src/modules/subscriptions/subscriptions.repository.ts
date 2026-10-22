@@ -125,6 +125,18 @@ export function createSubscriptionsRepository() {
       }
     },
 
+    /** Locks the space's subscription's row (`FOR UPDATE`): its id and customer, or `null`. */
+    async lockIn(
+      spaceId: number,
+      id: number,
+      tx: Tx,
+    ): Promise<{ id: number; customerId: number } | null> {
+      const [locked] = await tx.$queryRaw<{ id: number; customer_id: number }[]>`
+        SELECT id, customer_id FROM subscriptions WHERE id = ${id} AND space_id = ${spaceId}
+        FOR UPDATE`;
+      return locked ? { id: locked.id, customerId: locked.customer_id } : null;
+    },
+
     /** The space's open check-ins, the earliest first, then by id. */
     openCheckInsIn(spaceId: number, tx: Tx = prisma): Promise<OpenCheckIn[]> {
       return tx.checkIn.findMany({

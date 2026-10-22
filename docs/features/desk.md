@@ -10,7 +10,7 @@
 - Answers a retried check-in the visit its idempotency key already made.
 - Leaves the stays it does not close to the auto check-out, which [`visits`](visits.md) and `subscriptions` run as timed jobs.
 - Checks a visit out: the charge at the quote's time, the payment taken, the rest left unpaid to a customer found or created by phone, and a price typed by hand where the visit has no rate, or an unpriced close; a retry answers the first result.
-- Receives a payment for a closed visit after its check-out, once per idempotency key; the rest left unpaid by the check-out's rule.
+- Receives a payment for a closed visit after its check-out, once per idempotency key; the rest left unpaid by the check-out's rule. Or a payment on a subscription of the space.
 - Leaves an uncollected visit's debt to a customer by phone, with no payment («تسجيل دينًا»).
 - Writes off, as the owner, what a closed, priced visit still owes, with a reason, and undoes it.
 - Archives a customer, as the owner, unless they are present.
@@ -40,6 +40,8 @@
 **The unpaid-part rule** (one helper, for the check-out and the payment). A visit with a customer keeps it and needs no phone; a phone that is not its customer's is refused (`VISIT_HAS_CUSTOMER`). A visit with none needs a phone, whose customer is found among those not archived, or created with the name given, else the visit's.
 
 **The payment after the check-out.** In one transaction, in this order: the space's lock and `can()` (`payments.record`); the visit's row (`FOR UPDATE`), not the space's → 404; the payment this key recorded, for a retry, answered with the visit and the sums as they are now; a key that paid another item → 409; an open visit → 409. Then the payment is inserted, which the ledger checks (written off, unpriced, above the balance); then what the visit was paid and still owes; if anything remains, the unpaid-part rule, and the visit's customer set when it changes. The rows are taken in this order: the space's, the visit's, the payment, the customer.
+
+**A subscription's payment** (the same route, `subscriptionId` instead of `visitId`). In the same transaction, after the space's lock and `can()` (`payments.record`): the subscription's row (`FOR UPDATE`), not the space's → `invalid_choice` on `subscriptionId`; the payment this key recorded, for another item → 409, for this one a retry, answered with the sums as of now; then the payment, which the ledger checks against a fixed price. Answered with the subscription's state, what was paid and what it owes (below zero while a usage-based one holds credit). An ended subscription, or an archived customer's, still takes one.
 
 **«تسجيل دينًا».** In one transaction, in this order: the space's lock and `can()` (`payments.record`); the visit's row (`FOR UPDATE`), not the space's → 404, still open → 409; written off → `VISIT_WRITTEN_OFF`; nothing owed → `VISIT_ALREADY_PAID` (an unpriced visit has a debt to leave); then the unpaid-part rule; the visit's own customer again → the visit as it is; else its customer is set, audited `visit.leftToCustomer`.
 
@@ -93,4 +95,4 @@
 - #97 — a payment on a visit another key closed refused; a check-out time before the check-in refused.
 - #100 — the owner's write-off of a visit's unpaid rest, and its undo; a visit's payment after its check-out; a visit's customer kept at an unpaid check-out (finding 100); «تسجيل دينًا».
 - #102 — a stay checked out after its due time closed and charged at it (finding 116); a customer archived by the owner, unless present; the customers list and file.
-- #106 — subscribing a customer, from a package or custom terms.
+- #106 — subscribing a customer, from a package or custom terms; a payment on a subscription.

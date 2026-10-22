@@ -28,14 +28,28 @@ export type CheckOutVisitRequest = z.infer<typeof checkOutVisitSchema>;
 const id = z.number().int().positive().max(2_147_483_647);
 
 /**
- * A visit's payment after its check-out: the visit it pays, the payment, and the phone, and the
- * customer's name, when part of the charge stays unpaid on a visit with no customer.
+ * A payment at the desk, on exactly one item: a closed visit after its check-out, or a subscription
+ * (neither: `required` on `visitId`, beside the body's other errors; both: `invalid_choice` on
+ * `subscriptionId`). The phone, and the customer's name, when part of a visit's charge stays unpaid
+ * on a visit with no customer.
  */
-export const receivePaymentSchema = paymentSchema.extend({
-  visitId: id,
-  phone: phoneSchema.optional(),
-  customerName: textSchema(1, VISITOR_NAME_MAX_LENGTH).optional(),
-});
+export const receivePaymentSchema = paymentSchema
+  .extend({
+    visitId: id.optional(),
+    subscriptionId: id.optional(),
+    phone: phoneSchema.optional(),
+    customerName: textSchema(1, VISITOR_NAME_MAX_LENGTH).optional(),
+  })
+  .refine(({ visitId, subscriptionId }) => visitId !== undefined || subscriptionId !== undefined, {
+    path: ['visitId'],
+    params: { code: 'required' },
+    // Also when another field is invalid, so a body naming no item says so at once.
+    when: ({ value }) => typeof value === 'object' && value !== null,
+  })
+  .refine(({ visitId, subscriptionId }) => visitId === undefined || subscriptionId === undefined, {
+    path: ['subscriptionId'],
+    params: { code: 'invalid_choice' },
+  });
 export type ReceivePaymentRequest = z.infer<typeof receivePaymentSchema>;
 
 /**

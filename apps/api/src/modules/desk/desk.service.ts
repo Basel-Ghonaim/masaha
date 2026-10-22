@@ -15,6 +15,7 @@ import type {
   UnpaidVisit,
   VisitCheckOut,
 } from '@masaha/shared/desk';
+import type { PaymentRequest } from '@masaha/shared/payments';
 import type {
   CheckInVisitRequest,
   DeskVisit,
@@ -192,31 +193,84 @@ export function createDeskService({
   }
 
   /**
+   * A subscription of the space with its state, what was paid on it and what it still owes, as of
+   * `at`, in the caller's transaction (its customer's items, one query).
+   */
+  async function withMoney(
+    space: LoadedSpace,
+    { id, customerId }: { id: number; customerId: number },
+    at: Date,
+    tx: Tx,
+  ): Promise<SubscriptionWithMoney> {
+    const [state] = await subscriptions.statesOf(space.id, { ids: [id] }, at, tx);
+    if (!state) throw new Error(`The subscription ${String(id)} is not the space's.`);
+    const items = await payments.itemBalances(space.id, customerId, at, tx);
+    const money = items.find((item) => item.kind === 'SUBSCRIPTION' && item.id === id);
+    return {
+      ...state,
+      paidAgorot: money?.paidAgorot ?? 0,
+      balanceAgorot: money?.balanceAgorot ?? state.dueAgorot,
+    };
+  }
+
+  /**
    * A subscribe's answer as of `at`, in the caller's transaction: the subscription with its state
    * and money, the payments given, and the customer's debt.
    */
   async function newSubscription(
     space: LoadedSpace,
-    { id, customerId }: { id: number; customerId: number },
+    made: { id: number; customerId: number },
     allocated: NewSubscription['payments'],
     at: Date,
     tx: Tx,
   ): Promise<NewSubscription> {
-    const [state] = await subscriptions.statesOf(space.id, { ids: [id] }, at, tx);
-    if (!state) throw new Error(`The subscription ${String(id)} is not the space's.`);
-    const items = await payments.itemBalances(space.id, customerId, at, tx);
-    const balances = await payments.customerBalances(space.id, [customerId], at, tx);
-    const money = items.find((item) => item.kind === 'SUBSCRIPTION' && item.id === id);
-    const subscription: SubscriptionWithMoney = {
-      ...state,
-      paidAgorot: money?.paidAgorot ?? 0,
-      balanceAgorot: money?.balanceAgorot ?? state.dueAgorot,
-    };
+    const subscription = await withMoney(space, made, at, tx);
+    const balances = await payments.customerBalances(space.id, [made.customerId], at, tx);
     return {
       subscription,
       payments: allocated,
-      debtAgorot: balances.get(customerId)?.debtAgorot ?? 0,
+      debtAgorot: balances.get(made.customerId)?.debtAgorot ?? 0,
     };
+  }
+
+  /**
+   * A payment on a subscription, under the space's lock, in this order: the subscription's row (`FOR
+   * UPDATE`), not the space's → `invalid_choice` on `subscriptionId`; the payment this key recorded,
+   * for another item → `conflict`, for this one a retry, answered with the sums as of now; then the
+   * payment, which the ledger checks (above a fixed price: `PAYMENT_EXCEEDS_DUE`; a usage-based one
+   * takes any amount, its credit). An ended or expired subscription, or an archived customer's,
+   * still takes one: its debt is owed.
+   */
+  async function subscriptionPayment(
+    actor: Actor,
+    space: LoadedSpace,
+    subscriptionId: number,
+    key: string,
+    payment: PaymentRequest,
+    tx: Tx,
+  ): Promise<ReceivedPayment> {
+    const locked = await subscriptions.lockIn(space.id, subscriptionId, tx);
+    if (!locked) throw AppError.validation({ subscriptionId: ['invalid_choice'] });
+    const recorded = await payments.findByKey(space.id, key, tx);
+    if (recorded && recorded.subscriptionId !== subscriptionId) {
+      throw AppError.conflict(undefined, 'This idempotency key paid another item');
+    }
+    const at = now();
+    const received =
+      recorded?.payment ??
+      (await payments.record(
+        {
+          spaceId: space.id,
+          item: { subscriptionId },
+          key,
+          ...payment,
+          recordedById: actor.id,
+          receivedAt: at,
+        },
+        tx,
+      ));
+    const { paidAgorot, balanceAgorot, ...subscription } = await withMoney(space, locked, at, tx);
+    return { visit: null, subscription, payment: received, paidAgorot, balanceAgorot };
   }
 
   /**
@@ -354,10 +408,10 @@ export function createDeskService({
           tx,
         );
         const payment = request.payment
-          ? await payments.recordForVisit(
+          ? await payments.record(
               {
                 spaceId: space.id,
-                visitId,
+                item: { visitId },
                 key,
                 ...request.payment,
                 recordedById: actor.id,
@@ -371,20 +425,26 @@ export function createDeskService({
     },
 
     /**
-     * Receives a payment for a closed visit after its check-out, in one transaction and in this
-     * order: the space's lock and `can()`; the visit's row (`FOR UPDATE`); the payment this key
-     * recorded, for a retry, answered with the visit and the sums as they are now; open →
-     * `conflict`; the payment, which the ledger checks (written off, unpriced, above the balance)
-     * before any phone is asked; then, if anything remains, the customer it is left to.
+     * Receives a payment on one item, in one transaction: the space's lock and `can()`, then the
+     * subscription's branch (`subscriptionPayment`), or, in this order: the visit's row (`FOR
+     * UPDATE`); the payment this key recorded, for a retry, answered with the visit and the sums as
+     * they are now; open → `conflict`; the payment, which the ledger checks (written off, unpriced,
+     * above the balance) before any phone is asked; then, if anything remains, the customer it is
+     * left to.
      */
     receivePayment(
       actor: Actor,
       space: LoadedSpace,
       key: string,
-      { visitId, phone, customerName, ...payment }: ReceivePaymentRequest,
+      { visitId, subscriptionId, phone, customerName, ...payment }: ReceivePaymentRequest,
     ): Promise<ReceivedPayment> {
       return runInTransaction(async (tx) => {
         await lockAtDesk(actor, space, tx, 'payments.record');
+        if (subscriptionId !== undefined) {
+          return subscriptionPayment(actor, space, subscriptionId, key, payment, tx);
+        }
+        // The schema lets no request name neither item.
+        if (visitId === undefined) throw AppError.validation({ visitId: ['required'] });
         const locked = await visits.lockIn(space.id, visitId, tx);
         if (!locked) throw AppError.notFound(undefined, 'Visit not found');
 
@@ -396,6 +456,7 @@ export function createDeskService({
           const { paidAgorot, balanceAgorot } = await balanceOf(space, locked, tx);
           return {
             visit: locked.visit,
+            subscription: null,
             payment: recorded.payment,
             paidAgorot,
             balanceAgorot: balanceAgorot ?? 0,
@@ -405,10 +466,10 @@ export function createDeskService({
           throw AppError.conflict(undefined, 'An open visit is paid at its check-out');
         }
 
-        const received = await payments.recordForVisit(
+        const received = await payments.record(
           {
             spaceId: space.id,
-            visitId,
+            item: { visitId },
             key,
             ...payment,
             recordedById: actor.id,
@@ -426,7 +487,7 @@ export function createDeskService({
             visit = await visits.leaveTo(actor.id, space.id, visitId, customerId, tx);
           }
         }
-        return { visit, payment: received, paidAgorot, balanceAgorot: rest };
+        return { visit, subscription: null, payment: received, paidAgorot, balanceAgorot: rest };
       });
     },
 

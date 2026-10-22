@@ -16,7 +16,7 @@ import { toItemPayment, toVisitPayment } from './payments.mapper.ts';
 import {
   createPaymentsRepository,
   type ItemBalanceRow,
-  type NewVisitPayment,
+  type NewPayment,
 } from './payments.repository.ts';
 
 /** An item a customer may owe on, with what is still owed: `null` while it has no due. */
@@ -28,24 +28,34 @@ interface Dependencies {
 }
 
 /**
- * The payment ledger (ADR 0010; docs/backend/conventions.md › The ledger's rules). So far a visit's
- * payment, taken at its check-out, and the uncollected visits. The database owns the ledger's rules:
- * nothing here repeats them.
+ * The payment ledger (ADR 0010; docs/backend/conventions.md › The ledger's rules): a payment on a
+ * visit or a subscription, the balances and the uncollected visits. The database owns the ledger's
+ * rules: nothing here repeats them.
  */
 export function createPaymentsService({ audit, visits }: Dependencies) {
   const repository = createPaymentsRepository();
   return {
     /**
-     * The space's payment recorded with this idempotency key, with the visit it settles, or `null`:
-     * a retried check-out's payment.
+     * The space's payment recorded with this idempotency key, with the item it settles (a visit or a
+     * subscription, the other `null`), or `null`: a retried request's payment.
      */
     async findByKey(
       spaceId: number,
       key: string,
       tx: Tx,
-    ): Promise<{ visitId: number | null; payment: VisitPayment } | null> {
+    ): Promise<{
+      visitId: number | null;
+      subscriptionId: number | null;
+      payment: VisitPayment;
+    } | null> {
       const row = await repository.findByKey(spaceId, key, tx);
-      return row && { visitId: row.visitId, payment: toVisitPayment(row) };
+      return (
+        row && {
+          visitId: row.visitId,
+          subscriptionId: row.subscriptionId,
+          payment: toVisitPayment(row),
+        }
+      );
     },
 
     /**
@@ -150,9 +160,12 @@ export function createPaymentsService({ audit, visits }: Dependencies) {
       return byVisit;
     },
 
-    /** Records a visit's payment, in the caller's transaction, audited `payment.recorded`. */
-    async recordForVisit(payment: NewVisitPayment, tx: Tx): Promise<VisitPayment> {
-      const row = await repository.createForVisit(payment, tx);
+    /**
+     * Records a payment on a visit or a subscription, in the caller's transaction, audited
+     * `payment.recorded` with its item; the ledger's trigger checks it against the item's due.
+     */
+    async record(payment: NewPayment, tx: Tx): Promise<VisitPayment> {
+      const row = await repository.create(payment, tx);
       await audit(
         {
           actorId: payment.recordedById,
@@ -160,11 +173,7 @@ export function createPaymentsService({ audit, visits }: Dependencies) {
           entityType: 'payment',
           entityId: row.id,
           spaceId: payment.spaceId,
-          after: {
-            visitId: payment.visitId,
-            amountAgorot: payment.amountAgorot,
-            method: payment.method,
-          },
+          after: { ...payment.item, amountAgorot: payment.amountAgorot, method: payment.method },
         },
         tx,
       );

@@ -97,6 +97,29 @@ describe("a visit's payment after its check-out", () => {
       phone: ['invalid_format'],
     });
   });
+
+  it('a payment names exactly one item: a visit or a subscription', () => {
+    const errorsOf = (input: unknown) => {
+      const result = receivePaymentSchema.safeParse(input);
+      return result.success ? null : toFieldErrors(result.error.issues, input);
+    };
+    const payment = { amountAgorot: 1_000, method: 'CASH' };
+    expect(receivePaymentSchema.parse({ subscriptionId: 4, ...payment })).toEqual({
+      subscriptionId: 4,
+      ...payment,
+    });
+    expect(errorsOf({ visitId: 7, subscriptionId: 4, ...payment })).toEqual({
+      subscriptionId: ['invalid_choice'],
+    });
+    expect(errorsOf({ subscriptionId: 0, ...payment })).toEqual({
+      subscriptionId: ['out_of_range'],
+    });
+    // Neither: the visit's field is required, beside the body's other errors.
+    expect(errorsOf({ amountAgorot: 0, method: 'CASH' })).toEqual({
+      visitId: ['required'],
+      amountAgorot: ['out_of_range'],
+    });
+  });
 });
 
 describe("a visit's debt left to a customer by phone", () => {

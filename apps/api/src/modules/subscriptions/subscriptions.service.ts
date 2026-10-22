@@ -98,6 +98,18 @@ export function createSubscriptionsService({
     /** The space's subscriptions with their states (above). */
     statesOf,
 
+    /**
+     * Locks the space's subscription's row (`FOR UPDATE`), after the space's lock: its id and
+     * customer, or `null` when it is not the space's.
+     */
+    lockIn(
+      spaceId: number,
+      id: number,
+      tx: Tx,
+    ): Promise<{ id: number; customerId: number } | null> {
+      return repository.lockIn(spaceId, id, tx);
+    },
+
     /** The space's subscription made with this idempotency key, in the caller's transaction. */
     findByKey(
       spaceId: number,

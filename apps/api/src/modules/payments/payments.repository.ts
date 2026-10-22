@@ -7,6 +7,7 @@ import type { Now } from '../subscriptions/index.ts';
 const VISIT_PAYMENT = {
   id: true,
   visitId: true,
+  subscriptionId: true,
   amountAgorot: true,
   method: true,
   note: true,
@@ -14,10 +15,11 @@ const VISIT_PAYMENT = {
   recordedById: true,
 } as const;
 
-/** A payment of a visit, as it is stored. */
+/** A payment of an item, as it is stored: its visit or its subscription, the other `null`. */
 export interface VisitPaymentRow {
   id: number;
   visitId: number | null;
+  subscriptionId: number | null;
   amountAgorot: number;
   method: PaymentRequest['method'];
   note: string | null;
@@ -32,10 +34,10 @@ export interface ItemPaymentRow extends VisitPaymentRow {
   voidReason: string | null;
 }
 
-/** A visit's payment to record, with its idempotency key. */
-export interface NewVisitPayment extends PaymentRequest {
+/** A payment to record on one item, a visit or a subscription, with its idempotency key. */
+export interface NewPayment extends PaymentRequest {
   spaceId: number;
-  visitId: number;
+  item: { visitId: number } | { subscriptionId: number };
   key: string;
   recordedById: number;
   receivedAt: Date;
@@ -251,14 +253,13 @@ export function createPaymentsRepository() {
       };
     },
 
-    /** Inserts the payment; the insert trigger checks it against the visit's charge. */
-    createForVisit(payment: NewVisitPayment, tx: Tx): Promise<VisitPaymentRow> {
-      const { spaceId, visitId, key, amountAgorot, method, note, recordedById, receivedAt } =
-        payment;
+    /** Inserts the payment; the insert trigger checks it against its item's due. */
+    create(payment: NewPayment, tx: Tx): Promise<VisitPaymentRow> {
+      const { spaceId, item, key, amountAgorot, method, note, recordedById, receivedAt } = payment;
       return tx.payment.create({
         data: {
           spaceId,
-          visitId,
+          ...item,
           idempotencyKey: key,
           amountAgorot,
           method,
