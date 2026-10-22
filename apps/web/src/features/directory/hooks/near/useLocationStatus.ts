@@ -6,15 +6,20 @@ import type { NearState } from '../../types/NearState';
  * Near me's state line. The privacy line shows only where a location is being sent: while asking,
  * and while the list is sorted by distance; never once refused or imprecise (design issue 5). The
  * refused states offer choosing one's area or setting one's location on the map instead; a point
- * set by hand offers setting it again. While a point is picked, the line is hidden (U7).
+ * set by hand offers setting it again. While a point is picked, the line is hidden (U7). On the
+ * map, which sends no location, a location in use says only that it is shown there and orders the
+ * list, with no privacy line and no stop (the button does that).
  */
 export function useLocationStatus({
+  view,
   state,
   stop,
   clear,
   chooseArea,
   pickOnMap,
 }: {
+  /** Where the line stands: the list, which sends the location, or the map, which does not. */
+  view: 'list' | 'map';
   state: NearState;
   stop: () => void;
   clear: () => void;
@@ -32,6 +37,16 @@ export function useLocationStatus({
       return { kind: 'locating', line: words.locating, privacy: words.privacy };
     case 'granted': {
       const sorting = state.sorting && state.source !== null;
+      if (view === 'map')
+        return {
+          kind: 'granted',
+          line: sorting ? words.onMap : null,
+          approximate: null,
+          privacy: null,
+          stop: null,
+          change: state.source === 'pin' ? { label: words.change, run: pickOnMap } : null,
+          clear: { label: words.clear, run: clear },
+        };
       return {
         kind: 'granted',
         line: sorting && state.source !== null ? words.sorted[state.source] : null,

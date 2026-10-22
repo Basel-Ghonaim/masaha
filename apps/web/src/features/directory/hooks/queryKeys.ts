@@ -10,6 +10,8 @@ export const directoryKeys = {
     ['public', 'directory', 'list', request, near] as const,
   /** The map's pins, one key per request. */
   pins: (request: PinsRequest) => ['public', 'directory', 'pins', request] as const,
+  /** A space's page, by its slug. */
+  space: (slug: string) => ['public', 'directory', 'space', slug] as const,
 };
 
 /** Whether a list's key holds a point: an answer ordered by distance, dropped with the location. */

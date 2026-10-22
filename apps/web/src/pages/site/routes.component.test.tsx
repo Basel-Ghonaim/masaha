@@ -1,9 +1,11 @@
-import { DocumentTitle } from '@shared/routing';
+import { DocumentTitle, RecordTitleProvider } from '@shared/routing';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryRouter, Outlet, RouterProvider, type RouteObject } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fakeTransport, restoreTransport } from '../../test/fakeTransport';
+import { fakeTransport, ok, restoreTransport } from '../../test/fakeTransport';
+import { publicSpace } from '../../test/publicSpace';
 import { queryWrapper } from '../../test/queryWrapper';
+import { stubScreenWidth } from '../../test/screenWidth';
 import { startPreferences } from '../../test/startPreferences';
 import { siteRoutes } from './routes';
 
@@ -135,6 +137,65 @@ describe("the site's routes", () => {
       expect(document.title).toBe('Spaces · Masaha');
     });
     expect(await screen.findByText('No spaces in the directory yet')).toBeInTheDocument();
+  });
+
+  it.each([
+    [1440, 'from 768 px a breadcrumb back to the Directory with its last search'],
+    [390, 'below it a back link'],
+  ])('shows a space’s page titled by its name; at %i, %s', async (width) => {
+    stubScreenWidth(width);
+    fakeTransport((request) =>
+      request.url === '/spaces'
+        ? ok([], 200)
+        : request.url === '/lookups'
+          ? ok({ governorates: [], areas: [], amenities: [] })
+          : ok(publicSpace({ nameAr: null })),
+    );
+    const router = createMemoryRouter(
+      [
+        {
+          HydrateFallback: () => null,
+          element: (
+            <RecordTitleProvider>
+              <DocumentTitle />
+              <Outlet />
+            </RecordTitleProvider>
+          ),
+          children: siteRoutes,
+        },
+      ],
+      { initialEntries: ['/spaces?q=Hub&verified=1'] },
+    );
+    const Wrapper = queryWrapper();
+    render(
+      <Wrapper>
+        <RouterProvider router={router} />
+      </Wrapper>,
+    );
+    await screen.findByRole('searchbox');
+    await router.navigate('/spaces/noor-hub');
+
+    const main = within(await screen.findByRole('main'));
+    expect(await main.findByRole('heading', { level: 1, name: 'Noor Hub' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.title).toBe('Noor Hub · Masaha');
+    });
+    if (width >= 768) {
+      const trail = main.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(trail).getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
+      expect(within(trail).getByRole('link', { name: 'Spaces' })).toHaveAttribute(
+        'href',
+        '/spaces?q=Hub&verified=1',
+      );
+      expect(within(trail).getByText('Noor Hub')).toHaveAttribute('aria-current', 'page');
+      expect(main.queryByRole('link', { name: 'Back to spaces' })).not.toBeInTheDocument();
+    } else {
+      expect(main.getByRole('link', { name: 'Back to spaces' })).toHaveAttribute(
+        'href',
+        '/spaces?q=Hub&verified=1',
+      );
+      expect(main.queryByRole('navigation', { name: 'Breadcrumb' })).not.toBeInTheDocument();
+    }
   });
 
   it('show offline when a page throws while the browser reports no connection', async () => {

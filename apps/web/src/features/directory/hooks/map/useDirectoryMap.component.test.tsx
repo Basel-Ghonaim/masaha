@@ -108,7 +108,8 @@ describe('useDirectoryMap', () => {
     await waitFor(() => {
       expect(result.current.view.state).toBe('ready');
     });
-    expect(result.current.view.truncated).toBe('تظهر أول 1000 مساحة؛ قرّب الخريطة لترى ما بقي.');
+    // The server's ceiling, formatted for the language.
+    expect(result.current.view.truncated).toBe('تظهر أول 1,000 مساحة؛ قرّب الخريطة لترى ما بقي.');
     const onViewChange = result.current.view.map.onViewChange;
     expect(onViewChange).not.toBeNull();
 
@@ -128,6 +129,19 @@ describe('useDirectoryMap', () => {
     });
     expect(requests.at(-1)?.params).toEqual({ bounds: '31.4,34.3,31.55,34.5' });
     expect(result.current.view.truncated).toBeNull();
+  });
+
+  it('while a point is picked, hands no box back, so the centre is never sent', async () => {
+    const { result } = renderMap('/spaces?view=map', () => pins([pin(1), pin(2)], true));
+    await waitFor(() => {
+      expect(result.current.view.map.onViewChange).not.toBeNull();
+    });
+
+    act(() => {
+      nearMeStore.startPick();
+    });
+    expect(result.current.view.map.pick).not.toBeNull();
+    expect(result.current.view.map.onViewChange).toBeNull();
   });
 
   it('asks only once when the whole set fits, and hands no box back', async () => {

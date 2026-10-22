@@ -9,7 +9,9 @@ import { overlayClasses } from '../Dialog';
 /**
  * A panel that slides over the page: from the start side for navigation (where the dashboard
  * sidebar sits), from the end for secondary panels, and from the bottom for the phone filter panel.
- * It is a modal dialog: it traps the focus while open and returns it to its trigger.
+ * It is a modal dialog: it traps the focus while open and returns it to its trigger. On request
+ * (`modal={false}`) it is not: no scrim and no trap, the page behind it still used, as the
+ * directory's chosen space on a phone.
  */
 export function Sheet(props: ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;

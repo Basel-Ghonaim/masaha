@@ -1,3 +1,4 @@
+import { MAP_PINS_CEILING } from '@masaha/shared/directory';
 import { GAZA_STRIP_BOUNDS } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { useMediaQuery } from '@shared/design-system';
@@ -18,6 +19,8 @@ import { useSelectedPin } from './useSelectedPin';
 
 /** From here up the selected space is a card over the map; below it, a bottom sheet. */
 const TABLET_UP = '(min-width: 768px)';
+/** From here up the map is tall enough for the picking card over it; below it, the card goes under. */
+const DESKTOP_UP = '(min-width: 1024px)';
 /** How long the map waits after a move before it asks within its view, as the search waits. */
 const VIEW_PAUSE_MS = 400;
 
@@ -37,8 +40,24 @@ export function useDirectoryMap(): DirectoryMapView {
   const words = copy.directory;
   const english = useLanguage() === 'en';
   const phone = !useMediaQuery(TABLET_UP);
+  const short = !useMediaQuery(DESKTOP_UP);
   const filters = useDirectoryFilters();
   const near = useNearMe();
+
+  // The pick ends with the map: leaving the map's view while picking restores the location from
+  // before. Judged a moment after the cleanup, so React's development double run of the effects
+  // (StrictMode) does not end a pick the map has just opened for.
+  const { cancelPick } = near;
+  const shown = useRef(false);
+  useEffect(() => {
+    shown.current = true;
+    return () => {
+      shown.current = false;
+      queueMicrotask(() => {
+        if (!shown.current) cancelPick();
+      });
+    };
+  }, [cancelPick]);
 
   const filtersKey = JSON.stringify(pinsRequestOf(filters.filters, null));
   const selection = useSelectedPin(filtersKey);
@@ -54,7 +73,8 @@ export function useDirectoryMap(): DirectoryMapView {
   const answer = inView !== null && within.data !== undefined ? within.data : whole.data;
   const shownPins = answer?.pins ?? [];
 
-  // A move asks within the box in view only once the map has paused, and only past the ceiling.
+  // A move asks within the box in view only once the map has paused, and only past the ceiling;
+  // never while a point is picked, which needs no pins and whose box would carry its centre.
   const pause = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(
     () => () => {
@@ -63,7 +83,7 @@ export function useDirectoryMap(): DirectoryMapView {
     [],
   );
   const onViewChange =
-    whole.data?.truncated === true
+    whole.data?.truncated === true && near.state.status !== 'picking'
       ? (bounds: MapBounds) => {
           clearTimeout(pause.current);
           pause.current = setTimeout(() => {
@@ -89,6 +109,7 @@ export function useDirectoryMap(): DirectoryMapView {
     sheetOnly: true,
   });
   const status = useLocationStatus({
+    view: 'map',
     state: near.state,
     stop: near.stop,
     clear: near.clear,
@@ -155,7 +176,8 @@ export function useDirectoryMap(): DirectoryMapView {
       failed: words.map.failed,
     },
     region: words.map.region,
-    busy: answer !== undefined && (whole.isFetching || within.isFetching),
+    // Busy from the first ask, before any pin is drawn, and while a later one is in flight.
+    busy: whole.isPending || whole.isFetching || within.isFetching,
     legend: {
       label: words.map.legend,
       items: [
@@ -196,7 +218,14 @@ export function useDirectoryMap(): DirectoryMapView {
         run: filters.applied > 0 ? panel.sheet.clear.run : filters.clearSearch,
       },
     },
-    truncated: answer?.truncated === true ? words.map.truncated : null,
+    loading: whole.isPending ? words.map.loading : null,
+    truncated:
+      answer?.truncated === true
+        ? words.map.truncated({
+            // The server's ceiling, in Western digits in Arabic too (localisation › Formatting).
+            count: new Intl.NumberFormat(english ? 'en' : 'ar-u-nu-latn').format(MAP_PINS_CEILING),
+          })
+        : null,
     selected:
       chosen === null
         ? null
@@ -206,6 +235,9 @@ export function useDirectoryMap(): DirectoryMapView {
             closeLabel: words.map.close,
             details: words.map.details,
           },
+    announce:
+      chosen !== null && phone ? words.map.detailsBelow({ name: cardOf(chosen).name.text }) : null,
     phone,
+    pickUnder: short,
   };
 }

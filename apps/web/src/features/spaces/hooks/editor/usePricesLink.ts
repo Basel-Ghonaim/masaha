@@ -1,7 +1,7 @@
 import type { AdminSpace } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
+import { updatedAgo } from '@shared/lib';
 import { useLanguage } from '@shared/localisation';
-import { updatedAgo } from '../../services/updatedAgo';
 import type { EditorPlace } from '../../types/EditorPlace';
 
 /**

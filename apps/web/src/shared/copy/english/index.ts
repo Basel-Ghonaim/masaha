@@ -6,6 +6,7 @@ import { FORMS } from './forms';
 import { LOOKUPS } from './lookups';
 import { MAP } from './map';
 import { PACKAGES } from './packages';
+import { PLATFORM_SETTINGS } from './platformSettings';
 import { PREFERENCES } from './preferences';
 import { SITE } from './site';
 import { SPACE_LINKS } from './spaceLinks';
@@ -34,6 +35,7 @@ export const ENGLISH = {
   lookups: LOOKUPS,
   map: MAP,
   packages: PACKAGES,
+  platformSettings: PLATFORM_SETTINGS,
   preferences: PREFERENCES,
   site: SITE,
   spaceLinks: SPACE_LINKS,

@@ -116,6 +116,8 @@ The web needs no settings to run. Its optional settings are read from `apps/web/
 
 - `VITE_GOOGLE_CLIENT_ID` turns on Google sign-in. It must be **the same client id** as the API's `GOOGLE_CLIENT_ID` (below), whose Google Cloud OAuth client lists `http://localhost:5320` as an authorised JavaScript origin. Without it, the sign-in and register pages show no Google button. A Google answer from a client whose id the API does not hold is refused as `GOOGLE_TOKEN_INVALID`.
 
+- `VITE_CONTACT_EMAIL` and `VITE_CONTACT_WHATSAPP` are the platform's contact, shown on About and to an unverified space's owner on its page. Each shows only when set and valid (a WhatsApp number in either form people type it); an empty one is not shown. Online, they are set in the Vercel project's *Settings › Environment Variables* (Production and Preview), then the site is redeployed, since Vite reads them when it builds.
+
 ### Running a second folder
 
 A second folder, such as a worktree, runs its web and its API beside the first on ports of its own, each set in that folder's own `.env` files, never committed:

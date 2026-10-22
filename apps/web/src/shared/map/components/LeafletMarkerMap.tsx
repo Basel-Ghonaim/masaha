@@ -100,7 +100,12 @@ function MarksMap({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className={cn('relative', picking && 'map-picking')}>
+      <div className={cn('relative isolate', picking && 'map-picking')}>
+        {/* The overlay comes first, so the caller's controls precede the marks in the tab order; it
+            stands above the map's panes, on a layer kept inside this frame. */}
+        {controls && (
+          <div className="pointer-events-none absolute inset-0 z-sticky">{overlay(controls)}</div>
+        )}
         {/* Leaflet lays its map out left to right, in either language. */}
         <div dir="ltr">
           <MapContainer
@@ -134,9 +139,6 @@ function MarksMap({
               {pick.keys}
             </p>
           </>
-        )}
-        {controls && (
-          <div className="pointer-events-none absolute inset-0">{overlay(controls)}</div>
         )}
       </div>
       {controls && under?.(controls)}

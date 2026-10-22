@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router';
 import { filtersOf, paramsOf, searchOf } from '../../services/filtersOf';
 import { requestOf } from '../../services/requestOf';
 import type { DirectoryFilters } from '../../types/DirectoryFilters';
+import { rememberDirectorySearch } from './directoryReturn';
 
 const addressOf = (params: URLSearchParams) => {
   const text = params.toString();
@@ -28,6 +29,8 @@ export function useDirectoryFilters() {
   const latest = useRef(params);
   useLayoutEffect(() => {
     latest.current = params;
+    // Kept for the way back from a space's page, in memory only.
+    rememberDirectorySearch(addressOf(params));
   }, [params]);
 
   const write = (next: DirectoryFilters) => {

@@ -48,7 +48,10 @@ export type MarkerMapProps = {
   label: string;
   /** The line shown when the map cannot load, its tiles or its code. */
   failed: string;
-  /** Drawn over the map, in the page's direction; its parts take the pointer back. */
+  /**
+   * Drawn over the map, in the page's direction, and before its marks in the tab order; its parts
+   * take the pointer back.
+   */
   overlay: (map: MarkerMapControls) => ReactNode;
   /** Drawn under the map, outside it, with the same controls, as what must not hide its centre. */
   under: ((map: MarkerMapControls) => ReactNode) | null;

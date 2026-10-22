@@ -10,6 +10,8 @@ const ABOUT = '/about';
 export const SITE_PATHS = {
   home: '/',
   spaces: '/spaces',
+  /** A space's page, by its slug; links to it are built by shared/routing's `publicSpacePath`. */
+  space: '/spaces/:slug',
   about: ABOUT,
   /** The about page's contact section, which the footer links to. */
   contact: `${ABOUT}#${CONTACT_ANCHOR}`,

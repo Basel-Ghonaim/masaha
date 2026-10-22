@@ -1,9 +1,9 @@
 import type { AdminSpace, FactGroup } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { useRefusalView, type FormFailureView } from '@shared/forms';
+import { updatedAgo } from '@shared/lib';
 import { useLanguage } from '@shared/localisation';
 import { useEffect, useState, type BaseSyntheticEvent } from 'react';
-import { updatedAgo } from '../../services/updatedAgo';
 import type { EditorPlace } from '../../types/EditorPlace';
 import type { SectionFrameView } from '../../types/SectionFrameView';
 import { useConfirmGroup } from '../confirm/useConfirmGroup';
