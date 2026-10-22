@@ -63,6 +63,9 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [130. The dashboard's shells have no skip link](130-the-dashboards-shells-have-no-skip-link.md)
 - [132. A paged list shows no sign of the next page loading](132-a-paged-list-shows-no-sign-of-the-next-page-loading.md)
 - [133. The place filter has no cap](133-the-place-filter-has-no-cap.md)
+- [134. Each render of the map rebuilds every marker](134-each-render-of-the-map-rebuilds-every-marker.md)
+- [135. In dark, the map's marks disagree with its legend](135-in-dark-the-maps-marks-disagree-with-its-legend.md)
+- [136. Near me's wait counts the time at the permission prompt](136-near-mes-wait-counts-the-time-at-the-permission-prompt.md)
 
 ## Accepted
 
