@@ -17,10 +17,22 @@ import {
   createPaymentsRepository,
   type ItemBalanceRow,
   type NewPayment,
+  type VisitPaymentRow,
 } from './payments.repository.ts';
 
 /** An item a customer may owe on, with what is still owed: `null` while it has no due. */
 export type ItemBalance = ItemBalanceRow & { balanceAgorot: number | null };
+
+/** The item a payment settles: its visit or its subscription, exactly one (the ledger's `CHECK`). */
+function itemOf({
+  visitId,
+  subscriptionId,
+}: Pick<VisitPaymentRow, 'visitId' | 'subscriptionId'>):
+  { visitId: number } | { subscriptionId: number } {
+  if (visitId !== null) return { visitId };
+  if (subscriptionId !== null) return { subscriptionId };
+  throw new Error('A payment settles exactly one item.');
+}
 
 interface Dependencies {
   audit: AuditWriter;
@@ -56,6 +68,27 @@ export function createPaymentsService({ audit, visits }: Dependencies) {
           payment: toVisitPayment(row),
         }
       );
+    },
+
+    /**
+     * The space's payments recorded with these keys, in the keys' order, each with its item (a visit
+     * or a subscription); a key that recorded none is left out. One query: a renewal's retry.
+     */
+    async findByKeys(
+      spaceId: number,
+      keys: readonly string[],
+      tx: Tx,
+    ): Promise<
+      { item: { visitId: number } | { subscriptionId: number }; payment: VisitPayment }[]
+    > {
+      const rows = new Map(
+        (await repository.findByKeys(spaceId, keys, tx)).map((row) => [row.idempotencyKey, row]),
+      );
+      return keys.flatMap((key) => {
+        const row = rows.get(key);
+        if (!row) return [];
+        return [{ item: itemOf(row), payment: toVisitPayment(row) }];
+      });
     },
 
     /**

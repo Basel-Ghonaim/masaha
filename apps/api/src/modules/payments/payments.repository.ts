@@ -116,6 +116,18 @@ export function createPaymentsRepository() {
       });
     },
 
+    /** The space's payments recorded with these idempotency keys, each with its key; one query. */
+    findByKeys(
+      spaceId: number,
+      keys: readonly string[],
+      tx: Tx,
+    ): Promise<(VisitPaymentRow & { idempotencyKey: string })[]> {
+      return tx.payment.findMany({
+        where: { spaceId, idempotencyKey: { in: [...keys] } },
+        select: { ...VISIT_PAYMENT, idempotencyKey: true },
+      });
+    },
+
     /** What was paid on each of these visits of the space, voided payments left out; none is absent. */
     async paidFor(
       spaceId: number,

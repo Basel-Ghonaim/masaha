@@ -1,7 +1,7 @@
 # ADR 0015 — Idempotency and concurrency at the front desk
 
 > **Status:** Accepted · **Date:** 2026-10-01
-> **Revised:** 2026-10-22 — rule 4 is done: customers carry the key since #102 (nullable: a customer the desk makes from a visit's phone is made under that check-out's or payment's key), and subscriptions since #106. #106
+> **Revised:** 2026-10-22 — rule 4 is done: customers carry the key since #102 (nullable: a customer the desk makes from a visit's phone is made under that check-out's or payment's key), and subscriptions since #106. A renewal's payments derive their keys from the request's, one per item it pays. #106
 
 ## Context
 The front desk works on a weak, intermittent connection. A request can reach the server, and its answer can be lost on the way back. The desk then retries, and a retried check-in or payment must never be recorded twice.

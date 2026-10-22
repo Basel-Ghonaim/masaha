@@ -102,13 +102,16 @@ const customTermsSchema = createPackageSchema.omit({ validityDays: true }).exten
 
 /**
  * Subscribes a customer: from a package of the space, or custom terms, exactly one of them (both or
- * neither: `invalid_choice` on `packageId`); a start date, else the server's.
+ * neither: `invalid_choice` on `packageId`); a start date, else the server's; the subscription it
+ * renews, if any; and a payment, which the server allocates over the customer's debts, oldest first.
  */
 export const subscribeSchema = z
   .object({
     packageId: id.optional(),
     custom: customTermsSchema.optional(),
     startsOn: dateSchema.optional(),
+    renewalOfId: id.optional(),
+    payment: paymentSchema.optional(),
   })
   .refine(({ packageId, custom }) => (packageId === undefined) !== (custom === undefined), {
     path: ['packageId'],

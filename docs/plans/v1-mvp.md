@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -229,13 +229,13 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | GET / POST / PATCH | `/manage/spaces/:spaceId/packages[/:packageId]` | GET 🧾 · writes 🏢 | subscription templates, listed whole, retired ones included; never public ([api-contract › Packages (managed)](../api/api-contract.md#packages-managed)) |
 | GET / POST | `/manage/spaces/:spaceId/customers` | 🧾 | list (search; filters: subscription type, status, payment), create |
 | GET / PATCH | `/manage/spaces/:spaceId/customers/:customerId` | 🧾 | details with subscriptions, balances and debt; edit |
-| POST | `/manage/spaces/:spaceId/customers/:customerId/subscriptions` | 🧾 | new or renewal, from a package or custom; warns when the customer has a balance |
+| POST | `/manage/spaces/:spaceId/customers/:customerId/subscriptions` | 🧾 | new or renewal, from a package or custom; an optional amount the server allocates oldest debt first, one payment per item, under one key; warns while an older debt remains |
 | GET / PATCH | `/manage/spaces/:spaceId/subscriptions/:id` | 🧾 | progress and statement; correct one |
 | POST | `/manage/spaces/:spaceId/subscriptions/:id/end` | 🧾 | end early: the end becomes today |
 | GET | `/manage/spaces/:spaceId/visits` | 🧾 | a date range (the open visits are answered by `…/occupancy`, the uncollected by `…/uncollected-visits`, since step 7) |
 | GET / POST | `/manage/spaces/:spaceId/check-ins` | 🧾 | subscription check-ins: `?open=true` or a date range; limit and full-space warnings in `meta.warnings` |
 | POST | `/manage/spaces/:spaceId/check-ins/:checkInId/check-out` | 🧾 | |
-| GET | `/manage/spaces/:spaceId/payments` | 🧾 | list: the owner sees all (date, staff and method filters), reception its own today. Recording one is built (`POST`, a visit's since step 7; a subscription's with step 8) |
+| GET | `/manage/spaces/:spaceId/payments` | 🧾 | list: the owner sees all (date, staff and method filters), reception its own today. Recording one is built (`POST`, a visit's since step 7; a subscription's since #106) |
 | POST | `/manage/spaces/:spaceId/payments/:paymentId/void` | 🏢 | reason required |
 | GET / POST | `/manage/spaces/:spaceId/announcements` | 🧾 | |
 | PATCH / DELETE | `/manage/spaces/:spaceId/announcements/:id` | 🧾 | |

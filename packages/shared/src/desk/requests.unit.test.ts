@@ -214,6 +214,19 @@ describe('subscribing a customer', () => {
     });
   });
 
+  it("a renewal names the renewed subscription; a payment takes a payment's bounds", () => {
+    expect(
+      subscribeSchema.parse({
+        packageId: 3,
+        renewalOfId: 5,
+        payment: { amountAgorot: 4_000, method: 'CASH' },
+      }),
+    ).toEqual({ packageId: 3, renewalOfId: 5, payment: { amountAgorot: 4_000, method: 'CASH' } });
+    expect(
+      errorsOf({ packageId: 3, renewalOfId: 0, payment: { amountAgorot: 0, method: 'CASH' } }),
+    ).toEqual({ renewalOfId: ['out_of_range'], 'payment.amountAgorot': ['out_of_range'] });
+  });
+
   it("a custom price needs a reason; the terms take a package's bounds and an optional end", () => {
     expect(
       subscribeSchema.parse({ custom: custom({ endsOn: '2026-11-10', daysPerWeek: 3 }) }),

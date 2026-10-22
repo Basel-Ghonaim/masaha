@@ -106,6 +106,10 @@ export const DOMAIN_ERROR_CODES = [
   'VISIT_HAS_CUSTOMER',
   // a customer archived: edited no more until restored (customers, desk)
   'CUSTOMER_ARCHIVED',
+  // a subscription renewed already: each is renewed at most once (desk)
+  'SUBSCRIPTION_ALREADY_RENEWED',
+  // warning only: the customer still owes on an earlier item after a subscribe's payment (desk)
+  'CUSTOMER_HAS_DEBT',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

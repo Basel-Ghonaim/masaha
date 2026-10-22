@@ -71,6 +71,14 @@ export interface SubscriptionToCreate {
   priceTyped: { byId: number; reason: string } | null;
 }
 
+/** A subscription's row as its lock answers it. */
+export interface LockedSubscription {
+  id: number;
+  customerId: number;
+  /** The subscription that renewed it; `null` while none has. */
+  renewedById: number | null;
+}
+
 /** A Gaza calendar date as a `@db.Date` value: its UTC midnight (conventions §11). */
 const dateOf = (date: string | null) => (date === null ? null : new Date(`${date}T00:00:00.000Z`));
 
@@ -125,16 +133,21 @@ export function createSubscriptionsRepository() {
       }
     },
 
-    /** Locks the space's subscription's row (`FOR UPDATE`): its id and customer, or `null`. */
-    async lockIn(
-      spaceId: number,
-      id: number,
-      tx: Tx,
-    ): Promise<{ id: number; customerId: number } | null> {
-      const [locked] = await tx.$queryRaw<{ id: number; customer_id: number }[]>`
-        SELECT id, customer_id FROM subscriptions WHERE id = ${id} AND space_id = ${spaceId}
-        FOR UPDATE`;
-      return locked ? { id: locked.id, customerId: locked.customer_id } : null;
+    /**
+     * Locks the space's subscription's row (`FOR UPDATE`): its id, its customer and the subscription
+     * that renewed it (`null` while none has), or `null` when it is not the space's.
+     */
+    async lockIn(spaceId: number, id: number, tx: Tx): Promise<LockedSubscription | null> {
+      const [locked] = await tx.$queryRaw<
+        { id: number; customer_id: number; renewed_by_id: number | null }[]
+      >`
+        SELECT s.id, s.customer_id,
+               (SELECT r.id FROM subscriptions r WHERE r.renewal_of_id = s.id) AS renewed_by_id
+        FROM subscriptions s WHERE s.id = ${id} AND s.space_id = ${spaceId}
+        FOR UPDATE OF s`;
+      return locked
+        ? { id: locked.id, customerId: locked.customer_id, renewedById: locked.renewed_by_id }
+        : null;
     },
 
     /** The space's open check-ins, the earliest first, then by id. */

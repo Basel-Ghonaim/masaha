@@ -10,6 +10,7 @@ import { currentSubscription } from './currentSubscription.ts';
 import { toSubscriptionState } from './subscriptions.mapper.ts';
 import {
   createSubscriptionsRepository,
+  type LockedSubscription,
   type OpenCheckIn,
   type SubscriptionToCreate,
 } from './subscriptions.repository.ts';
@@ -99,14 +100,10 @@ export function createSubscriptionsService({
     statesOf,
 
     /**
-     * Locks the space's subscription's row (`FOR UPDATE`), after the space's lock: its id and
-     * customer, or `null` when it is not the space's.
+     * Locks the space's subscription's row (`FOR UPDATE`), after the space's lock: its id, its
+     * customer and the one that renewed it, or `null` when it is not the space's.
      */
-    lockIn(
-      spaceId: number,
-      id: number,
-      tx: Tx,
-    ): Promise<{ id: number; customerId: number } | null> {
+    lockIn(spaceId: number, id: number, tx: Tx): Promise<LockedSubscription | null> {
       return repository.lockIn(spaceId, id, tx);
     },
 
