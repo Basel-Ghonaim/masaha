@@ -609,8 +609,9 @@ export function createDeskService({
 
     /**
      * Subscribes a customer, in one transaction and in this order: the space's lock and `can()`
-     * (`subscriptions.manage`); the subscription this key already made, for a retry, answered with
-     * the payments of its derived keys and the money as of now; the customer, the space's (else
+     * (`subscriptions.manage`); the subscription this key already made, another customer's →
+     * `conflict`, else a retry, answered with the payments of its derived keys and the money as of
+     * now; the customer, the space's (else
      * `not_found`) and not archived (`CUSTOMER_ARCHIVED`); the subscription it renews, locked, the
      * customer's own (else `invalid_choice` on `renewalOfId`) and not renewed yet
      * (`SUBSCRIPTION_ALREADY_RENEWED`); the package, the space's and offered (else `invalid_choice`
@@ -631,6 +632,9 @@ export function createDeskService({
         const links = await lockAtDesk(actor, space, tx, 'subscriptions.manage');
         const at = now();
         const made = await subscriptions.findByKey(space.id, key, tx);
+        if (made && made.customerId !== customerId) {
+          throw AppError.conflict(undefined, 'This idempotency key made another subscription');
+        }
         if (made) {
           const allocated = await payments.findByKeys(space.id, derivedKeys(key), tx);
           return subscribed(space, made, allocated, at, tx);

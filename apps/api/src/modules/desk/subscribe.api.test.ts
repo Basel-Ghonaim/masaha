@@ -276,6 +276,20 @@ describe('subscribing a customer', () => {
     expect(await storedSubscriptions()).toHaveLength(2);
   });
 
+  it("a key that subscribed another customer is a conflict under this one's path, writing nothing", async () => {
+    const pack = await monthly();
+    const key = randomUUID();
+    expect((await subscribe(owner, { packageId: pack.id }, { key })).status).toBe(201);
+    const { id: omar } = await createCustomer(spaceId, { name: 'Omar' });
+
+    const reused = await subscribe(owner, { packageId: pack.id }, { key, customer: omar });
+    expect(reused.status).toBe(409);
+    expect(errorOf(reused).type).toBe('conflict');
+    expect(errorOf(reused).code).toBeUndefined();
+    expect(await storedSubscriptions()).toHaveLength(1);
+    expect((await auditEntries()).map(({ action }) => action)).toEqual(['subscription.created']);
+  });
+
   it("refuses a missing key and an invalid body with 422 before anything is read; a stranger, another space's owner and the admin not_found", async () => {
     const missing = await subscribe(owner, { packageId: 1 }, { key: null, customer: 999_999 });
     expect(missing.status).toBe(422);
