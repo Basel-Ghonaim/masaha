@@ -55,6 +55,8 @@ function OnePlaceMap({ point, label, failed }: PlaceMapProps) {
           maxZoom={MAX_ZOOM}
           keyboard={false}
           scrollWheelZoom={false}
+          dragging={false}
+          touchZoom={false}
           zoomControl={false}
           attributionControl={false}
           className="h-72 w-full"
