@@ -181,6 +181,20 @@ describe('renewing a subscription', () => {
     ]);
   });
 
+  it('a retry after its own renewal, still unpaid, warns of no debt: the renewal is newer', async () => {
+    const key = randomUUID();
+    const first = await subscribe(reception, { packageId }, { key });
+    expect((first.body as { meta?: object }).meta).toBeUndefined();
+    const { subscription } = dataOf(first) as Answer;
+    const renewal = await subscribe(reception, { packageId, renewalOfId: subscription.id });
+    expect(renewal.status).toBe(201);
+
+    const retry = await subscribe(reception, { packageId }, { key });
+    expect(retry.status).toBe(201);
+    expect(dataOf(retry)).toMatchObject({ subscription: { id: subscription.id } });
+    expect((retry.body as { meta?: object }).meta).toBeUndefined();
+  });
+
   it('the payments are audited each, payment.recorded, after subscription.created', async () => {
     const visit = await owedVisit();
 

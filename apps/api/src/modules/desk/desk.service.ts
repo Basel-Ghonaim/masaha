@@ -239,10 +239,11 @@ export function createDeskService({
     const subscription = await withMoney(space, made, at, tx);
     const items = await payments.itemBalances(space.id, made.customerId, at, tx);
     const balances = await payments.customerBalances(space.id, [made.customerId], at, tx);
-    const olderDebt = items.some(
-      (item) =>
-        !(item.kind === 'SUBSCRIPTION' && item.id === made.id) && (item.balanceAgorot ?? 0) > 0,
-    );
+    // Older by the order `itemBalances` answers, the allocation's: a retry's later items (its own
+    // renewal) are not "earlier" debts.
+    const own = items.findIndex((item) => item.kind === 'SUBSCRIPTION' && item.id === made.id);
+    if (own < 0) throw new Error(`The subscription ${String(made.id)} is not its customer's.`);
+    const olderDebt = items.slice(0, own).some((item) => (item.balanceAgorot ?? 0) > 0);
     return {
       result: {
         subscription,
