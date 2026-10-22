@@ -108,7 +108,8 @@ describe('useDirectoryMap', () => {
     await waitFor(() => {
       expect(result.current.view.state).toBe('ready');
     });
-    expect(result.current.view.truncated).toBe('تظهر أول 1000 مساحة؛ قرّب الخريطة لترى ما بقي.');
+    // The server's ceiling, formatted for the language.
+    expect(result.current.view.truncated).toBe('تظهر أول 1,000 مساحة؛ قرّب الخريطة لترى ما بقي.');
     const onViewChange = result.current.view.map.onViewChange;
     expect(onViewChange).not.toBeNull();
 

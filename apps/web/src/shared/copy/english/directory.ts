@@ -168,7 +168,7 @@ export const DIRECTORY = {
     label: 'Map of spaces',
     /** The section around it. */
     region: 'Map',
-    /** A pin's name, as a button: the space's name, isolated, and its live status. */
+    /** A pin's name, as a button: the space's name, not isolated (an attribute, never drawn), and its live status. */
     pin: ({ name, status }: { name: string; status: string }) => `${name} — ${status}`,
     legend: 'Map legend',
     centre: 'Centre on my location',
@@ -183,7 +183,8 @@ export const DIRECTORY = {
     failed: 'The map didn’t load. Browse the spaces in the list.',
     /** While the pins are first asked for. */
     loading: 'Loading spaces…',
-    /** Past 1,000 pins, until the map is asked within its view. */
-    truncated: 'Showing the first 1,000 spaces; zoom in to see the rest.',
+    /** Past the server's ceiling of pins (`count`, formatted), until the map is asked within its view. */
+    truncated: ({ count }: { count: string }) =>
+      `Showing the first ${count} spaces; zoom in to see the rest.`,
   },
 } as const;

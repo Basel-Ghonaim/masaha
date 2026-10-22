@@ -1,3 +1,4 @@
+import { MAP_PINS_CEILING } from '@masaha/shared/directory';
 import { GAZA_STRIP_BOUNDS } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { useMediaQuery } from '@shared/design-system';
@@ -218,7 +219,13 @@ export function useDirectoryMap(): DirectoryMapView {
       },
     },
     loading: whole.isPending ? words.map.loading : null,
-    truncated: answer?.truncated === true ? words.map.truncated : null,
+    truncated:
+      answer?.truncated === true
+        ? words.map.truncated({
+            // The server's ceiling, in Western digits in Arabic too (localisation › Formatting).
+            count: new Intl.NumberFormat(english ? 'en' : 'ar-u-nu-latn').format(MAP_PINS_CEILING),
+          })
+        : null,
     selected:
       chosen === null
         ? null
