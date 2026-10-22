@@ -1,6 +1,6 @@
 # Packages
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
 > **Authority:** The `packages` capability: a space's packages, the subscription templates its owner keeps, private to its staff. Its endpoints are owned by the [API contract](../api/api-contract.md#packages-managed); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the web, the owner's private packages on Packages & prices.
 > **Scope:** the API module `packages` (L2); `@masaha/shared/packages`; the web feature `features/packages`, dashboard-only.
 
@@ -15,7 +15,8 @@
 ## Who uses it
 
 - **The space's owner,** on the dashboard's Packages & prices (`/dashboard/spaces/:spaceId/packages`): reads, adds and edits.
-- **The space's reception,** through the API: reads them, for the front desk, which will choose from them when it makes a subscription.
+- **The space's reception,** through the API: reads them, for the front desk, which chooses from them when it makes a subscription.
+- **The front desk** ([desk](desk.md)): a subscription copies an offered package's terms when it is made (`termsOf`), and keeps them whatever the package becomes.
 - Reception's desk does not read it on the web yet. The public never does: its packages are the space's published prices ([glossary](../project/glossary.md)).
 
 ## Responsibility boundary
@@ -58,7 +59,7 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 - **The read is one query, with no lock.** *Why:* one statement is never half of a change; the boundary has admitted the caller. 2026-10-18, #87.
 - **A new package is active, placed after the last** (D4). *Why:* as a new lookup row; the design's switch sits on the row, not in the sheet. 2026-10-18, #87.
 - **The writes are the owner's: refused at the route before the body is read, then decided again under the space's lock, on the links read there** (D1). *Why:* reception reads packages for the desk but never changes them ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)); a link ended meanwhile still decides ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)). 2026-10-18, #87.
-- **A package's price is above zero,** in whole agorot up to the prices' bound (the owner's DI-10). *Why:* as a space's prices: a free offer is an announcement. The database still takes zero until the desk's migration ([finding 80](../architecture/findings/80-the-database-still-takes-a-package-with-a-price-of-zero.md)). 2026-10-18, #87.
+- **A package's price is above zero,** in whole agorot up to the prices' bound (the owner's DI-10). *Why:* as a space's prices: a free offer is an announcement. The database refuses zero too since the migration `subscription_terms` ([finding 80](../architecture/findings/80-the-database-still-takes-a-package-with-a-price-of-zero.md), resolved 2026-10-22, #106). 2026-10-18, #87.
 - **A name is the package's own within its space, retired ones included,** refused on its field by the database's key, in the write's own transaction (the owner's O8). *Why:* the desk tells packages apart by name; no check before the write can race it. 2026-10-18, #87.
 - **One name, 1–60 characters, in whatever language the owner types** (the model). *Why:* the owner's label for their own staff, as long as a price's label. 2026-10-18, #87.
 - **The shift is one of the space's own, as the database's key holds it** (D6). *Why:* the key through `(shiftId, spaceId)` refuses another space's shift; `packages` reads no shift, as `spaces` reads no package ([spaces › Decisions](spaces.md#api-decisions)). 2026-10-18, #87.
@@ -90,7 +91,6 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 
 ## Open findings
 
-- [80](../architecture/findings/80-the-database-still-takes-a-package-with-a-price-of-zero.md): the database still takes a package of price zero.
 - [101](../architecture/findings/101-the-end-sheet-is-not-full-width-on-a-phone.md): the package sheet is not full width on a phone.
 - [102](../architecture/findings/102-the-package-sheets-summary-is-announced-on-every-keystroke.md): the sheet's summary is announced on every keystroke.
 
@@ -99,6 +99,7 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 ### API history
 
 - #87 — a space's packages, on the API: listed whole to its staff, added and edited by its owner, retired rather than deleted.
+- #106 — the database refuses a free package (finding 80); a package's terms read for a subscription to copy.
 
 ### Web history
 

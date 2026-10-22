@@ -50,6 +50,7 @@ export async function createSubscription(
     data: {
       spaceId: customer.spaceId,
       customerId: customer.id,
+      idempotencyKey: randomUUID(),
       name: 'شهري',
       billing: 'FIXED',
       priceAgorot: 30_000,

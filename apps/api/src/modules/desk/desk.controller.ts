@@ -5,8 +5,11 @@ import type {
   CustomerRow,
   CustomersQuery,
   LeaveToCustomerRequest,
+  NewSubscription,
   ReceivedPayment,
   ReceivePaymentRequest,
+  SubscribeRequest,
+  SubscriptionStatement,
   VisitCheckOut,
 } from '@masaha/shared/desk';
 import type { CheckInVisitRequest, DeskVisit, WriteOffVisitRequest } from '@masaha/shared/visits';
@@ -105,6 +108,27 @@ export function createDeskController(service: DeskService) {
     customerFile: async (req: Request, res: Response) => {
       const customerFile = await service.customerFile(spaceOf(req), parseId(req.params.customerId));
       sendSuccess(res, customerFile satisfies CustomerFile);
+    },
+
+    /** 201 every time, a retry included; the warnings in `meta` only when there are some. */
+    subscribe: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const { result, warnings } = await service.subscribe(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.customerId),
+        idempotencyKeyOf(res),
+        req.body as SubscribeRequest,
+      );
+      sendSuccess(res, result satisfies NewSubscription, {
+        status: 201,
+        ...(warnings.length > 0 && { meta: { warnings } }),
+      });
+    },
+
+    statement: async (req: Request, res: Response) => {
+      const statement = await service.statement(spaceOf(req), parseId(req.params.subscriptionId));
+      sendSuccess(res, statement satisfies SubscriptionStatement);
     },
 
     /** 200 with the customer; one already archived is answered as it is. */

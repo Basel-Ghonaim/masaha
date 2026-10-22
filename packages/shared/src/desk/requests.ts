@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
-import { paginationQuerySchema, phoneSchema, textSchema } from '../core/index.ts';
+import { dateSchema, paginationQuerySchema, phoneSchema, textSchema } from '../core/index.ts';
 import { CUSTOMER_NAME_MAX_LENGTH } from '../customers/index.ts';
+import { createPackageSchema } from '../packages/index.ts';
 import { paymentSchema } from '../payments/index.ts';
 import { SUBSCRIPTION_STATUSES } from '../subscriptions/index.ts';
 import { priceVisitSchema, VISITOR_NAME_MAX_LENGTH } from '../visits/index.ts';
@@ -27,14 +28,28 @@ export type CheckOutVisitRequest = z.infer<typeof checkOutVisitSchema>;
 const id = z.number().int().positive().max(2_147_483_647);
 
 /**
- * A visit's payment after its check-out: the visit it pays, the payment, and the phone, and the
- * customer's name, when part of the charge stays unpaid on a visit with no customer.
+ * A payment at the desk, on exactly one item: a closed visit after its check-out, or a subscription
+ * (neither: `required` on `visitId`, beside the body's other errors; both: `invalid_choice` on
+ * `subscriptionId`). The phone, and the customer's name, when part of a visit's charge stays unpaid
+ * on a visit with no customer.
  */
-export const receivePaymentSchema = paymentSchema.extend({
-  visitId: id,
-  phone: phoneSchema.optional(),
-  customerName: textSchema(1, VISITOR_NAME_MAX_LENGTH).optional(),
-});
+export const receivePaymentSchema = paymentSchema
+  .extend({
+    visitId: id.optional(),
+    subscriptionId: id.optional(),
+    phone: phoneSchema.optional(),
+    customerName: textSchema(1, VISITOR_NAME_MAX_LENGTH).optional(),
+  })
+  .refine(({ visitId, subscriptionId }) => visitId !== undefined || subscriptionId !== undefined, {
+    path: ['visitId'],
+    params: { code: 'required' },
+    // Also when another field is invalid, so a body naming no item says so at once.
+    when: ({ value }) => typeof value === 'object' && value !== null,
+  })
+  .refine(({ visitId, subscriptionId }) => visitId === undefined || subscriptionId === undefined, {
+    path: ['subscriptionId'],
+    params: { code: 'invalid_choice' },
+  });
 export type ReceivePaymentRequest = z.infer<typeof receivePaymentSchema>;
 
 /**
@@ -72,3 +87,34 @@ export const customersQuerySchema = paginationQuerySchema
     { path: ['kind'], params: { code: 'invalid_choice' } },
   );
 export type CustomersQuery = z.infer<typeof customersQuerySchema>;
+
+/** The longest reason a price typed at the desk carries. */
+export const PRICE_REASON_MAX_LENGTH = 200;
+
+/**
+ * A custom subscription's terms, typed at the desk: a package's terms with no validity, an optional
+ * end date instead, and why the price was typed (data model › Hand-typed prices).
+ */
+const customTermsSchema = createPackageSchema.omit({ validityDays: true }).extend({
+  endsOn: dateSchema.optional(),
+  reason: textSchema(1, PRICE_REASON_MAX_LENGTH),
+});
+
+/**
+ * Subscribes a customer: from a package of the space, or custom terms, exactly one of them (both or
+ * neither: `invalid_choice` on `packageId`); a start date, else the server's; the subscription it
+ * renews, if any; and a payment, which the server allocates over the customer's debts, oldest first.
+ */
+export const subscribeSchema = z
+  .object({
+    packageId: id.optional(),
+    custom: customTermsSchema.optional(),
+    startsOn: dateSchema.optional(),
+    renewalOfId: id.optional(),
+    payment: paymentSchema.optional(),
+  })
+  .refine(({ packageId, custom }) => (packageId === undefined) !== (custom === undefined), {
+    path: ['packageId'],
+    params: { code: 'invalid_choice' },
+  });
+export type SubscribeRequest = z.infer<typeof subscribeSchema>;

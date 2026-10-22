@@ -160,6 +160,7 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
     const examStudent = await tx.subscription.create({
       data: {
         spaceId,
+        idempotencyKey: randomUUID(),
         customerId: sara.id,
         packageId: exams.id,
         name: exams.name,
@@ -173,6 +174,7 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
     const split = await tx.subscription.create({
       data: {
         spaceId,
+        idempotencyKey: randomUUID(),
         customerId: mohammed.id,
         packageId: splitWeek.id,
         name: splitWeek.name,
@@ -187,6 +189,7 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
     const everyOtherDay = await tx.subscription.create({
       data: {
         spaceId,
+        idempotencyKey: randomUUID(),
         customerId: nour.id,
         name: 'يوم بعد يوم',
         startsOn: at.date(-10),
@@ -195,17 +198,20 @@ export async function seedDemo(db: PrismaClient, input: DemoInput): Promise<bool
         billing: 'FIXED',
         priceAgorot: 20_000,
         priceSetById: reception.id,
+        priceReason: 'سعر متفق عليه لثلاثة أيام في الأسبوع',
       },
     });
     const hoursPack = await tx.subscription.create({
       data: {
         spaceId,
+        idempotencyKey: randomUUID(),
         customerId: yousef.id,
         name: '20 ساعة',
         totalHours: 20,
         billing: 'FIXED',
         priceAgorot: 10_000,
         priceSetById: owner.id,
+        priceReason: 'سعر خاص لباقة ساعات',
       },
     });
 

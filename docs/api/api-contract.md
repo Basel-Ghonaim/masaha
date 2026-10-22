@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -9,7 +9,7 @@
 - Auth: `Authorization: Bearer <accessToken>` on protected endpoints; the refresh token travels only as its cookie. A protected endpoint reads the account on every request: a token whose account does not exist or is suspended, or that was signed before every session of the account last ended (a password change, a reset, a suspension even once restored, a role change, a temporary password, a Google link), answers `unauthorized` (401), and the role it acts with is the account's now ([security.md](../backend/security.md#authorization)).
 - The server **never sends display text** for the UI. It sends error `type`, an optional domain `code`, and field-error codes; the client translates ([ADR 0006](../architecture/decisions/0006-localisation-approach.md)).
 - **Request id:** every response carries an `X-Request-Id` header, a UUID the server generates for each request, and an error repeats it in the envelope (§2). It matches the request's log lines ([backend conventions §10](../backend/conventions.md#10-logging)). The server ignores any id the client sends.
-- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in and check-out, and a visit's payment after its check-out (2026-10-20, #100) ([Front desk (managed)](#front-desk-managed)), and a customer's creation (2026-10-21, #102, [Customers (managed)](#customers-managed)); a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
+- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in and check-out, and a visit's payment after its check-out (2026-10-20, #100) ([Front desk (managed)](#front-desk-managed)), a customer's creation (2026-10-21, #102, [Customers (managed)](#customers-managed)), and a subscription's (2026-10-22, #106, [Subscriptions (managed)](#subscriptions-managed)), whose payments take keys derived from its own (SHA-256 of the key and the payment's place, as a UUID), so its retry finds them; a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
 
 ## 2. Response envelope
 
@@ -65,7 +65,8 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - a space's packages (`GET /manage/spaces/:spaceId/packages`), retired ones included: a space keeps tens at most, typed by hand, and the owner's list and the front desk's picker both read them whole (§5, *Packages (managed)*; why: [packages › Decisions](../features/packages.md#api-decisions)).
 - a space's staff (`GET /manage/spaces/:spaceId/staff`), every reception link, active or not: a space has few, and the owner's page reads them whole (§5, *Staff (managed)*; why: [space-links › Decisions](../features/space-links.md#api-decisions)).
 - the people present at a space (`GET /manage/spaces/:spaceId/occupancy`), bounded by who is there: the desk's main view reads its state in one request on a weak connection (§5, *Occupancy (managed)*; why: [occupancy › Decisions](../features/occupancy.md#api-decisions)).
-- a customer's subscriptions and unpaid visits in their file (`GET /manage/spaces/:spaceId/customers/:customerId`), bounded by one customer (§5, *Customers (managed)*; 2026-10-21, #102).
+- a customer's subscriptions and unpaid visits in their file (`GET /manage/spaces/:spaceId/customers/:customerId`), bounded by one customer (§5, *Customers (managed)*; 2026-10-21, #102);
+- a subscription's check-ins and payments in its statement (`GET /manage/spaces/:spaceId/subscriptions/:subscriptionId`), bounded by one subscription (§5, *Subscriptions (managed)*; 2026-10-22, #106).
 
 ## 5. Endpoints
 
@@ -413,7 +414,7 @@ Customer = {
 
 #### `GET /manage/spaces/:spaceId/customers` · 🧾
 - **Query:** `?q=&status=&kind=&packageId=&payment=&page=&limit=` (`customersQuerySchema`, `@masaha/shared/desk`):
-  - `q`, 1–60 characters: digits only, at least two once spaces and a plus are removed, match the end of a phone; anything else matches a name, Arabic folded as the directory's search folds it (data model › Search);
+  - `q`, 1–60 characters: a whole phone number in any form the phone field takes matches that phone; else digits only, at least two once a phone's separators (spaces, `+`, `-`, `.`, parentheses) are removed, match the end of a phone; anything else matches a name, Arabic folded as the directory's search folds it (data model › Search);
   - `status`: `UPCOMING`, `ACTIVE`, `ENDING_SOON` or `EXPIRED`, the customer's current subscription's (the one running, else the next, else the last); `ARCHIVED` lists the archived customers only, the owner's (reception `forbidden`, 403);
   - `kind`: `PACKAGE`, `CUSTOM` (their current subscription from a package, or not) or `NONE` (no subscription); `packageId`: the current subscription's package, which implies `PACKAGE` (`invalid_choice` on `kind` with another);
   - `payment`: `OWES` (a debt above zero), `CREDIT` (credit above zero) or `SETTLED` (neither).
@@ -422,15 +423,17 @@ Customer = {
 
 #### `GET /manage/spaces/:spaceId/customers/:customerId` · 🧾
 - **200:** `CustomerFile`: the customer, their debt and credit, who of them is present (an open check-in or an open visit), every subscription with its status, progress, due, paid and balance (the latest started first, then by id), and their unpaid visits — closed, not written off, owing or unpriced — the oldest first, each with its payments, voided ones marked. Its lists are answered whole (§4). Read without a lock.
+- **An archived customer's file** is answered to the owner and reception alike: their debts are still collected at the desk (the owner's decision, 2026-10-22, #106).
 - **Errors:** `not_found` (404), also for a customer that is not the space's.
 
 ```ts
 CustomerBalance = { debtAgorot: number, creditAgorot: number }   // debt: the positive balances; credit: a usage-based subscription's paid ahead
 SubscriptionState = {
-  id, customerId, packageId: number | null, name,
+  id, customerId, packageId: number | null, renewalOfId: number | null, name,
   startsOn: string | null, endsOn: string | null,                 // Gaza dates, YYYY-MM-DD
   totalDays, daysPerWeek, hoursPerDay, totalHours: number | null,
   billing: "FIXED" | "PER_HOUR" | "PER_DAY", priceAgorot, audience, shiftId: number | null,
+  priceTyped: { byId, reason } | null,                            // a price typed at the desk
   ended: { at, byId } | null,
   status: "UPCOMING" | "ACTIVE" | "ENDING_SOON" | "EXPIRED",
   progress: { daysUsed, daysThisWeek, minutesUsed, minutesToday },   // days with a check-in; closed stays' whole minutes
@@ -446,6 +449,58 @@ CustomerFile = { customer: Customer } & CustomerBalance & {
   unpaidVisits: { visit: DeskVisit, payments: ItemPayment[], paidAgorot, balanceAgorot: number | null }[]
 }
 ```
+
+### Subscriptions (managed)
+
+A customer's subscriptions, at the desk: made from a package of the space or typed there ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). The statement is the staff's read; subscribing, correcting a subscription's limits, dates and name, and ending it early are the staff's (🧾); correcting its price and billing is the owner's (🏢). Each write is refused with `forbidden` (403) before its body is read for whoever may not, and again for an owner or reception whose link ended meanwhile. Built 2026-10-22, #106.
+
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the subscription as the entity and its space as the entry's: `subscription.created` (`after`: its customer, its terms and dates, `packageId`, `renewalOfId`, and a typed price's `reason`, else `null`); `subscription.corrected` (`before` and `after`: only the fields that changed); `subscription.priceCorrected` (`before`: `{ billing, priceAgorot }`; `after`: the same with `reason`); `subscription.ended` (`before`: `{ endsOn }`; `after`: `{ endsOn, endedAt }`). A correction that changes nothing, and a repeated end, write nothing.
+
+```ts
+NewSubscription = {
+  subscription: SubscriptionState & { paidAgorot, balanceAgorot },   // as of the answer
+  payments: { item: { visitId } | { subscriptionId }, payment: VisitPayment }[],
+  debtAgorot: number                                                 // the customer's, as of the answer
+}
+SubscriptionStatement = SubscriptionState & { paidAgorot, balanceAgorot } & {
+  customer: { id, name, phone: string | null },
+  checkIns: { id, checkedInAt, checkedOutAt: string | null, checkoutMethod: "MANUAL" | "AUTO" | null,
+              minutes: number | null }[],                            // a closed stay's whole minutes; the earliest first
+  payments: ItemPayment[],                                           // voided ones marked; the earliest received first
+  renewal: { startsOn: string } | null,                              // while not renewed: the start a renewal would take
+  renewedById: number | null
+}
+```
+
+#### `POST /manage/spaces/:spaceId/customers/:customerId/subscriptions` · 🧾 · `Idempotency-Key`
+- **Body:** exactly one of `packageId` and `custom` (both or neither: `invalid_choice` on `packageId`), and `startsOn?`, a Gaza date, `renewalOfId?`, the subscription it renews, and `payment?` (`{ amountAgorot, method, note? }`, a payment's bounds).
+  - `packageId`: a package of the space that is offered; the subscription copies its name, limits, billing, price, audience and shift, and ends `validityDays` after its start, both days included.
+  - `custom`: typed at the desk, by the owner always and by reception only where the space's settings allow it — `{ name, endsOn?, totalDays?, daysPerWeek?, hoursPerDay?, totalHours?, billing, priceAgorot, audience, shiftId?, reason }`, a package's fields and bounds with an optional end instead of a validity, and the price's reason, 1–200 characters, recorded with who typed it ([data-model › Hand-typed prices](../architecture/data-model.md#front-desk-and-money)).
+  - **The start date:** the one sent; else, for a renewal, the day after the renewed one's end while it is not expired and its end is not before today; else today (Gaza).
+  - **A renewal** renews one of the customer's own subscriptions, at most once (the database's unique key behind the check).
+  - **The payment** (K3, decision 8): the server allocates the amount over the customer's items that still owe, the oldest first (a visit before a subscription made at the same instant, then by id), each at most its balance, and gives the rest to the new subscription; at most 50 items, the 49 oldest debts and the new one. One payment per item, in that order, audited `payment.recorded` each, all in the request's transaction: the ledger refuses a rest above a fixed new price (`PAYMENT_EXCEEDS_DUE`), and then nothing is written, the subscription included.
+  - **Warning:** `meta.warnings` holds `CUSTOMER_HAS_DEBT` while an item older than the new subscription still owes after the payments (ADR 0010 rule 7); it never refuses.
+- **201:** `NewSubscription`; a retry with the same key answers the first subscription and the payments of its derived keys, the money and the warning as of now, 201, and writes nothing.
+- **Errors**, in this order, each writing nothing: `validation` (422) on `idempotencyKey` (§1), then on the body, before anything is read; `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404) for a customer that is not the space's, also for a space deleted meanwhile; `conflict` (409) `CUSTOMER_ARCHIVED` for an archived customer; `validation` (422) `invalid_choice` on `renewalOfId` for a subscription that is not the customer's, `conflict` (409) `SUBSCRIPTION_ALREADY_RENEWED` for one renewed already; `validation` (422) `invalid_choice` on `packageId` for a package that is not the space's or is retired; `forbidden` (403) `PRICE_TYPING_NOT_ALLOWED` for custom terms reception may not type; `validation` (422) `out_of_range` on `custom.endsOn` for an end before the start, `invalid_choice` on `custom.shiftId` for a shift that is not the space's; `conflict` (409) `PAYMENT_EXCEEDS_DUE` from the ledger.
+
+#### `GET /manage/spaces/:spaceId/subscriptions/:subscriptionId` · 🧾
+- **200:** `SubscriptionStatement`: the subscription's state, what was paid and what it owes, its customer, every check-in with a closed stay's whole minutes (an open one's are `null`), every payment, voided ones marked, and, while no subscription renews it, the start a renewal would take (the day after its end while it is not expired and its end is not before today, else today); once renewed, `renewal` is `null` and `renewedById` names the renewal. Its lists are answered whole (§4). Read without a lock.
+- **Errors:** `not_found` (404), also for a subscription that is not the space's.
+
+#### `PATCH /manage/spaces/:spaceId/subscriptions/:subscriptionId` · 🧾
+- **Body** (`correctSubscriptionSchema`, `@masaha/shared/subscriptions`): `{ name?, startsOn?, endsOn?, totalDays?, daysPerWeek?, hoursPerDay?, totalHours? }`, a package's bounds; `null` clears the end or a limit. Only the fields set to a new value change; the price, the billing, the audience, the shift and the package are not corrected here (the name is, the owner's decision on Q8, 2026-10-22, #106).
+- **200:** `SubscriptionState`, as of the answer.
+- **Errors**, each writing nothing: `validation` (422) on the body, before anything is read; `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404) for a subscription that is not the space's; `conflict` (409) `SUBSCRIPTION_ENDED` for one ended early; `validation` (422) `out_of_range` on `endsOn` for an end before the start.
+
+#### `PUT /manage/spaces/:spaceId/subscriptions/:subscriptionId/price` · 🏢
+- **Body** (`correctPriceSchema`): `{ billing, priceAgorot, reason }`, both terms together, with why (1–200 characters). Reception is refused `forbidden` (403) before the body is read.
+- **200:** `SubscriptionState`: the price recorded as typed by the owner, with the reason (`priceTyped`); the same billing and price answer it as it is and write nothing.
+- **Errors**, each writing nothing: `validation` (422) on the body; `forbidden` (403); `not_found` (404) for a subscription that is not the space's; `conflict` (409) `SUBSCRIPTION_ENDED` for one ended early, and `PRICE_BELOW_PAID`, from the database, for a fixed price below what was paid on it (voided payments left out).
+
+#### `POST /manage/spaces/:spaceId/subscriptions/:subscriptionId/end` · 🧾
+- **No body.** Ends the subscription early («إنهاء الاشتراك»): its end becomes today — its start, if it has not started; never later than its end was — with who ended it and when. It is `EXPIRED` from then. No payment, refund or proration; what is owed stays owed, and an open check-in on it stays open.
+- **200:** `SubscriptionState`; one already ended is answered as it is, writing nothing.
+- **Errors**, each writing nothing: `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404) for a subscription that is not the space's.
 
 ### Front desk (managed)
 
@@ -508,14 +563,18 @@ VisitTerms = {
 - **Errors:** `validation` (422), each writing nothing: on `idempotencyKey` (§1); on the body, before anything is read; `out_of_range` on `checkedOutAt`, also for a time before the visit's check-in; `required` on `phone` when any part is left unpaid on a visit with no customer; `required` on `charge` when the visit has no rate and the caller may type a price; `invalid_choice` on `charge` when the visit has a rate; `forbidden` (403) `PRICE_TYPING_NOT_ALLOWED` for a typed price reception may not type, and no code for an owner or reception whose link ended meanwhile; `conflict` (409) `PAYMENT_EXCEEDS_DUE` for a payment above the charge, `VISIT_NOT_PRICED` for a payment on an unpriced close, both from the ledger, `VISIT_ALREADY_CLOSED` for a payment on a visit another key already closed, `VISIT_HAS_CUSTOMER` for a phone that is not the visit's customer's, and no code for a key that paid another visit; `not_found` (404) for a visit that is not the space's, also for a space deleted meanwhile.
 
 #### `POST /manage/spaces/:spaceId/payments` · 🧾 · `Idempotency-Key`
-- **Body** (`receivePaymentSchema`, `@masaha/shared/desk`): `{ visitId, amountAgorot, method, note?, phone?, customerName? }`: the visit it pays, and a payment as at the check-out. Step 8 adds `subscriptionId`, one of the two.
-- **201:** `ReceivedPayment`: the visit, the payment recorded with the caller as who took it, and what the visit was paid and still owes. A **retry** with the same key answers 201 with the first payment and records nothing; the visit and the two sums are as of the retry, as the warnings of a check-in are (ADR 0015's "same body", weakened for them). Built 2026-10-20, #100.
+- **Body** (`receivePaymentSchema`, `@masaha/shared/desk`): `{ visitId?, subscriptionId?, amountAgorot, method, note?, phone?, customerName? }`: exactly one item it pays, a visit or a subscription (neither: `required` on `visitId`; both: `invalid_choice` on `subscriptionId`, 2026-10-22, #106), and a payment as at the check-out.
+- **201:** `ReceivedPayment`: the visit or the subscription it paid (the other `null`), the payment recorded with the caller as who took it, and what the item was paid and still owes. A **retry** with the same key answers 201 with the first payment and records nothing; the visit and the two sums are as of the retry, as the warnings of a check-in are (ADR 0015's "same body", weakened for them). Built 2026-10-20, #100.
+- **A subscription's payment** (2026-10-22, #106): a subscription of the space (another space's, or none: `invalid_choice` on `subscriptionId`), its row locked; ended, expired or an archived customer's, it still takes one, its debt being owed. The ledger refuses an amount above a fixed price (`PAYMENT_EXCEEDS_DUE`); a usage-based subscription takes any amount, and its `balanceAgorot` is below zero while it holds credit. No phone is asked: a subscription has its customer.
 - **Only a closed visit:** an open one is paid at its check-out. The ledger checks the payment first, so its refusals come before any phone is asked for. **If part stays unpaid,** the check-out's rule applies: a visit with a customer keeps it; one with none needs a `phone`, whose customer is found or created.
-- **Errors**, in this order, each writing nothing: `validation` (422) on `idempotencyKey` (§1), then on the body, before anything is read; `forbidden` (403) for a reception or owner whose link ended meanwhile; `not_found` (404) for a visit that is not the space's; `conflict` (409) with no code for a key that paid another item, and for a visit still open; from the ledger, `VISIT_WRITTEN_OFF` for a written-off visit, `VISIT_NOT_PRICED` for one with no charge, `PAYMENT_EXCEEDS_DUE` above what is owed; then `validation` (422) `required` on `phone` when part stays unpaid on a visit with no customer, and `conflict` (409) `VISIT_HAS_CUSTOMER` for a phone that is not the visit's customer's.
-- **Audit:** `payment.recorded`; `customer.created` for a new customer; `visit.leftToCustomer` (`after`: `{ customerId }`) when the visit gains its customer, each in the change's own transaction.
+- **Errors**, in this order, each writing nothing: `validation` (422) on `idempotencyKey` (§1), then on the body, before anything is read; `forbidden` (403) for a reception or owner whose link ended meanwhile; `not_found` (404) for a visit that is not the space's, `validation` (422) `invalid_choice` on `subscriptionId` for a subscription that is not; `conflict` (409) with no code for a key that paid another item, and for a visit still open; from the ledger, `VISIT_WRITTEN_OFF` for a written-off visit, `VISIT_NOT_PRICED` for one with no charge, `PAYMENT_EXCEEDS_DUE` above what is owed; then `validation` (422) `required` on `phone` when part stays unpaid on a visit with no customer, and `conflict` (409) `VISIT_HAS_CUSTOMER` for a phone that is not the visit's customer's.
+- **Audit:** `payment.recorded` (`after`: `{ visitId | subscriptionId, amountAgorot, method }`); `customer.created` for a new customer; `visit.leftToCustomer` (`after`: `{ customerId }`) when the visit gains its customer, each in the change's own transaction.
 
 ```ts
-ReceivedPayment = { visit: DeskVisit, payment: VisitPayment, paidAgorot: number, balanceAgorot: number }
+ReceivedPayment = {
+  visit: DeskVisit | null, subscription: SubscriptionState | null,   // the item paid; the other null
+  payment: VisitPayment, paidAgorot: number, balanceAgorot: number   // below zero: a usage-based subscription's credit
+}
 ```
 
 #### `GET /manage/spaces/:spaceId/visits/:visitId` · 🧾
@@ -1000,4 +1059,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` (a phone another customer of the space holds, not archived, 2026-10-21, #102) · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` (archiving a customer who is present, 2026-10-21, #102) · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off, or leaving to a customer, a visit with nothing owed, 2026-10-20, #100) · `VISIT_WRITTEN_OFF` (a payment on a written-off visit, from the ledger, or leaving it to a customer, 2026-10-20, #100) · `VISIT_HAS_CUSTOMER` (a phone that is not the customer's of a visit that has one, 2026-10-20, #100) · `CUSTOMER_ARCHIVED` (editing an archived customer, 2026-10-21, #102).
+`EMAIL_TAKEN` · `PHONE_TAKEN` (a phone another customer of the space holds, not archived, 2026-10-21, #102) · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` (archiving a customer who is present, 2026-10-21, #102) · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off, or leaving to a customer, a visit with nothing owed, 2026-10-20, #100) · `VISIT_WRITTEN_OFF` (a payment on a written-off visit, from the ledger, or leaving it to a customer, 2026-10-20, #100) · `VISIT_HAS_CUSTOMER` (a phone that is not the customer's of a visit that has one, 2026-10-20, #100) · `CUSTOMER_ARCHIVED` (editing an archived customer, 2026-10-21, #102) · `SUBSCRIPTION_ALREADY_RENEWED` (renewing a subscription renewed already, 2026-10-22, #106) · `CUSTOMER_HAS_DEBT` (warning only: a subscribe whose customer still owes on an earlier item; the subscription is made with `meta.warnings`, 2026-10-22, #106) · `SUBSCRIPTION_ENDED` (correcting a subscription ended early, 2026-10-22, #106) · `PRICE_BELOW_PAID` (a fixed price corrected below what was paid on it, from the database, 2026-10-22, #106).

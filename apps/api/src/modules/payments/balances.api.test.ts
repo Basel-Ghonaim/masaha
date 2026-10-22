@@ -81,9 +81,11 @@ describe('the customers’ balances', () => {
     const settled = await createCustomer(spaceId, { name: 'Settled' });
     const paidInFull = await createSubscription(settled, { priceAgorot: 20_000 });
     await pay({ subscriptionId: paidInFull.id }, 20_000);
-    // Its price lowered under what was paid, directly (the price's guard is the next PR's): a
-    // fixed price still holds no credit.
-    await prisma.subscription.update({ where: { id: fixed.id }, data: { priceAgorot: 20_000 } });
+    // A fixed price never falls under what was paid on it (the price's guard), so it holds no
+    // credit.
+    await expect(
+      prisma.subscription.update({ where: { id: fixed.id }, data: { priceAgorot: 20_000 } }),
+    ).rejects.toThrow(/subscriptions_price_below_paid/);
 
     expect(await repository.customerBalances(spaceId, [customer.id, settled.id], NOW)).toEqual(
       new Map([

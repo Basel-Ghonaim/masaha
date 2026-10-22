@@ -61,6 +61,14 @@ export function createPackagesService({ runInTransaction, audit, spaces }: Depen
     },
 
     /**
+     * One package of the space with its terms, retired or not, in the caller's transaction, for a
+     * subscription to copy; `null` when it is not the space's.
+     */
+    termsOf(spaceId: number, packageId: number, tx: Tx): Promise<PackageRow | null> {
+      return packages.findIn(spaceId, packageId, tx);
+    },
+
+    /**
      * Adds a package, in one transaction and in this order: the space's lock; `can()` on the links
      * read under it; the package, written after the last (D4); its audit entry (D8). A name another
      * package of the space holds, retired or not, and a shift that is not one of the space's, are

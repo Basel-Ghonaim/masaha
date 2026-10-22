@@ -21,11 +21,13 @@ export interface VisitCheckOut {
 }
 
 /**
- * A visit's payment after its check-out: the visit, the payment, and what was paid on the visit and
- * what it still owes, as of the answer (a retry's too).
+ * A payment on one item: the visit it paid after its check-out, or the subscription, the other
+ * `null`; the payment; and what was paid on the item and what it still owes, as of the answer (a
+ * retry's too). A usage-based subscription's balance is below zero while it holds credit.
  */
 export interface ReceivedPayment {
-  visit: DeskVisit;
+  visit: DeskVisit | null;
+  subscription: SubscriptionState | null;
   payment: VisitPayment;
   paidAgorot: number;
   balanceAgorot: number;
@@ -67,6 +69,50 @@ export interface UnpaidVisit {
  */
 export type CustomerFile = { customer: Customer } & CustomerBalance & {
     present: CustomerPresence | null;
-    subscriptions: (SubscriptionState & { paidAgorot: number; balanceAgorot: number })[];
+    subscriptions: SubscriptionWithMoney[];
     unpaidVisits: UnpaidVisit[];
   };
+
+/** A subscription with what was paid on it and what it still owes, as of the answer. */
+export type SubscriptionWithMoney = SubscriptionState & {
+  paidAgorot: number;
+  balanceAgorot: number;
+};
+
+/** A payment taken with a subscribe, and the item it was allocated to. */
+export interface AllocatedPayment {
+  item: { visitId: number } | { subscriptionId: number };
+  payment: VisitPayment;
+}
+
+/**
+ * A new subscription: it, with its money; the payments the request's amount made, in the order they
+ * were allocated; and the customer's debt, all as of the answer (a retry's too).
+ */
+export interface NewSubscription {
+  subscription: SubscriptionWithMoney;
+  payments: AllocatedPayment[];
+  debtAgorot: number;
+}
+
+/** One check-in of a statement; `minutes` are a closed stay's whole minutes, `null` while open. */
+export interface StatementCheckIn {
+  id: number;
+  checkedInAt: string;
+  checkedOutAt: string | null;
+  checkoutMethod: 'MANUAL' | 'AUTO' | null;
+  minutes: number | null;
+}
+
+/**
+ * A subscription's statement, as of the answer: its state and money, its customer, every check-in
+ * (the earliest first) and every payment (voided ones marked), and the renewal's proposed start
+ * while it is not renewed, or who renewed it.
+ */
+export type SubscriptionStatement = SubscriptionWithMoney & {
+  customer: { id: number; name: string; phone: string | null };
+  checkIns: StatementCheckIn[];
+  payments: ItemPayment[];
+  renewal: { startsOn: string } | null;
+  renewedById: number | null;
+};

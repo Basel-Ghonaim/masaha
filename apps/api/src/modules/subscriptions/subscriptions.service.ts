@@ -1,14 +1,29 @@
-import type { SubscriptionState, SubscriptionStatus } from '@masaha/shared/subscriptions';
+import { gazaClockOf } from '@masaha/shared/core';
+import type {
+  CorrectPriceRequest,
+  CorrectSubscriptionRequest,
+  SubscriptionState,
+  SubscriptionStatus,
+} from '@masaha/shared/subscriptions';
 import type { Logger } from 'pino';
 
 import type { RunInTransaction, Tx } from '../../db/index.ts';
-import type { AuditWriter } from '../../shared/audit/index.ts';
+import type { AuditValues, AuditWriter } from '../../shared/audit/index.ts';
+import { can, type Actor, type LoadedSpace, type SpaceAction } from '../../shared/auth/index.ts';
+import { AppError } from '../../shared/errors/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import { calendarOf } from './calendar.ts';
 import { currentSubscription } from './currentSubscription.ts';
+import { subscriptionChange } from './subscriptionChange.ts';
 import { toSubscriptionState } from './subscriptions.mapper.ts';
-import { createSubscriptionsRepository, type OpenCheckIn } from './subscriptions.repository.ts';
+import {
+  createSubscriptionsRepository,
+  type LockedSubscription,
+  type OpenCheckIn,
+  type SubscriptionCheckIn,
+  type SubscriptionToCreate,
+} from './subscriptions.repository.ts';
 
 interface Dependencies {
   runInTransaction: RunInTransaction;
@@ -16,6 +31,8 @@ interface Dependencies {
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
   logger: Logger;
+  /** The one clock (conventions §11). */
+  now: () => Date;
 }
 
 /** Each customer's current subscription, from their states. */
@@ -32,13 +49,38 @@ function currentByCustomer(states: readonly SubscriptionState[]): Map<number, Su
   );
 }
 
+/**
+ * A new subscription as its audit entry records it: its customer, the package it copies and the one it
+ * renews, its terms and dates, and a typed price's reason (else `null`); not its space, the entry's
+ * own, nor its key.
+ */
+function createdValues(subscription: SubscriptionToCreate): AuditValues {
+  return {
+    customerId: subscription.customerId,
+    packageId: subscription.packageId,
+    renewalOfId: subscription.renewalOfId,
+    name: subscription.name,
+    startsOn: subscription.startsOn,
+    endsOn: subscription.endsOn,
+    totalDays: subscription.totalDays,
+    daysPerWeek: subscription.daysPerWeek,
+    hoursPerDay: subscription.hoursPerDay,
+    totalHours: subscription.totalHours,
+    billing: subscription.billing,
+    priceAgorot: subscription.priceAgorot,
+    audience: subscription.audience,
+    shiftId: subscription.shiftId,
+    reason: subscription.priceTyped?.reason ?? null,
+  };
+}
+
 /** How many check-ins one run of the auto check-out closes at most; the next run continues. */
 const AUTO_CHECKOUT_BATCH = 500;
 
 /**
- * A customer's subscriptions and their check-ins (docs/backend/conventions.md › the front desk). So
- * far the subscriptions' states, the read `occupancy` composes *present* from, and the auto check-out
- * of the check-ins.
+ * A customer's subscriptions and their check-ins (docs/backend/conventions.md › the front desk): the
+ * subscriptions' states and their creation for the desk, the read `occupancy` composes *present*
+ * from, and the auto check-out of the check-ins.
  */
 export function createSubscriptionsService({
   runInTransaction,
@@ -46,8 +88,49 @@ export function createSubscriptionsService({
   spaces,
   spaceSettings,
   logger,
+  now,
 }: Dependencies) {
   const repository = createSubscriptionsRepository();
+
+  /**
+   * Opens a write of one subscription, in its transaction: the space's lock, `can()` of the action on
+   * the links read under it (a link ended meanwhile still decides), then the subscription's row
+   * (`FOR UPDATE`), not the space's → `not_found`. Answers its terms.
+   */
+  async function lockSubscription(
+    actor: Actor,
+    space: LoadedSpace,
+    subscriptionId: number,
+    action: SpaceAction,
+    tx: Tx,
+  ) {
+    if (!(await spaces.lock(space.id, tx))) throw AppError.notFound(undefined, 'Space not found');
+    if (!can(actor, action, { links: await space.linksUnder(tx) })) throw AppError.forbidden();
+    if (!(await repository.lockIn(space.id, subscriptionId, tx))) {
+      throw AppError.notFound(undefined, 'Subscription not found');
+    }
+    return repository.termsOf(subscriptionId, tx);
+  }
+
+  /** Opens a correction (`lockSubscription`); one ended early is `SUBSCRIPTION_ENDED`. */
+  async function lockForCorrection(
+    actor: Actor,
+    space: LoadedSpace,
+    subscriptionId: number,
+    action: SpaceAction,
+    tx: Tx,
+  ) {
+    const terms = await lockSubscription(actor, space, subscriptionId, action, tx);
+    if (terms.ended) throw AppError.conflict('SUBSCRIPTION_ENDED');
+    return terms;
+  }
+
+  /** The subscription's state as of now, in the caller's transaction. */
+  async function stateNow(spaceId: number, subscriptionId: number, tx: Tx) {
+    const [state] = await statesOf(spaceId, { ids: [subscriptionId] }, now(), tx);
+    if (!state) throw new Error(`The subscription ${String(subscriptionId)} is not the space's.`);
+    return state;
+  }
 
   /**
    * The space's subscriptions, of one customer, of these customers or with these ids when given, each with its status,
@@ -68,6 +151,49 @@ export function createSubscriptionsService({
   return {
     /** The space's subscriptions with their states (above). */
     statesOf,
+
+    /**
+     * Locks the space's subscription's row (`FOR UPDATE`), after the space's lock: its id, its
+     * customer and the one that renewed it, or `null` when it is not the space's.
+     */
+    lockIn(spaceId: number, id: number, tx: Tx): Promise<LockedSubscription | null> {
+      return repository.lockIn(spaceId, id, tx);
+    },
+
+    /** The space's subscription made with this idempotency key, in the caller's transaction. */
+    findByKey(
+      spaceId: number,
+      key: string,
+      tx: Tx,
+    ): Promise<{ id: number; customerId: number } | null> {
+      return repository.findByKey(spaceId, key, tx);
+    },
+
+    /**
+     * Writes a subscription in the caller's transaction, audited `subscription.created` with its
+     * terms, its package, the one it renews and a typed price's reason; or `refused` on a shift that
+     * is not the space's, writing nothing.
+     */
+    async create(
+      actorId: number,
+      subscription: SubscriptionToCreate,
+      tx: Tx,
+    ): Promise<{ id: number } | { refused: 'shiftId' }> {
+      const created = await repository.create(subscription, tx);
+      if ('refused' in created) return created;
+      await audit(
+        {
+          actorId,
+          action: 'subscription.created',
+          entityType: 'subscription',
+          entityId: created.id,
+          spaceId: subscription.spaceId,
+          after: createdValues(subscription),
+        },
+        tx,
+      );
+      return created;
+    },
 
     /**
      * The current subscription of each of these customers of the space at `at`
@@ -113,6 +239,144 @@ export function createSubscriptionsService({
           (packageId === undefined || state.packageId === packageId),
       );
       return { include: include.map(({ customerId }) => customerId) };
+    },
+
+    /**
+     * The staff's correction of a subscription's limits, dates and name, in one transaction:
+     * `lockForCorrection` (`subscriptions.manage`); only the fields set to a new value
+     * (`subscriptionChange`), `null` clearing a limit or the end; an end before the start →
+     * `out_of_range` on `endsOn`; nothing changed → nothing written; else audited
+     * `subscription.corrected` with the changed fields before and after. Answers its state.
+     */
+    correct(
+      actor: Actor,
+      space: LoadedSpace,
+      subscriptionId: number,
+      edit: CorrectSubscriptionRequest,
+    ): Promise<SubscriptionState> {
+      return runInTransaction(async (tx) => {
+        const current = await lockForCorrection(
+          actor,
+          space,
+          subscriptionId,
+          'subscriptions.manage',
+          tx,
+        );
+        const { data, before, after } = subscriptionChange(current, edit);
+        if (Object.keys(data).length === 0) return stateNow(space.id, subscriptionId, tx);
+        const startsOn = data.startsOn === undefined ? current.startsOn : data.startsOn;
+        const endsOn = data.endsOn === undefined ? current.endsOn : data.endsOn;
+        if (startsOn !== null && endsOn !== null && endsOn < startsOn) {
+          throw AppError.validation({ endsOn: ['out_of_range'] });
+        }
+        await repository.correct(subscriptionId, data, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'subscription.corrected',
+            entityType: 'subscription',
+            entityId: subscriptionId,
+            spaceId: space.id,
+            before,
+            after,
+          },
+          tx,
+        );
+        return stateNow(space.id, subscriptionId, tx);
+      });
+    },
+
+    /**
+     * The owner's correction of a subscription's price and billing, in one transaction:
+     * `lockForCorrection` (`subscriptions.correctPrice`); the same billing and price → nothing
+     * written; else both, recorded as a price typed by the owner with the reason, audited
+     * `subscription.priceCorrected`. A fixed price below what was paid is the database's refusal
+     * (`PRICE_BELOW_PAID`). Answers its state.
+     */
+    correctPrice(
+      actor: Actor,
+      space: LoadedSpace,
+      subscriptionId: number,
+      { billing, priceAgorot, reason }: CorrectPriceRequest,
+    ): Promise<SubscriptionState> {
+      return runInTransaction(async (tx) => {
+        const current = await lockForCorrection(
+          actor,
+          space,
+          subscriptionId,
+          'subscriptions.correctPrice',
+          tx,
+        );
+        if (current.billing === billing && current.priceAgorot === priceAgorot) {
+          return stateNow(space.id, subscriptionId, tx);
+        }
+        await repository.correctPrice(
+          subscriptionId,
+          { billing, priceAgorot, byId: actor.id, reason },
+          tx,
+        );
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'subscription.priceCorrected',
+            entityType: 'subscription',
+            entityId: subscriptionId,
+            spaceId: space.id,
+            before: { billing: current.billing, priceAgorot: current.priceAgorot },
+            after: { billing, priceAgorot, reason },
+          },
+          tx,
+        );
+        return stateNow(space.id, subscriptionId, tx);
+      });
+    },
+
+    /**
+     * Ends a subscription early («إنهاء الاشتراك», decision 5), in one transaction:
+     * `lockSubscription` (`subscriptions.manage`); one already ended answered as it is, writing
+     * nothing; else its end becomes today — its start, if it has not started; never later than its
+     * end was — with who ended it and when, audited `subscription.ended`. No payment, refund or
+     * proration; an open check-in on it stays open. It is `EXPIRED` from then (S5).
+     */
+    end(actor: Actor, space: LoadedSpace, subscriptionId: number): Promise<SubscriptionState> {
+      return runInTransaction(async (tx) => {
+        const terms = await lockSubscription(
+          actor,
+          space,
+          subscriptionId,
+          'subscriptions.manage',
+          tx,
+        );
+        if (terms.ended) return stateNow(space.id, subscriptionId, tx);
+        const endedAt = now();
+        const today = gazaClockOf(endedAt).date;
+        let endsOn = terms.startsOn !== null && terms.startsOn > today ? terms.startsOn : today;
+        if (terms.endsOn !== null && terms.endsOn < endsOn) endsOn = terms.endsOn;
+        await repository.end(subscriptionId, { endsOn, endedAt, endedById: actor.id }, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'subscription.ended',
+            entityType: 'subscription',
+            entityId: subscriptionId,
+            spaceId: space.id,
+            before: { endsOn: terms.endsOn },
+            after: { endsOn, endedAt: endedAt.toISOString() },
+          },
+          tx,
+        );
+        return stateNow(space.id, subscriptionId, tx);
+      });
+    },
+
+    /** Every check-in of the space's subscription, the earliest first, then by id. */
+    checkInsOf(spaceId: number, subscriptionId: number): Promise<SubscriptionCheckIn[]> {
+      return repository.checkInsOf(spaceId, subscriptionId);
+    },
+
+    /** The subscription that renewed this one of the space, or `null` while none has. */
+    renewedBy(spaceId: number, subscriptionId: number): Promise<number | null> {
+      return repository.renewedBy(spaceId, subscriptionId);
     },
 
     /** The space's open subscription check-ins, the earliest first, then by id. */

@@ -99,6 +99,7 @@ const SPACE_EXPECTATIONS: Record<SpaceAction, SpaceCells> = {
   'space.auditLog.read': OWNER_ONLY,
   'visits.writeOff': OWNER_ONLY,
   'customers.archive': OWNER_ONLY,
+  'subscriptions.correctPrice': OWNER_ONLY,
 };
 
 const UNSCOPED_EXPECTATIONS: Record<UnscopedAction, 'adminOnly' | 'everyone'> = {

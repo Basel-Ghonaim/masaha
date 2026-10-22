@@ -47,6 +47,10 @@ export const ERRORS = {
     'This visit was written off; the owner must undo the write-off before it takes a payment.',
   VISIT_HAS_CUSTOMER: "This visit is already another customer's debt.",
   CUSTOMER_ARCHIVED: 'This customer is archived; the owner restores them first.',
+  SUBSCRIPTION_ALREADY_RENEWED: 'This subscription was already renewed.',
+  CUSTOMER_HAS_DEBT: 'The customer still owes on an earlier item.',
+  SUBSCRIPTION_ENDED: 'This subscription was ended early; it is no longer corrected.',
+  PRICE_BELOW_PAID: 'The new price is less than what was already paid; void a payment first.',
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:
     'This person works at this space’s reception. Its owner deactivates that link first.',

@@ -6,6 +6,7 @@ import {
   customersQuerySchema,
   leaveToCustomerSchema,
   receivePaymentSchema,
+  subscribeSchema,
 } from './requests.ts';
 
 /** The field errors of a check-out, or null when it passes. */
@@ -96,6 +97,29 @@ describe("a visit's payment after its check-out", () => {
       phone: ['invalid_format'],
     });
   });
+
+  it('a payment names exactly one item: a visit or a subscription', () => {
+    const errorsOf = (input: unknown) => {
+      const result = receivePaymentSchema.safeParse(input);
+      return result.success ? null : toFieldErrors(result.error.issues, input);
+    };
+    const payment = { amountAgorot: 1_000, method: 'CASH' };
+    expect(receivePaymentSchema.parse({ subscriptionId: 4, ...payment })).toEqual({
+      subscriptionId: 4,
+      ...payment,
+    });
+    expect(errorsOf({ visitId: 7, subscriptionId: 4, ...payment })).toEqual({
+      subscriptionId: ['invalid_choice'],
+    });
+    expect(errorsOf({ subscriptionId: 0, ...payment })).toEqual({
+      subscriptionId: ['out_of_range'],
+    });
+    // Neither: the visit's field is required, beside the body's other errors.
+    expect(errorsOf({ amountAgorot: 0, method: 'CASH' })).toEqual({
+      visitId: ['required'],
+      amountAgorot: ['out_of_range'],
+    });
+  });
 });
 
 describe("a visit's debt left to a customer by phone", () => {
@@ -159,5 +183,73 @@ describe("the customers list's query", () => {
     expect(errorsOfQuery({ packageId: '7', kind: 'PACKAGE' })).toBeNull();
     expect(errorsOfQuery({ packageId: '7', kind: 'CUSTOM' })).toEqual({ kind: ['invalid_choice'] });
     expect(errorsOfQuery({ packageId: '7', kind: 'NONE' })).toEqual({ kind: ['invalid_choice'] });
+  });
+});
+
+describe('subscribing a customer', () => {
+  const errorsOf = (input: unknown) => {
+    const result = subscribeSchema.safeParse(input);
+    return result.success ? null : toFieldErrors(result.error.issues, input);
+  };
+  const custom = (more: object = {}) => ({
+    name: ' امتحانات ',
+    billing: 'PER_HOUR',
+    priceAgorot: 500,
+    audience: 'STUDENT',
+    reason: ' exam rate ',
+    ...more,
+  });
+
+  it('subscribe takes exactly one of a package and custom terms', () => {
+    expect(subscribeSchema.parse({ packageId: 3, startsOn: '2026-11-01' })).toEqual({
+      packageId: 3,
+      startsOn: '2026-11-01',
+    });
+    expect(errorsOf({})).toEqual({ packageId: ['invalid_choice'] });
+    expect(errorsOf({ packageId: 3, custom: custom() })).toEqual({
+      packageId: ['invalid_choice'],
+    });
+    expect(errorsOf({ packageId: 3, startsOn: '2026-02-30' })).toEqual({
+      startsOn: ['invalid_format'],
+    });
+  });
+
+  it("a renewal names the renewed subscription; a payment takes a payment's bounds", () => {
+    expect(
+      subscribeSchema.parse({
+        packageId: 3,
+        renewalOfId: 5,
+        payment: { amountAgorot: 4_000, method: 'CASH' },
+      }),
+    ).toEqual({ packageId: 3, renewalOfId: 5, payment: { amountAgorot: 4_000, method: 'CASH' } });
+    expect(
+      errorsOf({ packageId: 3, renewalOfId: 0, payment: { amountAgorot: 0, method: 'CASH' } }),
+    ).toEqual({ renewalOfId: ['out_of_range'], 'payment.amountAgorot': ['out_of_range'] });
+  });
+
+  it("a custom price needs a reason; the terms take a package's bounds and an optional end", () => {
+    expect(
+      subscribeSchema.parse({ custom: custom({ endsOn: '2026-11-10', daysPerWeek: 3 }) }),
+    ).toEqual({
+      custom: {
+        name: 'امتحانات',
+        endsOn: '2026-11-10',
+        daysPerWeek: 3,
+        billing: 'PER_HOUR',
+        priceAgorot: 500,
+        audience: 'STUDENT',
+        reason: 'exam rate',
+      },
+    });
+    expect(errorsOf({ custom: custom({ reason: undefined }) })).toEqual({
+      'custom.reason': ['required'],
+    });
+    expect(errorsOf({ custom: custom({ reason: '  ' }) })).toEqual({
+      'custom.reason': ['too_short'],
+    });
+    expect(errorsOf({ custom: custom({ priceAgorot: 0, daysPerWeek: 8 }) })).toEqual({
+      'custom.priceAgorot': ['out_of_range'],
+      'custom.daysPerWeek': ['out_of_range'],
+    });
   });
 });

@@ -1,4 +1,4 @@
-import type { DomainErrorCode } from '@masaha/shared/core';
+import { addDays, gazaClockOf, type DomainErrorCode } from '@masaha/shared/core';
 import type { Customer } from '@masaha/shared/customers';
 import type {
   CheckOutVisitRequest,
@@ -7,11 +7,17 @@ import type {
   CustomerRow,
   CustomersQuery,
   LeaveToCustomerRequest,
+  NewSubscription,
   ReceivedPayment,
   ReceivePaymentRequest,
+  SubscribeRequest,
+  SubscriptionStatement,
+  SubscriptionWithMoney,
   UnpaidVisit,
   VisitCheckOut,
 } from '@masaha/shared/desk';
+import type { PaymentRequest } from '@masaha/shared/payments';
+import type { SubscriptionState } from '@masaha/shared/subscriptions';
 import type {
   CheckInVisitRequest,
   DeskVisit,
@@ -28,12 +34,18 @@ import {
   type SpaceLink,
 } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
+import { derivedKey } from '../../shared/http/index.ts';
 import type { CustomersService } from '../customers/index.ts';
 import type { OccupancyService } from '../occupancy/index.ts';
-import type { PaymentsService } from '../payments/index.ts';
+import type { PackageRow, PackagesService } from '../packages/index.ts';
+import { allocate, ALLOCATION_MAX_ITEMS, type PaymentsService } from '../payments/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
-import type { SubscriptionsService } from '../subscriptions/index.ts';
+import {
+  proposedStart,
+  type SubscriptionsService,
+  type SubscriptionToCreate,
+} from '../subscriptions/index.ts';
 import type { LockedVisit, VisitsService } from '../visits/index.ts';
 
 interface Dependencies {
@@ -45,9 +57,14 @@ interface Dependencies {
   customers: CustomersService;
   payments: PaymentsService;
   occupancy: OccupancyService;
+  packages: PackagesService;
   /** The one clock (conventions §11). */
   now: () => Date;
 }
+
+/** The keys a subscribe's payments may have taken: one per item an allocation pays at most. */
+const derivedKeys = (key: string) =>
+  Array.from({ length: ALLOCATION_MAX_ITEMS }, (_, index) => derivedKey(key, index));
 
 /** How old the quote a check-out is priced at may be (the owner's bound, P6). */
 const QUOTE_MAX_AGE_MS = 5 * 60_000;
@@ -65,6 +82,7 @@ export function createDeskService({
   customers,
   payments,
   occupancy,
+  packages,
   now,
 }: Dependencies) {
   /**
@@ -133,6 +151,190 @@ export function createDeskService({
       { id: visit.id, chargeAgorot: visit.charge?.amountAgorot ?? null },
       tx,
     );
+  }
+
+  /**
+   * A new subscription's terms, from a package of the space (its end `validityDays` after its
+   * start, both included), or typed at the desk by whoever may type a price (else
+   * `PRICE_TYPING_NOT_ALLOWED`), its end as sent and never before its start, recorded with who typed
+   * it and why.
+   */
+  function termsOf(
+    actor: Actor,
+    pack: PackageRow | null,
+    { custom }: SubscribeRequest,
+    startsOn: string,
+    mayType: boolean,
+  ): Omit<SubscriptionToCreate, 'spaceId' | 'customerId' | 'key' | 'renewalOfId' | 'startsOn'> {
+    if (pack) {
+      return {
+        name: pack.name,
+        totalDays: pack.totalDays,
+        daysPerWeek: pack.daysPerWeek,
+        hoursPerDay: pack.hoursPerDay,
+        totalHours: pack.totalHours,
+        billing: pack.billing,
+        priceAgorot: pack.priceAgorot,
+        audience: pack.audience,
+        shiftId: pack.shiftId,
+        packageId: pack.id,
+        endsOn: addDays(startsOn, pack.validityDays - 1),
+        priceTyped: null,
+      };
+    }
+    if (!custom) throw AppError.validation({ packageId: ['invalid_choice'] });
+    if (!mayType) throw AppError.forbidden('PRICE_TYPING_NOT_ALLOWED');
+    if (custom.endsOn !== undefined && custom.endsOn < startsOn) {
+      throw AppError.validation({ 'custom.endsOn': ['out_of_range'] });
+    }
+    return {
+      name: custom.name,
+      totalDays: custom.totalDays ?? null,
+      daysPerWeek: custom.daysPerWeek ?? null,
+      hoursPerDay: custom.hoursPerDay ?? null,
+      totalHours: custom.totalHours ?? null,
+      billing: custom.billing,
+      priceAgorot: custom.priceAgorot,
+      audience: custom.audience,
+      shiftId: custom.shiftId ?? null,
+      packageId: null,
+      endsOn: custom.endsOn ?? null,
+      priceTyped: { byId: actor.id, reason: custom.reason },
+    };
+  }
+
+  /**
+   * A subscription of the space with its state, what was paid on it and what it still owes, as of
+   * `at`, in the caller's transaction (its customer's items, one query).
+   */
+  async function withMoney(
+    space: LoadedSpace,
+    { id, customerId }: { id: number; customerId: number },
+    at: Date,
+    tx?: Tx,
+  ): Promise<SubscriptionWithMoney> {
+    const [state] = await subscriptions.statesOf(space.id, { ids: [id] }, at, tx);
+    if (!state) throw new Error(`The subscription ${String(id)} is not the space's.`);
+    const items = await payments.itemBalances(space.id, customerId, at, tx);
+    const money = items.find((item) => item.kind === 'SUBSCRIPTION' && item.id === id);
+    return {
+      ...state,
+      paidAgorot: money?.paidAgorot ?? 0,
+      balanceAgorot: money?.balanceAgorot ?? state.dueAgorot,
+    };
+  }
+
+  /**
+   * A subscribe's answer as of `at`, in the caller's transaction (a retry's too): the subscription
+   * with its state and money, the payments given, and the customer's debt; and `CUSTOMER_HAS_DEBT`
+   * while an item older than the subscription still owes (ADR 0010 rule 7).
+   */
+  async function subscribed(
+    space: LoadedSpace,
+    made: { id: number; customerId: number },
+    allocated: NewSubscription['payments'],
+    at: Date,
+    tx: Tx,
+  ): Promise<{ result: NewSubscription; warnings: DomainErrorCode[] }> {
+    const subscription = await withMoney(space, made, at, tx);
+    const items = await payments.itemBalances(space.id, made.customerId, at, tx);
+    const balances = await payments.customerBalances(space.id, [made.customerId], at, tx);
+    const olderDebt = items.some(
+      (item) =>
+        !(item.kind === 'SUBSCRIPTION' && item.id === made.id) && (item.balanceAgorot ?? 0) > 0,
+    );
+    return {
+      result: {
+        subscription,
+        payments: allocated,
+        debtAgorot: balances.get(made.customerId)?.debtAgorot ?? 0,
+      },
+      warnings: olderDebt ? ['CUSTOMER_HAS_DEBT'] : [],
+    };
+  }
+
+  /**
+   * A subscribe's payment (K3, the owner's decision 8): the customer's items that still owe, read
+   * under the space's lock, oldest first, each paid at most its balance, the rest to the new
+   * subscription (`allocate`); one payment per part, in that order, under the key derived from the
+   * request's and the part's place, each checked by the ledger (above a fixed new price:
+   * `PAYMENT_EXCEEDS_DUE`, the whole request undone). Answered in that order.
+   */
+  async function allocatePayment(
+    actor: Actor,
+    space: LoadedSpace,
+    made: { id: number; customerId: number },
+    key: string,
+    { amountAgorot, ...payment }: PaymentRequest,
+    at: Date,
+    tx: Tx,
+  ): Promise<NewSubscription['payments']> {
+    const items = await payments.itemBalances(space.id, made.customerId, at, tx);
+    const debts = items.flatMap(({ kind, id, balanceAgorot }) =>
+      (kind === 'SUBSCRIPTION' && id === made.id) || balanceAgorot === null || balanceAgorot <= 0
+        ? []
+        : [{ item: kind === 'VISIT' ? { visitId: id } : { subscriptionId: id }, balanceAgorot }],
+    );
+    const { parts } = allocate(amountAgorot, debts, {
+      subscriptionId: made.id,
+    });
+    const allocated: NewSubscription['payments'] = [];
+    for (const [index, part] of parts.entries()) {
+      const recorded = await payments.record(
+        {
+          spaceId: space.id,
+          item: part.item,
+          key: derivedKey(key, index),
+          ...payment,
+          amountAgorot: part.amountAgorot,
+          recordedById: actor.id,
+          receivedAt: at,
+        },
+        tx,
+      );
+      allocated.push({ item: part.item, payment: recorded });
+    }
+    return allocated;
+  }
+
+  /**
+   * A payment on a subscription, under the space's lock, in this order: the subscription's row (`FOR
+   * UPDATE`), not the space's → `invalid_choice` on `subscriptionId`; the payment this key recorded,
+   * for another item → `conflict`, for this one a retry, answered with the sums as of now; then the
+   * payment, which the ledger checks (above a fixed price: `PAYMENT_EXCEEDS_DUE`; a usage-based one
+   * takes any amount, its credit). An ended or expired subscription, or an archived customer's,
+   * still takes one: its debt is owed.
+   */
+  async function subscriptionPayment(
+    actor: Actor,
+    space: LoadedSpace,
+    subscriptionId: number,
+    key: string,
+    payment: PaymentRequest,
+    tx: Tx,
+  ): Promise<ReceivedPayment> {
+    const locked = await subscriptions.lockIn(space.id, subscriptionId, tx);
+    if (!locked) throw AppError.validation({ subscriptionId: ['invalid_choice'] });
+    const recorded = await payments.findByKey(space.id, key, tx);
+    if (recorded && recorded.subscriptionId !== subscriptionId) {
+      throw AppError.conflict(undefined, 'This idempotency key paid another item');
+    }
+    const at = now();
+    const received =
+      recorded?.payment ??
+      (await payments.record(
+        {
+          spaceId: space.id,
+          item: { subscriptionId },
+          key,
+          ...payment,
+          recordedById: actor.id,
+          receivedAt: at,
+        },
+        tx,
+      ));
+    const { paidAgorot, balanceAgorot, ...subscription } = await withMoney(space, locked, at, tx);
+    return { visit: null, subscription, payment: received, paidAgorot, balanceAgorot };
   }
 
   /**
@@ -270,10 +472,10 @@ export function createDeskService({
           tx,
         );
         const payment = request.payment
-          ? await payments.recordForVisit(
+          ? await payments.record(
               {
                 spaceId: space.id,
-                visitId,
+                item: { visitId },
                 key,
                 ...request.payment,
                 recordedById: actor.id,
@@ -287,20 +489,26 @@ export function createDeskService({
     },
 
     /**
-     * Receives a payment for a closed visit after its check-out, in one transaction and in this
-     * order: the space's lock and `can()`; the visit's row (`FOR UPDATE`); the payment this key
-     * recorded, for a retry, answered with the visit and the sums as they are now; open →
-     * `conflict`; the payment, which the ledger checks (written off, unpriced, above the balance)
-     * before any phone is asked; then, if anything remains, the customer it is left to.
+     * Receives a payment on one item, in one transaction: the space's lock and `can()`, then the
+     * subscription's branch (`subscriptionPayment`), or, in this order: the visit's row (`FOR
+     * UPDATE`); the payment this key recorded, for a retry, answered with the visit and the sums as
+     * they are now; open → `conflict`; the payment, which the ledger checks (written off, unpriced,
+     * above the balance) before any phone is asked; then, if anything remains, the customer it is
+     * left to.
      */
     receivePayment(
       actor: Actor,
       space: LoadedSpace,
       key: string,
-      { visitId, phone, customerName, ...payment }: ReceivePaymentRequest,
+      { visitId, subscriptionId, phone, customerName, ...payment }: ReceivePaymentRequest,
     ): Promise<ReceivedPayment> {
       return runInTransaction(async (tx) => {
         await lockAtDesk(actor, space, tx, 'payments.record');
+        if (subscriptionId !== undefined) {
+          return subscriptionPayment(actor, space, subscriptionId, key, payment, tx);
+        }
+        // The schema lets no request name neither item.
+        if (visitId === undefined) throw AppError.validation({ visitId: ['required'] });
         const locked = await visits.lockIn(space.id, visitId, tx);
         if (!locked) throw AppError.notFound(undefined, 'Visit not found');
 
@@ -312,6 +520,7 @@ export function createDeskService({
           const { paidAgorot, balanceAgorot } = await balanceOf(space, locked, tx);
           return {
             visit: locked.visit,
+            subscription: null,
             payment: recorded.payment,
             paidAgorot,
             balanceAgorot: balanceAgorot ?? 0,
@@ -321,10 +530,10 @@ export function createDeskService({
           throw AppError.conflict(undefined, 'An open visit is paid at its check-out');
         }
 
-        const received = await payments.recordForVisit(
+        const received = await payments.record(
           {
             spaceId: space.id,
-            visitId,
+            item: { visitId },
             key,
             ...payment,
             recordedById: actor.id,
@@ -342,7 +551,7 @@ export function createDeskService({
             visit = await visits.leaveTo(actor.id, space.id, visitId, customerId, tx);
           }
         }
-        return { visit, payment: received, paidAgorot, balanceAgorot: rest };
+        return { visit, subscription: null, payment: received, paidAgorot, balanceAgorot: rest };
       });
     },
 
@@ -395,6 +604,86 @@ export function createDeskService({
           throw AppError.conflict('VISIT_ALREADY_PAID');
         }
         return visits.writeOff(actor.id, space.id, visitId, { reason, balanceAgorot }, tx);
+      });
+    },
+
+    /**
+     * Subscribes a customer, in one transaction and in this order: the space's lock and `can()`
+     * (`subscriptions.manage`); the subscription this key already made, for a retry, answered with
+     * the payments of its derived keys and the money as of now; the customer, the space's (else
+     * `not_found`) and not archived (`CUSTOMER_ARCHIVED`); the subscription it renews, locked, the
+     * customer's own (else `invalid_choice` on `renewalOfId`) and not renewed yet
+     * (`SUBSCRIPTION_ALREADY_RENEWED`); the package, the space's and offered (else `invalid_choice`
+     * on `packageId`), or the typed terms (`termsOf`); the start date, the one sent, else the
+     * renewal's proposal (`proposedStart`); the subscription, audited; then the payment, allocated
+     * over the customer's older debts oldest first and the rest to the new one, one payment each
+     * under a key derived from the request's, which the ledger checks. Warns `CUSTOMER_HAS_DEBT`
+     * while an older item still owes.
+     */
+    subscribe(
+      actor: Actor,
+      space: LoadedSpace,
+      customerId: number,
+      key: string,
+      request: SubscribeRequest,
+    ): Promise<{ result: NewSubscription; warnings: DomainErrorCode[] }> {
+      return runInTransaction(async (tx) => {
+        const links = await lockAtDesk(actor, space, tx, 'subscriptions.manage');
+        const at = now();
+        const made = await subscriptions.findByKey(space.id, key, tx);
+        if (made) {
+          const allocated = await payments.findByKeys(space.id, derivedKeys(key), tx);
+          return subscribed(space, made, allocated, at, tx);
+        }
+
+        const customer = await customers.findIn(space.id, customerId, tx);
+        if (!customer) throw AppError.notFound(undefined, 'Customer not found');
+        if (customer.archivedAt) throw AppError.conflict('CUSTOMER_ARCHIVED');
+
+        let renewed: SubscriptionState | null = null;
+        if (request.renewalOfId !== undefined) {
+          const locked = await subscriptions.lockIn(space.id, request.renewalOfId, tx);
+          if (locked?.customerId !== customerId) {
+            throw AppError.validation({ renewalOfId: ['invalid_choice'] });
+          }
+          if (locked.renewedById !== null) throw AppError.conflict('SUBSCRIPTION_ALREADY_RENEWED');
+          [renewed = null] = await subscriptions.statesOf(space.id, { ids: [locked.id] }, at, tx);
+        }
+
+        let pack: PackageRow | null = null;
+        if (request.packageId !== undefined) {
+          pack = await packages.termsOf(space.id, request.packageId, tx);
+          if (!pack?.isActive) throw AppError.validation({ packageId: ['invalid_choice'] });
+        }
+        const mayType =
+          pack === null &&
+          can(actor, 'prices.typeByHand', {
+            links,
+            receptionMayTypePrices: (await spaceSettings.read(space.id, tx)).receptionMayTypePrices,
+          });
+        const startsOn = request.startsOn ?? proposedStart(renewed, gazaClockOf(at).date);
+        const terms = termsOf(actor, pack, request, startsOn, mayType);
+
+        const created = await subscriptions.create(
+          actor.id,
+          {
+            ...terms,
+            spaceId: space.id,
+            customerId,
+            key,
+            renewalOfId: renewed?.id ?? null,
+            startsOn,
+          },
+          tx,
+        );
+        if ('refused' in created) {
+          throw AppError.validation({ 'custom.shiftId': ['invalid_choice'] });
+        }
+        const subscription = { id: created.id, customerId };
+        const allocated = request.payment
+          ? await allocatePayment(actor, space, subscription, key, request.payment, at, tx)
+          : [];
+        return subscribed(space, subscription, allocated, at, tx);
       });
     },
 
@@ -556,6 +845,44 @@ export function createDeskService({
               ]
             : [];
         }),
+      };
+    },
+
+    /**
+     * A subscription's statement (docs/backend/conventions.md › Composed reads): the subscription,
+     * the space's (else `not_found`), with its state and money; its customer; its check-ins, each with
+     * a closed stay's whole minutes; its payments, voided ones marked; and, while it is not renewed,
+     * the start its renewal would take (`proposedStart`), else who renewed it. Its lists are whole,
+     * bounded by one subscription. Read without a lock.
+     */
+    async statement(space: LoadedSpace, subscriptionId: number): Promise<SubscriptionStatement> {
+      const at = now();
+      const [state] = await subscriptions.statesOf(space.id, { ids: [subscriptionId] }, at);
+      if (!state) throw AppError.notFound(undefined, 'Subscription not found');
+      const [subscription, customer, checkIns, paymentsMade, renewedById] = await Promise.all([
+        withMoney(space, state, at),
+        customers.findIn(space.id, state.customerId),
+        subscriptions.checkInsOf(space.id, subscriptionId),
+        payments.paymentsOfSubscription(space.id, subscriptionId),
+        subscriptions.renewedBy(space.id, subscriptionId),
+      ]);
+      if (!customer) throw new Error(`The subscription ${String(subscriptionId)} has no customer.`);
+      return {
+        ...subscription,
+        customer: { id: customer.id, name: customer.name, phone: customer.phone },
+        checkIns: checkIns.map(({ id, checkedInAt, checkedOutAt, checkoutMethod }) => ({
+          id,
+          checkedInAt: checkedInAt.toISOString(),
+          checkedOutAt: checkedOutAt?.toISOString() ?? null,
+          checkoutMethod,
+          minutes: checkedOutAt
+            ? Math.floor((checkedOutAt.getTime() - checkedInAt.getTime()) / 60_000)
+            : null,
+        })),
+        payments: paymentsMade,
+        renewal:
+          renewedById === null ? { startsOn: proposedStart(state, gazaClockOf(at).date) } : null,
+        renewedById,
       };
     },
 

@@ -1,12 +1,12 @@
 # Payments
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
-> **Authority:** The `payments` capability: the payment ledger of [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md). Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and the ledger's rules by the [data model](../architecture/data-model.md#constraints-worth-stating), the rules' ownership by [conventions §13](../backend/conventions.md#the-ledgers-rules). The API is built for a visit's payment and the uncollected visits; no web screen yet.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
+> **Authority:** The `payments` capability: the payment ledger of [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md). Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and the ledger's rules by the [data model](../architecture/data-model.md#constraints-worth-stating), the rules' ownership by [conventions §13](../backend/conventions.md#the-ledgers-rules). The API is built for a visit's payment, a subscription's, and the uncollected visits; no web screen yet.
 > **Scope:** the API module `payments` (L4); `@masaha/shared/payments`. No web feature yet.
 
 ## What it does
 
-- Records the payment of a visit, taken at its check-out or after it, once per idempotency key.
+- Records the payment of a visit, taken at its check-out or after it, or of a subscription, once per idempotency key.
 - Finds the payment a check-out's or a payment's idempotency key already recorded, so a retry never records a second one.
 - Answers a space's uncollected visits: closed by the auto check-out, not fully paid and not written off, with what was paid and what is still owed.
 - Answers what one visit was paid and still owes, in the desk's transaction (`balanceOfVisit`), for the write-off and the payment after the check-out.
@@ -47,8 +47,10 @@
 - **An uncharged visit has its own constraint name, `payments_visit_uncharged`, so it answers its own code.** *Why:* one name for two causes would read a visit not yet priced as an amount above its due ([finding 15](../architecture/findings/15-the-payments-migration-predates-adr-0015.md)). 2026-10-20, #95.
 - **A written-off visit's refusal is the trigger's fourth rule (`payments_visit_written_off`), not a check in the desk.** *Why:* the ledger's rules have one owner, so every insert path is covered; the trigger already locks the visit's row, so a write-off and a payment racing are decided there (S1 of the plan). 2026-10-20, #100.
 - **The constraint is read from the database's message.** *Why:* through the driver adapter, Prisma reports a check violation with the database's code and message but no constraint field; a trigger names its constraint at the start of its message. 2026-10-20, #95.
-- **Audited `payment.recorded`, with the visit, the amount and the method.** 2026-10-20, #95.
-- **The uncollected visits are composed without repeating the balance: `visits` names them, the ledger decides which are settled, before the page is cut.** *Why:* the balance is the ledger's rule, in one place; filtering a page after it is fetched would leave pages short ([conventions §5](../backend/conventions.md#5-pagination)). Three queries over the space's auto-closed visits, fine at v1's scale. 2026-10-20, #97. Revised: the ledger pages them in one SQL query, the settled ones left out by the same subtraction, and `visits` answers only the page's visits. *Why:* the old read sent every settled id back as bound parameters, growing with every auto-closed visit ([finding 113](../architecture/findings/113-the-uncollected-read-grows-with-every-auto-closed-visit.md)). 2026-10-21, #102.
+- **Audited `payment.recorded`, with the visit, the amount and the method.** 2026-10-20, #95. Revised: with its item, the visit or the subscription. 2026-10-22, #106.
+- **A subscribe's amount is allocated by a pure rule here (`allocation.ts`): the debts oldest first, each at most its balance, the rest to the new subscription, at most 50 items.** *Why:* the balance is this module's rule; the desk reads the items and records the parts, the ledger checks each (K3; ADR 0010). 2026-10-22, #106.
+- **One `record` for both items, the item named as `{ visitId }` or `{ subscriptionId }`.** *Why:* the ledger is one table and one trigger; the desk decides which item a request pays, the ledger only records and checks it. 2026-10-22, #106.
+- **The uncollected visits are paged by the ledger in one SQL query, the settled ones left out by the balance's own subtraction before the page is cut; `visits` answers only the page's visits.** *Why:* the balance is the ledger's rule, in one place; filtering a page after it is fetched would leave pages short ([conventions §5](../backend/conventions.md#5-pagination)). First built as three queries over the space's auto-closed visits, `visits` naming them and the ledger deciding which were settled, 2026-10-20, #97. Revised: the ledger pages them in one SQL query, the settled ones left out by the same subtraction, and `visits` answers only the page's visits. *Why:* the old read sent every settled id back as bound parameters, growing with every auto-closed visit ([finding 113](../architecture/findings/113-the-uncollected-read-grows-with-every-auto-closed-visit.md)). 2026-10-21, #102.
 
 ## Code map
 
@@ -63,3 +65,4 @@
 - #97 — the uncollected visits.
 - #100 — the ledger's fourth rule, a written-off visit takes no payment; `balanceOfVisit`, with `paidFor` reading in the caller's transaction; a visit's payment after its check-out, through the desk.
 - #102 — customers' debt and credit, the payment filter's ids and a customer's items with their balances, in the database; the payments of visits, voided ones marked; the uncollected visits paged in one query (finding 113 resolved).
+- #106 — a payment on a subscription, through the desk's payment route; `record` for both items; the allocation of a subscribe's amount, oldest debt first, and the payments of derived keys found in one query.

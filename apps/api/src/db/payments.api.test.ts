@@ -245,6 +245,31 @@ describe('the due', () => {
     await expect(pay(space.id, staff.id, item, 10_000)).resolves.toBeDefined();
     await expect(pay(space.id, staff.id, item, 5_000)).resolves.toBeDefined();
   });
+
+  it('a fixed price never falls below what is paid: subscriptions_price_below_paid; usage-based may', async () => {
+    const { space, staff, owner, monthly, hourly } = await setup();
+    await pay(space.id, staff.id, { subscriptionId: monthly.id }, 20_000);
+    await pay(space.id, staff.id, { subscriptionId: hourly.id }, 20_000);
+    const price = (id: number, data: Prisma.SubscriptionUncheckedUpdateInput) =>
+      prisma.subscription.update({ where: { id }, data });
+
+    await expect(price(monthly.id, { priceAgorot: 19_999 })).rejects.toThrow(
+      /subscriptions_price_below_paid/,
+    );
+    await expect(price(monthly.id, { priceAgorot: 20_000 })).resolves.toBeDefined();
+    // Usage-based holds credit: its rate may fall; once fixed, the price covers what was paid.
+    await expect(price(hourly.id, { priceAgorot: 100 })).resolves.toBeDefined();
+    await expect(price(hourly.id, { billing: 'FIXED', priceAgorot: 10_000 })).rejects.toThrow(
+      /subscriptions_price_below_paid/,
+    );
+    // A voided payment counts for nothing.
+    const paid = await prisma.payment.findFirstOrThrow({ where: { subscriptionId: monthly.id } });
+    await prisma.payment.update({
+      where: { id: paid.id },
+      data: { voidedAt: new Date(), voidedById: owner.id, voidReason: 'Wrong customer' },
+    });
+    await expect(price(monthly.id, { priceAgorot: 100 })).resolves.toBeDefined();
+  });
 });
 
 describe('the idempotency key', () => {
