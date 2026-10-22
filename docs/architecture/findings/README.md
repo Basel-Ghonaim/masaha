@@ -62,6 +62,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [120. Gaza dates are read by two zone databases](120-gaza-dates-are-read-by-two-zone-databases.md)
 - [130. The dashboard's shells have no skip link](130-the-dashboards-shells-have-no-skip-link.md)
 - [132. A paged list shows no sign of the next page loading](132-a-paged-list-shows-no-sign-of-the-next-page-loading.md)
+- [133. The place filter has no cap](133-the-place-filter-has-no-cap.md)
 
 ## Accepted
 
