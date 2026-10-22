@@ -16,7 +16,7 @@
 
 ## Who uses it
 
-- **The front desk** ([desk](desk.md)), which subscribes a customer through it, and reads who is present before it archives one.
+- **The front desk** ([desk](desk.md)), which subscribes a customer through it.
 - **[`occupancy`](occupancy.md),** which counts the check-ins present.
 - **The timed jobs** (`shared/jobs`), which run its auto check-out.
 

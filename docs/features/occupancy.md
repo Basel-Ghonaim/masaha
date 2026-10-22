@@ -17,7 +17,7 @@
 - **The space's owner,** through the API: reads and sets the capacity, reads the state now, and sets and clears the override; on the dashboard, sets the capacity in the settings page's attendance card ([space-settings › Behaviour and flows](space-settings.md#behaviour-and-flows)).
 - **The space's reception,** through the API: reads the state now, the capacity in it, but not the capacity's own route; sets and clears the override.
 - **The directory,** for the public: each listed space's live status, and which are available now, set-based ([directory](directory.md)); never a count or a capacity.
-- **The front desk** ([desk](desk.md)): a check-in's warnings, in its transaction: full when *present* reaches the capacity, outside the hours. The admin never reaches any of it: a space's capacity and its counts are private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). No web screen reads the state now yet; the owner's settings page reads and sets the capacity.
+- **The front desk** ([desk](desk.md)): a check-in's warnings, in its transaction: full when *present* reaches the capacity, outside the hours; whether a customer is present, before it archives one; who is present, for a customer's file. The admin never reaches any of it: a space's capacity and its counts are private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). No web screen reads the state now yet; the owner's settings page reads and sets the capacity.
 
 ## Responsibility boundary
 
@@ -35,13 +35,15 @@
 
 ## Behaviour and flows
 
+***Present*** (`present.ts`). Written once: a space's open visits plus its open subscription check-ins, read through `visits` and `subscriptions`. `presentIn` answers both lists and their count (in the caller's transaction when given); `presentCountsIn` the counts of many spaces, one query per source; `isPresent` whether a customer is present by either. The state now, the check-in's warnings, the directory and the desk all count it there, and nowhere else.
+
 **The state now.** Several statements, with no lock: the space's row, its open visits and open check-ins, their customers' names, each open visit's charge so far (from `visits`), whether a closure is in force, and its week. *Present* is the people listed. The override counts only while its end is after now and the space is verified, under no closure and open by its hours, and is answered only then: a closure announced after it hides it. The live status is the rule's, from those inputs and whether the space is verified, read from its links.
 
 **The override.** In one transaction: the space's lock; `can()` on the links as they are under it; the week, and today's range on Gaza's clock; the closures in force. Outside that range, with no hours, under a closure in force, or on an unverified space (no active owner among those links), it is refused `SPACE_NOT_OPEN`. Otherwise it ends at `min(now + duration, today's closing)`, replaces the one in force, the row created with no capacity on its first write, and is audited with both. Clearing takes the same lock and `can()`, and writes and audits only when an override is in force. An ended override is never cleared by a job: it simply stops counting.
 
-**The check-in's warnings.** In the desk's transaction, under the space's lock: the capacity, *present* (the open visits plus the open check-ins), and the week; `SPACE_FULL` when *present* reaches the capacity (never without one), then `OUTSIDE_OPENING_HOURS` when the space has hours and is not open by them now. They never refuse the check-in.
+**The check-in's warnings.** In the desk's transaction, under the space's lock: the capacity, *present* (`presentIn`), and the week; `SPACE_FULL` when *present* reaches the capacity (never without one), then `OUTSIDE_OPENING_HOURS` when the space has hours and is not open by them now. They never refuse the check-in.
 
-**The directory's read.** `liveStatusFor` decides many spaces at once: one query each for their rows, their open visits and open check-ins (counted), their closures, and the weeks the directory did not pass; `availableAmong` keeps the verified spaces `AVAILABLE` now, for the directory's filter.
+**The directory's read.** `liveStatusFor` decides many spaces at once: one query each for their rows, their open visits and open check-ins (`presentCountsIn`), their closures, and the weeks the directory did not pass; `availableAmong` keeps the verified spaces `AVAILABLE` now, for the directory's filter.
 
 **The capacity's read.** One query reads the space's row; a space without one has no capacity.
 
@@ -68,6 +70,7 @@ A change applies from then on ([data model › Front desk and money](../architec
 - **An override is also refused with `SPACE_NOT_OPEN` under a closure in force or on an unverified space; the staff's read answers it only while the rule uses it.** *Why:* in both cases the rule ignores the override, so storing it would be the same silent no-op; and an override shown "in force" beside `CLOSED` would tell the desk what does not apply. 2026-10-20, #95.
 - **The override is the staff's, set and cleared under the space's lock, `can()` decided on the links read there; the answer is the state now.** *Why:* a reception link ended meanwhile refuses (finding 43); the desk redraws from one answer. 2026-10-19, #94.
 - **Audited `space.statusOverridden` (the one in force and the new one) and `space.statusOverrideCleared`; clearing none writes nothing.** 2026-10-19, #94.
+- ***Present* is written once, in `present.ts`, and every reader counts it there: the staff's read, the check-in's warnings, the directory and the desk.** *Why:* the three counts agreed but were written three ways, so a change to one would drift from the others (the owner's decision 10; [finding 111](../architecture/findings/111-the-check-ins-warnings-count-present-a-second-time.md)). 2026-10-22, #109.
 
 ### Web decisions
 
@@ -75,7 +78,7 @@ A change applies from then on ([data model › Front desk and money](../architec
 
 ## Code map
 
-- **API:** `apps/api/src/modules/occupancy/`, entry `index.ts`: the service, the repository, the manage router, the live-status rule (`liveStatus.ts`) and the override's end (`overrideUntil.ts`). The reads it composes: `modules/visits/`, `modules/subscriptions/`, `modules/customers/`, `modules/announcements/`, and `spaces.weekOf`.
+- **API:** `apps/api/src/modules/occupancy/`, entry `index.ts`: the service, the repository, the manage router, the live-status rule (`liveStatus.ts`), the override's end (`overrideUntil.ts`) and *present* (`present.ts`). The reads it composes: `modules/visits/`, `modules/subscriptions/`, `modules/customers/`, `modules/announcements/`, and `spaces.weekOf`.
 - **Shared:** `packages/shared/src/occupancy/`: the request, with the capacity's bound, and the override's (`setStatusOverrideSchema`, `OVERRIDE_DURATIONS`); the responses (`SpaceOccupancyNow`, `PresentPerson`, `LiveStatus`).
 - **Web:** `apps/web/src/features/occupancy/`, entry `index.ts` (`useCapacityQuery`, `useSetCapacity`), read by `pages/dashboard/space/settings/`: the repository in `repository/`, the keys and the two hooks in `hooks/`; a 404 on the capacity's route, read or save, fetches the owner's own spaces again (`shared/api`'s `useLinkEnded`).
 
@@ -90,6 +93,7 @@ None.
 - #92 — a space's capacity, read and set by its owner on the API; the module's first slice.
 - #94 — the staff's read of the state now: who is present, the count, the capacity and the live status; the manual override, set and cleared by the staff; the live status of many spaces at once, for the directory.
 - #95 — the override refused under a closure or on an unverified space, and answered only while the status uses it; a check-in's warnings, for the desk; each visit present with its charge so far.
+- #109 — *present* written once (`present.ts`), for every reader; whether a customer is present, for the desk.
 
 ### Web history
 

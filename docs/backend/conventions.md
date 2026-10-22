@@ -243,7 +243,7 @@ The modules that apply them read them: visits and subscriptions (auto check-out;
 
 ### `occupancy`: the space's state now
 - **It owns:**
-  - the single definition of *present* (open visits plus open subscription check-ins), the count, and the one list of who is present;
+  - the single definition of *present* (open visits plus open subscription check-ins), the count, and the one list of who is present, written once in `present.ts` and used by the staff's read, the check-ins' warnings and refusal, the archive's refusal, the customer's file and the directory (2026-10-22, #109);
   - capacity and the manual override, in the 1:1 `space_occupancy` table. A space without a row has no capacity and no override. `occupancy` creates the row on its first write, so no lower module ever does;
   - the pure live-status rule;
   - `liveStatusFor(spaceIds)`, set-based, so the directory has no N+1.

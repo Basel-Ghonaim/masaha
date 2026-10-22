@@ -705,14 +705,9 @@ export function createDeskService({
         const customer = await customers.findIn(space.id, customerId, tx);
         if (!customer) throw AppError.notFound(undefined, 'Customer not found');
         if (customer.archivedAt) return customer;
-        const [openCheckIns, openVisits] = await Promise.all([
-          subscriptions.openCheckInsIn(space.id, tx),
-          visits.openIn(space.id, tx),
-        ]);
-        const present = [...openCheckIns, ...openVisits].some(
-          (stay) => stay.customerId === customerId,
-        );
-        if (present) throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
+        if (await occupancy.isPresent(space.id, customerId, tx)) {
+          throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
+        }
         return customers.archive(actor, space, customerId, tx);
       });
     },
@@ -795,13 +790,13 @@ export function createDeskService({
       const customer = await customers.findIn(space.id, customerId);
       if (!customer) throw AppError.notFound(undefined, 'Customer not found');
       const at = now();
-      const [states, items, balances, openCheckIns, openVisits] = await Promise.all([
-        subscriptions.statesOf(space.id, { customerId }, at),
-        payments.itemBalances(space.id, customerId, at),
-        payments.customerBalances(space.id, [customerId], at),
-        subscriptions.openCheckInsIn(space.id),
-        visits.openIn(space.id),
-      ]);
+      const [states, items, balances, { checkIns: openCheckIns, visits: openVisits }] =
+        await Promise.all([
+          subscriptions.statesOf(space.id, { customerId }, at),
+          payments.itemBalances(space.id, customerId, at),
+          payments.customerBalances(space.id, [customerId], at),
+          occupancy.presentIn(space.id),
+        ]);
 
       const subscriptionMoney = new Map(
         items.flatMap((item) => (item.kind === 'SUBSCRIPTION' ? [[item.id, item] as const] : [])),

@@ -28,6 +28,7 @@ import {
 } from './liveStatus.ts';
 import { createOccupancyRepository } from './occupancy.repository.ts';
 import { overrideUntil } from './overrideUntil.ts';
+import { createPresent, type Present } from './present.ts';
 
 interface Dependencies {
   runInTransaction: RunInTransaction;
@@ -49,8 +50,8 @@ const audited = ({ state, until }: Override) => ({ state, until: until.toISOStri
 
 /**
  * A space's state now (docs/backend/conventions.md › occupancy): its capacity, private to its staff
- * and set by its owner; who is present, the one definition of *present* (open visits plus open
- * subscription check-ins); and the live status (docs/architecture/data-model.md › Live status).
+ * and set by its owner; who is present, by the one definition of *present* (`present.ts`); and the
+ * live status (docs/architecture/data-model.md › Live status).
  * A read is several statements with no lock: a check-in committed between two of them can make one
  * answer lag one stay, which the next read fixes.
  */
@@ -65,13 +66,11 @@ export function createOccupancyService({
   now: clock,
 }: Dependencies) {
   const occupancy = createOccupancyRepository();
+  const present = createPresent({ visits, subscriptions });
 
   /** Who is present at the space, the earliest checked in first, then visits, then by id. */
   async function peopleIn(spaceId: number): Promise<PresentPerson[]> {
-    const [openVisits, openCheckIns] = await Promise.all([
-      visits.openIn(spaceId),
-      subscriptions.openCheckInsIn(spaceId),
-    ]);
+    const { visits: openVisits, checkIns: openCheckIns } = await present.presentIn(spaceId);
     const customerIds = [
       ...openCheckIns.map(({ customerId }) => customerId),
       ...openVisits.flatMap(({ customerId }) => (customerId === null ? [] : [customerId])),
@@ -131,8 +130,8 @@ export function createOccupancyService({
   const service = {
     /**
      * The live status of each of these spaces now, set-based: one query each for their rows, their
-     * open visits, their open check-ins, their closures, and the weeks not given. For the directory,
-     * with no N+1.
+     * open visits and their open check-ins (*present*), their closures, and the weeks not given. For
+     * the directory, with no N+1.
      */
     async liveStatusFor(
       targets: readonly { id: number; verified: boolean; week?: Week }[],
@@ -141,10 +140,9 @@ export function createOccupancyService({
       const now = clock();
       const ids = targets.map(({ id }) => id);
       const withoutWeek = targets.filter(({ week }) => week === undefined).map(({ id }) => id);
-      const [states, visitCounts, checkInCounts, closed, weeks] = await Promise.all([
+      const [states, presentCounts, closed, weeks] = await Promise.all([
         occupancy.statesFor(ids),
-        visits.openCountsIn(ids),
-        subscriptions.openCheckInCountsIn(ids),
+        present.presentCountsIn(ids),
         announcements.closedAt(ids, now),
         withoutWeek.length === 0 ? new Map<number, Week>() : spaces.weeksFor(withoutWeek),
       ]);
@@ -162,7 +160,7 @@ export function createOccupancyService({
               now,
               override: state?.override ?? null,
               capacity: state?.capacity ?? null,
-              present: (visitCounts.get(id) ?? 0) + (checkInCounts.get(id) ?? 0),
+              present: presentCounts.get(id) ?? 0,
             }),
           ];
         }),
@@ -283,16 +281,24 @@ export function createOccupancyService({
      */
     async checkInWarnings(spaceId: number, now: Date, tx: Tx): Promise<DomainErrorCode[]> {
       const { capacity } = await occupancy.stateOf(spaceId, tx);
-      const present =
-        (await visits.openIn(spaceId, tx)).length +
-        (await subscriptions.openCheckInsIn(spaceId, tx)).length;
+      const { count } = await present.presentIn(spaceId, tx);
       const week = await spaces.weekOf(spaceId, tx);
       const warnings: DomainErrorCode[] = [];
-      if (isFull(present, capacity)) warnings.push('SPACE_FULL');
+      if (isFull(count, capacity)) warnings.push('SPACE_FULL');
       if (week !== null && !openRangeAt(week, gazaClockOf(now))) {
         warnings.push('OUTSIDE_OPENING_HOURS');
       }
       return warnings;
+    },
+
+    /** Who is present at the space (`present.ts`), in the caller's transaction when given. */
+    presentIn(spaceId: number, tx?: Tx): Promise<Present> {
+      return present.presentIn(spaceId, tx);
+    },
+
+    /** Whether the space's customer is present, by an open check-in or an open visit. */
+    isPresent(spaceId: number, customerId: number, tx?: Tx): Promise<boolean> {
+      return present.isPresent(spaceId, customerId, tx);
     },
 
     /** The space's capacity; `null` before one is set. */
