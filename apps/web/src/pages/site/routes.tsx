@@ -35,6 +35,13 @@ export const siteRoutes: RouteObject[] = [
             }),
           },
           {
+            path: SITE_PATHS.space,
+            handle: { title: (copy) => copy.site.links.space } satisfies TitledHandle,
+            lazy: async () => ({
+              Component: (await import('./public/space/SpacePage')).SpacePage,
+            }),
+          },
+          {
             path: SITE_PATHS.about,
             handle: { title: (copy) => copy.site.links.about } satisfies TitledHandle,
             lazy: async () => ({

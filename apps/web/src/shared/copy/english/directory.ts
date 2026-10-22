@@ -187,4 +187,109 @@ export const DIRECTORY = {
     truncated: ({ count }: { count: string }) =>
       `Showing the first ${count} spaces; zoom in to see the rest.`,
   },
+  /** A space's public page: its states, its sections, their dates and the phone's bar. */
+  page: {
+    breadcrumb: 'Breadcrumb',
+    back: 'Back to spaces',
+    loadFailed: 'We couldn’t load this space’s page',
+    notFound: {
+      title: 'We couldn’t find this space',
+      text: 'It may have been removed from the directory, or the link is wrong.',
+    },
+    noPhotos: 'No photos yet',
+    unverified: {
+      /** An unverified space's notice, dated by its information's last update. */
+      text: ({ ago }: { ago: string }) =>
+        `Our team collected this information; the space hasn’t confirmed it yet · Information updated ${ago}`,
+      contact: 'Do you run this space? Contact us',
+    },
+    /** The dialog that offers the platform's contact to the space's manager. */
+    dialog: {
+      title: 'Contact the Masaha team',
+      text: 'Tell us you run this space, and we’ll get in touch to confirm its information.',
+      close: 'Close',
+      none: 'There’s no way to reach us set up yet.',
+    },
+    status: { title: 'Status' },
+    statusContact: { title: 'Status & contact' },
+    /** The straight-line distance from the visitor's point, the number left to right. */
+    distance: ({ km }: { km: string }) => `About ${km} km away`,
+    sections: {
+      prices: 'Prices',
+      hours: 'Opening hours',
+      amenities: 'Amenities',
+      about: 'About the space',
+      location: 'Location',
+      contacts: 'Contact',
+    },
+    /** Each fact group's date, `ago` as the date rule says it. */
+    updated: {
+      profile: ({ ago }: { ago: string }) => `Information updated ${ago}`,
+      prices: ({ ago }: { ago: string }) => `Prices updated ${ago}`,
+      hours: ({ ago }: { ago: string }) => `Hours updated ${ago}`,
+      amenities: ({ ago }: { ago: string }) => `Amenities updated ${ago}`,
+      contacts: ({ ago }: { ago: string }) => `Contacts updated ${ago}`,
+    },
+    /** Beside a group the server marks stale. */
+    stale: 'May have changed',
+    prices: {
+      displayOnly: 'Display only · Pay at the space',
+      students: 'For students',
+      byShift: 'Prices by shift',
+      wholeDay: 'Whole day',
+      periods: { HOUR: 'Hour', DAY: 'Day', WEEK: 'Week', MONTH: 'Month' },
+      hidden:
+        'We don’t show the prices because they haven’t been updated in a while. Ask the space for the current price.',
+      none: 'No prices added yet',
+      check: 'Check the price with the space before you go.',
+    },
+    hours: {
+      caption: 'Weekly opening hours',
+      days: 'Days',
+      hours: 'Hours',
+      today: 'Today',
+      closed: 'Closed',
+      allDay: 'Around the clock',
+      showAll: 'Show all days',
+      showLess: 'Show less',
+      dayNames: {
+        sat: 'Saturday',
+        sun: 'Sunday',
+        mon: 'Monday',
+        tue: 'Tuesday',
+        wed: 'Wednesday',
+        thu: 'Thursday',
+        fri: 'Friday',
+      },
+      /** Two days in a row with the same hours. */
+      pair: ({ first, second }: { first: string; second: string }) => `${first}, ${second}`,
+      /** Three days or more in a row with the same hours. */
+      run: ({ first, last }: { first: string; last: string }) => `${first} – ${last}`,
+      /** The shifts' names, listed. */
+      shifts: ({ list }: { list: string }) => `Shifts: ${list}`,
+      none: 'Opening hours not added yet',
+    },
+    location: {
+      directions: 'Directions',
+      /** The map's pin, named by the space. */
+      map: ({ name }: { name: string }) => `${name} on the map`,
+      failed: 'The map didn’t load.',
+    },
+    contacts: {
+      types: {
+        WHATSAPP: 'WhatsApp',
+        PHONE: 'Call',
+        EMAIL: 'Email',
+        INSTAGRAM: 'Instagram',
+        FACEBOOK: 'Facebook',
+        TIKTOK: 'TikTok',
+        WEBSITE: 'Website',
+      },
+      /** A phone's type with its carrier. */
+      withCarrier: ({ type, carrier }: { type: string; carrier: string }) => `${type} — ${carrier}`,
+      carriers: { jawwal: 'Jawwal', ooredoo: 'Ooredoo' },
+    },
+    /** Below 768 px, the bar fixed at the foot of the page. */
+    bar: { label: 'Quick contact', whatsapp: 'WhatsApp', call: 'Call' },
+  },
 } as const;

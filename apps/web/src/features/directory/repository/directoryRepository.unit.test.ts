@@ -113,4 +113,20 @@ describe('the directory repository', () => {
     });
     expect(requests[0]?.headers['Masaha-Near']).toBeUndefined();
   });
+
+  it('asks for a space’s page by its slug, encoded; a missing one arrives as a 404 AppError', async () => {
+    const repository = createDirectoryRepository();
+    const requests = serve({ status: 200, data: { success: true, data: { slug: 'noor hub' } } });
+
+    await expect(repository.space('noor hub')).resolves.toEqual({ slug: 'noor hub' });
+    expect(requests[0]).toMatchObject({ method: 'get', url: '/spaces/noor%20hub' });
+
+    serve({
+      status: 404,
+      data: { success: false, error: { type: 'not_found', message: 'No space', requestId: 'r' } },
+    });
+    const failure: unknown = await repository.space('gone').catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(AppError);
+    expect((failure as AppError).status).toBe(404);
+  });
 });

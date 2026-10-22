@@ -11,6 +11,8 @@ export const SITE = {
     home: 'Home',
     spaces: 'Spaces',
     about: 'About Masaha',
+    /** A space's page, until its name is known. */
+    space: 'Space',
   },
   signIn: 'Sign in',
   menu: 'Menu',

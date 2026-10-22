@@ -9,6 +9,7 @@ export const SITE = {
     home: 'الرئيسية',
     spaces: 'المساحات',
     about: 'عن مساحة',
+    space: 'صفحة المساحة',
   },
   signIn: 'تسجيل الدخول',
   menu: 'القائمة',

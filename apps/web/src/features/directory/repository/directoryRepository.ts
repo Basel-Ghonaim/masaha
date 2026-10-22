@@ -1,4 +1,9 @@
-import { NEAR_HEADER, type DirectorySpace, type MapPins } from '@masaha/shared/directory';
+import {
+  NEAR_HEADER,
+  type DirectorySpace,
+  type MapPins,
+  type PublicSpace,
+} from '@masaha/shared/directory';
 import { api, type Page } from '@shared/api';
 import { nearHeader } from '../services/nearPoint';
 import type { DirectoryRequest } from '../types/DirectoryRequest';
@@ -14,6 +19,8 @@ export interface DirectoryRepository {
   list(request: DirectoryRequest, near: NearPoint | null): Promise<Page<DirectorySpace[]>>;
   /** The map's pins: every space that passes the filters, up to the ceiling, or within the box. */
   pins(request: PinsRequest): Promise<MapPins>;
+  /** A publicly listed space's page, by its slug; a hidden, deleted or unknown one is a 404. */
+  space(slug: string): Promise<PublicSpace>;
 }
 
 export function createDirectoryRepository(): DirectoryRepository {
@@ -24,5 +31,6 @@ export function createDirectoryRepository(): DirectoryRepository {
         ...(near !== null && { headers: { [NEAR_HEADER]: nearHeader(near) } }),
       }),
     pins: (request) => api.get<MapPins>('/map/spaces', { params: request }),
+    space: (slug) => api.get<PublicSpace>(`/spaces/${encodeURIComponent(slug)}`),
   };
 }
