@@ -375,6 +375,7 @@ export function createApi({
     customers,
     payments,
     occupancy,
+    packages,
     now: clock,
   });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });

@@ -3,6 +3,7 @@ import {
   customersQuerySchema,
   leaveToCustomerSchema,
   receivePaymentSchema,
+  subscribeSchema,
 } from '@masaha/shared/desk';
 import { checkInVisitSchema, writeOffVisitSchema } from '@masaha/shared/visits';
 import { Router } from 'express';
@@ -63,6 +64,13 @@ export function createDeskManageRouter(controller: DeskController): Router {
     '/customers/:customerId/archive',
     requireCan('customers.archive'),
     controller.archiveCustomer,
+  );
+  router.post(
+    '/customers/:customerId/subscriptions',
+    requireCan('subscriptions.manage'),
+    requireIdempotencyKey,
+    validate(subscribeSchema),
+    controller.subscribe,
   );
   return router;
 }

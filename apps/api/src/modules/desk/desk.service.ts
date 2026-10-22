@@ -1,4 +1,4 @@
-import type { DomainErrorCode } from '@masaha/shared/core';
+import { addDays, gazaClockOf, type DomainErrorCode } from '@masaha/shared/core';
 import type { Customer } from '@masaha/shared/customers';
 import type {
   CheckOutVisitRequest,
@@ -7,8 +7,11 @@ import type {
   CustomerRow,
   CustomersQuery,
   LeaveToCustomerRequest,
+  NewSubscription,
   ReceivedPayment,
   ReceivePaymentRequest,
+  SubscribeRequest,
+  SubscriptionWithMoney,
   UnpaidVisit,
   VisitCheckOut,
 } from '@masaha/shared/desk';
@@ -30,10 +33,11 @@ import {
 import { AppError } from '../../shared/errors/index.ts';
 import type { CustomersService } from '../customers/index.ts';
 import type { OccupancyService } from '../occupancy/index.ts';
+import type { PackageRow, PackagesService } from '../packages/index.ts';
 import type { PaymentsService } from '../payments/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
-import type { SubscriptionsService } from '../subscriptions/index.ts';
+import type { SubscriptionsService, SubscriptionToCreate } from '../subscriptions/index.ts';
 import type { LockedVisit, VisitsService } from '../visits/index.ts';
 
 interface Dependencies {
@@ -45,6 +49,7 @@ interface Dependencies {
   customers: CustomersService;
   payments: PaymentsService;
   occupancy: OccupancyService;
+  packages: PackagesService;
   /** The one clock (conventions §11). */
   now: () => Date;
 }
@@ -65,6 +70,7 @@ export function createDeskService({
   customers,
   payments,
   occupancy,
+  packages,
   now,
 }: Dependencies) {
   /**
@@ -133,6 +139,84 @@ export function createDeskService({
       { id: visit.id, chargeAgorot: visit.charge?.amountAgorot ?? null },
       tx,
     );
+  }
+
+  /**
+   * A new subscription's terms, from a package of the space (its end `validityDays` after its
+   * start, both included), or typed at the desk by whoever may type a price (else
+   * `PRICE_TYPING_NOT_ALLOWED`), its end as sent and never before its start, recorded with who typed
+   * it and why.
+   */
+  function termsOf(
+    actor: Actor,
+    pack: PackageRow | null,
+    { custom }: SubscribeRequest,
+    startsOn: string,
+    mayType: boolean,
+  ): Omit<SubscriptionToCreate, 'spaceId' | 'customerId' | 'key' | 'renewalOfId' | 'startsOn'> {
+    if (pack) {
+      return {
+        name: pack.name,
+        totalDays: pack.totalDays,
+        daysPerWeek: pack.daysPerWeek,
+        hoursPerDay: pack.hoursPerDay,
+        totalHours: pack.totalHours,
+        billing: pack.billing,
+        priceAgorot: pack.priceAgorot,
+        audience: pack.audience,
+        shiftId: pack.shiftId,
+        packageId: pack.id,
+        endsOn: addDays(startsOn, pack.validityDays - 1),
+        priceTyped: null,
+      };
+    }
+    if (!custom) throw AppError.validation({ packageId: ['invalid_choice'] });
+    if (!mayType) throw AppError.forbidden('PRICE_TYPING_NOT_ALLOWED');
+    if (custom.endsOn !== undefined && custom.endsOn < startsOn) {
+      throw AppError.validation({ 'custom.endsOn': ['out_of_range'] });
+    }
+    return {
+      name: custom.name,
+      totalDays: custom.totalDays ?? null,
+      daysPerWeek: custom.daysPerWeek ?? null,
+      hoursPerDay: custom.hoursPerDay ?? null,
+      totalHours: custom.totalHours ?? null,
+      billing: custom.billing,
+      priceAgorot: custom.priceAgorot,
+      audience: custom.audience,
+      shiftId: custom.shiftId ?? null,
+      packageId: null,
+      endsOn: custom.endsOn ?? null,
+      priceTyped: { byId: actor.id, reason: custom.reason },
+    };
+  }
+
+  /**
+   * A subscribe's answer as of `at`, in the caller's transaction: the subscription with its state
+   * and money, the payments given, and the customer's debt.
+   */
+  async function newSubscription(
+    space: LoadedSpace,
+    { id, customerId }: { id: number; customerId: number },
+    allocated: NewSubscription['payments'],
+    at: Date,
+    tx: Tx,
+  ): Promise<NewSubscription> {
+    const [state] = await subscriptions.statesOf(space.id, { ids: [id] }, at, tx);
+    if (!state) throw new Error(`The subscription ${String(id)} is not the space's.`);
+    const items = await payments.itemBalances(space.id, customerId, at, tx);
+    const balances = await payments.customerBalances(space.id, [customerId], at, tx);
+    const money = items.find((item) => item.kind === 'SUBSCRIPTION' && item.id === id);
+    const subscription: SubscriptionWithMoney = {
+      ...state,
+      paidAgorot: money?.paidAgorot ?? 0,
+      balanceAgorot: money?.balanceAgorot ?? state.dueAgorot,
+    };
+    return {
+      subscription,
+      payments: allocated,
+      debtAgorot: balances.get(customerId)?.debtAgorot ?? 0,
+    };
   }
 
   /**
@@ -395,6 +479,60 @@ export function createDeskService({
           throw AppError.conflict('VISIT_ALREADY_PAID');
         }
         return visits.writeOff(actor.id, space.id, visitId, { reason, balanceAgorot }, tx);
+      });
+    },
+
+    /**
+     * Subscribes a customer, in one transaction and in this order: the space's lock and `can()`
+     * (`subscriptions.manage`); the subscription this key already made, for a retry, answered as of
+     * now; the customer, the space's (else `not_found`) and not archived (`CUSTOMER_ARCHIVED`); the
+     * package, the space's and offered (else `invalid_choice` on `packageId`), or the typed terms
+     * (`termsOf`); the start date, the one sent, else today; then the subscription, audited.
+     * Answered with its state and money and the customer's debt.
+     */
+    subscribe(
+      actor: Actor,
+      space: LoadedSpace,
+      customerId: number,
+      key: string,
+      request: SubscribeRequest,
+    ): Promise<{ result: NewSubscription; warnings: DomainErrorCode[] }> {
+      return runInTransaction(async (tx) => {
+        const links = await lockAtDesk(actor, space, tx, 'subscriptions.manage');
+        const at = now();
+        const made = await subscriptions.findByKey(space.id, key, tx);
+        if (made) return { result: await newSubscription(space, made, [], at, tx), warnings: [] };
+
+        const customer = await customers.findIn(space.id, customerId, tx);
+        if (!customer) throw AppError.notFound(undefined, 'Customer not found');
+        if (customer.archivedAt) throw AppError.conflict('CUSTOMER_ARCHIVED');
+
+        let pack: PackageRow | null = null;
+        if (request.packageId !== undefined) {
+          pack = await packages.termsOf(space.id, request.packageId, tx);
+          if (!pack?.isActive) throw AppError.validation({ packageId: ['invalid_choice'] });
+        }
+        const mayType =
+          pack === null &&
+          can(actor, 'prices.typeByHand', {
+            links,
+            receptionMayTypePrices: (await spaceSettings.read(space.id, tx)).receptionMayTypePrices,
+          });
+        const startsOn = request.startsOn ?? gazaClockOf(at).date;
+        const terms = termsOf(actor, pack, request, startsOn, mayType);
+
+        const created = await subscriptions.create(
+          actor.id,
+          { ...terms, spaceId: space.id, customerId, key, renewalOfId: null, startsOn },
+          tx,
+        );
+        if ('refused' in created) {
+          throw AppError.validation({ 'custom.shiftId': ['invalid_choice'] });
+        }
+        return {
+          result: await newSubscription(space, { id: created.id, customerId }, [], at, tx),
+          warnings: [],
+        };
       });
     },
 

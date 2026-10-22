@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
-import { paginationQuerySchema, phoneSchema, textSchema } from '../core/index.ts';
+import { dateSchema, paginationQuerySchema, phoneSchema, textSchema } from '../core/index.ts';
 import { CUSTOMER_NAME_MAX_LENGTH } from '../customers/index.ts';
+import { createPackageSchema } from '../packages/index.ts';
 import { paymentSchema } from '../payments/index.ts';
 import { SUBSCRIPTION_STATUSES } from '../subscriptions/index.ts';
 import { priceVisitSchema, VISITOR_NAME_MAX_LENGTH } from '../visits/index.ts';
@@ -72,3 +73,31 @@ export const customersQuerySchema = paginationQuerySchema
     { path: ['kind'], params: { code: 'invalid_choice' } },
   );
 export type CustomersQuery = z.infer<typeof customersQuerySchema>;
+
+/** The longest reason a price typed at the desk carries. */
+export const PRICE_REASON_MAX_LENGTH = 200;
+
+/**
+ * A custom subscription's terms, typed at the desk: a package's terms with no validity, an optional
+ * end date instead, and why the price was typed (data model › Hand-typed prices).
+ */
+const customTermsSchema = createPackageSchema.omit({ validityDays: true }).extend({
+  endsOn: dateSchema.optional(),
+  reason: textSchema(1, PRICE_REASON_MAX_LENGTH),
+});
+
+/**
+ * Subscribes a customer: from a package of the space, or custom terms, exactly one of them (both or
+ * neither: `invalid_choice` on `packageId`); a start date, else the server's.
+ */
+export const subscribeSchema = z
+  .object({
+    packageId: id.optional(),
+    custom: customTermsSchema.optional(),
+    startsOn: dateSchema.optional(),
+  })
+  .refine(({ packageId, custom }) => (packageId === undefined) !== (custom === undefined), {
+    path: ['packageId'],
+    params: { code: 'invalid_choice' },
+  });
+export type SubscribeRequest = z.infer<typeof subscribeSchema>;

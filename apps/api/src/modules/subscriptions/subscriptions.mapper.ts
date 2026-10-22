@@ -20,6 +20,7 @@ export function toSubscriptionState(row: SubscriptionStateRow, today: string): S
     id: row.id,
     customerId: row.customer_id,
     packageId: row.package_id,
+    renewalOfId: row.renewal_of_id,
     name: row.name,
     startsOn,
     endsOn,
@@ -31,6 +32,10 @@ export function toSubscriptionState(row: SubscriptionStateRow, today: string): S
     priceAgorot: row.price_agorot,
     audience: row.audience,
     shiftId: row.shift_id,
+    priceTyped:
+      row.price_set_by_id !== null && row.price_reason !== null
+        ? { byId: row.price_set_by_id, reason: row.price_reason }
+        : null,
     ended:
       row.ended_at && row.ended_by_id !== null
         ? { at: row.ended_at.toISOString(), byId: row.ended_by_id }

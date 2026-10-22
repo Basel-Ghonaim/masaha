@@ -1,6 +1,6 @@
 # Desk
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
 > **Authority:** The `desk` capability: the front desk's orchestrations, each across the desk's modules in one transaction. Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its rules by [conventions › the front desk](../backend/conventions.md#the-front-desk-desk) and [§13](../backend/conventions.md#13-idempotency-and-concurrency). The API is built; no web screen yet.
 > **Scope:** the API module `desk` (L5); `@masaha/shared/desk`. No web feature yet.
 
@@ -14,6 +14,7 @@
 - Leaves an uncollected visit's debt to a customer by phone, with no payment («تسجيل دينًا»).
 - Writes off, as the owner, what a closed, priced visit still owes, with a reason, and undoes it.
 - Archives a customer, as the owner, unless they are present.
+- Subscribes a customer, from a package of the space or terms typed by whoever may type a price, once per idempotency key.
 - Answers the customers list, paged, searched and filtered by their subscription and payment state, and a customer's file.
 
 ## Who uses it
@@ -23,12 +24,12 @@
 ## Responsibility boundary
 
 - **Owns** the orchestration: the transaction, its order, the space's lock and `can()` on the links read under it, and the retry's lookup before any write.
-- **Leaves** the visit, its rates, its charge and its audit to [`visits`](visits.md); the payment and the ledger to [`payments`](payments.md); the customer found or created by phone, and the archive's column, to [`customers`](customers.md); the warnings to [`occupancy`](occupancy.md); the lock to [`spaces`](spaces.md); the settings to [`space-settings`](space-settings.md); who may act, and who may type a price, to `can()` ([security › Authorization](../backend/security.md#authorization)).
+- **Leaves** the visit, its rates, its charge and its audit to [`visits`](visits.md); the payment and the ledger to [`payments`](payments.md); the customer found or created by phone, and the archive's column, to [`customers`](customers.md); a package's terms to [`packages`](packages.md); the subscription and its audit to [`subscriptions`](subscriptions.md); the warnings to [`occupancy`](occupancy.md); the lock to [`spaces`](spaces.md); the settings to [`space-settings`](space-settings.md); who may act, and who may type a price, to `can()` ([security › Authorization](../backend/security.md#authorization)).
 
 ## How it composes the platform
 
 - Its manage router sits below `/manage/spaces/:spaceId`, behind the one boundary that admits the space's staff ([security › Authorization](../backend/security.md#authorization)).
-- Each write asks `can()` at the route, before the body is read: `attendance.record` (the staff's) for the check-in and the check-out, and `payments.record` (the staff's) for the payment, each then reading its `Idempotency-Key`, and for «تسجيل دينًا», which needs none; `visits.writeOff` (the owner's) for the write-off and its undo; `customers.archive` (the owner's) for a customer's archive. The service asks `can()` again under the space's lock.
+- Each write asks `can()` at the route, before the body is read: `attendance.record` (the staff's) for the check-in and the check-out, and `payments.record` (the staff's) for the payment, each then reading its `Idempotency-Key`, and for «تسجيل دينًا», which needs none; `visits.writeOff` (the owner's) for the write-off and its undo; `customers.archive` (the owner's) for a customer's archive; `subscriptions.manage` (the staff's) for subscribing, then its `Idempotency-Key`. The service asks `can()` again under the space's lock.
 
 ## Behaviour and flows
 
@@ -48,6 +49,8 @@
 
 **The archive of a customer.** The owner's, in one transaction, in this order: the space's lock and `can()` (`customers.archive`); the customer, the space's (else 404); one already archived answered as it is; one present — an open check-in ([`subscriptions`](subscriptions.md)) or an open visit — refused `MEMBER_ALREADY_CHECKED_IN`; then archived through `customers`. A customer who owes is archived: the debt stays theirs, and the web asks first (DK-014).
 
+**Subscribing.** In one transaction, in this order: the space's lock and `can()` (`subscriptions.manage`); the subscription this key already made, for a retry, answered as of now; the customer, the space's (else 404) and not archived (`CUSTOMER_ARCHIVED`); the terms — a package of the space that is offered (else `invalid_choice` on `packageId`), copied, its end `validityDays` after its start, both days included; or typed, by whoever may type a price (`prices.typeByHand`, else `PRICE_TYPING_NOT_ALLOWED`), with its reason, its end as sent and never before its start; the start date, the one sent, else today; then the subscription, through `subscriptions`. Answered 201 with its state, what was paid and what it owes, and the customer's debt.
+
 **The write-off and its undo.** The owner's, each in one transaction, in this order: the space's lock and `can()` (`visits.writeOff`); the visit's row (`FOR UPDATE`), not the space's → 404, still open → 409 with no code. The write-off: a visit already written off is answered as it is; no charge → `VISIT_NOT_PRICED`; then what it was paid and still owes, read from [`payments`](payments.md) under the visit's lock; nothing owed → `VISIT_ALREADY_PAID`; else `visits` writes it off with the amount, now, by the caller, with the reason. The undo: a visit not written off is answered as it is; else `visits` clears it, audited with what it was.
 
 ## Decisions
@@ -56,6 +59,7 @@
 
 - **A desk write takes the space's lock first, and decides `can()` on the links read under it.** *Why:* a reception link ended meanwhile must refuse ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)); the lock also serialises the space's desk creates. 2026-10-20, #95.
 - **A retry is found by its key first, under the space's lock; the unique key is only the backstop.** *Why:* inside a transaction PostgreSQL aborts on the unique violation, so the first record could not be read after it; under the lock the read is race-free ([conventions §13](../backend/conventions.md#idempotency)). 2026-10-20, #95.
+- **A package's terms are copied into the subscription when it is made; the package is offered (not retired) and the space's.** *Why:* a subscription is a snapshot ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)): a later edit of the package changes no subscription made from it. 2026-10-22, #106.
 - **The warnings never refuse; a retry answers them as of now, the visit counted present.** *Why:* the desk decides; the warnings describe now, not the visit, so storing them would add a column for advice — ADR 0015's "same body", weakened for them only (the owner's answer, §13 Q8 of the desk's plan). 2026-10-20, #95.
 - **The key is read from the `Idempotency-Key` header by a route middleware, before the body.** *Why:* a request without one is a client's bug, refused before anything is read. 2026-10-20, #95.
 - **The check-out is priced at the desk's quote, at most five minutes old and not in the future.** *Why:* with per-minute rounding the charge moves every minute; a visitor who paid what the screen said must not owe a few agorot more when the request lands, and five minutes cannot back-date a stay (the owner's bound). 2026-10-20, #95.
@@ -89,3 +93,4 @@
 - #97 — a payment on a visit another key closed refused; a check-out time before the check-in refused.
 - #100 — the owner's write-off of a visit's unpaid rest, and its undo; a visit's payment after its check-out; a visit's customer kept at an unpaid check-out (finding 100); «تسجيل دينًا».
 - #102 — a stay checked out after its due time closed and charged at it (finding 116); a customer archived by the owner, unless present; the customers list and file.
+- #106 — subscribing a customer, from a package or custom terms.

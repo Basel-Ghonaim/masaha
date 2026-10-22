@@ -15,7 +15,8 @@
 ## Who uses it
 
 - **The space's owner,** on the dashboard's Packages & prices (`/dashboard/spaces/:spaceId/packages`): reads, adds and edits.
-- **The space's reception,** through the API: reads them, for the front desk, which will choose from them when it makes a subscription.
+- **The space's reception,** through the API: reads them, for the front desk, which chooses from them when it makes a subscription.
+- **The front desk** ([desk](desk.md)): a subscription copies an offered package's terms when it is made (`termsOf`), and keeps them whatever the package becomes.
 - Reception's desk does not read it on the web yet. The public never does: its packages are the space's published prices ([glossary](../project/glossary.md)).
 
 ## Responsibility boundary
@@ -98,7 +99,7 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 ### API history
 
 - #87 — a space's packages, on the API: listed whole to its staff, added and edited by its owner, retired rather than deleted.
-- #106 — the database refuses a free package (finding 80).
+- #106 — the database refuses a free package (finding 80); a package's terms read for a subscription to copy.
 
 ### Web history
 

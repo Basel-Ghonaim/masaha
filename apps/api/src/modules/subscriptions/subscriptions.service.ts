@@ -2,13 +2,17 @@ import type { SubscriptionState, SubscriptionStatus } from '@masaha/shared/subsc
 import type { Logger } from 'pino';
 
 import type { RunInTransaction, Tx } from '../../db/index.ts';
-import type { AuditWriter } from '../../shared/audit/index.ts';
+import type { AuditValues, AuditWriter } from '../../shared/audit/index.ts';
 import type { SpaceSettingsService } from '../space-settings/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import { calendarOf } from './calendar.ts';
 import { currentSubscription } from './currentSubscription.ts';
 import { toSubscriptionState } from './subscriptions.mapper.ts';
-import { createSubscriptionsRepository, type OpenCheckIn } from './subscriptions.repository.ts';
+import {
+  createSubscriptionsRepository,
+  type OpenCheckIn,
+  type SubscriptionToCreate,
+} from './subscriptions.repository.ts';
 
 interface Dependencies {
   runInTransaction: RunInTransaction;
@@ -32,13 +36,38 @@ function currentByCustomer(states: readonly SubscriptionState[]): Map<number, Su
   );
 }
 
+/**
+ * A new subscription as its audit entry records it: its customer, the package it copies and the one it
+ * renews, its terms and dates, and a typed price's reason (else `null`); not its space, the entry's
+ * own, nor its key.
+ */
+function createdValues(subscription: SubscriptionToCreate): AuditValues {
+  return {
+    customerId: subscription.customerId,
+    packageId: subscription.packageId,
+    renewalOfId: subscription.renewalOfId,
+    name: subscription.name,
+    startsOn: subscription.startsOn,
+    endsOn: subscription.endsOn,
+    totalDays: subscription.totalDays,
+    daysPerWeek: subscription.daysPerWeek,
+    hoursPerDay: subscription.hoursPerDay,
+    totalHours: subscription.totalHours,
+    billing: subscription.billing,
+    priceAgorot: subscription.priceAgorot,
+    audience: subscription.audience,
+    shiftId: subscription.shiftId,
+    reason: subscription.priceTyped?.reason ?? null,
+  };
+}
+
 /** How many check-ins one run of the auto check-out closes at most; the next run continues. */
 const AUTO_CHECKOUT_BATCH = 500;
 
 /**
- * A customer's subscriptions and their check-ins (docs/backend/conventions.md › the front desk). So
- * far the subscriptions' states, the read `occupancy` composes *present* from, and the auto check-out
- * of the check-ins.
+ * A customer's subscriptions and their check-ins (docs/backend/conventions.md › the front desk): the
+ * subscriptions' states and their creation for the desk, the read `occupancy` composes *present*
+ * from, and the auto check-out of the check-ins.
  */
 export function createSubscriptionsService({
   runInTransaction,
@@ -68,6 +97,41 @@ export function createSubscriptionsService({
   return {
     /** The space's subscriptions with their states (above). */
     statesOf,
+
+    /** The space's subscription made with this idempotency key, in the caller's transaction. */
+    findByKey(
+      spaceId: number,
+      key: string,
+      tx: Tx,
+    ): Promise<{ id: number; customerId: number } | null> {
+      return repository.findByKey(spaceId, key, tx);
+    },
+
+    /**
+     * Writes a subscription in the caller's transaction, audited `subscription.created` with its
+     * terms, its package, the one it renews and a typed price's reason; or `refused` on a shift that
+     * is not the space's, writing nothing.
+     */
+    async create(
+      actorId: number,
+      subscription: SubscriptionToCreate,
+      tx: Tx,
+    ): Promise<{ id: number } | { refused: 'shiftId' }> {
+      const created = await repository.create(subscription, tx);
+      if ('refused' in created) return created;
+      await audit(
+        {
+          actorId,
+          action: 'subscription.created',
+          entityType: 'subscription',
+          entityId: created.id,
+          spaceId: subscription.spaceId,
+          after: createdValues(subscription),
+        },
+        tx,
+      );
+      return created;
+    },
 
     /**
      * The current subscription of each of these customers of the space at `at`

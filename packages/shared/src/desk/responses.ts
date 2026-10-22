@@ -67,6 +67,28 @@ export interface UnpaidVisit {
  */
 export type CustomerFile = { customer: Customer } & CustomerBalance & {
     present: CustomerPresence | null;
-    subscriptions: (SubscriptionState & { paidAgorot: number; balanceAgorot: number })[];
+    subscriptions: SubscriptionWithMoney[];
     unpaidVisits: UnpaidVisit[];
   };
+
+/** A subscription with what was paid on it and what it still owes, as of the answer. */
+export type SubscriptionWithMoney = SubscriptionState & {
+  paidAgorot: number;
+  balanceAgorot: number;
+};
+
+/** A payment taken with a subscribe, and the item it was allocated to. */
+export interface AllocatedPayment {
+  item: { visitId: number } | { subscriptionId: number };
+  payment: VisitPayment;
+}
+
+/**
+ * A new subscription: it, with its money; the payments the request's amount made, in the order they
+ * were allocated; and the customer's debt, all as of the answer (a retry's too).
+ */
+export interface NewSubscription {
+  subscription: SubscriptionWithMoney;
+  payments: AllocatedPayment[];
+  debtAgorot: number;
+}

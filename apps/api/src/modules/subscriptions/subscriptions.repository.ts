@@ -1,4 +1,4 @@
-import { prisma, type Tx } from '../../db/index.ts';
+import { isForeignKeyViolation, prisma, type Tx } from '../../db/index.ts';
 
 /** A subscription check-in still open: whose, on which subscription, and since when. */
 export interface OpenCheckIn {
@@ -37,6 +37,9 @@ export interface SubscriptionStateRow {
   price_agorot: number;
   audience: 'GENERAL' | 'STUDENT';
   shift_id: number | null;
+  renewal_of_id: number | null;
+  price_set_by_id: number | null;
+  price_reason: string | null;
   ended_at: Date | null;
   ended_by_id: number | null;
   days_used: number;
@@ -45,6 +48,31 @@ export interface SubscriptionStateRow {
   minutes_today: number;
   due_agorot: number;
 }
+
+/** A subscription to write: its customer, its terms and dates (Gaza dates), and its key. */
+export interface SubscriptionToCreate {
+  spaceId: number;
+  customerId: number;
+  key: string;
+  packageId: number | null;
+  renewalOfId: number | null;
+  name: string;
+  startsOn: string | null;
+  endsOn: string | null;
+  totalDays: number | null;
+  daysPerWeek: number | null;
+  hoursPerDay: number | null;
+  totalHours: number | null;
+  billing: 'FIXED' | 'PER_HOUR' | 'PER_DAY';
+  priceAgorot: number;
+  audience: 'GENERAL' | 'STUDENT';
+  shiftId: number | null;
+  /** Who typed the price at the desk, and why; `null` when it came from a package. */
+  priceTyped: { byId: number; reason: string } | null;
+}
+
+/** A Gaza calendar date as a `@db.Date` value: its UTC midnight (conventions §11). */
+const dateOf = (date: string | null) => (date === null ? null : new Date(`${date}T00:00:00.000Z`));
 
 /** Each space's count of rows, by space; a space with none is absent. */
 function countsBySpace(groups: readonly { spaceId: number; _count: { _all: number } }[]) {
@@ -57,6 +85,46 @@ function countsBySpace(groups: readonly { spaceId: number; _count: { _all: numbe
  */
 export function createSubscriptionsRepository() {
   return {
+    /** The space's subscription made with this idempotency key: its id and customer, or `null`. */
+    findByKey(
+      spaceId: number,
+      key: string,
+      tx: Tx,
+    ): Promise<{ id: number; customerId: number } | null> {
+      return tx.subscription.findUnique({
+        where: { spaceId_idempotencyKey: { spaceId, idempotencyKey: key } },
+        select: { id: true, customerId: true },
+      });
+    },
+
+    /**
+     * Inserts the subscription: its id, or `refused` when a foreign key refused it — under the
+     * caller's checks of the customer, the package and the renewed one, only the shift, which must be
+     * the space's own (through `(shift_id, space_id)`). Anything else is rethrown.
+     */
+    async create(
+      subscription: SubscriptionToCreate,
+      tx: Tx,
+    ): Promise<{ id: number } | { refused: 'shiftId' }> {
+      const { key, startsOn, endsOn, priceTyped, ...terms } = subscription;
+      try {
+        return await tx.subscription.create({
+          data: {
+            ...terms,
+            idempotencyKey: key,
+            startsOn: dateOf(startsOn),
+            endsOn: dateOf(endsOn),
+            priceSetById: priceTyped?.byId ?? null,
+            priceReason: priceTyped?.reason ?? null,
+          },
+          select: { id: true },
+        });
+      } catch (error) {
+        if (isForeignKeyViolation(error)) return { refused: 'shiftId' };
+        throw error;
+      }
+    },
+
     /** The space's open check-ins, the earliest first, then by id. */
     openCheckInsIn(spaceId: number, tx: Tx = prisma): Promise<OpenCheckIn[]> {
       return tx.checkIn.findMany({
@@ -115,7 +183,7 @@ export function createSubscriptionsRepository() {
         SELECT s.id, s.customer_id, s.package_id, s.name, s.starts_on, s.ends_on,
                s.total_days, s.days_per_week, s.hours_per_day, s.total_hours,
                s.billing::text AS billing, s.price_agorot, s.audience::text AS audience, s.shift_id,
-               s.ended_at, s.ended_by_id,
+               s.renewal_of_id, s.price_set_by_id, s.price_reason, s.ended_at, s.ended_by_id,
                u.days_used, u.days_this_week, u.minutes_used, u.minutes_today, u.due_agorot
         FROM subscription_usage(${spaceId}, ${customerId}::integer, ${today}::date, ${weekStart}::date) u
         JOIN subscriptions s ON s.id = u.subscription_id

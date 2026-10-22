@@ -24,6 +24,8 @@ export interface DeskSubscription {
   customerId: number;
   /** `null` for a custom subscription. */
   packageId: number | null;
+  /** The subscription this one renews, the same customer's; `null` for a first one. */
+  renewalOfId: number | null;
   name: string;
   /** Gaza calendar dates, `YYYY-MM-DD`. */
   startsOn: string | null;
@@ -37,6 +39,8 @@ export interface DeskSubscription {
   priceAgorot: number;
   audience: (typeof PRICE_AUDIENCES)[number];
   shiftId: number | null;
+  /** Set when its price was typed at the desk: by whom, and why. */
+  priceTyped: { byId: number; reason: string } | null;
   /** Set when it was ended early: when, and by whom. */
   ended: { at: string; byId: number } | null;
 }
