@@ -37,6 +37,7 @@ export function SpacePage() {
   useRecordTitle(title);
   const back = `${SITE_PATHS.spaces}${useDirectoryReturn()}`;
   const tablet = useMediaQuery(TABLET_UP);
+  const stateTitle = title?.text ?? copy.site.links.space;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-8">
@@ -57,7 +58,7 @@ export function SpacePage() {
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage lang={title?.lang} dir={title?.dir}>
-                {title?.text ?? copy.site.links.space}
+                {stateTitle}
               </BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
