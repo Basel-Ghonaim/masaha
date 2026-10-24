@@ -14,6 +14,7 @@ import type { DeskVisit } from '../visits/index.ts';
 export const DESK_WARNINGS = [
   'SPACE_FULL',
   'OUTSIDE_OPENING_HOURS',
+  'CLOSURE_IN_FORCE',
   'SUBSCRIPTION_NOT_STARTED',
   'SUBSCRIPTION_EXPIRED',
   'DAYS_PER_WEEK_USED',

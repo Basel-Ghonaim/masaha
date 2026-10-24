@@ -86,6 +86,8 @@ export const DOMAIN_ERROR_CODES = [
   'MEMBER_ALREADY_CHECKED_IN',
   'CHECK_IN_ALREADY_CLOSED',
   'OUTSIDE_OPENING_HOURS',
+  // warning only: a check-in while the space is announced closed (occupancy)
+  'CLOSURE_IN_FORCE',
   // occupancy
   'SPACE_CAPACITY_NOT_SET',
   'SPACE_NOT_OPEN',

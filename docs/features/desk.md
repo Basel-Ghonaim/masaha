@@ -6,9 +6,9 @@
 
 ## What it does
 
-- Checks a visitor in, with what the check-in warns of: the space full, or outside its hours.
+- Checks a visitor in, with what the check-in warns of: the space full, outside its hours, or announced closed.
 - Answers a retried check-in the visit its idempotency key already made.
-- Checks a subscriber in on one of their subscriptions, unless archived or present, with what it warns of: the space full, outside its hours, the subscription not started or expired, this week's days or today's hours used up; a retry answers the same check-in and the same warnings.
+- Checks a subscriber in on one of their subscriptions, unless archived or present, with what it warns of: the space full, outside its hours, announced closed, the subscription not started or expired, this week's days or today's hours used up; a retry answers the same check-in and the same warnings.
 - Checks a subscriber out, answered with what their subscription owes now; one closed already is answered as it is.
 - Leaves the stays it does not close to the auto check-out, which [`visits`](visits.md) and `subscriptions` run as timed jobs.
 - Checks a visit out: the charge at the quote's time, the payment taken, the rest left unpaid to a customer found or created by phone, and a price typed by hand where the visit has no rate, or an unpriced close; a retry answers the first result.
@@ -106,4 +106,5 @@
 - #102 — a stay checked out after its due time closed and charged at it (finding 116); a customer archived by the owner, unless present; the customers list and file.
 - #106 — subscribing a customer, from a package or custom terms; a payment on a subscription; a renewal with its payment allocated oldest debt first; a subscription's statement.
 - #109 — a subscribe's key that made another customer's subscription refused; the debt warning on older items only; a subscriber's check-in, with its warnings, and check-out.
+- #112 — the closure warning on both check-ins, from `occupancy`.
 - #110 — a subscriber's check-out after its due time closed at it; a check-in caught by the open check-in index answered `MEMBER_ALREADY_CHECKED_IN`, not a 500.

@@ -36,6 +36,7 @@ export const ERRORS = {
   SPACE_NOT_OPEN:
     'The status can’t be set now: the space is closed, outside its hours, or has no active owner.',
   OUTSIDE_OPENING_HOURS: 'This check-in is outside the space’s opening hours.',
+  CLOSURE_IN_FORCE: 'The space is announced closed now; the check-in was recorded anyway.',
   SPACE_FULL: 'The space is full; the check-in was recorded anyway.',
   PRICE_TYPING_NOT_ALLOWED: 'The space’s settings do not let reception type a price.',
   PAYMENT_EXCEEDS_DUE: 'The amount is more than what is due.',
