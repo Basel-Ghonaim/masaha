@@ -5,6 +5,7 @@ import { ERRORS } from './errors';
 import { FORMS } from './forms';
 import { LOOKUPS } from './lookups';
 import { MAP } from './map';
+import { OCCUPANCY } from './occupancy';
 import { PACKAGES } from './packages';
 import { PLATFORM_SETTINGS } from './platformSettings';
 import { PREFERENCES } from './preferences';
@@ -34,6 +35,7 @@ export const ENGLISH = {
   forms: FORMS,
   lookups: LOOKUPS,
   map: MAP,
+  occupancy: OCCUPANCY,
   packages: PACKAGES,
   platformSettings: PLATFORM_SETTINGS,
   preferences: PREFERENCES,

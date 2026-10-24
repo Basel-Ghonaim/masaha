@@ -328,7 +328,7 @@ TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004
   - the rest are TanStack Query's own.
 - **Polling:**
   - a space's page reads its live status every 60 s while visible, and on returning to it; the lists are never polled (decision 3, 2026-10-22, #108);
-  - the front desk's list of who is present every 30 s, and on window focus;
+  - the front desk's list of who is present every 30 s while visible, never in the background, and on window focus always (built: `occupancy`'s state now, 2026-10-24, #116);
   - the directory's lists are never polled: they are fetched again on returning to the window once stale, and on a new visit (2026-10-21, #101).
 - **Optimistic updates** never for money or presence; only for favourites.
 - **Offline:** there is no offline queue. A lost connection shows a clear "no connection" state, and the user retries.
