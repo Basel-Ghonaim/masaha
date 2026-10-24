@@ -318,6 +318,7 @@ TanStack Query holds the server state ([ADR 0004](../architecture/decisions/0004
 - **Retries live in one place, the transport.** TanStack Query's own `retry` is off, for queries and mutations, so attempts never multiply:
   - a `GET`, so every query, is retried;
   - a mutation is retried only when it carries an idempotency key ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). The key is generated once per user action and reused on every retry of it;
+  - **One key per intent:** a dialog or sheet opened for one item, or one tap that writes without one, holds one `Idempotency-Key` (`useIntentKey`, sent with `withIdempotencyKey`), kept across the transport's re-sends, a second press, a retry after a lost answer and an edit of the form; a new opening is a new key (2026-10-24, #116);
   - on a 5xx, a network failure or a timeout, twice, after 1 s and then 2 s. A 4xx is the server's answer and is never retried, 429 included; nor is a cancellation.
 - **Query defaults** (`createQueryClient` in `shared/api`):
   - refetch on window focus, so the front desk refreshes when its window comes back;

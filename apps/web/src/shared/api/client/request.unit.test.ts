@@ -65,6 +65,28 @@ describe('the request helpers', () => {
     await expect(failure).rejects.toMatchObject({ type: 'unknown', status: 200, requestId: 'r-2' });
   });
 
+  it('hand back a POST’s data and its meta, such as the warnings, and no meta without one', async () => {
+    const warned = setup({
+      status: 201,
+      data: { success: true, data: { id: 8 }, meta: { warnings: ['SPACE_FULL'] } },
+    });
+    await expect(
+      warned.api.postWithMeta<{ id: number }, { warnings: string[] }>('/visits', {}),
+    ).resolves.toEqual({
+      data: { id: 8 },
+      meta: { warnings: ['SPACE_FULL'] },
+    });
+
+    const plain = setup({ status: 201, data: { success: true, data: { id: 9 } } });
+    await expect(
+      plain.api.postWithMeta<{ id: number }>('/visits', { name: 'Omar' }),
+    ).resolves.toEqual({
+      data: { id: 9 },
+      meta: undefined,
+    });
+    expect(JSON.parse(plain.requests[0]?.data as string)).toEqual({ name: 'Omar' });
+  });
+
   it('reject an error answer as an AppError with its type and status', async () => {
     const { api } = setup({
       status: 404,

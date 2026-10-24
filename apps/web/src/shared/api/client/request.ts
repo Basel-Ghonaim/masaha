@@ -6,6 +6,9 @@ import { apiClient } from './client';
 /** A page of a list, with what the envelope's `meta` carries: the pagination, or an endpoint's own. */
 export type Page<T, M = PaginationMeta> = { data: T; meta: M };
 
+/** An answer's data, with the envelope's `meta` when it has one. */
+export type WithMeta<T, M> = { data: T; meta: M | undefined };
+
 /** The payload of an answer; a 204 has no body, and resolves with nothing. */
 function payload<T>(response: AxiosResponse<SuccessEnvelope<T>>): T {
   return response.status === 204 ? (undefined as T) : response.data.data;
@@ -27,6 +30,18 @@ export function createApi(client: AxiosInstance) {
       client.patch<SuccessEnvelope<T>>(url, body, config).then(payload<T>),
     delete: <T>(url: string, config?: AxiosRequestConfig) =>
       client.delete<SuccessEnvelope<T>>(url, config).then(payload<T>),
+    /**
+     * A POST's `data` with the envelope's optional `meta`, such as a check-in's warnings, absent when
+     * the answer has none.
+     */
+    postWithMeta: async <T, M = unknown>(
+      url: string,
+      body?: unknown,
+      config?: AxiosRequestConfig,
+    ): Promise<WithMeta<T, M>> => {
+      const response = await client.post<SuccessEnvelope<T, M>>(url, body, config);
+      return { data: response.data.data, meta: response.data.meta };
+    },
     /**
      * A list with its `meta`: the pagination, or what the endpoint adds, such as warnings. An answer
      * without `meta` breaks the contract of the endpoints this is for, so it rejects as `unknown`
