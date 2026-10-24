@@ -50,6 +50,7 @@ export {
   UserCogIcon,
   UsersIcon,
   WifiIcon,
+  WifiOffIcon,
   XIcon,
   ZapIcon,
 } from './iconSet';

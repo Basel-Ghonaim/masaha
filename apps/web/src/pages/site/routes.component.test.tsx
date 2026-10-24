@@ -88,11 +88,14 @@ describe("the site's routes", () => {
     expectTheShell();
   });
 
-  it("show offline inside the shell when a page's code cannot be fetched", async () => {
+  it("show offline inside the shell when a page's code cannot be fetched, with a way home", async () => {
     renderSiteAt('/unfetched');
 
     expect(await pageTitle()).toHaveTextContent('No internet connection');
     expectTheShell();
+    const main = within(screen.getByRole('main'));
+    expect(main.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(main.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
   });
 
   it('shows the Directory under its title', async () => {

@@ -259,6 +259,7 @@ export {
   UserCogIcon,
   UsersIcon,
   WifiIcon,
+  WifiOffIcon,
   XIcon,
   ZapIcon,
   type GlyphName,
