@@ -391,6 +391,7 @@ export function createApi({
     users,
     customers,
     subscriptions,
+    now: clock,
   });
   const desk = createDeskService({
     runInTransaction,

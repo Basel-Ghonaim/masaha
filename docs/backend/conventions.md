@@ -291,6 +291,7 @@ A screen that shows or filters by values from several modules is composed by a m
   - `spaces` never imports `space-links` for it. The space middleware resolves the links on the space routes (§8), and `can()` decides.
   - `data-reports` sits above `space-links` and may call it directly for a report's space.
 - **Uncollected visits** (closed by the auto check-out and left unpaid, and a priced visit closed by hand with no customer that owes again after a void, 2026-10-24, #114) → `payments`, which owns the balance: it pages them in one query over the visits and their payments, the settled ones left out by the balance's subtraction, newest closed first (§5), and `visits` answers the page's visits (2026-10-20, #97; one query since 2026-10-21, #102, finding 113).
+- **The payments list** → `payments`, naming its rows through `visits`, `subscriptions`, `customers` and `users`, one set query each; reception's narrowed to its own of today by `can()`, before any query. 2026-10-24, #114.
 - **The public directory** (the list, the map's pins and a space's page) → `directory` ([how it composes them](../features/directory.md#how-it-composes-the-platform)). The listed areas and the areas a search matches resolve to ids first, from `lookups`, and the verified spaces from `space-links`; `spaces` then filters, searches, orders and pages.
 - **The favourites' cards** (live status and prices) → `directory`, from the ids that `favorites` records. `favorites` never reads live status.
 

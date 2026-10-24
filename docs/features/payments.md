@@ -1,7 +1,7 @@
 # Payments
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
-> **Authority:** The `payments` capability: the payment ledger of [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md). Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and the ledger's rules by the [data model](../architecture/data-model.md#constraints-worth-stating), the rules' ownership by [conventions §13](../backend/conventions.md#the-ledgers-rules). The API is built for a visit's payment, a subscription's, and the uncollected visits; no web screen yet.
+> **Authority:** The `payments` capability: the payment ledger of [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md). Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and the ledger's rules by the [data model](../architecture/data-model.md#constraints-worth-stating), the rules' ownership by [conventions §13](../backend/conventions.md#the-ledgers-rules). The API is built for a visit's payment, a subscription's, the owner's void, the payments list and the uncollected visits; no web screen yet.
 > **Scope:** the API module `payments` (L4); `@masaha/shared/payments`. No web feature yet.
 
 ## What it does
@@ -10,11 +10,13 @@
 - Finds the payment a check-out's or a payment's idempotency key already recorded, so a retry never records a second one.
 - Answers a space's uncollected visits: closed by the auto check-out, or a priced visit closed by hand with no customer that owes again after a void, not fully paid and not written off, with what was paid and what is still owed.
 - Answers what one visit was paid and still owes, in the desk's transaction (`balanceOfVisit`), for the write-off and the payment after the check-out.
+- Answers the payments list: the owner's, by a range of Gaza days, who recorded them, method, kind and void; reception's own of today; the latest received first, paged, with the totals of the whole filter.
 - Voids a payment, in the desk's transaction: its row locked (`lockIn`), its void's columns only, audited; and answers payments named by their item, its customer and who recorded and voided them (`rowsOf`).
 - Answers customers' debt and credit, the ids of those who owe or are in credit, and one customer's items with their balances — each computed in the database, by one aggregate query — and the payments of visits, voided ones marked, for a customer's file.
 
 ## Who uses it
 
+- **The space's owner**, whose ledger reads every payment, and **reception**, whose «دفعاتي اليوم» reads its own of today, through its own route. No web screen yet.
 - **The front desk** ([desk](desk.md)), for the space's owner and reception, at a visit's check-out, and for the owner's void of a payment; and, through its own route, the uncollected visits, which the owner's «يحتاج انتباهك» will count. No web screen yet.
 
 ## Responsibility boundary
@@ -36,6 +38,8 @@
 
 **A payment's void.** In the desk's transaction, after the space's lock and `can()`: the payment's row locked (`FOR UPDATE`), the space's; one voided already is answered as it is. The void sets `voidedAt`, `voidedById` and `voidReason` and nothing else, which the change trigger holds, refusing a written-off visit's (`payments_visit_written_off` → `VISIT_WRITTEN_OFF`); audited `payment.voided` with its item, amount, method and reason. Nothing else is rewritten: every balance, debt, credit and a fixed price's floor leave voided payments out on read. The row is answered named (`rowsOf`): the visits, the subscriptions and their customers, and the people, each one set query, in parallel.
 
+**The payments list.** `can()` decides first, before any query: the owner reads the query's range and filters; anyone else of the staff, their own payments of today, and a range or `recordedById` from them is `forbidden`. The window is the range's Gaza days, from its first midnight to the midnight after its last (`paymentsWindow`, pure; today without one); a payment counts on the day it was received. The page (the latest received first, then by id), its count and the totals run in parallel, on the payments' `space_id, received_at` index; the totals leave the void filter out and sum the payments not voided by method, the voided ones apart. The page's rows are named by `rowsOf`. Read without a lock.
+
 **The balances.** One query shape over the space's items (`balancesOf`): its subscriptions, their due from `subscription_usage`, and its closed visits with a customer, not written off, their charge; each with what was paid, voided payments left out. A customer's debt is the sum of the positive balances (an unpriced visit owes nothing until priced); their credit, what was paid above the due on a usage-based subscription only. The payment filter takes the ids of those whose debt, or credit, is above zero. One customer's items are answered oldest first, a visit before a subscription made at the same instant, each balance by the one rule (`balance.ts`). The calendar's days are the caller's (`calendarOf`).
 
 **The uncollected visits.** One query and its count over the space's visits closed by the auto check-out, or closed by hand, priced, with no customer, and not written off, each with what was paid on it, voided payments left out: the settled ones (charge − paid ≤ 0) are left out in SQL, the unpriced ones kept, the latest closed first, so every page is full and the total right; `visits` then answers the page's visits as the desk sees them, each balance by the one rule (2026-10-21, #102). An unpriced visit has no due and is never settled. Read without a lock.
@@ -44,6 +48,10 @@
 
 ### API decisions
 
+- **The totals ride in the list's `meta`, with its pagination** (S3). *Why:* the ledger's footer and «دفعاتي اليوم»'s cards need them with the rows, in one request on the desk's weak connection; `meta` carries what an endpoint adds. A summary route was the alternative. 2026-10-24, #114.
+- **The list filters by kind and by void too, `INCLUDE` by default; the totals never count a voided payment as received** (S4). *Why:* the prototype's «النوع» and «إظهار الملغاة»; «دفعاتي اليوم» lists voided ones marked. 2026-10-24, #114.
+- **A range is both ends or neither, at most 92 days with both counted, today by default** (S5). *Why:* a quarter covers the ledger's periods; longer ones are finance's (step 11). 2026-10-24, #114.
+- **One route, narrowed by `can()`; reception's range or `recordedById` is refused, not ignored** (S6). *Why:* an ignored filter would answer a page that looks like what was asked and is not; a refusal shows the screen's bug at once. A route of reception's own was the alternative. 2026-10-24, #114.
 - **Debt, credit and the payment filter are computed in the database, by one aggregate query of `payments`; no request reads every payment, visit or check-in into memory.** *Why:* the owner's decision 6; a usage-based subscription's due comes from its owner's function, so the query reads other modules' data without writing it (step 8's plan, S9). 2026-10-21, #102.
 
 - **The service never checks the ledger's rules: the database refuses, and the error handler translates the constraint's name through one table.** *Why:* one owner per rule ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md), conventions §13); a check in the service would be a second copy. 2026-10-20, #95.
@@ -61,8 +69,8 @@
 
 ## Code map
 
-- **API:** `apps/api/src/modules/payments/`, entry `index.ts`: the service, the repository, the mapper, the controller and the manage router, and the balance's rule (`balance.ts`). The translation table is the platform's (`shared/errors`), and reading a check violation is `db`'s.
-- **Shared:** `packages/shared/src/payments/`: the payment's request (`paymentSchema`, `PAYMENT_METHODS`) and the void's (`voidPaymentSchema`); the responses (`VisitPayment`, `UncollectedVisit`, `PaymentRow`, `PaymentItem`).
+- **API:** `apps/api/src/modules/payments/`, entry `index.ts`: the service, the repository, the mapper, the controller and the manage router, the balance's rule (`balance.ts`) and the list's window (`paymentsWindow.ts`). The translation table is the platform's (`shared/errors`), and reading a check violation is `db`'s.
+- **Shared:** `packages/shared/src/payments/`: the payment's request (`paymentSchema`, `PAYMENT_METHODS`), the void's (`voidPaymentSchema`) and the list's query (`paymentsQuerySchema`); the responses (`VisitPayment`, `UncollectedVisit`, `PaymentRow`, `PaymentItem`, `PaymentTotals`, `PaymentsMeta`).
 
 ## History
 
@@ -73,3 +81,4 @@
 - #100 — the ledger's fourth rule, a written-off visit takes no payment; `balanceOfVisit`, with `paidFor` reading in the caller's transaction; a visit's payment after its check-out, through the desk.
 - #102 — customers' debt and credit, the payment filter's ids and a customer's items with their balances, in the database; the payments of visits, voided ones marked; the uncollected visits paged in one query (finding 113 resolved).
 - #106 — a payment on a subscription, through the desk's payment route; `record` for both items; the allocation of a subscribe's amount, oldest debt first, and the payments of derived keys found in one query.
+- #114 — the owner's void of a payment, a written-off visit's once the write-off is undone (the ledger's fourth rule both ways); a visit closed by hand with no customer that owes after a void, uncollected; the payments list with its totals, reception's own of today.

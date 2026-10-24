@@ -3,11 +3,15 @@ import type {
   CustomerBalance,
   ItemPayment,
   PaymentRow,
+  PaymentsQuery,
+  PaymentTotals,
   UncollectedVisit,
   VisitPayment,
 } from '@masaha/shared/payments';
 
 import type { Tx } from '../../db/index.ts';
+import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
+import { AppError } from '../../shared/errors/index.ts';
 import { toSkip } from '../../shared/http/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import type { CustomersService } from '../customers/index.ts';
@@ -16,6 +20,7 @@ import type { UsersService } from '../users/index.ts';
 import type { VisitsService } from '../visits/index.ts';
 import { balanceOf } from './balance.ts';
 import { toItemPayment, toPaymentRow, toVisitPayment } from './payments.mapper.ts';
+import { paymentsWindow } from './paymentsWindow.ts';
 import {
   createPaymentsRepository,
   type ItemBalanceRow,
@@ -47,6 +52,8 @@ interface Dependencies {
   customers: CustomersService;
   /** The names of a payment's subscription. */
   subscriptions: SubscriptionsService;
+  /** The one clock (conventions §11): today's payments. */
+  now: () => Date;
 }
 
 /** The ids of these rows, each once, `null`s left out. */
@@ -65,6 +72,7 @@ export function createPaymentsService({
   users,
   customers,
   subscriptions,
+  now,
 }: Dependencies) {
   const repository = createPaymentsRepository();
 
@@ -137,6 +145,42 @@ export function createPaymentsService({
 
   return {
     rowsOf,
+
+    /**
+     * A page of the space's payments and the totals of its whole filter (docs/api/api-contract.md ›
+     * Front desk (managed)), decided before any query: the owner (`payments.read`) reads every
+     * payment, by the query's range of Gaza days (today without one) and filters; anyone else of the
+     * staff reads their own of today, and a range or `recordedById` from them is `forbidden`. The page,
+     * its count and the totals in parallel, read without a lock; the rows named (`rowsOf`).
+     */
+    async page(
+      actor: Actor,
+      space: LoadedSpace,
+      query: PaymentsQuery,
+    ): Promise<{ rows: PaymentRow[]; total: number; totals: PaymentTotals }> {
+      const mayReadAll = can(actor, 'payments.read', { links: space.links });
+      if (
+        !mayReadAll &&
+        (query.from !== undefined || query.to !== undefined || query.recordedById !== undefined)
+      ) {
+        throw AppError.forbidden();
+      }
+      const filter = {
+        spaceId: space.id,
+        ...paymentsWindow(mayReadAll ? query : {}, now()),
+        ...(mayReadAll
+          ? query.recordedById !== undefined && { recordedById: query.recordedById }
+          : { recordedById: actor.id }),
+        ...(query.method !== undefined && { method: query.method }),
+        ...(query.kind !== undefined && { kind: query.kind }),
+      };
+      const [rows, total, totals] = await Promise.all([
+        repository.page(filter, query.voided, { skip: toSkip(query), take: query.limit }),
+        repository.count(filter, query.voided),
+        repository.totals(filter),
+      ]);
+      return { rows: await rowsOf(space.id, rows), total, totals };
+    },
 
     /**
      * The space's payment, voided or not, its row locked (`FOR UPDATE`) in the caller's transaction,

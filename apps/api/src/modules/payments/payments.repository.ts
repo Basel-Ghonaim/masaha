@@ -1,4 +1,9 @@
-import type { CustomerBalance, PaymentRequest } from '@masaha/shared/payments';
+import type {
+  CustomerBalance,
+  PaymentRequest,
+  PaymentsQuery,
+  PaymentTotals,
+} from '@masaha/shared/payments';
 
 import { prisma, type Tx } from '../../db/index.ts';
 import { Prisma } from '../../generated/prisma/client.ts';
@@ -48,6 +53,36 @@ export interface NewPayment extends PaymentRequest {
   key: string;
   recordedById: number;
   receivedAt: Date;
+}
+
+/**
+ * The payments list's filter, its void aside: the space's payments received in a window of instants
+ * (`to` left out), by whom, by which method, and on which kind of item, each when given.
+ */
+export interface PaymentsFilter {
+  spaceId: number;
+  from: Date;
+  to: Date;
+  recordedById?: number;
+  method?: PaymentRequest['method'];
+  kind?: PaymentsQuery['kind'];
+}
+
+/** The `where` of the payments list's filter, and of its void filter when given. */
+function paymentsWhere(
+  { spaceId, from, to, recordedById, method, kind }: PaymentsFilter,
+  voided: PaymentsQuery['voided'] = 'INCLUDE',
+): Prisma.PaymentWhereInput {
+  return {
+    spaceId,
+    receivedAt: { gte: from, lt: to },
+    ...(recordedById !== undefined && { recordedById }),
+    ...(method !== undefined && { method }),
+    ...(kind === 'VISIT' && { visitId: { not: null } }),
+    ...(kind === 'SUBSCRIPTION' && { subscriptionId: { not: null } }),
+    ...(voided === 'EXCLUDE' && { voidedAt: null }),
+    ...(voided === 'ONLY' && { voidedAt: { not: null } }),
+  };
 }
 
 /** One item a customer may owe on: a subscription or a closed visit, with its due and what was paid. */
@@ -305,6 +340,62 @@ export function createPaymentsRepository() {
         data: { voidedAt: at, voidedById: byId, voidReason: reason },
         select: ITEM_PAYMENT,
       });
+    },
+
+    /**
+     * A page of the payments list: the filter's payments, its void filter applied, the latest
+     * received first, then by id; on `payments_space_id_received_at_idx`.
+     */
+    page(
+      filter: PaymentsFilter,
+      voided: PaymentsQuery['voided'],
+      { skip, take }: { skip: number; take: number },
+    ): Promise<ItemPaymentRow[]> {
+      return prisma.payment.findMany({
+        where: paymentsWhere(filter, voided),
+        orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
+        skip,
+        take,
+        select: ITEM_PAYMENT,
+      });
+    },
+
+    /** How many payments the filter and its void filter hold. */
+    count(filter: PaymentsFilter, voided: PaymentsQuery['voided']): Promise<number> {
+      return prisma.payment.count({ where: paymentsWhere(filter, voided) });
+    },
+
+    /**
+     * The filter's totals, its void filter aside: the payments not voided, summed by method and
+     * counted; the voided ones counted and summed apart. Two statements, in parallel.
+     */
+    async totals(filter: PaymentsFilter): Promise<PaymentTotals> {
+      const where = paymentsWhere(filter);
+      const [byMethod, voided] = await Promise.all([
+        prisma.payment.groupBy({
+          by: ['method'],
+          where: { ...where, voidedAt: null },
+          _sum: { amountAgorot: true },
+          _count: { _all: true },
+        }),
+        prisma.payment.aggregate({
+          where: { ...where, voidedAt: { not: null } },
+          _sum: { amountAgorot: true },
+          _count: { _all: true },
+        }),
+      ]);
+      const sums = { CASH: 0, TRANSFER: 0 };
+      let count = 0;
+      for (const group of byMethod) {
+        sums[group.method] = group._sum.amountAgorot ?? 0;
+        count += group._count._all;
+      }
+      return {
+        count,
+        receivedAgorot: sums.CASH + sums.TRANSFER,
+        byMethod: sums,
+        voided: { count: voided._count._all, amountAgorot: voided._sum.amountAgorot ?? 0 },
+      };
     },
 
     /** Inserts the payment; the insert trigger checks it against its item's due. */
