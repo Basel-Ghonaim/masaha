@@ -28,6 +28,7 @@ jobs:
             'test:component',
             'check:classes',
             'check:links',
+            'check:conflicts',
             build,
           ]
     steps:
