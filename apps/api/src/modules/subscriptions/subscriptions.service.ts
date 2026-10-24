@@ -505,24 +505,40 @@ export function createSubscriptionsService({
     },
 
     /**
-     * Closes a locked, open check-in at `at`, by the desk (`MANUAL`), in the caller's transaction,
-     * audited `checkIn.checkedOut` with its time.
+     * Closes a locked, open check-in asked at `requestedAt`, by the desk (`MANUAL`), in the caller's
+     * transaction, after the space's lock: at that time, but never past its due time by the space's
+     * week and settings (data model › Auto check-out), so a stay found open after it is closed at it,
+     * as the auto check-out would have; audited `checkIn.checkedOut` with both times.
      */
     async checkOut(
       actorId: number,
-      { spaceId, checkInId }: { spaceId: number; checkInId: number },
-      at: Date,
+      { spaceId, checkIn }: { spaceId: number; checkIn: CheckInRow },
+      requestedAt: Date,
       tx: Tx,
     ): Promise<CheckInRow> {
-      const closed = await repository.closeManual(checkInId, at, tx);
+      const settings = await spaceSettings.read(spaceId, tx);
+      const week = await spaces.weekOf(spaceId, tx);
+      const checkedOutAt = spaces.stayEnd(
+        {
+          checkedInAt: checkIn.checkedInAt,
+          week,
+          autoCheckoutAtClosing: settings.autoCheckoutAtClosing,
+          maxStayMinutes: settings.maxStayMinutes,
+        },
+        requestedAt,
+      );
+      const closed = await repository.closeManual(checkIn.id, checkedOutAt, tx);
       await audit(
         {
           actorId,
           action: 'checkIn.checkedOut',
           entityType: 'checkIn',
-          entityId: checkInId,
+          entityId: checkIn.id,
           spaceId,
-          after: { checkedOutAt: at.toISOString() },
+          after: {
+            checkedOutAt: checkedOutAt.toISOString(),
+            requestedAt: requestedAt.toISOString(),
+          },
         },
         tx,
       );

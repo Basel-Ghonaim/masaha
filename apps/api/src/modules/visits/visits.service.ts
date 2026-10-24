@@ -108,13 +108,15 @@ export function createVisitsService({
     week: readonly (OpeningRange | null)[] | null,
     settings: SpaceSettings,
   ): Date {
-    const due = spaces.autoCheckoutDue({
-      checkedInAt,
-      week,
-      autoCheckoutAtClosing: settings.autoCheckoutAtClosing,
-      maxStayMinutes: settings.maxStayMinutes,
-    });
-    return to < due ? to : due;
+    return spaces.stayEnd(
+      {
+        checkedInAt,
+        week,
+        autoCheckoutAtClosing: settings.autoCheckoutAtClosing,
+        maxStayMinutes: settings.maxStayMinutes,
+      },
+      to,
+    );
   }
 
   return {

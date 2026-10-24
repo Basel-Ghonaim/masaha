@@ -576,7 +576,7 @@ CheckInCheckOut = DeskCheckIn & { paidAgorot: number, balanceAgorot: number }   
 
 #### `POST /manage/spaces/:spaceId/check-ins/:checkInId/check-out` · 🧾
 A subscriber's check-out, 2026-10-22, #109. No body and no key: closing is idempotent by design.
-- **200:** `CheckInCheckOut`: the check-in closed now, `MANUAL`, with what was paid on its subscription and what it still owes (a usage-based one's stay now counted; below zero while it holds credit). A check-in closed already (by the desk or the auto check-out) is answered as it is and nothing is written. The payment, if any, is `POST …/payments` with the `subscriptionId`, after it.
+- **200:** `CheckInCheckOut`: the check-in closed now, `MANUAL`; a stay past its due time ([data-model](../architecture/data-model.md#front-desk-and-money), *Auto check-out*) is closed at that due time, its `checkedOutAt`, and the audit keeps the request's own time (2026-10-24, #110). Answered with what was paid on its subscription and what it still owes (a usage-based one's stay now counted; below zero while it holds credit). A check-in closed already (by the desk or the auto check-out) is answered as it is and nothing is written. The payment, if any, is `POST …/payments` with the `subscriptionId`, after it.
 - **Errors:** `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404) for a check-in that is not the space's, also for a space deleted meanwhile.
 - **Audit:** `checkIn.checkedOut`, with the check-in as the entity (`after`: `{ checkedOutAt }`).
 

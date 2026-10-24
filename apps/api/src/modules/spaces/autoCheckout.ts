@@ -45,3 +45,12 @@ export function autoCheckoutDue({
   if (maxStayMinutes !== null) dues.push(checkedInAt.getTime() + maxStayMinutes * 60_000);
   return new Date(Math.max(Math.min(...dues), checkedInAt.getTime()));
 }
+
+/**
+ * When a stay ends if it is closed or priced at `to`: `to`, but never past its due time, so no path
+ * charges a stay into the next day.
+ */
+export function stayEnd(input: AutoCheckoutInput, to: Date): Date {
+  const due = autoCheckoutDue(input);
+  return to < due ? to : due;
+}

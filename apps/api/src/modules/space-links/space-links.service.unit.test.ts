@@ -46,6 +46,9 @@ function setup(links: ActiveLink[]) {
     autoCheckoutDue: () => {
       throw new Error('not asked here');
     },
+    stayEnd: () => {
+      throw new Error('not asked here');
+    },
     lock: () => Promise.reject(new Error('not asked here')),
   };
   const lookups: LookupsService = {
