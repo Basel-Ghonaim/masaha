@@ -475,9 +475,10 @@ export function createDeskService({
     /**
      * Checks a subscriber out, in one transaction and in this order: the space's lock and `can()`;
      * the check-in's row (`FOR UPDATE`), not the space's → `not_found`; one closed already is
-     * answered as it is, nothing written; else closed now, `MANUAL`, audited. Answered with what was
-     * paid on its subscription and what it owes, a usage-based one's stay now counted; a payment is
-     * `POST …/payments`' (no key: closing is idempotent by design).
+     * answered as it is, nothing written; else closed now, but never past the stay's due time
+     * (`subscriptions.checkOut`), `MANUAL`, audited. Answered with what was paid on its subscription
+     * and what it owes, a usage-based one's stay now counted; a payment is `POST …/payments`' (no
+     * key: closing is idempotent by design).
      */
     checkOutSubscriber(
       actor: Actor,
@@ -491,7 +492,7 @@ export function createDeskService({
         if (!locked) throw AppError.notFound(undefined, 'Check-in not found');
         const row =
           locked.checkedOutAt === null
-            ? await subscriptions.checkOut(actor.id, { spaceId: space.id, checkInId }, at, tx)
+            ? await subscriptions.checkOut(actor.id, { spaceId: space.id, checkIn: locked }, at, tx)
             : locked;
         const { paidAgorot, balanceAgorot } = await withMoney(
           space,

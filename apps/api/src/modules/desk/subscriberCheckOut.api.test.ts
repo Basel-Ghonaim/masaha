@@ -13,13 +13,15 @@ import {
 } from '../../../test/factories.ts';
 import { whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
-import { signInOwnerOf } from '../../../test/spaces.ts';
+import { setWeek, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
 
 // A subscriber's check-out at the desk (docs/api/api-contract.md › Front desk (managed)), on
 // Wednesday 21 October 2026 in Gaza (UTC+3 until 2026-10-24).
 const wednesday = (time: string) => new Date(`2026-10-21T${time}:00+03:00`);
 const app = createTestApp({ clock: () => wednesday('10:00') });
+/** Open 08:00–22:00 every day. */
+const EVERY_DAY = Array.from({ length: 7 }, () => [8 * 60, 22 * 60] as [number, number]);
 
 let spaceId: number;
 let otherSpaceId: number;
@@ -39,6 +41,16 @@ beforeEach(async () => {
   await prisma.spaceManager.create({
     data: { spaceId, userId: reception.id, role: 'RECEPTION' },
   });
+  // Checked out at closing.
+  await prisma.spaceSettings.create({
+    data: {
+      spaceId,
+      autoCheckoutAtClosing: true,
+      visitRounding: 'PER_MINUTE',
+      visitCapAtDayPrice: false,
+    },
+  });
+  await setWeek(spaceId, EVERY_DAY);
 });
 
 /** Checks the check-in out as the caller. */
@@ -49,8 +61,11 @@ function checkOut(caller: { authorization: string }, checkInId: number) {
     .send();
 }
 
-/** Sara's hours pack at the space (or another): ₪6 an hour, this October; her check-in since 08:00. */
-async function openCheckIn(at = spaceId) {
+/**
+ * Sara's hours pack at the space (or another): ₪6 an hour, this October; her check-in since 08:00
+ * unless told.
+ */
+async function openCheckIn(at = spaceId, checkedInAt = wednesday('08:00')) {
   const customer = await createCustomer(at, { name: 'Sara' });
   const subscription = await createSubscription(customer, {
     name: 'ساعات',
@@ -59,7 +74,7 @@ async function openCheckIn(at = spaceId) {
     billing: 'PER_HOUR',
     priceAgorot: 600,
   });
-  const checkIn = await createCheckIn(subscription, { checkedInAt: wednesday('08:00') });
+  const checkIn = await createCheckIn(subscription, { checkedInAt });
   return { customer, subscription, checkIn };
 }
 
@@ -67,7 +82,7 @@ const lockSpace = (tx: Pick<typeof prisma, '$queryRaw'>) =>
   tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
 
 describe('checking a subscriber out', () => {
-  it("closes it now, MANUAL, audited checkIn.checkedOut, answered with the subscription's due, paid and balance", async () => {
+  it("before its due time, closes it now, MANUAL, audited checkIn.checkedOut, answered with the subscription's due, paid and balance", async () => {
     const { customer, subscription, checkIn } = await openCheckIn();
     await prisma.payment.create({
       data: {
@@ -109,9 +124,48 @@ describe('checking a subscriber out', () => {
         entityId: checkIn.id,
         spaceId,
         before: null,
-        after: { checkedOutAt: '2026-10-21T07:00:00.000Z' },
+        after: {
+          checkedOutAt: '2026-10-21T07:00:00.000Z',
+          requestedAt: '2026-10-21T07:00:00.000Z',
+        },
       },
     ]);
+  });
+
+  it("a stay checked out the next morning is closed at its due time, its check-in day's closing; the audit keeps the request's time", async () => {
+    // Checked in on Tuesday at 20:00, due at its 22:00 closing: 120 minutes at ₪6 an hour, not the
+    // 840 minutes up to now.
+    const { checkIn } = await openCheckIn(spaceId, new Date('2026-10-20T20:00:00+03:00'));
+
+    const response = await checkOut(owner, checkIn.id);
+    expect(response.status).toBe(200);
+    expect(dataOf(response)).toMatchObject({
+      checkedOutAt: '2026-10-20T19:00:00.000Z',
+      checkoutMethod: 'MANUAL',
+      subscription: { progress: { minutesUsed: 120 }, dueAgorot: 1_200 },
+      paidAgorot: 0,
+      balanceAgorot: 1_200,
+    });
+    const stored = await prisma.checkIn.findUniqueOrThrow({ where: { id: checkIn.id } });
+    expect(stored.checkedOutAt).toEqual(new Date('2026-10-20T22:00:00+03:00'));
+    const [checkedOut] = await auditEntries();
+    expect(checkedOut?.after).toEqual({
+      checkedOutAt: '2026-10-20T19:00:00.000Z',
+      requestedAt: '2026-10-21T07:00:00.000Z',
+    });
+  });
+
+  it('a stay past the stay limit is closed at its end, before the closing', async () => {
+    await prisma.spaceSettings.update({ where: { spaceId }, data: { maxStayMinutes: 90 } });
+    const { checkIn } = await openCheckIn(spaceId, new Date('2026-10-20T20:00:00+03:00'));
+
+    const response = await checkOut(owner, checkIn.id);
+    expect(response.status).toBe(200);
+    expect(dataOf(response)).toMatchObject({
+      checkedOutAt: '2026-10-20T18:30:00.000Z',
+      subscription: { progress: { minutesUsed: 90 }, dueAgorot: 900 },
+      balanceAgorot: 900,
+    });
   });
 
   it('a closed check-in is answered as it is, nothing written or audited', async () => {

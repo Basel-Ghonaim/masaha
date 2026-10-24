@@ -1,7 +1,7 @@
 import type { OpeningRange, Price, Shift } from '@masaha/shared/spaces';
 
 import type { Tx } from '../../db/index.ts';
-import { autoCheckoutDue, type AutoCheckoutInput } from './autoCheckout.ts';
+import { autoCheckoutDue, stayEnd, type AutoCheckoutInput } from './autoCheckout.ts';
 import { createHoursRepository } from './hours/hours.repository.ts';
 import { createShiftsRepository } from './hours/shifts.repository.ts';
 import { createPricesRepository } from './prices/prices.repository.ts';
@@ -46,6 +46,11 @@ export function createSpacesService() {
     /** When a stay is closed by itself, by the space's week and settings now (`autoCheckout.ts`). */
     autoCheckoutDue(input: AutoCheckoutInput): Date {
       return autoCheckoutDue(input);
+    },
+
+    /** When a stay closed or priced at `to` ends: never past its due time (`autoCheckout.ts`). */
+    stayEnd(input: AutoCheckoutInput, to: Date): Date {
+      return stayEnd(input, to);
     },
 
     /**

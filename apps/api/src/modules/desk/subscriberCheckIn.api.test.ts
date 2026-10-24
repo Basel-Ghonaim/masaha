@@ -257,6 +257,31 @@ describe('checking a subscriber in', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
+  it('a check-in made meanwhile without the space lock is caught by the open check-in index: MEMBER_ALREADY_CHECKED_IN, not a 500', async () => {
+    const sara = await subscriber('Sara');
+    const second = await createSubscription(sara.customer, { name: 'مسائي' });
+    // A writer outside the space's lock: its open check-in, uncommitted, is not present yet, so the
+    // request's insert waits on the index until it commits.
+    const response = await whileHeld(
+      (tx) =>
+        tx.checkIn.create({
+          data: {
+            spaceId,
+            idempotencyKey: randomUUID(),
+            customerId: sara.customer.id,
+            subscriptionId: second.id,
+            checkedInAt: wednesday('09:59'),
+          },
+        }),
+      () => checkIn(reception, { subscriptionId: sara.subscription.id }),
+      () => Promise.resolve(),
+    );
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('MEMBER_ALREADY_CHECKED_IN');
+    expect(await storedCheckIns()).toMatchObject([{ subscriptionId: second.id }]);
+    expect(await auditEntries()).toEqual([]);
+  });
+
   it("another space's or an unknown subscription is invalid_choice on subscriptionId; an archived customer CUSTOMER_ARCHIVED", async () => {
     const theirs = await subscriber('Huda', {}, otherSpaceId);
     for (const subscriptionId of [theirs.subscription.id, 999_999]) {
