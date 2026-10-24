@@ -231,4 +231,20 @@ describe('SpaceDetails', () => {
     renderDetails(390, publicSpace(), <p>البريد</p>, 'ERROR');
     expect(await screen.findByText('تعذّر قراءة الحالة الآن')).toBeInTheDocument();
   });
+
+  it('keeps the last live status when a later refresh fails', async () => {
+    renderDetails(390, publicSpace());
+    expect(await screen.findByText('متاح')).toBeInTheDocument();
+
+    const requests = fakeTransport((request) =>
+      request.url?.endsWith('/occupancy') ? refused(404, { type: 'not_found' }) : ok(publicSpace()),
+    );
+    await vi.advanceTimersByTimeAsync(60_000);
+    await waitFor(() => {
+      expect(requests.some((request) => request.url?.endsWith('/occupancy'))).toBe(true);
+    });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(screen.queryByText('تعذّر قراءة الحالة الآن')).not.toBeInTheDocument();
+    expect(screen.getByText('متاح')).toBeInTheDocument();
+  });
 });

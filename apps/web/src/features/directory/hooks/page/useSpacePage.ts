@@ -90,9 +90,10 @@ export function useSpacePage(slug: string): SpacePageView {
   const shiftNames = (space?.hours?.shifts ?? []).map(
     (shift) => localText(shift.nameAr, shift.nameEn, english)?.text ?? shift.nameAr,
   );
+  // A failed refresh keeps the status last read: TanStack Query keeps its data beside the error.
   const live = liveQuery.isPending
     ? ({ kind: 'loading', label: words.liveStatus.live } as const)
-    : liveQuery.isError
+    : liveQuery.data === undefined
       ? ({ kind: 'line', line: words.liveStatus.failed } as const)
       : space?.isVerified === false
         ? ({ kind: 'line', line: words.liveStatus.unverified } as const)
