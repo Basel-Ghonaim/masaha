@@ -45,7 +45,7 @@ export const ERRORS = {
   VISIT_ALREADY_CLOSED: 'This visit was already checked out; this payment was not recorded.',
   VISIT_ALREADY_PAID: 'This visit is already paid in full.',
   VISIT_WRITTEN_OFF:
-    'This visit was written off; the owner must undo the write-off before it takes a payment.',
+    'This visit was written off; the owner must undo the write-off before it takes a payment or one of its payments is voided.',
   VISIT_HAS_CUSTOMER: "This visit is already another customer's debt.",
   CUSTOMER_ARCHIVED: 'This customer is archived; the owner restores them first.',
   SUBSCRIPTION_ALREADY_RENEWED: 'This subscription was already renewed.',

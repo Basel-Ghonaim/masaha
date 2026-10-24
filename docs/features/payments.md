@@ -1,6 +1,6 @@
 # Payments
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
 > **Authority:** The `payments` capability: the payment ledger of [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md). Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and the ledger's rules by the [data model](../architecture/data-model.md#constraints-worth-stating), the rules' ownership by [conventions §13](../backend/conventions.md#the-ledgers-rules). The API is built for a visit's payment, a subscription's, and the uncollected visits; no web screen yet.
 > **Scope:** the API module `payments` (L4); `@masaha/shared/payments`. No web feature yet.
 
@@ -18,7 +18,7 @@
 
 ## Responsibility boundary
 
-- **Owns** the `payments` table and its audit entries; the balance's pure rule (`balance.ts`: the due less what was paid). The ledger's rules are the database's: a payment settles one item of its own space, above zero; it is never updated or deleted, only voided once; the payments of an item never add up to more than its due; a visit is paid only once its charge is set; a written-off visit takes no payment. The service repeats none of them.
+- **Owns** the `payments` table and its audit entries; the balance's pure rule (`balance.ts`: the due less what was paid). The ledger's rules are the database's: a payment settles one item of its own space, above zero; it is never updated or deleted, only voided once; the payments of an item never add up to more than its due; a visit is paid only once its charge is set; a written-off visit takes no payment, and its payments are not voided until the write-off is undone. The service repeats none of them.
 - **Reads** from [`visits`](visits.md) a page's visits as the desk sees them. Its uncollected and balance queries read the `visits` table and a subscription's due through [`subscriptions`](subscriptions.md)' function `subscription_usage`, and writes neither ([conventions §9](../backend/conventions.md#composed-reads)).
 - **Leaves** the visit, its charge and its customer to [`visits`](visits.md) and `customers`; the transaction, the space's lock and `can()` to [`desk`](desk.md); the translation of the ledger's refusals to the error handler's table ([conventions §4](../backend/conventions.md#4-errors)).
 

@@ -216,6 +216,31 @@ describe('the due', () => {
     });
   });
 
+  it("a written-off visit's payment is not voided: payments_visit_written_off; once undone it is", async () => {
+    const { space, staff, owner, visit } = await setup();
+    const { id } = await pay(space.id, staff.id, { visitId: visit.id }, 1_000);
+    await prisma.visit.update({
+      where: { id: visit.id },
+      data: { writtenOffAt: new Date(), writtenOffById: owner.id, writeOffReason: 'Left' },
+    });
+    const voided = { voidedAt: new Date(), voidedById: owner.id, voidReason: 'Recorded twice' };
+
+    await expect(prisma.payment.update({ where: { id }, data: voided })).rejects.toThrow(
+      /payments_visit_written_off/,
+    );
+    expect(await prisma.payment.findUniqueOrThrow({ where: { id } })).toMatchObject({
+      voidedAt: null,
+    });
+
+    await prisma.visit.update({
+      where: { id: visit.id },
+      data: { writtenOffAt: null, writtenOffById: null, writeOffReason: null },
+    });
+    await expect(prisma.payment.update({ where: { id }, data: voided })).resolves.toMatchObject({
+      voidReason: 'Recorded twice',
+    });
+  });
+
   it("is a fixed subscription's price, never exceeded", async () => {
     const { space, staff, monthly } = await setup();
     const item = { subscriptionId: monthly.id };
