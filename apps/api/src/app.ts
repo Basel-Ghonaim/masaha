@@ -8,7 +8,11 @@ import type { Logger } from 'pino';
 
 import { secureCookiesOf, trustProxyOf, type Env } from './config/index.ts';
 import { createRunInTransaction, type Tx } from './db/index.ts';
-import { createAnnouncementsService } from './modules/announcements/index.ts';
+import {
+  createAnnouncementsController,
+  createAnnouncementsManageRouter,
+  createAnnouncementsService,
+} from './modules/announcements/index.ts';
 import {
   createAuthController,
   createAuthRouter,
@@ -117,6 +121,9 @@ import {
   createSpacesService,
 } from './modules/spaces/index.ts';
 import {
+  createClosuresController,
+  createClosuresManageRouter,
+  createClosuresService,
   createSubscriptionsController,
   createSubscriptionsManageRouter,
   createSubscriptionsService,
@@ -361,6 +368,13 @@ export function createApi({
     logger,
     now: clock,
   });
+  const announcements = createAnnouncementsService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    now: clock,
+  });
+  const closures = createClosuresService({ announcements, users, now: clock });
   const occupancy = createOccupancyService({
     runInTransaction,
     audit: writeAudit,
@@ -368,7 +382,7 @@ export function createApi({
     visits,
     subscriptions,
     customers,
-    announcements: createAnnouncementsService(),
+    announcements,
     now: clock,
   });
   const payments = createPaymentsService({ audit: writeAudit, visits });
@@ -386,6 +400,7 @@ export function createApi({
   });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const directory = createDirectoryService({
+    announcements,
     lookups,
     spaceLinks,
     publicListing: createPublicListingService({ platformSettings, now: clock, storage }),
@@ -479,6 +494,11 @@ export function createApi({
     createPhotosManageRouter({ photos: createPhotosController(photos), limiter }),
   );
   manage.use('/packages', createPackagesManageRouter(createPackagesController(packages)));
+  manage.use(
+    '/announcements',
+    createAnnouncementsManageRouter(createAnnouncementsController(announcements)),
+  );
+  manage.use('/announcements', createClosuresManageRouter(createClosuresController(closures)));
   manage.use(
     '/settings',
     createSpaceSettingsManageRouter(createSpaceSettingsController(spaceSettings)),

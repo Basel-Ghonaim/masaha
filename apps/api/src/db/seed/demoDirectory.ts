@@ -679,6 +679,7 @@ export async function seedDemoDirectory(
             textAr: 'مغلقة مؤقتًا للصيانة.',
             textEn: 'Closed for maintenance for now.',
             startsAt: daysAgo(1),
+            idempotencyKey: randomUUID(),
           },
         });
       }

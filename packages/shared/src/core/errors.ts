@@ -86,6 +86,8 @@ export const DOMAIN_ERROR_CODES = [
   'MEMBER_ALREADY_CHECKED_IN',
   'CHECK_IN_ALREADY_CLOSED',
   'OUTSIDE_OPENING_HOURS',
+  // warning only: a check-in while the space is announced closed (occupancy)
+  'CLOSURE_IN_FORCE',
   // occupancy
   'SPACE_CAPACITY_NOT_SET',
   'SPACE_NOT_OPEN',
@@ -119,6 +121,8 @@ export const DOMAIN_ERROR_CODES = [
   'SUBSCRIPTION_EXPIRED',
   'DAYS_PER_WEEK_USED',
   'HOURS_PER_DAY_USED',
+  // an announcement not started yet: it cannot end now (announcements)
+  'ANNOUNCEMENT_NOT_STARTED',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

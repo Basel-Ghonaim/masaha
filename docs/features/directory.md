@@ -8,13 +8,13 @@
 
 - Lists the publicly listed spaces a page at a time, filtered by area, price, student prices, Friday, verified, available now and a search, ordered by the latest update, by name, by best match, or nearest first from a location the device sends.
 - Answers the map its pins: every space that passes the same filters, unpaged, up to a ceiling, within the map's viewport when it is given.
-- Answers a space's public page: its profile, hours and shifts, prices, amenities, contacts and each group's freshness.
+- Answers a space's public page: its profile, hours and shifts, prices, amenities, contacts and each group's freshness, and its running and upcoming announcements.
 - Carries each card's and pin's live status, and answers a space's live status alone.
 - On the site's «المساحات», lists the spaces a page at a time, with a search, filters by place, price and state, and an order, or nearest first from the device's rounded location, each card a link to the space's page.
 - On the site's «المساحات», shows the same spaces on a map, «قائمة | خريطة», each a pin whose live state is a shape as well as a colour, the chosen one's card leading to its page.
 - On the site, shows a space's page at `/spaces/:slug`: its prices per audience, its hours with today, its amenities, its description, its place on a map with directions, its contacts, and each group's freshness; an unverified space's notice offers the platform's contact.
 
-The announcements, the reports and the favourites' cards are not built.
+The reports and the favourites' cards are not built; the page's announcements are answered by the API, not shown on the site yet.
 
 ## Who uses it
 
@@ -26,6 +26,7 @@ The announcements, the reports and the favourites' cards are not built.
 - **Leaves** the spaces' filters, the search's score, the orders and the pages to [`spaces`](spaces.md), which owns the tables they read, and the rule of the hidden prices.
 - **Leaves** which areas are listed, and how a search matches an area's names, to [`lookups`](lookups.md); which spaces are verified to [`space-links`](space-links.md).
 - **Leaves** the live status to [`occupancy`](occupancy.md): its rule, and which spaces are available now.
+- **Leaves** which announcements the public sees, and their order, to [`announcements`](announcements.md).
 
 ## How it composes the platform
 
@@ -45,7 +46,7 @@ The announcements, the reports and the favourites' cards are not built.
 
 **The map.** The pins of every space that passes, unpaged; past 1,000, the first 1,000 by id, marked truncated, and the map asks again within its viewport. A pin carries what its selected card shows: the names, the area's id (named from the public catalogue), the place, verified, the week, the cover and the live status.
 
-**A space's page.** A space that is not publicly listed is not found. An unverified space's stale prices are hidden (`null`), a verified space's shown with the group marked stale. The amenities are one list: the platform's active ones in its order, with their icons, then the space's own. Its photos come in the gallery's order, the cover first, each in both sizes, read under the same lock as its facts.
+**A space's page.** A space that is not publicly listed is not found. An unverified space's stale prices are hidden (`null`), a verified space's shown with the group marked stale. The amenities are one list: the platform's active ones in its order, with their icons, then the space's own. Its photos come in the gallery's order, the cover first, each in both sizes, read under the same lock as its facts. Its announcements follow, from `announcements`: running and upcoming ones, never an ended or a deleted one, by start then id, at most 20.
 
 **A space's live status.** The status alone, for a publicly listed space; anything else is not found, as its page. Whether it is verified is read from its links.
 
@@ -85,6 +86,7 @@ The announcements, the reports and the favourites' cards are not built.
 - **Answers are kept 30 seconds with a validator; one ordered by distance is never kept** (D7, S7). 2026-10-13, the directory item.
 - **No answer to a request that carries the location is kept, a refusal or a failure included.** *Why:* the rule is about the request, not its success; the header was marked only after a successful read (Issue #69). 2026-10-13, #77.
 - **The page decides verified under the space's lock, with its facts.** *Why:* read just before, an owner unlinked meanwhile showed an unverified space's stale prices for one answer (Issue #69). 2026-10-13, #77.
+- **The page carries the space's running and upcoming announcements, at most 20, read after the space's share lock** (D5). *Why:* an announcement is no fact group, so it need not be read with the facts; one posted between the two reads shows on the next, and one that starts or ends within the page's 30 seconds. 2026-10-24, #112.
 - **The card and the pin carry the live status, never a count; `GET /spaces/:slug/occupancy` answers it alone** ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). *Why:* the directory shows each space's state, and its filter selects by it; the page is cached whole for 30 seconds, and the endpoint refreshes the state without it. A card may lag the state by those 30 seconds. 2026-10-19, #94.
 - **`availableNow` is resolved to ids by `occupancy` before the page is cut, from the verified spaces only** ([conventions §5](../backend/conventions.md#5-pagination)). *Why:* every page full and the total right; only a verified space has a live state. 2026-10-19, #94.
 
@@ -150,6 +152,7 @@ The announcements, the reports and the favourites' cards are not built.
 - #77 — the cover on the card and the pin, and the photos on the page.
 - #77 — Issue #69: the tie-break tests made able to fail, `no-store` on every answer carrying the location, the page's verified under its lock, the spaces-only `q` named `too_short`.
 - #94 — the live status on the card and the pin, the `availableNow` filter, and a space's live status alone.
+- #112 — a space's running and upcoming announcements on its page.
 
 ### Web history
 

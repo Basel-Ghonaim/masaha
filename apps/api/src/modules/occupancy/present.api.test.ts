@@ -229,7 +229,13 @@ describe("a space's state now", () => {
     });
 
     const closure = await prisma.announcement.create({
-      data: { spaceId, type: 'CLOSURE', textAr: 'مغلق', startsAt: sunday('09:30') },
+      data: {
+        spaceId,
+        type: 'CLOSURE',
+        textAr: 'مغلق',
+        startsAt: sunday('09:30'),
+        idempotencyKey: randomUUID(),
+      },
     });
     expect(dataOf(await occupancyNow(owner))).toMatchObject({ status: 'CLOSED', override: null });
 
@@ -283,14 +289,27 @@ describe("a space's state now", () => {
     await prisma.spaceOccupancy.create({ data: { spaceId, capacity: 5 } });
     const announcement = (data: object) =>
       prisma.announcement.create({
-        data: { spaceId, type: 'CLOSURE', textAr: 'مغلق', startsAt: sunday('08:00'), ...data },
+        data: {
+          spaceId,
+          type: 'CLOSURE',
+          textAr: 'مغلق',
+          startsAt: sunday('08:00'),
+          idempotencyKey: randomUUID(),
+          ...data,
+        },
       });
     await announcement({ deletedAt: sunday('09:00') });
     await announcement({ endsAt: sunday('09:00') });
     await announcement({ type: 'OUTAGE' });
     await announcement({ startsAt: sunday('11:00') });
     await prisma.announcement.create({
-      data: { spaceId: otherSpaceId, type: 'CLOSURE', textAr: 'مغلق', startsAt: sunday('08:00') },
+      data: {
+        spaceId: otherSpaceId,
+        type: 'CLOSURE',
+        textAr: 'مغلق',
+        startsAt: sunday('08:00'),
+        idempotencyKey: randomUUID(),
+      },
     });
     expect(dataOf(await occupancyNow(owner))).toMatchObject({ status: 'AVAILABLE' });
 

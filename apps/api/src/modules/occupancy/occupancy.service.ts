@@ -277,7 +277,8 @@ export function createOccupancyService({
     /**
      * What a check-in at the space warns of now, in the caller's transaction, never refusing it:
      * `SPACE_FULL` when as many are present as it seats (none without a capacity), then
-     * `OUTSIDE_OPENING_HOURS` when it has hours and is not open by them.
+     * `OUTSIDE_OPENING_HOURS` when it has hours and is not open by them, then `CLOSURE_IN_FORCE`
+     * while a closure it announced runs (the live status's `closedAt`).
      */
     async checkInWarnings(spaceId: number, now: Date, tx: Tx): Promise<DomainErrorCode[]> {
       const { capacity } = await occupancy.stateOf(spaceId, tx);
@@ -287,6 +288,9 @@ export function createOccupancyService({
       if (isFull(count, capacity)) warnings.push('SPACE_FULL');
       if (week !== null && !openRangeAt(week, gazaClockOf(now))) {
         warnings.push('OUTSIDE_OPENING_HOURS');
+      }
+      if ((await announcements.closedAt([spaceId], now, tx)).has(spaceId)) {
+        warnings.push('CLOSURE_IN_FORCE');
       }
       return warnings;
     },

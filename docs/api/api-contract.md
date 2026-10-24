@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -9,7 +9,7 @@
 - Auth: `Authorization: Bearer <accessToken>` on protected endpoints; the refresh token travels only as its cookie. A protected endpoint reads the account on every request: a token whose account does not exist or is suspended, or that was signed before every session of the account last ended (a password change, a reset, a suspension even once restored, a role change, a temporary password, a Google link), answers `unauthorized` (401), and the role it acts with is the account's now ([security.md](../backend/security.md#authorization)).
 - The server **never sends display text** for the UI. It sends error `type`, an optional domain `code`, and field-error codes; the client translates ([ADR 0006](../architecture/decisions/0006-localisation-approach.md)).
 - **Request id:** every response carries an `X-Request-Id` header, a UUID the server generates for each request, and an error repeats it in the envelope (§2). It matches the request's log lines ([backend conventions §10](../backend/conventions.md#10-logging)). The server ignores any id the client sends.
-- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in and check-out, and a visit's payment after its check-out (2026-10-20, #100) ([Front desk (managed)](#front-desk-managed)), a customer's creation (2026-10-21, #102, [Customers (managed)](#customers-managed)), and a subscription's (2026-10-22, #106, [Subscriptions (managed)](#subscriptions-managed)), whose payments take keys derived from its own (SHA-256 of the key and the payment's place, as a UUID), so its retry finds them; a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
+- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in and check-out, and a visit's payment after its check-out (2026-10-20, #100) ([Front desk (managed)](#front-desk-managed)), a customer's creation (2026-10-21, #102, [Customers (managed)](#customers-managed)), a subscription's (2026-10-22, #106, [Subscriptions (managed)](#subscriptions-managed)), whose payments take keys derived from its own (SHA-256 of the key and the payment's place, as a UUID), so its retry finds them, and an announcement's post (2026-10-24, #112, [Announcements (managed)](#announcements-managed)); a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
 
 ## 2. Response envelope
 
@@ -67,7 +67,8 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - the people present at a space (`GET /manage/spaces/:spaceId/occupancy`), bounded by who is there: the desk's main view reads its state in one request on a weak connection (§5, *Occupancy (managed)*; why: [occupancy › Decisions](../features/occupancy.md#api-decisions)).
 - a customer's subscriptions and unpaid visits in their file (`GET /manage/spaces/:spaceId/customers/:customerId`), bounded by one customer (§5, *Customers (managed)*; 2026-10-21, #102);
 - a subscription's check-ins and payments in its statement (`GET /manage/spaces/:spaceId/subscriptions/:subscriptionId`), bounded by one subscription (§5, *Subscriptions (managed)*; 2026-10-22, #106);
-- the open check-ins (`GET /manage/spaces/:spaceId/check-ins?open=true`), bounded by who is present (§5, *Front desk (managed)*; 2026-10-22, #109).
+- the open check-ins (`GET /manage/spaces/:spaceId/check-ins?open=true`), bounded by who is present (§5, *Front desk (managed)*; 2026-10-22, #109);
+- a space's announcements on its page (`GET /spaces/:slug`), its running and upcoming ones, at most 20: a space posts tens at most, and the page shows them together (§5, *Directory (public)*; 2026-10-24, #112).
 
 ## 5. Endpoints
 
@@ -509,7 +510,7 @@ The desk's day: a visitor checked in by name, and checked out with the charge an
 
 - **The check-in** (`@masaha/shared/visits`): `visitorName`, 1–60 characters, required; `audience`, `GENERAL` or `STUDENT` (`invalid_choice` otherwise), `GENERAL` when absent; `shiftId`, one of the space's shifts, or absent or `null` for none.
 - **The rates** are copied at check-in from the space's prices as they are then ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Visit charge*); a later price change never touches an open visit.
-- **The warnings** (`DESK_WARNINGS`, `@masaha/shared/desk`), in `meta.warnings`, in this order, never a refusal: `SPACE_FULL` when as many are present as the space seats (none without a capacity); `OUTSIDE_OPENING_HOURS` when the space has hours and is not open by them; and, for a subscriber, `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_EXPIRED`, `DAYS_PER_WEEK_USED` and `HOURS_PER_DAY_USED` ([data-model › Subscription limits](../architecture/data-model.md#front-desk-and-money), 2026-10-22, #109). Without a warning, no `meta`. A retry answers them as of the retry, the visit or the check-in counted present; a subscriber's limits leave the check-in itself out, so they answer as the first request did.
+- **The warnings** (`DESK_WARNINGS`, `@masaha/shared/desk`), in `meta.warnings`, in this order, never a refusal: `SPACE_FULL` when as many are present as the space seats (none without a capacity); `OUTSIDE_OPENING_HOURS` when the space has hours and is not open by them; `CLOSURE_IN_FORCE` while a closure the space announced runs ([Announcements (managed)](#announcements-managed), 2026-10-24, #112); and, for a subscriber, `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_EXPIRED`, `DAYS_PER_WEEK_USED` and `HOURS_PER_DAY_USED` ([data-model › Subscription limits](../architecture/data-model.md#front-desk-and-money), 2026-10-22, #109). Without a warning, no `meta`. A retry answers them as of the retry, the visit or the check-in counted present; a subscriber's limits leave the check-in itself out, so they answer as the first request did.
 - **The check-out** (`@masaha/shared/desk`): `checkedOutAt`, an ISO time, the `quote.at` of the visit's quote the desk showed, at most 5 minutes old and not in the future (`out_of_range` otherwise), absent for now; `payment`, `{ amountAgorot, method, note? }` (`@masaha/shared/payments`: whole agorot from 1 to 10,000,000, `CASH` or `TRANSFER`, a note of 1–200 characters), absent or `null` for none; `phone` (normalised, `invalid_format` otherwise) and `customerName` (1–60 characters), for a part left unpaid; `charge`, `{ amountAgorot, reason }` (1–10,000,000 agorot; a reason of 1–200 characters, required), a price typed by hand.
 - **The charge** is the stay's, up to the check-out's time, from the rates copied at check-in and the rounding and the cap in force at check-out ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)). A visit with no rate has none: whoever may type a price (the owner always; reception where the space's settings allow it) must type it, with its reason; whoever may not closes it **unpriced**, with no charge and no payment, for the owner to price. A typed price where the visit has a rate is refused.
 - **A part left unpaid,** the whole of an unpriced close included, needs a `phone` when the visit has no customer: the visit is then left to the space's customer with that phone among those not archived, or to a new one named `customerName` (else the visit's name), and counts in that customer's debt. A visit with a customer keeps it, and needs no phone; a phone that is not its customer's is refused (409 `VISIT_HAS_CUSTOMER`, 2026-10-20, #100). The payment is checked by the ledger against the charge.
@@ -656,6 +657,71 @@ UncollectedVisit = {
 - **Errors:** `forbidden` (403) for reception, and for an owner whose link ended meanwhile; `not_found` (404), also for a visit that is not the space's.
 - **Audit:** `visit.writeOffUndone` (`before`: `{ writtenOffAt, writtenOffById, reason }`), in the change's own transaction.
 
+### Announcements (managed)
+
+What a space tells its users changes: a closure, an outage, an offer, an event or general news ([data-model › Operations](../architecture/data-model.md#operations)). Its staff post and change them (🧾); a closure running now closes the space's live status ([data-model › Live status](../architecture/data-model.md#derived-values-computed-not-stored)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Each write is refused with `forbidden` (403) before its body is read for whoever may not (`announcements.manage`), and again for an owner or reception whose link ended meanwhile. Built 2026-10-24, #112.
+
+- **The fields** (`@masaha/shared/announcements`): `type`, one of `GENERAL`, `OUTAGE`, `CLOSURE`, `OFFER`, `EVENT` (`invalid_choice`); `textAr`, required, and `textEn`, optional, each 1–500 characters, NFC-normalised and trimmed, line breaks kept, with no bidirectional or other control characters (`invalid_format`); `startsAt` and `endsAt`, instants with their offset (`invalid_format` otherwise).
+- **The period**, each refusal `validation` (422) `out_of_range` on its field, writing nothing: an end after the start; a start at most 30 days back (a closure posted late) and 365 days ahead; an end after now (ending one now is its own route) and at most 365 days after the start. An edit checks against now only what it changes, so an ended announcement's text can still be corrected.
+- **The state** (`Announcement.state`), from the instants and the server's clock: `UPCOMING` before the start, `ENDED` from the end, else `RUNNING` (with no end, until it is ended).
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the announcement as the entity and its space as the entry's: `announcement.created` (`after`: `{ type, startsAt, endsAt }`), `announcement.edited` (`before` and `after`: only the fields that changed), `announcement.ended` (`before` and `after`: `{ endsAt }`), `announcement.started` (`before` and `after`: `{ startsAt }`) and `announcement.deleted` (`before`: `{ type, startsAt, endsAt }`); an edit that changes nothing, and a repeated end, start or delete, write nothing.
+- **Deleted, never removed** ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): a deleted announcement keeps its row and leaves every read and the live status at once.
+- **The list and its summary** show each closure's extension of the subscriptions it covered, which `subscriptions` owns: they are composed there ([conventions §9](../backend/conventions.md#composed-reads)), on the same path. Reads of the staff, asking no `can()`.
+
+```ts
+Announcement = {
+  id: number,
+  type: 'GENERAL' | 'OUTAGE' | 'CLOSURE' | 'OFFER' | 'EVENT',
+  textAr: string,
+  textEn: string | null,
+  startsAt: string,
+  endsAt: string | null,           // none: until it is ended
+  state: 'RUNNING' | 'UPCOMING' | 'ENDED'
+}
+
+ExtensionApplied = {
+  days: number,
+  subscriptions: number,           // how many it moved
+  appliedAt: string,
+  appliedBy: { id: number, name: string }
+}
+
+ManagedAnnouncement = Announcement & {
+  extension?: ExtensionApplied | null   // on a CLOSURE only: null until its subscriptions are extended
+}
+
+AnnouncementsSummary = { running: number, upcoming: number, ended: number, closuresAwaitingExtension: number }
+```
+
+#### `GET /manage/spaces/:spaceId/announcements` · 🧾
+- **Query:** `state` (`RUNNING`, the default, `UPCOMING` or `ENDED`; `invalid_choice` otherwise) and §4's `page` and `limit`.
+- **200:** `ManagedAnnouncement[]` of that state, not deleted, with §4's `meta`: running and upcoming by start, then id; ended by end, the latest first, then id. Built 2026-10-24, #112.
+
+#### `GET /manage/spaces/:spaceId/announcements/summary` · 🧾
+- **200:** `AnnouncementsSummary`: how many announcements, not deleted, are running, upcoming and ended (the list's tabs), and `closuresAwaitingExtension`, the closures started within the last 30 days, not deleted, whose subscriptions were not extended (the owner's overview reads the same count). Built 2026-10-24, #112.
+
+#### `POST /manage/spaces/:spaceId/announcements` · 🧾 · `Idempotency-Key`
+- **Body:** `{ type, textAr, textEn?, startsAt?, endsAt? }`: no `startsAt`, now («يبدأ الآن»); no `endsAt` (or `null`), no end.
+- **201:** `Announcement`; a retry with the same key answers the first announcement as it is now, 201, and writes nothing; two requests with one key at once make one (the space's lock, the key unique within the space behind it).
+- **Errors**, each writing nothing: `validation` (422) on `idempotencyKey` (§1), then on the body, before anything is read; `forbidden` (403); `validation` (422) on the period; `not_found` (404), also for a space deleted meanwhile.
+
+#### `PATCH /manage/spaces/:spaceId/announcements/:announcementId` · 🧾
+- **Body:** `{ type?, textAr?, textEn?, startsAt?, endsAt? }`: what is absent is kept; `textEn: null` clears the English text and `endsAt: null` removes the end.
+- **200:** `Announcement`.
+- **Errors**, each writing nothing: `validation` (422) on the body, before anything is read; `forbidden` (403); `not_found` (404) for an announcement that is not the space's, or deleted; `validation` (422) on the period.
+
+#### `POST /manage/spaces/:spaceId/announcements/:announcementId/end` · 🧾
+- **200:** `Announcement`, its end now («إنهاء الآن»); one ended already is answered as it is, writing nothing.
+- **Errors**, each writing nothing: `forbidden` (403); `not_found` (404) for an announcement that is not the space's, or deleted; `conflict` (409) `ANNOUNCEMENT_NOT_STARTED` for one not started yet (its end would come before its start: delete it instead).
+
+#### `POST /manage/spaces/:spaceId/announcements/:announcementId/start` · 🧾
+- **200:** `Announcement`, its start now; one started already (running or ended) is answered as it is, writing nothing.
+- **Errors**, each writing nothing: `forbidden` (403); `not_found` (404) for an announcement that is not the space's, or deleted.
+
+#### `DELETE /manage/spaces/:spaceId/announcements/:announcementId` · 🧾
+- **204**, in any state; one deleted already answers 204 again, writing nothing.
+- **Errors**, each writing nothing: `forbidden` (403); `not_found` (404) for an announcement that is not the space's.
+
 ### Internal
 
 The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conventions §12](../backend/conventions.md#12-environments)): online, an external cron calls this endpoint every 5 minutes; locally, the server runs the same jobs from a timer. It carries no access token, so the general limit counts it by address ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). Built 2026-10-20, #97.
@@ -730,7 +796,15 @@ PublicSpace = {
   contacts: Contact[],
   updatedAt: Record<FactGroup, string | null>,   // ISO 8601; null while the group is missing
   staleGroups: FactGroup[],
-  photos: PhotoUrls[]                      // in the gallery's order, the cover first; none: the page shows a caption
+  photos: PhotoUrls[],                     // in the gallery's order, the cover first; none: the page shows a caption
+  announcements: PublicAnnouncement[]      // running and upcoming, by start then id, at most 20
+}
+
+PublicAnnouncement = {
+  id: number,
+  type: 'GENERAL' | 'OUTAGE' | 'CLOSURE' | 'OFFER' | 'EVENT',
+  textAr: string, textEn: string | null,
+  startsAt: string, endsAt: string | null  // none: until it is ended
 }
 
 PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | null }   // null: the space's own
@@ -749,7 +823,7 @@ PublicAmenity = { nameAr: string, nameEn: string | null, icon: AmenityIconKey | 
 - **Errors:** `validation` (422).
 
 #### `GET /spaces/:slug` · 🌐
-- **200:** `PublicSpace`. Read whole, as the admin's read is, so a save in progress is never half shown.
+- **200:** `PublicSpace`. Read whole, as the admin's read is, so a save in progress is never half shown. Its `announcements` are the space's running and upcoming ones, never an ended or a deleted one, read after the space's facts: one posted between the two reads shows on the next; an announcement that starts or ends shows within the answer's 30 seconds (2026-10-24, #112).
 - **Errors:** `not_found` (404) for an unknown slug, and for a space that is deleted, hidden, or in an area or a governorate that is not active.
 
 #### `GET /spaces/:slug/occupancy` · 🌐
@@ -1088,4 +1162,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` (a phone another customer of the space holds, not archived, 2026-10-21, #102) · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` (archiving a customer who is present, 2026-10-21, #102; checking in a subscriber who is present, 2026-10-22, #109) · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off, or leaving to a customer, a visit with nothing owed, 2026-10-20, #100) · `VISIT_WRITTEN_OFF` (a payment on a written-off visit, from the ledger, or leaving it to a customer, 2026-10-20, #100) · `VISIT_HAS_CUSTOMER` (a phone that is not the customer's of a visit that has one, 2026-10-20, #100) · `CUSTOMER_ARCHIVED` (editing an archived customer, 2026-10-21, #102) · `SUBSCRIPTION_ALREADY_RENEWED` (renewing a subscription renewed already, 2026-10-22, #106) · `CUSTOMER_HAS_DEBT` (warning only: a subscribe whose customer still owes on an earlier item; the subscription is made with `meta.warnings`, 2026-10-22, #106) · `SUBSCRIPTION_ENDED` (correcting a subscription ended early, 2026-10-22, #106) · `PRICE_BELOW_PAID` (a fixed price corrected below what was paid on it, from the database, 2026-10-22, #106) · `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_EXPIRED`, `DAYS_PER_WEEK_USED`, `HOURS_PER_DAY_USED` (warnings only: a subscriber checked in before the subscription starts, after it expired, with this week's days or today's hours used up; the check-in succeeds with `meta.warnings`, 2026-10-22, #109).
+`EMAIL_TAKEN` · `PHONE_TAKEN` (a phone another customer of the space holds, not archived, 2026-10-21, #102) · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` (archiving a customer who is present, 2026-10-21, #102; checking in a subscriber who is present, 2026-10-22, #109) · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CLOSURE_IN_FORCE` (warning only: a check-in, a visit's or a subscriber's, while a closure the space announced runs; the check-in succeeds with `meta.warnings`, 2026-10-24, #112) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off, or leaving to a customer, a visit with nothing owed, 2026-10-20, #100) · `VISIT_WRITTEN_OFF` (a payment on a written-off visit, from the ledger, or leaving it to a customer, 2026-10-20, #100) · `VISIT_HAS_CUSTOMER` (a phone that is not the customer's of a visit that has one, 2026-10-20, #100) · `CUSTOMER_ARCHIVED` (editing an archived customer, 2026-10-21, #102) · `SUBSCRIPTION_ALREADY_RENEWED` (renewing a subscription renewed already, 2026-10-22, #106) · `CUSTOMER_HAS_DEBT` (warning only: a subscribe whose customer still owes on an earlier item; the subscription is made with `meta.warnings`, 2026-10-22, #106) · `SUBSCRIPTION_ENDED` (correcting a subscription ended early, 2026-10-22, #106) · `PRICE_BELOW_PAID` (a fixed price corrected below what was paid on it, from the database, 2026-10-22, #106) · `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_EXPIRED`, `DAYS_PER_WEEK_USED`, `HOURS_PER_DAY_USED` (warnings only: a subscriber checked in before the subscription starts, after it expired, with this week's days or today's hours used up; the check-in succeeds with `meta.warnings`, 2026-10-22, #109) · `ANNOUNCEMENT_NOT_STARTED` (ending now an announcement that has not started, 2026-10-24, #112).

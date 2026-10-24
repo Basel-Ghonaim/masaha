@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -128,6 +128,7 @@ Each step names its goal and points to what supports it:
   - [admin](../design/SCREENS.md#admin-8): 28 Data reports.
 - **Supported by:** [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md); conventions §9: [data reports](../backend/conventions.md#data-reports) and [composed reads](../backend/conventions.md#composed-reads) (the favourites' cards).
 - **Closes:** [finding 8](../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md), at the start of the step: the removable filter tag.
+- **Built:** announcements and the closure warning, on the API: posted (idempotent), edited, ended, started and deleted by the staff; the managed list with each closure's extension state and its summary; a space's page's announcements; `CLOSURE_IN_FORCE` at check-in (#112, [api-contract › Announcements (managed)](../api/api-contract.md#announcements-managed)). The screens remain planned.
 
 ### 11. Finance, audit and settings
 
@@ -206,16 +207,16 @@ Built: `POST /me/password`, the password change and the forced change at first s
 | GET | `/me/reports` | 👤 with the resolution note |
 
 #### Public directory
-Built: `GET /lookups`, the active governorates with their active areas and the active amenities; `GET /spaces`, the directory's list, paged and filtered on the server, with its search and near me (the device's location in a header, only to sort); `GET /map/spaces`, the map's pins; and `GET /spaces/:slug`, a space's public page, without announcements; the live status on the cards and the pins, the `availableNow` filter, and `GET /spaces/:slug/occupancy`, a space's live status alone ([api-contract §5](../api/api-contract.md#directory-public)).
+Built: `GET /lookups`, the active governorates with their active areas and the active amenities; `GET /spaces`, the directory's list, paged and filtered on the server, with its search and near me (the device's location in a header, only to sort); `GET /map/spaces`, the map's pins; and `GET /spaces/:slug`, a space's public page, with its running and upcoming announcements (2026-10-24, #112); the live status on the cards and the pins, the `availableNow` filter, and `GET /spaces/:slug/occupancy`, a space's live status alone ([api-contract §5](../api/api-contract.md#directory-public)).
 
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| GET | `/spaces/:slug` | 🌐 | its announcements, with step 10 |
+| GET | `/spaces/:slug` | 🌐 | its running and upcoming announcements, built (#112) |
 | POST | `/spaces/:slug/reports` | 👤 | report wrong information |
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
-Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, the staff's read of the space's state now with its override, a visitor's check-in and check-out (`POST …/visits`, `POST …/visits/:visitId/check-out`), and a visit's debt: its payment after the check-out (`POST …/payments`), «تسجيل دينًا» (`PUT …/visits/:visitId/customer`) and the owner's write-off (`POST` / `DELETE …/visits/:visitId/write-off`) (#100), and the customers: the list and the file (`GET …/customers`, `GET …/customers/:customerId`), the create and the edit (`POST …/customers`, `PATCH …/customers/:customerId`), the archive and the restore (`POST …/customers/:customerId/archive`, `…/restore`) (#102), and the subscriptions: subscribing and renewing (`POST …/customers/:customerId/subscriptions`), a subscription's payment (`POST …/payments`), its statement (`GET …/subscriptions/:id`), its corrections (`PATCH …/subscriptions/:id`, the owner's `PUT …/subscriptions/:id/price`) and its end (`POST …/subscriptions/:id/end`) (#106), and the subscribers' check-ins: the check-in and the check-out (`POST …/check-ins`, `POST …/check-ins/:checkInId/check-out`) and the lists (`GET …/check-ins`) (#109) ([Subscriptions (managed)](../api/api-contract.md#subscriptions-managed), [api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed), [Front desk (managed)](../api/api-contract.md#front-desk-managed), [Customers (managed)](../api/api-contract.md#customers-managed)).
+Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, the staff's read of the space's state now with its override, a visitor's check-in and check-out (`POST …/visits`, `POST …/visits/:visitId/check-out`), and a visit's debt: its payment after the check-out (`POST …/payments`), «تسجيل دينًا» (`PUT …/visits/:visitId/customer`) and the owner's write-off (`POST` / `DELETE …/visits/:visitId/write-off`) (#100), and the customers: the list and the file (`GET …/customers`, `GET …/customers/:customerId`), the create and the edit (`POST …/customers`, `PATCH …/customers/:customerId`), the archive and the restore (`POST …/customers/:customerId/archive`, `…/restore`) (#102), and the subscriptions: subscribing and renewing (`POST …/customers/:customerId/subscriptions`), a subscription's payment (`POST …/payments`), its statement (`GET …/subscriptions/:id`), its corrections (`PATCH …/subscriptions/:id`, the owner's `PUT …/subscriptions/:id/price`) and its end (`POST …/subscriptions/:id/end`) (#106), and the subscribers' check-ins: the check-in and the check-out (`POST …/check-ins`, `POST …/check-ins/:checkInId/check-out`) and the lists (`GET …/check-ins`) (#109), and the announcements: the post, the edit, the end, the start and the delete, the list and its summary (#112) ([Subscriptions (managed)](../api/api-contract.md#subscriptions-managed), [api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed), [Front desk (managed)](../api/api-contract.md#front-desk-managed), [Customers (managed)](../api/api-contract.md#customers-managed)).
 An active owner or reception link is required; reception reads, sets and clears the live status's override, checks visitors in and out, receives a visit's payment and records its debt; the owner writes a visit off. The web screen and later
 dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-endpoints)).
 
@@ -237,8 +238,8 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | POST | `/manage/spaces/:spaceId/check-ins/:checkInId/check-out` | 🧾 | |
 | GET | `/manage/spaces/:spaceId/payments` | 🧾 | list: the owner sees all (date, staff and method filters), reception its own today. Recording one is built (`POST`, a visit's since step 7; a subscription's since #106) |
 | POST | `/manage/spaces/:spaceId/payments/:paymentId/void` | 🏢 | reason required |
-| GET / POST | `/manage/spaces/:spaceId/announcements` | 🧾 | |
-| PATCH / DELETE | `/manage/spaces/:spaceId/announcements/:id` | 🧾 | |
+| GET / POST | `/manage/spaces/:spaceId/announcements` | 🧾 | the list by state, each closure with its extension state, and `…/summary`; the post, idempotent (built, #112) |
+| PATCH / DELETE | `/manage/spaces/:spaceId/announcements/:id` | 🧾 | edit, delete (soft); `POST …/:id/end`, `POST …/:id/start` (built, #112) |
 | POST | `/manage/spaces/:spaceId/announcements/:id/extend-subscriptions` | 🏢 | closure notices only; once per closure |
 | GET | `/manage/spaces/:spaceId/finance/...` | 🏢 | summary, income by month, visit income per day, debtors and payers, collections per staff member, occupancy (by hour, by day, peaks, average stay); CSV export |
 | GET / PATCH | `/manage/spaces/:spaceId/data-reports[/:id]` | 🏢 | resolve with an optional note, or dismiss (the owner keeps them once the space is verified) |

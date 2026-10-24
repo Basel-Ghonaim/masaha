@@ -36,6 +36,7 @@ export const ERRORS = {
   SPACE_NOT_OPEN:
     'The status can’t be set now: the space is closed, outside its hours, or has no active owner.',
   OUTSIDE_OPENING_HOURS: 'This check-in is outside the space’s opening hours.',
+  CLOSURE_IN_FORCE: 'The space is announced closed now; the check-in was recorded anyway.',
   SPACE_FULL: 'The space is full; the check-in was recorded anyway.',
   PRICE_TYPING_NOT_ALLOWED: 'The space’s settings do not let reception type a price.',
   PAYMENT_EXCEEDS_DUE: 'The amount is more than what is due.',
@@ -56,6 +57,7 @@ export const ERRORS = {
   SUBSCRIPTION_EXPIRED: 'The subscription has expired; the check-in was recorded anyway.',
   DAYS_PER_WEEK_USED: "This week's days are used up; the check-in was recorded anyway.",
   HOURS_PER_DAY_USED: "Today's hours are used up; the check-in was recorded anyway.",
+  ANNOUNCEMENT_NOT_STARTED: 'This announcement has not started yet.',
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:
     'This person works at this space’s reception. Its owner deactivates that link first.',
