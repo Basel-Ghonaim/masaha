@@ -716,7 +716,7 @@ AnnouncementsSummary = { running: number, upcoming: number, ended: number, closu
 
 #### `POST /manage/spaces/:spaceId/announcements/:announcementId/start` · 🧾
 - **200:** `Announcement`, its start now; one started already (running or ended) is answered as it is, writing nothing.
-- **Errors**, each writing nothing: `forbidden` (403); `not_found` (404) for an announcement that is not the space's, or deleted.
+- **Errors**, each writing nothing: `forbidden` (403); `not_found` (404) for an announcement that is not the space's, or deleted; `validation` (422) `out_of_range` on `endsAt` for an end that would fall more than 365 days after now (the period's bound, held on start now too; 2026-10-24, #114).
 
 #### `DELETE /manage/spaces/:spaceId/announcements/:announcementId` · 🧾
 - **204**, in any state; one deleted already answers 204 again, writing nothing.

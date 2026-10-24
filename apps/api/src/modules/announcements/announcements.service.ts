@@ -226,7 +226,8 @@ export function createAnnouncementsService({ runInTransaction, audit, spaces, no
     /**
      * Starts an upcoming announcement now, in one transaction: the space's lock; `can()`; its row,
      * the space's and not deleted (else `not_found`); one started already answered as it is, writing
-     * nothing; else its start set to now, audited with the start it had.
+     * nothing; an end more than 365 days after now → `validation` (`period.ts`); else its start set
+     * to now, audited with the start it had.
      */
     start(actor: Actor, space: LoadedSpace, announcementId: number): Promise<Announcement> {
       return runInTransaction(async (tx) => {
@@ -235,6 +236,12 @@ export function createAnnouncementsService({ runInTransaction, audit, spaces, no
         if (!current) throw AppError.notFound(undefined, 'Announcement not found');
         const at = now();
         if (announcementState(current, at) !== 'UPCOMING') return toAnnouncement(current, at);
+
+        const errors = periodErrors({ startsAt: at, endsAt: current.endsAt }, at, 'edit', {
+          startsAt: true,
+          endsAt: false,
+        });
+        if (errors) throw AppError.validation(errors);
 
         const row = await repository.update(announcementId, { startsAt: at }, tx);
         await audit(
