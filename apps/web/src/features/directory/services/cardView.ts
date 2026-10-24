@@ -17,6 +17,16 @@ const STATUS_VIEWS = {
   { word: keyof Catalogue['terms']['liveStatuses']; variant: string }
 >;
 
+/** A live status by its word and its role, or none (`null`), as the card and the legend show it. */
+export function statusViewOf(
+  liveStatus: LiveStatus | null,
+  copy: Catalogue,
+): SpaceCardView['status'] {
+  if (liveStatus === null) return null;
+  const status = STATUS_VIEWS[liveStatus];
+  return { label: copy.terms.liveStatuses[status.word], variant: status.variant };
+}
+
 /**
  * A space's card, worded in the interface's language: its name, its mark, its live status by word
  * and role (or that it has none), whether it is verified, today's hours, and how far it is while
@@ -34,7 +44,6 @@ export function cardViewOf(
 ): SpaceCardView {
   const words = copy.directory;
   const name = spaceNameOf(space, english);
-  const status = space.liveStatus === null ? null : STATUS_VIEWS[space.liveStatus];
   return {
     key: space.id,
     slug: space.slug,
@@ -42,10 +51,7 @@ export function cardViewOf(
     mark: Array.from(name.text)[0] ?? '',
     areaId: 'areaId' in space ? space.areaId : space.area.id,
     cover: space.cover,
-    status:
-      status === null
-        ? null
-        : { label: copy.terms.liveStatuses[status.word], variant: status.variant },
+    status: statusViewOf(space.liveStatus, copy),
     noStatus: words.status.none,
     verified: space.isVerified ? words.card.verified : null,
     today: todayHours(space.days, now, words.card),

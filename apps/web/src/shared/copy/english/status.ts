@@ -13,13 +13,15 @@ export const STATUS = {
   },
   error: {
     title: 'Something went wrong',
-    description: 'It wasn’t your fault. Try again in a moment.',
+    description: 'The problem is on our side, not yours. Try again in a moment.',
   },
   offline: {
     title: 'No internet connection',
     description: 'The data will appear when you’re back online.',
   },
   retry: 'Try again',
+  /** Said under the buttons when a retry finds the connection still gone. */
+  stillOffline: 'Still no connection.',
   loading: 'Loading',
   toasts: {
     /** Names the region the toasts are announced in. */

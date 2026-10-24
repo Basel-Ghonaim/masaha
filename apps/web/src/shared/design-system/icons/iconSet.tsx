@@ -48,6 +48,7 @@ import {
   UserCog,
   Users,
   Wifi,
+  WifiOff,
   X,
   Zap,
 } from 'lucide-react';
@@ -127,6 +128,10 @@ export function UsersIcon(props: IconProps) {
 
 export function WifiIcon(props: IconProps) {
   return <Icon glyph={Wifi} {...props} />;
+}
+
+export function WifiOffIcon(props: IconProps) {
+  return <Icon glyph={WifiOff} {...props} />;
 }
 
 export function ZapIcon(props: IconProps) {

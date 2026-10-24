@@ -56,7 +56,10 @@ describe('the site shell', () => {
 
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(
-      within(screen.getByRole('main')).getByRole('heading', { level: 1, name: 'Home' }),
+      within(screen.getByRole('main')).getByRole('heading', {
+        level: 1,
+        name: 'Find a workspace in the Gaza Strip',
+      }),
     ).toBeInTheDocument();
     expect(screen.getByRole('contentinfo')).toHaveTextContent(
       'Masaha — a directory of coworking spaces in the Gaza Strip',
@@ -111,7 +114,9 @@ describe('the site shell', () => {
 
     expect(document.documentElement).toHaveAttribute('lang', 'ar');
     expect(document.documentElement).toHaveAttribute('dir', 'rtl');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('الرئيسية');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      'اعثر على مساحة عمل في قطاع غزة',
+    );
   });
 
   it('sets data-theme to the opposite of the theme shown', async () => {

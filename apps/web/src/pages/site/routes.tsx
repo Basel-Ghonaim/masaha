@@ -1,11 +1,7 @@
-import {
-  RequireGuest,
-  RequirePasswordChange,
-  RouteErrorState,
-  type TitledHandle,
-} from '@shared/routing';
+import { RequireGuest, RequirePasswordChange, type TitledHandle } from '@shared/routing';
 import type { RouteObject } from 'react-router';
 import { SITE_PATHS } from './navigation';
+import { SiteRouteError } from './shell/SiteRouteError';
 
 /**
  * The site's route subtree (docs/frontend/architecture.md §2). Definitions only: the shells and each
@@ -20,7 +16,7 @@ export const siteRoutes: RouteObject[] = [
         // The site's error boundary. A boundary renders in place of its own route's element, so it
         // sits one level below the shell, and every page's error shows inside the shell. It is not
         // lazy: it is what shows when a page's code cannot be fetched.
-        ErrorBoundary: RouteErrorState,
+        ErrorBoundary: SiteRouteError,
         children: [
           {
             path: SITE_PATHS.home,
@@ -64,7 +60,7 @@ export const siteRoutes: RouteObject[] = [
     children: [
       {
         // The focus shell's own boundary, as the site shell has one.
-        ErrorBoundary: RouteErrorState,
+        ErrorBoundary: SiteRouteError,
         children: [
           {
             path: SITE_PATHS.signIn,
@@ -132,7 +128,7 @@ export const siteRoutes: RouteObject[] = [
     },
     children: [
       {
-        ErrorBoundary: RouteErrorState,
+        ErrorBoundary: SiteRouteError,
         children: [
           {
             path: SITE_PATHS.changePassword,

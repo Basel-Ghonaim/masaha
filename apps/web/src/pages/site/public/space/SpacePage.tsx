@@ -1,4 +1,9 @@
-import { SpaceDetails, useDirectoryReturn, useSpacePageTitle } from '@features/directory';
+import {
+  SpaceDetails,
+  useDirectoryReturn,
+  useSpaceContactBar,
+  useSpacePageTitle,
+} from '@features/directory';
 import { AreaName } from '@features/lookups';
 import { PlatformContact } from '@features/platform-settings';
 import { useCopy } from '@shared/copy';
@@ -16,6 +21,7 @@ import {
 import { useRecordTitle } from '@shared/routing';
 import { Link, useParams } from 'react-router';
 import { SITE_PATHS } from '../../navigation';
+import { useFooterRoom } from '../../shell/footerRoom';
 
 /** From here up the page shows the breadcrumb; below it, a link back to the spaces. */
 const TABLET_UP = '(min-width: 768px)';
@@ -35,6 +41,7 @@ export function SpacePage() {
   const words = copy.directory.page;
   const title = useSpacePageTitle(slug);
   useRecordTitle(title);
+  useFooterRoom(useSpaceContactBar(slug));
   const back = `${SITE_PATHS.spaces}${useDirectoryReturn()}`;
   const tablet = useMediaQuery(TABLET_UP);
   const stateTitle = title?.text ?? copy.site.links.space;

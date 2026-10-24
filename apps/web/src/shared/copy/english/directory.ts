@@ -187,6 +187,17 @@ export const DIRECTORY = {
     truncated: ({ count }: { count: string }) =>
       `Showing the first ${count} spaces; zoom in to see the rest.`,
   },
+  /** Home's spaces: available now, or the nearest while near me sorts by distance. */
+  home: {
+    available: 'Available now',
+    nearest: 'Spaces nearest you',
+    viewAll: 'View all',
+    empty: {
+      title: 'No spaces available right now',
+      text: 'Spaces may be full or closed at this time. Browse all spaces to see their hours.',
+      action: 'Browse all spaces',
+    },
+  },
   /** A space's public page: its states, its sections, their dates and the phone's bar. */
   page: {
     breadcrumb: 'Breadcrumb',

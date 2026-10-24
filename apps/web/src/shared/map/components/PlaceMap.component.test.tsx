@@ -34,4 +34,19 @@ describe('PlaceMap', () => {
     });
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('lets a finger scroll the page past it: no drag, no pinch, the zoom buttons kept', async () => {
+    startPreferences('en');
+    const { container } = render(
+      <PlaceMap point={POINT} label={LABEL} failed="The map didn’t load." />,
+    );
+
+    await screen.findByRole('img', { name: LABEL });
+    const map = container.querySelector('.leaflet-container');
+    expect(map).not.toHaveClass('leaflet-grab');
+    expect(map).not.toHaveClass('leaflet-touch-drag');
+    expect(map).not.toHaveClass('leaflet-touch-zoom');
+    expect(screen.getByRole('button', { name: 'Zoom in' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zoom out' })).toBeInTheDocument();
+  });
 });

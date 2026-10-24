@@ -10,12 +10,14 @@ import {
   DialogTitle,
 } from '@shared/design-system';
 import { cn } from '@shared/design-system';
+import { useRef } from 'react';
 import type { useGallery } from '../../hooks/page/useGallery';
 
 type GalleryView = ReturnType<typeof useGallery>;
 
 /** The public page's photo gallery, omitted when no photos were saved. */
 export function Gallery({ gallery }: { gallery: GalleryView }) {
+  const tiles = useRef<(HTMLButtonElement | null)[]>([]);
   if (gallery.tiles.length === 0) return null;
   return (
     <>
@@ -23,6 +25,9 @@ export function Gallery({ gallery }: { gallery: GalleryView }) {
         {gallery.tiles.map((tile, index) => (
           <button
             key={tile.key}
+            ref={(element) => {
+              tiles.current[index] = element;
+            }}
             type="button"
             aria-label={tile.view.label}
             className={cn(
@@ -46,7 +51,14 @@ export function Gallery({ gallery }: { gallery: GalleryView }) {
         ))}
       </div>
       <Dialog open={gallery.viewer.open} onOpenChange={gallery.viewer.setOpen}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent
+          className="sm:max-w-3xl"
+          // The viewer has no trigger of its own: the focus goes back to the tile that opened it.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            tiles.current[gallery.viewer.opener]?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{gallery.viewer.title}</DialogTitle>
           </DialogHeader>
@@ -57,7 +69,7 @@ export function Gallery({ gallery }: { gallery: GalleryView }) {
             dir="ltr"
           />
           <p className="text-center text-body-sm" dir="ltr">
-            {gallery.viewer.position + 1} / {gallery.tiles.length}
+            {gallery.viewer.position + 1} / {gallery.viewer.total}
           </p>
           <DialogFooter className="flex-row justify-between">
             {gallery.viewer.previous !== null && (

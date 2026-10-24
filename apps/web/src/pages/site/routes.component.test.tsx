@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider, type RouteObject } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { axe } from 'vitest-axe';
 import { fakeTransport, ok, restoreTransport } from '../../test/fakeTransport';
 import { publicSpace } from '../../test/publicSpace';
 import { queryWrapper } from '../../test/queryWrapper';
@@ -44,6 +45,56 @@ function renderSiteAt(path: string) {
     initialEntries: [path],
   });
   render(<RouterProvider router={router} />);
+}
+
+/** An empty page of the list, as the server answers it. */
+const NO_SPACES = {
+  status: 200,
+  data: {
+    success: true,
+    data: [],
+    meta: {
+      currentPage: 1,
+      limit: 20,
+      totalPages: 0,
+      totalRecords: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  },
+};
+
+/** The site's routes at `path`, the server answering the public reads with nothing listed. */
+function renderPublicSite(path: string) {
+  fakeTransport((request) =>
+    request.url === '/lookups'
+      ? ok({ governorates: [], amenities: [] })
+      : request.url === '/map/spaces'
+        ? ok({ pins: [], truncated: false })
+        : NO_SPACES,
+  );
+  const router = createMemoryRouter(
+    [
+      {
+        HydrateFallback: () => null,
+        element: (
+          <RecordTitleProvider>
+            <DocumentTitle />
+            <Outlet />
+          </RecordTitleProvider>
+        ),
+        children: siteRoutes,
+      },
+    ],
+    { initialEntries: [path] },
+  );
+  const Wrapper = queryWrapper();
+  const rendered = render(
+    <Wrapper>
+      <RouterProvider router={router} />
+    </Wrapper>,
+  );
+  return { ...rendered, router };
 }
 
 /** The page's title, inside the shell's main landmark. */
@@ -88,11 +139,14 @@ describe("the site's routes", () => {
     expectTheShell();
   });
 
-  it("show offline inside the shell when a page's code cannot be fetched", async () => {
+  it("show offline inside the shell when a page's code cannot be fetched, with a way home", async () => {
     renderSiteAt('/unfetched');
 
     expect(await pageTitle()).toHaveTextContent('No internet connection');
     expectTheShell();
+    const main = within(screen.getByRole('main'));
+    expect(main.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(main.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
   });
 
   it('shows the Directory under its title', async () => {
@@ -243,6 +297,101 @@ describe("the site's routes", () => {
     await user.click(within(dialog).getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('Home’s search opens the Directory with what was typed; axe-clean', async () => {
+    const { container, router } = renderPublicSite('/');
+    expect(await pageTitle()).toHaveTextContent('Find a workspace in the Gaza Strip');
+    const user = userEvent.setup();
+
+    const search = within(screen.getByRole('search'));
+    await user.type(search.getByRole('searchbox', { name: 'Search for a space' }), ' Hub & Co ');
+    expect(await axe(container)).toHaveNoViolations();
+    await user.click(search.getByRole('button', { name: 'Search' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/spaces');
+    });
+    expect(router.state.location.search).toBe('?q=Hub%20%26%20Co');
+  });
+
+  it('About has «Contact us» before «For space owners», each with the configured contact, and no university line; the footer offers «Browse spaces» first; axe-clean', async () => {
+    vi.stubEnv('VITE_CONTACT_EMAIL', 'hello@example.com');
+    vi.stubEnv('VITE_CONTACT_WHATSAPP', '');
+    const { container } = renderPublicSite('/about');
+
+    expect(await pageTitle()).toHaveTextContent('About Masaha');
+    const main = within(screen.getByRole('main'));
+    const contact = main.getByRole('region', { name: 'Contact us' });
+    const owners = main.getByRole('region', { name: 'For space owners' });
+    expect(contact).toHaveAttribute('id', 'contact');
+    expect(owners).toHaveAttribute('id', 'owners');
+    expect(contact.compareDocumentPosition(owners) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const section of [contact, owners]) {
+      expect(
+        within(section).getByRole('link', { name: 'Email hello@example.com' }),
+      ).toHaveAttribute('href', 'mailto:hello@example.com');
+    }
+    expect(within(owners).getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.getByRole('main').textContent).not.toMatch(/universit|جامعة/i);
+    const footerLinks = within(screen.getByRole('contentinfo')).getAllByRole('link');
+    expect(footerLinks[0]).toHaveTextContent('Browse spaces');
+    expect(footerLinks[0]).toHaveAttribute('href', '/spaces');
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('with no contact configured, About’s sections keep their text without buttons', async () => {
+    vi.stubEnv('VITE_CONTACT_EMAIL', '');
+    vi.stubEnv('VITE_CONTACT_WHATSAPP', '');
+    renderPublicSite('/about');
+
+    expect(await pageTitle()).toHaveTextContent('About Masaha');
+    const main = within(screen.getByRole('main'));
+    const contact = main.getByRole('region', { name: 'Contact us' });
+    const owners = main.getByRole('region', { name: 'For space owners' });
+    expect(contact).toHaveTextContent('Message us with a question, or a problem with the website.');
+    expect(within(owners).getAllByRole('listitem')).toHaveLength(3);
+    for (const section of [contact, owners]) {
+      expect(within(section).queryAllByRole('link')).toEqual([]);
+    }
+    expect(screen.getByRole('main').querySelector('a[href^="mailto:"]')).toBeNull();
+  });
+
+  it.each([
+    ['a WhatsApp or a phone', publicSpace().contacts, true],
+    ['neither', [], false],
+  ] as const)(
+    'reserves the footer’s room on a phone only under the contact bar: a space with %s',
+    async (_, contacts, reserved) => {
+      stubScreenWidth(390);
+      fakeTransport((request) =>
+        request.url === '/lookups'
+          ? ok({ governorates: [], areas: [], amenities: [] })
+          : request.url?.endsWith('/occupancy')
+            ? ok({ status: null })
+            : ok(publicSpace({ contacts: [...contacts] })),
+      );
+      const router = createMemoryRouter([{ HydrateFallback: () => null, children: siteRoutes }], {
+        initialEntries: ['/spaces/noor-hub'],
+      });
+      const Wrapper = queryWrapper();
+      render(
+        <Wrapper>
+          <RouterProvider router={router} />
+        </Wrapper>,
+      );
+
+      await screen.findByRole('heading', { level: 1, name: 'Noor Hub' });
+      const footer = screen.getByRole('contentinfo');
+      if (reserved) {
+        await waitFor(() => {
+          expect(footer).toHaveClass('pb-24');
+        });
+        expect(screen.getByRole('region', { name: 'Quick contact' })).toBeInTheDocument();
+      } else {
+        expect(footer).not.toHaveClass('pb-24');
+      }
+    },
+  );
 
   it('show offline when a page throws while the browser reports no connection', async () => {
     vi.spyOn(Navigator.prototype, 'onLine', 'get').mockReturnValue(false);

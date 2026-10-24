@@ -42,7 +42,9 @@ describe('App', () => {
     await user.click(await screen.findByRole('button', { name: 'English' }));
     await user.click(screen.getByRole('button', { name: 'Dark theme' }));
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Find a workspace in the Gaza Strip' }),
+    ).toBeInTheDocument();
     expect(document.documentElement).toHaveAttribute('lang', 'en');
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
     // The tab names the page in the language just chosen.

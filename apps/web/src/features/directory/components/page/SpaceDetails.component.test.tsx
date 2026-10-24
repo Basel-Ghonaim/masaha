@@ -211,6 +211,64 @@ describe('SpaceDetails', () => {
     expect(screen.getByRole('img', { name: 'الصورة 1 من 3 — نور هب' })).toBeInTheDocument();
   });
 
+  it('counts every photo in the viewer’s position, past the five tiles, and wraps', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    const photos = [1, 2, 3, 4, 5, 6, 7].map((n) => ({
+      card: `/${String(n)}-card.jpg`,
+      page: `/${String(n)}-page.jpg`,
+    }));
+    renderDetails(1440, publicSpace({ photos }));
+
+    await user.click(await screen.findByRole('button', { name: 'عرض الصورة 1' }));
+    const viewer = await screen.findByRole('dialog', { name: 'صور نور هب' });
+    expect(within(viewer).getByText('1 / 7')).toBeInTheDocument();
+    for (let step = 0; step < 5; step += 1) {
+      await user.click(within(viewer).getByRole('button', { name: 'التالية' }));
+    }
+    expect(within(viewer).getByText('6 / 7')).toBeInTheDocument();
+    await user.click(within(viewer).getByRole('button', { name: 'التالية' }));
+    expect(within(viewer).getByText('7 / 7')).toBeInTheDocument();
+    await user.click(within(viewer).getByRole('button', { name: 'التالية' }));
+    expect(within(viewer).getByText('1 / 7')).toBeInTheDocument();
+  });
+
+  it('hands the focus back to the tile that opened the viewer when Escape closes it', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    const photos = [1, 2, 3].map((n) => ({
+      card: `/${String(n)}-card.jpg`,
+      page: `/${String(n)}-page.jpg`,
+    }));
+    renderDetails(1440, publicSpace({ photos }));
+
+    await user.click(await screen.findByRole('button', { name: 'عرض الصورة 2' }));
+    const viewer = await screen.findByRole('dialog', { name: 'صور نور هب' });
+    await user.click(within(viewer).getByRole('button', { name: 'التالية' }));
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'عرض الصورة 2' })).toHaveFocus();
+  });
+
+  it.each([2, 3, 5])('with %i photos, a phone shows the first tile alone', async (count) => {
+    const photos = Array.from({ length: count }, (_, n) => ({
+      card: `/${String(n)}-card.jpg`,
+      page: `/${String(n)}-page.jpg`,
+    }));
+    renderDetails(390, publicSpace({ photos }));
+
+    const first = await screen.findByRole('button', { name: 'عرض الصورة 1' });
+    expect(first.parentElement).toHaveClass('grid-cols-1');
+    expect(first).not.toHaveClass('hidden');
+    for (let n = 2; n <= count; n += 1) {
+      expect(screen.getByRole('button', { name: `عرض الصورة ${String(n)}` })).toHaveClass(
+        'hidden',
+        'md:block',
+      );
+    }
+  });
+
   it('says when a verified space has no live status and when the first read fails', async () => {
     renderDetails(390, publicSpace());
     expect(await screen.findByText('الحالة مباشرة الآن')).toBeInTheDocument();
@@ -230,5 +288,21 @@ describe('SpaceDetails', () => {
     cleanup();
     renderDetails(390, publicSpace(), <p>البريد</p>, 'ERROR');
     expect(await screen.findByText('تعذّر قراءة الحالة الآن')).toBeInTheDocument();
+  });
+
+  it('keeps the last live status when a later refresh fails', async () => {
+    renderDetails(390, publicSpace());
+    expect(await screen.findByText('متاح')).toBeInTheDocument();
+
+    const requests = fakeTransport((request) =>
+      request.url?.endsWith('/occupancy') ? refused(404, { type: 'not_found' }) : ok(publicSpace()),
+    );
+    await vi.advanceTimersByTimeAsync(60_000);
+    await waitFor(() => {
+      expect(requests.some((request) => request.url?.endsWith('/occupancy'))).toBe(true);
+    });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(screen.queryByText('تعذّر قراءة الحالة الآن')).not.toBeInTheDocument();
+    expect(screen.getByText('متاح')).toBeInTheDocument();
   });
 });
