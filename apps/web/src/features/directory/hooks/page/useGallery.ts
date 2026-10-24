@@ -2,7 +2,14 @@ import type { PhotoUrls } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { useState } from 'react';
 
-const tileClasses = ['md:col-span-2 md:row-span-2', '', '', '', ''] as const;
+// A phone shows the first tile alone; the others join it from 768 px.
+const tileClasses = [
+  'md:col-span-2 md:row-span-2',
+  'hidden md:block',
+  'hidden md:block',
+  'hidden md:block',
+  'hidden md:block',
+] as const;
 
 /** The page gallery's responsive tiles and circular keyboard viewer. */
 export function useGallery(photos: PhotoUrls[], name: string) {
@@ -29,7 +36,12 @@ export function useGallery(photos: PhotoUrls[], name: string) {
         },
       },
     })),
-    layout: total <= 1 ? 'grid-cols-1' : total === 2 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4',
+    layout:
+      total <= 1
+        ? 'grid-cols-1'
+        : total === 2
+          ? 'grid-cols-1 md:grid-cols-2'
+          : 'grid-cols-1 md:grid-cols-4',
     more:
       total > 1
         ? {

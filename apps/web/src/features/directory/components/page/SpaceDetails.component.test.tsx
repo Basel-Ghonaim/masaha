@@ -232,6 +232,24 @@ describe('SpaceDetails', () => {
     expect(within(viewer).getByText('1 / 7')).toBeInTheDocument();
   });
 
+  it.each([2, 3, 5])('with %i photos, a phone shows the first tile alone', async (count) => {
+    const photos = Array.from({ length: count }, (_, n) => ({
+      card: `/${String(n)}-card.jpg`,
+      page: `/${String(n)}-page.jpg`,
+    }));
+    renderDetails(390, publicSpace({ photos }));
+
+    const first = await screen.findByRole('button', { name: 'عرض الصورة 1' });
+    expect(first.parentElement).toHaveClass('grid-cols-1');
+    expect(first).not.toHaveClass('hidden');
+    for (let n = 2; n <= count; n += 1) {
+      expect(screen.getByRole('button', { name: `عرض الصورة ${String(n)}` })).toHaveClass(
+        'hidden',
+        'md:block',
+      );
+    }
+  });
+
   it('says when a verified space has no live status and when the first read fails', async () => {
     renderDetails(390, publicSpace());
     expect(await screen.findByText('الحالة مباشرة الآن')).toBeInTheDocument();
