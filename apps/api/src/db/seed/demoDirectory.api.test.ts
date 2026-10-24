@@ -8,17 +8,26 @@ import { DEMO_OWNER_EMAIL, DEMO_SPACE_SLUG, seedDemo } from './demo.ts';
 import { DIRECTORY_OWNER_EMAIL, seedDemoDirectory } from './demoDirectory.ts';
 import { seed } from './seed.ts';
 
-const NOW = new Date('2026-10-14T09:00:00Z');
+const NOW = new Date('2026-10-14T09:00:00Z'); // Wednesday
+const DAY1 = NOW;
+const DAY2 = new Date('2026-10-15T09:00:00Z'); // Thursday
+const DAY2_AFTER_CLOSING = new Date('2026-10-15T17:00:00Z'); // Thursday 20:00 Gaza = 17:00 UTC
 const DAY_MS = 86_400_000;
 
 let files: TestStorage;
-const directory = () =>
-  seedDemoDirectory(prisma, {
+
+function directory(now: Date) {
+  return seedDemoDirectory(prisma, {
     password: 'demo-pass-1',
     nodeEnv: 'development',
     storage: files.storage,
-    now: NOW,
+    now,
   });
+}
+
+function directoryAtNow() {
+  return directory(NOW);
+}
 
 beforeEach(async () => {
   await resetDatabase(prisma);
@@ -75,7 +84,7 @@ describe('seedDemoDirectory, on a database holding the demo space', () => {
   beforeEach(async () => {
     await seedDemo(prisma, { password: 'demo-pass-1', nodeEnv: 'development', now: NOW });
     demoBefore = await demoSpace();
-    created = await directory();
+    created = await directoryAtNow();
   });
 
   it('creates 24 listed spaces in the Strip, across governorates and areas', async () => {
@@ -181,7 +190,7 @@ describe('seedDemoDirectory, on a database holding the demo space', () => {
       ]);
     const before = await count();
 
-    await expect(directory()).resolves.toBe(false);
+    await expect(directoryAtNow()).resolves.toBe(false);
 
     expect(await count()).toEqual(before);
   });
@@ -201,5 +210,131 @@ describe('seedDemoDirectory', () => {
       }),
     ).rejects.toThrow(/production/);
     expect(await prisma.space.count()).toBe(0);
+  });
+});
+
+describe('seedDemoDirectory renewal across days', () => {
+  beforeEach(async () => {
+    await resetDatabase(prisma);
+    await seed(prisma, {
+      admin: { email: 'admin@example.com', password: 'change-me-1', name: 'Admin' },
+      contact: {},
+    });
+    files = await createTestStorage();
+  });
+
+  afterEach(() => files.cleanup());
+
+  async function getSadaSpace() {
+    return prisma.space.findUniqueOrThrow({
+      where: { slug: 'sada-space' },
+      include: { occupancy: true, visits: { where: { checkedOutAt: null } } },
+    });
+  }
+
+  async function getRadwanSpace() {
+    return prisma.space.findUniqueOrThrow({
+      where: { slug: 'radwan-study-hall' },
+      include: { hours: true },
+    });
+  }
+
+  async function getDemoSpaceVisits() {
+    return prisma.visit.count({ where: { space: { slug: DEMO_SPACE_SLUG }, checkedOutAt: null } });
+  }
+
+  async function getOutsideSpaceVisits() {
+    // A space outside the set: the demo space
+    return prisma.visit.count({ where: { space: { slug: DEMO_SPACE_SLUG }, checkedOutAt: null } });
+  }
+
+  it('day 1 then day 2: sada-space full and radwan-study-hall closed on day 2 weekday', async () => {
+    await seedDemo(prisma, { password: 'demo-pass-1', nodeEnv: 'development', now: DAY1 });
+    await directory(DAY1);
+    await directory(DAY2);
+
+    const sada = await getSadaSpace();
+    expect(sada.visits).toHaveLength(4);
+    expect(sada.occupancy?.capacity).toBe(4);
+
+    const radwan = await getRadwanSpace();
+    // Thursday = 4 in JS getDay (0=Sunday)
+    expect(radwan.hours.some((h) => h.dayOfWeek === 4 && h.isClosed)).toBe(true);
+    // Other days open with the seed's range 09:00-17:00 (540-1020)
+    expect(
+      radwan.hours
+        .filter((h) => h.dayOfWeek !== 4)
+        .every((h) => !h.isClosed && h.opensMinute === 540 && h.closesMinute === 1020),
+    ).toBe(true);
+  });
+
+  it('day 2 again: no row changed (counts and hoursUpdatedAt unchanged)', async () => {
+    await seedDemo(prisma, { password: 'demo-pass-1', nodeEnv: 'development', now: DAY1 });
+    await directory(DAY1);
+    await directory(DAY2);
+
+    const sadaBefore = await getSadaSpace();
+    const radwanBefore = await getRadwanSpace();
+    const hoursUpdatedAtBefore = radwanBefore.hoursUpdatedAt?.getTime();
+
+    await directory(DAY2);
+
+    const sadaAfter = await getSadaSpace();
+    const radwanAfter = await getRadwanSpace();
+    const hoursUpdatedAtAfter = radwanAfter.hoursUpdatedAt?.getTime();
+
+    expect(sadaAfter.visits).toHaveLength(sadaBefore.visits.length);
+    expect(hoursUpdatedAtAfter).toBe(hoursUpdatedAtBefore);
+  });
+
+  it('one of day 2 visits checked out, then day 2 again: topped up to 4', async () => {
+    await seedDemo(prisma, { password: 'demo-pass-1', nodeEnv: 'development', now: DAY1 });
+    await directory(DAY1);
+    await directory(DAY2);
+
+    const sada = await getSadaSpace();
+    const visitToClose = sada.visits[0];
+    if (!visitToClose) throw new Error('No visit to close');
+    await prisma.visit.update({
+      where: { id: visitToClose.id },
+      data: { checkedOutAt: DAY2, checkoutMethod: 'MANUAL' },
+    });
+
+    await directory(DAY2);
+
+    const sadaAfter = await getSadaSpace();
+    expect(sadaAfter.visits).toHaveLength(4);
+  });
+
+  it('run at 20:00 Gaza time (after closing for radwan): visits checked in at now - i seconds', async () => {
+    await seedDemo(prisma, { password: 'demo-pass-1', nodeEnv: 'development', now: DAY1 });
+    await directory(DAY1);
+    await directory(DAY2_AFTER_CLOSING);
+
+    const sada = await getSadaSpace();
+    expect(sada.visits).toHaveLength(4);
+    // All 4 visits checked in within a few seconds of now (now - 0, -1, -2, -3s)
+    // Order by checkedInAt ASC is not guaranteed by createMany; just check all are close to now
+    for (const visit of sada.visits) {
+      const diff = DAY2_AFTER_CLOSING.getTime() - visit.checkedInAt.getTime();
+      expect(diff).toBeGreaterThanOrEqual(0);
+      expect(diff).toBeLessThanOrEqual(3000);
+    }
+  });
+
+  it('demo space and space outside the set untouched (visit counts before and after)', async () => {
+    await seedDemo(prisma, { password: 'demo-pass-1', nodeEnv: 'development', now: DAY1 });
+    await directory(DAY1);
+
+    const demoVisitsBefore = await getDemoSpaceVisits();
+    const outsideVisitsBefore = await getOutsideSpaceVisits();
+
+    await directory(DAY2);
+
+    const demoVisitsAfter = await getDemoSpaceVisits();
+    const outsideVisitsAfter = await getOutsideSpaceVisits();
+
+    expect(demoVisitsAfter).toBe(demoVisitsBefore);
+    expect(outsideVisitsAfter).toBe(outsideVisitsBefore);
   });
 });

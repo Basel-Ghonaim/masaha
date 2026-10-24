@@ -521,7 +521,8 @@ function minutesOf(hhmm: string): number {
 }
 
 /**
- * Creates the directory set once: returns false, changing nothing, when its marker space exists.
+ * Creates the directory set once, or renews its day-bound states when the set already exists.
+ * Returns true on first creation, false on renewal (or when nothing changed).
  * Needs the lookups and the admin (run `seed` first).
  */
 export async function seedDemoDirectory(
@@ -531,9 +532,15 @@ export async function seedDemoDirectory(
   if (input.nodeEnv === 'production') {
     throw new Error('Refusing to seed demo data in production (NODE_ENV=production).');
   }
-  if (await db.space.findUnique({ where: { slug: DIRECTORY_MARKER_SLUG }, select: { id: true } })) {
-    return false;
+
+  const markerExists = await db.space.findUnique({
+    where: { slug: DIRECTORY_MARKER_SLUG },
+    select: { id: true },
+  });
+  if (markerExists) {
+    return renewDemoDirectory(db, input);
   }
+
   const [areas, amenities, defaults, admin] = await Promise.all([
     db.area.findMany({ select: { id: true, nameEn: true } }),
     db.amenity.findMany({ select: { id: true, key: true } }),
@@ -689,6 +696,132 @@ export async function seedDemoDirectory(
 
   await addPhotos(db, input.storage, { admin, owner: { id: owner.id, role: owner.role } });
   return true;
+}
+
+async function renewDemoDirectory(db: PrismaClient, input: DemoDirectoryInput): Promise<boolean> {
+  const now = input.now ?? new Date();
+  const at = gazaClock(now);
+  const today = at.date(0).getUTCDay(); // 0 = Sunday ... 6 = Saturday
+  const startOfToday = at.time(0, '00:00').getTime();
+  const endOfToday = startOfToday + 86_400_000;
+
+  // Load the set's spaces with their visits and hours
+  const slugs = DIRECTORY_SPACES.map((s) => s.slug);
+  const spaces = await db.space.findMany({
+    where: { slug: { in: slugs } },
+    include: {
+      occupancy: true,
+      visits: { where: { checkedOutAt: null }, orderBy: { checkedInAt: 'asc' } },
+      hours: true,
+    },
+  });
+  const spaceBySlug = new Map(spaces.map((s) => [s.slug, s]));
+
+  // 1. Renew visits for spaces with present > 0
+  for (const seed of DIRECTORY_SPACES) {
+    const present = seed.present ?? 0;
+    if (present === 0) continue;
+
+    const space = spaceBySlug.get(seed.slug);
+    if (!space) continue;
+
+    // Delete open visits from before today (Gaza date)
+    await db.visit.deleteMany({
+      where: {
+        spaceId: space.id,
+        checkedOutAt: null,
+        checkedInAt: { lt: new Date(startOfToday) },
+      },
+    });
+
+    // Count open visits checked in today
+    const todaysVisits = await db.visit.findMany({
+      where: {
+        spaceId: space.id,
+        checkedOutAt: null,
+        checkedInAt: { gte: new Date(startOfToday), lt: new Date(endOfToday) },
+      },
+      orderBy: { checkedInAt: 'asc' },
+    });
+
+    const toInsert = present - todaysVisits.length;
+    if (toInsert <= 0) continue;
+
+    // Get the space's prices for rates
+    const prices = await db.spacePrice.findMany({ where: { spaceId: space.id } });
+    const hourRateAgorot =
+      prices.find((p) => p.period === 'HOUR' && p.audience === 'GENERAL')?.amountAgorot ?? null;
+    const dayRateAgorot =
+      prices.find((p) => p.period === 'DAY' && p.audience === 'GENERAL')?.amountAgorot ?? null;
+
+    // Insert remaining visits at now - i seconds
+    await db.visit.createMany({
+      data: Array.from({ length: toInsert }, (_, i) => ({
+        spaceId: space.id,
+        idempotencyKey: randomUUID(),
+        visitorName: VISITORS[(todaysVisits.length + i) % VISITORS.length],
+        hourRateAgorot,
+        dayRateAgorot,
+        checkedInAt: new Date(now.getTime() - i * 1000),
+      })),
+    });
+  }
+
+  // 2. Renew closed-today space (radwan-study-hall)
+  const closedTodaySeed = DIRECTORY_SPACES.find(
+    (s): s is typeof s & { hours: { open: Range; friday?: Range | null; closedToday: true } } =>
+      s.hours !== null &&
+      typeof s.hours === 'object' &&
+      'closedToday' in s.hours &&
+      s.hours.closedToday === true,
+  );
+  if (closedTodaySeed) {
+    const space = spaceBySlug.get(closedTodaySeed.slug);
+    if (space && space.hours.length === 7) {
+      const openRange = closedTodaySeed.hours.open; // [opens, closes]
+      const opensMinute = minutesOf(openRange[0]);
+      const closesMinute = minutesOf(openRange[1]);
+
+      // Check if renewal is needed: today's row closed, other 6 match open range
+      const todaysRow = space.hours.find((h) => h.dayOfWeek === today);
+      if (!todaysRow) throw new Error('No hours row for weekday ' + String(today));
+      const otherRows = space.hours.filter((h) => h.dayOfWeek !== today);
+      const needsUpdate =
+        !todaysRow.isClosed ||
+        todaysRow.opensMinute !== null ||
+        todaysRow.closesMinute !== null ||
+        otherRows.some(
+          (h) => h.isClosed || h.opensMinute !== opensMinute || h.closesMinute !== closesMinute,
+        );
+
+      if (needsUpdate) {
+        await db.$transaction(async (tx) => {
+          // Update today's row to closed
+          await tx.spaceHours.update({
+            where: { id: todaysRow.id },
+            data: { isClosed: true, opensMinute: null, closesMinute: null },
+          });
+          // Update other rows to open range
+          for (const row of otherRows) {
+            await tx.spaceHours.update({
+              where: { id: row.id },
+              data: { isClosed: false, opensMinute, closesMinute },
+            });
+          }
+          // Update space's hoursUpdatedAt
+          await tx.space.update({
+            where: { id: space.id },
+            data: { hoursUpdatedAt: now },
+          });
+        });
+      }
+    }
+  }
+
+  // 3. Photos are not renewed (they stay as they are)
+  // 4. Announcement is not renewed (idempotencyKey preserved)
+
+  return false;
 }
 
 const VISITORS = ['عمر', 'هبة', 'يوسف', 'ليان', 'محمود', 'سلمى'];
