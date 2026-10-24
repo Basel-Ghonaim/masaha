@@ -628,7 +628,7 @@ ReceivedPayment = {
 
 #### `GET /manage/spaces/:spaceId/uncollected-visits` · 🧾
 - **Query:** `page`, `limit` (§4).
-- **200:** a page of `UncollectedVisit` (`@masaha/shared/payments`): the space's visits closed by the auto check-out, not fully paid and not written off (2026-10-20, #100), the unpriced ones included, the latest closed first, then by id; a voided payment counts for nothing. A manual check-out's visit is never listed: its unpaid rest is a customer's debt. `meta` the pagination. Built 2026-10-20, #97.
+- **200:** a page of `UncollectedVisit` (`@masaha/shared/payments`): the space's visits closed by the auto check-out, not fully paid and not written off (2026-10-20, #100), the unpriced ones included, the latest closed first, then by id; a voided payment counts for nothing. A manual check-out's visit is never listed: its unpaid rest is a customer's debt; unless a void leaves one with no customer owing — a priced visit closed by hand with no customer that owes again after a void is listed (2026-10-24, #114). `meta` the pagination. Built 2026-10-20, #97.
 - **Errors:** `validation` (422) on the query; `not_found` (404).
 
 ```ts

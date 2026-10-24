@@ -28,8 +28,9 @@ export interface CustomerBalance {
 }
 
 /**
- * A visit closed by the auto check-out and not fully paid: the visit, what was paid on it, and what
- * is still owed, `null` while it has no charge (unpriced).
+ * A visit closed by the auto check-out, or by hand with no customer and owing again after a void, and
+ * not fully paid: the visit, what was paid on it, and what is still owed, `null` while it has no
+ * charge (unpriced).
  */
 export interface UncollectedVisit {
   visit: DeskVisit;

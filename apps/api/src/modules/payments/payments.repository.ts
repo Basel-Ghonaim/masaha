@@ -252,8 +252,8 @@ export function createPaymentsRepository() {
 
     /**
      * A page of the space's uncollected visits (data model › Uncollected visits): closed by the auto
-     * check-out, not written off, not settled (balance > 0, or no charge yet), the latest closed
-     * first, then by id; each with what was paid, voided payments left out; and how many there are.
+     * check-out, or closed by hand, priced, with no customer (only a void leaves one owing), not
+     * written off, not settled (balance > 0, or no charge yet), the latest closed first, then by id; each with what was paid, voided payments left out; and how many there are.
      * One query and its count, so a read costs what its page holds (finding 113).
      */
     async uncollectedPage(
@@ -267,7 +267,9 @@ export function createPaymentsRepository() {
           WHERE space_id = ${spaceId} AND visit_id IS NOT NULL AND voided_at IS NULL
           GROUP BY visit_id
         ) p ON p.visit_id = v.id
-        WHERE v.space_id = ${spaceId} AND v.checkout_method = 'AUTO' AND v.written_off_at IS NULL
+        WHERE v.space_id = ${spaceId} AND v.checked_out_at IS NOT NULL
+          AND (v.checkout_method = 'AUTO' OR (v.customer_id IS NULL AND v.charge_agorot IS NOT NULL))
+          AND v.written_off_at IS NULL
           AND (v.charge_agorot IS NULL OR v.charge_agorot - coalesce(p.paid, 0) > 0)`;
       const [rows, [count]] = await Promise.all([
         prisma.$queryRaw<{ id: number; paid: number }[]>`
