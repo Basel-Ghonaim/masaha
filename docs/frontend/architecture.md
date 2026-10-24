@@ -88,6 +88,7 @@ Built so far: `app/`, and in `pages/site` its `index.ts`, `navigation.ts`, the s
 - **The dashboard's shell.**
   - The sidebar takes the design system's `Sidebar` form for each width. Its header is the space switcher ([`space-links`](../features/space-links.md)) in a space, and the wordmark with "Platform admin" for the admin; its foot links a space's public page (`publicSpacePath`, by its slug), and on a phone holds the language.
   - The top bar holds the drawer's trigger on a phone, the page's title, the language and theme toggles, and the account (`CompactAccountMenu`). **The page fills the bar** with `PageHeader`, which the shell places there: the title its route says (*Titles*, below) and the page's own controls.
+  - **Below 768 px a page may put its one all-day action in a bar fixed at the foot** (`PageActionBar`, P1), which the shell draws only while a page fills it, making room for it under the content; only the desk does. While it is shown, the app's one Toaster sits above it: the bar says so through `shared/routing`'s `showActionBar`, which `providers.tsx` reads (`useActionBarShown`), since `shared/` never imports `pages/` (2026-10-24, #116).
   - A space's navigation lists the pages the user's role at the space in the URL allows (the owner's eleven, reception's four); a space they hold no link to lists none. The owner's audit screen is not listed ([finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md)).
 
 - **Lazy loading.**
