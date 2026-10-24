@@ -478,10 +478,11 @@ export function createSubscriptionsService({
 
     /**
      * Writes a subscriber's check-in in the caller's transaction, audited `checkIn.checkedIn` with
-     * its subscription and customer.
+     * its subscription and customer; a customer with one open already → `MEMBER_ALREADY_CHECKED_IN`.
      */
     async checkIn(actorId: number, checkIn: NewCheckIn, tx: Tx): Promise<CheckInRow> {
       const created = await repository.createCheckIn(checkIn, tx);
+      if ('refused' in created) throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
       await audit(
         {
           actorId,

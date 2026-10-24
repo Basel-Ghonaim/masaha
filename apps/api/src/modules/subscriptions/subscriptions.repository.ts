@@ -1,4 +1,4 @@
-import { isForeignKeyViolation, prisma, type Tx } from '../../db/index.ts';
+import { isForeignKeyViolation, isUniqueViolation, prisma, type Tx } from '../../db/index.ts';
 import { Prisma } from '../../generated/prisma/client.ts';
 import type { OwnAttendance } from './limits.ts';
 import type { CorrectableTerms } from './subscriptionChange.ts';
@@ -398,15 +398,23 @@ export function createSubscriptionsRepository() {
       };
     },
 
-    /** Inserts an open check-in, by the desk. */
-    createCheckIn(
+    /**
+     * Inserts an open check-in, by the desk; or `refused` when the customer has one open already,
+     * which the open check-in index catches when it was written without the space's lock.
+     */
+    async createCheckIn(
       { spaceId, key, customerId, subscriptionId, checkedInAt }: NewCheckIn,
       tx: Tx,
-    ): Promise<CheckInRow> {
-      return tx.checkIn.create({
-        data: { spaceId, idempotencyKey: key, customerId, subscriptionId, checkedInAt },
-        select: CHECK_IN_ROW,
-      });
+    ): Promise<CheckInRow | { refused: 'present' }> {
+      try {
+        return await tx.checkIn.create({
+          data: { spaceId, idempotencyKey: key, customerId, subscriptionId, checkedInAt },
+          select: CHECK_IN_ROW,
+        });
+      } catch (error) {
+        if (isUniqueViolation(error, 'check_ins_customer_id_key')) return { refused: 'present' };
+        throw error;
+      }
     },
 
     /**
