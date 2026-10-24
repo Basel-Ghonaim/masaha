@@ -63,6 +63,8 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [123. A delayed retry of a customer edit can revert another desk's edit](123-a-delayed-retry-of-a-customer-edit-can-revert-another-desks-edit.md)
 - [124. A statement's sums and its payments come from different snapshots](124-a-statements-sums-and-its-payments-come-from-different-snapshots.md)
 - [125. The allocation's order is not exposed to the client](125-the-allocations-order-is-not-exposed-to-the-client.md)
+- [126. A whole phone finds the other country code one way only](126-a-whole-phone-finds-the-other-country-code-one-way-only.md)
+- [127. The dated check-in list filters on an expression with no index](127-the-dated-check-in-list-filters-on-an-expression-with-no-index.md)
 - [130. The dashboard's shells have no skip link](130-the-dashboards-shells-have-no-skip-link.md)
 - [131. The space page cannot show a closure's notice](131-the-space-page-cannot-show-a-closures-notice.md)
 - [132. A paged list shows no sign of the next page loading](132-a-paged-list-shows-no-sign-of-the-next-page-loading.md)
