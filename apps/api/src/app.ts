@@ -8,7 +8,11 @@ import type { Logger } from 'pino';
 
 import { secureCookiesOf, trustProxyOf, type Env } from './config/index.ts';
 import { createRunInTransaction, type Tx } from './db/index.ts';
-import { createAnnouncementsService } from './modules/announcements/index.ts';
+import {
+  createAnnouncementsController,
+  createAnnouncementsManageRouter,
+  createAnnouncementsService,
+} from './modules/announcements/index.ts';
 import {
   createAuthController,
   createAuthRouter,
@@ -361,6 +365,12 @@ export function createApi({
     logger,
     now: clock,
   });
+  const announcements = createAnnouncementsService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    now: clock,
+  });
   const occupancy = createOccupancyService({
     runInTransaction,
     audit: writeAudit,
@@ -368,7 +378,7 @@ export function createApi({
     visits,
     subscriptions,
     customers,
-    announcements: createAnnouncementsService(),
+    announcements,
     now: clock,
   });
   const payments = createPaymentsService({ audit: writeAudit, visits });
@@ -479,6 +489,10 @@ export function createApi({
     createPhotosManageRouter({ photos: createPhotosController(photos), limiter }),
   );
   manage.use('/packages', createPackagesManageRouter(createPackagesController(packages)));
+  manage.use(
+    '/announcements',
+    createAnnouncementsManageRouter(createAnnouncementsController(announcements)),
+  );
   manage.use(
     '/settings',
     createSpaceSettingsManageRouter(createSpaceSettingsController(spaceSettings)),

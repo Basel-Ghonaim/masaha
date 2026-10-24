@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -289,9 +291,36 @@ describe('an announcement', () => {
 
     await expect(
       prisma.announcement.create({
-        data: { spaceId: space.id, type: 'CLOSURE', textAr: 'مغلق', startsAt, endsAt: startsAt },
+        data: {
+          spaceId: space.id,
+          type: 'CLOSURE',
+          textAr: 'مغلق',
+          startsAt,
+          endsAt: startsAt,
+          idempotencyKey: randomUUID(),
+        },
       }),
     ).rejects.toThrow(/announcements_dates_check/);
+  });
+
+  it('two announcements never share a key in a space; two spaces may', async () => {
+    const space = await createSpace();
+    const other = await createSpace('other-space');
+    const key = randomUUID();
+    const post = (spaceId: number) =>
+      prisma.announcement.create({
+        data: {
+          spaceId,
+          type: 'GENERAL',
+          textAr: 'إعلان',
+          startsAt: new Date('2026-10-01T08:00:00Z'),
+          idempotencyKey: key,
+        },
+      });
+
+    await post(space.id);
+    await expect(post(space.id)).rejects.toMatchObject({ code: 'P2002' });
+    await expect(post(other.id)).resolves.toMatchObject({ spaceId: other.id });
   });
 });
 
@@ -306,6 +335,7 @@ describe('a closure extension', () => {
         textAr: 'مغلق',
         startsAt: new Date('2026-10-01T05:00:00Z'),
         endsAt: new Date('2026-10-03T05:00:00Z'),
+        idempotencyKey: randomUUID(),
       },
     });
     return { space, owner, announcement };

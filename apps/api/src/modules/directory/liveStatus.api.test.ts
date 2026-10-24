@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -192,7 +194,13 @@ describe('the live status in the directory', () => {
     // Open now with seats free: AVAILABLE but for the closure, and but for the override.
     const closed = await space('Closure Room', { capacity: 5 });
     await prisma.announcement.create({
-      data: { spaceId: closed.id, type: 'CLOSURE', textAr: 'مغلق', startsAt: sunday('08:00') },
+      data: {
+        spaceId: closed.id,
+        type: 'CLOSURE',
+        textAr: 'مغلق',
+        startsAt: sunday('08:00'),
+        idempotencyKey: randomUUID(),
+      },
     });
     const overridden = await space('Override Room');
     await prisma.spaceOccupancy.create({

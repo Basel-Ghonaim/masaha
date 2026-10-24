@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -193,7 +195,13 @@ describe("a space's live-status override", () => {
 
     // A closure in force, though the space is open by its hours.
     const closure = await prisma.announcement.create({
-      data: { spaceId, type: 'CLOSURE', textAr: 'مغلق', startsAt: sunday('08:00') },
+      data: {
+        spaceId,
+        type: 'CLOSURE',
+        textAr: 'مغلق',
+        startsAt: sunday('08:00'),
+        idempotencyKey: randomUUID(),
+      },
     });
     await refused(owner);
     await refused(reception);

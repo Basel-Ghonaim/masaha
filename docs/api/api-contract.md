@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -9,7 +9,7 @@
 - Auth: `Authorization: Bearer <accessToken>` on protected endpoints; the refresh token travels only as its cookie. A protected endpoint reads the account on every request: a token whose account does not exist or is suspended, or that was signed before every session of the account last ended (a password change, a reset, a suspension even once restored, a role change, a temporary password, a Google link), answers `unauthorized` (401), and the role it acts with is the account's now ([security.md](../backend/security.md#authorization)).
 - The server **never sends display text** for the UI. It sends error `type`, an optional domain `code`, and field-error codes; the client translates ([ADR 0006](../architecture/decisions/0006-localisation-approach.md)).
 - **Request id:** every response carries an `X-Request-Id` header, a UUID the server generates for each request, and an error repeats it in the envelope (§2). It matches the request's log lines ([backend conventions §10](../backend/conventions.md#10-logging)). The server ignores any id the client sends.
-- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in and check-out, and a visit's payment after its check-out (2026-10-20, #100) ([Front desk (managed)](#front-desk-managed)), a customer's creation (2026-10-21, #102, [Customers (managed)](#customers-managed)), and a subscription's (2026-10-22, #106, [Subscriptions (managed)](#subscriptions-managed)), whose payments take keys derived from its own (SHA-256 of the key and the payment's place, as a UUID), so its retry finds them; a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
+- **Idempotency key:** every create the front desk performs sends an `Idempotency-Key` header, a UUID the client generates once per user action and repeats on every retry of it. A retry returns the first result, with the same status and body, never a conflict ([ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md)). It is not the request id ([backend conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). Built for a visit's check-in and check-out, and a visit's payment after its check-out (2026-10-20, #100) ([Front desk (managed)](#front-desk-managed)), a customer's creation (2026-10-21, #102, [Customers (managed)](#customers-managed)), a subscription's (2026-10-22, #106, [Subscriptions (managed)](#subscriptions-managed)), whose payments take keys derived from its own (SHA-256 of the key and the payment's place, as a UUID), so its retry finds them, and an announcement's post (2026-10-24, #112, [Announcements (managed)](#announcements-managed)); a key missing or not a UUID answers `validation` (422) on `idempotencyKey`, before the body is read. 2026-10-20, #95.
 
 ## 2. Response envelope
 
@@ -655,6 +655,37 @@ UncollectedVisit = {
 - **200:** `DeskVisit`, its `writeOff` cleared: it is uncollected again (or its customer's debt), and takes payments. A visit not written off is answered as it is, writing nothing. Built 2026-10-20, #100.
 - **Errors:** `forbidden` (403) for reception, and for an owner whose link ended meanwhile; `not_found` (404), also for a visit that is not the space's.
 - **Audit:** `visit.writeOffUndone` (`before`: `{ writtenOffAt, writtenOffById, reason }`), in the change's own transaction.
+
+### Announcements (managed)
+
+What a space tells its users changes: a closure, an outage, an offer, an event or general news ([data-model › Operations](../architecture/data-model.md#operations)). Its staff post and change them (🧾); a closure running now closes the space's live status ([data-model › Live status](../architecture/data-model.md#derived-values-computed-not-stored)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Each write is refused with `forbidden` (403) before its body is read for whoever may not (`announcements.manage`), and again for an owner or reception whose link ended meanwhile. Built 2026-10-24, #112.
+
+- **The fields** (`@masaha/shared/announcements`): `type`, one of `GENERAL`, `OUTAGE`, `CLOSURE`, `OFFER`, `EVENT` (`invalid_choice`); `textAr`, required, and `textEn`, optional, each 1–500 characters, NFC-normalised and trimmed, line breaks kept, with no bidirectional or other control characters (`invalid_format`); `startsAt` and `endsAt`, instants with their offset (`invalid_format` otherwise).
+- **The period**, each refusal `validation` (422) `out_of_range` on its field, writing nothing: an end after the start; a start at most 30 days back (a closure posted late) and 365 days ahead; an end after now (ending one now is its own route) and at most 365 days after the start. An edit checks against now only what it changes, so an ended announcement's text can still be corrected.
+- **The state** (`Announcement.state`), from the instants and the server's clock: `UPCOMING` before the start, `ENDED` from the end, else `RUNNING` (with no end, until it is ended).
+- **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the announcement as the entity and its space as the entry's: `announcement.created` (`after`: `{ type, startsAt, endsAt }`), `announcement.edited` (`before` and `after`: only the fields that changed); an edit that changes nothing writes nothing.
+
+```ts
+Announcement = {
+  id: number,
+  type: 'GENERAL' | 'OUTAGE' | 'CLOSURE' | 'OFFER' | 'EVENT',
+  textAr: string,
+  textEn: string | null,
+  startsAt: string,
+  endsAt: string | null,           // none: until it is ended
+  state: 'RUNNING' | 'UPCOMING' | 'ENDED'
+}
+```
+
+#### `POST /manage/spaces/:spaceId/announcements` · 🧾 · `Idempotency-Key`
+- **Body:** `{ type, textAr, textEn?, startsAt?, endsAt? }`: no `startsAt`, now («يبدأ الآن»); no `endsAt` (or `null`), no end.
+- **201:** `Announcement`; a retry with the same key answers the first announcement as it is now, 201, and writes nothing; two requests with one key at once make one (the space's lock, the key unique within the space behind it).
+- **Errors**, each writing nothing: `validation` (422) on `idempotencyKey` (§1), then on the body, before anything is read; `forbidden` (403); `validation` (422) on the period; `not_found` (404), also for a space deleted meanwhile.
+
+#### `PATCH /manage/spaces/:spaceId/announcements/:announcementId` · 🧾
+- **Body:** `{ type?, textAr?, textEn?, startsAt?, endsAt? }`: what is absent is kept; `textEn: null` clears the English text and `endsAt: null` removes the end.
+- **200:** `Announcement`.
+- **Errors**, each writing nothing: `validation` (422) on the body, before anything is read; `forbidden` (403); `not_found` (404) for an announcement that is not the space's, or deleted; `validation` (422) on the period.
 
 ### Internal
 
