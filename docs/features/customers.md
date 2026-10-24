@@ -1,6 +1,6 @@
 # Customers
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
 > **Authority:** The `customers` capability: everyone a space keeps on file. Its endpoints are owned by the API contract ([Customers (managed)](../api/api-contract.md#customers-managed)); its entity by the [data model](../architecture/data-model.md#operations). The API is built; no web screen yet.
 > **Scope:** the API module `customers` (L2); `@masaha/shared/customers`. No web feature yet.
 
@@ -19,6 +19,7 @@
 - **The front desk** ([desk](desk.md)), which leaves an unpaid visit to a customer found or created by phone, in its own transaction.
 - **[`occupancy`](occupancy.md),** which names the customers present.
 - **[`subscriptions`](subscriptions.md),** which reads its check-ins' customers' names and phones.
+- **[`payments`](payments.md),** which names a subscription's customer in the payments it answers.
 
 ## Responsibility boundary
 

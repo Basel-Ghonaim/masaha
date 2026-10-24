@@ -18,3 +18,11 @@ export const paymentSchema = z.object({
   note: textSchema(1, PAYMENT_NOTE_MAX_LENGTH).optional(),
 });
 export type PaymentRequest = z.infer<typeof paymentSchema>;
+
+export const VOID_REASON_MAX_LENGTH = 200;
+
+/** The owner's void of a payment: why, required (ADR 0010 rule 4). */
+export const voidPaymentSchema = z.object({
+  reason: textSchema(1, VOID_REASON_MAX_LENGTH),
+});
+export type VoidPaymentRequest = z.infer<typeof voidPaymentSchema>;

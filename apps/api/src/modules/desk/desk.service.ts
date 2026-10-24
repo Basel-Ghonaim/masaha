@@ -17,7 +17,7 @@ import type {
   UnpaidVisit,
   VisitCheckOut,
 } from '@masaha/shared/desk';
-import type { PaymentRequest } from '@masaha/shared/payments';
+import type { PaymentRequest, PaymentRow, VoidPaymentRequest } from '@masaha/shared/payments';
 import type {
   CheckInSubscriberRequest,
   DeskCheckIn,
@@ -998,6 +998,35 @@ export function createDeskService({
           renewedById === null ? { startsOn: proposedStart(state, gazaClockOf(at).date) } : null,
         renewedById,
       };
+    },
+
+    /**
+     * Voids a payment of the space, the owner's (ADR 0010 rules 3–5), in one transaction and in this
+     * order: the space's lock and `can()` (`payments.void`); the payment's row (`FOR UPDATE`), the
+     * space's (else `not_found`); voided already → answered as it is, its first reason and voider
+     * kept, writing nothing; else its void, which the ledger refuses for a written-off visit's
+     * (`VISIT_WRITTEN_OFF`), audited. Nothing else is rewritten: every figure leaves it out on read.
+     */
+    voidPayment(
+      actor: Actor,
+      space: LoadedSpace,
+      paymentId: number,
+      { reason }: VoidPaymentRequest,
+    ): Promise<PaymentRow> {
+      return runInTransaction(async (tx) => {
+        await lockAtDesk(actor, space, tx, 'payments.void');
+        const locked = await payments.lockIn(space.id, paymentId, tx);
+        if (!locked) throw AppError.notFound(undefined, 'Payment not found');
+        if (locked.voidedAt) {
+          const [row] = await payments.rowsOf(space.id, [locked], tx);
+          if (!row) throw new Error(`The payment ${String(paymentId)} was not answered.`);
+          return row;
+        }
+        return payments.void(
+          { spaceId: space.id, row: locked, at: now(), byId: actor.id, reason },
+          tx,
+        );
+      });
     },
 
     /**

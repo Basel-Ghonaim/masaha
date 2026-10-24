@@ -15,6 +15,7 @@
 - Receives a payment for a closed visit after its check-out, once per idempotency key; the rest left unpaid by the check-out's rule. Or a payment on a subscription of the space.
 - Leaves an uncollected visit's debt to a customer by phone, with no payment («تسجيل دينًا»).
 - Writes off, as the owner, what a closed, priced visit still owes, with a reason, and undoes it.
+- Voids a payment, as the owner, with a reason; a second void answers it as it is.
 - Archives a customer, as the owner, unless they are present.
 - Subscribes a customer, from a package of the space or terms typed by whoever may type a price, once per idempotency key; renews one of their subscriptions, at most once; allocates an amount given over their debts, oldest first, the rest to the new subscription; warns while an older debt remains.
 - Answers the customers list, paged, searched and filtered by their subscription and payment state, a customer's file, and a subscription's statement.
@@ -31,7 +32,7 @@
 ## How it composes the platform
 
 - Its manage router sits below `/manage/spaces/:spaceId`, behind the one boundary that admits the space's staff ([security › Authorization](../backend/security.md#authorization)).
-- Each write asks `can()` at the route, before the body is read: `attendance.record` (the staff's) for the check-in and the check-out, and `payments.record` (the staff's) for the payment, each then reading its `Idempotency-Key`, and for «تسجيل دينًا», which needs none; `visits.writeOff` (the owner's) for the write-off and its undo; `customers.archive` (the owner's) for a customer's archive; `subscriptions.manage` (the staff's) for subscribing, then its `Idempotency-Key`. The service asks `can()` again under the space's lock.
+- Each write asks `can()` at the route, before the body is read: `attendance.record` (the staff's) for the check-in and the check-out, and `payments.record` (the staff's) for the payment, each then reading its `Idempotency-Key`, and for «تسجيل دينًا», which needs none; `visits.writeOff` (the owner's) for the write-off and its undo; `payments.void` (the owner's) for a payment's void; `customers.archive` (the owner's) for a customer's archive; `subscriptions.manage` (the staff's) for subscribing, then its `Idempotency-Key`. The service asks `can()` again under the space's lock.
 
 ## Behaviour and flows
 
@@ -62,6 +63,8 @@
 **Subscribing.** In one transaction, in this order: the space's lock and `can()` (`subscriptions.manage`); the subscription this key already made, for a retry, answered as of now; the customer, the space's (else 404) and not archived (`CUSTOMER_ARCHIVED`); the terms — a package of the space that is offered (else `invalid_choice` on `packageId`), copied, its end `validityDays` after its start, both days included; or typed, by whoever may type a price (`prices.typeByHand`, else `PRICE_TYPING_NOT_ALLOWED`), with its reason, its end as sent and never before its start; the subscription it renews, locked, the customer's own (else `invalid_choice` on `renewalOfId`) and not renewed yet (`SUBSCRIPTION_ALREADY_RENEWED`), read before the terms; the start date, the one sent, else the renewal's proposal (`proposedStart`), else today; then the subscription, through `subscriptions`; then the payment, if any: the customer's items that still owe, read under the lock, allocated oldest first by `payments`' `allocate`, one payment per part under the key `derivedKey(key, index)`, each checked by the ledger (above a fixed new price: `PAYMENT_EXCEEDS_DUE`, the whole request undone). A retry finds the subscription by its key, then its payments by the 50 keys it may have derived, in one query. Answered 201 with its state, what was paid and what it owes, the payments, the customer's debt, and `CUSTOMER_HAS_DEBT` in `meta.warnings` while an older item owes. The rows are taken in this order: the space's, the renewed subscription's, then each paid item's, oldest first (the ledger's trigger).
 
 **The write-off and its undo.** The owner's, each in one transaction, in this order: the space's lock and `can()` (`visits.writeOff`); the visit's row (`FOR UPDATE`), not the space's → 404, still open → 409 with no code. The write-off: a visit already written off is answered as it is; no charge → `VISIT_NOT_PRICED`; then what it was paid and still owes, read from [`payments`](payments.md) under the visit's lock; nothing owed → `VISIT_ALREADY_PAID`; else `visits` writes it off with the amount, now, by the caller, with the reason. The undo: a visit not written off is answered as it is; else `visits` clears it, audited with what it was.
+
+**A payment's void.** The owner's, in one transaction, in this order: the space's lock and `can()` (`payments.void`); the payment's row from [`payments`](payments.md) (`FOR UPDATE`), not the space's → 404; voided already → answered as it is, its first reason and voider kept, writing nothing; else `payments` voids it, which the ledger refuses for a written-off visit's (`VISIT_WRITTEN_OFF`). Two voids at once void it once; a void waiting while its visit is written off is refused.
 
 ## Decisions
 
@@ -108,3 +111,4 @@
 - #109 — a subscribe's key that made another customer's subscription refused; the debt warning on older items only; a subscriber's check-in, with its warnings, and check-out.
 - #110 — a subscriber's check-out after its due time closed at it; a check-in caught by the open check-in index answered `MEMBER_ALREADY_CHECKED_IN`, not a 500.
 - #112 — the closure warning on both check-ins, from `occupancy`.
+- #114 — the owner's void of a payment.

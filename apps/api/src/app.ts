@@ -385,7 +385,13 @@ export function createApi({
     announcements,
     now: clock,
   });
-  const payments = createPaymentsService({ audit: writeAudit, visits });
+  const payments = createPaymentsService({
+    audit: writeAudit,
+    visits,
+    users,
+    customers,
+    subscriptions,
+  });
   const desk = createDeskService({
     runInTransaction,
     spaces,

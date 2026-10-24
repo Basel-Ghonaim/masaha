@@ -23,6 +23,7 @@
 - **[`occupancy`](occupancy.md),** which counts the check-ins present.
 - **The timed jobs** (`shared/jobs`), which run its auto check-out.
 - **The space's staff**, who read the managed announcements list and its summary through it.
+- **[`payments`](payments.md),** which names the subscriptions of the payments it answers (`namesOf`).
 
 ## Responsibility boundary
 

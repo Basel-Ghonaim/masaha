@@ -271,6 +271,7 @@ The modules that apply them read them: visits and subscriptions (auto check-out;
 - **check-out of a visit** with its charge and its payment;
 - **a visit's payment after its check-out**, its unpaid rest left to a customer by the same rule as the check-out's, and **its debt left to a customer by phone** («تسجيل دينًا»);
 - **the write-off of a visit's unpaid rest** by the owner, and its undo;
+- **the void of a payment** by the owner, under the space's lock, then the payment's row (`FOR UPDATE`); a second void is answered as it is (2026-10-24, #114);
 - **subscribing or renewing**: the terms from a package or typed, the renewal's start proposed by `subscriptions` (`proposedStart`), and an optional amount `payments` allocates (`allocate`, pure) over the customer's debts, oldest first, one payment each under a key derived from the request's; the warning when an older debt remains (2026-10-22, #106).
 
 ### Composed reads

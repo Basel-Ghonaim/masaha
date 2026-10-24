@@ -2,6 +2,7 @@ import type { PaginationQuery } from '@masaha/shared/core';
 import type {
   CustomerBalance,
   ItemPayment,
+  PaymentRow,
   UncollectedVisit,
   VisitPayment,
 } from '@masaha/shared/payments';
@@ -9,13 +10,16 @@ import type {
 import type { Tx } from '../../db/index.ts';
 import { toSkip } from '../../shared/http/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
-import { calendarOf } from '../subscriptions/index.ts';
+import type { CustomersService } from '../customers/index.ts';
+import { calendarOf, type SubscriptionsService } from '../subscriptions/index.ts';
+import type { UsersService } from '../users/index.ts';
 import type { VisitsService } from '../visits/index.ts';
 import { balanceOf } from './balance.ts';
-import { toItemPayment, toVisitPayment } from './payments.mapper.ts';
+import { toItemPayment, toPaymentRow, toVisitPayment } from './payments.mapper.ts';
 import {
   createPaymentsRepository,
   type ItemBalanceRow,
+  type ItemPaymentRow,
   type NewPayment,
   type VisitPaymentRow,
 } from './payments.repository.ts';
@@ -37,16 +41,144 @@ function itemOf({
 interface Dependencies {
   audit: AuditWriter;
   visits: VisitsService;
+  /** The names of who recorded and voided a payment. */
+  users: UsersService;
+  /** The names of a subscription's customer. */
+  customers: CustomersService;
+  /** The names of a payment's subscription. */
+  subscriptions: SubscriptionsService;
 }
+
+/** The ids of these rows, each once, `null`s left out. */
+const idsOf = (ids: readonly (number | null)[]) => [
+  ...new Set(ids.filter((id): id is number => id !== null)),
+];
 
 /**
  * The payment ledger (ADR 0010; docs/backend/conventions.md › The ledger's rules): a payment on a
  * visit or a subscription, the balances and the uncollected visits. The database owns the ledger's
  * rules: nothing here repeats them.
  */
-export function createPaymentsService({ audit, visits }: Dependencies) {
+export function createPaymentsService({
+  audit,
+  visits,
+  users,
+  customers,
+  subscriptions,
+}: Dependencies) {
   const repository = createPaymentsRepository();
+
+  /**
+   * These payments of the space as the payments list shows them, in their order: each named by its
+   * item (a visit's visitor, a subscription's name), its customer (the visit's, or the
+   * subscription's), who recorded it and who voided it. Set-based: the visits, the subscriptions and
+   * their customers, and the people, in parallel. A name missing is a bug.
+   */
+  async function rowsOf(
+    spaceId: number,
+    rows: readonly ItemPaymentRow[],
+    tx?: Tx,
+  ): Promise<PaymentRow[]> {
+    if (rows.length === 0) return [];
+    const [deskVisits, { subscriptionNames, customerNames }, people] = await Promise.all([
+      visits.deskVisitsOf(spaceId, idsOf(rows.map(({ visitId }) => visitId)), tx),
+      subscriptions
+        .namesOf(spaceId, idsOf(rows.map(({ subscriptionId }) => subscriptionId)), tx)
+        .then(async (subscriptionNames) => ({
+          subscriptionNames,
+          customerNames: await customers.namesOf(
+            spaceId,
+            idsOf([...subscriptionNames.values()].map(({ customerId }) => customerId)),
+            tx,
+          ),
+        })),
+      users
+        .namesFor(
+          idsOf(rows.flatMap(({ recordedById, voidedById }) => [recordedById, voidedById])),
+          tx,
+        )
+        .then((names) => new Map(names.map(({ id, name }) => [id, name]))),
+    ]);
+    const person = (id: number) => {
+      const name = people.get(id);
+      if (name === undefined) throw new Error(`The user ${String(id)} has no name.`);
+      return { id, name };
+    };
+    return rows.map((row) => {
+      const { item, customer } = (() => {
+        if (row.visitId !== null) {
+          const visit = deskVisits.get(row.visitId);
+          if (!visit) throw new Error(`The visit ${String(row.visitId)} is missing.`);
+          return {
+            item: { kind: 'VISIT' as const, id: visit.id, visitorName: visit.visitorName },
+            customer: visit.customer && { id: visit.customer.id, name: visit.customer.name },
+          };
+        }
+        const { subscriptionId } = row;
+        if (subscriptionId === null) throw new Error('A payment settles exactly one item.');
+        const subscription = subscriptionNames.get(subscriptionId);
+        const customerName = subscription && customerNames.get(subscription.customerId);
+        if (!subscription || customerName === undefined) {
+          throw new Error(`The subscription ${String(subscriptionId)} is missing.`);
+        }
+        return {
+          item: { kind: 'SUBSCRIPTION' as const, id: subscriptionId, name: subscription.name },
+          customer: { id: subscription.customerId, name: customerName },
+        };
+      })();
+      return toPaymentRow(row, {
+        item,
+        customer,
+        recordedBy: person(row.recordedById),
+        voidedBy: row.voidedById === null ? null : person(row.voidedById),
+      });
+    });
+  }
+
   return {
+    rowsOf,
+
+    /**
+     * The space's payment, voided or not, its row locked (`FOR UPDATE`) in the caller's transaction,
+     * so two voids of it decide in turn; `null` when the space has none with this id.
+     */
+    lockIn(spaceId: number, paymentId: number, tx: Tx): Promise<ItemPaymentRow | null> {
+      return repository.lockIn(spaceId, paymentId, tx);
+    },
+
+    /**
+     * Voids a locked payment of the space, not voided yet, in the caller's transaction: its void's
+     * columns only (the change trigger refuses a written-off visit's, `payments_visit_written_off`);
+     * audited `payment.voided` with its item, amount, method and reason; answered as the list shows
+     * it. Nothing else is rewritten: every balance leaves voided payments out on read.
+     */
+    async void(
+      {
+        spaceId,
+        row,
+        at,
+        byId,
+        reason,
+      }: { spaceId: number; row: ItemPaymentRow; at: Date; byId: number; reason: string },
+      tx: Tx,
+    ): Promise<PaymentRow> {
+      const voided = await repository.void(row.id, { at, byId, reason }, tx);
+      await audit(
+        {
+          actorId: byId,
+          action: 'payment.voided',
+          entityType: 'payment',
+          entityId: row.id,
+          spaceId,
+          after: { ...itemOf(row), amountAgorot: row.amountAgorot, method: row.method, reason },
+        },
+        tx,
+      );
+      const [answered] = await rowsOf(spaceId, [voided], tx);
+      if (!answered) throw new Error(`The payment ${String(row.id)} was not answered.`);
+      return answered;
+    },
+
     /**
      * The space's payment recorded with this idempotency key, with the item it settles (a visit or a
      * subscription, the other `null`), or `null`: a retried request's payment.

@@ -13,6 +13,7 @@ import type {
   SubscriptionStatement,
   VisitCheckOut,
 } from '@masaha/shared/desk';
+import type { PaymentRow, VoidPaymentRequest } from '@masaha/shared/payments';
 import type { CheckInSubscriberRequest, DeskCheckIn } from '@masaha/shared/subscriptions';
 import type { CheckInVisitRequest, DeskVisit, WriteOffVisitRequest } from '@masaha/shared/visits';
 import type { Request, Response } from 'express';
@@ -88,6 +89,18 @@ export function createDeskController(service: DeskService) {
         req.body as ReceivePaymentRequest,
       );
       sendSuccess(res, received satisfies ReceivedPayment, { status: 201 });
+    },
+
+    /** 200 with the payment as the list shows it; one voided already is answered as it is. */
+    voidPayment: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const payment = await service.voidPayment(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.paymentId),
+        req.body as VoidPaymentRequest,
+      );
+      sendSuccess(res, payment satisfies PaymentRow);
     },
 
     /** 200 with the visit; the same phone again answers it as it is. */

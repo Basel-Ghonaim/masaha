@@ -36,3 +36,24 @@ export interface UncollectedVisit {
   paidAgorot: number;
   balanceAgorot: number | null;
 }
+
+/** The item a payment settles, named: a visit by its visitor's name, a subscription by its own. */
+export type PaymentItem =
+  | { kind: 'VISIT'; id: number; visitorName: string | null }
+  | { kind: 'SUBSCRIPTION'; id: number; name: string };
+
+/**
+ * A payment as the payments list shows it, and as its void answers it: its item, the item's customer
+ * (a visit's, or a subscription's), who recorded it, and its void (when, by whom, why) once voided.
+ */
+export interface PaymentRow {
+  id: number;
+  amountAgorot: number;
+  method: (typeof PAYMENT_METHODS)[number];
+  note: string | null;
+  receivedAt: string;
+  item: PaymentItem;
+  customer: { id: number; name: string } | null;
+  recordedBy: { id: number; name: string };
+  voided: { at: string; by: { id: number; name: string }; reason: string } | null;
+}

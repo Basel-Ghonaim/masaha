@@ -556,6 +556,15 @@ export function createSubscriptionsService({
       return repository.renewedBy(spaceId, subscriptionId);
     },
 
+    /** The names and customers of these subscriptions of the space, by id, in one query. */
+    namesOf(
+      spaceId: number,
+      ids: readonly number[],
+      tx?: Tx,
+    ): Promise<Map<number, { name: string; customerId: number }>> {
+      return repository.namesOf(spaceId, ids, tx);
+    },
+
     /** The space's open subscription check-ins, the earliest first, then by id. */
     openCheckInsIn(spaceId: number, tx?: Tx): Promise<OpenCheckIn[]> {
       return repository.openCheckInsIn(spaceId, tx);

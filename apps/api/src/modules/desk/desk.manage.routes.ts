@@ -5,6 +5,7 @@ import {
   receivePaymentSchema,
   subscribeSchema,
 } from '@masaha/shared/desk';
+import { voidPaymentSchema } from '@masaha/shared/payments';
 import { checkInSubscriberSchema } from '@masaha/shared/subscriptions';
 import { checkInVisitSchema, writeOffVisitSchema } from '@masaha/shared/visits';
 import { Router } from 'express';
@@ -51,6 +52,12 @@ export function createDeskManageRouter(controller: DeskController): Router {
     requireIdempotencyKey,
     validate(receivePaymentSchema),
     controller.receivePayment,
+  );
+  router.post(
+    '/payments/:paymentId/void',
+    requireCan('payments.void'),
+    validate(voidPaymentSchema),
+    controller.voidPayment,
   );
   router.put(
     '/visits/:visitId/customer',

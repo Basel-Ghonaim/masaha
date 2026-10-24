@@ -15,6 +15,13 @@ const VISIT_PAYMENT = {
   recordedById: true,
 } as const;
 
+const ITEM_PAYMENT = {
+  ...VISIT_PAYMENT,
+  voidedAt: true,
+  voidedById: true,
+  voidReason: true,
+} as const;
+
 /** A payment of an item, as it is stored: its visit or its subscription, the other `null`. */
 export interface VisitPaymentRow {
   id: number;
@@ -272,6 +279,30 @@ export function createPaymentsRepository() {
         rows: rows.map(({ id, paid }) => ({ id, paidAgorot: paid })),
         total: count?.total ?? 0,
       };
+    },
+
+    /**
+     * The space's payment, its row locked (`FOR UPDATE`) in the caller's transaction, voided or not;
+     * `null` when the space has none with this id.
+     */
+    async lockIn(spaceId: number, id: number, tx: Tx): Promise<ItemPaymentRow | null> {
+      const locked = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM payments WHERE id = ${id} AND space_id = ${spaceId} FOR UPDATE`;
+      if (locked.length === 0) return null;
+      return tx.payment.findUniqueOrThrow({ where: { id }, select: ITEM_PAYMENT });
+    },
+
+    /** Voids the payment: its void's three columns, and nothing else (the change trigger's rule). */
+    void(
+      id: number,
+      { at, byId, reason }: { at: Date; byId: number; reason: string },
+      tx: Tx,
+    ): Promise<ItemPaymentRow> {
+      return tx.payment.update({
+        where: { id },
+        data: { voidedAt: at, voidedById: byId, voidReason: reason },
+        select: ITEM_PAYMENT,
+      });
     },
 
     /** Inserts the payment; the insert trigger checks it against its item's due. */

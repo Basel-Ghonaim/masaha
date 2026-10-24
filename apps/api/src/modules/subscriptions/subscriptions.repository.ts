@@ -468,6 +468,20 @@ export function createSubscriptionsRepository() {
       return renewal?.id ?? null;
     },
 
+    /** The names and customers of these subscriptions of the space, by id; another space's are not read. */
+    async namesOf(
+      spaceId: number,
+      ids: readonly number[],
+      tx: Tx = prisma,
+    ): Promise<Map<number, { name: string; customerId: number }>> {
+      if (ids.length === 0) return new Map();
+      const rows = await tx.subscription.findMany({
+        where: { spaceId, id: { in: [...ids] } },
+        select: { id: true, name: true, customerId: true },
+      });
+      return new Map(rows.map(({ id, name, customerId }) => [id, { name, customerId }]));
+    },
+
     /** The space's open check-ins, the earliest first, then by id. */
     openCheckInsIn(spaceId: number, tx: Tx = prisma): Promise<OpenCheckIn[]> {
       return tx.checkIn.findMany({
