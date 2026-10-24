@@ -106,5 +106,5 @@
 - #102 — a stay checked out after its due time closed and charged at it (finding 116); a customer archived by the owner, unless present; the customers list and file.
 - #106 — subscribing a customer, from a package or custom terms; a payment on a subscription; a renewal with its payment allocated oldest debt first; a subscription's statement.
 - #109 — a subscribe's key that made another customer's subscription refused; the debt warning on older items only; a subscriber's check-in, with its warnings, and check-out.
-- #112 — the closure warning on both check-ins, from `occupancy`.
 - #110 — a subscriber's check-out after its due time closed at it; a check-in caught by the open check-in index answered `MEMBER_ALREADY_CHECKED_IN`, not a 500.
+- #112 — the closure warning on both check-ins, from `occupancy`.

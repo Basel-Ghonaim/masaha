@@ -698,11 +698,11 @@ AnnouncementsSummary = { running: number, upcoming: number, ended: number, closu
 - **200:** `ManagedAnnouncement[]` of that state, not deleted, with §4's `meta`: running and upcoming by start, then id; ended by end, the latest first, then id. Built 2026-10-24, #112.
 
 #### `GET /manage/spaces/:spaceId/announcements/summary` · 🧾
-- **200:** `AnnouncementsSummary`: how many announcements, not deleted, are running, upcoming and ended (the list's tabs), and `closuresAwaitingExtension`, the closures started within the last 30 days, not deleted, whose subscriptions were not extended (the owner's overview reads the same count). Built 2026-10-24, #112.
+- **200:** `AnnouncementsSummary`: how many announcements, not deleted, are running, upcoming and ended (the list's tabs), and `closuresAwaitingExtension`, the closures started within the last 30 days, not deleted, whose subscriptions were not extended (the owner's overview will read the same count). Built 2026-10-24, #112.
 
 #### `POST /manage/spaces/:spaceId/announcements` · 🧾 · `Idempotency-Key`
 - **Body:** `{ type, textAr, textEn?, startsAt?, endsAt? }`: no `startsAt`, now («يبدأ الآن»); no `endsAt` (or `null`), no end.
-- **201:** `Announcement`; a retry with the same key answers the first announcement as it is now, 201, and writes nothing; two requests with one key at once make one (the space's lock, the key unique within the space behind it).
+- **201:** `Announcement`; a retry with the same key answers the first announcement as it is now, 201, and writes nothing; a retry of a deleted announcement answers it as it was, deleted from every read (2026-10-24, #114); two requests with one key at once make one (the space's lock, the key unique within the space behind it).
 - **Errors**, each writing nothing: `validation` (422) on `idempotencyKey` (§1), then on the body, before anything is read; `forbidden` (403); `validation` (422) on the period; `not_found` (404), also for a space deleted meanwhile.
 
 #### `PATCH /manage/spaces/:spaceId/announcements/:announcementId` · 🧾
