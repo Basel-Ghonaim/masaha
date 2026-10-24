@@ -10,12 +10,14 @@
 - Lets them edit any of its fields; the period is held to its bounds.
 - Lets them end a running one now, start an upcoming one now, and delete one in any state, softly.
 - Answers each announcement with its state now: upcoming, running or ended.
+- Pages one state's announcements and counts them by state, for the managed list and its summary, which [`subscriptions`](subscriptions.md) composes with each closure's extension.
 - Tells the live status which spaces a running closure covers ([occupancy](occupancy.md)).
 
 ## Who uses it
 
 - **The space's owner and reception,** through the API, under `/manage/spaces/:spaceId/announcements`: they post, edit, end, start and delete. The screens are not built.
 - **The live status** ([occupancy](occupancy.md)): a running `CLOSURE` makes a space `CLOSED`.
+- **[`subscriptions`](subscriptions.md),** whose managed list and summary read its pages, its counts and its started closures.
 
 ## Responsibility boundary
 
@@ -37,6 +39,8 @@
 **Post.** In one transaction: the space's lock; `can()` on the links as they are under it; the announcement this key already posted, answered as it is now; the period at now (`periodErrors`, pure: a start at most 30 days back and 365 ahead, an end after now and at most 365 days after the start), the start now when none is sent; the row with its key; its audit entry.
 
 **Edit.** The same lock and `can()`; the announcement's row, locked (`FOR UPDATE`), the space's and not deleted; only the fields the edit sets to a new value (`announcementChange`, pure: an instant compared as an instant, `null` clearing the English text or the end). An edit that changes nothing writes nothing. What changed is checked against now and the window, and the merged end against the merged start, so an ended announcement's text can still be corrected.
+
+**The list's reads.** A page of one state, not deleted: the state a filter on the instants, running and upcoming by start then id, ended by end, latest first, then id; its count in parallel. The counts of the three states are one grouped query; the started closures (since a given day) one more. `subscriptions` adds the extensions ([its document](subscriptions.md)).
 
 **End now, start now, delete.** Each takes the same lock and `can()`, then the row, locked. End now sets a running one's end to now; an ended one is answered as it is; an upcoming one is refused (`ANNOUNCEMENT_NOT_STARTED`). Start now sets an upcoming one's start to now; a started one is answered as it is. Delete sets `deletedAt` in any state, the row kept; a deleted one answers 204 again, writing nothing, and leaves every read and the live status.
 
@@ -66,4 +70,4 @@ None.
 
 ### API history
 
-- 2026-10-24, #112 — posted (idempotent), edited, ended, started and deleted by the staff.
+- 2026-10-24, #112 — posted (idempotent), edited, ended, started and deleted by the staff; the pages and counts the managed list composes.

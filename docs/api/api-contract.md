@@ -665,6 +665,7 @@ What a space tells its users changes: a closure, an outage, an offer, an event o
 - **The state** (`Announcement.state`), from the instants and the server's clock: `UPCOMING` before the start, `ENDED` from the end, else `RUNNING` (with no end, until it is ended).
 - **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the announcement as the entity and its space as the entry's: `announcement.created` (`after`: `{ type, startsAt, endsAt }`), `announcement.edited` (`before` and `after`: only the fields that changed), `announcement.ended` (`before` and `after`: `{ endsAt }`), `announcement.started` (`before` and `after`: `{ startsAt }`) and `announcement.deleted` (`before`: `{ type, startsAt, endsAt }`); an edit that changes nothing, and a repeated end, start or delete, write nothing.
 - **Deleted, never removed** ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): a deleted announcement keeps its row and leaves every read and the live status at once.
+- **The list and its summary** show each closure's extension of the subscriptions it covered, which `subscriptions` owns: they are composed there ([conventions §9](../backend/conventions.md#composed-reads)), on the same path. Reads of the staff, asking no `can()`.
 
 ```ts
 Announcement = {
@@ -676,7 +677,27 @@ Announcement = {
   endsAt: string | null,           // none: until it is ended
   state: 'RUNNING' | 'UPCOMING' | 'ENDED'
 }
+
+ExtensionApplied = {
+  days: number,
+  subscriptions: number,           // how many it moved
+  appliedAt: string,
+  appliedBy: { id: number, name: string }
+}
+
+ManagedAnnouncement = Announcement & {
+  extension?: ExtensionApplied | null   // on a CLOSURE only: null until its subscriptions are extended
+}
+
+AnnouncementsSummary = { running: number, upcoming: number, ended: number, closuresAwaitingExtension: number }
 ```
+
+#### `GET /manage/spaces/:spaceId/announcements` · 🧾
+- **Query:** `state` (`RUNNING`, the default, `UPCOMING` or `ENDED`; `invalid_choice` otherwise) and §4's `page` and `limit`.
+- **200:** `ManagedAnnouncement[]` of that state, not deleted, with §4's `meta`: running and upcoming by start, then id; ended by end, the latest first, then id. Built 2026-10-24, #112.
+
+#### `GET /manage/spaces/:spaceId/announcements/summary` · 🧾
+- **200:** `AnnouncementsSummary`: how many announcements, not deleted, are running, upcoming and ended (the list's tabs), and `closuresAwaitingExtension`, the closures started within the last 30 days, not deleted, whose subscriptions were not extended (the owner's overview reads the same count). Built 2026-10-24, #112.
 
 #### `POST /manage/spaces/:spaceId/announcements` · 🧾 · `Idempotency-Key`
 - **Body:** `{ type, textAr, textEn?, startsAt?, endsAt? }`: no `startsAt`, now («يبدأ الآن»); no `endsAt` (or `null`), no end.

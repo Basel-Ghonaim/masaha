@@ -4,6 +4,9 @@ export {
 } from './subscriptions.controller.ts';
 export { createSubscriptionsManageRouter } from './subscriptions.manage.routes.ts';
 export { calendarOf } from './calendar.ts';
+export { createClosuresController } from './closures/closures.controller.ts';
+export { createClosuresManageRouter } from './closures/closures.manage.routes.ts';
+export { createClosuresService, type ClosuresService } from './closures/closures.service.ts';
 export type {
   CheckInRow,
   LockedSubscription,

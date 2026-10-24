@@ -1,6 +1,6 @@
 # Subscriptions
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
 > **Authority:** The `subscriptions` capability: a customer's subscriptions and their check-ins. Its entity and its derived values by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); its endpoints by the API contract ([Subscriptions (managed)](../api/api-contract.md#subscriptions-managed)). The API is built (the corrections and the end its own routes; the subscribe and the statement the desk's); no web screen yet.
 > **Scope:** the API module `subscriptions` (L3); `@masaha/shared/subscriptions`. No web feature yet.
 
@@ -15,22 +15,25 @@
 - Answers the space's open check-ins and their counts, for *present* ([occupancy](occupancy.md)).
 - Lists the space's check-ins for the staff: the open ones, whole, or a range of Gaza dates, paged, each with its customer and its subscription's state.
 - Closes the check-ins due by the auto check-out, as a timed job.
+- Answers the space's managed announcements list, each closure with the extension of the subscriptions it covered, and its summary, composed with [`announcements`](announcements.md).
 
 ## Who uses it
 
 - **The front desk** ([desk](desk.md)), which subscribes a customer and checks a subscriber in through it.
 - **[`occupancy`](occupancy.md),** which counts the check-ins present.
 - **The timed jobs** (`shared/jobs`), which run its auto check-out.
+- **The space's staff**, who read the managed announcements list and its summary through it.
 
 ## Responsibility boundary
 
 - **Owns** the `subscriptions` and `check_ins` tables, the database function `subscription_usage`, and the pure status and current-subscription rules.
 - **Reads** a stay's auto check-out time and the space's week from [`spaces`](spaces.md), the settings from [`space-settings`](space-settings.md), and the customers' names and phones for the check-ins' lists from [`customers`](customers.md).
-- **Leaves** the money paid on a subscription to [`payments`](payments.md), which reads a subscription's due through this module's function.
+- **Leaves** the money paid on a subscription to [`payments`](payments.md), which reads a subscription's due through this module's function; the announcements, their writes and their states to [`announcements`](announcements.md), whose pages and counts the managed list composes.
 
 ## How it composes the platform
 
 - Its manage router sits below `/manage/spaces/:spaceId`, behind the one boundary that admits the space's staff: the check-ins' lists (the boundary its check, #86); the corrections and the end (`requireCan('subscriptions.manage')`; the price `requireCan('subscriptions.correctPrice')`, the owner's). Its reads and the subscribe are composed by the desk ([conventions §9](../backend/conventions.md#9-placements)).
+- The managed announcements list and its summary are its `closures` router, mounted at `/announcements` beside `announcements`' writes (S10, [conventions §9](../backend/conventions.md#composed-reads)).
 - Its attendance is counted in the database, by `subscription_usage`; the status is a pure rule on those counts ([conventions §8](../backend/conventions.md#pure-rules)).
 
 ## Behaviour and flows
@@ -70,13 +73,15 @@
 - **A fixed price never falls below what was paid on it: a database trigger.** *Why:* changing the price is the other way round the payments' ceiling; the ledger's rules are the database's (S2). 2026-10-22, #106.
 - **The limits warn at their bound, and the days per week only for a new day: a second check-in on a day already counted uses none.** *Why:* K5's count; the limits never block (data model › Subscription limits). 2026-10-22, #109.
 - **A retry's limit warnings leave the check-in itself out.** *Why:* the warnings describe the request; counted with it, a retry would warn of the day it used itself (S7). 2026-10-22, #109.
+- **The managed announcements list is composed here, not in `announcements`** (S10, the owner's Q2). *Why:* the list shows each closure's extension, which `subscriptions` owns, and `announcements` (L2) cannot read it; `subscriptions` is the lowest module above both. 2026-10-24, #112.
+- **The summary counts a closure as awaiting its extension only for 30 days from its start** (the owner's Q6). *Why:* a closure the owner chose not to extend must stop asking. 2026-10-24, #112.
 - **A subscription of at most seven days by its dates is ending soon on its last day only.** *Why:* "shorter than a week" made exact (Q5). 2026-10-21, #102.
 - **The status and kind filters read the space's subscriptions into memory, one compact row each.** *Why:* the status is a pure TypeScript rule; the read grows with the subscriptions, not with payments or check-ins (S10; alternative A1, the status in SQL, not taken). 2026-10-21, #102.
 - **The calendar's days are passed in, never computed in SQL; dates are read from `@db.Date` at UTC.** *Why:* one clock and one calendar ([conventions §11](../backend/conventions.md#11-time)); PostgreSQL's zone data still dates the check-ins ([finding 120](../architecture/findings/120-gaza-dates-are-read-by-two-zone-databases.md)). 2026-10-21, #102.
 
 ## Code map
 
-- **API:** `apps/api/src/modules/subscriptions/`, entry `index.ts`: the service (the create and the auto check-out included), the repository, the mapper, and the pure rules (`subscriptionStatus.ts`, `currentSubscription.ts`, `renewal.ts`, `subscriptionChange.ts`, `limits.ts`), the controller and the manage router (the corrections). The function is the migration `subscription_usage`'s.
+- **API:** `apps/api/src/modules/subscriptions/`, entry `index.ts`: the service (the create and the auto check-out included), the repository, the mapper, and the pure rules (`subscriptionStatus.ts`, `currentSubscription.ts`, `renewal.ts`, `subscriptionChange.ts`, `limits.ts`), the controller and the manage router (the corrections); `closures/`, the managed announcements list and its summary. The function is the migration `subscription_usage`'s.
 - **Shared:** `packages/shared/src/subscriptions/`: `SUBSCRIPTION_STATUSES`, the check-in's request (`checkInSubscriberSchema`) and answer (`DeskCheckIn`), the corrections' requests (`correctSubscriptionSchema`, `correctPriceSchema`) and the responses (`DeskSubscription`, with its renewed one and its typed price, `SubscriptionProgress`, `SubscriptionState`).
 
 ## Open findings
@@ -91,4 +96,5 @@
 - #97 — the auto check-out of check-ins.
 - #102 — the attendance and amount due in the database (`subscription_usage`), the status, progress and current-subscription rules, and the states read; each customer's current subscription and the list's filters as ids.
 - #106 — a subscription's key, typed price's reason and renewed one; the create, audited; the row's lock; the renewal's proposed start; the corrections, the price the owner's; the end.
+- #112 — the managed announcements list, each closure with its extension, and its summary (`closures/`).
 - #109 — a check-in's minutes in SQL; a subscriber's check-in and check-out, audited, and the limits' warnings (`limits.ts`); the check-ins' lists.

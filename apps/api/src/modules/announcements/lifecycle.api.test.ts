@@ -137,7 +137,7 @@ describe('starting an announcement now', () => {
 });
 
 describe('deleting an announcement', () => {
-  it('delete is soft and 204, audited; again 204 writing nothing; then it leaves the live status', async () => {
+  it('delete is soft and 204, audited; again 204 writing nothing; then it leaves the list and the live status', async () => {
     const closure = await insert({ endsAt: days(2) });
     expect(await liveStatus()).toBe('CLOSED');
 
@@ -149,6 +149,10 @@ describe('deleting an announcement', () => {
     expect(again.status).toBe(204);
 
     expect(await liveStatus()).toBeNull();
+    const listed = await request(app)
+      .get(`/api/v1/manage/spaces/${String(spaceId)}/announcements`)
+      .set('Authorization', owner.authorization);
+    expect(dataOf(listed)).toEqual([]);
     expect(await auditEntries()).toEqual([
       {
         actorId: reception.id,

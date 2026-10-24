@@ -1,5 +1,7 @@
 import type {
   Announcement,
+  AnnouncementState,
+  AnnouncementsQuery,
   CreateAnnouncementRequest,
   EditAnnouncementRequest,
 } from '@masaha/shared/announcements';
@@ -8,6 +10,7 @@ import type { RunInTransaction, Tx } from '../../db/index.ts';
 import type { AuditWriter } from '../../shared/audit/index.ts';
 import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
+import { toSkip } from '../../shared/http/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import { announcementChange } from './announcementChange.ts';
 import { announcementState } from './announcementState.ts';
@@ -48,6 +51,34 @@ export function createAnnouncementsService({ runInTransaction, audit, spaces, no
     /** Which of these spaces an active closure covers at `now`, in one query. */
     closedAt(spaceIds: readonly number[], at: Date, tx?: Tx): Promise<Set<number>> {
       return repository.closedAt(spaceIds, at, tx);
+    },
+
+    /**
+     * A page of the space's announcements in one state at `at`, not deleted, in the list's order
+     * (running and upcoming by start, ended by end, latest first); and how many there are in it.
+     * Read without a lock.
+     */
+    async page(
+      spaceId: number,
+      { state, page, limit }: AnnouncementsQuery,
+      at: Date,
+    ): Promise<{ rows: Announcement[]; total: number }> {
+      const { rows, total } = await repository.page(
+        spaceId,
+        { state, now: at },
+        { skip: toSkip({ page, limit }), take: limit },
+      );
+      return { rows: rows.map((row) => toAnnouncement(row, at)), total };
+    },
+
+    /** How many of the space's announcements are in each state at `at`, in one query. */
+    counts(spaceId: number, at: Date): Promise<Record<AnnouncementState, number>> {
+      return repository.counts(spaceId, at);
+    },
+
+    /** The ids of the space's closures, not deleted, started by `at` and not before `since`. */
+    startedClosureIds(spaceId: number, at: Date, since: Date): Promise<number[]> {
+      return repository.startedClosureIds(spaceId, at, since);
     },
 
     /**

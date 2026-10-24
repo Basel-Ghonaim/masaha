@@ -121,6 +121,9 @@ import {
   createSpacesService,
 } from './modules/spaces/index.ts';
 import {
+  createClosuresController,
+  createClosuresManageRouter,
+  createClosuresService,
   createSubscriptionsController,
   createSubscriptionsManageRouter,
   createSubscriptionsService,
@@ -371,6 +374,7 @@ export function createApi({
     spaces,
     now: clock,
   });
+  const closures = createClosuresService({ announcements, users, now: clock });
   const occupancy = createOccupancyService({
     runInTransaction,
     audit: writeAudit,
@@ -493,6 +497,7 @@ export function createApi({
     '/announcements',
     createAnnouncementsManageRouter(createAnnouncementsController(announcements)),
   );
+  manage.use('/announcements', createClosuresManageRouter(createClosuresController(closures)));
   manage.use(
     '/settings',
     createSpaceSettingsManageRouter(createSpaceSettingsController(spaceSettings)),

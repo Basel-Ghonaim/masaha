@@ -160,7 +160,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 | [`auth`](../features/auth.md) | L3 | — | public | The sign-in flows, as orchestrator: register, sign in with a password or with Google, refresh, sign out, forgot and reset password ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
 | `data-reports` | L3 | `data_reports` | me, manage, admin | Reports about a space's information (§9) |
 | `visits` | L3 | `visits` | manage | The pure visit charge; auto check-out of its own visits |
-| `subscriptions` | L3 | `subscriptions`, `check_ins`, `closure_extensions`, `subscription_extensions` | manage | Subscriptions, their check-ins and closure extensions; the pure progress and status; auto check-out of its own check-ins |
+| `subscriptions` | L3 | `subscriptions`, `check_ins`, `closure_extensions`, `subscription_extensions` | manage | Subscriptions, their check-ins and closure extensions; the managed announcements list with each closure's extension, and its summary (§9); the pure progress and status; auto check-out of its own check-ins |
 | `payments` | L4 | `payments` | manage | The ledger ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)); the pure balance; debt; uncollected visits (§9) |
 | `occupancy` | L4 | `space_occupancy` | public, manage | The space's state now (§9) |
 | `desk` | L5 | — | manage | The front desk's orchestrations and the customers list and file (§9) |
@@ -281,6 +281,7 @@ A screen that shows or filters by values from several modules is composed by a m
   - `desk`, `finance` (debtors) and `overview` (total owed) all use the same APIs. None of them computes a status or a balance.
   - **The balances are one aggregate query in `payments`** (the owner's decision 6): it reads `visits`' closed visits and a subscription's due through its owner's function `subscription_usage`, and writes neither — the one place a module other than a composing one reads other modules' tables (R7's exception, stated). The same subtraction as `balance.ts`, applied in SQL. 2026-10-21, #102.
 - **The customers list and the customer file** → `desk`.
+- **The managed announcements list and its summary** → `subscriptions` (`closures`), the lowest module above `announcements` that owns a closure's extension: `announcements` pages one state and counts them, and `subscriptions` adds each closure's extension, how many it moved and who applied it, and counts the started closures with none. The writes stay `announcements`'. The owner's overview will read `closures.summary`. 2026-10-24, #112.
   - The status and payment filters resolve to customer ids first, from `subscriptions` and `payments`; a filter for none (`kind=NONE`, `payment=SETTLED`) resolves to the ids to leave out.
   - `customers` then applies the search and the pagination to those ids (§5), each list one array parameter read as a set, so no list meets PostgreSQL's bound on parameters. 2026-10-21, #102.
   - The file adds each subscription's progress, the payments, the balance and the attendance.
