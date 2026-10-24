@@ -4,6 +4,9 @@ import { CHANGE_PASSWORD_PATH, RESET_PASSWORD_PATH } from '@shared/routing';
 /** The anchor of the about page's contact section. */
 export const CONTACT_ANCHOR = 'contact';
 
+/** The anchor of the about page's section for space owners. */
+export const OWNERS_ANCHOR = 'owners';
+
 const ABOUT = '/about';
 
 /** Where the site's pages live. The routes and every link to them read these paths. */
@@ -15,6 +18,8 @@ export const SITE_PATHS = {
   about: ABOUT,
   /** The about page's contact section, which the footer links to. */
   contact: `${ABOUT}#${CONTACT_ANCHOR}`,
+  /** The about page's section for space owners, which Home's owners' card links to. */
+  owners: `${ABOUT}#${OWNERS_ANCHOR}`,
   signIn: '/login',
   register: '/register',
   forgotPassword: '/forgot-password',

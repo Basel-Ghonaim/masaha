@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider, type RouteObject } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { axe } from 'vitest-axe';
 import { fakeTransport, ok, restoreTransport } from '../../test/fakeTransport';
 import { publicSpace } from '../../test/publicSpace';
 import { queryWrapper } from '../../test/queryWrapper';
@@ -44,6 +45,56 @@ function renderSiteAt(path: string) {
     initialEntries: [path],
   });
   render(<RouterProvider router={router} />);
+}
+
+/** An empty page of the list, as the server answers it. */
+const NO_SPACES = {
+  status: 200,
+  data: {
+    success: true,
+    data: [],
+    meta: {
+      currentPage: 1,
+      limit: 20,
+      totalPages: 0,
+      totalRecords: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  },
+};
+
+/** The site's routes at `path`, the server answering the public reads with nothing listed. */
+function renderPublicSite(path: string) {
+  fakeTransport((request) =>
+    request.url === '/lookups'
+      ? ok({ governorates: [], amenities: [] })
+      : request.url === '/map/spaces'
+        ? ok({ pins: [], truncated: false })
+        : NO_SPACES,
+  );
+  const router = createMemoryRouter(
+    [
+      {
+        HydrateFallback: () => null,
+        element: (
+          <RecordTitleProvider>
+            <DocumentTitle />
+            <Outlet />
+          </RecordTitleProvider>
+        ),
+        children: siteRoutes,
+      },
+    ],
+    { initialEntries: [path] },
+  );
+  const Wrapper = queryWrapper();
+  const rendered = render(
+    <Wrapper>
+      <RouterProvider router={router} />
+    </Wrapper>,
+  );
+  return { ...rendered, router };
 }
 
 /** The page's title, inside the shell's main landmark. */
@@ -245,6 +296,22 @@ describe("the site's routes", () => {
     expect(dialog).toHaveTextContent('There’s no way to reach us set up yet.');
     await user.click(within(dialog).getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('Home’s search opens the Directory with what was typed; axe-clean', async () => {
+    const { container, router } = renderPublicSite('/');
+    expect(await pageTitle()).toHaveTextContent('Find a workspace in the Gaza Strip');
+    const user = userEvent.setup();
+
+    const search = within(screen.getByRole('search'));
+    await user.type(search.getByRole('searchbox', { name: 'Search for a space' }), ' Hub & Co ');
+    expect(await axe(container)).toHaveNoViolations();
+    await user.click(search.getByRole('button', { name: 'Search' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/spaces');
+    });
+    expect(router.state.location.search).toBe('?q=Hub%20%26%20Co');
   });
 
   it.each([
