@@ -9,7 +9,15 @@ import {
   EmptyState,
 } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FocusEvent,
+  type ReactNode,
+} from 'react';
 import { usePresentList } from '../hooks/now/usePresentList';
 import type { PresentRowView } from '../types/PresentRowView';
 
@@ -23,7 +31,9 @@ const TICK_MS = 60_000;
  * the people present in the server's order — a table from 768 px, a card each below it — with their
  * kind, since when and for how long, a visit's charge so far, and the row's action the page sets
  * (`action`), such as the desk's check-out. The list is read on arrival, every 30 s while visible
- * and on returning to it; a failed refresh keeps the last list and says so.
+ * and on returning to it; a failed refresh keeps the last list and says so. When the person whose
+ * action had the focus leaves the list, the focus goes to the next row's action, else to the
+ * heading (S10), never to the page's start.
  */
 export function PresentList({
   spaceId,
@@ -43,6 +53,33 @@ export function PresentList({
   }, []);
   const list = usePresentList(spaceId, { now });
   const headingId = useId();
+  const section = useRef<HTMLElement | null>(null);
+  const heading = useRef<HTMLHeadingElement | null>(null);
+  // The row whose action last had the focus, and its place in the list.
+  const focused = useRef<{ key: string; index: number } | null>(null);
+  const keys = list.rows.map((row) => row.key);
+  const keysKey = keys.join(' ');
+  const remember = (event: FocusEvent<HTMLElement>) => {
+    const holder = event.target.closest<HTMLElement>('[data-present-action]');
+    const key = holder?.dataset.presentAction;
+    focused.current = key === undefined ? null : { key, index: keys.indexOf(key) };
+  };
+  useEffect(() => {
+    const last = focused.current;
+    const rows = keysKey === '' ? [] : keysKey.split(' ');
+    if (last === null || rows.includes(last.key)) return;
+    focused.current = null;
+    // Only a focus the row took with it: one the user moved elsewhere stays there.
+    if (document.activeElement !== document.body) return;
+    const next = rows[Math.min(last.index, rows.length - 1)];
+    const target =
+      next === undefined
+        ? null
+        : section.current?.querySelector<HTMLElement>(
+            `[data-present-action="${next}"] button:not([disabled])`,
+          );
+    (target ?? heading.current)?.focus();
+  }, [keysKey]);
 
   const { columns: headers } = list;
   const columns = useMemo(
@@ -81,7 +118,11 @@ export function PresentList({
         column.display({
           id: 'actions',
           header: headers.actions,
-          cell: (info) => action(info.row.original.person),
+          cell: (info) => (
+            <div data-present-action={info.row.original.key}>
+              {action(info.row.original.person)}
+            </div>
+          ),
           meta: { className: 'w-px' },
         }),
       ]),
@@ -89,8 +130,18 @@ export function PresentList({
   );
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h2 id={headingId} className="flex items-baseline gap-2 text-heading-3">
+    <section
+      ref={section}
+      aria-labelledby={headingId}
+      onFocus={remember}
+      className="flex flex-col gap-3"
+    >
+      <h2
+        ref={heading}
+        id={headingId}
+        tabIndex={-1}
+        className="flex items-baseline gap-2 text-heading-3"
+      >
         {list.heading.title}
         {list.heading.count !== null && (
           <>
@@ -139,7 +190,7 @@ export function PresentList({
                   <span className="text-caption text-muted-foreground">{row.detail}</span>
                 )}
               </div>
-              {action(row.person)}
+              <div data-present-action={row.key}>{action(row.person)}</div>
             </div>
           )}
           loading={list.state === 'loading'}

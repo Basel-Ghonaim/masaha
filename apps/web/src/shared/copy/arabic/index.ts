@@ -1,6 +1,7 @@
 import type { Catalogue } from '../shape';
 import { AUTH } from './auth';
 import { DASHBOARD } from './dashboard';
+import { DESK } from './desk';
 import { DIRECTORY } from './directory';
 import { ERRORS } from './errors';
 import { FORMS } from './forms';
@@ -24,6 +25,7 @@ import { VALIDATION } from './validation';
 export const ARABIC = {
   auth: AUTH,
   dashboard: DASHBOARD,
+  desk: DESK,
   directory: DIRECTORY,
   errors: ERRORS,
   forms: FORMS,

@@ -1,7 +1,7 @@
 import type { PresentPerson, SpaceOccupancyNow } from '@masaha/shared/occupancy';
 import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { fakeTransport, ok, restoreTransport } from '../../../test/fakeTransport';
@@ -96,5 +96,39 @@ describe('PresentList', () => {
     expect(
       await screen.findByRole('heading', { level: 2, name: 'Present now 3' }),
     ).toBeInTheDocument();
+  });
+
+  it('moves the focus to the next row’s action when the focused person leaves, and to the heading when no one is left', async () => {
+    stubScreenWidth(1440);
+    let people = NOW.people;
+    fakeTransport(() => ok({ ...NOW, present: people.length, people }));
+    const client = createQueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <main>
+          <PresentList spaceId={7} action={action} />
+        </main>
+      </QueryClientProvider>,
+    );
+
+    const omar = await screen.findByRole('button', { name: 'Check out Omar' });
+    act(() => {
+      omar.focus();
+    });
+    people = NOW.people.filter(({ name }) => name !== 'Omar');
+    await act(async () => {
+      await client.refetchQueries();
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check out Sara' })).toHaveFocus();
+    });
+
+    people = [];
+    await act(async () => {
+      await client.refetchQueries();
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: 'Present now 0 / 40' })).toHaveFocus();
+    });
   });
 });

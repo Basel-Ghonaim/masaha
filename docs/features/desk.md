@@ -1,8 +1,8 @@
 # Desk
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
-> **Authority:** The `desk` capability: the front desk's orchestrations, each across the desk's modules in one transaction. Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its rules by [conventions › the front desk](../backend/conventions.md#the-front-desk-desk) and [§13](../backend/conventions.md#13-idempotency-and-concurrency). The API is built; no web screen yet.
-> **Scope:** the API module `desk` (L5); `@masaha/shared/desk`. No web feature yet.
+> **Authority:** The `desk` capability: the front desk's orchestrations, each across the desk's modules in one transaction. Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its rules by [conventions › the front desk](../backend/conventions.md#the-front-desk-desk) and [§13](../backend/conventions.md#13-idempotency-and-concurrency). The API is built; on the web, the desk's screen («مكتب الاستقبال»): who is present, a visit's check-in and check-out with its payment.
+> **Scope:** the API module `desk` (L5); `@masaha/shared/desk`; the web feature `features/desk`, dashboard-only: the desk's screens.
 
 ## What it does
 
@@ -22,7 +22,7 @@
 
 ## Who uses it
 
-- **The space's owner and reception,** through the API. The admin never reaches it: the desk is private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). No web screen yet; the shared desk device is not settled (who signs out an idle reception account, and switching staff on one device): the desk's screen item.
+- **The space's owner and reception,** through the API. The admin never reaches it: the desk is private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). On the dashboard, the owner and reception work «مكتب الاستقبال» (2026-10-24, #116). On the shared desk device, «تبديل الموظف» signs the person out on the server and opens sign-in with the desk as the page to return to; the server's idle sign-out of a reception session is not built yet.
 
 ## Responsibility boundary
 
@@ -66,6 +66,11 @@
 
 **A payment's void.** The owner's, in one transaction, in this order: the space's lock and `can()` (`payments.void`); the payment's row from [`payments`](payments.md) (`FOR UPDATE`), not the space's → 404; voided already → answered as it is, its first reason and voider kept, writing nothing; else `payments` voids it, which the ledger refuses for a written-off visit's (`VISIT_WRITTEN_OFF`). Two voids at once void it once; a void waiting while its visit is written off is refused.
 
+**The desk on the web** (`features/desk`, composed by `pages/dashboard/space/desk/`). The page shows [occupancy](occupancy.md)'s people present and live status control, with this feature's «خروج» in each row, and «تسجيل زيارة» in the top bar from 768 px and in the bar at the foot below it.
+- **The check-in** asks the visitor's name, «طالب» only where the terms carry student rates for the chosen shift, and «الوردية» only where the space has shifts, the current one on Gaza's clock chosen; it says the rate the visit will copy, from `visit-terms`, and, while the space is full, that it may still be checked in. It is sent at once: the server's warnings (`SPACE_FULL`, `OUTSIDE_OPENING_HOURS`, `CLOSURE_IN_FORCE`) are said after, in the toast, which then stays until it is closed.
+- **The check-out** reads the visit's quote on opening and each minute while open, and reads it again before sending when it is older than 4 minutes; a changed due stops the send and says the new one. It sends the quote's time and the amount recorded, never more than the due. The money block fills «المستلم الآن» with the due and follows it until a figure is typed, and says one of four facts under it: paid in full, the change, the credit, or what stays owed and by whom. A remainder on a visit with no customer asks a name and a phone, which stay once shown. A visit with no rate asks a typed price and its reason of whoever may type one (`mayTypePrice`); whoever may not closes it unpriced, with a phone, the whole left owed. The toast says what the answer recorded: the amount and its method, or nothing paid, or unpriced, and what stays owed.
+- **One intent, one key:** each opening of the check-in or the check-out holds one `Idempotency-Key`, kept across the transport's re-sends, a second press and «إعادة المحاولة» ([architecture §7](../frontend/architecture.md#7-server-state)). A lost answer says a retry is safe; a refusal says nothing was recorded, before its reason.
+
 ## Decisions
 
 ### API decisions
@@ -94,10 +99,28 @@
 - **The balance is read under the visit's lock, and nothing owed is refused (`VISIT_ALREADY_PAID`).** *Why:* two desks can collect the last part while the owner writes the visit off; the one that waits decides on what was committed. 2026-10-20, #100.
 - **An unpriced visit is refused with the payment's own code, `VISIT_NOT_PRICED`.** *Why:* one rule — a visit with no price is priced first — so one code (the owner's answer, Q2 of the plan). 2026-10-20, #100.
 
+### Web decisions
+
+- **`desk` on the web holds the desk's screens** (S1): it calls the desk module's routes and those of `visits` the same staff call on the same screens (the terms, the quote); the state now and the override are [occupancy](occupancy.md)'s, and the page sets one in the other's slot. *Why:* a feature per module would put every dialog that reads one module and writes another in the page. 2026-10-24, #116.
+- **The desk sends a write once, beyond the transport's rule** (S3): only a keyed write is re-sent by the transport; the override is sent once, and a lost answer is the user's to retry. 2026-10-24, #116.
+- **One key per intent** (S4): a dialog's opening makes its key; a retry, a second press and an edit of the form keep it; a new opening is a new key. *Why:* ADR 0015 rule 1; a key per press would record twice on a double press over a weak connection. 2026-10-24, #116.
+- **The warnings are the server's, said after** (S6): a check-in is never held for a warning the browser would have to work out a second time. 2026-10-24, #116.
+- **Money is agorot end to end, and the due is the server's** (S7): the web computes only the line under the money block — recorded, change, what stays — never a charge. 2026-10-24, #116.
+- **Every line after a write is worded from the answer** (S8), never from the form. 2026-10-24, #116.
+- **The keyboard at speed** (S10): each dialog's first field takes the focus («المستلم الآن», or the typed price with no rate); Enter submits; when the person whose «خروج» had the focus leaves the list, the focus goes to the next row's «خروج», else to the list's heading. 2026-10-24, #116.
+- **Two failure lines, two facts** (DI-8): no answer — «لم يصل الرد. أعد المحاولة — لن تُسجَّل مرتين.»; a refusal — «لم يُسجَّل شيء.» before its reason. 2026-10-24, #116.
+- **A typed price carries its reason** (DI-10), «سبب السعر», required, as the contract requires. 2026-10-24, #116.
+- **«لم يدفع شيئًا» goes both ways** (DI-12): at nothing received it reads «استلام المبلغ كاملًا» and gives the due back. 2026-10-24, #116.
+- **The debt's fields stay once shown** (DI-13), required only while something stays owed. 2026-10-24, #116.
+- **Row actions are 44 px on touch** (DI-16): «خروج» takes the layer's default size, and the bar's «تسجيل زيارة» `size="lg"`. 2026-10-24, #116.
+- **The due has its own weight** (DI-25), and **one money fact under the block** (DI-26). 2026-10-24, #116.
+- **Reception's unpriced close says so** (DI-28): «لا سعر لهذه الزيارة. تُغلق بدون سعر، ويحدّده المالك لاحقًا.», and asks the phone the whole is left to. 2026-10-24, #116.
+
 ## Code map
 
 - **API:** `apps/api/src/modules/desk/`, entry `index.ts`: the service, the controller and the manage router. The key's middleware is the platform's (`shared/http`).
 - **Shared:** `packages/shared/src/desk/`: the check-out's, the payment's and «تسجيل دينًا»'s requests (`checkOutVisitSchema`, `receivePaymentSchema`, `leaveToCustomerSchema`); the warnings (`DESK_WARNINGS`), the check-out's answer (`VisitCheckOut`) and the payment's (`ReceivedPayment`). The write-off's request (`writeOffVisitSchema`) is `visits`'. The idempotency key's header and schema are in `core`.
+- **Web:** `apps/web/src/features/desk/`, entry `index.ts` (`CheckOutAction`, `VisitDialog`, `useVisitDialog`, `useVisitTermsQuery`), read by `pages/dashboard/space/desk/`: the repository in `repository/`; the keys, the shared write (`useDeskWrite`: the space read again, a link ended), the terms, the check-in, the check-out and its quote, and the money block in `hooks/`; the rates, the current shift, the money line, the quote's age, the warnings' lines and the dialogs' failure in `services/`; the dialogs, the money block and the toasts in `components/`. The key per intent is `shared/api`'s (`useIntentKey`). Words: the catalogue's `desk` section.
 
 ## History
 
@@ -112,3 +135,7 @@
 - #110 — a subscriber's check-out after its due time closed at it; a check-in caught by the open check-in index answered `MEMBER_ALREADY_CHECKED_IN`, not a 500.
 - #112 — the closure warning on both check-ins, from `occupancy`.
 - #114 — the owner's void of a payment.
+
+### Web history
+
+- #116 — the desk's screen: who is present (from `occupancy`), a visit's check-in with its warnings and its check-out with its payment, one key per intent, and «تبديل الموظف».
