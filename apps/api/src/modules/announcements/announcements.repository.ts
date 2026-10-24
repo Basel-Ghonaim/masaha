@@ -154,6 +154,19 @@ export function createAnnouncementsRepository() {
       return rows.map(({ id }) => id);
     },
 
+    /**
+     * The space's announcements the public sees at `now`: not deleted, not ended (running or
+     * upcoming), by start, then id, at most `take`.
+     */
+    publicOf(spaceId: number, now: Date, take: number): Promise<AnnouncementRow[]> {
+      return prisma.announcement.findMany({
+        where: { spaceId, deletedAt: null, OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        take,
+        select: ANNOUNCEMENT,
+      });
+    },
+
     update(
       id: number,
       data: AnnouncementData & { deletedAt?: Date },

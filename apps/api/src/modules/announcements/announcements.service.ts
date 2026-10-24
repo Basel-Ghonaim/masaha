@@ -71,6 +71,16 @@ export function createAnnouncementsService({ runInTransaction, audit, spaces, no
       return { rows: rows.map((row) => toAnnouncement(row, at)), total };
     },
 
+    /**
+     * The space's running and upcoming announcements now, by start then id, at most `take`: what its
+     * public page shows. Read without a lock.
+     */
+    async publicOf(spaceId: number, take: number): Promise<Announcement[]> {
+      const at = now();
+      const rows = await repository.publicOf(spaceId, at, take);
+      return rows.map((row) => toAnnouncement(row, at));
+    },
+
     /** How many of the space's announcements are in each state at `at`, in one query. */
     counts(spaceId: number, at: Date): Promise<Record<AnnouncementState, number>> {
       return repository.counts(spaceId, at);

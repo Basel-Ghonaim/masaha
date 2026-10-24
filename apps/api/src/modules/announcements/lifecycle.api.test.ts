@@ -7,7 +7,7 @@ import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace } from '../../../test/factories.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
-import { signInOwnerOf } from '../../../test/spaces.ts';
+import { seedSettings, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
 
 const NOW = new Date('2026-10-24T10:00:00+03:00');
@@ -22,6 +22,8 @@ let reception: { id: number; authorization: string };
 
 beforeEach(async () => {
   await resetDatabase(prisma);
+  // The platform's settings, which the public page reads.
+  await seedSettings();
   ({ id: spaceId } = await createSpace());
   owner = await signInOwnerOf(spaceId);
   reception = await signIn('USER', 'reception@example.com');
@@ -137,9 +139,12 @@ describe('starting an announcement now', () => {
 });
 
 describe('deleting an announcement', () => {
-  it('delete is soft and 204, audited; again 204 writing nothing; then it leaves the list and the live status', async () => {
+  it('delete is soft and 204, audited; again 204 writing nothing; then it leaves the list, the public page and the live status', async () => {
     const closure = await insert({ endsAt: days(2) });
     expect(await liveStatus()).toBe('CLOSED');
+    expect(dataOf(await request(app).get('/api/v1/spaces/focus-hub'))).toMatchObject({
+      announcements: [{ id: closure.id }],
+    });
 
     const deleted = await remove(reception, closure.id);
     expect(deleted.status).toBe(204);
@@ -153,6 +158,8 @@ describe('deleting an announcement', () => {
       .get(`/api/v1/manage/spaces/${String(spaceId)}/announcements`)
       .set('Authorization', owner.authorization);
     expect(dataOf(listed)).toEqual([]);
+    const publicPage = await request(app).get('/api/v1/spaces/focus-hub');
+    expect(dataOf(publicPage)).toMatchObject({ announcements: [] });
     expect(await auditEntries()).toEqual([
       {
         actorId: reception.id,

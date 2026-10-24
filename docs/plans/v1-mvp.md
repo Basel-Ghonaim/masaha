@@ -206,11 +206,11 @@ Built: `POST /me/password`, the password change and the forced change at first s
 | GET | `/me/reports` | 👤 with the resolution note |
 
 #### Public directory
-Built: `GET /lookups`, the active governorates with their active areas and the active amenities; `GET /spaces`, the directory's list, paged and filtered on the server, with its search and near me (the device's location in a header, only to sort); `GET /map/spaces`, the map's pins; and `GET /spaces/:slug`, a space's public page, without announcements; the live status on the cards and the pins, the `availableNow` filter, and `GET /spaces/:slug/occupancy`, a space's live status alone ([api-contract §5](../api/api-contract.md#directory-public)).
+Built: `GET /lookups`, the active governorates with their active areas and the active amenities; `GET /spaces`, the directory's list, paged and filtered on the server, with its search and near me (the device's location in a header, only to sort); `GET /map/spaces`, the map's pins; and `GET /spaces/:slug`, a space's public page, with its running and upcoming announcements (2026-10-24, #112); the live status on the cards and the pins, the `availableNow` filter, and `GET /spaces/:slug/occupancy`, a space's live status alone ([api-contract §5](../api/api-contract.md#directory-public)).
 
 | Method | Path | Access | Notes |
 |---|---|---|---|
-| GET | `/spaces/:slug` | 🌐 | its announcements, with step 10 |
+| GET | `/spaces/:slug` | 🌐 | its running and upcoming announcements, built (#112) |
 | POST | `/spaces/:slug/reports` | 👤 | report wrong information |
 | GET | `/settings/public` | 🌐 | contact email and WhatsApp |
 

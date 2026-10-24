@@ -52,6 +52,7 @@ export function publicSpace(change: Partial<PublicSpace> = {}): PublicSpace {
     },
     staleGroups: [],
     photos: [],
+    announcements: [],
     ...change,
   };
 }

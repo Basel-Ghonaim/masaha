@@ -1,3 +1,4 @@
+import type { AnnouncementType } from '../announcements/index.ts';
 import type { AmenityIconKey } from '../lookups/index.ts';
 import type { LiveStatus } from '../occupancy/index.ts';
 import type {
@@ -71,6 +72,19 @@ export interface PublicAmenity {
   icon: AmenityIconKey | null;
 }
 
+/** The most announcements a space's page carries. */
+export const PUBLIC_ANNOUNCEMENTS_MAX = 20;
+
+/** An announcement as a space's page shows it: running or upcoming; instants with their offset. */
+export interface PublicAnnouncement {
+  id: number;
+  type: AnnouncementType;
+  textAr: string;
+  textEn: string | null;
+  startsAt: string;
+  endsAt: string | null;
+}
+
 /** A space's public page. */
 export interface PublicSpace {
   id: number;
@@ -98,4 +112,6 @@ export interface PublicSpace {
   staleGroups: FactGroup[];
   /** Its photos in the gallery's order, the cover first, each in both sizes; none: a caption. */
   photos: PhotoUrls[];
+  /** Its running and upcoming announcements, by start then id, at most `PUBLIC_ANNOUNCEMENTS_MAX`. */
+  announcements: PublicAnnouncement[];
 }

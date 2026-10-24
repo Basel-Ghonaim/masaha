@@ -400,6 +400,7 @@ export function createApi({
   });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
   const directory = createDirectoryService({
+    announcements,
     lookups,
     spaceLinks,
     publicListing: createPublicListingService({ platformSettings, now: clock, storage }),

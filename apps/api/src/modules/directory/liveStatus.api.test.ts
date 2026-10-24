@@ -143,6 +143,7 @@ describe('the live status in the directory', () => {
         'addressAr',
         'addressEn',
         'amenities',
+        'announcements',
         'area',
         'contacts',
         'descriptionAr',

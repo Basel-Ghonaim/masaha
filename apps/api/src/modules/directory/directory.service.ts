@@ -1,5 +1,6 @@
 import {
   MAP_PINS_CEILING,
+  PUBLIC_ANNOUNCEMENTS_MAX,
   type DirectoryQuery,
   type DirectorySpace,
   type MapPin,
@@ -11,6 +12,7 @@ import type { LiveStatus, PublicOccupancy } from '@masaha/shared/occupancy';
 
 import { isVerified } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
+import type { AnnouncementsService } from '../announcements/index.ts';
 import type { AreaName, LookupsService } from '../lookups/index.ts';
 import type { OccupancyService } from '../occupancy/index.ts';
 import type { SpaceLinksService } from '../space-links/index.ts';
@@ -23,6 +25,7 @@ import type {
 } from '../spaces/index.ts';
 
 interface Dependencies {
+  announcements: AnnouncementsService;
   lookups: LookupsService;
   spaceLinks: SpaceLinksService;
   publicListing: PublicListingService;
@@ -91,6 +94,7 @@ function toMapPin(space: ListedPublicSpace, liveStatus: LiveStatus | null): MapP
  * the live status of the spaces answered, set-based, from `occupancy`.
  */
 export function createDirectoryService({
+  announcements,
   lookups,
   spaceLinks,
   publicListing,
@@ -189,9 +193,12 @@ export function createDirectoryService({
       );
       if (!view) throw AppError.notFound(undefined, 'Space not found');
 
-      const [[area], amenities] = await Promise.all([
+      // Read after the space's share lock: an announcement is no fact group, and one posted between
+      // the two reads shows on the next.
+      const [[area], amenities, shownAnnouncements] = await Promise.all([
         lookups.areaNamesFor([view.areaId]),
         view.amenityIds.length === 0 ? [] : lookups.activeAmenitiesNamed(view.amenityIds),
+        announcements.publicOf(view.id, PUBLIC_ANNOUNCEMENTS_MAX),
       ]);
       if (!area) throw AppError.notFound(undefined, 'Space not found');
       return {
@@ -218,6 +225,14 @@ export function createDirectoryService({
         updatedAt: view.updatedAt,
         staleGroups: view.staleGroups,
         photos: view.photos,
+        announcements: shownAnnouncements.map(({ id, type, textAr, textEn, startsAt, endsAt }) => ({
+          id,
+          type,
+          textAr,
+          textEn,
+          startsAt,
+          endsAt,
+        })),
       };
     },
   };
