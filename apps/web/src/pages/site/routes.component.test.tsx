@@ -314,6 +314,48 @@ describe("the site's routes", () => {
     expect(router.state.location.search).toBe('?q=Hub%20%26%20Co');
   });
 
+  it('About has «Contact us» before «For space owners», each with the configured contact, and no university line; the footer offers «Browse spaces» first; axe-clean', async () => {
+    vi.stubEnv('VITE_CONTACT_EMAIL', 'hello@example.com');
+    vi.stubEnv('VITE_CONTACT_WHATSAPP', '');
+    const { container } = renderPublicSite('/about');
+
+    expect(await pageTitle()).toHaveTextContent('About Masaha');
+    const main = within(screen.getByRole('main'));
+    const contact = main.getByRole('region', { name: 'Contact us' });
+    const owners = main.getByRole('region', { name: 'For space owners' });
+    expect(contact).toHaveAttribute('id', 'contact');
+    expect(owners).toHaveAttribute('id', 'owners');
+    expect(contact.compareDocumentPosition(owners) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const section of [contact, owners]) {
+      expect(
+        within(section).getByRole('link', { name: 'Email hello@example.com' }),
+      ).toHaveAttribute('href', 'mailto:hello@example.com');
+    }
+    expect(within(owners).getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.getByRole('main').textContent).not.toMatch(/universit|جامعة/i);
+    const footerLinks = within(screen.getByRole('contentinfo')).getAllByRole('link');
+    expect(footerLinks[0]).toHaveTextContent('Browse spaces');
+    expect(footerLinks[0]).toHaveAttribute('href', '/spaces');
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('with no contact configured, About’s sections keep their text without buttons', async () => {
+    vi.stubEnv('VITE_CONTACT_EMAIL', '');
+    vi.stubEnv('VITE_CONTACT_WHATSAPP', '');
+    renderPublicSite('/about');
+
+    expect(await pageTitle()).toHaveTextContent('About Masaha');
+    const main = within(screen.getByRole('main'));
+    const contact = main.getByRole('region', { name: 'Contact us' });
+    const owners = main.getByRole('region', { name: 'For space owners' });
+    expect(contact).toHaveTextContent('Message us with a question, or a problem with the website.');
+    expect(within(owners).getAllByRole('listitem')).toHaveLength(3);
+    for (const section of [contact, owners]) {
+      expect(within(section).queryAllByRole('link')).toEqual([]);
+    }
+    expect(screen.getByRole('main').querySelector('a[href^="mailto:"]')).toBeNull();
+  });
+
   it.each([
     ['a WhatsApp or a phone', publicSpace().contacts, true],
     ['neither', [], false],
