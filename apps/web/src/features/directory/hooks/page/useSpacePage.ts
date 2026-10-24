@@ -256,6 +256,14 @@ export function useSpacePage(slug: string): SpacePageView {
   };
 }
 
+/** Whether the space's page draws its contact bar on a phone: the space has a WhatsApp or a phone. */
+export function useSpaceContactBar(slug: string): boolean {
+  const query = useSpacePageQuery(slug);
+  return (query.data?.contacts ?? []).some(
+    (contact) => contact.type === 'WHATSAPP' || contact.type === 'PHONE',
+  );
+}
+
 /** The space's name, for the page's title, once its page has loaded; nothing until then. */
 export function useSpacePageTitle(slug: string): PageTitle | undefined {
   const english = useLanguage() === 'en';

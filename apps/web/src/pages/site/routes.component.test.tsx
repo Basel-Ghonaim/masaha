@@ -244,6 +244,43 @@ describe("the site's routes", () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['a WhatsApp or a phone', publicSpace().contacts, true],
+    ['neither', [], false],
+  ] as const)(
+    'reserves the footer’s room on a phone only under the contact bar: a space with %s',
+    async (_, contacts, reserved) => {
+      stubScreenWidth(390);
+      fakeTransport((request) =>
+        request.url === '/lookups'
+          ? ok({ governorates: [], areas: [], amenities: [] })
+          : request.url?.endsWith('/occupancy')
+            ? ok({ status: null })
+            : ok(publicSpace({ contacts: [...contacts] })),
+      );
+      const router = createMemoryRouter([{ HydrateFallback: () => null, children: siteRoutes }], {
+        initialEntries: ['/spaces/noor-hub'],
+      });
+      const Wrapper = queryWrapper();
+      render(
+        <Wrapper>
+          <RouterProvider router={router} />
+        </Wrapper>,
+      );
+
+      await screen.findByRole('heading', { level: 1, name: 'Noor Hub' });
+      const footer = screen.getByRole('contentinfo');
+      if (reserved) {
+        await waitFor(() => {
+          expect(footer).toHaveClass('pb-24');
+        });
+        expect(screen.getByRole('region', { name: 'Quick contact' })).toBeInTheDocument();
+      } else {
+        expect(footer).not.toHaveClass('pb-24');
+      }
+    },
+  );
+
   it('show offline when a page throws while the browser reports no connection', async () => {
     vi.spyOn(Navigator.prototype, 'onLine', 'get').mockReturnValue(false);
     renderSiteAt('/broken');

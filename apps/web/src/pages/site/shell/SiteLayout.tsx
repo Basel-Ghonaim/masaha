@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router';
+import type { SiteOutletContext } from './footerRoom';
 import { SiteFooter } from './SiteFooter';
 import { SiteHeader } from './SiteHeader';
 import { SkipLink } from './SkipLink';
@@ -6,19 +8,22 @@ import { useMainFocus } from './useMainFocus';
 
 /**
  * The site's shell: the skip link, the full header and the footer around the page, whose `main`
- * takes the focus when another page opens.
+ * takes the focus when another page opens. A page with a bar fixed at its foot reserves the
+ * footer's room under it (`useFooterRoom`).
  */
 export function SiteLayout() {
   useMainFocus();
+  const [footerRoom, reserveFooterRoom] = useState(false);
+  const context: SiteOutletContext = { reserveFooterRoom };
 
   return (
     <div className="flex min-h-dvh flex-col">
       <SkipLink />
       <SiteHeader />
       <main id="main" tabIndex={-1} className="flex flex-1 flex-col outline-none">
-        <Outlet />
+        <Outlet context={context} />
       </main>
-      <SiteFooter />
+      <SiteFooter barRoom={footerRoom} />
     </div>
   );
 }
