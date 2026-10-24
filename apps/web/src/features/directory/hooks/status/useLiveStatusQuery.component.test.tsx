@@ -1,9 +1,15 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { focusManager } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { useLiveStatusQuery } from './useLiveStatusQuery';
+
+/** Hides or shows the page as the browser does: its visibility, then the event it sends. */
+function showPage(state: 'hidden' | 'visible') {
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: state });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  if (state === 'visible') window.dispatchEvent(new Event('focus'));
+}
 
 describe('useLiveStatusQuery', () => {
   beforeEach(() => {
@@ -36,14 +42,20 @@ describe('useLiveStatusQuery', () => {
       expect(requests).toHaveLength(2);
     });
 
-    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
-    focusManager.setFocused(false);
-    vi.advanceTimersByTime(60_000);
+    showPage('hidden');
+    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(100);
     expect(requests).toHaveLength(2);
-    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
-    focusManager.setFocused(true);
+    showPage('visible');
     await waitFor(() => {
       expect(requests).toHaveLength(3);
+    });
+
+    // Back at once, the status just read is still fresh, and is read again all the same.
+    showPage('hidden');
+    showPage('visible');
+    await waitFor(() => {
+      expect(requests).toHaveLength(4);
     });
   });
 });
