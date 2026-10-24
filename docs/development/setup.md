@@ -58,6 +58,7 @@ All commands run from the repository root.
 | `npm run test:api` | The API integration lane (`*.api.test.ts`, Supertest against the Express app and the test database; needs `npm run db:up`, see [The API test lane](#the-api-test-lane)) |
 | `npm run check:classes` | Fails on physical direction classes (`ml-`, `left-`, `text-left` …) anywhere in `apps/web/src`; use the logical form ([foundation §8](../frontend/design-system/foundation.md#8-direction-rtl--ltr)). Also fails on arbitrary-value classes (`text-[13px]`, `bg-[#fff]`, `bg-(--token)` …) outside `shared/design-system/`; use a token utility ([foundation §2](../frontend/design-system/foundation.md#2-principles)) |
 | `npm run check:links` | Fails on a relative link, an image path or an anchor of any Markdown file that does not resolve, and on a `docs/….md` path cited in a source file that does not exist; paths are compared with the real files, case included. External links are not checked ([documentation rules §8](../architecture/documentation.md#8-link-integrity)) |
+| `npm run check:conflicts` | Fails when any git-tracked file holds a merge-conflict marker (`<<<<<<< `, `>>>>>>> `, or `=======` between them); skips binary files; prints each hit as `<file>:<line>` and a total |
 | `npm run check:build` | Run after `npm run build`: fails if `apps/web/dist` contains the development-only design-system showcase (its route path, or any of its fixture strings that the copy catalogues do not also write), or if the site's first download, read from the build's manifest, reaches the dashboard's code or a heavy library's chunk, or a library's chunk is missing ([architecture §3](../frontend/architecture.md#3-capabilities-features)) |
 | `npm run format` | Prettier over the repository (Markdown is excluded) |
 | `npm run format:check` | The same files, checked without writing: fails naming each file `format` would change |
@@ -175,7 +176,7 @@ The tooling lives in `apps/api/test/`, outside `src`, so the build never contain
 
 ## CI
 
-GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) runs `lint`, `format:check`, `typecheck`, `test:unit`, `test:component`, `test:api`, `check:classes`, `check:links` and `build` as separate checks on every pull request and on `main`, using the Node version from `.nvmrc`. The `build` check then runs `check:build` on its output.
+GitHub Actions ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) runs `lint`, `format:check`, `typecheck`, `test:unit`, `test:component`, `test:api`, `check:classes`, `check:links`, `check:conflicts` and `build` as separate checks on every pull request and on `main`, using the Node version from `.nvmrc`. The `build` check then runs `check:build` on its output.
 
 `test:api` is its own job: it runs next to a `postgres:18-alpine` service container whose database is `masaha_test`, and sets `TEST_DATABASE_URL` to it.
 
