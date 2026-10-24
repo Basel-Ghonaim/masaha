@@ -57,7 +57,7 @@ export function Gallery({ gallery }: { gallery: GalleryView }) {
             dir="ltr"
           />
           <p className="text-center text-body-sm" dir="ltr">
-            {gallery.viewer.position + 1} / {gallery.tiles.length}
+            {gallery.viewer.position + 1} / {gallery.viewer.total}
           </p>
           <DialogFooter className="flex-row justify-between">
             {gallery.viewer.previous !== null && (

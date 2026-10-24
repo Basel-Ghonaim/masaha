@@ -46,6 +46,7 @@ export function useGallery(photos: PhotoUrls[], name: string) {
       title: words.label({ name }),
       closeLabel: words.close,
       position: index,
+      total,
       src: photos[index]?.page ?? '',
       alt: words.photo({ n: index + 1, total, name }),
       previous:
