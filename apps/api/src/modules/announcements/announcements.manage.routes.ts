@@ -23,5 +23,8 @@ export function createAnnouncementsManageRouter(controller: AnnouncementsControl
     controller.create,
   );
   router.patch('/:announcementId', mayManage, validate(editAnnouncementSchema), controller.edit);
+  router.post('/:announcementId/end', mayManage, controller.end);
+  router.post('/:announcementId/start', mayManage, controller.start);
+  router.delete('/:announcementId', mayManage, controller.remove);
   return router;
 }

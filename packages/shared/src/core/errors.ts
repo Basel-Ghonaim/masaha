@@ -119,6 +119,8 @@ export const DOMAIN_ERROR_CODES = [
   'SUBSCRIPTION_EXPIRED',
   'DAYS_PER_WEEK_USED',
   'HOURS_PER_DAY_USED',
+  // an announcement not started yet: it cannot end now (announcements)
+  'ANNOUNCEMENT_NOT_STARTED',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

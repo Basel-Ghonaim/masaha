@@ -307,6 +307,16 @@ describe("the announcements' routes", () => {
       for (const response of [
         await post(caller, { type: 'GENERAL', textAr: 'نص' }),
         await edit(caller, id, { textAr: 'نص' }),
+        ...(await Promise.all(
+          (['/end', '/start'] as const).map((action) =>
+            request(app)
+              .post(`${announcementsPath()}/${String(id)}${action}`)
+              .set('Authorization', caller.authorization),
+          ),
+        )),
+        await request(app)
+          .delete(`${announcementsPath()}/${String(id)}`)
+          .set('Authorization', caller.authorization),
       ]) {
         expect(response.status).toBe(404);
         expect(errorOf(response).type).toBe('not_found');

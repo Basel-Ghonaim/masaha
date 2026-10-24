@@ -8,12 +8,13 @@
 
 - Lets a space's staff, the owner and reception, post an announcement: a type, an Arabic text, an English one when given, a start (now when none is sent) and an end, or none. A retried post answers the first, never a second.
 - Lets them edit any of its fields; the period is held to its bounds.
+- Lets them end a running one now, start an upcoming one now, and delete one in any state, softly.
 - Answers each announcement with its state now: upcoming, running or ended.
 - Tells the live status which spaces a running closure covers ([occupancy](occupancy.md)).
 
 ## Who uses it
 
-- **The space's owner and reception,** through the API, under `/manage/spaces/:spaceId/announcements`: they post and edit. The screens are not built.
+- **The space's owner and reception,** through the API, under `/manage/spaces/:spaceId/announcements`: they post, edit, end, start and delete. The screens are not built.
 - **The live status** ([occupancy](occupancy.md)): a running `CLOSURE` makes a space `CLOSED`.
 
 ## Responsibility boundary
@@ -37,6 +38,8 @@
 
 **Edit.** The same lock and `can()`; the announcement's row, locked (`FOR UPDATE`), the space's and not deleted; only the fields the edit sets to a new value (`announcementChange`, pure: an instant compared as an instant, `null` clearing the English text or the end). An edit that changes nothing writes nothing. What changed is checked against now and the window, and the merged end against the merged start, so an ended announcement's text can still be corrected.
 
+**End now, start now, delete.** Each takes the same lock and `can()`, then the row, locked. End now sets a running one's end to now; an ended one is answered as it is; an upcoming one is refused (`ANNOUNCEMENT_NOT_STARTED`). Start now sets an upcoming one's start to now; a started one is answered as it is. Delete sets `deletedAt` in any state, the row kept; a deleted one answers 204 again, writing nothing, and leaves every read and the live status.
+
 ## Decisions
 
 ### API decisions
@@ -45,6 +48,9 @@
 - **The writes are the staff's, owner and reception** (ADR 0009's writers). *Why:* reception announces a closure at the desk; `announcements.manage` decides at the route and again under the space's lock, so a link ended meanwhile still decides ([finding 43](../architecture/findings/43-two-races-around-a-spaces-facts.md)). 2026-10-24, #112.
 - **The period's bounds** (S5): a start at most 30 days back and 365 ahead, an end after now and at most 365 days after its start; texts 1–500 characters, line breaks kept. *Why:* a closure may be posted late, but a typo in a year must never make a closure of a decade; ending one now is its own route. 2026-10-24, #112.
 - **An edit checks against now only what it changes.** *Why:* an ended announcement's text stays correctable; a changed end still comes after now. 2026-10-24, #112.
+- **End now refuses an announcement not started yet: `ANNOUNCEMENT_NOT_STARTED`.** *Why:* its end would come before its start, which the database's `announcements_dates_check` refuses; the design offers deleting it there. 2026-10-24, #112.
+- **End now, start now and delete answer a repeat as it is, writing nothing** (O10). *Why:* updates are idempotent by design ([conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)); a retry after a lost answer must not read as a refusal. 2026-10-24, #112.
+- **Delete is soft and allowed in any state** (O10, [ADR 0007](../architecture/decisions/0007-soft-delete.md)). *Why:* the row stays for the audit and a closure's extension; a running closure deleted reopens the space at once. 2026-10-24, #112.
 - **No title and no author on an announcement** (O9). *Why:* the design shows neither; the audit records who. 2026-10-24, #112.
 
 ## Code map
@@ -60,4 +66,4 @@ None.
 
 ### API history
 
-- 2026-10-24, #112 — posted (idempotent) and edited by the staff.
+- 2026-10-24, #112 — posted (idempotent), edited, ended, started and deleted by the staff.

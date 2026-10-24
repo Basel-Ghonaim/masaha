@@ -10,6 +10,7 @@ import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { SpacesService } from '../spaces/index.ts';
 import { announcementChange } from './announcementChange.ts';
+import { announcementState } from './announcementState.ts';
 import { toAnnouncement } from './announcements.mapper.ts';
 import { createAnnouncementsRepository } from './announcements.repository.ts';
 import { periodErrors } from './period.ts';
@@ -145,6 +146,103 @@ export function createAnnouncementsService({ runInTransaction, audit, spaces, no
           tx,
         );
         return toAnnouncement(row, at);
+      });
+    },
+
+    /**
+     * Ends a running announcement now, in one transaction: the space's lock; `can()`; its row, the
+     * space's and not deleted (else `not_found`); one not started yet → `ANNOUNCEMENT_NOT_STARTED`
+     * (its end would come before its start); one ended already answered as it is, writing nothing;
+     * else its end set to now, audited with the end it had.
+     */
+    end(actor: Actor, space: LoadedSpace, announcementId: number): Promise<Announcement> {
+      return runInTransaction(async (tx) => {
+        await lockFor(actor, space, tx);
+        const current = await repository.lockIn(space.id, announcementId, tx);
+        if (!current) throw AppError.notFound(undefined, 'Announcement not found');
+        const at = now();
+        const state = announcementState(current, at);
+        if (state === 'UPCOMING') throw AppError.conflict('ANNOUNCEMENT_NOT_STARTED');
+        if (state === 'ENDED') return toAnnouncement(current, at);
+
+        const row = await repository.update(announcementId, { endsAt: at }, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'announcement.ended',
+            entityType: 'announcement',
+            entityId: announcementId,
+            spaceId: space.id,
+            before: { endsAt: iso(current.endsAt) },
+            after: { endsAt: iso(at) },
+          },
+          tx,
+        );
+        return toAnnouncement(row, at);
+      });
+    },
+
+    /**
+     * Starts an upcoming announcement now, in one transaction: the space's lock; `can()`; its row,
+     * the space's and not deleted (else `not_found`); one started already answered as it is, writing
+     * nothing; else its start set to now, audited with the start it had.
+     */
+    start(actor: Actor, space: LoadedSpace, announcementId: number): Promise<Announcement> {
+      return runInTransaction(async (tx) => {
+        await lockFor(actor, space, tx);
+        const current = await repository.lockIn(space.id, announcementId, tx);
+        if (!current) throw AppError.notFound(undefined, 'Announcement not found');
+        const at = now();
+        if (announcementState(current, at) !== 'UPCOMING') return toAnnouncement(current, at);
+
+        const row = await repository.update(announcementId, { startsAt: at }, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'announcement.started',
+            entityType: 'announcement',
+            entityId: announcementId,
+            spaceId: space.id,
+            before: { startsAt: iso(current.startsAt) },
+            after: { startsAt: iso(at) },
+          },
+          tx,
+        );
+        return toAnnouncement(row, at);
+      });
+    },
+
+    /**
+     * Deletes an announcement, softly (ADR 0007),
+     * in one transaction: the space's lock; `can()`; its row, the space's, deleted or not (else
+     * `not_found`); one deleted already writes nothing; else `deletedAt` set to now, audited with
+     * what it was. A deleted announcement leaves every read and the live status.
+     */
+    remove(actor: Actor, space: LoadedSpace, announcementId: number): Promise<void> {
+      return runInTransaction(async (tx) => {
+        await lockFor(actor, space, tx);
+        const current = await repository.lockIn(space.id, announcementId, tx, {
+          withDeleted: true,
+        });
+        if (!current) throw AppError.notFound(undefined, 'Announcement not found');
+        if (current.deletedAt) return;
+
+        await repository.update(announcementId, { deletedAt: now() }, tx);
+        await audit(
+          {
+            actorId: actor.id,
+            action: 'announcement.deleted',
+            entityType: 'announcement',
+            entityId: announcementId,
+            spaceId: space.id,
+            before: {
+              type: current.type,
+              startsAt: iso(current.startsAt),
+              endsAt: iso(current.endsAt),
+            },
+          },
+          tx,
+        );
       });
     },
   };
