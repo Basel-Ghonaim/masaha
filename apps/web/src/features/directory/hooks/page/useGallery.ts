@@ -11,11 +11,15 @@ const tileClasses = [
   'hidden md:block',
 ] as const;
 
-/** The page gallery's responsive tiles and circular keyboard viewer. */
+/**
+ * The page gallery's responsive tiles and circular keyboard viewer, which remembers the tile that
+ * opened it (`opener`), so closing it hands the focus back there.
+ */
 export function useGallery(photos: PhotoUrls[], name: string) {
   const words = useCopy().directory.page.gallery;
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
+  const [opener, setOpener] = useState(0);
   const shown = photos.slice(0, 5);
   const total = photos.length;
   const move = (delta: number) => {
@@ -32,6 +36,7 @@ export function useGallery(photos: PhotoUrls[], name: string) {
         label: words.view({ n: tileIndex + 1 }),
         run: () => {
           setIndex(tileIndex);
+          setOpener(tileIndex);
           setOpen(true);
         },
       },
@@ -48,6 +53,7 @@ export function useGallery(photos: PhotoUrls[], name: string) {
             label: words.all({ count: total }),
             run: () => {
               setIndex(0);
+              setOpener(0);
               setOpen(true);
             },
           }
@@ -59,6 +65,7 @@ export function useGallery(photos: PhotoUrls[], name: string) {
       closeLabel: words.close,
       position: index,
       total,
+      opener,
       src: photos[index]?.page ?? '',
       alt: words.photo({ n: index + 1, total, name }),
       previous:

@@ -232,6 +232,25 @@ describe('SpaceDetails', () => {
     expect(within(viewer).getByText('1 / 7')).toBeInTheDocument();
   });
 
+  it('hands the focus back to the tile that opened the viewer when Escape closes it', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    const photos = [1, 2, 3].map((n) => ({
+      card: `/${String(n)}-card.jpg`,
+      page: `/${String(n)}-page.jpg`,
+    }));
+    renderDetails(1440, publicSpace({ photos }));
+
+    await user.click(await screen.findByRole('button', { name: 'عرض الصورة 2' }));
+    const viewer = await screen.findByRole('dialog', { name: 'صور نور هب' });
+    await user.click(within(viewer).getByRole('button', { name: 'التالية' }));
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'عرض الصورة 2' })).toHaveFocus();
+  });
+
   it.each([2, 3, 5])('with %i photos, a phone shows the first tile alone', async (count) => {
     const photos = Array.from({ length: count }, (_, n) => ({
       card: `/${String(n)}-card.jpg`,
