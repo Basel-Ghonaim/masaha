@@ -1,6 +1,6 @@
 # Visits
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
 > **Authority:** The `visits` capability: a visitor's stay at a space, checked in by name, its rates and its charge. Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and its money rules by the [data model](../architecture/data-model.md#front-desk-and-money). The API is built; no web screen yet.
 > **Scope:** the API module `visits` (L3); `@masaha/shared/visits`. No web feature yet.
 
@@ -22,7 +22,7 @@
 
 - **The front desk** ([desk](desk.md)), which orchestrates the check-in and the check-out, for the space's owner and reception; they read the quote and the terms through this module's own routes.
 - **`occupancy`**, which reads the open visits for *present*. No web screen reads it yet.
-- **`payments`**, which pages the uncollected visits and reads their visits here; **[`desk`](desk.md)**, for a customer's unpaid visits.
+- **`payments`**, which pages the uncollected visits and reads their visits here, and names the visits of the payments it answers; **[`desk`](desk.md)**, for a customer's unpaid visits.
 - **The timed jobs** (`shared/jobs`, wired in the composition root), which run its auto check-out.
 
 ## Responsibility boundary

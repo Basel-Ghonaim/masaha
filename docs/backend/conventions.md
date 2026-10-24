@@ -271,6 +271,7 @@ The modules that apply them read them: visits and subscriptions (auto check-out;
 - **check-out of a visit** with its charge and its payment;
 - **a visit's payment after its check-out**, its unpaid rest left to a customer by the same rule as the check-out's, and **its debt left to a customer by phone** («تسجيل دينًا»);
 - **the write-off of a visit's unpaid rest** by the owner, and its undo;
+- **the void of a payment** by the owner, under the space's lock, then the payment's row (`FOR UPDATE`); a second void is answered as it is (2026-10-24, #114);
 - **subscribing or renewing**: the terms from a package or typed, the renewal's start proposed by `subscriptions` (`proposedStart`), and an optional amount `payments` allocates (`allocate`, pure) over the customer's debts, oldest first, one payment each under a key derived from the request's; the warning when an older debt remains (2026-10-22, #106).
 
 ### Composed reads
@@ -281,15 +282,16 @@ A screen that shows or filters by values from several modules is composed by a m
   - `desk`, `finance` (debtors) and `overview` (total owed) all use the same APIs. None of them computes a status or a balance.
   - **The balances are one aggregate query in `payments`** (the owner's decision 6): it reads `visits`' closed visits and a subscription's due through its owner's function `subscription_usage`, and writes neither — the one place a module other than a composing one reads other modules' tables (R7's exception, stated). The same subtraction as `balance.ts`, applied in SQL. 2026-10-21, #102.
 - **The customers list and the customer file** → `desk`.
-- **The managed announcements list and its summary** → `subscriptions` (`closures`), the lowest module above `announcements` that owns a closure's extension: `announcements` pages one state and counts them, and `subscriptions` adds each closure's extension, how many it moved and who applied it, and counts the started closures with none. The writes stay `announcements`'. The owner's overview will read `closures.summary`. 2026-10-24, #112.
   - The status and payment filters resolve to customer ids first, from `subscriptions` and `payments`; a filter for none (`kind=NONE`, `payment=SETTLED`) resolves to the ids to leave out.
   - `customers` then applies the search and the pagination to those ids (§5), each list one array parameter read as a set, so no list meets PostgreSQL's bound on parameters. 2026-10-21, #102.
   - The file adds each subscription's progress, the payments, the balance and the attendance.
+- **The managed announcements list and its summary** → `subscriptions` (`closures`), the lowest module above `announcements` that owns a closure's extension: `announcements` pages one state and counts them, and `subscriptions` adds each closure's extension, how many it moved and who applied it, and counts the started closures with none. The writes stay `announcements`'. The owner's overview will read `closures.summary`. 2026-10-24, #112.
 - **The admin's spaces list** (owners and verified status) and **the space owners list** → `space-links` ([how the list is composed](../features/space-links.md#how-it-composes-the-platform)).
 - **"Verified" on the write side** ([security › Authorization](security.md#authorization)).
   - `spaces` never imports `space-links` for it. The space middleware resolves the links on the space routes (§8), and `can()` decides.
   - `data-reports` sits above `space-links` and may call it directly for a report's space.
-- **Uncollected visits** (closed by the auto check-out and left unpaid) → `payments`, which owns the balance: it pages them in one query over the visits and their payments, the settled ones left out by the balance's subtraction, newest closed first (§5), and `visits` answers the page's visits (2026-10-20, #97; one query since 2026-10-21, #102, finding 113).
+- **Uncollected visits** (closed by the auto check-out and left unpaid, and a priced visit closed by hand with no customer that owes again after a void, 2026-10-24, #114) → `payments`, which owns the balance: it pages them in one query over the visits and their payments, the settled ones left out by the balance's subtraction, newest closed first (§5), and `visits` answers the page's visits (2026-10-20, #97; one query since 2026-10-21, #102, finding 113).
+- **The payments list** → `payments`, naming its rows through `visits`, `subscriptions`, `customers` and `users`, one set query each; reception's narrowed to its own of today by `can()`, before any query. 2026-10-24, #114.
 - **The public directory** (the list, the map's pins and a space's page) → `directory` ([how it composes them](../features/directory.md#how-it-composes-the-platform)). The listed areas and the areas a search matches resolve to ids first, from `lookups`, and the verified spaces from `space-links`; `spaces` then filters, searches, orders and pages.
 - **The favourites' cards** (live status and prices) → `directory`, from the ids that `favorites` records. `favorites` never reads live status.
 
@@ -362,6 +364,6 @@ Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
   - API tests hold the row in a test transaction while each of these runs.
 
 ### The ledger's rules
-- **The database owns the payment rules its triggers enforce:** append-only, voided once, never above the amount due, an unpriced visit takes no payment (`payments_visit_uncharged`), and a written-off visit takes none, and a fixed price never falls below what was paid on it (`subscriptions_price_below_paid`, the subscriptions' trigger, 2026-10-22, #106) ([data-model.md](../architecture/data-model.md#constraints-worth-stating)). The ceiling locks the item's row, so concurrent payments are counted one after the other.
+- **The database owns the payment rules its triggers enforce:** append-only, voided once, never above the amount due, an unpriced visit takes no payment (`payments_visit_uncharged`), and a written-off visit takes none, nor are its payments voided until the write-off is undone (2026-10-24, #114), and a fixed price never falls below what was paid on it (`subscriptions_price_below_paid`, the subscriptions' trigger, 2026-10-22, #106) ([data-model.md](../architecture/data-model.md#constraints-worth-stating)). The ceiling locks the item's row, so concurrent payments are counted one after the other.
 - **Services do not repeat these rules.** They write, and the error handler translates a violation through the constraint table (§4). Who may void a payment is not a ledger rule: it stays with `can()`.
 - **Each trigger is reached by an API integration test**, which checks the code the endpoint returns ([testing.md](../development/testing.md)).

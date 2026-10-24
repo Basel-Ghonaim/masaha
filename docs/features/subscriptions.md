@@ -23,6 +23,7 @@
 - **[`occupancy`](occupancy.md),** which counts the check-ins present.
 - **The timed jobs** (`shared/jobs`), which run its auto check-out.
 - **The space's staff**, who read the managed announcements list and its summary through it.
+- **[`payments`](payments.md),** which names the subscriptions of the payments it answers (`namesOf`).
 
 ## Responsibility boundary
 
@@ -96,5 +97,5 @@
 - #97 — the auto check-out of check-ins.
 - #102 — the attendance and amount due in the database (`subscription_usage`), the status, progress and current-subscription rules, and the states read; each customer's current subscription and the list's filters as ids.
 - #106 — a subscription's key, typed price's reason and renewed one; the create, audited; the row's lock; the renewal's proposed start; the corrections, the price the owner's; the end.
-- #112 — the managed announcements list, each closure with its extension, and its summary (`closures/`).
 - #109 — a check-in's minutes in SQL; a subscriber's check-in and check-out, audited, and the limits' warnings (`limits.ts`); the check-ins' lists.
+- #112 — the managed announcements list, each closure with its extension, and its summary (`closures/`).

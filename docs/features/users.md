@@ -1,6 +1,6 @@
 # Users
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
 > **Authority:** The `users` capability: the account, its credentials, who may sign in, the password change and the forced change, the accounts the admin reads and creates, a temporary password's handover, the account menu and sign-out. Its endpoints are owned by the API contract: [*Me*](../api/api-contract.md#me) and [*Users (the admin)*](../api/api-contract.md#users-the-admin); the `User` entity by the [data model](../architecture/data-model.md#users-and-sessions); every password and sign-in rule by [security.md](../backend/security.md#passwords).
 > **Scope:** the API module `users` (L1); `@masaha/shared/users`; the web feature `features/users`.
 
@@ -26,6 +26,7 @@ The account's settings (`GET` and `PATCH /me`) are not built.
 - **The admin,** who suspends and restores accounts, changes their role through `space-links`, issues temporary passwords, and records how each was handed over.
 - **[`auth`](auth.md),** which signs in, registers and links Google through it.
 - **[`space-links`](space-links.md),** which names the owners in the admin's spaces list, composes the admin's users list from its page of accounts, and changes a person's role as their owner links give it.
+- **[`payments`](payments.md),** which names who recorded and who voided a payment.
 
 ## Responsibility boundary
 

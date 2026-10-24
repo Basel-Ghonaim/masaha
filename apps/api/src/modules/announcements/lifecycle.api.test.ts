@@ -136,6 +136,16 @@ describe('starting an announcement now', () => {
       },
     ]);
   });
+
+  it('start now refuses an end more than 365 days after now, 422 endsAt out_of_range, writing nothing', async () => {
+    const far = await insert({ startsAt: days(300), endsAt: days(665) });
+    const refused = await act(owner, far.id, '/start');
+    expect(refused.status).toBe(422);
+    expect(errorOf(refused)).toMatchObject({ type: 'validation' });
+    expect(errorOf(refused).errors).toEqual({ endsAt: ['out_of_range'] });
+    expect(await storedOf(far.id)).toMatchObject({ startsAt: days(300), endsAt: days(665) });
+    expect(await auditEntries()).toEqual([]);
+  });
 });
 
 describe('deleting an announcement', () => {

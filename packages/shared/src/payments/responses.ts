@@ -1,3 +1,4 @@
+import type { PaginationMeta } from '../core/index.ts';
 import type { DeskVisit } from '../visits/index.ts';
 import type { PAYMENT_METHODS } from './requests.ts';
 
@@ -28,11 +29,47 @@ export interface CustomerBalance {
 }
 
 /**
- * A visit closed by the auto check-out and not fully paid: the visit, what was paid on it, and what
- * is still owed, `null` while it has no charge (unpriced).
+ * A visit closed by the auto check-out, or by hand with no customer and owing again after a void, and
+ * not fully paid: the visit, what was paid on it, and what is still owed, `null` while it has no
+ * charge (unpriced).
  */
 export interface UncollectedVisit {
   visit: DeskVisit;
   paidAgorot: number;
   balanceAgorot: number | null;
 }
+
+/** The item a payment settles, named: a visit by its visitor's name, a subscription by its own. */
+export type PaymentItem =
+  | { kind: 'VISIT'; id: number; visitorName: string | null }
+  | { kind: 'SUBSCRIPTION'; id: number; name: string };
+
+/**
+ * A payment as the payments list shows it, and as its void answers it: its item, the item's customer
+ * (a visit's, or a subscription's), who recorded it, and its void (when, by whom, why) once voided.
+ */
+export interface PaymentRow {
+  id: number;
+  amountAgorot: number;
+  method: (typeof PAYMENT_METHODS)[number];
+  note: string | null;
+  receivedAt: string;
+  item: PaymentItem;
+  customer: { id: number; name: string } | null;
+  recordedBy: { id: number; name: string };
+  voided: { at: string; by: { id: number; name: string }; reason: string } | null;
+}
+
+/**
+ * The payments list's totals, over its whole filter but the void filter and the page: what was
+ * received (the payments not voided), by method, how many, and the voided ones apart.
+ */
+export interface PaymentTotals {
+  count: number;
+  receivedAgorot: number;
+  byMethod: Record<(typeof PAYMENT_METHODS)[number], number>;
+  voided: { count: number; amountAgorot: number };
+}
+
+/** The payments list's `meta`: its pagination and its totals. */
+export type PaymentsMeta = PaginationMeta & { totals: PaymentTotals };

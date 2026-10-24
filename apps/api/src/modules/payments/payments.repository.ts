@@ -1,4 +1,9 @@
-import type { CustomerBalance, PaymentRequest } from '@masaha/shared/payments';
+import type {
+  CustomerBalance,
+  PaymentRequest,
+  PaymentsQuery,
+  PaymentTotals,
+} from '@masaha/shared/payments';
 
 import { prisma, type Tx } from '../../db/index.ts';
 import { Prisma } from '../../generated/prisma/client.ts';
@@ -13,6 +18,13 @@ const VISIT_PAYMENT = {
   note: true,
   receivedAt: true,
   recordedById: true,
+} as const;
+
+const ITEM_PAYMENT = {
+  ...VISIT_PAYMENT,
+  voidedAt: true,
+  voidedById: true,
+  voidReason: true,
 } as const;
 
 /** A payment of an item, as it is stored: its visit or its subscription, the other `null`. */
@@ -41,6 +53,36 @@ export interface NewPayment extends PaymentRequest {
   key: string;
   recordedById: number;
   receivedAt: Date;
+}
+
+/**
+ * The payments list's filter, its void aside: the space's payments received in a window of instants
+ * (`to` left out), by whom, by which method, and on which kind of item, each when given.
+ */
+export interface PaymentsFilter {
+  spaceId: number;
+  from: Date;
+  to: Date;
+  recordedById?: number;
+  method?: PaymentRequest['method'];
+  kind?: PaymentsQuery['kind'];
+}
+
+/** The `where` of the payments list's filter, and of its void filter when given. */
+function paymentsWhere(
+  { spaceId, from, to, recordedById, method, kind }: PaymentsFilter,
+  voided: PaymentsQuery['voided'] = 'INCLUDE',
+): Prisma.PaymentWhereInput {
+  return {
+    spaceId,
+    receivedAt: { gte: from, lt: to },
+    ...(recordedById !== undefined && { recordedById }),
+    ...(method !== undefined && { method }),
+    ...(kind === 'VISIT' && { visitId: { not: null } }),
+    ...(kind === 'SUBSCRIPTION' && { subscriptionId: { not: null } }),
+    ...(voided === 'EXCLUDE' && { voidedAt: null }),
+    ...(voided === 'ONLY' && { voidedAt: { not: null } }),
+  };
 }
 
 /** One item a customer may owe on: a subscription or a closed visit, with its due and what was paid. */
@@ -245,8 +287,8 @@ export function createPaymentsRepository() {
 
     /**
      * A page of the space's uncollected visits (data model › Uncollected visits): closed by the auto
-     * check-out, not written off, not settled (balance > 0, or no charge yet), the latest closed
-     * first, then by id; each with what was paid, voided payments left out; and how many there are.
+     * check-out, or closed by hand, priced, with no customer (only a void leaves one owing), not
+     * written off, not settled (balance > 0, or no charge yet), the latest closed first, then by id; each with what was paid, voided payments left out; and how many there are.
      * One query and its count, so a read costs what its page holds (finding 113).
      */
     async uncollectedPage(
@@ -260,7 +302,9 @@ export function createPaymentsRepository() {
           WHERE space_id = ${spaceId} AND visit_id IS NOT NULL AND voided_at IS NULL
           GROUP BY visit_id
         ) p ON p.visit_id = v.id
-        WHERE v.space_id = ${spaceId} AND v.checkout_method = 'AUTO' AND v.written_off_at IS NULL
+        WHERE v.space_id = ${spaceId} AND v.checked_out_at IS NOT NULL
+          AND (v.checkout_method = 'AUTO' OR (v.customer_id IS NULL AND v.charge_agorot IS NOT NULL))
+          AND v.written_off_at IS NULL
           AND (v.charge_agorot IS NULL OR v.charge_agorot - coalesce(p.paid, 0) > 0)`;
       const [rows, [count]] = await Promise.all([
         prisma.$queryRaw<{ id: number; paid: number }[]>`
@@ -271,6 +315,86 @@ export function createPaymentsRepository() {
       return {
         rows: rows.map(({ id, paid }) => ({ id, paidAgorot: paid })),
         total: count?.total ?? 0,
+      };
+    },
+
+    /**
+     * The space's payment, its row locked (`FOR UPDATE`) in the caller's transaction, voided or not;
+     * `null` when the space has none with this id.
+     */
+    async lockIn(spaceId: number, id: number, tx: Tx): Promise<ItemPaymentRow | null> {
+      const locked = await tx.$queryRaw<{ id: number }[]>`
+        SELECT id FROM payments WHERE id = ${id} AND space_id = ${spaceId} FOR UPDATE`;
+      if (locked.length === 0) return null;
+      return tx.payment.findUniqueOrThrow({ where: { id }, select: ITEM_PAYMENT });
+    },
+
+    /** Voids the payment: its void's three columns, and nothing else (the change trigger's rule). */
+    void(
+      id: number,
+      { at, byId, reason }: { at: Date; byId: number; reason: string },
+      tx: Tx,
+    ): Promise<ItemPaymentRow> {
+      return tx.payment.update({
+        where: { id },
+        data: { voidedAt: at, voidedById: byId, voidReason: reason },
+        select: ITEM_PAYMENT,
+      });
+    },
+
+    /**
+     * A page of the payments list: the filter's payments, its void filter applied, the latest
+     * received first, then by id; on `payments_space_id_received_at_idx`.
+     */
+    page(
+      filter: PaymentsFilter,
+      voided: PaymentsQuery['voided'],
+      { skip, take }: { skip: number; take: number },
+    ): Promise<ItemPaymentRow[]> {
+      return prisma.payment.findMany({
+        where: paymentsWhere(filter, voided),
+        orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
+        skip,
+        take,
+        select: ITEM_PAYMENT,
+      });
+    },
+
+    /** How many payments the filter and its void filter hold. */
+    count(filter: PaymentsFilter, voided: PaymentsQuery['voided']): Promise<number> {
+      return prisma.payment.count({ where: paymentsWhere(filter, voided) });
+    },
+
+    /**
+     * The filter's totals, its void filter aside: the payments not voided, summed by method and
+     * counted; the voided ones counted and summed apart. Two statements, in parallel.
+     */
+    async totals(filter: PaymentsFilter): Promise<PaymentTotals> {
+      const where = paymentsWhere(filter);
+      const [byMethod, voided] = await Promise.all([
+        prisma.payment.groupBy({
+          by: ['method'],
+          where: { ...where, voidedAt: null },
+          _sum: { amountAgorot: true },
+          _count: { _all: true },
+        }),
+        prisma.payment.aggregate({
+          where: { ...where, voidedAt: { not: null } },
+          _sum: { amountAgorot: true },
+          _count: { _all: true },
+        }),
+      ]);
+      const sums = { CASH: 0, TRANSFER: 0 };
+      let count = 0;
+      for (const group of byMethod) {
+        sums[group.method] = group._sum.amountAgorot ?? 0;
+        count += group._count._all;
+      }
+      return {
+        count,
+        receivedAgorot: sums.CASH + sums.TRANSFER,
+        byMethod: sums,
+        voided: { count: voided._count._all, amountAgorot: voided._sum.amountAgorot ?? 0 },
       };
     },
 
