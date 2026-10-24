@@ -865,7 +865,6 @@ Added by the public fix (`CHANGES.md` › *Batch 3*). No screenshot yet: `screen
 | Cards · photos still loading — desktop 1440 | `Directory.html?loc=none&photos=loading` | 1440×1000 | — |
 | About · contact for everyone — desktop 1440 | `About.html#contact` | 1440×1000 | — |
 
-<<<<<<< HEAD
 ## 54 · Batch 4 — the account
 
 Added by the account fix (`CHANGES.md` › *Batch 4*). No screenshot yet: `screens/` is regenerated once, at the end of the fix phase.
