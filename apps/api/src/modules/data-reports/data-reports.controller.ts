@@ -1,8 +1,16 @@
-import type { CreateReportRequest, MyReport, MyReportsQuery } from '@masaha/shared/data-reports';
+import type {
+  CreateReportRequest,
+  DecideReportRequest,
+  MyReport,
+  MyReportsQuery,
+  SpaceReport,
+  SpaceReportsQuery,
+} from '@masaha/shared/data-reports';
 import type { Request, Response } from 'express';
 
-import { signedIn } from '../../shared/auth/index.ts';
+import { signedIn, spaceOf } from '../../shared/auth/index.ts';
 import { buildPaginationMeta, sendSuccess } from '../../shared/http/index.ts';
+import { parseId } from '../../shared/validation/index.ts';
 import type { DataReportsService } from './data-reports.service.ts';
 
 export function createDataReportsController(service: DataReportsService) {
@@ -24,6 +32,25 @@ export function createDataReportsController(service: DataReportsService) {
       const query = req.query as unknown as MyReportsQuery;
       const { rows, total } = await service.mine({ id: userId, role }, query);
       sendSuccess(res, rows satisfies MyReport[], { meta: buildPaginationMeta(query, total) });
+    },
+
+    /** 200 with a page of the space's reports and its `meta`: never who reported them. */
+    ofSpace: async (req: Request, res: Response) => {
+      const query = req.query as unknown as SpaceReportsQuery;
+      const { rows, total } = await service.ofSpace(spaceOf(req).id, query);
+      sendSuccess(res, rows satisfies SpaceReport[], { meta: buildPaginationMeta(query, total) });
+    },
+
+    /** 200 with the report as decided now, or as it was for the same decision again. */
+    decideAtSpace: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const decided = await service.decideAtSpace(
+        { id: userId, role },
+        spaceOf(req),
+        parseId(req.params.reportId),
+        req.body as DecideReportRequest,
+      );
+      sendSuccess(res, decided satisfies SpaceReport);
     },
   };
 }

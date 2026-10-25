@@ -1,17 +1,28 @@
-import type { CreateReportRequest, MyReport, MyReportsQuery } from '@masaha/shared/data-reports';
+import type {
+  CreateReportRequest,
+  DecideReportRequest,
+  MyReport,
+  MyReportsQuery,
+  SpaceReport,
+  SpaceReportsQuery,
+} from '@masaha/shared/data-reports';
 
-import type { RunInTransaction } from '../../db/index.ts';
-import type { Actor } from '../../shared/auth/index.ts';
+import type { RunInTransaction, Tx } from '../../db/index.ts';
+import type { DataReportResolver } from '../../generated/prisma/enums.ts';
+import type { AuditWriter } from '../../shared/audit/index.ts';
+import { can, type Actor, type LoadedSpace, type SpaceLink } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import { toSkip } from '../../shared/http/index.ts';
 import type { LookupsService } from '../lookups/index.ts';
 import type { PublicListingService, PublicSpaceService, SpacesService } from '../spaces/index.ts';
 import type { UsersService } from '../users/index.ts';
-import { toMyReport } from './data-reports.mapper.ts';
-import { createDataReportsRepository } from './data-reports.repository.ts';
+import { toMyReport, toSpaceReport } from './data-reports.mapper.ts';
+import { createDataReportsRepository, type ReportRow } from './data-reports.repository.ts';
+import { decisionOf } from './decision.ts';
 
 interface Dependencies {
   runInTransaction: RunInTransaction;
+  audit: AuditWriter;
   spaces: SpacesService;
   publicSpace: PublicSpaceService;
   publicListing: PublicListingService;
@@ -23,10 +34,12 @@ interface Dependencies {
 
 /**
  * The users' reports of a space's wrong information (docs/backend/conventions.md §7): sent by a
- * signed-in user about a listed space, read by the reporter.
+ * signed-in user about a listed space, read by the reporter, read and decided by the space's owner,
+ * or by the admin while the space is unverified.
  */
 export function createDataReportsService({
   runInTransaction,
+  audit,
   spaces,
   publicSpace,
   publicListing,
@@ -46,7 +59,103 @@ export function createDataReportsService({
     return new Set(rows.map(({ id }) => id));
   }
 
+  /**
+   * Decides a report, in one transaction and in this order: the report's space, read without a
+   * lock, the expected one when one is (else `not_found`); the space's lock (`not_found` once it is
+   * deleted); `can('dataReports.resolve')` on the links read under it, so an owner linked or
+   * unlinked meanwhile decides; the report's row, locked; `decisionOf`: a retry answered as it is,
+   * writing nothing, another decision of a decided report `REPORT_ALREADY_DECIDED`; else the
+   * decision, by `resolvedAs`, audited with its reply.
+   */
+  async function decideUnder(
+    actor: Actor,
+    reportId: number,
+    request: DecideReportRequest,
+    {
+      spaceId,
+      linksUnder,
+      resolvedAs,
+    }: {
+      spaceId: number | null;
+      linksUnder: (spaceId: number, tx: Tx) => Promise<readonly SpaceLink[]>;
+      resolvedAs: DataReportResolver;
+    },
+  ): Promise<ReportRow> {
+    const reportSpaceId = await repository.findSpaceOf(reportId);
+    if (reportSpaceId === null || (spaceId !== null && reportSpaceId !== spaceId)) {
+      throw AppError.notFound(undefined, 'Report not found');
+    }
+    return runInTransaction(async (tx) => {
+      if (!(await spaces.lock(reportSpaceId, tx))) {
+        throw AppError.notFound(undefined, 'Report not found');
+      }
+      if (!can(actor, 'dataReports.resolve', { links: await linksUnder(reportSpaceId, tx) })) {
+        throw AppError.forbidden();
+      }
+      const current = await repository.lockIn(reportId, tx);
+      const outcome = decisionOf(current, request, actor.id);
+      if (outcome === 'as-is') return current;
+      if (outcome === 'conflict') throw AppError.conflict('REPORT_ALREADY_DECIDED');
+
+      const note = request.note ?? null;
+      const decided = await repository.decide(
+        reportId,
+        {
+          status: request.status,
+          resolvedById: actor.id,
+          resolvedAt: now(),
+          resolutionNote: note,
+          resolvedAs,
+        },
+        tx,
+      );
+      await audit(
+        {
+          actorId: actor.id,
+          action: request.status === 'RESOLVED' ? 'dataReport.resolved' : 'dataReport.dismissed',
+          entityType: 'dataReport',
+          entityId: reportId,
+          spaceId: reportSpaceId,
+          after: { note },
+        },
+        tx,
+      );
+      return decided;
+    });
+  }
+
   return {
+    /**
+     * A page of the space's reports, newest first, by status and field, as its owner reads them:
+     * never who reported them; and how many there are. Read without a lock.
+     */
+    async ofSpace(
+      spaceId: number,
+      { status, field, page, limit }: SpaceReportsQuery,
+    ): Promise<{ rows: SpaceReport[]; total: number }> {
+      const { rows, total } = await repository.pageOfSpace(
+        spaceId,
+        { status, field },
+        { skip: toSkip({ page, limit }), take: limit },
+      );
+      return { rows: rows.map(toSpaceReport), total };
+    },
+
+    /** The space's owner decides one of its reports (`decideUnder`), on its links under the lock. */
+    async decideAtSpace(
+      actor: Actor,
+      space: LoadedSpace,
+      reportId: number,
+      request: DecideReportRequest,
+    ): Promise<SpaceReport> {
+      const decided = await decideUnder(actor, reportId, request, {
+        spaceId: space.id,
+        linksUnder: (_spaceId, tx) => space.linksUnder(tx),
+        resolvedAs: 'OWNER',
+      });
+      return toSpaceReport(decided);
+    },
+
     /**
      * A page of the user's own reports, newest first, all or open or decided, each with its
      * decision and its space's names, `listed: false` once the space left the directory; and how

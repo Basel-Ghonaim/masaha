@@ -37,6 +37,7 @@ import {
 } from './modules/payments/index.ts';
 import {
   createDataReportsController,
+  createDataReportsManageRouter,
   createDataReportsService,
   createDataReportsSiteRouter,
 } from './modules/data-reports/index.ts';
@@ -436,6 +437,7 @@ export function createApi({
   });
   const dataReports = createDataReportsService({
     runInTransaction,
+    audit: writeAudit,
     spaces,
     publicSpace,
     publicListing,
@@ -526,6 +528,7 @@ export function createApi({
     '/photos',
     createPhotosManageRouter({ photos: createPhotosController(photos), limiter }),
   );
+  manage.use('/data-reports', createDataReportsManageRouter(dataReportsController));
   manage.use('/packages', createPackagesManageRouter(createPackagesController(packages)));
   manage.use(
     '/announcements',

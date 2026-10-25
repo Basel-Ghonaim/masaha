@@ -1,4 +1,5 @@
 import type {
+  DataReportDecision,
   DataReportField,
   DataReportStatus,
   ReportStatusFilter,
@@ -33,6 +34,11 @@ export interface ReportRow {
   resolutionNote: string | null;
   resolvedAs: DataReportResolver | null;
   createdAt: Date;
+}
+
+/** A report under its decision's lock: who decided it, to tell a retry from another decision. */
+export interface LockedReport extends ReportRow {
+  resolvedById: number | null;
 }
 
 /** A page's bounds. */
@@ -93,6 +99,56 @@ export function createDataReportsRepository() {
         prisma.dataReport.count({ where }),
       ]);
       return { rows, total };
+    },
+
+    /**
+     * A page of the space's reports, newest first, then id, filtered by status and field; and how
+     * many pass. Its select has no reporter: the owner's list never holds one.
+     */
+    async pageOfSpace(
+      spaceId: number,
+      {
+        status,
+        field,
+      }: { status?: ReportStatusFilter | undefined; field?: DataReportField | undefined },
+      { skip, take }: Page,
+    ): Promise<{ rows: ReportRow[]; total: number }> {
+      const where = { spaceId, ...statusWhere(status), ...(field ? { field } : {}) };
+      const [rows, total] = await Promise.all([
+        prisma.dataReport.findMany({ where, orderBy: NEWEST_FIRST, skip, take, select: REPORT }),
+        prisma.dataReport.count({ where }),
+      ]);
+      return { rows, total };
+    },
+
+    /** The space a report is about, read without a lock; `null` for no such report. */
+    async findSpaceOf(id: number): Promise<number | null> {
+      const row = await prisma.dataReport.findUnique({ where: { id }, select: { spaceId: true } });
+      return row?.spaceId ?? null;
+    },
+
+    /** Locks the report's row (`FOR UPDATE`) and answers it with who decided it. */
+    async lockIn(id: number, tx: Tx): Promise<LockedReport> {
+      await tx.$queryRaw`SELECT id FROM data_reports WHERE id = ${id} FOR UPDATE`;
+      return tx.dataReport.findUniqueOrThrow({
+        where: { id },
+        select: { ...REPORT, resolvedById: true },
+      });
+    },
+
+    /** Writes a decision's fields together (the CHECKs of `data_report_rules`). */
+    decide(
+      id: number,
+      data: {
+        status: DataReportDecision;
+        resolvedById: number;
+        resolvedAt: Date;
+        resolutionNote: string | null;
+        resolvedAs: DataReportResolver;
+      },
+      tx: Tx,
+    ): Promise<ReportRow> {
+      return tx.dataReport.update({ where: { id }, data, select: REPORT });
     },
   };
 }
