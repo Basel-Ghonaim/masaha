@@ -22,6 +22,7 @@ export { RequireSpaceRole } from './guards/RequireSpaceRole';
 export { CHANGE_PASSWORD_PATH, RESET_PASSWORD_PATH, SIGN_IN_PATH } from './returnUrl';
 export { RecordTitleProvider } from './title/RecordTitleProvider';
 export { RouteErrorState } from './states/RouteErrorState';
+export { showActionBar, useActionBarShown } from './actionBar/actionBarShown';
 export type { PageTitle } from './title/PageTitle';
 export type { TitledHandle } from './title/titledHandle';
 export { usePageTitle } from './title/usePageTitle';

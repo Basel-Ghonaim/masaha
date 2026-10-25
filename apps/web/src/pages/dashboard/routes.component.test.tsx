@@ -53,19 +53,39 @@ const ADMIN_PAGES = [
   'Settings',
 ];
 
+/** The desk's state now, with no one present. */
+const NO_ONE_PRESENT = {
+  status: 'AVAILABLE',
+  capacity: 40,
+  present: 0,
+  override: null,
+  people: [],
+};
+
+/** The desk's terms: an hour and a day price, no student rates, no typed price. */
+const VISIT_TERMS = {
+  rounding: { rule: 'UP_AFTER_MINUTES', minutes: 15 },
+  capAtDayPrice: true,
+  mayTypePrice: false,
+  rates: [{ shiftId: null, general: { hourAgorot: 500, dayAgorot: 2500 }, student: null }],
+};
+
 /** Signs in a user (id 1) with `fields`; their spaces are answered from their links. */
 function signIn(fields: Partial<SessionUser>) {
   const { user } = aSession(fields);
   establishSession({ user, accessToken: 'token-1' }, { source: 'signIn' });
-  fakeTransport(() =>
-    ok(
+  fakeTransport((request) => {
+    // The desk, where reception lands: its reads answered as the server would, with no one present.
+    if (request.url?.endsWith('/occupancy') === true) return ok(NO_ONE_PRESENT);
+    if (request.url?.endsWith('/visit-terms') === true) return ok(VISIT_TERMS);
+    return ok(
       user.spaces.map((link: SessionSpaceLink) => ({
         ...FOCUS,
         ...link,
         nameEn: link.spaceId === FOCUS.spaceId ? FOCUS.nameEn : 'Nook',
       })),
-    ),
-  );
+    );
+  });
 }
 
 const asOwner = () => {
@@ -695,6 +715,81 @@ describe("the owner's packages and prices", () => {
     expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7/packages');
     expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7');
     expect(requests.filter(({ url }) => url?.startsWith('/admin/') === true)).toEqual([]);
+  });
+});
+
+describe("the space's front desk", () => {
+  // The page loads lazily, as the profile does: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/desk/DeskPage');
+  });
+
+  /** The desk's reads: who is present, the visit terms and the space, each from the managed route. */
+  function serveDesk() {
+    return fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/occupancy') {
+        return ok({
+          status: 'AVAILABLE',
+          capacity: 40,
+          present: 1,
+          override: null,
+          people: [
+            {
+              kind: 'VISIT',
+              id: 12,
+              name: 'Omar',
+              since: '2026-07-01T07:00:00.000Z',
+              chargeNowAgorot: 500,
+            },
+          ],
+        });
+      }
+      if (request.url === '/manage/spaces/7/visit-terms') return ok(VISIT_TERMS);
+      if (request.url === '/manage/spaces/7') return ok({ ...ADDED, isVerified: true });
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+  }
+
+  it.each([
+    ['the owner', asOwner],
+    ['reception', asReception],
+  ])(
+    'shows %s the desk under its title, with who is present and their check-out',
+    async (_, as) => {
+      as();
+      const requests = serveDesk();
+      renderDashboard('/dashboard/spaces/7/desk');
+
+      await topBarTitle('Front desk');
+      expect(
+        await screen.findByRole('heading', { level: 2, name: 'Present now 1 / 40' }),
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', { name: heard('Check out Omar') }),
+      ).toBeInTheDocument();
+      const bar = within(await screen.findByRole('banner'));
+      expect(bar.getByRole('button', { name: 'Check in a visit' })).toBeInTheDocument();
+      expect(bar.getByRole('button', { name: 'Switch staff' })).toBeInTheDocument();
+      expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7/visit-terms');
+    },
+  );
+
+  it('puts «Check in a visit» in the bar at the foot below 768 px, and «Switch staff» in the «⋯» menu', async () => {
+    const user = userEvent.setup();
+    stubScreenWidth(390);
+    asReception();
+    serveDesk();
+    renderDashboard('/dashboard/spaces/7/desk');
+
+    await topBarTitle('Front desk');
+    const action = await screen.findByRole('button', { name: 'Check in a visit' });
+    expect(screen.getByRole('banner')).not.toContainElement(action);
+    expect(screen.getByRole('main')).not.toContainElement(action);
+    await user.click(
+      within(screen.getByRole('banner')).getByRole('button', { name: 'More actions' }),
+    );
+    expect(await screen.findByRole('menuitem', { name: 'Switch staff' })).toBeInTheDocument();
   });
 });
 

@@ -1,10 +1,12 @@
 import { AUTH } from './auth';
 import { DASHBOARD } from './dashboard';
+import { DESK } from './desk';
 import { DIRECTORY } from './directory';
 import { ERRORS } from './errors';
 import { FORMS } from './forms';
 import { LOOKUPS } from './lookups';
 import { MAP } from './map';
+import { OCCUPANCY } from './occupancy';
 import { PACKAGES } from './packages';
 import { PLATFORM_SETTINGS } from './platformSettings';
 import { PREFERENCES } from './preferences';
@@ -29,11 +31,13 @@ import { VALIDATION } from './validation';
 export const ENGLISH = {
   auth: AUTH,
   dashboard: DASHBOARD,
+  desk: DESK,
   directory: DIRECTORY,
   errors: ERRORS,
   forms: FORMS,
   lookups: LOOKUPS,
   map: MAP,
+  occupancy: OCCUPANCY,
   packages: PACKAGES,
   platformSettings: PLATFORM_SETTINGS,
   preferences: PREFERENCES,

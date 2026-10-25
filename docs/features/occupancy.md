@@ -1,8 +1,8 @@
 # Occupancy
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
-> **Authority:** The `occupancy` capability: a space's state now: its capacity, private to its staff and set by its owner, who is present, and the live status. Its endpoints are owned by the API contract ([Capacity](../api/api-contract.md#capacity-managed), [Occupancy](../api/api-contract.md#occupancy-managed)); its entity by the [data model](../architecture/data-model.md#spaces), and the live-status rule by its [derived values](../architecture/data-model.md#derived-values-computed-not-stored). The API is built; on the web, the settings page's attendance card reads and sets the capacity.
-> **Scope:** the API module `occupancy` (L4); `@masaha/shared/occupancy`; the web feature `features/occupancy`, its capacity's hooks only (not dashboard-only: the directory will read the live status).
+> **Authority:** The `occupancy` capability: a space's state now: its capacity, private to its staff and set by its owner, who is present, and the live status. Its endpoints are owned by the API contract ([Capacity](../api/api-contract.md#capacity-managed), [Occupancy](../api/api-contract.md#occupancy-managed)); its entity by the [data model](../architecture/data-model.md#spaces), and the live-status rule by its [derived values](../architecture/data-model.md#derived-values-computed-not-stored). The API is built; on the web, the settings page's attendance card reads and sets the capacity, and the desk shows the state now, the override and the people present.
+> **Scope:** the API module `occupancy` (L4); `@masaha/shared/occupancy`; the web feature `features/occupancy`: the capacity's hooks, and the desk's state now, override and people present (not dashboard-only: the directory will read the live status).
 
 ## What it does
 
@@ -17,7 +17,8 @@
 - **The space's owner,** through the API: reads and sets the capacity, reads the state now, and sets and clears the override; on the dashboard, sets the capacity in the settings page's attendance card ([space-settings › Behaviour and flows](space-settings.md#behaviour-and-flows)).
 - **The space's reception,** through the API: reads the state now, the capacity in it, but not the capacity's own route; sets and clears the override.
 - **The directory,** for the public: each listed space's live status, and which are available now, set-based ([directory](directory.md)); never a count or a capacity.
-- **The front desk** ([desk](desk.md)): a check-in's warnings, in its transaction: full when *present* reaches the capacity, outside the hours; whether a customer is present, before it archives one; who is present, for a customer's file. The admin never reaches any of it: a space's capacity and its counts are private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). No web screen reads the state now yet; the owner's settings page reads and sets the capacity.
+- **The front desk** ([desk](desk.md)): a check-in's warnings, in its transaction: full when *present* reaches the capacity, outside the hours; whether a customer is present, before it archives one; who is present, for a customer's file. The admin never reaches any of it: a space's capacity and its counts are private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). The owner's settings page reads and sets the capacity.
+- **The desk on the web** (`pages/dashboard/space/desk/`, the owner and reception): «الحاضرون الآن» and the live status's control, each this capability's component; the page sets the desk's check-out in each row (2026-10-24, #116).
 
 ## Responsibility boundary
 
@@ -46,6 +47,8 @@
 **The directory's read.** `liveStatusFor` decides many spaces at once: one query each for their rows, their open visits and open check-ins (`presentCountsIn`), their closures, and the weeks the directory did not pass; `availableAmong` keeps the verified spaces `AVAILABLE` now, for the directory's filter.
 
 **The capacity's read.** One query reads the space's row; a space without one has no capacity.
+
+**The state now on the web.** `useStateNowQuery` reads it on arrival, every 30 s while the page is visible and never while it is hidden, and at once on returning to it, however fresh. `PresentList` shows it as a section named by its heading, «الحاضرون الآن» with the count present and the capacity («27 / 40», or the count alone with no capacity), then a table from 768 px and a card each below it: the name, the kind, since when on Gaza's clock and for how long (said again each minute), a visit's charge so far as the server answered it, and the action the page puts in each row. A failed refresh keeps the last list and says so. `LiveStatusControl` is one button in the colour of what visitors see, the whole line from 768 px and the state's word alone below it, always named by the whole line, with «يدويًا» and the time left under an override; its panel sets a state for one of the four durations, or returns to the automatic status, and the answer replaces the state now. While the status is closed with no override it is disabled, with its reason beside it; `SPACE_NOT_OPEN` from the server is said in the panel.
 
 **The capacity's write.** In one transaction: the space's lock; `can()` on the links as they are under it; the current capacity. The same value writes nothing; another is written, the row created on its first write, and audited. Only the capacity is written, so the manual override is never touched.
 
@@ -76,11 +79,17 @@ A change applies from then on ([data model › Front desk and money](../architec
 
 - **The capacity is saved through the settings page's attendance card, before the settings** (the owner's O2, S8). *Why:* the design draws one card and one save; the page composes it from this capability's hooks (`useCapacityQuery`, `useSetCapacity`) and `space-settings`' — a component of two capabilities lives in neither — and the capacity goes first, so a refused second part says exactly what was saved ([finding 96](../architecture/findings/96-the-attendance-card-saves-two-capabilities-in-one-save.md)). 2026-10-20, #99.
 
+- **The desk polls the state now, never the lists** (S2): every 30 s while visible (`refetchInterval`, never in the background) and on focus always. *Why:* the desk is open all day; a hidden tab reading every 30 s spends a weak connection for nothing. 2026-10-24, #116.
+- **The present list is named once** (DI-1): the section by its heading, the table «قائمة الحاضرين», so a screen reader never hears the same name twice. 2026-10-24, #116.
+- **The control is disabled while the space is closed** (DI-32), with «لا تُضبط الحالة والمساحة مغلقة الآن.» beside it: the web knows only the status, so the server's `SPACE_NOT_OPEN` still has its line in the panel. 2026-10-24, #116.
+- **A space with no capacity** (DI-33) counts the people present alone, and the control reads «يظهر للزوار: بلا حالة مباشرة». 2026-10-24, #116.
+- **A visit's charge so far is the server's** (DI-34): «حتى الآن {amount}» from `chargeNowAgorot`, «يُحدَّد عند الخروج» when it is `null`; the web never prices a stay. 2026-10-24, #116.
+
 ## Code map
 
 - **API:** `apps/api/src/modules/occupancy/`, entry `index.ts`: the service, the repository, the manage router, the live-status rule (`liveStatus.ts`), the override's end (`overrideUntil.ts`) and *present* (`present.ts`). The reads it composes: `modules/visits/`, `modules/subscriptions/`, `modules/customers/`, `modules/announcements/`, and `spaces.weekOf`.
 - **Shared:** `packages/shared/src/occupancy/`: the request, with the capacity's bound, and the override's (`setStatusOverrideSchema`, `OVERRIDE_DURATIONS`); the responses (`SpaceOccupancyNow`, `PresentPerson`, `LiveStatus`).
-- **Web:** `apps/web/src/features/occupancy/`, entry `index.ts` (`useCapacityQuery`, `useSetCapacity`), read by `pages/dashboard/space/settings/`: the repository in `repository/`, the keys and the two hooks in `hooks/`; a 404 on the capacity's route, read or save, fetches the owner's own spaces again (`shared/api`'s `useLinkEnded`).
+- **Web:** `apps/web/src/features/occupancy/`, entry `index.ts` (`useCapacityQuery`, `useSetCapacity`, read by `pages/dashboard/space/settings/`; `PresentList`, `LiveStatusControl`, by `pages/dashboard/space/desk/`): the repository in `repository/`, the keys and the capacity's hooks in `hooks/`, the state now's query and the list's hook in `hooks/now/`, the control's hook and the override's writes in `hooks/status/`, the stay's and the override's time (`stayDuration`, `overrideLeft`) in `services/`, the components in `components/`; a 404 on a managed route, read or write, fetches the user's own spaces again (`shared/api`'s `useLinkEnded`). Words: the catalogue's `occupancy` section.
 
 ## Open findings
 
@@ -99,3 +108,4 @@ None.
 ### Web history
 
 - #99 — the capacity's read and its save, for the owner's settings page.
+- #116 — the desk's state now: «الحاضرون الآن», polled while visible, and the live status's control with its override.
