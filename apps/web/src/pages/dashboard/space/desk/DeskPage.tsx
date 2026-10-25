@@ -1,5 +1,12 @@
 import type { PresentPerson } from '@masaha/shared/occupancy';
-import { CheckOutAction, useVisitDialog, useVisitTermsQuery, VisitDialog } from '@features/desk';
+import {
+  CheckOutAction,
+  UncollectedCard,
+  UnpricedCard,
+  useVisitDialog,
+  useVisitTermsQuery,
+  VisitDialog,
+} from '@features/desk';
 import { LiveStatusControl, PresentList, useStateNowQuery } from '@features/occupancy';
 import { useSpaceShifts } from '@features/spaces';
 import { useCopy } from '@shared/copy';
@@ -14,6 +21,7 @@ import {
   useMediaQuery,
 } from '@shared/design-system';
 import { NotFoundState, parseSpaceId } from '@shared/routing';
+import { useSession } from '@shared/session';
 import { useCallback } from 'react';
 import { useParams } from 'react-router';
 import { PageActionBar } from '../../shell/PageActionBar';
@@ -24,8 +32,10 @@ import { SwitchStaffButton, SwitchStaffItem } from './SwitchStaffButton';
  * «مكتب الاستقبال», the owner's and reception's: in the top bar, the live status visitors see and
  * its control, «تبديل الموظف» and «تسجيل زيارة» from 768 px; below it the control alone, «تبديل
  * الموظف» in a «⋯» menu and «تسجيل زيارة» in the bar at the foot (P1). The page is the people
- * present, `occupancy`'s, with `desk`'s check-out in each row; the visit's check-in is offered the
- * space's shifts as `spaces` reads them. The guard has checked the space's id and the role.
+ * present, `occupancy`'s, with `desk`'s check-out in each row, and beside it from `xl` (under it
+ * before) `desk`'s uncollected visits and, for whoever may type a price, its unpriced ones; the visit's check-in is offered the space's shifts as `spaces`
+ * reads them. What the role at the space allows beyond that (S5) is read from the session's link;
+ * the server decides. The guard has checked the space's id and the role.
  */
 export function DeskPage() {
   const spaceId = parseSpaceId(useParams().spaceId);
@@ -49,6 +59,9 @@ function Desk({ spaceId }: { spaceId: number }) {
   const shifts = useSpaceShifts('owner', spaceId);
   const full = useStateNowQuery(spaceId).data?.status === 'FULL';
   const visit = useVisitDialog({ spaceId, shifts, full });
+  const owner = useSession(
+    (session) => session.user?.spaces.find((link) => link.spaceId === spaceId)?.role === 'OWNER',
+  );
   const openVisit = () => {
     visit.setOpen(true);
   };
@@ -100,6 +113,10 @@ function Desk({ spaceId }: { spaceId: number }) {
       <div className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start">
         <div className="xl:col-span-8">
           <PresentList spaceId={spaceId} action={action} />
+        </div>
+        <div className="flex flex-col gap-6 xl:col-span-4">
+          <UncollectedCard spaceId={spaceId} abilities={{ writeOff: owner }} />
+          <UnpricedCard spaceId={spaceId} mayTypePrice={terms.data?.mayTypePrice ?? false} />
         </div>
       </div>
       <VisitDialog dialog={visit} />

@@ -7,4 +7,10 @@ export const deskKeys = {
   /** One open visit with what it costs now. */
   quote: (spaceId: number, visitId: number) =>
     ['space', spaceId, 'desk', 'quote', visitId] as const,
+  /** A page of the visits closed with something left to collect. */
+  uncollected: (spaceId: number, page: number) =>
+    ['space', spaceId, 'desk', 'uncollected', page] as const,
+  /** A page of the visits closed with no charge. */
+  unpriced: (spaceId: number, page: number) =>
+    ['space', spaceId, 'desk', 'unpriced', page] as const,
 };

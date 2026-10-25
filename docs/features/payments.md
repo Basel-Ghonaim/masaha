@@ -17,7 +17,7 @@
 ## Who uses it
 
 - **The space's owner**, whose ledger reads every payment, and **reception**, whose «دفعاتي اليوم» reads its own of today, through its own route. No web screen yet.
-- **The front desk** ([desk](desk.md)), for the space's owner and reception, at a visit's check-out, and for the owner's void of a payment; and, through its own route, the uncollected visits, which the owner's «يحتاج انتباهك» will count. No web screen yet.
+- **The front desk** ([desk](desk.md)), for the space's owner and reception, at a visit's check-out, and for the owner's void of a payment; and, through its own route, the uncollected visits, which the owner's «يحتاج انتباهك» will count. On the web, the desk's screen lists the uncollected visits and records a payment on one ([desk](desk.md), 2026-10-25, #117).
 
 ## Responsibility boundary
 

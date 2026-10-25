@@ -1,4 +1,5 @@
 import type { VisitCheckOut } from '@masaha/shared/desk';
+import type { UncollectedVisit } from '@masaha/shared/payments';
 import type { DeskVisit, QuotedVisit, VisitTerms } from '@masaha/shared/visits';
 
 /** The desk's terms as the server answers them: ₪5 an hour up to ₪25, student rates, no typing. */
@@ -76,5 +77,58 @@ export function checkedOut(
       paid === null
         ? null
         : { id: 40, note: null, receivedAt: '2026-07-01T09:15:00.000Z', recordedById: 15, ...paid },
+  };
+}
+
+/**
+ * A visit of space 7 the uncollected list holds: «Khalid»'s, closed by the auto check-out on 6 October
+ * with no customer, ₪25 owed (`balance`: `null` for an unpriced one), changed as a test needs.
+ */
+export function uncollectedVisit(
+  change: Partial<DeskVisit> = {},
+  balance: number | null = 2500,
+): UncollectedVisit {
+  return {
+    visit: deskVisit({
+      id: 3,
+      visitorName: 'Khalid',
+      checkedInAt: '2026-10-06T11:00:00.000Z',
+      checkedOutAt: '2026-10-06T19:00:00.000Z',
+      checkoutMethod: 'AUTO',
+      charge:
+        balance === null
+          ? null
+          : {
+              amountAgorot: balance,
+              roundingRule: 'UP_AFTER_MINUTES',
+              roundingMinutes: 15,
+              capApplied: true,
+              typedById: null,
+              reason: null,
+            },
+      ...change,
+    }),
+    paidAgorot: 0,
+    balanceAgorot: balance,
+  };
+}
+
+/** The uncollected list's answer: a page of `rows`, of `total` in all, 20 a page. */
+export function uncollectedPage(rows: UncollectedVisit[], total = rows.length, currentPage = 1) {
+  const totalPages = Math.ceil(total / 20);
+  return {
+    status: 200,
+    data: {
+      success: true,
+      data: rows,
+      meta: {
+        currentPage,
+        limit: 20,
+        totalPages,
+        totalRecords: total,
+        hasNextPage: currentPage < totalPages,
+        hasPreviousPage: currentPage > 1,
+      },
+    },
   };
 }
