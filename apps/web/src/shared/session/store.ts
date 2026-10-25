@@ -3,6 +3,7 @@ import { createStore } from 'zustand/vanilla';
 import type {
   Session,
   SessionEstablishedListener,
+  SessionEnd,
   SessionSource,
   SessionState,
   UnreachableReason,
@@ -15,6 +16,9 @@ const store = createStore<SessionState>()(() => ({
   user: null,
   accessToken: null,
 }));
+
+// Why the last session ended, beside the session itself so the session's own shape is unchanged.
+const endings = createStore<{ endedBy: SessionEnd }>()(() => ({ endedBy: null }));
 
 const establishedListeners = new Set<SessionEstablishedListener>();
 const endedListeners = new Set<() => void>();
@@ -52,11 +56,22 @@ export function useSession<T>(select: (session: SessionState) => T): T {
   return useStore(store, select);
 }
 
+/** Why the last session ended, for code that is not a component. */
+export function getSessionEnd(): SessionEnd {
+  return endings.getState().endedBy;
+}
+
+/** Why the last session ended, such as the sign-in page's line after an idle end. */
+export function useSessionEnd(): SessionEnd {
+  return useStore(endings, (state) => state.endedBy);
+}
+
 /**
  * Holds a session the server issued, as it sent it, then tells the listeners how it arrived. A
  * sign-in hands its answer here with `source: 'signIn'`; a restore or a refresh, with `'restore'`.
  */
 export function establishSession(session: Session, { source }: { source: SessionSource }): void {
+  endings.setState({ endedBy: null });
   store.setState(
     { status: 'authenticated', user: session.user, accessToken: session.accessToken },
     true,
@@ -106,12 +121,13 @@ export function markUnreachable(reason: UnreachableReason): void {
 }
 
 /**
- * No session. The ended listeners run only when a session was held, so a restore that finds none
- * ends nothing.
+ * No session, and why it ended when the server said (`endedBy`). The ended listeners run only when a
+ * session was held, so a restore that finds none ends nothing.
  */
-export function endSession(): void {
+export function endSession({ endedBy = null }: { endedBy?: SessionEnd } = {}): void {
   const held = store.getState().user !== null;
   generation += 1;
+  endings.setState({ endedBy });
   store.setState({ status: 'anonymous', user: null, accessToken: null }, true);
   if (held) {
     notify(endedListeners);

@@ -22,7 +22,7 @@
 
 ## Who uses it
 
-- **The space's owner and reception,** through the API. The admin never reaches it: the desk is private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). On the dashboard, the owner and reception work «مكتب الاستقبال» (2026-10-24, #116). On the shared desk device, «تبديل الموظف» signs the person out on the server and opens sign-in with the desk as the page to return to; the server's idle sign-out of a reception session is not built yet.
+- **The space's owner and reception,** through the API. The admin never reaches it: the desk is private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). On the dashboard, the owner and reception work «مكتب الاستقبال» (2026-10-24, #116). On the shared desk device, «تبديل الموظف» signs the person out on the server and opens sign-in with the desk as the page to return to; the server ends a reception session left idle for 15 minutes (#118), and the sign-in page then says why ([auth](auth.md), #122).
 
 ## Responsibility boundary
 

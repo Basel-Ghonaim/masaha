@@ -251,6 +251,7 @@ A feature's wire types, its requests and the server's answers, come from `@masah
 - `shared/session` (Zustand), **built**: the session's state, its restore, refresh and sign-out ([ADR 0003](../architecture/decisions/0003-session-model.md)). No UI.
   - **What it holds:** the `SessionUser` and the access token exactly as the server sends them (the contract's types from `@masaha/shared`, no copy and no mapper), and the status. The token lives in memory only.
   - **The status:** `restoring`, `authenticated`, `anonymous`, or `unreachable` with its reason, `offline` (no answer, or a timeout) or `error` (an answer that is not a verdict).
+  - **Why the last session ended** (`endedBy`), beside the status: `idle` when a refresh — the restore's or the transport's — is refused 401 `SESSION_IDLE` (the server ended a reception session left idle), else `null`; cleared once a session is established. Read with `useSessionEnd()`, elsewhere `getSessionEnd()`; the sign-in page says it (2026-10-25, #122).
   - **Read** in a component with `useSession(select)`, elsewhere with `getSession()`. The raw store is never exported; only the session's own functions write it.
   - **The repository** (`repository/`) holds the server calls, `refresh` and `logout`, behind one interface (`SessionRepository`, made by `createSessionRepository()`), on the app's one client; beside it, the session hint.
   - **The restore** runs at bootstrap and never blocks a render: public pages show at once, and only the guards wait (§2).
