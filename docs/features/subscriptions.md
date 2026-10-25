@@ -1,8 +1,8 @@
 # Subscriptions
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
-> **Authority:** The `subscriptions` capability: a customer's subscriptions and their check-ins. Its entity and its derived values by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); its endpoints by the API contract ([Subscriptions (managed)](../api/api-contract.md#subscriptions-managed)). The API is built (the corrections and the end its own routes; the subscribe and the statement the desk's); no web screen yet.
-> **Scope:** the API module `subscriptions` (L3); `@masaha/shared/subscriptions`. No web feature yet.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
+> **Authority:** The `subscriptions` capability: a customer's subscriptions and their check-ins. Its entity and its derived values by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); its endpoints by the API contract ([Subscriptions (managed)](../api/api-contract.md#subscriptions-managed)). The API is built (the corrections and the end its own routes; the subscribe and the statement the desk's); on the web, [desk](desk.md) shows a customer's subscriptions.
+> **Scope:** the API module `subscriptions` (L3); `@masaha/shared/subscriptions`. No web feature of its own: [desk](desk.md)'s screens read it.
 
 ## What it does
 
@@ -19,7 +19,7 @@
 
 ## Who uses it
 
-- **The front desk** ([desk](desk.md)), which subscribes a customer and checks a subscriber in through it; on the web, the desk reads the open check-ins (`GET …/check-ins?open=true`) for each subscriber's phone and progress (2026-10-25, #119).
+- **The front desk** ([desk](desk.md)), which subscribes a customer and checks a subscriber in through it; on the web, the desk reads the open check-ins (`GET …/check-ins?open=true`) for each subscriber's phone and progress (2026-10-25, #119), and a customer's file shows each of their subscriptions with its terms, progress and money (2026-10-25, #122).
 - **[`occupancy`](occupancy.md),** which counts the check-ins present.
 - **The timed jobs** (`shared/jobs`), which run its auto check-out.
 - **The space's staff**, who read the managed announcements list and its summary through it.

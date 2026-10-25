@@ -1,4 +1,4 @@
-import type { CheckInCheckOut, CustomerRow } from '@masaha/shared/desk';
+import type { CheckInCheckOut, CustomerFile, CustomerRow } from '@masaha/shared/desk';
 import type { DeskCheckIn, SubscriptionState } from '@masaha/shared/subscriptions';
 
 /** A customer of space 7 as the customers list answers them: an active package, settled. */
@@ -86,5 +86,18 @@ export function checkedOut(balanceAgorot: number): CheckInCheckOut {
     ...deskCheckIn({ checkedOutAt: '2026-10-25T09:05:00.000Z', checkoutMethod: 'MANUAL' }),
     paidAgorot: 6000,
     balanceAgorot,
+  };
+}
+
+/** Sara's file at space 7: settled, not present, one subscription paid in full, no unpaid visit. */
+export function customerFile(change: Partial<CustomerFile> = {}): CustomerFile {
+  return {
+    customer: { id: 4, name: 'Sara Khalid', phone: '+970599000201', archivedAt: null },
+    debtAgorot: 0,
+    creditAgorot: 0,
+    present: null,
+    subscriptions: [{ ...subscriptionState(), paidAgorot: 15000, balanceAgorot: 0 }],
+    unpaidVisits: [],
+    ...change,
   };
 }

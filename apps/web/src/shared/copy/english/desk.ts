@@ -362,4 +362,42 @@ export const DESK = {
       more: 'More pages',
     },
   },
+  /** «ملف الزبون»: a customer's file (screen 15). */
+  file: {
+    title: 'Customer file',
+    breadcrumb: 'Breadcrumb',
+    notFound: {
+      title: 'We couldn’t find this customer',
+      text: 'They may not be a customer of this space.',
+    },
+    balance: 'Balance',
+    archived: 'Archived',
+    here: 'Here now',
+    loadFailed: 'We couldn’t load the customer’s file',
+    unpaid: { title: 'Unpaid visits', unpriced: 'Not priced yet' },
+    subscriptions: {
+      title: 'Subscriptions',
+      none: 'No subscriptions',
+      onlyVisits: 'This customer only comes for visits.',
+    },
+    card: {
+      dates: ({ from, to }: { from: string; to: string }) => `${from} – ${to}`,
+      typed: 'Typed price',
+      terms: {
+        totalDays: ({ count }: { count: number }) =>
+          englishPlural(count, { one: '1 day', other: `${String(count)} days` }),
+        daysPerWeek: ({ count }: { count: number }) => `${String(count)} a week`,
+        hoursPerDay: ({ count }: { count: number }) => `${String(count)} h a day`,
+        totalHours: ({ count }: { count: number }) => `${String(count)} h in all`,
+        student: 'Students',
+        none: 'No extra terms',
+      },
+      due: 'Due',
+      dueSoFar: 'Due so far',
+      paid: 'Paid',
+      left: 'Left',
+      pay: { paid: 'Paid', partial: 'Partly paid', unpaid: 'Unpaid' },
+      receiveLeft: 'Receive what’s left',
+    },
+  },
 } as const;
