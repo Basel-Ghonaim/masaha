@@ -31,7 +31,7 @@ function renderSearch(checkIn = vi.fn()) {
   const view = render(
     <QueryClientProvider client={createQueryClient()}>
       <main>
-        <DeskSearch spaceId={7} present={present} checkIn={checkIn} />
+        <DeskSearch spaceId={7} present={present} checkIn={checkIn} receive={vi.fn()} />
       </main>
     </QueryClientProvider>,
   );

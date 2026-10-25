@@ -11,6 +11,7 @@ import {
 } from '@shared/design-system';
 import { useRef, type RefObject } from 'react';
 import { useCustomerCard } from '../../hooks/card/useCustomerCard';
+import type { PayTarget } from '../../hooks/pay/usePayDialog';
 import { useSubscriberCheckIn } from '../../hooks/subscriber/useSubscriberCheckIn';
 import { PreCheckInDialog } from '../subscriber/PreCheckInDialog';
 import { BalanceBadge } from './BalanceBadge';
@@ -19,17 +20,20 @@ import { BalanceBadge } from './BalanceBadge';
  * A customer found by the desk's search: their name, the card's `h3` under its group's `h2` (DI-38),
  * their phone left to right, their current subscription with its status and its end, and their
  * balance (DI-40); then «حضور», named by them, at the layer's default size (DI-16), with its choice
- * first when the row questions the subscription (DI-14). Done, `after.done` runs and the focus goes
+ * first when the row questions the subscription (DI-14), and «استلام {المبلغ}» while they owe. Done, `after.done` runs and the focus goes
  * to `after.focus` (the search, S10); the choice dismissed, back to «حضور».
  */
 export function CustomerCard({
   spaceId,
   row,
   after,
+  receive,
 }: {
   spaceId: number;
   row: CustomerRow;
   after: { done: () => void; focus: RefObject<HTMLElement | null> };
+  /** Opens the payment on one of the customer's items. */
+  receive: (target: PayTarget) => void;
 }) {
   const card = useCustomerCard(row);
   const trigger = useRef<HTMLButtonElement | null>(null);
@@ -80,6 +84,16 @@ export function CustomerCard({
         >
           {checkIn.tap.label}
         </Button>
+        {card.receive !== null && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              receive({ customerId: row.id });
+            }}
+          >
+            {card.receive}
+          </Button>
+        )}
       </CardFooter>
       <PreCheckInDialog
         dialog={checkIn.dialog}

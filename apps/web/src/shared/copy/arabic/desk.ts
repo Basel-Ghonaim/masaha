@@ -238,6 +238,7 @@ export const DESK = {
     settled: 'مسدّد',
     checkIn: 'حضور',
     checkInName: ({ name }: { name: string }) => `حضور ${name}`,
+    receive: ({ amount }: { amount: string }) => `استلام ${amount}`,
   },
   subscriber: {
     pre: {
@@ -261,6 +262,7 @@ export const DESK = {
       done: ({ name }: { name: string }) => `سُجّل خروج ${name}`,
       stay: ({ time }: { time: string }) => `مدة الحضور ${time}`,
       owes: ({ amount }: { amount: string }) => `يبقى ${amount} على الاشتراك`,
+      receive: 'استلام',
       failed: 'تعذّر تسجيل الخروج',
     },
     progress: {
@@ -277,5 +279,25 @@ export const DESK = {
       startsOn: ({ date }: { date: string }) => `يبدأ في ${date}`,
       noEnd: 'بلا تاريخ نهاية',
     },
+  },
+  pay: {
+    title: 'استلام دفعة',
+    titleFor: ({ name }: { name: string }) => `استلام دفعة · ${name}`,
+    choose: 'اختر الزبون',
+    owing: 'عليهم مبالغ:',
+    pick: 'اختيار',
+    another: 'زبون آخر',
+    noCustomer: 'لا زبون بهذا الاسم أو الرقم.',
+    item: 'الدفعة عن',
+    itemVisit: ({ day }: { day: string }) => `زيارة ${day}`,
+    itemLine: ({ due, paid, left }: { due: string; paid: string; left: string }) =>
+      `المستحق ${due} · المدفوع ${paid} · المتبقي ${left}`,
+    owesNothing: 'لا مبلغ مستحق على هذا الزبون.',
+    usageNote: 'اشتراك يُحسب من الحضور: ما يزيد يصبح رصيدًا.',
+    submit: ({ amount }: { amount: string }) => `تسجيل ${amount}`,
+    done: ({ name, item, left }: { name: string; item: string; left: string }) =>
+      `${name} · ${item} · المتبقي ${left}`,
+    failed: 'تعذّر تسجيل الدفعة',
+    fileFailed: 'تعذّر تحميل مستحقات الزبون',
   },
 } satisfies Catalogue['desk'];

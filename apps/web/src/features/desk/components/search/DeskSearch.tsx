@@ -10,6 +10,7 @@ import {
   Skeleton,
 } from '@shared/design-system';
 import { useId, useRef, type ReactNode, type RefObject } from 'react';
+import type { PayTarget } from '../../hooks/pay/usePayDialog';
 import { useDeskSearch } from '../../hooks/search/useDeskSearch';
 import { CustomerCard } from '../card/CustomerCard';
 
@@ -29,6 +30,7 @@ export function DeskSearch({
   spaceId,
   present,
   checkIn,
+  receive,
 }: {
   spaceId: number;
   present: {
@@ -41,6 +43,8 @@ export function DeskSearch({
   };
   /** Opens the visit's check-in with this name (empty for digits). */
   checkIn: (name: string) => void;
+  /** Opens the payment on one of a customer's items. */
+  receive: (target: PayTarget) => void;
 }) {
   const search = useDeskSearch(spaceId, { present });
   const input = useRef<HTMLInputElement | null>(null);
@@ -126,7 +130,7 @@ export function DeskSearch({
             <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {customers.rows.map((row) => (
                 <li key={row.id}>
-                  <CustomerCard spaceId={spaceId} row={row} after={after} />
+                  <CustomerCard spaceId={spaceId} row={row} after={after} receive={receive} />
                 </li>
               ))}
             </ul>

@@ -39,7 +39,7 @@ function renderCard(
   render(
     <QueryClientProvider client={createQueryClient()}>
       <input ref={focus} aria-label="Search" />
-      <CustomerCard spaceId={7} row={row} after={{ done, focus }} />
+      <CustomerCard spaceId={7} row={row} after={{ done, focus }} receive={vi.fn()} />
       <Toaster label="Notifications" />
     </QueryClientProvider>,
   );

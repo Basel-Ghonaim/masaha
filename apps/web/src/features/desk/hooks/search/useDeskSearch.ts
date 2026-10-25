@@ -7,6 +7,9 @@ import { isolate } from '@shared/localisation';
 import { useState } from 'react';
 import { useCustomersSearchQuery } from './useCustomersSearchQuery';
 
+/** The customers the search shows at most, as the design's results do. */
+const SEARCH_LIMIT = 6;
+
 /** A term of digits only, once a phone's separators are removed: it names no visitor. */
 const DIGITS = /^[\d\s+\-.()]+$/;
 
@@ -45,7 +48,10 @@ export function useDeskSearch(
   const wide = useMediaQuery('(min-width: 768px)');
   const [term, setTerm] = useState<string | undefined>(undefined);
   const search = usePausedSearch({ q: term, searchOf, write: setTerm });
-  const query = useCustomersSearchQuery(spaceId, term);
+  const query = useCustomersSearchQuery(
+    spaceId,
+    term === undefined ? null : { q: term, limit: SEARCH_LIMIT },
+  );
   const answer = term === undefined ? undefined : query.data;
   const { view, blocked } = useRefusalView(
     term !== undefined && answer === undefined ? query.error : null,

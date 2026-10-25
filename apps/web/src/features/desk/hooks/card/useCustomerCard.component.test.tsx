@@ -28,6 +28,7 @@ describe('useCustomerCard', () => {
     });
     expect(heard(result.current.subscription?.until ?? '')).toBe('until 21 October');
     expect(heard(result.current.balance.label)).toBe('Owes ₪36.60');
+    expect(heard(result.current.receive ?? '')).toBe('Receive ₪36.60');
   });
 
   it('says there is no phone, no subscription, or no end date', () => {
@@ -36,6 +37,7 @@ describe('useCustomerCard', () => {
     expect(none.result.current.subscription).toBeNull();
     expect(none.result.current.noSubscription).toBe('No subscription');
     expect(none.result.current.balance).toEqual({ label: 'Settled', tone: 'neutral' });
+    expect(none.result.current.receive).toBeNull();
 
     const open = renderHook(() =>
       useCustomerCard(

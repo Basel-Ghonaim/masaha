@@ -231,6 +231,7 @@ export const DESK = {
     /** A customer's one-tap check-in, and its accessible name. */
     checkIn: 'Check in',
     checkInName: ({ name }: { name: string }) => `Check in ${name}`,
+    receive: ({ amount }: { amount: string }) => `Receive ${amount}`,
   },
   /** A subscriber's check-in and check-out at the desk. */
   subscriber: {
@@ -256,6 +257,8 @@ export const DESK = {
       done: ({ name }: { name: string }) => `${name} checked out`,
       stay: ({ time }: { time: string }) => `Stayed ${time}`,
       owes: ({ amount }: { amount: string }) => `${amount} stays on the subscription`,
+      /** The toast's action: the payment on that subscription. */
+      receive: 'Receive',
       failed: 'We couldn’t check them out',
     },
     /** A subscription's progress, in the present list and the file. */
@@ -272,5 +275,27 @@ export const DESK = {
       startsOn: ({ date }: { date: string }) => `Starts ${date}`,
       noEnd: 'No end date',
     },
+  },
+  /** A payment on one of a customer's items (DI-22). */
+  pay: {
+    title: 'Receive a payment',
+    titleFor: ({ name }: { name: string }) => `Receive a payment · ${name}`,
+    /** The picker's search. */
+    choose: 'Choose the customer',
+    owing: 'Customers who owe:',
+    pick: 'Choose',
+    another: 'Another customer',
+    noCustomer: 'No customer with this name or number.',
+    item: 'The payment is for',
+    itemVisit: ({ day }: { day: string }) => `Visit of ${day}`,
+    itemLine: ({ due, paid, left }: { due: string; paid: string; left: string }) =>
+      `Due ${due} · Paid ${paid} · Left ${left}`,
+    owesNothing: 'This customer owes nothing.',
+    usageNote: 'Billed from attendance: anything extra becomes credit.',
+    submit: ({ amount }: { amount: string }) => `Record ${amount}`,
+    done: ({ name, item, left }: { name: string; item: string; left: string }) =>
+      `${name} · ${item} · ${left} left`,
+    failed: 'We couldn’t record the payment',
+    fileFailed: 'We couldn’t load what the customer owes',
   },
 } as const;

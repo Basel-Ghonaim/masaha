@@ -27,6 +27,7 @@ const SARA: PresentPerson = {
 function renderAction(answer: () => FakeAnswer, { fromSearch = false } = {}) {
   const requests = fakeTransport(answer);
   const done = vi.fn();
+  const receive = vi.fn();
   const focus = createRef<HTMLInputElement>();
   render(
     <QueryClientProvider client={createQueryClient()}>
@@ -36,11 +37,12 @@ function renderAction(answer: () => FakeAnswer, { fromSearch = false } = {}) {
         person={SARA}
         terms={undefined}
         after={fromSearch ? { done, focus } : undefined}
+        receive={receive}
       />
       <Toaster label="Notifications" />
     </QueryClientProvider>,
   );
-  return { requests, done };
+  return { requests, done, receive };
 }
 
 beforeEach(() => {
@@ -74,6 +76,18 @@ describe('useCheckOutSubscriber', () => {
     expect(button).toHaveFocus();
   });
 
+  it('offers «Receive» in the toast, opening the payment on that subscription', async () => {
+    const user = userEvent.setup();
+    const { receive } = renderAction(() => ok(checkedOut(3660)));
+
+    await user.click(screen.getByRole('button', { name: heard('Check out Sara Khalid') }));
+    await findToast(heard('Sara Khalid checked out'));
+    // Sonner's action pressed by Enter: jsdom has no pointer capture.
+    screen.getByRole('button', { name: 'Receive' }).focus();
+    await user.keyboard('{Enter}');
+    expect(receive).toHaveBeenCalledWith({ customerId: 4, itemKey: 'subscription-1' });
+  });
+
   it('says nothing owed when the subscription is settled', async () => {
     const user = userEvent.setup();
     renderAction(() => ok(checkedOut(0)));
@@ -81,6 +95,7 @@ describe('useCheckOutSubscriber', () => {
     await user.click(screen.getByRole('button', { name: heard('Check out Sara Khalid') }));
     await findToast(heard('Sara Khalid checked out'));
     expect(screen.getByText(heard('Stayed 2h 5m'))).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Receive' })).toBeNull();
   });
 
   it('clears and focuses the search after a check-out from it', async () => {

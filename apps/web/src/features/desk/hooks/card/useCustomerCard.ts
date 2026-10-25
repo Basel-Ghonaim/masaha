@@ -35,6 +35,11 @@ export function useCustomerCard(row: CustomerRow) {
                 : words.until({ date: isolate(dayText(current.endsOn, language)) }),
           },
     noSubscription: words.noSubscription,
+    /** «استلام {المبلغ}» while they owe. */
+    receive:
+      row.debtAgorot > 0
+        ? words.receive({ amount: isolate(priceText(row.debtAgorot, language)) })
+        : null,
     balance: balanceView(row, words, (agorot) => isolate(priceText(agorot, language))),
   };
 }

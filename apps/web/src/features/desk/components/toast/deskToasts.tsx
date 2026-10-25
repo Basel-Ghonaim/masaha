@@ -164,9 +164,9 @@ export function toastPriced(name: string, visit: DeskVisit) {
 
 /**
  * Says a subscriber was checked out, naming them, then how long they stayed and, while their
- * subscription still owes, what stays on it, from the answer (S8).
+ * subscription still owes, what stays on it, from the answer (S8), with «استلام» (`receive`).
  */
-export function toastSubscriberOut(name: string, checkOut: CheckInCheckOut) {
+export function toastSubscriberOut(name: string, checkOut: CheckInCheckOut, receive?: () => void) {
   const copy = currentCopy();
   const words = copy.desk.subscriber.out;
   const out = checkOut.checkedOutAt ?? checkOut.checkedInAt;
@@ -181,7 +181,12 @@ export function toastSubscriberOut(name: string, checkOut: CheckInCheckOut) {
   const parts = [words.stay({ time: isolate(time) })];
   if (checkOut.balanceAgorot > 0)
     parts.push(words.owes({ amount: priceNow(checkOut.balanceAgorot) }));
-  toast.success(words.done({ name: isolate(name) }), { description: parts.join(' · ') });
+  const owes = checkOut.balanceAgorot > 0;
+  toast.success(words.done({ name: isolate(name) }), {
+    description: parts.join(' · '),
+    // What stays owed is paid from the toast: «استلام» opens the payment on that subscription.
+    ...(owes && receive !== undefined && { action: { label: words.receive, onClick: receive } }),
+  });
 }
 
 /**
@@ -205,4 +210,25 @@ export function toastFailed(
   toast.error(title, {
     description: <RefusalText refusal={failure} title={title} lines={lines} />,
   });
+}
+
+/**
+ * Says a payment was recorded on one item: who, the item and what it still owes, then the amount and
+ * its method, all from the answer (S8). A usage-based subscription in credit owes nothing.
+ */
+export function toastPaid(name: string, item: string, { payment, balanceAgorot }: ReceivedPayment) {
+  const words = currentCopy().desk;
+  toast.success(
+    words.pay.done({
+      name: isolate(name),
+      item: isolate(item),
+      left: priceNow(Math.max(0, balanceAgorot)),
+    }),
+    {
+      description: words.toast.paid({
+        amount: priceNow(payment.amountAgorot),
+        method: words.money.methodIn[payment.method],
+      }),
+    },
+  );
 }

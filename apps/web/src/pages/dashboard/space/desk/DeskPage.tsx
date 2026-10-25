@@ -2,6 +2,8 @@ import type { PresentPerson } from '@masaha/shared/occupancy';
 import {
   CheckOutAction,
   DeskSearch,
+  PayDialog,
+  type PayTarget,
   type SearchAfter,
   UncollectedCard,
   UnpricedCard,
@@ -25,13 +27,14 @@ import {
   Button,
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   EllipsisIcon,
   useMediaQuery,
 } from '@shared/design-system';
 import { NotFoundState, parseSpaceId } from '@shared/routing';
 import { useSession } from '@shared/session';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 import { PageActionBar } from '../../shell/PageActionBar';
 import { PageHeader } from '../../shell/PageHeader';
@@ -41,7 +44,8 @@ import { SwitchStaffButton, SwitchStaffItem } from './SwitchStaffButton';
  * «مكتب الاستقبال», the owner's and reception's: in the top bar, the live status visitors see and
  * its control, «تبديل الموظف» and «تسجيل زيارة» from 768 px; below it the control alone, «تبديل
  * الموظف» in a «⋯» menu and «تسجيل زيارة» in the bar at the foot (P1). Above the page, `desk`'s one
- * search, its first group `occupancy`'s people present who match (K1). The page is the people
+ * search, its first group `occupancy`'s people present who match (K1); «استلام دفعة» in the top bar
+ * (its «⋯» on a phone), a card's «استلام» and a check-out toast's open one payment dialog. The page is the people
  * present, `occupancy`'s, with `desk`'s check-out in each row, and beside it from `xl` (under it
  * before) `desk`'s uncollected visits and, for whoever may type a price, its unpriced ones; the visit's check-in is offered the space's shifts as `spaces`
  * reads them. What the role at the space allows beyond that (S5) is read from the session's link;
@@ -76,6 +80,13 @@ function Desk({ spaceId }: { spaceId: number }) {
   const openVisit = () => {
     visit.setOpen(true);
   };
+  // «استلام دفعة»: one payment dialog, opened from the page, a card or a check-out's toast.
+  const [pay, setPay] = useState<PayTarget | null>(null);
+  const [payOpening, setPayOpening] = useState(0);
+  const receive = useCallback((target: PayTarget) => {
+    setPay(target);
+    setPayOpening((count) => count + 1);
+  }, []);
   // The open check-ins name each subscriber's phone and usage; read again when the check-ins change.
   const people = now?.people;
   const checkInIds = useMemo(
@@ -98,9 +109,9 @@ function Desk({ spaceId }: { spaceId: number }) {
   const termsData = terms.data;
   const action = useCallback(
     (person: PresentPerson) => (
-      <CheckOutAction spaceId={spaceId} person={person} terms={termsData} />
+      <CheckOutAction spaceId={spaceId} person={person} terms={termsData} receive={receive} />
     ),
-    [spaceId, termsData],
+    [spaceId, termsData, receive],
   );
 
   return (
@@ -111,6 +122,15 @@ function Desk({ spaceId }: { spaceId: number }) {
           {wide ? (
             <>
               <SwitchStaffButton spaceId={spaceId} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  receive({});
+                }}
+              >
+                {words.pay.title}
+              </Button>
               <Button size="sm" onClick={openVisit}>
                 {words.actions.checkIn}
               </Button>
@@ -123,6 +143,13 @@ function Desk({ spaceId }: { spaceId: number }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={() => {
+                    receive({});
+                  }}
+                >
+                  {words.pay.title}
+                </DropdownMenuItem>
                 <SwitchStaffItem spaceId={spaceId} />
               </DropdownMenuContent>
             </DropdownMenu>
@@ -150,7 +177,13 @@ function Desk({ spaceId }: { spaceId: number }) {
               term={term}
               phones={phones}
               action={(person) => (
-                <CheckOutAction spaceId={spaceId} person={person} terms={termsData} after={after} />
+                <CheckOutAction
+                  spaceId={spaceId}
+                  person={person}
+                  terms={termsData}
+                  after={after}
+                  receive={receive}
+                />
               )}
             />
           ),
@@ -158,6 +191,7 @@ function Desk({ spaceId }: { spaceId: number }) {
         checkIn={(name) => {
           visit.setOpen(true, name);
         }}
+        receive={receive}
       />
       <div className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start">
         <div className="xl:col-span-8">
@@ -169,6 +203,18 @@ function Desk({ spaceId }: { spaceId: number }) {
         </div>
       </div>
       <VisitDialog dialog={visit} />
+      {pay !== null && (
+        // Each opening is a new intent: a new dialog, a new key (S4).
+        <PayDialog
+          key={payOpening}
+          spaceId={spaceId}
+          target={pay}
+          presentIds={present.customerIds}
+          onClose={() => {
+            setPay(null);
+          }}
+        />
+      )}
     </>
   );
 }

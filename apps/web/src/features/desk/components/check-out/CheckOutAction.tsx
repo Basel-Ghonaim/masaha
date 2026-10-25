@@ -4,6 +4,7 @@ import { useCopy } from '@shared/copy';
 import { Button } from '@shared/design-system';
 import { isolate } from '@shared/localisation';
 import { useRef, useState, type RefObject } from 'react';
+import type { PayTarget } from '../../hooks/pay/usePayDialog';
 import { useCheckOutSubscriber } from '../../hooks/subscriber/useCheckOutSubscriber';
 import { CheckOutDialog } from './CheckOutDialog';
 
@@ -21,16 +22,19 @@ export function CheckOutAction({
   person,
   terms,
   after,
+  receive,
 }: {
   spaceId: number;
   person: PresentPerson;
   terms: VisitTerms | undefined;
   after?: After;
+  /** Opens the payment on what a subscriber's check-out leaves owed. */
+  receive?: (target: PayTarget) => void;
 }) {
   return person.kind === 'VISIT' ? (
     <VisitCheckOutAction spaceId={spaceId} person={person} terms={terms} after={after} />
   ) : (
-    <SubscriberCheckOutAction spaceId={spaceId} person={person} after={after} />
+    <SubscriberCheckOutAction spaceId={spaceId} person={person} after={after} receive={receive} />
   );
 }
 
@@ -86,12 +90,14 @@ function SubscriberCheckOutAction({
   spaceId,
   person,
   after,
+  receive,
 }: {
   spaceId: number;
   person: Extract<PresentPerson, { kind: 'CHECK_IN' }>;
   after?: After;
+  receive?: (target: PayTarget) => void;
 }) {
-  const checkOut = useCheckOutSubscriber(spaceId, person, { done: after?.done });
+  const checkOut = useCheckOutSubscriber(spaceId, person, { done: after?.done, receive });
 
   return (
     <Button
