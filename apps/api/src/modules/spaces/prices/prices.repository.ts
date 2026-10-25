@@ -24,6 +24,27 @@ export function createPricesRepository() {
     },
 
     /**
+     * The space's standard price (no custom label) of this period, audience and shift (none: the
+     * price without one), which the unique keys make one at most; nothing when there is none.
+     */
+    findStandard(
+      spaceId: number,
+      key: Pick<Price, 'period' | 'audience'> & { shiftId?: number },
+      tx: Tx = prisma,
+    ): Promise<Price | null> {
+      return tx.spacePrice.findFirst({
+        where: {
+          spaceId,
+          period: key.period,
+          audience: key.audience,
+          shiftId: key.shiftId ?? null,
+          labelAr: null,
+        },
+        select: PRICE,
+      });
+    },
+
+    /**
      * Replaces the prices, in their order, one statement at a time (finding 11). Nothing refers to
      * a price, so they are written anew.
      */

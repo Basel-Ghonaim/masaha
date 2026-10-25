@@ -297,8 +297,12 @@ export function createSubscriptionsRepository() {
      * with its whole minutes by `subscription_usage`'s expression, so the statement's minutes add
      * up to its progress (one rule, in SQL).
      */
-    async checkInsOf(spaceId: number, subscriptionId: number): Promise<SubscriptionCheckIn[]> {
-      const rows = await prisma.$queryRaw<
+    async checkInsOf(
+      spaceId: number,
+      subscriptionId: number,
+      tx: Tx = prisma,
+    ): Promise<SubscriptionCheckIn[]> {
+      const rows = await tx.$queryRaw<
         {
           id: number;
           checked_in_at: Date;
@@ -460,8 +464,12 @@ export function createSubscriptionsRepository() {
     },
 
     /** The subscription that renewed this one of the space, or `null`. */
-    async renewedBy(spaceId: number, subscriptionId: number): Promise<number | null> {
-      const renewal = await prisma.subscription.findFirst({
+    async renewedBy(
+      spaceId: number,
+      subscriptionId: number,
+      tx: Tx = prisma,
+    ): Promise<number | null> {
+      const renewal = await tx.subscription.findFirst({
         where: { spaceId, renewalOfId: subscriptionId },
         select: { id: true },
       });

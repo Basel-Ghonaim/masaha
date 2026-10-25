@@ -129,27 +129,27 @@ enum DataReportStatus {
 
 /// Signs in with a password, Google, or both; at least one (a CHECK in the accounts migration).
 model User {
-  id                 Int       @id @default(autoincrement())
+  id                         Int       @id @default(autoincrement())
   /// Stored lowercased.
-  email              String    @unique
+  email                      String    @unique
   /// Null for a Google-only account (docs/backend/security.md).
-  passwordHash       String?   @map("password_hash")
+  passwordHash               String?   @map("password_hash")
   /// The Google account's `sub` claim, once Google is linked.
-  googleSubject      String?   @unique @map("google_subject")
-  name               String
-  role               Role      @default(USER)
-  language           Language  @default(ar)
-  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  googleSubject              String?   @unique @map("google_subject")
+  name                       String
+  role                       Role      @default(USER)
+  language                   Language  @default(ar)
+  mustChangePassword         Boolean   @default(false) @map("must_change_password")
   /// When the pending temporary password expires; null when none is pending (a CHECK in its
   /// migration; docs/backend/security.md › Passwords).
   temporaryPasswordExpiresAt DateTime? @map("temporary_password_expires_at") @db.Timestamptz(3)
   /// One more each time every session of the account ends; an access token signed under another is
   /// refused (docs/backend/security.md › Tokens and cookies).
-  sessionVersion     Int       @default(0) @map("session_version")
+  sessionVersion             Int       @default(0) @map("session_version")
   /// Users are suspended, never deleted (ADR 0007).
-  suspendedAt        DateTime? @map("suspended_at") @db.Timestamptz(3)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  suspendedAt                DateTime? @map("suspended_at") @db.Timestamptz(3)
+  createdAt                  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
@@ -175,20 +175,23 @@ model User {
 
 /// Stored as its SHA-256 hash. A session is a family of tokens, one per rotation (docs/backend/security.md).
 model RefreshToken {
-  id            Int       @id @default(autoincrement())
-  userId        Int       @map("user_id")
+  id             Int       @id @default(autoincrement())
+  userId         Int       @map("user_id")
   /// The id of the session's first token, copied to every token rotated from it, so a reused token
   /// ends its own session and no other.
-  familyId      Int       @map("family_id")
-  tokenHash     String    @unique @map("token_hash")
-  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(3)
-  rotatedAt     DateTime? @map("rotated_at") @db.Timestamptz(3)
+  familyId       Int       @map("family_id")
+  tokenHash      String    @unique @map("token_hash")
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(3)
+  rotatedAt      DateTime? @map("rotated_at") @db.Timestamptz(3)
   /// When the session ends, whatever its refreshes: set at sign-in and copied to every token rotated
   /// from it (docs/backend/security.md › Tokens and cookies).
-  sessionEndsAt DateTime  @map("session_ends_at") @db.Timestamptz(3)
-  replacedById  Int?      @unique @map("replaced_by_id")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessionEndsAt  DateTime  @map("session_ends_at") @db.Timestamptz(3)
+  /// When the session was last used, for reception's idle end: set at sign-in, renewed by its
+  /// requests, copied to every token rotated from it (docs/backend/security.md › Tokens and cookies).
+  lastActivityAt DateTime  @default(now()) @map("last_activity_at") @db.Timestamptz(3)
+  replacedById   Int?      @unique @map("replaced_by_id")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   replacedBy RefreshToken? @relation("RefreshTokenRotation", fields: [replacedById], references: [id], onDelete: SetNull)
@@ -364,24 +367,24 @@ model Space {
 // space has one row, created with the space from the new-space defaults. The four settings those
 // defaults govern have no database default, so a space created without copying them fails.
 model SpaceSettings {
-  spaceId               Int           @id @map("space_id")
+  spaceId                Int           @id @map("space_id")
   /// Open visits and check-ins are closed automatically at closing time.
-  autoCheckoutAtClosing Boolean       @map("auto_checkout_at_closing")
+  autoCheckoutAtClosing  Boolean       @map("auto_checkout_at_closing")
   /// Auto check-out after this long, if earlier than closing time. Null = at closing only.
-  maxStayMinutes        Int?          @map("max_stay_minutes")
-  visitRounding         VisitRounding @map("visit_rounding")
+  maxStayMinutes         Int?          @map("max_stay_minutes")
+  visitRounding          VisitRounding @map("visit_rounding")
   /// The N of "up after N minutes"; set exactly for that rule.
-  visitRoundingMinutes  Int?          @map("visit_rounding_minutes")
+  visitRoundingMinutes   Int?          @map("visit_rounding_minutes")
   /// A visit's charge never exceeds the day price.
-  visitCapAtDayPrice    Boolean       @map("visit_cap_at_day_price")
+  visitCapAtDayPrice     Boolean       @map("visit_cap_at_day_price")
   /// The desk may charge a visit at the student prices.
-  visitStudentPrices    Boolean       @default(true) @map("visit_student_prices")
+  visitStudentPrices     Boolean       @default(true) @map("visit_student_prices")
   /// Reception may type a price by hand at the desk; the owner always may. Off by default.
-  receptionMayTypePrices Boolean      @default(false) @map("reception_may_type_prices")
+  receptionMayTypePrices Boolean       @default(false) @map("reception_may_type_prices")
   /// The WhatsApp debt reminder; null = the default text from the copy catalogue.
-  reminderTemplate      String?       @map("reminder_template")
-  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  reminderTemplate       String?       @map("reminder_template")
+  createdAt              DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
 

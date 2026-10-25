@@ -42,6 +42,7 @@ function setup(links: ActiveLink[]) {
     weekOf: () => Promise.reject(new Error('not asked here')),
     weeksFor: () => Promise.reject(new Error('not asked here')),
     pricesOf: () => Promise.reject(new Error('not asked here')),
+    standardPrice: () => Promise.reject(new Error('not asked here')),
     shiftsOf: () => Promise.reject(new Error('not asked here')),
     autoCheckoutDue: () => {
       throw new Error('not asked here');

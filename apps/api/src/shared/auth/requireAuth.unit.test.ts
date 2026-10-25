@@ -17,10 +17,18 @@ const active: SignedInAccount = {
 /** The guard over an account reader that answers `account`, and the ids it was asked for. */
 function guardOver(account: SignedInAccount | null) {
   const asked: number[] = [];
-  const requireAuth = createRequireAuth(tokens, (userId) => {
-    asked.push(userId);
-    return Promise.resolve(account);
-  });
+  // An owner, never idle-bound: reception's idle end is proven in the API lane (idle.api.test.ts).
+  const requireAuth = createRequireAuth(
+    tokens,
+    (userId) => {
+      asked.push(userId);
+      return Promise.resolve(account);
+    },
+    {
+      linkRolesOf: () => Promise.resolve(['OWNER']),
+      stateOf: () => Promise.reject(new Error('An owner has no idle session')),
+    },
+  );
   return { requireAuth, asked };
 }
 
@@ -44,8 +52,18 @@ async function run(guard: ReturnType<ReturnType<typeof createRequireAuth>>, req:
   return { error: undefined, next };
 }
 
-const settled: AccessClaims = { userId: 3, mustChangePassword: false, sessionVersion: 2 };
-const pending: AccessClaims = { userId: 3, mustChangePassword: true, sessionVersion: 2 };
+const settled: AccessClaims = {
+  userId: 3,
+  mustChangePassword: false,
+  sessionVersion: 2,
+  sessionId: 9,
+};
+const pending: AccessClaims = {
+  userId: 3,
+  mustChangePassword: true,
+  sessionVersion: 2,
+  sessionId: 9,
+};
 
 describe('requireAuth', () => {
   it('puts the account’s role now and the token’s pending claim on the request', async () => {

@@ -547,13 +547,13 @@ export function createSubscriptionsService({
     },
 
     /** Every check-in of the space's subscription, the earliest first, then by id. */
-    checkInsOf(spaceId: number, subscriptionId: number): Promise<SubscriptionCheckIn[]> {
-      return repository.checkInsOf(spaceId, subscriptionId);
+    checkInsOf(spaceId: number, subscriptionId: number, tx?: Tx): Promise<SubscriptionCheckIn[]> {
+      return repository.checkInsOf(spaceId, subscriptionId, tx);
     },
 
     /** The subscription that renewed this one of the space, or `null` while none has. */
-    renewedBy(spaceId: number, subscriptionId: number): Promise<number | null> {
-      return repository.renewedBy(spaceId, subscriptionId);
+    renewedBy(spaceId: number, subscriptionId: number, tx?: Tx): Promise<number | null> {
+      return repository.renewedBy(spaceId, subscriptionId, tx);
     },
 
     /** The names and customers of these subscriptions of the space, by id, in one query. */

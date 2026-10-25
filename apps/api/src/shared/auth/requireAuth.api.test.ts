@@ -1,3 +1,4 @@
+import { SignJWT } from 'jose';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -8,6 +9,8 @@ import {
   createTestApp,
   inAWeek,
   PASSWORD,
+  signAccess,
+  TEST_JWT_SECRET,
 } from '../../../test/app.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma } from '../../db/index.ts';
@@ -23,7 +26,7 @@ beforeEach(async () => {
 
 /** An access token for the account, signed before the change each test makes. */
 async function tokenFor(userId: number, mustChangePassword = false) {
-  return `Bearer ${await accessTokens.sign({ userId, mustChangePassword, sessionVersion: 0 })}`;
+  return `Bearer ${await signAccess(userId, { mustChangePassword })}`;
 }
 
 function get(path: string, authorization: string) {
@@ -118,7 +121,28 @@ describe('requireAuth: the account now', () => {
   });
 
   it('refuses a token whose account does not exist with 401', async () => {
-    const response = await get('/manage/spaces', await tokenFor(404_404));
+    const token = await accessTokens.sign({
+      userId: 404_404,
+      mustChangePassword: false,
+      sessionVersion: 0,
+      sessionId: 1,
+    });
+    const response = await get('/manage/spaces', `Bearer ${token}`);
+
+    expect(response.status).toBe(401);
+    expect(errorOf(response)).toMatchObject({ type: 'unauthorized' });
+  });
+
+  it("refuses a token without its session's id with 401, as one signed before it existed", async () => {
+    const user = await createAccount();
+    const token = await new SignJWT({ mustChangePassword: false, sessionVersion: 0 })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setSubject(String(user.id))
+      .setIssuedAt()
+      .setExpirationTime('15m')
+      .sign(new TextEncoder().encode(TEST_JWT_SECRET));
+
+    const response = await get('/manage/spaces', `Bearer ${token}`);
 
     expect(response.status).toBe(401);
     expect(errorOf(response)).toMatchObject({ type: 'unauthorized' });

@@ -12,6 +12,7 @@ import {
   createSubscription,
   stay,
 } from '../../../test/factories.ts';
+import { whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -193,6 +194,60 @@ describe("a subscription's statement", () => {
     };
     expect(checkIns.map(({ minutes }) => minutes)).toEqual([30, 44]);
     expect(progress.minutesUsed).toBe(74);
+  });
+
+  it('reads one snapshot: a check-in and a payment committed while it waits leave its sums and its lists agreeing', async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara' });
+    const hours = await createSubscription(sara, { billing: 'PER_HOUR', priceAgorot: 500 });
+    await createCheckIn(hours, stay('2026-10-19', '09:00', '11:00'));
+    await paid(hours.id, 300, '2026-10-19T11:05:00+03:00');
+
+    // The statement's money read (its items' balances) is the only one that reads the visits: the
+    // test holds that table, so the statement waits there, past its other reads, while a check-in
+    // and a payment of the subscription commit.
+    const response = await whileHeld(
+      (tx) => tx.$executeRaw`LOCK TABLE visits IN ACCESS EXCLUSIVE MODE`,
+      () => statement(reception, hours.id),
+      async (tx) => {
+        await tx.checkIn.create({
+          data: {
+            spaceId,
+            customerId: sara.id,
+            subscriptionId: hours.id,
+            idempotencyKey: randomUUID(),
+            ...stay('2026-10-20', '09:00', '10:00'),
+          },
+        });
+        await tx.payment.create({
+          data: {
+            spaceId,
+            subscriptionId: hours.id,
+            idempotencyKey: randomUUID(),
+            recordedById: owner.id,
+            method: 'CASH',
+            amountAgorot: 200,
+            receivedAt: new Date('2026-10-20T10:05:00+03:00'),
+          },
+        });
+      },
+    );
+    expect(response.status).toBe(200);
+    const answer = dataOf(response) as {
+      progress: { minutesUsed: number };
+      dueAgorot: number;
+      paidAgorot: number;
+      balanceAgorot: number;
+      checkIns: { minutes: number | null }[];
+      payments: { amountAgorot: number; voided: unknown }[];
+    };
+    const listedPaid = answer.payments
+      .filter(({ voided }) => voided === null)
+      .reduce((sum, { amountAgorot }) => sum + amountAgorot, 0);
+    expect(answer.paidAgorot).toBe(listedPaid);
+    expect(answer.progress.minutesUsed).toBe(
+      answer.checkIns.reduce((sum, { minutes }) => sum + (minutes ?? 0), 0),
+    );
+    expect(answer.balanceAgorot).toBe(answer.dueAgorot - answer.paidAgorot);
   });
 
   it("a running subscription proposes its renewal's start; a renewed one answers renewedById and no proposal", async () => {

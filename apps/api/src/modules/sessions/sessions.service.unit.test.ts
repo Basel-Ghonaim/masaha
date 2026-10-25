@@ -47,6 +47,7 @@ const token = (rotatedAt: Date | null, expiresAt = at(60 * 60_000)): StoredRefre
   expiresAt,
   rotatedAt,
   sessionEndsAt: at(30 * 24 * 60 * 60_000),
+  lastActivityAt: NOW,
 });
 
 describe('sessions: rotation', () => {

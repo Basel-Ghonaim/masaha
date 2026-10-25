@@ -40,7 +40,7 @@ export const checkInSubscriberSchema = z.object({
 });
 export type CheckInSubscriberRequest = z.infer<typeof checkInSubscriberSchema>;
 
-/** The longest range of Gaza dates the dated check-ins list reads at once. */
+/** The longest range of Gaza dates the dated check-ins list reads at once, both ends counted. */
 export const CHECK_IN_RANGE_MAX_DAYS = 92;
 
 /**
@@ -68,7 +68,7 @@ export const checkInsQuerySchema = paginationQuerySchema
     if (from === undefined) issue('from', 'required');
     if (to === undefined) issue('to', 'required');
     if (from !== undefined && to !== undefined) {
-      if (to < from || to > addDays(from, CHECK_IN_RANGE_MAX_DAYS)) issue('to', 'out_of_range');
+      if (to < from || to > addDays(from, CHECK_IN_RANGE_MAX_DAYS - 1)) issue('to', 'out_of_range');
     }
   });
 export type CheckInsQuery = z.infer<typeof checkInsQuerySchema>;

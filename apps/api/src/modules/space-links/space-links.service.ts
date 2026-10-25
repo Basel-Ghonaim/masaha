@@ -1,6 +1,7 @@
 import type { ManagedSpace } from '@masaha/shared/space-links';
 
 import type { Tx } from '../../db/index.ts';
+import type { SpaceManagerRole } from '../../generated/prisma/enums.ts';
 import type { SpaceLink } from '../../shared/auth/index.ts';
 import { createLookupsService, type LookupsService } from '../lookups/index.ts';
 import { createSpacesService, type SpacesService } from '../spaces/index.ts';
@@ -41,6 +42,14 @@ export function createSpaceLinksService({
       );
       const live = new Set(summaries.map(({ id }) => id));
       return links.filter(({ spaceId }) => live.has(spaceId));
+    },
+
+    /**
+     * The roles of the user's active links, each once: whether reception's idle end binds them
+     * (docs/backend/security.md › Tokens and cookies). One query.
+     */
+    activeRolesOf(userId: number, tx?: Tx): Promise<SpaceManagerRole[]> {
+      return repository.activeRolesOf(userId, tx);
     },
 
     /**

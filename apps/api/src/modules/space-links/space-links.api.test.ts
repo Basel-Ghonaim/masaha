@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { accessTokens, createAccount, createTestApp } from '../../../test/app.ts';
+import { createAccount, createTestApp, signAccess } from '../../../test/app.ts';
 import { createSpace } from '../../../test/factories.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma } from '../../db/index.ts';
@@ -14,7 +14,7 @@ beforeEach(async () => {
 });
 
 async function tokenFor(user: { id: number; role: Role }) {
-  return accessTokens.sign({ userId: user.id, mustChangePassword: false, sessionVersion: 0 });
+  return signAccess(user.id);
 }
 
 async function mySpaces(user?: { id: number; role: Role }) {
@@ -155,11 +155,7 @@ describe('GET /manage/spaces', () => {
   it('refuses a user whose temporary password is pending with 403 PASSWORD_CHANGE_REQUIRED', async () => {
     const user = await createAccount({ mustChangePassword: true });
     await link(user, await createSpace('pending'), 'RECEPTION', '2026-01-01');
-    const token = await accessTokens.sign({
-      userId: user.id,
-      mustChangePassword: true,
-      sessionVersion: 0,
-    });
+    const token = await signAccess(user.id, { mustChangePassword: true });
 
     const response = await request(app)
       .get('/api/v1/manage/spaces')

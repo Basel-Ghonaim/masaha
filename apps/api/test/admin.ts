@@ -4,7 +4,7 @@ import request from 'supertest';
 
 import { prisma } from '../src/db/index.ts';
 import type { Role } from '../src/generated/prisma/enums.ts';
-import { accessTokens } from './app.ts';
+import { signAccess } from './app.ts';
 
 // The callers every /admin endpoint is proven against (docs/development/testing.md §4).
 
@@ -41,8 +41,7 @@ export async function signIn(
       passwordHash: 'x',
     },
   });
-  const token = await accessTokens.sign({
-    userId: user.id,
+  const token = await signAccess(user.id, {
     mustChangePassword: pending,
     sessionVersion: user.sessionVersion,
   });

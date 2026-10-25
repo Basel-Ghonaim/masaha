@@ -45,16 +45,16 @@ describe('the check-ins query', () => {
     return result.success ? null : toFieldErrors(result.error.issues, input);
   };
 
-  it('open=true, or a range of Gaza dates of at most 92 days, to not before from', () => {
+  it('open=true, or a range of Gaza dates of at most 92 days with both counted, to not before from', () => {
     expect(checkInsQuerySchema.parse({ open: 'true' })).toMatchObject({ open: true });
-    expect(checkInsQuerySchema.parse({ from: '2026-07-21', to: '2026-10-21', page: '2' })).toEqual({
-      from: '2026-07-21',
+    expect(checkInsQuerySchema.parse({ from: '2026-07-22', to: '2026-10-21', page: '2' })).toEqual({
+      from: '2026-07-22',
       to: '2026-10-21',
       page: 2,
       limit: 20,
     });
     expect(errors({ from: '2026-10-21', to: '2026-10-21' })).toBeNull();
-    expect(errors({ from: '2026-07-20', to: '2026-10-21' })).toEqual({ to: ['out_of_range'] });
+    expect(errors({ from: '2026-07-21', to: '2026-10-21' })).toEqual({ to: ['out_of_range'] });
     expect(errors({ from: '2026-10-21', to: '2026-10-20' })).toEqual({ to: ['out_of_range'] });
   });
 

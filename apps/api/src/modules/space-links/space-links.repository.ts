@@ -141,6 +141,16 @@ export function createSpaceLinksRepository(db: PrismaClient = prisma) {
       });
     },
 
+    /** The roles of the user's active links, each once, a soft-deleted space's included. */
+    async activeRolesOf(userId: number, tx: Tx = db): Promise<SpaceManagerRole[]> {
+      const rows = await tx.spaceManager.findMany({
+        where: { userId, deactivatedAt: null },
+        select: { role: true },
+        distinct: ['role'],
+      });
+      return rows.map(({ role }) => role);
+    },
+
     /** How many active OWNER links the user holds, a soft-deleted space's included. */
     countOwnerLinks(userId: number, tx: Tx): Promise<number> {
       return tx.spaceManager.count({ where: { userId, role: 'OWNER', deactivatedAt: null } });

@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
+import { RECEPTION_IDLE_MINUTES } from '@masaha/shared/auth';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Router } from 'express';
@@ -7,7 +8,7 @@ import helmet from 'helmet';
 import type { Logger } from 'pino';
 
 import { secureCookiesOf, trustProxyOf, type Env } from './config/index.ts';
-import { createRunInTransaction, type Tx } from './db/index.ts';
+import { createReadSnapshot, createRunInTransaction, type Tx } from './db/index.ts';
 import {
   createAnnouncementsController,
   createAnnouncementsManageRouter,
@@ -144,6 +145,7 @@ import {
   createAccessTokens,
   createRequireAuth,
   loadSpaceLinks,
+  markPassive,
   requireSpaceAccess,
   readAccessToken,
   requireRole,
@@ -300,8 +302,6 @@ export function createApi({
     sessions,
     runInTransaction,
   });
-  // The guard reads the account on every signed-in request (ADR 0003, revised).
-  const requireAuth = createRequireAuth(accessTokens, (userId) => users.signedInAccount(userId));
   const lookups = createLookupsService();
   const governorates = createGovernoratesService({ runInTransaction, audit: writeAudit });
   const areas = createAreasService({ runInTransaction, audit: writeAudit });
@@ -395,6 +395,7 @@ export function createApi({
   });
   const desk = createDeskService({
     runInTransaction,
+    readSnapshot: createReadSnapshot(),
     spaces,
     spaceSettings,
     visits,
@@ -406,6 +407,13 @@ export function createApi({
     now: clock,
   });
   const spaceLinks = createSpaceLinksService({ spaces, lookups });
+  // The guard reads the account on every signed-in request (ADR 0003, revised), and a reception
+  // account's links and session (docs/backend/security.md › Tokens and cookies).
+  const requireAuth = createRequireAuth(accessTokens, (userId) => users.signedInAccount(userId), {
+    linkRolesOf: (userId) => spaceLinks.activeRolesOf(userId),
+    stateOf: (sessionId, renew) =>
+      sessions.idleState(sessionId, renew, RECEPTION_IDLE_MINUTES * 60_000),
+  });
   const directory = createDirectoryService({
     announcements,
     lookups,
@@ -517,6 +525,8 @@ export function createApi({
   manage.use(createVisitsManageRouter(createVisitsController(visits)));
   manage.use(createPaymentsManageRouter(createPaymentsController(payments)));
   manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
+  // The desk's state, polled by itself, renews no idle session: marked before the guard runs.
+  api.get('/manage/spaces/:spaceId/occupancy', markPassive);
   api.use(
     '/manage/spaces/:spaceId',
     requireAuth(),

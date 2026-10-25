@@ -27,6 +27,7 @@ export const ERRORS = {
   EMAIL_TAKEN: 'An account with this email already exists.',
   PHONE_TAKEN: 'This phone number is already in use.',
   INVALID_CREDENTIALS: 'The email or password is incorrect.',
+  SESSION_IDLE: 'Your session ended after 15 minutes with no activity. Sign in again.',
   ACCOUNT_SUSPENDED: 'This account is suspended.',
   PASSWORD_CHANGE_REQUIRED: 'Change your temporary password to continue.',
   SPACE_NOT_MANAGED: 'You don’t manage this space.',

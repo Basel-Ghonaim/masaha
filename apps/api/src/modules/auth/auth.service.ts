@@ -1,17 +1,18 @@
 import { createHash } from 'node:crypto';
 
-import type {
-  ForgotPasswordRequest,
-  GoogleSignInRequest,
-  LoginRequest,
-  RecoveryPosition,
-  RegisterRequest,
-  ResetPasswordRequest,
-  Session,
+import {
+  RECEPTION_IDLE_MINUTES,
+  type ForgotPasswordRequest,
+  type GoogleSignInRequest,
+  type LoginRequest,
+  type RecoveryPosition,
+  type RegisterRequest,
+  type ResetPasswordRequest,
+  type Session,
 } from '@masaha/shared/auth';
 
 import type { RunInTransaction } from '../../db/index.ts';
-import type { AccessTokens } from '../../shared/auth/index.ts';
+import { isIdleBound, type AccessTokens } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
 import type { Recovery, SessionsService } from '../sessions/index.ts';
@@ -32,6 +33,9 @@ import { resetEmail, resetLink } from './email/resetEmail.ts';
 import type { GoogleIdentity } from './google.ts';
 import { maskEmail } from './maskEmail.ts';
 import { drawNoSendWait } from './noSendWait.ts';
+
+/** How long a reception session may go unused (docs/backend/security.md › Tokens and cookies). */
+const RECEPTION_IDLE_MS = RECEPTION_IDLE_MINUTES * 60_000;
 
 /** A session for the body, and its refresh token for the cookie. */
 export interface SignedIn {
@@ -148,25 +152,28 @@ export function createAuthService({
     if (!delivered) await wait(drawNoSendWait());
   }
 
-  /** The user, their space links and a new access token, for a session whose refresh token exists. */
-  async function sessionFor(account: Account): Promise<Session> {
+  /**
+   * The user, their space links and a new access token, for a session whose refresh token exists:
+   * the token signed for that session (`sessionId`, its family's id).
+   */
+  async function sessionFor(account: Account, sessionId: number): Promise<Session> {
     const [user, spaces, accessToken] = await Promise.all([
       users.view(account),
       spaceLinks.activeLinksFor(account.id),
-      accessTokens.sign(users.accessClaims(account)),
+      accessTokens.sign(users.accessClaims(account, sessionId)),
     ]);
     return { user: { ...user, spaces }, accessToken };
   }
 
   /** Opens a session for the user, under their session lock (conventions §13). */
   async function signIn(userId: number): Promise<SignedIn> {
-    const { account, token } = await runInTransaction(async (tx) => {
+    const { account, issued } = await runInTransaction(async (tx) => {
       const locked = await users.lockAccount(userId, tx);
       if (!locked) throw AppError.unauthorized(undefined, 'Account not found');
       users.assertMaySignIn(locked);
-      return { account: locked, token: (await sessions.issue(userId, tx)).token };
+      return { account: locked, issued: await sessions.issue(userId, tx) };
     });
-    return { session: await sessionFor(account), refreshToken: token };
+    return { session: await sessionFor(account, issued.familyId), refreshToken: issued.token };
   }
 
   /**
@@ -201,11 +208,11 @@ export function createAuthService({
         const verified = await users.verifyCredentials(email, password);
         // The credentials are confirmed again under the lock, so a reset that landed during bcrypt
         // is never followed by a new session.
-        const { account, token } = await runInTransaction(async (tx) => {
+        const { account, issued } = await runInTransaction(async (tx) => {
           const confirmed = await verified.confirm(tx);
-          return { account: confirmed, token: (await sessions.issue(confirmed.id, tx)).token };
+          return { account: confirmed, issued: await sessions.issue(confirmed.id, tx) };
         });
-        return { session: await sessionFor(account), refreshToken: token };
+        return { session: await sessionFor(account, issued.familyId), refreshToken: issued.token };
       });
     },
 
@@ -229,11 +236,15 @@ export function createAuthService({
           throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Invalid Google ID token');
         const { userId, link } = await users.accountForGoogle(profile, language);
         if (!link) return { ...(await signIn(userId)), linked: false };
-        const { account, linked, token } = await runInTransaction(async (tx) => {
+        const { account, linked, issued } = await runInTransaction(async (tx) => {
           const result = await users.linkGoogle(userId, profile, tx);
-          return { ...result, token: (await sessions.issue(userId, tx)).token };
+          return { ...result, issued: await sessions.issue(userId, tx) };
         });
-        return { session: await sessionFor(account), refreshToken: token, linked };
+        return {
+          session: await sessionFor(account, issued.familyId),
+          refreshToken: issued.token,
+          linked,
+        };
       });
     },
 
@@ -253,15 +264,26 @@ export function createAuthService({
           await users.endSessions(userId, tx);
           return { outcome: 'refused', account } as const;
         }
-        const rotation = await sessions.rotate(refreshToken, tx);
+        const idleBound = await isIdleBound(account.role, () =>
+          spaceLinks.activeRolesOf(userId, tx),
+        );
+        const rotation = await sessions.rotate(refreshToken, tx, {
+          idleAfterMs: idleBound ? RECEPTION_IDLE_MS : undefined,
+        });
+        if (rotation.outcome === 'idle') return { outcome: 'idle' } as const;
         return rotation.outcome === 'rotated'
-          ? ({ outcome: 'rotated', account, token: rotation.issued.token } as const)
+          ? ({ outcome: 'rotated', account, issued: rotation.issued } as const)
           : ({ outcome: 'invalid' } as const);
       });
 
       if (result.outcome === 'refused') users.assertMaySignIn(result.account);
+      // Ended after the commit: the family's deletion must hold.
+      if (result.outcome === 'idle') throw AppError.unauthorized('SESSION_IDLE', 'Session idle');
       if (result.outcome !== 'rotated') throw AppError.unauthorized(undefined, 'No valid session');
-      return { session: await sessionFor(result.account), refreshToken: result.token };
+      return {
+        session: await sessionFor(result.account, result.issued.familyId),
+        refreshToken: result.issued.token,
+      };
     },
 
     /**
