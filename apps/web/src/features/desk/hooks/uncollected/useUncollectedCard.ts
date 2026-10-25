@@ -2,9 +2,9 @@ import { gazaClockOf } from '@masaha/shared/core';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
 import { clockOf, priceText } from '@shared/lib';
-import { paginationView } from '@shared/lists';
+import { paginationView, usePageInRange } from '@shared/lists';
 import { isolate, useLanguage } from '@shared/localisation';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
 import { dayWord } from '../../services/dayWord';
 import type { DeskAbilities } from '../../types/DeskAbilities';
@@ -37,13 +37,34 @@ export function useUncollectedCard(spaceId: number, abilities: DeskAbilities) {
   const copy = useCopy();
   const words = copy.desk.uncollected;
   const language = useLanguage() === 'en' ? 'en' : 'ar';
-  const [search] = useSearchParams();
+  const [search, setSearch] = useSearchParams();
   const arrivedAtCard = useLocation().hash === `#${UNCOLLECTED_ID}`;
   const page = pageOf(search.get(PAGE_PARAM));
   const query = useUncollectedQuery(spaceId, page);
   const answer = query.data;
   const [expanded, setExpanded] = useState(arrivedAtCard || page > 1);
   const [dialog, setDialog] = useState<UncollectedDialog | null>(null);
+  const replacePage = useCallback(
+    (target: number) => {
+      setSearch(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (target > 1) next.set(PAGE_PARAM, String(target));
+          else next.delete(PAGE_PARAM);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearch],
+  );
+  // A page past the last (its last visits collected, or a stale address) shows the last page.
+  const pastLast = usePageInRange({
+    answer,
+    placeholder: query.isPlaceholderData,
+    page,
+    replacePage,
+  });
   const { view, blocked } = useRefusalView(
     answer === undefined ? query.error : null,
     words.loadFailed,
@@ -97,13 +118,14 @@ export function useUncollectedCard(spaceId: number, abilities: DeskAbilities) {
     id: UNCOLLECTED_ID,
     arrivedAtCard,
     title: words.title({ count: total }),
-    state: query.isPending
-      ? ('loading' as const)
-      : answer === undefined
-        ? ('failed' as const)
-        : items.length === 0
-          ? ('empty' as const)
-          : ('ready' as const),
+    state:
+      query.isPending || pastLast
+        ? ('loading' as const)
+        : answer === undefined
+          ? ('failed' as const)
+          : total === 0
+            ? ('empty' as const)
+            : ('ready' as const),
     rows: expanded ? items : items.slice(0, FIRST_ROWS),
     busy: query.isPlaceholderData,
     toggle:

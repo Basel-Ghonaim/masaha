@@ -119,6 +119,24 @@ describe('useUncollectedCard', () => {
     expect(screen.queryByRole('button', { name: /More actions/ })).toBeNull();
   });
 
+  it('shows the last page in place of one past it, never the empty line', async () => {
+    const requests = fakeTransport((request) =>
+      (request.params as { page: number }).page === 3
+        ? uncollectedPage([], 21, 3)
+        : uncollectedPage([uncollectedVisit({ id: 120, visitorName: 'Visitor 21' })], 21, 2),
+    );
+    renderCard({ entry: '/desk?uncollectedPage=3' });
+
+    expect(await screen.findByText('Visitor 21')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Collect' })).toBeVisible();
+    expect(screen.getByRole('navigation', { name: 'Pages of uncollected visits' })).toBeVisible();
+    expect(screen.queryByText('Nothing left to collect.')).toBeNull();
+    expect(requests.map((request) => request.params as unknown)).toEqual([
+      { page: 3 },
+      { page: 2 },
+    ]);
+  });
+
   it('says a failure with a retry, and that there is nothing to collect', async () => {
     let fail = true;
     fakeTransport(() => (fail ? refused(404, { type: 'not_found' }) : uncollectedPage([])));
