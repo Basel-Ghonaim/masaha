@@ -3,6 +3,7 @@ import type { Request, RequestHandler } from 'express';
 import type { Role } from '../../generated/prisma/enums.ts';
 import { AppError } from '../errors/index.ts';
 import type { AccessClaims, AccessTokens } from './accessToken.ts';
+import { isIdleBound, type IdleSessions } from './idle.ts';
 
 /** The account as the guard reads it on every signed-in request. */
 export interface SignedInAccount {
@@ -62,9 +63,15 @@ export type RequireAuth = (options?: RequireAuthOptions) => RequestHandler;
  * does not exist, for a suspended one, for a token signed before every session of the account last
  * ended, and for one signed before a temporary password; then 403
  * PASSWORD_CHANGE_REQUIRED while the token says a temporary password must be changed. The composition root wires the reader, as it
- * wires the links loader: `shared/` imports no module.
+ * wires the links loader: `shared/` imports no module. Last, for an idle-bound account (reception
+ * only), its session: 401 once signed out, 401 `SESSION_IDLE` once idle past its minutes, else
+ * renewed unless the request is passive (docs/backend/security.md › Tokens and cookies).
  */
-export function createRequireAuth(tokens: AccessTokens, readAccount: AccountReader): RequireAuth {
+export function createRequireAuth(
+  tokens: AccessTokens,
+  readAccount: AccountReader,
+  idle: IdleSessions,
+): RequireAuth {
   return ({ allowPendingPasswordChange = false } = {}) =>
     async (req, _res, next) => {
       const claims = await readAccessToken(req, tokens);
@@ -85,6 +92,12 @@ export function createRequireAuth(tokens: AccessTokens, readAccount: AccountRead
       }
       if (claims.mustChangePassword && !allowPendingPasswordChange) {
         throw AppError.forbidden('PASSWORD_CHANGE_REQUIRED');
+      }
+      if (await isIdleBound(account.role, () => idle.linkRolesOf(claims.userId))) {
+        // The idle session is refused, not ended: the web's refresh ends it, and says why.
+        const state = await idle.stateOf(claims.sessionId, !req.passive);
+        if (state === 'ended') throw AppError.unauthorized(undefined, 'Session ended');
+        if (state === 'idle') throw AppError.unauthorized('SESSION_IDLE', 'Session idle');
       }
       req.auth = {
         userId: claims.userId,

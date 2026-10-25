@@ -17,10 +17,18 @@ const active: SignedInAccount = {
 /** The guard over an account reader that answers `account`, and the ids it was asked for. */
 function guardOver(account: SignedInAccount | null) {
   const asked: number[] = [];
-  const requireAuth = createRequireAuth(tokens, (userId) => {
-    asked.push(userId);
-    return Promise.resolve(account);
-  });
+  // An owner, never idle-bound: reception's idle end is proven in the API lane (idle.api.test.ts).
+  const requireAuth = createRequireAuth(
+    tokens,
+    (userId) => {
+      asked.push(userId);
+      return Promise.resolve(account);
+    },
+    {
+      linkRolesOf: () => Promise.resolve(['OWNER']),
+      stateOf: () => Promise.reject(new Error('An owner has no idle session')),
+    },
+  );
   return { requireAuth, asked };
 }
 

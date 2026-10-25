@@ -21,6 +21,7 @@ export {
   type SignedIn,
   type SignedInAccount,
 } from './requireAuth.ts';
+export { isIdleBound, markPassive, type IdleSessions } from './idle.ts';
 export { requireCan } from './requireCan.ts';
 export { requireRole } from './requireRole.ts';
 export { signedIn } from './signedIn.ts';

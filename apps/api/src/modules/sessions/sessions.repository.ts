@@ -8,6 +8,7 @@ const REFRESH_TOKEN = {
   expiresAt: true,
   rotatedAt: true,
   sessionEndsAt: true,
+  lastActivityAt: true,
 } as const;
 
 export interface StoredRefreshToken {
@@ -18,6 +19,8 @@ export interface StoredRefreshToken {
   rotatedAt: Date | null;
   /** When its session ends, whatever its refreshes. */
   sessionEndsAt: Date;
+  /** When its session was last used, for reception's idle end. */
+  lastActivityAt: Date;
 }
 
 const RECOVERY = {
@@ -57,6 +60,8 @@ export interface NewRefreshToken {
   expiresAt: Date;
   /** When the session ends: set at sign-in, the same for every token of the family. */
   sessionEndsAt: Date;
+  /** When the session was last used: set at sign-in, copied on rotation. */
+  lastActivityAt: Date;
   /** The family to join. Without one, the token starts its own: its family is its own id. */
   familyId?: number;
 }
@@ -89,6 +94,27 @@ export function createSessionsRepository(db: PrismaClient = prisma) {
         data: { rotatedAt: at, replacedById },
       });
       return count === 1;
+    },
+
+    /** When the session was last used, by its newest token; nothing once it has no token. */
+    async familyActivity(familyId: number, tx: Tx = db): Promise<Date | undefined> {
+      const newest = await tx.refreshToken.findFirst({
+        where: { familyId },
+        orderBy: { id: 'desc' },
+        select: { lastActivityAt: true },
+      });
+      return newest?.lastActivityAt;
+    },
+
+    /**
+     * Renews the session's last use on every token of it, unless it was renewed since `unlessAfter`:
+     * one statement, so a burst of requests writes once, and the next rotation copies it.
+     */
+    async renewActivity(familyId: number, at: Date, unlessAfter: Date, tx: Tx = db): Promise<void> {
+      await tx.refreshToken.updateMany({
+        where: { familyId, lastActivityAt: { lt: unlessAfter } },
+        data: { lastActivityAt: at },
+      });
     },
 
     async deleteFamily(familyId: number, tx: Tx = db): Promise<void> {

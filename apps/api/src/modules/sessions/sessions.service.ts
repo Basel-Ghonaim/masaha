@@ -12,6 +12,8 @@ export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60_000;
 export const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60_000;
 /** A token rotated this recently is still honoured, so two tabs refreshing together stay signed in. */
 export const ROTATION_GRACE_MS = 30_000;
+/** A session's last use is written at most this often, so a burst of requests writes once. */
+export const ACTIVITY_WRITE_MS = 60_000;
 // docs/backend/security.md › Passwords.
 export const RESET_TOKEN_TTL_MS = 60 * 60_000;
 /** How long a recovery waits before another link may be asked for, the same for every address. */
@@ -33,7 +35,9 @@ export type Rotation =
   /** Unknown or expired, or its session past its end, which it ends. */
   | { outcome: 'invalid' }
   /** Rotated before the grace window: a copy is in use, so its whole session was ended. */
-  | { outcome: 'reused' };
+  | { outcome: 'reused' }
+  /** An idle-bound session unused past its bound, which it ends. */
+  | { outcome: 'idle' };
 
 /**
  * A recovery as its holder may see it: where it stands, never the address behind it. `linkChecked`
@@ -78,15 +82,23 @@ export function createSessionsService({
 }: Dependencies = {}) {
   async function issueInFamily(
     userId: number,
-    family: { familyId: number; sessionEndsAt: Date } | undefined,
+    family: { familyId: number; sessionEndsAt: Date; lastActivityAt: Date } | undefined,
     at: Date,
     tx?: Tx,
   ) {
     const token = newToken();
     const expiresAt = new Date(at.getTime() + REFRESH_TOKEN_TTL_MS);
     const sessionEndsAt = family?.sessionEndsAt ?? new Date(at.getTime() + SESSION_LIFETIME_MS);
+    const lastActivityAt = family?.lastActivityAt ?? at;
     const stored = await repository.createRefreshToken(
-      { userId, tokenHash: hashToken(token), expiresAt, sessionEndsAt, familyId: family?.familyId },
+      {
+        userId,
+        tokenHash: hashToken(token),
+        expiresAt,
+        sessionEndsAt,
+        lastActivityAt,
+        familyId: family?.familyId,
+      },
       tx,
     );
     return { stored, issued: { token, familyId: stored.familyId } };
@@ -125,9 +137,14 @@ export function createSessionsService({
 
     /**
      * Replaces the token with the next one of its session. Runs in the caller's transaction, after
-     * the caller took the user's session lock (conventions §13).
+     * the caller took the user's session lock (conventions §13). With `idleAfterMs`, the bound of an
+     * idle-bound account (reception's), a session unused longer ends here; the refresh renews nothing.
      */
-    async rotate(token: string, tx: Tx): Promise<Rotation> {
+    async rotate(
+      token: string,
+      tx: Tx,
+      { idleAfterMs }: { idleAfterMs?: number } = {},
+    ): Promise<Rotation> {
       const at = now();
       const stored = await repository.findRefreshToken(hashToken(token), tx);
       if (!stored) return { outcome: 'invalid' };
@@ -138,6 +155,13 @@ export function createSessionsService({
         return { outcome: 'invalid' };
       }
       if (stored.expiresAt <= at) return { outcome: 'invalid' };
+      if (
+        idleAfterMs !== undefined &&
+        at.getTime() - stored.lastActivityAt.getTime() > idleAfterMs
+      ) {
+        await repository.deleteFamily(stored.familyId, tx);
+        return { outcome: 'idle' };
+      }
 
       if (stored.rotatedAt && at.getTime() - stored.rotatedAt.getTime() > ROTATION_GRACE_MS) {
         await repository.deleteFamily(stored.familyId, tx);
@@ -155,6 +179,26 @@ export function createSessionsService({
         throw new Error('A refresh token was rotated concurrently, despite the session lock');
       }
       return { outcome: 'rotated', issued: next.issued };
+    },
+
+    /**
+     * An idle-bound session's state (requireAuth's): `ended` once it has no token, `idle` once unused
+     * longer than `idleAfterMs` — kept, for the refresh to end and say so — else `live`, its last use
+     * renewed when `renew`, at most once a minute.
+     */
+    async idleState(
+      familyId: number,
+      renew: boolean,
+      idleAfterMs: number,
+    ): Promise<'ended' | 'idle' | 'live'> {
+      const at = now();
+      const lastActivityAt = await repository.familyActivity(familyId);
+      if (!lastActivityAt) return 'ended';
+      if (at.getTime() - lastActivityAt.getTime() > idleAfterMs) return 'idle';
+      if (renew) {
+        await repository.renewActivity(familyId, at, new Date(at.getTime() - ACTIVITY_WRITE_MS));
+      }
+      return 'live';
     },
 
     /** Ends the token's session, every token of its family. Unknown tokens are ignored. */

@@ -21,6 +21,7 @@ export const ERRORS = {
   EMAIL_TAKEN: 'يوجد حساب بهذا البريد الإلكتروني.',
   PHONE_TAKEN: 'رقم الهاتف هذا مستخدم من قبل.',
   INVALID_CREDENTIALS: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+  SESSION_IDLE: 'انتهت جلستك بعد 15 دقيقة دون نشاط. سجّل الدخول من جديد.',
   ACCOUNT_SUSPENDED: 'هذا الحساب موقوف.',
   PASSWORD_CHANGE_REQUIRED: 'غيّر كلمة المرور المؤقتة للمتابعة.',
   SPACE_NOT_MANAGED: 'أنت لا تدير هذه المساحة.',

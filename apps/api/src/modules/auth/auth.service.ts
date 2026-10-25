@@ -1,17 +1,18 @@
 import { createHash } from 'node:crypto';
 
-import type {
-  ForgotPasswordRequest,
-  GoogleSignInRequest,
-  LoginRequest,
-  RecoveryPosition,
-  RegisterRequest,
-  ResetPasswordRequest,
-  Session,
+import {
+  RECEPTION_IDLE_MINUTES,
+  type ForgotPasswordRequest,
+  type GoogleSignInRequest,
+  type LoginRequest,
+  type RecoveryPosition,
+  type RegisterRequest,
+  type ResetPasswordRequest,
+  type Session,
 } from '@masaha/shared/auth';
 
 import type { RunInTransaction } from '../../db/index.ts';
-import type { AccessTokens } from '../../shared/auth/index.ts';
+import { isIdleBound, type AccessTokens } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
 import type { Recovery, SessionsService } from '../sessions/index.ts';
@@ -32,6 +33,9 @@ import { resetEmail, resetLink } from './email/resetEmail.ts';
 import type { GoogleIdentity } from './google.ts';
 import { maskEmail } from './maskEmail.ts';
 import { drawNoSendWait } from './noSendWait.ts';
+
+/** How long a reception session may go unused (docs/backend/security.md › Tokens and cookies). */
+const RECEPTION_IDLE_MS = RECEPTION_IDLE_MINUTES * 60_000;
 
 /** A session for the body, and its refresh token for the cookie. */
 export interface SignedIn {
@@ -260,13 +264,21 @@ export function createAuthService({
           await users.endSessions(userId, tx);
           return { outcome: 'refused', account } as const;
         }
-        const rotation = await sessions.rotate(refreshToken, tx);
+        const idleBound = await isIdleBound(account.role, () =>
+          spaceLinks.activeRolesOf(userId, tx),
+        );
+        const rotation = await sessions.rotate(refreshToken, tx, {
+          idleAfterMs: idleBound ? RECEPTION_IDLE_MS : undefined,
+        });
+        if (rotation.outcome === 'idle') return { outcome: 'idle' } as const;
         return rotation.outcome === 'rotated'
           ? ({ outcome: 'rotated', account, issued: rotation.issued } as const)
           : ({ outcome: 'invalid' } as const);
       });
 
       if (result.outcome === 'refused') users.assertMaySignIn(result.account);
+      // Ended after the commit: the family's deletion must hold.
+      if (result.outcome === 'idle') throw AppError.unauthorized('SESSION_IDLE', 'Session idle');
       if (result.outcome !== 'rotated') throw AppError.unauthorized(undefined, 'No valid session');
       return {
         session: await sessionFor(result.account, result.issued.familyId),
