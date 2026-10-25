@@ -26,7 +26,7 @@
 
 ## How it composes the platform
 
-- Its site router sits at the API's root (`/spaces/:slug/reports`, `/me/reports`), beside the directory's public routes; the route asks `requireAuth`, then counts the request by the user (`DATA_REPORT`, [security › Rate limits](../backend/security.md#rate-limits-fixed-window)), then checks the body by the shared schema ([shared-package.md](../architecture/shared-package.md)).
+- Its me router sits at the API's root (`/spaces/:slug/reports`, `/me/reports`), beside the directory's public routes; the route asks `requireAuth`, then counts the request by the user (`DATA_REPORT`, [security › Rate limits](../backend/security.md#rate-limits-fixed-window)), then checks the body by the shared schema ([shared-package.md](../architecture/shared-package.md)).
 - Its manage router sits at `/data-reports` below `/manage/spaces/:spaceId`, behind the one boundary ([conventions › Routers](../backend/conventions.md#routers)); each route asks `can()` first through `requireCan`, and the decision again under the space's lock ([conventions › Space access](../backend/conventions.md#space-access)).
 - Its admin router sits at `/data-reports` inside `/admin`, behind `requireRole('ADMIN')`; its decision asks `can()` on the links `space-links` reads under the space's lock.
 - A decision is audited in its own transaction ([conventions §6](../backend/conventions.md#6-audit)).
@@ -60,7 +60,7 @@
 
 ## Code map
 
-- `apps/api/src/modules/data-reports/` — the module: its service, its repository, its site, manage and admin routers, its limit and the decision's rule (`decision.ts`).
+- `apps/api/src/modules/data-reports/` — the module: its service, its repository, its me, manage and admin routers, its limit and the decision's rule (`decision.ts`).
 - `packages/shared/src/data-reports/` — the requests and answers.
 
 ## Open findings

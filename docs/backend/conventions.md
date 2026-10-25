@@ -158,7 +158,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 | [`announcements`](../features/announcements.md) | L2 | `announcements` | manage | Announcements, including closure notices; their key; the public ones |
 | `favorites` | L2 | `favorites` | me | A user's saved spaces (§9) |
 | [`auth`](../features/auth.md) | L3 | — | public | The sign-in flows, as orchestrator: register, sign in with a password or with Google, refresh, sign out, forgot and reset password ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
-| `data-reports` | L3 | `data_reports` | site (a report, and the reporter's own), manage, admin | Reports about a space's information (§9) |
+| `data-reports` | L3 | `data_reports` | me (at the API's root: a report, and the reporter's own), manage, admin | Reports about a space's information (§9) |
 | `visits` | L3 | `visits` | manage | The pure visit charge; auto check-out of its own visits |
 | `subscriptions` | L3 | `subscriptions`, `check_ins`, `closure_extensions`, `subscription_extensions` | manage | Subscriptions, their check-ins and closure extensions; the managed announcements list with each closure's extension, and its summary (§9); the pure progress and status; auto check-out of its own check-ins |
 | `payments` | L4 | `payments` | manage | The ledger ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)); the pure balance; debt; uncollected visits (§9) |
@@ -254,7 +254,7 @@ The modules that apply them read them: visits and subscriptions (auto check-out;
   - override expiry and staleness, which are derived at read time. No job runs for them.
 
 ### `data-reports`
-- One module with three routers: `site`, at the API's root (creating one, `POST /spaces/:slug/reports`, and the reporter's own, `/me/reports`), `manage` and `admin` (2026-10-25, #120).
+- One module with three routers: `me`, at the API's root (creating one, `POST /spaces/:slug/reports`, and the reporter's own, `/me/reports`), `manage` and `admin` (2026-10-25, #120).
 - Who may resolve a report comes from `can()`, with "verified" as an input.
 - Resolving a report never edits the space. The design's "Edit the field" button is navigation only.
 

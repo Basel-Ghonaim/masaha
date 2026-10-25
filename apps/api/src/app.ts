@@ -40,7 +40,7 @@ import {
   createDataReportsController,
   createDataReportsManageRouter,
   createDataReportsService,
-  createDataReportsSiteRouter,
+  createDataReportsMeRouter,
 } from './modules/data-reports/index.ts';
 import {
   createDeskController,
@@ -509,7 +509,7 @@ export function createApi({
   api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
   api.use(createDirectoryPublicRouter(createDirectoryController(directory)));
   const dataReportsController = createDataReportsController(dataReports);
-  api.use(createDataReportsSiteRouter({ controller: dataReportsController, requireAuth, limiter }));
+  api.use(createDataReportsMeRouter({ controller: dataReportsController, requireAuth, limiter }));
   api.use(
     '/manage/spaces',
     createSpaceLinksMeRouter(createSpaceLinksController(spaceLinks), requireAuth),
