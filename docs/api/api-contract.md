@@ -681,9 +681,9 @@ PaymentRow = {
 #### `GET /manage/spaces/:spaceId/payments` · 🧾
 The payments list, 2026-10-24, #114: the owner's ledger, and reception's own payments of today («دفعاتي اليوم»). Read without a lock.
 - **Query** (`paymentsQuerySchema`, `@masaha/shared/payments`): `from` and `to`, Gaza dates, both included, `to` not before `from` and at most 92 days with both counted (`out_of_range` on `to`); both or neither (half a range: `required` on the missing one), neither for today; `recordedById`, who recorded it; `method`, `CASH` or `TRANSFER`; `kind`, `VISIT` or `SUBSCRIPTION`; `voided`, `INCLUDE` (the default), `EXCLUDE` or `ONLY`; `page`, `limit` (§4).
-- **Who reads what**, decided before anything is read: the owner (`payments.read`), every payment of the space, by the query; reception, its own payments received today in Gaza, by `method`, `kind`, `voided` and the page — a `from`, `to` or `recordedById` from it is `forbidden` (403), never ignored.
+- **Who reads what**, decided before anything is read: the owner (`payments.read`), every payment of the space, by the query; reception, its own payments received today in Gaza, by `method`, `kind`, `voided` and the page. The query is validated first (422); a valid `from`, `to` or `recordedById` from reception is then `forbidden` (403), never ignored.
 - **200:** a page of `PaymentRow`: the payments received in the range's Gaza days (a payment counts on the day it was received), the latest received first, then by id, voided ones listed and marked unless `voided` leaves them out; `meta: PaymentsMeta`, the pagination and `totals` over the whole filter but `voided` and the page: what was received — the payments not voided — in all and by method, how many, and the voided ones' count and amount apart. A voided payment is never received. The page, its count and the totals are read apart, so a payment recorded between them shows on the next read.
-- **Errors:** `validation` (422) on the query; `forbidden` (403) for reception's range or `recordedById`; `not_found` (404).
+- **Errors:** `validation` (422) on the query, first, reception's included; `forbidden` (403) for a valid range or `recordedById` from reception; `not_found` (404).
 
 ```ts
 PaymentTotals = {
