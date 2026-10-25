@@ -1,4 +1,4 @@
-import { createReportSchema } from '@masaha/shared/data-reports';
+import { createReportSchema, myReportsQuerySchema } from '@masaha/shared/data-reports';
 import { Router } from 'express';
 
 import { signedIn, type RequireAuth } from '../../shared/auth/index.ts';
@@ -10,7 +10,7 @@ import { DATA_REPORT } from './data-reports.limits.ts';
 /**
  * The signed-in user's reports, mounted at the API's root: a report of a listed space
  * (`POST /spaces/:slug/reports`), counted by the user before its body is read
- * (docs/backend/security.md › Rate limits).
+ * (docs/backend/security.md › Rate limits), and the user's own (`GET /me/reports`).
  */
 export function createDataReportsSiteRouter({
   controller,
@@ -31,6 +31,12 @@ export function createDataReportsSiteRouter({
     counted,
     validate(createReportSchema),
     controller.create,
+  );
+  router.get(
+    '/me/reports',
+    requireAuth(),
+    validate(myReportsQuerySchema, 'query'),
+    controller.mine,
   );
   return router;
 }

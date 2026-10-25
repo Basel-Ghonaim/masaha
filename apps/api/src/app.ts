@@ -438,6 +438,7 @@ export function createApi({
     runInTransaction,
     spaces,
     publicSpace,
+    publicListing,
     lookups,
     users,
     now: clock,

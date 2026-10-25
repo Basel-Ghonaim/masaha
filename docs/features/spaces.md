@@ -1,6 +1,6 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
 > **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it and its owner edits it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list, and the owner's space profile, the same editor on the managed routes. Reception's web screens remain planned.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
@@ -25,6 +25,7 @@ Reception's web screens remain planned.
 - **The owner,** on the dashboard's «ملف المساحة» of their space: the space editor on the owner's place, through the managed routes.
 - **`space-links`,** which names the spaces of a user's links from the summaries, and composes the admin's spaces list on the listing page.
 - **[`packages`](packages.md),** whose writes take the space's lock first.
+- **[`data-reports`](data-reports.md),** which finds a reported space as its page does (`publicSpace.findShown`), names the spaces of a user's reports, soft-deleted ones included (`namesWithDeleted`), and asks the public listing which of them are listed (2026-10-25, #120).
 
 ## Responsibility boundary
 

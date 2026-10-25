@@ -796,6 +796,10 @@ MyReport = SpaceReport & {
 - **201:** `MyReport`, `OPEN`, `listed: true`. **200:** the user's open report of that space and field, as it is, writing nothing; two identical reports at once make one (the user's lock, the database's rule behind it).
 - **Errors**, each writing nothing: `unauthorized` (401) without a signed-in user; `rate_limit` (429) past the limit, before the body is read; `validation` (422) on the body; `not_found` (404) for a space that is not publicly listed — unknown, hidden, deleted, or in an area not listed — as its page answers.
 
+#### `GET /me/reports` · 👤
+- **Query:** `status` (`OPEN`, or `DECIDED`: resolved or dismissed; all when absent; `invalid_choice` otherwise) and §4's `page` and `limit`.
+- **200:** `MyReport[]`, the caller's own only, newest first, then id, with §4's `meta`. Each decided one carries its `decision`, `repliedBy` as stored with it; a space that left the directory (hidden, deleted, or in an area not listed) carries `listed: false`, its names and slug kept (a slug is never reused), so the screen shows its name as text. Built 2026-10-25, #120.
+
 ### Internal
 
 The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conventions §12](../backend/conventions.md#12-environments)): online, an external cron calls this endpoint every 5 minutes; locally, the server runs the same jobs from a timer. It carries no access token, so the general limit counts it by address ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). Built 2026-10-20, #97.
