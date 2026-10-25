@@ -19,7 +19,7 @@
 
 ## Who uses it
 
-- **The front desk** ([desk](desk.md)), which subscribes a customer and checks a subscriber in through it.
+- **The front desk** ([desk](desk.md)), which subscribes a customer and checks a subscriber in through it; on the web, the desk reads the open check-ins (`GET …/check-ins?open=true`) for each subscriber's phone and progress (2026-10-25, #119).
 - **[`occupancy`](occupancy.md),** which counts the check-ins present.
 - **The timed jobs** (`shared/jobs`), which run its auto check-out.
 - **The space's staff**, who read the managed announcements list and its summary through it.

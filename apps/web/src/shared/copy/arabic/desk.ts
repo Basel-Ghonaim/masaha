@@ -236,5 +236,46 @@ export const DESK = {
     owes: ({ amount }: { amount: string }) => `عليه ${amount}`,
     credit: ({ amount }: { amount: string }) => `له رصيد ${amount}`,
     settled: 'مسدّد',
+    checkIn: 'حضور',
+    checkInName: ({ name }: { name: string }) => `حضور ${name}`,
+  },
+  subscriber: {
+    pre: {
+      title: ({ name }: { name: string }) => `تسجيل حضور · ${name}`,
+      none: 'لا يوجد اشتراك.',
+      expired: ({ name, date }: { name: string; date: string }) =>
+        `انتهى الاشتراك «${name}» في ${date}.`,
+      upcoming: ({ name, date }: { name: string; date: string }) =>
+        `يبدأ الاشتراك «${name}» في ${date}.`,
+      asVisit: 'تسجيل كزيارة',
+      asVisitNote: 'تُسجَّل زيارة باسمه، ولا تُضاف إلى ملفه.',
+      anyway: 'تسجيل على أي حال',
+      back: 'رجوع',
+    },
+    in: {
+      done: ({ name }: { name: string }) => `سُجّل حضور ${name}`,
+      failed: 'تعذّر تسجيل الحضور',
+      alreadyHere: ({ name }: { name: string }) => `${name} حاضر الآن.`,
+    },
+    out: {
+      done: ({ name }: { name: string }) => `سُجّل خروج ${name}`,
+      stay: ({ time }: { time: string }) => `مدة الحضور ${time}`,
+      owes: ({ amount }: { amount: string }) => `يبقى ${amount} على الاشتراك`,
+      failed: 'تعذّر تسجيل الخروج',
+    },
+    progress: {
+      days: ({ used, total }: { used: string; total: string }) => `أيام ${used} من ${total}`,
+      week: ({ used, total }: { used: string; total: string }) => `هذا الأسبوع ${used} من ${total}`,
+      today: ({ used, total }: { used: string; total: string }) =>
+        `ساعات اليوم ${used} من ${total} س`,
+      hours: ({ used, total }: { used: string; total: string }) => `الساعات ${used} من ${total} س`,
+      billed: ({ rate, unit }: { rate: string; unit: string }) =>
+        `يُحسب من الحضور: ${rate} ${unit}`,
+      units: { PER_HOUR: 'للساعة', PER_DAY: 'لليوم' },
+      validUntil: ({ date }: { date: string }) => `صالح حتى ${date}`,
+      endedOn: ({ date }: { date: string }) => `انتهى في ${date}`,
+      startsOn: ({ date }: { date: string }) => `يبدأ في ${date}`,
+      noEnd: 'بلا تاريخ نهاية',
+    },
   },
 } satisfies Catalogue['desk'];

@@ -1,22 +1,45 @@
 import type { CustomerRow } from '@masaha/shared/desk';
 import {
   Badge,
+  Button,
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@shared/design-system';
+import { useRef, type RefObject } from 'react';
 import { useCustomerCard } from '../../hooks/card/useCustomerCard';
+import { useSubscriberCheckIn } from '../../hooks/subscriber/useSubscriberCheckIn';
+import { PreCheckInDialog } from '../subscriber/PreCheckInDialog';
 import { BalanceBadge } from './BalanceBadge';
 
 /**
  * A customer found by the desk's search: their name, the card's `h3` under its group's `h2` (DI-38),
  * their phone left to right, their current subscription with its status and its end, and their
- * balance (DI-40).
+ * balance (DI-40); then «حضور», named by them, at the layer's default size (DI-16), with its choice
+ * first when the row questions the subscription (DI-14). Done, `after.done` runs and the focus goes
+ * to `after.focus` (the search, S10); the choice dismissed, back to «حضور».
  */
-export function CustomerCard({ row }: { row: CustomerRow }) {
+export function CustomerCard({
+  spaceId,
+  row,
+  after,
+}: {
+  spaceId: number;
+  row: CustomerRow;
+  after: { done: () => void; focus: RefObject<HTMLElement | null> };
+}) {
   const card = useCustomerCard(row);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const succeeded = useRef(false);
+  const checkIn = useSubscriberCheckIn(spaceId, row, {
+    done: () => {
+      succeeded.current = true;
+      after.done();
+    },
+  });
 
   return (
     <Card>
@@ -45,6 +68,23 @@ export function CustomerCard({ row }: { row: CustomerRow }) {
           <BalanceBadge balance={card.balance} />
         </div>
       </CardContent>
+      <CardFooter className="flex-wrap">
+        <Button
+          ref={trigger}
+          aria-label={checkIn.tap.name}
+          loading={checkIn.tap.busy}
+          onClick={() => {
+            succeeded.current = false;
+            checkIn.tap.run();
+          }}
+        >
+          {checkIn.tap.label}
+        </Button>
+      </CardFooter>
+      <PreCheckInDialog
+        dialog={checkIn.dialog}
+        focusAfter={() => (succeeded.current ? after.focus.current : trigger.current)}
+      />
     </Card>
   );
 }

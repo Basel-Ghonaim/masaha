@@ -2,8 +2,10 @@ import type { PresentPerson } from '@masaha/shared/occupancy';
 import {
   CheckOutAction,
   DeskSearch,
+  type SearchAfter,
   UncollectedCard,
   UnpricedCard,
+  useOpenCheckIns,
   useVisitDialog,
   useVisitTermsQuery,
   VisitDialog,
@@ -74,10 +76,15 @@ function Desk({ spaceId }: { spaceId: number }) {
   const openVisit = () => {
     visit.setOpen(true);
   };
-  // The search's first group: who is present now, whom a term matches.
+  // The open check-ins name each subscriber's phone and usage; read again when the check-ins change.
   const people = now?.people;
+  const checkInIds = useMemo(
+    () => (people ?? []).flatMap((person) => (person.kind === 'CHECK_IN' ? [person.id] : [])),
+    [people],
+  );
+  const { phones, usage } = useOpenCheckIns(spaceId, checkInIds);
+  // The search's first group: who is present now, whom a term matches.
   const present = useMemo(() => {
-    const phones = new Map<number, string>();
     const everyone = people ?? [];
     return {
       customerIds: new Set(
@@ -85,9 +92,8 @@ function Desk({ spaceId }: { spaceId: number }) {
       ),
       matches: (term: string) =>
         everyone.filter((person) => matchesPerson(person, term, phones)).length,
-      phones,
     };
-  }, [people]);
+  }, [people, phones]);
   // The rows' action, made once per terms: a new one would draw every row anew.
   const termsData = terms.data;
   const action = useCallback(
@@ -138,8 +144,15 @@ function Desk({ spaceId }: { spaceId: number }) {
         present={{
           customerIds: present.customerIds,
           matches: present.matches,
-          group: (term) => (
-            <PresentMatches spaceId={spaceId} term={term} phones={present.phones} action={action} />
+          group: (term, after: SearchAfter) => (
+            <PresentMatches
+              spaceId={spaceId}
+              term={term}
+              phones={phones}
+              action={(person) => (
+                <CheckOutAction spaceId={spaceId} person={person} terms={termsData} after={after} />
+              )}
+            />
           ),
         }}
         checkIn={(name) => {
@@ -148,7 +161,7 @@ function Desk({ spaceId }: { spaceId: number }) {
       />
       <div className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start">
         <div className="xl:col-span-8">
-          <PresentList spaceId={spaceId} action={action} />
+          <PresentList spaceId={spaceId} action={action} usage={usage} />
         </div>
         <div className="flex flex-col gap-6 xl:col-span-4">
           <UncollectedCard spaceId={spaceId} abilities={{ writeOff: owner }} />

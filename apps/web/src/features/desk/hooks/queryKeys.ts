@@ -18,4 +18,9 @@ export const deskKeys = {
   /** A page of the customers a query finds: the desk's search, the customers list. */
   customers: (spaceId: number, query: CustomersQuery) =>
     ['space', spaceId, 'desk', 'customers', query] as const,
+  /** Every open subscriber check-in. */
+  openCheckIns: (spaceId: number) => ['space', spaceId, 'desk', 'checkIns', 'open'] as const,
+  /** A customer's file. */
+  file: (spaceId: number, customerId: number) =>
+    ['space', spaceId, 'desk', 'file', customerId] as const,
 };

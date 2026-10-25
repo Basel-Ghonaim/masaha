@@ -1,5 +1,7 @@
 import type {
+  CheckInCheckOut,
   CheckOutVisitRequest,
+  CustomerFile,
   CustomerRow,
   CustomersQuery,
   DeskWarning,
@@ -9,6 +11,7 @@ import type {
   VisitCheckOut,
 } from '@masaha/shared/desk';
 import type { UncollectedVisit } from '@masaha/shared/payments';
+import type { CheckInSubscriberRequest, DeskCheckIn } from '@masaha/shared/subscriptions';
 import type {
   CheckInVisitRequest,
   DeskVisit,
@@ -21,12 +24,15 @@ import { api, withIdempotencyKey, type Page, type WithMeta } from '@shared/api';
 
 /** A check-in's answer: the visit, with the warnings the server said, when it said some. */
 export type CheckedIn = WithMeta<DeskVisit, { warnings: DeskWarning[] }>;
+/** A subscriber's check-in's answer: the check-in, with the warnings the server said, if any. */
+export type SubscriberCheckedIn = WithMeta<DeskCheckIn, { warnings: DeskWarning[] }>;
 
 /**
  * The front desk's visits on the server (docs/api/api-contract.md §5, Front desk (managed)): the
  * terms, a visitor's check-in, a visit's quote and its check-out; the uncollected visits, a payment
  * on one, «تسجيل دين», and the owner's write-off and its undo; the unpriced visits and their price;
- * the customers' search. The creates carry the intent's key
+ * the customers' search; a subscriber's check-in and check-out, and the open check-ins. The creates
+ * carry the intent's key
  * (ADR 0015), which lets the transport send them again; the other writes are idempotent by design
  * and carry none, so they are sent once (S3).
  */
@@ -68,6 +74,18 @@ export interface DeskRepository {
   price(spaceId: number, visitId: number, body: PriceVisitRequest): Promise<DeskVisit>;
   /** A page of the space's customers the query finds, by name. */
   customers(spaceId: number, query: CustomersQuery): Promise<Page<CustomerRow[]>>;
+  /** Checks a subscriber in on a subscription; a retry with the same key answers the same check-in. */
+  checkInSubscriber(
+    spaceId: number,
+    body: CheckInSubscriberRequest,
+    key: string,
+  ): Promise<SubscriberCheckedIn>;
+  /** Checks a subscriber out, with what their subscription was paid and still owes. */
+  checkOutSubscriber(spaceId: number, checkInId: number): Promise<CheckInCheckOut>;
+  /** Every open subscriber check-in, the earliest first, with its customer and subscription. */
+  openCheckIns(spaceId: number): Promise<DeskCheckIn[]>;
+  /** A customer's file: their money, presence, subscriptions and unpaid visits. */
+  file(spaceId: number, customerId: number): Promise<CustomerFile>;
 }
 
 export function createDeskRepository(): DeskRepository {
@@ -106,5 +124,17 @@ export function createDeskRepository(): DeskRepository {
       api.put<DeskVisit>(`${visit(spaceId, visitId)}/charge`, body),
     customers: (spaceId, query) =>
       api.getPage<CustomerRow[]>(`${space(spaceId)}/customers`, { params: query }),
+    checkInSubscriber: (spaceId, body, key) =>
+      api.postWithMeta<DeskCheckIn, { warnings: DeskWarning[] }>(
+        `${space(spaceId)}/check-ins`,
+        body,
+        withIdempotencyKey(key),
+      ),
+    checkOutSubscriber: (spaceId, checkInId) =>
+      api.post<CheckInCheckOut>(`${space(spaceId)}/check-ins/${String(checkInId)}/check-out`),
+    openCheckIns: (spaceId) =>
+      api.get<DeskCheckIn[]>(`${space(spaceId)}/check-ins`, { params: { open: true } }),
+    file: (spaceId, customerId) =>
+      api.get<CustomerFile>(`${space(spaceId)}/customers/${String(customerId)}`),
   };
 }

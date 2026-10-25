@@ -9,9 +9,12 @@ import {
   SearchIcon,
   Skeleton,
 } from '@shared/design-system';
-import { useId, type ReactNode } from 'react';
+import { useId, useRef, type ReactNode, type RefObject } from 'react';
 import { useDeskSearch } from '../../hooks/search/useDeskSearch';
 import { CustomerCard } from '../card/CustomerCard';
+
+/** What follows an action started from the search's results: it is cleared and focused. */
+export type SearchAfter = { done: () => void; focus: RefObject<HTMLElement | null> };
 
 /**
  * The desk's one search (K1): a region named «البحث», its field controlling the results, which are
@@ -19,7 +22,8 @@ import { CustomerCard } from '../card/CustomerCard';
  * then the customers the server finds, a card each under their `h2` (DI-38), then the visit's
  * check-in by the typed name (`checkIn`), the primary only when nothing matched, with the no-match
  * line (DI-20, DI-36). The count of results is said politely as it changes (A7). From 768 px the field
- * takes the focus on arrival (S10).
+ * takes the focus on arrival (S10), and after a check-in or a check-out started from the results it
+ * is cleared and takes the focus again (`after`, handed to the cards and to `present.group`).
  */
 export function DeskSearch({
   spaceId,
@@ -32,13 +36,21 @@ export function DeskSearch({
     customerIds: ReadonlySet<number>;
     /** How many people present a term matches. */
     matches: (term: string) => number;
-    /** The people present a term matches, drawn as the first group. */
-    group: (term: string) => ReactNode;
+    /** The people present a term matches, drawn as the first group, their actions given `after`. */
+    group: (term: string, after: SearchAfter) => ReactNode;
   };
   /** Opens the visit's check-in with this name (empty for digits). */
   checkIn: (name: string) => void;
 }) {
   const search = useDeskSearch(spaceId, { present });
+  const input = useRef<HTMLInputElement | null>(null);
+  const after: SearchAfter = {
+    done: () => {
+      search.input.clear();
+      input.current?.focus();
+    },
+    focus: input,
+  };
   const resultsId = useId();
   const customersId = useId();
   const { customers } = search;
@@ -57,6 +69,7 @@ export function DeskSearch({
   return (
     <section aria-label={search.region} className="flex flex-col gap-4">
       <Input
+        ref={input}
         type="search"
         aria-label={search.input.label}
         aria-controls={resultsId}
@@ -73,7 +86,7 @@ export function DeskSearch({
         {search.count}
       </p>
       <div id={resultsId} className="flex flex-col gap-6">
-        {present.group(search.term)}
+        {present.group(search.term, after)}
         {customers.state === 'loading' && (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Skeleton className="h-32" />
@@ -113,7 +126,7 @@ export function DeskSearch({
             <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {customers.rows.map((row) => (
                 <li key={row.id}>
-                  <CustomerCard row={row} />
+                  <CustomerCard spaceId={spaceId} row={row} after={after} />
                 </li>
               ))}
             </ul>

@@ -228,5 +228,49 @@ export const DESK = {
     owes: ({ amount }: { amount: string }) => `Owes ${amount}`,
     credit: ({ amount }: { amount: string }) => `In credit ${amount}`,
     settled: 'Settled',
+    /** A customer's one-tap check-in, and its accessible name. */
+    checkIn: 'Check in',
+    checkInName: ({ name }: { name: string }) => `Check in ${name}`,
+  },
+  /** A subscriber's check-in and check-out at the desk. */
+  subscriber: {
+    /** The choice before a check-in on no subscription, an expired one or one not started (DI-14). */
+    pre: {
+      title: ({ name }: { name: string }) => `Check in · ${name}`,
+      none: 'No subscription.',
+      expired: ({ name, date }: { name: string; date: string }) =>
+        `The subscription “${name}” ended on ${date}.`,
+      upcoming: ({ name, date }: { name: string; date: string }) =>
+        `The subscription “${name}” starts on ${date}.`,
+      asVisit: 'Check in as a visit',
+      asVisitNote: 'A visit is recorded under their name; it isn’t added to their file.',
+      anyway: 'Check in anyway',
+      back: 'Back',
+    },
+    in: {
+      done: ({ name }: { name: string }) => `${name} checked in`,
+      failed: 'We couldn’t check them in',
+      alreadyHere: ({ name }: { name: string }) => `${name} is already here.`,
+    },
+    out: {
+      done: ({ name }: { name: string }) => `${name} checked out`,
+      stay: ({ time }: { time: string }) => `Stayed ${time}`,
+      owes: ({ amount }: { amount: string }) => `${amount} stays on the subscription`,
+      failed: 'We couldn’t check them out',
+    },
+    /** A subscription's progress, in the present list and the file. */
+    progress: {
+      days: ({ used, total }: { used: string; total: string }) => `Days ${used} of ${total}`,
+      week: ({ used, total }: { used: string; total: string }) => `This week ${used} of ${total}`,
+      today: ({ used, total }: { used: string; total: string }) => `Today ${used} of ${total} h`,
+      hours: ({ used, total }: { used: string; total: string }) => `Hours ${used} of ${total} h`,
+      billed: ({ rate, unit }: { rate: string; unit: string }) =>
+        `Billed from attendance: ${rate} ${unit}`,
+      units: { PER_HOUR: 'per hour', PER_DAY: 'per day' },
+      validUntil: ({ date }: { date: string }) => `Valid until ${date}`,
+      endedOn: ({ date }: { date: string }) => `Ended ${date}`,
+      startsOn: ({ date }: { date: string }) => `Starts ${date}`,
+      noEnd: 'No end date',
+    },
   },
 } as const;

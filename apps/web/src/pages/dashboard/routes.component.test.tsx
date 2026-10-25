@@ -78,6 +78,7 @@ function signIn(fields: Partial<SessionUser>) {
     // The desk, where reception lands: its reads answered as the server would, with no one present.
     if (request.url?.endsWith('/occupancy') === true) return ok(NO_ONE_PRESENT);
     if (request.url?.endsWith('/visit-terms') === true) return ok(VISIT_TERMS);
+    if (request.url?.endsWith('/check-ins') === true) return ok([]);
     return ok(
       user.spaces.map((link: SessionSpaceLink) => ({
         ...FOCUS,

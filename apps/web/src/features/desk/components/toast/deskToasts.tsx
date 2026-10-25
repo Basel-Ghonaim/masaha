@@ -1,9 +1,14 @@
-import type { DeskWarning, ReceivedPayment, VisitCheckOut } from '@masaha/shared/desk';
+import type {
+  CheckInCheckOut,
+  DeskWarning,
+  ReceivedPayment,
+  VisitCheckOut,
+} from '@masaha/shared/desk';
 import type { DeskVisit } from '@masaha/shared/visits';
 import { currentCopy } from '@shared/copy';
 import { toast } from '@shared/design-system';
-import { toAppError } from '@shared/errors';
-import { RefusalText } from '@shared/forms';
+import { toAppError, type AppError } from '@shared/errors';
+import { RefusalText, type FailureLines } from '@shared/forms';
 import { priceText } from '@shared/lib';
 import { currentLanguage, isolate } from '@shared/localisation';
 import { warningLines } from '../../services/warningLines';
@@ -18,8 +23,20 @@ const priceNow = (agorot: number) =>
  * that stays until it is closed (S6).
  */
 export function toastCheckedIn(name: string, warnings: readonly DeskWarning[] | undefined) {
+  toastWarned(currentCopy().desk.visit.done({ name: isolate(name) }), warnings);
+}
+
+/** Says a subscriber was checked in, naming them, with the server's warnings (S6). */
+export function toastSubscriberIn(name: string, warnings: readonly DeskWarning[] | undefined) {
+  toastWarned(currentCopy().desk.subscriber.in.done({ name: isolate(name) }), warnings);
+}
+
+/**
+ * A check-in's toast: a success, or — with the server's warnings, each its line — a warning that stays
+ * until it is closed (S6).
+ */
+function toastWarned(title: string, warnings: readonly DeskWarning[] | undefined) {
   const copy = currentCopy();
-  const title = copy.desk.visit.done({ name: isolate(name) });
   const lines = warningLines(warnings, copy.errors);
   if (lines.length === 0) {
     toast.success(title);
@@ -143,4 +160,49 @@ export function toastPriced(name: string, visit: DeskVisit) {
   toast.success(
     words.done({ name: isolate(name), amount: priceNow(visit.charge?.amountAgorot ?? 0) }),
   );
+}
+
+/**
+ * Says a subscriber was checked out, naming them, then how long they stayed and, while their
+ * subscription still owes, what stays on it, from the answer (S8).
+ */
+export function toastSubscriberOut(name: string, checkOut: CheckInCheckOut) {
+  const copy = currentCopy();
+  const words = copy.desk.subscriber.out;
+  const out = checkOut.checkedOutAt ?? checkOut.checkedInAt;
+  const stayed = Math.max(0, Date.parse(out) - Date.parse(checkOut.checkedInAt));
+  const total = Math.floor(stayed / 60_000);
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  const time =
+    hours === 0
+      ? copy.occupancy.present.minutes({ minutes })
+      : copy.occupancy.present.duration({ hours, minutes });
+  const parts = [words.stay({ time: isolate(time) })];
+  if (checkOut.balanceAgorot > 0)
+    parts.push(words.owes({ amount: priceNow(checkOut.balanceAgorot) }));
+  toast.success(words.done({ name: isolate(name) }), { description: parts.join(' · ') });
+}
+
+/**
+ * Says a write with no dialog failed (DI-8): no answer says a retry is safe and offers it, with the
+ * same key; a refusal says why, the screen's own line first (`lines`).
+ */
+export function toastFailed(
+  title: string,
+  failure: AppError,
+  { lines, retry }: { lines?: FailureLines; retry?: () => void },
+) {
+  const copy = currentCopy();
+  if (failure.type === 'network' || failure.type === 'timeout') {
+    toast.error(title, {
+      description: copy.desk.failure.lost,
+      duration: Infinity,
+      ...(retry !== undefined && { action: { label: copy.status.retry, onClick: retry } }),
+    });
+    return;
+  }
+  toast.error(title, {
+    description: <RefusalText refusal={failure} title={title} lines={lines} />,
+  });
 }
