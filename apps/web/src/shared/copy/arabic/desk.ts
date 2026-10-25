@@ -201,4 +201,103 @@ export const DESK = {
     conflict: 'تعارض هذا الطلب مع طلب سابق؛ أغلق النافذة وأعد فتحها.',
     not_found: 'لم تعد هذه الزيارة موجودة.',
   },
+  search: {
+    region: 'البحث',
+    label: 'ابحث بالاسم أو آخر أرقام الجوال',
+    placeholder: 'الاسم أو آخر أرقام الجوال',
+    customers: 'زبائن',
+    found: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا نتائج',
+        one: 'نتيجة واحدة',
+        two: 'نتيجتان',
+        few: `${String(count)} نتائج`,
+        many: `${String(count)} نتيجة`,
+        other: `${String(count)} نتيجة`,
+      }),
+    checkInNamed: ({ name }: { name: string }) => `تسجيل زيارة باسم «${name}»`,
+    none: {
+      title: 'لا أحد بهذا الاسم أو الرقم',
+      text: 'زائر لمرة واحدة؟ سجّله كزيارة (لا يُنشأ ملف زبون).',
+    },
+    failed: 'تعذّر البحث في الزبائن',
+  },
+  customer: {
+    noPhone: 'بدون رقم جوال',
+    noSubscription: 'بدون اشتراك',
+    until: ({ date }: { date: string }) => `حتى ${date}`,
+    noEnd: 'بلا تاريخ نهاية',
+    statuses: {
+      UPCOMING: 'لم يبدأ',
+      ACTIVE: 'نشط',
+      ENDING_SOON: 'ينتهي قريبًا',
+      EXPIRED: 'منتهٍ',
+    },
+    owes: ({ amount }: { amount: string }) => `عليه ${amount}`,
+    credit: ({ amount }: { amount: string }) => `له رصيد ${amount}`,
+    settled: 'مسدّد',
+    checkIn: 'حضور',
+    checkInName: ({ name }: { name: string }) => `حضور ${name}`,
+    receive: ({ amount }: { amount: string }) => `استلام ${amount}`,
+  },
+  subscriber: {
+    pre: {
+      title: ({ name }: { name: string }) => `تسجيل حضور · ${name}`,
+      none: 'لا يوجد اشتراك.',
+      expired: ({ name, date }: { name: string; date: string }) =>
+        `انتهى الاشتراك «${name}» في ${date}.`,
+      upcoming: ({ name, date }: { name: string; date: string }) =>
+        `يبدأ الاشتراك «${name}» في ${date}.`,
+      asVisit: 'تسجيل كزيارة',
+      asVisitNote: 'تُسجَّل زيارة باسمه، ولا تُضاف إلى ملفه.',
+      anyway: 'تسجيل على أي حال',
+      back: 'رجوع',
+    },
+    in: {
+      done: ({ name }: { name: string }) => `سُجّل حضور ${name}`,
+      failed: 'تعذّر تسجيل الحضور',
+      alreadyHere: ({ name }: { name: string }) => `${name} حاضر الآن.`,
+    },
+    out: {
+      done: ({ name }: { name: string }) => `سُجّل خروج ${name}`,
+      stay: ({ time }: { time: string }) => `مدة الحضور ${time}`,
+      owes: ({ amount }: { amount: string }) => `يبقى ${amount} على الاشتراك`,
+      receive: 'استلام',
+      failed: 'تعذّر تسجيل الخروج',
+    },
+    progress: {
+      days: ({ used, total }: { used: string; total: string }) => `أيام ${used} من ${total}`,
+      week: ({ used, total }: { used: string; total: string }) => `هذا الأسبوع ${used} من ${total}`,
+      today: ({ used, total }: { used: string; total: string }) =>
+        `ساعات اليوم ${used} من ${total} س`,
+      hours: ({ used, total }: { used: string; total: string }) => `الساعات ${used} من ${total} س`,
+      billed: ({ rate, unit }: { rate: string; unit: string }) =>
+        `يُحسب من الحضور: ${rate} ${unit}`,
+      units: { PER_HOUR: 'للساعة', PER_DAY: 'لليوم' },
+      validUntil: ({ date }: { date: string }) => `صالح حتى ${date}`,
+      endedOn: ({ date }: { date: string }) => `انتهى في ${date}`,
+      startsOn: ({ date }: { date: string }) => `يبدأ في ${date}`,
+      noEnd: 'بلا تاريخ نهاية',
+    },
+  },
+  pay: {
+    title: 'استلام دفعة',
+    titleFor: ({ name }: { name: string }) => `استلام دفعة · ${name}`,
+    choose: 'اختر الزبون',
+    owing: 'عليهم مبالغ:',
+    pick: 'اختيار',
+    another: 'زبون آخر',
+    noCustomer: 'لا زبون بهذا الاسم أو الرقم.',
+    item: 'الدفعة عن',
+    itemVisit: ({ day }: { day: string }) => `زيارة ${day}`,
+    itemLine: ({ due, paid, left }: { due: string; paid: string; left: string }) =>
+      `المستحق ${due} · المدفوع ${paid} · المتبقي ${left}`,
+    owesNothing: 'لا مبلغ مستحق على هذا الزبون.',
+    usageNote: 'اشتراك يُحسب من الحضور: ما يزيد يصبح رصيدًا.',
+    submit: ({ amount }: { amount: string }) => `تسجيل ${amount}`,
+    done: ({ name, item, left }: { name: string; item: string; left: string }) =>
+      `${name} · ${item} · المتبقي ${left}`,
+    failed: 'تعذّر تسجيل الدفعة',
+    fileFailed: 'تعذّر تحميل مستحقات الزبون',
+  },
 } satisfies Catalogue['desk'];

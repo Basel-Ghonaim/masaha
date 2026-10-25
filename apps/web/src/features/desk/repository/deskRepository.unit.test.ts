@@ -1,6 +1,7 @@
 import type { DeskVisit } from '@masaha/shared/visits';
 import { apiClient, setupApiClient } from '@shared/api';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { customerRow, customersPage } from '../../../test/deskCustomer';
 import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
 import { bodyOf } from '../../../test/fakeTransport';
 import { createDeskRepository } from './deskRepository';
@@ -165,6 +166,45 @@ describe('the desk repository', () => {
     expect(requests[0]?.params).toEqual({ page: 1 });
     expect(bodyOf(requests[1])).toEqual({ amountAgorot: 3000, reason: 'A long stay' });
     expect(requests[1]?.headers.get('Idempotency-Key')).toBeUndefined();
+  });
+
+  it('searches the customers with the query it is given', async () => {
+    const repository = createDeskRepository();
+    const requests = serve(() => customersPage([customerRow()]));
+
+    await expect(repository.customers(7, { q: 'Sara', page: 1, limit: 6 })).resolves.toMatchObject({
+      data: [customerRow()],
+      meta: { totalRecords: 1 },
+    });
+    expect(requests[0]?.method).toBe('get');
+    expect(requests[0]?.url).toBe('/manage/spaces/7/customers');
+    expect(requests[0]?.params).toEqual({ q: 'Sara', page: 1, limit: 6 });
+  });
+
+  it('checks a subscriber in with its key, out with none; reads the open check-ins and a file', async () => {
+    const repository = createDeskRepository();
+    const requests = serve(() => ({ status: 200, data: { success: true, data: [] } }));
+
+    await repository.checkInSubscriber(7, { subscriptionId: 1 }, 'key-4');
+    await repository.checkOutSubscriber(7, 3);
+    await repository.openCheckIns(7);
+    await repository.file(7, 4);
+
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'post /manage/spaces/7/check-ins',
+      'post /manage/spaces/7/check-ins/3/check-out',
+      'get /manage/spaces/7/check-ins',
+      'get /manage/spaces/7/customers/4',
+    ]);
+    expect(bodyOf(requests[0])).toEqual({ subscriptionId: 1 });
+    expect(requests[2]?.params).toEqual({ open: true });
+    // The check-in carries its key; the check-out is idempotent by design and carries none (S3).
+    expect(requests.map(({ headers }) => headers.get('Idempotency-Key'))).toEqual([
+      'key-4',
+      undefined,
+      undefined,
+      undefined,
+    ]);
   });
 
   it('hands back a check-in’s warnings, and none without them', async () => {

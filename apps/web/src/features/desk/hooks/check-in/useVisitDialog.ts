@@ -51,8 +51,8 @@ export function useVisitDialog({
 
   const shiftOf = (value: string) => (value === NO_SHIFT ? null : Number(value));
   // A space with shifts sends one, the current one first; a space with none sends no shift.
-  const defaults = (): Values => ({
-    visitorName: '',
+  const defaults = (visitorName = ''): Values => ({
+    visitorName,
     audience: 'GENERAL',
     ...(spaceShifts.length > 0
       ? { shiftId: currentShift(spaceShifts, new Date())?.id ?? null }
@@ -104,12 +104,15 @@ export function useVisitDialog({
 
   return {
     open,
-    /** A new opening is a new intent: a new key, and the form as it starts. */
-    setOpen: (next: boolean) => {
+    /**
+     * A new opening is a new intent: a new key, and the form as it starts, with the name the desk's
+     * search typed, if any.
+     */
+    setOpen: (next: boolean, visitorName?: string) => {
       if (next && !open) {
         renew();
         setRefusal(null);
-        form.form.reset(defaults());
+        form.form.reset(defaults(visitorName));
       }
       setOpen(next);
     },

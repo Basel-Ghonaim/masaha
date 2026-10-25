@@ -195,4 +195,107 @@ export const DESK = {
     conflict: 'This request clashed with an earlier one; close it and open it again.',
     not_found: 'This visit no longer exists.',
   },
+  /** The desk's one search: the people present, then the customers, then a visit (K1). */
+  search: {
+    /** The search's region. */
+    region: 'Search',
+    label: 'Search by name or the mobile’s last digits',
+    placeholder: 'Name or the mobile’s last digits',
+    /** The second group's heading. */
+    customers: 'Customers',
+    /** The results' count, said politely as they change. */
+    found: ({ count }: { count: number }) =>
+      englishPlural(count, { one: '1 result', other: `${String(count)} results` }),
+    checkInNamed: ({ name }: { name: string }) => `Check in a visit for “${name}”`,
+    none: {
+      title: 'No one by this name or number',
+      text: 'A one-off visitor? Check them in as a visit (no customer file is created).',
+    },
+    failed: 'We couldn’t search the customers',
+  },
+  /** A customer's card in the search. */
+  customer: {
+    noPhone: 'No mobile number',
+    noSubscription: 'No subscription',
+    until: ({ date }: { date: string }) => `until ${date}`,
+    noEnd: 'No end date',
+    statuses: {
+      UPCOMING: 'Not started',
+      ACTIVE: 'Active',
+      ENDING_SOON: 'Ending soon',
+      EXPIRED: 'Expired',
+    },
+    owes: ({ amount }: { amount: string }) => `Owes ${amount}`,
+    credit: ({ amount }: { amount: string }) => `In credit ${amount}`,
+    settled: 'Settled',
+    /** A customer's one-tap check-in, and its accessible name. */
+    checkIn: 'Check in',
+    checkInName: ({ name }: { name: string }) => `Check in ${name}`,
+    receive: ({ amount }: { amount: string }) => `Receive ${amount}`,
+  },
+  /** A subscriber's check-in and check-out at the desk. */
+  subscriber: {
+    /** The choice before a check-in on no subscription, an expired one or one not started (DI-14). */
+    pre: {
+      title: ({ name }: { name: string }) => `Check in · ${name}`,
+      none: 'No subscription.',
+      expired: ({ name, date }: { name: string; date: string }) =>
+        `The subscription “${name}” ended on ${date}.`,
+      upcoming: ({ name, date }: { name: string; date: string }) =>
+        `The subscription “${name}” starts on ${date}.`,
+      asVisit: 'Check in as a visit',
+      asVisitNote: 'A visit is recorded under their name; it isn’t added to their file.',
+      anyway: 'Check in anyway',
+      back: 'Back',
+    },
+    in: {
+      done: ({ name }: { name: string }) => `${name} checked in`,
+      failed: 'We couldn’t check them in',
+      alreadyHere: ({ name }: { name: string }) => `${name} is already here.`,
+    },
+    out: {
+      done: ({ name }: { name: string }) => `${name} checked out`,
+      stay: ({ time }: { time: string }) => `Stayed ${time}`,
+      owes: ({ amount }: { amount: string }) => `${amount} stays on the subscription`,
+      /** The toast's action: the payment on that subscription. */
+      receive: 'Receive',
+      failed: 'We couldn’t check them out',
+    },
+    /** A subscription's progress, in the present list and the file. */
+    progress: {
+      days: ({ used, total }: { used: string; total: string }) => `Days ${used} of ${total}`,
+      week: ({ used, total }: { used: string; total: string }) => `This week ${used} of ${total}`,
+      today: ({ used, total }: { used: string; total: string }) => `Today ${used} of ${total} h`,
+      hours: ({ used, total }: { used: string; total: string }) => `Hours ${used} of ${total} h`,
+      billed: ({ rate, unit }: { rate: string; unit: string }) =>
+        `Billed from attendance: ${rate} ${unit}`,
+      units: { PER_HOUR: 'per hour', PER_DAY: 'per day' },
+      validUntil: ({ date }: { date: string }) => `Valid until ${date}`,
+      endedOn: ({ date }: { date: string }) => `Ended ${date}`,
+      startsOn: ({ date }: { date: string }) => `Starts ${date}`,
+      noEnd: 'No end date',
+    },
+  },
+  /** A payment on one of a customer's items (DI-22). */
+  pay: {
+    title: 'Receive a payment',
+    titleFor: ({ name }: { name: string }) => `Receive a payment · ${name}`,
+    /** The picker's search. */
+    choose: 'Choose the customer',
+    owing: 'Customers who owe:',
+    pick: 'Choose',
+    another: 'Another customer',
+    noCustomer: 'No customer with this name or number.',
+    item: 'The payment is for',
+    itemVisit: ({ day }: { day: string }) => `Visit of ${day}`,
+    itemLine: ({ due, paid, left }: { due: string; paid: string; left: string }) =>
+      `Due ${due} · Paid ${paid} · Left ${left}`,
+    owesNothing: 'This customer owes nothing.',
+    usageNote: 'Billed from attendance: anything extra becomes credit.',
+    submit: ({ amount }: { amount: string }) => `Record ${amount}`,
+    done: ({ name, item, left }: { name: string; item: string; left: string }) =>
+      `${name} · ${item} · ${left} left`,
+    failed: 'We couldn’t record the payment',
+    fileFailed: 'We couldn’t load what the customer owes',
+  },
 } as const;

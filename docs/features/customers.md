@@ -15,7 +15,7 @@
 
 ## Who uses it
 
-- **The space's owner and reception,** through the API. The admin never reaches it: customers are private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). No web screen yet (screens 14–16: worker A's later items).
+- **The space's owner and reception,** through the API. The admin never reaches it: customers are private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). On the web, the desk's search reads the list's search (`GET …/customers?q`, the first six) — [desk](desk.md), 2026-10-25, #119; the list and the file (screens 14–15) are worker A's later items.
 - **The front desk** ([desk](desk.md)), which leaves an unpaid visit to a customer found or created by phone, in its own transaction.
 - **[`occupancy`](occupancy.md),** which names the customers present.
 - **[`subscriptions`](subscriptions.md),** which reads its check-ins' customers' names and phones.

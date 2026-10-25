@@ -72,6 +72,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [136. Near me's wait counts the time at the permission prompt](136-near-mes-wait-counts-the-time-at-the-permission-prompt.md)
 - [137. Home's area counts fall short past a thousand spaces](137-homes-area-counts-fall-short-past-a-thousand-spaces.md)
 - [138. A failed refresh keeps a status that still reads live](138-a-failed-refresh-keeps-a-status-that-still-reads-live.md)
+- [160. A visit's check-in cannot name its customer](160-a-visits-check-in-cannot-name-its-customer.md)
 - [161. No route reads the visits of a day](161-no-route-reads-the-visits-of-a-day.md)
 - [164. A written-off visit is listed nowhere](164-a-written-off-visit-is-listed-nowhere.md)
 - [170. A request's renewal racing a rotation can be lost on the newest row](170-a-requests-renewal-racing-a-rotation-can-be-lost-on-the-newest-row.md)

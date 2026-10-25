@@ -31,15 +31,26 @@ export function CheckOutDialog({
   person,
   terms,
   onClose,
+  onCheckedOut,
   returnFocus,
 }: {
   spaceId: number;
   person: Extract<PresentPerson, { kind: 'VISIT' }>;
   terms: VisitTerms;
   onClose: () => void;
+  /** Runs once the visit is checked out, after `onClose`. */
+  onCheckedOut?: () => void;
   returnFocus?: RefObject<HTMLElement | null>;
 }) {
-  const dialog = useCheckOutDialog({ spaceId, person, terms, onDone: onClose });
+  const dialog = useCheckOutDialog({
+    spaceId,
+    person,
+    terms,
+    onDone: () => {
+      onClose();
+      onCheckedOut?.();
+    },
+  });
   const { typed, debt, money } = dialog;
 
   return (

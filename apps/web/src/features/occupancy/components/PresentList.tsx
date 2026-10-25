@@ -30,7 +30,8 @@ const TICK_MS = 60_000;
  * «الحاضرون الآن»: a section named by its heading, with the count present (and the capacity), then
  * the people present in the server's order — a table from 768 px, a card each below it — with their
  * kind, since when and for how long, a visit's charge so far, and the row's action the page sets
- * (`action`), such as the desk's check-out. The list is read on arrival, every 30 s while visible
+ * (`action`), such as the desk's check-out, and a subscriber's usage the page knows (`usage`), such
+ * as their subscription's progress. The list is read on arrival, every 30 s while visible
  * and on returning to it; a failed refresh keeps the last list and says so. When the person whose
  * action had the focus leaves the list, the focus goes to the next row's action, else to the
  * heading (S10), never to the page's start.
@@ -38,9 +39,12 @@ const TICK_MS = 60_000;
 export function PresentList({
   spaceId,
   action,
+  usage,
 }: {
   spaceId: number;
   action: (person: PresentPerson) => ReactNode;
+  /** A subscriber's usage line, in their row's usage cell; none by default. */
+  usage?: (person: PresentPerson) => string | null;
 }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -112,7 +116,7 @@ export function PresentList({
         column.display({
           id: 'detail',
           header: headers.detail,
-          cell: (info) => info.row.original.detail,
+          cell: (info) => info.row.original.detail ?? usage?.(info.row.original.person),
           meta: { className: 'hidden lg:table-cell' },
         }),
         column.display({
@@ -126,7 +130,7 @@ export function PresentList({
           meta: { className: 'w-px' },
         }),
       ]),
-    [headers, action],
+    [headers, action, usage],
   );
 
   return (
@@ -186,9 +190,7 @@ export function PresentList({
                 <span className="text-caption text-muted-foreground">
                   {row.since} · {row.duration}
                 </span>
-                {row.detail !== null && (
-                  <span className="text-caption text-muted-foreground">{row.detail}</span>
-                )}
+                <DetailLine text={row.detail ?? usage?.(row.person) ?? null} />
               </div>
               <div data-present-action={row.key}>{action(row.person)}</div>
             </div>
@@ -201,4 +203,9 @@ export function PresentList({
       )}
     </section>
   );
+}
+
+/** A row's usage line under its name, on a card: a visit's charge so far, or a subscriber's usage. */
+function DetailLine({ text }: { text: string | null }) {
+  return text === null ? null : <span className="text-caption text-muted-foreground">{text}</span>;
 }
