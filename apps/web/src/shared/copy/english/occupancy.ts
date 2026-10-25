@@ -30,10 +30,12 @@ export const OCCUPANCY = {
       `${subscribers} · ${visits}`,
     empty: {
       title: 'No one is here right now',
-      text: 'Check in a visit for the first arrival.',
+      text: 'Search for a customer, or check in a visit for the first arrival.',
     },
     loadFailed: 'We couldn’t load who is present',
     refreshFailed: 'We couldn’t refresh; showing the last list.',
+    /** The desk's search's first group: the people present who match. */
+    matches: 'Here now',
   },
   status: {
     /** What the control shows from 768 px. */

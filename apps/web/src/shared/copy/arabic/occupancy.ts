@@ -42,10 +42,11 @@ export const OCCUPANCY = {
       `${subscribers} · ${visits}`,
     empty: {
       title: 'لا أحد حاضر الآن',
-      text: 'سجّل زيارة لأول من يصل.',
+      text: 'ابحث عن زبون أو سجّل زيارة لأول من يصل.',
     },
     loadFailed: 'تعذّر تحميل الحاضرين',
     refreshFailed: 'تعذّر التحديث؛ تظهر آخر قائمة.',
+    matches: 'حاضر الآن',
   },
   status: {
     line: ({ state }: { state: string }) => `يظهر للزوار: ${state}`,

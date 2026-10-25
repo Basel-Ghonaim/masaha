@@ -120,7 +120,7 @@ describe('usePresentList', () => {
     });
     expect(result.current.empty).toEqual({
       title: 'No one is here right now',
-      text: 'Check in a visit for the first arrival.',
+      text: 'Search for a customer, or check in a visit for the first arrival.',
     });
   });
 
