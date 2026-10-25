@@ -3,16 +3,20 @@ import {
   PUBLIC_ANNOUNCEMENTS_MAX,
   type DirectoryQuery,
   type DirectorySpace,
+  type FavoriteSpace,
   type MapPin,
   type MapPins,
   type MapPinsQuery,
   type PublicSpace,
 } from '@masaha/shared/directory';
+import { FAVORITES_MAX } from '@masaha/shared/favorites';
 import type { LiveStatus, PublicOccupancy } from '@masaha/shared/occupancy';
+import type { Location } from '@masaha/shared/spaces';
 
 import { isVerified } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { AnnouncementsService } from '../announcements/index.ts';
+import type { FavoritesService } from '../favorites/index.ts';
 import type { AreaName, LookupsService } from '../lookups/index.ts';
 import type { OccupancyService } from '../occupancy/index.ts';
 import type { SpaceLinksService } from '../space-links/index.ts';
@@ -22,10 +26,14 @@ import type {
   PublicListingService,
   PublicOrder,
   PublicSpaceService,
+  SpacesService,
 } from '../spaces/index.ts';
+import { favoritesOrder } from './favoritesOrder.ts';
 
 interface Dependencies {
   announcements: AnnouncementsService;
+  favorites: FavoritesService;
+  spaces: SpacesService;
   lookups: LookupsService;
   spaceLinks: SpaceLinksService;
   publicListing: PublicListingService;
@@ -95,6 +103,8 @@ function toMapPin(space: ListedPublicSpace, liveStatus: LiveStatus | null): MapP
  */
 export function createDirectoryService({
   announcements,
+  favorites,
+  spaces,
   lookups,
   spaceLinks,
   publicListing,
@@ -129,6 +139,21 @@ export function createDirectoryService({
     );
   }
 
+  /** The listed spaces as the directory's cards: their areas' names and live statuses, set-based. */
+  async function cardsOf(rows: readonly ListedPublicSpace[]): Promise<DirectorySpace[]> {
+    if (rows.length === 0) return [];
+    const [areas, statuses] = await Promise.all([
+      lookups.areaNamesFor([...new Set(rows.map(({ areaId }) => areaId))]),
+      liveStatusesOf(rows),
+    ]);
+    const areaById = new Map(areas.map((area) => [area.id, area]));
+    // Its area always exists (a foreign key).
+    return rows.flatMap((space) => {
+      const area = areaById.get(space.areaId);
+      return area ? [toDirectorySpace(space, area, statuses.get(space.id) ?? null)] : [];
+    });
+  }
+
   return {
     /** One page of the directory's list, and how many spaces pass its filters. */
     async list(query: DirectoryQuery): Promise<{ rows: DirectorySpace[]; total: number }> {
@@ -137,20 +162,55 @@ export function createDirectoryService({
         orderOf(query),
         query,
       );
-      if (rows.length === 0) return { rows: [], total };
-      const [areas, statuses] = await Promise.all([
-        lookups.areaNamesFor([...new Set(rows.map(({ areaId }) => areaId))]),
-        liveStatusesOf(rows),
+      return { rows: await cardsOf(rows), total };
+    },
+
+    /**
+     * The user's favourites, whole (at most `FAVORITES_MAX`): the ids `favorites` records, newest
+     * saved first; those the public listing lists as its cards, from the point nearest first when
+     * one is given; the rest, which left the directory, by their names, soft-deleted ones
+     * included, `listed: false`, after the listed ones when ordered from the point.
+     */
+    async favorites(userId: number, near?: Location): Promise<FavoriteSpace[]> {
+      const saved = await favorites.of(userId);
+      if (saved.length === 0) return [];
+      const ids = saved.map(({ spaceId }) => spaceId);
+      const [listedAreaIds, verifiedIds] = await Promise.all([
+        lookups.listedAreaIds(),
+        spaceLinks.verifiedSpaceIds(),
       ]);
-      const areaById = new Map(areas.map((area) => [area.id, area]));
-      return {
-        // Its area always exists (a foreign key).
-        rows: rows.flatMap((space) => {
-          const area = areaById.get(space.areaId);
-          return area ? [toDirectorySpace(space, area, statuses.get(space.id) ?? null)] : [];
-        }),
-        total,
-      };
+      const { rows } = await publicListing.page(
+        { areaIds: listedAreaIds, verifiedIds, onlyIds: ids },
+        near ? { by: 'distance', from: near } : { by: 'updated' },
+        { page: 1, limit: FAVORITES_MAX },
+      );
+      const cards = await cardsOf(rows);
+      const cardById = new Map(cards.map((card) => [card.id, card]));
+      const left = ids.filter((id) => !cardById.has(id));
+      const names = left.length === 0 ? [] : await spaces.namesWithDeleted(left);
+      const nameById = new Map(names.map((name) => [name.id, name]));
+      const savedAt = new Map(
+        saved.map(({ spaceId, savedAt }) => [spaceId, savedAt.toISOString()]),
+      );
+
+      return favoritesOrder(ids, near ? cards.map(({ id }) => id) : null).flatMap(
+        (id): FavoriteSpace[] => {
+          const at = savedAt.get(id) ?? '';
+          const card = cardById.get(id);
+          if (card) return [{ listed: true, savedAt: at, space: card }];
+          // A favourite's space always exists (a foreign key, cascading on delete).
+          const name = nameById.get(id);
+          return name
+            ? [
+                {
+                  listed: false,
+                  savedAt: at,
+                  space: { id, nameEn: name.nameEn, nameAr: name.nameAr },
+                },
+              ]
+            : [];
+        },
+      );
     },
 
     /** The map's pins: every listed space that passes the filters, up to the ceiling. */

@@ -49,6 +49,7 @@ import {
 } from './modules/desk/index.ts';
 import {
   createDirectoryController,
+  createDirectoryMeRouter,
   createDirectoryPublicRouter,
   createDirectoryService,
 } from './modules/directory/index.ts';
@@ -433,20 +434,22 @@ export function createApi({
     now: clock,
     storage,
   });
-  const directory = createDirectoryService({
-    announcements,
-    lookups,
-    spaceLinks,
-    publicListing,
-    publicSpace,
-    occupancy,
-  });
   const favorites = createFavoritesService({
     runInTransaction,
     users,
     publicListing,
     lookups,
     now: clock,
+  });
+  const directory = createDirectoryService({
+    announcements,
+    favorites,
+    spaces,
+    lookups,
+    spaceLinks,
+    publicListing,
+    publicSpace,
+    occupancy,
   });
   const dataReports = createDataReportsService({
     runInTransaction,
@@ -520,7 +523,9 @@ export function createApi({
   api.use('/me', createUsersMeRouter(usersController, requireAuth));
   api.use('/me', createFavoritesMeRouter(createFavoritesController(favorites), requireAuth));
   api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
-  api.use(createDirectoryPublicRouter(createDirectoryController(directory)));
+  const directoryController = createDirectoryController(directory);
+  api.use(createDirectoryPublicRouter(directoryController));
+  api.use(createDirectoryMeRouter(directoryController, requireAuth));
   const dataReportsController = createDataReportsController(dataReports);
   api.use(createDataReportsMeRouter({ controller: dataReportsController, requireAuth, limiter }));
   api.use(

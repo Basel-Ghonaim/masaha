@@ -41,6 +41,18 @@ export interface DirectorySpace {
   liveStatus: LiveStatus | null;
 }
 
+/**
+ * One of a user's favourites, with when it was saved: a publicly listed space as the directory's
+ * card; one that left the directory (hidden, deleted, or in an area not listed) by its names only.
+ */
+export type FavoriteSpace =
+  | { listed: true; savedAt: string; space: DirectorySpace }
+  | {
+      listed: false;
+      savedAt: string;
+      space: { id: number; nameEn: string; nameAr: string | null };
+    };
+
 /** A space on the map, with what its selected card shows. */
 export interface MapPin {
   id: number;

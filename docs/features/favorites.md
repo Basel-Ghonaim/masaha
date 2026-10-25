@@ -8,14 +8,16 @@
 
 - Lets a signed-in user save a publicly listed space, at most 200, and remove one, listed or not.
 - Answers a save of a space already saved, and a removal of one not saved, as done, writing nothing.
+- Records which spaces a user saved, and when, for the directory, which answers them as its cards (`GET /me/favorites`, [directory](directory.md)).
 
 ## Who uses it
 
-- **A signed-in user,** through the API: `POST` and `DELETE /me/favorites/:spaceId`. The space page's heart and the account's favourites are not built.
+- **A signed-in user,** through the API: `POST` and `DELETE /me/favorites/:spaceId`; the list, `GET /me/favorites`, is the [directory](directory.md)'s. The space page's heart and the account's favourites are not built.
 
 ## Responsibility boundary
 
 - **Owns** the `favorites` table and its ceiling (`FAVORITES_MAX`, 200).
+- **Leaves** the list's cards, their order from a point and the names of the spaces that left to [`directory`](directory.md) ([conventions › Composed reads](../backend/conventions.md#composed-reads)).
 - **Leaves** whether a space is publicly listed to the public listing of [`spaces`](spaces.md) (`publicListing.upTo`, with the areas [`lookups`](lookups.md) lists), as the directory lists it; the user's lock to [`users`](users.md) (`lockAccount`).
 
 ## How it composes the platform
@@ -28,6 +30,8 @@
 
 **Remove.** The caller's row of that space deleted, if there is one, 204 either way: a space that left the directory is removed all the same.
 
+**The list** (`directory`). The user's rows, newest saved first, then by space id (at most 200); the public listing's cards of those it lists, with their live statuses, nearest first when the point is sent; the rest named by `spaces`, soft-deleted ones included, `listed: false`, after the listed ones when ordered by distance. A space restored or shown again is listed again: the row is kept.
+
 ## Decisions
 
 ### API decisions
@@ -36,6 +40,7 @@
 - **Saving and removing are idempotent by design**: a space already saved, or one not saved, answers 204. *Why:* a heart tapped twice, or a retry after a lost answer, is no error ([conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). The already-saved answer comes before the listing and the ceiling, so a saved space at 200 still answers 204. #121.
 - **"Publicly listed" is asked of the public listing** (S12). *Why:* the rule already lives in the directory's queries; a copy would drift. #121.
 - **Not audited.** *Why:* a person's own choice, no one else's record. #121.
+- **The list is answered whole, with distance from the `Masaha-Near` header** (AC-014, Q9). *Why:* the screen shows every favourite at once, near me included, by the directory's privacy rules; a space that left stays, `listed: false`, so the user can remove it (C7). #121.
 
 ## Code map
 
@@ -50,4 +55,4 @@ None.
 
 ### API history
 
-- #121 — a signed-in user's favourites saved and removed, idempotent, at most 200.
+- #121 — a signed-in user's favourites saved and removed, idempotent, at most 200; read whole as the directory's cards, newest saved first or nearest first.

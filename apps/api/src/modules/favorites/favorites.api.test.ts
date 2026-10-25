@@ -165,7 +165,8 @@ describe('DELETE /me/favorites/:spaceId', () => {
 
 describe('the favourites, anonymously', () => {
   it('anonymous is 401 on the three routes', async () => {
-    for (const response of [await save(null), await remove(null)]) {
+    const list = await request(app).get('/api/v1/me/favorites');
+    for (const response of [await save(null), await remove(null), list]) {
       expect(response.status).toBe(401);
     }
     expect(await storedFavorites()).toEqual([]);

@@ -68,7 +68,8 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - a customer's subscriptions and unpaid visits in their file (`GET /manage/spaces/:spaceId/customers/:customerId`), bounded by one customer (§5, *Customers (managed)*; 2026-10-21, #102);
 - a subscription's check-ins and payments in its statement (`GET /manage/spaces/:spaceId/subscriptions/:subscriptionId`), bounded by one subscription (§5, *Subscriptions (managed)*; 2026-10-22, #106);
 - the open check-ins (`GET /manage/spaces/:spaceId/check-ins?open=true`), bounded by who is present (§5, *Front desk (managed)*; 2026-10-22, #109);
-- a space's announcements on its page (`GET /spaces/:slug`), its running and upcoming ones, at most 20: a space posts tens at most, and the page shows them together (§5, *Directory (public)*; 2026-10-24, #112).
+- a space's announcements on its page (`GET /spaces/:slug`), its running and upcoming ones, at most 20: a space posts tens at most, and the page shows them together (§5, *Directory (public)*; 2026-10-24, #112);
+- a user's favourites (`GET /me/favorites`), at most 200: the screen shows them together, near me included (§5, *Favourites*; #121).
 
 ## 5. Endpoints
 
@@ -829,7 +830,20 @@ AdminReport = SpaceReport & {
 
 ### Favourites
 
-A signed-in user keeps the listed spaces they want to find again, at most 200 (`FAVORITES_MAX`, `@masaha/shared/favorites`). A favourite is the user's own choice: it is not audited. Built #121.
+A signed-in user keeps the listed spaces they want to find again, at most 200 (`FAVORITES_MAX`, `@masaha/shared/favorites`), and reads them as the directory's cards. A favourite is the user's own choice: it is not audited. Built #121.
+
+```ts
+FavoriteSpace =                    // @masaha/shared/directory
+  | { listed: true, savedAt: string, space: DirectorySpace }    // the directory's card, its live status included
+  | { listed: false, savedAt: string,                            // hidden, deleted, or in an area not listed
+      space: { id: number, nameEn: string, nameAr: string | null } }
+```
+
+#### `GET /me/favorites` · 👤
+- **Query:** `sort` (`distance`, or absent; `invalid_choice` otherwise), with the device's point in the `Masaha-Near` header by the list's rules (*Directory (public)*): three decimals at most (`invalid_format`), inside the Strip (`out_of_range`); `distance` without the header is `required` on `near`, the header without `distance` `invalid_choice` on `near`.
+- **200:** `FavoriteSpace[]`, the caller's own only, whole (§4's exception), no `meta`. Without `sort`, the newest saved first, then by space id. With `sort=distance`, the listed ones nearest first, each with its `distanceMeters`, then those that left the directory, newest saved first. No card carries a capacity or a count (ADR 0008).
+- **Caching:** every answer to a request that carries the header, a refusal included, `Cache-Control: no-store`.
+- **Errors:** `unauthorized` (401) without a signed-in user; `validation` (422) on the query.
 
 #### `POST /me/favorites/:spaceId` · 👤
 - **204**, no body: the space is saved, dated now. A space already saved answers 204 and writes nothing, even at the ceiling; two saves at once make one (the user's lock, the primary key behind it).
