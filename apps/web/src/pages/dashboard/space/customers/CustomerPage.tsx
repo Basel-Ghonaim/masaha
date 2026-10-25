@@ -9,6 +9,7 @@ import {
   BreadcrumbSeparator,
 } from '@shared/design-system';
 import { NotFoundState, parseSpaceId, useRecordTitle } from '@shared/routing';
+import { useSession } from '@shared/session';
 import { Link, useParams } from 'react-router';
 import { spacePagePath } from '../../navigation';
 import { PageHeader } from '../../shell/PageHeader';
@@ -21,7 +22,8 @@ function parseCustomerId(value: string | undefined): number | undefined {
 
 /**
  * «ملف الزبون», the owner's and reception's: titled by the customer's name once their file has
- * loaded, under a trail back to «الزبائن», then `desk`'s file. An id that names no one shows the 404.
+ * loaded, under a trail back to «الزبائن», then `desk`'s file, whose archive and restore are the
+ * owner's, as the session's link at the space says (S5). An id that names no one shows the 404.
  * The guard has checked the space's id and the role.
  */
 export function CustomerPage() {
@@ -48,6 +50,9 @@ function Customer({ spaceId, customerId }: { spaceId: number; customerId: number
   const copy = useCopy();
   const title = useFileTitle(spaceId, customerId);
   useRecordTitle(title);
+  const owner = useSession(
+    (session) => session.user?.spaces.find((link) => link.spaceId === spaceId)?.role === 'OWNER',
+  );
 
   return (
     <>
@@ -68,7 +73,7 @@ function Customer({ spaceId, customerId }: { spaceId: number; customerId: number
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <CustomerFile spaceId={spaceId} customerId={customerId} />
+        <CustomerFile spaceId={spaceId} customerId={customerId} owner={owner} />
       </div>
     </>
   );

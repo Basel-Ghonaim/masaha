@@ -74,6 +74,9 @@ export function useCustomerFile(spaceId: number, customerId: number) {
       file === undefined
         ? null
         : {
+            /** The customer and what they owe, for their actions. */
+            customer: file.customer,
+            debtAgorot: file.debtAgorot,
             name: file.customer.name,
             phone:
               file.customer.phone === null

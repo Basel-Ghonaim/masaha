@@ -3,6 +3,7 @@ import {
   Badge,
   Button,
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -13,6 +14,7 @@ import { useRef, type RefObject } from 'react';
 import { useCustomerCard } from '../../hooks/card/useCustomerCard';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
 import { useSubscriberCheckIn } from '../../hooks/subscriber/useSubscriberCheckIn';
+import { CustomerActions } from '../menu/CustomerActions';
 import { PreCheckInDialog } from '../subscriber/PreCheckInDialog';
 import { BalanceBadge } from './BalanceBadge';
 
@@ -20,7 +22,7 @@ import { BalanceBadge } from './BalanceBadge';
  * A customer found by the desk's search: their name, the card's `h3` under its group's `h2` (DI-38),
  * their phone left to right, their current subscription with its status and its end, and their
  * balance (DI-40); then «حضور», named by them, at the layer's default size (DI-16), with its choice
- * first when the row questions the subscription (DI-14), and «استلام {المبلغ}» while they owe. Done, `after.done` runs and the focus goes
+ * first when the row questions the subscription (DI-14), and «استلام {المبلغ}» while they owe; their «⋯» in its corner. Done, `after.done` runs and the focus goes
  * to `after.focus` (the search, S10); the choice dismissed, back to «حضور».
  */
 export function CustomerCard({
@@ -28,9 +30,12 @@ export function CustomerCard({
   row,
   after,
   receive,
+  menu,
 }: {
   spaceId: number;
   row: CustomerRow;
+  /** The card's «⋯»: whether the caller is the owner (S5), and where a customer's file is. */
+  menu: { owner: boolean; fileLink: (customerId: number) => string };
   after: { done: () => void; focus: RefObject<HTMLElement | null> };
   /** Opens the payment on one of the customer's items. */
   receive: (target: PayTarget) => void;
@@ -57,6 +62,15 @@ export function CustomerCard({
         <CardDescription>
           {card.phone.number ? <span dir="ltr">{card.phone.text}</span> : card.phone.text}
         </CardDescription>
+        <CardAction>
+          <CustomerActions
+            spaceId={spaceId}
+            customer={row}
+            debtAgorot={row.debtAgorot}
+            owner={menu.owner}
+            fileLink={menu.fileLink(row.id)}
+          />
+        </CardAction>
       </CardHeader>
       <CardContent>
         {card.subscription === null ? (

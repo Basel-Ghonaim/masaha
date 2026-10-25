@@ -20,6 +20,9 @@ import {
 import { startPreferences } from '../../../../test/startPreferences';
 import { CustomerCard } from '../../components/card/CustomerCard';
 
+/** The cards' «⋯» as reception's desk passes it. */
+const MENU = { owner: false, fileLink: (id: number) => `/file/${String(id)}` };
+
 /** A line with the Unicode isolates around its values removed, as a reader hears it. */
 const heard = (expected: string) => (content: string) => content.replace(/[⁦-⁩]/g, '') === expected;
 
@@ -39,7 +42,7 @@ function renderCard(
   render(
     <QueryClientProvider client={createQueryClient()}>
       <input ref={focus} aria-label="Search" />
-      <CustomerCard spaceId={7} row={row} after={{ done, focus }} receive={vi.fn()} />
+      <CustomerCard spaceId={7} row={row} after={{ done, focus }} receive={vi.fn()} menu={MENU} />
       <Toaster label="Notifications" />
     </QueryClientProvider>,
   );

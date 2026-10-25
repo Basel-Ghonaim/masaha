@@ -15,7 +15,7 @@
 
 ## Who uses it
 
-- **The space's owner and reception,** through the API. The admin never reaches it: customers are private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). On the web, the desk's search reads the list's search (`GET …/customers?q`, the first six) — [desk](desk.md), 2026-10-25, #119; «الزبائن» reads the list, 20 a page, searched and filtered — [desk](desk.md), 2026-10-25, #122.
+- **The space's owner and reception,** through the API. The admin never reaches it: customers are private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). On the web, the desk's search reads the list's search (`GET …/customers?q`, the first six) — [desk](desk.md), 2026-10-25, #119; «الزبائن» reads the list, 20 a page, searched and filtered, and a customer's file edits, archives and restores them — [desk](desk.md), 2026-10-25, #122.
 - **The front desk** ([desk](desk.md)), which leaves an unpaid visit to a customer found or created by phone, in its own transaction.
 - **[`occupancy`](occupancy.md),** which names the customers present.
 - **[`subscriptions`](subscriptions.md),** which reads its check-ins' customers' names and phones.
@@ -54,6 +54,8 @@
 ### Web decisions
 
 - **The customers list's filters and page live in the address** (S11): `q`, `status` (`ARCHIVED` read for the owner only), `kind`, `payment` and `page` (from 2), each read by the contract's own rule, so a value the server would refuse falls back; a change replaces the address and returns to page 1. *Why:* a link, a reload or Back shows the same list, and Back leaves the page rather than stepping through filters. 2026-10-25, #122.
+- **The edit sends only what changed, and is never re-sent by itself:** «تعديل البيانات» sends the fields that differ from the customer as loaded — a cleared phone as `null` — and nothing when none does («لم يتغيّر شيء»); it carries no key, so a lost answer is the user's to retry. *Why:* a late retry of the whole form would put back what another desk changed meanwhile ([finding 123](../architecture/findings/123-a-delayed-retry-of-a-customer-edit-can-revert-another-desks-edit.md)). 2026-10-25, #122.
+- **The owner archives at once, or asks when the customer owes** (DK-014, P9): «أرشفة…» in a customer's «⋯», destructive, archives a settled customer at once, its toast holding «تراجع», which restores them; one who owes is asked first in an `AlertDialog` naming the debt, which stays theirs; one present is refused with «{name} حاضر الآن؛ سجّل خروجه قبل الأرشفة.». An archived customer's row and file offer the owner «استرجاع». Reception is shown neither. 2026-10-25, #122.
 
 ## Code map
 

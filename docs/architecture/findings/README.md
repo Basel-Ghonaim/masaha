@@ -59,7 +59,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [120. Gaza dates are read by two zone databases](120-gaza-dates-are-read-by-two-zone-databases.md)
 - [121. The auto check-out can stall behind stays that always fail](121-the-auto-check-out-can-stall-behind-stays-that-always-fail.md)
 - [122. `subscription_usage` overflows on extreme usage-based prices](122-subscription-usage-overflows-on-extreme-usage-based-prices.md)
-- [123. A delayed retry of a customer edit can revert another desk's edit](123-a-delayed-retry-of-a-customer-edit-can-revert-another-desks-edit.md)
 - [125. The allocation's order is not exposed to the client](125-the-allocations-order-is-not-exposed-to-the-client.md)
 - [126. A whole phone finds the other country code one way only](126-a-whole-phone-finds-the-other-country-code-one-way-only.md)
 - [127. The dated check-in list filters on an expression with no index](127-the-dated-check-in-list-filters-on-an-expression-with-no-index.md)
@@ -137,4 +136,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [113. The uncollected read grows with every auto-closed visit](113-the-uncollected-read-grows-with-every-auto-closed-visit.md)
 - [114. A stay that always fails turns every cron call red](114-a-stay-that-always-fails-turns-every-cron-call-red.md)
 - [116. A desk check-out of an overdue stay is charged up to now](116-a-desk-check-out-of-an-overdue-stay-is-charged-up-to-now.md)
+- [123. A delayed retry of a customer edit can revert another desk's edit](123-a-delayed-retry-of-a-customer-edit-can-revert-another-desks-edit.md)
 - [124. A statement's sums and its payments come from different snapshots](124-a-statements-sums-and-its-payments-come-from-different-snapshots.md)

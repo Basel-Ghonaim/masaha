@@ -225,4 +225,26 @@ describe('the desk repository', () => {
       repository.checkInVisit(7, { visitorName: 'Omar', audience: 'GENERAL' }, 'key-1'),
     ).resolves.toEqual({ data: VISIT, meta: undefined });
   });
+
+  it('edits, archives and restores a customer, each with no key', async () => {
+    const customer = { id: 4, name: 'Sara Khalid', phone: null, archivedAt: null };
+    const requests = serve(() => ({ status: 200, data: { success: true, data: customer } }));
+    const repository = createDeskRepository();
+
+    await repository.editCustomer(7, 4, { phone: null });
+    await repository.archiveCustomer(7, 4);
+    await repository.restoreCustomer(7, 4);
+
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'patch /manage/spaces/7/customers/4',
+      'post /manage/spaces/7/customers/4/archive',
+      'post /manage/spaces/7/customers/4/restore',
+    ]);
+    expect(bodyOf(requests[0])).toEqual({ phone: null });
+    expect(requests.map(({ headers }) => headers.get('Idempotency-Key'))).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
 });

@@ -61,6 +61,8 @@ export function useCustomersList(spaceId: number, { owner }: { owner: boolean })
   const rows = (answer?.data ?? []).map((row) => ({
     id: row.id,
     key: String(row.id),
+    /** The customer and what they owe, for their actions. */
+    customer: row,
     card: customerCardView(row, copy.desk.customer, language),
     archived: row.archivedAt === null ? null : words.status.ARCHIVED,
   }));

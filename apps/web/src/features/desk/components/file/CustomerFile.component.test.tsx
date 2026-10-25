@@ -64,7 +64,7 @@ describe('CustomerFile', () => {
         <MemoryRouter>
           <main>
             <h1>Sara Khalid</h1>
-            <CustomerFile spaceId={7} customerId={4} />
+            <CustomerFile spaceId={7} customerId={4} owner />
           </main>
         </MemoryRouter>
       </QueryClientProvider>,

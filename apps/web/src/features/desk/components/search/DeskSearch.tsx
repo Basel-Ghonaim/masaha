@@ -31,6 +31,7 @@ export function DeskSearch({
   present,
   checkIn,
   receive,
+  menu,
 }: {
   spaceId: number;
   present: {
@@ -45,6 +46,8 @@ export function DeskSearch({
   checkIn: (name: string, after: SearchAfter) => void;
   /** Opens the payment on one of a customer's items. */
   receive: (target: PayTarget) => void;
+  /** Each card's «⋯»: whether the caller is the owner, and where a customer's file is. */
+  menu: { owner: boolean; fileLink: (customerId: number) => string };
 }) {
   const search = useDeskSearch(spaceId, { present });
   const input = useRef<HTMLInputElement | null>(null);
@@ -130,7 +133,13 @@ export function DeskSearch({
             <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {customers.rows.map((row) => (
                 <li key={row.id}>
-                  <CustomerCard spaceId={spaceId} row={row} after={after} receive={receive} />
+                  <CustomerCard
+                    spaceId={spaceId}
+                    row={row}
+                    after={after}
+                    receive={receive}
+                    menu={menu}
+                  />
                 </li>
               ))}
             </ul>

@@ -9,6 +9,7 @@ import {
 } from '@shared/design-system';
 import { useId, useRef } from 'react';
 import { useCustomerFile } from '../../hooks/file/useCustomerFile';
+import { CustomerActions } from '../menu/CustomerActions';
 import { PayDialog } from '../pay/PayDialog';
 import { FileHeader } from './FileHeader';
 import { SubscriptionCard } from './SubscriptionCard';
@@ -25,7 +26,16 @@ const NO_ONE_PRESENT: ReadonlySet<number> = new Set();
  * the payment on their item, and the closed dialog gives the focus back to the control that opened
  * it.
  */
-export function CustomerFile({ spaceId, customerId }: { spaceId: number; customerId: number }) {
+export function CustomerFile({
+  spaceId,
+  customerId,
+  owner,
+}: {
+  spaceId: number;
+  customerId: number;
+  /** The owner's header offers the archive and the restore; the server decides (S5). */
+  owner: boolean;
+}) {
   const file = useCustomerFile(spaceId, customerId);
   const headingId = useId();
   const trigger = useRef<HTMLElement | null>(null);
@@ -65,7 +75,18 @@ export function CustomerFile({ spaceId, customerId }: { spaceId: number; custome
   const { subscriptions } = file;
   return (
     <div className="flex flex-col gap-6">
-      <FileHeader header={file.header} />
+      <FileHeader
+        header={file.header}
+        actions={
+          <CustomerActions
+            spaceId={spaceId}
+            customer={file.header.customer}
+            debtAgorot={file.header.debtAgorot}
+            owner={owner}
+            fileLink={null}
+          />
+        }
+      />
       {file.unpaid !== null && <UnpaidVisits unpaid={file.unpaid} opened={opened} />}
       <section aria-labelledby={headingId} className="flex flex-col gap-4">
         <h2 id={headingId} className="text-heading-3">

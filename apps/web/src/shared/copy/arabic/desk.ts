@@ -239,6 +239,14 @@ export const DESK = {
     checkIn: 'حضور',
     checkInName: ({ name }: { name: string }) => `حضور ${name}`,
     receive: ({ amount }: { amount: string }) => `استلام ${amount}`,
+    /** A customer's «⋯» (DI-39), named by them. */
+    menu: {
+      label: ({ name }: { name: string }) => `إجراءات أخرى: ${name}`,
+      file: 'ملف الزبون',
+      edit: 'تعديل البيانات',
+      archive: 'أرشفة…',
+      restore: 'استرجاع',
+    },
   },
   subscriber: {
     pre: {
@@ -423,5 +431,34 @@ export const DESK = {
       pay: { paid: 'مدفوع', partial: 'مدفوع جزئيًا', unpaid: 'غير مدفوع' },
       receiveLeft: 'استلام المتبقي',
     },
+  },
+  /** A customer's name and phone, edited (finding 123). */
+  edit: {
+    title: 'تعديل البيانات',
+    name: 'الاسم',
+    phone: 'رقم الجوال',
+    optional: 'اختياري',
+    phoneHelp: 'إليه يُرسل تذكير الدين على واتساب.',
+    save: 'حفظ',
+    nothingChanged: 'لم يتغيّر شيء',
+    done: ({ name }: { name: string }) => `حُفظت بيانات ${name}`,
+    failed: 'تعذّر حفظ البيانات',
+  },
+  /** The owner's archive of a customer, and its restore (DK-014, P9). */
+  archive: {
+    done: ({ name }: { name: string }) => `أُرشف ${name}`,
+    undo: 'تراجع',
+    restored: ({ name }: { name: string }) => `استُرجع ${name}`,
+    title: ({ name }: { name: string }) => `أرشفة ${name}؟`,
+    text: ({ amount }: { amount: string }) =>
+      `عليه ${amount} غير مسدّدة. يبقى المبلغ في سجله، ويخرج من البحث ومن المكتب، ويبقى تحت «مؤرشف» في الزبائن.`,
+    confirm: 'أرشفة رغم الدين',
+    back: 'رجوع',
+    doneOwing: ({ name, amount }: { name: string; amount: string }) =>
+      `أُرشف ${name} · عليه ${amount}`,
+    present: ({ name }: { name: string }) => `${name} حاضر الآن؛ سجّل خروجه قبل الأرشفة.`,
+    failed: 'تعذّرت الأرشفة',
+    restorePhoneTaken: 'رقمه مسجّل الآن لزبون آخر؛ لا يُسترجع قبل تغيير أحد الرقمين.',
+    restoreFailed: 'تعذّر الاسترجاع',
   },
 } satisfies Catalogue['desk'];

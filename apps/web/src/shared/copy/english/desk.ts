@@ -232,6 +232,14 @@ export const DESK = {
     checkIn: 'Check in',
     checkInName: ({ name }: { name: string }) => `Check in ${name}`,
     receive: ({ amount }: { amount: string }) => `Receive ${amount}`,
+    /** A customer's «⋯» (DI-39), named by them. */
+    menu: {
+      label: ({ name }: { name: string }) => `More actions: ${name}`,
+      file: 'Customer file',
+      edit: 'Edit details',
+      archive: 'Archive…',
+      restore: 'Restore',
+    },
   },
   /** A subscriber's check-in and check-out at the desk. */
   subscriber: {
@@ -399,5 +407,36 @@ export const DESK = {
       pay: { paid: 'Paid', partial: 'Partly paid', unpaid: 'Unpaid' },
       receiveLeft: 'Receive what’s left',
     },
+  },
+  /** A customer's name and phone, edited (finding 123). */
+  edit: {
+    title: 'Edit details',
+    name: 'Name',
+    phone: 'Mobile number',
+    optional: 'Optional',
+    phoneHelp: 'Debt reminders go to this number on WhatsApp.',
+    save: 'Save',
+    nothingChanged: 'Nothing changed',
+    done: ({ name }: { name: string }) => `${name}’s details saved`,
+    failed: 'We couldn’t save the details',
+  },
+  /** The owner's archive of a customer, and its restore (DK-014, P9). */
+  archive: {
+    done: ({ name }: { name: string }) => `${name} archived`,
+    undo: 'Undo',
+    restored: ({ name }: { name: string }) => `${name} restored`,
+    title: ({ name }: { name: string }) => `Archive ${name}?`,
+    text: ({ amount }: { amount: string }) =>
+      `They owe ${amount}. The amount stays on their record; they leave the search and the desk, and stay under “Archived” in Customers.`,
+    confirm: 'Archive anyway',
+    back: 'Back',
+    doneOwing: ({ name, amount }: { name: string; amount: string }) =>
+      `${name} archived · owes ${amount}`,
+    present: ({ name }: { name: string }) =>
+      `${name} is here now; check them out before archiving.`,
+    failed: 'We couldn’t archive them',
+    restorePhoneTaken:
+      'Their number now belongs to another customer; change one of them before restoring.',
+    restoreFailed: 'We couldn’t restore them',
   },
 } as const;

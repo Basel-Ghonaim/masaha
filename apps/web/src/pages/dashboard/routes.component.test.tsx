@@ -177,6 +177,12 @@ afterEach(() => {
 });
 
 describe("the dashboard's navigation", () => {
+  // Reception lands on the desk, which loads lazily: its first transform in this lane, cold, takes
+  // seconds, so it is done before the tests, as the pages' own sections do (finding 28).
+  beforeAll(async () => {
+    await import('./space/desk/DeskPage');
+  });
+
   it('lists the owner’s eleven pages, the overview marked as the page shown', async () => {
     asOwner();
     renderDashboard('/dashboard/spaces/7');

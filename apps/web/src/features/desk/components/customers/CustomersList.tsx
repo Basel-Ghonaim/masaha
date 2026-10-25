@@ -17,6 +17,7 @@ import {
   type CustomersListView,
 } from '../../hooks/customers/useCustomersList';
 import { BalanceBadge } from '../card/BalanceBadge';
+import { CustomerActions } from '../menu/CustomerActions';
 import { CustomersFilters } from './CustomersFilters';
 
 const column = createDataTableColumnHelper<CustomersListRow>();
@@ -98,7 +99,8 @@ function ListEmpty({ list }: { list: CustomersListView }) {
  * file (`fileLink`), with the phone under it; the subscription with its end; its status; the balance
  * (DI-40); the actions — or a card per customer below it; and the pages. It shows its own loading,
  * failure, empty, no-match and no-archived states; while another page or filter loads the rows stay,
- * marked busy, and a failed refresh says so over them.
+ * marked busy, and a failed refresh says so over them. Each customer's actions are their «⋯», or the
+ * owner's «استرجاع» for an archived one.
  */
 export function CustomersList({
   spaceId,
@@ -147,11 +149,19 @@ export function CustomersList({
         column.display({
           id: 'actions',
           header: () => <span className="sr-only">{headers.actions}</span>,
-          cell: () => null,
+          cell: (info) => (
+            <CustomerActions
+              spaceId={spaceId}
+              customer={info.row.original.customer}
+              debtAgorot={info.row.original.customer.debtAgorot}
+              owner={owner}
+              fileLink={fileLink(info.row.original.id)}
+            />
+          ),
           meta: { className: 'w-px' },
         }),
       ]),
-    [headers, fileLink],
+    [headers, fileLink, spaceId, owner],
   );
 
   return (
@@ -169,14 +179,23 @@ export function CustomersList({
         data={list.rows}
         getRowId={(row) => row.key}
         renderCard={(row) => (
-          <div className="flex flex-col gap-2">
-            <NameLink row={row} to={fileLink(row.id)} />
-            <PhoneLine row={row} />
-            <SubscriptionLines row={row} />
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge row={row} />
-              <BalanceBadge balance={row.card.balance} />
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-2">
+              <NameLink row={row} to={fileLink(row.id)} />
+              <PhoneLine row={row} />
+              <SubscriptionLines row={row} />
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge row={row} />
+                <BalanceBadge balance={row.card.balance} />
+              </div>
             </div>
+            <CustomerActions
+              spaceId={spaceId}
+              customer={row.customer}
+              debtAgorot={row.customer.debtAgorot}
+              owner={owner}
+              fileLink={fileLink(row.id)}
+            />
           </div>
         )}
         loading={list.state === 'loading'}

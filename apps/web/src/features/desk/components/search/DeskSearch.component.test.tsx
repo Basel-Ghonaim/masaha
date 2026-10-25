@@ -16,6 +16,9 @@ import { useVisitDialog } from '../../hooks/check-in/useVisitDialog';
 import { VisitDialog } from '../visit/VisitDialog';
 import { DeskSearch } from './DeskSearch';
 
+/** The cards' «⋯» as reception's desk passes it. */
+const MENU = { owner: false, fileLink: (id: number) => `/file/${String(id)}` };
+
 const SARA = customerRow({ id: 4, name: 'Sara Khalid' });
 const SAMIR = customerRow({ id: 5, name: 'Samir Odeh', phone: null, current: null });
 
@@ -37,7 +40,7 @@ function renderSearch(checkIn = vi.fn()) {
   const view = render(
     <QueryClientProvider client={createQueryClient()}>
       <main>
-        <DeskSearch spaceId={7} present={present} checkIn={checkIn} receive={vi.fn()} />
+        <DeskSearch spaceId={7} present={present} checkIn={checkIn} receive={vi.fn()} menu={MENU} />
       </main>
     </QueryClientProvider>,
   );
@@ -56,6 +59,7 @@ function SearchWithVisit() {
           visit.setOpen(true, name, after);
         }}
         receive={vi.fn()}
+        menu={MENU}
       />
       <VisitDialog dialog={visit} />
     </>
