@@ -65,6 +65,7 @@
 
 ### API decisions
 
+- **A subscription may be made from a published week or month price, named by its period, audience and shift, never by an id.** Its terms are copied: fixed at the price's amount, its audience and shift, no limits, for 7 or 30 days with both ends counted. *Why:* the public's packages are the published prices (data model › Package); a save writes the prices anew, so an id the desk read dies at the owner's next save, while the key is the one a visit already picks its rates by. 2026-10-25, #118.
 - **A subscription's attendance and amount due are counted by one database function, `subscription_usage`; the status stays pure TypeScript on its counts.** *Why:* a usage-based debt is attendance × rate, and the owner's decision 6 puts debts in the database, so the attendance must be countable there; one function serves every read, so no second copy of the due exists (step 8's plan, S1). Its branches are proven in the API lane. 2026-10-21, #102.
 - **A day is used by any check-in on its Gaza date; minutes count closed stays only, whole minutes each; a per-hour due is minutes × rate ÷ 60, half up.** *Why:* an open stay has no length yet; the owner's attendance rules (Q4). 2026-10-21, #102.
 - **An `UPCOMING` status; an ended subscription is `EXPIRED` at once.** *Why:* a renewal starting later is not running yet, and the desk preselects the one running; ending a subscription changes its status the day it is ended (S4, S5). 2026-10-21, #102.
@@ -99,3 +100,4 @@
 - #106 — a subscription's key, typed price's reason and renewed one; the create, audited; the row's lock; the renewal's proposed start; the corrections, the price the owner's; the end.
 - #109 — a check-in's minutes in SQL; a subscriber's check-in and check-out, audited, and the limits' warnings (`limits.ts`); the check-ins' lists.
 - #112 — the managed announcements list, each closure with its extension, and its summary (`closures/`).
+- #118 — a subscription made from a published week or month price (through `desk`).

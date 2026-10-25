@@ -43,6 +43,15 @@ export function createSpacesService() {
       return prices.listFor(spaceId, tx);
     },
 
+    /** The space's standard price of this period, audience and shift; nothing when it has none. */
+    standardPrice(
+      spaceId: number,
+      key: Pick<Price, 'period' | 'audience'> & { shiftId?: number },
+      tx?: Tx,
+    ): Promise<Price | null> {
+      return prices.findStandard(spaceId, key, tx);
+    },
+
     /** When a stay is closed by itself, by the space's week and settings now (`autoCheckout.ts`). */
     autoCheckoutDue(input: AutoCheckoutInput): Date {
       return autoCheckoutDue(input);

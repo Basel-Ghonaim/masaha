@@ -2,8 +2,9 @@ import { z } from 'zod';
 
 import { dateSchema, paginationQuerySchema, phoneSchema, textSchema } from '../core/index.ts';
 import { CUSTOMER_NAME_MAX_LENGTH } from '../customers/index.ts';
-import { createPackageSchema } from '../packages/index.ts';
+import { createPackageSchema, PACKAGE_NAME_MAX_LENGTH } from '../packages/index.ts';
 import { paymentSchema } from '../payments/index.ts';
+import { PRICE_AUDIENCES } from '../spaces/index.ts';
 import { SUBSCRIPTION_STATUSES } from '../subscriptions/index.ts';
 import { priceVisitSchema, VISITOR_NAME_MAX_LENGTH } from '../visits/index.ts';
 
@@ -100,21 +101,39 @@ const customTermsSchema = createPackageSchema.omit({ validityDays: true }).exten
   reason: textSchema(1, PRICE_REASON_MAX_LENGTH),
 });
 
+/** The periods a published price may subscribe for (the week and the month: glossary › Package). */
+export const PUBLISHED_PERIODS = ['WEEK', 'MONTH'] as const;
+
 /**
- * Subscribes a customer: from a package of the space, or custom terms, exactly one of them (both or
- * neither: `invalid_choice` on `packageId`); a start date, else the server's; the subscription it
- * renews, if any; and a payment, which the server allocates over the customer's debts, oldest first.
+ * A published price of the space, named by its key, as a visit picks its rates: its period, its
+ * audience and its shift (none: the price without one); and the subscription's name, which the desk
+ * sends in the language it works in. Its amount is the server's, read when the subscription is made.
+ */
+const publishedPriceSchema = z.object({
+  period: z.enum(PUBLISHED_PERIODS),
+  audience: z.enum(PRICE_AUDIENCES),
+  shiftId: id.optional(),
+  name: textSchema(1, PACKAGE_NAME_MAX_LENGTH),
+});
+
+/**
+ * Subscribes a customer: from a package of the space, a published week or month price, or custom
+ * terms, exactly one of them (more or none: `invalid_choice` on `packageId`); a start date, else the
+ * server's; the subscription it renews, if any; and a payment, which the server allocates over the
+ * customer's debts, oldest first.
  */
 export const subscribeSchema = z
   .object({
     packageId: id.optional(),
+    published: publishedPriceSchema.optional(),
     custom: customTermsSchema.optional(),
     startsOn: dateSchema.optional(),
     renewalOfId: id.optional(),
     payment: paymentSchema.optional(),
   })
-  .refine(({ packageId, custom }) => (packageId === undefined) !== (custom === undefined), {
-    path: ['packageId'],
-    params: { code: 'invalid_choice' },
-  });
+  .refine(
+    ({ packageId, published, custom }) =>
+      [packageId, published, custom].filter((choice) => choice !== undefined).length === 1,
+    { path: ['packageId'], params: { code: 'invalid_choice' } },
+  );
 export type SubscribeRequest = z.infer<typeof subscribeSchema>;

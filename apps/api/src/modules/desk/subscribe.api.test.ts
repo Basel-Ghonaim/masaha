@@ -8,7 +8,7 @@ import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createCustomer, createSpace } from '../../../test/factories.ts';
 import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
-import { signInOwnerOf } from '../../../test/spaces.ts';
+import { addPrice, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
 
 // Subscribing a customer at the desk (docs/api/api-contract.md › Subscriptions (managed)), on
@@ -171,6 +171,103 @@ describe('subscribing a customer', () => {
     }
     expect(await storedSubscriptions()).toEqual([]);
     expect(await auditEntries()).toEqual([]);
+  });
+
+  it('a published week or month price is copied as fixed terms with no limits, 7 or 30 days, even by reception', async () => {
+    await addPrice(spaceId, 'MONTH', 25_000);
+    await addPrice(spaceId, 'WEEK', 8_000);
+    await addPrice(spaceId, 'MONTH', 20_000, 'STUDENT');
+
+    const month = await subscribe(reception, {
+      published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري' },
+    });
+    expect(month.status).toBe(201);
+    expect((dataOf(month) as { subscription: object }).subscription).toMatchObject({
+      packageId: null,
+      name: 'شهري',
+      startsOn: '2026-10-21',
+      // 30 days, both ends included.
+      endsOn: '2026-11-19',
+      totalDays: null,
+      daysPerWeek: null,
+      hoursPerDay: null,
+      totalHours: null,
+      billing: 'FIXED',
+      priceAgorot: 25_000,
+      audience: 'GENERAL',
+      shiftId: null,
+      priceTyped: null,
+    });
+
+    const week = await subscribe(reception, {
+      published: { period: 'WEEK', audience: 'GENERAL', name: 'أسبوعي' },
+      startsOn: '2026-11-20',
+    });
+    expect((dataOf(week) as { subscription: object }).subscription).toMatchObject({
+      startsOn: '2026-11-20',
+      // 7 days, both ends included.
+      endsOn: '2026-11-26',
+      priceAgorot: 8_000,
+    });
+
+    const student = await subscribe(owner, {
+      published: { period: 'MONTH', audience: 'STUDENT', name: 'Monthly' },
+      startsOn: '2026-11-27',
+    });
+    expect((dataOf(student) as { subscription: object }).subscription).toMatchObject({
+      name: 'Monthly',
+      priceAgorot: 20_000,
+      audience: 'STUDENT',
+    });
+  });
+
+  it('a later prices save leaves a subscription made from a published price as it was', async () => {
+    await addPrice(spaceId, 'MONTH', 25_000);
+    const made = await subscribe(reception, {
+      published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري' },
+    });
+    expect(made.status).toBe(201);
+
+    // A save writes the prices anew (prices.repository.ts).
+    await prisma.spacePrice.deleteMany({ where: { spaceId } });
+    await addPrice(spaceId, 'MONTH', 40_000);
+
+    expect(await storedSubscriptions()).toMatchObject([{ priceAgorot: 25_000, packageId: null }]);
+  });
+
+  it('a published price the space has not, with a label, or of another space, is invalid_choice on published, writing nothing', async () => {
+    await addPrice(otherSpaceId, 'MONTH', 25_000);
+    await prisma.spacePrice.create({
+      data: { spaceId, period: 'WEEK', audience: 'GENERAL', amountAgorot: 9_000, labelAr: 'مسائي' },
+    });
+
+    for (const published of [
+      { period: 'MONTH', audience: 'GENERAL', name: 'شهري' },
+      { period: 'WEEK', audience: 'GENERAL', name: 'أسبوعي' },
+      { period: 'WEEK', audience: 'GENERAL', shiftId: 999, name: 'أسبوعي' },
+    ]) {
+      const response = await subscribe(owner, { published });
+      expect(response.status).toBe(422);
+      expect(errorOf(response).errors).toEqual({ published: ['invalid_choice'] });
+    }
+    expect(await storedSubscriptions()).toEqual([]);
+  });
+
+  it('a published price with a package is invalid_choice on packageId; an hour price on its period', async () => {
+    await addPrice(spaceId, 'HOUR', 500);
+    const pack = await monthly();
+
+    const both = await subscribe(owner, {
+      packageId: pack.id,
+      published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري' },
+    });
+    expect(both.status).toBe(422);
+    expect(errorOf(both).errors).toEqual({ packageId: ['invalid_choice'] });
+    const hour = await subscribe(owner, {
+      published: { period: 'HOUR', audience: 'GENERAL', name: 'ساعة' },
+    });
+    expect(hour.status).toBe(422);
+    expect(errorOf(hour).errors).toEqual({ 'published.period': ['invalid_choice'] });
   });
 
   it('a custom subscription records who typed its price and why', async () => {

@@ -97,6 +97,7 @@
 - **A check-out time before the visit's check-in is refused (`out_of_range`).** *Why:* the database refuses a visit closed before it opened, which would answer 500. 2026-10-20, #97.
 - **The write-off is a sub-resource: `POST` writes it off, `DELETE` undoes it; a second of either answers the visit as it is.** *Why:* a repeated write is idempotent by design, as a repeated check-out is, so it needs no key ([conventions §13](../backend/conventions.md#idempotency)); the first reason is kept. 2026-10-20, #100. A delayed retry of one can land after the other and flip the state back; accepted for v1, provided the desk's screen never retries these two routes automatically ([finding 115](../architecture/findings/115-a-write-off-and-its-undo-carry-no-key.md)). 2026-10-21, #102.
 - **The balance is read under the visit's lock, and nothing owed is refused (`VISIT_ALREADY_PAID`).** *Why:* two desks can collect the last part while the owner writes the visit off; the one that waits decides on what was committed. 2026-10-20, #100.
+- **The subscribe takes a published week or month price beside a package and custom terms; reception may use it, nothing being typed.** The price is read from `spaces` by its key, in the subscribe's transaction. *Why:* reception subscribes from what the space publishes (the owner's §14.4). 2026-10-25, #118.
 - **A statement and a file are each read in one `REPEATABLE READ` snapshot.** *Why:* their sums and their lists must agree ([finding 124](../architecture/findings/124-a-statements-sums-and-its-payments-come-from-different-snapshots.md)). 2026-10-25, #118.
 - **An unpriced visit is refused with the payment's own code, `VISIT_NOT_PRICED`.** *Why:* one rule — a visit with no price is priced first — so one code (the owner's answer, Q2 of the plan). 2026-10-20, #100.
 
@@ -136,7 +137,7 @@
 - #110 — a subscriber's check-out after its due time closed at it; a check-in caught by the open check-in index answered `MEMBER_ALREADY_CHECKED_IN`, not a 500.
 - #112 — the closure warning on both check-ins, from `occupancy`.
 - #114 — the owner's void of a payment.
-- #118 — a statement and a customer's file each read in one snapshot (finding 124).
+- #118 — a statement and a customer's file each read in one snapshot (finding 124); a subscription from a published week or month price.
 
 ### Web history
 

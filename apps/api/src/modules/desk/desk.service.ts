@@ -18,6 +18,7 @@ import type {
   VisitCheckOut,
 } from '@masaha/shared/desk';
 import type { PaymentRequest, PaymentRow, VoidPaymentRequest } from '@masaha/shared/payments';
+import type { Price } from '@masaha/shared/spaces';
 import type {
   CheckInSubscriberRequest,
   DeskCheckIn,
@@ -73,6 +74,9 @@ interface Dependencies {
 /** The keys a subscribe's payments may have taken: one per item an allocation pays at most. */
 const derivedKeys = (key: string) =>
   Array.from({ length: ALLOCATION_MAX_ITEMS }, (_, index) => derivedKey(key, index));
+
+/** How long a subscription from a published price lasts, both ends counted (glossary › Package). */
+const PUBLISHED_PERIOD_DAYS = { WEEK: 7, MONTH: 30 } as const;
 
 /** How old the quote a check-out is priced at may be (the owner's bound, P6). */
 const QUOTE_MAX_AGE_MS = 5 * 60_000;
@@ -171,7 +175,8 @@ export function createDeskService({
   function termsOf(
     actor: Actor,
     pack: PackageRow | null,
-    { custom }: SubscribeRequest,
+    price: Price | null,
+    { published, custom }: SubscribeRequest,
     startsOn: string,
     mayType: boolean,
   ): Omit<SubscriptionToCreate, 'spaceId' | 'customerId' | 'key' | 'renewalOfId' | 'startsOn'> {
@@ -188,6 +193,24 @@ export function createDeskService({
         shiftId: pack.shiftId,
         packageId: pack.id,
         endsOn: addDays(startsOn, pack.validityDays - 1),
+        priceTyped: null,
+      };
+    }
+    if (price && published) {
+      // A published price is fixed, sets no limits and types nothing: its amount, audience and
+      // shift, for a week or a month.
+      return {
+        name: published.name,
+        totalDays: null,
+        daysPerWeek: null,
+        hoursPerDay: null,
+        totalHours: null,
+        billing: 'FIXED',
+        priceAgorot: price.amountAgorot,
+        audience: price.audience,
+        shiftId: price.shiftId,
+        packageId: null,
+        endsOn: addDays(startsOn, PUBLISHED_PERIOD_DAYS[published.period] - 1),
         priceTyped: null,
       };
     }
@@ -735,8 +758,9 @@ export function createDeskService({
      * `not_found`) and not archived (`CUSTOMER_ARCHIVED`); the subscription it renews, locked, the
      * customer's own (else `invalid_choice` on `renewalOfId`) and not renewed yet
      * (`SUBSCRIPTION_ALREADY_RENEWED`); the package, the space's and offered (else `invalid_choice`
-     * on `packageId`), or the typed terms (`termsOf`); the start date, the one sent, else the
-     * renewal's proposal (`proposedStart`); the subscription, audited; then the payment, allocated
+     * on `packageId`), or the space's standard published price of the key sent (else
+     * `invalid_choice` on `published`), or the typed terms (`termsOf`); the start date, the one
+     * sent, else the renewal's proposal (`proposedStart`); the subscription, audited; then the payment, allocated
      * over the customer's older debts oldest first and the rest to the new one, one payment each
      * under a key derived from the request's, which the ledger checks. Warns `CUSTOMER_HAS_DEBT`
      * while an older item still owes.
@@ -779,14 +803,20 @@ export function createDeskService({
           pack = await packages.termsOf(space.id, request.packageId, tx);
           if (!pack?.isActive) throw AppError.validation({ packageId: ['invalid_choice'] });
         }
+        let price: Price | null = null;
+        if (request.published !== undefined) {
+          price = await spaces.standardPrice(space.id, request.published, tx);
+          if (!price) throw AppError.validation({ published: ['invalid_choice'] });
+        }
         const mayType =
           pack === null &&
+          price === null &&
           can(actor, 'prices.typeByHand', {
             links,
             receptionMayTypePrices: (await spaceSettings.read(space.id, tx)).receptionMayTypePrices,
           });
         const startsOn = request.startsOn ?? proposedStart(renewed, gazaClockOf(at).date);
-        const terms = termsOf(actor, pack, request, startsOn, mayType);
+        const terms = termsOf(actor, pack, price, request, startsOn, mayType);
 
         const created = await subscriptions.create(
           actor.id,

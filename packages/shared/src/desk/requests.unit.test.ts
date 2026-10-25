@@ -214,6 +214,31 @@ describe('subscribing a customer', () => {
     });
   });
 
+  it('or a published week or month price, by its period, audience and shift, with the name the desk gives it', () => {
+    expect(
+      subscribeSchema.parse({
+        published: { period: 'MONTH', audience: 'GENERAL', name: ' شهري ' },
+      }),
+    ).toEqual({ published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري' } });
+    expect(
+      subscribeSchema.parse({
+        published: { period: 'WEEK', audience: 'STUDENT', shiftId: 4, name: 'Weekly' },
+      }),
+    ).toEqual({ published: { period: 'WEEK', audience: 'STUDENT', shiftId: 4, name: 'Weekly' } });
+    const published = { period: 'MONTH', audience: 'GENERAL', name: 'شهري' };
+    expect(errorsOf({ packageId: 3, published })).toEqual({ packageId: ['invalid_choice'] });
+    expect(errorsOf({ custom: custom(), published })).toEqual({ packageId: ['invalid_choice'] });
+    expect(errorsOf({ published: { ...published, period: 'HOUR' } })).toEqual({
+      'published.period': ['invalid_choice'],
+    });
+    expect(errorsOf({ published: { ...published, name: '' } })).toEqual({
+      'published.name': ['too_short'],
+    });
+    expect(errorsOf({ published: { period: 'MONTH', audience: 'GENERAL' } })).toEqual({
+      'published.name': ['required'],
+    });
+  });
+
   it("a renewal names the renewed subscription; a payment takes a payment's bounds", () => {
     expect(
       subscribeSchema.parse({
