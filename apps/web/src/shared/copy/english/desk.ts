@@ -195,4 +195,38 @@ export const DESK = {
     conflict: 'This request clashed with an earlier one; close it and open it again.',
     not_found: 'This visit no longer exists.',
   },
+  /** The desk's one search: the people present, then the customers, then a visit (K1). */
+  search: {
+    /** The search's region. */
+    region: 'Search',
+    label: 'Search by name or the mobile’s last digits',
+    placeholder: 'Name or the mobile’s last digits',
+    /** The second group's heading. */
+    customers: 'Customers',
+    /** The results' count, said politely as they change. */
+    found: ({ count }: { count: number }) =>
+      englishPlural(count, { one: '1 result', other: `${String(count)} results` }),
+    checkInNamed: ({ name }: { name: string }) => `Check in a visit for “${name}”`,
+    none: {
+      title: 'No one by this name or number',
+      text: 'A one-off visitor? Check them in as a visit (no customer file is created).',
+    },
+    failed: 'We couldn’t search the customers',
+  },
+  /** A customer's card in the search. */
+  customer: {
+    noPhone: 'No mobile number',
+    noSubscription: 'No subscription',
+    until: ({ date }: { date: string }) => `until ${date}`,
+    noEnd: 'No end date',
+    statuses: {
+      UPCOMING: 'Not started',
+      ACTIVE: 'Active',
+      ENDING_SOON: 'Ending soon',
+      EXPIRED: 'Expired',
+    },
+    owes: ({ amount }: { amount: string }) => `Owes ${amount}`,
+    credit: ({ amount }: { amount: string }) => `In credit ${amount}`,
+    settled: 'Settled',
+  },
 } as const;

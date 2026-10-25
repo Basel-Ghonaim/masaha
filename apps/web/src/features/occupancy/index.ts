@@ -4,3 +4,4 @@ export { PresentMatches } from './components/PresentMatches';
 export { useCapacityQuery } from './hooks/useCapacityQuery';
 export { useSetCapacity } from './hooks/useSetCapacity';
 export { useStateNowQuery } from './hooks/now/useStateNowQuery';
+export { matchesPerson } from './services/matchesPerson';

@@ -1,13 +1,20 @@
 import type { PresentPerson } from '@masaha/shared/occupancy';
 import {
   CheckOutAction,
+  DeskSearch,
   UncollectedCard,
   UnpricedCard,
   useVisitDialog,
   useVisitTermsQuery,
   VisitDialog,
 } from '@features/desk';
-import { LiveStatusControl, PresentList, useStateNowQuery } from '@features/occupancy';
+import {
+  LiveStatusControl,
+  matchesPerson,
+  PresentList,
+  PresentMatches,
+  useStateNowQuery,
+} from '@features/occupancy';
 import { useSpaceShifts } from '@features/spaces';
 import { useCopy } from '@shared/copy';
 import {
@@ -22,7 +29,7 @@ import {
 } from '@shared/design-system';
 import { NotFoundState, parseSpaceId } from '@shared/routing';
 import { useSession } from '@shared/session';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useParams } from 'react-router';
 import { PageActionBar } from '../../shell/PageActionBar';
 import { PageHeader } from '../../shell/PageHeader';
@@ -31,7 +38,8 @@ import { SwitchStaffButton, SwitchStaffItem } from './SwitchStaffButton';
 /**
  * «مكتب الاستقبال», the owner's and reception's: in the top bar, the live status visitors see and
  * its control, «تبديل الموظف» and «تسجيل زيارة» from 768 px; below it the control alone, «تبديل
- * الموظف» in a «⋯» menu and «تسجيل زيارة» in the bar at the foot (P1). The page is the people
+ * الموظف» in a «⋯» menu and «تسجيل زيارة» in the bar at the foot (P1). Above the page, `desk`'s one
+ * search, its first group `occupancy`'s people present who match (K1). The page is the people
  * present, `occupancy`'s, with `desk`'s check-out in each row, and beside it from `xl` (under it
  * before) `desk`'s uncollected visits and, for whoever may type a price, its unpriced ones; the visit's check-in is offered the space's shifts as `spaces`
  * reads them. What the role at the space allows beyond that (S5) is read from the session's link;
@@ -57,7 +65,8 @@ function Desk({ spaceId }: { spaceId: number }) {
   const wide = useMediaQuery('(min-width: 768px)');
   const terms = useVisitTermsQuery(spaceId);
   const shifts = useSpaceShifts('owner', spaceId);
-  const full = useStateNowQuery(spaceId).data?.status === 'FULL';
+  const now = useStateNowQuery(spaceId).data;
+  const full = now?.status === 'FULL';
   const visit = useVisitDialog({ spaceId, shifts, full });
   const owner = useSession(
     (session) => session.user?.spaces.find((link) => link.spaceId === spaceId)?.role === 'OWNER',
@@ -65,6 +74,20 @@ function Desk({ spaceId }: { spaceId: number }) {
   const openVisit = () => {
     visit.setOpen(true);
   };
+  // The search's first group: who is present now, whom a term matches.
+  const people = now?.people;
+  const present = useMemo(() => {
+    const phones = new Map<number, string>();
+    const everyone = people ?? [];
+    return {
+      customerIds: new Set(
+        everyone.flatMap((person) => (person.kind === 'CHECK_IN' ? [person.customerId] : [])),
+      ),
+      matches: (term: string) =>
+        everyone.filter((person) => matchesPerson(person, term, phones)).length,
+      phones,
+    };
+  }, [people]);
   // The rows' action, made once per terms: a new one would draw every row anew.
   const termsData = terms.data;
   const action = useCallback(
@@ -110,6 +133,19 @@ function Desk({ spaceId }: { spaceId: number }) {
           <AlertDescription>{words.terms.loadFailed}</AlertDescription>
         </Alert>
       )}
+      <DeskSearch
+        spaceId={spaceId}
+        present={{
+          customerIds: present.customerIds,
+          matches: present.matches,
+          group: (term) => (
+            <PresentMatches spaceId={spaceId} term={term} phones={present.phones} action={action} />
+          ),
+        }}
+        checkIn={(name) => {
+          visit.setOpen(true, name);
+        }}
+      />
       <div className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start">
         <div className="xl:col-span-8">
           <PresentList spaceId={spaceId} action={action} />

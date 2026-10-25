@@ -1,3 +1,5 @@
+import type { CustomersQuery } from '@masaha/shared/desk';
+
 /** The capability's keys, scoped as docs/frontend/architecture.md §7 says: under the space's. */
 export const deskKeys = {
   /** Everything the desk reads of one space. */
@@ -13,4 +15,7 @@ export const deskKeys = {
   /** A page of the visits closed with no charge. */
   unpriced: (spaceId: number, page: number) =>
     ['space', spaceId, 'desk', 'unpriced', page] as const,
+  /** A page of the customers a query finds: the desk's search, the customers list. */
+  customers: (spaceId: number, query: CustomersQuery) =>
+    ['space', spaceId, 'desk', 'customers', query] as const,
 };

@@ -1,6 +1,7 @@
 import type { DeskVisit } from '@masaha/shared/visits';
 import { apiClient, setupApiClient } from '@shared/api';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { customerRow, customersPage } from '../../../test/deskCustomer';
 import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
 import { bodyOf } from '../../../test/fakeTransport';
 import { createDeskRepository } from './deskRepository';
@@ -165,6 +166,19 @@ describe('the desk repository', () => {
     expect(requests[0]?.params).toEqual({ page: 1 });
     expect(bodyOf(requests[1])).toEqual({ amountAgorot: 3000, reason: 'A long stay' });
     expect(requests[1]?.headers.get('Idempotency-Key')).toBeUndefined();
+  });
+
+  it('searches the customers with the query it is given', async () => {
+    const repository = createDeskRepository();
+    const requests = serve(() => customersPage([customerRow()]));
+
+    await expect(repository.customers(7, { q: 'Sara', page: 1, limit: 6 })).resolves.toMatchObject({
+      data: [customerRow()],
+      meta: { totalRecords: 1 },
+    });
+    expect(requests[0]?.method).toBe('get');
+    expect(requests[0]?.url).toBe('/manage/spaces/7/customers');
+    expect(requests[0]?.params).toEqual({ q: 'Sara', page: 1, limit: 6 });
   });
 
   it('hands back a check-in’s warnings, and none without them', async () => {

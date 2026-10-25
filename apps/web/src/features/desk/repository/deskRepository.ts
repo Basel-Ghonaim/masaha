@@ -1,5 +1,7 @@
 import type {
   CheckOutVisitRequest,
+  CustomerRow,
+  CustomersQuery,
   DeskWarning,
   LeaveToCustomerRequest,
   ReceivedPayment,
@@ -23,7 +25,8 @@ export type CheckedIn = WithMeta<DeskVisit, { warnings: DeskWarning[] }>;
 /**
  * The front desk's visits on the server (docs/api/api-contract.md §5, Front desk (managed)): the
  * terms, a visitor's check-in, a visit's quote and its check-out; the uncollected visits, a payment
- * on one, «تسجيل دين», and the owner's write-off and its undo; the unpriced visits and their price. The creates carry the intent's key
+ * on one, «تسجيل دين», and the owner's write-off and its undo; the unpriced visits and their price;
+ * the customers' search. The creates carry the intent's key
  * (ADR 0015), which lets the transport send them again; the other writes are idempotent by design
  * and carry none, so they are sent once (S3).
  */
@@ -63,6 +66,8 @@ export interface DeskRepository {
   unpriced(spaceId: number, page: number): Promise<Page<DeskVisit[]>>;
   /** Types an unpriced visit's charge, with its reason. */
   price(spaceId: number, visitId: number, body: PriceVisitRequest): Promise<DeskVisit>;
+  /** A page of the space's customers the query finds, by name. */
+  customers(spaceId: number, query: CustomersQuery): Promise<Page<CustomerRow[]>>;
 }
 
 export function createDeskRepository(): DeskRepository {
@@ -99,5 +104,7 @@ export function createDeskRepository(): DeskRepository {
       api.getPage<DeskVisit[]>(`${space(spaceId)}/unpriced-visits`, { params: { page } }),
     price: (spaceId, visitId, body) =>
       api.put<DeskVisit>(`${visit(spaceId, visitId)}/charge`, body),
+    customers: (spaceId, query) =>
+      api.getPage<CustomerRow[]>(`${space(spaceId)}/customers`, { params: query }),
   };
 }

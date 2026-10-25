@@ -201,4 +201,40 @@ export const DESK = {
     conflict: 'تعارض هذا الطلب مع طلب سابق؛ أغلق النافذة وأعد فتحها.',
     not_found: 'لم تعد هذه الزيارة موجودة.',
   },
+  search: {
+    region: 'البحث',
+    label: 'ابحث بالاسم أو آخر أرقام الجوال',
+    placeholder: 'الاسم أو آخر أرقام الجوال',
+    customers: 'زبائن',
+    found: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا نتائج',
+        one: 'نتيجة واحدة',
+        two: 'نتيجتان',
+        few: `${String(count)} نتائج`,
+        many: `${String(count)} نتيجة`,
+        other: `${String(count)} نتيجة`,
+      }),
+    checkInNamed: ({ name }: { name: string }) => `تسجيل زيارة باسم «${name}»`,
+    none: {
+      title: 'لا أحد بهذا الاسم أو الرقم',
+      text: 'زائر لمرة واحدة؟ سجّله كزيارة (لا يُنشأ ملف زبون).',
+    },
+    failed: 'تعذّر البحث في الزبائن',
+  },
+  customer: {
+    noPhone: 'بدون رقم جوال',
+    noSubscription: 'بدون اشتراك',
+    until: ({ date }: { date: string }) => `حتى ${date}`,
+    noEnd: 'بلا تاريخ نهاية',
+    statuses: {
+      UPCOMING: 'لم يبدأ',
+      ACTIVE: 'نشط',
+      ENDING_SOON: 'ينتهي قريبًا',
+      EXPIRED: 'منتهٍ',
+    },
+    owes: ({ amount }: { amount: string }) => `عليه ${amount}`,
+    credit: ({ amount }: { amount: string }) => `له رصيد ${amount}`,
+    settled: 'مسدّد',
+  },
 } satisfies Catalogue['desk'];

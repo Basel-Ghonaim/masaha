@@ -1,4 +1,5 @@
 export { CheckOutAction } from './components/check-out/CheckOutAction';
+export { DeskSearch } from './components/search/DeskSearch';
 export { UncollectedCard } from './components/uncollected/UncollectedCard';
 export { UnpricedCard } from './components/unpriced/UnpricedCard';
 export { VisitDialog } from './components/visit/VisitDialog';
