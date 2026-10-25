@@ -247,4 +247,18 @@ describe('the desk repository', () => {
       undefined,
     ]);
   });
+
+  it('reads a subscription’s statement, and ends it with no key', async () => {
+    const requests = serve(() => ({ status: 200, data: { success: true, data: {} } }));
+    const repository = createDeskRepository();
+
+    await repository.statement(7, 3);
+    await repository.endSubscription(7, 3);
+
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'get /manage/spaces/7/subscriptions/3',
+      'post /manage/spaces/7/subscriptions/3/end',
+    ]);
+    expect(requests[1]?.headers.get('Idempotency-Key')).toBeUndefined();
+  });
 });

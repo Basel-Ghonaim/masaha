@@ -439,4 +439,33 @@ export const DESK = {
       'Their number now belongs to another customer; change one of them before restoring.',
     restoreFailed: 'We couldn’t restore them',
   },
+  /** A subscription's statement, opened in its card (DI-43). */
+  statement: {
+    show: 'Show the statement',
+    hide: 'Hide the statement',
+    loadFailed: 'We couldn’t load the statement',
+    checkIns: 'Attendance',
+    columns: { day: 'Day', in: 'In', out: 'Out', duration: 'Duration' },
+    here: 'Here now',
+    auto: 'Auto check-out',
+    noCheckIns: 'No attendance yet.',
+    payments: 'Payments',
+    noPayments: 'No payments yet.',
+    voided: 'Voided',
+    voidedReason: ({ reason }: { reason: string }) => `Voided: ${reason}`,
+    renewal: ({ date }: { date: string }) => `A renewal would start on ${date}`,
+  },
+  /** Ending a subscription early. */
+  end: {
+    action: 'End subscription',
+    title: 'End the subscription today?',
+    text: ({ name, end }: { name: string; end: string }) =>
+      `${name} · The end date becomes ${end}. Amounts paid and due don’t change.`,
+    textWas: ({ name, end, was }: { name: string; end: string; was: string }) =>
+      `${name} · The end date becomes ${end} instead of ${was}. Amounts paid and due don’t change.`,
+    confirm: 'End subscription',
+    back: 'Back',
+    done: ({ name }: { name: string }) => `“${name}” ended today`,
+    failed: 'We couldn’t end the subscription',
+  },
 } as const;

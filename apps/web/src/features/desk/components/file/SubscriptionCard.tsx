@@ -8,22 +8,33 @@ import {
   CardHeader,
   CardTitle,
 } from '@shared/design-system';
+import { useId } from 'react';
+import { useEndDialog } from '../../hooks/end/useEndDialog';
 import type { SubscriptionCardView } from '../../hooks/file/useCustomerFile';
+import { useStatement } from '../../hooks/statement/useStatement';
+import { EndDialog } from '../end/EndDialog';
+import { Statement } from '../statement/Statement';
 
 /**
  * One subscription in the file (DI-42): its name, the card's `h3` under «الاشتراكات», with «سعر
  * يدوي» when its price was typed; its dates and its terms in one line; its status and payment
  * badges; its progress, a plain line each; its due, paid and left, the server's; and «استلام
- * المتبقي» while it owes (DI-44). `opened` hears which control opened the payment.
+ * المتبقي» while it owes (DI-44); «عرض الكشف» opens its statement inside it (DI-43), and «إنهاء
+ * الاشتراك» ends it early, asking first. `opened` hears which control opened the payment.
  */
 export function SubscriptionCard({
+  spaceId,
   card,
   opened,
 }: {
+  spaceId: number;
   card: SubscriptionCardView;
   opened: (trigger: HTMLElement) => void;
 }) {
   const { money } = card;
+  const statement = useStatement(spaceId, card.subscription.id);
+  const end = useEndDialog({ spaceId, subscription: card.subscription });
+  const statementId = useId();
 
   return (
     <Card>
@@ -64,9 +75,10 @@ export function SubscriptionCard({
             <dd className="text-label">{money.left}</dd>
           </div>
         </dl>
+        <Statement id={statementId} statement={statement} />
       </CardContent>
-      {card.receive !== null && (
-        <CardFooter>
+      <CardFooter className="flex-wrap">
+        {card.receive !== null && (
           <Button
             variant="secondary"
             onClick={(event) => {
@@ -76,8 +88,22 @@ export function SubscriptionCard({
           >
             {card.receive.label}
           </Button>
-        </CardFooter>
-      )}
+        )}
+        <Button
+          variant="ghost"
+          aria-expanded={statement.toggle.expanded}
+          aria-controls={statementId}
+          onClick={statement.toggle.run}
+        >
+          {statement.toggle.label}
+        </Button>
+        {end.action !== null && (
+          <Button variant="ghost" onClick={end.action.run}>
+            {end.action.label}
+          </Button>
+        )}
+      </CardFooter>
+      <EndDialog dialog={end.dialog} />
     </Card>
   );
 }

@@ -461,4 +461,33 @@ export const DESK = {
     restorePhoneTaken: 'رقمه مسجّل الآن لزبون آخر؛ لا يُسترجع قبل تغيير أحد الرقمين.',
     restoreFailed: 'تعذّر الاسترجاع',
   },
+  /** A subscription's statement, opened in its card (DI-43). */
+  statement: {
+    show: 'عرض الكشف',
+    hide: 'إخفاء الكشف',
+    loadFailed: 'تعذّر تحميل الكشف',
+    checkIns: 'الحضور',
+    columns: { day: 'اليوم', in: 'الدخول', out: 'الخروج', duration: 'المدة' },
+    here: 'حاضر الآن',
+    auto: 'خروج تلقائي',
+    noCheckIns: 'لا حضور بعد.',
+    payments: 'الدفعات',
+    noPayments: 'لا دفعات بعد.',
+    voided: 'ملغاة',
+    voidedReason: ({ reason }: { reason: string }) => `أُلغيت: ${reason}`,
+    renewal: ({ date }: { date: string }) => `التجديد يبدأ في ${date}`,
+  },
+  /** Ending a subscription early. */
+  end: {
+    action: 'إنهاء الاشتراك',
+    title: 'إنهاء الاشتراك اليوم؟',
+    text: ({ name, end }: { name: string; end: string }) =>
+      `${name} · يصبح تاريخ النهاية ${end}. المبالغ المدفوعة والمستحقة لا تتغيّر.`,
+    textWas: ({ name, end, was }: { name: string; end: string; was: string }) =>
+      `${name} · يصبح تاريخ النهاية ${end} بدل ${was}. المبالغ المدفوعة والمستحقة لا تتغيّر.`,
+    confirm: 'إنهاء الاشتراك',
+    back: 'رجوع',
+    done: ({ name }: { name: string }) => `انتهى الاشتراك «${name}» اليوم`,
+    failed: 'تعذّر إنهاء الاشتراك',
+  },
 } satisfies Catalogue['desk'];

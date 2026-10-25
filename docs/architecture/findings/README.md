@@ -73,6 +73,8 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [138. A failed refresh keeps a status that still reads live](138-a-failed-refresh-keeps-a-status-that-still-reads-live.md)
 - [160. A visit's check-in cannot name its customer](160-a-visits-check-in-cannot-name-its-customer.md)
 - [161. No route reads the visits of a day](161-no-route-reads-the-visits-of-a-day.md)
+- [162. No route names a space's staff to reception](162-no-route-names-a-spaces-staff-to-reception.md)
+- [163. A subscription's corrections have no screen](163-a-subscriptions-corrections-have-no-screen.md)
 - [164. A written-off visit is listed nowhere](164-a-written-off-visit-is-listed-nowhere.md)
 - [170. A request's renewal racing a rotation can be lost on the newest row](170-a-requests-renewal-racing-a-rotation-can-be-lost-on-the-newest-row.md)
 - [171. A published price changed between the desk's read and the subscribe is charged silently](171-a-published-price-changed-between-the-desks-read-and-the-subscribe-is-charged-silently.md)

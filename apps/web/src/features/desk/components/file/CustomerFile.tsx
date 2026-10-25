@@ -97,7 +97,7 @@ export function CustomerFile({
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {subscriptions.cards.map((card) => (
-              <SubscriptionCard key={card.key} card={card} opened={opened} />
+              <SubscriptionCard key={card.key} spaceId={spaceId} card={card} opened={opened} />
             ))}
           </div>
         )}

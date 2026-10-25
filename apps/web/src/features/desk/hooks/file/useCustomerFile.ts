@@ -137,6 +137,8 @@ export function useCustomerFile(spaceId: number, customerId: number) {
         const key = `subscription-${String(subscription.id)}`;
         return {
           key,
+          /** The subscription as the file answers it, for its statement and its end. */
+          subscription,
           title: {
             name: subscription.name,
             typed: subscription.priceTyped === null ? null : words.card.typed,
