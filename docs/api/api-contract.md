@@ -825,7 +825,7 @@ AdminReport = SpaceReport & {
 #### `PATCH /admin/data-reports/:reportId` · 🛡
 - **Body:** `{ status: 'RESOLVED' | 'DISMISSED', note? }`.
 - **200:** `AdminReport`, decided now with `repliedBy: 'MASAHA'`; the same decision again answers it as it is.
-- **Errors**, each writing nothing: `validation` (422) on the body; `not_found` (404) for no such report, or a deleted space's; `forbidden` (403) for a verified space's report — its owner decides it — also when an owner was linked while the decision waited (the links read under the space's lock); `conflict` (409) `REPORT_ALREADY_DECIDED`, also when the owner decided it first. Built 2026-10-25, #120.
+- **Errors**, each writing nothing: `validation` (422) on the body; `not_found` (404) for no such report, or a deleted space's; `forbidden` (403) for a verified space's report — its owner decides it — also when an owner was linked while the decision waited (the links read under the space's lock); `conflict` (409) `REPORT_ALREADY_DECIDED`. An owner's decision while this one waits makes it `forbidden` while the owner is still linked, and `REPORT_ALREADY_DECIDED` once the space is unverified again. Built 2026-10-25, #120.
 
 ### Internal
 
