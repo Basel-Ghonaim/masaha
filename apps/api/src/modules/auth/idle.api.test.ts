@@ -148,6 +148,25 @@ describe("reception's idle session", () => {
     ).toBe(sessionVersion);
   });
 
+  it('renews nothing on a refresh: the new token keeps the session’s last activity', async () => {
+    await account('nour@example.com', [['RECEPTION', spaceId]]);
+    const desk = await signIn('nour@example.com');
+
+    const refreshed = await refresh(desk, at(10 * MINUTE));
+    expect(refreshed.status).toBe(200);
+    const { accessToken } = (refreshed.body as { data: { accessToken: string } }).data;
+    const newest = await prisma.refreshToken.findFirstOrThrow({
+      where: { familyId: desk.sessionId },
+      orderBy: { id: 'desc' },
+      select: { lastActivityAt: true },
+    });
+    expect(newest.lastActivityAt.toISOString()).toBe(SIGNED_IN.toISOString());
+
+    expectIdle(
+      await me({ ...desk, authorization: `Bearer ${accessToken}` }, at(15 * MINUTE + 1_000)),
+    );
+  });
+
   it('ends a desk left open: the polled state renews nothing', async () => {
     await account('nour@example.com', [['RECEPTION', spaceId]]);
     const desk = await signIn('nour@example.com');

@@ -21,7 +21,7 @@ const FAR_AHEAD = new Date('2100-01-01T00:00:00Z');
 
 /**
  * An access token for the user, signed for a new session of theirs, as a sign-in makes one: a
- * refresh-token family of one row, which never ends. A test of the session's own rules signs in
+ * refresh-token family of one row, which never ends nor goes idle. A test of the session's own rules signs in
  * through the API instead, so its clock dates the session.
  */
 export async function signAccess(
@@ -35,6 +35,8 @@ export async function signAccess(
       tokenHash: randomUUID(),
       expiresAt: FAR_AHEAD,
       sessionEndsAt: FAR_AHEAD,
+      // Ahead of every test's clock, so a reception session is never idle and never renewed.
+      lastActivityAt: FAR_AHEAD,
     },
     select: { id: true },
   });
