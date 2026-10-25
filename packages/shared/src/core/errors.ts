@@ -126,6 +126,8 @@ export const DOMAIN_ERROR_CODES = [
   'ANNOUNCEMENT_NOT_STARTED',
   // a decided report decided again, otherwise than it was (data-reports)
   'REPORT_ALREADY_DECIDED',
+  // a user's favourites full: one is removed first (favorites)
+  'FAVORITES_LIMIT_REACHED',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

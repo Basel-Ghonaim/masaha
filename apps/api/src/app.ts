@@ -53,6 +53,11 @@ import {
   createDirectoryService,
 } from './modules/directory/index.ts';
 import {
+  createFavoritesController,
+  createFavoritesMeRouter,
+  createFavoritesService,
+} from './modules/favorites/index.ts';
+import {
   createAmenitiesController,
   createAmenitiesService,
   createAreasController,
@@ -436,6 +441,13 @@ export function createApi({
     publicSpace,
     occupancy,
   });
+  const favorites = createFavoritesService({
+    runInTransaction,
+    users,
+    publicListing,
+    lookups,
+    now: clock,
+  });
   const dataReports = createDataReportsService({
     runInTransaction,
     audit: writeAudit,
@@ -506,6 +518,7 @@ export function createApi({
   );
   const usersController = createUsersController(users, cookies);
   api.use('/me', createUsersMeRouter(usersController, requireAuth));
+  api.use('/me', createFavoritesMeRouter(createFavoritesController(favorites), requireAuth));
   api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
   api.use(createDirectoryPublicRouter(createDirectoryController(directory)));
   const dataReportsController = createDataReportsController(dataReports);
