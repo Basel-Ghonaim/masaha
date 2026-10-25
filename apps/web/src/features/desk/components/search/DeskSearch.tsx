@@ -22,7 +22,7 @@ export type SearchAfter = { done: () => void; focus: RefObject<HTMLElement | nul
  * — once typing pauses — the people present who match (`present.group`, the page's, `occupancy`'s),
  * then the customers the server finds, a card each under their `h2` (DI-38), then the visit's
  * check-in by the typed name (`checkIn`), the primary only when nothing matched, with the no-match
- * line (DI-20, DI-36). The count of results is said politely as it changes (A7). From 768 px the field
+ * line (DI-20, DI-36), handed `after` too. The count of results is said politely as it changes (A7). From 768 px the field
  * takes the focus on arrival (S10), and after a check-in or a check-out started from the results it
  * is cleared and takes the focus again (`after`, handed to the cards and to `present.group`).
  */
@@ -41,8 +41,8 @@ export function DeskSearch({
     /** The people present a term matches, drawn as the first group, their actions given `after`. */
     group: (term: string, after: SearchAfter) => ReactNode;
   };
-  /** Opens the visit's check-in with this name (empty for digits). */
-  checkIn: (name: string) => void;
+  /** Opens the visit's check-in with this name (empty for digits), and what follows its success. */
+  checkIn: (name: string, after: SearchAfter) => void;
   /** Opens the payment on one of a customer's items. */
   receive: (target: PayTarget) => void;
 }) {
@@ -63,7 +63,7 @@ export function DeskSearch({
       <Button
         variant={search.checkIn.primary ? 'primary' : 'outline'}
         onClick={() => {
-          if (search.checkIn !== null) checkIn(search.checkIn.name);
+          if (search.checkIn !== null) checkIn(search.checkIn.name, after);
         }}
       >
         {search.checkIn.label}

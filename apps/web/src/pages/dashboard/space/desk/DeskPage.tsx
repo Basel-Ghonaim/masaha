@@ -188,8 +188,8 @@ function Desk({ spaceId }: { spaceId: number }) {
             />
           ),
         }}
-        checkIn={(name) => {
-          visit.setOpen(true, name);
+        checkIn={(name, after) => {
+          visit.setOpen(true, name, after);
         }}
         receive={receive}
       />
