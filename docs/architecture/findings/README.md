@@ -54,7 +54,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [104. The staff menu's row triggers copy the admin page's](104-the-staff-menus-row-triggers-copy-the-admin-pages.md)
 - [105. A held menu item may be unreachable by the keyboard](105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md)
 - [106. Two approved owner lines miss a case, or the label in the name](106-two-approved-owner-lines-miss-a-case-or-the-label-in-name.md)
-- [110. The desk prototype's uncollected visits disagree with the owner's decisions](110-the-desk-prototypes-uncollected-visits-disagree-with-the-owners-decisions.md)
 - [112. A key that closed a visit with no payment is not remembered](112-a-key-that-closed-a-visit-with-no-payment-is-not-remembered.md)
 - [115. A write-off and its undo carry no key](115-a-write-off-and-its-undo-carry-no-key.md)
 - [120. Gaza dates are read by two zone databases](120-gaza-dates-are-read-by-two-zone-databases.md)
@@ -75,6 +74,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [137. Home's area counts fall short past a thousand spaces](137-homes-area-counts-fall-short-past-a-thousand-spaces.md)
 - [138. A failed refresh keeps a status that still reads live](138-a-failed-refresh-keeps-a-status-that-still-reads-live.md)
 - [161. No route reads the visits of a day](161-no-route-reads-the-visits-of-a-day.md)
+- [164. A written-off visit is listed nowhere](164-a-written-off-visit-is-listed-nowhere.md)
 
 ## Accepted
 
@@ -130,6 +130,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [90. The staff refusals reuse the admin's messages](90-the-staff-refusals-reuse-the-admins-messages.md)
 - [96. The attendance card saves two capabilities in one save](96-the-attendance-card-saves-two-capabilities-in-one-save.md)
 - [100. An unpaid check-out moves a visit's customer to the phone's](100-an-unpaid-check-out-moves-a-visits-customer-to-the-phones.md)
+- [110. The desk prototype's uncollected visits disagree with the owner's decisions](110-the-desk-prototypes-uncollected-visits-disagree-with-the-owners-decisions.md)
 - [111. The check-in's warnings count *present* a second time](111-the-check-ins-warnings-count-present-a-second-time.md)
 - [113. The uncollected read grows with every auto-closed visit](113-the-uncollected-read-grows-with-every-auto-closed-visit.md)
 - [114. A stay that always fails turns every cron call red](114-a-stay-that-always-fails-turns-every-cron-call-red.md)

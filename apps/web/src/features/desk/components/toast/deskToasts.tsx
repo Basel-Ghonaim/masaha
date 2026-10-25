@@ -1,9 +1,13 @@
-import type { DeskWarning, VisitCheckOut } from '@masaha/shared/desk';
+import type { DeskWarning, ReceivedPayment, VisitCheckOut } from '@masaha/shared/desk';
+import type { DeskVisit } from '@masaha/shared/visits';
 import { currentCopy } from '@shared/copy';
 import { toast } from '@shared/design-system';
+import { toAppError } from '@shared/errors';
+import { RefusalText } from '@shared/forms';
 import { priceText } from '@shared/lib';
 import { currentLanguage, isolate } from '@shared/localisation';
 import { warningLines } from '../../services/warningLines';
+import type { UncollectedItem } from '../../types/UncollectedItem';
 
 // Worded when they land, in the language the interface speaks then (S8: from the server's answer).
 const priceNow = (agorot: number) =>
@@ -58,4 +62,77 @@ export function toastCheckedOut(name: string, { visit, payment }: VisitCheckOut)
     );
   }
   toast.success(words.checkOut.done({ name: isolate(name) }), { description: parts.join(' · ') });
+}
+
+/**
+ * Says an uncollected visit was paid, naming its visitor and its day, then what the answer recorded:
+ * the amount and its method, and what the visit still owes, by whom (S8).
+ */
+export function toastCollected(
+  item: UncollectedItem,
+  { visit, payment, balanceAgorot }: ReceivedPayment,
+) {
+  const words = currentCopy().desk;
+  const parts = [
+    words.toast.paid({
+      amount: priceNow(payment.amountAgorot),
+      method: words.money.methodIn[payment.method],
+    }),
+  ];
+  if (balanceAgorot > 0) {
+    parts.push(
+      words.money.owes({
+        amount: priceNow(balanceAgorot),
+        name: isolate(visit?.customer?.name ?? item.name),
+      }),
+    );
+  }
+  toast.success(words.collect.done({ name: isolate(item.name), day: item.day }), {
+    description: parts.join(' · '),
+  });
+}
+
+/** Says a visit's unpaid rest is now a customer's debt, naming the customer the answer gave it. */
+export function toastDebtRecorded(item: UncollectedItem, visit: DeskVisit) {
+  const words = currentCopy().desk;
+  const { balanceAgorot } = item.uncollected;
+  toast.success(
+    words.debt.done({
+      amount: balanceAgorot === null ? words.uncollected.unpriced : priceNow(balanceAgorot),
+      name: isolate(visit.customer?.name ?? item.name),
+    }),
+  );
+}
+
+/**
+ * Says a visit was written off, and stays until it is closed (DI-29): its «تراجع» is the only way back,
+ * since no screen lists a written-off visit (finding 164). The undo is sent once, never again by
+ * itself (S3), and says whether it was undone.
+ */
+export function toastWrittenOff(
+  item: UncollectedItem,
+  amount: number,
+  undo: () => Promise<unknown>,
+) {
+  const words = currentCopy().desk.writeOff;
+  toast.success(words.done({ amount: priceNow(amount), who: isolate(item.name) }), {
+    duration: Infinity,
+    action: {
+      label: words.undo,
+      onClick: () => {
+        undo().then(
+          () => {
+            toast.success(currentCopy().desk.writeOff.undone);
+          },
+          (error: unknown) => {
+            const failure = currentCopy().desk.writeOff.undoFailed;
+            toast.error(failure, {
+              description: <RefusalText refusal={toAppError(error)} title={failure} />,
+              duration: Infinity,
+            });
+          },
+        );
+      },
+    },
+  });
 }
