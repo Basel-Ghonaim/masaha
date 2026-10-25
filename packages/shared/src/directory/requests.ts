@@ -98,6 +98,19 @@ interface FilterValues {
   priceMax?: number | undefined;
 }
 
+/** `distance` needs the point, and the point is taken only with it. */
+function checkNear(
+  { sort, near }: { sort?: string | undefined; near?: unknown },
+  ctx: z.RefinementCtx,
+) {
+  if (sort === 'distance' && near === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['near'], params: { code: 'required' } });
+  }
+  if (sort !== 'distance' && near !== undefined) {
+    ctx.addIssue({ code: 'custom', path: ['near'], params: { code: 'invalid_choice' } });
+  }
+}
+
 /** A price bound needs its period, and the lower one may not pass the upper. */
 function checkPrice({ period, priceMin, priceMax }: FilterValues, ctx: z.RefinementCtx) {
   if (period === undefined && (priceMin !== undefined || priceMax !== undefined)) {
@@ -126,12 +139,7 @@ export const directoryQuerySchema = paginationQuerySchema
     if (query.sort === 'relevance' && query.q === undefined) {
       ctx.addIssue({ code: 'custom', path: ['sort'], params: { code: 'invalid_choice' } });
     }
-    if (query.sort === 'distance' && query.near === undefined) {
-      ctx.addIssue({ code: 'custom', path: ['near'], params: { code: 'required' } });
-    }
-    if (query.sort !== 'distance' && query.near !== undefined) {
-      ctx.addIssue({ code: 'custom', path: ['near'], params: { code: 'invalid_choice' } });
-    }
+    checkNear(query, ctx);
   })
   .transform(({ sort, ...query }) => ({
     ...query,
@@ -139,6 +147,16 @@ export const directoryQuerySchema = paginationQuerySchema
   }));
 
 export type DirectoryQuery = z.output<typeof directoryQuerySchema>;
+
+/**
+ * A user's favourites (`GET /me/favorites`), answered whole: newest saved first, or nearest first
+ * with `sort=distance`, `near` being the `Masaha-Near` header's point, by the list's rule.
+ */
+export const favoritesQuerySchema = z
+  .object({ sort: z.literal('distance').optional(), near: nearPoint.optional() })
+  .superRefine(checkNear);
+
+export type FavoritesQuery = z.output<typeof favoritesQuerySchema>;
 
 /** `south,west,north,east`: the map's viewport, south below north and west before east. */
 const boundsBox = z

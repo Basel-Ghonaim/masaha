@@ -129,7 +129,7 @@ Each step names its goal and points to what supports it:
   - [admin](../design/SCREENS.md#admin-8): 28 Data reports.
 - **Supported by:** [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md); conventions §9: [data reports](../backend/conventions.md#data-reports) and [composed reads](../backend/conventions.md#composed-reads) (the favourites' cards).
 - **Closes:** [finding 8](../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md), at the start of the step: the removable filter tag.
-- **Built:** announcements and the closure warning, on the API: posted (idempotent), edited, ended, started and deleted by the staff; the managed list with each closure's extension state and its summary; a space's page's announcements; `CLOSURE_IN_FORCE` at check-in (#112, [api-contract › Announcements (managed)](../api/api-contract.md#announcements-managed)); data reports, on the API: a signed-in user's report (10 an hour, a repeat answering the open one), the user's own with the replies, the owner's and the admin's lists and decisions, the reporter anonymous to the owner (#120, [api-contract › Data reports](../api/api-contract.md#data-reports)). The screens remain planned.
+- **Built:** announcements and the closure warning, on the API: posted (idempotent), edited, ended, started and deleted by the staff; the managed list with each closure's extension state and its summary; a space's page's announcements; `CLOSURE_IN_FORCE` at check-in (#112, [api-contract › Announcements (managed)](../api/api-contract.md#announcements-managed)); data reports, on the API: a signed-in user's report (10 an hour, a repeat answering the open one), the user's own with the replies, the owner's and the admin's lists and decisions, the reporter anonymous to the owner (#120, [api-contract › Data reports](../api/api-contract.md#data-reports)); favourites, on the API: saved and removed, idempotent, at most 200, read whole as the directory's cards, newest saved first or nearest first (#121, [api-contract › Favourites](../api/api-contract.md#favourites)). The screens remain planned.
 
 ### 11. Finance, audit and settings
 
@@ -199,12 +199,12 @@ Legend: 🌐 public · 👤 any signed-in user · 🧾 OWNER or RECEPTION of tha
 Built: every auth endpoint, in [api-contract §5](../api/api-contract.md#5-endpoints): register, login, Google sign-in, refresh, logout, and the forgotten password (forgot, the reset link's check, reset).
 
 #### Me
-Built: `POST /me/password`, the password change and the forced change at first sign-in ([api-contract §5](../api/api-contract.md#5-endpoints)); `GET /me/reports`, the user's own reports with the replies (#120, [api-contract › Data reports](../api/api-contract.md#data-reports)).
+Built: `POST /me/password`, the password change and the forced change at first sign-in ([api-contract §5](../api/api-contract.md#5-endpoints)); `GET /me/reports`, the user's own reports with the replies (#120, [api-contract › Data reports](../api/api-contract.md#data-reports)); the favourites, `GET /me/favorites` and `POST` / `DELETE /me/favorites/:spaceId` (#121, [api-contract › Favourites](../api/api-contract.md#favourites)).
 
 | Method | Path | Access |
 |---|---|---|
 | GET / PATCH | `/me` | 👤 name, language |
-| GET | `/me/favorites` · POST / DELETE `/me/favorites/:spaceId` | 👤 |
+| GET | `/me/favorites` · POST / DELETE `/me/favorites/:spaceId` | 👤 at most 200, whole, near me by the header (built, #121) |
 | GET | `/me/reports` | 👤 with the resolution note (built, #120) |
 
 #### Public directory

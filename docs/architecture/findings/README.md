@@ -83,6 +83,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [5. In dark, the destructive badge reads louder than the other status badges](5-in-dark-the-destructive-badge-reads-louder-than-the-other-status-badges.md)
 - [19. The reset email's colours, fonts and styles are written outside the design system](19-the-reset-emails-colours-fonts-and-styles-are-written-outside-the-design-system.md)
 - [30. A lookup's English name is not unique](30-a-lookups-english-name-is-not-unique.md)
+- [150. The owner sees a report's exact time](150-the-owner-sees-a-reports-exact-time.md)
 
 ## Resolved
 

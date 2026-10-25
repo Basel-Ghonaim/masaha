@@ -1,10 +1,11 @@
-import type { DirectoryQuery, MapPinsQuery } from '@masaha/shared/directory';
+import type { DirectoryQuery, FavoriteSpace, MapPinsQuery } from '@masaha/shared/directory';
 import type { Request, Response } from 'express';
 
+import { signedIn } from '../../shared/auth/index.ts';
 import { buildPaginationMeta, sendSuccess } from '../../shared/http/index.ts';
 import { cachePrivately, cachePublicly } from './cache.ts';
 import type { DirectoryService } from './directory.service.ts';
-import { listQueryOf } from './listQuery.ts';
+import { favoritesQueryOf, listQueryOf } from './listQuery.ts';
 
 export function createDirectoryController(directory: DirectoryService) {
   return {
@@ -28,6 +29,13 @@ export function createDirectoryController(directory: DirectoryService) {
       const space = await directory.page(String(req.params.slug));
       cachePublicly(res);
       sendSuccess(res, space);
+    },
+
+    /** 200 with the user's favourites, whole; `no-store` was set with the point, if it was sent. */
+    favorites: async (req: Request, res: Response) => {
+      const { near } = favoritesQueryOf(res);
+      const favorites = await directory.favorites(signedIn(req).userId, near);
+      sendSuccess(res, favorites satisfies FavoriteSpace[]);
     },
 
     occupancy: async (req: Request, res: Response) => {

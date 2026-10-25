@@ -40,7 +40,7 @@ import {
   createDataReportsController,
   createDataReportsManageRouter,
   createDataReportsService,
-  createDataReportsSiteRouter,
+  createDataReportsMeRouter,
 } from './modules/data-reports/index.ts';
 import {
   createDeskController,
@@ -49,9 +49,15 @@ import {
 } from './modules/desk/index.ts';
 import {
   createDirectoryController,
+  createDirectoryMeRouter,
   createDirectoryPublicRouter,
   createDirectoryService,
 } from './modules/directory/index.ts';
+import {
+  createFavoritesController,
+  createFavoritesMeRouter,
+  createFavoritesService,
+} from './modules/favorites/index.ts';
 import {
   createAmenitiesController,
   createAmenitiesService,
@@ -428,8 +434,17 @@ export function createApi({
     now: clock,
     storage,
   });
+  const favorites = createFavoritesService({
+    runInTransaction,
+    users,
+    publicListing,
+    lookups,
+    now: clock,
+  });
   const directory = createDirectoryService({
     announcements,
+    favorites,
+    spaces,
     lookups,
     spaceLinks,
     publicListing,
@@ -506,10 +521,13 @@ export function createApi({
   );
   const usersController = createUsersController(users, cookies);
   api.use('/me', createUsersMeRouter(usersController, requireAuth));
+  api.use('/me', createFavoritesMeRouter(createFavoritesController(favorites), requireAuth));
   api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
-  api.use(createDirectoryPublicRouter(createDirectoryController(directory)));
+  const directoryController = createDirectoryController(directory);
+  api.use(createDirectoryPublicRouter(directoryController));
+  api.use(createDirectoryMeRouter(directoryController, requireAuth));
   const dataReportsController = createDataReportsController(dataReports);
-  api.use(createDataReportsSiteRouter({ controller: dataReportsController, requireAuth, limiter }));
+  api.use(createDataReportsMeRouter({ controller: dataReportsController, requireAuth, limiter }));
   api.use(
     '/manage/spaces',
     createSpaceLinksMeRouter(createSpaceLinksController(spaceLinks), requireAuth),

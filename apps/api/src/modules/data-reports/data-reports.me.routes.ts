@@ -12,7 +12,7 @@ import { DATA_REPORT } from './data-reports.limits.ts';
  * (`POST /spaces/:slug/reports`), counted by the user before its body is read
  * (docs/backend/security.md › Rate limits), and the user's own (`GET /me/reports`).
  */
-export function createDataReportsSiteRouter({
+export function createDataReportsMeRouter({
   controller,
   requireAuth,
   limiter,

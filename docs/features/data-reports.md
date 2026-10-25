@@ -26,7 +26,7 @@
 
 ## How it composes the platform
 
-- Its site router sits at the API's root (`/spaces/:slug/reports`, `/me/reports`), beside the directory's public routes; the route asks `requireAuth`, then counts the request by the user (`DATA_REPORT`, [security › Rate limits](../backend/security.md#rate-limits-fixed-window)), then checks the body by the shared schema ([shared-package.md](../architecture/shared-package.md)).
+- Its me router sits at the API's root (`/spaces/:slug/reports`, `/me/reports`), beside the directory's public routes; the route asks `requireAuth`, then counts the request by the user (`DATA_REPORT`, [security › Rate limits](../backend/security.md#rate-limits-fixed-window)), then checks the body by the shared schema ([shared-package.md](../architecture/shared-package.md)).
 - Its manage router sits at `/data-reports` below `/manage/spaces/:spaceId`, behind the one boundary ([conventions › Routers](../backend/conventions.md#routers)); each route asks `can()` first through `requireCan`, and the decision again under the space's lock ([conventions › Space access](../backend/conventions.md#space-access)).
 - Its admin router sits at `/data-reports` inside `/admin`, behind `requireRole('ADMIN')`; its decision asks `can()` on the links `space-links` reads under the space's lock.
 - A decision is audited in its own transaction ([conventions §6](../backend/conventions.md#6-audit)).
@@ -42,7 +42,7 @@
 
 **The admin's list.** A page of every report whose space is not deleted, newest first, by status, field and space, with who reported and who decided; then the spaces' names, the verified spaces' ids and the people's names, one query each.
 
-**Decide.** The report's space, read without a lock, must be the path's (else `not_found`). Then, in one transaction: the space's lock; `can('dataReports.resolve')` on the links read under it, so a link ended meanwhile decides; the report's row, locked (`FOR UPDATE`); `decisionOf` (pure): an open report is decided; one decided with the same status, reply and decider is answered as it is, writing nothing; any other decision is `REPORT_ALREADY_DECIDED`. The decision writes its status, who, when, the reply and the side (`OWNER`) together, audited. The admin's decision is the same, with any space's report, the links read through `space-links` under the lock (so the admin decides an unverified space's only, and an owner linked meanwhile makes it `forbidden`), and the side `ADMIN`. The owner and the admin at once: the second waits on the space's lock and finds the report decided. Lock order: the space's row, then the report's; a report's create takes the user's row only, so no two orders cross.
+**Decide.** The report's space, read without a lock, must be the path's (else `not_found`). Then, in one transaction: the space's lock; `can('dataReports.resolve')` on the links read under it, so a link ended meanwhile decides; the report's row, locked (`FOR UPDATE`); `decisionOf` (pure): an open report is decided; one decided with the same status, reply and decider is answered as it is, writing nothing; any other decision is `REPORT_ALREADY_DECIDED`. The decision writes its status, who, when, the reply and the side (`OWNER`) together, audited. The admin's decision is the same, with any space's report, the links read through `space-links` under the lock (so the admin decides an unverified space's only, and an owner linked meanwhile makes it `forbidden`), and the side `ADMIN`. The owner and the admin at once: both wait on the space's lock, and the links are read under it before the report is. An owner's decision while the admin's waits makes the admin's `forbidden` (403) while the owner is still linked, and `REPORT_ALREADY_DECIDED` once the space is unverified again; the admin's decision first makes the owner's `REPORT_ALREADY_DECIDED`. Lock order: the space's row, then the report's; a report's create takes the user's row only, so no two orders cross.
 
 ## Decisions
 
@@ -54,13 +54,13 @@
 - **A space that left the directory stays in the user's list, `listed: false`, with its name** (C7). *Why:* the reply is still the user's to read; the screen shows the name as text, with no link. 2026-10-25, #120.
 - **Dismissing needs a reply; resolving takes one or none** (decision 10). *Why:* a reporter told "not changed" deserves the reason; a fixed field speaks for itself. The schema's refinement and a `CHECK` hold it. 2026-10-25, #120.
 - **A decided report is final: `REPORT_ALREADY_DECIDED`** (decision 11); **the same decision again answers it as it is** (S8). *Why:* a reporter must not see the reply change; updates are idempotent by design, so a retry after a lost answer is no refusal ([conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). 2026-10-25, #120.
-- **The owner never sees who reported; the admin does** (O12). *Why:* a reporter must not fear the space; the admin, who answers for the platform, sees them.
-- **The admin decides an unverified space's reports only, read under the space's lock** (`can()` with "verified", [conventions § `data-reports`](../backend/conventions.md#data-reports)). *Why:* once an owner joins, the space answers for itself; an owner linked while the admin's decision waits must win. 2026-10-25, #120. The repository's select leaves the reporter out, so no mapper can leak them. 2026-10-25, #120.
+- **The owner never sees who reported; the admin does** (O12). *Why:* a reporter must not fear the space; the admin, who answers for the platform, sees them. The repository's select leaves the reporter out, so no mapper can leak them. 2026-10-25, #120.
+- **The admin decides an unverified space's reports only, read under the space's lock** (`can()` with "verified", [conventions § `data-reports`](../backend/conventions.md#data-reports)). *Why:* once an owner joins, the space answers for itself; an owner linked while the admin's decision waits must win. 2026-10-25, #120.
 - **"Publicly listed" is asked of `spaces` and `lookups` as the space's page asks it** (S12). *Why:* the rule already lives in two queries; a third copy would drift. 2026-10-25, #120.
 
 ## Code map
 
-- `apps/api/src/modules/data-reports/` — the module: its service, its repository, its site, manage and admin routers, its limit and the decision's rule (`decision.ts`).
+- `apps/api/src/modules/data-reports/` — the module: its service, its repository, its me, manage and admin routers, its limit and the decision's rule (`decision.ts`).
 - `packages/shared/src/data-reports/` — the requests and answers.
 
 ## Open findings

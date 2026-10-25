@@ -60,6 +60,7 @@ export const ERRORS = {
   HOURS_PER_DAY_USED: "Today's hours are used up; the check-in was recorded anyway.",
   ANNOUNCEMENT_NOT_STARTED: 'This announcement has not started yet.',
   REPORT_ALREADY_DECIDED: 'This report was already decided.',
+  FAVORITES_LIMIT_REACHED: 'Your favourites are full; remove a space first.',
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',
   RECEPTION_LINK_ACTIVE:
     'This person works at this space’s reception. Its owner deactivates that link first.',

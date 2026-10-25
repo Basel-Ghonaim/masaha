@@ -1,6 +1,6 @@
 # Directory
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
 > **Authority:** The `directory` capability: what anyone reads without signing in, over the publicly listed spaces: the directory's list, the map's pins, a space's public page and its live status. Its endpoints are owned by the [API contract](../api/api-contract.md#directory-public); "publicly listed", "verified" and the stale prices by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); the location's rules by [security](../backend/security.md#location). On the web, the directory's list, its filters and near me, its map, and a space's page are built.
 > **Scope:** the API module `directory` (L5); `@masaha/shared/directory`; the web feature `features/directory`, for any page group.
 
@@ -10,15 +10,17 @@
 - Answers the map its pins: every space that passes the same filters, unpaged, up to a ceiling, within the map's viewport when it is given.
 - Answers a space's public page: its profile, hours and shifts, prices, amenities, contacts and each group's freshness, and its running and upcoming announcements.
 - Carries each card's and pin's live status, and answers a space's live status alone.
+- Answers a signed-in user's favourites whole, as its cards, newest saved first or nearest first from the device's location; one that left the directory by its name, `listed: false` ([favorites](favorites.md)).
 - On the site's «المساحات», lists the spaces a page at a time, with a search, filters by place, price and state, and an order, or nearest first from the device's rounded location, each card a link to the space's page.
 - On the site's «المساحات», shows the same spaces on a map, «قائمة | خريطة», each a pin whose live state is a shape as well as a colour, the chosen one's card leading to its page.
 - On the site, shows a space's page at `/spaces/:slug`: its prices per audience, its hours with today, its amenities, its description, its place on a map with directions, its contacts, and each group's freshness; an unverified space's notice offers the platform's contact.
 
-The reports and the favourites' cards are not built; the page's announcements are answered by the API, not shown on the site yet.
+The favourites' screen and the space page's heart are not built; the page's announcements are answered by the API, not shown on the site yet.
 
 ## Who uses it
 
 - **Anyone,** signed in or not, through the API, and on the site: «المساحات», the directory's list and map, and a space's page; on Home, its spaces and the areas' counts.
+- **A signed-in user,** through the API: `GET /me/favorites`.
 
 ## Responsibility boundary
 
@@ -27,10 +29,12 @@ The reports and the favourites' cards are not built; the page's announcements ar
 - **Leaves** which areas are listed, and how a search matches an area's names, to [`lookups`](lookups.md); which spaces are verified to [`space-links`](space-links.md).
 - **Leaves** the live status to [`occupancy`](occupancy.md): its rule, and which spaces are available now.
 - **Leaves** which announcements the public sees, and their order, to [`announcements`](announcements.md).
+- **Leaves** which spaces a user saved, and when, to [`favorites`](favorites.md); the names of those that left the directory to [`spaces`](spaces.md) (`namesWithDeleted`).
 
 ## How it composes the platform
 
 - Its public router is mounted at the API's root, unguarded, behind the general rate limit ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)).
+- Its me router, at the API's root too, answers `GET /me/favorites`: `no-store` when the point is sent, then `requireAuth`, then the query with its header, by the list's rule (one function reads both).
 - **A composed read** ([conventions › Composed reads](../backend/conventions.md#composed-reads)): each filter on another module's value is resolved to ids first, by its owner, in one query: the listed areas and the areas a search matches by `lookups`, the verified spaces by `space-links`, and with `availableNow`, the verified spaces available now by `occupancy`. `spaces` then filters, searches, orders and pages ([conventions §5](../backend/conventions.md#5-pagination)); the areas' names, and on the page the amenities' names, follow, one query each, and the live status of the spaces answered, set-based, from `occupancy`, from the weeks they were listed with.
 - **The search's one rule** is the database's: a function normalises the names and the query alike, and another scores how well they match ([data model › Conventions](../architecture/data-model.md#conventions)).
 - **The page** is read under the space's share lock, as the admin's read is ([conventions §13](../backend/conventions.md#concurrency)); whether it is verified is read from its links under the same lock, through `space-links`, with the facts it decides on.
@@ -132,7 +136,7 @@ The reports and the favourites' cards are not built; the page's announcements ar
 
 ## Code map
 
-- **API:** `apps/api/src/modules/directory/`, entry `index.ts`: the public router, its controller with the caching rule, the list's query read with its header, and the service that composes the reads, the live status from `occupancy` among them.
+- **API:** `apps/api/src/modules/directory/`, entry `index.ts`: the public router and the me router (the favourites, their order in `favoritesOrder.ts`), their controller with the caching rule, the list's query read with its header, and the service that composes the reads, the live status from `occupancy` among them.
 - **Shared:** `packages/shared/src/directory/`: the queries (the filters, the orders, the location and the viewport, with their rules) and the answers.
 - **Web:** `apps/web/src/features/directory/`, entry `index.ts` (`DirectoryView`, `ViewSwitch`, `DirectorySlots`, `HomeSpaces`, `useAreaCounts`, `LiveStatusBadge` and `statusViewOf`, for About's legend), mounted by `pages/site/public/directory/`, `pages/site/public/home/` and `pages/site/public/about/`; the address and the request in `services/filtersOf.ts` and `requestOf.ts`, the card's words in `services/cardView.ts`, `todayHours.ts` and `distanceText.ts`, the rounded point and its header in `services/nearPoint.ts`, the budget's rule in `services/priceBounds.ts`, the list's hooks in `hooks/list/`, the filters' in `hooks/filters/`, near me's store and hooks in `hooks/near/`, the map's in `hooks/map/` (with `services/pinMark.ts` and `boundsText.ts`), the view's in `hooks/view/`, the card in `components/card/`, the results and their states in `components/list/`, the filters' form, sidebar and sheet in `components/filters/`, the near-me button and state line in `components/near/`, the map, its legend and the chosen space in `components/map/`, the view switch in `components/view/`; a space's page in `hooks/page/` and `components/page/` (`SpaceDetails`, its sections, the bar), its words in `services/weekRows.ts`, `priceGroups.ts`, `freshness.ts`, `contactLinks.ts`, `localText.ts` and `straightLine.ts`, and the way back to the directory in `hooks/list/directoryReturn.ts`; Home's spaces and the areas' counts in `hooks/home/` and `components/home/`.
 
@@ -153,6 +157,7 @@ The reports and the favourites' cards are not built; the page's announcements ar
 - #77 — Issue #69: the tie-break tests made able to fail, `no-store` on every answer carrying the location, the page's verified under its lock, the spaces-only `q` named `too_short`.
 - #94 — the live status on the card and the pin, the `availableNow` filter, and a space's live status alone.
 - #112 — a space's running and upcoming announcements on its page.
+- #121 — a signed-in user's favourites, whole, as its cards, newest saved first or nearest first.
 
 ### Web history
 
