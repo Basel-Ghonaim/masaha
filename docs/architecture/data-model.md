@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
 
 ## Conventions
@@ -62,7 +62,7 @@ Summaries only: the schema owns the fields.
 - **Payment** — money the desk received for exactly one visit or one subscription ([ADR 0010](decisions/0010-manual-payment-ledger.md)): an amount above zero, the method (cash or transfer), an optional note, who recorded it and when it was received, and the client's idempotency key. Never updated or deleted: a mistake is voided once, with who, when and a reason, and a voided payment counts nowhere.
 - **Announcement** — a time-bound bilingual notice from the owner or reception, typed (general, outage, closure, offer, event). Soft-deleted.
 - **ClosureExtension** — the owner extended the space's active subscriptions after a closure: the closure announcement (at most one extension each), the days, who applied it and when. **SubscriptionExtension** links it to each subscription it moved on; how many is the count of those links.
-- **DataReport** — a user's report that one field group of a space is wrong (prices, hours, contact, location, amenities, other), with its resolution and an optional note to the reporter, written by whoever resolves it.
+- **DataReport** — a user's report that one field group of a space is wrong (prices, hours, contact, location, amenities, other), with its resolution and an optional note to the reporter, written by whoever resolves it (a dismissal's is required), and who replied — the space's owner or the admin — stored with the decision, so the label the reporter sees follows who answered, not the space's verification today (2026-10-25, #120).
 - **Favorite** — a user's saved space.
 - **Setting** — a platform setting: the staleness thresholds `stalenessDays` (60) and `priceStalenessDays` (30); `newSpaceDefaults`, one object holding the values a new space's settings are copied from (auto check-out at closing on, the visit rounding rule up after 15 minutes, the cap at the day price on; [conventions §9](../backend/conventions.md#new-space-defaults)); and the platform's `contactEmail` and `contactWhatsapp`, which the seed writes outside the typed catalogue ([finding 40](findings/40-the-platforms-contact-settings-are-outside-the-typed-catalogue.md)).
 - **AuditLog** — who did what to which entity, with before and after, optionally scoped to a space. The actor is null for system actions such as auto check-out. Never deleted.
@@ -131,7 +131,7 @@ The subscription model expresses each of these without special cases: `apps/api/
 
 ## Constraints worth stating
 
-The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove each one (`schema` for spaces, prices and accounts, `front-desk`, `subscriptions`, `payments`).
+The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove each one (`schema` for spaces, prices and accounts, `front-desk`, `subscriptions`, `payments`, `dataReports`).
 
 - One open check-in per customer, and one open visit per customer (partial unique indexes on `customerId` where `checkedOutAt IS NULL`).
 - Customer phone unique within a space among customers that are not archived (partial unique index); customers without a phone are not limited.
@@ -151,6 +151,7 @@ The database enforces these; the `apps/api/src/db/*.api.test.ts` files prove eac
   - the payments of a visit, or of a fixed-price subscription, that are not voided never add up to more than its charge or price, and a visit is paid only once its charge is set (its own constraint, `payments_visit_uncharged`), and a written-off visit takes no payment, nor is one of its payments voided until the write-off is undone (`payments_visit_written_off`, 2026-10-20, #100; the void 2026-10-24, #114), so a write-off keeps covering what the visit owed when it was written off. A usage-based subscription has no ceiling, so paying ahead leaves it in credit. The item's row is locked while this is checked, so payments recorded at once are counted in turn, and a retried request reaches its unique key rather than the ceiling;
   - a fixed price never falls below what was paid on it, voided payments left out: a trigger on the subscription's price and billing (`subscriptions_price_below_paid`, migration `subscription_terms`, 2026-10-22, #106), since changing the price is the other way round the payments' ceiling;
 - **The space's settings and occupancy**: a space has at most one row of each (the space is the key of both). By `CHECK` constraints, in the settings the rounding minutes (1–59) are set exactly for the "up after N minutes" rule and a stay limit is positive; in the occupancy a capacity is positive, and an override has its state, its end and who set it, together. A closure extension is applied at most once per closure announcement (a unique key), by at least one day.
+- **Data reports:** one open report per user, space and field (a partial unique index, `data_reports_open_key`); by `CHECK` constraints, a decision's time, decider and side (`resolvedAs`) together and only with a decision, a note only with a decision and never blank, a dismissal's note, and an `OTHER` report's non-blank message (migration `data_report_rules`, 2026-10-25, #120).
 - Check-ins, visits, subscriptions, payments and audit-log entries are never deleted.
 
 ### Checked by the service
@@ -159,6 +160,7 @@ These rules span rows the database checks one at a time, so the services own the
 - every space has a settings row, created in the same transaction as the space, from the new-space defaults ([conventions §9](../backend/conventions.md#new-space-defaults));
 - a visit left unpaid at a manual check-out, or at a later payment, has a customer (the payment and the check-out are separate writes; a visit closed by the auto check-out may have none: it is uncollected), unless a void leaves it owing: it is then uncollected (2026-10-24, #114);
 - a customer is present at most once across visits and check-ins (each table has its own index);
+- a report repeated while the user's report of that space and field is open is that report: it answers it and writes nothing, the user's lock serialising their reports (the partial index the backstop; 2026-10-25, #120);
 - a closure extension belongs to a `CLOSURE` announcement, and extends only that space's active subscriptions;
 - a void by the owner: who may void is a permission, checked by `can()`.
 
