@@ -23,6 +23,9 @@ const REPORT = {
   createdAt: true,
 } as const;
 
+// Only the reporter's own list and the admin's read who reported and who decided.
+const WITH_PEOPLE = { ...REPORT, userId: true, resolvedById: true } as const;
+
 /** A report as its space's owner may see it: never who reported it. */
 export interface ReportRow {
   id: number;
@@ -34,6 +37,12 @@ export interface ReportRow {
   resolutionNote: string | null;
   resolvedAs: DataReportResolver | null;
   createdAt: Date;
+}
+
+/** A report with who reported it and who decided it: the admin's list. */
+export interface ReportWithPeople extends ReportRow {
+  userId: number;
+  resolvedById: number | null;
 }
 
 /** A report under its decision's lock: who decided it, to tell a retry from another decision. */
@@ -119,6 +128,46 @@ export function createDataReportsRepository() {
         prisma.dataReport.count({ where }),
       ]);
       return { rows, total };
+    },
+
+    /**
+     * A page of every report, newest first, then id, filtered by status, field and space; and how
+     * many pass. A soft-deleted space's reports are left out (ADR 0007).
+     */
+    async pageAll(
+      {
+        status,
+        field,
+        spaceId,
+      }: {
+        status?: ReportStatusFilter | undefined;
+        field?: DataReportField | undefined;
+        spaceId?: number | undefined;
+      },
+      { skip, take }: Page,
+    ): Promise<{ rows: ReportWithPeople[]; total: number }> {
+      const where = {
+        space: { deletedAt: null },
+        ...statusWhere(status),
+        ...(field ? { field } : {}),
+        ...(spaceId === undefined ? {} : { spaceId }),
+      };
+      const [rows, total] = await Promise.all([
+        prisma.dataReport.findMany({
+          where,
+          orderBy: NEWEST_FIRST,
+          skip,
+          take,
+          select: WITH_PEOPLE,
+        }),
+        prisma.dataReport.count({ where }),
+      ]);
+      return { rows, total };
+    },
+
+    /** One report with who reported and who decided it, as it is now. */
+    findWithPeople(id: number): Promise<ReportWithPeople> {
+      return prisma.dataReport.findUniqueOrThrow({ where: { id }, select: WITH_PEOPLE });
     },
 
     /** The space a report is about, read without a lock; `null` for no such report. */

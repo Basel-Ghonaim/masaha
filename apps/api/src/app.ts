@@ -36,6 +36,7 @@ import {
   createPaymentsService,
 } from './modules/payments/index.ts';
 import {
+  createDataReportsAdminRouter,
   createDataReportsController,
   createDataReportsManageRouter,
   createDataReportsService,
@@ -442,6 +443,7 @@ export function createApi({
     publicSpace,
     publicListing,
     lookups,
+    spaceLinks,
     users,
     now: clock,
   });
@@ -579,6 +581,7 @@ export function createApi({
     }),
   );
   admin.use(createUsersAdminRouter(usersController));
+  admin.use('/data-reports', createDataReportsAdminRouter(dataReportsController));
   admin.use(
     createSpacesAdminRouter({
       space: createSpaceController(space),

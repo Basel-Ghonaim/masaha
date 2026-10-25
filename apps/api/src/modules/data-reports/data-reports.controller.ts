@@ -1,4 +1,6 @@
 import type {
+  AdminReport,
+  AdminReportsQuery,
   CreateReportRequest,
   DecideReportRequest,
   MyReport,
@@ -39,6 +41,24 @@ export function createDataReportsController(service: DataReportsService) {
       const query = req.query as unknown as SpaceReportsQuery;
       const { rows, total } = await service.ofSpace(spaceOf(req).id, query);
       sendSuccess(res, rows satisfies SpaceReport[], { meta: buildPaginationMeta(query, total) });
+    },
+
+    /** 200 with a page of every report and its `meta`, with who reported and who decided. */
+    all: async (req: Request, res: Response) => {
+      const query = req.query as unknown as AdminReportsQuery;
+      const { rows, total } = await service.all(query);
+      sendSuccess(res, rows satisfies AdminReport[], { meta: buildPaginationMeta(query, total) });
+    },
+
+    /** 200 with the report as the admin decided it, or as it was for the same decision again. */
+    decideAsAdmin: async (req: Request, res: Response) => {
+      const { userId, role } = signedIn(req);
+      const decided = await service.decideAsAdmin(
+        { id: userId, role },
+        parseId(req.params.reportId),
+        req.body as DecideReportRequest,
+      );
+      sendSuccess(res, decided satisfies AdminReport);
     },
 
     /** 200 with the report as decided now, or as it was for the same decision again. */

@@ -1,4 +1,6 @@
 import type {
+  AdminReport,
+  AdminReportsQuery,
   CreateReportRequest,
   DecideReportRequest,
   MyReport,
@@ -14,10 +16,15 @@ import { can, type Actor, type LoadedSpace, type SpaceLink } from '../../shared/
 import { AppError } from '../../shared/errors/index.ts';
 import { toSkip } from '../../shared/http/index.ts';
 import type { LookupsService } from '../lookups/index.ts';
+import type { SpaceLinksService } from '../space-links/index.ts';
 import type { PublicListingService, PublicSpaceService, SpacesService } from '../spaces/index.ts';
 import type { UsersService } from '../users/index.ts';
-import { toMyReport, toSpaceReport } from './data-reports.mapper.ts';
-import { createDataReportsRepository, type ReportRow } from './data-reports.repository.ts';
+import { toAdminReport, toMyReport, toSpaceReport } from './data-reports.mapper.ts';
+import {
+  createDataReportsRepository,
+  type ReportRow,
+  type ReportWithPeople,
+} from './data-reports.repository.ts';
 import { decisionOf } from './decision.ts';
 
 interface Dependencies {
@@ -27,6 +34,7 @@ interface Dependencies {
   publicSpace: PublicSpaceService;
   publicListing: PublicListingService;
   lookups: LookupsService;
+  spaceLinks: SpaceLinksService;
   users: UsersService;
   /** The one clock (conventions §11): a report is dated by it. */
   now: () => Date;
@@ -44,6 +52,7 @@ export function createDataReportsService({
   publicSpace,
   publicListing,
   lookups,
+  spaceLinks,
   users,
   now,
 }: Dependencies) {
@@ -57,6 +66,29 @@ export function createDataReportsService({
       spaceIds.length,
     );
     return new Set(rows.map(({ id }) => id));
+  }
+
+  /**
+   * These reports as the admin sees them: their spaces' names and whether each is verified, and
+   * the names of who reported and who decided them, one query each.
+   */
+  async function asAdminReports(rows: readonly ReportWithPeople[]): Promise<AdminReport[]> {
+    const spaceIds = [...new Set(rows.map(({ spaceId }) => spaceId))];
+    const people = [
+      ...new Set(rows.flatMap(({ userId, resolvedById }) => [userId, resolvedById ?? userId])),
+    ];
+    const [spaceNames, verifiedIds, names] = await Promise.all([
+      spaces.namesWithDeleted(spaceIds),
+      spaceLinks.verifiedSpaceIds(),
+      users.namesFor(people),
+    ]);
+    const byId = new Map(spaceNames.map((space) => [space.id, space]));
+    const verified = new Set(verifiedIds);
+    const nameOf = new Map(names.map(({ id, name }) => [id, name]));
+    return rows.flatMap((row) => {
+      const space = byId.get(row.spaceId);
+      return space ? [toAdminReport(row, space, verified.has(row.spaceId), nameOf)] : [];
+    });
   }
 
   /**
@@ -154,6 +186,43 @@ export function createDataReportsService({
         resolvedAs: 'OWNER',
       });
       return toSpaceReport(decided);
+    },
+
+    /**
+     * A page of every report, newest first, by status, field and space, as the admin reads them:
+     * with who reported and who decided; a soft-deleted space's left out. Read without a lock.
+     */
+    async all({
+      status,
+      field,
+      spaceId,
+      page,
+      limit,
+    }: AdminReportsQuery): Promise<{ rows: AdminReport[]; total: number }> {
+      const { rows, total } = await repository.pageAll(
+        { status, field, spaceId },
+        { skip: toSkip({ page, limit }), take: limit },
+      );
+      return { rows: await asAdminReports(rows), total };
+    },
+
+    /**
+     * The admin decides a report (`decideUnder`), on its space's links read under the lock: an
+     * unverified space's only, so an owner linked meanwhile makes it `forbidden`.
+     */
+    async decideAsAdmin(
+      actor: Actor,
+      reportId: number,
+      request: DecideReportRequest,
+    ): Promise<AdminReport> {
+      await decideUnder(actor, reportId, request, {
+        spaceId: null,
+        linksUnder: (spaceId, tx) => spaceLinks.linksAt(spaceId, tx),
+        resolvedAs: 'ADMIN',
+      });
+      const [decided] = await asAdminReports([await repository.findWithPeople(reportId)]);
+      if (!decided) throw AppError.notFound(undefined, 'Report not found');
+      return decided;
     },
 
     /**

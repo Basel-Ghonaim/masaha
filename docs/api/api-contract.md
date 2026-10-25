@@ -791,6 +791,12 @@ SpaceReport = {                    // never who reported it
 MyReport = SpaceReport & {
   space: { id: number, slug: string, nameEn: string, nameAr: string | null, listed: boolean }
 }
+
+AdminReport = SpaceReport & {
+  space: { id: number, slug: string, nameEn: string, nameAr: string | null, verified: boolean },
+  reporter: { id: number, name: string },
+  decidedBy: { id: number, name: string } | null
+}
 ```
 
 #### `POST /spaces/:slug/reports` · 👤
@@ -811,6 +817,15 @@ MyReport = SpaceReport & {
 - **Body:** `{ status: 'RESOLVED' | 'DISMISSED', note? }`.
 - **200:** `SpaceReport`, decided now with `repliedBy: 'SPACE'`; the same decision again answers it as it is.
 - **Errors**, each writing nothing: `forbidden` (403) for reception, before the body is read; `validation` (422) on the body; `not_found` (404) for a report that is not the space's; `forbidden` (403) for an owner whose link ended while the decision waited; `conflict` (409) `REPORT_ALREADY_DECIDED`. Built 2026-10-25, #120.
+
+#### `GET /admin/data-reports` · 🛡
+- **Query:** `status` (`OPEN` or `DECIDED`), `field`, `spaceId` (a positive id) and §4's `page` and `limit`, each optional; `invalid_choice` or `validation` otherwise.
+- **200:** `AdminReport[]`, every space's, newest first, then id, with §4's `meta`: who reported and who decided, by name, and whether the space is verified now. A soft-deleted space's reports are left out ([ADR 0007](../architecture/decisions/0007-soft-delete.md)). Built 2026-10-25, #120.
+
+#### `PATCH /admin/data-reports/:reportId` · 🛡
+- **Body:** `{ status: 'RESOLVED' | 'DISMISSED', note? }`.
+- **200:** `AdminReport`, decided now with `repliedBy: 'MASAHA'`; the same decision again answers it as it is.
+- **Errors**, each writing nothing: `validation` (422) on the body; `not_found` (404) for no such report, or a deleted space's; `forbidden` (403) for a verified space's report — its owner decides it — also when an owner was linked while the decision waited (the links read under the space's lock); `conflict` (409) `REPORT_ALREADY_DECIDED`, also when the owner decided it first. Built 2026-10-25, #120.
 
 ### Internal
 
