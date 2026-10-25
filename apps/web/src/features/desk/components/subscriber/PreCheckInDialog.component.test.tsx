@@ -10,6 +10,7 @@ function dialogView(change: Partial<SubscriberCheckInView['dialog']> = {}) {
     open: true,
     title: 'Check in · Sara Khalid',
     reason: 'The subscription “Exams” ended on 21 October.',
+    reasonFailure: null,
     asVisit: {
       label: 'Check in as a visit',
       note: 'A visit is recorded under their name; it isn’t added to their file.',

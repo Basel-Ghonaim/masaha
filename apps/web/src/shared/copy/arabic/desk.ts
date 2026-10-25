@@ -249,6 +249,7 @@ export const DESK = {
       upcoming: ({ name, date }: { name: string; date: string }) =>
         `يبدأ الاشتراك «${name}» في ${date}.`,
       asVisit: 'تسجيل كزيارة',
+      startFailed: 'تعذّرت قراءة تاريخ بدء الاشتراك',
       asVisitNote: 'تُسجَّل زيارة باسمه، ولا تُضاف إلى ملفه.',
       anyway: 'تسجيل على أي حال',
       back: 'رجوع',

@@ -45,6 +45,9 @@ export function useSubscriberCheckIn(
   const startsOn =
     file.data?.subscriptions.find((subscription) => subscription.id === current?.id)?.startsOn ??
     null;
+  // The read failed: said with its retry, never a loading line for ever (review F1 of #119).
+  const fileFailed = upcoming && file.data === undefined && file.isError;
+  const fileView = useRefusalView(fileFailed ? file.error : null, words.pre.startFailed);
 
   const name = isolate(row.name);
   const lines = {
@@ -130,8 +133,19 @@ export function useSubscriberCheckIn(
     dialog: {
       open,
       title: words.pre.title({ name }),
-      /** Why it asks; `null` while a coming subscription's start is read. */
+      /** Why it asks; `null` while a coming subscription's start is read, or when that read failed. */
       reason,
+      /** The coming subscription's start could not be read: why, and its retry. */
+      reasonFailure: fileFailed
+        ? {
+            title: words.pre.startFailed,
+            message: fileView.view?.message,
+            retryLabel: copy.status.retry,
+            retry: () => {
+              void file.refetch();
+            },
+          }
+        : null,
       asVisit: {
         label: words.pre.asVisit,
         note: words.pre.asVisitNote,

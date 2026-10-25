@@ -172,6 +172,51 @@ describe('useSubscriberCheckIn', () => {
     ).toBeVisible();
   });
 
+  it('says when a coming subscription’s file fails, with its retry, then the start date', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    let fails = true;
+    renderCard(
+      customerRow({
+        current: { id: 1, name: 'Exams', packageId: 4, endsOn: '2026-11-30', status: 'UPCOMING' },
+      }),
+      () =>
+        fails
+          ? refused(500, { type: 'server' })
+          : ok({
+              customer: { id: 4, name: 'Sara Khalid', phone: null, archivedAt: null },
+              debtAgorot: 0,
+              creditAgorot: 0,
+              present: null,
+              subscriptions: [
+                {
+                  ...subscriptionState({ startsOn: '2026-11-01', status: 'UPCOMING' }),
+                  paidAgorot: 0,
+                  balanceAgorot: 15000,
+                },
+              ],
+              unpaidVisits: [],
+            }),
+    );
+
+    await user.click(screen.getByRole('button', { name: heard('Check in Sara Khalid') }));
+    const dialog = await screen.findByRole('dialog');
+    // The transport sends the read twice more, after 1 s and 2 s, before it fails.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_100);
+    });
+    const alert = await within(dialog).findByRole('alert');
+    expect(alert).toHaveTextContent('We couldn’t read when the subscription starts');
+    expect(dialog.querySelector('[data-slot="skeleton"]')).toBeNull();
+
+    fails = false;
+    await user.click(within(alert).getByRole('button', { name: 'Try again' }));
+    expect(
+      await within(dialog).findByText(heard('The subscription “Exams” starts on 1 November.')),
+    ).toBeVisible();
+    expect(within(dialog).queryByRole('alert')).toBeNull();
+  });
+
   it('says they are already here, the server’s warnings after, and clears and focuses the search', async () => {
     const user = userEvent.setup();
     let here = true;
