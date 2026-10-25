@@ -147,6 +147,24 @@ export const DESK = {
       `سُجّل ${amount} دينًا على ${name}`,
     failed: 'تعذّر تسجيل الدين',
   },
+  unpriced: {
+    title: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا زيارات بدون سعر',
+        one: 'زيارة واحدة بدون سعر',
+        two: 'زيارتان بدون سعر',
+        few: `${String(count)} زيارات بدون سعر`,
+        many: `${String(count)} زيارة بدون سعر`,
+        other: `${String(count)} زيارة بدون سعر`,
+      }),
+    price: 'تحديد السعر',
+    dialogTitle: ({ name }: { name: string }) => `سعر زيارة · ${name}`,
+    submit: 'حفظ السعر',
+    done: ({ name, amount }: { name: string; amount: string }) =>
+      `حُدّد سعر زيارة ${name}: ${amount}`,
+    failed: 'تعذّر حفظ السعر',
+    loadFailed: 'تعذّر تحميل الزيارات بدون سعر',
+  },
   writeOff: {
     title: 'لن يُحصَّل مبلغ هذه الزيارة؟',
     text: ({ who, day, amount }: { who: string; day: string; amount: string }) =>
@@ -177,6 +195,7 @@ export const DESK = {
     VISIT_HAS_CUSTOMER: 'لهذه الزيارة زبون آخر؛ لا يُغيَّر رقمه هنا.',
     VISIT_ALREADY_PAID: 'لم يبقَ على هذه الزيارة شيء.',
     VISIT_NOT_PRICED: 'لا سعر لهذه الزيارة بعد؛ يُحدَّد سعرها أولًا.',
+    VISIT_ALREADY_PRICED: 'حُدّد سعر هذه الزيارة من قبل.',
     PRICE_TYPING_NOT_ALLOWED: 'لم يعد مسموحًا للاستقبال بكتابة سعر في هذه المساحة.',
     forbidden: 'لم يعد هذا متاحًا لك في هذه المساحة.',
     conflict: 'تعارض هذا الطلب مع طلب سابق؛ أغلق النافذة وأعد فتحها.',

@@ -133,6 +133,40 @@ describe('the desk repository', () => {
     ]);
   });
 
+  it('reads the unpriced visits’ page, and prices a visit with no key', async () => {
+    const repository = createDeskRepository();
+    const requests = serve((url) =>
+      url === '/manage/spaces/7/unpriced-visits'
+        ? {
+            status: 200,
+            data: {
+              success: true,
+              data: [VISIT],
+              meta: {
+                currentPage: 1,
+                limit: 20,
+                totalPages: 1,
+                totalRecords: 1,
+                hasNextPage: false,
+                hasPreviousPage: false,
+              },
+            },
+          }
+        : { status: 200, data: { success: true, data: VISIT } },
+    );
+
+    await expect(repository.unpriced(7, 1)).resolves.toMatchObject({ data: [VISIT] });
+    await repository.price(7, 12, { amountAgorot: 3000, reason: 'A long stay' });
+
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'get /manage/spaces/7/unpriced-visits',
+      'put /manage/spaces/7/visits/12/charge',
+    ]);
+    expect(requests[0]?.params).toEqual({ page: 1 });
+    expect(bodyOf(requests[1])).toEqual({ amountAgorot: 3000, reason: 'A long stay' });
+    expect(requests[1]?.headers.get('Idempotency-Key')).toBeUndefined();
+  });
+
   it('hands back a check-in’s warnings, and none without them', async () => {
     const repository = createDeskRepository();
     let warned = true;

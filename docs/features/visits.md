@@ -20,7 +20,7 @@
 
 ## Who uses it
 
-- **The front desk** ([desk](desk.md)), which orchestrates the check-in and the check-out, for the space's owner and reception; they read the quote and the terms through this module's own routes; on the web, the desk's screen reads both ([desk](desk.md), 2026-10-24, #116).
+- **The front desk** ([desk](desk.md)), which orchestrates the check-in and the check-out, for the space's owner and reception; they read the quote and the terms through this module's own routes; on the web, the desk's screen reads both ([desk](desk.md), 2026-10-24, #116), and lists the unpriced visits and prices them for whoever may type a price ([desk](desk.md), 2026-10-25, #117).
 - **`occupancy`**, which reads the open visits for *present*; the desk's screen shows them through its state now (2026-10-24, #116).
 - **`payments`**, which pages the uncollected visits and reads their visits here, and names the visits of the payments it answers; **[`desk`](desk.md)**, for a customer's unpaid visits.
 - **The timed jobs** (`shared/jobs`, wired in the composition root), which run its auto check-out.

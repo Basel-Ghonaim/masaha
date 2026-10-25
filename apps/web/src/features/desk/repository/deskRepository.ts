@@ -10,6 +10,7 @@ import type { UncollectedVisit } from '@masaha/shared/payments';
 import type {
   CheckInVisitRequest,
   DeskVisit,
+  PriceVisitRequest,
   QuotedVisit,
   VisitTerms,
   WriteOffVisitRequest,
@@ -22,7 +23,7 @@ export type CheckedIn = WithMeta<DeskVisit, { warnings: DeskWarning[] }>;
 /**
  * The front desk's visits on the server (docs/api/api-contract.md §5, Front desk (managed)): the
  * terms, a visitor's check-in, a visit's quote and its check-out; the uncollected visits, a payment
- * on one, «تسجيل دين», and the owner's write-off and its undo. The creates carry the intent's key
+ * on one, «تسجيل دين», and the owner's write-off and its undo; the unpriced visits and their price. The creates carry the intent's key
  * (ADR 0015), which lets the transport send them again; the other writes are idempotent by design
  * and carry none, so they are sent once (S3).
  */
@@ -58,6 +59,10 @@ export interface DeskRepository {
   writeOff(spaceId: number, visitId: number, body: WriteOffVisitRequest): Promise<DeskVisit>;
   /** Undoes the write-off: the visit is uncollected again. */
   undoWriteOff(spaceId: number, visitId: number): Promise<DeskVisit>;
+  /** A page of the visits closed with no charge, the latest closed first. */
+  unpriced(spaceId: number, page: number): Promise<Page<DeskVisit[]>>;
+  /** Types an unpriced visit's charge, with its reason. */
+  price(spaceId: number, visitId: number, body: PriceVisitRequest): Promise<DeskVisit>;
 }
 
 export function createDeskRepository(): DeskRepository {
@@ -90,5 +95,9 @@ export function createDeskRepository(): DeskRepository {
       api.post<DeskVisit>(`${visit(spaceId, visitId)}/write-off`, body),
     undoWriteOff: (spaceId, visitId) =>
       api.delete<DeskVisit>(`${visit(spaceId, visitId)}/write-off`),
+    unpriced: (spaceId, page) =>
+      api.getPage<DeskVisit[]>(`${space(spaceId)}/unpriced-visits`, { params: { page } }),
+    price: (spaceId, visitId, body) =>
+      api.put<DeskVisit>(`${visit(spaceId, visitId)}/charge`, body),
   };
 }

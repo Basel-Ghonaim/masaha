@@ -136,3 +136,11 @@ export function toastWrittenOff(
     },
   });
 }
+
+/** Says an unpriced visit was priced, naming its visitor, at the charge the answer holds (S8). */
+export function toastPriced(name: string, visit: DeskVisit) {
+  const words = currentCopy().desk.unpriced;
+  toast.success(
+    words.done({ name: isolate(name), amount: priceNow(visit.charge?.amountAgorot ?? 0) }),
+  );
+}

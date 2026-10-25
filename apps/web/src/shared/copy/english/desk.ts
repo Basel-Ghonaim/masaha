@@ -140,6 +140,21 @@ export const DESK = {
       `${amount} recorded as a debt for ${name}`,
     failed: 'We couldn’t record the debt',
   },
+  /** The visits closed with no price, for whoever may type one (S5). */
+  unpriced: {
+    title: ({ count }: { count: number }) =>
+      englishPlural(count, {
+        one: '1 visit without a price',
+        other: `${String(count)} visits without a price`,
+      }),
+    price: 'Set the price',
+    dialogTitle: ({ name }: { name: string }) => `Price a visit · ${name}`,
+    submit: 'Save the price',
+    done: ({ name, amount }: { name: string; amount: string }) =>
+      `${name}’s visit priced at ${amount}`,
+    failed: 'We couldn’t save the price',
+    loadFailed: 'We couldn’t load the visits without a price',
+  },
   /** The owner's write-off of what a visit still owes (K6), and its undo from the notice (DI-29). */
   writeOff: {
     title: 'Write off this visit?',
@@ -174,6 +189,7 @@ export const DESK = {
     VISIT_HAS_CUSTOMER: 'This visit belongs to another customer; their number can’t change here.',
     VISIT_ALREADY_PAID: 'Nothing is owed on this visit any more.',
     VISIT_NOT_PRICED: 'This visit has no price yet; it is priced first.',
+    VISIT_ALREADY_PRICED: 'This visit already has a price.',
     PRICE_TYPING_NOT_ALLOWED: 'Reception may no longer type a price at this space.',
     forbidden: 'This is no longer open to you at this space.',
     conflict: 'This request clashed with an earlier one; close it and open it again.',

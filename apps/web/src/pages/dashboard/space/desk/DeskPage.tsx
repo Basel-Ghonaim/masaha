@@ -2,6 +2,7 @@ import type { PresentPerson } from '@masaha/shared/occupancy';
 import {
   CheckOutAction,
   UncollectedCard,
+  UnpricedCard,
   useVisitDialog,
   useVisitTermsQuery,
   VisitDialog,
@@ -32,7 +33,7 @@ import { SwitchStaffButton, SwitchStaffItem } from './SwitchStaffButton';
  * its control, «تبديل الموظف» and «تسجيل زيارة» from 768 px; below it the control alone, «تبديل
  * الموظف» in a «⋯» menu and «تسجيل زيارة» in the bar at the foot (P1). The page is the people
  * present, `occupancy`'s, with `desk`'s check-out in each row, and beside it from `xl` (under it
- * before) `desk`'s uncollected visits; the visit's check-in is offered the space's shifts as `spaces`
+ * before) `desk`'s uncollected visits and, for whoever may type a price, its unpriced ones; the visit's check-in is offered the space's shifts as `spaces`
  * reads them. What the role at the space allows beyond that (S5) is read from the session's link;
  * the server decides. The guard has checked the space's id and the role.
  */
@@ -115,6 +116,7 @@ function Desk({ spaceId }: { spaceId: number }) {
         </div>
         <div className="flex flex-col gap-6 xl:col-span-4">
           <UncollectedCard spaceId={spaceId} abilities={{ writeOff: owner }} />
+          <UnpricedCard spaceId={spaceId} mayTypePrice={terms.data?.mayTypePrice ?? false} />
         </div>
       </div>
       <VisitDialog dialog={visit} />
