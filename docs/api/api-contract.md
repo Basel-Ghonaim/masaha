@@ -583,7 +583,7 @@ A subscriber's check-out, 2026-10-22, #109. No body and no key: closing is idemp
 
 #### `GET /manage/spaces/:spaceId/check-ins` · 🧾
 The space's subscriber check-ins, 2026-10-22, #109. Read without a lock.
-- **Query** (`checkInsQuerySchema`, `@masaha/shared/subscriptions`): `open=true`, or `from` and `to`, Gaza dates, both included, `to` not before `from` and at most 92 days after it (`out_of_range` on `to`), with `page` and `limit` (§4). Neither is `required` on `from` and `to`; both is `invalid_choice` on `open`.
+- **Query** (`checkInsQuerySchema`, `@masaha/shared/subscriptions`): `open=true`, or `from` and `to`, Gaza dates, both included, `to` not before `from` and at most 92 days with both counted, as the payments list (`out_of_range` on `to`), with `page` and `limit` (§4). Neither is `required` on `from` and `to`; both is `invalid_choice` on `open`.
 - **200:** `DeskCheckIn[]`, each with its customer and its subscription's state as of the answer. `open=true`: every open check-in, the earliest first, whole, with no `meta` (§4's exceptions); a range: the check-ins whose Gaza check-in date is in it, the latest first, then by id, paged with `meta`.
 - **Errors:** `validation` (422) on the query.
 
