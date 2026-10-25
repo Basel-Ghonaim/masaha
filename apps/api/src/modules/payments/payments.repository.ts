@@ -266,7 +266,7 @@ export function createPaymentsRepository() {
     paymentsOfSubscription(spaceId: number, subscriptionId: number): Promise<ItemPaymentRow[]> {
       return prisma.payment.findMany({
         where: { spaceId, subscriptionId },
-        select: { ...VISIT_PAYMENT, voidedAt: true, voidedById: true, voidReason: true },
+        select: ITEM_PAYMENT,
         orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
       });
     },
@@ -280,7 +280,7 @@ export function createPaymentsRepository() {
       if (visitIds.length === 0) return Promise.resolve([]);
       return tx.payment.findMany({
         where: { spaceId, visitId: { in: [...visitIds] } },
-        select: { ...VISIT_PAYMENT, voidedAt: true, voidedById: true, voidReason: true },
+        select: ITEM_PAYMENT,
         orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
       });
     },
@@ -288,7 +288,8 @@ export function createPaymentsRepository() {
     /**
      * A page of the space's uncollected visits (data model › Uncollected visits): closed by the auto
      * check-out, or closed by hand, priced, with no customer (only a void leaves one owing), not
-     * written off, not settled (balance > 0, or no charge yet), the latest closed first, then by id; each with what was paid, voided payments left out; and how many there are.
+     * written off, not settled (balance > 0, or no charge yet), the latest closed first, then by id;
+     * each with what was paid, voided payments left out; and how many there are.
      * One query and its count, so a read costs what its page holds (finding 113).
      */
     async uncollectedPage(
