@@ -370,8 +370,14 @@ export function createPaymentsService({
     },
 
     /** Every payment of the space's subscription, voided ones marked, the earliest received first. */
-    async paymentsOfSubscription(spaceId: number, subscriptionId: number): Promise<ItemPayment[]> {
-      return (await repository.paymentsOfSubscription(spaceId, subscriptionId)).map(toItemPayment);
+    async paymentsOfSubscription(
+      spaceId: number,
+      subscriptionId: number,
+      tx?: Tx,
+    ): Promise<ItemPayment[]> {
+      return (await repository.paymentsOfSubscription(spaceId, subscriptionId, tx)).map(
+        toItemPayment,
+      );
     },
 
     /**

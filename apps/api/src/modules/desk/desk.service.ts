@@ -30,7 +30,7 @@ import type {
   WriteOffVisitRequest,
 } from '@masaha/shared/visits';
 
-import type { RunInTransaction, Tx } from '../../db/index.ts';
+import type { ReadSnapshot, RunInTransaction, Tx } from '../../db/index.ts';
 import {
   can,
   type Actor,
@@ -56,6 +56,8 @@ import type { LockedVisit, VisitsService } from '../visits/index.ts';
 
 interface Dependencies {
   runInTransaction: RunInTransaction;
+  /** The composed reads' one snapshot (conventions › Composed reads). */
+  readSnapshot: ReadSnapshot;
   spaces: SpacesService;
   spaceSettings: SpaceSettingsService;
   visits: VisitsService;
@@ -81,6 +83,7 @@ const QUOTE_MAX_AGE_MS = 5 * 60_000;
  */
 export function createDeskService({
   runInTransaction,
+  readSnapshot,
   spaces,
   spaceSettings,
   visits,
@@ -900,68 +903,71 @@ export function createDeskService({
      * The customer's file: the customer (not the space's → `not_found`); their debt and credit; who
      * of them is present; every subscription with its state and money; their unpaid visits — closed,
      * not written off, a balance above zero or none (unpriced) — the oldest first, each with its
-     * payments, voided ones marked. The money from `payments`' one query. Read without a lock.
+     * payments, voided ones marked. The money from `payments`' one query. Read without a lock, in one
+     * snapshot (finding 124).
      */
     async customerFile(space: LoadedSpace, customerId: number): Promise<CustomerFile> {
-      const customer = await customers.findIn(space.id, customerId);
-      if (!customer) throw AppError.notFound(undefined, 'Customer not found');
-      const at = now();
-      const [states, items, balances, { checkIns: openCheckIns, visits: openVisits }] =
-        await Promise.all([
-          subscriptions.statesOf(space.id, { customerId }, at),
-          payments.itemBalances(space.id, customerId, at),
-          payments.customerBalances(space.id, [customerId], at),
-          occupancy.presentIn(space.id),
+      return readSnapshot(async (tx) => {
+        const customer = await customers.findIn(space.id, customerId, tx);
+        if (!customer) throw AppError.notFound(undefined, 'Customer not found');
+        const at = now();
+        const [states, items, balances, { checkIns: openCheckIns, visits: openVisits }] =
+          await Promise.all([
+            subscriptions.statesOf(space.id, { customerId }, at, tx),
+            payments.itemBalances(space.id, customerId, at, tx),
+            payments.customerBalances(space.id, [customerId], at, tx),
+            occupancy.presentIn(space.id, tx),
+          ]);
+
+        const subscriptionMoney = new Map(
+          items.flatMap((item) => (item.kind === 'SUBSCRIPTION' ? [[item.id, item] as const] : [])),
+        );
+        const unpaid = items.filter(
+          ({ kind, balanceAgorot }) => kind === 'VISIT' && (balanceAgorot ?? 1) > 0,
+        );
+        const unpaidIds = unpaid.map(({ id }) => id);
+        const [deskVisits, paymentsByVisit] = await Promise.all([
+          visits.deskVisitsOf(space.id, unpaidIds, tx),
+          payments.paymentsFor(space.id, unpaidIds, tx),
         ]);
 
-      const subscriptionMoney = new Map(
-        items.flatMap((item) => (item.kind === 'SUBSCRIPTION' ? [[item.id, item] as const] : [])),
-      );
-      const unpaid = items.filter(
-        ({ kind, balanceAgorot }) => kind === 'VISIT' && (balanceAgorot ?? 1) > 0,
-      );
-      const unpaidIds = unpaid.map(({ id }) => id);
-      const [deskVisits, paymentsByVisit] = await Promise.all([
-        visits.deskVisitsOf(space.id, unpaidIds),
-        payments.paymentsFor(space.id, unpaidIds),
-      ]);
+        const checkIn = openCheckIns.find((open) => open.customerId === customerId);
+        const visit = openVisits.find((open) => open.customerId === customerId);
+        const present: CustomerPresence | null = checkIn
+          ? {
+              kind: 'CHECK_IN',
+              id: checkIn.id,
+              subscriptionId: checkIn.subscriptionId,
+              since: checkIn.checkedInAt.toISOString(),
+            }
+          : visit
+            ? { kind: 'VISIT', id: visit.id, since: visit.checkedInAt.toISOString() }
+            : null;
 
-      const checkIn = openCheckIns.find((open) => open.customerId === customerId);
-      const visit = openVisits.find((open) => open.customerId === customerId);
-      const present: CustomerPresence | null = checkIn
-        ? {
-            kind: 'CHECK_IN',
-            id: checkIn.id,
-            subscriptionId: checkIn.subscriptionId,
-            since: checkIn.checkedInAt.toISOString(),
-          }
-        : visit
-          ? { kind: 'VISIT', id: visit.id, since: visit.checkedInAt.toISOString() }
-          : null;
-
-      return {
-        customer,
-        ...(balances.get(customerId) ?? { debtAgorot: 0, creditAgorot: 0 }),
-        present,
-        subscriptions: states.map((state) => {
-          const money = subscriptionMoney.get(state.id);
-          const paidAgorot = money?.paidAgorot ?? 0;
-          return { ...state, paidAgorot, balanceAgorot: money?.balanceAgorot ?? state.dueAgorot };
-        }),
-        unpaidVisits: unpaid.flatMap(({ id, paidAgorot, balanceAgorot }): UnpaidVisit[] => {
-          const deskVisit = deskVisits.get(id);
-          return deskVisit
-            ? [
-                {
-                  visit: deskVisit,
-                  payments: paymentsByVisit.get(id) ?? [],
-                  paidAgorot,
-                  balanceAgorot,
-                },
-              ]
-            : [];
-        }),
-      };
+        return {
+          customer,
+          ...(balances.get(customerId) ?? { debtAgorot: 0, creditAgorot: 0 }),
+          present,
+          subscriptions: states.map((state) => {
+            const money = subscriptionMoney.get(state.id);
+            const paidAgorot = money?.paidAgorot ?? 0;
+            return { ...state, paidAgorot, balanceAgorot: money?.balanceAgorot ?? state.dueAgorot };
+          }),
+          unpaidVisits: unpaid.flatMap(({ id, paidAgorot, balanceAgorot }): UnpaidVisit[] => {
+            const deskVisit = deskVisits.get(id);
+            return deskVisit
+              ? [
+                  {
+                    visit: deskVisit,
+                    payments: paymentsByVisit.get(id) ?? [],
+                    paidAgorot,
+                    balanceAgorot,
+                  },
+                ]
+              : [];
+          }),
+        };
+      });
     },
 
     /**
@@ -969,35 +975,38 @@ export function createDeskService({
      * the space's (else `not_found`), with its state and money; its customer; its check-ins, each with
      * a closed stay's whole minutes (counted in SQL, as its progress); its payments, voided ones
      * marked; and, while it is not renewed, the start its renewal would take (`proposedStart`), else who renewed it. Its lists are whole,
-     * bounded by one subscription. Read without a lock.
+     * bounded by one subscription. Read without a lock, in one snapshot (finding 124).
      */
     async statement(space: LoadedSpace, subscriptionId: number): Promise<SubscriptionStatement> {
-      const at = now();
-      const [state] = await subscriptions.statesOf(space.id, { ids: [subscriptionId] }, at);
-      if (!state) throw AppError.notFound(undefined, 'Subscription not found');
-      const [subscription, customer, checkIns, paymentsMade, renewedById] = await Promise.all([
-        withMoney(space, state, at),
-        customers.findIn(space.id, state.customerId),
-        subscriptions.checkInsOf(space.id, subscriptionId),
-        payments.paymentsOfSubscription(space.id, subscriptionId),
-        subscriptions.renewedBy(space.id, subscriptionId),
-      ]);
-      if (!customer) throw new Error(`The subscription ${String(subscriptionId)} has no customer.`);
-      return {
-        ...subscription,
-        customer: { id: customer.id, name: customer.name, phone: customer.phone },
-        checkIns: checkIns.map(({ id, checkedInAt, checkedOutAt, checkoutMethod, minutes }) => ({
-          id,
-          checkedInAt: checkedInAt.toISOString(),
-          checkedOutAt: checkedOutAt?.toISOString() ?? null,
-          checkoutMethod,
-          minutes,
-        })),
-        payments: paymentsMade,
-        renewal:
-          renewedById === null ? { startsOn: proposedStart(state, gazaClockOf(at).date) } : null,
-        renewedById,
-      };
+      return readSnapshot(async (tx) => {
+        const at = now();
+        const [state] = await subscriptions.statesOf(space.id, { ids: [subscriptionId] }, at, tx);
+        if (!state) throw AppError.notFound(undefined, 'Subscription not found');
+        const [subscription, customer, checkIns, paymentsMade, renewedById] = await Promise.all([
+          withMoney(space, state, at, tx),
+          customers.findIn(space.id, state.customerId, tx),
+          subscriptions.checkInsOf(space.id, subscriptionId, tx),
+          payments.paymentsOfSubscription(space.id, subscriptionId, tx),
+          subscriptions.renewedBy(space.id, subscriptionId, tx),
+        ]);
+        if (!customer)
+          throw new Error(`The subscription ${String(subscriptionId)} has no customer.`);
+        return {
+          ...subscription,
+          customer: { id: customer.id, name: customer.name, phone: customer.phone },
+          checkIns: checkIns.map(({ id, checkedInAt, checkedOutAt, checkoutMethod, minutes }) => ({
+            id,
+            checkedInAt: checkedInAt.toISOString(),
+            checkedOutAt: checkedOutAt?.toISOString() ?? null,
+            checkoutMethod,
+            minutes,
+          })),
+          payments: paymentsMade,
+          renewal:
+            renewedById === null ? { startsOn: proposedStart(state, gazaClockOf(at).date) } : null,
+          renewedById,
+        };
+      });
     },
 
     /**

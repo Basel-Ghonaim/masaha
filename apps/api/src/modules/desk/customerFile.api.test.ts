@@ -13,6 +13,7 @@ import {
   createVisit,
   stay,
 } from '../../../test/factories.ts';
+import { whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -217,6 +218,69 @@ describe("the customer's file", () => {
     for (const caller of [stranger, unrelatedOwner, admin]) {
       expect((await file(caller, sara.id)).status).toBe(404);
     }
+  });
+
+  it('reads one snapshot: a check-in and a payment committed while it waits leave its sums agreeing', async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara' });
+    const hours = await createSubscription(sara, { billing: 'PER_HOUR', priceAgorot: 500 });
+    await createCheckIn(hours, stay('2026-10-19', '09:00', '11:00'));
+    await pay({ subscriptionId: hours.id }, 300);
+    const owing = await closedVisit(sara.id, '2026-10-18', 2_000);
+    await pay({ visitId: owing.id }, 500);
+
+    // The file's money reads (the items' and the customer's balances) are the first to read the
+    // visits: the test holds that table, so the file waits there, past its subscriptions' states,
+    // while a check-in and a payment of the subscription commit.
+    const response = await whileHeld(
+      (tx) => tx.$executeRaw`LOCK TABLE visits IN ACCESS EXCLUSIVE MODE`,
+      () => file(reception, sara.id),
+      async (tx) => {
+        await tx.checkIn.create({
+          data: {
+            spaceId,
+            customerId: sara.id,
+            subscriptionId: hours.id,
+            idempotencyKey: randomUUID(),
+            ...stay('2026-10-20', '09:00', '10:00'),
+          },
+        });
+        await tx.payment.create({
+          data: {
+            spaceId,
+            subscriptionId: hours.id,
+            idempotencyKey: randomUUID(),
+            recordedById: owner.id,
+            method: 'CASH',
+            amountAgorot: 200,
+            receivedAt: RECEIVED_AT,
+          },
+        });
+      },
+    );
+    expect(response.status).toBe(200);
+    const answer = dataOf(response) as {
+      debtAgorot: number;
+      subscriptions: { dueAgorot: number; paidAgorot: number; balanceAgorot: number }[];
+      unpaidVisits: {
+        paidAgorot: number;
+        balanceAgorot: number | null;
+        payments: { amountAgorot: number; voided: unknown }[];
+      }[];
+    };
+    for (const { dueAgorot, paidAgorot, balanceAgorot } of answer.subscriptions) {
+      expect(balanceAgorot).toBe(dueAgorot - paidAgorot);
+    }
+    for (const { paidAgorot, payments } of answer.unpaidVisits) {
+      const listed = payments.filter(({ voided }) => voided === null);
+      expect(paidAgorot).toBe(listed.reduce((sum, { amountAgorot }) => sum + amountAgorot, 0));
+    }
+    const balances = [
+      ...answer.subscriptions.map(({ balanceAgorot }) => balanceAgorot),
+      ...answer.unpaidVisits.map(({ balanceAgorot }) => balanceAgorot ?? 0),
+    ];
+    expect(answer.debtAgorot).toBe(
+      balances.filter((balance) => balance > 0).reduce((sum, balance) => sum + balance, 0),
+    );
   });
 
   it("the file's debt is the sum of its rows' positive balances, each its due less what was paid", async () => {

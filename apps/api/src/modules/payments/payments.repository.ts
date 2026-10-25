@@ -263,8 +263,12 @@ export function createPaymentsRepository() {
     },
 
     /** Every payment of the space's subscription, voided ones too, the earliest received first. */
-    paymentsOfSubscription(spaceId: number, subscriptionId: number): Promise<ItemPaymentRow[]> {
-      return prisma.payment.findMany({
+    paymentsOfSubscription(
+      spaceId: number,
+      subscriptionId: number,
+      tx: Tx = prisma,
+    ): Promise<ItemPaymentRow[]> {
+      return tx.payment.findMany({
         where: { spaceId, subscriptionId },
         select: ITEM_PAYMENT,
         orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],

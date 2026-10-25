@@ -7,7 +7,7 @@ import helmet from 'helmet';
 import type { Logger } from 'pino';
 
 import { secureCookiesOf, trustProxyOf, type Env } from './config/index.ts';
-import { createRunInTransaction, type Tx } from './db/index.ts';
+import { createReadSnapshot, createRunInTransaction, type Tx } from './db/index.ts';
 import {
   createAnnouncementsController,
   createAnnouncementsManageRouter,
@@ -395,6 +395,7 @@ export function createApi({
   });
   const desk = createDeskService({
     runInTransaction,
+    readSnapshot: createReadSnapshot(),
     spaces,
     spaceSettings,
     visits,
