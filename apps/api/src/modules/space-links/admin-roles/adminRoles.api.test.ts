@@ -136,13 +136,17 @@ describe('PUT /admin/users/:userId/role', () => {
     const reception = await createAccount({ email: 'nour@example.com' });
     await link(reception.id, 'RECEPTION');
     const other = await signIn('ADMIN', 'other-admin@example.com');
-    for (const id of [user.id, reception.id, other.id]) await session(id);
+    const ids = [user.id, reception.id, other.id];
+    for (const id of ids) await session(id);
+    // The admin's sign-in opened a session of its own too.
+    const before = await Promise.all(ids.map(sessionsOf));
 
     expect((await changeRole(user.id, 'USER')).status).toBe(204);
     expect((await changeRole(reception.id, 'USER')).status).toBe(204);
     expect((await changeRole(other.id, 'ADMIN')).status).toBe(204);
 
-    for (const id of [user.id, reception.id, other.id]) expect(await sessionsOf(id)).toBe(1);
+    expect(await Promise.all(ids.map(sessionsOf))).toEqual(before);
+    expect(before).toEqual([1, 1, 2]);
     expect(await auditEntries()).toEqual([]);
   });
 

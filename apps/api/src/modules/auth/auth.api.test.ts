@@ -64,10 +64,12 @@ describe('POST /auth/register', () => {
       hasPassword: true,
       spaces: [],
     });
+    const [session] = await prisma.refreshToken.findMany({ select: { familyId: true } });
     expect(await accessTokens.verify(accessToken)).toEqual({
       userId: expect.any(Number) as unknown,
       mustChangePassword: false,
       sessionVersion: 0,
+      sessionId: session?.familyId,
     });
   });
 

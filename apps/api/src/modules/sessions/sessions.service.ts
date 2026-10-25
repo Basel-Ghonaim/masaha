@@ -19,9 +19,13 @@ export const RECOVERY_RESEND_WINDOW_MS = 60_000;
 /** How many more links one recovery may ask for. */
 export const RECOVERY_MAX_RESENDS = 3;
 
-/** A refresh token to hand to the client, once: only its hash is stored. */
+/**
+ * A refresh token to hand to the client, once: only its hash is stored. With its session's id (its
+ * family's), which the access tokens signed for it carry.
+ */
 export interface IssuedToken {
   token: string;
+  familyId: number;
 }
 
 export type Rotation =
@@ -85,7 +89,7 @@ export function createSessionsService({
       { userId, tokenHash: hashToken(token), expiresAt, sessionEndsAt, familyId: family?.familyId },
       tx,
     );
-    return { stored, issued: { token } };
+    return { stored, issued: { token, familyId: stored.familyId } };
   }
 
   function recoveryOf(stored: StoredRecovery, at: Date): Recovery {

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -14,6 +15,32 @@ import type { Prisma } from '../src/generated/prisma/client.ts';
 
 export const TEST_JWT_SECRET = 'a-test-secret-of-at-least-32-characters';
 export const accessTokens = createAccessTokens(TEST_JWT_SECRET);
+
+/** Far enough ahead that no test's clock passes it. */
+const FAR_AHEAD = new Date('2100-01-01T00:00:00Z');
+
+/**
+ * An access token for the user, signed for a new session of theirs, as a sign-in makes one: a
+ * refresh-token family of one row, which never ends. A test of the session's own rules signs in
+ * through the API instead, so its clock dates the session.
+ */
+export async function signAccess(
+  userId: number,
+  { mustChangePassword = false, sessionVersion = 0 } = {},
+): Promise<string> {
+  const row = await prisma.refreshToken.create({
+    data: {
+      userId,
+      familyId: 0,
+      tokenHash: randomUUID(),
+      expiresAt: FAR_AHEAD,
+      sessionEndsAt: FAR_AHEAD,
+    },
+    select: { id: true },
+  });
+  await prisma.refreshToken.update({ where: { id: row.id }, data: { familyId: row.id } });
+  return accessTokens.sign({ userId, mustChangePassword, sessionVersion, sessionId: row.id });
+}
 
 export const WEB_ORIGIN = 'http://localhost:5173';
 

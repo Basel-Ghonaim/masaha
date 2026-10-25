@@ -44,8 +44,18 @@ async function run(guard: ReturnType<ReturnType<typeof createRequireAuth>>, req:
   return { error: undefined, next };
 }
 
-const settled: AccessClaims = { userId: 3, mustChangePassword: false, sessionVersion: 2 };
-const pending: AccessClaims = { userId: 3, mustChangePassword: true, sessionVersion: 2 };
+const settled: AccessClaims = {
+  userId: 3,
+  mustChangePassword: false,
+  sessionVersion: 2,
+  sessionId: 9,
+};
+const pending: AccessClaims = {
+  userId: 3,
+  mustChangePassword: true,
+  sessionVersion: 2,
+  sessionId: 9,
+};
 
 describe('requireAuth', () => {
   it('puts the account’s role now and the token’s pending claim on the request', async () => {

@@ -148,25 +148,28 @@ export function createAuthService({
     if (!delivered) await wait(drawNoSendWait());
   }
 
-  /** The user, their space links and a new access token, for a session whose refresh token exists. */
-  async function sessionFor(account: Account): Promise<Session> {
+  /**
+   * The user, their space links and a new access token, for a session whose refresh token exists:
+   * the token signed for that session (`sessionId`, its family's id).
+   */
+  async function sessionFor(account: Account, sessionId: number): Promise<Session> {
     const [user, spaces, accessToken] = await Promise.all([
       users.view(account),
       spaceLinks.activeLinksFor(account.id),
-      accessTokens.sign(users.accessClaims(account)),
+      accessTokens.sign(users.accessClaims(account, sessionId)),
     ]);
     return { user: { ...user, spaces }, accessToken };
   }
 
   /** Opens a session for the user, under their session lock (conventions §13). */
   async function signIn(userId: number): Promise<SignedIn> {
-    const { account, token } = await runInTransaction(async (tx) => {
+    const { account, issued } = await runInTransaction(async (tx) => {
       const locked = await users.lockAccount(userId, tx);
       if (!locked) throw AppError.unauthorized(undefined, 'Account not found');
       users.assertMaySignIn(locked);
-      return { account: locked, token: (await sessions.issue(userId, tx)).token };
+      return { account: locked, issued: await sessions.issue(userId, tx) };
     });
-    return { session: await sessionFor(account), refreshToken: token };
+    return { session: await sessionFor(account, issued.familyId), refreshToken: issued.token };
   }
 
   /**
@@ -201,11 +204,11 @@ export function createAuthService({
         const verified = await users.verifyCredentials(email, password);
         // The credentials are confirmed again under the lock, so a reset that landed during bcrypt
         // is never followed by a new session.
-        const { account, token } = await runInTransaction(async (tx) => {
+        const { account, issued } = await runInTransaction(async (tx) => {
           const confirmed = await verified.confirm(tx);
-          return { account: confirmed, token: (await sessions.issue(confirmed.id, tx)).token };
+          return { account: confirmed, issued: await sessions.issue(confirmed.id, tx) };
         });
-        return { session: await sessionFor(account), refreshToken: token };
+        return { session: await sessionFor(account, issued.familyId), refreshToken: issued.token };
       });
     },
 
@@ -229,11 +232,15 @@ export function createAuthService({
           throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Invalid Google ID token');
         const { userId, link } = await users.accountForGoogle(profile, language);
         if (!link) return { ...(await signIn(userId)), linked: false };
-        const { account, linked, token } = await runInTransaction(async (tx) => {
+        const { account, linked, issued } = await runInTransaction(async (tx) => {
           const result = await users.linkGoogle(userId, profile, tx);
-          return { ...result, token: (await sessions.issue(userId, tx)).token };
+          return { ...result, issued: await sessions.issue(userId, tx) };
         });
-        return { session: await sessionFor(account), refreshToken: token, linked };
+        return {
+          session: await sessionFor(account, issued.familyId),
+          refreshToken: issued.token,
+          linked,
+        };
       });
     },
 
@@ -255,13 +262,16 @@ export function createAuthService({
         }
         const rotation = await sessions.rotate(refreshToken, tx);
         return rotation.outcome === 'rotated'
-          ? ({ outcome: 'rotated', account, token: rotation.issued.token } as const)
+          ? ({ outcome: 'rotated', account, issued: rotation.issued } as const)
           : ({ outcome: 'invalid' } as const);
       });
 
       if (result.outcome === 'refused') users.assertMaySignIn(result.account);
       if (result.outcome !== 'rotated') throw AppError.unauthorized(undefined, 'No valid session');
-      return { session: await sessionFor(result.account), refreshToken: result.token };
+      return {
+        session: await sessionFor(result.account, result.issued.familyId),
+        refreshToken: result.issued.token,
+      };
     },
 
     /**

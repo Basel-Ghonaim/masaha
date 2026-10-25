@@ -220,12 +220,16 @@ export function createUsersService({
     return account;
   }
 
-  /** What the access token says of the account (docs/backend/security.md › Tokens and cookies). */
-  function accessClaims(account: Account): AccessClaims {
+  /**
+   * What the access token says of the account, signed for the session `sessionId` (docs/backend/
+   * security.md › Tokens and cookies).
+   */
+  function accessClaims(account: Account, sessionId: number): AccessClaims {
     return {
       userId: account.id,
       mustChangePassword: account.mustChangePassword,
       sessionVersion: account.sessionVersion,
+      sessionId,
     };
   }
 
@@ -684,7 +688,7 @@ export function createUsersService({
             // Read after the version went up: this device's new token is signed under it.
             return { changed: await get(userId, tx), issued: await sessions.issue(userId, tx) };
           });
-          const accessToken = await accessTokens.sign(accessClaims(changed));
+          const accessToken = await accessTokens.sign(accessClaims(changed, issued.familyId));
           return { accessToken, refreshToken: issued.token };
         },
       );

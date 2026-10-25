@@ -1,7 +1,7 @@
 import { DEFAULT_SETTINGS } from '../src/db/seed/lookups.ts';
 import { prisma } from '../src/db/index.ts';
 import type { Prisma } from '../src/generated/prisma/client.ts';
-import { accessTokens } from './app.ts';
+import { signAccess } from './app.ts';
 
 // What the admin's space endpoints are tested on: the platform's settings, an area to place a space
 // in, and the owners of spaces, each signed in.
@@ -55,11 +55,7 @@ export async function signInOwnerOf(
     },
   });
   await prisma.spaceManager.create({ data: { spaceId, userId: user.id, role: 'OWNER' } });
-  const token = await accessTokens.sign({
-    userId: user.id,
-    mustChangePassword: false,
-    sessionVersion: user.sessionVersion,
-  });
+  const token = await signAccess(user.id, { sessionVersion: user.sessionVersion });
   return { id: user.id, authorization: `Bearer ${token}` };
 }
 

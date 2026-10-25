@@ -7,6 +7,7 @@ import {
   createAccount,
   createTestApp,
   PASSWORD,
+  signAccess,
 } from '../../../test/app.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma } from '../../db/index.ts';
@@ -234,11 +235,7 @@ describe('POST /me/password: a Google-only account', () => {
     const user = await prisma.user.create({
       data: { email: 'google@example.com', name: 'G', googleSubject: 'g1' },
     });
-    const accessToken = await accessTokens.sign({
-      userId: user.id,
-      mustChangePassword: false,
-      sessionVersion: 0,
-    });
+    const accessToken = await signAccess(user.id);
 
     const response = await changePassword(accessToken, { password: NEW_PASSWORD });
 
@@ -255,11 +252,7 @@ describe('POST /me/password: a Google-only account', () => {
 describe('POST /me/password: the skipped current password', () => {
   it('is required when the token says a change is pending and the account no longer does', async () => {
     const user = await createAccount({ mustChangePassword: false });
-    const accessToken = await accessTokens.sign({
-      userId: user.id,
-      mustChangePassword: true,
-      sessionVersion: 0,
-    });
+    const accessToken = await signAccess(user.id, { mustChangePassword: true });
 
     const response = await changePassword(accessToken, { password: NEW_PASSWORD });
 

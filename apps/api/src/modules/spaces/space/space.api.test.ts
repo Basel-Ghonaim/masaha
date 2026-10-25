@@ -3,7 +3,7 @@ import { Writable } from 'node:stream';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { accessTokens, createTestApp } from '../../../../test/app.ts';
+import { createTestApp, signAccess } from '../../../../test/app.ts';
 import { adminRequest, auditEntries, dataOf, errorOf, signIn } from '../../../../test/admin.ts';
 import { createSpace } from '../../../../test/factories.ts';
 import { waitingOnLock } from '../../../../test/locks.ts';
@@ -613,11 +613,7 @@ describe('DELETE and restore of /admin/spaces/:spaceId', () => {
   it('takes the space from its owner when deleted, and gives it back when restored', async () => {
     const space = await createSpace();
     const owner = await link(space.id, 'OWNER');
-    const token = await accessTokens.sign({
-      userId: owner.id,
-      mustChangePassword: false,
-      sessionVersion: 0,
-    });
+    const token = await signAccess(owner.id);
     const mySpaces = async () => {
       const response = await request(app)
         .get('/api/v1/manage/spaces')
