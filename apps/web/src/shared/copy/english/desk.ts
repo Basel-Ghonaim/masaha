@@ -299,4 +299,67 @@ export const DESK = {
     failed: 'We couldn’t record the payment',
     fileFailed: 'We couldn’t load what the customer owes',
   },
+  /** «الزبائن»: the space's customers, searched and filtered (S11). */
+  customers: {
+    label: 'The space’s customers',
+    columns: {
+      name: 'Name',
+      subscription: 'Subscription',
+      status: 'Status',
+      balance: 'Balance',
+      actions: 'Actions',
+    },
+    status: { label: 'Filter by status', all: 'All', ARCHIVED: 'Archived' },
+    kind: {
+      label: 'Subscription type',
+      options: {
+        all: 'All types',
+        PACKAGE: 'Package',
+        CUSTOM: 'Custom',
+        NONE: 'No subscription',
+      },
+    },
+    payment: {
+      label: 'Payment',
+      options: {
+        all: 'All payment states',
+        OWES: 'Owes money',
+        CREDIT: 'In credit',
+        SETTLED: 'Settled',
+      },
+    },
+    filters: {
+      title: 'Filters',
+      applied: ({ count }: { count: number }) =>
+        englishPlural(count, {
+          one: '1 filter applied',
+          other: `${String(count)} filters applied`,
+        }),
+      show: ({ count }: { count: number }) =>
+        englishPlural(count, { one: 'Show 1 customer', other: `Show ${String(count)} customers` }),
+      clear: 'Clear filters',
+      close: 'Close',
+    },
+    count: ({ count }: { count: number }) =>
+      englishPlural(count, { one: '1 customer', other: `${String(count)} customers` }),
+    empty: {
+      title: 'No customers yet',
+      text: 'A customer is added with their first subscription, or when a visitor leaves without paying.',
+    },
+    noMatch: {
+      title: 'No customers match',
+      text: 'Try another name or number, or change the filters.',
+    },
+    archivedEmpty: 'No archived customers',
+    loadFailed: 'We couldn’t load the customers',
+    pagination: {
+      label: 'Pages of customers',
+      previous: 'Previous',
+      next: 'Next',
+      page: ({ page }: { page: number }) => `Page ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `Page ${String(page)} of ${String(total)}`,
+      more: 'More pages',
+    },
+  },
 } as const;

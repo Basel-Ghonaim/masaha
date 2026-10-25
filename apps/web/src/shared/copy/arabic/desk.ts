@@ -301,4 +301,85 @@ export const DESK = {
     failed: 'تعذّر تسجيل الدفعة',
     fileFailed: 'تعذّر تحميل مستحقات الزبون',
   },
+  /** «الزبائن»: the space's customers, searched and filtered (S11). */
+  customers: {
+    label: 'زبائن المساحة',
+    columns: {
+      name: 'الاسم',
+      subscription: 'الاشتراك',
+      status: 'الحالة',
+      balance: 'الرصيد',
+      actions: 'إجراءات',
+    },
+    status: { label: 'تصفية حسب الحالة', all: 'الكل', ARCHIVED: 'مؤرشف' },
+    kind: {
+      label: 'نوع الاشتراك',
+      options: {
+        all: 'كل الأنواع',
+        PACKAGE: 'باقة',
+        CUSTOM: 'مخصّص',
+        NONE: 'بدون اشتراك',
+      },
+    },
+    payment: {
+      label: 'الدفع',
+      options: {
+        all: 'كل حالات الدفع',
+        OWES: 'عليه دين',
+        CREDIT: 'له رصيد',
+        SETTLED: 'مسدّد',
+      },
+    },
+    filters: {
+      title: 'الفلاتر',
+      applied: ({ count }: { count: number }) =>
+        arabicPlural(count, {
+          zero: 'لا فلاتر مطبّقة',
+          one: 'فلتر واحد مطبّق',
+          two: 'فلتران مطبّقان',
+          few: `${String(count)} فلاتر مطبّقة`,
+          many: `${String(count)} فلترًا مطبّقًا`,
+          other: `${String(count)} فلتر مطبّق`,
+        }),
+      show: ({ count }: { count: number }) =>
+        arabicPlural(count, {
+          zero: `عرض ${String(count)} زبون`,
+          one: 'عرض الزبون',
+          two: 'عرض الزبونين',
+          few: `عرض ${String(count)} زبائن`,
+          many: `عرض ${String(count)} زبونًا`,
+          other: `عرض ${String(count)} زبون`,
+        }),
+      clear: 'مسح الفلاتر',
+      close: 'إغلاق',
+    },
+    count: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا زبائن',
+        one: 'زبون واحد',
+        two: 'زبونان',
+        few: `${String(count)} زبائن`,
+        many: `${String(count)} زبونًا`,
+        other: `${String(count)} زبون`,
+      }),
+    empty: {
+      title: 'لا يوجد زبائن بعد',
+      text: 'يُضاف الزبون عند أول اشتراك، أو عندما يخرج زائر بدون دفع.',
+    },
+    noMatch: {
+      title: 'لا يوجد زبائن يطابقون البحث',
+      text: 'جرّب اسمًا أو رقمًا آخر، أو غيّر الفلاتر.',
+    },
+    archivedEmpty: 'لا يوجد زبائن مؤرشفون',
+    loadFailed: 'تعذّر تحميل الزبائن',
+    pagination: {
+      label: 'صفحات الزبائن',
+      previous: 'السابق',
+      next: 'التالي',
+      page: ({ page }: { page: number }) => `الصفحة ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `صفحة ${String(page)} من ${String(total)}`,
+      more: 'صفحات أخرى',
+    },
+  },
 } satisfies Catalogue['desk'];

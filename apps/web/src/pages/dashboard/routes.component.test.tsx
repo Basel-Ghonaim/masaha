@@ -10,6 +10,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { customerRow, customersPage } from '../../test/deskCustomer';
 import { fakeIntersectionObserver } from '../../test/fakeIntersectionObserver';
 import { aSession } from '../../test/fakeSession';
 import type { FakeAnswer } from '../../test/fakeAdapter';
@@ -791,6 +792,35 @@ describe("the space's front desk", () => {
       within(screen.getByRole('banner')).getByRole('button', { name: 'More actions' }),
     );
     expect(await screen.findByRole('menuitem', { name: 'Switch staff' })).toBeInTheDocument();
+  });
+});
+
+describe("the space's customers", () => {
+  // The page loads lazily, as the profile does: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/customers/CustomersPage');
+  });
+
+  it.each([
+    ['the owner', asOwner],
+    ['reception', asReception],
+  ])('shows %s the customers under its title, each a link to the file', async (_, as) => {
+    as();
+    const requests = fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/customers') {
+        return customersPage([customerRow({ id: 4, name: 'Sara Khalid' })]);
+      }
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+    renderDashboard('/dashboard/spaces/7/customers');
+
+    await topBarTitle('Customers');
+    expect(await screen.findByRole('link', { name: 'Sara Khalid' })).toHaveAttribute(
+      'href',
+      '/dashboard/spaces/7/customers/4',
+    );
+    expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7/customers');
   });
 });
 

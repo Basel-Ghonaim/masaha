@@ -47,6 +47,10 @@ const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
 
 /** The space's pages that have a screen, each loaded lazily; the others show their placeholder. */
 const SPACE_PAGES: Partial<Record<DashboardPageName, () => Promise<ReactElement>>> = {
+  customers: async () => {
+    const { CustomersPage } = await import('./space/customers/CustomersPage');
+    return <CustomersPage />;
+  },
   desk: async () => {
     const { DeskPage } = await import('./space/desk/DeskPage');
     return <DeskPage />;

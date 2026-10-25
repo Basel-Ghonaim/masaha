@@ -1,4 +1,5 @@
 export { CheckOutAction } from './components/check-out/CheckOutAction';
+export { CustomersList } from './components/customers/CustomersList';
 export { DeskSearch, type SearchAfter } from './components/search/DeskSearch';
 export { PayDialog } from './components/pay/PayDialog';
 export type { PayTarget } from './hooks/pay/usePayDialog';

@@ -1,8 +1,8 @@
 # Customers
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
-> **Authority:** The `customers` capability: everyone a space keeps on file. Its endpoints are owned by the API contract ([Customers (managed)](../api/api-contract.md#customers-managed)); its entity by the [data model](../architecture/data-model.md#operations). The API is built; no web screen yet.
-> **Scope:** the API module `customers` (L2); `@masaha/shared/customers`. No web feature yet.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
+> **Authority:** The `customers` capability: everyone a space keeps on file. Its endpoints are owned by the API contract ([Customers (managed)](../api/api-contract.md#customers-managed)); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the web, [desk](desk.md) shows the customers.
+> **Scope:** the API module `customers` (L2); `@masaha/shared/customers`. No web feature of its own: [desk](desk.md)'s screens read and write it.
 
 ## What it does
 
@@ -15,7 +15,7 @@
 
 ## Who uses it
 
-- **The space's owner and reception,** through the API. The admin never reaches it: customers are private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). On the web, the desk's search reads the list's search (`GET …/customers?q`, the first six) — [desk](desk.md), 2026-10-25, #119; the list and the file (screens 14–15) are worker A's later items.
+- **The space's owner and reception,** through the API. The admin never reaches it: customers are private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). On the web, the desk's search reads the list's search (`GET …/customers?q`, the first six) — [desk](desk.md), 2026-10-25, #119; «الزبائن» reads the list, 20 a page, searched and filtered — [desk](desk.md), 2026-10-25, #122.
 - **The front desk** ([desk](desk.md)), which leaves an unpaid visit to a customer found or created by phone, in its own transaction.
 - **[`occupancy`](occupancy.md),** which names the customers present.
 - **[`subscriptions`](subscriptions.md),** which reads its check-ins' customers' names and phones.
@@ -50,6 +50,10 @@
 - **A phone another customer holds is refused `PHONE_TAKEN` on its field, read under the space's lock before the write.** *Why:* inside a transaction the unique index's violation would abort it; the read under the lock is race-free, and the index stays the backstop. 2026-10-21, #102.
 - **Only the owner archives and restores; an archived customer is not edited until restored (`CUSTOMER_ARCHIVED`), and their phone is free.** *Why:* the owner's decision ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)); an archived customer is history, kept with their records and debts, and a restore must not make two customers share a phone. 2026-10-21, #102.
 - **The create, the edit and the restore are this module's own routes; the list, the file and the archive are the desk's.** *Why:* a write of one module is its own router; a read or a write that spans modules is the desk's (conventions §9). 2026-10-21, #102.
+
+### Web decisions
+
+- **The customers list's filters and page live in the address** (S11): `q`, `status` (`ARCHIVED` read for the owner only), `kind`, `payment` and `page` (from 2), each read by the contract's own rule, so a value the server would refuse falls back; a change replaces the address and returns to page 1. *Why:* a link, a reload or Back shows the same list, and Back leaves the page rather than stepping through filters. 2026-10-25, #122.
 
 ## Code map
 
