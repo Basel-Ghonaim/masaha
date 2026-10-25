@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -761,6 +761,72 @@ AnnouncementsSummary = { running: number, upcoming: number, ended: number, closu
 - **204**, in any state; one deleted already answers 204 again, writing nothing.
 - **Errors**, each writing nothing: `forbidden` (403); `not_found` (404) for an announcement that is not the space's.
 
+### Data reports
+
+A signed-in user tells Masaha that one field group of a listed space's page is wrong; the space's owner, or the admin while the space is unverified, decides the report, and the reporter sees the reply ([data-model › Operations](../architecture/data-model.md#operations)). Resolving a report never edits the space. Built 2026-10-25, #120.
+
+- **The fields** (`@masaha/shared/data-reports`): `field`, one of `PRICES`, `HOURS`, `CONTACT`, `LOCATION`, `AMENITIES`, `OTHER` (`invalid_choice`); `message`, optional, required for `OTHER` (`required`), and a decision's `note`, each 1–500 characters, NFC-normalised and trimmed, line breaks kept, with no bidirectional or other control characters (`invalid_format`).
+- **One open report per user, space and field:** a repeat while one is open answers that one, 200, and writes nothing; once it is decided, a new one may be sent. The database holds the rule ([data-model › Constraints](../architecture/data-model.md#constraints-worth-stating)).
+- **Deciding:** a report is resolved, with a reply or none, or dismissed, with a reply required (`required` on `note`), by the space's owner, or by the admin while the space is unverified ([security › Authorization](../backend/security.md#authorization)). A decided report is final: another decision is `conflict` (409) `REPORT_ALREADY_DECIDED`; the same decision again — the same status, the same reply, by the same person — answers the report as it is, 200, writing nothing. Resolving never edits the space.
+- **Audit**, in the decision's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the report as the entity and its space as the entry's: `dataReport.resolved` and `dataReport.dismissed` (`after`: `{ note }`). A report itself is not audited.
+- **The limit:** 10 reports an hour per user, counted before the body is read, a repeat and an invalid body included ([security.md › Rate limits](../backend/security.md#rate-limits-fixed-window)); past it, 429 with `Retry-After`.
+
+```ts
+ReportDecision = {
+  status: 'RESOLVED' | 'DISMISSED',
+  at: string,
+  note: string | null,             // the reply to the reporter; a dismissal's is required
+  repliedBy: 'SPACE' | 'MASAHA'    // who decided, as stored with the decision: the owner, or the admin
+}
+
+SpaceReport = {                    // never who reported it
+  id: number,
+  field: 'PRICES' | 'HOURS' | 'CONTACT' | 'LOCATION' | 'AMENITIES' | 'OTHER',
+  message: string | null,
+  createdAt: string,
+  status: 'OPEN' | 'RESOLVED' | 'DISMISSED',
+  decision: ReportDecision | null  // null while open
+}
+
+MyReport = SpaceReport & {
+  space: { id: number, slug: string, nameEn: string, nameAr: string | null, listed: boolean }
+}
+
+AdminReport = SpaceReport & {
+  space: { id: number, slug: string, nameEn: string, nameAr: string | null, verified: boolean },
+  reporter: { id: number, name: string },
+  decidedBy: { id: number, name: string } | null
+}
+```
+
+#### `POST /spaces/:slug/reports` · 👤
+- **Body:** `{ field, message? }`.
+- **201:** `MyReport`, `OPEN`, `listed: true`. **200:** the user's open report of that space and field, as it is, writing nothing; two identical reports at once make one (the user's lock, the database's rule behind it).
+- **Errors**, each writing nothing: `unauthorized` (401) without a signed-in user; `rate_limit` (429) past the limit, before the body is read; `validation` (422) on the body; `not_found` (404) for a space that is not publicly listed — unknown, hidden, deleted, or in an area not listed — as its page answers.
+
+#### `GET /me/reports` · 👤
+- **Query:** `status` (`OPEN`, or `DECIDED`: resolved or dismissed; all when absent; `invalid_choice` otherwise) and §4's `page` and `limit`.
+- **200:** `MyReport[]`, the caller's own only, newest first, then id, with §4's `meta`. Each decided one carries its `decision`, `repliedBy` as stored with it; a space that left the directory (hidden, deleted, or in an area not listed) carries `listed: false`, its names and slug kept (a slug is never reused), so the screen shows its name as text. Built 2026-10-25, #120.
+
+#### `GET /manage/spaces/:spaceId/data-reports` · 🏢
+- Under `/manage/spaces/:spaceId`, as *Managed spaces* says: without an active link at the live space, `not_found` (404); reception is `forbidden` (403) before the query is read.
+- **Query:** `status` (`OPEN` or `DECIDED`; all when absent), `field` (one of the six) and §4's `page` and `limit`; `invalid_choice` otherwise.
+- **200:** `SpaceReport[]`, the space's own, newest first, then id, with §4's `meta`. **Never who reported:** no name, id or email anywhere in the answer. Built 2026-10-25, #120.
+
+#### `PATCH /manage/spaces/:spaceId/data-reports/:reportId` · 🏢
+- **Body:** `{ status: 'RESOLVED' | 'DISMISSED', note? }`.
+- **200:** `SpaceReport`, decided now with `repliedBy: 'SPACE'`; the same decision again answers it as it is.
+- **Errors**, each writing nothing: `forbidden` (403) for reception, before the body is read; `validation` (422) on the body; `not_found` (404) for a report that is not the space's; `forbidden` (403) for an owner whose link ended while the decision waited; `conflict` (409) `REPORT_ALREADY_DECIDED`. Built 2026-10-25, #120.
+
+#### `GET /admin/data-reports` · 🛡
+- **Query:** `status` (`OPEN` or `DECIDED`), `field`, `spaceId` (a positive id) and §4's `page` and `limit`, each optional; `invalid_choice` or `validation` otherwise.
+- **200:** `AdminReport[]`, every space's, newest first, then id, with §4's `meta`: who reported and who decided, by name, and whether the space is verified now. A soft-deleted space's reports are left out ([ADR 0007](../architecture/decisions/0007-soft-delete.md)). Built 2026-10-25, #120.
+
+#### `PATCH /admin/data-reports/:reportId` · 🛡
+- **Body:** `{ status: 'RESOLVED' | 'DISMISSED', note? }`.
+- **200:** `AdminReport`, decided now with `repliedBy: 'MASAHA'`; the same decision again answers it as it is.
+- **Errors**, each writing nothing: `validation` (422) on the body; `not_found` (404) for no such report, or a deleted space's; `forbidden` (403) for a verified space's report — its owner decides it — also when an owner was linked while the decision waited (the links read under the space's lock); `conflict` (409) `REPORT_ALREADY_DECIDED`, also when the owner decided it first. Built 2026-10-25, #120.
+
 ### Internal
 
 The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conventions §12](../backend/conventions.md#12-environments)): online, an external cron calls this endpoint every 5 minutes; locally, the server runs the same jobs from a timer. It carries no access token, so the general limit counts it by address ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). Built 2026-10-20, #97.
@@ -1201,4 +1267,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` (a phone another customer of the space holds, not archived, 2026-10-21, #102) · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SESSION_IDLE` (401: reception's session ended after 15 minutes with no request, on a signed-in request or the refresh, 2026-10-25, #118) · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` (archiving a customer who is present, 2026-10-21, #102; checking in a subscriber who is present, 2026-10-22, #109) · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CLOSURE_IN_FORCE` (warning only: a check-in, a visit's or a subscriber's, while a closure the space announced runs; the check-in succeeds with `meta.warnings`, 2026-10-24, #112) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off, or leaving to a customer, a visit with nothing owed, 2026-10-20, #100) · `VISIT_WRITTEN_OFF` (a payment on a written-off visit, from the ledger, or leaving it to a customer, 2026-10-20, #100; or voiding one of its payments, 2026-10-24, #114) · `VISIT_HAS_CUSTOMER` (a phone that is not the customer's of a visit that has one, 2026-10-20, #100) · `CUSTOMER_ARCHIVED` (editing an archived customer, 2026-10-21, #102) · `SUBSCRIPTION_ALREADY_RENEWED` (renewing a subscription renewed already, 2026-10-22, #106) · `CUSTOMER_HAS_DEBT` (warning only: a subscribe whose customer still owes on an earlier item; the subscription is made with `meta.warnings`, 2026-10-22, #106) · `SUBSCRIPTION_ENDED` (correcting a subscription ended early, 2026-10-22, #106) · `PRICE_BELOW_PAID` (a fixed price corrected below what was paid on it, from the database, 2026-10-22, #106) · `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_EXPIRED`, `DAYS_PER_WEEK_USED`, `HOURS_PER_DAY_USED` (warnings only: a subscriber checked in before the subscription starts, after it expired, with this week's days or today's hours used up; the check-in succeeds with `meta.warnings`, 2026-10-22, #109) · `ANNOUNCEMENT_NOT_STARTED` (ending now an announcement that has not started, 2026-10-24, #112).
+`EMAIL_TAKEN` · `PHONE_TAKEN` (a phone another customer of the space holds, not archived, 2026-10-21, #102) · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SESSION_IDLE` (401: reception's session ended after 15 minutes with no request, on a signed-in request or the refresh, 2026-10-25, #118) · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` (archiving a customer who is present, 2026-10-21, #102; checking in a subscriber who is present, 2026-10-22, #109) · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CLOSURE_IN_FORCE` (warning only: a check-in, a visit's or a subscriber's, while a closure the space announced runs; the check-in succeeds with `meta.warnings`, 2026-10-24, #112) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off, or leaving to a customer, a visit with nothing owed, 2026-10-20, #100) · `VISIT_WRITTEN_OFF` (a payment on a written-off visit, from the ledger, or leaving it to a customer, 2026-10-20, #100; or voiding one of its payments, 2026-10-24, #114) · `VISIT_HAS_CUSTOMER` (a phone that is not the customer's of a visit that has one, 2026-10-20, #100) · `CUSTOMER_ARCHIVED` (editing an archived customer, 2026-10-21, #102) · `SUBSCRIPTION_ALREADY_RENEWED` (renewing a subscription renewed already, 2026-10-22, #106) · `CUSTOMER_HAS_DEBT` (warning only: a subscribe whose customer still owes on an earlier item; the subscription is made with `meta.warnings`, 2026-10-22, #106) · `SUBSCRIPTION_ENDED` (correcting a subscription ended early, 2026-10-22, #106) · `PRICE_BELOW_PAID` (a fixed price corrected below what was paid on it, from the database, 2026-10-22, #106) · `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_EXPIRED`, `DAYS_PER_WEEK_USED`, `HOURS_PER_DAY_USED` (warnings only: a subscriber checked in before the subscription starts, after it expired, with this week's days or today's hours used up; the check-in succeeds with `meta.warnings`, 2026-10-22, #109) · `ANNOUNCEMENT_NOT_STARTED` (ending now an announcement that has not started, 2026-10-24, #112) · `REPORT_ALREADY_DECIDED` (409: a decided report decided again, otherwise than it was, 2026-10-25, #120).

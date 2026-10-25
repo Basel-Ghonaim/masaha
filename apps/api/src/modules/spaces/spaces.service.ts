@@ -5,7 +5,7 @@ import { autoCheckoutDue, stayEnd, type AutoCheckoutInput } from './autoCheckout
 import { createHoursRepository } from './hours/hours.repository.ts';
 import { createShiftsRepository } from './hours/shifts.repository.ts';
 import { createPricesRepository } from './prices/prices.repository.ts';
-import { createSpacesRepository, type SpaceRow } from './spaces.repository.ts';
+import { createSpacesRepository, type SpaceName, type SpaceRow } from './spaces.repository.ts';
 
 /**
  * The listed coworking spaces, as the modules above read them: the summaries of many spaces at
@@ -21,6 +21,11 @@ export function createSpacesService() {
     /** The summaries of these spaces, in one query; a soft-deleted space has none. */
     summariesFor(ids: readonly number[], tx?: Tx): Promise<SpaceRow[]> {
       return repository.findSummaries(ids, tx);
+    },
+
+    /** The names of these spaces, in one query, soft-deleted ones included. */
+    namesWithDeleted(ids: readonly number[], tx?: Tx): Promise<SpaceName[]> {
+      return repository.findNamesWithDeleted(ids, tx);
     },
 
     /** The space's week, Sunday (0) to Saturday (6), `null` for a closed day; null without hours. */

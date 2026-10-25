@@ -51,6 +51,7 @@ export const ERRORS = {
   DAYS_PER_WEEK_USED: 'استنفد أيامه هذا الأسبوع، وسُجّل الحضور رغم ذلك.',
   HOURS_PER_DAY_USED: 'استنفد ساعاته اليوم، وسُجّل الحضور رغم ذلك.',
   ANNOUNCEMENT_NOT_STARTED: 'لم يبدأ هذا الإعلان بعد.',
+  REPORT_ALREADY_DECIDED: 'سبق البتّ في هذا البلاغ.',
   ACCOUNT_IS_ADMIN: 'لا يمكن لحساب أدمن أن يكون صاحب مساحة.',
   RECEPTION_LINK_ACTIVE: 'هذا الشخص يعمل في استقبال هذه المساحة. يوقف صاحبها ذلك الربط أولًا.',
   EMAIL_HAS_ACCOUNT: 'لهذا البريد حساب بالفعل. يمكن ترقيته إلى صاحب مساحة وربطه.',

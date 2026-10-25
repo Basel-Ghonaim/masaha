@@ -221,6 +221,41 @@ describe('subscribing a customer', () => {
     });
   });
 
+  it("a shift's published price is the one of that shift, and copies it; the price with no shift copies none", async () => {
+    const morning = await prisma.spaceShift.create({
+      data: { spaceId, nameAr: 'صباحي', startsMinute: 480, endsMinute: 840 },
+    });
+    await addPrice(spaceId, 'MONTH', 25_000);
+    await prisma.spacePrice.create({
+      data: {
+        spaceId,
+        period: 'MONTH',
+        audience: 'GENERAL',
+        amountAgorot: 15_000,
+        shiftId: morning.id,
+      },
+    });
+
+    const shifted = await subscribe(reception, {
+      published: { period: 'MONTH', audience: 'GENERAL', shiftId: morning.id, name: 'صباحي' },
+    });
+    expect(shifted.status).toBe(201);
+    expect((dataOf(shifted) as { subscription: object }).subscription).toMatchObject({
+      priceAgorot: 15_000,
+      shiftId: morning.id,
+    });
+
+    const whole = await subscribe(reception, {
+      published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري' },
+      startsOn: '2026-11-20',
+    });
+    expect(whole.status).toBe(201);
+    expect((dataOf(whole) as { subscription: object }).subscription).toMatchObject({
+      priceAgorot: 25_000,
+      shiftId: null,
+    });
+  });
+
   it('a later prices save leaves a subscription made from a published price as it was', async () => {
     await addPrice(spaceId, 'MONTH', 25_000);
     const made = await subscribe(reception, {

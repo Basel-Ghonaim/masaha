@@ -10,6 +10,14 @@ export interface SpaceRow {
   areaId: number;
 }
 
+/** What names a space wherever it is shown, deleted or not: its slug and its names. */
+export interface SpaceName {
+  id: number;
+  slug: string;
+  nameEn: string;
+  nameAr: string | null;
+}
+
 export function createSpacesRepository(db: PrismaClient = prisma) {
   return {
     /**
@@ -20,6 +28,17 @@ export function createSpacesRepository(db: PrismaClient = prisma) {
       return tx.space.findMany({
         where: { id: { in: [...ids] }, deletedAt: null },
         select: { id: true, slug: true, nameAr: true, nameEn: true, areaId: true },
+      });
+    },
+
+    /**
+     * The names of the spaces with these ids, soft-deleted ones included: for a list of a user's own
+     * rows that keeps a space after it left (a slug is never reused, data-model › IDs).
+     */
+    findNamesWithDeleted(ids: readonly number[], tx: Tx = db): Promise<SpaceName[]> {
+      return tx.space.findMany({
+        where: { id: { in: [...ids] } },
+        select: { id: true, slug: true, nameEn: true, nameAr: true },
       });
     },
 

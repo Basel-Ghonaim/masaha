@@ -74,6 +74,8 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [138. A failed refresh keeps a status that still reads live](138-a-failed-refresh-keeps-a-status-that-still-reads-live.md)
 - [161. No route reads the visits of a day](161-no-route-reads-the-visits-of-a-day.md)
 - [164. A written-off visit is listed nowhere](164-a-written-off-visit-is-listed-nowhere.md)
+- [170. A request's renewal racing a rotation can be lost on the newest row](170-a-requests-renewal-racing-a-rotation-can-be-lost-on-the-newest-row.md)
+- [171. A published price changed between the desk's read and the subscribe is charged silently](171-a-published-price-changed-between-the-desks-read-and-the-subscribe-is-charged-silently.md)
 
 ## Accepted
 

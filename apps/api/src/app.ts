@@ -36,6 +36,13 @@ import {
   createPaymentsService,
 } from './modules/payments/index.ts';
 import {
+  createDataReportsAdminRouter,
+  createDataReportsController,
+  createDataReportsManageRouter,
+  createDataReportsService,
+  createDataReportsSiteRouter,
+} from './modules/data-reports/index.ts';
+import {
   createDeskController,
   createDeskManageRouter,
   createDeskService,
@@ -414,18 +421,31 @@ export function createApi({
     stateOf: (sessionId, renew) =>
       sessions.idleState(sessionId, renew, RECEPTION_IDLE_MINUTES * 60_000),
   });
+  const publicListing = createPublicListingService({ platformSettings, now: clock, storage });
+  const publicSpace = createPublicSpaceService({
+    runInTransaction,
+    platformSettings,
+    now: clock,
+    storage,
+  });
   const directory = createDirectoryService({
     announcements,
     lookups,
     spaceLinks,
-    publicListing: createPublicListingService({ platformSettings, now: clock, storage }),
-    publicSpace: createPublicSpaceService({
-      runInTransaction,
-      platformSettings,
-      now: clock,
-      storage,
-    }),
+    publicListing,
+    publicSpace,
     occupancy,
+  });
+  const dataReports = createDataReportsService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    publicSpace,
+    publicListing,
+    lookups,
+    spaceLinks,
+    users,
+    now: clock,
   });
   const adminUsers = createAdminUsersService({ users, spaces });
   const adminRoles = createAdminRolesService({ runInTransaction, users });
@@ -488,6 +508,8 @@ export function createApi({
   api.use('/me', createUsersMeRouter(usersController, requireAuth));
   api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
   api.use(createDirectoryPublicRouter(createDirectoryController(directory)));
+  const dataReportsController = createDataReportsController(dataReports);
+  api.use(createDataReportsSiteRouter({ controller: dataReportsController, requireAuth, limiter }));
   api.use(
     '/manage/spaces',
     createSpaceLinksMeRouter(createSpaceLinksController(spaceLinks), requireAuth),
@@ -508,6 +530,7 @@ export function createApi({
     '/photos',
     createPhotosManageRouter({ photos: createPhotosController(photos), limiter }),
   );
+  manage.use('/data-reports', createDataReportsManageRouter(dataReportsController));
   manage.use('/packages', createPackagesManageRouter(createPackagesController(packages)));
   manage.use(
     '/announcements',
@@ -558,6 +581,7 @@ export function createApi({
     }),
   );
   admin.use(createUsersAdminRouter(usersController));
+  admin.use('/data-reports', createDataReportsAdminRouter(dataReportsController));
   admin.use(
     createSpacesAdminRouter({
       space: createSpaceController(space),

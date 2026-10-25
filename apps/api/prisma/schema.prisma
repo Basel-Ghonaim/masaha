@@ -125,6 +125,12 @@ enum DataReportStatus {
   DISMISSED
 }
 
+/// Who decided a report, as stored with the decision: its space's owner, or the admin (`repliedBy`).
+enum DataReportResolver {
+  OWNER
+  ADMIN
+}
+
 // ─── Users and sessions ──────────────────────────────────────────────────────────────────────
 
 /// Signs in with a password, Google, or both; at least one (a CHECK in the accounts migration).
@@ -888,24 +894,28 @@ model SubscriptionExtension {
 }
 
 model DataReport {
-  id             Int              @id @default(autoincrement())
-  spaceId        Int              @map("space_id")
-  userId         Int              @map("user_id")
+  id             Int                 @id @default(autoincrement())
+  spaceId        Int                 @map("space_id")
+  userId         Int                 @map("user_id")
   field          DataReportField
-  /// Required when field is OTHER (checked by the input schema).
+  /// Required when field is OTHER (the input schema, and a CHECK in the data_report_rules migration).
   message        String?
-  status         DataReportStatus @default(OPEN)
-  resolvedById   Int?             @map("resolved_by_id")
-  resolvedAt     DateTime?        @map("resolved_at") @db.Timestamptz(3)
-  /// Written by whoever resolves it; shown to the reporter.
-  resolutionNote String?          @map("resolution_note")
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  status         DataReportStatus    @default(OPEN)
+  resolvedById   Int?                @map("resolved_by_id")
+  resolvedAt     DateTime?           @map("resolved_at") @db.Timestamptz(3)
+  /// Written by whoever resolves it; shown to the reporter. A dismissal's is required.
+  resolutionNote String?             @map("resolution_note")
+  /// Who decided it, set with the decision (the CHECKs in the data_report_rules migration).
+  resolvedAs     DataReportResolver? @map("resolved_as")
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   space      Space @relation(fields: [spaceId], references: [id], onDelete: Restrict)
   user       User  @relation("DataReportAuthor", fields: [userId], references: [id], onDelete: Restrict)
   resolvedBy User? @relation("DataReportResolver", fields: [resolvedById], references: [id], onDelete: Restrict)
 
+  // One open report per user, space and field (a repeat answers the open one).
+  @@unique([userId, spaceId, field], map: "data_reports_open_key", where: { status: "OPEN" })
   @@index([spaceId, status])
   @@index([userId])
   @@index([status])

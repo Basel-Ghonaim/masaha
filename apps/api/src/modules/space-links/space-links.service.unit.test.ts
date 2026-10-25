@@ -39,6 +39,7 @@ function setup(links: ActiveLink[]) {
       calls.push(`spaces:${ids.join(',')}`);
       return Promise.resolve(SPACES.filter(({ id }) => ids.includes(id)));
     },
+    namesWithDeleted: () => Promise.reject(new Error('not asked here')),
     weekOf: () => Promise.reject(new Error('not asked here')),
     weeksFor: () => Promise.reject(new Error('not asked here')),
     pricesOf: () => Promise.reject(new Error('not asked here')),
