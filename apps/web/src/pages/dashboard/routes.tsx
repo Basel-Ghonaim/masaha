@@ -13,6 +13,7 @@ import {
   ADMIN_ADD_SPACE_PATH,
   ADMIN_NAV,
   ADMIN_SPACE_PATH,
+  SPACE_CUSTOMER_PATH,
   SPACE_NAV,
   type DashboardPageName,
 } from './navigation';
@@ -21,6 +22,9 @@ import { placeOf } from './placeOf';
 /** A page's title: its navigation item's name, as the catalogue words it. */
 const titleOf = (name: DashboardPageName) =>
   ({ title: (copy) => copy.dashboard.pages[name] }) satisfies TitledHandle;
+
+/** A customer's file is the customers list's: the roles its navigation item allows. */
+const CUSTOMERS_ROLES = SPACE_NAV.find(({ name }) => name === 'customers')?.roles ?? [];
 
 /** The 404's title, for each branch's pages that are not there. */
 const NOT_FOUND = { title: (copy) => copy.status.notFound.title } satisfies TitledHandle;
@@ -47,6 +51,10 @@ const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
 
 /** The space's pages that have a screen, each loaded lazily; the others show their placeholder. */
 const SPACE_PAGES: Partial<Record<DashboardPageName, () => Promise<ReactElement>>> = {
+  customers: async () => {
+    const { CustomersPage } = await import('./space/customers/CustomersPage');
+    return <CustomersPage />;
+  },
   desk: async () => {
     const { DeskPage } = await import('./space/desk/DeskPage');
     return <DeskPage />;
@@ -169,6 +177,21 @@ export const dashboardRoutes: RouteObject[] = [
               return { element: <RequireSpaceRole roles={roles}>{element}</RequireSpaceRole> };
             },
           })),
+          {
+            // Titled until the customer's file loads; then by their name, which the page gives.
+            path: SPACE_CUSTOMER_PATH,
+            handle: { title: (copy) => copy.desk.file.title } satisfies TitledHandle,
+            lazy: async () => {
+              const { CustomerPage } = await import('./space/customers/CustomerPage');
+              return {
+                element: (
+                  <RequireSpaceRole roles={CUSTOMERS_ROLES}>
+                    <CustomerPage />
+                  </RequireSpaceRole>
+                ),
+              };
+            },
+          },
           { path: '*', handle: NOT_FOUND, element: <NotFoundState /> },
         ],
       },

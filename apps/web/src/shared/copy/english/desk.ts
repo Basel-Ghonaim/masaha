@@ -232,6 +232,14 @@ export const DESK = {
     checkIn: 'Check in',
     checkInName: ({ name }: { name: string }) => `Check in ${name}`,
     receive: ({ amount }: { amount: string }) => `Receive ${amount}`,
+    /** A customer's «⋯» (DI-39), named by them. */
+    menu: {
+      label: ({ name }: { name: string }) => `More actions: ${name}`,
+      file: 'Customer file',
+      edit: 'Edit details',
+      archive: 'Archive…',
+      restore: 'Restore',
+    },
   },
   /** A subscriber's check-in and check-out at the desk. */
   subscriber: {
@@ -244,6 +252,7 @@ export const DESK = {
       upcoming: ({ name, date }: { name: string; date: string }) =>
         `The subscription “${name}” starts on ${date}.`,
       asVisit: 'Check in as a visit',
+      startFailed: 'We couldn’t read when the subscription starts',
       asVisitNote: 'A visit is recorded under their name; it isn’t added to their file.',
       anyway: 'Check in anyway',
       back: 'Back',
@@ -297,5 +306,166 @@ export const DESK = {
       `${name} · ${item} · ${left} left`,
     failed: 'We couldn’t record the payment',
     fileFailed: 'We couldn’t load what the customer owes',
+  },
+  /** «الزبائن»: the space's customers, searched and filtered (S11). */
+  customers: {
+    label: 'The space’s customers',
+    columns: {
+      name: 'Name',
+      subscription: 'Subscription',
+      status: 'Status',
+      balance: 'Balance',
+      actions: 'Actions',
+    },
+    status: { label: 'Filter by status', all: 'All', ARCHIVED: 'Archived' },
+    kind: {
+      label: 'Subscription type',
+      options: {
+        all: 'All types',
+        PACKAGE: 'Package',
+        CUSTOM: 'Custom',
+        NONE: 'No subscription',
+      },
+    },
+    payment: {
+      label: 'Payment',
+      options: {
+        all: 'All payment states',
+        OWES: 'Owes money',
+        CREDIT: 'In credit',
+        SETTLED: 'Settled',
+      },
+    },
+    filters: {
+      title: 'Filters',
+      applied: ({ count }: { count: number }) =>
+        englishPlural(count, {
+          one: '1 filter applied',
+          other: `${String(count)} filters applied`,
+        }),
+      show: ({ count }: { count: number }) =>
+        englishPlural(count, { one: 'Show 1 customer', other: `Show ${String(count)} customers` }),
+      clear: 'Clear filters',
+      close: 'Close',
+    },
+    count: ({ count }: { count: number }) =>
+      englishPlural(count, { one: '1 customer', other: `${String(count)} customers` }),
+    empty: {
+      title: 'No customers yet',
+      text: 'A customer is added with their first subscription, or when a visitor leaves without paying.',
+    },
+    noMatch: {
+      title: 'No customers match',
+      text: 'Try another name or number, or change the filters.',
+    },
+    archivedEmpty: 'No archived customers',
+    loadFailed: 'We couldn’t load the customers',
+    pagination: {
+      label: 'Pages of customers',
+      previous: 'Previous',
+      next: 'Next',
+      page: ({ page }: { page: number }) => `Page ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `Page ${String(page)} of ${String(total)}`,
+      more: 'More pages',
+    },
+  },
+  /** «ملف الزبون»: a customer's file (screen 15). */
+  file: {
+    title: 'Customer file',
+    breadcrumb: 'Breadcrumb',
+    notFound: {
+      title: 'We couldn’t find this customer',
+      text: 'They may not be a customer of this space.',
+    },
+    balance: 'Balance',
+    archived: 'Archived',
+    here: 'Here now',
+    loadFailed: 'We couldn’t load the customer’s file',
+    unpaid: { title: 'Unpaid visits', unpriced: 'Not priced yet' },
+    subscriptions: {
+      title: 'Subscriptions',
+      none: 'No subscriptions',
+      onlyVisits: 'This customer only comes for visits.',
+    },
+    card: {
+      dates: ({ from, to }: { from: string; to: string }) => `${from} – ${to}`,
+      typed: 'Typed price',
+      terms: {
+        totalDays: ({ count }: { count: number }) =>
+          englishPlural(count, { one: '1 day', other: `${String(count)} days` }),
+        daysPerWeek: ({ count }: { count: number }) => `${String(count)} a week`,
+        hoursPerDay: ({ count }: { count: number }) => `${String(count)} h a day`,
+        totalHours: ({ count }: { count: number }) => `${String(count)} h in all`,
+        student: 'Students',
+        none: 'No extra terms',
+      },
+      due: 'Due',
+      dueSoFar: 'Due so far',
+      paid: 'Paid',
+      left: 'Left',
+      pay: { paid: 'Paid', partial: 'Partly paid', unpaid: 'Unpaid' },
+      receiveLeft: 'Receive what’s left',
+    },
+  },
+  /** A customer's name and phone, edited (finding 123). */
+  edit: {
+    title: 'Edit details',
+    name: 'Name',
+    phone: 'Mobile number',
+    optional: 'Optional',
+    phoneHelp: 'Debt reminders go to this number on WhatsApp.',
+    save: 'Save',
+    nothingChanged: 'Nothing changed',
+    done: ({ name }: { name: string }) => `${name}’s details saved`,
+    failed: 'We couldn’t save the details',
+  },
+  /** The owner's archive of a customer, and its restore (DK-014, P9). */
+  archive: {
+    done: ({ name }: { name: string }) => `${name} archived`,
+    undo: 'Undo',
+    restored: ({ name }: { name: string }) => `${name} restored`,
+    title: ({ name }: { name: string }) => `Archive ${name}?`,
+    text: ({ amount }: { amount: string }) =>
+      `They owe ${amount}. The amount stays on their record; they leave the search and the desk, and stay under “Archived” in Customers.`,
+    confirm: 'Archive anyway',
+    back: 'Back',
+    doneOwing: ({ name, amount }: { name: string; amount: string }) =>
+      `${name} archived · owes ${amount}`,
+    present: ({ name }: { name: string }) =>
+      `${name} is here now; check them out before archiving.`,
+    failed: 'We couldn’t archive them',
+    restorePhoneTaken:
+      'Their number now belongs to another customer; change one of them before restoring.',
+    restoreFailed: 'We couldn’t restore them',
+  },
+  /** A subscription's statement, opened in its card (DI-43). */
+  statement: {
+    show: 'Show the statement',
+    hide: 'Hide the statement',
+    loadFailed: 'We couldn’t load the statement',
+    checkIns: 'Attendance',
+    columns: { day: 'Day', in: 'In', out: 'Out', duration: 'Duration' },
+    here: 'Here now',
+    auto: 'Auto check-out',
+    noCheckIns: 'No attendance yet.',
+    payments: 'Payments',
+    noPayments: 'No payments yet.',
+    voided: 'Voided',
+    voidedReason: ({ reason }: { reason: string }) => `Voided: ${reason}`,
+    renewal: ({ date }: { date: string }) => `A renewal would start on ${date}`,
+  },
+  /** Ending a subscription early. */
+  end: {
+    action: 'End subscription',
+    title: 'End the subscription today?',
+    text: ({ name, end }: { name: string; end: string }) =>
+      `${name} · The end date becomes ${end}. Amounts paid and due don’t change.`,
+    textWas: ({ name, end, was }: { name: string; end: string; was: string }) =>
+      `${name} · The end date becomes ${end} instead of ${was}. Amounts paid and due don’t change.`,
+    confirm: 'End subscription',
+    back: 'Back',
+    done: ({ name }: { name: string }) => `“${name}” ended today`,
+    failed: 'We couldn’t end the subscription',
   },
 } as const;

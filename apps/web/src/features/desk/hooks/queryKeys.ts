@@ -23,4 +23,7 @@ export const deskKeys = {
   /** A customer's file. */
   file: (spaceId: number, customerId: number) =>
     ['space', spaceId, 'desk', 'file', customerId] as const,
+  /** A subscription's statement. */
+  statement: (spaceId: number, subscriptionId: number) =>
+    ['space', spaceId, 'desk', 'statement', subscriptionId] as const,
 };

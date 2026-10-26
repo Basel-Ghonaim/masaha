@@ -1,14 +1,23 @@
 import { createQueryClient } from '@shared/api';
+import { Toaster } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { customerRow, customersPage } from '../../../../test/deskCustomer';
-import { fakeTransport, restoreTransport } from '../../../../test/fakeTransport';
+import { deskVisit, visitTerms } from '../../../../test/deskVisit';
+import { findToast } from '../../../../test/findToast';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { stubScreenWidth } from '../../../../test/screenWidth';
 import { startPreferences } from '../../../../test/startPreferences';
+import { useVisitDialog } from '../../hooks/check-in/useVisitDialog';
+import { VisitDialog } from '../visit/VisitDialog';
 import { DeskSearch } from './DeskSearch';
+
+/** The cards' «⋯» as reception's desk passes it. */
+const MENU = { owner: false, fileLink: (id: number) => `/file/${String(id)}` };
 
 const SARA = customerRow({ id: 4, name: 'Sara Khalid' });
 const SAMIR = customerRow({ id: 5, name: 'Samir Odeh', phone: null, current: null });
@@ -31,11 +40,43 @@ function renderSearch(checkIn = vi.fn()) {
   const view = render(
     <QueryClientProvider client={createQueryClient()}>
       <main>
-        <DeskSearch spaceId={7} present={present} checkIn={checkIn} receive={vi.fn()} />
+        <DeskSearch spaceId={7} present={present} checkIn={checkIn} receive={vi.fn()} menu={MENU} />
       </main>
     </QueryClientProvider>,
   );
   return { ...view, checkIn };
+}
+
+/** The page's search and its visit dialog, as `DeskPage` composes them. */
+function SearchWithVisit() {
+  const visit = useVisitDialog({ spaceId: 7, shifts: [], full: false });
+  return (
+    <>
+      <DeskSearch
+        spaceId={7}
+        present={present}
+        checkIn={(name, after) => {
+          visit.setOpen(true, name, after);
+        }}
+        receive={vi.fn()}
+        menu={MENU}
+      />
+      <VisitDialog dialog={visit} />
+    </>
+  );
+}
+
+function renderSearchWithVisit(checkIn: () => FakeAnswer) {
+  fakeTransport((request) => {
+    if (request.url === '/manage/spaces/7/visit-terms') return ok(visitTerms());
+    return request.method === 'post' ? checkIn() : customersPage([]);
+  });
+  render(
+    <QueryClientProvider client={createQueryClient()}>
+      <SearchWithVisit />
+      <Toaster label="Notifications" />
+    </QueryClientProvider>,
+  );
 }
 
 beforeEach(() => {
@@ -72,8 +113,35 @@ describe('DeskSearch', () => {
     expect(screen.getByText('2 results')).toHaveAttribute('aria-live', 'polite');
 
     await user.click(screen.getByRole('button', { name: /Check in a visit for/ }));
-    expect(checkIn).toHaveBeenCalledWith('Sa');
+    expect(checkIn).toHaveBeenCalledWith('Sa', expect.anything());
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('is cleared and focused after a named visit is checked in; a failed one keeps the term', async () => {
+    stubScreenWidth(1440);
+    const user = userEvent.setup();
+    let answer: FakeAnswer = refused(403, { type: 'forbidden' });
+    renderSearchWithVisit(() => answer);
+
+    const box = screen.getByRole('searchbox');
+    await user.type(box, 'Omar');
+    await user.click(await screen.findByRole('button', { name: /Check in a visit for/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Check in a visit' });
+    await user.click(within(dialog).getByRole('button', { name: 'Check in' }));
+    expect(await within(dialog).findByRole('alert')).toBeVisible();
+    await user.keyboard('{Escape}');
+    expect(box).toHaveValue('Omar');
+
+    answer = ok(deskVisit({ visitorName: 'Omar' }), 201);
+    await user.click(screen.getByRole('button', { name: /Check in a visit for/ }));
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Check in' }),
+    );
+    await findToast((content) => content.replace(/[⁦-⁩]/g, '') === 'Omar checked in');
+    await waitFor(() => {
+      expect(box).toHaveFocus();
+    });
+    expect(box).toHaveValue('');
   });
 
   it('takes the focus on arrival from 768 px, not at 390', () => {

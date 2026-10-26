@@ -24,7 +24,7 @@ import type { VisitDialogView } from '../../hooks/check-in/useVisitDialog';
  * «تسجيل زيارة»: the visitor's name, focused first, «طالب» and «الوردية» where the space offers
  * them, the rate the visit will copy, and, while the space is full, that it may still be checked in.
  * Enter sends it; while it is sent the fields wait, and a failure shows above the footer, every value
- * kept. Closed, the focus returns to what opened it.
+ * kept. Closed, the focus returns to what opened it, or to the search after a check-in from it.
  */
 export function VisitDialog({ dialog }: { dialog: VisitDialogView }) {
   const { name, student, shift } = dialog.fields;
@@ -34,6 +34,13 @@ export function VisitDialog({ dialog }: { dialog: VisitDialogView }) {
       <DialogContent
         onEscapeKeyDown={(event) => {
           if (dialog.submit.busy) event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          const target = dialog.focusAfter();
+          if (target !== null) {
+            event.preventDefault();
+            target.focus();
+          }
         }}
       >
         <DialogHeader>

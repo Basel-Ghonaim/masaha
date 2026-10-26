@@ -1,5 +1,5 @@
 import { createQueryClient } from '@shared/api';
-import { establishSession, restoreSession } from '@shared/session';
+import { establishSession, refreshSession, restoreSession } from '@shared/session';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -130,6 +130,26 @@ describe('the sign-in page', () => {
     await waitFor(() => {
       expect(where(router)).toBe('/');
     });
+  });
+
+  it('says why the session ended, only after the server ended it for idleness', async () => {
+    renderSite('/login');
+    await screen.findByRole('heading', { level: 1, name: 'Sign in' });
+    expect(screen.queryByText(/15 minutes with no activity/)).toBeNull();
+  });
+
+  it('says a session ended for idleness above the form', async () => {
+    establishSession(aSession(), { source: 'signIn' });
+    setSessionHint(true);
+    fakeTransport(() => refused(401, { type: 'unauthorized', code: 'SESSION_IDLE' }));
+    await refreshSession().catch(() => undefined);
+    renderSite('/login?next=%2Fdashboard%2Fspaces%2F7%2Fdesk');
+
+    const line = await screen.findByText(
+      'Your session ended after 15 minutes with no activity. Sign in again.',
+    );
+    expect(line.closest('[role="status"]')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeVisible();
   });
 
   it('links to a forgotten password, to a new account carrying the return page, and to the spaces', async () => {

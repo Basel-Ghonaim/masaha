@@ -239,6 +239,14 @@ export const DESK = {
     checkIn: 'حضور',
     checkInName: ({ name }: { name: string }) => `حضور ${name}`,
     receive: ({ amount }: { amount: string }) => `استلام ${amount}`,
+    /** A customer's «⋯» (DI-39), named by them. */
+    menu: {
+      label: ({ name }: { name: string }) => `إجراءات أخرى: ${name}`,
+      file: 'ملف الزبون',
+      edit: 'تعديل البيانات',
+      archive: 'أرشفة…',
+      restore: 'استرجاع',
+    },
   },
   subscriber: {
     pre: {
@@ -249,6 +257,7 @@ export const DESK = {
       upcoming: ({ name, date }: { name: string; date: string }) =>
         `يبدأ الاشتراك «${name}» في ${date}.`,
       asVisit: 'تسجيل كزيارة',
+      startFailed: 'تعذّرت قراءة تاريخ بدء الاشتراك',
       asVisitNote: 'تُسجَّل زيارة باسمه، ولا تُضاف إلى ملفه.',
       anyway: 'تسجيل على أي حال',
       back: 'رجوع',
@@ -299,5 +308,186 @@ export const DESK = {
       `${name} · ${item} · المتبقي ${left}`,
     failed: 'تعذّر تسجيل الدفعة',
     fileFailed: 'تعذّر تحميل مستحقات الزبون',
+  },
+  /** «الزبائن»: the space's customers, searched and filtered (S11). */
+  customers: {
+    label: 'زبائن المساحة',
+    columns: {
+      name: 'الاسم',
+      subscription: 'الاشتراك',
+      status: 'الحالة',
+      balance: 'الرصيد',
+      actions: 'إجراءات',
+    },
+    status: { label: 'تصفية حسب الحالة', all: 'الكل', ARCHIVED: 'مؤرشف' },
+    kind: {
+      label: 'نوع الاشتراك',
+      options: {
+        all: 'كل الأنواع',
+        PACKAGE: 'باقة',
+        CUSTOM: 'مخصّص',
+        NONE: 'بدون اشتراك',
+      },
+    },
+    payment: {
+      label: 'الدفع',
+      options: {
+        all: 'كل حالات الدفع',
+        OWES: 'عليه دين',
+        CREDIT: 'له رصيد',
+        SETTLED: 'مسدّد',
+      },
+    },
+    filters: {
+      title: 'الفلاتر',
+      applied: ({ count }: { count: number }) =>
+        arabicPlural(count, {
+          zero: 'لا فلاتر مطبّقة',
+          one: 'فلتر واحد مطبّق',
+          two: 'فلتران مطبّقان',
+          few: `${String(count)} فلاتر مطبّقة`,
+          many: `${String(count)} فلترًا مطبّقًا`,
+          other: `${String(count)} فلتر مطبّق`,
+        }),
+      show: ({ count }: { count: number }) =>
+        arabicPlural(count, {
+          zero: `عرض ${String(count)} زبون`,
+          one: 'عرض الزبون',
+          two: 'عرض الزبونين',
+          few: `عرض ${String(count)} زبائن`,
+          many: `عرض ${String(count)} زبونًا`,
+          other: `عرض ${String(count)} زبون`,
+        }),
+      clear: 'مسح الفلاتر',
+      close: 'إغلاق',
+    },
+    count: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا زبائن',
+        one: 'زبون واحد',
+        two: 'زبونان',
+        few: `${String(count)} زبائن`,
+        many: `${String(count)} زبونًا`,
+        other: `${String(count)} زبون`,
+      }),
+    empty: {
+      title: 'لا يوجد زبائن بعد',
+      text: 'يُضاف الزبون عند أول اشتراك، أو عندما يخرج زائر بدون دفع.',
+    },
+    noMatch: {
+      title: 'لا يوجد زبائن يطابقون البحث',
+      text: 'جرّب اسمًا أو رقمًا آخر، أو غيّر الفلاتر.',
+    },
+    archivedEmpty: 'لا يوجد زبائن مؤرشفون',
+    loadFailed: 'تعذّر تحميل الزبائن',
+    pagination: {
+      label: 'صفحات الزبائن',
+      previous: 'السابق',
+      next: 'التالي',
+      page: ({ page }: { page: number }) => `الصفحة ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `صفحة ${String(page)} من ${String(total)}`,
+      more: 'صفحات أخرى',
+    },
+  },
+  /** «ملف الزبون»: a customer's file (screen 15). */
+  file: {
+    title: 'ملف الزبون',
+    breadcrumb: 'مسار التنقّل',
+    notFound: { title: 'لم نجد هذا الزبون', text: 'ربما ليس من زبائن هذه المساحة.' },
+    balance: 'الرصيد',
+    archived: 'مؤرشف',
+    here: 'حاضر الآن',
+    loadFailed: 'تعذّر تحميل ملف الزبون',
+    unpaid: { title: 'زيارات غير مدفوعة', unpriced: 'بدون سعر بعد' },
+    subscriptions: {
+      title: 'الاشتراكات',
+      none: 'لا توجد اشتراكات',
+      onlyVisits: 'هذا الزبون يأتي بزيارات فقط.',
+    },
+    card: {
+      dates: ({ from, to }: { from: string; to: string }) => `${from} – ${to}`,
+      typed: 'سعر يدوي',
+      terms: {
+        totalDays: ({ count }: { count: number }) =>
+          arabicPlural(count, {
+            zero: `${String(count)} يوم`,
+            one: 'يوم واحد',
+            two: 'يومان',
+            few: `${String(count)} أيام`,
+            many: `${String(count)} يومًا`,
+            other: `${String(count)} يوم`,
+          }),
+        daysPerWeek: ({ count }: { count: number }) => `${String(count)} بالأسبوع`,
+        hoursPerDay: ({ count }: { count: number }) => `${String(count)} س باليوم`,
+        totalHours: ({ count }: { count: number }) => `${String(count)} س إجمالًا`,
+        student: 'للطلاب',
+        none: 'بدون شروط إضافية',
+      },
+      due: 'المستحق',
+      dueSoFar: 'المستحق حتى الآن',
+      paid: 'المدفوع',
+      left: 'المتبقي',
+      pay: { paid: 'مدفوع', partial: 'مدفوع جزئيًا', unpaid: 'غير مدفوع' },
+      receiveLeft: 'استلام المتبقي',
+    },
+  },
+  /** A customer's name and phone, edited (finding 123). */
+  edit: {
+    title: 'تعديل البيانات',
+    name: 'الاسم',
+    phone: 'رقم الجوال',
+    optional: 'اختياري',
+    phoneHelp: 'إليه يُرسل تذكير الدين على واتساب.',
+    save: 'حفظ',
+    nothingChanged: 'لم يتغيّر شيء',
+    done: ({ name }: { name: string }) => `حُفظت بيانات ${name}`,
+    failed: 'تعذّر حفظ البيانات',
+  },
+  /** The owner's archive of a customer, and its restore (DK-014, P9). */
+  archive: {
+    done: ({ name }: { name: string }) => `أُرشف ${name}`,
+    undo: 'تراجع',
+    restored: ({ name }: { name: string }) => `استُرجع ${name}`,
+    title: ({ name }: { name: string }) => `أرشفة ${name}؟`,
+    text: ({ amount }: { amount: string }) =>
+      `عليه ${amount} غير مسدّدة. يبقى المبلغ في سجله، ويخرج من البحث ومن المكتب، ويبقى تحت «مؤرشف» في الزبائن.`,
+    confirm: 'أرشفة رغم الدين',
+    back: 'رجوع',
+    doneOwing: ({ name, amount }: { name: string; amount: string }) =>
+      `أُرشف ${name} · عليه ${amount}`,
+    present: ({ name }: { name: string }) => `${name} حاضر الآن؛ سجّل خروجه قبل الأرشفة.`,
+    failed: 'تعذّرت الأرشفة',
+    restorePhoneTaken: 'رقمه مسجّل الآن لزبون آخر؛ لا يُسترجع قبل تغيير أحد الرقمين.',
+    restoreFailed: 'تعذّر الاسترجاع',
+  },
+  /** A subscription's statement, opened in its card (DI-43). */
+  statement: {
+    show: 'عرض الكشف',
+    hide: 'إخفاء الكشف',
+    loadFailed: 'تعذّر تحميل الكشف',
+    checkIns: 'الحضور',
+    columns: { day: 'اليوم', in: 'الدخول', out: 'الخروج', duration: 'المدة' },
+    here: 'حاضر الآن',
+    auto: 'خروج تلقائي',
+    noCheckIns: 'لا حضور بعد.',
+    payments: 'الدفعات',
+    noPayments: 'لا دفعات بعد.',
+    voided: 'ملغاة',
+    voidedReason: ({ reason }: { reason: string }) => `أُلغيت: ${reason}`,
+    renewal: ({ date }: { date: string }) => `التجديد يبدأ في ${date}`,
+  },
+  /** Ending a subscription early. */
+  end: {
+    action: 'إنهاء الاشتراك',
+    title: 'إنهاء الاشتراك اليوم؟',
+    text: ({ name, end }: { name: string; end: string }) =>
+      `${name} · يصبح تاريخ النهاية ${end}. المبالغ المدفوعة والمستحقة لا تتغيّر.`,
+    textWas: ({ name, end, was }: { name: string; end: string; was: string }) =>
+      `${name} · يصبح تاريخ النهاية ${end} بدل ${was}. المبالغ المدفوعة والمستحقة لا تتغيّر.`,
+    confirm: 'إنهاء الاشتراك',
+    back: 'رجوع',
+    done: ({ name }: { name: string }) => `انتهى الاشتراك «${name}» اليوم`,
+    failed: 'تعذّر إنهاء الاشتراك',
   },
 } satisfies Catalogue['desk'];

@@ -6,7 +6,7 @@ import { hasSessionHint, setSessionHint, stubCookies } from '../../../test/sessi
 import { refreshSession } from './refresh';
 import { restoreSession } from './restore';
 import { signOut } from './signOut';
-import { establishSession, getSession, onSessionEnded } from '../store';
+import { establishSession, getSession, getSessionEnd, onSessionEnded } from '../store';
 
 /** A signed-in page, with its hint, and a listener that counts the session's end. */
 function signedIn() {
@@ -82,6 +82,34 @@ describe('refreshSession', () => {
     expect(getSession()).toEqual(before);
     expect(hasSessionHint()).toBe(true);
     expect(ended).not.toHaveBeenCalled();
+  });
+
+  it('ends a session the server ended for idleness, saying so until the next sign-in', async () => {
+    const { ended } = signedIn();
+    fakeTransport(() => refused(401, { type: 'unauthorized', code: 'SESSION_IDLE' }));
+
+    await expect(refreshSession()).rejects.toMatchObject({ status: 401, code: 'SESSION_IDLE' });
+
+    expect(getSession()).toEqual({ status: 'anonymous', user: null, accessToken: null });
+    expect(getSessionEnd()).toBe('idle');
+    expect(hasSessionHint()).toBe(false);
+    expect(ended).toHaveBeenCalledTimes(1);
+
+    establishSession(aSession({}, 'token-new'), { source: 'signIn' });
+    expect(getSessionEnd()).toBeNull();
+  });
+
+  it('says no idleness for a session refused otherwise, or found ended by the restore', async () => {
+    signedIn();
+    fakeTransport(() => refused(401, { type: 'unauthorized' }));
+    await expect(refreshSession()).rejects.toMatchObject({ status: 401 });
+    expect(getSessionEnd()).toBeNull();
+
+    setSessionHint(true);
+    fakeTransport(() => refused(401, { type: 'unauthorized', code: 'SESSION_IDLE' }));
+    await restoreSession();
+    expect(getSession().status).toBe('anonymous');
+    expect(getSessionEnd()).toBe('idle');
   });
 
   it('drops a refresh that succeeds after a sign-out was answered first', async () => {

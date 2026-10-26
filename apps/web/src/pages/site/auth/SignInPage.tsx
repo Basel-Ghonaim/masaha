@@ -1,6 +1,8 @@
 import { ContinueWithGoogle, SignInForm } from '@features/auth';
 import { useCopy } from '@shared/copy';
 import {
+  Alert,
+  AlertDescription,
   Button,
   Card,
   CardContent,
@@ -9,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@shared/design-system';
+import { useSessionEnd } from '@shared/session';
 import { Link, useLocation } from 'react-router';
 import { SITE_PATHS } from '../navigation';
 import { nextSearch } from './nextSearch';
@@ -17,11 +20,13 @@ import { OrDivider } from './OrDivider';
 /**
  * Sign in: the card around Google sign-in and the sign-in form, the ways to a forgotten password
  * and to a new account, and the way on without one. Once signed in, `RequireGuest` sends the user on
- * to the page they came for.
+ * to the page they came for. A session the server ended for idleness (a reception session left at the
+ * desk) says so above them, until the next sign-in.
  */
 export function SignInPage() {
   const copy = useCopy();
   const { search } = useLocation();
+  const endedBy = useSessionEnd();
 
   return (
     <Card className="w-full md:max-w-md">
@@ -32,6 +37,11 @@ export function SignInPage() {
         <CardDescription>{copy.auth.signIn.description}</CardDescription>
       </CardHeader>
       <CardContent className="gap-4">
+        {endedBy === 'idle' && (
+          <Alert variant="info">
+            <AlertDescription>{copy.errors.SESSION_IDLE}</AlertDescription>
+          </Alert>
+        )}
         <ContinueWithGoogle divider={<OrDivider />} />
         <SignInForm
           forgotPasswordLink={

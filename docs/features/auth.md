@@ -1,6 +1,6 @@
 # Auth
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-18 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
 > **Authority:** The `auth` capability: the sign-in flows, as an orchestrator with no data of its own: registration, sign-in with a password or with Google, refresh, sign-out, and the forgotten password's recovery. Its endpoints are owned by the [API contract](../api/api-contract.md#session); every rule whose reason is security by [security.md](../backend/security.md); the recovery session's design by [ADR 0017](../architecture/decisions/0017-recovery-session.md).
 > **Scope:** the API module `auth` (L3), with its email and Google ports; `@masaha/shared/auth`; the web feature `features/auth`.
 
@@ -67,6 +67,7 @@
 - **Google's failures show in their own area above the button;** closing its window shows nothing. *Why:* both failure areas read alike. 2026-10-06, #42.
 - **A "linked" toast and a welcome toast,** each fired by its hook after the session changes. 2026-10-06, #42.
 - **Mutations that carry a credential keep nothing in the cache.** *Why:* passwords never stay in memory ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)). 2026-10-06, #45.
+- **A session the server ended for idleness says so on sign-in:** a refresh refused 401 `SESSION_IDLE` ends the session as ended for idleness (`endedBy`, [architecture §4](../frontend/architecture.md#4-session-and-preferences)), and the sign-in page shows the error's catalogue line above its form until the next sign-in. *Why:* a receptionist back at the shared desk learns why they must sign in again. 2026-10-25, #122.
 
 Owned by security.md and linked: Google's linking rule ([Sign-in methods](../backend/security.md#sign-in-methods)); the registration and Google limits ([Rate limits](../backend/security.md#rate-limits-fixed-window)); the same answer to every request for a link, another link without an email, the reset's refusal of a token in its body, what a reset ends, the email's caps and no greeting by name ([Passwords](../backend/security.md#passwords)). Owned by the routing and linked: the guards of `/forgot-password` and `/reset-password`, and `RequireGuest` as the landing's one owner ([architecture › Landing and guards](../frontend/architecture.md#landing-and-guards)).
 
@@ -101,3 +102,4 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 - #40 — the recovery pages.
 - #42 — Google sign-in on the web.
 - #45 — no credential kept in the cache.
+- #122 — the sign-in page says a session ended for idleness.

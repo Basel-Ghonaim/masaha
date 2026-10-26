@@ -20,7 +20,8 @@ let inFlight: Promise<void> | undefined;
 /**
  * Renews the session. One refresh at a time: the restore and the transport's 401 share the same
  * request. On success the store holds the new session before the promise resolves, so the transport
- * reads the new token. A refusal that ends the session (`endsSession`) ends it here and rejects; any
+ * reads the new token. A refusal that ends the session (`endsSession`) ends it here, `SESSION_IDLE`
+ * as ended for idleness (`endedBy: 'idle'`), and rejects; any
  * other failure leaves the session as it was and rejects. A refresh that succeeds after the session
  * ended, by a sign-out answered first, drops its answer and rejects as `canceled`
  * (docs/frontend/architecture.md §4).
@@ -38,7 +39,8 @@ async function renew(): Promise<void> {
     const failure = toAppError(error);
     if (endsSession(failure)) {
       cookieSessionHint.clear();
-      endSession();
+      // The server ended a reception session left idle: the sign-in page says so (spec C).
+      endSession({ endedBy: failure.code === 'SESSION_IDLE' ? 'idle' : null });
     }
     throw failure;
   });

@@ -1,6 +1,7 @@
 export { useSignOut, type SignOut } from './hooks/useSignOut';
 export type {
   Session,
+  SessionEnd,
   SessionSource,
   SessionState,
   SessionStatus,
@@ -16,4 +17,5 @@ export {
   onSessionEstablished,
   passwordChanged,
   useSession,
+  useSessionEnd,
 } from './store';

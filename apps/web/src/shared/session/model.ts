@@ -20,6 +20,12 @@ export type SessionState =
 
 export type SessionStatus = SessionState['status'];
 
+/**
+ * Why the last session ended, when the server said so: `idle`, ended by the server for idleness
+ * (a reception session, `SESSION_IDLE`); `null` otherwise, and once a session is established again.
+ */
+export type SessionEnd = 'idle' | null;
+
 /** How a session arrived: a sign-in by the user, or a restore or refresh of one that existed. */
 export type SessionSource = 'signIn' | 'restore';
 

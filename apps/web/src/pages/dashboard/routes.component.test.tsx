@@ -10,6 +10,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { customerFile, customerRow, customersPage } from '../../test/deskCustomer';
 import { fakeIntersectionObserver } from '../../test/fakeIntersectionObserver';
 import { aSession } from '../../test/fakeSession';
 import type { FakeAnswer } from '../../test/fakeAdapter';
@@ -176,6 +177,12 @@ afterEach(() => {
 });
 
 describe("the dashboard's navigation", () => {
+  // Reception lands on the desk, which loads lazily: its first transform in this lane, cold, takes
+  // seconds, so it is done before the tests, as the pages' own sections do (finding 28).
+  beforeAll(async () => {
+    await import('./space/desk/DeskPage');
+  });
+
   it('lists the owner’s eleven pages, the overview marked as the page shown', async () => {
     asOwner();
     renderDashboard('/dashboard/spaces/7');
@@ -791,6 +798,79 @@ describe("the space's front desk", () => {
       within(screen.getByRole('banner')).getByRole('button', { name: 'More actions' }),
     );
     expect(await screen.findByRole('menuitem', { name: 'Switch staff' })).toBeInTheDocument();
+  });
+});
+
+describe("the space's customers", () => {
+  // The page loads lazily, as the profile does: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/customers/CustomersPage');
+    await import('./space/customers/CustomerPage');
+  });
+
+  it.each([
+    ['the owner', asOwner],
+    ['reception', asReception],
+  ])('shows %s the customers under its title, each a link to the file', async (_, as) => {
+    as();
+    const requests = fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/customers') {
+        return customersPage([customerRow({ id: 4, name: 'Sara Khalid' })]);
+      }
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+    renderDashboard('/dashboard/spaces/7/customers');
+
+    await topBarTitle('Customers');
+    expect(await screen.findByRole('link', { name: 'Sara Khalid' })).toHaveAttribute(
+      'href',
+      '/dashboard/spaces/7/customers/4',
+    );
+    expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7/customers');
+  });
+
+  it.each([
+    ['the owner', asOwner],
+    ['reception', asReception],
+  ])(
+    'shows %s a customer’s file titled by their name, under a trail back to the list',
+    async (_, as) => {
+      as();
+      fakeTransport((request) => {
+        if (request.url === '/manage/spaces/7/customers/4') return ok(customerFile());
+        if (request.url === '/manage/spaces') return ok([FOCUS]);
+        return ok([]);
+      });
+      renderDashboard('/dashboard/spaces/7/customers/4');
+
+      await topBarTitle('Sara Khalid');
+      await waitFor(() => {
+        expect(document.title).toBe('Sara Khalid · Masaha');
+      });
+      const trail = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(trail).getByRole('link', { name: 'Customers' })).toHaveAttribute(
+        'href',
+        '/dashboard/spaces/7/customers',
+      );
+      expect(
+        await screen.findByRole('heading', { level: 2, name: 'Subscriptions' }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it('titles the file «Customer file» while it loads', async () => {
+    asReception();
+    fakeTransport((request) =>
+      request.url === '/manage/spaces/7/customers/4'
+        ? new Promise<FakeAnswer>(() => undefined)
+        : request.url === '/manage/spaces'
+          ? ok([FOCUS])
+          : ok([]),
+    );
+    renderDashboard('/dashboard/spaces/7/customers/4');
+
+    await topBarTitle('Customer file');
   });
 });
 

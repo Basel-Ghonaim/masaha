@@ -36,6 +36,7 @@ import { NotFoundState, parseSpaceId } from '@shared/routing';
 import { useSession } from '@shared/session';
 import { useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
+import { spaceCustomerPath } from '../../navigation';
 import { PageActionBar } from '../../shell/PageActionBar';
 import { PageHeader } from '../../shell/PageHeader';
 import { SwitchStaffButton, SwitchStaffItem } from './SwitchStaffButton';
@@ -80,6 +81,14 @@ function Desk({ spaceId }: { spaceId: number }) {
   const openVisit = () => {
     visit.setOpen(true);
   };
+  // The search's cards' «⋯»: the owner's archive, and the way to a customer's file.
+  const menu = useMemo(
+    () => ({
+      owner,
+      fileLink: (customerId: number) => spaceCustomerPath(spaceId, customerId),
+    }),
+    [owner, spaceId],
+  );
   // «استلام دفعة»: one payment dialog, opened from the page, a card or a check-out's toast.
   const [pay, setPay] = useState<PayTarget | null>(null);
   const [payOpening, setPayOpening] = useState(0);
@@ -188,10 +197,11 @@ function Desk({ spaceId }: { spaceId: number }) {
             />
           ),
         }}
-        checkIn={(name) => {
-          visit.setOpen(true, name);
+        checkIn={(name, after) => {
+          visit.setOpen(true, name, after);
         }}
         receive={receive}
+        menu={menu}
       />
       <div className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start">
         <div className="xl:col-span-8">

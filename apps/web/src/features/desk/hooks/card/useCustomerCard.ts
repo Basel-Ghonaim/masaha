@@ -1,5 +1,5 @@
 import type { CustomerRow } from '@masaha/shared/desk';
-import { useCopy } from '@shared/copy';
+import { useCopy, type Catalogue } from '@shared/copy';
 import { priceText } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { balanceView } from '../../services/balanceView';
@@ -14,6 +14,15 @@ import { statusView } from '../../services/statusView';
 export function useCustomerCard(row: CustomerRow) {
   const words = useCopy().desk.customer;
   const language = useLanguage() === 'en' ? 'en' : 'ar';
+  return customerCardView(row, words, language);
+}
+
+/** A customer's card, worded: the search's card and a row of the customers list say it alike. */
+export function customerCardView(
+  row: CustomerRow,
+  words: Catalogue['desk']['customer'],
+  language: 'ar' | 'en',
+) {
   const { current } = row;
 
   return {
@@ -45,4 +54,4 @@ export function useCustomerCard(row: CustomerRow) {
 }
 
 /** A customer's card, ready to render. */
-export type CustomerCardView = ReturnType<typeof useCustomerCard>;
+export type CustomerCardView = ReturnType<typeof customerCardView>;

@@ -40,6 +40,17 @@ export function spacePagePath(spaceId: number, name: DashboardPageName): string 
   return segment === '' ? base : `${base}/${segment}`;
 }
 
+/** A customer's file, below the space's customers list: reached from it, never a sidebar item. */
+export const SPACE_CUSTOMER_PATH = `${DASHBOARD_PATHS.space}/customers/:customerId`;
+
+/** The file of the customer `customerId` of the space `spaceId`. */
+export function spaceCustomerPath(spaceId: number, customerId: number): string {
+  return SPACE_CUSTOMER_PATH.replace(':spaceId', String(spaceId)).replace(
+    ':customerId',
+    String(customerId),
+  );
+}
+
 /**
  * The admin's spaces list and its sub-pages, by path. The add page and a space's editor are reached
  * from the list and belong to it: neither is a sidebar item, so the list's item stays current there.

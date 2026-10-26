@@ -6,8 +6,9 @@ import { toAppError, type AppError } from '@shared/errors';
 import { useServerForm } from '@shared/forms';
 import { priceText } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
-import { useState, type BaseSyntheticEvent } from 'react';
+import { useRef, useState, type BaseSyntheticEvent } from 'react';
 import { useWatch } from 'react-hook-form';
+import type { SearchAfter } from '../../components/search/DeskSearch';
 import { toastCheckedIn } from '../../components/toast/deskToasts';
 import { currentShift } from '../../services/currentShift';
 import { deskFailure } from '../../services/deskRefusal';
@@ -26,7 +27,8 @@ type Values = { visitorName: string; audience: 'GENERAL' | 'STUDENT'; shiftId?: 
  * rate the visit will copy, as the terms say; and, while the space is full, that it may still be
  * checked in. One opening is one intent: its key is kept across the transport's re-sends, a second
  * press and «إعادة المحاولة» after a lost answer (S4). Done, it closes and the toast names the
- * visitor with the server's warnings (S6).
+ * visitor with the server's warnings (S6); opened from the desk's search, the search is then cleared
+ * and takes the focus (`after`, S10).
  */
 export function useVisitDialog({
   spaceId,
@@ -47,6 +49,9 @@ export function useVisitDialog({
   const { key, renew } = useIntentKey();
   const [open, setOpen] = useState(false);
   const [refusal, setRefusal] = useState<AppError | null>(null);
+  // The opening's search, if it came from one, and whether its check-in landed.
+  const after = useRef<SearchAfter | null>(null);
+  const succeeded = useRef(false);
   const spaceShifts = shifts ?? [];
 
   const shiftOf = (value: string) => (value === NO_SHIFT ? null : Number(value));
@@ -66,8 +71,10 @@ export function useVisitDialog({
     submit: async (request) => {
       try {
         const answer = await checkIn.mutateAsync({ body: request, key });
+        succeeded.current = true;
         setOpen(false);
         toastCheckedIn(request.visitorName, answer.meta?.warnings);
+        after.current?.done();
       } catch (error) {
         setRefusal(toAppError(error));
         throw error;
@@ -106,16 +113,20 @@ export function useVisitDialog({
     open,
     /**
      * A new opening is a new intent: a new key, and the form as it starts, with the name the desk's
-     * search typed, if any.
+     * search typed, if any, and the search's `after` to run once it lands.
      */
-    setOpen: (next: boolean, visitorName?: string) => {
+    setOpen: (next: boolean, visitorName?: string, searchAfter?: SearchAfter) => {
       if (next && !open) {
+        after.current = searchAfter ?? null;
+        succeeded.current = false;
         renew();
         setRefusal(null);
         form.form.reset(defaults(visitorName));
       }
       setOpen(next);
     },
+    /** Where the focus goes once closed: the search after a check-in from it, else the trigger. */
+    focusAfter: () => (succeeded.current ? (after.current?.focus.current ?? null) : null),
     title: words.title,
     noRecord: words.noRecord,
     rate,
