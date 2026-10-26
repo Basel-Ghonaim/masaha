@@ -124,6 +124,9 @@ export const DOMAIN_ERROR_CODES = [
   'HOURS_PER_DAY_USED',
   // an announcement not started yet: it cannot end now (announcements)
   'ANNOUNCEMENT_NOT_STARTED',
+  // a closure whose subscriptions were extended: never deleted, retyped, restarted or ended
+  // later, from the database (announcements)
+  'CLOSURE_EXTENDED',
   // a decided report decided again, otherwise than it was (data-reports)
   'REPORT_ALREADY_DECIDED',
   // a user's favourites full: one is removed first (favorites)
