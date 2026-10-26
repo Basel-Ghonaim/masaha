@@ -26,15 +26,16 @@ export function SheetClose(props: ComponentProps<typeof SheetPrimitive.Close>) {
 }
 
 // The sides are logical: start and end follow the reading direction, and so does the slide, which
-// tw-animate-css resolves with :dir().
+// tw-animate-css resolves with :dir(). A side sheet takes the whole width below 768 px, so a form has
+// room for its fields on a phone (finding 101), and three quarters, at most 24 rem, from there on.
 const sheetVariants = cva(
   'fixed z-(--z-modal) flex flex-col bg-popover text-body text-popover-foreground shadow-overlay duration-(--duration-medium) ease-(--easing-standard) outline-none data-open:animate-in data-closed:animate-out',
   {
     variants: {
       side: {
         start:
-          'inset-y-0 start-0 h-full w-3/4 max-w-sm border-e border-(--card-border) data-open:slide-in-from-start data-closed:slide-out-to-start',
-        end: 'inset-y-0 end-0 h-full w-3/4 max-w-sm border-s border-(--card-border) data-open:slide-in-from-end data-closed:slide-out-to-end',
+          'inset-y-0 start-0 h-full w-full border-e border-(--card-border) data-open:slide-in-from-start data-closed:slide-out-to-start md:w-3/4 md:max-w-sm',
+        end: 'inset-y-0 end-0 h-full w-full border-s border-(--card-border) data-open:slide-in-from-end data-closed:slide-out-to-end md:w-3/4 md:max-w-sm',
         bottom:
           'inset-x-0 bottom-0 max-h-[85svh] rounded-t-xl border-t border-(--card-border) pb-[env(safe-area-inset-bottom)] data-open:slide-in-from-bottom data-closed:slide-out-to-bottom',
       },
@@ -100,12 +101,15 @@ export function SheetHeader({ className, ...props }: ComponentProps<'div'>) {
   );
 }
 
-/** The sheet's content between its header and footer; it scrolls when the sheet is full. */
+/**
+ * The sheet's content between its header and footer; it scrolls when the sheet is full, and lets its
+ * content shrink to the sheet's width.
+ */
 export function SheetBody({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
       data-slot="sheet-body"
-      className={cn('min-h-0 flex-1 overflow-y-auto px-4', className)}
+      className={cn('min-h-0 min-w-0 flex-1 overflow-y-auto px-4', className)}
       {...props}
     />
   );

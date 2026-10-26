@@ -79,7 +79,7 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 - **An amount is typed in shekels, up to two decimals, Arabic digits read, as the prices'** (design issue 6). *Why:* one rule for the money a space types. 2026-10-20, #98.
 - **A paused package that holds a shift says so and clears it at once** (design issue 7, finding 81). *Why:* the hours refuse to remove that shift, and nothing else tells the owner why; the clear is reversible and touches no one else. 2026-10-20, #98.
 - **A limit turned on and left empty is refused on its field, «أدخل العدد أو أطفئ هذا الحد».** *Why:* the shared rule reads an empty count as a wrong type, `invalid_format`, so the line is chosen by the field being empty. 2026-10-20, #98.
-- **The sheet is the layer's end sheet as it is** ([finding 101](../architecture/findings/101-the-end-sheet-is-not-full-width-on-a-phone.md)). *Why:* no design-system change in a feature's item. 2026-10-20, #98.
+- **The sheet is the layer's end sheet,** full width on a phone since the layer's change ([finding 101](../architecture/findings/101-the-end-sheet-is-not-full-width-on-a-phone.md), resolved 2026-10-26, #124). *Why:* no design-system change in a feature's item. 2026-10-20, #98.
 - **A row's refusal is worded as the sheet's, in the owner's words** (carried from #98). *Why:* the switch and the clear write on the package's route, whose 404 has the same two causes; the generic lines would say nothing of them. 2026-10-20, #99.
 - **A 404 on the packages' routes fetches the owner's own spaces again**, through `shared/api`'s `useLinkEnded` (carried from #98). *Why:* the managed routes answer a link ended meanwhile so, and the switcher must stop offering the space, as the space editor's 404 does. 2026-10-20, #99.
 
@@ -91,7 +91,6 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 
 ## Open findings
 
-- [101](../architecture/findings/101-the-end-sheet-is-not-full-width-on-a-phone.md): the package sheet is not full width on a phone.
 - [102](../architecture/findings/102-the-package-sheets-summary-is-announced-on-every-keystroke.md): the sheet's summary is announced on every keystroke.
 
 ## History

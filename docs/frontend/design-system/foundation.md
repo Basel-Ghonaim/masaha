@@ -411,7 +411,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Component | Source | Notes / variants |
 |---|---|---|
 | Dialog, AlertDialog | shadcn | Confirmations (check-out, void a payment, deactivate staff, hide space) |
-| Sheet | shadcn | Logical sides: `start` for mobile navigation (where the sidebar sits), `end` for a secondary panel, `bottom` for the phone filter panel (with a handle, which does not drag) · a modal dialog by default (a scrim; the focus trapped, then returned to its trigger); non-modal on request (`modal={false}`): no scrim and no trap, the page behind it still used, as the directory's chosen space on a phone |
+| Sheet | shadcn | Logical sides: `start` for mobile navigation (where the sidebar sits), `end` for a secondary panel, `bottom` for the phone filter panel (with a handle, which does not drag) · a side sheet takes the whole width below 768 px and three quarters (at most 24 rem) from there on, its body letting its content shrink · a modal dialog by default (a scrim; the focus trapped, then returned to its trigger); non-modal on request (`modal={false}`): no scrim and no trap, the page behind it still used, as the directory's chosen space on a phone |
 | Tooltip | shadcn | |
 | Popover | shadcn | The floating panel under Combobox and DatePicker, and for features' small panels · on `--z-dropdown`, `rounded-lg`, bordered, `shadow-floating` · a dialog, so it is named by `aria-label` or its title |
 
