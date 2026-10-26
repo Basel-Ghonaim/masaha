@@ -76,6 +76,20 @@ describe('useEditDialog', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('sends nothing for the same number typed in its local form', async () => {
+    const user = userEvent.setup();
+    const { requests, onClose } = renderDialog(() => ok(SARA));
+
+    const phone = screen.getByRole('textbox', { name: /Mobile number/ });
+    await user.clear(phone);
+    await user.type(phone, '0599 000 201');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Nothing changed')).toBeVisible();
+    expect(patches(requests)).toHaveLength(0);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('sends null for a cleared phone', async () => {
     const user = userEvent.setup();
     const { requests } = renderDialog(() => ok({ ...SARA, phone: null }));

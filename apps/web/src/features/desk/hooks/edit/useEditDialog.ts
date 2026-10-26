@@ -1,3 +1,4 @@
+import { normalisePhone } from '@masaha/shared/core';
 import {
   updateCustomerSchema,
   type Customer,
@@ -41,14 +42,15 @@ export function useEditDialog({
     schema: updateCustomerSchema,
     defaultValues: { name: customer.name, phone: customer.phone ?? '' },
     fields: ['name', 'phone'],
-    // Only what differs from the customer as loaded; a phone left blank clears theirs.
+    // Only what differs from the customer as loaded, the phone compared in the one form the schema
+    // stores (their number typed locally is no change); a phone left blank clears theirs.
     prepare: ({ name, phone }) => {
       const typed = phone.trim();
       return {
         ...(name.trim() !== customer.name && { name }),
         ...(typed === ''
           ? customer.phone !== null && { phone: null }
-          : typed !== customer.phone && { phone: typed }),
+          : (normalisePhone(typed) ?? typed) !== customer.phone && { phone: typed }),
       };
     },
     submit: async (body) => {
