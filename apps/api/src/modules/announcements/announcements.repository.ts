@@ -77,6 +77,14 @@ export function createAnnouncementsRepository() {
       });
     },
 
+    /** The space's closure, not deleted, read without a lock; `null` for any other. */
+    findClosure(spaceId: number, id: number): Promise<AnnouncementRow | null> {
+      return prisma.announcement.findFirst({
+        where: { id, spaceId, type: 'CLOSURE', deletedAt: null },
+        select: ANNOUNCEMENT,
+      });
+    },
+
     /**
      * Locks the space's announcement's row (`FOR UPDATE`) and answers it; `null` when it is not the
      * space's, or deleted unless `withDeleted`.

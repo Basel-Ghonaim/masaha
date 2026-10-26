@@ -14,6 +14,9 @@ export type AnnouncementState = (typeof ANNOUNCEMENT_STATES)[number];
 
 export const ANNOUNCEMENT_TEXT_MAX_LENGTH = 500;
 
+/** The most days a closure's extension gives, and the most the server proposes (S5). */
+export const EXTENSION_MAX_DAYS = 365;
+
 const text = paragraphSchema(1, ANNOUNCEMENT_TEXT_MAX_LENGTH);
 const instant = z.iso.datetime({ offset: true });
 

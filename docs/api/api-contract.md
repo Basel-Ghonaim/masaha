@@ -731,6 +731,14 @@ ManagedAnnouncement = Announcement & {
 }
 
 AnnouncementsSummary = { running: number, upcoming: number, ended: number, closuresAwaitingExtension: number }
+
+ExtensionPreview = {
+  firstDay: string,                // the Gaza date of the closure's start
+  lastDay: string,                 // of its last instant: the day before an end at midnight; today while it runs
+  proposedDays: number,            // the days from firstDay to lastDay, at most 365
+  subscriptions: number,           // how many it covered; once applied, how many it moved
+  applied: ExtensionApplied | null
+}
 ```
 
 #### `GET /manage/spaces/:spaceId/announcements` · 🧾
@@ -739,6 +747,11 @@ AnnouncementsSummary = { running: number, upcoming: number, ended: number, closu
 
 #### `GET /manage/spaces/:spaceId/announcements/summary` · 🧾
 - **200:** `AnnouncementsSummary`: how many announcements, not deleted, are running, upcoming and ended (the list's tabs), and `closuresAwaitingExtension`, the closures started within the last 30 days, not deleted, whose subscriptions were not extended (the owner's overview will read the same count). Built 2026-10-24, #112.
+
+#### `GET /manage/spaces/:spaceId/announcements/:announcementId/extend-subscriptions` · 🧾
+- **The covered subscriptions** (decision 4, [data-model › Checked by the service](../architecture/data-model.md#checked-by-the-service)): the space's subscriptions not ended early, with an end on or after the closure's first day and a start (or none) on or before its last — one running through it, one ending during it, one starting on its last day. One with no end is never covered.
+- **200:** `ExtensionPreview`, read without a lock and writing nothing: the closure's covered Gaza days, the days proposed and how many subscriptions it covered now; once applied, `applied` and how many it moved instead. Built 2026-10-26, #123.
+- **Errors:** `not_found` (404) for an announcement that is not the space's, not a `CLOSURE`, or deleted; `conflict` (409) `ANNOUNCEMENT_NOT_STARTED` for a closure not started yet.
 
 #### `POST /manage/spaces/:spaceId/announcements` · 🧾 · `Idempotency-Key`
 - **Body:** `{ type, textAr, textEn?, startsAt?, endsAt? }`: no `startsAt`, now («يبدأ الآن»); no `endsAt` (or `null`), no end.

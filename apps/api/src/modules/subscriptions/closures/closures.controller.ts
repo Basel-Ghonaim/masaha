@@ -1,12 +1,14 @@
 import type {
   AnnouncementsQuery,
   AnnouncementsSummary,
+  ExtensionPreview,
   ManagedAnnouncement,
 } from '@masaha/shared/announcements';
 import type { Request, Response } from 'express';
 
 import { spaceOf } from '../../../shared/auth/index.ts';
 import { buildPaginationMeta, sendSuccess } from '../../../shared/http/index.ts';
+import { parseId } from '../../../shared/validation/index.ts';
 import type { ClosuresService } from './closures.service.ts';
 
 export function createClosuresController(service: ClosuresService) {
@@ -23,6 +25,12 @@ export function createClosuresController(service: ClosuresService) {
     summary: async (req: Request, res: Response) => {
       const summary = await service.summary(spaceOf(req).id);
       sendSuccess(res, summary satisfies AnnouncementsSummary);
+    },
+
+    /** 200 with the closure's extension, proposed, or as it was applied. */
+    preview: async (req: Request, res: Response) => {
+      const preview = await service.preview(spaceOf(req).id, parseId(req.params.announcementId));
+      sendSuccess(res, preview satisfies ExtensionPreview);
     },
   };
 }

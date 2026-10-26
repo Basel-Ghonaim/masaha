@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { addDays, gazaClockOf, gazaInstant, weekStartOf } from './gazaTime.ts';
+import { addDays, daysFrom, gazaClockOf, gazaInstant, weekStartOf } from './gazaTime.ts';
 
 // Gaza is UTC+2 in winter and UTC+3 in summer. The daylight-saving changes pinned here are read
 // from Node's zone data (docs/backend/conventions.md §11): 2026-03-28 at 02:00 (+02:00 → +03:00)
@@ -54,6 +54,19 @@ describe('addDays', () => {
     expect(addDays('2028-03-01', -1)).toBe('2028-02-29');
     expect(addDays('2026-10-21', 0)).toBe('2026-10-21');
     expect(addDays('2026-10-21', 29)).toBe('2026-11-19');
+  });
+});
+
+describe('daysFrom', () => {
+  it('counts calendar days across a month, a year and a leap day', () => {
+    expect(daysFrom('2026-10-21', '2026-10-21')).toBe(0);
+    expect(daysFrom('2026-10-31', '2026-11-01')).toBe(1);
+    expect(daysFrom('2026-12-31', '2027-01-01')).toBe(1);
+    expect(daysFrom('2028-02-28', '2028-03-01')).toBe(2);
+    expect(daysFrom('2026-10-21', '2026-11-19')).toBe(29);
+    expect(daysFrom('2026-11-19', '2026-10-21')).toBe(-29);
+    // Across Gaza's daylight-saving change, still whole days.
+    expect(daysFrom('2026-10-23', '2026-10-25')).toBe(2);
   });
 });
 

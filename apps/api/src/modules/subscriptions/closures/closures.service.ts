@@ -1,10 +1,13 @@
-import type {
-  AnnouncementsQuery,
-  AnnouncementsSummary,
-  ManagedAnnouncement,
+import {
+  EXTENSION_MAX_DAYS,
+  type AnnouncementsQuery,
+  type AnnouncementsSummary,
+  type ExtensionPreview,
+  type ManagedAnnouncement,
 } from '@masaha/shared/announcements';
 
-import type { AnnouncementsService } from '../../announcements/index.ts';
+import { AppError } from '../../../shared/errors/index.ts';
+import { closureSpan, type AnnouncementsService } from '../../announcements/index.ts';
 import type { UsersService } from '../../users/index.ts';
 import { toExtensionApplied, toManagedAnnouncement } from './closures.mapper.ts';
 import { createClosuresRepository } from './closures.repository.ts';
@@ -53,6 +56,37 @@ export function createClosuresService({ announcements, users, now }: Dependencie
       return {
         rows: rows.map((row) => toManagedAnnouncement(row, byClosure.get(row.id))),
         total,
+      };
+    },
+
+    /**
+     * A closure's extension before it is applied, read without a lock and writing nothing: the
+     * space's closure, not deleted (else `not_found`); one applied answers it, with how many it
+     * moved; one not started yet → `ANNOUNCEMENT_NOT_STARTED`; else the Gaza days it covered to now,
+     * the days proposed (at most `EXTENSION_MAX_DAYS`) and how many subscriptions it covered.
+     */
+    async preview(spaceId: number, announcementId: number): Promise<ExtensionPreview> {
+      const closure = await announcements.closureIn(spaceId, announcementId);
+      const at = now();
+      const [extension] = await repository.extensionsOf([closure.id]);
+      if (!extension && closure.startsAt.getTime() > at.getTime()) {
+        throw AppError.conflict('ANNOUNCEMENT_NOT_STARTED');
+      }
+      const span = closureSpan(closure, at);
+      const proposal = {
+        firstDay: span.firstDay,
+        lastDay: span.lastDay,
+        proposedDays: Math.min(span.days, EXTENSION_MAX_DAYS),
+      };
+      if (!extension) {
+        const count = await repository.coveredCount(spaceId, span);
+        return { ...proposal, subscriptions: count, applied: null };
+      }
+      const [applier] = await users.namesFor([extension.appliedById]);
+      return {
+        ...proposal,
+        subscriptions: extension.subscriptions,
+        applied: toExtensionApplied(extension, applier?.name ?? ''),
       };
     },
 
