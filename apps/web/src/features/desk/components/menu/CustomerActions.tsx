@@ -2,7 +2,7 @@ import type { Customer } from '@masaha/shared/customers';
 import { useCopy } from '@shared/copy';
 import { Button } from '@shared/design-system';
 import { isolate } from '@shared/localisation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useArchiveFlow } from '../../hooks/archive/useArchiveFlow';
 import { ArchiveDialog } from '../archive/ArchiveDialog';
 import { EditCustomerDialog } from '../edit/EditCustomerDialog';
@@ -12,7 +12,8 @@ import { CustomerMenu } from './CustomerMenu';
  * A customer's actions wherever they are listed — a row of «الزبائن», a card of the desk's search,
  * the file's header: their «⋯» («ملف الزبون» where `fileLink` leads, «تعديل البيانات», the owner's
  * «أرشفة…»), with its dialogs; an archived customer's «استرجاع», the owner's, instead. Reception is
- * shown no archive and no restore; the server decides (S5).
+ * shown no archive and no restore; the server decides (S5). Either dialog, closed, gives the focus
+ * back to «⋯»: the menu item that opened it has left the page.
  */
 export function CustomerActions({
   spaceId,
@@ -31,6 +32,8 @@ export function CustomerActions({
   const words = useCopy().desk.customer.menu;
   const flow = useArchiveFlow({ spaceId, customer, debtAgorot, owner });
   const [editing, setEditing] = useState(false);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const returnFocus = () => trigger.current;
 
   if (customer.archivedAt !== null) {
     return flow.restore === null ? null : (
@@ -42,6 +45,7 @@ export function CustomerActions({
   return (
     <>
       <CustomerMenu
+        triggerRef={trigger}
         menu={{
           label: words.label({ name: isolate(customer.name) }),
           file: fileLink === null ? null : { label: words.file, to: fileLink },
@@ -61,9 +65,10 @@ export function CustomerActions({
           onClose={() => {
             setEditing(false);
           }}
+          returnFocus={returnFocus}
         />
       )}
-      <ArchiveDialog dialog={flow.dialog} />
+      <ArchiveDialog dialog={flow.dialog} returnFocus={returnFocus} />
     </>
   );
 }

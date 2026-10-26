@@ -6,6 +6,7 @@ import {
   DropdownMenuTrigger,
   EllipsisVerticalIcon,
 } from '@shared/design-system';
+import type { Ref } from 'react';
 import { Link } from 'react-router';
 
 /** A customer's «⋯», ready to render. */
@@ -22,13 +23,20 @@ export type CustomerMenuView = {
 /**
  * A customer's «⋯» (DI-39): a quiet icon trigger and its menu, both named by the customer; «ملف
  * الزبون» where it leads elsewhere, «تعديل البيانات», and the owner's «أرشفة…», destructive (DI-46).
- * Closed, the focus returns to the trigger.
+ * Closed, the focus returns to the trigger, which `triggerRef` lets a dialog the menu opened return
+ * to as well.
  */
-export function CustomerMenu({ menu }: { menu: CustomerMenuView }) {
+export function CustomerMenu({
+  menu,
+  triggerRef,
+}: {
+  menu: CustomerMenuView;
+  triggerRef?: Ref<HTMLButtonElement>;
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={menu.label}>
+        <Button ref={triggerRef} variant="ghost" size="icon" aria-label={menu.label}>
           <EllipsisVerticalIcon aria-hidden />
         </Button>
       </DropdownMenuTrigger>
