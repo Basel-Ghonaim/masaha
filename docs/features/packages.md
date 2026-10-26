@@ -1,6 +1,6 @@
 # Packages
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-22 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
 > **Authority:** The `packages` capability: a space's packages, the subscription templates its owner keeps, private to its staff. Its endpoints are owned by the [API contract](../api/api-contract.md#packages-managed); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the web, the owner's private packages on Packages & prices.
 > **Scope:** the API module `packages` (L2); `@masaha/shared/packages`; the web feature `features/packages`, dashboard-only.
 
@@ -17,7 +17,7 @@
 - **The space's owner,** on the dashboard's Packages & prices (`/dashboard/spaces/:spaceId/packages`): reads, adds and edits.
 - **The space's reception,** through the API: reads them, for the front desk, which chooses from them when it makes a subscription.
 - **The front desk** ([desk](desk.md)): a subscription copies an offered package's terms when it is made (`termsOf`), and keeps them whatever the package becomes.
-- Reception's desk does not read it on the web yet. The public never does: its packages are the space's published prices ([glossary](../project/glossary.md)).
+- **The desk's subscription sheet, on the web** (owner and reception): reads the offered packages through `useOfferedPackages`, the owner's list's own query with the retired ones left out ([desk](desk.md)). The public never does: its packages are the space's published prices ([glossary](../project/glossary.md)).
 
 ## Responsibility boundary
 
@@ -87,7 +87,7 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 
 - **API:** `apps/api/src/modules/packages/`, entry `index.ts`: the service, the repository, the mapper, the manage router, and beside them the pure rule of a package's terms and of what an edit changes (`packageTerms.ts`).
 - **Shared:** `packages/shared/src/packages/`: the requests, with the billings and the limits' bounds, and the response.
-- **Web:** `apps/web/src/features/packages/`, entry `index.ts` (`PackagesSection`, `ShiftChoice`), mounted by `pages/dashboard/space/PackagesPage.tsx`: the repository in `repository/`; in `hooks/` the keys, `list/` (the query, the section, a row's write), `sheet/` (the sheet's form and its save); in `services/` a package's values as the sheet holds them and the request they make, and its summary and price lines; the row, the sheet with its limits and chips, and the row's failure toast in `components/`.
+- **Web:** `apps/web/src/features/packages/`, entry `index.ts` (`PackagesSection`, `ShiftChoice`, `useOfferedPackages`), mounted by `pages/dashboard/space/PackagesPage.tsx`: the repository in `repository/`; in `hooks/` the keys, `list/` (the query, the section, a row's write), `sheet/` (the sheet's form and its save), `offered/` (the offered packages, for the desk); in `services/` a package's values as the sheet holds them and the request they make, and its summary and price lines; the row, the sheet with its limits and chips, and the row's failure toast in `components/`.
 
 ## Open findings
 
@@ -104,3 +104,4 @@ A retired package keeps its shift: the shift's own save refuses to remove a shif
 
 - #98 — the owner's private packages on Packages & prices: the list, the switch, the sheet, and a paused package's shift cleared (finding 81).
 - #99 — carried from #98's review: a row's refusal in the owner's words; a 404 refreshes the owner's spaces; a shift removed meanwhile no longer chosen; finding 102 recorded.
+- #124 — the side sheet full width on a phone (finding 101, the layer's); `useOfferedPackages` gives the desk's subscription sheet the offered packages.
