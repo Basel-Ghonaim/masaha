@@ -387,7 +387,14 @@ export function createApi({
     spaces,
     now: clock,
   });
-  const closures = createClosuresService({ announcements, users, now: clock });
+  const closures = createClosuresService({
+    runInTransaction,
+    audit: writeAudit,
+    spaces,
+    announcements,
+    users,
+    now: clock,
+  });
   const occupancy = createOccupancyService({
     runInTransaction,
     audit: writeAudit,

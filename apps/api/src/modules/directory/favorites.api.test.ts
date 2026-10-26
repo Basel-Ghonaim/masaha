@@ -45,7 +45,7 @@ function favorites(caller: { authorization: string } | null, query = '', near?: 
 type Favorite = { listed: boolean; savedAt: string; space: { id: number } };
 
 describe('GET /me/favorites', () => {
-  it('the favourites, whole, newest saved first: a listed space as its card with its live status; a deleted or hidden one listed false with its name', async () => {
+  it('the favourites, whole, newest saved first: a listed space as its card with its live status; a deleted, hidden or inactive-area one listed false with its name', async () => {
     const open = await createPublicSpace(areaId, 'Open Room');
     await signInOwnerOf(open.id);
     await setWeek(open.id, EVERY_DAY);
@@ -53,7 +53,10 @@ describe('GET /me/favorites', () => {
     const plain = await createPublicSpace(areaId, 'Plain Room');
     const hidden = await createPublicSpace(areaId, 'Hidden', { isHidden: true, nameAr: 'مخفية' });
     const deleted = await createPublicSpace(areaId, 'Deleted', { deletedAt: NOW });
+    const { id: closedArea } = await createArea({ areaActive: false });
+    const farAway = await createPublicSpace(closedArea, 'Far Away');
     await saved(user.id, open.id, '2026-10-18T08:00:00+03:00');
+    await saved(user.id, farAway.id, '2026-10-18T06:00:00+03:00');
     await saved(user.id, plain.id, '2026-10-18T09:00:00+03:00');
     await saved(user.id, hidden.id, '2026-10-18T07:00:00+03:00');
     await saved(user.id, deleted.id, '2026-10-18T09:30:00+03:00');
@@ -78,6 +81,11 @@ describe('GET /me/favorites', () => {
         listed: false,
         savedAt: '2026-10-18T04:00:00.000Z',
         space: { id: hidden.id, nameEn: 'Hidden', nameAr: 'مخفية' },
+      },
+      {
+        listed: false,
+        savedAt: '2026-10-18T03:00:00.000Z',
+        space: { id: farAway.id, nameEn: 'Far Away', nameAr: null },
       },
     ]);
     expect(response.headers['cache-control']).not.toBe('no-store');

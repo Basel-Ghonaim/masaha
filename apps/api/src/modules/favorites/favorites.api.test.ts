@@ -66,7 +66,7 @@ async function savedSpaces(count: number, saved: number): Promise<number[]> {
 }
 
 describe('POST /me/favorites/:spaceId', () => {
-  it('a signed-in user saves a listed space, 204; again 204 with one row', async () => {
+  it('a signed-in user saves a listed space, 204; again 204 with one row, even once hidden', async () => {
     const first = await save(user);
     expect(first.status).toBe(204);
     expect(first.body).toEqual({});
@@ -74,6 +74,12 @@ describe('POST /me/favorites/:spaceId', () => {
 
     const again = await save(user);
     expect(again.status).toBe(204);
+    expect(await storedFavorites()).toEqual([{ userId: user.id, spaceId, createdAt: NOW }]);
+
+    // Already saved is answered before the listing: a space that left is still 204.
+    await prisma.space.update({ where: { id: spaceId }, data: { isHidden: true } });
+    const hidden = await save(user);
+    expect(hidden.status).toBe(204);
     expect(await storedFavorites()).toEqual([{ userId: user.id, spaceId, createdAt: NOW }]);
   });
 

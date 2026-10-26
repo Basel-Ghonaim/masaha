@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -129,7 +129,7 @@ Each step names its goal and points to what supports it:
   - [admin](../design/SCREENS.md#admin-8): 28 Data reports.
 - **Supported by:** [ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md); conventions §9: [data reports](../backend/conventions.md#data-reports) and [composed reads](../backend/conventions.md#composed-reads) (the favourites' cards).
 - **Closes:** [finding 8](../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md), at the start of the step: the removable filter tag.
-- **Built:** announcements and the closure warning, on the API: posted (idempotent), edited, ended, started and deleted by the staff; the managed list with each closure's extension state and its summary; a space's page's announcements; `CLOSURE_IN_FORCE` at check-in (#112, [api-contract › Announcements (managed)](../api/api-contract.md#announcements-managed)); data reports, on the API: a signed-in user's report (10 an hour, a repeat answering the open one), the user's own with the replies, the owner's and the admin's lists and decisions, the reporter anonymous to the owner (#120, [api-contract › Data reports](../api/api-contract.md#data-reports)); favourites, on the API: saved and removed, idempotent, at most 200, read whole as the directory's cards, newest saved first or nearest first (#121, [api-contract › Favourites](../api/api-contract.md#favourites)). The screens remain planned.
+- **Built:** announcements and the closure warning, on the API: posted (idempotent), edited, ended, started and deleted by the staff; the managed list with each closure's extension state and its summary; a space's page's announcements; `CLOSURE_IN_FORCE` at check-in (#112, [api-contract › Announcements (managed)](../api/api-contract.md#announcements-managed)); data reports, on the API: a signed-in user's report (10 an hour, a repeat answering the open one), the user's own with the replies, the owner's and the admin's lists and decisions, the reporter anonymous to the owner (#120, [api-contract › Data reports](../api/api-contract.md#data-reports)); favourites, on the API: saved and removed, idempotent, at most 200, read whole as the directory's cards, newest saved first or nearest first (#121, [api-contract › Favourites](../api/api-contract.md#favourites)); the closure extension, on the API: its preview, and the owner's extension of the subscriptions a closure covered, once per closure under one key, an extended closure guarded by the database (#123, [api-contract › Announcements (managed)](../api/api-contract.md#announcements-managed)). The screens remain planned.
 
 ### 11. Finance, audit and settings
 
@@ -241,7 +241,7 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | POST | `/manage/spaces/:spaceId/payments/:paymentId/void` | 🏢 | reason required (built, #114) |
 | GET / POST | `/manage/spaces/:spaceId/announcements` | 🧾 | the list by state, each closure with its extension state, and `…/summary`; the post, idempotent (built, #112) |
 | PATCH / DELETE | `/manage/spaces/:spaceId/announcements/:id` | 🧾 | edit, delete (soft); `POST …/:id/end`, `POST …/:id/start` (built, #112) |
-| POST | `/manage/spaces/:spaceId/announcements/:id/extend-subscriptions` | 🏢 | closure notices only; once per closure |
+| GET / POST | `/manage/spaces/:spaceId/announcements/:id/extend-subscriptions` | 🧾 / 🏢 | closure notices only: the preview, the staff's; the extension of the subscriptions it covered, the owner's, once per closure (built, #123) |
 | GET | `/manage/spaces/:spaceId/finance/...` | 🏢 | summary, income by month, visit income per day, debtors and payers, collections per staff member, occupancy (by hour, by day, peaks, average stay); CSV export |
 | GET / PATCH | `/manage/spaces/:spaceId/data-reports[/:id]` | 🏢 | resolve with an optional note, or dismiss with a required one (the owner keeps them once the space is verified; built, #120) |
 | GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | |

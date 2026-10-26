@@ -12,4 +12,5 @@ export const CONSTRAINT_CODES: Readonly<
   subscriptions_price_below_paid: { type: 'conflict', code: 'PRICE_BELOW_PAID' },
   payments_visit_uncharged: { type: 'conflict', code: 'VISIT_NOT_PRICED' },
   payments_visit_written_off: { type: 'conflict', code: 'VISIT_WRITTEN_OFF' },
+  announcements_closure_extended: { type: 'conflict', code: 'CLOSURE_EXTENDED' },
 };

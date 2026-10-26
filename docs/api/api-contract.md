@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -69,7 +69,7 @@ meta: { currentPage, limit, totalPages, totalRecords, hasNextPage, hasPreviousPa
 - a subscription's check-ins and payments in its statement (`GET /manage/spaces/:spaceId/subscriptions/:subscriptionId`), bounded by one subscription (§5, *Subscriptions (managed)*; 2026-10-22, #106);
 - the open check-ins (`GET /manage/spaces/:spaceId/check-ins?open=true`), bounded by who is present (§5, *Front desk (managed)*; 2026-10-22, #109);
 - a space's announcements on its page (`GET /spaces/:slug`), its running and upcoming ones, at most 20: a space posts tens at most, and the page shows them together (§5, *Directory (public)*; 2026-10-24, #112);
-- a user's favourites (`GET /me/favorites`), at most 200: the screen shows them together, near me included (§5, *Favourites*; #121).
+- a user's favourites (`GET /me/favorites`), at most 200: the screen shows them together, near me included (§5, *Favourites*; 2026-10-25, #121).
 
 ## 5. Endpoints
 
@@ -706,7 +706,7 @@ What a space tells its users changes: a closure, an outage, an offer, an event o
 - **The state** (`Announcement.state`), from the instants and the server's clock: `UPCOMING` before the start, `ENDED` from the end, else `RUNNING` (with no end, until it is ended).
 - **Audit**, in the change's own transaction ([conventions §6](../backend/conventions.md#6-audit)), with the announcement as the entity and its space as the entry's: `announcement.created` (`after`: `{ type, startsAt, endsAt }`), `announcement.edited` (`before` and `after`: only the fields that changed), `announcement.ended` (`before` and `after`: `{ endsAt }`), `announcement.started` (`before` and `after`: `{ startsAt }`) and `announcement.deleted` (`before`: `{ type, startsAt, endsAt }`); an edit that changes nothing, and a repeated end, start or delete, write nothing.
 - **Deleted, never removed** ([ADR 0007](../architecture/decisions/0007-soft-delete.md)): a deleted announcement keeps its row and leaves every read and the live status at once.
-- **The list and its summary** show each closure's extension of the subscriptions it covered, which `subscriptions` owns: they are composed there ([conventions §9](../backend/conventions.md#composed-reads)), on the same path. Reads of the staff, asking no `can()`.
+- **The list and its summary** show each closure's extension of the subscriptions it covered, which `subscriptions` owns: they are composed there ([conventions §9](../backend/conventions.md#composed-reads)), on the same path. Reads of the staff, asking no `can()`. A closure's extension is `subscriptions`' too, on the same path: its preview the staff's, the extension itself the owner's (`subscriptions.extendAfterClosure`), once per closure, with no undo.
 
 ```ts
 Announcement = {
@@ -731,6 +731,16 @@ ManagedAnnouncement = Announcement & {
 }
 
 AnnouncementsSummary = { running: number, upcoming: number, ended: number, closuresAwaitingExtension: number }
+
+ExtensionPreview = {
+  firstDay: string,                // the Gaza date of the closure's start
+  lastDay: string,                 // of its last instant: the day before an end at midnight; today while it runs
+  proposedDays: number,            // the days from firstDay to lastDay, at most 365
+  subscriptions: number,           // how many it covered; once applied, how many it moved
+  applied: ExtensionApplied | null
+}
+
+ClosureExtension = ExtensionApplied & { announcementId: number }
 ```
 
 #### `GET /manage/spaces/:spaceId/announcements` · 🧾
@@ -740,6 +750,16 @@ AnnouncementsSummary = { running: number, upcoming: number, ended: number, closu
 #### `GET /manage/spaces/:spaceId/announcements/summary` · 🧾
 - **200:** `AnnouncementsSummary`: how many announcements, not deleted, are running, upcoming and ended (the list's tabs), and `closuresAwaitingExtension`, the closures started within the last 30 days, not deleted, whose subscriptions were not extended (the owner's overview will read the same count). Built 2026-10-24, #112.
 
+#### `GET /manage/spaces/:spaceId/announcements/:announcementId/extend-subscriptions` · 🧾
+- **The covered subscriptions** (decision 4, [data-model › Checked by the service](../architecture/data-model.md#checked-by-the-service)): the space's subscriptions not ended early, with an end on or after the closure's first day and a start (or none) on or before its last — one running through it, one ending during it, one starting on its last day. One with no end is never covered.
+- **200:** `ExtensionPreview`, read without a lock and writing nothing: the closure's covered Gaza days, the days proposed and how many subscriptions it covered now; once applied, `applied` and how many it moved instead. Built 2026-10-26, #123.
+- **Errors:** `not_found` (404) for an announcement that is not the space's, not a `CLOSURE`, or deleted; `conflict` (409) `ANNOUNCEMENT_NOT_STARTED` for a closure not started yet.
+
+#### `POST /manage/spaces/:spaceId/announcements/:announcementId/extend-subscriptions` · 🏢 · `Idempotency-Key`
+- **Body:** `{ days }`, the days the owner types from the proposal: whole, 1–365 (`EXTENSION_MAX_DAYS`; `out_of_range` otherwise).
+- **201:** `ClosureExtension`: every subscription the closure covered, as the preview counts them, has its end moved by `days`, in one transaction, with one link each; audited `closure.subscriptionsExtended` (the announcement the entity, its space the entry's; `after`: `{ days, subscriptionIds }`). A subscription's status and progress follow from its new end. A retry with the same key answers the first extension as it was, 201, moving nothing; two owners at once make one (the space's lock, then the closure's, then the subscriptions' by id). **No undo:** a wrong extension is corrected subscription by subscription (*Subscriptions (managed)*, the corrections). Once extended, the closure keeps its type, start and existence (`CLOSURE_EXTENDED` on its edit and delete). Built 2026-10-26, #123.
+- **Errors**, each writing nothing: `forbidden` (403) for reception, before the key or the body is read, and for an owner whose link ended meanwhile; `validation` (422) on `idempotencyKey` (§1), then on the body; `conflict` (409) for a key that extended another closure; `not_found` (404) for an announcement that is not the space's, not a `CLOSURE`, or deleted; `conflict` (409) `CLOSURE_ALREADY_EXTENDED` for a closure extended already; `conflict` (409) `ANNOUNCEMENT_NOT_STARTED` for one not started yet.
+
 #### `POST /manage/spaces/:spaceId/announcements` · 🧾 · `Idempotency-Key`
 - **Body:** `{ type, textAr, textEn?, startsAt?, endsAt? }`: no `startsAt`, now («يبدأ الآن»); no `endsAt` (or `null`), no end.
 - **201:** `Announcement`; a retry with the same key answers the first announcement as it is now, 201, and writes nothing; a retry of a deleted announcement answers it as it was, deleted from every read (2026-10-24, #114); two requests with one key at once make one (the space's lock, the key unique within the space behind it).
@@ -748,7 +768,7 @@ AnnouncementsSummary = { running: number, upcoming: number, ended: number, closu
 #### `PATCH /manage/spaces/:spaceId/announcements/:announcementId` · 🧾
 - **Body:** `{ type?, textAr?, textEn?, startsAt?, endsAt? }`: what is absent is kept; `textEn: null` clears the English text and `endsAt: null` removes the end.
 - **200:** `Announcement`.
-- **Errors**, each writing nothing: `validation` (422) on the body, before anything is read; `forbidden` (403); `not_found` (404) for an announcement that is not the space's, or deleted; `validation` (422) on the period.
+- **Errors**, each writing nothing: `validation` (422) on the body, before anything is read; `forbidden` (403); `not_found` (404) for an announcement that is not the space's, or deleted; `validation` (422) on the period; `conflict` (409) `CLOSURE_EXTENDED` for a closure whose subscriptions were extended, given a new type or start, a later end or no end — its text and an earlier end still change (from the database, 2026-10-26, #123).
 
 #### `POST /manage/spaces/:spaceId/announcements/:announcementId/end` · 🧾
 - **200:** `Announcement`, its end now («إنهاء الآن»); one ended already is answered as it is, writing nothing.
@@ -760,7 +780,7 @@ AnnouncementsSummary = { running: number, upcoming: number, ended: number, closu
 
 #### `DELETE /manage/spaces/:spaceId/announcements/:announcementId` · 🧾
 - **204**, in any state; one deleted already answers 204 again, writing nothing.
-- **Errors**, each writing nothing: `forbidden` (403); `not_found` (404) for an announcement that is not the space's.
+- **Errors**, each writing nothing: `forbidden` (403); `not_found` (404) for an announcement that is not the space's; `conflict` (409) `CLOSURE_EXTENDED` for a closure whose subscriptions were extended (from the database, 2026-10-26, #123).
 
 ### Data reports
 
@@ -830,7 +850,7 @@ AdminReport = SpaceReport & {
 
 ### Favourites
 
-A signed-in user keeps the listed spaces they want to find again, at most 200 (`FAVORITES_MAX`, `@masaha/shared/favorites`), and reads them as the directory's cards. A favourite is the user's own choice: it is not audited. Built #121.
+A signed-in user keeps the listed spaces they want to find again, at most 200 (`FAVORITES_MAX`, `@masaha/shared/favorites`), and reads them as the directory's cards. A favourite is the user's own choice: it is not audited. Built 2026-10-25, #121.
 
 ```ts
 FavoriteSpace =                    // @masaha/shared/directory
@@ -841,7 +861,7 @@ FavoriteSpace =                    // @masaha/shared/directory
 
 #### `GET /me/favorites` · 👤
 - **Query:** `sort` (`distance`, or absent; `invalid_choice` otherwise), with the device's point in the `Masaha-Near` header by the list's rules (*Directory (public)*): three decimals at most (`invalid_format`), inside the Strip (`out_of_range`); `distance` without the header is `required` on `near`, the header without `distance` `invalid_choice` on `near`.
-- **200:** `FavoriteSpace[]`, the caller's own only, whole (§4's exception), no `meta`. Without `sort`, the newest saved first, then by space id. With `sort=distance`, the listed ones nearest first, each with its `distanceMeters`, then those that left the directory, newest saved first. No card carries a capacity or a count (ADR 0008).
+- **200:** `FavoriteSpace[]`, the caller's own only, whole (§4's exception), no `meta`. Without `sort`, the newest saved first, then the higher space id first. With `sort=distance`, the listed ones nearest first, each with its `distanceMeters`, then those that left the directory, newest saved first. No card carries a capacity or a count (ADR 0008).
 - **Caching:** every answer to a request that carries the header, a refusal included, `Cache-Control: no-store`.
 - **Errors:** `unauthorized` (401) without a signed-in user; `validation` (422) on the query.
 
@@ -1293,4 +1313,4 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 A new code is added in the order of [backend conventions §4](../backend/conventions.md#4-errors).
 
-`EMAIL_TAKEN` · `PHONE_TAKEN` (a phone another customer of the space holds, not archived, 2026-10-21, #102) · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SESSION_IDLE` (401: reception's session ended after 15 minutes with no request, on a signed-in request or the refresh, 2026-10-25, #118) · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` (archiving a customer who is present, 2026-10-21, #102; checking in a subscriber who is present, 2026-10-22, #109) · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CLOSURE_IN_FORCE` (warning only: a check-in, a visit's or a subscriber's, while a closure the space announced runs; the check-in succeeds with `meta.warnings`, 2026-10-24, #112) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off, or leaving to a customer, a visit with nothing owed, 2026-10-20, #100) · `VISIT_WRITTEN_OFF` (a payment on a written-off visit, from the ledger, or leaving it to a customer, 2026-10-20, #100; or voiding one of its payments, 2026-10-24, #114) · `VISIT_HAS_CUSTOMER` (a phone that is not the customer's of a visit that has one, 2026-10-20, #100) · `CUSTOMER_ARCHIVED` (editing an archived customer, 2026-10-21, #102) · `SUBSCRIPTION_ALREADY_RENEWED` (renewing a subscription renewed already, 2026-10-22, #106) · `CUSTOMER_HAS_DEBT` (warning only: a subscribe whose customer still owes on an earlier item; the subscription is made with `meta.warnings`, 2026-10-22, #106) · `SUBSCRIPTION_ENDED` (correcting a subscription ended early, 2026-10-22, #106) · `PRICE_BELOW_PAID` (a fixed price corrected below what was paid on it, from the database, 2026-10-22, #106) · `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_EXPIRED`, `DAYS_PER_WEEK_USED`, `HOURS_PER_DAY_USED` (warnings only: a subscriber checked in before the subscription starts, after it expired, with this week's days or today's hours used up; the check-in succeeds with `meta.warnings`, 2026-10-22, #109) · `ANNOUNCEMENT_NOT_STARTED` (ending now an announcement that has not started, 2026-10-24, #112) · `REPORT_ALREADY_DECIDED` (409: a decided report decided again, otherwise than it was, 2026-10-25, #120) · `FAVORITES_LIMIT_REACHED` (409: a new favourite past the user's 200, #121).
+`EMAIL_TAKEN` · `PHONE_TAKEN` (a phone another customer of the space holds, not archived, 2026-10-21, #102) · `INVALID_CREDENTIALS` · `ACCOUNT_SUSPENDED` · `PASSWORD_CHANGE_REQUIRED` · `SESSION_IDLE` (401: reception's session ended after 15 minutes with no request, on a signed-in request or the refresh, 2026-10-25, #118) · `SPACE_NOT_MANAGED` · `MEMBER_ALREADY_CHECKED_IN` (archiving a customer who is present, 2026-10-21, #102; checking in a subscriber who is present, 2026-10-22, #109) · `CHECK_IN_ALREADY_CLOSED` · `SPACE_CAPACITY_NOT_SET` · `OUTSIDE_OPENING_HOURS` (warning only; the check-in succeeds with `meta.warnings`) · `CLOSURE_IN_FORCE` (warning only: a check-in, a visit's or a subscriber's, while a closure the space announced runs; the check-in succeeds with `meta.warnings`, 2026-10-24, #112) · `CURRENT_PASSWORD_INCORRECT` · `GOOGLE_TOKEN_INVALID` · `RESET_TOKEN_INVALID` · `GOOGLE_LINK_NOT_ALLOWED` · `PASSWORD_NOT_SET` · `RECOVERY_INVALID` · `RESEND_LIMIT_REACHED` · `ACCOUNT_IS_ADMIN` · `RECEPTION_LINK_ACTIVE` · `EMAIL_HAS_ACCOUNT` · `ALREADY_OWNER` · `TEMPORARY_PASSWORD_NOT_PENDING` · `OWN_ACCOUNT` · `LAST_ADMIN` · `ACCOUNT_HAS_LINKS` · `GOOGLE_ONLY_ACCOUNT` · `TEMPORARY_PASSWORD_EXPIRED` · `ACCOUNT_PASSWORD_PENDING` · `SPACE_NOT_OPEN` (an override set while the space is not open by its hours, is under a closure, or is unverified) · `SPACE_FULL` (warning only; the check-in succeeds with `meta.warnings`) · `PRICE_TYPING_NOT_ALLOWED` (reception typing a price where the space's settings do not allow it) · `PAYMENT_EXCEEDS_DUE` (a payment above what is due, from the ledger) · `VISIT_NOT_PRICED` (a payment on, or a write-off of, a visit with no charge; the payment's from the ledger) · `VISIT_ALREADY_CLOSED` (a payment on a visit another check-out already closed: not recorded) · `VISIT_ALREADY_PRICED` (pricing a visit that already has a charge) · `VISIT_ALREADY_PAID` (writing off, or leaving to a customer, a visit with nothing owed, 2026-10-20, #100) · `VISIT_WRITTEN_OFF` (a payment on a written-off visit, from the ledger, or leaving it to a customer, 2026-10-20, #100; or voiding one of its payments, 2026-10-24, #114) · `VISIT_HAS_CUSTOMER` (a phone that is not the customer's of a visit that has one, 2026-10-20, #100) · `CUSTOMER_ARCHIVED` (editing an archived customer, 2026-10-21, #102) · `SUBSCRIPTION_ALREADY_RENEWED` (renewing a subscription renewed already, 2026-10-22, #106) · `CUSTOMER_HAS_DEBT` (warning only: a subscribe whose customer still owes on an earlier item; the subscription is made with `meta.warnings`, 2026-10-22, #106) · `SUBSCRIPTION_ENDED` (correcting a subscription ended early, 2026-10-22, #106) · `PRICE_BELOW_PAID` (a fixed price corrected below what was paid on it, from the database, 2026-10-22, #106) · `SUBSCRIPTION_NOT_STARTED`, `SUBSCRIPTION_EXPIRED`, `DAYS_PER_WEEK_USED`, `HOURS_PER_DAY_USED` (warnings only: a subscriber checked in before the subscription starts, after it expired, with this week's days or today's hours used up; the check-in succeeds with `meta.warnings`, 2026-10-22, #109) · `ANNOUNCEMENT_NOT_STARTED` (ending now an announcement that has not started, 2026-10-24, #112) · `CLOSURE_EXTENDED` (409: a closure whose subscriptions were extended, deleted, retyped, restarted, or given a later end or none; from the database, 2026-10-26, #123) · `CLOSURE_ALREADY_EXTENDED` (409: a closure's subscriptions extended already, under another key, 2026-10-26, #123) · `REPORT_ALREADY_DECIDED` (409: a decided report decided again, otherwise than it was, 2026-10-25, #120) · `FAVORITES_LIMIT_REACHED` (409: a new favourite past the user's 200, 2026-10-25, #121).

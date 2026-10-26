@@ -1,6 +1,6 @@
 # Announcements
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
 > **Authority:** The `announcements` capability: what a space tells its users changes — a closure, an outage, an offer, an event or general news — posted and changed by its staff. Its endpoints are owned by the [API contract](../api/api-contract.md#announcements-managed); its entity by the [data model](../architecture/data-model.md#operations). The API is built; no screen yet.
 > **Scope:** the API module `announcements` (L2); `@masaha/shared/announcements`.
 
@@ -18,7 +18,7 @@
 
 - **The space's owner and reception,** through the API, under `/manage/spaces/:spaceId/announcements`: they post, edit, end, start and delete. The screens are not built.
 - **The live status** ([occupancy](occupancy.md)): a running `CLOSURE` makes a space `CLOSED`.
-- **[`subscriptions`](subscriptions.md),** whose managed list and summary read its pages, its counts and its started closures.
+- **[`subscriptions`](subscriptions.md),** whose managed list and summary read its pages, its counts and its started closures, and whose closure extension reads a closure (`closureIn`), locks it (`lockClosure`) and its days (`closureSpan`).
 - **[`directory`](directory.md),** whose space page reads its running and upcoming announcements.
 
 ## Responsibility boundary
@@ -48,6 +48,8 @@
 
 **End now, start now, delete.** Each takes the same lock and `can()`, then the row, locked. End now sets a running one's end to now; an ended one is answered as it is; an upcoming one is refused (`ANNOUNCEMENT_NOT_STARTED`). Start now sets an upcoming one's start to now, refused (`validation` on `endsAt`) when its end would then fall more than 365 days after its start; a started one is answered as it is. Delete sets `deletedAt` in any state, the row kept; a deleted one answers 204 again, writing nothing, and leaves every read and the live status.
 
+**An extended closure.** Once its subscriptions were extended ([`subscriptions`](subscriptions.md)), an edit giving it a new type or start, a later end or no end, and its delete, are refused `CLOSURE_EXTENDED`, writing nothing; its text and an earlier end, end now included, change. The database's trigger refuses them ([data model › Constraints](../architecture/data-model.md#constraints-worth-stating)); this module asks nothing of the extensions.
+
 ## Decisions
 
 ### API decisions
@@ -59,11 +61,12 @@
 - **End now refuses an announcement not started yet: `ANNOUNCEMENT_NOT_STARTED`.** *Why:* its end would come before its start, which the database's `announcements_dates_check` refuses; the design offers deleting it there. 2026-10-24, #112.
 - **End now, start now and delete answer a repeat as it is, writing nothing** (O10). *Why:* updates are idempotent by design ([conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)); a retry after a lost answer must not read as a refusal. 2026-10-24, #112.
 - **Delete is soft and allowed in any state** (O10, [ADR 0007](../architecture/decisions/0007-soft-delete.md)). *Why:* the row stays for the audit and a closure's extension; a running closure deleted reopens the space at once. 2026-10-24, #112.
+- **An extended closure keeps its type, its start and its existence; its end only comes earlier** (decision 6, refined by S3, the owner's Q3), held by a trigger (S2), `CLOSURE_EXTENDED`. *Why:* the days were given for the closure as it was; `announcements` (L2) cannot read the extensions, and a check in the service would race with an extension; a running closure, once extended, must still be able to end. 2026-10-26, #123.
 - **No title and no author on an announcement** (O9). *Why:* the design shows neither; the audit records who. 2026-10-24, #112.
 
 ## Code map
 
-- `apps/api/src/modules/announcements/` — the module: its service, its repository, its manage router, and the pure rules (`announcementState`, `period`, `announcementChange`).
+- `apps/api/src/modules/announcements/` — the module: its service, its repository, its manage router, and the pure rules (`announcementState`, `period`, `announcementChange`, `closureSpan`).
 - `packages/shared/src/announcements/` — the requests and answers.
 
 ## Open findings
@@ -75,3 +78,4 @@ None.
 ### API history
 
 - 2026-10-24, #112 — posted (idempotent), edited, ended, started and deleted by the staff; the pages and counts the managed list composes; the running and upcoming ones a space's public page reads.
+- 2026-10-26, #123 — an extended closure guarded by the database (`CLOSURE_EXTENDED`).

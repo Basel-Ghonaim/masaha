@@ -8,6 +8,7 @@
 > **Revised:** 2026-10-20 — rule 5: the owner alone writes off a visit's unpaid rest that will not be collected, with a reason, and may undo it (K6). #100
 > **Revised:** 2026-10-21 — rule 5: owner and reception edit a customer; the owner alone archives a customer and restores them. #102
 > **Revised:** 2026-10-22 — rule 5: owner and reception correct a subscription's limits, dates and name, and end it early; the owner alone corrects its price or billing, with a reason. #106
+> **Revised:** 2026-10-26 — rule 5: the owner extends the subscriptions a closure covered (decision 4: running on any of its days), once it has started and once per closure, not "all active subscriptions". #123
 
 ## Context
 ADR 0002 deferred a receptionist role: the front desk was to use the owner's account, with the audit log recording every action. Reviewing the screen designs (2026-09-29) showed that this no longer holds. Payments are now recorded at the desk ([ADR 0010](0010-manual-payment-ledger.md)), so the owner needs to know who received each payment (shift handover, collections per staff member), and front-desk staff must not see finance, void payments or edit the space. ADR 0002 left room for this: a new `SpaceManager.role` value and new rows in the permission table.
@@ -36,7 +37,7 @@ ADR 0002 deferred a receptionist role: the front desk was to use the owner's acc
    | Receive a payment, settle a debt, renew | ✓ | ✓ |
    | Collections today (shift handover) | own | all staff |
    | Announcements (including a closure notice); manual state override | ✓ | ✓ |
-   | Extend all active subscriptions after a closure | – | ✓ |
+   | Extend the subscriptions a closure covered, once it has started | – | ✓ |
    | Void a payment (with a reason) | – | ✓ |
    | Write off a visit's unpaid rest that will not be collected, with a reason; undo it | – | ✓ |
    | Finance and statistics | – | ✓ |

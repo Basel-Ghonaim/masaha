@@ -59,6 +59,9 @@ export const ERRORS = {
   DAYS_PER_WEEK_USED: "This week's days are used up; the check-in was recorded anyway.",
   HOURS_PER_DAY_USED: "Today's hours are used up; the check-in was recorded anyway.",
   ANNOUNCEMENT_NOT_STARTED: 'This announcement has not started yet.',
+  CLOSURE_EXTENDED:
+    'Subscriptions were extended for this closure: it is not deleted, and its type, start and later end stay as they are.',
+  CLOSURE_ALREADY_EXTENDED: "This closure's subscriptions were already extended.",
   REPORT_ALREADY_DECIDED: 'This report was already decided.',
   FAVORITES_LIMIT_REACHED: 'Your favourites are full; remove a space first.',
   ACCOUNT_IS_ADMIN: 'An admin account can’t be a space’s owner.',

@@ -129,6 +129,7 @@ describe('the managed list', () => {
         announcementId: extended.id,
         days: 3,
         appliedById: owner.id,
+        idempotencyKey: randomUUID(),
         createdAt: days(-0.5),
       },
     });
@@ -164,7 +165,12 @@ describe('the summary', () => {
   it('the summary counts running, upcoming and ended, and the started closures with no extension', async () => {
     const extended = await insert({ type: 'CLOSURE', startsAt: days(-3), endsAt: days(-1) });
     await prisma.closureExtension.create({
-      data: { announcementId: extended.id, days: 2, appliedById: owner.id },
+      data: {
+        announcementId: extended.id,
+        days: 2,
+        appliedById: owner.id,
+        idempotencyKey: randomUUID(),
+      },
     });
     // Awaiting: a running closure, and an ended one, each started within 30 days.
     await insert({ type: 'CLOSURE', startsAt: days(-2) });

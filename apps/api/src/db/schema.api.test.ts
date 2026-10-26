@@ -350,11 +350,17 @@ describe('a closure extension', () => {
     const data = { announcementId: announcement.id, days: 2, appliedById: owner.id };
 
     const extension = await prisma.closureExtension.create({
-      data: { ...data, subscriptions: { create: [{ subscriptionId: subscription.id }] } },
+      data: {
+        ...data,
+        idempotencyKey: randomUUID(),
+        subscriptions: { create: [{ subscriptionId: subscription.id }] },
+      },
       include: { _count: { select: { subscriptions: true } } },
     });
     expect(extension._count.subscriptions).toBe(1);
-    await expect(prisma.closureExtension.create({ data })).rejects.toMatchObject({
+    await expect(
+      prisma.closureExtension.create({ data: { ...data, idempotencyKey: randomUUID() } }),
+    ).rejects.toMatchObject({
       code: 'P2002',
     });
   });
@@ -364,7 +370,12 @@ describe('a closure extension', () => {
 
     await expect(
       prisma.closureExtension.create({
-        data: { announcementId: announcement.id, days: 0, appliedById: owner.id },
+        data: {
+          announcementId: announcement.id,
+          days: 0,
+          appliedById: owner.id,
+          idempotencyKey: randomUUID(),
+        },
       }),
     ).rejects.toThrow(/closure_extensions_days_check/);
   });

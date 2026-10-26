@@ -14,6 +14,9 @@ export type AnnouncementState = (typeof ANNOUNCEMENT_STATES)[number];
 
 export const ANNOUNCEMENT_TEXT_MAX_LENGTH = 500;
 
+/** The most days a closure's extension gives, and the most the server proposes (S5). */
+export const EXTENSION_MAX_DAYS = 365;
+
 const text = paragraphSchema(1, ANNOUNCEMENT_TEXT_MAX_LENGTH);
 const instant = z.iso.datetime({ offset: true });
 
@@ -63,3 +66,9 @@ export const announcementsQuerySchema = paginationQuerySchema.extend({
   state: z.enum(ANNOUNCEMENT_STATES).default('RUNNING'),
 });
 export type AnnouncementsQuery = z.infer<typeof announcementsQuerySchema>;
+
+/** A closure's extension: the days every covered subscription's end moves, whole, 1–365 (S5). */
+export const extendSubscriptionsSchema = z.object({
+  days: z.number().int().min(1).max(EXTENSION_MAX_DAYS),
+});
+export type ExtendSubscriptionsRequest = z.infer<typeof extendSubscriptionsSchema>;

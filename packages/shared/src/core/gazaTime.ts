@@ -50,6 +50,11 @@ export function addDays(date: string, days: number): string {
   return moved.toISOString().slice(0, 10);
 }
 
+/** The calendar days from `from` to `to`, both `YYYY-MM-DD`: negative when `to` comes first. */
+export function daysFrom(from: string, to: string): number {
+  return (utcDay(to).getTime() - utcDay(from).getTime()) / 86_400_000;
+}
+
 /** The first day of `date`'s week, the Saturday on or before it (weeks run Saturday to Friday). */
 export function weekStartOf(date: string): string {
   const dayOfWeek = utcDay(date).getUTCDay();

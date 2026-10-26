@@ -1,3 +1,4 @@
+import { daysFrom } from '@masaha/shared/core';
 import type { SubscriptionStatus } from '@masaha/shared/subscriptions';
 
 // A subscription's status (docs/architecture/data-model.md › Subscription status): pure, on the
@@ -22,11 +23,6 @@ export interface StatusUsage {
 const WEEK_DAYS = 7;
 /** The share of a total left at which it is ending soon. */
 const ENDING_SHARE = 0.2;
-
-/** The calendar days from `from` to `to`, both `YYYY-MM-DD`. */
-function daysFrom(from: string, to: string): number {
-  return (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000;
-}
 
 /** Whether a total is left at no more than its ending share. */
 const nearlyUsed = (total: number, used: number) => total - used <= total * ENDING_SHARE;

@@ -23,6 +23,22 @@ export interface ExtensionApplied {
   appliedBy: { id: number; name: string };
 }
 
+/** A closure's extension as applied: the closure, its days, how many it moved, by whom, when. */
+export type ClosureExtension = ExtensionApplied & { announcementId: number };
+
+/**
+ * A started closure's extension, before it is applied: the Gaza days it covered (to today while it
+ * runs), the days proposed (those days, at most `EXTENSION_MAX_DAYS`) and how many subscriptions it
+ * covered. Once applied, `applied` answers it, and `subscriptions` is how many it moved.
+ */
+export interface ExtensionPreview {
+  firstDay: string;
+  lastDay: string;
+  proposedDays: number;
+  subscriptions: number;
+  applied: ExtensionApplied | null;
+}
+
 /**
  * An announcement of the managed list: a closure carries `extension`, `null` until its
  * subscriptions are extended; the other types carry none.

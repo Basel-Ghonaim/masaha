@@ -15,7 +15,7 @@ import type { SpacesService } from '../spaces/index.ts';
 import { announcementChange } from './announcementChange.ts';
 import { announcementState } from './announcementState.ts';
 import { toAnnouncement } from './announcements.mapper.ts';
-import { createAnnouncementsRepository } from './announcements.repository.ts';
+import { createAnnouncementsRepository, type AnnouncementRow } from './announcements.repository.ts';
 import { periodErrors } from './period.ts';
 
 interface Dependencies {
@@ -84,6 +84,26 @@ export function createAnnouncementsService({ runInTransaction, audit, spaces, no
     /** How many of the space's announcements are in each state at `at`, in one query. */
     counts(spaceId: number, at: Date): Promise<Record<AnnouncementState, number>> {
       return repository.counts(spaceId, at);
+    },
+
+    /**
+     * The space's closure, not deleted, read without a lock, for its extension's preview: else
+     * `not_found`.
+     */
+    async closureIn(spaceId: number, id: number): Promise<AnnouncementRow> {
+      const row = await repository.findClosure(spaceId, id);
+      if (!row) throw AppError.notFound(undefined, 'Closure not found');
+      return row;
+    },
+
+    /**
+     * Locks the space's closure's row (`FOR UPDATE`), not deleted, for its extension, and answers
+     * it: else `not_found`. The caller holds the space's lock first (conventions §13).
+     */
+    async lockClosure(spaceId: number, id: number, tx: Tx): Promise<AnnouncementRow> {
+      const row = await repository.lockIn(spaceId, id, tx);
+      if (row?.type !== 'CLOSURE') throw AppError.notFound(undefined, 'Closure not found');
+      return row;
     },
 
     /** The ids of the space's closures, not deleted, started by `at` and not before `since`. */
