@@ -96,6 +96,16 @@ export function createAnnouncementsService({ runInTransaction, audit, spaces, no
       return row;
     },
 
+    /**
+     * Locks the space's closure's row (`FOR UPDATE`), not deleted, for its extension, and answers
+     * it: else `not_found`. The caller holds the space's lock first (conventions §13).
+     */
+    async lockClosure(spaceId: number, id: number, tx: Tx): Promise<AnnouncementRow> {
+      const row = await repository.lockIn(spaceId, id, tx);
+      if (row?.type !== 'CLOSURE') throw AppError.notFound(undefined, 'Closure not found');
+      return row;
+    },
+
     /** The ids of the space's closures, not deleted, started by `at` and not before `since`. */
     startedClosureIds(spaceId: number, at: Date, since: Date): Promise<number[]> {
       return repository.startedClosureIds(spaceId, at, since);

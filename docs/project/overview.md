@@ -1,6 +1,6 @@
 # Project Overview
 
-> **Status:** Active · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
 > **Authority:** What Masaha is, what is built today, what v1 is committed to, and what is explicitly not in v1. It names scope; it does not specify behaviour.
 
 ## What Masaha is
@@ -26,7 +26,7 @@ This section lists a capability only once it is merged and working. Each line li
 - [Front desk](../features/desk.md): on the API, checking a visitor in by name and out, with the charge and its payment, the unpaid rest left to a customer by phone, and a price typed by hand with its reason; the auto check-out of open stays at their due time; the unpriced visits the owner prices, and the uncollected visits, collecting a visit's debt or the owner's write-off ([visits](../features/visits.md), [payments](../features/payments.md)); on the dashboard, the desk: who is present, the live status and its override, a visit's check-in and check-out with its payment.
 - [Customers](../features/customers.md): on the API, a space's customers, created and edited by its staff, archived and restored by its owner; the list, paged, searched and filtered by their subscription and payment state, and a customer's file with their subscriptions' status and progress, their debt and their unpaid visits; their subscriptions made from a package or custom, renewed with a payment the server allocates oldest debt first, paid, read as a statement, corrected (the price the owner's) and ended early; subscribers checked in, with the limits' warnings, and out, and the check-ins listed ([subscriptions](../features/subscriptions.md), [payments](../features/payments.md)).
 - [Payments](../features/payments.md): on the API, a visit's and a subscription's payment, recorded once per key; the owner's void, with a reason; the payments list, the owner's by Gaza days, staff, method, kind and void with its totals, and reception's own of today; the uncollected visits.
-- [Announcements](../features/announcements.md): on the API, a space's announcements, posted, edited, ended, started and deleted by its staff; the managed list with each closure's extension state and its summary; a space's page's running and upcoming announcements; the closure warning at check-in.
+- [Announcements](../features/announcements.md): on the API, a space's announcements, posted, edited, ended, started and deleted by its staff; the managed list with each closure's extension state and its summary; a space's page's running and upcoming announcements; the closure warning at check-in; after a closure, the owner's extension of the subscriptions it covered, previewed first, once per closure.
 - [Favourites](../features/favorites.md): on the API, a signed-in user's favourite spaces, saved and removed, at most 200, read whole as the directory's cards, nearest first when the device's location is sent.
 - [Data reports](../features/data-reports.md): on the API, a signed-in user's report of a listed space's wrong information and their own reports with the replies; the owner's and the admin's lists and decisions, the reporter anonymous to the owner.
 - [Occupancy](../features/occupancy.md): on the API, a space's private capacity, set by its owner, and its state now for its staff: who is present, the count and the live status, with the manual override its staff set and clear.
@@ -59,7 +59,7 @@ Who may do what at a space is decided in [ADR 0009](../architecture/decisions/00
 - Finance and statistics (owner): income, debt, debtors and payers with a WhatsApp reminder link, collections per staff member, occupancy; CSV export, the first item to drop if time is short.
 - Staff (owner): reception accounts, added and deactivated by the owner.
 - Space profile (owner; Arabic required, English optional), prices and packages; confirming that a fact group is still correct.
-- Announcements, including a closure notice; after a closure, the owner extends all active subscriptions by the closure days.
+- Announcements, including a closure notice; after a closure, the owner extends the subscriptions it covered by the days typed.
 - Data reports about the space, resolved with an optional note, or dismissed with a reply. Audit log. Settings.
 
 ### Admin dashboard

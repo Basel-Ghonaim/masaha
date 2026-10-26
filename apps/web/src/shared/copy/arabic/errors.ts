@@ -53,6 +53,7 @@ export const ERRORS = {
   ANNOUNCEMENT_NOT_STARTED: 'لم يبدأ هذا الإعلان بعد.',
   CLOSURE_EXTENDED:
     'مُدّدت الاشتراكات بسبب هذا الإغلاق، فلا يمكن حذفه ولا تغيير نوعه أو بدايته ولا تأخير نهايته.',
+  CLOSURE_ALREADY_EXTENDED: 'مُدّدت اشتراكات هذا الإغلاق من قبل.',
   REPORT_ALREADY_DECIDED: 'سبق البتّ في هذا البلاغ.',
   FAVORITES_LIMIT_REACHED: 'امتلأت مفضّلتك؛ أزل مساحة أولًا.',
   ACCOUNT_IS_ADMIN: 'لا يمكن لحساب أدمن أن يكون صاحب مساحة.',

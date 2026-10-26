@@ -18,7 +18,7 @@
 
 - **The space's owner and reception,** through the API, under `/manage/spaces/:spaceId/announcements`: they post, edit, end, start and delete. The screens are not built.
 - **The live status** ([occupancy](occupancy.md)): a running `CLOSURE` makes a space `CLOSED`.
-- **[`subscriptions`](subscriptions.md),** whose managed list and summary read its pages, its counts and its started closures.
+- **[`subscriptions`](subscriptions.md),** whose managed list and summary read its pages, its counts and its started closures, and whose closure extension reads a closure (`closureIn`), locks it (`lockClosure`) and its days (`closureSpan`).
 - **[`directory`](directory.md),** whose space page reads its running and upcoming announcements.
 
 ## Responsibility boundary
@@ -66,7 +66,7 @@
 
 ## Code map
 
-- `apps/api/src/modules/announcements/` — the module: its service, its repository, its manage router, and the pure rules (`announcementState`, `period`, `announcementChange`).
+- `apps/api/src/modules/announcements/` — the module: its service, its repository, its manage router, and the pure rules (`announcementState`, `period`, `announcementChange`, `closureSpan`).
 - `packages/shared/src/announcements/` — the requests and answers.
 
 ## Open findings

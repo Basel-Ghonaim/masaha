@@ -101,7 +101,7 @@ Inside a module, each layer calls only the one below it.
   - data reports resolved or dismissed;
   - customer create, edit and archive; subscriptions created, corrected and ended;
   - a space's packages created and edited, a retirement included;
-  - announcements created, edited, started, ended and deleted (2026-10-24, #112);
+  - announcements created, edited, started, ended and deleted (2026-10-24, #112); a closure's extension of the subscriptions it covered (2026-10-26, #123);
   - check-in and check-out, for visits and subscriptions;
   - payments recorded and voided ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md));
   - space links: linking owners, adding, deactivating and re-activating staff;
@@ -160,7 +160,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 | [`auth`](../features/auth.md) | L3 | — | public | The sign-in flows, as orchestrator: register, sign in with a password or with Google, refresh, sign out, forgot and reset password ([ADR 0013](../architecture/decisions/0013-identity-modules.md)) |
 | `data-reports` | L3 | `data_reports` | me (at the API's root: a report, and the reporter's own), manage, admin | Reports about a space's information (§9) |
 | `visits` | L3 | `visits` | manage | The pure visit charge; auto check-out of its own visits |
-| `subscriptions` | L3 | `subscriptions`, `check_ins`, `closure_extensions`, `subscription_extensions` | manage | Subscriptions, their check-ins and closure extensions; the managed announcements list with each closure's extension, and its summary (§9); the pure progress and status; auto check-out of its own check-ins |
+| `subscriptions` | L3 | `subscriptions`, `check_ins`, `closure_extensions`, `subscription_extensions` | manage | Subscriptions, their check-ins and closure extensions; the managed announcements list with each closure's extension, and its summary (§9); a closure's extension, previewed and applied; the pure progress and status; auto check-out of its own check-ins |
 | `payments` | L4 | `payments` | manage | The ledger ([ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md)); the pure balance; debt; uncollected visits (§9) |
 | `occupancy` | L4 | `space_occupancy` | public, manage | The space's state now (§9) |
 | `desk` | L5 | — | manage | The front desk's orchestrations and the customers list and file (§9) |
@@ -345,7 +345,7 @@ Why: [ADR 0015](../architecture/decisions/0015-idempotency-and-concurrency.md).
 
 ### Idempotency
 - **Creates at the front desk** store the idempotency key, unique within the space. Today payments, visits, check-ins, customers, subscriptions and announcements have it, in the Prisma field `idempotencyKey`, stored in the `request_id` column ([data-model.md](../architecture/data-model.md#conventions)).
-  - Customers have it since 2026-10-21, #102, optional: a customer the desk creates from an unpaid visit's phone carries none. Subscriptions have it since 2026-10-22, #106, required: every subscription is a desk create. Announcements have it since 2026-10-24, #112, required: reception posts a closure on the spot, and a retried post must not make a second closure.
+  - Customers have it since 2026-10-21, #102, optional: a customer the desk creates from an unpaid visit's phone carries none. Subscriptions have it since 2026-10-22, #106, required: every subscription is a desk create. Announcements have it since 2026-10-24, #112, required: reception posts a closure on the spot, and a retried post must not make a second closure. A closure's extension has one since 2026-10-26, #123, required and unique on its own (it has no space column): two tabs of the owner must not move the ends twice. It locks the space, then the closure, then the covered subscriptions by id.
 - **One request, several records:** a subscribe's payments each take a key derived from the request's (`derivedKey(key, index)`, `shared/http`: the SHA-256 of `key/index` as a UUID), in the allocation's order, so the ledger's key stays one per payment and a retry finds them all in one query. 2026-10-22, #106.
 - **A retry returns the first result**, with the same status and body, never a conflict. The service reads the record by its key first, under the space's lock, which serialises the space's desk creates, so the read is race-free; inside a transaction PostgreSQL aborts on a unique violation, so the record could not be read after one. The unique key stays the backstop: a violation would be a bug, answered 500. The general `P2002` → `NOT_UNIQUE` mapping (§4) never answers a retry. 2026-10-20, #95.
 - **Updates and deletes are idempotent by design.** A repeated check-out returns the closed record, and a repeated void returns the voided payment.

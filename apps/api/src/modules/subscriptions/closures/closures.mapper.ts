@@ -1,5 +1,6 @@
 import type {
   Announcement,
+  ClosureExtension,
   ExtensionApplied,
   ManagedAnnouncement,
 } from '@masaha/shared/announcements';
@@ -14,6 +15,11 @@ export function toExtensionApplied(row: ExtensionRow, name: string): ExtensionAp
     appliedAt: row.appliedAt.toISOString(),
     appliedBy: { id: row.appliedById, name },
   };
+}
+
+/** An extension's row, with its applier's name, as the extension's answer shows it. */
+export function toClosureExtension(row: ExtensionRow, name: string): ClosureExtension {
+  return { announcementId: row.announcementId, ...toExtensionApplied(row, name) };
 }
 
 /** An announcement of the managed list: a closure carries its extension, `null` before one. */

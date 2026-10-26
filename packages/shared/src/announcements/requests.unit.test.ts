@@ -5,6 +5,7 @@ import {
   announcementsQuerySchema,
   createAnnouncementSchema,
   editAnnouncementSchema,
+  extendSubscriptionsSchema,
 } from './requests.ts';
 
 /** The field errors a post fails with, or null when it passes. */
@@ -81,5 +82,22 @@ describe('announcementsQuerySchema', () => {
       page: 2,
     });
     expect(announcementsQuerySchema.safeParse({ state: 'DELETED' }).success).toBe(false);
+  });
+});
+
+describe('extendSubscriptionsSchema', () => {
+  it('days are whole, 1 to 365', () => {
+    const errorsOfDays = (days: unknown) => {
+      const body = { days };
+      const result = extendSubscriptionsSchema.safeParse(body);
+      return result.success ? null : toFieldErrors(result.error.issues, body);
+    };
+    expect(extendSubscriptionsSchema.parse({ days: 1 })).toEqual({ days: 1 });
+    expect(extendSubscriptionsSchema.parse({ days: 365 })).toEqual({ days: 365 });
+    expect(errorsOfDays(0)).toEqual({ days: ['out_of_range'] });
+    expect(errorsOfDays(366)).toEqual({ days: ['out_of_range'] });
+    expect(errorsOfDays(1.5)).toHaveProperty('days');
+    expect(errorsOfDays('3')).toHaveProperty('days');
+    expect(errorsOfDays(undefined)).toHaveProperty('days');
   });
 });

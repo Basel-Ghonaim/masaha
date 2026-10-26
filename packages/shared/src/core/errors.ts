@@ -127,6 +127,8 @@ export const DOMAIN_ERROR_CODES = [
   // a closure whose subscriptions were extended: never deleted, retyped, restarted or ended
   // later, from the database (announcements)
   'CLOSURE_EXTENDED',
+  // a closure's subscriptions extended already, under another key (subscriptions)
+  'CLOSURE_ALREADY_EXTENDED',
   // a decided report decided again, otherwise than it was (data-reports)
   'REPORT_ALREADY_DECIDED',
   // a user's favourites full: one is removed first (favorites)
