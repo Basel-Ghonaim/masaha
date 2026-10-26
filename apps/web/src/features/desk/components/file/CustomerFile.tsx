@@ -9,6 +9,7 @@ import {
 } from '@shared/design-system';
 import { useId, useRef } from 'react';
 import { useCustomerFile } from '../../hooks/file/useCustomerFile';
+import type { SheetEntry } from '../../types/SheetEntry';
 import { CustomerActions } from '../menu/CustomerActions';
 import { PayDialog } from '../pay/PayDialog';
 import { FileHeader } from './FileHeader';
@@ -30,11 +31,14 @@ export function CustomerFile({
   spaceId,
   customerId,
   owner,
+  subscribe,
 }: {
   spaceId: number;
   customerId: number;
   /** The owner's header offers the archive and the restore; the server decides (S5). */
   owner: boolean;
+  /** Opens the page's subscription sheet, from the header's «⋯». */
+  subscribe: (entry: SheetEntry) => void;
 }) {
   const file = useCustomerFile(spaceId, customerId);
   const headingId = useId();
@@ -84,6 +88,7 @@ export function CustomerFile({
             debtAgorot={file.header.debtAgorot}
             owner={owner}
             fileLink={null}
+            subscribe={subscribe}
           />
         }
       />

@@ -21,7 +21,11 @@ import { startPreferences } from '../../../../test/startPreferences';
 import { CustomerCard } from '../../components/card/CustomerCard';
 
 /** The cards' «⋯» as reception's desk passes it. */
-const MENU = { owner: false, fileLink: (id: number) => `/file/${String(id)}` };
+const MENU = {
+  owner: false,
+  fileLink: (id: number) => `/file/${String(id)}`,
+  subscribe: () => undefined,
+};
 
 /** A line with the Unicode isolates around its values removed, as a reader hears it. */
 const heard = (expected: string) => (content: string) => content.replace(/[⁦-⁩]/g, '') === expected;

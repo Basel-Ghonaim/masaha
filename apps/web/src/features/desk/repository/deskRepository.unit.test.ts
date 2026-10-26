@@ -261,4 +261,38 @@ describe('the desk repository', () => {
     ]);
     expect(requests[1]?.headers.get('Idempotency-Key')).toBeUndefined();
   });
+
+  it('creates a customer and subscribes them, each with its own key, the warnings handed back', async () => {
+    const requests = serve((url) =>
+      url?.endsWith('/subscriptions') === true
+        ? {
+            status: 201,
+            data: {
+              success: true,
+              data: { debtAgorot: 0 },
+              meta: { warnings: ['CUSTOMER_HAS_DEBT'] },
+            },
+          }
+        : { status: 201, data: { success: true, data: { id: 9 } } },
+    );
+    const repository = createDeskRepository();
+
+    await expect(
+      repository.createCustomer(7, { name: 'Sara Khalid', phone: '+970599000305' }, 'key-1'),
+    ).resolves.toEqual({ id: 9 });
+    await expect(repository.subscribe(7, 9, { packageId: 3 }, 'key-2')).resolves.toEqual({
+      data: { debtAgorot: 0 },
+      meta: { warnings: ['CUSTOMER_HAS_DEBT'] },
+    });
+
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'post /manage/spaces/7/customers',
+      'post /manage/spaces/7/customers/9/subscriptions',
+    ]);
+    expect(bodyOf(requests[1])).toEqual({ packageId: 3 });
+    expect(requests.map(({ headers }) => headers.get('Idempotency-Key'))).toEqual([
+      'key-1',
+      'key-2',
+    ]);
+  });
 });

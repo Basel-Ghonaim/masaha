@@ -15,6 +15,8 @@ export type CustomerMenuView = {
   label: string;
   /** «ملف الزبون», a link; none in the file itself. */
   file: { label: string; to: string } | null;
+  /** «اشتراك جديد»: the subscription sheet for this customer. */
+  subscribe: { label: string; run: () => void };
   edit: { label: string; run: () => void };
   /** «أرشفة…», the owner's (S5). */
   archive: { label: string; run: () => void } | null;
@@ -22,7 +24,8 @@ export type CustomerMenuView = {
 
 /**
  * A customer's «⋯» (DI-39): a quiet icon trigger and its menu, both named by the customer; «ملف
- * الزبون» where it leads elsewhere, «تعديل البيانات», and the owner's «أرشفة…», destructive (DI-46).
+ * الزبون» where it leads elsewhere, «اشتراك جديد», «تعديل البيانات», and the owner's «أرشفة…»,
+ * destructive (DI-46).
  * Closed, the focus returns to the trigger, which `triggerRef` lets a dialog the menu opened return
  * to as well.
  */
@@ -46,6 +49,7 @@ export function CustomerMenu({
             <Link to={menu.file.to}>{menu.file.label}</Link>
           </DropdownMenuItem>
         )}
+        <DropdownMenuItem onSelect={menu.subscribe.run}>{menu.subscribe.label}</DropdownMenuItem>
         <DropdownMenuItem onSelect={menu.edit.run}>{menu.edit.label}</DropdownMenuItem>
         {menu.archive !== null && (
           <DropdownMenuItem variant="destructive" onSelect={menu.archive.run}>

@@ -14,6 +14,7 @@ function renderMenu(archive: { label: string; run: () => void } | null = null) {
           menu={{
             label: 'More actions: Sara Khalid',
             file: { label: 'Customer file', to: '/file/4' },
+            subscribe: { label: 'New subscription', run: vi.fn() },
             edit: { label: 'Edit details', run: edit },
             archive,
           }}

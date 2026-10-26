@@ -6,12 +6,18 @@ import type {
   CustomersQuery,
   DeskWarning,
   LeaveToCustomerRequest,
+  NewSubscription,
   ReceivedPayment,
   ReceivePaymentRequest,
+  SubscribeRequest,
   SubscriptionStatement,
   VisitCheckOut,
 } from '@masaha/shared/desk';
-import type { Customer, UpdateCustomerRequest } from '@masaha/shared/customers';
+import type {
+  CreateCustomerRequest,
+  Customer,
+  UpdateCustomerRequest,
+} from '@masaha/shared/customers';
 import type { UncollectedVisit } from '@masaha/shared/payments';
 import type {
   CheckInSubscriberRequest,
@@ -32,13 +38,16 @@ import { api, withIdempotencyKey, type Page, type WithMeta } from '@shared/api';
 export type CheckedIn = WithMeta<DeskVisit, { warnings: DeskWarning[] }>;
 /** A subscriber's check-in's answer: the check-in, with the warnings the server said, if any. */
 export type SubscriberCheckedIn = WithMeta<DeskCheckIn, { warnings: DeskWarning[] }>;
+/** A subscribe's answer: the subscription and its payments, with the debt warning, if said. */
+export type Subscribed = WithMeta<NewSubscription, { warnings: 'CUSTOMER_HAS_DEBT'[] }>;
 
 /**
  * The front desk's visits on the server (docs/api/api-contract.md §5, Front desk (managed)): the
  * terms, a visitor's check-in, a visit's quote and its check-out; the uncollected visits, a payment
  * on one, «تسجيل دين», and the owner's write-off and its undo; the unpriced visits and their price;
  * the customers' search; a subscriber's check-in and check-out, and the open check-ins; a customer's
- * file, their edit, the owner's archive and restore; a subscription's statement, and its end. The
+ * file, their creation, edit, the owner's archive and restore; a subscribe with its payment; a
+ * subscription's statement, and its end. The
  * creates carry the intent's key (ADR 0015), which lets the transport send them again; the other
  * writes are idempotent by design and carry none, so they are sent once (S3).
  */
@@ -92,6 +101,18 @@ export interface DeskRepository {
   openCheckIns(spaceId: number): Promise<DeskCheckIn[]>;
   /** A customer's file: their money, presence, subscriptions and unpaid visits. */
   file(spaceId: number, customerId: number): Promise<CustomerFile>;
+  /** Adds a customer to the space; a retry with the same key answers the same customer. */
+  createCustomer(spaceId: number, body: CreateCustomerRequest, key: string): Promise<Customer>;
+  /**
+   * Subscribes a customer, the payment allocated over their debts by the server; a retry with the
+   * same key answers the first subscription.
+   */
+  subscribe(
+    spaceId: number,
+    customerId: number,
+    body: SubscribeRequest,
+    key: string,
+  ): Promise<Subscribed>;
   /** Edits a customer's name or phone: only the fields sent change, `null` clearing the phone. */
   editCustomer(spaceId: number, customerId: number, body: UpdateCustomerRequest): Promise<Customer>;
   /** The owner's archive of a customer; one archived already is answered as it is. */
@@ -152,6 +173,14 @@ export function createDeskRepository(): DeskRepository {
       api.get<DeskCheckIn[]>(`${space(spaceId)}/check-ins`, { params: { open: true } }),
     file: (spaceId, customerId) =>
       api.get<CustomerFile>(`${space(spaceId)}/customers/${String(customerId)}`),
+    createCustomer: (spaceId, body, key) =>
+      api.post<Customer>(`${space(spaceId)}/customers`, body, withIdempotencyKey(key)),
+    subscribe: (spaceId, customerId, body, key) =>
+      api.postWithMeta<NewSubscription, { warnings: 'CUSTOMER_HAS_DEBT'[] }>(
+        `${space(spaceId)}/customers/${String(customerId)}/subscriptions`,
+        body,
+        withIdempotencyKey(key),
+      ),
     editCustomer: (spaceId, customerId, body) =>
       api.patch<Customer>(`${space(spaceId)}/customers/${String(customerId)}`, body),
     archiveCustomer: (spaceId, customerId) =>

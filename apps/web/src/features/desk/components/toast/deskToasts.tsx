@@ -1,6 +1,7 @@
 import type {
   CheckInCheckOut,
   DeskWarning,
+  NewSubscription,
   ReceivedPayment,
   VisitCheckOut,
 } from '@masaha/shared/desk';
@@ -231,4 +232,60 @@ export function toastPaid(name: string, item: string, { payment, balanceAgorot }
       }),
     },
   );
+}
+
+/**
+ * Says a subscription was saved, or renewed, naming the customer, then all from the answer (S8,
+ * finding 171): the subscription's name and the price the server charged (a rate, with its unit, when
+ * it is billed from attendance); each part the amount received paid, in the order the server
+ * allocated it (decision 3, K4), each item named by `itemLabel` (the earlier debts the sheet listed),
+ * the new subscription by its name, else «دين سابق»; or that nothing was paid; and what the customer
+ * still owes. The server's `CUSTOMER_HAS_DEBT` makes it a warning that stays until it is closed.
+ */
+export function toastSubscribed(
+  name: string,
+  { subscription, payments, debtAgorot }: NewSubscription,
+  {
+    renewed,
+    itemLabel,
+    warnings,
+  }: {
+    renewed: boolean;
+    itemLabel: (item: NewSubscription['payments'][number]['item']) => string | undefined;
+    warnings: readonly 'CUSTOMER_HAS_DEBT'[] | undefined;
+  },
+) {
+  const copy = currentCopy();
+  const words = copy.desk.sheet;
+  const charged =
+    subscription.billing === 'FIXED'
+      ? priceNow(subscription.priceAgorot)
+      : words.rate({
+          rate: priceNow(subscription.priceAgorot),
+          unit: copy.desk.subscriber.progress.units[subscription.billing],
+        });
+  const lines = [words.done.charged({ name: isolate(subscription.name), amount: charged })];
+  if (payments.length === 0) lines.push(words.done.noPayment);
+  for (const { item, payment } of payments) {
+    const label =
+      'subscriptionId' in item && item.subscriptionId === subscription.id
+        ? subscription.name
+        : (itemLabel(item) ?? words.done.earlier);
+    lines.push(words.done.part({ item: isolate(label), amount: priceNow(payment.amountAgorot) }));
+  }
+  if (debtAgorot > 0) lines.push(words.done.owes({ amount: priceNow(debtAgorot) }));
+  const warned = (warnings ?? []).map((code) => copy.errors[code]);
+  const title = renewed
+    ? words.done.renewed({ name: isolate(name) })
+    : words.done.new({ name: isolate(name) });
+  const description = [...lines, ...warned].map((line) => (
+    <span key={line} className="block">
+      {line}
+    </span>
+  ));
+  if (warned.length === 0) {
+    toast.success(title, { description });
+    return;
+  }
+  toast.warning(title, { description, duration: Infinity });
 }

@@ -17,6 +17,7 @@ import {
   type CustomersListView,
 } from '../../hooks/customers/useCustomersList';
 import { BalanceBadge } from '../card/BalanceBadge';
+import type { SheetEntry } from '../../types/SheetEntry';
 import { CustomerActions } from '../menu/CustomerActions';
 import { CustomersFilters } from './CustomersFilters';
 
@@ -106,12 +107,15 @@ export function CustomersList({
   spaceId,
   owner,
   fileLink,
+  subscribe,
 }: {
   spaceId: number;
   /** The owner's list offers «مؤرشف»; the server decides (S5). */
   owner: boolean;
   /** A customer's file, by id, as the page routes it. */
   fileLink: (customerId: number) => string;
+  /** Opens the page's subscription sheet, from a customer's «⋯». */
+  subscribe: (entry: SheetEntry) => void;
 }) {
   const list = useCustomersList(spaceId, { owner });
 
@@ -156,12 +160,13 @@ export function CustomersList({
               debtAgorot={info.row.original.customer.debtAgorot}
               owner={owner}
               fileLink={fileLink(info.row.original.id)}
+              subscribe={subscribe}
             />
           ),
           meta: { className: 'w-px' },
         }),
       ]),
-    [headers, fileLink, spaceId, owner],
+    [headers, fileLink, spaceId, owner, subscribe],
   );
 
   return (
@@ -195,6 +200,7 @@ export function CustomersList({
               debtAgorot={row.customer.debtAgorot}
               owner={owner}
               fileLink={fileLink(row.id)}
+              subscribe={subscribe}
             />
           </div>
         )}

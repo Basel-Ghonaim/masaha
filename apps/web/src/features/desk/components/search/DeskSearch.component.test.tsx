@@ -17,7 +17,11 @@ import { VisitDialog } from '../visit/VisitDialog';
 import { DeskSearch } from './DeskSearch';
 
 /** The cards' «⋯» as reception's desk passes it. */
-const MENU = { owner: false, fileLink: (id: number) => `/file/${String(id)}` };
+const MENU = {
+  owner: false,
+  fileLink: (id: number) => `/file/${String(id)}`,
+  subscribe: () => undefined,
+};
 
 const SARA = customerRow({ id: 4, name: 'Sara Khalid' });
 const SAMIR = customerRow({ id: 5, name: 'Samir Odeh', phone: null, current: null });

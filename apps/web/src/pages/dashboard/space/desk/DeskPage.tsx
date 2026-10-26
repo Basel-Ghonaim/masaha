@@ -39,6 +39,8 @@ import { useParams } from 'react-router';
 import { spaceCustomerPath } from '../../navigation';
 import { PageActionBar } from '../../shell/PageActionBar';
 import { PageHeader } from '../../shell/PageHeader';
+import { SubscriptionSheetSlot } from '../SubscriptionSheetSlot';
+import { useSheetOpener } from '../useSheetOpener';
 import { SwitchStaffButton, SwitchStaffItem } from './SwitchStaffButton';
 
 /**
@@ -47,7 +49,9 @@ import { SwitchStaffButton, SwitchStaffItem } from './SwitchStaffButton';
  * الموظف» in a «⋯» menu and «تسجيل زيارة» in the bar at the foot (P1). Above the page, `desk`'s one
  * search, its first group `occupancy`'s people present who match (K1); «استلام دفعة» in the top bar
  * (its «⋯» on a phone), a card's «استلام» and a check-out toast's open one payment dialog. The page is the people
- * present, `occupancy`'s, with `desk`'s check-out in each row, and beside it from `xl` (under it
+ * present, `occupancy`'s, with `desk`'s check-out in each row; «زبون جديد» in the top bar (its «⋯» on
+ * a phone), the search's «زبون جديد باسم «X»» and a card's «اشتراك جديد» open the one subscription
+ * sheet, with `packages`' offered packages; and beside it from `xl` (under it
  * before) `desk`'s uncollected visits and, for whoever may type a price, its unpriced ones; the visit's check-in is offered the space's shifts as `spaces`
  * reads them. What the role at the space allows beyond that (S5) is read from the session's link;
  * the server decides. The guard has checked the space's id and the role.
@@ -81,13 +85,17 @@ function Desk({ spaceId }: { spaceId: number }) {
   const openVisit = () => {
     visit.setOpen(true);
   };
-  // The search's cards' «⋯»: the owner's archive, and the way to a customer's file.
+  // «زبون جديد», «اشتراك جديد»: one subscription sheet, opened from the page, the search or a card.
+  const sheet = useSheetOpener();
+  const subscribe = sheet.open;
+  // The search's cards' «⋯»: the owner's archive, the way to a customer's file, the sheet.
   const menu = useMemo(
     () => ({
       owner,
       fileLink: (customerId: number) => spaceCustomerPath(spaceId, customerId),
+      subscribe,
     }),
-    [owner, spaceId],
+    [owner, spaceId, subscribe],
   );
   // «استلام دفعة»: one payment dialog, opened from the page, a card or a check-out's toast.
   const [pay, setPay] = useState<PayTarget | null>(null);
@@ -140,6 +148,15 @@ function Desk({ spaceId }: { spaceId: number }) {
               >
                 {words.pay.title}
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  subscribe({ mode: 'new' });
+                }}
+              >
+                {words.sheet.entry.new}
+              </Button>
               <Button size="sm" onClick={openVisit}>
                 {words.actions.checkIn}
               </Button>
@@ -158,6 +175,13 @@ function Desk({ spaceId }: { spaceId: number }) {
                   }}
                 >
                   {words.pay.title}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    subscribe({ mode: 'new' });
+                  }}
+                >
+                  {words.sheet.entry.new}
                 </DropdownMenuItem>
                 <SwitchStaffItem spaceId={spaceId} />
               </DropdownMenuContent>
@@ -223,6 +247,14 @@ function Desk({ spaceId }: { spaceId: number }) {
           onClose={() => {
             setPay(null);
           }}
+        />
+      )}
+      {sheet.entry !== null && (
+        <SubscriptionSheetSlot
+          key={sheet.opening}
+          spaceId={spaceId}
+          entry={sheet.entry}
+          onClose={sheet.close}
         />
       )}
     </>

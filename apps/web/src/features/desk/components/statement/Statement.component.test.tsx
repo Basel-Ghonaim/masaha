@@ -68,7 +68,7 @@ describe('Statement', () => {
         <QueryClientProvider client={createQueryClient()}>
           <main>
             <h1>Sara Khalid</h1>
-            <CustomerFile spaceId={7} customerId={4} owner />
+            <CustomerFile spaceId={7} customerId={4} owner subscribe={() => undefined} />
           </main>
         </QueryClientProvider>,
       );

@@ -108,6 +108,17 @@ export function useDeskSearch(
         : DIGITS.test(term)
           ? { label: copy.desk.actions.checkIn, name: '', primary: nothing }
           : { label: words.checkInNamed({ name: isolate(term) }), name: term, primary: nothing },
+    // A customer not found is added by the sheet, with what was typed (DI-20: a link, never a second
+    // primary).
+    newCustomer:
+      term === undefined
+        ? null
+        : DIGITS.test(term)
+          ? { label: copy.desk.sheet.entry.newNumber, entry: { mode: 'new' as const, phone: term } }
+          : {
+              label: copy.desk.sheet.entry.newNamed({ name: isolate(term) }),
+              entry: { mode: 'new' as const, name: term },
+            },
     none: nothing ? words.none : null,
     count: state === 'ready' ? words.found({ count: presentMatched + rows.length }) : null,
   };
