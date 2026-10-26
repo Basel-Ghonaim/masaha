@@ -9,7 +9,8 @@ import {
 } from '@shared/design-system';
 import { useId, useRef } from 'react';
 import { useCustomerFile } from '../../hooks/file/useCustomerFile';
-import type { SheetEntry } from '../../types/SheetEntry';
+import type { OpenSheet } from '../../types/SheetEntry';
+import { useCopy } from '@shared/copy';
 import { CustomerActions } from '../menu/CustomerActions';
 import { PayDialog } from '../pay/PayDialog';
 import { FileHeader } from './FileHeader';
@@ -38,9 +39,10 @@ export function CustomerFile({
   /** The owner's header offers the archive and the restore; the server decides (S5). */
   owner: boolean;
   /** Opens the page's subscription sheet, from the header's «⋯». */
-  subscribe: (entry: SheetEntry) => void;
+  subscribe: OpenSheet;
 }) {
   const file = useCustomerFile(spaceId, customerId);
+  const words = useCopy().desk.sheet;
   const headingId = useId();
   const trigger = useRef<HTMLElement | null>(null);
   const opened = (element: HTMLElement) => {
@@ -76,7 +78,27 @@ export function CustomerFile({
     );
   }
 
-  const { subscriptions } = file;
+  const { subscriptions, header } = file;
+  // The latest subscription, the file's first, is the one a renewal renews (DK-007).
+  const renew = (
+    index: number,
+    subscription: (typeof subscriptions.cards)[number]['subscription'],
+  ) =>
+    index === 0 && header.customer.archivedAt === null
+      ? {
+          label: words.entry.renew,
+          run: (from: HTMLElement) => {
+            subscribe(
+              {
+                mode: 'renew',
+                customer: { ...header.customer, debtAgorot: header.debtAgorot },
+                renews: subscription,
+              },
+              from,
+            );
+          },
+        }
+      : null;
   return (
     <div className="flex flex-col gap-6">
       <FileHeader
@@ -101,8 +123,14 @@ export function CustomerFile({
           <EmptyState title={subscriptions.none.title} description={subscriptions.none.text} />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {subscriptions.cards.map((card) => (
-              <SubscriptionCard key={card.key} spaceId={spaceId} card={card} opened={opened} />
+            {subscriptions.cards.map((card, index) => (
+              <SubscriptionCard
+                key={card.key}
+                spaceId={spaceId}
+                card={card}
+                opened={opened}
+                renew={renew(index, card.subscription)}
+              />
             ))}
           </div>
         )}

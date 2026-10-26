@@ -11,7 +11,7 @@ export const LIMIT_NAMES = ['totalDays', 'daysPerWeek', 'hoursPerDay', 'totalHou
 
 /**
  * What the subscription sheet holds, by the paths its requests name: a new customer's name and
- * phone; the chosen package (`pkg-{id}`), published price or `custom`; the start; the custom terms
+ * phone; the chosen package (`pkg-{id}`), published price (`price-…`) or `custom`; the start; the custom terms
  * as typed; and the payment the money block makes, the amount recorded (or the text it cannot read).
  */
 export type SheetValues = {
@@ -32,6 +32,9 @@ export type SheetValues = {
   payment: { amountAgorot: number | string; method: PaymentMethod };
 };
 
+/** A published price as the subscribe names it: its key, and the name the desk gives it. */
+export type PublishedChoice = NonNullable<SubscribeRequest['published']>;
+
 /** The sheet's two requests: the new customer's, when there is one, and the subscribe. */
 export type SheetRequest = { customer?: CreateCustomerRequest; subscription: SubscribeRequest };
 
@@ -41,37 +44,50 @@ const given = <T>(key: string, value: T | undefined) =>
 
 /**
  * The input the sheet's schema reads, from what it holds (S7): the new customer's name and phone
- * (the phone only when typed); exactly one choice — a package's id, or the custom terms, each limit,
+ * (the phone only when typed); exactly one choice — a package's id, a published price by its key
+ * and its name (`published`, never a price's id: the server reads its amount), or the custom terms, each limit,
  * the shift and the end only when given, the price read as agorot; the start; the subscription it
  * renews; and the payment only when something is recorded. What the browser cannot read is passed
  * as typed, for the contract's schema to refuse on its field.
  */
 export function sheetInput(
   values: SheetValues,
-  { newCustomer, renewalOfId }: { newCustomer: boolean; renewalOfId?: number },
+  {
+    newCustomer,
+    renewalOfId,
+    published,
+  }: {
+    newCustomer: boolean;
+    renewalOfId?: number;
+    /** The published prices offered, by their choice's value. */
+    published?: ReadonlyMap<string, PublishedChoice>;
+  },
 ): Record<string, unknown> {
   const { custom, payment } = values;
+  const price = published?.get(values.choice);
   const choice = values.choice.startsWith('pkg-')
     ? { packageId: Number(values.choice.slice('pkg-'.length)) }
-    : values.choice === 'custom'
-      ? {
-          custom: {
-            name: custom.name,
-            billing: custom.billing,
-            ...given('priceAgorot', agorotOf(custom.priceAgorot)),
-            audience: custom.audience,
-            ...given('shiftId', custom.shiftId === '' ? undefined : Number(custom.shiftId)),
-            ...given('endsOn', custom.endsOn.trim() === '' ? undefined : custom.endsOn),
-            ...Object.fromEntries(
-              LIMIT_NAMES.flatMap((limit) => {
-                const count = wholeNumberOf(custom[limit]);
-                return count === undefined ? [] : [[limit, count]];
-              }),
-            ),
-            reason: custom.reason,
-          },
-        }
-      : {};
+    : price !== undefined
+      ? { published: price }
+      : values.choice === 'custom'
+        ? {
+            custom: {
+              name: custom.name,
+              billing: custom.billing,
+              ...given('priceAgorot', agorotOf(custom.priceAgorot)),
+              audience: custom.audience,
+              ...given('shiftId', custom.shiftId === '' ? undefined : Number(custom.shiftId)),
+              ...given('endsOn', custom.endsOn.trim() === '' ? undefined : custom.endsOn),
+              ...Object.fromEntries(
+                LIMIT_NAMES.flatMap((limit) => {
+                  const count = wholeNumberOf(custom[limit]);
+                  return count === undefined ? [] : [[limit, count]];
+                }),
+              ),
+              reason: custom.reason,
+            },
+          }
+        : {};
   return {
     ...(newCustomer && {
       name: values.name,

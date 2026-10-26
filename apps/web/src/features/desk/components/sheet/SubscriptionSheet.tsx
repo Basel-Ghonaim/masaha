@@ -22,22 +22,25 @@ import { PackageOptions } from './PackageOptions';
 import { PriorDebts } from './PriorDebts';
 
 /**
- * «زبون جديد» / «اشتراك جديد» (screen 16), the end sheet, titled by its mode: a new customer's name,
+ * «زبون جديد» / «اشتراك جديد» / «تجديد الاشتراك» (screen 16), the end sheet, titled by its mode: a new customer's name,
  * focused first, and phone; what they owe from before; the choice of package or «مخصّص» with its
  * terms; the dates; the money block; one submit naming the amount. It is mounted for one opening (its
  * keys are that opening's); while it is sent nothing closes it; a failure shows above the footer,
  * every value kept, and a customer saved with the subscription refused says so (DI-37). Closed, the
- * focus returns to what opened it.
+ * focus goes where `returnFocus` says while it is on the page — the control that opened it, or the
+ * menu's trigger when a menu item did — else where Radix returns it.
  */
 export function SubscriptionSheet({
   spaceId,
   entry,
   choices,
+  returnFocus,
   onClose,
 }: {
   spaceId: number;
   entry: SheetEntry;
   choices: SheetChoices;
+  returnFocus: () => HTMLElement | null;
   onClose: () => void;
 }) {
   const view = useSubscriptionSheet({ spaceId, entry, choices, onDone: onClose });
@@ -57,6 +60,13 @@ export function SubscriptionSheet({
         closeLabel={view.closeLabel}
         onEscapeKeyDown={(event) => {
           if (busy) event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          const target = returnFocus();
+          if (target?.isConnected === true) {
+            event.preventDefault();
+            target.focus();
+          }
         }}
       >
         <SheetHeader>
@@ -97,6 +107,11 @@ export function SubscriptionSheet({
                   />
                 </Field>
               </div>
+            )}
+            {view.renewedAlready !== null && (
+              <Alert variant="info">
+                <AlertDescription>{view.renewedAlready}</AlertDescription>
+              </Alert>
             )}
             {view.prior !== null && <PriorDebts prior={view.prior} />}
             <PackageOptions view={view.packages} disabled={busy} />

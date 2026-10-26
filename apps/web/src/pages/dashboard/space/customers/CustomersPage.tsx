@@ -38,8 +38,8 @@ export function CustomersPage() {
           <Button
             size="sm"
             className="ms-auto"
-            onClick={() => {
-              sheet.open({ mode: 'new' });
+            onClick={(event) => {
+              sheet.open({ mode: 'new' }, event.currentTarget);
             }}
           >
             {words.entry.new}
@@ -63,6 +63,7 @@ export function CustomersPage() {
               key={`sheet-${String(sheet.opening)}`}
               spaceId={spaceId}
               entry={sheet.entry}
+              returnFocus={sheet.returnFocus}
               onClose={sheet.close}
             />
           )}

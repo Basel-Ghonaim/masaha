@@ -17,7 +17,7 @@ import {
   type CustomersListView,
 } from '../../hooks/customers/useCustomersList';
 import { BalanceBadge } from '../card/BalanceBadge';
-import type { SheetEntry } from '../../types/SheetEntry';
+import type { OpenSheet } from '../../types/SheetEntry';
 import { CustomerActions } from '../menu/CustomerActions';
 import { CustomersFilters } from './CustomersFilters';
 
@@ -115,7 +115,7 @@ export function CustomersList({
   /** A customer's file, by id, as the page routes it. */
   fileLink: (customerId: number) => string;
   /** Opens the page's subscription sheet, from a customer's «⋯». */
-  subscribe: (entry: SheetEntry) => void;
+  subscribe: OpenSheet;
 }) {
   const list = useCustomersList(spaceId, { owner });
 

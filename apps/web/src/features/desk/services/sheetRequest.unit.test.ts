@@ -100,4 +100,34 @@ describe('sheetRequest', () => {
       name: 'Sara Khalid',
     });
   });
+
+  it('sends a published price by its key and the name the desk gives it, never a price id', () => {
+    const published = new Map([
+      [
+        'price-MONTH-STUDENT-none',
+        { period: 'MONTH' as const, audience: 'STUDENT' as const, name: 'Monthly · students' },
+      ],
+    ]);
+    const input = sheetInput(
+      { ...VALUES, choice: 'price-MONTH-STUDENT-none' },
+      { newCustomer: false, published },
+    );
+    const result = sheetSchema(false).safeParse(input);
+    expect(result.success && result.data).toEqual({
+      subscription: {
+        published: { period: 'MONTH', audience: 'STUDENT', name: 'Monthly · students' },
+        startsOn: '2026-11-01',
+        payment: { amountAgorot: 15000, method: 'CASH' },
+      },
+    });
+    expect(input).not.toHaveProperty('priceId');
+    expect(input).not.toHaveProperty('packageId');
+  });
+
+  it('sends the subscription a renewal renews', () => {
+    const result = sheetSchema(false).safeParse(
+      sheetInput(VALUES, { newCustomer: false, renewalOfId: 4 }),
+    );
+    expect(result.success && result.data.subscription.renewalOfId).toBe(4);
+  });
 });

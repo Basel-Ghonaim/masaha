@@ -14,7 +14,7 @@ import { useRef, type RefObject } from 'react';
 import { useCustomerCard } from '../../hooks/card/useCustomerCard';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
 import { useSubscriberCheckIn } from '../../hooks/subscriber/useSubscriberCheckIn';
-import type { SheetEntry } from '../../types/SheetEntry';
+import type { OpenSheet } from '../../types/SheetEntry';
 import { CustomerActions } from '../menu/CustomerActions';
 import { PreCheckInDialog } from '../subscriber/PreCheckInDialog';
 import { BalanceBadge } from './BalanceBadge';
@@ -42,7 +42,7 @@ export function CustomerCard({
   menu: {
     owner: boolean;
     fileLink: (customerId: number) => string;
-    subscribe: (entry: SheetEntry) => void;
+    subscribe: OpenSheet;
   };
   after: { done: () => void; focus: RefObject<HTMLElement | null> };
   /** Opens the payment on one of the customer's items. */

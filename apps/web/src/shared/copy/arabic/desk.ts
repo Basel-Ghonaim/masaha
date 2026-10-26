@@ -509,7 +509,14 @@ export const DESK = {
     phoneRequired: ({ amount }: { amount: string }) =>
       `رقم الجوال مطلوب: يبقى ${amount} دينًا، مثل \u2066+970 59 000 0000\u2069`,
     package: 'الباقة',
-    groups: { packages: 'باقات المساحة — لا تظهر للزوار' },
+    groups: { published: 'منشورة للزوار', packages: 'باقات المساحة — لا تظهر للزوار' },
+    published: {
+      WEEK: 'أسبوعي',
+      MONTH: 'شهري',
+      students: '· للطلاب',
+      gone: 'تغيّر هذا السعر المنشور أو حُذف؛ قُرئت الأسعار من جديد. راجع الاختيار ثم احفظ.',
+    },
+    changePackage: 'تغيير الباقة',
     noPackages: 'لا باقات متاحة بعد.',
     packagesFailed: 'تعذّر تحميل الباقات',
     validity: ({ count }: { count: number }) =>

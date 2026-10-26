@@ -488,7 +488,17 @@ export const DESK = {
     phoneRequired: ({ amount }: { amount: string }) =>
       `A mobile number is required: ${amount} stays owed, e.g. +970 59 000 0000`,
     package: 'Package',
-    groups: { packages: 'The space’s packages — not shown to visitors' },
+    groups: {
+      published: 'Published',
+      packages: 'The space’s packages — not shown to visitors',
+    },
+    published: {
+      WEEK: 'Weekly',
+      MONTH: 'Monthly',
+      students: '· students',
+      gone: 'This published price changed or was removed; the prices were read again. Check the choice, then save.',
+    },
+    changePackage: 'Change package',
     noPackages: 'No packages offered yet.',
     packagesFailed: 'We couldn’t load the packages',
     validity: ({ count }: { count: number }) =>

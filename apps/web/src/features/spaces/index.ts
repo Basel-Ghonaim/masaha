@@ -5,6 +5,7 @@ export { SpaceActionsMenu } from './components/menu/SpaceActionsMenu';
 export { SpaceEditor } from './components/editor/SpaceEditor';
 export { SpacePricesEditor } from './components/prices/SpacePricesEditor';
 export { useSpaceName } from './hooks/editor/useSpaceName';
+export { useSpacePrices, type SpacePrices } from './hooks/editor/useSpacePrices';
 export { useSpaceShifts } from './hooks/editor/useSpaceShifts';
 export type { AmenitiesField } from './types/AmenitiesField';
 export type { AdminPlace, OwnerPlace } from './types/EditorPlace';

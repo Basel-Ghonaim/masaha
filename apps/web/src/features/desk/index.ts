@@ -14,4 +14,4 @@ export { useOpenCheckIns } from './hooks/subscriber/useOpenCheckIns';
 export { useVisitTermsQuery } from './hooks/terms/useVisitTermsQuery';
 export type { DeskAbilities } from './types/DeskAbilities';
 export type { SheetChoices } from './types/SheetChoices';
-export type { SheetEntry } from './types/SheetEntry';
+export type { OpenSheet, SheetEntry } from './types/SheetEntry';

@@ -1,5 +1,6 @@
 import type { NewSubscription } from '@masaha/shared/desk';
 import type { SpacePackage } from '@masaha/shared/packages';
+import type { Price } from '@masaha/shared/spaces';
 import { createQueryClient } from '@shared/api';
 import { Toaster, toast } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -38,6 +39,16 @@ const TEN_DAYS: SpacePackage = {
   isActive: true,
 };
 
+/** The space's published student month, ₪200. */
+const STUDENT_MONTH: Price = {
+  period: 'MONTH',
+  audience: 'STUDENT',
+  shiftId: null,
+  labelAr: null,
+  labelEn: null,
+  amountAgorot: 20000,
+};
+
 /** A line with the Unicode isolates around its values removed, as a reader hears it. */
 const heard = (expected: string | RegExp) => (content: string) => {
   const text = content.replace(/[⁦-⁩]/g, '');
@@ -69,32 +80,50 @@ function renderSheet(
     write = () => subscribed(),
     mayTypePrice = false,
     file = customerFile(),
+    statement,
+    prices = [],
+    state = 'ready',
   }: {
     write?: (request: Request) => FakeAnswer;
     mayTypePrice?: boolean;
     file?: ReturnType<typeof customerFile>;
+    statement?: () => FakeAnswer;
+    prices?: Price[];
+    state?: 'ready' | 'failed';
   } = {},
 ) {
   const requests = fakeTransport((request) => {
     if (request.method === 'get' && request.url?.endsWith('/visit-terms') === true) {
       return ok(visitTerms({ mayTypePrice }));
     }
+    if (request.method === 'get' && request.url?.includes('/subscriptions/') === true) {
+      return statement?.() ?? ok({});
+    }
     if (request.method === 'get') return ok(file);
     return write(request);
   });
   const onClose = vi.fn();
+  const refreshPrices = vi.fn();
+  const retryPackages = vi.fn();
   render(
     <QueryClientProvider client={createQueryClient()}>
       <SubscriptionSheet
         spaceId={7}
         entry={entry}
-        choices={{ state: 'ready', packages: [TEN_DAYS], retry: vi.fn(), shifts: [] }}
+        choices={{
+          state,
+          packages: [TEN_DAYS],
+          retry: retryPackages,
+          prices: { state: 'ready', list: prices, refresh: refreshPrices },
+          shifts: [],
+        }}
+        returnFocus={() => null}
         onClose={onClose}
       />
       <Toaster label="Notifications" />
     </QueryClientProvider>,
   );
-  return { requests, onClose };
+  return { requests, onClose, refreshPrices, retryPackages };
 }
 
 const posts = (requests: Request[]) =>
@@ -318,5 +347,296 @@ describe('useSubscriptionSheet', () => {
         payment: { amountAgorot: 17000, method: 'CASH' },
       },
     ]);
+  });
+
+  it('renews from the statement’s start, with the renewed one; a renewal renewed meanwhile is worded', async () => {
+    const user = userEvent.setup();
+    const renews = subscriptionState({
+      id: 4,
+      packageId: 3,
+      name: '10 days',
+      endsOn: '2026-11-04',
+    });
+    const statementOf = (renewal: { startsOn: string } | null) =>
+      ok({ ...renews, paidAgorot: 15000, balanceAgorot: 0, renewal, renewedById: null });
+    let renewal: { startsOn: string } | null = { startsOn: '2026-11-05' };
+    const { requests } = renderSheet(
+      { mode: 'renew', customer: customerRow(), renews },
+      {
+        statement: () => statementOf(renewal),
+        write: () => {
+          renewal = null;
+          return refused(409, { type: 'conflict', code: 'SUBSCRIPTION_ALREADY_RENEWED' });
+        },
+      },
+    );
+
+    const sheet = await screen.findByRole('dialog', { name: 'Renew subscription' });
+    expect(await within(sheet).findByText('10 days')).toBeVisible();
+    expect(within(sheet).getByRole('button', { name: 'Change package' })).toBeVisible();
+    await waitFor(() => {
+      expect(within(sheet).getByLabelText('From')).toHaveValue('2026-11-05');
+    });
+    await user.click(within(sheet).getByRole('button', { name: /Renew and receive .?₪150.?$/ }));
+
+    expect(
+      (await within(sheet).findAllByText(/This subscription was already renewed\./))[0],
+    ).toBeVisible();
+    // Read again, the statement says it was renewed: the sheet now makes a new subscription.
+    expect(await screen.findByRole('dialog', { name: 'New subscription' })).toBeVisible();
+    expect(posts(requests).map(({ body }) => body)).toEqual([
+      {
+        packageId: 3,
+        startsOn: '2026-11-05',
+        renewalOfId: 4,
+        payment: { amountAgorot: 15000, method: 'CASH' },
+      },
+    ]);
+  });
+
+  it('subscribes from a published price by its key and name, never a price id, at the price’s amount', async () => {
+    const user = userEvent.setup();
+    const { requests } = renderSheet(
+      { mode: 'subscribe', customer: customerRow() },
+      { prices: [STUDENT_MONTH] },
+    );
+
+    const choice = await screen.findByRole('radio', { name: /Monthly · students/ });
+    expect(choice).toBeChecked();
+    await user.click(screen.getByRole('button', { name: /Save and receive .?₪200.?$/ }));
+
+    await findToast(heard('Subscription saved · Sara Khalid'));
+    const [sent] = posts(requests);
+    expect(sent?.body).toEqual({
+      published: { period: 'MONTH', audience: 'STUDENT', name: 'Monthly · students' },
+      startsOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) as unknown,
+      payment: { amountAgorot: 20000, method: 'CASH' },
+    });
+    expect(sent?.body).not.toHaveProperty('priceId');
+  });
+
+  it.each([
+    [
+      'changed or removed',
+      refused(422, { type: 'validation', errors: { published: ['invalid_choice'] } }),
+      /This published price changed or was removed/,
+    ],
+    [
+      'now lower than the amount',
+      refused(409, { type: 'conflict', code: 'PAYMENT_EXCEEDS_DUE' }),
+      /The amount is more than is due now/,
+    ],
+  ])(
+    'says a published price %s, keeps the sheet, and reads the prices again',
+    async (_case, answer, line) => {
+      const user = userEvent.setup();
+      const { refreshPrices, onClose } = renderSheet(
+        { mode: 'subscribe', customer: customerRow() },
+        { prices: [STUDENT_MONTH], write: () => answer },
+      );
+
+      await screen.findByRole('radio', { name: /Monthly · students/ });
+      await user.click(screen.getByRole('button', { name: /Save and receive .?₪200.?$/ }));
+
+      expect(await screen.findByText(line)).toBeVisible();
+      expect(refreshPrices).toHaveBeenCalledTimes(1);
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByRole('radio', { name: /Monthly · students/ })).toBeChecked();
+    },
+  );
+
+  it('shows every choice on «Change package», and sends nothing', async () => {
+    const user = userEvent.setup();
+    const renews = subscriptionState({ id: 4, packageId: 3, name: '10 days' });
+    const { requests } = renderSheet(
+      { mode: 'renew', customer: customerRow(), renews },
+      {
+        statement: () =>
+          ok({
+            ...renews,
+            paidAgorot: 15000,
+            balanceAgorot: 0,
+            renewal: { startsOn: '2026-11-05' },
+            renewedById: null,
+          }),
+      },
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Change package' }));
+    expect(await screen.findByRole('radio', { name: /10 days/ })).toBeChecked();
+    expect(posts(requests)).toEqual([]);
+  });
+
+  it('reads the choices again on «Try again» when they failed, and sends nothing', async () => {
+    const user = userEvent.setup();
+    const { requests, retryPackages, refreshPrices } = renderSheet(
+      { mode: 'subscribe', customer: customerRow() },
+      { state: 'failed' },
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Try again' }));
+    expect(retryPackages).toHaveBeenCalledTimes(1);
+    expect(refreshPrices).toHaveBeenCalledTimes(1);
+    expect(posts(requests)).toEqual([]);
+  });
+
+  it('says no answer, not «not saved», when the subscribe’s answer is lost, and retries with its key', async () => {
+    const user = userEvent.setup();
+    const { requests, onClose } = renderSheet(
+      { mode: 'new', name: 'Sara Khalid', phone: '0599000305' },
+      {
+        write: (request) => {
+          if (request.url === '/manage/spaces/7/customers') {
+            return ok(
+              { id: 9, name: 'Sara Khalid', phone: '+970599000305', archivedAt: null },
+              201,
+            );
+          }
+          return { failure: 'ERR_NETWORK' };
+        },
+      },
+    );
+
+    await user.click(await screen.findByRole('button', { name: /Save and receive .?₪150.?$/ }));
+    expect(
+      await screen.findByText(
+        'No answer came back. Try again — it won’t be recorded twice.',
+        {},
+        { timeout: 8000 },
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText(/the subscription wasn’t saved/)).toBeNull();
+    const lost = posts(requests).filter(({ url }) => url?.endsWith('/subscriptions') === true);
+    expect(new Set(lost.map(({ key }) => key)).size).toBe(1);
+
+    // Closed now, the sheet says nothing definite: the subscription may have been recorded.
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/with no subscription/)).toBeNull();
+  });
+
+  it('retries a lost subscribe with the same key, the customer not created again', async () => {
+    const user = userEvent.setup();
+    let lose = true;
+    const { requests } = renderSheet(
+      { mode: 'new', name: 'Sara Khalid', phone: '0599000305' },
+      {
+        write: (request) => {
+          if (request.url === '/manage/spaces/7/customers') {
+            return ok(
+              { id: 9, name: 'Sara Khalid', phone: '+970599000305', archivedAt: null },
+              201,
+            );
+          }
+          return lose ? { failure: 'ERR_NETWORK' } : subscribed();
+        },
+      },
+    );
+
+    await user.click(await screen.findByRole('button', { name: /Save and receive .?₪150.?$/ }));
+    await screen.findByText(
+      'No answer came back. Try again — it won’t be recorded twice.',
+      {},
+      { timeout: 8000 },
+    );
+    lose = false;
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await findToast(heard('Subscription saved · Sara Khalid'));
+    const sent = posts(requests);
+    expect(sent.filter(({ url }) => url === '/manage/spaces/7/customers')).toHaveLength(1);
+    const subscribes = sent.filter(({ url }) => url?.endsWith('/subscriptions') === true);
+    expect(new Set(subscribes.map(({ key }) => key)).size).toBe(1);
+  });
+
+  it('renews a subscription from a published price with that price chosen, its amount on the submit', async () => {
+    const renews = subscriptionState({
+      id: 4,
+      packageId: null,
+      priceTyped: null,
+      name: 'Monthly',
+      priceAgorot: 35000,
+      startsOn: '2026-10-01',
+      endsOn: '2026-10-30',
+    });
+    renderSheet(
+      { mode: 'renew', customer: customerRow(), renews },
+      {
+        prices: [
+          { ...STUDENT_MONTH, period: 'WEEK', audience: 'GENERAL', amountAgorot: 12000 },
+          { ...STUDENT_MONTH, audience: 'GENERAL', amountAgorot: 35000 },
+        ],
+        statement: () =>
+          ok({
+            ...renews,
+            paidAgorot: 35000,
+            balanceAgorot: 0,
+            renewal: { startsOn: '2026-10-31' },
+            renewedById: null,
+          }),
+      },
+    );
+
+    const sheet = await screen.findByRole('dialog', { name: 'Renew subscription' });
+    expect(await within(sheet).findByRole('button', { name: 'Change package' })).toBeVisible();
+    expect(within(sheet).getByText('Monthly')).toBeVisible();
+    expect(
+      await within(sheet).findByRole('button', { name: /Renew and receive .?₪350.?$/ }),
+    ).toBeEnabled();
+  });
+
+  it('chooses nothing for a renewal it cannot match, the submit blocked until a choice', async () => {
+    const user = userEvent.setup();
+    const renews = subscriptionState({
+      id: 4,
+      packageId: null,
+      priceTyped: null,
+      name: 'An old offer',
+      priceAgorot: 9000,
+      startsOn: '2026-10-01',
+      endsOn: '2026-10-10',
+    });
+    renderSheet(
+      { mode: 'renew', customer: customerRow(), renews },
+      {
+        prices: [{ ...STUDENT_MONTH, period: 'WEEK', audience: 'GENERAL', amountAgorot: 12000 }],
+        statement: () =>
+          ok({
+            ...renews,
+            paidAgorot: 9000,
+            balanceAgorot: 0,
+            renewal: { startsOn: '2026-10-26' },
+            renewedById: null,
+          }),
+      },
+    );
+
+    const weekly = await screen.findByRole('radio', { name: /Weekly/ });
+    await waitFor(() => {
+      expect(screen.getByLabelText('From')).toHaveValue('2026-10-26');
+    });
+    expect(weekly).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: /10 days/ })).not.toBeChecked();
+    const submit = screen.getByRole('button', { name: /Renew without payment/ });
+    expect(submit).toBeDisabled();
+    await user.click(weekly);
+    expect(screen.getByRole('button', { name: /Renew and receive .?₪120.?$/ })).toBeEnabled();
+  });
+
+  it.each([
+    ['₪200 on a ₪150 price records ₪150', '200', 15000],
+    ['₪100 on a ₪150 price records ₪100', '100', 10000],
+  ])('sends the amount recorded, never the amount typed: %s', async (_case, typed, recorded) => {
+    const user = userEvent.setup();
+    const { requests } = renderSheet({ mode: 'subscribe', customer: customerRow() });
+
+    await screen.findByRole('radio', { name: /10 days/ });
+    const received = screen.getByRole('textbox', { name: 'Received now (₪)' });
+    await user.clear(received);
+    await user.type(received, typed);
+    await user.click(screen.getByRole('button', { name: /Save and receive/ }));
+
+    await findToast(heard('Subscription saved · Sara Khalid'));
+    const [sent] = posts(requests);
+    expect(sent?.body).toMatchObject({ payment: { amountAgorot: recorded, method: 'CASH' } });
   });
 });

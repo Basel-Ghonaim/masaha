@@ -89,6 +89,7 @@ function Customer({ spaceId, customerId }: { spaceId: number; customerId: number
           key={sheet.opening}
           spaceId={spaceId}
           entry={sheet.entry}
+          returnFocus={sheet.returnFocus}
           onClose={sheet.close}
         />
       )}

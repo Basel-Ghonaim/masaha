@@ -3,12 +3,13 @@ import { PRICE_AUDIENCES, type Shift } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { useServerForm } from '@shared/forms';
 import { useLanguage } from '@shared/localisation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import {
   LIMIT_NAMES,
   sheetInput,
   sheetSchema,
+  type PublishedChoice,
   type SheetRequest,
   type SheetValues,
 } from '../../services/sheetRequest';
@@ -43,6 +44,8 @@ export function useSheetForm({
   choice,
   shifts,
   renewalOfId,
+  published,
+  customDefaults,
   submit,
 }: {
   newCustomer: boolean;
@@ -51,7 +54,11 @@ export function useSheetForm({
   startsOn: string;
   choice: string;
   shifts: Shift[] | null;
-  renewalOfId?: number;
+  renewalOfId: number | undefined;
+  /** The published prices offered, by their choice's value. */
+  published: ReadonlyMap<string, PublishedChoice>;
+  /** A renewal of custom terms repeats them. */
+  customDefaults: Partial<SheetValues['custom']> | null;
   submit: (request: SheetRequest) => Promise<unknown>;
 }) {
   const copy = useCopy();
@@ -59,6 +66,12 @@ export function useSheetForm({
   const language = useLanguage() === 'en' ? 'en' : 'ar';
   // The schema reads who is new once: an opening is one customer.
   const [schema] = useState(() => sheetSchema(newCustomer));
+  // The form's check is made once; what it reads that changes while the sheet is open — the renewal
+  // and the prices read again — it reads from here when it runs.
+  const request = useRef({ renewalOfId, published });
+  useEffect(() => {
+    request.current = { renewalOfId, published };
+  }, [renewalOfId, published]);
 
   const form = useServerForm<SheetValues, SheetRequest>({
     schema,
@@ -79,6 +92,7 @@ export function useSheetForm({
         hoursPerDay: '',
         totalHours: '',
         reason: '',
+        ...customDefaults,
       },
       payment: { amountAgorot: 0, method: 'CASH' },
     },
@@ -93,7 +107,7 @@ export function useSheetForm({
       'custom.reason',
       'payment.amountAgorot',
     ],
-    prepare: (values) => sheetInput(values, { newCustomer, renewalOfId }),
+    prepare: (values) => sheetInput(values, { newCustomer, ...request.current }),
     submit,
     failureTitle: words.done.failed,
     fieldLines: {

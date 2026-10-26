@@ -39,7 +39,14 @@ function renderSheet(entry: SheetEntry) {
       <SubscriptionSheet
         spaceId={7}
         entry={entry}
-        choices={{ state: 'ready', packages: [OPEN_MONTH], retry: vi.fn(), shifts: [] }}
+        choices={{
+          state: 'ready',
+          packages: [OPEN_MONTH],
+          retry: vi.fn(),
+          prices: { state: 'ready', list: [], refresh: vi.fn() },
+          shifts: [],
+        }}
+        returnFocus={() => null}
         onClose={vi.fn()}
       />
     </QueryClientProvider>,

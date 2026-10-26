@@ -34,7 +34,7 @@ import {
 } from '@shared/design-system';
 import { NotFoundState, parseSpaceId } from '@shared/routing';
 import { useSession } from '@shared/session';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { spaceCustomerPath } from '../../navigation';
 import { PageActionBar } from '../../shell/PageActionBar';
@@ -88,6 +88,8 @@ function Desk({ spaceId }: { spaceId: number }) {
   // «زبون جديد», «اشتراك جديد»: one subscription sheet, opened from the page, the search or a card.
   const sheet = useSheetOpener();
   const subscribe = sheet.open;
+  // The phone's «⋯», where the focus returns once a sheet opened from its item closes.
+  const more = useRef<HTMLButtonElement | null>(null);
   // The search's cards' «⋯»: the owner's archive, the way to a customer's file, the sheet.
   const menu = useMemo(
     () => ({
@@ -151,8 +153,8 @@ function Desk({ spaceId }: { spaceId: number }) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  subscribe({ mode: 'new' });
+                onClick={(event) => {
+                  subscribe({ mode: 'new' }, event.currentTarget);
                 }}
               >
                 {words.sheet.entry.new}
@@ -164,7 +166,7 @@ function Desk({ spaceId }: { spaceId: number }) {
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label={words.actions.more}>
+                <Button ref={more} variant="ghost" size="icon" aria-label={words.actions.more}>
                   <EllipsisIcon aria-hidden />
                 </Button>
               </DropdownMenuTrigger>
@@ -178,7 +180,7 @@ function Desk({ spaceId }: { spaceId: number }) {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={() => {
-                    subscribe({ mode: 'new' });
+                    subscribe({ mode: 'new' }, more.current);
                   }}
                 >
                   {words.sheet.entry.new}
@@ -254,6 +256,7 @@ function Desk({ spaceId }: { spaceId: number }) {
           key={sheet.opening}
           spaceId={spaceId}
           entry={sheet.entry}
+          returnFocus={sheet.returnFocus}
           onClose={sheet.close}
         />
       )}

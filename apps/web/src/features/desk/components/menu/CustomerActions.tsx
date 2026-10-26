@@ -4,7 +4,7 @@ import { Button } from '@shared/design-system';
 import { isolate } from '@shared/localisation';
 import { useRef, useState } from 'react';
 import { useArchiveFlow } from '../../hooks/archive/useArchiveFlow';
-import type { SheetEntry } from '../../types/SheetEntry';
+import type { OpenSheet } from '../../types/SheetEntry';
 import { ArchiveDialog } from '../archive/ArchiveDialog';
 import { EditCustomerDialog } from '../edit/EditCustomerDialog';
 import { CustomerMenu } from './CustomerMenu';
@@ -30,8 +30,8 @@ export function CustomerActions({
   owner: boolean;
   /** The customer's file, where the menu offers it; none in the file itself. */
   fileLink: string | null;
-  /** Opens the page's subscription sheet. */
-  subscribe: (entry: SheetEntry) => void;
+  /** Opens the page's subscription sheet, the focus coming back to «⋯». */
+  subscribe: OpenSheet;
 }) {
   const copy = useCopy();
   const words = copy.desk.customer.menu;
@@ -57,7 +57,10 @@ export function CustomerActions({
           subscribe: {
             label: copy.desk.sheet.entry.subscribe,
             run: () => {
-              subscribe({ mode: 'subscribe', customer: { ...customer, debtAgorot } });
+              subscribe(
+                { mode: 'subscribe', customer: { ...customer, debtAgorot } },
+                trigger.current,
+              );
             },
           },
           edit: {

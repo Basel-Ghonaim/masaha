@@ -12,7 +12,7 @@ import {
 import { useId, useRef, type ReactNode, type RefObject } from 'react';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
 import { useDeskSearch } from '../../hooks/search/useDeskSearch';
-import type { SheetEntry } from '../../types/SheetEntry';
+import type { OpenSheet } from '../../types/SheetEntry';
 import { CustomerCard } from '../card/CustomerCard';
 
 /** What follows an action started from the search's results: it is cleared and focused. */
@@ -55,7 +55,7 @@ export function DeskSearch({
   menu: {
     owner: boolean;
     fileLink: (customerId: number) => string;
-    subscribe: (entry: SheetEntry) => void;
+    subscribe: OpenSheet;
   };
 }) {
   const search = useDeskSearch(spaceId, { present });
@@ -85,8 +85,8 @@ export function DeskSearch({
         {newCustomer !== null && (
           <Button
             variant="link"
-            onClick={() => {
-              menu.subscribe(newCustomer.entry);
+            onClick={(event) => {
+              menu.subscribe(newCustomer.entry, event.currentTarget);
             }}
           >
             {newCustomer.label}
