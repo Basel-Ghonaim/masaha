@@ -1,6 +1,6 @@
 # Favourites
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
 > **Authority:** The `favorites` capability: a signed-in user keeps the listed spaces they want to find again. Its endpoints are owned by the [API contract](../api/api-contract.md#favourites); its entity by the [data model](../architecture/data-model.md#operations). The API is built; no screen yet.
 > **Scope:** the API module `favorites` (L2); `@masaha/shared/favorites`.
 
@@ -26,7 +26,7 @@
 
 ## Behaviour and flows
 
-**Save.** In one transaction: the user's row locked (`users.lockAccount`, the session lock), so one user's saves are serialised; a space already saved is answered as it is, 204, writing nothing, even at the ceiling; a space the public listing does not list is `not_found`; a new one past 200 is `FAVORITES_LIMIT_REACHED`; else the favourite, dated by the one clock. Two saves at once: the second waits on the lock and finds the first; the primary key is the backstop. Two saves of different spaces at 199: the second finds 200.
+**Save.** Whether the space is publicly listed is read first, before the transaction (those reads are not the transaction's, [conventions §8](../backend/conventions.md#transactions)); then, in one transaction: the user's row locked (`users.lockAccount`, the session lock), so one user's saves are serialised; a space already saved is answered as it is, 204, writing nothing, even at the ceiling; a space the public listing did not list is `not_found`; a new one past 200 is `FAVORITES_LIMIT_REACHED`; else the favourite, dated by the one clock. Two saves at once: the second waits on the lock and finds the first; the primary key is the backstop. Two saves of different spaces at 199: the second finds 200.
 
 **Remove.** The caller's row of that space deleted, if there is one, 204 either way: a space that left the directory is removed all the same.
 
@@ -56,3 +56,4 @@ None.
 ### API history
 
 - #121 — a signed-in user's favourites saved and removed, idempotent, at most 200; read whole as the directory's cards, newest saved first or nearest first.
+- #123 — the save reads the listing before it takes the user's lock (#121's review); a saved space that left, saved again, is tested.

@@ -42,16 +42,18 @@ export function createFavoritesService({
 
   return {
     /**
-     * Saves the space, in one transaction and in this order: the user's row locked (the session
-     * lock), so one user's saves are serialised and the ceiling holds; a space already saved is
-     * answered as it is, writing nothing, even at the ceiling; a space not listed is `not_found`;
-     * the ceiling `FAVORITES_LIMIT_REACHED`; else the favourite.
+     * Saves the space. Whether it is listed is read first, before the transaction (its reads are
+     * not the transaction's, conventions §8); then, in one transaction and in this order: the
+     * user's row locked (the session lock), so one user's saves are serialised and the ceiling
+     * holds; a space already saved is answered as it is, writing nothing, even at the ceiling; a
+     * space not listed is `not_found`; the ceiling `FAVORITES_LIMIT_REACHED`; else the favourite.
      */
     async save(actor: Actor, spaceId: number): Promise<void> {
+      const listed = await isListed(spaceId);
       await runInTransaction(async (tx) => {
         if (!(await users.lockAccount(actor.id, tx))) throw AppError.unauthorized();
         if (await repository.has(actor.id, spaceId, tx)) return;
-        if (!(await isListed(spaceId))) throw AppError.notFound(undefined, 'Space not found');
+        if (!listed) throw AppError.notFound(undefined, 'Space not found');
         if ((await repository.countOf(actor.id, tx)) >= FAVORITES_MAX) {
           throw AppError.conflict('FAVORITES_LIMIT_REACHED', 'Favourites full');
         }
