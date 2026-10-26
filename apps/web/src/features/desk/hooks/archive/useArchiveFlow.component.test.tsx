@@ -137,6 +137,18 @@ describe('useArchiveFlow', () => {
     );
   });
 
+  it('says a settled customer present is checked out first, in the at-once archive’s toast', async () => {
+    const user = userEvent.setup();
+    renderFlow(() => refused(409, { type: 'conflict', code: 'MEMBER_ALREADY_CHECKED_IN' }));
+
+    await user.click(screen.getByRole('button', { name: 'Archive…' }));
+    await findToast('We couldn’t archive them');
+    expect(
+      await screen.findByText(heard('Sara Khalid is here now; check them out before archiving.')),
+    ).toBeVisible();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
   it('says a restore refused for a phone another customer now holds', async () => {
     const user = userEvent.setup();
     renderFlow(() => refused(409, { type: 'conflict', code: 'PHONE_TAKEN' }), {
