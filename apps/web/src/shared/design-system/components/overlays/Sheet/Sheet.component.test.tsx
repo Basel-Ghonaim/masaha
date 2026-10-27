@@ -94,6 +94,28 @@ describe('Sheet', () => {
     expect(trigger).toHaveFocus();
   });
 
+  it('takes the full width below 768 px from either side, a quarter less from there on', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<FilterPanel side="end" />);
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+
+    const sheet = screen.getByRole('dialog', { name: 'Filter the reports' });
+    // The width is the classes' (jsdom lays nothing out); the real run measures it at 390 and 768.
+    expect(sheet).toHaveClass('w-full', 'md:w-3/4', 'md:max-w-sm');
+    expect(sheet).not.toHaveClass('w-3/4');
+    // The body lets a long field shrink inside the sheet rather than widen it.
+    expect(sheet.querySelector('[data-slot="sheet-body"]')).toHaveClass('min-w-0');
+    unmount();
+
+    render(<FilterPanel side="start" />);
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    expect(screen.getByRole('dialog', { name: 'Filter the reports' })).toHaveClass(
+      'w-full',
+      'md:w-3/4',
+      'md:max-w-sm',
+    );
+  });
+
   it('has no close button in the corner without a label for it', async () => {
     render(<FilterPanel />);
 

@@ -20,16 +20,20 @@ import { Statement } from '../statement/Statement';
  * يدوي» when its price was typed; its dates and its terms in one line; its status and payment
  * badges; its progress, a plain line each; its due, paid and left, the server's; and «استلام
  * المتبقي» while it owes (DI-44); «عرض الكشف» opens its statement inside it (DI-43), and «إنهاء
- * الاشتراك» ends it early, asking first. `opened` hears which control opened the payment.
+ * الاشتراك» ends it early, asking first; «تجديد» (`renew`, the latest's) opens the page's sheet for
+ * its renewal. `opened` hears which control opened the payment.
  */
 export function SubscriptionCard({
   spaceId,
   card,
   opened,
+  renew,
 }: {
   spaceId: number;
   card: SubscriptionCardView;
   opened: (trigger: HTMLElement) => void;
+  /** «تجديد», offered on the latest subscription. */
+  renew: { label: string; run: (from: HTMLElement) => void } | null;
 }) {
   const { money } = card;
   const statement = useStatement(spaceId, card.subscription.id);
@@ -87,6 +91,16 @@ export function SubscriptionCard({
             }}
           >
             {card.receive.label}
+          </Button>
+        )}
+        {renew !== null && (
+          <Button
+            variant="secondary"
+            onClick={(event) => {
+              renew.run(event.currentTarget);
+            }}
+          >
+            {renew.label}
           </Button>
         )}
         <Button

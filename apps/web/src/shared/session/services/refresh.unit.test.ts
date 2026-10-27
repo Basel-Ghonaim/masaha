@@ -99,7 +99,7 @@ describe('refreshSession', () => {
     expect(getSessionEnd()).toBeNull();
   });
 
-  it('says no idleness for a session refused otherwise, or found ended by the restore', async () => {
+  it('says no idleness for a session refused otherwise; says it for a restore the server ended for idleness', async () => {
     signedIn();
     fakeTransport(() => refused(401, { type: 'unauthorized' }));
     await expect(refreshSession()).rejects.toMatchObject({ status: 401 });

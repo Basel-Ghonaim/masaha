@@ -23,7 +23,12 @@ function renderList(path = '/c', owner = true) {
     <QueryClientProvider client={createQueryClient()}>
       <MemoryRouter initialEntries={[path]}>
         <main>
-          <CustomersList spaceId={7} owner={owner} fileLink={(id) => `/file/${String(id)}`} />
+          <CustomersList
+            spaceId={7}
+            owner={owner}
+            fileLink={(id) => `/file/${String(id)}`}
+            subscribe={() => undefined}
+          />
         </main>
       </MemoryRouter>
     </QueryClientProvider>,

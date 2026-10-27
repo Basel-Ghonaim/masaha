@@ -14,6 +14,7 @@ import { useRef, type RefObject } from 'react';
 import { useCustomerCard } from '../../hooks/card/useCustomerCard';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
 import { useSubscriberCheckIn } from '../../hooks/subscriber/useSubscriberCheckIn';
+import type { OpenSheet } from '../../types/SheetEntry';
 import { CustomerActions } from '../menu/CustomerActions';
 import { PreCheckInDialog } from '../subscriber/PreCheckInDialog';
 import { BalanceBadge } from './BalanceBadge';
@@ -34,8 +35,15 @@ export function CustomerCard({
 }: {
   spaceId: number;
   row: CustomerRow;
-  /** The card's «⋯»: whether the caller is the owner (S5), and where a customer's file is. */
-  menu: { owner: boolean; fileLink: (customerId: number) => string };
+  /**
+   * The card's «⋯»: whether the caller is the owner (S5), where a customer's file is, and the page's
+   * subscription sheet.
+   */
+  menu: {
+    owner: boolean;
+    fileLink: (customerId: number) => string;
+    subscribe: OpenSheet;
+  };
   after: { done: () => void; focus: RefObject<HTMLElement | null> };
   /** Opens the payment on one of the customer's items. */
   receive: (target: PayTarget) => void;
@@ -69,6 +77,7 @@ export function CustomerCard({
             debtAgorot={row.debtAgorot}
             owner={menu.owner}
             fileLink={menu.fileLink(row.id)}
+            subscribe={menu.subscribe}
           />
         </CardAction>
       </CardHeader>

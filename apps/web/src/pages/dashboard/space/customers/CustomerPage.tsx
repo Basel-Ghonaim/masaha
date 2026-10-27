@@ -13,6 +13,8 @@ import { useSession } from '@shared/session';
 import { Link, useParams } from 'react-router';
 import { spacePagePath } from '../../navigation';
 import { PageHeader } from '../../shell/PageHeader';
+import { SubscriptionSheetSlot } from '../SubscriptionSheetSlot';
+import { useSheetOpener } from '../useSheetOpener';
 
 /** A customer's id from the address: a whole number above zero, else none. */
 function parseCustomerId(value: string | undefined): number | undefined {
@@ -23,7 +25,8 @@ function parseCustomerId(value: string | undefined): number | undefined {
 /**
  * «ملف الزبون», the owner's and reception's: titled by the customer's name once their file has
  * loaded, under a trail back to «الزبائن», then `desk`'s file, whose archive and restore are the
- * owner's, as the session's link at the space says (S5). An id that names no one shows the 404.
+ * owner's, as the session's link at the space says (S5); the header's «اشتراك جديد» opens `desk`'s
+ * subscription sheet. An id that names no one shows the 404.
  * The guard has checked the space's id and the role.
  */
 export function CustomerPage() {
@@ -53,6 +56,7 @@ function Customer({ spaceId, customerId }: { spaceId: number; customerId: number
   const owner = useSession(
     (session) => session.user?.spaces.find((link) => link.spaceId === spaceId)?.role === 'OWNER',
   );
+  const sheet = useSheetOpener();
 
   return (
     <>
@@ -73,8 +77,22 @@ function Customer({ spaceId, customerId }: { spaceId: number; customerId: number
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <CustomerFile spaceId={spaceId} customerId={customerId} owner={owner} />
+        <CustomerFile
+          spaceId={spaceId}
+          customerId={customerId}
+          owner={owner}
+          subscribe={sheet.open}
+        />
       </div>
+      {sheet.entry !== null && (
+        <SubscriptionSheetSlot
+          key={sheet.opening}
+          spaceId={spaceId}
+          entry={sheet.entry}
+          returnFocus={sheet.returnFocus}
+          onClose={sheet.close}
+        />
+      )}
     </>
   );
 }

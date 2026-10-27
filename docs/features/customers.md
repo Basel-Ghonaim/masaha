@@ -1,6 +1,6 @@
 # Customers
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-25 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
 > **Authority:** The `customers` capability: everyone a space keeps on file. Its endpoints are owned by the API contract ([Customers (managed)](../api/api-contract.md#customers-managed)); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the web, [desk](desk.md) shows the customers.
 > **Scope:** the API module `customers` (L2); `@masaha/shared/customers`. No web feature of its own: [desk](desk.md)'s screens read and write it.
 
@@ -15,7 +15,7 @@
 
 ## Who uses it
 
-- **The space's owner and reception,** through the API. The admin never reaches it: customers are private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). On the web, the desk's search reads the list's search (`GET …/customers?q`, the first six) — [desk](desk.md), 2026-10-25, #119; «الزبائن» reads the list, 20 a page, searched and filtered, and a customer's file edits, archives and restores them — [desk](desk.md), 2026-10-25, #122.
+- **The space's owner and reception,** through the API. The admin never reaches it: customers are private from the admin ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). On the web, the desk's search reads the list's search (`GET …/customers?q`, the first six) — [desk](desk.md), 2026-10-25, #119; «الزبائن» reads the list, 20 a page, searched and filtered, and a customer's file edits, archives and restores them — [desk](desk.md), 2026-10-25, #122; the subscription sheet creates a new customer before their subscription (`POST …/customers`, its own key) — [desk](desk.md), 2026-10-26, #124.
 - **The front desk** ([desk](desk.md)), which leaves an unpaid visit to a customer found or created by phone, in its own transaction.
 - **[`occupancy`](occupancy.md),** which names the customers present.
 - **[`subscriptions`](subscriptions.md),** which reads its check-ins' customers' names and phones.

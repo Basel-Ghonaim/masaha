@@ -12,6 +12,7 @@ import {
 import { useId, useRef, type ReactNode, type RefObject } from 'react';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
 import { useDeskSearch } from '../../hooks/search/useDeskSearch';
+import type { OpenSheet } from '../../types/SheetEntry';
 import { CustomerCard } from '../card/CustomerCard';
 
 /** What follows an action started from the search's results: it is cleared and focused. */
@@ -22,7 +23,8 @@ export type SearchAfter = { done: () => void; focus: RefObject<HTMLElement | nul
  * — once typing pauses — the people present who match (`present.group`, the page's, `occupancy`'s),
  * then the customers the server finds, a card each under their `h2` (DI-38), then the visit's
  * check-in by the typed name (`checkIn`), the primary only when nothing matched, with the no-match
- * line (DI-20, DI-36), handed `after` too. The count of results is said politely as it changes (A7). From 768 px the field
+ * line (DI-20, DI-36), handed `after` too, and «زبون جديد باسم «X»» (a link) opening the page's
+ * subscription sheet with what was typed. The count of results is said politely as it changes (A7). From 768 px the field
  * takes the focus on arrival (S10), and after a check-in or a check-out started from the results it
  * is cleared and takes the focus again (`after`, handed to the cards and to `present.group`).
  */
@@ -46,8 +48,15 @@ export function DeskSearch({
   checkIn: (name: string, after: SearchAfter) => void;
   /** Opens the payment on one of a customer's items. */
   receive: (target: PayTarget) => void;
-  /** Each card's «⋯»: whether the caller is the owner, and where a customer's file is. */
-  menu: { owner: boolean; fileLink: (customerId: number) => string };
+  /**
+   * Each card's «⋯»: whether the caller is the owner, where a customer's file is; and the page's
+   * subscription sheet, which a new customer's link opens too.
+   */
+  menu: {
+    owner: boolean;
+    fileLink: (customerId: number) => string;
+    subscribe: OpenSheet;
+  };
 }) {
   const search = useDeskSearch(spaceId, { present });
   const input = useRef<HTMLInputElement | null>(null);
@@ -61,16 +70,29 @@ export function DeskSearch({
   const resultsId = useId();
   const customersId = useId();
   const { customers } = search;
+  const { newCustomer } = search;
   const visitButton =
     search.checkIn === null ? null : (
-      <Button
-        variant={search.checkIn.primary ? 'primary' : 'outline'}
-        onClick={() => {
-          if (search.checkIn !== null) checkIn(search.checkIn.name, after);
-        }}
-      >
-        {search.checkIn.label}
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          variant={search.checkIn.primary ? 'primary' : 'outline'}
+          onClick={() => {
+            if (search.checkIn !== null) checkIn(search.checkIn.name, after);
+          }}
+        >
+          {search.checkIn.label}
+        </Button>
+        {newCustomer !== null && (
+          <Button
+            variant="link"
+            onClick={(event) => {
+              menu.subscribe(newCustomer.entry, event.currentTarget);
+            }}
+          >
+            {newCustomer.label}
+          </Button>
+        )}
+      </div>
     );
 
   return (
@@ -150,7 +172,7 @@ export function DeskSearch({
             {visitButton}
           </EmptyState>
         ) : (
-          visitButton !== null && <div>{visitButton}</div>
+          visitButton
         )}
       </div>
     </section>
