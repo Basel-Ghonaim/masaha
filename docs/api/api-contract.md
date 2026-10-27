@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-27 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -736,7 +736,7 @@ ExtensionPreview = {
   firstDay: string,                // the Gaza date of the closure's start
   lastDay: string,                 // of its last instant: the day before an end at midnight; today while it runs
   proposedDays: number,            // the days from firstDay to lastDay, at most 365
-  subscriptions: number,           // how many it covered; once applied, how many it moved
+  subscriptions: number,           // how many it will move: those it covered and their renewals not started; once applied, how many it moved
   applied: ExtensionApplied | null
 }
 
@@ -752,12 +752,13 @@ ClosureExtension = ExtensionApplied & { announcementId: number }
 
 #### `GET /manage/spaces/:spaceId/announcements/:announcementId/extend-subscriptions` · 🧾
 - **The covered subscriptions** (decision 4, [data-model › Checked by the service](../architecture/data-model.md#checked-by-the-service)): the space's subscriptions not ended early, with an end on or after the closure's first day and a start (or none) on or before its last — one running through it, one ending during it, one starting on its last day. One with no end is never covered.
-- **200:** `ExtensionPreview`, read without a lock and writing nothing: the closure's covered Gaza days, the days proposed and how many subscriptions it covered now; once applied, `applied` and how many it moved instead. Built 2026-10-26, #123.
+- **Their renewals not started** ([finding 151](../architecture/findings/151-a-renewal-sold-before-a-closures-extension-stays-where-it-is.md)): each covered subscription's renewal whose start is after the Gaza date of the read and that was not ended early, then that renewal's own, and so on, moves with it. A renewal started, or with no start, is judged by the covered rule alone. 2026-10-27, #128.
+- **200:** `ExtensionPreview`, read without a lock and writing nothing: the closure's covered Gaza days, the days proposed and how many subscriptions it would move now, those it covered and their renewals not started (2026-10-27, #128); once applied, `applied` and how many it moved instead. Built 2026-10-26, #123.
 - **Errors:** `not_found` (404) for an announcement that is not the space's, not a `CLOSURE`, or deleted; `conflict` (409) `ANNOUNCEMENT_NOT_STARTED` for a closure not started yet.
 
 #### `POST /manage/spaces/:spaceId/announcements/:announcementId/extend-subscriptions` · 🏢 · `Idempotency-Key`
 - **Body:** `{ days }`, the days the owner types from the proposal: whole, 1–365 (`EXTENSION_MAX_DAYS`; `out_of_range` otherwise).
-- **201:** `ClosureExtension`: every subscription the closure covered, as the preview counts them, has its end moved by `days`, in one transaction, with one link each; audited `closure.subscriptionsExtended` (the announcement the entity, its space the entry's; `after`: `{ days, subscriptionIds }`). A subscription's status and progress follow from its new end. A retry with the same key answers the first extension as it was, 201, moving nothing; two owners at once make one (the space's lock, then the closure's, then the subscriptions' by id). **No undo:** a wrong extension is corrected subscription by subscription (*Subscriptions (managed)*, the corrections). Once extended, the closure keeps its type, start and existence (`CLOSURE_EXTENDED` on its edit and delete). Built 2026-10-26, #123.
+- **201:** `ClosureExtension`: every subscription the closure covered has its end moved by `days`, and each of their renewals not started its start and end (2026-10-27, #128), as the preview counts them, in one transaction, with one link each; audited `closure.subscriptionsExtended` (the announcement the entity, its space the entry's; `after`: `{ days, subscriptionIds, renewalIds }`, the covered apart from the renewals). A subscription's status and progress follow from its new end. A retry with the same key answers the first extension as it was, 201, moving nothing; two owners at once make one (the space's lock, then the closure's, then the subscriptions' by id, the renewals with the covered ones). **No undo:** a wrong extension is corrected subscription by subscription (*Subscriptions (managed)*, the corrections). Once extended, the closure keeps its type, start and existence (`CLOSURE_EXTENDED` on its edit and delete). Built 2026-10-26, #123.
 - **Errors**, each writing nothing: `forbidden` (403) for reception, before the key or the body is read, and for an owner whose link ended meanwhile; `validation` (422) on `idempotencyKey` (§1), then on the body; `conflict` (409) for a key that extended another closure; `not_found` (404) for an announcement that is not the space's, not a `CLOSURE`, or deleted; `conflict` (409) `CLOSURE_ALREADY_EXTENDED` for a closure extended already; `conflict` (409) `ANNOUNCEMENT_NOT_STARTED` for one not started yet.
 
 #### `POST /manage/spaces/:spaceId/announcements` · 🧾 · `Idempotency-Key`

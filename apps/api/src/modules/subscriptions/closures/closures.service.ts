@@ -7,6 +7,7 @@ import {
   type ExtensionPreview,
   type ManagedAnnouncement,
 } from '@masaha/shared/announcements';
+import { gazaClockOf } from '@masaha/shared/core';
 
 import type { RunInTransaction } from '../../../db/index.ts';
 import type { AuditWriter } from '../../../shared/audit/index.ts';
@@ -83,7 +84,8 @@ export function createClosuresService({
      * A closure's extension before it is applied, read without a lock and writing nothing: the
      * space's closure, not deleted (else `not_found`); one applied answers it, with how many it
      * moved; one not started yet → `ANNOUNCEMENT_NOT_STARTED`; else the Gaza days it covered to now,
-     * the days proposed (at most `EXTENSION_MAX_DAYS`) and how many subscriptions it covered.
+     * the days proposed (at most `EXTENSION_MAX_DAYS`) and how many subscriptions it would move: those
+     * it covered and their renewals not started (finding 151).
      */
     async preview(spaceId: number, announcementId: number): Promise<ExtensionPreview> {
       const closure = await announcements.closureIn(spaceId, announcementId);
@@ -99,7 +101,7 @@ export function createClosuresService({
         proposedDays: Math.min(span.days, EXTENSION_MAX_DAYS),
       };
       if (!extension) {
-        const count = await repository.coveredCount(spaceId, span);
+        const count = await repository.movedCount(spaceId, span, gazaClockOf(at).date);
         return { ...proposal, subscriptions: count, applied: null };
       }
       const [applier] = await users.namesFor([extension.appliedById]);
@@ -116,8 +118,9 @@ export function createClosuresService({
      * id): the space's lock; `can()` on the links read under it; the extension this key applied, for
      * a retry, answered as it was (another closure's → `conflict`); the closure, locked (else
      * `not_found`); one extended already → `CLOSURE_ALREADY_EXTENDED`; one not started yet →
-     * `ANNOUNCEMENT_NOT_STARTED`; its span at now; the covered subscriptions locked, their ends moved
-     * in one statement; the extension and its links; its audit entry.
+     * `ANNOUNCEMENT_NOT_STARTED`; its span at now; the covered subscriptions and their renewals not
+     * started by today locked in one statement, the covered ones' ends moved, the renewals' starts and
+     * ends (finding 151); the extension and its links to both; its audit entry.
      */
     extend(
       actor: Actor,
@@ -149,11 +152,17 @@ export function createClosuresService({
         if (closure.startsAt.getTime() > at.getTime()) {
           throw AppError.conflict('ANNOUNCEMENT_NOT_STARTED');
         }
-        const ids = await repository.lockCovered(space.id, closureSpan(closure, at), tx);
-        await repository.moveEnds(ids, days, at, tx);
+        const { covered, renewals } = await repository.lockMoved(
+          space.id,
+          closureSpan(closure, at),
+          gazaClockOf(at).date,
+          tx,
+        );
+        await repository.moveEnds(covered, days, at, tx);
+        await repository.moveRenewals(renewals, days, at, tx);
         await repository.createExtension(
           { announcementId, days, appliedById: actor.id, key, appliedAt: at },
-          ids,
+          [...covered, ...renewals],
           tx,
         );
         await audit(
@@ -163,13 +172,19 @@ export function createClosuresService({
             entityType: 'announcement',
             entityId: announcementId,
             spaceId: space.id,
-            after: { days, subscriptionIds: ids },
+            after: { days, subscriptionIds: covered, renewalIds: renewals },
           },
           tx,
         );
         const [applier] = await users.namesFor([actor.id], tx);
         return toClosureExtension(
-          { announcementId, days, subscriptions: ids.length, appliedAt: at, appliedById: actor.id },
+          {
+            announcementId,
+            days,
+            subscriptions: covered.length + renewals.length,
+            appliedAt: at,
+            appliedById: actor.id,
+          },
           applier?.name ?? '',
         );
       });

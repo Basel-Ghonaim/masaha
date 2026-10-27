@@ -1,0 +1,9 @@
+# 151. A renewal sold before a closure's extension stays where it is
+
+**Status:** Resolved · **Date:** 2026-10-26
+
+**Evidence:** a closure's extension (#123, [api-contract › Announcements (managed)](../../api/api-contract.md#announcements-managed)) moved the end of every subscription the closure covered, and only those. The covered rule ignores `renewal_of_id`, and a renewal starts the day after the end it renews (`renewal.ts`, `proposedStart`). So a subscription S running 11-01 → 11-30, renewed early by R running 12-01 → 12-30, and a closure of 11-08 → 11-10 extended by 3: S ended 12-03, while R, not covered, still started 12-01. From 12-01 to 12-03 both ran and R was the current one (`currentSubscription.ts`: the latest start), so the customer's three days ran beside the renewal they had already bought, and they finished on 12-30 as before: the compensation was lost (#123's review, finding 1).
+
+**Resolves when:** the extension also moves each covered subscription's renewal not started yet, by the same days (the owner's option A); or the case is accepted and stated in the contract.
+
+**Resolution (2026-10-27, #128):** option A, the owner's decision of 2026-10-26. The extension moves each covered subscription's renewal chain that has not started — a renewal whose start is after the Gaza date of the extension and that was not ended early, then its own renewal, and so on — start and end, by the same days, in the same transaction; the chain's rows are locked with the covered ones in one statement, by id. Each is linked to the extension, the preview counts them, and the audit entry names them apart (`renewalIds`). A renewal already started runs on its own days and is judged by the covered rule alone ([data-model › Checked by the service](../data-model.md#checked-by-the-service)).

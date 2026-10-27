@@ -53,6 +53,26 @@ function covered(spaceId: number, { firstDay, lastDay }: ClosureSpan): Prisma.Sq
     AND ("starts_on" IS NULL OR "starts_on" <= ${lastDay}::date)`;
 }
 
+/**
+ * The subscriptions an extension moves (finding 151): those the closure covered, and the chain of
+ * renewals of each that has not started by `today` (a Gaza date) and was not ended early — the
+ * renewal of a renewal too. A renewal started, or with no start, runs on its own days: the covered
+ * rule judges it. It names `covered` and `chain` for the statement that follows.
+ */
+function moved(spaceId: number, span: ClosureSpan, today: string): Prisma.Sql {
+  const pending = Prisma.sql`s."space_id" = ${spaceId} AND s."ended_at" IS NULL
+    AND s."starts_on" IS NOT NULL AND s."starts_on" > ${today}::date`;
+  return Prisma.sql`WITH RECURSIVE covered AS (
+      SELECT "id" FROM "subscriptions" WHERE ${covered(spaceId, span)}
+    ), chain AS (
+      SELECT s."id" FROM "subscriptions" s JOIN covered c ON s."renewal_of_id" = c."id"
+      WHERE ${pending}
+      UNION
+      SELECT s."id" FROM "subscriptions" s JOIN chain c ON s."renewal_of_id" = c."id"
+      WHERE ${pending}
+    )`;
+}
+
 /** The `closure_extensions` table, and the subscriptions a closure covered. */
 export function createClosuresRepository() {
   return {
@@ -66,18 +86,35 @@ export function createClosuresRepository() {
       return rows.map(toExtensionRow);
     },
 
-    /** How many of the space's subscriptions the closure's span covered: one query. */
-    async coveredCount(spaceId: number, span: ClosureSpan): Promise<number> {
+    /** How many subscriptions an extension at `today` would move, the renewals included: one query. */
+    async movedCount(spaceId: number, span: ClosureSpan, today: string): Promise<number> {
       const [row] = await prisma.$queryRaw<{ count: number }[]>`
-        SELECT count(*)::integer AS count FROM "subscriptions" WHERE ${covered(spaceId, span)}`;
+        ${moved(spaceId, span, today)}
+        SELECT ((SELECT count(*) FROM covered)
+          + (SELECT count(*) FROM chain WHERE "id" NOT IN (SELECT "id" FROM covered)))::integer AS count`;
       return row?.count ?? 0;
     },
 
-    /** Locks the subscriptions the closure's span covered (`FOR UPDATE`, by id) and answers them. */
-    async lockCovered(spaceId: number, span: ClosureSpan, tx: Tx): Promise<number[]> {
-      const rows = await tx.$queryRaw<{ id: number }[]>`
-        SELECT "id" FROM "subscriptions" WHERE ${covered(spaceId, span)} ORDER BY "id" FOR UPDATE`;
-      return rows.map(({ id }) => id);
+    /**
+     * Locks the subscriptions an extension at `today` moves (`FOR UPDATE`, by id: the renewals with
+     * the covered ones, in one statement) and answers them, the covered apart from the renewals.
+     */
+    async lockMoved(
+      spaceId: number,
+      span: ClosureSpan,
+      today: string,
+      tx: Tx,
+    ): Promise<{ covered: number[]; renewals: number[] }> {
+      const rows = await tx.$queryRaw<{ id: number; renewal: boolean }[]>`
+        ${moved(spaceId, span, today)}
+        SELECT "id", ("id" IN (SELECT "id" FROM chain) AND "id" NOT IN (SELECT "id" FROM covered)) AS "renewal"
+        FROM "subscriptions"
+        WHERE "id" IN (SELECT "id" FROM covered UNION SELECT "id" FROM chain)
+        ORDER BY "id" FOR UPDATE`;
+      return {
+        covered: rows.filter(({ renewal }) => !renewal).map(({ id }) => id),
+        renewals: rows.filter(({ renewal }) => renewal).map(({ id }) => id),
+      };
     },
 
     /** Moves these subscriptions' ends by `days`: one statement. */
@@ -85,6 +122,15 @@ export function createClosuresRepository() {
       if (ids.length === 0) return;
       await tx.$executeRaw`
         UPDATE "subscriptions" SET "ends_on" = "ends_on" + ${days}::integer, "updated_at" = ${at}
+        WHERE "id" = ANY(${[...ids]}::integer[])`;
+    },
+
+    /** Moves these renewals' starts and ends by `days` (an end of `NULL` stays): one statement. */
+    async moveRenewals(ids: readonly number[], days: number, at: Date, tx: Tx): Promise<void> {
+      if (ids.length === 0) return;
+      await tx.$executeRaw`
+        UPDATE "subscriptions" SET "starts_on" = "starts_on" + ${days}::integer,
+          "ends_on" = "ends_on" + ${days}::integer, "updated_at" = ${at}
         WHERE "id" = ANY(${[...ids]}::integer[])`;
     },
 

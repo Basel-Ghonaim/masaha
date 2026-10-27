@@ -141,3 +141,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [123. A delayed retry of a customer edit can revert another desk's edit](123-a-delayed-retry-of-a-customer-edit-can-revert-another-desks-edit.md)
 - [124. A statement's sums and its payments come from different snapshots](124-a-statements-sums-and-its-payments-come-from-different-snapshots.md)
 - [125. The allocation's order is not exposed to the client](125-the-allocations-order-is-not-exposed-to-the-client.md)
+- [151. A renewal sold before a closure's extension stays where it is](151-a-renewal-sold-before-a-closures-extension-stays-where-it-is.md)

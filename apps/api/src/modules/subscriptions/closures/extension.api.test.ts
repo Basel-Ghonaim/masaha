@@ -260,7 +260,7 @@ describe('the extension', () => {
         entityId: id,
         spaceId,
         before: null,
-        after: { days: 4, subscriptionIds: coveredIds },
+        after: { days: 4, subscriptionIds: coveredIds, renewalIds: [] },
       },
     ]);
   });
@@ -420,5 +420,158 @@ describe('the extension', () => {
     expect(await ends()).toEqual(before);
     expect(await prisma.closureExtension.count()).toBe(0);
     expect(await auditEntries()).toEqual([]);
+  });
+});
+
+describe('the renewal chain (finding 151)', () => {
+  /** A subscription of the customer from `startsOn` to `endsOn`, renewing `renewalOf` if given. */
+  const subscribe = (
+    customer: { id: number; spaceId: number },
+    startsOn: string,
+    endsOn: string,
+    data: { renewalOfId?: number; endedAt?: Date; endedById?: number } = {},
+  ) => createSubscription(customer, { startsOn: day(startsOn), endsOn: day(endsOn), ...data });
+
+  /** Each subscription's start and end, `YYYY-MM-DD`, by id. */
+  async function termsById(): Promise<Map<number, string>> {
+    const rows = await prisma.subscription.findMany({
+      select: { id: true, startsOn: true, endsOn: true },
+    });
+    const date = (value: Date | null) => value?.toISOString().slice(0, 10) ?? 'none';
+    return new Map(
+      rows.map(({ id, startsOn, endsOn }) => [id, `${date(startsOn)} → ${date(endsOn)}`]),
+    );
+  }
+
+  it('a renewal not started moves with the subscription it renews: S ends 12-03, R runs 12-04 → 2027-01-02, one link each, audited with renewalIds', async () => {
+    const { id } = await closure();
+    const customer = await createCustomer(spaceId);
+    const renewed = await subscribe(customer, '2026-11-01', '2026-11-30');
+    const renewal = await subscribe(customer, '2026-12-01', '2026-12-30', {
+      renewalOfId: renewed.id,
+    });
+
+    const response = await extend(owner, id, { days: 3 });
+
+    expect(response.status).toBe(201);
+    expect(dataOf(response)).toMatchObject({ days: 3, subscriptions: 2 });
+    const after = await termsById();
+    expect(after.get(renewed.id)).toBe('2026-11-01 → 2026-12-03');
+    expect(after.get(renewal.id)).toBe('2026-12-04 → 2027-01-02');
+    expect(await links()).toEqual([{ subscriptionId: renewed.id }, { subscriptionId: renewal.id }]);
+    expect(await auditEntries()).toEqual([
+      expect.objectContaining({
+        action: 'closure.subscriptionsExtended',
+        after: { days: 3, subscriptionIds: [renewed.id], renewalIds: [renewal.id] },
+      }),
+    ]);
+  });
+
+  it("a renewal of that renewal moves too; a renewal started (today) or ended early stays; another space's never", async () => {
+    // Ended at Monday's midnight: Sunday 2026-11-08 only.
+    const { id } = await closure({ endsAt: new Date('2026-11-09T00:00:00+02:00') });
+    const customer = await createCustomer(spaceId);
+    const renewed = await subscribe(customer, '2026-11-01', '2026-11-30');
+    const renewal = await subscribe(customer, '2026-12-01', '2026-12-30', {
+      renewalOfId: renewed.id,
+    });
+    const second = await subscribe(customer, '2026-12-31', '2027-01-29', {
+      renewalOfId: renewal.id,
+    });
+    // Ends on the closure's day; its renewal started today, after the closure: neither covered nor pending.
+    const endsOnTheDay = await subscribe(customer, '2026-10-10', '2026-11-09');
+    const started = await subscribe(customer, '2026-11-10', '2026-12-09', {
+      renewalOfId: endsOnTheDay.id,
+    });
+    const earlyEnded = await subscribe(customer, '2026-11-01', '2026-11-30');
+    const endedRenewal = await subscribe(customer, '2026-12-01', '2026-12-30', {
+      renewalOfId: earlyEnded.id,
+      endedAt: new Date('2026-11-09T12:00:00+02:00'),
+      endedById: owner.id,
+    });
+    const other = await createCustomer(otherSpaceId);
+    const elsewhere = await subscribe(other, '2026-11-01', '2026-11-30');
+    const elsewhereRenewal = await subscribe(other, '2026-12-01', '2026-12-30', {
+      renewalOfId: elsewhere.id,
+    });
+    const before = await termsById();
+
+    expect((await extend(owner, id, { days: 2 })).status).toBe(201);
+
+    const after = await termsById();
+    expect(after.get(renewed.id)).toBe('2026-11-01 → 2026-12-02');
+    expect(after.get(renewal.id)).toBe('2026-12-03 → 2027-01-01');
+    expect(after.get(second.id)).toBe('2027-01-02 → 2027-01-31');
+    expect(after.get(endsOnTheDay.id)).toBe('2026-10-10 → 2026-11-11');
+    expect(after.get(earlyEnded.id)).toBe('2026-11-01 → 2026-12-02');
+    for (const { id: untouched } of [started, endedRenewal, elsewhere, elsewhereRenewal]) {
+      expect(after.get(untouched)).toBe(before.get(untouched));
+    }
+    expect(await auditEntries()).toEqual([
+      expect.objectContaining({
+        after: {
+          days: 2,
+          subscriptionIds: [renewed.id, endsOnTheDay.id, earlyEnded.id],
+          renewalIds: [renewal.id, second.id],
+        },
+      }),
+    ]);
+  });
+
+  it("the preview counts what the extension moves, the chain included; the list's extension says the same", async () => {
+    const { id } = await closure();
+    const customer = await createCustomer(spaceId);
+    const renewed = await subscribe(customer, '2026-11-01', '2026-11-30');
+    const renewal = await subscribe(customer, '2026-12-01', '2026-12-30', {
+      renewalOfId: renewed.id,
+    });
+    await subscribe(customer, '2026-12-31', '2027-01-29', { renewalOfId: renewal.id });
+    await subscribe(customer, '2026-10-20', '2026-11-19');
+
+    expect(dataOf(await preview(owner, id))).toMatchObject({ subscriptions: 4, applied: null });
+
+    expect(dataOf(await extend(owner, id, { days: 3 }))).toMatchObject({ subscriptions: 4 });
+    expect(dataOf(await preview(owner, id))).toMatchObject({
+      subscriptions: 4,
+      applied: { subscriptions: 4 },
+    });
+    const list = await request(app)
+      .get(`/api/v1/manage/spaces/${String(spaceId)}/announcements`)
+      .set('Authorization', owner.authorization);
+    const rows = dataOf(list) as { id: number; extension?: { subscriptions: number } | null }[];
+    expect(rows.find((row) => row.id === id)?.extension).toMatchObject({ subscriptions: 4 });
+  });
+
+  it("a renewal sold while the extension waits on the space's lock moves too", async () => {
+    const { id } = await closure();
+    const customer = await createCustomer(spaceId);
+    const renewed = await subscribe(customer, '2026-11-01', '2026-11-30');
+    let renewal = 0;
+
+    const response = await whileHeld(
+      lockSpace,
+      () => extend(owner, id, { days: 3 }),
+      async (tx) => {
+        ({ id: renewal } = await tx.subscription.create({
+          data: {
+            spaceId,
+            customerId: customer.id,
+            idempotencyKey: randomUUID(),
+            name: 'شهري',
+            billing: 'FIXED',
+            priceAgorot: 30_000,
+            renewalOfId: renewed.id,
+            startsOn: day('2026-12-01'),
+            endsOn: day('2026-12-30'),
+          },
+        }));
+      },
+    );
+
+    expect(response.status).toBe(201);
+    expect(dataOf(response)).toMatchObject({ subscriptions: 2 });
+    const after = await termsById();
+    expect(after.get(renewed.id)).toBe('2026-11-01 → 2026-12-03');
+    expect(after.get(renewal)).toBe('2026-12-04 → 2027-01-02');
   });
 });
