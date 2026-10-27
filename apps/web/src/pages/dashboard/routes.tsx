@@ -63,6 +63,10 @@ const SPACE_PAGES: Partial<Record<DashboardPageName, () => Promise<ReactElement>
     const { PackagesPage } = await import('./space/PackagesPage');
     return <PackagesPage />;
   },
+  payments: async () => {
+    const { PaymentsPage } = await import('./space/payments/PaymentsPage');
+    return <PaymentsPage />;
+  },
   profile: async () => {
     const { ProfilePage } = await import('./space/ProfilePage');
     return <ProfilePage />;

@@ -63,6 +63,10 @@ export default defineConfig(({ mode }) => ({
           // Vitest empties every CSS import, ?raw included, unless the file is listed here. The
           // token tests read the token files as text.
           css: { include: [/\/design-system\/tokens\/[^/?]+\.css\b/] },
+          // A zone west of UTC, where a date read at its UTC midnight and said in the browser's zone
+          // falls a day early: a test of a date's words can then fail as such a browser would. The
+          // machines that run the lanes are on UTC or east of it, where it cannot.
+          env: { TZ: 'America/New_York' },
         },
       },
       {

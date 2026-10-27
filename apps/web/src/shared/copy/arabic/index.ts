@@ -9,6 +9,7 @@ import { LOOKUPS } from './lookups';
 import { MAP } from './map';
 import { OCCUPANCY } from './occupancy';
 import { PACKAGES } from './packages';
+import { PAYMENTS } from './payments';
 import { PLATFORM_SETTINGS } from './platformSettings';
 import { PREFERENCES } from './preferences';
 import { SITE } from './site';
@@ -33,6 +34,7 @@ export const ARABIC = {
   map: MAP,
   occupancy: OCCUPANCY,
   packages: PACKAGES,
+  payments: PAYMENTS,
   platformSettings: PLATFORM_SETTINGS,
   preferences: PREFERENCES,
   site: SITE,

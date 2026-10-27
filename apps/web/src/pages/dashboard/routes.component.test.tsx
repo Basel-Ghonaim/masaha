@@ -15,6 +15,7 @@ import { fakeIntersectionObserver } from '../../test/fakeIntersectionObserver';
 import { aSession } from '../../test/fakeSession';
 import type { FakeAnswer } from '../../test/fakeAdapter';
 import { fakeTransport, ok, refused, restoreTransport } from '../../test/fakeTransport';
+import { paymentRow, paymentsPage } from '../../test/paymentRow';
 import { stubScreenWidth } from '../../test/screenWidth';
 import { setSessionHint } from '../../test/sessionHint';
 import { startPreferences } from '../../test/startPreferences';
@@ -798,6 +799,33 @@ describe("the space's front desk", () => {
       within(screen.getByRole('banner')).getByRole('button', { name: 'More actions' }),
     );
     expect(await screen.findByRole('menuitem', { name: 'Switch staff' })).toBeInTheDocument();
+  });
+});
+
+describe("the space's payments", () => {
+  // The page loads lazily, as the customers' do: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/payments/PaymentsPage');
+  });
+
+  it('shows the owner the ledger under «Payments», each customer a link to their file', async () => {
+    asOwner();
+    const requests = fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/payments') return paymentsPage([paymentRow()]);
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+    renderDashboard('/dashboard/spaces/7/payments');
+
+    await topBarTitle('Payments');
+    const ledger = await screen.findByRole('table', { name: 'Payments ledger' });
+    expect(await within(ledger).findByRole('link', { name: 'Sara Khalid' })).toHaveAttribute(
+      'href',
+      '/dashboard/spaces/7/customers/4',
+    );
+    expect(requests.map(({ url }) => url)).toEqual(
+      expect.arrayContaining(['/manage/spaces/7/payments', '/manage/spaces/7/staff']),
+    );
   });
 });
 

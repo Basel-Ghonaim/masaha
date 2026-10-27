@@ -1,8 +1,8 @@
 # Payments
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
-> **Authority:** The `payments` capability: the payment ledger of [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md). Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and the ledger's rules by the [data model](../architecture/data-model.md#constraints-worth-stating), the rules' ownership by [conventions §13](../backend/conventions.md#the-ledgers-rules). The API is built for a visit's payment, a subscription's, the owner's void, the payments list and the uncollected visits; no web screen yet.
-> **Scope:** the API module `payments` (L4); `@masaha/shared/payments`. No web feature yet.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-27 · **Owner:** Basel Ghoneim
+> **Authority:** The `payments` capability: the payment ledger of [ADR 0010](../architecture/decisions/0010-manual-payment-ledger.md). Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and the ledger's rules by the [data model](../architecture/data-model.md#constraints-worth-stating), the rules' ownership by [conventions §13](../backend/conventions.md#the-ledgers-rules). The API is built for a visit's payment, a subscription's, the owner's void, the payments list and the uncollected visits; on the web, the owner's «الدفعات».
+> **Scope:** the API module `payments` (L4); `@masaha/shared/payments`; the web feature `features/payments`, dashboard-only: the owner's ledger.
 
 ## What it does
 
@@ -16,7 +16,7 @@
 
 ## Who uses it
 
-- **The space's owner**, whose ledger reads every payment, and **reception**, whose «دفعاتي اليوم» reads its own of today, through its own route. No web screen yet.
+- **The space's owner**, whose ledger reads every payment, and **reception**, whose «دفعاتي اليوم» reads its own of today, through its own route. On the dashboard, the owner reads «الدفعات» (`/dashboard/spaces/:spaceId/payments`, 2026-10-27, #127).
 - **The front desk** ([desk](desk.md)), for the space's owner and reception, at a visit's check-out, and for the owner's void of a payment — on the web, from «الدفعات» and from a statement ([desk](desk.md), 2026-10-27, #127); and, through its own route, the uncollected visits, which the owner's «يحتاج انتباهك» will count. On the web, the desk's screen lists the uncollected visits and records a payment on one ([desk](desk.md), 2026-10-25, #117); «استلام دفعة» records a payment on one of a customer's items, a visit or a subscription (2026-10-25, #119).
 
 ## Responsibility boundary
@@ -44,6 +44,8 @@
 
 **The uncollected visits.** One query and its count over the space's visits closed by the auto check-out, or closed by hand, priced, with no customer, and not written off, each with what was paid on it, voided payments left out: the settled ones (charge − paid ≤ 0) are left out in SQL, the unpriced ones kept, the latest closed first, so every page is full and the total right; `visits` then answers the page's visits as the desk sees them, each balance by the one rule (2026-10-21, #102). An unpriced visit has no due and is never settled. Read without a lock.
 
+**The ledger on the web** (`features/payments`, composed by `pages/dashboard/space/payments/`). «الدفعات», the owner's, lists `GET …/payments` 20 a page, the latest received first: from 768 px a table of five columns — the day (`اليوم`, `أمس`, else the date) with the time under it on Gaza's clock; the customer, a link to their file, or the visitor's name (else «زائر»), with the item under it («زيارة» or the subscription's name); the amount with its method under it; who recorded it; the row's action — and below it a card each. Its filters, every one in the address with the page (`?from=&to=&staff=&method=&kind=&voided=1&page=`), each read by the contract's rule so a value the server would refuse falls back: the period (a range of Gaza dates on a calendar, both ends or neither, at most 92 days — a longer one is not applied and says «أطول فترة 92 يومًا؛ اختر فترة أقصر.»; «اليوم» by default), the staff member (the owner signed in, «{name} (أنت)», then the space's reception accounts, a deactivated one «{name} · موقوف»), the method and the kind; inline from 768 px, in a bottom sheet below it whose button counts what applies, the period included; «إظهار الملغاة» on every width, hidden by default; «مسح الفلاتر» while any applies, which takes off every one. The totals line starts with its period («اليوم», «21 أكتوبر 2026», «1–21 أكتوبر 2026») and says the answer's `meta.totals` — the total received, by cash, by transfer, how many — and the voided ones apart; no figure is a sum of the rows. A voided payment, when shown, is struck through, with «ملغاة» and «ألغاها {name}: {reason}». Its states: loading, a failure with its reference and a retry, a failed refresh over the rows shown, «لا توجد دفعات اليوم», and a filter that matches nothing, with «مسح الفلاتر». Each row of a payment not voided ends with [desk](desk.md)'s void, the page's; when the row whose action has the focus leaves, the next row's action takes it, else the totals line.
+
 ## Decisions
 
 ### API decisions
@@ -67,10 +69,23 @@
 - **One `record` for both items, the item named as `{ visitId }` or `{ subscriptionId }`.** *Why:* the ledger is one table and one trigger; the desk decides which item a request pays, the ledger only records and checks it. 2026-10-22, #106.
 - **The uncollected visits are paged by the ledger in one SQL query, the settled ones left out by the balance's own subtraction before the page is cut; `visits` answers only the page's visits.** *Why:* the balance is the ledger's rule, in one place; filtering a page after it is fetched would leave pages short ([conventions §5](../backend/conventions.md#5-pagination)). First built as three queries over the space's auto-closed visits, `visits` naming them and the ledger deciding which were settled, 2026-10-20, #97. Revised: the ledger pages them in one SQL query, the settled ones left out by the same subtraction, and `visits` answers only the page's visits. *Why:* the old read sent every settled id back as bound parameters, growing with every auto-closed visit ([finding 113](../architecture/findings/113-the-uncollected-read-grows-with-every-auto-closed-visit.md)). 2026-10-21, #102. Revised: they include a priced visit closed by hand with no customer, which only a void leaves owing, in the same query. *Why:* such a visit owes and would show in no list, no debt and no count; the uncollected list offers what it needs («تسجيل دينًا», a payment, the write-off). An unpriced one closed by hand stays the unpriced visits' (S1 of the plan, with the owner's correction). 2026-10-24, #114.
 
+### Web decisions
+
+- **The list is `payments`', the void `desk`'s** (S1): the ledger calls `GET …/payments`; the void is the desk module's route, so the page sets [desk](desk.md)'s «⋯» in the ledger's row slot. *Why:* each capability's web feature calls its own module's routes (architecture §3). 2026-10-27, #127.
+- **Every filter and the page in the address** (S8, DI-5): a value the server would refuse falls back; half a range, an inverted one or one past 92 days is dropped whole; a change replaces the address and returns to page 1; no default is written. 2026-10-27, #127.
+- **No CSV export here** (DI-1): it would export a page's rows, not the ledger, and the income's export is Finance's (step 11). 2026-10-27, #127.
+- **The period is said, and counted** (DI-2): the totals line starts with it, and the phone's filters button counts a range when one is set. 2026-10-27, #127.
+- **«مسح الفلاتر» on every width, clearing every filter** (DI-3): the range and «إظهار الملغاة» included; the no-match state offers it too. 2026-10-27, #127.
+- **The staff filter names real people** (DI-4): the owner signed in and the space's reception accounts from [staff](space-links.md) (`useStaffPeople`, the staff list's one cache), a deactivated one marked; a space's other owners cannot be named ([finding 166](../architecture/findings/166-the-ledgers-staff-filter-cannot-name-a-spaces-other-owners.md)). 2026-10-27, #127.
+- **A voided payment is never told by a strike alone** (DI-6): «ملغاة» and «ألغاها {name}: {reason}» beside it; hidden by default; never counted as received. 2026-10-27, #127.
+- **A customer's name links to their file** (DI-13), the page's link; a visit with no customer shows the visitor's name as text, «زائر» with none. 2026-10-27, #127.
+- **Every figure is the server's** (DI-11): agorot end to end; the totals are `meta.totals`, never a sum of a page. 2026-10-27, #127.
+
 ## Code map
 
 - **API:** `apps/api/src/modules/payments/`, entry `index.ts`: the service, the repository, the mapper, the controller and the manage router, the balance's rule (`balance.ts`) and the list's window (`paymentsWindow.ts`). The translation table is the platform's (`shared/errors`), and reading a check violation is `db`'s.
 - **Shared:** `packages/shared/src/payments/`: the payment's request (`paymentSchema`, `PAYMENT_METHODS`), the void's (`voidPaymentSchema`) and the list's query (`paymentsQuerySchema`); the responses (`VisitPayment`, `UncollectedVisit`, `PaymentRow`, `PaymentItem`, `PaymentTotals`, `PaymentsMeta`).
+- **Web:** `apps/web/src/features/payments/`, entry `index.ts` (`PaymentsLedger`, `LedgerRowAction`, `LedgerPerson`, `LedgerPayment`), read by `pages/dashboard/space/payments/PaymentsPage.tsx`, which sets [desk](desk.md)'s `VoidPaymentAction` in the rows and [staff](space-links.md)'s `useStaffPeople` in the staff filter: the repository in `repository/`; the keys, the ledger's filters in the address and its view (`ledger/`), and the focus kept when a row leaves (`useFocusAfterLeave`) in `hooks/`; the address's query (`ledgerQueryOf`), the period's words (`periodText`) and a row's (`paymentRowView`) in `services/`; the ledger, its filters and its totals (`ledger/`) and a payment's amount in `components/`. Words: the catalogue's `payments` section; the methods are `desk`'s.
 
 ## History
 
@@ -82,3 +97,7 @@
 - #102 — customers' debt and credit, the payment filter's ids and a customer's items with their balances, in the database; the payments of visits, voided ones marked; the uncollected visits paged in one query (finding 113 resolved).
 - #106 — a payment on a subscription, through the desk's payment route; `record` for both items; the allocation of a subscribe's amount, oldest debt first, and the payments of derived keys found in one query.
 - #114 — the owner's void of a payment, a written-off visit's once the write-off is undone (the ledger's fourth rule both ways); a visit closed by hand with no customer that owes after a void, uncollected; the payments list with its totals, reception's own of today.
+
+### Web history
+
+- #127 — «الدفعات», the owner's ledger: its filters in the address, the totals of the whole filter, the voided payments shown on demand, and [desk](desk.md)'s void in each row.
