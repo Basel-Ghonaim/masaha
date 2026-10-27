@@ -15,6 +15,11 @@ import {
   createAnnouncementsService,
 } from './modules/announcements/index.ts';
 import {
+  createAuditController,
+  createAuditManageRouter,
+  createAuditService,
+} from './modules/audit/index.ts';
+import {
   createAuthController,
   createAuthRouter,
   createAuthService,
@@ -469,6 +474,7 @@ export function createApi({
     users,
     now: clock,
   });
+  const auditLog = createAuditService({ now: clock });
   const adminUsers = createAdminUsersService({ users, spaces });
   const adminRoles = createAdminRolesService({ runInTransaction, users });
   const staff = createStaffService({
@@ -573,6 +579,8 @@ export function createApi({
   manage.use(createVisitsManageRouter(createVisitsController(visits)));
   manage.use(createPaymentsManageRouter(createPaymentsController(payments)));
   manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
+  const auditController = createAuditController(auditLog);
+  manage.use('/audit-log', createAuditManageRouter(auditController));
   // The desk's state, polled by itself, renews no idle session: marked before the guard runs.
   api.get('/manage/spaces/:spaceId/occupancy', markPassive);
   api.use(

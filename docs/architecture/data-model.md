@@ -65,7 +65,7 @@ Summaries only: the schema owns the fields.
 - **DataReport** — a user's report that one field group of a space is wrong (prices, hours, contact, location, amenities, other), with its resolution and an optional note to the reporter, written by whoever resolves it (a dismissal's is required), and who replied — the space's owner or the admin — stored with the decision, so the label the reporter sees follows who answered, not the space's verification today (2026-10-25, #120).
 - **Favorite** — a user's saved space.
 - **Setting** — a platform setting: the staleness thresholds `stalenessDays` (60) and `priceStalenessDays` (30); `newSpaceDefaults`, one object holding the values a new space's settings are copied from (auto check-out at closing on, the visit rounding rule up after 15 minutes, the cap at the day price on; [conventions §9](../backend/conventions.md#new-space-defaults)); and the platform's `contactEmail` and `contactWhatsapp`, which the seed writes outside the typed catalogue ([finding 40](findings/40-the-platforms-contact-settings-are-outside-the-typed-catalogue.md)).
-- **AuditLog** — who did what to which entity, with before and after, optionally scoped to a space. The actor is null for system actions such as auto check-out. Never deleted.
+- **AuditLog** — who did what to which entity, with before and after, optionally scoped to a space. The actor is null for system actions such as auto check-out. Never deleted: kept for ever in v1, with no retention job (the owner's decision 10, 2026-10-27, #128).
 
 ## Derived values (computed, not stored)
 

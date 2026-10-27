@@ -874,6 +874,50 @@ FavoriteSpace =                    // @masaha/shared/directory
 - **204**, no body, whether the space was saved or not, listed or not; only the caller's own favourite is removed.
 - **Errors:** `unauthorized` (401) without a signed-in user; `not_found` (404) for a malformed id.
 
+### Audit log
+
+The audit log's reader (`audit`, [conventions §6](../backend/conventions.md#6-audit)): a space's owner reads every entry of the space. Entries are never deleted ([data-model › Operations](../architecture/data-model.md#operations)). Built 2026-10-27, #128.
+
+- **The period** (`period`): `LAST_30_DAYS`, the default — from the Gaza midnight 29 days before today, so today and the 29 days before it — or `ALL`; `invalid_choice` otherwise.
+- **`q`:** 1–80 characters, NFC-normalised and trimmed, with no bidirectional or other control characters: the entries whose target's current name holds it, in either language, as the directory searches (Arabic folded, [data-model › Conventions](../architecture/data-model.md#conventions), *Search*).
+- **`actions`:** a comma list of the actions the API writes (`AUDIT_ACTIONS`, `@masaha/shared/audit`), at most 30, a repeat counted once: `invalid_choice` for an unknown one, `too_long` past 30.
+- **Every filter applies before the page is cut** (§4), so `totalRecords` counts what they keep. Newest first, then the higher id.
+- **The actor:** `PERSON`, named, for anyone with a link of any state to the space — one whose link ended is still named; `MASAHA`, never named and with no id, for anyone with none: the admin; `SYSTEM` for the timed jobs.
+- **The target:** its type and id, and its current name where it has one — a space's and a lookup's in both languages; a person's, a customer's, a subscription's, a package's; a visit's visitor, else its customer; a check-in's customer. A payment, an announcement and a data report have none: the client words them from `before` and `after`. `deleted` marks a deleted space or announcement; an archived customer is not deleted.
+- **`before` and `after` as stored;** the writer never stores a secret ([security › Passwords](../backend/security.md#passwords)). `action` as stored: one written later and not yet on `AUDIT_ACTIONS` is still answered.
+
+```ts
+AuditActor = { kind: 'PERSON', id: number, name: string } | { kind: 'MASAHA' } | { kind: 'SYSTEM' }
+
+AuditTarget = {
+  type: AuditEntityType,            // space, user, governorate, area, amenity, dataReport, customer,
+                                    // subscription, checkIn, visit, payment, package, announcement
+  id: number | null,
+  name: string | null,              // its current name; a space's or a lookup's English
+  nameAr: string | null,            // a space's or a lookup's Arabic
+  deleted: boolean                  // a deleted space or announcement
+}
+
+AuditEntry = {
+  id: number,
+  at: string,
+  action: string,
+  actor: AuditActor,
+  target: AuditTarget,
+  before: object | null,            // as stored
+  after: object | null
+}
+
+AuditMeta = §4's meta & {
+  actors: AuditActor[]              // the actors of the entries every filter but `actor` keeps, each once,
+}                                   // at most 50: persons by name, then MASAHA, then SYSTEM
+```
+
+#### `GET /manage/spaces/:spaceId/audit-log` · 🏢
+- **Query:** `period`, `q`, `actions`, `actor` — a person's id, `MASAHA` or `SYSTEM` (`invalid_format`; `out_of_range` for an id below 1 or past the largest) — and §4's `page` and `limit`.
+- **200:** `AuditEntry[]`, the space's entries the filters keep, with `AuditMeta`. `actor=<id>` keeps a person linked to the space only, so an admin's id finds nothing; the admin's entries are `actor=MASAHA`.
+- **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on the query; `not_found` (404) for anyone who is not the space's staff, the admin included (the boundary).
+
 ### Internal
 
 The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conventions §12](../backend/conventions.md#12-environments)): online, an external cron calls this endpoint every 5 minutes; locally, the server runs the same jobs from a timer. It carries no access token, so the general limit counts it by address ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). Built 2026-10-20, #97.
