@@ -5,6 +5,8 @@ import type { ClosureSpan } from '../../announcements/index.ts';
 /** A closure's extension as the managed list shows it: its days, how many it moved, who, when. */
 export interface ExtensionRow {
   announcementId: number;
+  /** The closure's space: a retried key is answered on that space's URL only. */
+  spaceId: number;
   days: number;
   subscriptions: number;
   appliedAt: Date;
@@ -22,6 +24,7 @@ export interface ExtensionData {
 
 const EXTENSION = {
   announcementId: true,
+  announcement: { select: { spaceId: true } },
   days: true,
   appliedById: true,
   createdAt: true,
@@ -30,12 +33,14 @@ const EXTENSION = {
 
 const toExtensionRow = ({
   announcementId,
+  announcement,
   days,
   appliedById,
   createdAt,
   _count,
 }: Prisma.ClosureExtensionGetPayload<{ select: typeof EXTENSION }>): ExtensionRow => ({
   announcementId,
+  spaceId: announcement.spaceId,
   days,
   subscriptions: _count.subscriptions,
   appliedAt: createdAt,
@@ -134,7 +139,10 @@ export function createClosuresRepository() {
         WHERE "id" = ANY(${[...ids]}::integer[])`;
     },
 
-    /** The extension this key applied, with the count of its subscriptions; `null` for none. */
+    /**
+     * The extension this key applied, of whichever space (the key is unique on its own), with the
+     * count of its subscriptions and its closure's space; `null` for none.
+     */
     async findByKey(key: string, tx: Tx): Promise<ExtensionRow | null> {
       const row = await tx.closureExtension.findUnique({
         where: { idempotencyKey: key },

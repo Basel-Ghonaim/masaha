@@ -48,9 +48,10 @@ function extend(
   announcementId: number,
   body: object = { days: 4 },
   key: string | null = randomUUID(),
+  space = spaceId,
 ) {
   const call = request(app)
-    .post(pathOf(announcementId))
+    .post(pathOf(announcementId, space))
     .set('Authorization', caller.authorization)
     .send(body);
   return key === null ? call : call.set('Idempotency-Key', key);
@@ -295,7 +296,7 @@ describe('the extension', () => {
     expect(await prisma.closureExtension.count()).toBe(0);
   });
 
-  it('a retry with the same key answers the first, 201, moving nothing twice; another key is CLOSURE_ALREADY_EXTENDED; a key that extended another closure is a conflict', async () => {
+  it("a retry with the same key answers the first, 201, moving nothing twice; another key is CLOSURE_ALREADY_EXTENDED; a key that extended another closure, or another space's, is a conflict", async () => {
     const { id } = await closure();
     const { covered } = await subscriptionsAround();
     const key = randomUUID();
@@ -315,6 +316,14 @@ describe('the extension', () => {
     const reused = await extend(owner, other.id, { days: 4 }, key);
     expect(reused.status).toBe(409);
     expect(errorOf(reused).code).toBeUndefined();
+
+    // Another space's owner, on their own space's URL, with this closure's id and its key.
+    const otherOwner = await signInOwnerOf(otherSpaceId);
+    const crossed = await extend(otherOwner, id, { days: 4 }, key, otherSpaceId);
+    expect(crossed.status).toBe(409);
+    expect(errorOf(crossed)).toMatchObject({ type: 'conflict' });
+    expect(errorOf(crossed).code).toBeUndefined();
+    expect(crossed.body).not.toHaveProperty('data');
 
     expect((await endsById()).get(covered.through.id)).toBe('2026-12-04');
     expect(await prisma.closureExtension.count()).toBe(1);

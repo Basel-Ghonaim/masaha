@@ -116,11 +116,12 @@ export function createClosuresService({
      * Extends the subscriptions a closure covered by the days typed, once per closure, in one
      * transaction and in this order (conventions §13: the space, the closure, the subscriptions by
      * id): the space's lock; `can()` on the links read under it; the extension this key applied, for
-     * a retry, answered as it was (another closure's → `conflict`); the closure, locked (else
-     * `not_found`); one extended already → `CLOSURE_ALREADY_EXTENDED`; one not started yet →
-     * `ANNOUNCEMENT_NOT_STARTED`; its span at now; the covered subscriptions and their renewals not
-     * started by today locked in one statement, the covered ones' ends moved, the renewals' starts and
-     * ends (finding 151); the extension and its links to both; its audit entry.
+     * a retry, answered as it was (another closure's, or another space's, → `conflict`, answering
+     * nothing of it); the closure, locked (else `not_found`); one extended already →
+     * `CLOSURE_ALREADY_EXTENDED`; one not started yet → `ANNOUNCEMENT_NOT_STARTED`; its span at now;
+     * the covered subscriptions and their renewals not started by today locked in one statement, the
+     * covered ones' ends moved, the renewals' starts and ends (finding 151); the extension and its
+     * links to both; its audit entry.
      */
     extend(
       actor: Actor,
@@ -137,7 +138,8 @@ export function createClosuresService({
         if (!can(actor, 'subscriptions.extendAfterClosure', { links })) throw AppError.forbidden();
         const recorded = await repository.findByKey(key, tx);
         if (recorded) {
-          if (recorded.announcementId !== announcementId) {
+          // Another space's extension is the same conflict, so the key tells nothing of that space.
+          if (recorded.spaceId !== space.id || recorded.announcementId !== announcementId) {
             throw AppError.conflict(undefined, 'This idempotency key extended another closure');
           }
           const [applier] = await users.namesFor([recorded.appliedById], tx);
@@ -180,6 +182,7 @@ export function createClosuresService({
         return toClosureExtension(
           {
             announcementId,
+            spaceId: space.id,
             days,
             subscriptions: covered.length + renewals.length,
             appliedAt: at,
