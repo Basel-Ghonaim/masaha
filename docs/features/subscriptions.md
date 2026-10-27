@@ -108,6 +108,6 @@
 - #106 — a subscription's key, typed price's reason and renewed one; the create, audited; the row's lock; the renewal's proposed start; the corrections, the price the owner's; the end.
 - #109 — a check-in's minutes in SQL; a subscriber's check-in and check-out, audited, and the limits' warnings (`limits.ts`); the check-ins' lists.
 - #112 — the managed announcements list, each closure with its extension, and its summary (`closures/`).
-- #123 — a closure's extension: the preview, and the owner's extension of the subscriptions it covered, once per closure under one key.
 - #118 — a subscription made from a published week or month price (through `desk`).
+- #123 — a closure's extension: the preview, and the owner's extension of the subscriptions it covered, once per closure under one key.
 - #128 — a closure's extension moves the covered subscriptions' renewals not started too (finding 151); a key that extended another space's closure is a conflict.
