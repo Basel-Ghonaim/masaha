@@ -1,10 +1,9 @@
 import { gazaClockOf } from '@masaha/shared/core';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
-import { clockOf, priceText } from '@shared/lib';
+import { clockOf, dayText, priceText } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
-import { dayText } from '../../services/dayText';
 import { useStatementQuery } from './useStatementQuery';
 
 /** Whole minutes as «2:30», hours and minutes. */

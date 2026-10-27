@@ -1,9 +1,8 @@
 import type { PresentPerson } from '@masaha/shared/occupancy';
 import { useCopy } from '@shared/copy';
-import { priceText } from '@shared/lib';
+import { dayText, priceText } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useMemo } from 'react';
-import { dayText } from '../../services/dayText';
 import { progressLines } from '../../services/progressLines';
 import { useOpenCheckInsQuery } from './useOpenCheckInsQuery';
 

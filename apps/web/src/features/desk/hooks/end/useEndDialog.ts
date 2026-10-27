@@ -6,7 +6,7 @@ import { toAppError, type AppError } from '@shared/errors';
 import { useRefusalView } from '@shared/forms';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
-import { dayText } from '../../services/dayText';
+import { dayText } from '@shared/lib';
 import { deskFailure } from '../../services/deskRefusal';
 import { useEndSubscription } from './useEndSubscription';
 

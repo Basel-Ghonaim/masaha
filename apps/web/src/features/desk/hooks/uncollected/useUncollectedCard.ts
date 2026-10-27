@@ -1,12 +1,11 @@
 import { gazaClockOf } from '@masaha/shared/core';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
-import { clockOf, priceText } from '@shared/lib';
+import { clockOf, dayWord, priceText } from '@shared/lib';
 import { paginationView, usePageInRange } from '@shared/lists';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useCallback, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
-import { dayWord } from '../../services/dayWord';
 import type { DeskAbilities } from '../../types/DeskAbilities';
 import type { UncollectedItem } from '../../types/UncollectedItem';
 import { useUncollectedQuery } from './useUncollectedQuery';

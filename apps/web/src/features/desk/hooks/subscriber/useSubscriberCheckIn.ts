@@ -6,7 +6,7 @@ import { useRefusalView } from '@shared/forms';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
 import { toastCheckedIn, toastFailed, toastSubscriberIn } from '../../components/toast/deskToasts';
-import { dayText } from '../../services/dayText';
+import { dayText } from '@shared/lib';
 import { deskFailure } from '../../services/deskRefusal';
 import { useCheckInVisit } from '../check-in/useCheckInVisit';
 import { useCustomerFileQuery } from '../file/useCustomerFileQuery';

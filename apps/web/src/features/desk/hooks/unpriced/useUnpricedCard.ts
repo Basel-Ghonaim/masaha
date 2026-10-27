@@ -2,10 +2,9 @@ import { gazaClockOf } from '@masaha/shared/core';
 import type { DeskVisit } from '@masaha/shared/visits';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
-import { clockOf } from '@shared/lib';
+import { clockOf, dayWord } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
-import { dayWord } from '../../services/dayWord';
 import { useUnpricedQuery } from './useUnpricedQuery';
 
 /**
