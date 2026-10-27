@@ -806,6 +806,7 @@ describe("the space's payments", () => {
   // The page loads lazily, as the customers' do: its first transform is done before the test.
   beforeAll(async () => {
     await import('./space/payments/PaymentsPage');
+    await import('./space/payments/MyPaymentsPage');
   });
 
   it('shows the owner the ledger under «Payments», each customer a link to their file', async () => {
@@ -826,6 +827,25 @@ describe("the space's payments", () => {
     expect(requests.map(({ url }) => url)).toEqual(
       expect.arrayContaining(['/manage/spaces/7/payments', '/manage/spaces/7/staff']),
     );
+  });
+
+  it('shows reception «My payments today»: the handover figures and its own payments', async () => {
+    asReception();
+    const requests = fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/payments') return paymentsPage([paymentRow()]);
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+    renderDashboard('/dashboard/spaces/7/my-payments');
+
+    await topBarTitle('My payments today');
+    expect(await screen.findByRole('region', { name: 'Handover figures' })).toBeInTheDocument();
+    expect(await screen.findByRole('table', { name: 'My payments today' })).toBeInTheDocument();
+    expect(requests.find(({ url }) => url === '/manage/spaces/7/payments')?.params).toEqual({
+      voided: 'INCLUDE',
+      page: 1,
+      limit: 20,
+    });
   });
 });
 

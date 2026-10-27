@@ -107,4 +107,18 @@ export const PAYMENTS = {
       more: 'صفحات أخرى',
     },
   },
+  mine: {
+    intro: ({ date }: { date: string }) =>
+      `الدفعات التي سجّلتها أنت اليوم، لتسليمها في نهاية الوردية · ${date}`,
+    figures: 'أرقام التسليم',
+    cash: 'نقدًا للتسليم',
+    transfer: 'تحويل',
+    transferHelper: 'وصلت إلى حساب المساحة',
+    total: 'المجموع',
+    note: 'خطأ في دفعة؟ يلغيها صاحب المساحة، وتظهر هنا مشطوبة.',
+    label: 'دفعاتي اليوم',
+    columns: { time: 'الوقت', name: 'الاسم', item: 'عن', method: 'الطريقة', amount: 'المبلغ' },
+    empty: 'لم تسجّل أي دفعة اليوم',
+    loadFailed: 'تعذّر تحميل دفعاتك',
+  },
 } satisfies Catalogue['payments'];

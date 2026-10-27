@@ -1,6 +1,6 @@
 import { englishPlural } from '../plural';
 
-/** The space's payments: the owner's ledger (screen 17). */
+/** The space's payments (screen 17): the owner's ledger, and reception's «دفعاتي اليوم». */
 export const PAYMENTS = {
   ledger: {
     label: 'Payments ledger',
@@ -88,5 +88,20 @@ export const PAYMENTS = {
         `Page ${String(page)} of ${String(total)}`,
       more: 'More pages',
     },
+  },
+  /** Reception's own payments of today, for the end-of-shift handover (K4). */
+  mine: {
+    intro: ({ date }: { date: string }) =>
+      `The payments you recorded today, for the end-of-shift handover · ${date}`,
+    figures: 'Handover figures',
+    cash: 'Cash to hand over',
+    transfer: 'Transfer',
+    transferHelper: 'Received in the space’s account',
+    total: 'Total',
+    note: 'A mistake in a payment? The space’s owner voids it, and it shows here struck through.',
+    label: 'My payments today',
+    columns: { time: 'Time', name: 'Name', item: 'For', method: 'Method', amount: 'Amount' },
+    empty: 'You haven’t recorded any payments today',
+    loadFailed: 'We couldn’t load your payments',
   },
 } as const;

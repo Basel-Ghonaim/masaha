@@ -192,7 +192,7 @@ export function PaymentsLedger({
                 {row.day} · <span dir="ltr">{row.time}</span> · {row.item} · {row.method} ·{' '}
                 {row.recorder}
               </span>
-              <PaymentAmount row={row} />
+              <PaymentAmount row={row} withMethod={false} />
             </div>
             <RowSlot row={row} action={rowAction} leave={leave} />
           </div>
