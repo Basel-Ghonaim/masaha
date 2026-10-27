@@ -36,7 +36,10 @@ export function CustomerFile({
 }: {
   spaceId: number;
   customerId: number;
-  /** The owner's header offers the archive and the restore; the server decides (S5). */
+  /**
+   * The owner's header offers the archive and the restore, and a statement's payment its void (S10);
+   * the server decides (S5).
+   */
   owner: boolean;
   /** Opens the page's subscription sheet, from the header's «⋯». */
   subscribe: OpenSheet;
@@ -130,6 +133,7 @@ export function CustomerFile({
                 card={card}
                 opened={opened}
                 renew={renew(index, card.subscription)}
+                voids={owner}
               />
             ))}
           </div>

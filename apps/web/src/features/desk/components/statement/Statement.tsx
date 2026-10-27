@@ -7,15 +7,28 @@ import {
   Button,
   Skeleton,
 } from '@shared/design-system';
+import { useRef } from 'react';
 import type { StatementView } from '../../hooks/statement/useStatement';
+import { VoidPaymentAction } from '../void/VoidPaymentAction';
 
 /**
  * A subscription's statement, inside its card (DI-43), under `id` — the toggle's `aria-controls`:
  * its check-ins, a row each that stacks below 768 px (the day, in, out, the stay, an auto check-out
  * marked); its payments, the amount with its method under it (VD-006), a voided one struck through
- * with «ملغاة» and its reason (AX-017); and the renewal's proposed start. Its own loading and failure.
+ * with «ملغاة» and its reason (AX-017), the owner's «⋯» at the end of one not voided (S10), the focus
+ * on the payments' heading once it is voided; and the renewal's proposed start. Its own loading and
+ * failure.
  */
-export function Statement({ id, statement }: { id: string; statement: StatementView }) {
+export function Statement({
+  id,
+  spaceId,
+  statement,
+}: {
+  id: string;
+  spaceId: number;
+  statement: StatementView;
+}) {
+  const payments = useRef<HTMLHeadingElement | null>(null);
   if (statement.state === 'closed') return null;
 
   return (
@@ -90,7 +103,9 @@ export function Statement({ id, statement }: { id: string; statement: StatementV
             )}
           </section>
           <section className="flex flex-col gap-2">
-            <h4 className="text-label">{statement.payments.title}</h4>
+            <h4 ref={payments} tabIndex={-1} className="text-label">
+              {statement.payments.title}
+            </h4>
             {statement.payments.rows.length === 0 ? (
               <p className="text-body-sm text-muted-foreground">{statement.payments.none}</p>
             ) : (
@@ -116,6 +131,13 @@ export function Statement({ id, statement }: { id: string; statement: StatementV
                     <span className="flex items-center gap-2">
                       {row.voided !== null && <Badge variant="neutral">{row.voided.label}</Badge>}
                       <span className="text-muted-foreground">{row.date}</span>
+                      {row.void !== null && (
+                        <VoidPaymentAction
+                          spaceId={spaceId}
+                          payment={row.void}
+                          onGone={() => payments.current?.focus()}
+                        />
+                      )}
                     </span>
                   </li>
                 ))}

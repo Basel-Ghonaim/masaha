@@ -14,6 +14,7 @@ import { priceText } from '@shared/lib';
 import { currentLanguage, isolate } from '@shared/localisation';
 import { warningLines } from '../../services/warningLines';
 import type { UncollectedItem } from '../../types/UncollectedItem';
+import type { VoidTarget } from '../../types/VoidTarget';
 
 // Worded when they land, in the language the interface speaks then (S8: from the server's answer).
 const priceNow = (agorot: number) =>
@@ -152,6 +153,14 @@ export function toastWrittenOff(
         );
       },
     },
+  });
+}
+
+/** Says a payment was voided, naming its amount and who, and that it counts in nothing now (DI-7). */
+export function toastVoided(payment: VoidTarget) {
+  const words = currentCopy().desk.void;
+  toast.success(words.done({ amount: priceNow(payment.amountAgorot), who: isolate(payment.who) }), {
+    description: words.doneText,
   });
 }
 

@@ -21,22 +21,26 @@ import { Statement } from '../statement/Statement';
  * badges; its progress, a plain line each; its due, paid and left, the server's; and «استلام
  * المتبقي» while it owes (DI-44); «عرض الكشف» opens its statement inside it (DI-43), and «إنهاء
  * الاشتراك» ends it early, asking first; «تجديد» (`renew`, the latest's) opens the page's sheet for
- * its renewal. `opened` hears which control opened the payment.
+ * its renewal; the owner (`voids`) may void a payment in its statement (S10). `opened` hears which
+ * control opened the payment.
  */
 export function SubscriptionCard({
   spaceId,
   card,
   opened,
   renew,
+  voids,
 }: {
   spaceId: number;
   card: SubscriptionCardView;
   opened: (trigger: HTMLElement) => void;
+  /** The owner's void of a payment in the statement; the server decides (S5). */
+  voids: boolean;
   /** «تجديد», offered on the latest subscription. */
   renew: { label: string; run: (from: HTMLElement) => void } | null;
 }) {
   const { money } = card;
-  const statement = useStatement(spaceId, card.subscription.id);
+  const statement = useStatement(spaceId, card.subscription.id, { void: voids });
   const end = useEndDialog({ spaceId, subscription: card.subscription });
   const statementId = useId();
 
@@ -79,7 +83,7 @@ export function SubscriptionCard({
             <dd className="text-label">{money.left}</dd>
           </div>
         </dl>
-        <Statement id={statementId} statement={statement} />
+        <Statement id={statementId} spaceId={spaceId} statement={statement} />
       </CardContent>
       <CardFooter className="flex-wrap">
         {card.receive !== null && (

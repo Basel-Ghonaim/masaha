@@ -1,0 +1,7 @@
+# 169. The calendar rides in the site's first download
+
+**Status:** Open · **Date:** 2026-10-27
+
+**Evidence:** «الدفعات»'s period (#127) is the first built screen to draw the layer's `Calendar` (react-day-picker), through the layer's one barrel, `@shared/design-system`. The build puts every component a page draws through the barrel in the barrel's shared `design-system` chunk (Rolldown's automatic shared chunk: `vite.config.ts` names no design-system group), which the site's first download holds, so the calendar's library moved there though only the dashboard draws it. The production build's manifest, base and head: the `design-system` chunk +81,438 bytes (280,288 → 361,726; 81,242 → 104,172 gzipped), `jsx-runtime` +7,089, `routing` −4,809 — the first download +84,506 in all (1,055,704 → 1,140,210). The growth is read as the calendar library and its date helpers by its size only; the measurement does not list the modules that moved. `check:build` passes: it guards the dashboard's code and the libraries of `libraryChunks.ts` (TanStack Table, Leaflet), not the calendar's.
+
+**Resolves when:** the calendar and the date picker are served by an entry of their own, as `@shared/design-system/data` serves the table ([finding 45](45-the-data-tables-library-reaches-the-sites-first-download.md), foundation §3), react-day-picker is a library chunk `check:build` refuses in the first download, and the first download is back near its size before; or the owner accepts the calendar there. The owner scheduled it as an item of its own before PAYMENTS_STEP10's PR 4.

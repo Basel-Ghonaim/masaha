@@ -1,9 +1,8 @@
 import type { CustomerRow } from '@masaha/shared/desk';
 import { useCopy, type Catalogue } from '@shared/copy';
-import { priceText } from '@shared/lib';
+import { dayText, priceText } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { balanceView } from '../../services/balanceView';
-import { dayText } from '../../services/dayText';
 import { statusView } from '../../services/statusView';
 
 /**

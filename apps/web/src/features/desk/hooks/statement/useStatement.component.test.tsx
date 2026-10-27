@@ -62,13 +62,13 @@ const STATEMENT: SubscriptionStatement = {
   renewedById: null,
 };
 
-function renderStatement() {
+function renderStatement(abilities = { void: false }) {
   const requests = fakeTransport(() => ok(STATEMENT));
   const client = createQueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return { ...renderHook(() => useStatement(7, 3), { wrapper }), requests };
+  return { ...renderHook(() => useStatement(7, 3, abilities), { wrapper }), requests };
 }
 
 beforeEach(() => {
@@ -131,5 +131,34 @@ describe('useStatement', () => {
     expect([heard(paid?.amount), paid?.method, paid?.voided]).toEqual(['₪100', 'Cash', null]);
     expect(voided?.method).toBe('Transfer');
     expect(voided?.voided).toEqual({ label: 'Voided', reason: 'Voided: Entered twice' });
+  });
+
+  it('offers the owner the void of a payment not voided; reception none, a voided payment none', async () => {
+    const owner = renderStatement({ void: true });
+    act(() => {
+      owner.result.current.toggle.run();
+    });
+    await waitFor(() => {
+      expect(owner.result.current.state).toBe('ready');
+    });
+    const [paid, voided] = owner.result.current.payments.rows;
+    expect(paid?.void).toEqual({
+      id: 7,
+      amountAgorot: 10000,
+      method: 'CASH',
+      receivedAt: '2026-10-01T09:00:00Z',
+      who: 'Sara Khalid',
+    });
+    expect(voided?.void).toBeNull();
+    owner.unmount();
+
+    const reception = renderStatement({ void: false });
+    act(() => {
+      reception.result.current.toggle.run();
+    });
+    await waitFor(() => {
+      expect(reception.result.current.state).toBe('ready');
+    });
+    expect(reception.result.current.payments.rows.map((row) => row.void)).toEqual([null, null]);
   });
 });
