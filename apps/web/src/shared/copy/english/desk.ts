@@ -170,6 +170,38 @@ export const DESK = {
     undoFailed: 'We couldn’t undo the write-off',
     failed: 'We couldn’t write it off',
   },
+  /** The owner's void of a payment (DK-016), from the ledger's row or a statement's. */
+  void: {
+    menu: ({ amount, who }: { amount: string; who: string }) =>
+      `Payment actions: ${amount} · ${who}`,
+    action: 'Void payment…',
+    title: 'Void this payment?',
+    text: ({
+      amount,
+      who,
+      day,
+      method,
+    }: {
+      amount: string;
+      who: string;
+      day: string;
+      method: string;
+    }) =>
+      `${amount} · ${who} · ${day} · ${method}. It stays visible, struck through, with the reason and your name, and counts in neither income nor the handover. It can’t be undone.`,
+    reason: 'Reason',
+    reasonRequired: 'Write why it is voided',
+    confirm: 'Void payment',
+    back: 'Back',
+    done: ({ amount, who }: { amount: string; who: string }) => `${amount} from ${who} voided`,
+    doneText: 'It counts in neither income nor the handover.',
+    failed: 'We couldn’t void the payment',
+    nothing: 'The payment wasn’t voided.',
+    lost: 'No answer came back. Try again — voiding it twice changes nothing.',
+    refusals: {
+      VISIT_WRITTEN_OFF: 'A payment of a written-off visit can’t be voided.',
+      not_found: 'This payment no longer exists.',
+    },
+  },
   toast: {
     paid: ({ amount, method }: { amount: string; method: string }) =>
       `${amount} received ${method}`,

@@ -179,6 +179,37 @@ export const DESK = {
     undoFailed: 'تعذّر التراجع عن الشطب',
     failed: 'تعذّر الشطب',
   },
+  void: {
+    menu: ({ amount, who }: { amount: string; who: string }) =>
+      `إجراءات الدفعة: ${amount} · ${who}`,
+    action: 'إلغاء الدفعة…',
+    title: 'إلغاء الدفعة؟',
+    text: ({
+      amount,
+      who,
+      day,
+      method,
+    }: {
+      amount: string;
+      who: string;
+      day: string;
+      method: string;
+    }) =>
+      `${amount} · ${who} · ${day} · ${method}. تبقى ظاهرة مشطوبة مع السبب واسمك، ولا تُحسب في الدخل ولا في التسليم. لا يمكن التراجع.`,
+    reason: 'السبب',
+    reasonRequired: 'اكتب سبب الإلغاء',
+    confirm: 'إلغاء الدفعة',
+    back: 'رجوع',
+    done: ({ amount, who }: { amount: string; who: string }) => `أُلغيت دفعة ${amount} · ${who}`,
+    doneText: 'لا تُحسب في الدخل ولا في التسليم.',
+    failed: 'تعذّر إلغاء الدفعة',
+    nothing: 'لم تُلغَ الدفعة.',
+    lost: 'لم يصل الرد. أعد المحاولة — إلغاؤها مرة ثانية لا يغيّر شيئًا.',
+    refusals: {
+      VISIT_WRITTEN_OFF: 'لا تُلغى دفعة زيارة شُطب مبلغها.',
+      not_found: 'لم تعد هذه الدفعة موجودة.',
+    },
+  },
   toast: {
     paid: ({ amount, method }: { amount: string; method: string }) => `استُلم ${amount} ${method}`,
     notPaid: 'لم يدفع',

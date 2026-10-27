@@ -295,4 +295,19 @@ describe('the desk repository', () => {
       'key-2',
     ]);
   });
+
+  it('voids a payment with its reason, and no key: a second void answers the first (S4)', async () => {
+    const requests = serve(() => ({ status: 200, data: { success: true, data: { id: 31 } } }));
+    const repository = createDeskRepository();
+
+    await expect(repository.voidPayment(7, 31, { reason: 'Recorded twice' })).resolves.toEqual({
+      id: 31,
+    });
+
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'post /manage/spaces/7/payments/31/void',
+    ]);
+    expect(bodyOf(requests[0])).toEqual({ reason: 'Recorded twice' });
+    expect(requests[0]?.headers.get('Idempotency-Key')).toBeUndefined();
+  });
 });

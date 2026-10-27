@@ -4,6 +4,7 @@ import { useRefusalView } from '@shared/forms';
 import { clockOf, dayText, priceText } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
+import type { VoidTarget } from '../../types/VoidTarget';
 import { useStatementQuery } from './useStatementQuery';
 
 /** Whole minutes as «2:30», hours and minutes. */
@@ -14,10 +15,15 @@ const hoursOf = (minutes: number) =>
  * A subscription's statement in its card (DI-43), ready to render: «عرض الكشف», which opens it and
  * reads it then, never before; its check-ins, the earliest first — the day, in, out (or «حاضر الآن»
  * while open), the stay, and an auto check-out said so; its payments — the amount with its method
- * under it, a voided one marked «ملغاة» with its reason, never as paid; and the renewal's proposed
- * start while it is not renewed. Every figure and time is the server's, said on Gaza's clock.
+ * under it, a voided one marked «ملغاة» with its reason, never as paid, and the owner's void on one
+ * not voided (S10); and the renewal's proposed start while it is not renewed. Every figure and time
+ * is the server's, said on Gaza's clock.
  */
-export function useStatement(spaceId: number, subscriptionId: number) {
+export function useStatement(
+  spaceId: number,
+  subscriptionId: number,
+  abilities: { void: boolean },
+) {
   const copy = useCopy();
   const words = copy.desk.statement;
   const language = useLanguage() === 'en' ? 'en' : 'ar';
@@ -75,6 +81,16 @@ export function useStatement(spaceId: number, subscriptionId: number) {
                 label: words.voided,
                 reason: words.voidedReason({ reason: payment.voided.reason }),
               },
+        void:
+          abilities.void && payment.voided === null && statement !== undefined
+            ? ({
+                id: payment.id,
+                amountAgorot: payment.amountAgorot,
+                method: payment.method,
+                receivedAt: payment.receivedAt,
+                who: statement.customer.name,
+              } satisfies VoidTarget)
+            : null,
       })),
     },
     renewal:
