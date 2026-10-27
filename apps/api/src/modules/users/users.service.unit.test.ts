@@ -46,6 +46,7 @@ function setup(repository: Partial<Record<keyof UsersRepository, unknown>> = {})
     limiter: createLimiter(counter, () => new Date()),
     audit: () => Promise.reject(new Error('not asked here')),
     now: () => new Date(),
+    receptionSpaceOf: () => Promise.reject(new Error('not asked here')),
     repository: {
       lock: () => Promise.resolve(true),
       findById: () => Promise.resolve(sara),

@@ -15,6 +15,7 @@ import {
   createAnnouncementsService,
 } from './modules/announcements/index.ts';
 import {
+  createAuditAdminRouter,
   createAuditController,
   createAuditManageRouter,
   createAuditService,
@@ -317,6 +318,8 @@ export function createApi({
     limiter,
     audit: writeAudit,
     now: clock,
+    // A space's reception account's events are the space's (ADR 0009); `spaceLinks` is built below.
+    receptionSpaceOf: (userId: number, tx: Tx) => spaceLinks.receptionSpaceOf(userId, tx),
     sessions,
     runInTransaction,
   });
@@ -615,6 +618,7 @@ export function createApi({
   );
   admin.use(createUsersAdminRouter(usersController));
   admin.use('/data-reports', createDataReportsAdminRouter(dataReportsController));
+  admin.use('/audit-log', createAuditAdminRouter(auditController));
   admin.use(
     createSpacesAdminRouter({
       space: createSpaceController(space),

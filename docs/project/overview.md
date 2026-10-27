@@ -1,6 +1,6 @@
 # Project Overview
 
-> **Status:** Active · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-27 · **Owner:** Basel Ghoneim
 > **Authority:** What Masaha is, what is built today, what v1 is committed to, and what is explicitly not in v1. It names scope; it does not specify behaviour.
 
 ## What Masaha is
@@ -29,6 +29,7 @@ This section lists a capability only once it is merged and working. Each line li
 - [Announcements](../features/announcements.md): on the API, a space's announcements, posted, edited, ended, started and deleted by its staff; the managed list with each closure's extension state and its summary; a space's page's running and upcoming announcements; the closure warning at check-in; after a closure, the owner's extension of the subscriptions it covered, previewed first, once per closure.
 - [Favourites](../features/favorites.md): on the API, a signed-in user's favourite spaces, saved and removed, at most 200, read whole as the directory's cards, nearest first when the device's location is sent.
 - [Data reports](../features/data-reports.md): on the API, a signed-in user's report of a listed space's wrong information and their own reports with the replies; the owner's and the admin's lists and decisions, the reporter anonymous to the owner.
+- [Audit](../features/audit.md): on the API, the owner's audit log of the space, the admin shown as Masaha, and the admin's log of the platform's events only; paged, the last 30 days or all, searched by target and filtered by actor and action.
 - [Occupancy](../features/occupancy.md): on the API, a space's private capacity, set by its owner, and its state now for its staff: who is present, the count and the live status, with the manual override its staff set and clear.
 
 ## Committed scope — v1

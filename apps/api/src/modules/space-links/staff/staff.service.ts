@@ -95,6 +95,7 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
           temporary.hash,
           actor.id,
           tx,
+          space.id,
         );
         // The unique violation ended the transaction: nothing more runs in it.
         if (!account) {

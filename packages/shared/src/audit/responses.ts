@@ -36,3 +36,8 @@ export interface AuditEntry {
 
 /** A page's `meta`, with the period's actors under every filter but `actor` (at most 50). */
 export type AuditMeta = PaginationMeta & { actors: AuditActor[] };
+
+/** An entry of the admin's log, with the space it names, a deleted one marked; `null` for none. */
+export type PlatformAuditEntry = AuditEntry & {
+  space: { id: number; nameEn: string; nameAr: string | null; deleted: boolean } | null;
+};

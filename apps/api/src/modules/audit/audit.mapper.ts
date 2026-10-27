@@ -1,6 +1,11 @@
-import type { AuditActor, AuditEntityType, AuditEntry } from '@masaha/shared/audit';
+import type {
+  AuditActor,
+  AuditEntityType,
+  AuditEntry,
+  PlatformAuditEntry,
+} from '@masaha/shared/audit';
 
-import type { ActorRow, AuditRow } from './audit.repository.ts';
+import type { ActorRow, AuditRow, PlatformAuditRow } from './audit.repository.ts';
 
 /** An entry as the owner's log shows it: the platform's actor `MASAHA`, never named (S1). */
 export function toAuditEntry(row: AuditRow): AuditEntry {
@@ -19,6 +24,11 @@ export function toAuditEntry(row: AuditRow): AuditEntry {
     before: row.before,
     after: row.after,
   };
+}
+
+/** An entry as the admin's log shows it, with the space it names. */
+export function toPlatformAuditEntry(row: PlatformAuditRow): PlatformAuditEntry {
+  return { ...toAuditEntry(row), space: row.space };
 }
 
 function toActor({ actorId, linked, actorName }: AuditRow): AuditActor {

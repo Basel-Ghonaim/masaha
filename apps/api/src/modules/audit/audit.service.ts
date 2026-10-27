@@ -1,7 +1,13 @@
-import type { AuditActor, AuditEntry, SpaceAuditQuery } from '@masaha/shared/audit';
+import type {
+  AuditActor,
+  AuditEntry,
+  PlatformAuditEntry,
+  PlatformAuditQuery,
+  SpaceAuditQuery,
+} from '@masaha/shared/audit';
 
 import { toSkip } from '../../shared/http/index.ts';
-import { toAuditActor, toAuditEntry } from './audit.mapper.ts';
+import { toAuditActor, toAuditEntry, toPlatformAuditEntry } from './audit.mapper.ts';
 import { createAuditRepository } from './audit.repository.ts';
 import { auditPeriodStart } from './auditPeriod.ts';
 
@@ -34,6 +40,23 @@ export function createAuditService({ now }: Dependencies) {
         { skip: toSkip({ page, limit }), take: limit },
       );
       return { rows: rows.map(toAuditEntry), total, actors: actors.map(toAuditActor) };
+    },
+
+    /**
+     * A page of the admin's log: the platform's events only, by the default-deny list
+     * (`platformEvents.ts`), of every space and of none, each with its space; filtered as the
+     * owner's, the actor a person's id; with the period's actors.
+     */
+    async platformLog({ period, q, actions, actor, page, limit }: PlatformAuditQuery): Promise<{
+      rows: PlatformAuditEntry[];
+      total: number;
+      actors: AuditActor[];
+    }> {
+      const { rows, total, actors } = await repository.platformLog(
+        { since: auditPeriodStart(period, now()), q, actions, actor },
+        { skip: toSkip({ page, limit }), take: limit },
+      );
+      return { rows: rows.map(toPlatformAuditEntry), total, actors: actors.map(toAuditActor) };
     },
   };
 }

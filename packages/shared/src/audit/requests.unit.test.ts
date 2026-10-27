@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
 import { AUDIT_ACTIONS } from './actions.ts';
-import { spaceAuditQuerySchema } from './requests.ts';
+import { platformAuditQuerySchema, spaceAuditQuerySchema } from './requests.ts';
 
 const errorsOf = (input: unknown) => {
   const result = spaceAuditQuerySchema.safeParse(input);
@@ -51,5 +51,22 @@ describe("the owner's audit query", () => {
     for (const actor of ['0', '-3', '2147483648']) {
       expect(errorsOf({ actor })).toEqual({ actor: ['out_of_range'] });
     }
+  });
+});
+
+describe("the admin's audit query", () => {
+  it("the admin's actor is a person's id only", () => {
+    expect(platformAuditQuerySchema.parse({ actor: '7' })).toEqual({
+      page: 1,
+      limit: 20,
+      period: 'LAST_30_DAYS',
+      actor: 7,
+    });
+    const result = platformAuditQuerySchema.safeParse({ actor: 'MASAHA' });
+    expect(result.success ? null : toFieldErrors(result.error.issues, { actor: 'MASAHA' })).toEqual(
+      {
+        actor: ['invalid_format'],
+      },
+    );
   });
 });

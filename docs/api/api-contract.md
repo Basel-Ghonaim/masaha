@@ -162,7 +162,7 @@ RecoveryPosition =
 The signed-in user's own account. Each endpoint needs the access token.
 
 #### `POST /me/password` · 👤, also while a temporary password is pending
-- **Body:** `{ currentPassword?, password, email? }`. The new password follows the policy. `currentPassword` is required unless a temporary password is pending (the forced change), as both the access token and the account say. `email` is taken only during the forced change: the address someone else typed, confirmed, or corrected, which is audited `user.emailChanged` ([security.md](../backend/security.md#passwords)); the same address changes nothing.
+- **Body:** `{ currentPassword?, password, email? }`. The new password follows the policy. `currentPassword` is required unless a temporary password is pending (the forced change), as both the access token and the account say. `email` is taken only during the forced change: the address someone else typed, confirmed, or corrected, which is audited `user.emailChanged` ([security.md](../backend/security.md#passwords)), with the space of the account's reception link when it has one; the same address changes nothing.
 - **200:** `{ accessToken }`, and a new refresh cookie: this device's session goes on in a new one ([security.md](../backend/security.md#passwords)). The answer is the same with an `email`; the session's user reads the corrected address at its next refresh.
 - **Errors:** `unauthorized` (401) without a valid access token, for a suspended account, or for a token signed before the account's sessions last ended (§1); `validation` (422), with `currentPassword: ["required"]` when it is missing, and `email: ["invalid_choice"]` for an `email` outside the forced change; `conflict` (409) `EMAIL_TAKEN`, with `errors.email = ["not_unique"]`, for an address another account holds, changing nothing; `bad_request` (400) `CURRENT_PASSWORD_INCORRECT`, which is not a 401, so it never looks like an expired session, also when a reset changed the password meanwhile; `bad_request` (400) `PASSWORD_NOT_SET` for an account without a password, which sets one through the reset email; `forbidden` (403) `ACCOUNT_SUSPENDED` for an account suspended while the change ran; `rate_limit` (429) under its failures limit.
 
@@ -275,7 +275,7 @@ AddedStaff = { userId: number, temporaryPassword: string }   // shown once
 
 #### `POST /manage/spaces/:spaceId/staff` · 🏢
 - **Body:** `{ name, email }`: a name as a user's, and the email, trimmed and lowercased.
-- **201:** `AddedStaff`, under `Cache-Control: no-store`: a new `USER` account with a temporary password ([security.md](../backend/security.md#passwords)), linked to the space as its `RECEPTION`. Audited `user.created` and `space.staffAdded` (`after: { userId }`).
+- **201:** `AddedStaff`, under `Cache-Control: no-store`: a new `USER` account with a temporary password ([security.md](../backend/security.md#passwords)), linked to the space as its `RECEPTION`. Audited `user.created`, with the space, and `space.staffAdded` (`after: { userId }`).
 - **Errors:** `conflict` (409) `EMAIL_HAS_ACCOUNT`, with `errors.email = ["not_unique"]`, for an email that already has an account, which is never linked, writing nothing; `validation` (422); `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `rate_limit` (429); `not_found` (404).
 
 #### `PATCH /manage/spaces/:spaceId/staff/:userId` · 🏢
@@ -876,7 +876,7 @@ FavoriteSpace =                    // @masaha/shared/directory
 
 ### Audit log
 
-The audit log's reader (`audit`, [conventions §6](../backend/conventions.md#6-audit)): a space's owner reads every entry of the space. Entries are never deleted ([data-model › Operations](../architecture/data-model.md#operations)). Built 2026-10-27, #128.
+The audit log's reader (`audit`, [conventions §6](../backend/conventions.md#6-audit)): a space's owner reads every entry of the space; the admin reads the platform's events only, of every space and of none, by a default-deny list (conventions §6). Entries are never deleted ([data-model › Operations](../architecture/data-model.md#operations)). Built 2026-10-27, #128.
 
 - **The period** (`period`): `LAST_30_DAYS`, the default — from the Gaza midnight 29 days before today, so today and the 29 days before it — or `ALL`; `invalid_choice` otherwise.
 - **`q`:** 1–80 characters, NFC-normalised and trimmed, with no bidirectional or other control characters: the entries whose target's current name holds it, in either language, as the directory searches (Arabic folded, [data-model › Conventions](../architecture/data-model.md#conventions), *Search*).
@@ -908,6 +908,10 @@ AuditEntry = {
   after: object | null
 }
 
+PlatformAuditEntry = AuditEntry & {   // the admin's: the actor always a PERSON (or SYSTEM)
+  space: { id: number, nameEn: string, nameAr: string | null, deleted: boolean } | null   // the space it names
+}
+
 AuditMeta = §4's meta & {
   actors: AuditActor[]              // the actors of the entries every filter but `actor` keeps, each once,
 }                                   // at most 50: persons by name, then MASAHA, then SYSTEM
@@ -917,6 +921,11 @@ AuditMeta = §4's meta & {
 - **Query:** `period`, `q`, `actions`, `actor` — a person's id, `MASAHA` or `SYSTEM` (`invalid_format`; `out_of_range` for an id below 1 or past the largest) — and §4's `page` and `limit`.
 - **200:** `AuditEntry[]`, the space's entries the filters keep, with `AuditMeta`. `actor=<id>` keeps a person linked to the space only, so an admin's id finds nothing; the admin's entries are `actor=MASAHA`.
 - **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on the query; `not_found` (404) for anyone who is not the space's staff, the admin included (the boundary).
+
+#### `GET /admin/audit-log` · 🛡
+- **Query:** `period`, `q`, `actions`, `actor` — a person's id (`invalid_format`, `out_of_range`) — and §4's `page` and `limit`. `q` also finds every entry of a space by the space's names.
+- **200:** `PlatformAuditEntry[]`, with `AuditMeta`: only the platform's events — the spaces' public facts and their confirmations, their photos, their creation, hiding, deletion and restoring, and their owners linked and unlinked, whoever acted; the lookups; the data reports' decisions; an account's creation, role, suspension, temporary passwords and email, only when the entry names no space. **Never** an entry about a space's customers, subscriptions, check-ins, visits, payments, packages, announcements or closure extensions, its capacity, its live-status override, its settings or its staff, an owner's reception account's included; an action on no list is never answered ([conventions §6](../backend/conventions.md#6-audit), [ADR 0002](../architecture/decisions/0002-authorization-model.md)).
+- **Errors:** `unauthorized` (401), `forbidden` (403), and `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`, by `/admin`'s guard; `validation` (422) on the query.
 
 ### Internal
 

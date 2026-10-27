@@ -99,6 +99,15 @@ export function createSpaceLinksRepository(db: PrismaClient = prisma) {
       });
     },
 
+    /** The space of the user's RECEPTION link, active or not: one desk per person (finding 84). */
+    async findReceptionSpaceOf(userId: number, tx: Tx): Promise<number | null> {
+      const link = await tx.spaceManager.findFirst({
+        where: { userId, role: 'RECEPTION' },
+        select: { spaceId: true },
+      });
+      return link?.spaceId ?? null;
+    },
+
     /** Deactivates the user's RECEPTION link to the space at `at`. */
     async deactivateReceptionLink(
       spaceId: number,

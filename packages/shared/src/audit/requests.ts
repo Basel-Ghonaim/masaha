@@ -42,3 +42,7 @@ export const spaceAuditQuerySchema = auditQuery.extend({
   actor: z.union([z.enum(['MASAHA', 'SYSTEM']), actorId]).optional(),
 });
 export type SpaceAuditQuery = z.output<typeof spaceAuditQuerySchema>;
+
+/** The admin's log of the platform's events: an actor is a person's id. */
+export const platformAuditQuerySchema = auditQuery.extend({ actor: actorId.optional() });
+export type PlatformAuditQuery = z.output<typeof platformAuditQuerySchema>;
