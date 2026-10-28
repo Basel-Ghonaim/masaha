@@ -86,6 +86,7 @@ export {
 } from './components/actions/DropdownMenu';
 export { EmptyState, type EmptyStateProps } from './components/feedback/EmptyState';
 export { Field, type FieldProps } from './components/fields/Field';
+export { FilterTag, type FilterTagProps } from './components/display/FilterTag';
 export {
   Input,
   InputAction,

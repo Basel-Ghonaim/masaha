@@ -13,7 +13,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 
 ## Open
 
-- [8. The stress test's applied-filter tag has no component](8-the-stress-tests-applied-filter-tag-has-no-component.md)
 - [14. The owner's audit screen has no design](14-the-owners-audit-screen-has-no-design.md)
 - [17. Expired rate-limit counters and abandoned sessions are never swept](17-expired-rate-limit-counters-and-abandoned-sessions-are-never-swept.md)
 - [21. A token replayed within the grace window starts its own branch](21-a-token-replayed-within-the-grace-window-starts-its-own-branch.md)
@@ -96,6 +95,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [4. Showcase sample text can clash with the app's text in `check:build`](4-showcase-sample-text-can-clash-with-the-apps-text-in-checkbuild.md)
 - [6. Radix component tests failed once under load](6-radix-component-tests-failed-once-under-load.md)
 - [7. The stress test's filter chips have no component](7-the-stress-tests-filter-chips-have-no-component.md)
+- [8. The stress test's applied-filter tag has no component](8-the-stress-tests-applied-filter-tag-has-no-component.md)
 - [9. Every Vitest lane fails when the working directory's drive letter is lowercase](9-every-vitest-lane-fails-when-the-working-directorys-drive-letter-is-lowercase.md)
 - [10. The seeded amenity icon keys have no icons in the design system yet](10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet.md)
 - [11. Nested writes in an interactive transaction trigger a `pg` deprecation warning](11-nested-writes-in-an-interactive-transaction-trigger-a-pg-deprecation-warning.md)

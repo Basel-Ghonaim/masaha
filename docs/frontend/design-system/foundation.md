@@ -74,7 +74,7 @@ apps/web/src/shared/design-system/
 |---|---|---|
 | `actions` | triggers an action | Button · ThemeToggle · LanguageToggle · DropdownMenu |
 | `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · Switch · ToggleGroup · Calendar · DatePicker |
-| `display` | shows content | Avatar · Badge · Card · StatCard · Separator |
+| `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag |
 | `data` | shows records in rows and columns | Table · DataTable |
 | `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState |
 | `overlays` | holds the caller's content above the page | Dialog · AlertDialog · Sheet · Popover · Tooltip |
@@ -390,6 +390,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Avatar | shadcn | Initials fallback |
 | Separator | shadcn | |
 | StatCard | hand-built | Dashboard overview numbers |
+| FilterTag | hand-built | A filter in force: its label and a remove button named by a prop · the chips' `radius-pill` on the `secondary` pair · the button 32px, the control height on touch ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) |
 
 ### `data`
 

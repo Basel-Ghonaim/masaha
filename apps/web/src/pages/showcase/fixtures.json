@@ -776,6 +776,15 @@
           },
           "menu": ["عرض تفاصيل البلاغ", "وضع علامة: تم التصحيح"]
         }
+      },
+      "filterTag": {
+        "title": "وسوم الفلاتر",
+        "caption": "فلاتر مطبّقة، يُزال كلٌّ منها بزرّه",
+        "tags": [
+          { "label": "المساحة: نور هب", "removeLabel": "إزالة فلتر المساحة في العرض" },
+          { "label": "الحقل: الأسعار", "removeLabel": "إزالة فلتر الحقل في العرض" }
+        ],
+        "clear": "مسح الفلاتر"
       }
     },
     "en": {
@@ -1540,6 +1549,15 @@
           },
           "menu": ["View the report details", "Mark the report as corrected"]
         }
+      },
+      "filterTag": {
+        "title": "Filter tags",
+        "caption": "Filters in force, each removed by its button",
+        "tags": [
+          { "label": "Space: Nour Hub", "removeLabel": "Remove the sample space filter" },
+          { "label": "Field: Prices", "removeLabel": "Remove the sample field filter" }
+        ],
+        "clear": "Clear filters"
       }
     }
   }

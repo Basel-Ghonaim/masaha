@@ -8,6 +8,7 @@ import { TableSection } from './sections/data/TableSection';
 import { AvatarSection } from './sections/display/AvatarSection';
 import { BadgeSection } from './sections/display/BadgeSection';
 import { CardSection } from './sections/display/CardSection';
+import { FilterTagSection } from './sections/display/FilterTagSection';
 import { SeparatorSection } from './sections/display/SeparatorSection';
 import { StatCardSection } from './sections/display/StatCardSection';
 import { AlertSection } from './sections/feedback/AlertSection';
@@ -163,6 +164,7 @@ export const ENTRIES: readonly ShowcaseEntry[] = [
       lang={language}
     />
   )),
+  entry('display', 'FilterTag', 'filterTag', (samples) => <FilterTagSection samples={samples} />),
 ];
 
 export type ShowcaseView =
