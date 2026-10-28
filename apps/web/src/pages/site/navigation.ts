@@ -29,6 +29,8 @@ export const SITE_PATHS = {
   changePassword: CHANGE_PASSWORD_PATH,
   /** The signed-in user's own reports (screen 11), under the account's layout. */
   myReports: '/me/reports',
+  /** The signed-in user's favourites (screen 10), under the account's layout. */
+  myFavorites: '/me/favorites',
 } as const;
 
 type SiteLink = {

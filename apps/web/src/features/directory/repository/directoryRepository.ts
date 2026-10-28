@@ -1,6 +1,7 @@
 import {
   NEAR_HEADER,
   type DirectorySpace,
+  type FavoriteSpace,
   type MapPins,
   type PublicSpace,
 } from '@masaha/shared/directory';
@@ -8,6 +9,7 @@ import type { PublicOccupancy } from '@masaha/shared/occupancy';
 import { api, type Page } from '@shared/api';
 import { nearHeader } from '../services/nearPoint';
 import type { DirectoryRequest } from '../types/DirectoryRequest';
+import type { FavoritesRequest } from '../types/FavoritesRequest';
 import type { NearPoint } from '../types/NearState';
 import type { PinsRequest } from '../types/PinsRequest';
 
@@ -24,6 +26,11 @@ export interface DirectoryRepository {
   space(slug: string): Promise<PublicSpace>;
   /** A publicly listed space's live status, by its slug. */
   status(slug: string): Promise<PublicOccupancy>;
+  /**
+   * The signed-in user's favourites, whole, as cards: newest saved first, or nearest first from the
+   * point, which travels in the `Masaha-Near` header only; a space that left the directory by its name.
+   */
+  favorites(request: FavoritesRequest): Promise<FavoriteSpace[]>;
 }
 
 export function createDirectoryRepository(): DirectoryRepository {
@@ -36,5 +43,12 @@ export function createDirectoryRepository(): DirectoryRepository {
     pins: (request) => api.get<MapPins>('/map/spaces', { params: request }),
     space: (slug) => api.get<PublicSpace>(`/spaces/${encodeURIComponent(slug)}`),
     status: (slug) => api.get<PublicOccupancy>(`/spaces/${encodeURIComponent(slug)}/occupancy`),
+    favorites: ({ near }) =>
+      api.get<FavoriteSpace[]>(
+        '/me/favorites',
+        near === undefined
+          ? undefined
+          : { params: { sort: 'distance' }, headers: { [NEAR_HEADER]: nearHeader(near) } },
+      ),
   };
 }

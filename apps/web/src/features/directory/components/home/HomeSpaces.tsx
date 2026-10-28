@@ -1,7 +1,9 @@
 import { Button, EmptyState } from '@shared/design-system';
 import { useId, useRef, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useFavoriteIds } from '../../hooks/favorites/useFavoriteIds';
 import { useHomeSpaces } from '../../hooks/home/useHomeSpaces';
+import type { DirectorySlots } from '../../types/DirectorySlots';
 import { SpaceCard } from '../card/SpaceCard';
 import { SpaceCardSkeleton } from '../card/SpaceCardSkeleton';
 import { FailureAlert } from '../list/FailureAlert';
@@ -15,23 +17,26 @@ const SKELETONS = [1, 2, 3, 4, 5, 6];
  * «الأقرب إليّ» and «عرض الكل» at the row's end and near me's state line under it; then six cards
  * at most, their skeletons while they load, the failure with its retry, or, with none, the empty
  * state and «تصفّح كل المساحات». The page sets the links to the spaces, the areas' names, the
- * Directory's addresses and what «اختر منطقتك» does.
+ * Directory's addresses, what «اختر منطقتك» does, and an action on each card (the heart).
  */
 export function HomeSpaces({
   spaceLink,
   areaName,
   links,
   chooseArea,
+  cardAction,
 }: {
   spaceLink: (slug: string) => string;
   areaName: (areaId: number) => ReactNode;
   /** The Directory's list, its spaces available now, and its map. */
   links: { list: string; available: string; map: string };
   chooseArea: () => void;
+  cardAction?: DirectorySlots['cardAction'];
 }) {
   const headingId = useId();
   const nearButton = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
+  const saved = useFavoriteIds();
   const home = useHomeSpaces({
     chooseArea,
     openMap: () => {
@@ -88,6 +93,11 @@ export function HomeSpaces({
               card={card}
               href={spaceLink(card.slug)}
               areaName={areaName(card.areaId)}
+              action={cardAction?.({
+                id: card.key,
+                name: card.name,
+                saved: saved?.has(card.key) ?? false,
+              })}
             />
           ))}
       </div>

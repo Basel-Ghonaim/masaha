@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { NavigationType, useNavigationType } from 'react-router';
 import type { DirectoryListView } from '../../types/DirectoryListView';
+import { useFavoriteIds } from '../../hooks/favorites/useFavoriteIds';
 import type { DirectorySlots } from '../../types/DirectorySlots';
 import { SpaceCard } from '../card/SpaceCard';
 import { FailureAlert } from './FailureAlert';
@@ -11,7 +12,8 @@ import { ResultsState } from './ResultsState';
  * not, marked busy while a fetch runs over the cards shown. When the visitor chooses another page
  * (the pages are links, pushed), the focus moves to that heading and the section's start scrolls
  * into view; never on the first render, nor when a search, an order or a page past the last
- * replaces the address and so changes the page shown.
+ * replaces the address and so changes the page shown. Each card carries the page's action, told
+ * whether the user saved the space.
  */
 export function DirectoryResults({
   results,
@@ -30,6 +32,7 @@ export function DirectoryResults({
   const arrival = useNavigationType();
   // The page shown last; the first render's, so the focus is left where it is.
   const shown = useRef(page);
+  const saved = useFavoriteIds();
 
   useEffect(() => {
     if (shown.current === page) return;
@@ -59,6 +62,11 @@ export function DirectoryResults({
               card={card}
               href={slots.spaceLink(card.slug)}
               areaName={slots.areaName(card.areaId)}
+              action={slots.cardAction?.({
+                id: card.key,
+                name: card.name,
+                saved: saved?.has(card.key) ?? false,
+              })}
             />
           ))}
       </div>

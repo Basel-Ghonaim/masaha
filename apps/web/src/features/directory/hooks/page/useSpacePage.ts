@@ -150,7 +150,7 @@ export function useSpacePage(slug: string): SpacePageView {
     space:
       space === undefined || name === null
         ? null
-        : { slug: space.slug, name, verified: space.isVerified },
+        : { id: space.id, slug: space.slug, name, verified: space.isVerified },
     unverified:
       space === undefined || space.isVerified
         ? null

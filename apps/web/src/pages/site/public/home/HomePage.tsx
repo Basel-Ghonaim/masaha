@@ -4,6 +4,8 @@ import { useCopy } from '@shared/copy';
 import { publicSpacePath } from '@shared/routing';
 import { useRef } from 'react';
 import { SITE_PATHS } from '../../navigation';
+import { useHeart } from '../useHeart';
+import { useSignInPrompt } from '../useSignInPrompt';
 import { AreaCards } from './AreaCards';
 import { HomeSearch } from './HomeSearch';
 import { OwnersCard } from './OwnersCard';
@@ -21,10 +23,13 @@ const LINKS = {
 /**
  * The home page (screen 1): the hero with its search; the spaces available now, or the nearest;
  * «تصفّح حسب المنطقة», which near me's «اختر منطقتك» scrolls to and focuses; and the owners' card.
+ * Each space's card carries favorites' heart; a guest's press of it asks them to sign in.
  */
 export function HomePage() {
   const words = useCopy().site.home;
   const areasHeading = useRef<HTMLHeadingElement>(null);
+  const { signIn, prompt } = useSignInPrompt();
+  const heart = useHeart(signIn);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-10 md:px-8">
@@ -41,9 +46,11 @@ export function HomePage() {
           areasHeading.current?.scrollIntoView({ block: 'start' });
           areasHeading.current?.focus({ preventScroll: true });
         }}
+        cardAction={(space) => heart(space, { onCover: true })}
       />
       <AreaCards headingRef={areasHeading} />
       <OwnersCard />
+      {prompt}
     </div>
   );
 }

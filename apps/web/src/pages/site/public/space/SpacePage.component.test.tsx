@@ -15,14 +15,18 @@ import { siteRoutes } from '../../routes';
 
 /** «Noor Hub»'s page in the site's shell, the server answering its reads. */
 async function renderSpacePage() {
-  fakeTransport((request) =>
+  const requests = fakeTransport((request) =>
     request.url === '/spaces'
       ? ok([], 200)
       : request.url === '/lookups'
         ? ok({ governorates: [], areas: [], amenities: [] })
         : request.url?.endsWith('/occupancy')
           ? ok({ status: null })
-          : ok(publicSpace()),
+          : request.url === '/me/favorites'
+            ? ok([])
+            : request.method === 'post'
+              ? { status: 204 }
+              : ok(publicSpace()),
   );
   const router = createMemoryRouter(
     [
@@ -46,7 +50,7 @@ async function renderSpacePage() {
     </Wrapper>,
   );
   await screen.findByRole('heading', { level: 1, name: 'Noor Hub' });
-  return router;
+  return { router, requests };
 }
 
 async function becomeGuest() {
@@ -124,11 +128,109 @@ describe('a space’s page', () => {
     expect(screen.getByRole('button', { name: 'Report wrong information' })).toBeInTheDocument();
   });
 
+  it('sets the heart beside the space’s name; a guest’s press asks to sign in, and back signed in the space is saved', async () => {
+    stubScreenWidth(1440);
+    await becomeGuest();
+    const { requests } = await renderSpacePage();
+
+    const name = screen.getByRole('heading', { level: 1, name: 'Noor Hub' });
+    const heart = screen.getByRole('button', { name: /^Save .Noor Hub. to favourites$/ });
+    expect(heart).toHaveAttribute('aria-pressed', 'false');
+    expect(name.parentElement).toContainElement(heart);
+
+    await userEvent.click(heart);
+    expect(
+      await screen.findByRole('dialog', { name: 'Sign in to save spaces to your favourites' }),
+    ).toBeInTheDocument();
+
+    act(() => {
+      establishSession(aSession(), { source: 'signIn' });
+    });
+    await waitFor(() => {
+      expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toContain(
+        'post /me/favorites/7',
+      );
+    });
+  });
+
+  it('shows the heart pressed once a guest’s held favourite is saved on their return', async () => {
+    stubScreenWidth(1440);
+    await becomeGuest();
+    const saved = new Set<number>();
+    const space = publicSpace();
+    fakeTransport((request) => {
+      if (request.url === '/lookups') return ok({ governorates: [], areas: [], amenities: [] });
+      if (request.url?.endsWith('/occupancy')) return ok({ status: null });
+      if (request.url === '/me/favorites')
+        return ok(
+          [...saved].map((id) => ({
+            listed: true,
+            savedAt: '2026-10-27T09:00:00.000Z',
+            space: { ...space, id, days: null, cover: null, liveStatus: null },
+          })),
+        );
+      if (request.method === 'post' && request.url === '/me/favorites/7') {
+        saved.add(7);
+        return { status: 204 };
+      }
+      return ok(space);
+    });
+    const router = createMemoryRouter(
+      [{ HydrateFallback: () => null, element: <Outlet />, children: siteRoutes }],
+      { initialEntries: ['/spaces/noor-hub'] },
+    );
+    const Wrapper = queryWrapper();
+    render(
+      <Wrapper>
+        <RouterProvider router={router} />
+      </Wrapper>,
+    );
+    await userEvent.click(
+      await screen.findByRole('button', { name: /^Save .Noor Hub. to favourites$/ }),
+    );
+    await screen.findByRole('dialog', { name: 'Sign in to save spaces to your favourites' });
+
+    act(() => {
+      establishSession(aSession(), { source: 'signIn' });
+    });
+    // The prompt stays open here (the guest signed in without leaving), so the page is hidden under it.
+    const heart = screen.getByRole('button', {
+      name: /^Save .Noor Hub. to favourites$/,
+      hidden: true,
+    });
+    await waitFor(
+      () => {
+        expect(heart).toHaveAttribute('aria-pressed', 'true');
+      },
+      { timeout: 4000 },
+    );
+  });
+
   describe('a guest who leaves for another page', () => {
+    it('lets the held favourite go: a later sign-in in the tab saves nothing', async () => {
+      stubScreenWidth(1440);
+      await becomeGuest();
+      const { router, requests } = await renderSpacePage();
+
+      await userEvent.click(
+        screen.getByRole('button', { name: /^Save .Noor Hub. to favourites$/ }),
+      );
+      await screen.findByRole('dialog', { name: 'Sign in to save spaces to your favourites' });
+      // Not through the prompt's links: the guest goes elsewhere on the site.
+      await act(() => router.navigate('/spaces'));
+      await screen.findByRole('heading', { level: 1, name: 'Workspaces' });
+
+      act(() => {
+        establishSession(aSession(), { source: 'signIn' });
+      });
+      await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+      expect(requests.filter(({ method }) => method === 'post')).toHaveLength(0);
+    });
+
     it('lets the held report go: back on the page signed in, its dialog does not open', async () => {
       stubScreenWidth(1440);
       await becomeGuest();
-      const router = await renderSpacePage();
+      const { router } = await renderSpacePage();
 
       await userEvent.click(screen.getByRole('button', { name: 'Report wrong information' }));
       await screen.findByRole('dialog', { name: 'Sign in to report information' });

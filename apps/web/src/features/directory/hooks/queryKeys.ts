@@ -1,4 +1,5 @@
 import type { DirectoryRequest } from '../types/DirectoryRequest';
+import type { FavoritesRequest } from '../types/FavoritesRequest';
 import type { NearPoint } from '../types/NearState';
 import type { PinsRequest } from '../types/PinsRequest';
 
@@ -13,6 +14,11 @@ export const directoryKeys = {
   /** A space's page, by its slug. */
   space: (slug: string) => ['public', 'directory', 'space', slug] as const,
   status: (slug: string) => ['public', 'directory', 'status', slug] as const,
+  /**
+   * The signed-in user's favourites, under the session's scope: `{}` newest saved first (the hearts'
+   * ids), `{ near }` nearest first. A favourite saved or removed reads the whole scope again (S13).
+   */
+  favorites: (request: FavoritesRequest) => ['me', 'favorites', request] as const,
 };
 
 /** Whether a list's key holds a point: an answer ordered by distance, dropped with the location. */

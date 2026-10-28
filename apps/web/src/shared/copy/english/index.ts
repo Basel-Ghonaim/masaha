@@ -5,6 +5,7 @@ import { DATA_REPORTS } from './dataReports';
 import { DESK } from './desk';
 import { DIRECTORY } from './directory';
 import { ERRORS } from './errors';
+import { FAVORITES } from './favorites';
 import { FORMS } from './forms';
 import { LOOKUPS } from './lookups';
 import { MAP } from './map';
@@ -39,6 +40,7 @@ export const ENGLISH = {
   desk: DESK,
   directory: DIRECTORY,
   errors: ERRORS,
+  favorites: FAVORITES,
   forms: FORMS,
   lookups: LOOKUPS,
   map: MAP,
