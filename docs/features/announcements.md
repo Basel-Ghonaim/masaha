@@ -2,7 +2,7 @@
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
 > **Authority:** The `announcements` capability: what a space tells its users changes — a closure, an outage, an offer, an event or general news — posted and changed by its staff. Its endpoints are owned by the [API contract](../api/api-contract.md#announcements-managed); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the dashboard, the owner's and reception's «الإعلانات».
-> **Scope:** the API module `announcements` (L2); `@masaha/shared/announcements`; the web feature `features/announcements`, any page group: screen 18, and the public pieces a space's page sets (PR 4).
+> **Scope:** the API module `announcements` (L2); `@masaha/shared/announcements`; the web feature `features/announcements`, any page group: screen 18, and the public pieces a space's page sets: its running closure's notice and its other announcements.
 
 ## What it does
 
@@ -19,7 +19,7 @@
 - **The space's owner and reception,** through the API, under `/manage/spaces/:spaceId/announcements`: they post, edit, end, start and delete. On the dashboard, both read «الإعلانات» (`/dashboard/spaces/:spaceId/announcements`, 2026-10-28, #129).
 - **The live status** ([occupancy](occupancy.md)): a running `CLOSURE` makes a space `CLOSED`.
 - **[`subscriptions`](subscriptions.md),** whose managed list and summary read its pages, its counts and its started closures, and whose closure extension reads a closure (`closureIn`), locks it (`lockClosure`) and its days (`closureSpan`).
-- **[`directory`](directory.md),** whose space page reads its running and upcoming announcements.
+- **[`directory`](directory.md),** whose space page reads its running and upcoming announcements. On the site, the space's page shows them: a running closure's notice at its top, the others after its status (2026-10-28, #129).
 
 ## Responsibility boundary
 
@@ -86,7 +86,8 @@
 - **The sheet's first focus is the checked type's radio** (DI-21), placed by the sheet itself, with the layer's ring. 2026-10-28, #129.
 - **The date over the time below 640 px, the date's trigger with the short month and the year** (DI-22). 2026-10-28, #129.
 - **Each write's toast names the tab it went to, with «عرض»** (DI-24): an announcement that moves tab is never lost from sight. 2026-10-28, #129.
-- **The preview draws the public page's own pieces on a muted surface** (DI-25): `AnnouncementItem` and `ClosureNotice`, the components the space's page will set. 2026-10-28, #129.
+- **The preview draws the public page's own pieces on a muted surface** (DI-25): `AnnouncementItem` and the closure's warning (`ClosureAlert`), the components the space's page sets. 2026-10-28, #129.
+- **A running closure is the page's top notice, never repeated in its announcements** (DI-59, U8: «the closure Alert stays at the top»): the first `CLOSURE` that has started and has no end, or ends after now (`runningClosure`), is a warning above the page with its text and «إعلان من إدارة المساحة · {period}»; the section «الإعلانات», after the status and before the prices, lists the others by their start, an upcoming closure among them, and is left out when none is left. *Why:* one closure said twice reads as two. 2026-10-28, #129.
 - **A closure's consequence said in the sheet** (DI-29), as a warning. 2026-10-28, #129.
 - **End now, start now and delete are sent once, with no key** (S4): each is idempotent by design, so a repeat answers as it is; no answer is said with «إعادة المحاولة», never re-sent by itself. 2026-10-28, #129.
 - **An ended announcement has no «تعديل»; its card is its view** (DI-16). An action that cannot apply is left out, its reason said on the card, never a disabled menu item ([finding 105](../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md)). 2026-10-28, #129.
@@ -103,11 +104,11 @@
 
 - `apps/api/src/modules/announcements/` — the module: its service, its repository, its manage router, and the pure rules (`announcementState`, `period`, `announcementChange`, `closureSpan`).
 - `packages/shared/src/announcements/` — the requests and answers.
-- **Web:** `apps/web/src/features/announcements/`, entry `index.ts` (`AnnouncementsList`), read by `pages/dashboard/space/announcements/AnnouncementsPage.tsx`, which reads the role at the space: the repository in `repository/`; the keys, the list's tab in the address and its view (`list/`), the sheet and its post and edit (`sheet/`), a card's actions and the delete's dialog (`actions/`), the extension's preview, apply and dialog (`extension/`), the focus kept when a card leaves (`list/useCardFocus`) and the writes' shared invalidation (`useAnnouncementsWrite`) in `hooks/`; the address's query (`announcementsQueryOf`), the period's words (`periodText`), a type's (`typeView`), the text in the interface's language (`textOf`) and the sheet's requests (`sheetRequest`) in `services/`; the list, its card and a closure's line (`list/`), the sheet, its type and its period (`sheet/`), the «⋯» and the delete's dialog (`actions/`), the extension's action and dialog (`extension/`), the public page's item and closure notice, not exported yet (`public/`), and the toasts (`toast/`) in `components/`. Words: the catalogue's `announcements` section; the refusals are `errors`'.
+- **Web:** `apps/web/src/features/announcements/`, entry `index.ts` (`AnnouncementsList`, `ClosureNotice`, `SpaceAnnouncements`), read by `pages/dashboard/space/announcements/AnnouncementsPage.tsx`, which reads the role at the space, and by `pages/site/public/space/SpacePage.tsx`, which sets the public pieces in the directory's slots: the repository in `repository/`; the keys, the list's tab in the address and its view (`list/`), the sheet and its post and edit (`sheet/`), a card's actions and the delete's dialog (`actions/`), the extension's preview, apply and dialog (`extension/`), the focus kept when a card leaves (`list/useCardFocus`) and the writes' shared invalidation (`useAnnouncementsWrite`), and the public page's view (`public/`) in `hooks/`; the address's query (`announcementsQueryOf`), the period's words (`periodText`), a type's (`typeView`), the text in the interface's language (`textOf`) and the sheet's requests (`sheetRequest`) and the running closure (`runningClosure`) in `services/`; the list, its card and a closure's line (`list/`), the sheet, its type and its period (`sheet/`), the «⋯» and the delete's dialog (`actions/`), the extension's action and dialog (`extension/`), the public page's item, its closure's notice and its announcements' section (`public/`), and the toasts (`toast/`) in `components/`. Words: the catalogue's `announcements` section; the refusals are `errors`'.
 
 ## Open findings
 
-None.
+- [180. A site page's chunk reaches the table's and the calendar's libraries](../architecture/findings/180-a-site-pages-chunk-reaches-the-tables-and-the-calendars-libraries.md) — the space page's chunk reaches the calendar through this capability's entry
 
 ## History
 
@@ -119,3 +120,4 @@ None.
 ### Web history
 
 - #129 — «الإعلانات», the owner's and reception's: the announcements by state, with their counts; a new announcement and its edit in a sheet, with the preview of the space's page; end now with its undo, start now and delete; the owner's extension of a closure's subscriptions.
+- #129 — on the site, a space's page shows its running closure's notice at its top and its other announcements after its status (finding 131).

@@ -1,3 +1,4 @@
+import type { PublicAnnouncement } from '@masaha/shared/directory';
 import { Badge, Button, cn, EmptyState } from '@shared/design-system';
 import { useCopy } from '@shared/copy';
 import type { ReactNode } from 'react';
@@ -23,12 +24,14 @@ import { StatusPanel } from './StatusPanel';
 import { UnverifiedNotice } from './UnverifiedNotice';
 
 /**
- * A space's public page (screen 3), in U8's order at every width: the head, an unverified space's
- * notice, the status (a card below 1024 px), the prices, the hours, the amenities, about the space,
+ * A space's public page (screen 3), in U8's order at every width: a running closure's notice at the
+ * top, the head, an unverified space's notice, the status (a card below 1024 px), the space's
+ * announcements, the prices, the hours, the amenities, about the space,
  * the location and the contacts (a section below 1024 px). From 1024 px the status and the contacts
  * are a named aside beside the sections; below 768 px a bar at the foot offers WhatsApp and a call.
  * The page sets the area's name, the link back to the directory and the platform's contact, the
- * heart beside the name, and the report of wrong information, drawn last in the main column (U8).
+ * heart beside the name, the closure's notice and the announcements, and the report of wrong
+ * information, drawn last in the main column (U8).
  */
 export function SpaceDetails({
   slug,
@@ -36,6 +39,8 @@ export function SpaceDetails({
   browseLink,
   ownerContact,
   heart,
+  notice,
+  announcements,
   report,
 }: {
   slug: string;
@@ -45,6 +50,10 @@ export function SpaceDetails({
   ownerContact: ReactNode;
   /** The favourite's heart, beside the space's name, told whether the user saved it. */
   heart?: (space: ActionSpace) => ReactNode;
+  /** A running closure's notice, above the page (U8: «the closure Alert stays at the top»). */
+  notice?: (items: PublicAnnouncement[]) => ReactNode;
+  /** The space's announcements, after the status and before the prices (U8). */
+  announcements?: (items: PublicAnnouncement[]) => ReactNode;
   /** The report of the space's wrong information, at the end of its sections. */
   report?: (space: SlotSpace) => ReactNode;
 }) {
@@ -87,6 +96,10 @@ export function SpaceDetails({
         withBar && 'pb-24 md:pb-0',
       )}
     >
+      {notice !== undefined && (
+        // Empty when no closure runs: hidden, so it takes no gap.
+        <div className="empty:hidden lg:col-span-12">{notice(view.announcements)}</div>
+      )}
       <div className="flex min-w-0 flex-col gap-10 lg:col-span-8">
         <Gallery gallery={gallery} />
         <SpaceHeader
@@ -106,6 +119,7 @@ export function SpaceDetails({
           <UnverifiedNotice unverified={view.unverified} ownerContact={ownerContact} />
         )}
         {!view.wide && panelShown && <StatusPanel panel={panel} />}
+        {announcements?.(view.announcements)}
         <PricesSection prices={view.prices} />
         <HoursSection hours={view.hours} />
         {view.amenities !== null && <AmenitiesSection amenities={view.amenities} />}

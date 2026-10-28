@@ -17,7 +17,7 @@ import { FormFailure } from '@shared/forms';
 import { useAnnouncementSheet } from '../../hooks/sheet/useAnnouncementSheet';
 import type { SheetEntry } from '../../types/SheetEntry';
 import { AnnouncementItem } from '../public/AnnouncementItem';
-import { ClosureNotice } from '../public/ClosureNotice';
+import { ClosureAlert } from '../public/ClosureNotice';
 import { PeriodFields } from './PeriodFields';
 import { TypeChoice } from './TypeChoice';
 
@@ -110,7 +110,7 @@ export function AnnouncementSheet({
               </p>
               <div className="rounded-lg bg-muted p-3">
                 {view.preview.closure ? (
-                  <ClosureNotice item={view.preview.item} notice={view.preview.notice} />
+                  <ClosureAlert item={view.preview.item} notice={view.preview.notice} />
                 ) : (
                   <AnnouncementItem item={view.preview.item} />
                 )}

@@ -171,6 +171,7 @@ export function useSpacePage(slug: string): SpacePageView {
       live,
     },
     photos: space?.photos ?? [],
+    announcements: space?.announcements ?? [],
     prices: {
       title: words.sections.prices,
       meta: metaOf('prices', ...(prices && prices.length > 0 ? [words.prices.displayOnly] : [])),

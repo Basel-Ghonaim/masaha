@@ -1,4 +1,5 @@
 import type { AnnouncementsSummary, ManagedAnnouncement } from '@masaha/shared/announcements';
+import type { PublicAnnouncement } from '@masaha/shared/directory';
 import type { FakeAnswer } from './fakeAdapter';
 
 /**
@@ -73,5 +74,21 @@ export function announcementsPage(
         hasPreviousPage: currentPage > 1,
       },
     },
+  };
+}
+
+/**
+ * An announcement as a space's public page carries it (`PublicAnnouncement`): a general one from 08:00
+ * on 21 October 2026 in Gaza, with no end and its English text.
+ */
+export function publicAnnouncement(change: Partial<PublicAnnouncement> = {}): PublicAnnouncement {
+  return {
+    id: 1,
+    type: 'GENERAL',
+    textAr: 'إعلان',
+    textEn: 'An announcement',
+    startsAt: '2026-10-21T05:00:00.000Z',
+    endsAt: null,
+    ...change,
   };
 }

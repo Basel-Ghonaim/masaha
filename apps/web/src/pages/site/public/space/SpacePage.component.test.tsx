@@ -4,6 +4,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { publicAnnouncement } from '../../../../test/announcement';
 import { aSession } from '../../../../test/fakeSession';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
 import { publicSpace } from '../../../../test/publicSpace';
@@ -13,8 +14,8 @@ import { setSessionHint } from '../../../../test/sessionHint';
 import { startPreferences } from '../../../../test/startPreferences';
 import { siteRoutes } from '../../routes';
 
-/** «Noor Hub»'s page in the site's shell, the server answering its reads. */
-async function renderSpacePage() {
+/** «Noor Hub»'s page in the site's shell, the server answering its reads, `change` its space's. */
+async function renderSpacePage(change: Parameters<typeof publicSpace>[0] = {}) {
   const requests = fakeTransport((request) =>
     request.url === '/spaces'
       ? ok([], 200)
@@ -26,7 +27,7 @@ async function renderSpacePage() {
             ? ok([])
             : request.method === 'post'
               ? { status: 204 }
-              : ok(publicSpace()),
+              : ok(publicSpace(change)),
   );
   const router = createMemoryRouter(
     [
@@ -73,7 +74,58 @@ afterEach(() => {
   document.cookie = 'masaha_session=; Path=/; Max-Age=0';
 });
 
+/** A running closure, since an hour ago with no end, and an offer starting tomorrow. */
+function announcements() {
+  const now = Date.now();
+  return [
+    publicAnnouncement({
+      id: 3,
+      type: 'CLOSURE',
+      textEn: 'Closed for maintenance',
+      startsAt: new Date(now - 3_600_000).toISOString(),
+    }),
+    publicAnnouncement({
+      id: 4,
+      type: 'OFFER',
+      textEn: 'Half price for students',
+      startsAt: new Date(now + 86_400_000).toISOString(),
+    }),
+  ];
+}
+
+/** Whether `later` follows `earlier` in the document. */
+const follows = (earlier: Element, later: Element) =>
+  Boolean(earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING);
+
 describe('a space’s page', () => {
+  it.each([390, 1440])(
+    'keeps U8’s order at %i px: the closure’s notice first, the announcements after the status and before the prices, the report last',
+    async (width) => {
+      stubScreenWidth(width);
+      await becomeGuest();
+      await renderSpacePage({ announcements: announcements() });
+
+      // The closure's warning: its text, inside the layer's polite status region.
+      const notice = screen.getByText('Closed for maintenance', { selector: '[role="status"] *' });
+      const name = screen.getByRole('heading', { level: 1, name: 'Noor Hub' });
+      expect(follows(notice, name)).toBe(true);
+
+      const section = screen.getByRole('region', { name: 'Announcements' });
+      expect(section).toHaveTextContent('Half price for students');
+      expect(section).not.toHaveTextContent('Closed for maintenance');
+      // Below 1024 px the status is a card in the main column; from it, an aside beside the sections.
+      if (width === 390) {
+        const status = screen.getByRole('heading', { level: 2, name: 'Status' });
+        expect(follows(status, section)).toBe(true);
+      }
+      expect(follows(name, section)).toBe(true);
+      const prices = screen.getByRole('heading', { level: 2, name: 'Prices' });
+      expect(follows(section, prices)).toBe(true);
+      const report = screen.getByRole('button', { name: 'Report wrong information' });
+      expect(follows(prices, report)).toBe(true);
+    },
+  );
+
   it('draws «Report wrong information» last in its main column, after the location and the contacts', async () => {
     stubScreenWidth(390);
     await becomeGuest();

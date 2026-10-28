@@ -104,6 +104,7 @@
 
 - [167. The admin's reports cannot be filtered by who handles them](../architecture/findings/167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md) — no `verified` parameter on `GET /admin/data-reports`; «يعالجه» per row only.
 - [168. A guest's intent does not survive a password recovery](../architecture/findings/168-a-guests-intent-does-not-survive-a-password-recovery.md) — the report held for a guest is lost by a reload or a recovery by email.
+- [180. A site page's chunk reaches the table's and the calendar's libraries](../architecture/findings/180-a-site-pages-chunk-reaches-the-tables-and-the-calendars-libraries.md) — the space page's and «بلاغاتي»'s chunks reach the table through this capability's entry
 - [184. A report's «تعديل الحقل» may not scroll to its section](../architecture/findings/184-a-reports-edit-the-field-link-may-not-scroll-to-its-section.md) — the editor does not scroll to the address's anchor once its cards have drawn.
 
 ## History

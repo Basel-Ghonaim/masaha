@@ -1,3 +1,4 @@
+import { ClosureNotice, SpaceAnnouncements } from '@features/announcements';
 import { ReportAction } from '@features/data-reports';
 import {
   SpaceDetails,
@@ -36,8 +37,9 @@ const areaName = (areaId: number) => <AreaName areaId={areaId} source="public" /
  * A space's page on the site, by its slug, titled by the space's name once it has loaded: from
  * 768 px a breadcrumb «الرئيسية» › «المساحات» (back to the directory's last search) › the name;
  * below it, «العودة إلى المساحات». Then the space's details, its area named by lookups, the
- * platform's contact in an unverified space's dialog, favorites' heart beside its name, and
- * data-reports' «الإبلاغ عن معلومة غير صحيحة» at their end; a guest's press of either asks them to
+ * platform's contact in an unverified space's dialog, favorites' heart beside its name,
+ * announcements' running closure at the top and the others after the status, and data-reports'
+ * «الإبلاغ عن معلومة غير صحيحة» at their end; a guest's press of either asks them to
  * sign in, with the reason.
  */
 export function SpacePage() {
@@ -97,6 +99,8 @@ export function SpacePage() {
           />
         }
         heart={(space) => heart(space)}
+        notice={(items) => <ClosureNotice items={items} />}
+        announcements={(items) => <SpaceAnnouncements items={items} />}
         report={(space) => (
           <ReportAction
             slug={space.slug}

@@ -3,7 +3,7 @@ import type { PublicItemView } from '../../types/PublicItemView';
 
 /**
  * One announcement as a space's public page lists it: its type's badge and its period, then its text
- * in its own language. The sheet's preview draws it now; the space's page will (PR 4).
+ * in its own language. The sheet's preview and the space's page draw it.
  */
 export function AnnouncementItem({ item }: { item: PublicItemView }) {
   return (

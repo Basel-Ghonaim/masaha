@@ -16,7 +16,7 @@
 - On the site, shows a space's page at `/spaces/:slug`: its prices per audience, its hours with today, its amenities, its description, its place on a map with directions, its contacts, and each group's freshness; an unverified space's notice offers the platform's contact.
 - On the site's «المفضّلة», shows a signed-in user's favourites as its cards, newest saved first or nearest first, and the spaces that left by their names.
 
-The page's announcements are answered by the API, not shown on the site yet.
+The page shows its announcements: a running closure's notice at its top, the others after its status, both drawn by [`announcements`](announcements.md) in the page's slots.
 
 ## Who uses it
 
@@ -136,7 +136,7 @@ The page's announcements are answered by the API, not shown on the site yet.
 - **A space's page has one order at every width; from 1024 px the status and the contacts move to an aside** (U8). *Why:* a page read the same way on every screen; the aside keeps the contacts in view beside long sections. 2026-10-22, #107.
 - **Prices go per audience, the students' under «للطلاب», and by shift only when a price names one** (U9 as built; design issues 29, 31). *Why:* the general price is what most visitors pay; a shift's tab exists only where it has prices; the grid's last row never leaves an orphan cell. 2026-10-22, #107.
 - **Each fact group says its date and «قد يكون تغيّر» while stale, the prices with one check line more** (U4, design issues 27, 28). *Why:* one way to say stale; a hidden price says why. 2026-10-22, #107.
-- **The page draws no report button and no favourite heart, and no closure's notice yet** (decision 4; design issues 23, 34; [finding 131](../architecture/findings/131-the-space-page-cannot-show-a-closures-notice.md)). *Why:* v1's step 10 builds them. 2026-10-22, #107. The page's report button is `data-reports`', set by the page in the details' `report` slot, which hands it the space's slug, name and verification, at the end of the main column (2026-10-28, #129).
+- **The page draws no report button and no favourite heart, and no closure's notice yet** (decision 4; design issues 23, 34; [finding 131](../architecture/findings/131-the-space-page-cannot-show-a-closures-notice.md)). *Why:* v1's step 10 builds them. 2026-10-22, #107. The page's report button is `data-reports`', set by the page in the details' `report` slot, which hands it the space's slug, name and verification, at the end of the main column (2026-10-28, #129). The closure's notice is built: the details carry the space's announcements, and the page sets `announcements`' notice in the `notice` slot above the page and its section in the `announcements` slot after the status, before the prices (U8, 2026-10-28, #129).
 - **A page not found says «لم نجد هذه المساحة», and an unverified space's notice and dialog say «فريقنا»** (design issues 25, 26). *Why:* «غير متاحة» read as full; «فريق مساحة» read as the space's team. 2026-10-22, #107.
 - **A section with nothing saved is not drawn, but the prices and the hours say so** (design issues 24, 33, 35). *Why:* the prototype's rule; a visitor needs to know a price or an hour is missing, not hidden. 2026-10-22, #107.
 - **Contacts' labels are Arabic in Arabic, their values as stored, left to right** (design issue 30). 2026-10-22, #107.
@@ -150,7 +150,6 @@ The page's announcements are answered by the API, not shown on the site yet.
 
 ## Open findings
 
-- [131](../architecture/findings/131-the-space-page-cannot-show-a-closures-notice.md): the space page cannot show a closure's notice.
 - [134](../architecture/findings/134-each-render-of-the-map-rebuilds-every-marker.md): each render of the map rebuilds every marker.
 - [135](../architecture/findings/135-in-dark-the-maps-marks-disagree-with-its-legend.md): in dark, the map's marks disagree with its legend.
 - [136](../architecture/findings/136-near-mes-wait-counts-the-time-at-the-permission-prompt.md): near me's wait counts the time at the permission prompt.
@@ -184,3 +183,4 @@ The page's announcements are answered by the API, not shown on the site yet.
 - #111 — the live status's badge and words, for About's legend.
 - 2026-10-28, #129 — the cards' and the page's actions, told whether the user saved the space; the page's report slot.
 - 2026-10-28, #129 — «المفضّلة»: the user's favourites as cards, newest saved first or nearest first, and the spaces that left with «إزالة».
+- 2026-10-28, #129 — the page's announcements: the `notice` and `announcements` slots, in U8's order (finding 131).
