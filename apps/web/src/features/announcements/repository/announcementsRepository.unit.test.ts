@@ -62,6 +62,27 @@ describe('the announcements repository', () => {
     expect(requests.map(lineOf)).toEqual(['get /manage/spaces/7/announcements/summary']);
   });
 
+  it('posts an announcement with its key', async () => {
+    const requests = serve(() => ({ status: 201, data: { success: true, data: { id: 5 } } }));
+    const body = { type: 'CLOSURE' as const, textAr: 'مغلق' };
+
+    await expect(createAnnouncementsRepository().create(7, body, 'key-1')).resolves.toEqual({
+      id: 5,
+    });
+    expect(requests.map(lineOf)).toEqual(['post /manage/spaces/7/announcements']);
+    expect(JSON.parse(String(requests[0]?.data))).toEqual(body);
+    expect(requests[0]?.headers.get('Idempotency-Key')).toBe('key-1');
+  });
+
+  it('edits with a PATCH of what changed, and no key', async () => {
+    const requests = serve(() => ({ status: 200, data: { success: true, data: { id: 5 } } }));
+
+    await createAnnouncementsRepository().edit(7, 5, { textEn: null, endsAt: null });
+    expect(requests.map(lineOf)).toEqual(['patch /manage/spaces/7/announcements/5']);
+    expect(JSON.parse(String(requests[0]?.data))).toEqual({ textEn: null, endsAt: null });
+    expect(requests[0]?.headers.get('Idempotency-Key')).toBeUndefined();
+  });
+
   it('rejects with the AppError the transport made', async () => {
     serve(() => ({
       status: 403,

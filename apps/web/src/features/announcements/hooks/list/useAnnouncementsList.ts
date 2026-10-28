@@ -83,10 +83,12 @@ export function useAnnouncementsList(spaceId: number, { owner }: { owner: boolea
     return {
       key: String(announcement.id),
       id: announcement.id,
+      announcement,
       type: { label, tone },
       period: periodText(announcement, language, now, words.period),
       text: textOf(announcement, language),
       closureLine: closureLine(announcement, owner, words.closure),
+      edit: announcement.state === 'ENDED' ? null : { label: words.actions.edit },
     };
   });
 
@@ -103,6 +105,8 @@ export function useAnnouncementsList(spaceId: number, { owner }: { owner: boolea
       const state = ANNOUNCEMENT_STATES.find((each) => each === value);
       if (state !== undefined) filters.choose(state);
     },
+    /** «إعلان جديد», at the end of the tabs' row and in an empty tab. */
+    create: { label: words.actions.new },
     listLabel: words.list.label,
     state:
       query.isPending || pastLast

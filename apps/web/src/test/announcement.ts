@@ -18,6 +18,20 @@ export function announcement(change: Partial<ManagedAnnouncement> = {}): Managed
   };
 }
 
+/**
+ * An announcement posted «الآن»: the server keeps its start with the seconds of the moment it was
+ * posted (here 08:00:42.123 in Gaza on 21 October 2026), which the sheet shows to the minute.
+ */
+export function announcementPostedNow(
+  change: Partial<ManagedAnnouncement> = {},
+): ManagedAnnouncement {
+  return announcement({
+    startsAt: '2026-10-21T05:00:42.123Z',
+    endsAt: '2026-10-21T15:00:07.900Z',
+    ...change,
+  });
+}
+
 /** A running closure, not extended: 08:00 on 20 October to 18:00 on 22 October 2026 in Gaza. */
 export function closure(change: Partial<ManagedAnnouncement> = {}): ManagedAnnouncement {
   return announcement({

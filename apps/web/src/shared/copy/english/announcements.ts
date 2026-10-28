@@ -50,6 +50,61 @@ export const ANNOUNCEMENTS = {
     ENDED: 'No ended announcements',
     text: 'Announce a closure, an outage, an offer or an event for visitors to see on the space page.',
   },
+  /** The list's actions on a card and at the end of the tabs. */
+  actions: {
+    new: 'New announcement',
+    edit: 'Edit',
+  },
+  /** The sheet that posts an announcement or edits one. */
+  sheet: {
+    new: 'New announcement',
+    edit: 'Edit announcement',
+    description: 'Shown on the space’s public page during the period.',
+    close: 'Close',
+    type: 'Type',
+    textAr: 'Text in Arabic',
+    textArHelper: 'A sentence or two visitors read on the space page.',
+    textEn: 'Text in English',
+    textEnHelper: 'Shown in the English interface; without it, the Arabic text shows.',
+    optional: 'Optional',
+    starts: 'Starts',
+    ends: 'Ends',
+    now: 'Now',
+    at: 'At a time',
+    noEnd: 'No end',
+    noEndHelp: 'It stays until you end it.',
+    date: 'Date',
+    time: 'Time',
+    chooseDate: 'Choose a date',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    closure:
+      'Visitors see the space as “Closed now” for this whole period, and the desk is warned at check-in.',
+    preview: 'Preview — the space’s public page',
+    publish: 'Publish',
+    save: 'Save',
+    failed: 'We couldn’t save the announcement',
+    nothingChanged: 'Nothing changed',
+    lost: 'No answer came back. Try again — it won’t be published twice.',
+    fields: {
+      textArRequired: 'Enter the Arabic text',
+      startRange: 'The start is between 30 days ago and 365 days ahead.',
+      endRange: 'The end comes after now and after the start, within 365 days of it.',
+    },
+    gone: 'This announcement no longer exists.',
+  },
+  /** What a write's toast says, and where the announcement went. */
+  toast: {
+    published: 'Announcement published',
+    saved: 'Announcement saved',
+    inTab: ({ tab }: { tab: string }) => `In “${tab}”`,
+    show: 'Show',
+  },
+  /** The space's public page, as the sheet's preview draws it. */
+  public: {
+    title: 'Announcements',
+    notice: ({ period }: { period: string }) => `An announcement from the space · ${period}`,
+  },
   list: {
     label: 'Announcements',
     loadFailed: 'We couldn’t load the announcements',

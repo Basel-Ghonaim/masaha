@@ -102,6 +102,37 @@ describe('AnnouncementsList', () => {
     });
   });
 
+  it('opens the sheet from «New announcement», and gives the focus back to it once closed', async () => {
+    stubScreenWidth(1440);
+    const user = userEvent.setup();
+    renderList(ROWS);
+
+    const create = await screen.findByRole('button', { name: 'New announcement' });
+    await user.click(create);
+    expect(await screen.findByRole('dialog', { name: 'New announcement' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    expect(create).toHaveFocus();
+  });
+
+  it('offers «Edit» on a running or upcoming card, and none on an ended one', async () => {
+    stubScreenWidth(1440);
+    const user = userEvent.setup();
+    renderList([announcement({ id: 1 }), announcement({ id: 2, state: 'ENDED' })]);
+
+    const list = await screen.findByRole('region', { name: 'Announcements' });
+    const [running, ended] = await within(list).findAllByRole('listitem');
+    if (running === undefined || ended === undefined) throw new Error('Two cards');
+    expect(within(ended).queryByRole('button', { name: 'Edit' })).toBeNull();
+    await user.click(within(running).getByRole('button', { name: 'Edit' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Edit announcement' });
+    expect(within(sheet).getByRole('textbox', { name: 'Text in English' })).toHaveValue(
+      'A design workshop on Thursday evening',
+    );
+  });
+
   it('draws three skeleton cards while the list loads, the list busy', () => {
     stubScreenWidth(1440);
     fakeTransport(() => new Promise(() => undefined));

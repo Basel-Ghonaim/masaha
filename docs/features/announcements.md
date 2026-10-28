@@ -50,6 +50,8 @@
 
 **The announcements on the web** (`features/announcements`, composed by `pages/dashboard/space/announcements/`). «الإعلانات», the owner's and reception's, reads the managed list and its summary (S2): the tabs «نشطة · مجدولة · منتهية», each with the summary's count (a skeleton while it loads), the tab and the page in the address (`?state=upcoming|ended&page=`, running not written; a value the server would refuse falls back to running, a change replaces the address and returns to page 1). Each announcement of the tab is a card, in the server's order: its type as its heading's badge — `warning` for an outage or a closure, `neutral` otherwise —, its period on Gaza's clock («1 أكتوبر 08:00–18:00», «1 أكتوبر 08:00 – 3 أكتوبر 18:00», «من 1 أكتوبر 08:00 · بلا نهاية», the year when it is not this one), its text in the interface's language — the Arabic, marked as Arabic, when an English one is missing — and a closure's line: «يمكن تمديد الاشتراكات بعد أن يبدأ الإغلاق.» for the owner on one not started, «يمدّد المالك الاشتراكات بعد بدء الإغلاق.» for reception on one started and not extended. No status badge: the tab says it. Its states: three skeleton cards while it loads, the list marked busy; a failure with its reference and a retry; a failed refresh over the cards shown; each tab's empty state; the pages only past one page.
 
+**The sheet on the web** (`AnnouncementSheet`). «إعلان جديد», at the end of the tabs' row and in an empty tab, and «تعديل», on a running or upcoming card, open the end sheet, full width on a phone, its first focus on the checked type's radio: the type with what it does; the Arabic text, required; the English one, «اختياري»; «يبدأ: الآن · في موعد» (a new one only: an edit moves the start by its date and time) and «ينتهي: في موعد · بلا موعد», each date on a calendar («29 سبتمبر 2026», Gaza's today marked) and its time, on Gaza's clock and sent as its instant, never the browser's; a closure's line, «تظهر المساحة «مغلق الآن» للزوار طوال هذه الفترة، ويُنبَّه الاستقبال عند تسجيل الحضور.»; the preview of the space's page, drawn by the page's own pieces (an item, or a closure's notice). The post carries one `Idempotency-Key` per opening of the sheet, kept across the transport's re-sends, a second press and «إعادة المحاولة»; no answer says «لم يصل الرد. أعد المحاولة — لن يُنشر مرتين.». An edit sends only what changed, once and with no key (`textEn: null` for an English text cleared, `endsAt: null` for «بلا موعد»), a start or an end compared at its Gaza date and minute as the sheet shows it, so one kept by the server with its seconds is never sent untouched; one that changed nothing says «لم يتغيّر شيء» and sends nothing. The server's period refusals land on their time fields; `CLOSURE_EXTENDED`, a 404 and a 403 are worded, a 404 or a 409 reads the list again, a 404 or a 403 with no code the user's spaces. Done, the whole space is read again and the toast names the tab the announcement went to, with «عرض», which opens it. Closed, the focus goes back to the control that opened the sheet.
+
 **An extended closure.** Once its subscriptions were extended ([`subscriptions`](subscriptions.md)), an edit giving it a new type or start, a later end or no end, and its delete, are refused `CLOSURE_EXTENDED`, writing nothing; its text and an earlier end, end now included, change. The database's trigger refuses them ([data model › Constraints](../architecture/data-model.md#constraints-worth-stating)); this module asks nothing of the extensions.
 
 ## Decisions
@@ -74,12 +76,21 @@
 - **A loading state of three skeleton cards, the counts as skeletons** (DI-23), the list `aria-busy`. 2026-10-28, #129.
 - **The pages show only past one page** (DI-26): the tab already counts. 2026-10-28, #129.
 - **An English text missing shows the Arabic, marked** `lang="ar" dir="rtl"` (DI-27). 2026-10-28, #129.
+- **The post carries one key per opening of the sheet** (S4): kept across the transport's re-sends, a second press, «إعادة المحاولة» and an edit of the form; a new opening is a new intent. An edit is idempotent by design: sent once, with no key. 2026-10-28, #129.
+- **Gaza's clock for every date and time** (S9): the sheet's date and time are Gaza's wall clock, sent as `gazaInstant(date, minute)`; a loaded instant is shown by `gazaClockOf`. 2026-10-28, #129.
+- **Every write reads the whole space again** (S12): a closure written, ended, started or deleted changes the space's state now, and an extension moves subscriptions' ends. 2026-10-28, #129.
+- **The sheet's first focus is the checked type's radio** (DI-21), placed by the sheet itself, with the layer's ring. 2026-10-28, #129.
+- **The date over the time below 640 px, the date's trigger with the short month and the year** (DI-22). 2026-10-28, #129.
+- **Each write's toast names the tab it went to, with «عرض»** (DI-24): an announcement that moves tab is never lost from sight. 2026-10-28, #129.
+- **The preview draws the public page's own pieces on a muted surface** (DI-25): `AnnouncementItem` and `ClosureNotice`, the components the space's page will set. 2026-10-28, #129.
+- **A closure's consequence said in the sheet** (DI-29), as a warning. 2026-10-28, #129.
+- **The period's refusals on their fields, in the contract's words** (DI-30): «البداية بين 30 يومًا مضت و365 يومًا قادمة.», «النهاية بعد الآن، وبعد البداية، وخلال 365 يومًا منها.». 2026-10-28, #129.
 
 ## Code map
 
 - `apps/api/src/modules/announcements/` — the module: its service, its repository, its manage router, and the pure rules (`announcementState`, `period`, `announcementChange`, `closureSpan`).
 - `packages/shared/src/announcements/` — the requests and answers.
-- **Web:** `apps/web/src/features/announcements/`, entry `index.ts` (`AnnouncementsList`), read by `pages/dashboard/space/announcements/AnnouncementsPage.tsx`, which reads the role at the space: the repository in `repository/`; the keys and the list's tab in the address and its view (`list/`) in `hooks/`; the address's query (`announcementsQueryOf`), the period's words (`periodText`), a type's (`typeView`) and the text in the interface's language (`textOf`) in `services/`; the list, its card and a closure's line (`list/`) in `components/`. Words: the catalogue's `announcements` section; the refusals are `errors`'.
+- **Web:** `apps/web/src/features/announcements/`, entry `index.ts` (`AnnouncementsList`), read by `pages/dashboard/space/announcements/AnnouncementsPage.tsx`, which reads the role at the space: the repository in `repository/`; the keys, the list's tab in the address and its view (`list/`), the sheet and its post and edit (`sheet/`) and the writes' shared invalidation (`useAnnouncementsWrite`) in `hooks/`; the address's query (`announcementsQueryOf`), the period's words (`periodText`), a type's (`typeView`), the text in the interface's language (`textOf`) and the sheet's requests (`sheetRequest`) in `services/`; the list, its card and a closure's line (`list/`), the sheet, its type and its period (`sheet/`), the public page's item and closure notice, not exported yet (`public/`), and the toasts (`toast/`) in `components/`. Words: the catalogue's `announcements` section; the refusals are `errors`'.
 
 ## Open findings
 
@@ -94,4 +105,4 @@ None.
 
 ### Web history
 
-- #129 — «الإعلانات», the owner's and reception's: the announcements by state, with their counts.
+- #129 — «الإعلانات», the owner's and reception's: the announcements by state, with their counts; a new announcement and its edit in a sheet, with the preview of the space's page.

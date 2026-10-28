@@ -14,14 +14,33 @@ import {
   TabsTrigger,
 } from '@shared/design-system';
 import { ListPagination } from '@shared/lists';
+import { useRef, useState } from 'react';
 import {
   useAnnouncementsList,
   type AnnouncementsListView,
 } from '../../hooks/list/useAnnouncementsList';
+import type { SheetEntry } from '../../types/SheetEntry';
+import { AnnouncementSheet } from '../sheet/AnnouncementSheet';
 import { AnnouncementCard } from './AnnouncementCard';
 
+type Open = (entry: SheetEntry, trigger: HTMLElement) => void;
+
+/** «إعلان جديد», which opens the sheet for a new announcement. */
+function NewButton({ label, open, className }: { label: string; open: Open; className?: string }) {
+  return (
+    <Button
+      className={className}
+      onClick={(event) => {
+        open({ mode: 'new' }, event.currentTarget);
+      }}
+    >
+      {label}
+    </Button>
+  );
+}
+
 /** What stands in for the cards: the skeletons, the failure with its retry, or the tab's empty state. */
-function ListState({ list }: { list: AnnouncementsListView }) {
+function ListState({ list, open }: { list: AnnouncementsListView; open: Open }) {
   if (list.state === 'loading') {
     return (
       <>
@@ -53,7 +72,9 @@ function ListState({ list }: { list: AnnouncementsListView }) {
       icon={<MegaphoneIcon aria-hidden />}
       title={list.empty.title}
       description={list.empty.text}
-    />
+    >
+      <NewButton label={list.create.label} open={open} />
+    </EmptyState>
   );
 }
 
@@ -62,9 +83,17 @@ function ListState({ list }: { list: AnnouncementsListView }) {
  * its count as a badge (a skeleton while the counts load); then the tab's announcements, a card each
  * (DI-15), the list marked busy while another page or tab loads; three skeleton cards while it loads
  * (DI-23), the failure with its retry, the tab's empty state; the pages past one page only (DI-26).
+ * «إعلان جديد» at the end of the tabs' row and a card's «تعديل» open the sheet, mounted anew for each
+ * opening (its key is that opening's, S4); closed, the focus goes back to the control that opened it.
  */
 export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: boolean }) {
   const list = useAnnouncementsList(spaceId, { owner });
+  const [sheet, setSheet] = useState<{ entry: SheetEntry; opening: number } | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const open: Open = (entry, trigger) => {
+    opener.current = trigger;
+    setSheet((before) => ({ entry, opening: (before?.opening ?? 0) + 1 }));
+  };
 
   return (
     <Tabs value={list.tab} onValueChange={list.choose} className="max-w-4xl">
@@ -81,6 +110,7 @@ export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: 
             </TabsTrigger>
           ))}
         </TabsList>
+        <NewButton label={list.create.label} open={open} className="ms-auto" />
       </div>
       <TabsContent value={list.tab} className="flex flex-col gap-4">
         {list.refreshFailure !== null && (
@@ -95,16 +125,28 @@ export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: 
             <ul className="flex flex-col gap-4">
               {list.cards.map((card) => (
                 <li key={card.key}>
-                  <AnnouncementCard card={card} />
+                  <AnnouncementCard card={card} open={open} />
                 </li>
               ))}
             </ul>
           ) : (
-            <ListState list={list} />
+            <ListState list={list} open={open} />
           )}
         </section>
         {list.pagination !== null && <ListPagination pagination={list.pagination} />}
       </TabsContent>
+      {sheet !== null && (
+        <AnnouncementSheet
+          key={sheet.opening}
+          spaceId={spaceId}
+          entry={sheet.entry}
+          showTab={list.choose}
+          returnFocus={() => opener.current}
+          onClose={() => {
+            setSheet(null);
+          }}
+        />
+      )}
     </Tabs>
   );
 }
