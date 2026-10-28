@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-27 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -883,7 +883,7 @@ The audit log's reader (`audit`, [conventions §6](../backend/conventions.md#6-a
 - **`actions`:** a comma list of the actions the API writes (`AUDIT_ACTIONS`, `@masaha/shared/audit`), at most 30, a repeat counted once: `invalid_choice` for an unknown one, `too_long` past 30.
 - **Every filter applies before the page is cut** (§4), so `totalRecords` counts what they keep. Newest first, then the higher id.
 - **The actor:** `PERSON`, named, for anyone with a link of any state to the space — one whose link ended is still named; `MASAHA`, never named and with no id, for anyone with none: the admin; `SYSTEM` for the timed jobs.
-- **The target:** its type and id, and its current name where it has one — a space's and a lookup's in both languages; a person's, a customer's, a subscription's, a package's; a visit's visitor, else its customer; a check-in's customer. A payment, an announcement and a data report have none: the client words them from `before` and `after`. `deleted` marks a deleted space or announcement; an archived customer is not deleted.
+- **The target:** its type and id, and its current name where it has one — a space's and a lookup's in both languages; a person's, a customer's, a subscription's, a package's; a visit's visitor, else its customer; a check-in's customer. A payment, an announcement, a data report and the platform's settings have none (a setting has no id either: `id` is `null`, 2026-10-28, #130): the client words them from `before` and `after`. `deleted` marks a deleted space or announcement; an archived customer is not deleted.
 - **`before` and `after` as stored;** the writer never stores a secret ([security › Passwords](../backend/security.md#passwords)). `action` as stored: one written later and not yet on `AUDIT_ACTIONS` is still answered.
 
 ```ts
@@ -891,8 +891,9 @@ AuditActor = { kind: 'PERSON', id: number, name: string } | { kind: 'MASAHA' } |
 
 AuditTarget = {
   type: AuditEntityType,            // space, user, governorate, area, amenity, dataReport, customer,
-                                    // subscription, checkIn, visit, payment, package, announcement
-  id: number | null,
+                                    // subscription, checkIn, visit, payment, package, announcement,
+                                    // platformSettings
+  id: number | null,                // null for the platform's settings
   name: string | null,              // its current name; a space's or a lookup's English
   nameAr: string | null,            // a space's or a lookup's Arabic
   deleted: boolean                  // a deleted space or announcement
@@ -924,7 +925,7 @@ AuditMeta = §4's meta & {
 
 #### `GET /admin/audit-log` · 🛡
 - **Query:** `period`, `q`, `actions`, `actor` — a person's id (`invalid_format`, `out_of_range`) — and §4's `page` and `limit`. `q` also finds every entry of a space by the space's names.
-- **200:** `PlatformAuditEntry[]`, with `AuditMeta`: only the platform's events — the spaces' public facts and their confirmations, their photos, their creation, hiding, deletion and restoring, and their owners linked and unlinked, whoever acted; the lookups; the data reports' decisions; an account's creation, role, suspension, temporary passwords and email, only when the entry names no space. **Never** an entry about a space's customers, subscriptions, check-ins, visits, payments, packages, announcements or closure extensions, its capacity, its live-status override, its settings or its staff, an owner's reception account's included; an action on no list is never answered ([conventions §6](../backend/conventions.md#6-audit), [ADR 0002](../architecture/decisions/0002-authorization-model.md)).
+- **200:** `PlatformAuditEntry[]`, with `AuditMeta`: only the platform's events — the spaces' public facts and their confirmations, their photos, their creation, hiding, deletion and restoring, and their owners linked and unlinked, whoever acted; the lookups; the data reports' decisions; the platform's settings ([Platform settings](#platform-settings)); an account's creation, role, suspension, temporary passwords and email, only when the entry names no space. **Never** an entry about a space's customers, subscriptions, check-ins, visits, payments, packages, announcements or closure extensions, its capacity, its live-status override, its settings or its staff, an owner's reception account's included; an action on no list is never answered ([conventions §6](../backend/conventions.md#6-audit), [ADR 0002](../architecture/decisions/0002-authorization-model.md)).
 - **Errors:** `unauthorized` (401), `forbidden` (403), and `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`, by `/admin`'s guard; `validation` (422) on the query.
 
 ### Internal
@@ -1362,6 +1363,53 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 - **Body:** `{ isSuspended: boolean }`.
 - **204:** the account is suspended, or restored. A suspension ends every session of the account and every pending reset link, and its unexpired access tokens are refused from its next request, and still once it is restored ([security.md](../backend/security.md#authorization)); its links to spaces are kept, so a suspended owner's space stays verified. A restore ends nothing. Audited `user.suspended` or `user.unsuspended` (`before` and `after`: `{ isSuspended }`), with the account as the entity; setting what it already is writes nothing.
 - **Errors**, a refusal writing nothing: `validation` (422); `conflict` (409) `OWN_ACCOUNT` for the admin's own account; `conflict` (409) `LAST_ADMIN` when it would leave the platform with no active admin, which only a change made meanwhile by another admin can cause; `not_found` (404) for an unknown account.
+
+### Platform settings
+
+The platform's settings, as the admin edits them ([data-model › Operations](../architecture/data-model.md#operations), *Setting*; [conventions §9](../backend/conventions.md#settings-three-screens-three-owners)): three cards, each its own resource, read and saved whole and on its own, so one card's refusal never touches another's (AD-029). Every route needs an `ADMIN`'s access token (🛡), refused as for the lookups: `unauthorized` (401) without one, `forbidden` (403) for any other role, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending. Built 2026-10-28, #130.
+
+- **A save** writes, in one transaction, only the card's fields set to a new value, the card's rows locked by key ([conventions §13](../backend/conventions.md#concurrency)): two saves of one card at once are one after the other, the second's `before` the first's `after`. A save that changes nothing writes nothing and answers the card as it is. A refusal writes nothing.
+- **Audit**, in the save's own transaction ([conventions §6](../backend/conventions.md#6-audit)): `platformSettings.newSpaceDefaultsEdited`, `platformSettings.stalenessEdited` or `platformSettings.contactEdited`, the entity type `platformSettings` with no id and no space, `before` and `after` only the fields that changed. They are on the admin's log ([Audit log](#audit-log)).
+- **The new-space defaults** (`newSpaceDefaultsSchema`, `@masaha/shared/space-settings`): `autoCheckoutAtClosing` and `visitCapAtDayPrice`, switches; `visitRounding` and `visitRoundingMinutes`, with the rules and codes of [Settings (managed)](#settings-managed); all four required (`required`). A new space's settings are copied from them when it is created; a saved default never changes an existing space.
+- **The staleness thresholds** (`stalenessSchema`, `@masaha/shared/platform-settings`): `stalenessDays` (every fact group but the prices) and `priceStalenessDays`, whole days from 1 to 365 (`STALENESS_DAYS_MAX`; `out_of_range`, `invalid_format` when not whole), both required. A saved threshold applies at once, to every read of a space's stale groups.
+- **The contact** (`platformContactSchema`): `email`, stored lowercased (`invalid_format`), and `whatsapp`, a Palestinian or Israeli number stored in its E.164 form (`invalid_format` otherwise), both sent (`required`), `null` clearing one. Each is `null` while unset.
+
+```ts
+NewSpaceDefaults = {
+  autoCheckoutAtClosing: boolean,
+  visitRounding: "UP_AFTER_MINUTES" | "NEAREST_HALF_HOUR" | "PER_MINUTE",
+  visitRoundingMinutes: number | null,   // set exactly for UP_AFTER_MINUTES
+  visitCapAtDayPrice: boolean
+}
+
+StalenessThresholds = { stalenessDays: number, priceStalenessDays: number }   // whole days, 1–365
+
+PlatformContact = { email: string | null, whatsapp: string | null }          // whatsapp E.164
+```
+
+#### `GET /admin/settings/new-space-defaults` · 🛡
+- **200:** `NewSpaceDefaults`.
+
+#### `PUT /admin/settings/new-space-defaults` · 🛡
+- **Body:** `NewSpaceDefaults`, whole.
+- **200:** `NewSpaceDefaults`, as saved. Audited `platformSettings.newSpaceDefaultsEdited`.
+- **Errors:** `validation` (422), each field with its codes.
+
+#### `GET /admin/settings/staleness` · 🛡
+- **200:** `StalenessThresholds`.
+
+#### `PUT /admin/settings/staleness` · 🛡
+- **Body:** `StalenessThresholds`, whole.
+- **200:** `StalenessThresholds`, as saved. Audited `platformSettings.stalenessEdited`.
+- **Errors:** `validation` (422).
+
+#### `GET /admin/settings/contact` · 🛡
+- **200:** `PlatformContact`, `null` for what is unset.
+
+#### `PUT /admin/settings/contact` · 🛡
+- **Body:** `{ email, whatsapp }`, each a value or `null`.
+- **200:** `PlatformContact`, as saved (normalised). Audited `platformSettings.contactEdited`.
+- **Errors:** `validation` (422).
 
 ## 6. Domain error codes (initial)
 

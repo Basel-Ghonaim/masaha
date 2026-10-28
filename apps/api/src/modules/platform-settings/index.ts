@@ -1,4 +1,9 @@
 export {
+  createPlatformSettingsController,
+  type PlatformSettingsController,
+} from './platform-settings.controller.ts';
+export { createPlatformSettingsAdminRouter } from './platform-settings.admin.routes.ts';
+export {
   createPlatformSettingsService,
   type PlatformSettingsService,
   type StalenessThresholds,

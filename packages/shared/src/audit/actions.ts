@@ -35,6 +35,9 @@ export const AUDIT_ACTIONS = [
   'package.edited',
   'payment.recorded',
   'payment.voided',
+  'platformSettings.contactEdited',
+  'platformSettings.newSpaceDefaultsEdited',
+  'platformSettings.stalenessEdited',
   'space.amenitiesConfirmed',
   'space.amenitiesEdited',
   'space.capacityEdited',
@@ -99,6 +102,7 @@ export const AUDIT_ENTITY_TYPES = [
   'payment',
   'package',
   'announcement',
+  'platformSettings',
 ] as const;
 
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];

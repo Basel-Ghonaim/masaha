@@ -2,8 +2,8 @@ import { Prisma } from '../../generated/prisma/client.ts';
 
 /**
  * The platform's events, whatever space they name: the spaces' public facts and existence, their
- * owners, the lookups and the data reports' decisions (ADR 0002: the admin keeps every space's
- * existence and moderation). The admin's log shows nothing else (default deny).
+ * owners, the lookups, the data reports' decisions and the platform's settings (ADR 0002: the admin
+ * keeps every space's existence and moderation). The admin's log shows nothing else (default deny).
  */
 export const PLATFORM_ACTIONS = [
   'space.created',
@@ -40,6 +40,9 @@ export const PLATFORM_ACTIONS = [
   'amenity.restored',
   'dataReport.resolved',
   'dataReport.dismissed',
+  'platformSettings.newSpaceDefaultsEdited',
+  'platformSettings.stalenessEdited',
+  'platformSettings.contactEdited',
 ] as const;
 
 /**

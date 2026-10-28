@@ -199,6 +199,61 @@ describe("the admin's log", () => {
     ]);
   });
 
+  it("the three settings actions are on the admin's log, the target typed platformSettings with no id", async () => {
+    await prisma.setting.createMany({
+      data: [
+        { key: 'stalenessDays', value: 60 },
+        { key: 'priceStalenessDays', value: 30 },
+        {
+          key: 'newSpaceDefaults',
+          value: {
+            autoCheckoutAtClosing: true,
+            visitRounding: 'PER_MINUTE',
+            visitRoundingMinutes: null,
+            visitCapAtDayPrice: true,
+          },
+        },
+      ],
+    });
+    const saves = [
+      await adminRequest(app, admin, 'put', '/settings/new-space-defaults', {
+        autoCheckoutAtClosing: false,
+        visitRounding: 'PER_MINUTE',
+        visitRoundingMinutes: null,
+        visitCapAtDayPrice: true,
+      }),
+      await adminRequest(app, admin, 'put', '/settings/staleness', {
+        stalenessDays: 45,
+        priceStalenessDays: 30,
+      }),
+      await adminRequest(app, admin, 'put', '/settings/contact', {
+        email: 'hello@masaha.ps',
+        whatsapp: null,
+      }),
+    ];
+    expect(saves.map(({ status }) => status)).toEqual([200, 200, 200]);
+
+    const response = await log('?period=ALL');
+
+    expect(response.status).toBe(200);
+    expect(
+      (dataOf(response) as (Row & { target: { type: string; id: number | null } })[]).map(
+        ({ action, actor, target, space }) => ({ action, actor, target, space }),
+      ),
+    ).toEqual(
+      [
+        'platformSettings.contactEdited',
+        'platformSettings.stalenessEdited',
+        'platformSettings.newSpaceDefaultsEdited',
+      ].map((action) => ({
+        action,
+        actor: { kind: 'PERSON', id: admin.id, name: 'Rami' },
+        target: { type: 'platformSettings', id: null, name: null, nameAr: null, deleted: false },
+        space: null,
+      })),
+    );
+  });
+
   it("q finds a space's entries by its name, a person's by name, an area's by its Arabic name; each entry carries its space, a deleted one marked", async () => {
     const area = await prisma.area.findFirstOrThrow();
     const nadia = await createUser('nadia@example.com');
