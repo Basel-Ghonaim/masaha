@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-27 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -144,6 +144,7 @@ Each step names its goal and points to what supports it:
 - **Closes:** [finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md): the owner's audit screen.
 - **Built early:** the space's settings and its capacity, on the API (#92, [api-contract › Settings (managed)](../api/api-contract.md#settings-managed)), ahead of the front desk; screen 24 remains here.
 - **Settles:** charts and CSV exports.
+- **Built:** the audit reader, on the API: the owner's log of the space, the admin shown as Masaha, and the admin's log of the platform's events, by a default-deny list (2026-10-27, #128).
 
 ### 12. Overviews
 
@@ -244,7 +245,7 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | GET / POST | `/manage/spaces/:spaceId/announcements/:id/extend-subscriptions` | 🧾 / 🏢 | closure notices only: the preview, the staff's; the extension of the subscriptions it covered, the owner's, once per closure (built, #123) |
 | GET | `/manage/spaces/:spaceId/finance/...` | 🏢 | summary, income by month, visit income per day, debtors and payers, collections per staff member, occupancy (by hour, by day, peaks, average stay); CSV export |
 | GET / PATCH | `/manage/spaces/:spaceId/data-reports[/:id]` | 🏢 | resolve with an optional note, or dismiss with a required one (the owner keeps them once the space is verified; built, #120) |
-| GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | |
+| GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | every entry of the space, the admin as Masaha; paged, the last 30 days or all, searched and filtered (built, #128) |
 
 #### Admin (`/admin/...`, 🛡)
 Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile and facts edits, a group at a time, and the confirming of a group unchanged while it is unverified, and hiding and showing, soft delete and restore of any space; the users, `GET /admin/users`, the list with its search and its role and state filters, which the owners page reads filtered to the owners; the owners, `/admin/owners`, added with a new account or an upgraded one, and `/admin/spaces/:spaceId/owners`, linked and unlinked one space at a time; a temporary password's handover, `/admin/users/:userId/temporary-password/handover`; suspension, `/admin/users/:userId/suspended`; the role change, `/admin/users/:userId/role`; and the admin's temporary password, `/admin/users/:userId/temporary-password`; a space's photos, `/admin/spaces/:spaceId/photos`: the list, an upload, a removal and the order ([api-contract §5](../api/api-contract.md#5-endpoints)); the data reports, `/admin/data-reports`: every report with its reporter, and the decision of an unverified space's (#120).
@@ -253,7 +254,7 @@ Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and
 |---|---|---|
 | GET | `/admin/stats` | aggregate numbers only |
 | GET / PATCH | `/admin/data-reports[/:id]` | read all; resolve (with an optional note) or dismiss (with a required one) those of unverified spaces (built, #120) |
-| GET | `/admin/audit-log` | |
+| GET | `/admin/audit-log` | the platform's events only, by a default-deny list (built, #128) |
 | GET / PATCH | `/admin/settings` | contact info, defaults |
 
 ## Data model

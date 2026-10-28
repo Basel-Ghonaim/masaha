@@ -43,6 +43,8 @@ interface Dependencies {
   audit: AuditWriter;
   /** The one clock (conventions §11): suspensions, and temporary passwords' expiry. */
   now: () => Date;
+  /** The space whose reception the account is, if any (`space-links`, a level above): passed in. */
+  receptionSpaceOf: (userId: number, tx: Tx) => Promise<number | null>;
   repository?: UsersRepository;
   sessions?: SessionsService;
   runInTransaction?: RunInTransaction;
@@ -140,6 +142,7 @@ export function createUsersService({
   limiter,
   audit,
   now,
+  receptionSpaceOf,
   repository = createUsersRepository(),
   sessions = createSessionsService(),
   runInTransaction = createRunInTransaction(),
@@ -497,14 +500,16 @@ export function createUsersService({
 
     /**
      * An account created by someone else, with a temporary password to change at its first
-     * sign-in, audited `user.created`; the password is in no entry. Nothing when the email already
-     * has an account, which then ends the caller's transaction.
+     * sign-in, audited `user.created`, with the space when an owner creates it for their staff; the
+     * password is in no entry. Nothing when the email already has an account, which then ends the
+     * caller's transaction.
      */
     async createWithTemporaryPassword(
       { name, email, role }: CreatedAccount,
       passwordHash: string,
       actorId: number,
       tx: Tx,
+      spaceId?: number,
     ): Promise<Account | null> {
       const created = await repository.create(
         {
@@ -524,6 +529,7 @@ export function createUsersService({
           action: 'user.created',
           entityType: 'user',
           entityId: created.account.id,
+          ...(spaceId !== undefined && { spaceId }),
           after: { name, email, role, mustChangePassword: true },
         },
         tx,
@@ -625,7 +631,8 @@ export function createUsersService({
      * first one through the reset email instead. Wrong current passwords count under a per-user
      * limit. Every session of the user ends, any pending reset link with them, and this device's
      * goes on in a new one. The forced change also takes the email, confirmed or corrected (its
-     * address was typed by someone else): a correction is audited, and a taken one changes nothing.
+     * address was typed by someone else): a correction is audited, with the space when the account
+     * is a space's reception, and a taken one changes nothing.
      */
     async changePassword(
       userId: number,
@@ -671,12 +678,14 @@ export function createUsersService({
               if ((await repository.setEmail(userId, email, tx)) === 'taken') {
                 throw AppError.conflict('EMAIL_TAKEN', 'Email taken', { email: ['not_unique'] });
               }
+              const spaceId = await receptionSpaceOf(userId, tx);
               await audit(
                 {
                   actorId: userId,
                   action: 'user.emailChanged',
                   entityType: 'user',
                   entityId: userId,
+                  ...(spaceId !== null && { spaceId }),
                   before: { email: locked.email },
                   after: { email },
                 },

@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-27 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -162,7 +162,7 @@ RecoveryPosition =
 The signed-in user's own account. Each endpoint needs the access token.
 
 #### `POST /me/password` · 👤, also while a temporary password is pending
-- **Body:** `{ currentPassword?, password, email? }`. The new password follows the policy. `currentPassword` is required unless a temporary password is pending (the forced change), as both the access token and the account say. `email` is taken only during the forced change: the address someone else typed, confirmed, or corrected, which is audited `user.emailChanged` ([security.md](../backend/security.md#passwords)); the same address changes nothing.
+- **Body:** `{ currentPassword?, password, email? }`. The new password follows the policy. `currentPassword` is required unless a temporary password is pending (the forced change), as both the access token and the account say. `email` is taken only during the forced change: the address someone else typed, confirmed, or corrected, which is audited `user.emailChanged` ([security.md](../backend/security.md#passwords)), with the space of the account's reception link when it has one; the same address changes nothing.
 - **200:** `{ accessToken }`, and a new refresh cookie: this device's session goes on in a new one ([security.md](../backend/security.md#passwords)). The answer is the same with an `email`; the session's user reads the corrected address at its next refresh.
 - **Errors:** `unauthorized` (401) without a valid access token, for a suspended account, or for a token signed before the account's sessions last ended (§1); `validation` (422), with `currentPassword: ["required"]` when it is missing, and `email: ["invalid_choice"]` for an `email` outside the forced change; `conflict` (409) `EMAIL_TAKEN`, with `errors.email = ["not_unique"]`, for an address another account holds, changing nothing; `bad_request` (400) `CURRENT_PASSWORD_INCORRECT`, which is not a 401, so it never looks like an expired session, also when a reset changed the password meanwhile; `bad_request` (400) `PASSWORD_NOT_SET` for an account without a password, which sets one through the reset email; `forbidden` (403) `ACCOUNT_SUSPENDED` for an account suspended while the change ran; `rate_limit` (429) under its failures limit.
 
@@ -275,7 +275,7 @@ AddedStaff = { userId: number, temporaryPassword: string }   // shown once
 
 #### `POST /manage/spaces/:spaceId/staff` · 🏢
 - **Body:** `{ name, email }`: a name as a user's, and the email, trimmed and lowercased.
-- **201:** `AddedStaff`, under `Cache-Control: no-store`: a new `USER` account with a temporary password ([security.md](../backend/security.md#passwords)), linked to the space as its `RECEPTION`. Audited `user.created` and `space.staffAdded` (`after: { userId }`).
+- **201:** `AddedStaff`, under `Cache-Control: no-store`: a new `USER` account with a temporary password ([security.md](../backend/security.md#passwords)), linked to the space as its `RECEPTION`. Audited `user.created`, with the space, and `space.staffAdded` (`after: { userId }`).
 - **Errors:** `conflict` (409) `EMAIL_HAS_ACCOUNT`, with `errors.email = ["not_unique"]`, for an email that already has an account, which is never linked, writing nothing; `validation` (422); `forbidden` (403) for reception, before the body is read, and for an owner whose link ended meanwhile; `rate_limit` (429); `not_found` (404).
 
 #### `PATCH /manage/spaces/:spaceId/staff/:userId` · 🏢
@@ -736,7 +736,7 @@ ExtensionPreview = {
   firstDay: string,                // the Gaza date of the closure's start
   lastDay: string,                 // of its last instant: the day before an end at midnight; today while it runs
   proposedDays: number,            // the days from firstDay to lastDay, at most 365
-  subscriptions: number,           // how many it covered; once applied, how many it moved
+  subscriptions: number,           // how many it will move: those it covered and their renewals not started; once applied, how many it moved
   applied: ExtensionApplied | null
 }
 
@@ -752,13 +752,14 @@ ClosureExtension = ExtensionApplied & { announcementId: number }
 
 #### `GET /manage/spaces/:spaceId/announcements/:announcementId/extend-subscriptions` · 🧾
 - **The covered subscriptions** (decision 4, [data-model › Checked by the service](../architecture/data-model.md#checked-by-the-service)): the space's subscriptions not ended early, with an end on or after the closure's first day and a start (or none) on or before its last — one running through it, one ending during it, one starting on its last day. One with no end is never covered.
-- **200:** `ExtensionPreview`, read without a lock and writing nothing: the closure's covered Gaza days, the days proposed and how many subscriptions it covered now; once applied, `applied` and how many it moved instead. Built 2026-10-26, #123.
+- **Their renewals not started** ([finding 151](../architecture/findings/151-a-renewal-sold-before-a-closures-extension-stays-where-it-is.md)): each covered subscription's renewal whose start is after the Gaza date of the read and that was not ended early, then that renewal's own, and so on, moves with it. A renewal started, or with no start, is judged by the covered rule alone. 2026-10-27, #128.
+- **200:** `ExtensionPreview`, read without a lock and writing nothing: the closure's covered Gaza days, the days proposed and how many subscriptions it would move now, those it covered and their renewals not started (2026-10-27, #128); once applied, `applied` and how many it moved instead. Built 2026-10-26, #123.
 - **Errors:** `not_found` (404) for an announcement that is not the space's, not a `CLOSURE`, or deleted; `conflict` (409) `ANNOUNCEMENT_NOT_STARTED` for a closure not started yet.
 
 #### `POST /manage/spaces/:spaceId/announcements/:announcementId/extend-subscriptions` · 🏢 · `Idempotency-Key`
 - **Body:** `{ days }`, the days the owner types from the proposal: whole, 1–365 (`EXTENSION_MAX_DAYS`; `out_of_range` otherwise).
-- **201:** `ClosureExtension`: every subscription the closure covered, as the preview counts them, has its end moved by `days`, in one transaction, with one link each; audited `closure.subscriptionsExtended` (the announcement the entity, its space the entry's; `after`: `{ days, subscriptionIds }`). A subscription's status and progress follow from its new end. A retry with the same key answers the first extension as it was, 201, moving nothing; two owners at once make one (the space's lock, then the closure's, then the subscriptions' by id). **No undo:** a wrong extension is corrected subscription by subscription (*Subscriptions (managed)*, the corrections). Once extended, the closure keeps its type, start and existence (`CLOSURE_EXTENDED` on its edit and delete). Built 2026-10-26, #123.
-- **Errors**, each writing nothing: `forbidden` (403) for reception, before the key or the body is read, and for an owner whose link ended meanwhile; `validation` (422) on `idempotencyKey` (§1), then on the body; `conflict` (409) for a key that extended another closure; `not_found` (404) for an announcement that is not the space's, not a `CLOSURE`, or deleted; `conflict` (409) `CLOSURE_ALREADY_EXTENDED` for a closure extended already; `conflict` (409) `ANNOUNCEMENT_NOT_STARTED` for one not started yet.
+- **201:** `ClosureExtension`: every subscription the closure covered has its end moved by `days`, and each of their renewals not started its start and end (2026-10-27, #128), as the preview counts them, in one transaction, with one link each; audited `closure.subscriptionsExtended` (the announcement the entity, its space the entry's; `after`: `{ days, subscriptionIds, renewalIds }`, the covered apart from the renewals). A subscription's status and progress follow from its new end. A retry with the same key answers the first extension as it was, 201, moving nothing; two owners at once make one (the space's lock, then the closure's, then the subscriptions' by id, the renewals with the covered ones). **No undo:** a wrong extension is corrected subscription by subscription (*Subscriptions (managed)*, the corrections). Once extended, the closure keeps its type, start and existence (`CLOSURE_EXTENDED` on its edit and delete). Built 2026-10-26, #123.
+- **Errors**, each writing nothing: `forbidden` (403) for reception, before the key or the body is read, and for an owner whose link ended meanwhile; `validation` (422) on `idempotencyKey` (§1), then on the body; `conflict` (409) for a key that extended another closure, or a closure of another space, answering nothing of that extension (2026-10-27, #128); `not_found` (404) for an announcement that is not the space's, not a `CLOSURE`, or deleted; `conflict` (409) `CLOSURE_ALREADY_EXTENDED` for a closure extended already; `conflict` (409) `ANNOUNCEMENT_NOT_STARTED` for one not started yet.
 
 #### `POST /manage/spaces/:spaceId/announcements` · 🧾 · `Idempotency-Key`
 - **Body:** `{ type, textAr, textEn?, startsAt?, endsAt? }`: no `startsAt`, now («يبدأ الآن»); no `endsAt` (or `null`), no end.
@@ -872,6 +873,59 @@ FavoriteSpace =                    // @masaha/shared/directory
 #### `DELETE /me/favorites/:spaceId` · 👤
 - **204**, no body, whether the space was saved or not, listed or not; only the caller's own favourite is removed.
 - **Errors:** `unauthorized` (401) without a signed-in user; `not_found` (404) for a malformed id.
+
+### Audit log
+
+The audit log's reader (`audit`, [conventions §6](../backend/conventions.md#6-audit)): a space's owner reads every entry of the space; the admin reads the platform's events only, of every space and of none, by a default-deny list (conventions §6). Entries are never deleted ([data-model › Operations](../architecture/data-model.md#operations)). Built 2026-10-27, #128.
+
+- **The period** (`period`): `LAST_30_DAYS`, the default — from the Gaza midnight 29 days before today, so today and the 29 days before it — or `ALL`; `invalid_choice` otherwise.
+- **`q`:** 1–80 characters, NFC-normalised and trimmed, with no bidirectional or other control characters: the entries whose target's current name holds it, in either language, as the directory searches (Arabic folded, [data-model › Conventions](../architecture/data-model.md#conventions), *Search*).
+- **`actions`:** a comma list of the actions the API writes (`AUDIT_ACTIONS`, `@masaha/shared/audit`), at most 30, a repeat counted once: `invalid_choice` for an unknown one, `too_long` past 30.
+- **Every filter applies before the page is cut** (§4), so `totalRecords` counts what they keep. Newest first, then the higher id.
+- **The actor:** `PERSON`, named, for anyone with a link of any state to the space — one whose link ended is still named; `MASAHA`, never named and with no id, for anyone with none: the admin; `SYSTEM` for the timed jobs.
+- **The target:** its type and id, and its current name where it has one — a space's and a lookup's in both languages; a person's, a customer's, a subscription's, a package's; a visit's visitor, else its customer; a check-in's customer. A payment, an announcement and a data report have none: the client words them from `before` and `after`. `deleted` marks a deleted space or announcement; an archived customer is not deleted.
+- **`before` and `after` as stored;** the writer never stores a secret ([security › Passwords](../backend/security.md#passwords)). `action` as stored: one written later and not yet on `AUDIT_ACTIONS` is still answered.
+
+```ts
+AuditActor = { kind: 'PERSON', id: number, name: string } | { kind: 'MASAHA' } | { kind: 'SYSTEM' }
+
+AuditTarget = {
+  type: AuditEntityType,            // space, user, governorate, area, amenity, dataReport, customer,
+                                    // subscription, checkIn, visit, payment, package, announcement
+  id: number | null,
+  name: string | null,              // its current name; a space's or a lookup's English
+  nameAr: string | null,            // a space's or a lookup's Arabic
+  deleted: boolean                  // a deleted space or announcement
+}
+
+AuditEntry = {
+  id: number,
+  at: string,
+  action: string,
+  actor: AuditActor,
+  target: AuditTarget,
+  before: object | null,            // as stored
+  after: object | null
+}
+
+PlatformAuditEntry = AuditEntry & {   // the admin's: the actor always a PERSON (or SYSTEM)
+  space: { id: number, nameEn: string, nameAr: string | null, deleted: boolean } | null   // the space it names
+}
+
+AuditMeta = §4's meta & {
+  actors: AuditActor[]              // the actors of the entries every filter but `actor` keeps, each once,
+}                                   // at most 50: persons by name, then MASAHA, then SYSTEM
+```
+
+#### `GET /manage/spaces/:spaceId/audit-log` · 🏢
+- **Query:** `period`, `q`, `actions`, `actor` — a person's id, `MASAHA` or `SYSTEM` (`invalid_format`; `out_of_range` for an id below 1 or past the largest) — and §4's `page` and `limit`.
+- **200:** `AuditEntry[]`, the space's entries the filters keep, with `AuditMeta`. `actor=<id>` keeps a person linked to the space only, so an admin's id finds nothing; the admin's entries are `actor=MASAHA`.
+- **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on the query; `not_found` (404) for anyone who is not the space's staff, the admin included (the boundary).
+
+#### `GET /admin/audit-log` · 🛡
+- **Query:** `period`, `q`, `actions`, `actor` — a person's id (`invalid_format`, `out_of_range`) — and §4's `page` and `limit`. `q` also finds every entry of a space by the space's names.
+- **200:** `PlatformAuditEntry[]`, with `AuditMeta`: only the platform's events — the spaces' public facts and their confirmations, their photos, their creation, hiding, deletion and restoring, and their owners linked and unlinked, whoever acted; the lookups; the data reports' decisions; an account's creation, role, suspension, temporary passwords and email, only when the entry names no space. **Never** an entry about a space's customers, subscriptions, check-ins, visits, payments, packages, announcements or closure extensions, its capacity, its live-status override, its settings or its staff, an owner's reception account's included; an action on no list is never answered ([conventions §6](../backend/conventions.md#6-audit), [ADR 0002](../architecture/decisions/0002-authorization-model.md)).
+- **Errors:** `unauthorized` (401), `forbidden` (403), and `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`, by `/admin`'s guard; `validation` (422) on the query.
 
 ### Internal
 

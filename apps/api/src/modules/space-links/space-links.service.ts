@@ -53,6 +53,14 @@ export function createSpaceLinksService({
     },
 
     /**
+     * The space whose reception the account is, active or not, if any: its account's events are
+     * that space's (ADR 0009). One query, in the caller's transaction.
+     */
+    receptionSpaceOf(userId: number, tx: Tx): Promise<number | null> {
+      return repository.findReceptionSpaceOf(userId, tx);
+    },
+
+    /**
      * The links loader of the space routes (conventions §8, Space access): every link to the space,
      * from which `can()` reads the caller's role there and whether the space is verified. A
      * soft-deleted space has none: its links count for nothing (finding 18). With `tx`, under the

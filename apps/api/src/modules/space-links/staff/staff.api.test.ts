@@ -113,7 +113,7 @@ describe('POST /manage/spaces/:spaceId/staff', () => {
         action: 'user.created',
         entityType: 'user',
         entityId: userId,
-        spaceId: null,
+        spaceId,
         before: null,
         after: { name: 'Nour', email: 'nour@example.com', role: 'USER', mustChangePassword: true },
       },
