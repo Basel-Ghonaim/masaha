@@ -37,6 +37,16 @@ describe('useAccount', () => {
     expect(result.current).toMatchObject({ firstName: 'سارة', initial: 'س' });
   });
 
+  it('words the account’s links it is given, in order, and has none by default', () => {
+    const links = [{ key: 'reports' as const, to: '/me/reports' }];
+    const { result } = renderHook(() => useAccount(USER, links));
+
+    expect(result.current.links).toEqual([
+      { key: 'reports', to: '/me/reports', label: 'My reports' },
+    ]);
+    expect(renderHook(() => useAccount(USER)).result.current.links).toEqual([]);
+  });
+
   it('shows the dashboard to a user who has one', () => {
     const { result } = renderHook(() => useAccount({ ...USER, role: 'ADMIN' }));
 

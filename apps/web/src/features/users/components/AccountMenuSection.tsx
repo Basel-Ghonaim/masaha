@@ -1,21 +1,25 @@
 import { Button, LayoutDashboardIcon, LogOutIcon } from '@shared/design-system';
 import type { SessionUser } from '@shared/session';
 import { Link } from 'react-router';
-import { useAccount } from '../hooks/useAccount';
+import { useAccount, type AccountMenuLink } from '../hooks/useAccount';
+import { ACCOUNT_LINK_ICONS } from './accountLinkIcons';
 import { SignOutFailure } from './SignOutFailure';
 
 /**
- * The signed-in user in a phone menu: the name, the way into the dashboard (`dashboardPath`) for those
- * who have one, and sign-out with its pending and error states.
+ * The signed-in user in a phone menu: the name, the links to the account's pages the shell passes,
+ * the way into the dashboard (`dashboardPath`) for those who have one, and sign-out with its pending
+ * and error states.
  */
 export function AccountMenuSection({
   user,
   dashboardPath,
+  links,
 }: {
   user: SessionUser;
   dashboardPath: string;
+  links?: readonly AccountMenuLink[];
 }) {
-  const account = useAccount(user);
+  const account = useAccount(user, links);
 
   return (
     <div
@@ -26,6 +30,17 @@ export function AccountMenuSection({
       <p className="px-3 pb-2 text-label">
         <bdi>{account.name}</bdi>
       </p>
+      {account.links.map((link) => {
+        const LinkIcon = ACCOUNT_LINK_ICONS[link.key];
+        return (
+          <Button key={link.key} asChild variant="ghost" className="w-full justify-start">
+            <Link to={link.to}>
+              <LinkIcon aria-hidden />
+              {link.label}
+            </Link>
+          </Button>
+        );
+      })}
       {account.showsDashboard && (
         <Button asChild variant="ghost" className="w-full justify-start">
           <Link to={dashboardPath}>

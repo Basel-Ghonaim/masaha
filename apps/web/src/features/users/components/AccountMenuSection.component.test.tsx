@@ -39,6 +39,25 @@ describe('AccountMenuSection', () => {
     expect(section.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
   });
 
+  it('links the account’s pages it is given', () => {
+    fakeTransport(() => ({ status: 204 }));
+    render(
+      <MemoryRouter>
+        <AccountMenuSection
+          user={USER}
+          dashboardPath="/dashboard"
+          links={[{ key: 'reports', to: '/me/reports' }]}
+        />
+      </MemoryRouter>,
+    );
+    const section = within(screen.getByRole('group', { name: 'Account' }));
+
+    expect(section.getByRole('link', { name: 'My reports' })).toHaveAttribute(
+      'href',
+      '/me/reports',
+    );
+  });
+
   it('leads the admin to the dashboard', () => {
     const section = renderSection(() => ({ status: 204 }), { ...USER, role: 'ADMIN' });
 

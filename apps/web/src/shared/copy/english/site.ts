@@ -22,6 +22,11 @@ export const SITE = {
   tagline: 'Masaha — a directory of coworking spaces in the Gaza Strip',
   contact: 'Contact us',
   browseSpaces: 'Browse spaces',
+  /** The account's pages: their navigation and its links. */
+  account: {
+    navigation: 'My account',
+    reports: 'My reports',
+  },
   /** Home: the hero and its search, the areas, and the owners' card. */
   home: {
     title: 'Find a workspace in the Gaza Strip',

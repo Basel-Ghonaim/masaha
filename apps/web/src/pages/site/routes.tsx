@@ -1,4 +1,9 @@
-import { RequireGuest, RequirePasswordChange, type TitledHandle } from '@shared/routing';
+import {
+  RequireAuth,
+  RequireGuest,
+  RequirePasswordChange,
+  type TitledHandle,
+} from '@shared/routing';
 import type { RouteObject } from 'react-router';
 import { SITE_PATHS } from './navigation';
 import { SiteRouteError } from './shell/SiteRouteError';
@@ -43,6 +48,28 @@ export const siteRoutes: RouteObject[] = [
             lazy: async () => ({
               Component: (await import('./public/about/AboutPage')).AboutPage,
             }),
+          },
+          {
+            // The account's pages, in its layout; each signed-in only, a guest sent to sign-in.
+            lazy: async () => ({
+              Component: (await import('./account/AccountLayout')).AccountLayout,
+            }),
+            children: [
+              {
+                path: SITE_PATHS.myReports,
+                handle: { title: (copy) => copy.dataReports.mine.title } satisfies TitledHandle,
+                lazy: async () => {
+                  const { MyReportsPage } = await import('./account/MyReportsPage');
+                  return {
+                    element: (
+                      <RequireAuth>
+                        <MyReportsPage />
+                      </RequireAuth>
+                    ),
+                  };
+                },
+              },
+            ],
           },
           {
             path: '*',

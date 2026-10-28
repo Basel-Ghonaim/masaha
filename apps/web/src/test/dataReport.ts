@@ -1,5 +1,5 @@
 import type { PaginationMeta } from '@masaha/shared/core';
-import type { AdminReport, SpaceReport } from '@masaha/shared/data-reports';
+import type { AdminReport, MyReport, SpaceReport } from '@masaha/shared/data-reports';
 import type { FakeAnswer } from './fakeAdapter';
 
 /**
@@ -27,6 +27,28 @@ export function adminReport(change: Partial<AdminReport> = {}): AdminReport {
     space: { id: 7, slug: 'focus-hub', nameEn: 'Focus Hub', nameAr: 'فوكس هب', verified: false },
     reporter: { id: 9, name: 'Huda Saleh' },
     decidedBy: null,
+    ...change,
+  };
+}
+
+/**
+ * A report as its reporter reads it: `spaceReport()`'s, about «Masaha Hub» (`masaha-hub`, id 7),
+ * a space still listed; `space` overrides the space's fields.
+ */
+export function myReport(
+  change: Partial<MyReport> = {},
+  space: Partial<MyReport['space']> = {},
+): MyReport {
+  return {
+    ...spaceReport(),
+    space: {
+      id: 7,
+      slug: 'masaha-hub',
+      nameEn: 'Masaha Hub',
+      nameAr: 'مساحة هب',
+      listed: true,
+      ...space,
+    },
     ...change,
   };
 }

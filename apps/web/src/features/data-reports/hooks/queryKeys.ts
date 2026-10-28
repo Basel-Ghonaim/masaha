@@ -1,4 +1,8 @@
-import type { AdminReportsQuery, SpaceReportsQuery } from '@masaha/shared/data-reports';
+import type {
+  AdminReportsQuery,
+  MyReportsQuery,
+  SpaceReportsQuery,
+} from '@masaha/shared/data-reports';
 
 /**
  * The capability's keys, each under its audience's scope (docs/frontend/architecture.md §7): a space's
@@ -14,4 +18,8 @@ export const dataReportsKeys = {
   adminAll: () => ['admin', 'dataReports'] as const,
   /** One page of every space's reports, by its whole query. */
   admin: (query: AdminReportsQuery) => ['admin', 'dataReports', query] as const,
+  /** Every read of the user's own reports, under the session's scope: a new report reads them again. */
+  mineAll: ['me', 'reports'] as const,
+  /** One page of the user's own reports, by its whole query. */
+  mine: (query: MyReportsQuery) => ['me', 'reports', query] as const,
 };

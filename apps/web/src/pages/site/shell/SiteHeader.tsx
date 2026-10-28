@@ -4,14 +4,14 @@ import { Button, LogInIcon } from '@shared/design-system';
 import { DASHBOARD_PATHS } from '@shared/routing';
 import { useSession } from '@shared/session';
 import { Link, NavLink } from 'react-router';
-import { SITE_LINKS, SITE_PATHS } from '../navigation';
+import { ACCOUNT_LINKS, SITE_LINKS, SITE_PATHS } from '../navigation';
 import { SiteMenu } from './SiteMenu';
 import { SiteLanguageToggle } from './SiteLanguageToggle';
 import { SiteThemeToggle } from './SiteThemeToggle';
 
 /**
  * The site's header. On a desktop: the wordmark, the links, the language and theme toggles, and
- * sign-in, or the account once signed in. On a phone: the menu, the wordmark and the theme toggle;
+ * sign-in, or the account once signed in, its menu linking the account's pages. On a phone: the menu, the wordmark and the theme toggle;
  * the menu holds the rest.
  */
 export function SiteHeader() {
@@ -47,6 +47,7 @@ export function SiteHeader() {
             <AccountMenu
               user={user}
               dashboardPath={DASHBOARD_PATHS.home}
+              links={ACCOUNT_LINKS}
               className="hidden md:inline-flex"
             />
           ) : (

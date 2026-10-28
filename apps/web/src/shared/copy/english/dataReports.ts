@@ -117,4 +117,27 @@ export const DATA_REPORTS = {
     openSpace: 'View the space',
     forbiddenVerified: 'This space is verified: its owner decides this report.',
   },
+  /** A signed-in user's «بلاغاتي» (screen 11): their own reports and the replies. */
+  mine: {
+    title: 'My reports',
+    description: 'Reports you sent about wrong information, newest first.',
+    chips: { label: 'Filter reports', all: 'All', open: 'In review', decided: 'Reviewed' },
+    /** The list's region. */
+    region: 'Reports',
+    /** A report's line: its field group and the day it was sent. */
+    meta: ({ field, day }: { field: string; day: string }) => `${field} · Sent ${day}`,
+    /** A space that left the directory, its name shown as text (C7). */
+    gone: 'This space is no longer listed in the directory',
+    /** The toggle of a long message. */
+    more: 'Show more',
+    less: 'Show less',
+    /** No report sent yet, with no filter (DI-53). */
+    empty: {
+      title: 'You haven’t sent any reports yet',
+      text: 'If you see wrong information on a space’s page, report it from there.',
+    },
+    /** None under a chip. */
+    none: 'No reports here',
+    loadFailed: 'We couldn’t load your reports',
+  },
 } as const;

@@ -1,6 +1,6 @@
 import { apiClient, setupApiClient } from '@shared/api';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { adminReport, spaceReport } from '../../../test/dataReport';
+import { adminReport, myReport, spaceReport } from '../../../test/dataReport';
 import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
 import { createDataReportsRepository } from './dataReportsRepository';
 
@@ -90,6 +90,21 @@ describe('the data reports repository', () => {
     ).resolves.toEqual(decided);
     expect(requests.map(lineOf)).toEqual(['patch /admin/data-reports/41']);
     expect(JSON.parse(String(requests[0]?.data))).toEqual({ status: 'RESOLVED' });
+  });
+
+  it('reads a page of the user’s own reports, the query as its parameters', async () => {
+    const requests = serve(() => ({
+      status: 200,
+      data: { success: true, data: [myReport()], meta: META },
+    }));
+    const query = { status: 'DECIDED' as const, page: 2, limit: 20 };
+
+    await expect(createDataReportsRepository().myReports(query)).resolves.toEqual({
+      data: [myReport()],
+      meta: META,
+    });
+    expect(requests.map(lineOf)).toEqual(['get /me/reports']);
+    expect(requests[0]?.params).toEqual(query);
   });
 
   it('rejects with the AppError the transport made', async () => {

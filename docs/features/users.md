@@ -43,7 +43,7 @@ The account's settings (`GET` and `PATCH /me`) are not built.
 
 ## Behaviour and flows
 
-**The account menu** shows the name's first word, an initial as the avatar, and the email. It leads the admin, and anyone with an active space link, to the dashboard, by a path the page passes. The phone menu shows the same account as a section; the dashboard's top bar shows the avatar alone.
+**The account menu** shows the name's first word, an initial as the avatar, and the email. On the site it links the account's pages the shell passes — «بلاغاتي» — after the name (P4); the dashboard's passes none. It leads the admin, and anyone with an active space link, to the dashboard, by a path the page passes. The phone menu shows the same account as a section, with the same links; the dashboard's top bar shows the avatar alone.
 
 **Sign-out** is one action, offered by every menu and by `SignOutButton`: it shows its pending state, and a failure says why, so the user tries again.
 
@@ -90,6 +90,7 @@ The account's settings (`GET` and `PATCH /me`) are not built.
 - **A compact account menu sits in the dashboard's top bar.** *Why:* the design draws it. 2026-10-05, #39.
 - **The menus lead to the dashboard** for the admin or a user with active links. 2026-10-05, #39.
 - **A "password saved" toast follows the forced change.** 2026-10-06, #42.
+- **The site's account menu links the account's pages** (P4), passed by the site's shell as `links` and worded by `useAccount`; the dashboard's menu passes none. *Why:* the account's pages are the site's, and `users` knows no route. 2026-10-28, #129.
 - **The change keeps no password in the cache.** *Why:* passwords never stay in memory after the form ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)). 2026-10-06, #45.
 - **The one-time password dialog lives in `users`, and a page shows it through another feature's slot** (the plan's D1.3). *Why:* the temporary password and its handover are this capability's, and the users page's issued password will show the same dialog; `space-links`, whose add sheet answers the password, cannot import `users`, so the owners page puts the dialog in the sheet's slot. 2026-10-18, #89.
 - **No close button, no Escape, no click outside; «تم» only after «نسخ»** (the owner's A5). *Why:* the password is shown once and never again; a dialog closed by a stray key loses it. 2026-10-18, #89.
@@ -146,3 +147,4 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #91 — the one-time password dialog's person isolated, in its description and its handover toast.
 - #93 — suspending and restoring an account, and issuing a temporary password, from the admin's users page; the one-time dialog's `kind`.
 - #99 — the one-time dialog's handover recorded through its caller's write, the admin's or a space's; the forced change's line names no issuer.
+- 2026-10-28, #129 — the site's account menu and its phone section link «بلاغاتي».

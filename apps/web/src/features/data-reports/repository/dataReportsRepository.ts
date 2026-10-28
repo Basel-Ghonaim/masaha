@@ -2,6 +2,8 @@ import type {
   AdminReport,
   AdminReportsQuery,
   DecideReportRequest,
+  MyReport,
+  MyReportsQuery,
   SpaceReport,
   SpaceReportsQuery,
 } from '@masaha/shared/data-reports';
@@ -26,6 +28,8 @@ export interface DataReportsRepository {
   adminReports(query: AdminReportsQuery): Promise<Page<AdminReport[]>>;
   /** The admin's decision of an unverified space's report, with its reply or none. */
   decideAdmin(reportId: number, body: DecideReportRequest): Promise<AdminReport>;
+  /** A page of the signed-in user's own reports, newest first, each with its space and its reply. */
+  myReports(query: MyReportsQuery): Promise<Page<MyReport[]>>;
 }
 
 export function createDataReportsRepository(): DataReportsRepository {
@@ -37,5 +41,6 @@ export function createDataReportsRepository(): DataReportsRepository {
     adminReports: (query) => api.getPage<AdminReport[]>(ADMIN_REPORTS_PATH, { params: query }),
     decideAdmin: (reportId, body) =>
       api.patch<AdminReport>(`${ADMIN_REPORTS_PATH}/${String(reportId)}`, body),
+    myReports: (query) => api.getPage<MyReport[]>('/me/reports', { params: query }),
   };
 }

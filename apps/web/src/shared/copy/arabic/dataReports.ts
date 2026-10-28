@@ -124,4 +124,20 @@ export const DATA_REPORTS = {
     openSpace: 'عرض المساحة',
     forbiddenVerified: 'هذه المساحة موثّقة: يقرّر مالكها هذا البلاغ.',
   },
+  mine: {
+    title: 'بلاغاتي',
+    description: 'البلاغات التي أرسلتها عن معلومات خاطئة، الأحدث أولًا.',
+    chips: { label: 'تصفية البلاغات', all: 'الكل', open: 'قيد المراجعة', decided: 'تمت المراجعة' },
+    region: 'البلاغات',
+    meta: ({ field, day }: { field: string; day: string }) => `${field} · أُرسل ${day}`,
+    gone: 'لم تعد هذه المساحة معروضة في الدليل',
+    more: 'عرض المزيد',
+    less: 'عرض أقل',
+    empty: {
+      title: 'لم ترسل أي بلاغ بعد',
+      text: 'إذا رأيت معلومة خاطئة في صفحة مساحة، أبلغنا منها.',
+    },
+    none: 'لا توجد بلاغات هنا',
+    loadFailed: 'تعذّر تحميل بلاغاتك',
+  },
 } satisfies Catalogue['dataReports'];
