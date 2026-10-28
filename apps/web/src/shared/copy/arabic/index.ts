@@ -1,4 +1,5 @@
 import type { Catalogue } from '../shape';
+import { ANNOUNCEMENTS } from './announcements';
 import { AUTH } from './auth';
 import { DASHBOARD } from './dashboard';
 import { DESK } from './desk';
@@ -24,6 +25,7 @@ import { VALIDATION } from './validation';
 
 /** The Arabic catalogue, in English's shape. The owner approves its words. */
 export const ARABIC = {
+  announcements: ANNOUNCEMENTS,
   auth: AUTH,
   dashboard: DASHBOARD,
   desk: DESK,

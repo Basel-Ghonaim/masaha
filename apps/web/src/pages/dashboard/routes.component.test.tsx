@@ -10,6 +10,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { announcement, announcementsPage, announcementsSummary } from '../../test/announcement';
 import { customerFile, customerRow, customersPage } from '../../test/deskCustomer';
 import { fakeIntersectionObserver } from '../../test/fakeIntersectionObserver';
 import { aSession } from '../../test/fakeSession';
@@ -1249,5 +1250,48 @@ describe("the admin's users page", () => {
     expect(await within(table).findByText('Nour')).toBeInTheDocument();
     expect(within(table).getByText('Focus Hub')).toBeInTheDocument();
     expect(within(table).getByRole('button', { name: heard('Actions: Nour') })).toBeInTheDocument();
+  });
+});
+
+describe("the space's announcements", () => {
+  // The page loads lazily, as the payments' do: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/announcements/AnnouncementsPage');
+  });
+
+  /** The announcements' reads, answered as the server would, with one running announcement. */
+  const serveAnnouncements = () =>
+    fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/announcements/summary')
+        return ok(announcementsSummary());
+      if (request.url === '/manage/spaces/7/announcements')
+        return announcementsPage([announcement()]);
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+
+  it('shows the owner the announcements under «Announcements», by state', async () => {
+    asOwner();
+    serveAnnouncements();
+    renderDashboard('/dashboard/spaces/7/announcements');
+
+    await topBarTitle('Announcements');
+    expect(await screen.findByRole('tablist', { name: 'Announcement status' })).toBeInTheDocument();
+    const list = await screen.findByRole('region', { name: 'Announcements' });
+    expect(
+      await within(list).findByText('A design workshop on Thursday evening'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows reception the same announcements under «Announcements»', async () => {
+    asReception();
+    serveAnnouncements();
+    renderDashboard('/dashboard/spaces/7/announcements');
+
+    await topBarTitle('Announcements');
+    const list = await screen.findByRole('region', { name: 'Announcements' });
+    expect(
+      await within(list).findByText('A design workshop on Thursday evening'),
+    ).toBeInTheDocument();
   });
 });

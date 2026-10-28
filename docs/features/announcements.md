@@ -1,8 +1,8 @@
 # Announcements
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
-> **Authority:** The `announcements` capability: what a space tells its users changes — a closure, an outage, an offer, an event or general news — posted and changed by its staff. Its endpoints are owned by the [API contract](../api/api-contract.md#announcements-managed); its entity by the [data model](../architecture/data-model.md#operations). The API is built; no screen yet.
-> **Scope:** the API module `announcements` (L2); `@masaha/shared/announcements`.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Authority:** The `announcements` capability: what a space tells its users changes — a closure, an outage, an offer, an event or general news — posted and changed by its staff. Its endpoints are owned by the [API contract](../api/api-contract.md#announcements-managed); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the dashboard, the owner's and reception's «الإعلانات».
+> **Scope:** the API module `announcements` (L2); `@masaha/shared/announcements`; the web feature `features/announcements`, any page group: screen 18, and the public pieces a space's page sets (PR 4).
 
 ## What it does
 
@@ -16,7 +16,7 @@
 
 ## Who uses it
 
-- **The space's owner and reception,** through the API, under `/manage/spaces/:spaceId/announcements`: they post, edit, end, start and delete. The screens are not built.
+- **The space's owner and reception,** through the API, under `/manage/spaces/:spaceId/announcements`: they post, edit, end, start and delete. On the dashboard, both read «الإعلانات» (`/dashboard/spaces/:spaceId/announcements`, 2026-10-28, #129).
 - **The live status** ([occupancy](occupancy.md)): a running `CLOSURE` makes a space `CLOSED`.
 - **[`subscriptions`](subscriptions.md),** whose managed list and summary read its pages, its counts and its started closures, and whose closure extension reads a closure (`closureIn`), locks it (`lockClosure`) and its days (`closureSpan`).
 - **[`directory`](directory.md),** whose space page reads its running and upcoming announcements.
@@ -48,6 +48,8 @@
 
 **End now, start now, delete.** Each takes the same lock and `can()`, then the row, locked. End now sets a running one's end to now; an ended one is answered as it is; an upcoming one is refused (`ANNOUNCEMENT_NOT_STARTED`). Start now sets an upcoming one's start to now, refused (`validation` on `endsAt`) when its end would then fall more than 365 days after its start; a started one is answered as it is. Delete sets `deletedAt` in any state, the row kept; a deleted one answers 204 again, writing nothing, and leaves every read and the live status.
 
+**The announcements on the web** (`features/announcements`, composed by `pages/dashboard/space/announcements/`). «الإعلانات», the owner's and reception's, reads the managed list and its summary (S2): the tabs «نشطة · مجدولة · منتهية», each with the summary's count (a skeleton while it loads), the tab and the page in the address (`?state=upcoming|ended&page=`, running not written; a value the server would refuse falls back to running, a change replaces the address and returns to page 1). Each announcement of the tab is a card, in the server's order: its type as its heading's badge — `warning` for an outage or a closure, `neutral` otherwise —, its period on Gaza's clock («1 أكتوبر 08:00–18:00», «1 أكتوبر 08:00 – 3 أكتوبر 18:00», «من 1 أكتوبر 08:00 · بلا نهاية», the year when it is not this one), its text in the interface's language — the Arabic, marked as Arabic, when an English one is missing — and a closure's line: «يمكن تمديد الاشتراكات بعد أن يبدأ الإغلاق.» for the owner on one not started, «يمدّد المالك الاشتراكات بعد بدء الإغلاق.» for reception on one started and not extended. No status badge: the tab says it. Its states: three skeleton cards while it loads, the list marked busy; a failure with its reference and a retry; a failed refresh over the cards shown; each tab's empty state; the pages only past one page.
+
 **An extended closure.** Once its subscriptions were extended ([`subscriptions`](subscriptions.md)), an edit giving it a new type or start, a later end or no end, and its delete, are refused `CLOSURE_EXTENDED`, writing nothing; its text and an earlier end, end now included, change. The database's trigger refuses them ([data model › Constraints](../architecture/data-model.md#constraints-worth-stating)); this module asks nothing of the extensions.
 
 ## Decisions
@@ -64,10 +66,20 @@
 - **An extended closure keeps its type, its start and its existence; its end only comes earlier** (decision 6, refined by S3, the owner's Q3), held by a trigger (S2), `CLOSURE_EXTENDED`. *Why:* the days were given for the closure as it was; `announcements` (L2) cannot read the extensions, and a check in the service would race with an extension; a running closure, once extended, must still be able to end. 2026-10-26, #123.
 - **No title and no author on an announcement** (O9). *Why:* the design shows neither; the audit records who. 2026-10-24, #112.
 
+### Web decisions
+
+- **One web feature holds screen 18** (S2): `announcements` calls this module's writes and the managed list, its summary and a closure's extension that [`subscriptions`](subscriptions.md) composes at the same path, the contract's one section — an exception to "names match the backend" ([architecture §3](../frontend/architecture.md#3-capabilities-features)). *Why:* one audience, the staff, works them on one screen; a `subscriptions` feature for one dialog would put a cross-feature dialog in the page. 2026-10-28, #129.
+- **The tab and the page in the address** (S8): `?state=upcoming|ended&page=`, running not written; a value the server would refuse falls back; a change replaces the address and returns to page 1. 2026-10-28, #129.
+- **No status badge on a card; the type's badge only** (DI-15): `warning` for an outage or a closure, `neutral` otherwise (OW-014). *Why:* the tab already says the state. 2026-10-28, #129.
+- **A loading state of three skeleton cards, the counts as skeletons** (DI-23), the list `aria-busy`. 2026-10-28, #129.
+- **The pages show only past one page** (DI-26): the tab already counts. 2026-10-28, #129.
+- **An English text missing shows the Arabic, marked** `lang="ar" dir="rtl"` (DI-27). 2026-10-28, #129.
+
 ## Code map
 
 - `apps/api/src/modules/announcements/` — the module: its service, its repository, its manage router, and the pure rules (`announcementState`, `period`, `announcementChange`, `closureSpan`).
 - `packages/shared/src/announcements/` — the requests and answers.
+- **Web:** `apps/web/src/features/announcements/`, entry `index.ts` (`AnnouncementsList`), read by `pages/dashboard/space/announcements/AnnouncementsPage.tsx`, which reads the role at the space: the repository in `repository/`; the keys and the list's tab in the address and its view (`list/`) in `hooks/`; the address's query (`announcementsQueryOf`), the period's words (`periodText`), a type's (`typeView`) and the text in the interface's language (`textOf`) in `services/`; the list, its card and a closure's line (`list/`) in `components/`. Words: the catalogue's `announcements` section; the refusals are `errors`'.
 
 ## Open findings
 
@@ -79,3 +91,7 @@ None.
 
 - 2026-10-24, #112 — posted (idempotent), edited, ended, started and deleted by the staff; the pages and counts the managed list composes; the running and upcoming ones a space's public page reads.
 - 2026-10-26, #123 — an extended closure guarded by the database (`CLOSURE_EXTENDED`).
+
+### Web history
+
+- #129 — «الإعلانات», the owner's and reception's: the announcements by state, with their counts.

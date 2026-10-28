@@ -1,3 +1,4 @@
+import { ANNOUNCEMENTS } from './announcements';
 import { AUTH } from './auth';
 import { DASHBOARD } from './dashboard';
 import { DESK } from './desk';
@@ -30,6 +31,7 @@ import { VALIDATION } from './validation';
  * line so it can be reflowed.
  */
 export const ENGLISH = {
+  announcements: ANNOUNCEMENTS,
   auth: AUTH,
   dashboard: DASHBOARD,
   desk: DESK,

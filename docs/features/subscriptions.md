@@ -1,6 +1,6 @@
 # Subscriptions
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-27 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
 > **Authority:** The `subscriptions` capability: a customer's subscriptions and their check-ins. Its entity and its derived values by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); its endpoints by the API contract ([Subscriptions (managed)](../api/api-contract.md#subscriptions-managed)). The API is built (the corrections and the end its own routes; the subscribe and the statement the desk's); on the web, [desk](desk.md) shows a customer's subscriptions.
 > **Scope:** the API module `subscriptions` (L3); `@masaha/shared/subscriptions`. No web feature of its own: [desk](desk.md)'s screens read it.
 
@@ -23,7 +23,7 @@
 - **The front desk** ([desk](desk.md)), which subscribes a customer and checks a subscriber in through it; on the web, the desk reads the open check-ins (`GET …/check-ins?open=true`) for each subscriber's phone and progress (2026-10-25, #119), and a customer's file shows each of their subscriptions with its terms, progress and money, opens its statement and ends it early (`POST …/end`) (2026-10-25, #122); the subscription sheet subscribes (`POST …/customers/:customerId/subscriptions`) from a published price, a package or custom terms, and renews from the statement's `renewal` (2026-10-26, #124).
 - **[`occupancy`](occupancy.md),** which counts the check-ins present.
 - **The timed jobs** (`shared/jobs`), which run its auto check-out.
-- **The space's staff**, who read the managed announcements list and its summary through it, and a closure's extension's preview; **the owner**, who extends a closure's subscriptions.
+- **The space's staff**, who read the managed announcements list and its summary through it, and a closure's extension's preview; **the owner**, who extends a closure's subscriptions. On the web, «الإعلانات» reads the managed list and its summary ([announcements](announcements.md), 2026-10-28, #129).
 - **[`payments`](payments.md),** which names the subscriptions of the payments it answers (`namesOf`).
 
 ## Responsibility boundary
