@@ -63,6 +63,7 @@ apps/web/src/shared/design-system/
   lib/useMediaQuery.ts  whether a media query matches now, read during render; exported
   index.ts            the public surface
   data.ts             the second entry: the data components that carry a heavy library (DataTable)
+  calendar.ts         the third entry: Calendar and DatePicker, over react-day-picker
   leaflet.css         the map's stylesheet: Leaflet's own, then its frame, controls, pin, marks and
                       crosshair on the semantic tokens; imported by shared/map only
 ```
@@ -82,7 +83,7 @@ apps/web/src/shared/design-system/
 A new component goes in the category of its role: the removable filter tag ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) in `display`, charts in `data`. A new category is added only when a role fits none of these.
 
 **Rules:**
-- **Public surface:** consumers import from `@shared/design-system`, never from inside a component folder. The one exception is a second entry, `@shared/design-system/data`, for the data components that carry a heavy library (`DataTable`, over TanStack Table): only the pages that draw them import it, so the library stays out of the site's first download, which `check:build` verifies ([finding 45](../../architecture/findings/45-the-data-tables-library-reaches-the-sites-first-download.md)). Lint allows these entries alone.
+- **Public surface:** consumers import from `@shared/design-system`, never from inside a component folder. The exceptions are two more entries for the components that carry a heavy library: `@shared/design-system/data` for the data components (`DataTable`, over TanStack Table; [finding 45](../../architecture/findings/45-the-data-tables-library-reaches-the-sites-first-download.md)) and `@shared/design-system/calendar` for `Calendar` and `DatePicker` (over react-day-picker and date-fns; [finding 169](../../architecture/findings/169-the-calendar-rides-in-the-sites-first-download.md)). Only the pages that draw them import these entries, so their libraries stay out of the site's first download, which `check:build` verifies. Lint allows these entries alone.
 - **Closure:** the layer imports nothing from outside itself (no features, pages, app, or other `shared/` modules).
 - **Class merging:** `cn` (`lib/cn.ts`) joins classes; when two set the same thing, the later wins. It is configured with the layer's text styles and shadows, which tailwind-merge would otherwise misread (`text-body` as a colour, so `cn('text-body', 'text-primary')` would drop it). Every component, copied ones included, merges through it; the layer exports it for pages and features too.
 - **Width:** `useMediaQuery` (`lib/useMediaQuery.ts`), which the sidebar and the data table read, is exported too, so a feature that draws a part once per width, never twice with duplicate ids, reads it as the layer does: the site's Directory draws its filters as a sidebar from 1024 px and a bottom sheet below (2026-10-21, #103).

@@ -1,4 +1,4 @@
-import { Calendar, type DateRange } from '@shared/design-system';
+import { Calendar, type DateRange } from '@shared/design-system/calendar';
 import { useState } from 'react';
 import { ShowcaseGroup, ShowcaseSection } from '../../ShowcaseSection';
 

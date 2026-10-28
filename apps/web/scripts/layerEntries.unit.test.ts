@@ -28,6 +28,10 @@ describe("the design-system layer's entries", { timeout: 60_000 }, () => {
     expect(await verdicts(FEATURE, importing('@shared/design-system/data'))).toEqual([]);
   });
 
+  it('allows its calendar and date picker through their own entry', async () => {
+    expect(await verdicts(FEATURE, importing('@shared/design-system/calendar'))).toEqual([]);
+  });
+
   it("allows the map's stylesheet to shared/map", async () => {
     expect(
       await verdicts(

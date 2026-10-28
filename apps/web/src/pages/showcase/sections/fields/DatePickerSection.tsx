@@ -1,11 +1,11 @@
+import { Field } from '@shared/design-system';
 import {
   Calendar,
   DatePicker,
   DatePickerContent,
   DatePickerTrigger,
-  Field,
   type DateRange,
-} from '@shared/design-system';
+} from '@shared/design-system/calendar';
 import { useState } from 'react';
 import { ShowcaseGroup, ShowcaseSection } from '../../ShowcaseSection';
 

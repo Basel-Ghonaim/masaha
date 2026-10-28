@@ -33,8 +33,9 @@ const levelElements = (root) =>
 const sharedPaths = (levels) => ['core', ...levels.flatMap((level) => MODULE_LEVELS[level])];
 
 // The design-system layer's public entries (docs/frontend/design-system/foundation.md §3): its one
-// surface, and the entry of its data components that carry a heavy library (finding 45).
-const LAYER_ENTRIES = ['index.ts', 'data.ts'];
+// surface, and the entries of its components that carry a heavy library: the data components
+// (finding 45) and the calendar (finding 169).
+const LAYER_ENTRIES = ['index.ts', 'data.ts', 'calendar.ts'];
 
 /** The web zones of `types` a zone may import, each only through its entries. */
 const zoneEntries = (types) => [

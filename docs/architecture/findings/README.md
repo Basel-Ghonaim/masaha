@@ -77,7 +77,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [164. A written-off visit is listed nowhere](164-a-written-off-visit-is-listed-nowhere.md)
 - [165. The dashboard's navigation is not grouped by task](165-the-dashboards-navigation-is-not-grouped-by-task.md)
 - [166. The ledger's staff filter cannot name a space's other owners](166-the-ledgers-staff-filter-cannot-name-a-spaces-other-owners.md)
-- [169. The calendar rides in the site's first download](169-the-calendar-rides-in-the-sites-first-download.md)
 - [170. A request's renewal racing a rotation can be lost on the newest row](170-a-requests-renewal-racing-a-rotation-can-be-lost-on-the-newest-row.md)
 - [171. A published price changed between the desk's read and the subscribe is charged silently](171-a-published-price-changed-between-the-desks-read-and-the-subscribe-is-charged-silently.md)
 - [172. The write-off's reason is not focused first](172-the-write-offs-reason-is-not-focused-first.md)
@@ -148,3 +147,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [124. A statement's sums and its payments come from different snapshots](124-a-statements-sums-and-its-payments-come-from-different-snapshots.md)
 - [125. The allocation's order is not exposed to the client](125-the-allocations-order-is-not-exposed-to-the-client.md)
 - [151. A renewal sold before a closure's extension stays where it is](151-a-renewal-sold-before-a-closures-extension-stays-where-it-is.md)
+- [169. The calendar rides in the site's first download](169-the-calendar-rides-in-the-sites-first-download.md)
