@@ -1,6 +1,6 @@
 import { apiClient, setupApiClient } from '@shared/api';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { spaceReport } from '../../../test/dataReport';
+import { adminReport, spaceReport } from '../../../test/dataReport';
 import { fakeAdapter, type FakeAnswer } from '../../../test/fakeAdapter';
 import { createDataReportsRepository } from './dataReportsRepository';
 
@@ -58,6 +58,38 @@ describe('the data reports repository', () => {
     ).resolves.toEqual(decided);
     expect(requests.map(lineOf)).toEqual(['patch /manage/spaces/7/data-reports/41']);
     expect(JSON.parse(String(requests[0]?.data))).toEqual({ status: 'DISMISSED', note: 'Correct' });
+  });
+
+  it('reads a page of every space’s reports, the admin’s query as its parameters', async () => {
+    const requests = serve(() => ({
+      status: 200,
+      data: { success: true, data: [adminReport()], meta: META },
+    }));
+    const query = {
+      status: 'DECIDED' as const,
+      field: 'HOURS' as const,
+      spaceId: 7,
+      page: 2,
+      limit: 20,
+    };
+
+    await expect(createDataReportsRepository().adminReports(query)).resolves.toEqual({
+      data: [adminReport()],
+      meta: META,
+    });
+    expect(requests.map(lineOf)).toEqual(['get /admin/data-reports']);
+    expect(requests[0]?.params).toEqual(query);
+  });
+
+  it('sends the admin’s decision to the report’s own path, its body as given', async () => {
+    const decided = adminReport({ status: 'RESOLVED' });
+    const requests = serve(() => ({ status: 200, data: { success: true, data: decided } }));
+
+    await expect(
+      createDataReportsRepository().decideAdmin(41, { status: 'RESOLVED' }),
+    ).resolves.toEqual(decided);
+    expect(requests.map(lineOf)).toEqual(['patch /admin/data-reports/41']);
+    expect(JSON.parse(String(requests[0]?.data))).toEqual({ status: 'RESOLVED' });
   });
 
   it('rejects with the AppError the transport made', async () => {

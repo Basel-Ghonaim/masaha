@@ -1,70 +1,15 @@
 import type { DataReportField } from '@masaha/shared/data-reports';
-import {
-  Alert,
-  AlertAction,
-  AlertDescription,
-  AlertTitle,
-  Badge,
-  Button,
-  EmptyState,
-  FlagIcon,
-} from '@shared/design-system';
+import { Badge } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
 import { ListPagination } from '@shared/lists';
-import { useCallback, useLayoutEffect, useMemo, useRef, type RefObject } from 'react';
-import { useSpaceReports, type SpaceReportsView } from '../../hooks/space/useSpaceReports';
+import { useCallback, useMemo, useRef } from 'react';
+import { useSpaceReports } from '../../hooks/space/useSpaceReports';
 import type { ReportRowView } from '../../types/ReportRowView';
 import { DecideSheet } from '../decide/DecideSheet';
+import { OpenReportButton, ReportMessage, ReportsEmpty } from '../ReportListParts';
 import { StatusChips } from '../StatusChips';
 
 const column = createDataTableColumnHelper<ReportRowView>();
-
-/** A report's message, two lines at most in a row, in its own direction; none said muted. */
-function Message({ row }: { row: ReportRowView }) {
-  return (
-    <p
-      dir="auto"
-      className={
-        row.message.none
-          ? 'text-body-sm text-muted-foreground'
-          : 'line-clamp-2 text-body-sm break-words'
-      }
-    >
-      {row.message.text}
-    </p>
-  );
-}
-
-/** What stands in for the rows when there are none: the failure with its retry, or the empty states. */
-function ReportsEmpty({ list }: { list: SpaceReportsView }) {
-  if (list.state === 'failed') {
-    const { failure } = list;
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>{failure.title}</AlertTitle>
-        <AlertDescription>
-          {failure.message}
-          {failure.reference !== undefined && <span className="block">{failure.reference}</span>}
-        </AlertDescription>
-        <AlertAction>
-          <Button variant="outline" disabled={failure.blocked} onClick={failure.retry}>
-            {failure.retryLabel}
-          </Button>
-        </AlertAction>
-      </Alert>
-    );
-  }
-  const { empty } = list;
-  return (
-    <EmptyState icon={<FlagIcon />} title={empty.title} description={empty.text ?? undefined}>
-      {empty.showAll !== null && (
-        <Button variant="outline" onClick={empty.showAll.run}>
-          {empty.showAll.label}
-        </Button>
-      )}
-    </EmptyState>
-  );
-}
 
 /**
  * «بلاغات البيانات», the owner's (screen 23): what the list is, the status chips and the count; from
@@ -102,7 +47,7 @@ export function SpaceReportsList({
         column.display({
           id: 'report',
           header: headers.report,
-          cell: (info) => <Message row={info.row.original} />,
+          cell: (info) => <ReportMessage row={info.row.original} />,
         }),
         column.display({
           id: 'date',
@@ -120,7 +65,7 @@ export function SpaceReportsList({
           id: 'actions',
           header: () => <span className="sr-only">{headers.actions}</span>,
           cell: (info) => (
-            <OpenButton row={info.row.original} openerRef={openerRef} onLeave={leave} />
+            <OpenReportButton row={info.row.original} openerRef={openerRef} onLeave={leave} />
           ),
           meta: { className: 'w-px' },
         }),
@@ -161,10 +106,10 @@ export function SpaceReportsList({
                 <span className="text-label">{row.field}</span>
                 <Badge variant={row.status.tone}>{row.status.label}</Badge>
               </div>
-              <Message row={row} />
+              <ReportMessage row={row} />
               <div className="flex items-center justify-between gap-3">
                 <span className="text-caption text-muted-foreground">{row.byline}</span>
-                <OpenButton row={row} openerRef={openerRef} onLeave={leave} />
+                <OpenReportButton row={row} openerRef={openerRef} onLeave={leave} />
               </div>
             </div>
           )}
@@ -187,42 +132,5 @@ export function SpaceReportsList({
         />
       )}
     </div>
-  );
-}
-
-/**
- * «فتح»: opens the row's report in the sheet, keeping itself as where the focus returns; when it
- * leaves holding the focus, `onLeave` places it (a layout effect's cleanup runs before the browser
- * drops the focus).
- */
-function OpenButton({
-  row,
-  openerRef,
-  onLeave,
-}: {
-  row: ReportRowView;
-  openerRef: RefObject<HTMLElement | null>;
-  onLeave: () => void;
-}) {
-  const ref = useRef<HTMLButtonElement>(null);
-  useLayoutEffect(() => {
-    const button = ref.current;
-    return () => {
-      if (button !== null && button.ownerDocument.activeElement === button) onLeave();
-    };
-  }, [onLeave]);
-
-  return (
-    <Button
-      ref={ref}
-      variant="outline"
-      size="sm"
-      onClick={(event) => {
-        openerRef.current = event.currentTarget;
-        row.open.run();
-      }}
-    >
-      {row.open.label}
-    </Button>
   );
 }

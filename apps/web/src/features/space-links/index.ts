@@ -1,4 +1,5 @@
 export { AddOwner } from './components/add-owner/AddOwner';
+export { AdminSpaceFilter } from './components/admin-filter/AdminSpaceFilter';
 export { AdminSpacesList } from './components/admin-list/AdminSpacesList';
 export { OwnersList } from './components/owners-list/OwnersList';
 export { SpaceOwnersActions } from './components/space-owners/SpaceOwnersActions';

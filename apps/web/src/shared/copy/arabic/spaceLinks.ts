@@ -164,6 +164,7 @@ export const SPACE_LINKS = {
     searchFailed: 'تعذّر البحث؛ اكتب من جديد لإعادة المحاولة.',
     linked: 'مربوطة',
     atDesk: 'مكتب استقبال',
+    allSpaces: 'كل المساحات',
     owner: ({ spaces }: { spaces: string }) => `مالك · ${spaces}`,
     ownerOfNone: 'مالك',
     user: 'مستخدم',

@@ -1,5 +1,5 @@
 import type { PaginationMeta } from '@masaha/shared/core';
-import type { SpaceReport } from '@masaha/shared/data-reports';
+import type { AdminReport, SpaceReport } from '@masaha/shared/data-reports';
 import type { FakeAnswer } from './fakeAdapter';
 
 /**
@@ -14,6 +14,19 @@ export function spaceReport(change: Partial<SpaceReport> = {}): SpaceReport {
     createdAt: '2026-10-20T21:30:00.000Z',
     status: 'OPEN',
     decision: null,
+    ...change,
+  };
+}
+
+/**
+ * A report as the admin reads it: `spaceReport()`'s, of Focus Hub (7, unverified), by Huda Saleh.
+ */
+export function adminReport(change: Partial<AdminReport> = {}): AdminReport {
+  return {
+    ...spaceReport(),
+    space: { id: 7, slug: 'focus-hub', nameEn: 'Focus Hub', nameAr: 'فوكس هب', verified: false },
+    reporter: { id: 9, name: 'Huda Saleh' },
+    decidedBy: null,
     ...change,
   };
 }

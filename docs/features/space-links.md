@@ -26,6 +26,7 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - **Every signed-in user with links,** through the switcher and the session's links, which the dashboard's guards and landing read.
 - **A space's owner,** on the dashboard's «الموظفون» (`/dashboard/spaces/:spaceId/staff`), through `features/staff`: their reception accounts. The ledger's staff filter reads the reception accounts' names on the web (`useStaffPeople`, the same list's one cache; [payments](payments.md), 2026-10-27, #127).
 - **The admin,** through the spaces list, on the dashboard's spaces page, the admin's routes on one space, the users list, on the dashboard's owners and users pages, and adding an owner.
+- **The admin's data reports,** which filter by one space (`AdminSpaceFilter`: the spaces' search, «كل المساحات» first; [data-reports](data-reports.md), 2026-10-28, #129).
 - **`auth`,** which puts the links in every `Session` it builds.
 
 ## Responsibility boundary

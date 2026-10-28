@@ -1,8 +1,8 @@
 # Data reports
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
-> **Authority:** The `data-reports` capability: a signed-in user tells Masaha that one field group of a listed space's page is wrong. Its endpoints are owned by the [API contract](../api/api-contract.md#data-reports); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the web, the owner's «بلاغات البيانات».
-> **Scope:** the API module `data-reports` (L3); `@masaha/shared/data-reports`; the web feature `features/data-reports`, any page group: the owner's list of a space's reports and the decision sheet.
+> **Authority:** The `data-reports` capability: a signed-in user tells Masaha that one field group of a listed space's page is wrong. Its endpoints are owned by the [API contract](../api/api-contract.md#data-reports); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the web, the owner's and the admin's «بلاغات البيانات».
+> **Scope:** the API module `data-reports` (L3); `@masaha/shared/data-reports`; the web feature `features/data-reports`, any page group: the owner's list of a space's reports, the admin's list of every space's, and the decision sheet.
 
 ## What it does
 
@@ -16,7 +16,7 @@
 
 - **A signed-in user,** through the API: `POST /spaces/:slug/reports`, and their own, `GET /me/reports`. The space page's report button and the account's reports are not built.
 - **The space's owner,** under `/manage/spaces/:spaceId/data-reports`: the list and the decision. Reception is refused. On the dashboard, the owner reads «بلاغات البيانات» (`/dashboard/spaces/:spaceId/reports`) and decides each report in its sheet (2026-10-28, #129).
-- **The admin,** under `/admin/data-reports`: every report, and the decision of an unverified space's. The admin's screen is not built.
+- **The admin,** under `/admin/data-reports`: every report, and the decision of an unverified space's. On the dashboard, the admin reads «بلاغات البيانات» (`/dashboard/admin/reports`), filters it by one space with [space-links](space-links.md)' search, and decides an unverified space's report in the same sheet (2026-10-28, #129).
 
 ## Responsibility boundary
 
@@ -46,6 +46,8 @@
 
 **The owner's reports on the web** (`features/data-reports`, composed by `pages/dashboard/space/reports/DataReportsPage.tsx`). «بلاغات البيانات» says what it lists, then «الكل · جديدة · تمت المراجعة» — the server filters `OPEN` or `DECIDED`, so «تمت المراجعة» is either decision — the chip and the page in the address (`?status=open|decided&page=`), and the count. It lists `GET …/data-reports` 20 a page, newest first: from 768 px a table of five columns — the field, the report on two lines at most in its own direction («لم يكتب المُبلِّغ تفاصيل.», muted, when there is none), the day on Gaza's calendar and never the time («21 أكتوبر», the year when it is not this one), the status («جديد» `info`, «تم التصحيح» `success`, «لم يُعتمد» `neutral`) and «فتح» — and below it a card each, «زائر · {day}» on it. The reporter is never named. Its states: loading, a failure with its reference and a retry, a failed refresh over the rows shown, «لا توجد بلاغات», and a chip that matches nothing, with «عرض الكل». «فتح» opens the decision sheet at the end side, full width below 768 px: «بلاغ عن {field}», «زائر · {day}» and the status; the report in a box; «تعديل الحقل», to Packages & prices for the prices and to the field's section of the space profile for the others («أخرى» to the profile); then, while the report is open, «ردّ إدارة المساحة» — its helper says the reply is shown to the reporter, required for «لم يُعتمد» and optional for «تم التصحيح» — focused first, and «تم التصحيح» and «لم يُعتمد». A blank reply with «لم يُعتمد» sends nothing: the reply is focused with «اكتب السبب؛ هو ما سيقرؤه صاحب البلاغ.». The decision is sent once, with no key; no answer says «لم يصل الرد. أعد المحاولة — القرار نفسه لا يُسجَّل مرتين.» with a retry; `REPORT_ALREADY_DECIDED` and a report gone are worded, the list read again and the sheet read-only; a 403 says «لم يعد هذا متاحًا لك في هذه المساحة.» and the user's spaces are read again. Done, the sheet closes, the space's reports are read again, and the toast says «عُلّم «تم التصحيح»» or «عُلّم «لم يُعتمد»», «في «تمت المراجعة»» with «عرض», and «أُرسل الردّ لصاحب البلاغ.» when a reply was written. A decided report opens read-only: its decision with «الردّ: …» or «بلا ردّ», no buttons. Closed, the sheet gives the focus back to its «فتح», or, that row gone, to the count.
 
+**The admin's reports on the web** (`features/data-reports`, composed by `pages/dashboard/admin/DataReportsPage.tsx`). «بلاغات البيانات» says the admin decides unverified spaces' reports and reads verified spaces' for reference, then the same chips, the space — [space-links](space-links.md)' `AdminSpaceFilter`, which the page sets: a search of the platform's spaces on the server, «كل المساحات» first, which clears it — and the field, every filter and the page in the address (`?status=&field=&space=&page=`), inline from 768 px and in a bottom sheet below it whose button counts what applies. The space and the field in force show under them at every width as removable tags («المساحة: {name}», «الحقل: {field}», each «إزالة فلتر …», [finding 8](../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) beside «مسح الفلاتر», which takes both off; a space no report on the page names says «مساحة محددة». It lists `GET /admin/data-reports` 20 a page: until 1024 px a card each, from it a table of eight columns — the space, a link to its editor; the field; the report; the reporter, by name; the day; the status; «يعالجه» («الإدارة» `info` while the space is unverified, «المالك» `neutral` once verified); «فتح», or «عرض» for a verified space's. Its states as the owner's; a filter that matches nothing offers «عرض الكل», which takes every filter off. The sheet names the reporter («{name} · {day}») and its reply is «ردّ فريقنا»; «تعديل الحقل» leads to the field's section of the space's editor. A verified space's report opens read-only: «مساحة موثّقة — يقرّر مالكها هذا البلاغ. للاطلاع فقط.» with «عرض المساحة», no reply and no buttons. A 403 — the space verified meanwhile — says «هذه المساحة موثّقة: يقرّر مالكها هذا البلاغ.», the admin's reports are read again and the sheet is read-only.
+
 ## Decisions
 
 ### API decisions
@@ -71,17 +73,23 @@
 - **A decided report is read-only** (DI-37): its decision, its reply or «بلا ردّ», no buttons — a decision is final on the server. 2026-10-28, #129.
 - **The toast says where a decided report went** (DI-41): it leaves «جديدة», so the toast names «تمت المراجعة» with «عرض», and says when the reply reached the reporter. 2026-10-28, #129.
 - **A chip that matches nothing offers «عرض الكل»** (DI-42), apart from the list that has no report at all. 2026-10-28, #129.
+- **The admin's chips are the owner's; the space and the field are fields** (DI-32, P5): the same «الكل · جديدة · تمت المراجعة»; the space a search on the server, the field a select. 2026-10-28, #129.
+- **A verified space's report is read-only for the admin, not a dead end** (DI-38): its notice says the owner decides it, with «عرض المساحة» to the space's editor. *Why:* the server refuses the admin's decision there (`can()` with "verified"). 2026-10-28, #129.
+- **«يعالجه» per row, from the space's verification now** (DI-39): «الإدارة» or «المالك»; no filter of it, which the API cannot serve ([finding 167](../architecture/findings/167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md)). 2026-10-28, #129.
+- **The filters in force are shown as removable tags at every width** (DI-40): a `?space=` link and the phone's sheet would otherwise hide them; `FilterTag` from the layer (finding 8). 2026-10-28, #129.
+- **The admin's list stays cards until 1024 px** (DI-43, A7): eight columns need the width; `cardsBelow="lg"`. 2026-10-28, #129.
 - **The decision is sent once, with no key** (S4): the same decision again answers the report as it is, so a lost answer is retried from the sheet. 2026-10-28, #129.
 
 ## Code map
 
 - `apps/api/src/modules/data-reports/` — the module: its service, its repository, its me, manage and admin routers, its limit and the decision's rule (`decision.ts`).
 - `packages/shared/src/data-reports/` — the requests and answers.
-- **Web:** `apps/web/src/features/data-reports/`, entry `index.ts` (`SpaceReportsList`), read by `pages/dashboard/space/reports/DataReportsPage.tsx`, which gives each field's place: the repository in `repository/`; the keys, the owner's list and its chip in the address (`space/`), and the decision sheet's view and its write (`decide/`) in `hooks/`; the address's query (`reportsQueryOf`) and a report's words — its field, its status by audience, its day, its message (`reportView`) — in `services/`; the owner's list (`space/`), the decision sheet (`decide/`), the status chips and the decision's toast in `components/`. Words: the catalogue's `dataReports` section.
+- **Web:** `apps/web/src/features/data-reports/`, entry `index.ts` (`SpaceReportsList`, `AdminReportsList`, `AdminSpaceFilterSlot`), read by `pages/dashboard/space/reports/DataReportsPage.tsx` and `pages/dashboard/admin/DataReportsPage.tsx`, which give each field's place (`pages/dashboard/fieldSections.ts`, the editor's anchors) and, for the admin, set [space-links](space-links.md)' `AdminSpaceFilter`: the repository in `repository/`; the keys, the owner's list and its chip in the address (`space/`), the admin's list and its filters in the address (`admin/`), and the decision sheet's view and its write (`decide/`) in `hooks/`; the addresses' queries (`reportsQueryOf`, `adminReportsQueryOf`) and a report's words — its field, its status by audience, its day, its message (`reportView`) — in `services/`; the owner's list (`space/`), the admin's list, its filters and its tags (`admin/`), the decision sheet (`decide/`), the parts both lists share, the status chips and the decision's toast in `components/`. Words: the catalogue's `dataReports` section.
 
 ## Open findings
 
-None.
+- [167. The admin's reports cannot be filtered by who handles them](../architecture/findings/167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md) — no `verified` parameter on `GET /admin/data-reports`; «يعالجه» per row only.
+- [184. A report's «تعديل الحقل» may not scroll to its section](../architecture/findings/184-a-reports-edit-the-field-link-may-not-scroll-to-its-section.md) — the editor does not scroll to the address's anchor once its cards have drawn.
 
 ## History
 
@@ -91,4 +99,4 @@ None.
 
 ### Web history
 
-- 2026-10-28, #129 — «بلاغات البيانات», the owner's: the space's reports by status, the reporter a visitor and the day only, and the decision sheet.
+- 2026-10-28, #129 — «بلاغات البيانات», the owner's: the space's reports by status, the reporter a visitor and the day only, and the decision sheet; the admin's: every space's reports by status, space and field, the filters in force as tags, the reporter named, a verified space's report read-only.

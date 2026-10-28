@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
-import { spaceReport } from '../../../../test/dataReport';
+import { adminReport, spaceReport } from '../../../../test/dataReport';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { findToast } from '../../../../test/findToast';
 import {
@@ -19,16 +19,22 @@ import {
 } from '../../../../test/fakeTransport';
 import { startPreferences } from '../../../../test/startPreferences';
 import { DecideSheet } from '../../components/decide/DecideSheet';
+import type { DecideTarget } from '../../types/DecideTarget';
 
 const DECIDED: SpaceReport = spaceReport({
   status: 'RESOLVED',
   decision: { status: 'RESOLVED', at: '2026-10-27T09:00:00.000Z', note: null, repliedBy: 'SPACE' },
 });
 
-/** The sheet of `report`, open until it closes itself, as the owner's list holds it. */
+/**
+ * The sheet of `report`, open until it closes itself, as the owner's list holds it — or as `target`
+ * says, the admin's.
+ */
 function renderSheet(
   answer: () => FakeAnswer | Promise<FakeAnswer> = () => ok(DECIDED),
   report: SpaceReport = spaceReport(),
+  target: DecideTarget = { audience: 'owner', spaceId: 7, report },
+  editLink = '/dashboard/spaces/7/profile#hours',
 ) {
   const requests = fakeTransport(answer);
   const onClose = vi.fn();
@@ -39,8 +45,8 @@ function renderSheet(
     const [open, setOpen] = useState(true);
     return open ? (
       <DecideSheet
-        target={{ audience: 'owner', spaceId: 7, report }}
-        editLink="/dashboard/spaces/7/profile#hours"
+        target={target}
+        editLink={editLink}
         showDecided={showDecided}
         onClose={() => {
           onClose();
@@ -259,5 +265,80 @@ describe('useDecideSheet', () => {
       { status: 'RESOLVED', note: 'Fixed' },
       { status: 'RESOLVED', note: 'Fixed' },
     ]);
+  });
+
+  it('names the reporter to the admin, and sends an unverified space’s decision as the admin’s', async () => {
+    const user = userEvent.setup();
+    const report = adminReport();
+    const { requests, invalidated } = renderSheet(
+      () => ok({ ...report, status: 'RESOLVED' }),
+      report,
+      { audience: 'admin', report },
+      '/dashboard/admin/spaces/7#hours',
+    );
+
+    const sheet = await screen.findByRole('dialog', { name: 'Report about Opening hours' });
+    expect(
+      within(sheet).getByText((text) => text.replace(/[⁦-⁩]/g, '') === 'Huda Saleh · 21 October'),
+    ).toBeVisible();
+    expect(within(sheet).getByRole('link', { name: 'Edit the field' })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/spaces/7#hours',
+    );
+    await user.type(screen.getByRole('textbox', { name: 'Reply from our team' }), 'Fixed');
+    await user.click(screen.getByRole('button', { name: 'Corrected' }));
+
+    await findToast('Marked “Corrected”');
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'patch /admin/data-reports/41',
+    ]);
+    expect(bodyOf(requests[0])).toEqual({ status: 'RESOLVED', note: 'Fixed' });
+    expect(keysOf(invalidated)).toEqual([['admin', 'dataReports']]);
+  });
+
+  it('shows the admin a verified space’s report read-only, with a link to the space', async () => {
+    const report = adminReport({
+      space: { id: 3, slug: 'nook', nameEn: 'Nook', nameAr: null, verified: true },
+    });
+    const { requests } = renderSheet(
+      undefined,
+      report,
+      { audience: 'admin', report },
+      '/dashboard/admin/spaces/3',
+    );
+
+    const sheet = await screen.findByRole('dialog');
+    expect(
+      within(sheet).getByText(
+        'Verified space — its owner decides this report. For reference only.',
+      ),
+    ).toBeVisible();
+    expect(within(sheet).getByRole('link', { name: 'View the space' })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/spaces/3',
+    );
+    expect(within(sheet).queryByRole('link', { name: 'Edit the field' })).toBeNull();
+    expect(within(sheet).queryByRole('textbox')).toBeNull();
+    expect(within(sheet).queryByRole('button', { name: 'Corrected' })).toBeNull();
+    expect(within(sheet).queryByRole('button', { name: 'Not accepted' })).toBeNull();
+    expect(requests).toEqual([]);
+  });
+
+  it('words the admin’s 403 as a space verified meanwhile, and reads the admin’s reports again', async () => {
+    const user = userEvent.setup();
+    const report = adminReport();
+    const { invalidated } = renderSheet(() => refused(403, { type: 'forbidden' }), report, {
+      audience: 'admin',
+      report,
+    });
+    await screen.findByRole('dialog');
+
+    await user.click(screen.getByRole('button', { name: 'Corrected' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This space is verified: its owner decides this report.',
+    );
+    expect(keysOf(invalidated)).toEqual([['admin', 'dataReports']]);
+    expect(screen.queryByRole('button', { name: 'Corrected' })).toBeNull();
   });
 });

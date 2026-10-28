@@ -47,6 +47,10 @@ const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
     const { LookupsPage } = await import('./admin/LookupsPage');
     return { element: <LookupsPage /> };
   },
+  dataReports: async () => {
+    const { DataReportsPage } = await import('./admin/DataReportsPage');
+    return { element: <DataReportsPage /> };
+  },
 };
 
 /** The space's pages that have a screen, each loaded lazily; the others show their placeholder. */

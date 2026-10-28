@@ -80,4 +80,41 @@ export const DATA_REPORTS = {
     inDecided: 'In “Reviewed”',
     show: 'Show',
   },
+  /** The admin's «بلاغات البيانات»: every space's reports. */
+  admin: {
+    label: 'Data reports',
+    intro:
+      'The admin decides unverified spaces’ reports. Verified spaces’ reports are decided by their owner and shown here for reference.',
+    columns: {
+      space: 'Space',
+      field: 'Field',
+      report: 'Report',
+      reporter: 'Reporter',
+      date: 'Date',
+      status: 'Status',
+      handledBy: 'Handled by',
+      actions: 'Actions',
+    },
+    handledBy: { admin: 'Admin', owner: 'Owner' },
+    space: 'Space',
+    chosen: 'A chosen space',
+    field: 'Field',
+    allFields: 'All fields',
+    tags: {
+      space: ({ name }: { name: string }) => `Space: ${name}`,
+      field: ({ field }: { field: string }) => `Field: ${field}`,
+      removeSpace: 'Remove the space filter',
+      removeField: 'Remove the field filter',
+      clear: 'Clear filters',
+    },
+    filters: {
+      title: 'Filters',
+      show: ({ count }: { count: number }) =>
+        englishPlural(count, { one: 'Show 1 report', other: `Show ${String(count)} reports` }),
+      none: 'No results — change the filters',
+    },
+    readOnly: 'Verified space — its owner decides this report. For reference only.',
+    openSpace: 'View the space',
+    forbiddenVerified: 'This space is verified: its owner decides this report.',
+  },
 } as const;

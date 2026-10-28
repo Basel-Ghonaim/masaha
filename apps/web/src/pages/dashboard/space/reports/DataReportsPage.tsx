@@ -3,16 +3,9 @@ import { SpaceReportsList } from '@features/data-reports';
 import { NotFoundState, parseSpaceId } from '@shared/routing';
 import { useCallback } from 'react';
 import { useParams } from 'react-router';
+import { FIELD_SECTIONS } from '../../fieldSections';
 import { spacePagePath } from '../../navigation';
 import { PageHeader } from '../../shell/PageHeader';
-
-/** The space profile's section where each field group is edited (its cards' anchors). */
-const PROFILE_SECTIONS: Partial<Record<DataReportField, string>> = {
-  HOURS: 'hours',
-  CONTACT: 'contacts',
-  LOCATION: 'location',
-  AMENITIES: 'amenities',
-};
 
 /**
  * «بلاغات البيانات», the owner's: `data-reports`' list of the space's reports and its decision sheet,
@@ -41,8 +34,8 @@ function Reports({ spaceId }: { spaceId: number }) {
     (field: DataReportField) => {
       if (field === 'PRICES') return spacePagePath(spaceId, 'packages');
       const profile = spacePagePath(spaceId, 'profile');
-      const section = PROFILE_SECTIONS[field];
-      return section === undefined ? profile : `${profile}#${section}`;
+      const section = FIELD_SECTIONS[field];
+      return section === null ? profile : `${profile}#${section}`;
     },
     [spaceId],
   );

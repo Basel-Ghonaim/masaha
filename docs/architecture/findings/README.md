@@ -76,9 +76,11 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [164. A written-off visit is listed nowhere](164-a-written-off-visit-is-listed-nowhere.md)
 - [165. The dashboard's navigation is not grouped by task](165-the-dashboards-navigation-is-not-grouped-by-task.md)
 - [166. The ledger's staff filter cannot name a space's other owners](166-the-ledgers-staff-filter-cannot-name-a-spaces-other-owners.md)
+- [167. The admin's reports cannot be filtered by who handles them](167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md)
 - [170. A request's renewal racing a rotation can be lost on the newest row](170-a-requests-renewal-racing-a-rotation-can-be-lost-on-the-newest-row.md)
 - [171. A published price changed between the desk's read and the subscribe is charged silently](171-a-published-price-changed-between-the-desks-read-and-the-subscribe-is-charged-silently.md)
 - [172. The write-off's reason is not focused first](172-the-write-offs-reason-is-not-focused-first.md)
+- [184. A report's «تعديل الحقل» may not scroll to its section](184-a-reports-edit-the-field-link-may-not-scroll-to-its-section.md)
 
 ## Accepted
 

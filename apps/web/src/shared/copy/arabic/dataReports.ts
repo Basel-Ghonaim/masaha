@@ -81,4 +81,47 @@ export const DATA_REPORTS = {
     inDecided: 'في «تمت المراجعة»',
     show: 'عرض',
   },
+  admin: {
+    label: 'بلاغات البيانات',
+    intro:
+      'تقرّر الإدارة بلاغات المساحات غير الموثّقة. بلاغات المساحات الموثّقة يقرّرها مالكها، وتظهر هنا للاطلاع.',
+    columns: {
+      space: 'المساحة',
+      field: 'الحقل',
+      report: 'البلاغ',
+      reporter: 'المُبلِّغ',
+      date: 'التاريخ',
+      status: 'الحالة',
+      handledBy: 'يعالجه',
+      actions: 'إجراءات',
+    },
+    handledBy: { admin: 'الإدارة', owner: 'المالك' },
+    space: 'المساحة',
+    chosen: 'مساحة محددة',
+    field: 'الحقل',
+    allFields: 'كل الحقول',
+    tags: {
+      space: ({ name }: { name: string }) => `المساحة: ${name}`,
+      field: ({ field }: { field: string }) => `الحقل: ${field}`,
+      removeSpace: 'إزالة فلتر المساحة',
+      removeField: 'إزالة فلتر الحقل',
+      clear: 'مسح الفلاتر',
+    },
+    filters: {
+      title: 'الفلاتر',
+      show: ({ count }: { count: number }) =>
+        arabicPlural(count, {
+          zero: `عرض ${String(count)} بلاغ`,
+          one: 'عرض البلاغ',
+          two: 'عرض البلاغين',
+          few: `عرض ${String(count)} بلاغات`,
+          many: `عرض ${String(count)} بلاغًا`,
+          other: `عرض ${String(count)} بلاغ`,
+        }),
+      none: 'لا نتائج — غيّر الفلاتر',
+    },
+    readOnly: 'مساحة موثّقة — يقرّر مالكها هذا البلاغ. للاطلاع فقط.',
+    openSpace: 'عرض المساحة',
+    forbiddenVerified: 'هذه المساحة موثّقة: يقرّر مالكها هذا البلاغ.',
+  },
 } satisfies Catalogue['dataReports'];
