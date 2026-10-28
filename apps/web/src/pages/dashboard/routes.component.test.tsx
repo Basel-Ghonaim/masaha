@@ -11,6 +11,7 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { announcement, announcementsPage, announcementsSummary } from '../../test/announcement';
+import { reportsPage, spaceReport } from '../../test/dataReport';
 import { customerFile, customerRow, customersPage } from '../../test/deskCustomer';
 import { fakeIntersectionObserver } from '../../test/fakeIntersectionObserver';
 import { aSession } from '../../test/fakeSession';
@@ -847,6 +848,38 @@ describe("the space's payments", () => {
       page: 1,
       limit: 20,
     });
+  });
+});
+
+describe("the space's data reports", () => {
+  // The page loads lazily, as the payments' do: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/reports/DataReportsPage');
+  });
+
+  it('shows the owner «Data reports» under its title, the reporter a visitor', async () => {
+    asOwner();
+    const requests = fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/data-reports') return reportsPage([spaceReport()]);
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+    renderDashboard('/dashboard/spaces/7/reports');
+
+    await topBarTitle('Data reports');
+    const table = await screen.findByRole('table', { name: 'Data reports' });
+    expect(await within(table).findByText('The space opens at 9, not 8.')).toBeVisible();
+    expect(requests.find(({ url }) => url === '/manage/spaces/7/data-reports')?.params).toEqual({
+      page: 1,
+      limit: 20,
+    });
+  });
+
+  it('refuses reception the space’s data reports with the 403', async () => {
+    asReception();
+    renderDashboard('/dashboard/spaces/7/reports');
+
+    expect(await stateInMain('You don’t have access to this page')).toBeInTheDocument();
   });
 });
 

@@ -2,6 +2,7 @@ import type { Catalogue } from '../shape';
 import { ANNOUNCEMENTS } from './announcements';
 import { AUTH } from './auth';
 import { DASHBOARD } from './dashboard';
+import { DATA_REPORTS } from './dataReports';
 import { DESK } from './desk';
 import { DIRECTORY } from './directory';
 import { ERRORS } from './errors';
@@ -28,6 +29,7 @@ export const ARABIC = {
   announcements: ANNOUNCEMENTS,
   auth: AUTH,
   dashboard: DASHBOARD,
+  dataReports: DATA_REPORTS,
   desk: DESK,
   directory: DIRECTORY,
   errors: ERRORS,
