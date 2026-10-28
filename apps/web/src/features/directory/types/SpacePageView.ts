@@ -9,6 +9,9 @@ import type { ListFailureView } from './DirectoryListView';
 import type { PriceGroupView } from './PriceGroupView';
 import type { PhotoUrls } from '@masaha/shared/spaces';
 
+/** A space, as a page's slot is handed it: its slug, its name as shown, and whether it is verified. */
+export type SlotSpace = { slug: string; name: SpaceNameView; verified: boolean };
+
 /** A section's meta under its heading: its date, what else it says, and its stale badge. */
 export type SectionMeta = { lines: string[]; stale: string | null };
 
@@ -25,6 +28,8 @@ export type SpacePageView = {
     verified: string | null;
     noPhotos: string | null;
   } | null;
+  /** The space as the page's slots name it: what another capability's action is set up with. */
+  space: SlotSpace | null;
   /** An unverified space's notice, and its dialog with the platform's contact. */
   unverified: {
     text: string | null;

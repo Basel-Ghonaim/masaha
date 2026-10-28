@@ -140,4 +140,32 @@ export const DATA_REPORTS = {
     none: 'No reports here',
     loadFailed: 'We couldn’t load your reports',
   },
+  /** A space's page: «الإبلاغ عن معلومة غير صحيحة» and its dialog. */
+  report: {
+    trigger: 'Report wrong information',
+    title: 'Report wrong information',
+    /** Who reads it, by the space's verification (DI-45, U10). */
+    toSpace: ({ name }: { name: string }) =>
+      `Your report on ${name} goes to the space’s management; you’ll find their reply in “My reports”.`,
+    toTeam: ({ name }: { name: string }) =>
+      `Our team reviews your report on ${name}; you’ll find the reply in “My reports”.`,
+    field: 'What’s wrong?',
+    choose: 'Choose',
+    fieldRequired: 'Choose what’s wrong',
+    message: 'Details',
+    optional: 'Optional',
+    helper: 'For example: the monthly price is now ₪320',
+    messageRequired: 'Write what is wrong under “Other”.',
+    send: 'Send',
+    back: 'Back',
+    failed: 'We couldn’t send the report',
+    lost: 'No answer came back. Try again — the report won’t be sent twice.',
+    gone: 'This space is no longer in the directory.',
+    /** The toast: where the reply lands (DI-47), or that one is already open (DI-48). */
+    sentSpace:
+      'We sent your report to the space’s management. You’ll find their reply in “My reports”.',
+    sentTeam: 'We sent your report to our team. You’ll find the reply in “My reports”.',
+    repeated: 'You already reported this, and it is still in review.',
+    showMine: 'View my reports',
+  },
 } as const;

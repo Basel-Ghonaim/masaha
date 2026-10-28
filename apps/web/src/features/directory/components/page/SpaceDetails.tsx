@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { useSpacePage } from '../../hooks/page/useSpacePage';
 import { useGallery } from '../../hooks/page/useGallery';
 import type { DirectorySlots } from '../../types/DirectorySlots';
+import type { SlotSpace } from '../../types/SpacePageView';
 import { FailureAlert } from '../list/FailureAlert';
 import { AboutSection } from './AboutSection';
 import { AmenitiesSection } from './AmenitiesSection';
@@ -25,19 +26,23 @@ import { UnverifiedNotice } from './UnverifiedNotice';
  * notice, the status (a card below 1024 px), the prices, the hours, the amenities, about the space,
  * the location and the contacts (a section below 1024 px). From 1024 px the status and the contacts
  * are a named aside beside the sections; below 768 px a bar at the foot offers WhatsApp and a call.
- * The page sets the area's name, the link back to the directory and the platform's contact.
+ * The page sets the area's name, the link back to the directory and the platform's contact, and the
+ * report of wrong information, drawn last in the main column (U8).
  */
 export function SpaceDetails({
   slug,
   areaName,
   browseLink,
   ownerContact,
+  report,
 }: {
   slug: string;
   areaName: DirectorySlots['areaName'];
   browseLink: string;
   /** The platform's contact, in the unverified notice's dialog. */
   ownerContact: ReactNode;
+  /** The report of the space's wrong information, at the end of its sections. */
+  report?: (space: SlotSpace) => ReactNode;
 }) {
   const copy = useCopy();
   const view = useSpacePage(slug);
@@ -93,6 +98,9 @@ export function SpaceDetails({
           <Section title={contacts.title} meta={contacts.meta}>
             <ContactList items={contacts.items} />
           </Section>
+        )}
+        {report !== undefined && view.space !== null && (
+          <div className="border-t border-border pt-6">{report(view.space)}</div>
         )}
       </div>
       {view.wide && (panelShown || contacts !== null) && (

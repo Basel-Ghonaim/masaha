@@ -27,6 +27,20 @@ export const SITE = {
     navigation: 'My account',
     reports: 'My reports',
   },
+  /** A guest's press of what needs an account: why to sign in, by the action (DI-60). */
+  signInPrompt: {
+    favorite: {
+      title: 'Sign in to save spaces to your favourites',
+      text: 'The spaces you save are in your account on any device.',
+    },
+    report: {
+      title: 'Sign in to report information',
+      text: 'So you’ll find the reply to your report in “My reports”.',
+    },
+    register: 'Create account',
+    signIn: 'Sign in',
+    close: 'Close',
+  },
   /** Home: the hero and its search, the areas, and the owners' card. */
   home: {
     title: 'Find a workspace in the Gaza Strip',

@@ -4,15 +4,18 @@ import type { SiteOutletContext } from './footerRoom';
 import { SiteFooter } from './SiteFooter';
 import { SiteHeader } from './SiteHeader';
 import { SkipLink } from './SkipLink';
+import { useGuestIntents } from './useGuestIntents';
 import { useMainFocus } from './useMainFocus';
 
 /**
  * The site's shell: the skip link, the full header and the footer around the page, whose `main`
  * takes the focus when another page opens. A page with a bar fixed at its foot reserves the
- * footer's room under it (`useFooterRoom`).
+ * footer's room under it (`useFooterRoom`). A guest's held actions are let go once they land on
+ * another page of the site (`useGuestIntents`).
  */
 export function SiteLayout() {
   useMainFocus();
+  useGuestIntents();
   const [footerRoom, reserveFooterRoom] = useState(false);
   const context: SiteOutletContext = { reserveFooterRoom };
 

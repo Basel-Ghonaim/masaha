@@ -107,6 +107,30 @@ describe('the data reports repository', () => {
     expect(requests[0]?.params).toEqual(query);
   });
 
+  it('sends a report to the space’s path: a 201 is a new one, a 200 a repeat', async () => {
+    let status = 201;
+    const requests = serve(() => ({ status, data: { success: true, data: myReport() } }));
+    const repository = createDataReportsRepository();
+
+    await expect(
+      repository.report('masaha-hub', { field: 'OTHER', message: 'Closed on Fridays' }),
+    ).resolves.toEqual({ report: myReport(), repeated: false });
+    status = 200;
+    await expect(repository.report('masaha-hub', { field: 'HOURS' })).resolves.toEqual({
+      report: myReport(),
+      repeated: true,
+    });
+    expect(requests.map(lineOf)).toEqual([
+      'post /spaces/masaha-hub/reports',
+      'post /spaces/masaha-hub/reports',
+    ]);
+    expect(JSON.parse(String(requests[0]?.data))).toEqual({
+      field: 'OTHER',
+      message: 'Closed on Fridays',
+    });
+    expect(requests[0]?.headers['Idempotency-Key']).toBeUndefined();
+  });
+
   it('rejects with the AppError the transport made', async () => {
     serve(() => ({
       status: 409,
