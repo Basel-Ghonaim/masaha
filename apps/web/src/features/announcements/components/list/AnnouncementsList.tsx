@@ -23,6 +23,7 @@ import { useCardFocus } from '../../hooks/list/useCardFocus';
 import type { CardDialog, OpenCardDialog } from '../../types/CardDialog';
 import type { SheetEntry } from '../../types/SheetEntry';
 import { DeleteDialog } from '../actions/DeleteDialog';
+import { ExtensionDialog } from '../extension/ExtensionDialog';
 import { AnnouncementSheet } from '../sheet/AnnouncementSheet';
 import { AnnouncementCard } from './AnnouncementCard';
 
@@ -88,7 +89,7 @@ function ListState({ list, open }: { list: AnnouncementsListView; open: Open }) 
  * (DI-23), the failure with its retry, the tab's empty state; the pages past one page only (DI-26).
  * «إعلان جديد» at the end of the tabs' row and a card's «تعديل» open the sheet, mounted anew for each
  * opening (its key is that opening's, S4); closed, the focus goes back to the control that opened it.
- * A card's delete dialog is held here too, so that they stay open whatever the list's
+ * A card's extension and delete dialogs are held here too, so that they stay open whatever the list's
  * refetch makes of the card — a 409 or a 404 stays in its dialog until «رجوع»; closed, the focus goes
  * back to the control that opened it, else to the card's first action, else on as below.
  * When the card whose action holds the focus leaves its tab — ended, started or deleted — the next
@@ -167,6 +168,19 @@ export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: 
         </section>
         {list.pagination !== null && <ListPagination pagination={list.pagination} />}
       </TabsContent>
+      {dialog?.kind === 'extension' && (
+        <ExtensionDialog
+          key={dialog.opening}
+          spaceId={spaceId}
+          closure={dialog.closure}
+          onClose={() => {
+            setDialog(null);
+          }}
+          returnFocus={() => {
+            returnDialogFocus(dialog.key);
+          }}
+        />
+      )}
       {dialog?.kind === 'delete' && (
         <DeleteDialog
           key={dialog.opening}

@@ -202,6 +202,32 @@ describe('AnnouncementsList', () => {
       ).toBe(true);
     };
 
+    it('keeps the extension’s CLOSURE_ALREADY_EXTENDED until «Back», though the card now says the closure was extended', async () => {
+      const user = userEvent.setup();
+      const { readAgain } = renderClosure(() =>
+        refused(409, { type: 'conflict', code: 'CLOSURE_ALREADY_EXTENDED' }),
+      );
+
+      await user.click(await screen.findByRole('button', { name: 'Extend subscriptions' }));
+      const dialog = await screen.findByRole('alertdialog');
+      await user.click(await within(dialog).findByRole('button', { name: /^Extend 3/ }));
+      expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+        "This closure's subscriptions were already extended.",
+      );
+      await waitFor(() => {
+        expect(readAgain()).toBe(true);
+      });
+      await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+      expect(screen.getByRole('alertdialog')).toBe(dialog);
+      expect(within(dialog).getByRole('alert')).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole('button', { name: 'Back' }));
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).toBeNull();
+      });
+      focusPlaced();
+    });
+
     it('keeps the delete’s CLOSURE_EXTENDED until «Back», though the card no longer offers the delete', async () => {
       const user = userEvent.setup();
       const { readAgain } = renderClosure(() =>

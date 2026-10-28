@@ -16,4 +16,6 @@ export type AnnouncementCardView = {
   closureLine: string | null;
   /** «تعديل», on one running or upcoming; none on an ended one, whose card is its view (DI-16). */
   edit: { label: string } | null;
+  /** «تمديد الاشتراكات», the owner's, on a started closure not extended (O11); else none. */
+  extension: { label: string } | null;
 };

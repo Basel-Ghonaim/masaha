@@ -1,3 +1,4 @@
+import { arabicPlural } from '../plural';
 import type { Catalogue } from '../shape';
 
 export const ANNOUNCEMENTS = {
@@ -123,6 +124,71 @@ export const ANNOUNCEMENTS = {
   public: {
     title: 'الإعلانات',
     notice: ({ period }: { period: string }) => `إعلان من إدارة المساحة · ${period}`,
+  },
+  extension: {
+    action: 'تمديد الاشتراكات',
+    title: 'تمديد الاشتراكات التي شملها الإغلاق؟',
+    covered: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا يشمل التمديد أي اشتراك.',
+        one: 'يشمل التمديد اشتراكًا واحدًا.',
+        two: 'يشمل التمديد اشتراكين.',
+        few: `يشمل التمديد ${String(count)} اشتراكات.`,
+        many: `يشمل التمديد ${String(count)} اشتراكًا.`,
+        other: `يشمل التمديد ${String(count)} اشتراك.`,
+      }),
+    text: 'هي التي شملها الإغلاق، وتجديداتها التي لم تبدأ بعد؛ يتأخر كلٌّ منها بعدد الأيام أدناه. لا يمكن التراجع، ولا التمديد مرة ثانية لهذا الإغلاق.',
+    days: 'عدد الأيام',
+    daysHelper: ({ days, first, last }: { days: string; first: string; last: string }) =>
+      `أيام الإغلاق: ${days} (${first} – ${last})`,
+    daysRange: 'بين 1 و365 يومًا',
+    submit: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `مدّد ${String(count)} اشتراك`,
+        one: 'مدّد اشتراكًا واحدًا',
+        two: 'مدّد اشتراكين',
+        few: `مدّد ${String(count)} اشتراكات`,
+        many: `مدّد ${String(count)} اشتراكًا`,
+        other: `مدّد ${String(count)} اشتراك`,
+      }),
+    count: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا اشتراكات',
+        one: 'اشتراك واحد',
+        two: 'اشتراكان',
+        few: `${String(count)} اشتراكات`,
+        many: `${String(count)} اشتراكًا`,
+        other: `${String(count)} اشتراك`,
+      }),
+    dayCount: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا أيام',
+        one: 'يوم واحد',
+        two: 'يومان',
+        few: `${String(count)} أيام`,
+        many: `${String(count)} يومًا`,
+        other: `${String(count)} يوم`,
+      }),
+    line: ({
+      count,
+      days,
+      name,
+      date,
+    }: {
+      count: string;
+      days: string;
+      name: string;
+      date: string;
+    }) => `مُدّد ${count} · ${days} · ${name} · ${date}`,
+    none: 'لم يشمل هذا الإغلاق أي اشتراك، فلا شيء يُمدَّد.',
+    applied: ({ count, days }: { count: string; days: string }) =>
+      `مُدّدت اشتراكات هذا الإغلاق من قبل: ${count} · ${days}.`,
+    done: 'مُدّدت الاشتراكات',
+    doneText: ({ count, days }: { count: string; days: string }) => `${count} · ${days}`,
+    failed: 'تعذّر التمديد',
+    loadFailed: 'تعذّر حساب الاشتراكات المشمولة',
+    lost: 'لم يصل الرد. أعد المحاولة — لن تُمدَّد مرتين.',
+    back: 'رجوع',
   },
   list: {
     label: 'الإعلانات',

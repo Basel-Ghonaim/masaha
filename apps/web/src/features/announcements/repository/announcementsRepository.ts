@@ -2,8 +2,11 @@ import type {
   Announcement,
   AnnouncementsQuery,
   AnnouncementsSummary,
+  ClosureExtension,
   CreateAnnouncementRequest,
   EditAnnouncementRequest,
+  ExtendSubscriptionsRequest,
+  ExtensionPreview,
   ManagedAnnouncement,
 } from '@masaha/shared/announcements';
 import { api, withIdempotencyKey, type Page } from '@shared/api';
@@ -27,6 +30,15 @@ export interface AnnouncementsRepository {
   start(spaceId: number, id: number): Promise<Announcement>;
   /** Deletes one, in any state; one deleted already answers the same. */
   remove(spaceId: number, id: number): Promise<undefined>;
+  /** A started closure's extension before it is applied, or as applied: `subscriptions`' (S2). */
+  preview(spaceId: number, id: number): Promise<ExtensionPreview>;
+  /** Extends the subscriptions a closure covered, the owner's, with its intent's key (S4). */
+  extend(
+    spaceId: number,
+    id: number,
+    body: ExtendSubscriptionsRequest,
+    key: string,
+  ): Promise<ClosureExtension>;
 }
 
 const pathOf = (spaceId: number) => `/manage/spaces/${String(spaceId)}/announcements`;
@@ -42,5 +54,13 @@ export function createAnnouncementsRepository(): AnnouncementsRepository {
     end: (spaceId, id) => api.post<Announcement>(`${pathOf(spaceId)}/${String(id)}/end`),
     start: (spaceId, id) => api.post<Announcement>(`${pathOf(spaceId)}/${String(id)}/start`),
     remove: (spaceId, id) => api.delete<undefined>(`${pathOf(spaceId)}/${String(id)}`),
+    preview: (spaceId, id) =>
+      api.get<ExtensionPreview>(`${pathOf(spaceId)}/${String(id)}/extend-subscriptions`),
+    extend: (spaceId, id, body, key) =>
+      api.post<ClosureExtension>(
+        `${pathOf(spaceId)}/${String(id)}/extend-subscriptions`,
+        body,
+        withIdempotencyKey(key),
+      ),
   };
 }

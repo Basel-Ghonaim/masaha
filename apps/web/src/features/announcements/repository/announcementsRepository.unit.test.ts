@@ -102,6 +102,20 @@ describe('the announcements repository', () => {
     ]);
   });
 
+  it('reads a closure’s extension, and applies it with its key', async () => {
+    const requests = serve(() => ({ status: 200, data: { success: true, data: { days: 3 } } }));
+    const repository = createAnnouncementsRepository();
+
+    await repository.preview(7, 9);
+    await repository.extend(7, 9, { days: 3 }, 'key-2');
+    expect(requests.map(lineOf)).toEqual([
+      'get /manage/spaces/7/announcements/9/extend-subscriptions',
+      'post /manage/spaces/7/announcements/9/extend-subscriptions',
+    ]);
+    expect(JSON.parse(String(requests[1]?.data))).toEqual({ days: 3 });
+    expect(requests[1]?.headers.get('Idempotency-Key')).toBe('key-2');
+  });
+
   it('rejects with the AppError the transport made', async () => {
     serve(() => ({
       status: 403,

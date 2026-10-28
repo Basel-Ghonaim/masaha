@@ -19,6 +19,9 @@ type Answer = (url: string) => FakeAnswer | Promise<FakeAnswer>;
 
 const LIST = '/manage/spaces/7/announcements';
 
+/** A line with the Unicode isolates around its values removed, as a reader hears it. */
+const heard = (line: string | null) => line?.replace(/[⁦-⁩]/g, '') ?? null;
+
 /** The list on a page at `path`, its reads answered by `answer`, with the address it writes. */
 function renderList(answer: Answer, { path = '/p', owner = true } = {}) {
   const requests = fakeTransport((request) => answer(request.url ?? ''));
@@ -193,7 +196,7 @@ describe('useAnnouncementsList', () => {
     expect(result.current.list.cards).toHaveLength(1);
   });
 
-  it('says a closure’s extension line: the owner’s on one not started, reception’s on one started', async () => {
+  it('says a closure’s extension: the owner’s line on one not started, reception’s on one started, both once extended', async () => {
     const rows = [
       closure({ id: 1, state: 'UPCOMING' }),
       closure({ id: 2 }),
@@ -212,9 +215,16 @@ describe('useAnnouncementsList', () => {
     await waitFor(() => {
       expect(owner.result.current.list.state).toBe('ready');
     });
-    expect(owner.result.current.list.cards.map((card) => card.closureLine)).toEqual([
+    expect(owner.result.current.list.cards.map((card) => heard(card.closureLine))).toEqual([
       'Subscriptions can be extended once the closure has started.',
       null,
+      'Extended 4 subscriptions · 3 days · Sara · 21 October',
+      null,
+    ]);
+    // The owner's action on a started closure not extended only (O11).
+    expect(owner.result.current.list.cards.map((card) => card.extension?.label ?? null)).toEqual([
+      null,
+      'Extend subscriptions',
       null,
       null,
     ]);
@@ -224,9 +234,15 @@ describe('useAnnouncementsList', () => {
     await waitFor(() => {
       expect(reception.result.current.list.state).toBe('ready');
     });
-    expect(reception.result.current.list.cards.map((card) => card.closureLine)).toEqual([
+    expect(reception.result.current.list.cards.map((card) => heard(card.closureLine))).toEqual([
       null,
       'The owner extends subscriptions once the closure has started.',
+      'Extended 4 subscriptions · 3 days · Sara · 21 October',
+      null,
+    ]);
+    expect(reception.result.current.list.cards.map((card) => card.extension)).toEqual([
+      null,
+      null,
       null,
       null,
     ]);

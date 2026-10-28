@@ -1,3 +1,5 @@
+import { englishPlural } from '../plural';
+
 /** A space's announcements (screen 18): the owner's and reception's «الإعلانات». */
 export const ANNOUNCEMENTS = {
   /** The tabs, one per state, each with the summary's count. */
@@ -133,6 +135,50 @@ export const ANNOUNCEMENTS = {
   public: {
     title: 'Announcements',
     notice: ({ period }: { period: string }) => `An announcement from the space · ${period}`,
+  },
+  /** A closure's extension of the subscriptions it covered, the owner's, once the closure started. */
+  extension: {
+    action: 'Extend subscriptions',
+    title: 'Extend the subscriptions this closure covered?',
+    covered: ({ count }: { count: number }) =>
+      englishPlural(count, {
+        one: 'The extension moves 1 subscription.',
+        other: `The extension moves ${String(count)} subscriptions.`,
+      }),
+    text: 'Those the closure covered, and their renewals not started yet; each moves by the days below. It can’t be undone, nor applied again for this closure.',
+    days: 'Number of days',
+    daysHelper: ({ days, first, last }: { days: string; first: string; last: string }) =>
+      `The closure’s days: ${days} (${first} – ${last})`,
+    daysRange: 'Between 1 and 365 days',
+    submit: ({ count }: { count: number }) =>
+      englishPlural(count, {
+        one: 'Extend 1 subscription',
+        other: `Extend ${String(count)} subscriptions`,
+      }),
+    count: ({ count }: { count: number }) =>
+      englishPlural(count, { one: '1 subscription', other: `${String(count)} subscriptions` }),
+    dayCount: ({ count }: { count: number }) =>
+      englishPlural(count, { one: '1 day', other: `${String(count)} days` }),
+    line: ({
+      count,
+      days,
+      name,
+      date,
+    }: {
+      count: string;
+      days: string;
+      name: string;
+      date: string;
+    }) => `Extended ${count} · ${days} · ${name} · ${date}`,
+    none: 'This closure covered no subscription, so there is nothing to extend.',
+    applied: ({ count, days }: { count: string; days: string }) =>
+      `This closure’s subscriptions were already extended: ${count} · ${days}.`,
+    done: 'Subscriptions extended',
+    doneText: ({ count, days }: { count: string; days: string }) => `${count} · ${days}`,
+    failed: 'We couldn’t extend them',
+    loadFailed: 'We couldn’t work out the subscriptions covered',
+    lost: 'No answer came back. Try again — they won’t be extended twice.',
+    back: 'Back',
   },
   list: {
     label: 'Announcements',

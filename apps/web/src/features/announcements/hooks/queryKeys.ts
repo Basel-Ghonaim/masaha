@@ -9,4 +9,7 @@ export const announcementsKeys = {
     ['space', spaceId, 'announcements', 'list', state, page] as const,
   /** The tabs' counts. */
   summary: (spaceId: number) => ['space', spaceId, 'announcements', 'summary'] as const,
+  /** A closure's extension, before or as applied. */
+  preview: (spaceId: number, announcementId: number) =>
+    ['space', spaceId, 'announcements', 'preview', announcementId] as const,
 };

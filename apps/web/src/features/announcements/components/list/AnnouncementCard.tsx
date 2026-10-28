@@ -20,8 +20,8 @@ import { ClosureLine } from './ClosureLine';
  * One announcement, as a card: its type as its heading's badge (DI-15) and its period under it; its
  * text, in its own language (DI-27); a closure's lines. No status badge: the tab says it. Its footer
  * holds its actions by its state (DI-16, DI-17): «تعديل» on one running or upcoming, which opens the
- * sheet (`open`); «إنهاء الآن» or «ابدأ الآن»; then the «⋯» with «حذف…» at the end. The delete's
- * dialog is the list's (`openDialog`). An extended
+ * sheet (`open`); «إنهاء الآن» or «ابدأ الآن»; then the «⋯» with «حذف…» at the end. The extension's
+ * and the delete's dialogs are the list's (`openDialog`). An extended
  * closure says why it has no delete. Each action is marked for the list's focus keeper
  * (`data-card-action`); the «⋯» says so once it leaves under the focus (`onGone`).
  */
@@ -58,8 +58,10 @@ export function AnnouncementCard({
         <p className="text-body whitespace-pre-line" lang={card.text.lang} dir={card.text.dir}>
           {card.text.text}
         </p>
-        {card.closureLine !== null && <ClosureLine line={card.closureLine} />}
-        {actions.lock !== null && <ClosureLine line={actions.lock} />}
+        <ClosureLine card={card} openDialog={openDialog} />
+        {actions.lock !== null && (
+          <p className="text-caption text-muted-foreground">{actions.lock}</p>
+        )}
       </CardContent>
       {(card.edit !== null || step !== null || remove !== null) && (
         <CardFooter className="flex-wrap">

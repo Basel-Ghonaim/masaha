@@ -463,7 +463,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 15. **Customer details** (O+R) — subscriptions with their progress and statement, payments, balance or credit, attendance; receive a payment, renew (a warning when a balance is due), end a subscription early
 16. **New subscription** (O+R) — from a package or «مخصّص»; limits (date range, total days, days per week, hours per day, total hours); billing (fixed, per hour or per day); price
 17. **Payments** (O+R) — the owner sees every payment, filtered by date, staff member and method, and can void one with a reason; reception sees only its own payments today (shift handover)
-18. **Announcements** (O+R) — create with type and duration, including a closure notice; the owner can then extend all active subscriptions by the closure days
+18. **Announcements** (O+R) — create with type and duration, including a closure notice; the owner can then extend the subscriptions it covered, by the days typed, once
 19. **Finance & statistics** (O) — income today, this month (against last month) and all time; total debt; income by month, split into visits and subscriptions; visit income per day; debtors (a WhatsApp reminder link) and payers; collections per staff member; occupancy (peak hours, average stay, charts); CSV export
 20. **Space profile** (O) — bilingual fields, map location, hours, capacity, amenities, photos, contact; «المعلومات ما زالت صحيحة» per fact group
 21. **Prices & packages** (O) — the published prices (hour, day, week, month, student), which are the public packages, and private packages

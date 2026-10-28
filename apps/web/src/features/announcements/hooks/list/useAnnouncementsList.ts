@@ -5,12 +5,14 @@ import {
   type AnnouncementsSummary,
   type ManagedAnnouncement,
 } from '@masaha/shared/announcements';
+import { gazaClockOf } from '@masaha/shared/core';
 import type { Page } from '@shared/api';
-import { useCopy } from '@shared/copy';
+import { useCopy, type Catalogue } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import { useRefusalView } from '@shared/forms';
+import { dayText } from '@shared/lib';
 import { paginationView, usePageInRange } from '@shared/lists';
-import { useLanguage } from '@shared/localisation';
+import { isolate, useLanguage } from '@shared/localisation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createAnnouncementsRepository } from '../../repository/announcementsRepository';
 import { periodText } from '../../services/periodText';
@@ -87,7 +89,15 @@ export function useAnnouncementsList(spaceId: number, { owner }: { owner: boolea
       type: { label, tone },
       period: periodText(announcement, language, now, words.period),
       text: textOf(announcement, language),
-      closureLine: closureLine(announcement, owner, words.closure),
+      closureLine: closureLine(announcement, owner, words, language),
+      // The owner's, on a closure that has started and whose subscriptions were not extended (O11).
+      extension:
+        owner &&
+        announcement.type === 'CLOSURE' &&
+        announcement.state !== 'UPCOMING' &&
+        (announcement.extension ?? null) === null
+          ? { label: words.extension.action }
+          : null,
       edit: announcement.state === 'ENDED' ? null : { label: words.actions.edit },
     };
   });
@@ -142,17 +152,27 @@ export function useAnnouncementsList(spaceId: number, { owner }: { owner: boolea
 }
 
 /**
- * A closure's line about its subscriptions' extension (DI-28): the owner's on one not started yet,
- * reception's on one started and not extended; none otherwise.
+ * A closure's line about its subscriptions' extension (DI-28): once extended, how many, by how many
+ * days, by whom and when; else the owner's on one not started yet, reception's on one started.
  */
 function closureLine(
   { type, state, extension }: ManagedAnnouncement,
   owner: boolean,
-  words: { upcoming: string; reception: string },
+  words: Catalogue['announcements'],
+  language: 'ar' | 'en',
 ): string | null {
   if (type !== 'CLOSURE') return null;
-  if (state === 'UPCOMING') return owner ? words.upcoming : null;
-  return !owner && (extension ?? null) === null ? words.reception : null;
+  // Extended: how many, by how many days, by whom, when — to both roles.
+  if (extension !== undefined && extension !== null) {
+    return words.extension.line({
+      count: words.extension.count({ count: extension.subscriptions }),
+      days: words.extension.dayCount({ count: extension.days }),
+      name: isolate(extension.appliedBy.name),
+      date: dayText(gazaClockOf(new Date(extension.appliedAt)).date, language),
+    });
+  }
+  if (state === 'UPCOMING') return owner ? words.closure.upcoming : null;
+  return owner ? null : words.closure.reception;
 }
 
 /** «الإعلانات», ready to render. */
