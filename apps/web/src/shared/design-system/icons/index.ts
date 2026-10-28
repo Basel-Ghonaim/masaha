@@ -24,6 +24,7 @@ export {
   EyeOffIcon,
   FlagIcon,
   GraduationCapIcon,
+  HeartIcon,
   IdCardIcon,
   InfoIcon,
   LanguagesIcon,

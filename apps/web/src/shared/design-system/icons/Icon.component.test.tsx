@@ -19,6 +19,7 @@ import {
   EyeOffIcon,
   FlagIcon,
   GraduationCapIcon,
+  HeartIcon,
   IdCardIcon,
   LanguagesIcon,
   LayoutDashboardIcon,
@@ -88,6 +89,7 @@ const NON_DIRECTIONAL = [
   UserCogIcon,
   ListChecksIcon,
   ScrollTextIcon,
+  HeartIcon,
 ].map((icon) => ({ name: icon.name, icon }));
 
 function svgOf(dir: 'ltr' | 'rtl', Glyph: ComponentType<IconProps>, props: IconProps = {}) {
@@ -114,5 +116,12 @@ describe('icon mirroring', () => {
 
   it('keeps the classes it is given', () => {
     expect(svgOf('rtl', ChevronEndIcon, { className: 'size-4' })).toHaveClass('size-4', MIRRORED);
+  });
+
+  it('draws the heart, filled by the class it is given, never mirrored', () => {
+    const svg = svgOf('rtl', HeartIcon, { className: 'fill-current' });
+    expect(svg).toBeInTheDocument();
+    expect(svg).toHaveClass('fill-current');
+    expect(svg).not.toHaveClass(MIRRORED);
   });
 });

@@ -226,6 +226,7 @@ export {
   FlagIcon,
   GlyphIcon,
   GraduationCapIcon,
+  HeartIcon,
   IdCardIcon,
   InfoIcon,
   LanguagesIcon,

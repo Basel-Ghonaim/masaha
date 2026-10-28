@@ -22,6 +22,7 @@ import {
   EyeOffIcon,
   FlagIcon,
   GraduationCapIcon,
+  HeartIcon,
   IdCardIcon,
   InfoIcon,
   LanguagesIcon,
@@ -113,6 +114,7 @@ const FIXED = [
   UserCogIcon,
   ListChecksIcon,
   ScrollTextIcon,
+  HeartIcon,
 ];
 
 function IconGroup({ caption, icons }: { caption: string; icons: ComponentType<IconProps>[] }) {
