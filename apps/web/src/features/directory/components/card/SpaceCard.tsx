@@ -94,7 +94,9 @@ export function SpaceCard({
   ) : (
     <div className="relative h-full">
       {link}
-      <div className="absolute end-3 top-3">{action}</div>
+      <div data-card-action className="absolute end-3 top-3">
+        {action}
+      </div>
     </div>
   );
 }

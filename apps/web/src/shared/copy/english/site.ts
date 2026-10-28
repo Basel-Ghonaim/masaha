@@ -25,6 +25,7 @@ export const SITE = {
   /** The account's pages: their navigation and its links. */
   account: {
     navigation: 'My account',
+    favorites: 'Favourites',
     reports: 'My reports',
   },
   /** A guest's press of what needs an account: why to sign in, by the action (DI-60). */

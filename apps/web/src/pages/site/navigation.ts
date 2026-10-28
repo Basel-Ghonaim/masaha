@@ -54,4 +54,7 @@ type AccountLink = {
 };
 
 /** The account's pages, in order: the account's navigation and the site's account menu list them. */
-export const ACCOUNT_LINKS: readonly AccountLink[] = [{ key: 'reports', to: SITE_PATHS.myReports }];
+export const ACCOUNT_LINKS: readonly AccountLink[] = [
+  { key: 'favorites', to: SITE_PATHS.myFavorites },
+  { key: 'reports', to: SITE_PATHS.myReports },
+];

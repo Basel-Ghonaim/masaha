@@ -4,7 +4,7 @@ import { useSession } from '@shared/session';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import type { FavoriteSignIn, HeartSpace } from '../../types/FavoriteSpace';
-import { writeFavorite } from '../favoriteWrite';
+import { writeFavorite, type FavoriteWriteSay } from '../favoriteWrite';
 import { dropFavorite, holdFavorite } from '../intent/favoriteIntent';
 
 /**
@@ -20,11 +20,14 @@ export function useFavoriteToggle({
   saved,
   signIn,
   manage,
+  say = 'undoable',
 }: {
   space: HeartSpace;
   saved: boolean;
   signIn: FavoriteSignIn;
   manage: () => void;
+  /** How the write is said: with «تراجع», or, for a space that left the directory, without. */
+  say?: Extract<FavoriteWriteSay, 'undoable' | 'left'>;
 }) {
   const words = useCopy().favorites;
   const client = useQueryClient();
@@ -56,7 +59,7 @@ export function useFavoriteToggle({
       void writeFavorite({
         save,
         space,
-        say: 'undoable',
+        say,
         client,
         manage,
         settled: () => {

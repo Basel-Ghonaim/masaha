@@ -20,6 +20,7 @@ export const SITE = {
   browseSpaces: 'تصفّح المساحات',
   account: {
     navigation: 'حسابي',
+    favorites: 'المفضّلة',
     reports: 'بلاغاتي',
   },
   signInPrompt: {

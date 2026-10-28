@@ -4,14 +4,18 @@ import type { QueryClient } from '@tanstack/react-query';
 import {
   toastFavoriteChanged,
   toastFavoriteFailed,
+  toastRemovedLeft,
   toastSavedOnReturn,
 } from '../components/toast/favoriteToasts';
 import { createFavoritesRepository } from '../repository/favoritesRepository';
 
 const repository = createFavoritesRepository();
 
-/** How a write is said once it is done: with «تراجع», as a guest's return, or not at all (an undo). */
-export type FavoriteWriteSay = 'undoable' | 'returned' | 'quiet';
+/**
+ * How a write is said once it is done: with «تراجع», as a guest's return, as the removal of a space
+ * that left the directory (no «تراجع»: it cannot be saved meanwhile), or not at all (an undo).
+ */
+export type FavoriteWriteSay = 'undoable' | 'returned' | 'left' | 'quiet';
 
 /**
  * Saves or removes a favourite, once: no key, never re-sent by itself (S4). Done, it is said and the
@@ -61,6 +65,8 @@ export async function writeFavorite({
     });
   } else if (say === 'returned') {
     toastSavedOnReturn(space.name);
+  } else if (say === 'left') {
+    toastRemovedLeft(space.name);
   }
   // A read of the scope still on its way began before this write (on a guest's return, the hearts'
   // first): an invalidation joins a first read rather than restarting it, so it is cancelled first

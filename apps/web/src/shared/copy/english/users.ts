@@ -11,7 +11,7 @@ export const USERS = {
   dashboard: 'Dashboard',
   /** The site's account menu: its links to the account's pages (P4). */
   account: {
-    links: { reports: 'My reports' },
+    links: { favorites: 'Favourites', reports: 'My reports' },
   },
   signOut: 'Sign out',
   signOutFailed: 'Couldn’t sign out',

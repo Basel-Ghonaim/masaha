@@ -82,6 +82,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [171. A published price changed between the desk's read and the subscribe is charged silently](171-a-published-price-changed-between-the-desks-read-and-the-subscribe-is-charged-silently.md)
 - [172. The write-off's reason is not focused first](172-the-write-offs-reason-is-not-focused-first.md)
 - [184. A report's «تعديل الحقل» may not scroll to its section](184-a-reports-edit-the-field-link-may-not-scroll-to-its-section.md)
+- [187. A favourite just removed cannot be saved again for an undo](187-a-favourite-just-removed-cannot-be-saved-again-for-an-undo.md)
 
 ## Accepted
 

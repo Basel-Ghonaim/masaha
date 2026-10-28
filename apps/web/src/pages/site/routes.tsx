@@ -56,6 +56,20 @@ export const siteRoutes: RouteObject[] = [
             }),
             children: [
               {
+                path: SITE_PATHS.myFavorites,
+                handle: { title: (copy) => copy.favorites.list.title } satisfies TitledHandle,
+                lazy: async () => {
+                  const { FavoritesPage } = await import('./account/FavoritesPage');
+                  return {
+                    element: (
+                      <RequireAuth>
+                        <FavoritesPage />
+                      </RequireAuth>
+                    ),
+                  };
+                },
+              },
+              {
                 path: SITE_PATHS.myReports,
                 handle: { title: (copy) => copy.dataReports.mine.title } satisfies TitledHandle,
                 lazy: async () => {

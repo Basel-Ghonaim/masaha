@@ -1,4 +1,5 @@
 export { DirectoryView } from './components/DirectoryView';
+export { FavoritesView } from './components/favorites/FavoritesView';
 export { HomeSpaces } from './components/home/HomeSpaces';
 export { LiveStatusBadge } from './components/card/LiveStatusBadge';
 export { SpaceDetails } from './components/page/SpaceDetails';

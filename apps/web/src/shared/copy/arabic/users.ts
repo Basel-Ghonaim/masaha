@@ -5,7 +5,7 @@ export const USERS = {
   section: 'الحساب',
   dashboard: 'لوحة التحكم',
   account: {
-    links: { reports: 'بلاغاتي' },
+    links: { favorites: 'المفضّلة', reports: 'بلاغاتي' },
   },
   signOut: 'تسجيل الخروج',
   signOutFailed: 'تعذّر تسجيل الخروج',

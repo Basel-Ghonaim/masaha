@@ -46,12 +46,23 @@ describe('AccountMenuSection', () => {
         <AccountMenuSection
           user={USER}
           dashboardPath="/dashboard"
-          links={[{ key: 'reports', to: '/me/reports' }]}
+          links={[
+            { key: 'favorites', to: '/me/favorites' },
+            { key: 'reports', to: '/me/reports' },
+          ]}
         />
       </MemoryRouter>,
     );
     const section = within(screen.getByRole('group', { name: 'Account' }));
 
+    expect(section.getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Favourites',
+      'My reports',
+    ]);
+    expect(section.getByRole('link', { name: 'Favourites' })).toHaveAttribute(
+      'href',
+      '/me/favorites',
+    );
     expect(section.getByRole('link', { name: 'My reports' })).toHaveAttribute(
       'href',
       '/me/reports',

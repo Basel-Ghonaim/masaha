@@ -25,6 +25,14 @@ export function toastFavoriteChanged(save: boolean, name: SpaceNameView, undo: (
   });
 }
 
+/**
+ * Says a space that left the directory was removed from the favourites, with no «تراجع»: the API
+ * saves no space out of the directory, so an undo could never work (DI-58, the owner's word).
+ */
+export function toastRemovedLeft(name: SpaceNameView) {
+  toast.success(currentCopy().favorites.removedLeft({ name: isolate(name.text) }));
+}
+
 /** Says a guest's favourite was saved once they came back signed in (DI-61). */
 export function toastSavedOnReturn(name: SpaceNameView) {
   toast.success(currentCopy().favorites.savedOnReturn({ name: isolate(name.text) }));

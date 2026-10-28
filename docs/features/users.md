@@ -43,7 +43,7 @@ The account's settings (`GET` and `PATCH /me`) are not built.
 
 ## Behaviour and flows
 
-**The account menu** shows the name's first word, an initial as the avatar, and the email. On the site it links the account's pages the shell passes — «بلاغاتي» — after the name (P4); the dashboard's passes none. It leads the admin, and anyone with an active space link, to the dashboard, by a path the page passes. The phone menu shows the same account as a section, with the same links; the dashboard's top bar shows the avatar alone.
+**The account menu** shows the name's first word, an initial as the avatar, and the email. On the site it links the account's pages the shell passes — «المفضّلة» and «بلاغاتي» — after the name (P4); the dashboard's passes none. It leads the admin, and anyone with an active space link, to the dashboard, by a path the page passes. The phone menu shows the same account as a section, with the same links; the dashboard's top bar shows the avatar alone.
 
 **Sign-out** is one action, offered by every menu and by `SignOutButton`: it shows its pending state, and a failure says why, so the user tries again.
 
@@ -147,4 +147,4 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #91 — the one-time password dialog's person isolated, in its description and its handover toast.
 - #93 — suspending and restoring an account, and issuing a temporary password, from the admin's users page; the one-time dialog's `kind`.
 - #99 — the one-time dialog's handover recorded through its caller's write, the admin's or a space's; the forced change's line names no issuer.
-- 2026-10-28, #129 — the site's account menu and its phone section link «بلاغاتي».
+- 2026-10-28, #129 — the site's account menu and its phone section link «المفضّلة» and «بلاغاتي».

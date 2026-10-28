@@ -21,6 +21,14 @@ export const directoryKeys = {
   favorites: (request: FavoritesRequest) => ['me', 'favorites', request] as const,
 };
 
+/** Whether a key of the user's favourites holds a point: an answer ordered by distance from it. */
+export function isNearFavorites(key: readonly unknown[]): boolean {
+  const request = key[2];
+  return (
+    key[1] === 'favorites' && typeof request === 'object' && request !== null && 'near' in request
+  );
+}
+
 /** Whether a list's key holds a point: an answer ordered by distance, dropped with the location. */
 export function hasNear(key: readonly unknown[]): boolean {
   return key[2] === 'list' && key[4] !== null && key[4] !== undefined;

@@ -13,7 +13,13 @@ import { siteRoutes } from '../routes';
 
 /** The site's routes at `path`, the user's reports answered with none, any other read with nothing. */
 function renderSiteAt(path: string) {
-  fakeTransport((request) => (request.url === '/me/reports' ? reportsPage([]) : ok(null)));
+  fakeTransport((request) =>
+    request.url === '/me/reports'
+      ? reportsPage([])
+      : request.url === '/me/favorites'
+        ? ok([])
+        : ok(null),
+  );
   const router = createMemoryRouter([{ HydrateFallback: () => null, children: siteRoutes }], {
     initialEntries: [path],
   });
@@ -41,9 +47,14 @@ describe('AccountLayout', () => {
     const { container } = renderSiteAt('/me/reports');
 
     const navigation = await screen.findByRole('navigation', { name: 'My account' });
+    const links = within(navigation).getAllByRole('link');
+    expect(links.map((link) => link.textContent)).toEqual(['Favourites', 'My reports']);
     const current = within(navigation).getByRole('link', { name: 'My reports' });
     expect(current).toHaveAttribute('aria-current', 'page');
     expect(current).toHaveAttribute('href', '/me/reports');
+    expect(within(navigation).getByRole('link', { name: 'Favourites' })).not.toHaveAttribute(
+      'aria-current',
+    );
     expect(
       await screen.findByRole('heading', { level: 1, name: 'My reports' }),
     ).toBeInTheDocument();
@@ -61,5 +72,21 @@ describe('AccountLayout', () => {
     expect(new URLSearchParams(router.state.location.search).get('next')).toBe(
       '/me/reports?status=open',
     );
+  });
+
+  it('opens «Favourites» signed in, under the same navigation; axe-clean', async () => {
+    establishSession(aSession(), { source: 'signIn' });
+    const { container } = renderSiteAt('/me/favorites');
+
+    const navigation = await screen.findByRole('navigation', { name: 'My account' });
+    expect(within(navigation).getByRole('link', { name: 'Favourites' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Favourites' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('You haven’t saved any spaces yet')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
