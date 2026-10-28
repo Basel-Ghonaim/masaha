@@ -11,7 +11,13 @@ import { signedIn } from '../../shared/auth/index.ts';
 import { sendSuccess } from '../../shared/http/index.ts';
 import type { PlatformSettingsService } from './platform-settings.service.ts';
 
-/** Each of the admin's cards read and saved on its own; each save answers the card as saved. */
+/** How long the public contact may be reused without asking again, in seconds. */
+const PUBLIC_CONTACT_MAX_AGE_SECONDS = 300;
+
+/**
+ * Each of the admin's cards read and saved on its own, each save answering the card as saved; and
+ * the public contact.
+ */
 export function createPlatformSettingsController(service: PlatformSettingsService) {
   return {
     newSpaceDefaults: async (_req: Request, res: Response) => {
@@ -37,6 +43,13 @@ export function createPlatformSettingsController(service: PlatformSettingsServic
 
     contact: async (_req: Request, res: Response) => {
       sendSuccess(res, (await service.contact()) satisfies PlatformContact);
+    },
+
+    /** The contact as anyone reads it: it changes rarely, so a browser or a proxy keeps it briefly. */
+    publicContact: async (_req: Request, res: Response) => {
+      const contact = await service.contact();
+      res.set('Cache-Control', `public, max-age=${String(PUBLIC_CONTACT_MAX_AGE_SECONDS)}`);
+      sendSuccess(res, contact satisfies PlatformContact);
     },
 
     saveContact: async (req: Request, res: Response) => {

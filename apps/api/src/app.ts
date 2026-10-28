@@ -112,6 +112,7 @@ import {
 import {
   createPlatformSettingsAdminRouter,
   createPlatformSettingsController,
+  createPlatformSettingsPublicRouter,
   createPlatformSettingsService,
 } from './modules/platform-settings/index.ts';
 import {
@@ -543,6 +544,8 @@ export function createApi({
   api.use('/me', createUsersMeRouter(usersController, requireAuth));
   api.use('/me', createFavoritesMeRouter(createFavoritesController(favorites), requireAuth));
   api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
+  const platformSettingsController = createPlatformSettingsController(platformSettings);
+  api.use('/settings', createPlatformSettingsPublicRouter(platformSettingsController));
   const directoryController = createDirectoryController(directory);
   api.use(createDirectoryPublicRouter(directoryController));
   api.use(createDirectoryMeRouter(directoryController, requireAuth));
@@ -623,7 +626,6 @@ export function createApi({
   admin.use(createUsersAdminRouter(usersController));
   admin.use('/data-reports', createDataReportsAdminRouter(dataReportsController));
   admin.use('/audit-log', createAuditAdminRouter(auditController));
-  const platformSettingsController = createPlatformSettingsController(platformSettings);
   admin.use('/settings', createPlatformSettingsAdminRouter(platformSettingsController));
   admin.use(
     createSpacesAdminRouter({

@@ -1366,7 +1366,7 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 ### Platform settings
 
-The platform's settings, as the admin edits them ([data-model › Operations](../architecture/data-model.md#operations), *Setting*; [conventions §9](../backend/conventions.md#settings-three-screens-three-owners)): three cards, each its own resource, read and saved whole and on its own, so one card's refusal never touches another's (AD-029). Every route needs an `ADMIN`'s access token (🛡), refused as for the lookups: `unauthorized` (401) without one, `forbidden` (403) for any other role, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending. Built 2026-10-28, #130.
+The platform's settings, as the admin edits them ([data-model › Operations](../architecture/data-model.md#operations), *Setting*; [conventions §9](../backend/conventions.md#settings-three-screens-three-owners)): three cards, each its own resource, read and saved whole and on its own, so one card's refusal never touches another's (AD-029). Anyone reads the contact (`GET /settings/public`, 🌐); every other route needs an `ADMIN`'s access token (🛡), refused as for the lookups: `unauthorized` (401) without one, `forbidden` (403) for any other role, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending. Built 2026-10-28, #130.
 
 - **A save** writes, in one transaction, only the card's fields set to a new value, the card's rows locked by key ([conventions §13](../backend/conventions.md#concurrency)): two saves of one card at once are one after the other, the second's `before` the first's `after`. A save that changes nothing writes nothing and answers the card as it is. A refusal writes nothing.
 - **Audit**, in the save's own transaction ([conventions §6](../backend/conventions.md#6-audit)): `platformSettings.newSpaceDefaultsEdited`, `platformSettings.stalenessEdited` or `platformSettings.contactEdited`, the entity type `platformSettings` with no id and no space, `before` and `after` only the fields that changed. They are on the admin's log ([Audit log](#audit-log)).
@@ -1410,6 +1410,10 @@ PlatformContact = { email: string | null, whatsapp: string | null }          // 
 - **Body:** `{ email, whatsapp }`, each a value or `null`.
 - **200:** `PlatformContact`, as saved (normalised). Audited `platformSettings.contactEdited`.
 - **Errors:** `validation` (422).
+
+#### `GET /settings/public` · 🌐
+- **200:** `PlatformContact`, `null` for what is unset, with `Cache-Control: public, max-age=300`: a contact changes rarely, so a browser or a proxy keeps it 5 minutes. No guard.
+- **Errors:** `server` (500) when a stored value fails its schema: never answered.
 
 ## 6. Domain error codes (initial)
 
