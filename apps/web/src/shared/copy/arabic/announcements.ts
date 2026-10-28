@@ -40,6 +40,7 @@ export const ANNOUNCEMENTS = {
   closure: {
     upcoming: 'يمكن تمديد الاشتراكات بعد أن يبدأ الإغلاق.',
     reception: 'يمدّد المالك الاشتراكات بعد بدء الإغلاق.',
+    extendedLock: 'مُدّدت اشتراكاته، فلا يُحذف ولا تُؤخَّر نهايته.',
   },
   empty: {
     RUNNING: 'لا توجد إعلانات نشطة',
@@ -50,6 +51,31 @@ export const ANNOUNCEMENTS = {
   actions: {
     new: 'إعلان جديد',
     edit: 'تعديل',
+    end: 'إنهاء الآن',
+    start: 'ابدأ الآن',
+    more: ({ type, period }: { type: string; period: string }) =>
+      `إجراءات أخرى: ${type} · ${period}`,
+    delete: 'حذف…',
+    ended: 'انتهى الإعلان',
+    closureEnded: 'انتهى الإغلاق · عادت الحالة تلقائية',
+    started: 'بدأ الإعلان الآن',
+    undo: 'تراجع',
+    undone: 'أُعيد الإعلان كما كان',
+    undoFailed: 'تعذّر التراجع',
+    failed: 'تعذّر تنفيذ الإجراء',
+    startTooLong: 'نهايته بعد أكثر من 365 يومًا من الآن؛ عدّلها أولًا.',
+  },
+  delete: {
+    title: ({ type, period }: { type: string; period: string }) =>
+      `حذف إعلان «${type} · ${period}»؟`,
+    runningClosure: 'يختفي من صفحة المساحة، وتعود حالتها تلقائية فورًا. لا يمكن استرجاعه.',
+    running: 'يختفي من صفحة المساحة فورًا. لا يمكن استرجاعه.',
+    upcoming: 'لن يظهر للزوار. لا يمكن استرجاعه.',
+    ended: 'يُحذف من القائمة. لا يمكن استرجاعه.',
+    confirm: 'حذف',
+    back: 'رجوع',
+    done: 'حُذف الإعلان',
+    failed: 'تعذّر حذف الإعلان',
   },
   sheet: {
     new: 'إعلان جديد',

@@ -83,6 +83,25 @@ describe('the announcements repository', () => {
     expect(requests[0]?.headers.get('Idempotency-Key')).toBeUndefined();
   });
 
+  it('ends, starts and deletes one, each with no key', async () => {
+    const requests = serve(() => ({ status: 200, data: { success: true, data: { id: 5 } } }));
+    const repository = createAnnouncementsRepository();
+
+    await repository.end(7, 5);
+    await repository.start(7, 6);
+    await repository.remove(7, 5);
+    expect(requests.map(lineOf)).toEqual([
+      'post /manage/spaces/7/announcements/5/end',
+      'post /manage/spaces/7/announcements/6/start',
+      'delete /manage/spaces/7/announcements/5',
+    ]);
+    expect(requests.map((request) => request.headers.get('Idempotency-Key'))).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
   it('rejects with the AppError the transport made', async () => {
     serve(() => ({
       status: 403,

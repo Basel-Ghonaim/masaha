@@ -1,7 +1,7 @@
 import type { ManagedAnnouncement } from '@masaha/shared/announcements';
 import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +12,7 @@ import {
   announcementsSummary,
   closure,
 } from '../../../../test/announcement';
-import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { stubScreenWidth } from '../../../../test/screenWidth';
 import { startPreferences } from '../../../../test/startPreferences';
 import { AnnouncementsList } from './AnnouncementsList';
@@ -147,5 +147,84 @@ describe('AnnouncementsList', () => {
     const list = screen.getByRole('region', { name: 'Announcements' });
     expect(list).toHaveAttribute('aria-busy', 'true');
     expect(list.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(3);
+  });
+
+  describe('a refusal stays in its dialog while the list is read again', () => {
+    const EXTENDED = {
+      days: 2,
+      subscriptions: 3,
+      appliedAt: '2026-10-21T08:00:00.000Z',
+      appliedBy: { id: 14, name: 'Ahmad' },
+    };
+
+    /** The list of one running closure, extended by another desk once `extendedMeanwhile` is set. */
+    function renderClosure(write: () => ReturnType<typeof refused>) {
+      let extendedMeanwhile = false;
+      const requests = fakeTransport((request) => {
+        if (request.method !== 'get') {
+          extendedMeanwhile = true;
+          return write();
+        }
+        if (request.url?.endsWith('/summary') === true) return ok(announcementsSummary());
+        if (request.url?.endsWith('/extend-subscriptions') === true) {
+          return ok({
+            firstDay: '2026-10-20',
+            lastDay: '2026-10-21',
+            proposedDays: 2,
+            subscriptions: 3,
+            applied: null,
+          });
+        }
+        return announcementsPage([closure({ extension: extendedMeanwhile ? EXTENDED : null })]);
+      });
+      render(
+        <QueryClientProvider client={createQueryClient()}>
+          <MemoryRouter initialEntries={['/p']}>
+            <AnnouncementsList spaceId={7} owner />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      /** Whether the list was read again after the write. */
+      const readAgain = () =>
+        requests.findLastIndex(
+          (request) => request.method === 'get' && request.url === '/manage/spaces/7/announcements',
+        ) > requests.findIndex((request) => request.method !== 'get');
+      return { readAgain };
+    }
+
+    /** The focus once the dialog closed: on a card's action, else on the tab shown. */
+    const focusPlaced = () => {
+      const focused = document.activeElement;
+      expect(focused).not.toBe(document.body);
+      expect(
+        focused?.hasAttribute('data-card-action') === true ||
+          focused?.getAttribute('role') === 'tab',
+      ).toBe(true);
+    };
+
+    it('keeps the delete’s CLOSURE_EXTENDED until «Back», though the card no longer offers the delete', async () => {
+      const user = userEvent.setup();
+      const { readAgain } = renderClosure(() =>
+        refused(409, { type: 'conflict', code: 'CLOSURE_EXTENDED' }),
+      );
+
+      await user.click(await screen.findByRole('button', { name: /^More actions/ }));
+      await user.click(await screen.findByRole('menuitem', { name: 'Delete…' }));
+      const dialog = await screen.findByRole('alertdialog');
+      await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+      expect(await within(dialog).findByRole('alert')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(readAgain()).toBe(true);
+      });
+      await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+      expect(screen.getByRole('alertdialog')).toBe(dialog);
+      expect(within(dialog).getByRole('alert')).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole('button', { name: 'Back' }));
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).toBeNull();
+      });
+      focusPlaced();
+    });
   });
 });

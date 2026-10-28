@@ -21,6 +21,12 @@ export interface AnnouncementsRepository {
   create(spaceId: number, body: CreateAnnouncementRequest, key: string): Promise<Announcement>;
   /** Edits what the body sets; idempotent by design, so it carries no key. */
   edit(spaceId: number, id: number, body: EditAnnouncementRequest): Promise<Announcement>;
+  /** Ends a running one now; one ended already is answered as it is. */
+  end(spaceId: number, id: number): Promise<Announcement>;
+  /** Starts an upcoming one now; one started already is answered as it is. */
+  start(spaceId: number, id: number): Promise<Announcement>;
+  /** Deletes one, in any state; one deleted already answers the same. */
+  remove(spaceId: number, id: number): Promise<undefined>;
 }
 
 const pathOf = (spaceId: number) => `/manage/spaces/${String(spaceId)}/announcements`;
@@ -33,5 +39,8 @@ export function createAnnouncementsRepository(): AnnouncementsRepository {
     create: (spaceId, body, key) =>
       api.post<Announcement>(pathOf(spaceId), body, withIdempotencyKey(key)),
     edit: (spaceId, id, body) => api.patch<Announcement>(`${pathOf(spaceId)}/${String(id)}`, body),
+    end: (spaceId, id) => api.post<Announcement>(`${pathOf(spaceId)}/${String(id)}/end`),
+    start: (spaceId, id) => api.post<Announcement>(`${pathOf(spaceId)}/${String(id)}/start`),
+    remove: (spaceId, id) => api.delete<undefined>(`${pathOf(spaceId)}/${String(id)}`),
   };
 }

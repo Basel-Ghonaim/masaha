@@ -19,7 +19,10 @@ import {
   useAnnouncementsList,
   type AnnouncementsListView,
 } from '../../hooks/list/useAnnouncementsList';
+import { useCardFocus } from '../../hooks/list/useCardFocus';
+import type { CardDialog, OpenCardDialog } from '../../types/CardDialog';
 import type { SheetEntry } from '../../types/SheetEntry';
+import { DeleteDialog } from '../actions/DeleteDialog';
 import { AnnouncementSheet } from '../sheet/AnnouncementSheet';
 import { AnnouncementCard } from './AnnouncementCard';
 
@@ -85,6 +88,11 @@ function ListState({ list, open }: { list: AnnouncementsListView; open: Open }) 
  * (DI-23), the failure with its retry, the tab's empty state; the pages past one page only (DI-26).
  * «إعلان جديد» at the end of the tabs' row and a card's «تعديل» open the sheet, mounted anew for each
  * opening (its key is that opening's, S4); closed, the focus goes back to the control that opened it.
+ * A card's delete dialog is held here too, so that they stay open whatever the list's
+ * refetch makes of the card — a 409 or a 404 stays in its dialog until «رجوع»; closed, the focus goes
+ * back to the control that opened it, else to the card's first action, else on as below.
+ * When the card whose action holds the focus leaves its tab — ended, started or deleted — the next
+ * card's first action takes it, else the tab shown (DI-24).
  */
 export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: boolean }) {
   const list = useAnnouncementsList(spaceId, { owner });
@@ -94,11 +102,25 @@ export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: 
     opener.current = trigger;
     setSheet((before) => ({ entry, opening: (before?.opening ?? 0) + 1 }));
   };
+  const { listRef, tabsRef, leave, settle } = useCardFocus(list.cards.map((card) => card.key));
+  const [dialog, setDialog] = useState<(CardDialog & { key: string; opening: number }) | null>(
+    null,
+  );
+  const dialogOpener = useRef<HTMLElement | null>(null);
+  const openDialog: OpenCardDialog = (entry, key, trigger) => {
+    dialogOpener.current = trigger;
+    setDialog((before) => ({ ...entry, key, opening: (before?.opening ?? 0) + 1 }));
+  };
+  const returnDialogFocus = (key: string) => {
+    const trigger = dialogOpener.current;
+    if (trigger?.isConnected === true) trigger.focus();
+    else settle(key);
+  };
 
   return (
     <Tabs value={list.tab} onValueChange={list.choose} className="max-w-4xl">
       <div className="flex flex-wrap items-center gap-3">
-        <TabsList aria-label={list.tabsLabel}>
+        <TabsList ref={tabsRef} aria-label={list.tabsLabel}>
           {list.tabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
               {tab.label}{' '}
@@ -117,6 +139,7 @@ export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: 
           <p className="text-body-sm text-muted-foreground">{list.refreshFailure}</p>
         )}
         <section
+          ref={listRef}
           aria-label={list.listLabel}
           aria-busy={list.busy || list.state === 'loading' || undefined}
           className="flex flex-col gap-4"
@@ -124,8 +147,17 @@ export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: 
           {list.state === 'ready' ? (
             <ul className="flex flex-col gap-4">
               {list.cards.map((card) => (
-                <li key={card.key}>
-                  <AnnouncementCard card={card} open={open} />
+                <li key={card.key} data-card-key={card.key}>
+                  <AnnouncementCard
+                    spaceId={spaceId}
+                    card={card}
+                    open={open}
+                    openDialog={openDialog}
+                    showTab={list.choose}
+                    onGone={() => {
+                      leave(card.key);
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -135,6 +167,19 @@ export function AnnouncementsList({ spaceId, owner }: { spaceId: number; owner: 
         </section>
         {list.pagination !== null && <ListPagination pagination={list.pagination} />}
       </TabsContent>
+      {dialog?.kind === 'delete' && (
+        <DeleteDialog
+          key={dialog.opening}
+          spaceId={spaceId}
+          card={dialog.card}
+          onClose={() => {
+            setDialog(null);
+          }}
+          returnFocus={() => {
+            returnDialogFocus(dialog.key);
+          }}
+        />
+      )}
       {sheet !== null && (
         <AnnouncementSheet
           key={sheet.opening}

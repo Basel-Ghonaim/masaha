@@ -43,6 +43,8 @@ export const ANNOUNCEMENTS = {
   closure: {
     upcoming: 'Subscriptions can be extended once the closure has started.',
     reception: 'The owner extends subscriptions once the closure has started.',
+    extendedLock:
+      'Its subscriptions were extended, so it isn’t deleted and its end isn’t moved later.',
   },
   empty: {
     RUNNING: 'No active announcements',
@@ -54,6 +56,33 @@ export const ANNOUNCEMENTS = {
   actions: {
     new: 'New announcement',
     edit: 'Edit',
+    end: 'End now',
+    start: 'Start now',
+    more: ({ type, period }: { type: string; period: string }) =>
+      `More actions: ${type} · ${period}`,
+    delete: 'Delete…',
+    ended: 'The announcement has ended',
+    closureEnded: 'The closure has ended · the status is automatic again',
+    started: 'The announcement has started',
+    undo: 'Undo',
+    undone: 'The announcement is back as it was',
+    undoFailed: 'We couldn’t undo it',
+    failed: 'We couldn’t do that',
+    startTooLong: 'Its end is more than 365 days from now; edit it first.',
+  },
+  /** The delete's dialog: it names the announcement and says what deleting it does now. */
+  delete: {
+    title: ({ type, period }: { type: string; period: string }) =>
+      `Delete the announcement “${type} · ${period}”?`,
+    runningClosure:
+      'It leaves the space’s page, and the status is automatic again at once. It can’t be brought back.',
+    running: 'It leaves the space’s page at once. It can’t be brought back.',
+    upcoming: 'Visitors won’t see it. It can’t be brought back.',
+    ended: 'It leaves this list. It can’t be brought back.',
+    confirm: 'Delete',
+    back: 'Back',
+    done: 'Announcement deleted',
+    failed: 'We couldn’t delete the announcement',
   },
   /** The sheet that posts an announcement or edits one. */
   sheet: {
