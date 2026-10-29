@@ -12,6 +12,7 @@ import {
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
+import { checkInsOnDays } from './subscriptions.repository.ts';
 
 // The space's check-ins, open or by Gaza date (docs/api/api-contract.md › Front desk (managed)), on
 // Wednesday 21 October 2026 in Gaza (UTC+3 until 2026-10-24).
@@ -128,6 +129,41 @@ describe("the space's check-ins", () => {
         checkedOutAt: '2026-10-17T23:30:00.000Z',
       },
     ]);
+  });
+
+  it("a range's first and last Gaza days are in to their midnights, the minute before and the day after out", async () => {
+    const { subscription } = await subscriber('Sara');
+    // Gaza's midnight starting the 18th is 21:00 UTC on the 17th (UTC+3).
+    await createCheckIn(subscription, hourFrom('2026-10-17T20:59:00Z'));
+    const first = await createCheckIn(subscription, hourFrom('2026-10-17T21:00:00Z'));
+    // 23:59 in Gaza on the 20th, the last day; its midnight is 21:00 UTC on the 20th.
+    const last = await createCheckIn(subscription, hourFrom('2026-10-20T20:59:00Z'));
+    await createCheckIn(subscription, hourFrom('2026-10-20T21:00:00Z'));
+
+    const response = await checkIns(owner, '?from=2026-10-18&to=2026-10-20');
+    expect(ids(response)).toEqual([last.id, first.id]);
+  });
+
+  it("the plan is an index range on the space's check-in times, not a sequential scan", async () => {
+    // 5,000 stays over four months, so the planner weighs a table, not a page.
+    const { customer, subscription } = await subscriber('Sara');
+    await prisma.$executeRaw`
+      INSERT INTO check_ins (space_id, customer_id, subscription_id, request_id, checked_in_at,
+                             checked_out_at, checkout_method, updated_at)
+      SELECT ${spaceId}, ${customer.id}, ${subscription.id}, gen_random_uuid(),
+             '2025-01-01T08:00:00Z'::timestamptz + n * interval '37 minutes',
+             '2025-01-01T08:30:00Z'::timestamptz + n * interval '37 minutes', 'MANUAL', now()
+      FROM generate_series(1, 5000) n`;
+    await prisma.$executeRaw`ANALYZE check_ins`;
+
+    const plan = await prisma.$queryRaw<{ 'QUERY PLAN': string }[]>`
+      EXPLAIN SELECT id FROM check_ins
+      WHERE ${checkInsOnDays(spaceId, { from: '2025-03-03', to: '2025-03-05' })}
+      ORDER BY checked_in_at DESC, id DESC LIMIT 20`;
+    const text = plan.map((row) => row['QUERY PLAN']).join('\n');
+    expect(text).toMatch(/Index Scan.* using check_ins_space_id_checked_in_at_idx/);
+    expect(text).toMatch(/Index Cond: .*checked_in_at >= .*checked_in_at < /);
+    expect(text).not.toMatch(/Seq Scan/);
   });
 
   it('refuses a stranger and the admin with not_found; an invalid query with 422', async () => {

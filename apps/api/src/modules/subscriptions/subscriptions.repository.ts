@@ -1,3 +1,5 @@
+import { addDays, gazaInstant } from '@masaha/shared/core';
+
 import { isForeignKeyViolation, isUniqueViolation, prisma, type Tx } from '../../db/index.ts';
 import { Prisma } from '../../generated/prisma/client.ts';
 import type { OwnAttendance } from './limits.ts';
@@ -122,6 +124,17 @@ const STAY_MINUTES = Prisma.sql`CASE WHEN checked_out_at IS NULL THEN NULL
 
 /** A check-in's Gaza date, dated by PostgreSQL as `subscription_usage` dates it. */
 const GAZA_DAY = Prisma.sql`(checked_in_at AT TIME ZONE 'Asia/Gaza')::date`;
+
+/**
+ * The space's check-ins whose Gaza date is from `from` to `to`, both included: checked in from the
+ * Gaza midnight that starts `from` up to the one that ends `to`, as instants from the shared
+ * calendar, so the `(space_id, checked_in_at)` index serves the range (finding 127). PostgreSQL's
+ * Gaza dates equal the calendar's (src/db/gazaZone.api.test.ts).
+ */
+export function checkInsOnDays(spaceId: number, { from, to }: { from: string; to: string }) {
+  return Prisma.sql`space_id = ${spaceId} AND checked_in_at >= ${gazaInstant(from, 0)}
+    AND checked_in_at < ${gazaInstant(addDays(to, 1), 0)}`;
+}
 
 /** A subscription's row as its lock answers it. */
 export interface LockedSubscription {
@@ -363,15 +376,15 @@ export function createSubscriptionsRepository() {
     },
 
     /**
-     * A page of the space's check-ins whose Gaza date (dated as `subscription_usage` dates them) is
-     * from `from` to `to`, both included, the latest first, then by id; and how many there are.
+     * A page of the space's check-ins whose Gaza date is from `from` to `to`, both included
+     * (`checkInsOnDays`), the latest first, then by id; and how many there are.
      */
     async checkInsBetween(
       spaceId: number,
       { from, to }: { from: string; to: string },
       { skip, take }: { skip: number; take: number },
     ): Promise<{ rows: CheckInRow[]; total: number }> {
-      const where = Prisma.sql`space_id = ${spaceId} AND ${GAZA_DAY} BETWEEN ${from}::date AND ${to}::date`;
+      const where = checkInsOnDays(spaceId, { from, to });
       const [rows, [count]] = await Promise.all([
         prisma.$queryRaw<
           {
