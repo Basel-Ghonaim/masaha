@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
-import { placeholdersIn, reminderTemplateSchema } from './reminderTemplate.ts';
+import { fillReminder, placeholdersIn, reminderTemplateSchema } from './reminderTemplate.ts';
 import { updateSpaceSettingsSchema } from './requests.ts';
 
 /** The design's default reminder. */
@@ -35,5 +35,23 @@ describe('reminderTemplateSchema', () => {
     expect(errorsOf(`{المبلغ}${'a'.repeat(493)}`)).toEqual({ reminderTemplate: ['too_long'] });
     expect(errorsOf(`{المبلغ}${'a'.repeat(492)}`)).toBeNull();
     expect(errorsOf(null)).toBeNull();
+  });
+});
+
+describe('fillReminder', () => {
+  it('fills every placeholder, each time it appears, and leaves the rest of the text as it is', () => {
+    expect(
+      fillReminder('{الاسم}، عليك {المبلغ} في {المساحة}. {الاسم}: {المبلغ} { {مجهول}', {
+        name: 'رهف',
+        amount: '45 ₪',
+        space: 'مساحة التركيز',
+      }),
+    ).toBe('رهف، عليك 45 ₪ في مساحة التركيز. رهف: 45 ₪ { {مجهول}');
+  });
+
+  it('puts a value in as it is, even one that looks like a placeholder', () => {
+    expect(fillReminder('{الاسم} {المبلغ}', { name: '{المبلغ}', amount: '$1', space: '' })).toBe(
+      '{المبلغ} $1',
+    );
   });
 });

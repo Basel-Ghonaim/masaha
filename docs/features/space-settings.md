@@ -80,7 +80,7 @@ A change applies from then on ([data model › Front desk and money](../architec
 ## Code map
 
 - **API:** `apps/api/src/modules/space-settings/`, entry `index.ts`: the service, the repository, the mapper, the manage router, and beside them the pure rule of what an edit changes (`settingsChange.ts`).
-- **Shared:** `packages/shared/src/space-settings/`: the request, with the rounding rules and the bounds, the reminder's rule (`reminderTemplate.ts`), and the response; the new-space defaults' schema (`newSpaceDefaultsSchema`), a subset of a space's settings, which [`platform-settings`](platform-settings.md) stores and the admin saves (2026-10-28, #130).
+- **Shared:** `packages/shared/src/space-settings/`: the request, with the rounding rules and the bounds, the reminder's rule and its one filler (`reminderTemplate.ts`: `fillReminder`, every placeholder every time it appears, in one pass, which the settings' preview, finance and the customer's file use; 2026-10-29, #132), and the response; the new-space defaults' schema (`newSpaceDefaultsSchema`), a subset of a space's settings, which [`platform-settings`](platform-settings.md) stores and the admin saves (2026-10-28, #130).
 - **Web:** `apps/web/src/features/space-settings/`, entry `index.ts` (`SpaceSettingsCards`), mounted by `pages/dashboard/space/SettingsPage.tsx`: the repository in `repository/`; in `hooks/` the keys, the query, the save, the cards' state (`useSpaceSettingsCards`), a card's form and frame (`card/`, with the rule of what a card changes), `pricing/`, `reception/`, `reminder/`; the rounding's example and the reminder's preview in `services/`; the card's frame, the cards and each card in `components/`.
 
 ## Open findings
@@ -98,3 +98,4 @@ A change applies from then on ([data model › Front desk and money](../architec
 ### Web history
 
 - #99 — the owner's «الإعدادات»: visit pricing and reception, each card saved alone; the attendance card, with `occupancy`'s capacity, in one save (finding 96); the debt reminder, its placeholders inserted at the caret, its preview, and the catalogue's text restored.
+- #132 — the reminder's preview fills it with the shared `fillReminder`, the one filler finance and the customer's file use too.

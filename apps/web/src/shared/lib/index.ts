@@ -9,3 +9,6 @@ export { dayText } from './time/dayText';
 export { dayWord } from './time/dayWord';
 export { updatedAgo } from './time/updatedAgo';
 export { carrierOf, type Carrier } from './phone/carrierOf';
+export { whatsappLink } from './phone/whatsappLink';
+export { csvOf, type CsvValue } from './csv/csvOf';
+export { downloadFile } from './csv/downloadFile';
