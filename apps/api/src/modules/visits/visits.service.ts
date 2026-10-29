@@ -532,6 +532,11 @@ export function createVisitsService({
       return { rows: rows.map(toDeskVisit), total };
     },
 
+    /** How many of the space's closed visits have no charge: the unpriced list's total. */
+    unpricedCount(spaceId: number): Promise<number> {
+      return repository.unpricedCount(spaceId);
+    },
+
     /**
      * Prices a closed visit with no charge, in one transaction and in this order: the space's lock;
      * `can()` on the links read under it, the staff's, then `prices.typeByHand` by the space's

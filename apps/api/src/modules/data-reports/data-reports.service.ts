@@ -173,6 +173,11 @@ export function createDataReportsService({
       return { rows: rows.map(toSpaceReport), total };
     },
 
+    /** How many of the space's reports are open, as its owner's list counts them. */
+    openCountOf(spaceId: number): Promise<number> {
+      return repository.openCountOf(spaceId);
+    },
+
     /** The space's owner decides one of its reports (`decideUnder`), on its links under the lock. */
     async decideAtSpace(
       actor: Actor,

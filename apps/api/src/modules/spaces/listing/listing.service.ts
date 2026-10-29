@@ -1,14 +1,17 @@
 import type { PaginationQuery } from '@masaha/shared/core';
 import type { FactGroup } from '@masaha/shared/spaces';
 
+import { AppError } from '../../../shared/errors/index.ts';
 import { toSkip } from '../../../shared/http/index.ts';
 import type { PlatformSettingsService } from '../../platform-settings/index.ts';
 import {
+  freshness,
   groupDatesOf,
   lastUpdate,
   missingGroups,
   staleGroups,
   staleCutoffs,
+  type Freshness,
   type GroupCutoffs,
 } from '../staleness.ts';
 import {
@@ -78,6 +81,20 @@ export function createListingService({ platformSettings, now }: Dependencies) {
         { skip: toSkip(page), take: page.limit },
       );
       return { rows: rows.map((space) => toListedSpace(space, cutoffs)), total };
+    },
+
+    /**
+     * One live space's freshness at `at`, by the thresholds saved now (`staleness.ts`): its groups
+     * never saved, and its stale ones with their Gaza days. A soft-deleted space is `not_found`.
+     */
+    async freshnessOf(spaceId: number, at: Date): Promise<Freshness> {
+      const [thresholds, { rows }] = await Promise.all([
+        platformSettings.stalenessThresholds(),
+        repository.findPage({ ids: { in: [spaceId] } }, { skip: 0, take: 1 }),
+      ]);
+      const [space] = rows;
+      if (!space) throw AppError.notFound(undefined, 'Space not found');
+      return freshness(groupDatesOf(space), staleCutoffs(thresholds, at), at);
     },
   };
 }

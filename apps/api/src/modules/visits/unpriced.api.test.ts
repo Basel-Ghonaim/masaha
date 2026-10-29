@@ -8,6 +8,7 @@ import { whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
+import { createVisitsRepository } from './visits.repository.ts';
 
 const app = createTestApp({ clock: () => new Date('2026-10-18T10:20:00+03:00') });
 const REASON = 'No evening price';
@@ -235,5 +236,20 @@ describe('the unpriced visits', () => {
     expect(response.status).toBe(403);
     expect(errorOf(response).type).toBe('forbidden');
     expect(await stored(id)).toMatchObject({ chargeAgorot: null });
+  });
+});
+
+describe('the unpriced visits, counted', () => {
+  it('unpricedCount equals the unpriced list’s total', async () => {
+    await unpriced('2026-10-16', '09:00', '12:00');
+    await unpriced('2026-10-17', '09:00', '18:00', 'AUTO');
+    await createVisit(spaceId, { ...stay('2026-10-17', '09:00', '20:00'), chargeAgorot: 1_000 });
+    await createVisit(spaceId, { checkedInAt: new Date('2026-10-18T09:00:00+03:00') });
+    await createVisit(otherSpaceId, stay('2026-10-17', '09:00', '21:00'));
+
+    const count = await createVisitsRepository().unpricedCount(spaceId);
+    expect(count).toBe(2);
+    const listed = await list(owner);
+    expect((listed.body as { meta: { totalRecords: number } }).meta.totalRecords).toBe(count);
   });
 });

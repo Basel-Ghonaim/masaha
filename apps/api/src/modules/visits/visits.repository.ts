@@ -69,6 +69,10 @@ function countsBySpace(groups: readonly { spaceId: number; _count: { _all: numbe
   return new Map(groups.map(({ spaceId, _count }) => [spaceId, _count._all]));
 }
 
+/** The space's closed visits with no charge: the unpriced list's rows, and its count. */
+const unpricedWhere = (spaceId: number) =>
+  ({ spaceId, checkedOutAt: { not: null }, chargeAgorot: null }) satisfies Prisma.VisitWhereInput;
+
 /** The `visits` table (docs/backend/conventions.md › the front desk): the desk's visits. */
 export function createVisitsRepository() {
   return {
@@ -231,7 +235,7 @@ export function createVisitsRepository() {
       spaceId: number,
       { skip, take }: { skip: number; take: number },
     ): Promise<{ rows: DeskVisitRow[]; total: number }> {
-      const where = { spaceId, checkedOutAt: { not: null }, chargeAgorot: null };
+      const where = unpricedWhere(spaceId);
       const [rows, total] = await Promise.all([
         prisma.visit.findMany({
           where,
@@ -243,6 +247,11 @@ export function createVisitsRepository() {
         prisma.visit.count({ where }),
       ]);
       return { rows, total };
+    },
+
+    /** How many of the space's closed visits have no charge: the unpriced list's total. */
+    unpricedCount(spaceId: number): Promise<number> {
+      return prisma.visit.count({ where: unpricedWhere(spaceId) });
     },
 
     /** Sets a closed visit's charge typed by hand, with who typed it and why. */

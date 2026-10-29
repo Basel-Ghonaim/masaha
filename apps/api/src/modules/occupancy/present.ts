@@ -48,6 +48,18 @@ export function createPresent({
       return counts;
     },
 
+    /** How many are present at the space, by source, each counted in one query: no one's row. */
+    async countsIn(spaceId: number): Promise<{ visits: number; checkIns: number }> {
+      const [visitCounts, checkInCounts] = await Promise.all([
+        visits.openCountsIn([spaceId]),
+        subscriptions.openCheckInCountsIn([spaceId]),
+      ]);
+      return {
+        visits: visitCounts.get(spaceId) ?? 0,
+        checkIns: checkInCounts.get(spaceId) ?? 0,
+      };
+    },
+
     /** Whether the space's customer is present, by an open check-in or an open visit. */
     async isPresent(spaceId: number, customerId: number, tx?: Tx): Promise<boolean> {
       const { visits: openVisits, checkIns } = await presentIn(spaceId, tx);

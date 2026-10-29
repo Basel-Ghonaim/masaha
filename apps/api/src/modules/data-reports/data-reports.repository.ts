@@ -141,6 +141,11 @@ export function createDataReportsRepository() {
       return { rows, total };
     },
 
+    /** How many of the space's reports are open: the owner's list's `status=OPEN` total. */
+    openCountOf(spaceId: number): Promise<number> {
+      return prisma.dataReport.count({ where: { spaceId, ...statusWhere('OPEN') } });
+    },
+
     /**
      * A page of every report, newest first, then id, filtered by status, field, space and who
      * handles it (by the verified spaces' ids, given with `handledBy`); and how many pass. A

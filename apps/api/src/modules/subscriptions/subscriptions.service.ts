@@ -81,6 +81,18 @@ function createdValues(subscription: SubscriptionToCreate): AuditValues {
   };
 }
 
+/** The customers whose current subscription is ending soon: how many, and the first few. */
+export interface EndingSoon {
+  total: number;
+  first: {
+    customer: { id: number; name: string };
+    subscription: { id: number; name: string; endsOn: string | null };
+  }[];
+}
+
+/** After every date: a subscription with no end sorts after those with one. */
+const LAST_DAY = '9999-12-31';
+
 /** How many check-ins one run of the auto check-out closes at most; the next run continues. */
 const AUTO_CHECKOUT_BATCH = 500;
 
@@ -305,6 +317,39 @@ export function createSubscriptionsService({
           (packageId === undefined || state.packageId === packageId),
       );
       return { include: include.map(({ customerId }) => customerId) };
+    },
+
+    /**
+     * The customers whose current subscription is `ENDING_SOON` at `at`: how many, as the customers
+     * list's `status=ENDING_SOON` counts them (an archived customer left out, by `customers`' own
+     * page), and the first `take` by end date — one with none last — then by subscription id, each
+     * with its customer's name. One query of the space's subscriptions, one of its customers.
+     */
+    async endingSoon(spaceId: number, at: Date, take = 5): Promise<EndingSoon> {
+      const ending = [...currentByCustomer(await statesOf(spaceId, {}, at)).values()].filter(
+        (state) => state.status === 'ENDING_SOON',
+      );
+      if (ending.length === 0) return { total: 0, first: [] };
+      const { rows, total } = await customers.page(
+        spaceId,
+        {
+          q: undefined,
+          archived: false,
+          include: [ending.map(({ customerId }) => customerId)],
+          exclude: [],
+        },
+        { page: 1, limit: ending.length },
+      );
+      const names = new Map(rows.map(({ id, name }) => [id, name]));
+      const first = ending
+        .filter(({ customerId }) => names.has(customerId))
+        .sort((a, b) => (a.endsOn ?? LAST_DAY).localeCompare(b.endsOn ?? LAST_DAY) || a.id - b.id)
+        .slice(0, take)
+        .map(({ id, name, endsOn, customerId }) => ({
+          customer: { id: customerId, name: names.get(customerId) ?? '' },
+          subscription: { id, name, endsOn },
+        }));
+      return { total, first };
     },
 
     /**

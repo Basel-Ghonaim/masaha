@@ -25,6 +25,7 @@
 - **`occupancy`**, which reads the open visits for *present*; the desk's screen shows them through its state now (2026-10-24, #116).
 - **`payments`**, which pages the uncollected visits and reads their visits here, and names the visits of the payments it answers; **[`desk`](desk.md)**, for a customer's unpaid visits.
 - **The timed jobs** (`shared/jobs`, wired in the composition root), which run its auto check-out.
+- **The owner's overview** (`overview`), which counts the space's unpriced visits (2026-10-29, #131).
 
 ## Responsibility boundary
 
@@ -56,6 +57,8 @@
 **The visits by day.** The space's visits checked in from the range's first Gaza midnight up to the midnight after its last (today without a range), open and closed, the latest checked in first, then by id, paged, read without a lock, on the index `(space_id, checked_in_at)`. A range is the owner's: `can()`'s `payments.read`, from the boundary's links; from anyone else of the staff, `forbidden`.
 
 **The unpriced visits.** The space's closed visits with no charge, the latest closed first, then by id, paged, read without a lock. **The pricing:** in one transaction, the space's lock; `can()` on the links read under it, the staff's, then `prices.typeByHand` by the space's switch; the visit's row (`FOR UPDATE`), the space's only; refused while open, or once it has a charge; its charge, who typed it and why, no rounding; audited `visit.priced`.
+
+**The unpriced count** (`unpricedCount`, for the owner's overview): the unpriced list's total, one `count` on the list's own condition (one `const` for both) (2026-10-29, #131).
 
 ## Decisions
 

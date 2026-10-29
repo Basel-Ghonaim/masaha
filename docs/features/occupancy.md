@@ -1,6 +1,6 @@
 # Occupancy
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The `occupancy` capability: a space's state now: its capacity, private to its staff and set by its owner, who is present, and the live status. Its endpoints are owned by the API contract ([Capacity](../api/api-contract.md#capacity-managed), [Occupancy](../api/api-contract.md#occupancy-managed)); its entity by the [data model](../architecture/data-model.md#spaces), and the live-status rule by its [derived values](../architecture/data-model.md#derived-values-computed-not-stored). The API is built; on the web, the settings page's attendance card reads and sets the capacity, and the desk shows the state now, the override and the people present.
 > **Scope:** the API module `occupancy` (L4); `@masaha/shared/occupancy`; the web feature `features/occupancy`: the capacity's hooks, and the desk's state now, override and people present (not dashboard-only: the directory will read the live status).
 
@@ -19,6 +19,7 @@
 - **The directory,** for the public: each listed space's live status, and which are available now, set-based ([directory](directory.md)); never a count or a capacity.
 - **The front desk** ([desk](desk.md)): a check-in's warnings, in its transaction: full when *present* reaches the capacity, outside the hours; whether a customer is present, before it archives one; who is present, for a customer's file. The admin never reaches any of it: a space's capacity and its counts are private from the public and the admin ([ADR 0008](../architecture/decisions/0008-live-status-not-counts.md)). The owner's settings page reads and sets the capacity.
 - **The desk on the web** (`pages/dashboard/space/desk/`, the owner and reception): «الحاضرون الآن» and the live status's control, each this capability's component; the page sets the desk's check-out in each row (2026-10-24, #116).
+- **The owner's overview** (`overview`), which reads the space's state at a glance: how many are present, its capacity and its live status, never a name (2026-10-29, #131).
 
 ## Responsibility boundary
 
@@ -53,6 +54,8 @@
 **The capacity's write.** In one transaction: the space's lock; `can()` on the links as they are under it; the current capacity. The same value writes nothing; another is written, the row created on its first write, and audited. Only the capacity is written, so the manual override is never touched.
 
 A change applies from then on ([data model › Front desk and money](../architecture/data-model.md#front-desk-and-money)).
+
+**The glance** (`glance`, for the owner's overview): the state now without anyone's row — the space's row, its open visits and open check-ins counted (`present.countsIn`, one query each), the closures in force and the week, read in parallel with no lock; it answers the capacity, the live status by the same rule and inputs as the state now, and *present* as visits, members and their total; no name and no charge (2026-10-29, #131).
 
 ## Decisions
 

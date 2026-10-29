@@ -1,6 +1,6 @@
 # Spaces
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** the `spaces` capability: a space's profile and its facts (hours and shifts, prices, amenities, contacts), their freshness, its photos, and its life on the platform (created, hidden, deleted, restored), as the admin keeps it and its owner edits it. Its endpoints are owned by the [API contract](../api/api-contract.md#spaces-the-admin); its entities and derived values by the [data model](../architecture/data-model.md#spaces). The admin's API, the managed-space routes and what the public [directory](directory.md) reads are built; on the web, the add-space page, the space editor and the row actions of the admin's spaces list, and the owner's space profile, the same editor on the managed routes. Reception's web screens remain planned.
 > **Scope:** the API module `spaces` (L1); `@masaha/shared/spaces`; the web feature `features/spaces`, dashboard-only.
 
@@ -27,6 +27,7 @@ Reception's web screens remain planned.
 - **[`packages`](packages.md),** whose writes take the space's lock first.
 - **The desk's subscription sheet, on the web** ([desk](desk.md)): reads the space's shifts (`useSpaceShifts`) and its published prices, read again each time the sheet opens (`useSpacePrices`, finding 171) (2026-10-26, #124).
 - **[`data-reports`](data-reports.md),** which finds a reported space as its page does (`publicSpace.findShown`), names the spaces of a user's reports, soft-deleted ones included (`namesWithDeleted`), and asks the public listing which of them are listed (2026-10-25, #120).
+- **The owner's overview** (`overview`), which reads one space's freshness: its groups missing, and stale with their days (2026-10-29, #131).
 
 ## Responsibility boundary
 
@@ -116,6 +117,8 @@ Reception's web screens remain planned.
 - **The list** is read under the space's share lock, as the space's read is.
 
 **Confirm.** A group confirmed unchanged has its date renewed and nothing else, under the space's lock, with its audit entry, on the same path and by the same `can()` rule as a save; a missing group has nothing to confirm (409).
+
+**One space's freshness** (`listing.freshnessOf`, for the owner's overview). The space's row, read by the listing's own query, and the thresholds saved now: its groups never saved, and its stale ones, each with its Gaza days from its date to now (`staleness.ts`' `staleDays`, pure: whole days on Gaza's calendar, never 24-hour spans); a soft-deleted space is `not_found` (2026-10-29, #131).
 
 ## Decisions
 

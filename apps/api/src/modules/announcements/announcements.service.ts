@@ -1,9 +1,11 @@
-import type {
-  Announcement,
-  AnnouncementState,
-  AnnouncementsQuery,
-  CreateAnnouncementRequest,
-  EditAnnouncementRequest,
+import {
+  ANNOUNCEMENT_TYPES,
+  type Announcement,
+  type AnnouncementState,
+  type AnnouncementsQuery,
+  type AnnouncementType,
+  type CreateAnnouncementRequest,
+  type EditAnnouncementRequest,
 } from '@masaha/shared/announcements';
 
 import type { RunInTransaction, Tx } from '../../db/index.ts';
@@ -84,6 +86,12 @@ export function createAnnouncementsService({ runInTransaction, audit, spaces, no
     /** How many of the space's announcements are in each state at `at`, in one query. */
     counts(spaceId: number, at: Date): Promise<Record<AnnouncementState, number>> {
       return repository.counts(spaceId, at);
+    },
+
+    /** The types of the space's announcements running at `at`, each once, in `ANNOUNCEMENT_TYPES`' order. */
+    async runningTypes(spaceId: number, at: Date): Promise<AnnouncementType[]> {
+      const running = new Set(await repository.runningTypes(spaceId, at));
+      return ANNOUNCEMENT_TYPES.filter((type) => running.has(type));
     },
 
     /**

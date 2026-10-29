@@ -9,6 +9,7 @@ import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma, type Tx } from '../../db/index.ts';
 import type { Prisma } from '../../generated/prisma/client.ts';
+import { createDataReportsRepository } from './data-reports.repository.ts';
 
 // The owner reads and decides the space's reports, never seeing who reported them
 // (docs/api/api-contract.md › Data reports).
@@ -270,5 +271,28 @@ describe("the owner's reports", () => {
       status: 'OPEN',
     });
     expect(await auditEntries()).toEqual([]);
+  });
+});
+
+describe("the space's open reports, counted", () => {
+  it('openCountOf counts the space’s OPEN reports only', async () => {
+    await report({ field: 'HOURS' });
+    await report({ field: 'CONTACT' });
+    await report({
+      status: 'RESOLVED',
+      resolvedAt: minutesAgo(1),
+      resolvedById: owner.id,
+      resolvedAs: 'OWNER',
+    });
+    await report({
+      status: 'DISMISSED',
+      resolvedAt: minutesAgo(1),
+      resolvedById: owner.id,
+      resolvedAs: 'OWNER',
+      resolutionNote: 'صحيح',
+    });
+    await report({ spaceId: otherSpaceId });
+
+    expect(await createDataReportsRepository().openCountOf(spaceId)).toBe(2);
   });
 });
