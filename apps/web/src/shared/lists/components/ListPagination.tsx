@@ -8,15 +8,28 @@ import {
   PaginationPrevious,
   PaginationSummary,
 } from '@shared/design-system';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import type { PaginationView } from '../types/PaginationView';
+
+/** An address's search, in one spelling: with or without its `?`, and none at all, compare equal. */
+function searchKey(search: string) {
+  return new URLSearchParams(search).toString();
+}
 
 /**
  * A paged list's pages, each a link to its own address, so a page opens in a new tab and Back returns to
- * the page before. A step with no page to go to stays in place, unavailable.
+ * the page before. A step with no page to go to stays in place, unavailable. The page the address
+ * asks for is marked current at once, before its answer arrives (finding 132), and the answer's
+ * page when the address names none of them.
  */
 export function ListPagination({ pagination }: { pagination: PaginationView }) {
   const { previous, next } = pagination;
+  const here = searchKey(useLocation().search);
+  const asked = pagination.items.find(
+    (item) => item.kind === 'page' && searchKey(item.search) === here,
+  );
+  const isCurrent = (item: { page: number; current: boolean }) =>
+    asked?.kind === 'page' ? item.page === asked.page : item.current;
 
   return (
     <Pagination label={pagination.label}>
@@ -37,7 +50,7 @@ export function ListPagination({ pagination }: { pagination: PaginationView }) {
             </PaginationItem>
           ) : (
             <PaginationItem key={item.page}>
-              <PaginationLink asChild isActive={item.current}>
+              <PaginationLink asChild isActive={isCurrent(item)}>
                 <Link to={{ search: item.search }} aria-label={item.label}>
                   {item.page}
                 </Link>

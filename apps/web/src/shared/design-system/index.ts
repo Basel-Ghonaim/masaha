@@ -139,6 +139,7 @@ export {
   SelectTrigger,
   SelectValue,
 } from './components/fields/Select';
+export { Refreshing, type RefreshingProps } from './components/feedback/Refreshing';
 export { Separator, type SeparatorProps } from './components/display/Separator';
 export {
   Sheet,

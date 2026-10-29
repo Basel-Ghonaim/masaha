@@ -22,6 +22,7 @@
   --heatmap-step-3: 0.5;
   --heatmap-step-4: 0.72;
   --heatmap-step-5: 1;
+  --refreshing: 0.6;
 }
 
 /* Touch screens: a 44px target, and 16px text, below which iOS Safari zooms into a focused input. */

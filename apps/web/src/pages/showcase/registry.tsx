@@ -15,6 +15,7 @@ import { SeparatorSection } from './sections/display/SeparatorSection';
 import { StatCardSection } from './sections/display/StatCardSection';
 import { AlertSection } from './sections/feedback/AlertSection';
 import { EmptyStateSection } from './sections/feedback/EmptyStateSection';
+import { RefreshingSection } from './sections/feedback/RefreshingSection';
 import { SkeletonSection } from './sections/feedback/SkeletonSection';
 import { SpinnerSection } from './sections/feedback/SpinnerSection';
 import { ToastSection } from './sections/feedback/ToastSection';
@@ -169,6 +170,9 @@ export const ENTRIES: readonly ShowcaseEntry[] = [
   entry('display', 'FilterTag', 'filterTag', (samples) => <FilterTagSection samples={samples} />),
   entry('display', 'Meter', 'meter', (samples) => <MeterSection samples={samples} />),
   entry('data', 'BarChart', 'barChart', (samples) => <BarChartSection samples={samples} />),
+  entry('feedback', 'Refreshing', 'refreshing', (samples) => (
+    <RefreshingSection samples={samples} />
+  )),
   entry('data', 'Heatmap', 'heatmap', (samples) => <HeatmapSection samples={samples} />),
 ];
 

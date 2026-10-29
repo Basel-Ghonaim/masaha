@@ -184,6 +184,26 @@ describe('DataTable', () => {
     expect(screen.getByText('No members yet')).toBeInTheDocument();
   });
 
+  it.each([1280, 360])(
+    'keeps its rows, dimmed and busy, while the next page refreshes them at %ipx',
+    (width) => {
+      screenWidth = width;
+      const { rerender } = render(<Members refreshing />);
+      const list = screen.getByRole(width === 1280 ? 'table' : 'list', {
+        name: 'Members of the space',
+      });
+
+      expect(list).toHaveAttribute('aria-busy', 'true');
+      expect(screen.getByText(width === 1280 ? 'Sara Helou' : 'Sara Helou, Monthly')).toBeVisible();
+      const rows = list.querySelector('[data-refreshing]');
+      expect(rows).toHaveClass('data-refreshing:opacity-(--refreshing)');
+
+      rerender(<Members />);
+      expect(list).not.toHaveAttribute('aria-busy');
+      expect(list.querySelector('[data-refreshing]')).toBeNull();
+    },
+  );
+
   it.each([1280, 360])('has no accessibility violations at %ipx', async (width) => {
     screenWidth = width;
     const { container } = render(<Members />);
