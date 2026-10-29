@@ -86,6 +86,7 @@ The account's settings page on the web is not built; its API, `GET` and `PATCH /
 - **An issue's writes (`replaceWithTemporaryPassword`) and a handover's (`recordHandoverLocked`) are one implementation each, under the lock their caller took,** shared by the admin and the owner's staff, the owner's carrying the space. *Why:* one place sets the expiry, ends the sessions and the reset links, and audits; the owner's routes take the space's lock first. 2026-10-18, #90.
 - **An account whose temporary password is pending gains no power (`assertNoPasswordPending`, S6),** asked by the admin's owner links and role change under the account's lock. *Why:* its creator knows the password ([security › Passwords](../backend/security.md#passwords)); the rule is the account's, so it lives here. 2026-10-18, #90.
 
+- **An expired pending account with no Google account gives its address up to whoever registers it or first signs in with Google at it, when its orchestrator finds it owns no space and never acted** ([security › Passwords](../backend/security.md#passwords)). `users` judges the account's half of the rule, reads it again under its lock, retires it and audits `user.replaced` (no actor, no space, the old address and the new account's id), in the new account's transaction; the address is read before the insert, so the insert meets no unique violation. *Why:* finding 91 (the owner's 91 (a), narrowed by S1). 2026-10-29, #132.
 - **One's own name and language are edited at `PATCH /me`, under the session lock, writing and auditing only what changed (`user.profileEdited`, naming no space); the action is not on the admin's list.** *Why:* the lock makes the audit's `before` the value replaced; an edit that changes nothing writes nothing, as every edit does; a person's own name is no platform event, so the default deny keeps it from the admin ([audit](audit.md)). 2026-10-29, #131.
 
 ### Web decisions
@@ -142,6 +143,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #78 — the session version: every access token ends with its session; the service hashes through its own helpers, with no parameter for them ([finding 39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md)).
 - #90 — the temporary password's expiry; no recovery by email or Google while one is pending; the email confirmed at the forced change; the owner's re-issue and handover.
 - #131 — `GET` and `PATCH /me`: one's own account, its name and language edited and audited.
+- #132 — an expired pending account that never acted gives its address up: judged by `users`' rule (`replaceableHolder`), re-read under its lock, retired (sessions ended, suspended, its address `replaced-{id}@replaced.invalid`) and audited `user.replaced`.
 
 ### Web history
 

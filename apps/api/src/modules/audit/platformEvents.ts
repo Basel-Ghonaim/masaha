@@ -57,6 +57,7 @@ export const PLATFORM_ACCOUNT_ACTIONS = [
   'user.temporaryPasswordIssued',
   'user.temporaryPasswordHandedOver',
   'user.emailChanged',
+  'user.replaced',
 ] as const;
 
 const isListed = (list: readonly string[], action: string) => list.includes(action);

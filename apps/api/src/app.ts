@@ -464,7 +464,7 @@ export function createApi({
     packages,
     now: clock,
   });
-  const spaceLinks = createSpaceLinksService({ spaces, lookups });
+  const spaceLinks = createSpaceLinksService({ audit: writeAudit, now: clock, spaces, lookups });
   // The guard reads the account on every signed-in request (ADR 0003, revised), and a reception
   // account's links and session (docs/backend/security.md › Tokens and cookies).
   const requireAuth = createRequireAuth(accessTokens, (userId) => users.signedInAccount(userId), {
@@ -548,6 +548,8 @@ export function createApi({
     emailSender: createCappedEmailSender(email, { limiter, logger }),
     webOrigin,
     wait,
+    // Whether a person ever acted is the audit reader's (L5), a level above auth: passed in.
+    hasActed: (userId: number, tx: Tx) => auditLog.hasActed(userId, tx),
   });
 
   // The timed jobs (ADR 0014; conventions §12): each module closes its own stays.

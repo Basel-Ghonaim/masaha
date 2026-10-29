@@ -1,4 +1,4 @@
-import { prisma } from '../../db/index.ts';
+import { prisma, type Tx } from '../../db/index.ts';
 import { Prisma } from '../../generated/prisma/client.ts';
 import { platformEventsSql } from './platformEvents.ts';
 
@@ -150,6 +150,18 @@ function actorIs(actor: number | 'MASAHA' | 'SYSTEM'): Prisma.Sql {
 /** The `audit_logs` table, read: the audit module writes nothing (docs/backend/conventions.md §6). */
 export function createAuditRepository() {
   return {
+    /**
+     * Whether the user is the actor of an audit entry, has a favourite or wrote a data report: one
+     * statement, each an indexed lookup (R7: a read model reads other modules' tables).
+     */
+    async hasActed(userId: number, tx: Tx = prisma): Promise<boolean> {
+      const [row] = await tx.$queryRaw<{ acted: boolean }[]>`
+        SELECT EXISTS (SELECT 1 FROM audit_logs WHERE actor_id = ${userId})
+          OR EXISTS (SELECT 1 FROM favorites WHERE user_id = ${userId})
+          OR EXISTS (SELECT 1 FROM data_reports WHERE user_id = ${userId}) AS acted`;
+      return row?.acted ?? false;
+    },
+
     /**
      * A page of the space's entries the filter keeps, newest first, then by id; how many it keeps;
      * and the actors of the entries every filter but the actor's keeps (at most 50, persons by name,

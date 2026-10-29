@@ -68,3 +68,4 @@
 
 - #128 — the owner's audit log of the space, the admin shown as Masaha, and the admin's log of the platform's events, by a default-deny list; paged, the last 30 days or all, searched by target, filtered by actor and action.
 - #130 — the platform's settings' saves on the admin's log, their target with no id.
+- #132 — `user.replaced` on the admin's account events; `hasActed`, whether a person is an entry's actor, has a favourite or wrote a data report, for `auth`'s replacement of an expired pending account.

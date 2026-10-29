@@ -6,6 +6,7 @@ import type {
   SpaceAuditQuery,
 } from '@masaha/shared/audit';
 
+import type { Tx } from '../../db/index.ts';
 import { toSkip } from '../../shared/http/index.ts';
 import { toAuditActor, toAuditEntry, toPlatformAuditEntry } from './audit.mapper.ts';
 import { createAuditRepository } from './audit.repository.ts';
@@ -57,6 +58,14 @@ export function createAuditService({ now }: Dependencies) {
         { skip: toSkip({ page, limit }), take: limit },
       );
       return { rows: rows.map(toPlatformAuditEntry), total, actors: actors.map(toAuditActor) };
+    },
+
+    /**
+     * Whether the person ever acted on the platform (finding 91, S1): an audit entry with them as
+     * its actor, a favourite, or a data report they wrote. In the caller's transaction.
+     */
+    hasActed(userId: number, tx: Tx): Promise<boolean> {
+      return repository.hasActed(userId, tx);
     },
   };
 }

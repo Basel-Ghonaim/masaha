@@ -11,13 +11,13 @@ import {
   type Session,
 } from '@masaha/shared/auth';
 
-import type { RunInTransaction } from '../../db/index.ts';
+import type { RunInTransaction, Tx } from '../../db/index.ts';
 import { isIdleBound, type AccessTokens } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
 import type { Recovery, SessionsService } from '../sessions/index.ts';
 import type { SpaceLinksService } from '../space-links/index.ts';
-import type { Account, UsersService } from '../users/index.ts';
+import type { Account, FreeAddress, UsersService } from '../users/index.ts';
 import {
   GOOGLE_ADDRESS,
   PASSWORD_ADDRESS,
@@ -85,6 +85,11 @@ interface Dependencies {
   webOrigin: string;
   /** The timer (conventions §11): resolves once `ms` have passed. */
   wait: (ms: number) => Promise<void>;
+  /**
+   * Whether the person ever acted on the platform (`audit`'s read model, a level above): an
+   * account that did is never replaced (S1). A port, wired in the composition root.
+   */
+  hasActed: (userId: number, tx: Tx) => Promise<boolean>;
 }
 
 /**
@@ -102,6 +107,7 @@ export function createAuthService({
   emailSender,
   webOrigin,
   wait,
+  hasActed,
 }: Dependencies) {
   const invalidResetLink = () =>
     AppError.badRequest('RESET_TOKEN_INVALID', 'Reset token invalid, expired or used');
@@ -165,6 +171,24 @@ export function createAuthService({
     return { user: { ...user, spaces }, accessToken };
   }
 
+  /**
+   * Frees an address its holder may lose (finding 91, S1), in the caller's transaction: an expired
+   * pending account (`users`' rule) that holds no active OWNER link and never acted. The space of
+   * its reception link is locked first, then the account, which is checked again under the lock;
+   * its reception link ends by the system, and it is retired. The account as it was, or nothing.
+   */
+  const freeAddress: FreeAddress = async (holderId, tx) => {
+    const spaceId = await spaceLinks.lockReceptionSpaceOf(holderId, tx);
+    const account = await users.lockReplaceable(holderId, tx);
+    if (!account) return undefined;
+    if ((await spaceLinks.ownsASpace(holderId, tx)) || (await hasActed(holderId, tx))) {
+      return undefined;
+    }
+    if (spaceId !== null) await spaceLinks.endReceptionBySystem(spaceId, holderId, tx);
+    await users.retireReplaced(account, tx);
+    return account;
+  };
+
   /** Opens a session for the user, under their session lock (conventions §13). */
   async function signIn(userId: number): Promise<SignedIn> {
     const { account, issued } = await runInTransaction(async (tx) => {
@@ -199,7 +223,7 @@ export function createAuthService({
     async register(request: RegisterRequest, clientAddress: string): Promise<SignedIn> {
       await limiter.count(REGISTER_ADDRESS, clientAddress);
       return limitFailures(clientAddress, request.email, async () =>
-        signIn((await users.register(request)).id),
+        signIn((await users.register(request, freeAddress)).id),
       );
     },
 
@@ -234,7 +258,11 @@ export function createAuthService({
         });
         if (!profile)
           throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Invalid Google ID token');
-        const { userId, link, created } = await users.accountForGoogle(profile, language);
+        const { userId, link, created } = await users.accountForGoogle(
+          profile,
+          language,
+          freeAddress,
+        );
         if (!link) return { ...(await signIn(userId)), linked: false, created };
         const { account, linked, issued } = await runInTransaction(async (tx) => {
           const result = await users.linkGoogle(userId, profile, tx);

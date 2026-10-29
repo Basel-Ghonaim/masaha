@@ -65,7 +65,16 @@ function setup(links: ActiveLink[]) {
     activeAmenitiesNamed: () => Promise.reject(new Error('not asked here')),
     activeAmenityIds: () => Promise.reject(new Error('not asked here')),
   };
-  return { service: createSpaceLinksService({ repository, spaces, lookups }), calls };
+  return {
+    service: createSpaceLinksService({
+      audit: () => Promise.reject(new Error('not asked here')),
+      now: () => new Date(),
+      repository,
+      spaces,
+      lookups,
+    }),
+    calls,
+  };
 }
 
 describe('linksAt', () => {

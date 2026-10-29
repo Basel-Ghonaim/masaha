@@ -230,7 +230,6 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - [84](../architecture/findings/84-a-person-cannot-work-at-two-spaces-front-desks.md): a person cannot work at two spaces' front desks.
 - [87](../architecture/findings/87-the-owners-shell-cold-loads-the-space-links-index.md): the owners shell cold-loads the whole `space-links` index.
 - [89](../architecture/findings/89-check-the-email-stands-for-three-causes.md): «تحقّق من البريد» stands for three causes, a right email among them.
-- [91](../architecture/findings/91-an-address-held-by-a-pending-account-is-locked-out-until-the-admin-acts.md): an address held by a pending account is locked out until the admin acts.
 - [92](../architecture/findings/92-an-owner-can-end-the-sessions-of-another-spaces-owner-at-will.md): an owner can end the sessions of another space's owner at will.
 - [93](../architecture/findings/93-three-staff-refusals-have-no-test-of-their-own.md): three staff refusals have no test of their own.
 - [94](../architecture/findings/94-the-person-search-calls-a-receptionist-a-user.md): the person search calls a receptionist a user.
@@ -257,6 +256,7 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - #83 — the active-link access boundary used by the owner/reception managed-space API.
 - #86 — `ownersFor` reads the names in its caller's transaction.
 - #90 — the owner's staff: created, listed, deactivated and re-activated; a pending temporary password re-issued, and its handover; the reception links in the admin's users list.
+- #132 — a replaced account's reception link ended by the system (`space.staffDeactivated`, no actor), under its space's lock.
 
 ### Web history
 

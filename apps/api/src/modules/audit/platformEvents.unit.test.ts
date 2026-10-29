@@ -44,7 +44,12 @@ describe("the admin's allowlist", () => {
     expect(isPlatformEvent({ action: 'dataReport.resolved', spaceId: 3 })).toBe(true);
     expect(isPlatformEvent({ action: 'area.edited', spaceId: null })).toBe(true);
     // An account's: the platform's with no space; an owner's staff account's is the space's.
-    for (const action of ['user.created', 'user.temporaryPasswordIssued', 'user.suspended']) {
+    for (const action of [
+      'user.created',
+      'user.temporaryPasswordIssued',
+      'user.suspended',
+      'user.replaced',
+    ]) {
       expect(isPlatformEvent({ action, spaceId: null })).toBe(true);
       expect(isPlatformEvent({ action, spaceId: 3 })).toBe(false);
     }

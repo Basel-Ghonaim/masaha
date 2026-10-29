@@ -2,6 +2,7 @@ import type { ManagedSpace } from '@masaha/shared/space-links';
 
 import type { Tx } from '../../db/index.ts';
 import type { SpaceManagerRole } from '../../generated/prisma/enums.ts';
+import type { AuditWriter } from '../../shared/audit/index.ts';
 import type { SpaceLink } from '../../shared/auth/index.ts';
 import { createLookupsService, type LookupsService } from '../lookups/index.ts';
 import { createSpacesService, type SpacesService } from '../spaces/index.ts';
@@ -13,6 +14,10 @@ import {
 } from './space-links.repository.ts';
 
 interface Dependencies {
+  /** The audit writer: a reception link ended by the system (a replaced account's). */
+  audit: AuditWriter;
+  /** The one clock (conventions §11): when such a link ends. */
+  now: () => Date;
   repository?: SpaceLinksRepository;
   spaces?: SpacesService;
   lookups?: LookupsService;
@@ -23,10 +28,12 @@ interface Dependencies {
  * the session, and the spaces behind them, for the user's own list.
  */
 export function createSpaceLinksService({
+  audit,
+  now,
   repository = createSpaceLinksRepository(),
   spaces = createSpacesService(),
   lookups = createLookupsService(),
-}: Dependencies = {}) {
+}: Dependencies) {
   return {
     /**
      * The session's links, oldest first: with no space remembered, the dashboard opens the oldest
@@ -58,6 +65,45 @@ export function createSpaceLinksService({
      */
     receptionSpaceOf(userId: number, tx: Tx): Promise<number | null> {
       return repository.findReceptionSpaceOf(userId, tx);
+    },
+
+    /**
+     * Locks the space of the user's reception link, active or not, if they have one (one desk per
+     * person, finding 84): a link change takes the space's lock before the person's (conventions
+     * §13). The space's id, or nothing.
+     */
+    async lockReceptionSpaceOf(userId: number, tx: Tx): Promise<number | null> {
+      const spaceId = await repository.findReceptionSpaceOf(userId, tx);
+      if (spaceId === null) return null;
+      return (await spaces.lock(spaceId, tx)) ? spaceId : null;
+    },
+
+    /** Whether the user holds an active OWNER link, a soft-deleted space's included. */
+    async ownsASpace(userId: number, tx: Tx): Promise<boolean> {
+      return (await repository.countOwnerLinks(userId, tx)) > 0;
+    },
+
+    /**
+     * Ends the user's active reception link at the space, by the system: a replaced account's
+     * (finding 91). Under the space's lock and the person's, which the caller took; audited
+     * `space.staffDeactivated` with no actor, so the owner's log shows the system ended it.
+     */
+    async endReceptionBySystem(spaceId: number, userId: number, tx: Tx): Promise<void> {
+      const link = await repository.findReceptionLink(spaceId, userId, tx);
+      if (!link || link.deactivatedAt !== null) return;
+      await repository.deactivateReceptionLink(spaceId, userId, now(), tx);
+      await audit(
+        {
+          actorId: null,
+          action: 'space.staffDeactivated',
+          entityType: 'space',
+          entityId: spaceId,
+          spaceId,
+          before: { userId, isActive: true },
+          after: { userId, isActive: false },
+        },
+        tx,
+      );
     },
 
     /**
