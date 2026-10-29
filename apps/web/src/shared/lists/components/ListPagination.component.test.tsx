@@ -1,7 +1,13 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  Outlet,
+  RouterProvider,
+  ScrollRestoration,
+} from 'react-router';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { paginationView } from '../services/paginationView';
 import { ListPagination } from './ListPagination';
@@ -66,6 +72,45 @@ describe('ListPagination', () => {
     );
 
     expect(screen.getByRole('link', { name: 'Page 1' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  describe('on a page with the app’s scroll restoration', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function Root() {
+      return (
+        <>
+          <ScrollRestoration />
+          <Outlet />
+        </>
+      );
+    }
+
+    function Customers() {
+      const view = paginationView({ current: 1, total: 3, words, searchOf }) ?? never();
+      return <ListPagination pagination={view} />;
+    }
+
+    it.each(['Page 2', 'Next'])(
+      'keeps the scroll where it is when %s is followed',
+      async (name) => {
+        const scrollTo = vi.fn();
+        vi.stubGlobal('scrollTo', scrollTo);
+        const router = createMemoryRouter(
+          [{ element: <Root />, children: [{ path: '/customers', element: <Customers /> }] }],
+          { initialEntries: ['/customers'] },
+        );
+        render(<RouterProvider router={router} />);
+        scrollTo.mockClear();
+
+        await userEvent.click(screen.getByRole('link', { name }));
+
+        expect(router.state.location.search).toBe('?page=2');
+        expect(scrollTo).not.toHaveBeenCalled();
+      },
+    );
   });
 
   it('has no accessibility violations', async () => {

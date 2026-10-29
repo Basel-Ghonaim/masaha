@@ -20,7 +20,8 @@ function searchKey(search: string) {
  * A paged list's pages, each a link to its own address, so a page opens in a new tab and Back returns to
  * the page before. A step with no page to go to stays in place, unavailable. The page the address
  * asks for is marked current at once, before its answer arrives (finding 132), and the answer's
- * page when the address names none of them.
+ * page when the address names none of them. Following a step keeps the scroll where it is: the
+ * pages sit under the list, and the reader stays with it.
  */
 export function ListPagination({ pagination }: { pagination: PaginationView }) {
   const { previous, next } = pagination;
@@ -39,7 +40,9 @@ export function ListPagination({ pagination }: { pagination: PaginationView }) {
             <PaginationPrevious disabled>{previous.label}</PaginationPrevious>
           ) : (
             <PaginationPrevious asChild>
-              <Link to={{ search: previous.search }}>{previous.label}</Link>
+              <Link to={{ search: previous.search }} preventScrollReset>
+                {previous.label}
+              </Link>
             </PaginationPrevious>
           )}
         </PaginationItem>
@@ -51,7 +54,7 @@ export function ListPagination({ pagination }: { pagination: PaginationView }) {
           ) : (
             <PaginationItem key={item.page}>
               <PaginationLink asChild isActive={isCurrent(item)}>
-                <Link to={{ search: item.search }} aria-label={item.label}>
+                <Link to={{ search: item.search }} preventScrollReset aria-label={item.label}>
                   {item.page}
                 </Link>
               </PaginationLink>
@@ -64,7 +67,9 @@ export function ListPagination({ pagination }: { pagination: PaginationView }) {
             <PaginationNext disabled>{next.label}</PaginationNext>
           ) : (
             <PaginationNext asChild>
-              <Link to={{ search: next.search }}>{next.label}</Link>
+              <Link to={{ search: next.search }} preventScrollReset>
+                {next.label}
+              </Link>
             </PaginationNext>
           )}
         </PaginationItem>
