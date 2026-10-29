@@ -771,7 +771,8 @@ export function createDeskService({
      * customer's own (else `invalid_choice` on `renewalOfId`) and not renewed yet
      * (`SUBSCRIPTION_ALREADY_RENEWED`); the package, the space's and offered (else `invalid_choice`
      * on `packageId`), or the space's standard published price of the key sent (else
-     * `invalid_choice` on `published`), or the typed terms (`termsOf`); the start date, the one
+     * `invalid_choice` on `published`; an amount sent that is not its own →
+     * `PUBLISHED_PRICE_CHANGED`), or the typed terms (`termsOf`); the start date, the one
      * sent, else the renewal's proposal (`proposedStart`); the subscription, audited; then the payment, allocated
      * over the customer's older debts oldest first and the rest to the new one, one payment each
      * under a key derived from the request's, which the ledger checks. Warns `CUSTOMER_HAS_DEBT`
@@ -819,6 +820,10 @@ export function createDeskService({
         if (request.published !== undefined) {
           price = await spaces.standardPrice(space.id, request.published, tx);
           if (!price) throw AppError.validation({ published: ['invalid_choice'] });
+          const shown = request.published.amountAgorot;
+          if (shown !== undefined && shown !== price.amountAgorot) {
+            throw AppError.conflict('PUBLISHED_PRICE_CHANGED');
+          }
         }
         const mayType =
           pack === null &&

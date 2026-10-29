@@ -288,6 +288,38 @@ describe('subscribing a customer', () => {
     expect(await storedSubscriptions()).toEqual([]);
   });
 
+  it('a published amount that differs answers PUBLISHED_PRICE_CHANGED, writing nothing', async () => {
+    await addPrice(spaceId, 'MONTH', 25_000);
+
+    const response = await subscribe(reception, {
+      published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري', amountAgorot: 20_000 },
+      payment: { amountAgorot: 20_000, method: 'CASH' },
+    });
+    expect(response.status).toBe(409);
+    expect(errorOf(response)).toMatchObject({ type: 'conflict', code: 'PUBLISHED_PRICE_CHANGED' });
+    expect(await storedSubscriptions()).toEqual([]);
+    expect(await prisma.payment.count()).toBe(0);
+    expect(await auditEntries()).toEqual([]);
+  });
+
+  it('an equal amount, or none, subscribes as before', async () => {
+    await addPrice(spaceId, 'MONTH', 25_000);
+
+    const equal = await subscribe(reception, {
+      published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري', amountAgorot: 25_000 },
+    });
+    expect(equal.status).toBe(201);
+    expect((dataOf(equal) as { subscription: object }).subscription).toMatchObject({
+      priceAgorot: 25_000,
+    });
+    const none = await subscribe(reception, {
+      published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري' },
+      startsOn: '2026-11-20',
+    });
+    expect(none.status).toBe(201);
+    expect(await storedSubscriptions()).toHaveLength(2);
+  });
+
   it('a published price with a package is invalid_choice on packageId; an hour price on its period', async () => {
     await addPrice(spaceId, 'HOUR', 500);
     const pack = await monthly();

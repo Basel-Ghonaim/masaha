@@ -72,6 +72,7 @@
 ### API decisions
 
 - **A subscription may be made from a published week or month price, named by its period, audience and shift, never by an id.** Its terms are copied: fixed at the price's amount, its audience and shift, no limits, for 7 or 30 days with both ends counted. *Why:* the public's packages are the published prices (data model › Package); a save writes the prices anew, so an id the desk read dies at the owner's next save, while the key is the one a visit already picks its rates by. 2026-10-25, #118.
+- **A published price changed since the desk showed it is refused, never sold at the new amount** (`published.amountAgorot`, `PUBLISHED_PRICE_CHANGED`). *Why:* the customer pays what they were told; the desk reads the price anew and asks again (the owner's 171 (a)). 2026-10-29, #132.
 - **A subscription's attendance and amount due are counted by one database function, `subscription_usage`; the status stays pure TypeScript on its counts.** *Why:* a usage-based debt is attendance × rate, and the owner's decision 6 puts debts in the database, so the attendance must be countable there; one function serves every read, so no second copy of the due exists (step 8's plan, S1). Its branches are proven in the API lane. 2026-10-21, #102.
 - **A day is used by any check-in on its Gaza date; minutes count closed stays only, whole minutes each; a per-hour due is minutes × rate ÷ 60, half up.** *Why:* an open stay has no length yet; the owner's attendance rules (Q4). 2026-10-21, #102.
 - **An `UPCOMING` status; an ended subscription is `EXPIRED` at once.** *Why:* a renewal starting later is not running yet, and the desk preselects the one running; ending a subscription changes its status the day it is ended (S4, S5). 2026-10-21, #102.
@@ -112,6 +113,7 @@
 - #109 — a check-in's minutes in SQL; a subscriber's check-in and check-out, audited, and the limits' warnings (`limits.ts`); the check-ins' lists.
 - #112 — the managed announcements list, each closure with its extension, and its summary (`closures/`).
 - #118 — a subscription made from a published week or month price (through `desk`).
+- #132 — a published amount the desk showed is checked against the price under the lock (`PUBLISHED_PRICE_CHANGED`, finding 171's API half).
 - #123 — a closure's extension: the preview, and the owner's extension of the subscriptions it covered, once per closure under one key.
 - #128 — a closure's extension moves the covered subscriptions' renewals not started too (finding 151); a key that extended another space's closure is a conflict.
 - #131 — a check-in's customer answered with its name and phone alone, now that the contacts also say whether a customer is archived.
