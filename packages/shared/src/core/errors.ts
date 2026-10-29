@@ -133,6 +133,9 @@ export const DOMAIN_ERROR_CODES = [
   'REPORT_ALREADY_DECIDED',
   // a user's favourites full: one is removed first (favorites)
   'FAVORITES_LIMIT_REACHED',
+  // a subscribe from a published price whose amount the desk showed differs from the price now:
+  // nothing is written (subscriptions)
+  'PUBLISHED_PRICE_CHANGED',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

@@ -56,6 +56,7 @@ export const ERRORS = {
   CLOSURE_ALREADY_EXTENDED: 'مُدّدت اشتراكات هذا الإغلاق من قبل.',
   REPORT_ALREADY_DECIDED: 'سبق البتّ في هذا البلاغ.',
   FAVORITES_LIMIT_REACHED: 'امتلأت مفضّلتك؛ أزل مساحة أولًا.',
+  PUBLISHED_PRICE_CHANGED: 'تغيّر هذا السعر منذ فتحت النافذة. راجع المبلغ الجديد، ثم أكّد.',
   ACCOUNT_IS_ADMIN: 'لا يمكن لحساب أدمن أن يكون صاحب مساحة.',
   RECEPTION_LINK_ACTIVE: 'هذا الشخص يعمل في استقبال هذه المساحة. يوقف صاحبها ذلك الربط أولًا.',
   EMAIL_HAS_ACCOUNT: 'لهذا البريد حساب بالفعل. يمكن ترقيته إلى صاحب مساحة وربطه.',
