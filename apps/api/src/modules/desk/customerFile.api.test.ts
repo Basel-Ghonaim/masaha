@@ -90,7 +90,7 @@ async function seedSara() {
   const voided = await pay({ visitId: owing.id }, 1_500);
   await prisma.payment.update({
     where: { id: voided.id },
-    data: { voidedAt: RECEIVED_AT, voidedById: owner.id, voidReason: 'Counted twice' },
+    data: { voidedAt: RECEIVED_AT, voidedById: reception.id, voidReason: 'Counted twice' },
   });
   const unpriced = await closedVisit(sara.id, '2026-10-19', null);
   await pay({ visitId: (await closedVisit(sara.id, '2026-10-19', 1_000)).id }, 1_000);
@@ -155,6 +155,7 @@ describe("the customer's file", () => {
               note: null,
               receivedAt: RECEIVED_AT.toISOString(),
               recordedById: owner.id,
+              recordedBy: { id: owner.id, name: 'Ahmad' },
               voided: null,
             },
             {
@@ -164,7 +165,13 @@ describe("the customer's file", () => {
               note: null,
               receivedAt: RECEIVED_AT.toISOString(),
               recordedById: owner.id,
-              voided: { at: RECEIVED_AT.toISOString(), byId: owner.id, reason: 'Counted twice' },
+              recordedBy: { id: owner.id, name: 'Ahmad' },
+              // Voided by reception: each name is the account's.
+              voided: {
+                at: RECEIVED_AT.toISOString(),
+                by: { id: reception.id, name: 'Sara' },
+                reason: 'Counted twice',
+              },
             },
           ],
           paidAgorot: 500,

@@ -458,7 +458,10 @@ SubscriptionState = {
   progress: { daysUsed, daysThisWeek, minutesUsed, minutesToday },   // days with a check-in; closed stays' whole minutes
   dueAgorot: number
 }
-ItemPayment = VisitPayment & { voided: { at, byId, reason } | null }
+ItemPayment = VisitPayment & {                                    // names: the accounts', a link of any state (2026-10-29, #132)
+  recordedBy: { id, name },
+  voided: { at, by: { id, name }, reason } | null
+}
 CustomerRow = Customer & CustomerBalance & {
   current: { id, name, packageId: number | null, endsOn: string | null, status } | null
 }

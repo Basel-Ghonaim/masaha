@@ -14,9 +14,13 @@ export interface VisitPayment {
   recordedById: number;
 }
 
-/** A payment of an item as a statement shows it: voided ones too, with when, by whom and why. */
+/**
+ * A payment of an item as a statement shows it: who recorded it, by name; voided ones too, with
+ * when, by whom (by name) and why. A name is the account's, whatever the state of its link.
+ */
 export type ItemPayment = VisitPayment & {
-  voided: { at: string; byId: number; reason: string } | null;
+  recordedBy: { id: number; name: string };
+  voided: { at: string; by: { id: number; name: string }; reason: string } | null;
 };
 
 /**

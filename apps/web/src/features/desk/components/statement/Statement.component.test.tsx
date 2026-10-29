@@ -38,7 +38,12 @@ const STATEMENT: SubscriptionStatement = {
       note: null,
       receivedAt: '2026-10-02T09:00:00Z',
       recordedById: 14,
-      voided: { at: '2026-10-03T09:00:00Z', byId: 14, reason: 'Entered twice' },
+      recordedBy: { id: 14, name: 'Ahmad' },
+      voided: {
+        at: '2026-10-03T09:00:00Z',
+        by: { id: 14, name: 'Ahmad' },
+        reason: 'Entered twice',
+      },
     },
   ],
   renewal: null,
@@ -106,7 +111,9 @@ function statementWith(voided: boolean): SubscriptionStatement {
         id: 7,
         amountAgorot: 5000,
         receivedAt: '2026-10-01T09:00:00Z',
-        voided: voided ? { at: '2026-10-27T09:00:00Z', byId: 14, reason: 'Twice' } : null,
+        voided: voided
+          ? { at: '2026-10-27T09:00:00Z', by: { id: 14, name: 'Ahmad' }, reason: 'Twice' }
+          : null,
       },
       payment,
     ],

@@ -14,14 +14,21 @@ export function toVisitPayment(row: VisitPaymentRow): VisitPayment {
   };
 }
 
-/** A payment as a statement shows it, its void with it (when, by whom, why) once voided. */
-export function toItemPayment(row: ItemPaymentRow): ItemPayment {
+/**
+ * A payment as a statement shows it, named by who recorded it, its void with it (when, by whom,
+ * why) once voided; `person` names an account by its id.
+ */
+export function toItemPayment(
+  row: ItemPaymentRow,
+  person: (id: number) => { id: number; name: string },
+): ItemPayment {
   const { voidedAt, voidedById, voidReason } = row;
   return {
     ...toVisitPayment(row),
+    recordedBy: person(row.recordedById),
     voided:
       voidedAt && voidedById !== null && voidReason !== null
-        ? { at: voidedAt.toISOString(), byId: voidedById, reason: voidReason }
+        ? { at: voidedAt.toISOString(), by: person(voidedById), reason: voidReason }
         : null,
   };
 }

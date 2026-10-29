@@ -85,7 +85,7 @@ describe("a subscription's statement", () => {
       where: { id: wrong.id },
       data: {
         voidedAt: new Date('2026-10-07T11:00:00+03:00'),
-        voidedById: owner.id,
+        voidedById: reception.id,
         voidReason: 'Twice',
       },
     });
@@ -155,6 +155,7 @@ describe("a subscription's statement", () => {
           note: null,
           receivedAt: '2026-10-06T16:05:00.000Z',
           recordedById: owner.id,
+          recordedBy: { id: owner.id, name: 'Ahmad' },
           voided: null,
         },
         {
@@ -164,7 +165,13 @@ describe("a subscription's statement", () => {
           note: null,
           receivedAt: '2026-10-07T07:00:00.000Z',
           recordedById: owner.id,
-          voided: { at: '2026-10-07T08:00:00.000Z', byId: owner.id, reason: 'Twice' },
+          recordedBy: { id: owner.id, name: 'Ahmad' },
+          // Voided by reception: each name is the account's.
+          voided: {
+            at: '2026-10-07T08:00:00.000Z',
+            by: { id: reception.id, name: 'Sara' },
+            reason: 'Twice',
+          },
         },
       ],
       // Running: renewed, it would start the day after its end.

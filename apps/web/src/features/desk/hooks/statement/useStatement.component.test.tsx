@@ -17,6 +17,7 @@ const PAYMENT = {
   method: 'CASH' as const,
   note: null,
   recordedById: 14,
+  recordedBy: { id: 14, name: 'Ahmad' },
   voided: null,
 };
 
@@ -55,7 +56,11 @@ const STATEMENT: SubscriptionStatement = {
       id: 8,
       method: 'TRANSFER',
       receivedAt: '2026-10-02T09:00:00Z',
-      voided: { at: '2026-10-03T09:00:00Z', byId: 14, reason: 'Entered twice' },
+      voided: {
+        at: '2026-10-03T09:00:00Z',
+        by: { id: 14, name: 'Ahmad' },
+        reason: 'Entered twice',
+      },
     },
   ],
   renewal: { startsOn: '2026-10-31' },
