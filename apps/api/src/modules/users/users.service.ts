@@ -14,7 +14,7 @@ import type { AuditWriter } from '../../shared/audit/index.ts';
 import type { AccessClaims, AccessTokens, SignedInAccount } from '../../shared/auth/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
 import type { Limiter } from '../../shared/rate-limit/index.ts';
-import { createSessionsService, type SessionsService } from '../sessions/index.ts';
+import type { SessionsService } from '../sessions/index.ts';
 import { hashPassword, verifyPassword } from './password.ts';
 import {
   temporaryPassword,
@@ -48,7 +48,7 @@ interface Dependencies {
   /** The space whose reception the account is, if any (`space-links`, a level above): passed in. */
   receptionSpaceOf: (userId: number, tx: Tx) => Promise<number | null>;
   repository?: UsersRepository;
-  sessions?: SessionsService;
+  sessions: SessionsService;
   runInTransaction?: RunInTransaction;
 }
 
@@ -146,7 +146,7 @@ export function createUsersService({
   now,
   receptionSpaceOf,
   repository = createUsersRepository(),
-  sessions = createSessionsService(),
+  sessions,
   runInTransaction = createRunInTransaction(),
 }: Dependencies) {
   /** A suspended account cannot sign in or refresh (docs/backend/security.md). */

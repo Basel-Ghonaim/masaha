@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { adminRequest, dataOf, errorOf, signIn } from '../../../../test/admin.ts';
-import { accessTokens, createTestApp } from '../../../../test/app.ts';
+import { accessTokens, createTestApp, TEST_JWT_SECRET } from '../../../../test/app.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { createArea, seedSettings, signInOwnerOf } from '../../../../test/spaces.ts';
 import { createRunInTransaction, prisma } from '../../../db/index.ts';
@@ -9,6 +9,7 @@ import { writeAudit } from '../../../shared/audit/index.ts';
 import { createCounter, createLimiter } from '../../../shared/rate-limit/index.ts';
 import { createLookupsService } from '../../lookups/index.ts';
 import { createPlatformSettingsService } from '../../platform-settings/index.ts';
+import { createSessionsService, successorKeyOf } from '../../sessions/index.ts';
 import { createListingService } from '../../spaces/index.ts';
 import { createUsersService } from '../../users/index.ts';
 import { createAdminSpacesService } from './adminSpaces.service.ts';
@@ -37,6 +38,7 @@ const adminSpaces = createAdminSpacesService({
     audit: writeAudit,
     now: clock,
     receptionSpaceOf: () => Promise.resolve(null),
+    sessions: createSessionsService({ successorKey: successorKeyOf(TEST_JWT_SECRET), now: clock }),
   }),
 });
 

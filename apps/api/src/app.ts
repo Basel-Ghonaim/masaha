@@ -102,6 +102,7 @@ import {
   createRecoveryCookie,
   createSessionCookies,
   createSessionsService,
+  successorKeyOf,
 } from './modules/sessions/index.ts';
 import {
   createAdminOwnersController,
@@ -328,7 +329,8 @@ export function createApi({
 
   const runInTransaction = createRunInTransaction();
 
-  const sessions = createSessionsService({ now: clock });
+  // A refresh token's successor is named under a key of its own, derived from the secret (S7).
+  const sessions = createSessionsService({ successorKey: successorKeyOf(jwtSecret), now: clock });
   const users = createUsersService({
     accessTokens,
     limiter,
