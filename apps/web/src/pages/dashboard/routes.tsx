@@ -47,13 +47,25 @@ const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
     const { LookupsPage } = await import('./admin/LookupsPage');
     return { element: <LookupsPage /> };
   },
+  dataReports: async () => {
+    const { DataReportsPage } = await import('./admin/DataReportsPage');
+    return { element: <DataReportsPage /> };
+  },
 };
 
 /** The space's pages that have a screen, each loaded lazily; the others show their placeholder. */
 const SPACE_PAGES: Partial<Record<DashboardPageName, () => Promise<ReactElement>>> = {
+  announcements: async () => {
+    const { AnnouncementsPage } = await import('./space/announcements/AnnouncementsPage');
+    return <AnnouncementsPage />;
+  },
   customers: async () => {
     const { CustomersPage } = await import('./space/customers/CustomersPage');
     return <CustomersPage />;
+  },
+  dataReports: async () => {
+    const { DataReportsPage } = await import('./space/reports/DataReportsPage');
+    return <DataReportsPage />;
   },
   desk: async () => {
     const { DeskPage } = await import('./space/desk/DeskPage');

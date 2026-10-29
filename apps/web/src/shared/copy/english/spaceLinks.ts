@@ -208,6 +208,8 @@ export const SPACE_LINKS = {
     linked: 'Linked',
     /** A space whose front desk the person works, offered but not to be chosen. */
     atDesk: 'Front desk',
+    /** The space filter's first choice, which clears it. */
+    allSpaces: 'All spaces',
     /** What a person offered is: an owner with their spaces, an owner, or a user. */
     owner: ({ spaces }: { spaces: string }) => `Owner · ${spaces}`,
     ownerOfNone: 'Owner',

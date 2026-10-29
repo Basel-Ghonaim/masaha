@@ -1,8 +1,9 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
-import { Calendar, type CalendarProps } from '.';
+import { Calendar, type CalendarProps, type DateRange } from '.';
 import { DirectionProvider } from '../../../lib/DirectionProvider';
 
 // 28 September 2026 is a Monday.
@@ -127,6 +128,38 @@ describe('Calendar', () => {
     expect(within(grid).getByRole('button', { name: /September 9th/ })).toHaveAttribute(
       'data-range-end',
     );
+  });
+
+  it('starts a range on a first click, ends it on the second, and starts afresh on a third', async () => {
+    const chosen: (DateRange | undefined)[] = [];
+    function RangeCalendar() {
+      const [range, setRange] = useState<DateRange>();
+      return (
+        <MembershipCalendar
+          mode="range"
+          selected={range}
+          onSelect={(next) => {
+            chosen.push(next);
+            setRange(next);
+          }}
+        />
+      );
+    }
+    render(<RangeCalendar />);
+    const day = (date: number) =>
+      within(screen.getByRole('grid')).getByRole('button', {
+        name: new RegExp(`September ${String(date)}th`),
+      });
+
+    await userEvent.click(day(7));
+    await userEvent.click(day(9));
+    await userEvent.click(day(14));
+
+    expect(chosen).toEqual([
+      { from: new Date(2026, 8, 7), to: undefined },
+      { from: new Date(2026, 8, 7), to: new Date(2026, 8, 9) },
+      { from: new Date(2026, 8, 14), to: undefined },
+    ]);
   });
 
   it('has no accessibility violations', async () => {

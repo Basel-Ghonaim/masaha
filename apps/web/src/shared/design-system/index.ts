@@ -34,7 +34,6 @@ export {
   type BreadcrumbProps,
 } from './components/navigation/Breadcrumb';
 export { Button, type ButtonProps } from './components/actions/Button';
-export { Calendar, type CalendarProps, type DateRange } from './components/fields/Calendar';
 export {
   Card,
   CardAction,
@@ -68,13 +67,6 @@ export {
   DialogTrigger,
   type DialogContentProps,
 } from './components/overlays/Dialog';
-export {
-  DatePicker,
-  DatePickerContent,
-  DatePickerTrigger,
-  type DatePickerContentProps,
-  type DatePickerTriggerProps,
-} from './components/fields/DatePicker';
 export { DirectionProvider } from './lib/DirectionProvider';
 export {
   DropdownMenu,
@@ -94,6 +86,7 @@ export {
 } from './components/actions/DropdownMenu';
 export { EmptyState, type EmptyStateProps } from './components/feedback/EmptyState';
 export { Field, type FieldProps } from './components/fields/Field';
+export { FilterTag, type FilterTagProps } from './components/display/FilterTag';
 export {
   Input,
   InputAction,
@@ -233,6 +226,7 @@ export {
   FlagIcon,
   GlyphIcon,
   GraduationCapIcon,
+  HeartIcon,
   IdCardIcon,
   InfoIcon,
   LanguagesIcon,

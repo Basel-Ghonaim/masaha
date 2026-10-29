@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-10-21
+> **Last Updated:** 2026-10-28
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -63,6 +63,7 @@ apps/web/src/shared/design-system/
   lib/useMediaQuery.ts  whether a media query matches now, read during render; exported
   index.ts            the public surface
   data.ts             the second entry: the data components that carry a heavy library (DataTable)
+  calendar.ts         the third entry: Calendar and DatePicker, over react-day-picker
   leaflet.css         the map's stylesheet: Leaflet's own, then its frame, controls, pin, marks and
                       crosshair on the semantic tokens; imported by shared/map only
 ```
@@ -73,7 +74,7 @@ apps/web/src/shared/design-system/
 |---|---|---|
 | `actions` | triggers an action | Button · ThemeToggle · LanguageToggle · DropdownMenu |
 | `fields` | enters or chooses a value, usually inside a Field | Field · Input · Textarea · Select · Combobox · Checkbox · RadioGroup · Switch · ToggleGroup · Calendar · DatePicker |
-| `display` | shows content | Avatar · Badge · Card · StatCard · Separator |
+| `display` | shows content | Avatar · Badge · Card · StatCard · Separator · FilterTag |
 | `data` | shows records in rows and columns | Table · DataTable |
 | `feedback` | tells the system's state | Alert · Toast · Skeleton · Spinner · EmptyState |
 | `overlays` | holds the caller's content above the page | Dialog · AlertDialog · Sheet · Popover · Tooltip |
@@ -82,7 +83,7 @@ apps/web/src/shared/design-system/
 A new component goes in the category of its role: the removable filter tag ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) in `display`, charts in `data`. A new category is added only when a role fits none of these.
 
 **Rules:**
-- **Public surface:** consumers import from `@shared/design-system`, never from inside a component folder. The one exception is a second entry, `@shared/design-system/data`, for the data components that carry a heavy library (`DataTable`, over TanStack Table): only the pages that draw them import it, so the library stays out of the site's first download, which `check:build` verifies ([finding 45](../../architecture/findings/45-the-data-tables-library-reaches-the-sites-first-download.md)). Lint allows these entries alone.
+- **Public surface:** consumers import from `@shared/design-system`, never from inside a component folder. The exceptions are two more entries for the components that carry a heavy library: `@shared/design-system/data` for the data components (`DataTable`, over TanStack Table; [finding 45](../../architecture/findings/45-the-data-tables-library-reaches-the-sites-first-download.md)) and `@shared/design-system/calendar` for `Calendar` and `DatePicker` (over react-day-picker and date-fns; [finding 169](../../architecture/findings/169-the-calendar-rides-in-the-sites-first-download.md)). Only the pages that draw them import these entries, so their libraries stay out of the site's first download, which `check:build` verifies. Lint allows these entries alone.
 - **Closure:** the layer imports nothing from outside itself (no features, pages, app, or other `shared/` modules).
 - **Class merging:** `cn` (`lib/cn.ts`) joins classes; when two set the same thing, the later wins. It is configured with the layer's text styles and shadows, which tailwind-merge would otherwise misread (`text-body` as a colour, so `cn('text-body', 'text-primary')` would drop it). Every component, copied ones included, merges through it; the layer exports it for pages and features too.
 - **Width:** `useMediaQuery` (`lib/useMediaQuery.ts`), which the sidebar and the data table read, is exported too, so a feature that draws a part once per width, never twice with duplicate ids, reads it as the layer does: the site's Directory draws its filters as a sidebar from 1024 px and a bottom sheet below (2026-10-21, #103).
@@ -377,7 +378,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Field | hand-built | Label + control + helper + error, wiring ids and `aria-describedby`; an end slot on the label row; shown disabled with its control |
 | Select / Combobox | shadcn | Area filter, a filter of several choices (multi-select) · Combobox is a Popover holding cmdk's search and list (shadcn's current `combobox` is built on Base UI, which the layer does not use): `single` closes on a choice, `multiple` stays open · its trigger is drawn like Select's and shows the caller's summary («الحالة: 2 محدّدة»); outside a Field that text names it; `empty` shows a placeholder muted, as on DatePicker's trigger · the search, list and empty text are props (cmdk's default list label is replaced); the search row shows its focus by its divider turning `ring`, not an outline · a chosen option is `aria-checked` with a check at its end, because cmdk keeps `aria-selected` for the highlighted one · a caller that finds its own options, such as a server's search, passes `search` (the text and its change): the list shows the options as given, unfiltered, and `loading` stands in for the empty text while they come. |
 | Checkbox, RadioGroup, Switch | shadcn | Switch: `aria-disabled` (waiting, kept in the focus order) looks disabled |
-| Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
+| Calendar / DatePicker | shadcn | Subscription start and end dates; report periods · one date or a range; a range starts afresh on each click once it is empty or whole, so its first click leaves `to` empty · `lang` sets the month and day names, from react-day-picker's locales (never date-fns directly): Gregorian with Western digits, the week from Saturday in Arabic and Sunday in English · arrow keys follow the direction, and the month buttons are `ChevronStartIcon` and `ChevronEndIcon` · no built-in words: the month buttons' names are props, a day is named by its date alone, and today and the chosen day are `aria-current` and `aria-selected` · 36px days, 44px on touch; chosen days on `primary`, the inside of a range on `accent` · DatePicker is a Popover with a calendar-icon trigger showing the caller's formatted text; formatting stays with the app ([localisation.md](../localisation.md)) |
 | ToggleGroup (filter chips) | shadcn | Filter chips, as in the Admin › Data reports phone filter sheet: `radius-pill`, 36px (the control height on touch), edged with `input`; when on, the `accent` pair, a `primary` edge and a check at the start · `multiple` (any number on) or `single` · arrow keys follow the direction · inside a Field, named by its label ([finding 7](../../architecture/findings/7-the-stress-tests-filter-chips-have-no-component.md)) |
 
 ### `display`
@@ -389,6 +390,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Avatar | shadcn | Initials fallback |
 | Separator | shadcn | |
 | StatCard | hand-built | Dashboard overview numbers |
+| FilterTag | hand-built | A filter in force: its label and a remove button named by a prop · the chips' `radius-pill` on the `secondary` pair · the button 32px, the control height on touch ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) |
 
 ### `data`
 
@@ -450,7 +452,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 ### My account (3)
 9. **Profile & settings** — name, password (a Google-only account can add one), language, theme
 10. **Favourites**
-11. **My reports** — submitted reports, their status and the resolution note («ردّ إدارة المساحة» or «ردّ فريق مساحة»)
+11. **My reports** — submitted reports, their status and the resolution note («ردّ إدارة المساحة» or «ردّ فريقنا»)
 
 ### Dashboard — owner and reception (13)
 
@@ -462,7 +464,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 15. **Customer details** (O+R) — subscriptions with their progress and statement, payments, balance or credit, attendance; receive a payment, renew (a warning when a balance is due), end a subscription early
 16. **New subscription** (O+R) — from a package or «مخصّص»; limits (date range, total days, days per week, hours per day, total hours); billing (fixed, per hour or per day); price
 17. **Payments** (O+R) — the owner sees every payment, filtered by date, staff member and method, and can void one with a reason; reception sees only its own payments today (shift handover)
-18. **Announcements** (O+R) — create with type and duration, including a closure notice; the owner can then extend all active subscriptions by the closure days
+18. **Announcements** (O+R) — create with type and duration, including a closure notice; the owner can then extend the subscriptions it covered, by the days typed, once
 19. **Finance & statistics** (O) — income today, this month (against last month) and all time; total debt; income by month, split into visits and subscriptions; visit income per day; debtors (a WhatsApp reminder link) and payers; collections per staff member; occupancy (peak hours, average stay, charts); CSV export
 20. **Space profile** (O) — bilingual fields, map location, hours, capacity, amenities, photos, contact; «المعلومات ما زالت صحيحة» per fact group
 21. **Prices & packages** (O) — the published prices (hour, day, week, month, student), which are the public packages, and private packages

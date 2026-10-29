@@ -5,9 +5,6 @@ import {
   ComboboxContent,
   ComboboxItem,
   ComboboxTrigger,
-  DatePicker,
-  DatePickerContent,
-  DatePickerTrigger,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -30,10 +27,15 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
-  Calendar,
   type BadgeProps,
-  type DateRange,
 } from '@shared/design-system';
+import {
+  Calendar,
+  DatePicker,
+  DatePickerContent,
+  DatePickerTrigger,
+  type DateRange,
+} from '@shared/design-system/calendar';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
 import { useState } from 'react';
 import { ShowcaseGroup, ShowcaseSection } from '../../ShowcaseSection';

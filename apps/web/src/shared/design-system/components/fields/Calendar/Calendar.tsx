@@ -7,7 +7,10 @@ import {
   type PreviousMonthButtonProps,
 } from 'react-day-picker';
 
-/** A chosen range, as a range-mode Calendar gives it: `to` is missing until the second click. */
+/**
+ * A chosen range, as a range-mode Calendar gives it: a click on no range or on a whole one starts a
+ * range of that day, `to` missing, and the next click ends it (the same day twice is one day).
+ */
 export type { DateRange } from 'react-day-picker';
 import { ar, enUS } from 'react-day-picker/locale';
 import { ChevronEndIcon, ChevronStartIcon } from '../../../icons';
@@ -100,10 +103,11 @@ function CalendarDayButton({ className, day, modifiers, ...props }: DayButtonPro
 }
 
 /**
- * A month of days to choose from: one date (`mode="single"`) or a range (`mode="range"`). The
- * calendar is Gregorian with Western digits in either language. Arrow keys move by day and follow
- * the reading direction, and the month buttons point along it: previous at the start, next at the
- * end.
+ * A month of days to choose from: one date (`mode="single"`) or a range (`mode="range"`). A range
+ * starts afresh on each click once it is empty or whole (day-picker's `resetOnSelect`, which a
+ * caller may still set), so a caller can apply it once `to` is set. The calendar is Gregorian with
+ * Western digits in either language. Arrow keys move by day and follow the reading direction, and
+ * the month buttons point along it: previous at the start, next at the end.
  */
 export function Calendar({
   lang,
@@ -124,6 +128,8 @@ export function Calendar({
       numerals="latn"
       dir={dir}
       showOutsideDays={showOutsideDays}
+      // day-picker would end a range on its first click, `to` the same day (finding 173).
+      {...(props.mode === 'range' && { resetOnSelect: true })}
       labels={{
         labelNav: () => '',
         labelPrevious: () => previousMonthLabel,

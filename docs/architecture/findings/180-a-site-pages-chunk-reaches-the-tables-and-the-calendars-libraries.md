@@ -1,0 +1,7 @@
+# 180. A site page's chunk reaches the table's and the calendar's libraries
+
+**Status:** Open · **Date:** 2026-10-28
+
+**Evidence:** the site's space page sets `data-reports`' report action and `announcements`' public pieces, and «بلاغاتي» sets `data-reports`' list of the user's reports, each through its feature's one entry, `index.ts`. Those entries also export the dashboard's screens of the same capabilities (`SpaceReportsList` and `AdminReportsList` over the layer's `DataTable`; `AnnouncementsList` with its sheet over `DatePicker` and `Calendar`), and the build keeps their chunks as static imports of the page's chunk. The production build's manifest (#129): the space page's chunk reaches the `data-table` chunk (37,286 bytes) and the `calendar` chunks (71,119 and 4,564 bytes); «بلاغاتي»'s reaches `data-table`. None of them is in the site's first download, which `check:build` guards (the site's pages load lazily): a visitor downloads them on opening a space's page or «بلاغاتي», though neither page draws a table or a calendar.
+
+**Resolves when:** a site page's chunk reaches neither library, proven by the manifest: for example, each of these capabilities' public parts served by an entry of their own, as the layer's heavy components are (findings [45](45-the-data-tables-library-reaches-the-sites-first-download.md) and [169](169-the-calendar-rides-in-the-sites-first-download.md)), with `check:build` extended to the site pages' chunks; or the owner accepts the cost.

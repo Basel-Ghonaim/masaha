@@ -52,6 +52,13 @@ describe('CompactAccountMenu', () => {
     expect(menu.getByRole('menuitem', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard');
   });
 
+  it('links none of the site’s account pages: the dashboard and sign-out only', async () => {
+    await userEvent.click(renderMenu({ ...USER, spaces: [{ spaceId: 7, role: 'OWNER' }] }));
+
+    const items = within(await screen.findByRole('menu')).getAllByRole('menuitem');
+    expect(items.map((item) => item.textContent)).toEqual(['Dashboard', 'Sign out']);
+  });
+
   it('leads the admin to the dashboard', async () => {
     await userEvent.click(renderMenu({ ...USER, role: 'ADMIN' }));
 

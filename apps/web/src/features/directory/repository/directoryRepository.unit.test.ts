@@ -84,6 +84,21 @@ describe('the directory repository', () => {
     expect(JSON.stringify(requests[0]?.params)).not.toContain('31.521');
   });
 
+  it('asks for the user’s favourites, newest saved first or nearest first, the point in Masaha-Near only', async () => {
+    const repository = createDirectoryRepository();
+    const favorites = [{ listed: true, savedAt: '2026-10-27T09:00:00.000Z', space: SPACE }];
+    const requests = serve({ status: 200, data: { success: true, data: favorites } });
+
+    await expect(repository.favorites({})).resolves.toEqual(favorites);
+    await repository.favorites({ near: { lat: 31.521, lng: 34.453 } });
+
+    expect(requests.map(({ url }) => url)).toEqual(['/me/favorites', '/me/favorites']);
+    expect(requests[0]?.params).toBeUndefined();
+    expect(requests[0]?.headers['Masaha-Near']).toBeUndefined();
+    expect(requests[1]?.params).toEqual({ sort: 'distance' });
+    expect(requests[1]?.headers['Masaha-Near']).toBe('31.521,34.453');
+  });
+
   it('asks for the map’s pins with the filters and the box in view', async () => {
     const repository = createDirectoryRepository();
     const pin: MapPin = {

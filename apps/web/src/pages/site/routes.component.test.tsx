@@ -44,7 +44,13 @@ function renderSiteAt(path: string) {
   const router = createMemoryRouter([{ HydrateFallback: () => null, children: routes }], {
     initialEntries: [path],
   });
-  render(<RouterProvider router={router} />);
+  // The shell reads the query client (a guest's held favourite, saved on return), as in the app.
+  const Wrapper = queryWrapper();
+  render(
+    <Wrapper>
+      <RouterProvider router={router} />
+    </Wrapper>,
+  );
 }
 
 /** An empty page of the list, as the server answers it. */

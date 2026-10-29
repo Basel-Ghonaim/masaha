@@ -1,6 +1,6 @@
 # 8. The stress test's applied-filter tag has no component
 
-**Status:** Open · **Date:** 2026-09-28
+**Status:** Resolved · **Date:** 2026-09-28
 
 **Evidence:** Under the filter row, the Admin › Data reports stress test (`5-data-reports-desktop.png`, and the phone screens of `0-overview.jpg`) shows the filters in force as a tag: «الحالة: جديد، قيد المراجعة ×». It is a grey pill with a remove button, beside a «مسح الفلاتر» link. Foundation §12 lists no removable tag. A Badge has no button, and a ToggleGroup chip toggles rather than removes. WI-8 builds the filter row without it: the showcase shows the search, the Combobox triggers and the DatePicker.
 
@@ -10,3 +10,5 @@
 - **The component:** the layer gets a removable filter tag, as a layer component with a §12 row.
 - **When:** it is built at the start of the data-reports feature slice, step 10 of the build sequence in [v1-mvp.md](../../plans/v1-mvp.md#sequence-inside-the-build).
 - **Until then:** the finding stays open, and nothing is built now.
+
+**Resolution (2026-10-28, #129):** `FilterTag`, used by the admin's data reports. A `display` component with a foundation §12 row: the caller's label and a ghost remove button with an `XIcon`, named by `removeLabel` (the layer has no words), a pill on the `secondary` pair; the button is 32px and the control height on touch. The admin's reports show the space and the field in force as tags at every width, beside «مسح الفلاتر» (DI-40).

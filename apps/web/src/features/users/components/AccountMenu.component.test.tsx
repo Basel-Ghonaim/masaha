@@ -66,6 +66,32 @@ describe('AccountMenu', () => {
     expect(items[0]).toHaveAttribute('href', '/dashboard');
   });
 
+  it('links the account’s pages it is given, before the dashboard', async () => {
+    render(
+      <MemoryRouter>
+        <AccountMenu
+          user={{ ...USER, spaces: [{ spaceId: 7, role: 'RECEPTION' }] }}
+          dashboardPath="/dashboard"
+          links={[
+            { key: 'favorites', to: '/me/favorites' },
+            { key: 'reports', to: '/me/reports' },
+          ]}
+        />
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: heard('Account menu: Sara Ahmad') }));
+
+    const items = within(await screen.findByRole('menu')).getAllByRole('menuitem');
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Favourites',
+      'My reports',
+      'Dashboard',
+      'Sign out',
+    ]);
+    expect(items[0]).toHaveAttribute('href', '/me/favorites');
+    expect(items[1]).toHaveAttribute('href', '/me/reports');
+  });
+
   it('disables sign-out, and keeps the menu open, while the server answers', async () => {
     const answer = deferred<FakeAnswer>();
     const menu = await openMenu(() => answer.promise);

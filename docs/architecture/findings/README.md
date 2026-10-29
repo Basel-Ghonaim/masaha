@@ -13,7 +13,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 
 ## Open
 
-- [8. The stress test's applied-filter tag has no component](8-the-stress-tests-applied-filter-tag-has-no-component.md)
 - [14. The owner's audit screen has no design](14-the-owners-audit-screen-has-no-design.md)
 - [17. Expired rate-limit counters and abandoned sessions are never swept](17-expired-rate-limit-counters-and-abandoned-sessions-are-never-swept.md)
 - [21. A token replayed within the grace window starts its own branch](21-a-token-replayed-within-the-grace-window-starts-its-own-branch.md)
@@ -60,7 +59,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [126. A whole phone finds the other country code one way only](126-a-whole-phone-finds-the-other-country-code-one-way-only.md)
 - [127. The dated check-in list filters on an expression with no index](127-the-dated-check-in-list-filters-on-an-expression-with-no-index.md)
 - [130. The dashboard's shells have no skip link](130-the-dashboards-shells-have-no-skip-link.md)
-- [131. The space page cannot show a closure's notice](131-the-space-page-cannot-show-a-closures-notice.md)
 - [132. A paged list shows no sign of the next page loading](132-a-paged-list-shows-no-sign-of-the-next-page-loading.md)
 - [133. The place filter has no cap](133-the-place-filter-has-no-cap.md)
 - [134. Each render of the map rebuilds every marker](134-each-render-of-the-map-rebuilds-every-marker.md)
@@ -77,11 +75,14 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [164. A written-off visit is listed nowhere](164-a-written-off-visit-is-listed-nowhere.md)
 - [165. The dashboard's navigation is not grouped by task](165-the-dashboards-navigation-is-not-grouped-by-task.md)
 - [166. The ledger's staff filter cannot name a space's other owners](166-the-ledgers-staff-filter-cannot-name-a-spaces-other-owners.md)
-- [169. The calendar rides in the site's first download](169-the-calendar-rides-in-the-sites-first-download.md)
+- [167. The admin's reports cannot be filtered by who handles them](167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md)
+- [168. A guest's intent does not survive a password recovery](168-a-guests-intent-does-not-survive-a-password-recovery.md)
 - [170. A request's renewal racing a rotation can be lost on the newest row](170-a-requests-renewal-racing-a-rotation-can-be-lost-on-the-newest-row.md)
 - [171. A published price changed between the desk's read and the subscribe is charged silently](171-a-published-price-changed-between-the-desks-read-and-the-subscribe-is-charged-silently.md)
 - [172. The write-off's reason is not focused first](172-the-write-offs-reason-is-not-focused-first.md)
-- [173. The layer's range calendar ends a range on its first click](173-the-layers-range-calendar-ends-a-range-on-its-first-click.md)
+- [180. A site page's chunk reaches the table's and the calendar's libraries](180-a-site-pages-chunk-reaches-the-tables-and-the-calendars-libraries.md)
+- [184. A report's «تعديل الحقل» may not scroll to its section](184-a-reports-edit-the-field-link-may-not-scroll-to-its-section.md)
+- [187. A favourite just removed cannot be saved again for an undo](187-a-favourite-just-removed-cannot-be-saved-again-for-an-undo.md)
 
 ## Accepted
 
@@ -98,6 +99,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [4. Showcase sample text can clash with the app's text in `check:build`](4-showcase-sample-text-can-clash-with-the-apps-text-in-checkbuild.md)
 - [6. Radix component tests failed once under load](6-radix-component-tests-failed-once-under-load.md)
 - [7. The stress test's filter chips have no component](7-the-stress-tests-filter-chips-have-no-component.md)
+- [8. The stress test's applied-filter tag has no component](8-the-stress-tests-applied-filter-tag-has-no-component.md)
 - [9. Every Vitest lane fails when the working directory's drive letter is lowercase](9-every-vitest-lane-fails-when-the-working-directorys-drive-letter-is-lowercase.md)
 - [10. The seeded amenity icon keys have no icons in the design system yet](10-the-seeded-amenity-icon-keys-have-no-icons-in-the-design-system-yet.md)
 - [11. Nested writes in an interactive transaction trigger a `pg` deprecation warning](11-nested-writes-in-an-interactive-transaction-trigger-a-pg-deprecation-warning.md)
@@ -148,4 +150,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [123. A delayed retry of a customer edit can revert another desk's edit](123-a-delayed-retry-of-a-customer-edit-can-revert-another-desks-edit.md)
 - [124. A statement's sums and its payments come from different snapshots](124-a-statements-sums-and-its-payments-come-from-different-snapshots.md)
 - [125. The allocation's order is not exposed to the client](125-the-allocations-order-is-not-exposed-to-the-client.md)
+- [131. The space page cannot show a closure's notice](131-the-space-page-cannot-show-a-closures-notice.md)
 - [151. A renewal sold before a closure's extension stays where it is](151-a-renewal-sold-before-a-closures-extension-stays-where-it-is.md)
+- [169. The calendar rides in the site's first download](169-the-calendar-rides-in-the-sites-first-download.md)
+- [173. The layer's range calendar ends a range on its first click](173-the-layers-range-calendar-ends-a-range-on-its-first-click.md)

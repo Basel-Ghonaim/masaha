@@ -1,10 +1,6 @@
 import {
   Badge,
   Button,
-  Calendar,
-  DatePicker,
-  DatePickerContent,
-  DatePickerTrigger,
   Field,
   Select,
   SelectContent,
@@ -21,8 +17,14 @@ import {
   ToggleGroup,
   ToggleGroupItem,
   useMediaQuery,
-  type DateRange,
 } from '@shared/design-system';
+import {
+  Calendar,
+  DatePicker,
+  DatePickerContent,
+  DatePickerTrigger,
+  type DateRange,
+} from '@shared/design-system/calendar';
 import { useLanguage } from '@shared/localisation';
 import { useState } from 'react';
 import type { LedgerView } from '../../hooks/ledger/useLedger';

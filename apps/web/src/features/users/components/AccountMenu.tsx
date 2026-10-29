@@ -6,23 +6,26 @@ import {
   DropdownMenuTrigger,
 } from '@shared/design-system';
 import type { SessionUser } from '@shared/session';
-import { useAccount } from '../hooks/useAccount';
+import { useAccount, type AccountMenuLink } from '../hooks/useAccount';
 import { AccountMenuContent } from './AccountMenuContent';
 
 /**
  * The signed-in user in a desktop header: the avatar and the first name, opening the account menu
- * (`AccountMenuContent`). `dashboardPath` is where its way into the dashboard leads.
+ * (`AccountMenuContent`). `dashboardPath` is where its way into the dashboard leads; `links`, the
+ * account's pages the shell offers.
  */
 export function AccountMenu({
   user,
   dashboardPath,
+  links,
   className,
 }: {
   user: SessionUser;
   dashboardPath: string;
+  links?: readonly AccountMenuLink[];
   className?: string;
 }) {
-  const account = useAccount(user);
+  const account = useAccount(user, links);
 
   return (
     <DropdownMenu>

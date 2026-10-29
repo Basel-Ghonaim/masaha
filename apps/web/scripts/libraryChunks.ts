@@ -18,4 +18,10 @@ export const LIBRARY_CHUNKS: readonly LibraryChunk[] = [
     name: 'leaflet',
     test: /[\\/]node_modules[\\/](?:leaflet|react-leaflet|@react-leaflet[\\/][^\\/]+)[\\/]/,
   },
+  // react-day-picker and date-fns, under the design system's Calendar (finding 169). @date-fns/tz
+  // stays out: Gaza's clock in @masaha/shared reads it on every page.
+  {
+    name: 'calendar',
+    test: /[\\/]node_modules[\\/](?:react-day-picker|date-fns)[\\/]/,
+  },
 ];

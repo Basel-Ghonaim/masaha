@@ -8,6 +8,7 @@ export {
 export { classifyRouteError, type RouteErrorKind } from './states/classifyRouteError';
 export { DocumentTitle } from './title/DocumentTitle';
 export { ForbiddenState } from './states/ForbiddenState';
+export { noteSitePage, onGuestLeaving } from './guest/guestLeaving';
 export { hasDashboard } from './landing/hasDashboard';
 export { landingPath } from './landing/landingPath';
 export { rememberSpace } from './landing/lastSpace';

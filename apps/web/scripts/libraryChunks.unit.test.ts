@@ -16,6 +16,10 @@ describe("the library chunks' patterns", () => {
     [String.raw`C:\repo\node_modules\leaflet\dist\leaflet-src.js`, 'leaflet'],
     ['/repo/node_modules/react-leaflet/lib/MapContainer.js', 'leaflet'],
     ['/repo/node_modules/@react-leaflet/core/lib/context.js', 'leaflet'],
+    [String.raw`C:\repo\node_modules\react-day-picker\dist\esm\DayPicker.js`, 'calendar'],
+    ['/repo/node_modules/react-day-picker/dist/esm/locale.js', 'calendar'],
+    // The calendar's date helpers: left out, they land in the shared chunk the site downloads first.
+    ['/repo/node_modules/date-fns/addDays.js', 'calendar'],
   ])('place %s in one library chunk', (id, chunk) => {
     expect(chunksOf(id)).toEqual([chunk]);
   });
@@ -25,6 +29,9 @@ describe("the library chunks' patterns", () => {
     '/repo/node_modules/react/index.js',
     '/repo/apps/web/src/shared/design-system/components/data/DataTable/DataTable.tsx',
     '/repo/apps/web/src/shared/map/components/LeafletPointPicker.tsx',
+    '/repo/apps/web/src/shared/design-system/components/fields/Calendar/Calendar.tsx',
+    // Gaza's clock in @masaha/shared reads it too, on every page of the site.
+    '/repo/node_modules/@date-fns/tz/date/index.js',
   ])('leave %s to the other chunks', (id) => {
     expect(chunksOf(id)).toEqual([]);
   });

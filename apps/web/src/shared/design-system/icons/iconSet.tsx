@@ -22,6 +22,7 @@ import {
   EyeOff,
   Flag,
   GraduationCap,
+  Heart,
   IdCard,
   Info,
   Languages,
@@ -246,6 +247,10 @@ export function MegaphoneIcon(props: IconProps) {
 
 export function FlagIcon(props: IconProps) {
   return <Icon glyph={Flag} {...props} />;
+}
+
+export function HeartIcon(props: IconProps) {
+  return <Icon glyph={Heart} {...props} />;
 }
 
 export function IdCardIcon(props: IconProps) {

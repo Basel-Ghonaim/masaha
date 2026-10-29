@@ -147,6 +147,10 @@ export function useSpacePage(slug: string): SpacePageView {
             verified: space.isVerified ? copy.directory.card.verified : null,
             noPhotos: space.photos.length === 0 ? words.noPhotos : null,
           },
+    space:
+      space === undefined || name === null
+        ? null
+        : { id: space.id, slug: space.slug, name, verified: space.isVerified },
     unverified:
       space === undefined || space.isVerified
         ? null
@@ -167,6 +171,7 @@ export function useSpacePage(slug: string): SpacePageView {
       live,
     },
     photos: space?.photos ?? [],
+    announcements: space?.announcements ?? [],
     prices: {
       title: words.sections.prices,
       meta: metaOf('prices', ...(prices && prices.length > 0 ? [words.prices.displayOnly] : [])),

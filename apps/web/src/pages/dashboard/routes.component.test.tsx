@@ -10,6 +10,8 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { announcement, announcementsPage, announcementsSummary } from '../../test/announcement';
+import { adminReport, reportsPage, spaceReport } from '../../test/dataReport';
 import { customerFile, customerRow, customersPage } from '../../test/deskCustomer';
 import { fakeIntersectionObserver } from '../../test/fakeIntersectionObserver';
 import { aSession } from '../../test/fakeSession';
@@ -849,6 +851,76 @@ describe("the space's payments", () => {
   });
 });
 
+describe("the space's data reports", () => {
+  // The page loads lazily, as the payments' do: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/reports/DataReportsPage');
+  });
+
+  it('shows the owner «Data reports» under its title, the reporter a visitor', async () => {
+    asOwner();
+    const requests = fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/data-reports') return reportsPage([spaceReport()]);
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+    renderDashboard('/dashboard/spaces/7/reports');
+
+    await topBarTitle('Data reports');
+    const table = await screen.findByRole('table', { name: 'Data reports' });
+    expect(await within(table).findByText('The space opens at 9, not 8.')).toBeVisible();
+    expect(requests.find(({ url }) => url === '/manage/spaces/7/data-reports')?.params).toEqual({
+      page: 1,
+      limit: 20,
+    });
+  });
+
+  it('refuses reception the space’s data reports with the 403', async () => {
+    asReception();
+    renderDashboard('/dashboard/spaces/7/reports');
+
+    expect(await stateInMain('You don’t have access to this page')).toBeInTheDocument();
+  });
+});
+
+describe("the admin's data reports", () => {
+  // The page loads lazily, as the space's do: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./admin/DataReportsPage');
+  });
+
+  it('shows the admin «Data reports» under its title, every space’s, the reporter named', async () => {
+    signIn({ role: 'ADMIN' });
+    const requests = fakeTransport((request) =>
+      request.url === '/admin/data-reports' ? reportsPage([adminReport()]) : ok([]),
+    );
+    renderDashboard('/dashboard/admin/reports');
+
+    await topBarTitle('Data reports');
+    const table = await screen.findByRole('table', { name: 'Data reports' });
+    expect(await within(table).findByText('Huda Saleh')).toBeVisible();
+    expect(within(table).getByRole('link', { name: 'Focus Hub' })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/spaces/7',
+    );
+    expect(requests.find(({ url }) => url === '/admin/data-reports')?.params).toEqual({
+      page: 1,
+      limit: 20,
+    });
+  });
+
+  it('refuses an owner the admin’s data reports with the 403', async () => {
+    asOwner();
+    renderDashboard('/dashboard/admin/reports');
+
+    // The admin's branch refuses before its shell, so the state stands without a main landmark.
+    expect(
+      await screen.findByRole('heading', { name: 'You don’t have access to this page' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Data reports' })).not.toBeInTheDocument();
+  });
+});
+
 describe("the space's customers", () => {
   // The page loads lazily, as the profile does: its first transform is done before the test.
   beforeAll(async () => {
@@ -1249,5 +1321,48 @@ describe("the admin's users page", () => {
     expect(await within(table).findByText('Nour')).toBeInTheDocument();
     expect(within(table).getByText('Focus Hub')).toBeInTheDocument();
     expect(within(table).getByRole('button', { name: heard('Actions: Nour') })).toBeInTheDocument();
+  });
+});
+
+describe("the space's announcements", () => {
+  // The page loads lazily, as the payments' do: its first transform is done before the test.
+  beforeAll(async () => {
+    await import('./space/announcements/AnnouncementsPage');
+  });
+
+  /** The announcements' reads, answered as the server would, with one running announcement. */
+  const serveAnnouncements = () =>
+    fakeTransport((request) => {
+      if (request.url === '/manage/spaces/7/announcements/summary')
+        return ok(announcementsSummary());
+      if (request.url === '/manage/spaces/7/announcements')
+        return announcementsPage([announcement()]);
+      if (request.url === '/manage/spaces') return ok([FOCUS]);
+      return ok([]);
+    });
+
+  it('shows the owner the announcements under «Announcements», by state', async () => {
+    asOwner();
+    serveAnnouncements();
+    renderDashboard('/dashboard/spaces/7/announcements');
+
+    await topBarTitle('Announcements');
+    expect(await screen.findByRole('tablist', { name: 'Announcement status' })).toBeInTheDocument();
+    const list = await screen.findByRole('region', { name: 'Announcements' });
+    expect(
+      await within(list).findByText('A design workshop on Thursday evening'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows reception the same announcements under «Announcements»', async () => {
+    asReception();
+    serveAnnouncements();
+    renderDashboard('/dashboard/spaces/7/announcements');
+
+    await topBarTitle('Announcements');
+    const list = await screen.findByRole('region', { name: 'Announcements' });
+    expect(
+      await within(list).findByText('A design workshop on Thursday evening'),
+    ).toBeInTheDocument();
   });
 });

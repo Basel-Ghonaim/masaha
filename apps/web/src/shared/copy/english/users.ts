@@ -9,6 +9,10 @@ export const USERS = {
   section: 'Account',
   /** The way into the dashboard, for the admin and anyone who runs a space. */
   dashboard: 'Dashboard',
+  /** The site's account menu: its links to the account's pages (P4). */
+  account: {
+    links: { favorites: 'Favourites', reports: 'My reports' },
+  },
   signOut: 'Sign out',
   signOutFailed: 'Couldn’t sign out',
   /** The change of a temporary password, before any other page. */

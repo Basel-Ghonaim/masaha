@@ -27,6 +27,10 @@ export const SITE_PATHS = {
   resetPassword: RESET_PASSWORD_PATH,
   /** Where shared/routing sends a user with a temporary password to change. */
   changePassword: CHANGE_PASSWORD_PATH,
+  /** The signed-in user's own reports (screen 11), under the account's layout. */
+  myReports: '/me/reports',
+  /** The signed-in user's favourites (screen 10), under the account's layout. */
+  myFavorites: '/me/favorites',
 } as const;
 
 type SiteLink = {
@@ -41,4 +45,16 @@ export const SITE_LINKS: readonly SiteLink[] = [
   { name: 'home', to: SITE_PATHS.home, end: true },
   { name: 'spaces', to: SITE_PATHS.spaces },
   { name: 'about', to: SITE_PATHS.about },
+];
+
+/** An account page's link: its key names it in the account's navigation and the account menu. */
+type AccountLink = {
+  key: keyof Catalogue['site']['account'] & keyof Catalogue['users']['account']['links'];
+  to: string;
+};
+
+/** The account's pages, in order: the account's navigation and the site's account menu list them. */
+export const ACCOUNT_LINKS: readonly AccountLink[] = [
+  { key: 'favorites', to: SITE_PATHS.myFavorites },
+  { key: 'reports', to: SITE_PATHS.myReports },
 ];

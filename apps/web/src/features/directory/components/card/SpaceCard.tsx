@@ -16,16 +16,19 @@ import { SpaceCover } from './SpaceCover';
  * A space in the directory: the whole card one link to its page, named by the space's name and
  * described by each detail in turn, so a screen reader that reads a link by its name reads them
  * after it. Its cover or mark, its name, its area, its live status, whether it is verified, today's
- * hours, and how far it is while the list is ordered by distance. No price.
+ * hours, and how far it is while the list is ordered by distance. No price. An action the page sets
+ * (the heart) stands over the cover's corner, beside the link and never inside it.
  */
 export function SpaceCard({
   card,
   href,
   areaName,
+  action,
 }: {
   card: SpaceCardView;
   href: string;
   areaName: ReactNode;
+  action?: ReactNode;
 }) {
   const nameId = useId();
   const ids = useId();
@@ -42,7 +45,7 @@ export function SpaceCard({
     ...(card.distance === null ? [] : [distanceId]),
   ];
 
-  return (
+  const link = (
     <Link
       to={href}
       aria-labelledby={nameId}
@@ -84,5 +87,16 @@ export function SpaceCard({
         </CardContent>
       </Card>
     </Link>
+  );
+
+  return action === undefined ? (
+    link
+  ) : (
+    <div className="relative h-full">
+      {link}
+      <div data-card-action className="absolute end-3 top-3">
+        {action}
+      </div>
+    </div>
   );
 }

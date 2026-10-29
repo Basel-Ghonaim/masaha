@@ -8,6 +8,10 @@ import type { WeekRow } from '../services/weekRows';
 import type { ListFailureView } from './DirectoryListView';
 import type { PriceGroupView } from './PriceGroupView';
 import type { PhotoUrls } from '@masaha/shared/spaces';
+import type { PublicAnnouncement } from '@masaha/shared/directory';
+
+/** A space, as a page's slot is handed it: its id and slug, its name as shown, and whether it is verified. */
+export type SlotSpace = { id: number; slug: string; name: SpaceNameView; verified: boolean };
 
 /** A section's meta under its heading: its date, what else it says, and its stale badge. */
 export type SectionMeta = { lines: string[]; stale: string | null };
@@ -25,6 +29,8 @@ export type SpacePageView = {
     verified: string | null;
     noPhotos: string | null;
   } | null;
+  /** The space as the page's slots name it: what another capability's action is set up with. */
+  space: SlotSpace | null;
   /** An unverified space's notice, and its dialog with the platform's contact. */
   unverified: {
     text: string | null;
@@ -42,6 +48,8 @@ export type SpacePageView = {
       | { kind: 'line'; line: string };
   };
   photos: PhotoUrls[];
+  /** The space's running and upcoming announcements, as the API answers them; the page's slots draw them. */
+  announcements: PublicAnnouncement[];
   prices: {
     title: string;
     meta: SectionMeta;

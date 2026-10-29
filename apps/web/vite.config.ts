@@ -80,6 +80,14 @@ export default defineConfig(({ mode }) => ({
           // load, the overlay tests slowed past their timeout (finding 6). Half the cores keeps them
           // well inside it, at the same timeouts.
           maxWorkers: '50%',
+          // The calendar's library, pre-bundled once: read module by module (date-fns's hundreds), its
+          // first import cost a test file about 3 s, so a page drawing the calendar missed its waits
+          // when loaded cold (finding 87's family). The build bundles it as before.
+          deps: {
+            optimizer: {
+              client: { enabled: true, include: ['react-day-picker', 'react-day-picker/locale'] },
+            },
+          },
         },
       },
     ],

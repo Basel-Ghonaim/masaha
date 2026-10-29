@@ -16,12 +16,12 @@ import { DASHBOARD_PATHS } from '@shared/routing';
 import { useSession } from '@shared/session';
 import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
-import { SITE_LINKS, SITE_PATHS } from '../navigation';
+import { ACCOUNT_LINKS, SITE_LINKS, SITE_PATHS } from '../navigation';
 import { SiteLanguageToggle } from './SiteLanguageToggle';
 
 /**
  * The phone's menu, in a sheet from the start side: the header's links, sign-in or the account once
- * signed in, and the language.
+ * signed in (with the account's pages), and the language.
  */
 export function SiteMenu() {
   const copy = useCopy();
@@ -72,7 +72,13 @@ export function SiteMenu() {
               </Button>
             )}
           </nav>
-          {user && <AccountMenuSection user={user} dashboardPath={DASHBOARD_PATHS.home} />}
+          {user && (
+            <AccountMenuSection
+              user={user}
+              dashboardPath={DASHBOARD_PATHS.home}
+              links={ACCOUNT_LINKS}
+            />
+          )}
         </SheetBody>
         <SheetFooter>
           <SiteLanguageToggle className="self-start" />

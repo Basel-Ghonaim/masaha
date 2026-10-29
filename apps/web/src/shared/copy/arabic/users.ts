@@ -4,6 +4,9 @@ export const USERS = {
   menu: ({ name }: { name: string }) => `قائمة الحساب: ${name}`,
   section: 'الحساب',
   dashboard: 'لوحة التحكم',
+  account: {
+    links: { favorites: 'المفضّلة', reports: 'بلاغاتي' },
+  },
   signOut: 'تسجيل الخروج',
   signOutFailed: 'تعذّر تسجيل الخروج',
   passwordChange: {
