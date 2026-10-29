@@ -1,11 +1,11 @@
 import { useMemo, useRef, type RefObject } from 'react';
 
 /**
- * Each row's menu button, by its person, for the dialogs the list holds: a row is drawn again, or
- * swapped between a card and a table row, while its dialog stays open, so the focus returns to the
- * button the person has when the dialog closes, never to one that is gone.
+ * Each row's menu button, by its record's id, for the dialogs a list or its page holds: a row is
+ * drawn again, or swapped between a card and a table row, while its dialog stays open, so the focus
+ * returns to the button the row has when the dialog closes, never to one that is gone.
  */
-export function useMenuTriggers() {
+export function useRowTriggers() {
   const triggers = useRef(new Map<number, HTMLButtonElement>());
   return useMemo(
     () => ({

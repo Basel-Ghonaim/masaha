@@ -1,9 +1,9 @@
 import { Badge, Button, EmptyState } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
+import { useRowTriggers } from '@shared/lists';
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAddStaffForm } from '../hooks/add/useAddStaffForm';
 import { useStaffList } from '../hooks/list/useStaffList';
-import { useMenuTriggers } from '../hooks/menu/useMenuTriggers';
 import { useShownPassword } from '../hooks/password/useShownPassword';
 import type { ShownPassword } from '../types/ShownPassword';
 import type { StaffDialog } from '../types/StaffDialog';
@@ -71,7 +71,7 @@ export function StaffList({
   const open = () => {
     add.setOpen(true);
   };
-  const triggers = useMenuTriggers();
+  const triggers = useRowTriggers();
   const [dialog, setDialog] = useState<StaffDialog | null>(null);
   const close = useCallback(() => {
     setDialog(null);
