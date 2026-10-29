@@ -106,7 +106,6 @@ const SPACE_EXPECTATIONS: Record<SpaceAction, SpaceCells> = {
 const UNSCOPED_EXPECTATIONS: Record<UnscopedAction, 'adminOnly' | 'everyone'> = {
   'platform.spaces.manage': 'adminOnly',
   'platform.managers.manage': 'adminOnly',
-  'platform.stats.read': 'adminOnly',
   'platform.users.manage': 'adminOnly',
   'platform.dataReports.read': 'adminOnly',
   'platform.lookups.manage': 'adminOnly',

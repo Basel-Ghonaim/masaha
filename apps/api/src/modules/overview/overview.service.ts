@@ -1,9 +1,10 @@
-import type { OwnerOverview } from '@masaha/shared/overview';
+import type { AdminOverview, OwnerOverview } from '@masaha/shared/overview';
 
 import type { LoadedSpace } from '../../shared/auth/index.ts';
+import { adminOverview, type AdminOverviewSources } from './adminOverview.ts';
 import { ownerOverview, type OwnerOverviewSources } from './ownerOverview.ts';
 
-interface Dependencies extends OwnerOverviewSources {
+interface Dependencies extends OwnerOverviewSources, AdminOverviewSources {
   /** The one clock (conventions §11): each overview is read at one instant. */
   now: () => Date;
 }
@@ -17,6 +18,11 @@ export function createOverviewService({ now, ...sources }: Dependencies) {
     /** The owner's overview of the space, now (`ownerOverview.ts`). */
     owner(space: LoadedSpace): Promise<OwnerOverview> {
       return ownerOverview(sources, space, now());
+    },
+
+    /** The admin's overview of the platform, now (`adminOverview.ts`). */
+    admin(): Promise<AdminOverview> {
+      return adminOverview(sources, now());
     },
   };
 }

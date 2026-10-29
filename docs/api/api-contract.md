@@ -1053,11 +1053,37 @@ OwnerOverview = {
   },
   at: string                                  // the instant read
 }
+
+AdminOverview = {
+  spaces: {                                   // none deleted
+    verified: number,                         // = GET /admin/spaces?status=verified's total
+    unverified: number,                       // = ?status=unverified's
+    hidden: number,                           // = ?status=hidden's
+    unverifiedNoOwner: number,                // «بلا مالك»: an unverified space has no active owner, so = unverified
+    staleOrMissing: number                    // = ?stale=true's
+  },
+  reports: {                                  // the open reports of the live spaces: = GET /admin/data-reports?status=OPEN's total
+    open: number,
+    awaitingAdmin: number,                    // an unverified space's: the admin decides them
+    awaitingOwners: number                    // a verified space's
+  },
+  newUsers: number,                           // the accounts created since the Gaza midnight 29 days before today
+  completeness: {                             // «اكتمال البيانات»: = ?status=editable&stale=true
+    total: number,
+    first: { id: number, nameEn: string, nameAr: string | null, hidden: boolean,
+             missing: FactGroup[], stale: { group: FactGroup, days: number }[] }[]   // ≤ 5, by English name, then id
+  },
+  at: string
+}
 ```
 
 #### `GET /manage/spaces/:spaceId/overview` · 🏢
 - **200:** `OwnerOverview`.
 - **Errors:** `forbidden` (403) for reception, which has no overview; `not_found` (404) for anyone who is not the space's staff, the admin included (the boundary).
+
+#### `GET /admin/overview` · 🛡
+- **200:** `AdminOverview`: the platform's figures only, never a space's customers, visits, subscriptions, payments, capacity or presence ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). Replaces the planned `GET /admin/stats` (the owner's OD4).
+- **Errors:** `unauthorized` (401), `forbidden` (403), and `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`, by `/admin`'s guard.
 
 ### Internal
 

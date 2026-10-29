@@ -88,6 +88,7 @@ import {
   createOccupancyService,
 } from './modules/occupancy/index.ts';
 import {
+  createOverviewAdminRouter,
   createOverviewController,
   createOverviewManageRouter,
   createOverviewService,
@@ -513,6 +514,8 @@ export function createApi({
     closures,
     announcements,
     occupancy,
+    adminSpaces,
+    users,
     now: clock,
   });
   const adminUsers = createAdminUsersService({ users, spaces });
@@ -661,6 +664,7 @@ export function createApi({
   admin.use(createUsersAdminRouter(usersController));
   admin.use('/data-reports', createDataReportsAdminRouter(dataReportsController));
   admin.use('/audit-log', createAuditAdminRouter(auditController));
+  admin.use('/overview', createOverviewAdminRouter(overviewController));
   admin.use('/settings', createPlatformSettingsAdminRouter(platformSettingsController));
   admin.use(
     createSpacesAdminRouter({

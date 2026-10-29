@@ -100,7 +100,6 @@ const PERMISSIONS = {
   // The platform. Hiding, soft-deleting and linking apply to every space, verified or not.
   'platform.spaces.manage': 'admin',
   'platform.managers.manage': 'admin',
-  'platform.stats.read': 'admin',
   'platform.users.manage': 'admin',
   'platform.dataReports.read': 'admin',
   'platform.lookups.manage': 'admin',

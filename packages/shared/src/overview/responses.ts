@@ -50,3 +50,35 @@ export interface OwnerOverview {
   /** The instant read, ISO 8601, for «آخر تحديث». */
   at: string;
 }
+
+/** The admin's overview of the platform (screen 25): a work queue, read at `at`. */
+export interface AdminOverview {
+  /** The spaces by status, each the admin's spaces list's total by that filter; none deleted. */
+  spaces: {
+    verified: number;
+    /** Unverified and shown: `status=unverified`. */
+    unverified: number;
+    hidden: number;
+    /** «بلا مالك»: an unverified space is one with no active owner, so the same as `unverified`. */
+    unverifiedNoOwner: number;
+    /** With a fact group stale or missing: `stale=true`. */
+    staleOrMissing: number;
+  };
+  /** The open data reports of the live spaces: in all, the admin's to decide, the owners'. */
+  reports: { open: number; awaitingAdmin: number; awaitingOwners: number };
+  /** The accounts created in the last 30 days on Gaza's calendar. */
+  newUsers: number;
+  /** «اكتمال البيانات»: the unverified spaces, hidden ones included, stale or missing. */
+  completeness: {
+    total: number;
+    /** The first five by English name. */
+    first: ({
+      id: number;
+      nameEn: string;
+      nameAr: string | null;
+      hidden: boolean;
+    } & GroupsFreshness)[];
+  };
+  /** The instant read, ISO 8601. */
+  at: string;
+}

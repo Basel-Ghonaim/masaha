@@ -1,4 +1,4 @@
-import type { OwnerOverview } from '@masaha/shared/overview';
+import type { AdminOverview, OwnerOverview } from '@masaha/shared/overview';
 import type { Request, Response } from 'express';
 
 import { spaceOf } from '../../shared/auth/index.ts';
@@ -10,6 +10,11 @@ export function createOverviewController(service: OverviewService) {
     /** 200 with the owner's overview of the route's space. */
     owner: async (req: Request, res: Response) => {
       sendSuccess(res, (await service.owner(spaceOf(req))) satisfies OwnerOverview);
+    },
+
+    /** 200 with the admin's overview of the platform. */
+    admin: async (_req: Request, res: Response) => {
+      sendSuccess(res, (await service.admin()) satisfies AdminOverview);
     },
   };
 }
