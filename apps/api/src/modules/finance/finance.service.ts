@@ -5,6 +5,7 @@ import type {
   DebtsQuery,
   FinanceMonthQuery,
   IncomeReport,
+  OccupancyReport,
   Payer,
   PayersQuery,
 } from '@masaha/shared/finance';
@@ -20,10 +21,14 @@ import type { UsersService } from '../users/index.ts';
 import type { VisitsService } from '../visits/index.ts';
 import { toBalanceRow, toCollections } from './finance.mapper.ts';
 import { createFinanceRepository } from './finance.repository.ts';
+import { averageDailyAttendance, averagePerHour, peakHour } from './occupancyGrid.ts';
 import {
   currentMonth,
   dayWindow,
   daysEnding,
+  daysOfMonth,
+  fourWeeksBefore,
+  hourSlots,
   monthError,
   monthsEnding,
   monthWindow,
@@ -215,6 +220,41 @@ export function createFinanceService({
           };
         }),
         total,
+      };
+    },
+
+    /**
+     * The occupancy statistics (data model › Occupancy statistics), from closed stays: the month's
+     * average stay, peak hour and average daily attendance, over its days up to today; visits and
+     * members per day over the 14 days ending today; the average present per weekday and hour over
+     * the 28 days before today. The reads in parallel, with no snapshot: each figure stands alone.
+     */
+    async occupancy(spaceId: number, query: FinanceMonthQuery): Promise<OccupancyReport> {
+      const at = now();
+      const month = monthAsked(query.month, at);
+      const fortnight = daysEnding(gazaClockOf(at).date, 14);
+      const monthDays = daysOfMonth(month, at);
+      const weekSlots = hourSlots(fourWeeksBefore(at));
+      const monthSlots = hourSlots(monthDays);
+      const [byDay, monthByDay, weekPresence, monthPresence, averageStayMinutes] =
+        await Promise.all([
+          repository.perDay(spaceId, fortnight.map(dayWindow)),
+          repository.perDay(spaceId, monthDays.map(dayWindow)),
+          repository.presenceBySlot(spaceId, weekSlots),
+          repository.presenceBySlot(spaceId, monthSlots),
+          repository.stayMinutes(spaceId, monthWindow(month)),
+        ]);
+      return {
+        month,
+        averageStayMinutes,
+        peakHour: peakHour(monthSlots, monthPresence),
+        averageDailyAttendance: averageDailyAttendance(monthByDay),
+        byDay: fortnight.map((date, i) => ({
+          date,
+          visits: byDay[i]?.visits ?? 0,
+          members: byDay[i]?.members ?? 0,
+        })),
+        byHour: averagePerHour(weekSlots, weekPresence),
       };
     },
   };

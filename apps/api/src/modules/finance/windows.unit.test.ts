@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   dayWindow,
   daysEnding,
+  daysOfMonth,
   fourWeeksBefore,
   hourSlots,
   monthError,
@@ -63,6 +64,17 @@ describe("finance's windows", () => {
     expect(thirty).toHaveLength(30);
     expect([thirty[0], thirty[29]]).toEqual(['2026-09-30', '2026-10-29']);
     expect(daysEnding('2026-10-29', 14)[0]).toBe('2026-10-16');
+  });
+
+  it("a month's days, the current one's up to today", () => {
+    expect(daysOfMonth('2026-10', NOW)).toEqual(daysEnding('2026-10-29', 29));
+    const september = daysOfMonth('2026-09', NOW);
+    expect([september.length, september[0], september[29]]).toEqual([
+      30,
+      '2026-09-01',
+      '2026-09-30',
+    ]);
+    expect(daysOfMonth('2028-02', new Date('2028-03-05T10:00:00+02:00'))).toHaveLength(29);
   });
 
   it('the 28 days before today, today left out', () => {

@@ -52,6 +52,16 @@ export function daysEnding(date: string, count: number): string[] {
   return Array.from({ length: count }, (_, i) => addDays(date, i - count + 1));
 }
 
+/** A month's Gaza days, oldest first: the current month's up to today. */
+export function daysOfMonth(month: string, now: Date): string[] {
+  const today = gazaClockOf(now).date;
+  const days: string[] = [];
+  for (let day = `${month}-01`; monthOf(day) === month && day <= today; day = addDays(day, 1)) {
+    days.push(day);
+  }
+  return days;
+}
+
 /** The 28 Gaza days before today, oldest first, today left out: each weekday exactly 4 times. */
 export function fourWeeksBefore(now: Date): string[] {
   return daysEnding(addDays(gazaClockOf(now).date, -1), 28);

@@ -71,3 +71,19 @@ export interface Payer {
   paidAgorot: number;
   lastPaidAt: string;
 }
+
+/**
+ * A space's occupancy statistics, from closed stays only (visits and subscription check-ins, the
+ * auto check-out's included): the month's average stay in whole minutes, its peak hour (0–23) and
+ * its average daily attendance (one decimal), each `null` without stays; visits and members per
+ * Gaza day over the 14 days ending today (a member once a day); and the average present per Gaza
+ * weekday (0 = Sunday) and hour over the 28 days before today (one decimal).
+ */
+export interface OccupancyReport {
+  month: string;
+  averageStayMinutes: { all: number | null; members: number | null; visits: number | null };
+  peakHour: number | null;
+  averageDailyAttendance: number | null;
+  byDay: { date: string; visits: number; members: number }[];
+  byHour: { weekday: number; hours: number[] }[];
+}

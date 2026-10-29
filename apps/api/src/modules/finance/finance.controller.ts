@@ -4,6 +4,7 @@ import type {
   DebtsQuery,
   FinanceMonthQuery,
   IncomeReport,
+  OccupancyReport,
   Payer,
   PayersQuery,
 } from '@masaha/shared/finance';
@@ -34,6 +35,13 @@ export function createFinanceController(service: FinanceService) {
       const query = req.query as unknown as PayersQuery;
       const { rows, total } = await service.payers(spaceOf(req).id, query);
       sendSuccess(res, rows satisfies Payer[], { meta: buildPaginationMeta(query, total) });
+    },
+
+    /** 200 with the month's `OccupancyReport`. */
+    occupancy: async (req: Request, res: Response) => {
+      const query = req.query as unknown as FinanceMonthQuery;
+      const report = await service.occupancy(spaceOf(req).id, query);
+      sendSuccess(res, report satisfies OccupancyReport);
     },
   };
 }

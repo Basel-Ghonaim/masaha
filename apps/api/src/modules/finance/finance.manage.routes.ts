@@ -30,5 +30,11 @@ export function createFinanceManageRouter(controller: FinanceController): Router
     validate(payersQuerySchema, 'query'),
     controller.payers,
   );
+  router.get(
+    '/occupancy',
+    requireCan('finance.read'),
+    validate(financeMonthQuery, 'query'),
+    controller.occupancy,
+  );
   return router;
 }

@@ -724,6 +724,7 @@ The owner's finance (`finance`, [finance.md](../features/finance.md)): read mode
 - **The month** (`financeMonthQuery`, `@masaha/shared/finance`): `month`, `YYYY-MM`, a Gaza calendar month (`invalid_format` otherwise), the current one when absent; the current Gaza month and the 23 before it (`FINANCE_MONTHS_BACK`), `out_of_range` on `month` otherwise, never a month ahead. There is no free range of dates (the owner's decision 3).
 - **Income is cash collected:** the payments not voided, each counted on the Gaza day it was received, a window running from a Gaza midnight to the next, its end left out. A written-off visit's payments count as received; what it forgave counts nowhere, and a debt is never income (the owner's decision 2).
 - **Who owes** is the ledger's one balance rule ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Customer debt*), as the customers list's: a written-off visit, a voided payment and an unpriced visit owe nothing; credit on one subscription never offsets another item's debt, so one customer may both owe and be in credit. **An archived customer's debt is kept,** marked `archived` (it is still owed). The uncollected visits are counted beside them (`uncollected`), the desk's list ([Front desk (managed)](#front-desk-managed)): a walk-in's uncollected visit is no customer's debt, but an auto-closed visit left to a customer stays on that list, so its rest is also in that customer's debt. The two figures may hold the same agorot and are never added ([finding 193](../architecture/findings/193-a-visit-left-to-a-customer-is-both-a-debt-and-uncollected.md)).
+- **Occupancy statistics** come from closed stays only — the visits and the subscription check-ins, those closed by the auto check-out included, open ones left out (the owner's decision 7) — each counted on the Gaza day of its check-in ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Occupancy statistics*).
 
 ```ts
 IncomeSplit = { subscriptionsAgorot: number, visitsAgorot: number, totalAgorot: number }
@@ -756,6 +757,14 @@ DebtsMeta = §4's meta & {
   reminderTemplate: string | null                       // the space's; null: the catalogue's default
 }
 Payer = { customer: { id, name }, paidAgorot: number, lastPaidAt: string }  // in the month
+OccupancyReport = {
+  month: string,
+  averageStayMinutes: { all: number | null, members: number | null, visits: number | null },   // whole minutes; null: no stay
+  peakHour: number | null,                              // 0–23, the month's
+  averageDailyAttendance: number | null,                // one decimal
+  byDay: { date: string, visits: number, members: number }[],   // 14 Gaza days, oldest first, ending today
+  byHour: { weekday: number, hours: number[] }[]        // 7 (0 = Sunday … 6), each 24 averages, one decimal
+}
 ```
 
 #### `GET /manage/spaces/:spaceId/finance/income` · 🏢
@@ -772,6 +781,11 @@ Payer = { customer: { id, name }, paidAgorot: number, lastPaidAt: string }  // i
 - **Query** (`payersQuerySchema`): `month`; `page`, `limit` (§4).
 - **200:** a page of `Payer`: each customer whose items were paid in the month — the payments not voided, a visit's customer or a subscription's; a walk-in's payment names no one and is left out — with what they paid in it and when they last paid, the latest first, then by customer id; an archived customer included; `meta` the pagination. Read apart, as every list.
 - **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on the query; `not_found` (404).
+
+#### `GET /manage/spaces/:spaceId/finance/occupancy` · 🏢
+- **Query:** `month`.
+- **200:** `OccupancyReport`: the month's figures over its days up to today — the average stay (all, members, visits), the peak hour (the hour of the day with the most presence, ties the earliest) and the average daily attendance (visits and members, a member once a day, over the days with any); visits and members per day over the 14 days ending today; the average present per Gaza weekday and hour over the 28 days before today (the stays overlapping each hour, summed, ÷ 4), today left out. The 14 and the 28 days end with today whatever the month asked. Each figure stands alone: read in parallel, with no snapshot.
+- **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on `month`; `not_found` (404).
 
 ### Announcements (managed)
 
