@@ -94,6 +94,7 @@ export {
   type InputProps,
 } from './components/fields/Input';
 export { LanguageToggle, type LanguageToggleProps } from './components/actions/LanguageToggle';
+export { Meter, type MeterProps } from './components/display/Meter';
 export {
   Pagination,
   PaginationContent,

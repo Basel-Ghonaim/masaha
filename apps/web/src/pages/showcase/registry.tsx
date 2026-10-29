@@ -9,6 +9,7 @@ import { AvatarSection } from './sections/display/AvatarSection';
 import { BadgeSection } from './sections/display/BadgeSection';
 import { CardSection } from './sections/display/CardSection';
 import { FilterTagSection } from './sections/display/FilterTagSection';
+import { MeterSection } from './sections/display/MeterSection';
 import { SeparatorSection } from './sections/display/SeparatorSection';
 import { StatCardSection } from './sections/display/StatCardSection';
 import { AlertSection } from './sections/feedback/AlertSection';
@@ -165,6 +166,7 @@ export const ENTRIES: readonly ShowcaseEntry[] = [
     />
   )),
   entry('display', 'FilterTag', 'filterTag', (samples) => <FilterTagSection samples={samples} />),
+  entry('display', 'Meter', 'meter', (samples) => <MeterSection samples={samples} />),
 ];
 
 export type ShowcaseView =

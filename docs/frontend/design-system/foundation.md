@@ -391,6 +391,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Separator | shadcn | |
 | StatCard | hand-built | Dashboard overview numbers |
 | FilterTag | hand-built | A filter in force: its label and a remove button named by a prop · the chips' `radius-pill` on the `secondary` pair · the button 32px, the control height on touch ([finding 8](../../architecture/findings/8-the-stress-tests-applied-filter-tag-has-no-component.md)) |
+| Meter | hand-built | A share of a whole as a bar: a `muted` track 12px high, `radius-pill`, filled from the start side in `primary` or `warning` (`tone`) · `kind="meter"` (a measure, such as occupancy) or `"progress"` (a task on its way, such as a photo's upload), with `aria-valuemin/max/now`, an optional `valueText`, and named by `label` · the value kept inside 0…max; the fill's width is set inside the layer, so no page draws a bar |
 
 ### `data`
 
