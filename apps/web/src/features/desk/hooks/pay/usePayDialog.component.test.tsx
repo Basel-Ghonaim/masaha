@@ -57,6 +57,7 @@ const RAMI_FILE: CustomerFile = {
       balanceAgorot: 1500,
     },
   ],
+  reminderTemplate: null,
 };
 
 /** Sara's usage-based subscription, owing ₪36.60. */
@@ -74,6 +75,7 @@ const SARA_FILE: CustomerFile = {
     },
   ],
   unpaidVisits: [],
+  reminderTemplate: null,
 };
 
 function received(amount: number, left: number): ReceivedPayment {

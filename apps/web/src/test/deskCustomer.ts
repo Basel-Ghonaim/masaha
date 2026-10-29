@@ -99,6 +99,7 @@ export function customerFile(change: Partial<CustomerFile> = {}): CustomerFile {
     present: null,
     subscriptions: [{ ...subscriptionState(), paidAgorot: 15000, balanceAgorot: 0 }],
     unpaidVisits: [],
+    reminderTemplate: null,
     ...change,
   };
 }

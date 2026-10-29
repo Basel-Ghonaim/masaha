@@ -85,6 +85,8 @@ export type CustomerFile = { customer: Customer } & CustomerBalance & {
     present: CustomerPresence | null;
     subscriptions: SubscriptionWithMoney[];
     unpaidVisits: UnpaidVisit[];
+    /** The space's payment reminder, for «تذكير على واتساب»; `null`: the catalogue's default. */
+    reminderTemplate: string | null;
   };
 
 /** A subscription with what was paid on it and what it still owes, as of the answer. */

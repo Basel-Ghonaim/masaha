@@ -34,6 +34,15 @@ let admin: { id: number; authorization: string };
 beforeEach(async () => {
   await resetDatabase(prisma);
   ({ id: spaceId } = await createSpace());
+  // Every space has its settings row (space-settings); the file reads its reminder.
+  await prisma.spaceSettings.create({
+    data: {
+      spaceId,
+      autoCheckoutAtClosing: true,
+      visitRounding: 'PER_MINUTE',
+      visitCapAtDayPrice: false,
+    },
+  });
   owner = await signInOwnerOf(spaceId);
   reception = await signIn('USER', 'reception@example.com');
   stranger = await signIn('USER', 'stranger@example.com');
@@ -185,6 +194,20 @@ describe("the customer's file", () => {
           balanceAgorot: null,
         },
       ],
+      reminderTemplate: null,
+    });
+  });
+
+  it("the customer's file carries the space's reminder, null for the default", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara' });
+
+    expect(dataOf(await file(reception, sara.id))).toMatchObject({ reminderTemplate: null });
+    await prisma.spaceSettings.update({
+      where: { spaceId },
+      data: { reminderTemplate: 'مرحبًا {name}، عليك {amount} لدى {space}.' },
+    });
+    expect(dataOf(await file(reception, sara.id))).toMatchObject({
+      reminderTemplate: 'مرحبًا {name}، عليك {amount} لدى {space}.',
     });
   });
 

@@ -441,7 +441,7 @@ Customer = {
 - **Errors:** `validation` (422) on the query; `forbidden` (403) for reception's `status=ARCHIVED`; `not_found` (404).
 
 #### `GET /manage/spaces/:spaceId/customers/:customerId` · 🧾
-- **200:** `CustomerFile`: the customer, their debt and credit, who of them is present (an open check-in or an open visit), every subscription with its status, progress, due, paid and balance (the latest started first, then by id), and their unpaid visits — closed, not written off, owing or unpriced — the oldest first, each with its payments, voided ones marked. Its lists are answered whole (§4). Read without a lock.
+- **200:** `CustomerFile`: the customer, their debt and credit, who of them is present (an open check-in or an open visit), every subscription with its status, progress, due, paid and balance (the latest started first, then by id), and their unpaid visits — closed, not written off, owing or unpriced — the oldest first, each with its payments, voided ones marked; and the space's payment reminder, so the staff can send «تذكير على واتساب» (2026-10-29, #132). Its lists are answered whole (§4). Read without a lock.
 - **An archived customer's file** is answered to the owner and reception alike: their debts are still collected at the desk (the owner's decision, 2026-10-21, #106).
 - **Errors:** `not_found` (404), also for a customer that is not the space's.
 
@@ -469,7 +469,8 @@ CustomerRow = Customer & CustomerBalance & {
 CustomerFile = { customer: Customer } & CustomerBalance & {
   present: { kind: "CHECK_IN", id, subscriptionId, since } | { kind: "VISIT", id, since } | null,
   subscriptions: (SubscriptionState & { paidAgorot, balanceAgorot })[],
-  unpaidVisits: { visit: DeskVisit, payments: ItemPayment[], paidAgorot, balanceAgorot: number | null }[]
+  unpaidVisits: { visit: DeskVisit, payments: ItemPayment[], paidAgorot, balanceAgorot: number | null }[],
+  reminderTemplate: string | null   // the space's payment reminder; null: the catalogue's default (2026-10-29, #132)
 }
 ```
 

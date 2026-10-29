@@ -44,6 +44,7 @@ function file(change: Partial<CustomerFile> = {}): CustomerFile {
     present: null,
     subscriptions: [],
     unpaidVisits: [],
+    reminderTemplate: null,
     ...change,
   };
 }

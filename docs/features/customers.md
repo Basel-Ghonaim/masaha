@@ -72,5 +72,5 @@
 - #102 — a customer created, idempotent, and edited by the staff; the customers' key; a customer archived (for the desk) and restored by the owner; the list's page and its search.
 - #106 — the search finds a whole phone in any form (a local, international or separated number).
 - #109 — a whole phone is also found stored under the other country code (by its national digits); the contacts of a set of customers, for the check-ins' lists.
-- #132 — a whole phone matches on its national digits without the trunk 0, so `+970…` and `+972…` find each other both ways (finding 126).
+- #132 — a whole phone matches on its national digits without the trunk 0, so `+970…` and `+972…` find each other both ways (finding 126); the file carries the space's payment reminder (`reminderTemplate`), read by the staff.
 - #131 — the contacts answer whether each customer is archived, for finance's debts.

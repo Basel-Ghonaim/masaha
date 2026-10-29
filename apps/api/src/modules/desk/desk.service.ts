@@ -953,7 +953,8 @@ export function createDeskService({
      * The customer's file: the customer (not the space's → `not_found`); their debt and credit; who
      * of them is present; every subscription with its state and money; their unpaid visits — closed,
      * not written off, a balance above zero or none (unpriced) — the oldest first, each with its
-     * payments, voided ones marked. The money from `payments`' one query. Read without a lock, in one
+     * payments, voided ones marked; and the space's payment reminder, read by the staff for the
+     * file's «تذكير على واتساب». The money from `payments`' one query. Read without a lock, in one
      * snapshot (finding 124).
      */
     async customerFile(space: LoadedSpace, customerId: number): Promise<CustomerFile> {
@@ -961,12 +962,13 @@ export function createDeskService({
         const customer = await customers.findIn(space.id, customerId, tx);
         if (!customer) throw AppError.notFound(undefined, 'Customer not found');
         const at = now();
-        const [states, items, balances, { checkIns: openCheckIns, visits: openVisits }] =
+        const [states, items, balances, { checkIns: openCheckIns, visits: openVisits }, settings] =
           await Promise.all([
             subscriptions.statesOf(space.id, { customerId }, at, tx),
             payments.itemBalances(space.id, customerId, at, tx),
             payments.customerBalances(space.id, [customerId], at, tx),
             occupancy.presentIn(space.id, tx),
+            spaceSettings.read(space.id, tx),
           ]);
 
         const subscriptionMoney = new Map(
@@ -1016,6 +1018,7 @@ export function createDeskService({
                 ]
               : [];
           }),
+          reminderTemplate: settings.reminderTemplate,
         };
       });
     },

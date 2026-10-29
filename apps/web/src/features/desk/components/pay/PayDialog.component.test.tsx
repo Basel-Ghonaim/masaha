@@ -22,6 +22,7 @@ const FILE: CustomerFile = {
     },
   ],
   unpaidVisits: [],
+  reminderTemplate: null,
 };
 
 beforeEach(() => {

@@ -36,6 +36,15 @@ let admin: { id: number; authorization: string };
 beforeEach(async () => {
   await resetDatabase(prisma);
   ({ id: spaceId } = await createSpace());
+  // Every space has its settings row (space-settings); the customer's file reads its reminder.
+  await prisma.spaceSettings.create({
+    data: {
+      spaceId,
+      autoCheckoutAtClosing: true,
+      visitRounding: 'PER_MINUTE',
+      visitCapAtDayPrice: false,
+    },
+  });
   owner = await signInOwnerOf(spaceId);
   reception = await signIn('USER', 'reception@example.com');
   stranger = await signIn('USER', 'stranger@example.com');
