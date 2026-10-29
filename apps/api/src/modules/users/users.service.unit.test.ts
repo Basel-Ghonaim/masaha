@@ -186,3 +186,15 @@ describe('users: Google', () => {
     );
   });
 });
+
+describe('users: the names reader', () => {
+  it('namesFor without its transaction does not compile', async () => {
+    const { users } = setup({ findNames: () => Promise.resolve([{ id: 3, name: 'Sara' }]) });
+
+    // @ts-expect-error Each caller says which transaction it means: `undefined` for none (79).
+    const untold = () => users.namesFor([3]);
+
+    expect(untold).toBeTypeOf('function');
+    expect(await users.namesFor([3], undefined)).toEqual([{ id: 3, name: 'Sara' }]);
+  });
+});

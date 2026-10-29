@@ -605,8 +605,12 @@ export function createUsersService({
       return repository.countCreatedSince(since);
     },
 
-    /** The names of these users, in one query, for a list that names them (the spaces' owners). */
-    namesFor(ids: readonly number[], tx?: Tx): Promise<UserName[]> {
+    /**
+     * The names of these users, in one query, for a list that names them (the spaces' owners). Each
+     * caller says which transaction it reads in, `undefined` for none, so a read under a lock never
+     * takes the names on another connection by omission (finding 79).
+     */
+    namesFor(ids: readonly number[], tx: Tx | undefined): Promise<UserName[]> {
       return repository.findNames(ids, tx);
     },
 

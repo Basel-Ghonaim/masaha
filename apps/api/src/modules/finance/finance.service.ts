@@ -106,9 +106,12 @@ export function createFinanceService({
         ]),
       );
       const names = new Map(
-        (await users.namesFor(collections.map(({ recordedById }) => recordedById))).map(
-          ({ id, name }) => [id, name],
-        ),
+        (
+          await users.namesFor(
+            collections.map(({ recordedById }) => recordedById),
+            undefined,
+          )
+        ).map(({ id, name }) => [id, name]),
       );
       const split = (index: number) => {
         const found = totals[index];

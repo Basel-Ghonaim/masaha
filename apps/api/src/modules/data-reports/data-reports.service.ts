@@ -80,7 +80,7 @@ export function createDataReportsService({
     const [spaceNames, verifiedIds, names] = await Promise.all([
       spaces.namesWithDeleted(spaceIds),
       spaceLinks.verifiedSpaceIds(),
-      users.namesFor(people),
+      users.namesFor(people, undefined),
     ]);
     const byId = new Map(spaceNames.map((space) => [space.id, space]));
     const verified = new Set(verifiedIds);

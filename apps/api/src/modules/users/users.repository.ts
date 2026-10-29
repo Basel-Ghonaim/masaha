@@ -89,9 +89,9 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return tx.user.findUnique({ where: { id }, select: ACCOUNT });
     },
 
-    /** The names of these users, in one query. */
-    findNames(ids: readonly number[], tx: Tx = db): Promise<UserName[]> {
-      return tx.user.findMany({
+    /** The names of these users, in one query, in the transaction named, or none (`undefined`). */
+    findNames(ids: readonly number[], tx: Tx | undefined): Promise<UserName[]> {
+      return (tx ?? db).user.findMany({
         where: { id: { in: [...ids] } },
         select: { id: true, name: true },
       });

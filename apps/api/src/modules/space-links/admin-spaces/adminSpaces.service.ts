@@ -81,7 +81,7 @@ export function createAdminSpacesService({ listing, lookups, users }: Dependenci
       const names =
         links.length === 0
           ? []
-          : await users.namesFor([...new Set(links.map(({ userId }) => userId))]);
+          : await users.namesFor([...new Set(links.map(({ userId }) => userId))], undefined);
 
       const nameById = new Map(names.map(({ id, name }) => [id, name]));
       const areaById = new Map(areas.map((area) => [area.id, area]));
