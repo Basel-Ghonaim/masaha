@@ -15,7 +15,16 @@ export function toUserView(account: Account, hasPassword: boolean): User {
   };
 }
 
-/** The account as its own settings read it. */
-export function toMyAccount({ id, name, email, language, role }: Account): MyAccount {
-  return { id, name, email, language, role };
+/** How an account signs in: with a password, with Google, or both. */
+export interface SignInMethods {
+  hasPassword: boolean;
+  hasGoogle: boolean;
+}
+
+/** The account as its own settings read it, with how it signs in. */
+export function toMyAccount(
+  { id, name, email, language, role }: Account,
+  { hasPassword, hasGoogle }: SignInMethods,
+): MyAccount {
+  return { id, name, email, language, role, hasPassword, hasGoogle };
 }

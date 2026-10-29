@@ -164,11 +164,11 @@ RecoveryPosition =
 The signed-in user's own account. Each endpoint needs the access token.
 
 ```ts
-MyAccount = { id: number, name: string, email: string, language: "ar" | "en", role: "USER" | "OWNER" | "ADMIN" }
+MyAccount = { id: number, name: string, email: string, language: "ar" | "en", role: "USER" | "OWNER" | "ADMIN", hasPassword: boolean, hasGoogle: boolean }
 ```
 
 #### `GET /me` · 👤
-- **200:** `MyAccount`, the caller's own, whatever the query names (2026-10-29, #131).
+- **200:** `MyAccount`, the caller's own, whatever the query names (2026-10-29, #131). `hasPassword` and `hasGoogle` say how it signs in: a password set, a Google account linked, or both (2026-10-29, #132).
 - **Errors:** `unauthorized` (401) without a valid access token, for a suspended account, or for a token signed before the account's sessions last ended (§1); `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending.
 
 #### `PATCH /me` · 👤

@@ -313,6 +313,18 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       await tx.user.update({ where: { id }, data: { role }, select: { id: true } });
     },
 
+    /** How the account signs in, without reading any hash. */
+    async findSignInMethods(
+      id: number,
+      tx: Tx = db,
+    ): Promise<{ hasPassword: boolean; hasGoogle: boolean }> {
+      const [hasPassword, hasGoogle] = [
+        await tx.user.count({ where: { id, passwordHash: { not: null } } }),
+        await tx.user.count({ where: { id, googleSubject: { not: null } } }),
+      ];
+      return { hasPassword: hasPassword === 1, hasGoogle: hasGoogle === 1 };
+    },
+
     async hasPassword(id: number, tx: Tx = db): Promise<boolean> {
       return (await tx.user.count({ where: { id, passwordHash: { not: null } } })) === 1;
     },

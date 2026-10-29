@@ -143,7 +143,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - #78 — the session version: every access token ends with its session; the service hashes through its own helpers, with no parameter for them ([finding 39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md)).
 - #90 — the temporary password's expiry; no recovery by email or Google while one is pending; the email confirmed at the forced change; the owner's re-issue and handover.
 - #131 — `GET` and `PATCH /me`: one's own account, its name and language edited and audited.
-- #132 — an expired pending account that never acted gives its address up: judged by `users`' rule (`replaceableHolder`), re-read under its lock, retired (sessions ended, suspended, its address `replaced-{id}@replaced.invalid`) and audited `user.replaced`.
+- #132 — `MyAccount` says how the account signs in (`hasPassword`, `hasGoogle`); an expired pending account that never acted gives its address up: judged by `users`' rule (`replaceableHolder`), re-read under its lock, retired (sessions ended, suspended, its address `replaced-{id}@replaced.invalid`) and audited `user.replaced`.
 
 ### Web history
 

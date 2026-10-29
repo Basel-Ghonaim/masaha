@@ -748,9 +748,10 @@ export function createUsersService({
       return toUserView(account, await repository.hasPassword(account.id, tx));
     },
 
-    /** The signed-in user's own account, for its settings. */
+    /** The signed-in user's own account, for its settings, with how it signs in. */
     async myAccount(userId: number): Promise<MyAccount> {
-      return toMyAccount(await get(userId));
+      const account = await get(userId);
+      return toMyAccount(account, await repository.findSignInMethods(userId));
     },
 
     /**
@@ -772,7 +773,8 @@ export function createUsersService({
           before.language = account.language;
           after.language = edit.language;
         }
-        if (Object.keys(after).length === 0) return toMyAccount(account);
+        const methods = await repository.findSignInMethods(userId, tx);
+        if (Object.keys(after).length === 0) return toMyAccount(account, methods);
         const edited = await repository.setProfile(userId, after, tx);
         await audit(
           {
@@ -785,7 +787,7 @@ export function createUsersService({
           },
           tx,
         );
-        return toMyAccount(edited);
+        return toMyAccount(edited, methods);
       });
     },
 
