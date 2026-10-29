@@ -366,23 +366,24 @@ export function createUsersService({
     /**
      * The account a verified Google identity opens (docs/backend/security.md › Sign-in methods): the
      * one already linked to it; else the account with its email, which is to be linked (`link`)
-     * only where Google is authoritative for the address; else a new USER without a password.
+     * only where Google is authoritative for the address; else a new USER without a password
+     * (`created`).
      * Nothing here locks: the session is opened, and a link made, under the lock (`linkGoogle`).
      */
     async accountForGoogle(
       google: GoogleAccount,
       language: Language | undefined,
-    ): Promise<{ userId: number; link: boolean }> {
+    ): Promise<{ userId: number; link: boolean; created: boolean }> {
       for (let attempt = 0; ; attempt++) {
         const known = await repository.findByGoogleSubject(google.subject);
-        if (known) return { userId: known.id, link: false };
+        if (known) return { userId: known.id, link: false, created: false };
 
         const byEmail = await repository.findByEmail(google.email);
         if (byEmail) {
           if (byEmail.googleSubject) {
             // Linked to this identity: a racing first sign-in created it after the read above.
             if (byEmail.googleSubject === google.subject) {
-              return { userId: byEmail.account.id, link: false };
+              return { userId: byEmail.account.id, link: false, created: false };
             }
             // Another Google account is already linked to this email's account: never replaced.
             throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Linked to another Google account');
@@ -394,7 +395,7 @@ export function createUsersService({
               'Google is not the address authority',
             );
           }
-          return { userId: byEmail.account.id, link: true };
+          return { userId: byEmail.account.id, link: true, created: false };
         }
 
         const parsedName = googleName.safeParse(google.name);
@@ -405,7 +406,7 @@ export function createUsersService({
           googleSubject: google.subject,
           language,
         });
-        if ('account' in created) return { userId: created.account.id, link: false };
+        if ('account' in created) return { userId: created.account.id, link: false, created: true };
         // A concurrent first sign-in, or a registration, created it meanwhile: read it again, once.
         if (attempt > 0) throw AppError.conflict(undefined, 'Account created concurrently');
       }

@@ -84,7 +84,11 @@ describe('users: Google', () => {
   it('opens the account already linked to the Google subject', async () => {
     const { users } = setup({ findByGoogleSubject: () => Promise.resolve(sara) });
 
-    expect(await users.accountForGoogle(google, undefined)).toEqual({ userId: 3, link: false });
+    expect(await users.accountForGoogle(google, undefined)).toEqual({
+      userId: 3,
+      link: false,
+      created: false,
+    });
   });
 
   it('links an authoritative address, refuses another, and never replaces another subject', async () => {
@@ -97,6 +101,7 @@ describe('users: Google', () => {
     expect(await found(null).accountForGoogle(google, undefined)).toEqual({
       userId: 3,
       link: true,
+      created: false,
     });
     expect(
       (
@@ -121,7 +126,11 @@ describe('users: Google', () => {
       },
     });
 
-    expect(await users.accountForGoogle(google, undefined)).toEqual({ userId: 3, link: false });
+    expect(await users.accountForGoogle(google, undefined)).toEqual({
+      userId: 3,
+      link: false,
+      created: false,
+    });
     expect(created).toBe(false);
   });
 
@@ -136,7 +145,25 @@ describe('users: Google', () => {
       },
     });
 
-    expect(await users.accountForGoogle(google, 'en')).toEqual({ userId: 3, link: false });
+    expect(await users.accountForGoogle(google, 'en')).toEqual({
+      userId: 3,
+      link: false,
+      created: false,
+    });
+  });
+
+  it('says it created the account it creates', async () => {
+    const { users } = setup({
+      findByGoogleSubject: () => Promise.resolve(null),
+      findByEmail: () => Promise.resolve(null),
+      create: () => Promise.resolve({ account: sara }),
+    });
+
+    expect(await users.accountForGoogle(google, 'en')).toEqual({
+      userId: 3,
+      link: false,
+      created: true,
+    });
   });
 
   it('ends every session when it links, and none when the link was already made', async () => {

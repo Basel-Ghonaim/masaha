@@ -16,9 +16,13 @@ export interface Session {
   accessToken: string;
 }
 
-/** A Google sign-in's answer: `linked` when it has just joined Google to an existing account. */
+/**
+ * A Google sign-in's answer: `linked` when it has just joined Google to an existing account,
+ * `created` when this sign-in created the account, so the web welcomes it as a registration.
+ */
 export interface GoogleSession extends Session {
   linked: boolean;
+  created: boolean;
 }
 
 /**

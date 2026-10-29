@@ -78,6 +78,18 @@ describe('POST /auth/google', () => {
     expect(user).toMatchObject({ googleSubject: 'google-new', passwordHash: null });
   });
 
+  it("Google's answer says created for a new account, not for a linked one", async () => {
+    await createAccount({ email: 'sara@gmail.com' });
+
+    const created = await signInWithGoogle('newcomer');
+    const again = await signInWithGoogle('newcomer');
+    const linked = await signInWithGoogle('gmail');
+
+    expect(created.body).toMatchObject({ data: { created: true, linked: false } });
+    expect(again.body).toMatchObject({ data: { created: false, linked: false } });
+    expect(linked.body).toMatchObject({ data: { created: false, linked: true } });
+  });
+
   it('creates one account when two first sign-ins race', async () => {
     const answers = await Promise.all([signInWithGoogle('newcomer'), signInWithGoogle('newcomer')]);
 

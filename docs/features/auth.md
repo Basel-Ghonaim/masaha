@@ -96,7 +96,7 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 - #78 — a session's 30 days; the access tokens end with the session, through `users`' `endSessions`, after a reset and a refused refresh; the forgotten password's wait when it sends nothing.
 - #90 — no reset email, no reset with an older link and no Google link while a temporary password is pending.
 - #118 — the access token names its session (`sid`); reception's session ends after 15 minutes idle (`SESSION_IDLE`).
-- #132 — a replay within the grace gets its token's one successor; the ended tokens and recoveries swept by a timed job.
+- #132 — a replay within the grace gets its token's one successor; the ended tokens and recoveries swept by a timed job; Google's answer says `created`.
 
 ### Web history
 

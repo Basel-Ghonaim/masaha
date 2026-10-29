@@ -223,7 +223,7 @@ export function createAuthService({
     async google(
       { idToken, language }: GoogleSignInRequest,
       clientAddress: string,
-    ): Promise<SignedIn & { linked: boolean }> {
+    ): Promise<SignedIn & { linked: boolean; created: boolean }> {
       if (!google) throw AppError.serviceUnavailable(undefined, 'Google sign-in is not configured');
       return limiter.limitFailures([{ policy: GOOGLE_ADDRESS, by: [clientAddress] }], async () => {
         const profile = await google.verify(idToken).catch((error: unknown) => {
@@ -234,8 +234,8 @@ export function createAuthService({
         });
         if (!profile)
           throw AppError.unauthorized('GOOGLE_TOKEN_INVALID', 'Invalid Google ID token');
-        const { userId, link } = await users.accountForGoogle(profile, language);
-        if (!link) return { ...(await signIn(userId)), linked: false };
+        const { userId, link, created } = await users.accountForGoogle(profile, language);
+        if (!link) return { ...(await signIn(userId)), linked: false, created };
         const { account, linked, issued } = await runInTransaction(async (tx) => {
           const result = await users.linkGoogle(userId, profile, tx);
           return { ...result, issued: await sessions.issue(userId, tx) };
@@ -244,6 +244,7 @@ export function createAuthService({
           session: await sessionFor(account, issued.familyId),
           refreshToken: issued.token,
           linked,
+          created: false,
         };
       });
     },
