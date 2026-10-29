@@ -111,6 +111,30 @@ export function createVisitsRepository() {
       return prisma.visit.findFirst({ where: { id: visitId, spaceId }, select: DESK_VISIT });
     },
 
+    /**
+     * A page of the space's visits checked in from `from` up to `to`, that end left out, open and
+     * closed, the latest checked in first, then by id; and how many there are. On the index
+     * `(space_id, checked_in_at)`.
+     */
+    async checkedInBetween(
+      spaceId: number,
+      { from, to }: { from: Date; to: Date },
+      { skip, take }: { skip: number; take: number },
+    ): Promise<{ rows: DeskVisitRow[]; total: number }> {
+      const where = { spaceId, checkedInAt: { gte: from, lt: to } };
+      const [rows, total] = await Promise.all([
+        prisma.visit.findMany({
+          where,
+          select: DESK_VISIT,
+          orderBy: [{ checkedInAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take,
+        }),
+        prisma.visit.count({ where }),
+      ]);
+      return { rows, total };
+    },
+
     /** These visits of the space, as the desk reads them; another space's are not read. */
     deskVisitsOf(spaceId: number, visitIds: readonly number[], tx: Tx = prisma) {
       return tx.visit.findMany({

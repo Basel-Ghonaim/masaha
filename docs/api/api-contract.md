@@ -622,6 +622,13 @@ ReceivedPayment = {
 }
 ```
 
+#### `GET /manage/spaces/:spaceId/visits` · 🧾
+The space's visits by the Gaza day they were checked in, 2026-10-29, #131. Read without a lock.
+- **Query** (`visitsQuerySchema`, `@masaha/shared/visits`): `from` and `to`, Gaza dates, both included, by the payments list's rule: `to` not before `from` and at most 92 days with both counted (`out_of_range` on `to`); both or neither (half a range: `required` on the missing one), neither for today; `page`, `limit` (§4).
+- **Who reads what:** the owner (`payments.read`, as the payments list), any range; reception, today's only. The query is validated first (422); a valid range from reception is then `forbidden` (403), never ignored.
+- **200:** a page of `DeskVisit`: the visits checked in on the range's Gaza days, open and closed, written off included, the latest checked in first, then by id; `meta` the pagination.
+- **Errors:** `validation` (422) on the query; `forbidden` (403) as above; `not_found` (404).
+
 #### `GET /manage/spaces/:spaceId/visits/:visitId` · 🧾
 - **200:** `QuotedVisit`: the visit, with its quote while it is open, its charge now by the rates it copied and the rounding and cap in force — a stay past its due time charged up to it, as its check-out will be (2026-10-21, #102); the desk sends the quote's `at` back as the check-out's `checkedOutAt`. Read without a lock.
 - **Errors:** `not_found` (404), also for a visit that is not the space's.

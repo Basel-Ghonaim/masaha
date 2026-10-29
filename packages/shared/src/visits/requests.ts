@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { textSchema } from '../core/index.ts';
+import { addDays, dateSchema, paginationQuerySchema, textSchema } from '../core/index.ts';
 import { PRICE_AUDIENCES, PRICE_MAX_AGOROT } from '../spaces/index.ts';
 
 // The requests of the front desk's visit endpoints (docs/api/api-contract.md §5, Front desk
@@ -40,3 +40,28 @@ export const writeOffVisitSchema = z.object({
   reason: textSchema(1, WRITE_OFF_REASON_MAX_LENGTH),
 });
 export type WriteOffVisitRequest = z.infer<typeof writeOffVisitSchema>;
+
+/**
+ * The longest range of the visits list, in Gaza days, both ends included: the payments list's and
+ * the check-ins list's bound (`payments`, a level above, cannot be imported here).
+ */
+export const VISITS_RANGE_MAX_DAYS = 92;
+
+/**
+ * The visits list's query: a range of Gaza dates of check-in, `from` to `to`, both included, by the
+ * payments list's rule — `to` not before `from`, at most 92 days with both counted, both or neither
+ * (neither is today); paged.
+ */
+export const visitsQuerySchema = paginationQuerySchema
+  .extend({ from: dateSchema.optional(), to: dateSchema.optional() })
+  .superRefine(({ from, to }, ctx) => {
+    const issue = (path: string, code: string) => {
+      ctx.addIssue({ code: 'custom', path: [path], params: { code } });
+    };
+    if (from === undefined && to !== undefined) issue('from', 'required');
+    if (to === undefined && from !== undefined) issue('to', 'required');
+    if (from !== undefined && to !== undefined) {
+      if (to < from || to > addDays(from, VISITS_RANGE_MAX_DAYS - 1)) issue('to', 'out_of_range');
+    }
+  });
+export type VisitsQuery = z.infer<typeof visitsQuerySchema>;
