@@ -627,7 +627,12 @@ export function createSubscriptionsService({
      * time; audited `checkIn.autoCheckedOut` with no actor. One that cannot be closed is logged and
      * the next one still is; the run counts them in `failed`, and throws only when it cannot run.
      */
-    async autoCheckOut(at: Date): Promise<{ checkIns: number; remaining: number; failed: number }> {
+    async autoCheckOut(at: Date): Promise<{
+      checkIns: number;
+      remaining: number;
+      failed: number;
+      stalled?: true;
+    }> {
       const open = await repository.openEverywhere();
       const spaceIds = [...new Set(open.map(({ spaceId }) => spaceId))];
       const [weeks, settings] = await Promise.all([
@@ -657,8 +662,10 @@ export function createSubscriptionsService({
         return dueAt <= at ? [{ checkIn, dueAt }] : [];
       });
 
+      const batch = due.slice(0, AUTO_CHECKOUT_BATCH);
+      const failedBefore = failed;
       let closed = 0;
-      for (const { checkIn, dueAt } of due.slice(0, AUTO_CHECKOUT_BATCH)) {
+      for (const { checkIn, dueAt } of batch) {
         const done = await runInTransaction(async (tx) => {
           if (!(await repository.lockOpen(checkIn.id, tx))) return false;
           await repository.closeAuto(checkIn.id, dueAt, tx);
@@ -680,10 +687,13 @@ export function createSubscriptionsService({
         });
         if (done) closed += 1;
       }
+      // Stalled: the batch was all failures, so the next run would take and fail the same stays.
+      const stalled = batch.length > 0 && closed === 0 && failed - failedBefore === batch.length;
       return {
         checkIns: closed,
         remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0),
         failed,
+        ...(stalled && { stalled: true as const }),
       };
     },
   };

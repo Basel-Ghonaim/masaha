@@ -452,7 +452,12 @@ export function createVisitsService({
      * A visit that cannot be closed is logged and the next one still is; the run counts them in
      * `failed`, and throws only when it cannot run at all.
      */
-    async autoCheckOut(at: Date): Promise<{ visits: number; remaining: number; failed: number }> {
+    async autoCheckOut(at: Date): Promise<{
+      visits: number;
+      remaining: number;
+      failed: number;
+      stalled?: true;
+    }> {
       const open = await repository.openEverywhere();
       const spaceIds = [...new Set(open.map(({ spaceId }) => spaceId))];
       const [weeks, settings] = await Promise.all([
@@ -479,8 +484,10 @@ export function createVisitsService({
         return dueAt <= at ? [{ stay, dueAt, rules }] : [];
       });
 
+      const batch = due.slice(0, AUTO_CHECKOUT_BATCH);
+      const failedBefore = failed;
       let closed = 0;
-      for (const { stay, dueAt, rules } of due.slice(0, AUTO_CHECKOUT_BATCH)) {
+      for (const { stay, dueAt, rules } of batch) {
         const done = await runInTransaction(async (tx) => {
           if (!(await repository.lockOpen(stay.id, tx))) return false;
           const charge = chargeOf(
@@ -510,10 +517,13 @@ export function createVisitsService({
         });
         if (done) closed += 1;
       }
+      // Stalled: the batch was all failures, so the next run would take and fail the same stays.
+      const stalled = batch.length > 0 && closed === 0 && failed - failedBefore === batch.length;
       return {
         visits: closed,
         remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0),
         failed,
+        ...(stalled && { stalled: true as const }),
       };
     },
 

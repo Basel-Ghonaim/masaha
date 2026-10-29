@@ -183,4 +183,57 @@ describe('the jobs endpoint', () => {
       checkoutMethod: 'AUTO',
     });
   });
+
+  it('a run whose failures fill the batch answers 500, the job named stalled in the log, the others still run', async () => {
+    // The one due visit cannot be closed: a charge past the column's range fails its transaction.
+    await prisma.visit.update({ where: { id: visitId }, data: { hourRateAgorot: 2_000_000_000 } });
+    const { logger, lines } = recordingLogger();
+
+    const response = await request(withSecret(logger))
+      .post(RUN)
+      .set('Authorization', `Bearer ${SECRET}`);
+
+    expect(response.status).toBe(500);
+    expect(errorOf(response).type).toBe('server');
+    expect(lines.filter(({ msg }) => msg === 'job stalled')).toMatchObject([
+      { level: 50, job: 'visits.autoCheckOut', failed: 1 },
+    ]);
+    expect(lines.filter(({ msg }) => msg === 'job ran')).toMatchObject([
+      { job: 'visits.autoCheckOut', visits: 0, failed: 1, stalled: true },
+      { job: 'subscriptions.autoCheckOut', checkIns: 0, failed: 0 },
+      { job: 'sessions.sweepExpired', refreshTokens: 0 },
+      { job: 'rateLimits.sweepExpired', counters: 0 },
+    ]);
+    expect(await stored()).toMatchObject({ checkedOutAt: null });
+  });
+
+  it('each auto check-out stalls alike: with every closing refused, both are named, 500', async () => {
+    const checkIn = await createCheckIn(await createSubscription(await createCustomer(spaceId)), {
+      checkedInAt: new Date('2026-10-17T09:00:00+03:00'),
+    });
+    // The database refuses the closing's audit entry, so the closing rolls back.
+    await prisma.$executeRawUnsafe(`
+      CREATE OR REPLACE FUNCTION refuse_audit() RETURNS trigger LANGUAGE plpgsql AS
+      $$ BEGIN RAISE EXCEPTION 'audit refused'; END $$`);
+    await prisma.$executeRawUnsafe(
+      'CREATE TRIGGER refuse_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION refuse_audit()',
+    );
+    const { logger, lines } = recordingLogger();
+    try {
+      const response = await request(withSecret(logger))
+        .post(RUN)
+        .set('Authorization', `Bearer ${SECRET}`);
+      expect(response.status).toBe(500);
+    } finally {
+      await prisma.$executeRawUnsafe('DROP TRIGGER IF EXISTS refuse_audit ON audit_logs');
+      await prisma.$executeRawUnsafe('DROP FUNCTION IF EXISTS refuse_audit()');
+    }
+    expect(lines.filter(({ msg }) => msg === 'job stalled')).toMatchObject([
+      { level: 50, job: 'visits.autoCheckOut', failed: 1 },
+      { level: 50, job: 'subscriptions.autoCheckOut', failed: 1 },
+    ]);
+    expect(await prisma.checkIn.findUniqueOrThrow({ where: { id: checkIn.id } })).toMatchObject({
+      checkedOutAt: null,
+    });
+  });
 });

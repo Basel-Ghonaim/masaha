@@ -34,6 +34,7 @@ describe('createJobs', () => {
         { name: 'runs', done: { stays: 2, failed: 0 } },
       ],
       failed: true,
+      stalled: false,
     });
     expect(lines.filter(({ msg }) => msg === 'job failed')).toMatchObject([
       { level: 50, job: 'throws' },
@@ -51,6 +52,32 @@ describe('createJobs', () => {
       ranAt: '2026-10-18T16:00:00.000Z',
       jobs: [{ name: 'runs', done: { stays: 1, failed: 2 } }],
       failed: false,
+      stalled: false,
     });
+  });
+
+  it('a run with one stalled job still runs the others, and is stalled, logged by name', async () => {
+    const { logger, lines } = recordingLogger();
+    const jobs = createJobs({
+      jobs: [
+        { name: 'stalls', run: () => Promise.resolve({ stays: 0, failed: 3, stalled: true }) },
+        { name: 'runs', run: () => Promise.resolve({ stays: 2, failed: 0 }) },
+      ],
+      now: () => RAN_AT,
+      logger,
+    });
+
+    expect(await jobs.run()).toEqual({
+      ranAt: '2026-10-18T16:00:00.000Z',
+      jobs: [
+        { name: 'stalls', done: { stays: 0, failed: 3, stalled: true } },
+        { name: 'runs', done: { stays: 2, failed: 0 } },
+      ],
+      failed: false,
+      stalled: true,
+    });
+    expect(lines.filter(({ msg }) => msg === 'job stalled')).toMatchObject([
+      { level: 50, job: 'stalls', failed: 3 },
+    ]);
   });
 });
