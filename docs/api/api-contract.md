@@ -717,6 +717,33 @@ PaymentTotals = {
 PaymentsMeta = PaginationMeta & { totals: PaymentTotals }
 ```
 
+### Finance
+
+The owner's finance (`finance`, [finance.md](../features/finance.md)): read models over the space's ledger, every figure computed by the server on Gaza's calendar ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)), every amount whole agorot. The web builds any CSV from these answers; there is no export route (the owner's decision 5). The routes sit under `/manage/spaces/:spaceId/finance` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404), the admin included. Each is the owner's (`finance.read`): reception is `forbidden` (403) before the query is read. Nothing is written. Built 2026-10-29, #131.
+
+- **The month** (`financeMonthQuery`, `@masaha/shared/finance`): `month`, `YYYY-MM`, a Gaza calendar month (`invalid_format` otherwise), the current one when absent; the current Gaza month and the 23 before it (`FINANCE_MONTHS_BACK`), `out_of_range` on `month` otherwise, never a month ahead. There is no free range of dates (the owner's decision 3).
+- **Income is cash collected:** the payments not voided, each counted on the Gaza day it was received, a window running from a Gaza midnight to the next, its end left out. A written-off visit's payments count as received; what it forgave counts nowhere, and a debt is never income (the owner's decision 2).
+
+```ts
+IncomeSplit = { subscriptionsAgorot: number, visitsAgorot: number, totalAgorot: number }
+IncomeReport = {
+  month: string,                                        // YYYY-MM, as asked or the current
+  income: IncomeSplit, previousMonth: IncomeSplit, today: IncomeSplit,
+  allTime: IncomeSplit & { since: string | null },      // the Gaza day of the first payment not voided
+  months: { month: string, income: IncomeSplit }[],     // 12, oldest first, ending with the current month
+  visitsByDay: { date: string, agorot: number }[],      // the visits' 30 Gaza days, oldest first, ending today
+  collections: {                                        // the month's, the largest first, then by id
+    recordedBy: { id, name }, count: number, totalAgorot: number,
+    byMethod: { CASH: number, TRANSFER: number }
+  }[]
+}
+```
+
+#### `GET /manage/spaces/:spaceId/finance/income` · 🏢
+- **Query:** `month`.
+- **200:** `IncomeReport`: the month's income by the kind of item paid, the month before it, today and all time; the 12 months ending with the current one and the visits' 30 days ending today, whatever the month asked; and each staff member's collections in the month — how many payments, their sum, and by method — named, one whose link ended included. The sums and the collections read one snapshot, so the month equals its bar.
+- **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on `month`; `not_found` (404).
+
 ### Announcements (managed)
 
 What a space tells its users changes: a closure, an outage, an offer, an event or general news ([data-model › Operations](../architecture/data-model.md#operations)). Its staff post and change them (🧾); a closure running now closes the space's live status ([data-model › Live status](../architecture/data-model.md#derived-values-computed-not-stored)). The endpoints sit under `/manage/spaces/:spaceId` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404). Each write is refused with `forbidden` (403) before its body is read for whoever may not (`announcements.manage`), and again for an owner or reception whose link ended meanwhile. Built 2026-10-24, #112.

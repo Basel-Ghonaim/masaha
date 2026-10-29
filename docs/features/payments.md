@@ -13,13 +13,14 @@
 - Answers the payments list: the owner's, by a range of Gaza days, who recorded them, method, kind and void; reception's own of today; the latest received first, paged, with the totals of the whole filter.
 - Voids a payment, in the desk's transaction: its row locked (`lockIn`), its void's columns only, audited; and answers payments named by their item, its customer and who recorded and voided them (`rowsOf`).
 - Answers customers' debt and credit, the ids of those who owe or are in credit, and one customer's items with their balances — each computed in the database, by one aggregate query — and the payments of visits, voided ones marked, for a customer's file.
+- Answers what a space received in windows of instants, the payments not voided, split by the kind of item paid; its first payment's time; and each staff member's collections in a window, by method — for [finance](finance.md)'s income.
 - Answers a space's balances paged and totalled, by the same aggregate: who owes or is in credit, the largest first, with the item still owing made first; the totals owed and in credit, each with how many customers; and the uncollected visits counted — all, what the priced ones still owe, the unpriced apart.
 
 ## Who uses it
 
 - **The space's owner**, whose ledger reads every payment, and **reception**, whose «دفعاتي اليوم» reads its own of today, through its own route. On the dashboard, the owner reads «الدفعات» (`/dashboard/spaces/:spaceId/payments`) and reception «دفعاتي اليوم» (`…/my-payments`, 2026-10-27, #127).
 - **The front desk** ([desk](desk.md)), for the space's owner and reception, at a visit's check-out, and for the owner's void of a payment — on the web, from «الدفعات» and from a statement ([desk](desk.md), 2026-10-27, #127); and, through its own route, the uncollected visits, which the owner's «يحتاج انتباهك» will count. On the web, the desk's screen lists the uncollected visits and records a payment on one ([desk](desk.md), 2026-10-25, #117); «استلام دفعة» records a payment on one of a customer's items, a visit or a subscription (2026-10-25, #119).
-- **Finance** (the `finance` module) reads the balances' page and totals and the uncollected visits' counts for its debts; **the owner's overview** (the `overview` module) reads how many customers owe and how many visits are uncollected, never an amount ([conventions › Composed reads](../backend/conventions.md#composed-reads)).
+- **Finance** ([finance](finance.md)) reads the income and the collections, the balances' page and totals and the uncollected visits' counts for its debts; **the owner's overview** (the `overview` module) reads how many customers owe and how many visits are uncollected, never an amount ([conventions › Composed reads](../backend/conventions.md#composed-reads)).
 
 ## Responsibility boundary
 
@@ -45,6 +46,8 @@
 **The balances.** One query shape over the space's items (`balancesOf`): its subscriptions, their due from `subscription_usage`, and its closed visits with a customer, not written off, their charge; each with what was paid, voided payments left out. A customer's debt is the sum of the positive balances (an unpriced visit owes nothing until priced); their credit, what was paid above the due on a usage-based subscription only. The payment filter takes the ids of those whose debt, or credit, is above zero. One customer's items are answered oldest first, a visit before a subscription made at the same instant, each balance by the one rule (`balance.ts`). The calendar's days are the caller's (`calendarOf`).
 
 **The balances paged and totalled.** One statement over the balance aggregate of every customer of the space, an archived one's kept (it is still owed): per customer the debt or the credit, those above zero, the largest first, then by customer id, a page cut and counted over the same rows (`count(*) OVER ()`; past the last page counted apart); who owes with the item still owing made first, a visit before a subscription made at the same instant, then by id. The totals sum the same per-customer figures: owed and in credit, each with how many customers — a customer owing on one item and in credit on another is in both, as a credit never offsets another item's debt. Each reads in the caller's snapshot when given (2026-10-29, #131).
+
+**The income and the collections.** One statement sums the space's payments not voided over many windows at once, the windows two arrays of instants unnested in their order (an open end is `-infinity` or `infinity`), each window a range of the payments' `space_id, received_at` index, split by the kind of item paid; one more groups a window's by who recorded them, counted, summed and summed by method, the largest first. The windows are their reader's, on Gaza's calendar; each reads in the caller's snapshot when given (2026-10-29, #131).
 
 **The uncollected visits counted.** The uncollected list's own `FROM` (one function both read), counted: all of them, what the priced ones still owe (charge − paid), and how many have no charge yet; one statement (2026-10-29, #131).
 
@@ -108,7 +111,7 @@
 - #102 — customers' debt and credit, the payment filter's ids and a customer's items with their balances, in the database; the payments of visits, voided ones marked; the uncollected visits paged in one query (finding 113 resolved).
 - #106 — a payment on a subscription, through the desk's payment route; `record` for both items; the allocation of a subscribe's amount, oldest debt first, and the payments of derived keys found in one query.
 - #114 — the owner's void of a payment, a written-off visit's once the write-off is undone (the ledger's fourth rule both ways); a visit closed by hand with no customer that owes after a void, uncollected; the payments list with its totals, reception's own of today.
-- #131 — a space's balances paged and totalled, and the uncollected visits counted, for finance and the owner's overview.
+- #131 — a space's balances paged and totalled, and the uncollected visits counted, for finance and the owner's overview; the income over windows and the staff's collections, for finance.
 
 ### Web history
 

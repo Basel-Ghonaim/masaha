@@ -185,6 +185,28 @@ export interface UncollectedTotals {
   unpriced: number;
 }
 
+/** A window of instants an income is summed over, `to` left out; `null` an open end. */
+export interface IncomeWindow {
+  from: Date | null;
+  to: Date | null;
+}
+
+/** What was received in a window, the payments not voided, by the kind of item they paid. */
+export interface IncomeTotals {
+  subscriptionsAgorot: number;
+  visitsAgorot: number;
+  totalAgorot: number;
+}
+
+/** What one staff member recorded in a window, the payments not voided: how many, the sum, by method. */
+export interface CollectionsRow {
+  recordedById: number;
+  count: number;
+  totalAgorot: number;
+  cashAgorot: number;
+  transferAgorot: number;
+}
+
 /** How many of the space's customers hold a positive `amount` (`DEBT` or `CREDIT`) on these days. */
 async function countOwing(tx: Tx, spaceId: number, amount: Prisma.Sql, now: Now): Promise<number> {
   const [row] = await tx.$queryRaw<{ total: number }[]>`
@@ -369,6 +391,68 @@ export function createPaymentsRepository() {
                count(*) FILTER (WHERE v.charge_agorot IS NULL)::integer AS unpriced
         ${uncollectedOf(spaceId)}`;
       return row ?? { visits: 0, owedAgorot: 0, unpriced: 0 };
+    },
+
+    /**
+     * What the space received in each of these windows, the payments not voided, split by the kind
+     * of item they paid, in the windows' order. One statement: the windows are two arrays of
+     * instants (an open end `-infinity` or `infinity`), each window an index range of
+     * `payments (space_id, received_at)`.
+     */
+    async incomeIn(
+      spaceId: number,
+      windows: readonly IncomeWindow[],
+      tx: Tx = prisma,
+    ): Promise<IncomeTotals[]> {
+      if (windows.length === 0) return [];
+      const froms = windows.map(({ from }) => from?.toISOString() ?? '-infinity');
+      const tos = windows.map(({ to }) => to?.toISOString() ?? 'infinity');
+      const rows = await tx.$queryRaw<{ subscriptions: number; visits: number }[]>`
+        SELECT coalesce(sum(p.amount_agorot) FILTER (WHERE p.subscription_id IS NOT NULL), 0)::integer
+                 AS subscriptions,
+               coalesce(sum(p.amount_agorot) FILTER (WHERE p.visit_id IS NOT NULL), 0)::integer
+                 AS visits
+        FROM unnest(${froms}::timestamptz[], ${tos}::timestamptz[]) WITH ORDINALITY AS w(f, t, i)
+        LEFT JOIN payments p ON p.space_id = ${spaceId} AND p.voided_at IS NULL
+          AND p.received_at >= w.f AND p.received_at < w.t
+        GROUP BY w.i ORDER BY w.i`;
+      return rows.map(({ subscriptions, visits }) => ({
+        subscriptionsAgorot: subscriptions,
+        visitsAgorot: visits,
+        totalAgorot: subscriptions + visits,
+      }));
+    },
+
+    /** When the space received its first payment not voided, or `null`. */
+    async firstReceivedAt(spaceId: number, tx: Tx = prisma): Promise<Date | null> {
+      const { _min } = await tx.payment.aggregate({
+        where: { spaceId, voidedAt: null },
+        _min: { receivedAt: true },
+      });
+      return _min.receivedAt;
+    },
+
+    /**
+     * What each staff member recorded in the window, the payments not voided: how many, the sum and
+     * the sum by method; the largest sum first, then by who recorded it. One statement.
+     */
+    collectionsIn(
+      spaceId: number,
+      { from, to }: { from: Date; to: Date },
+      tx: Tx = prisma,
+    ): Promise<CollectionsRow[]> {
+      return tx.$queryRaw<CollectionsRow[]>`
+        SELECT recorded_by_id AS "recordedById", count(*)::integer AS count,
+               sum(amount_agorot)::integer AS "totalAgorot",
+               coalesce(sum(amount_agorot) FILTER (WHERE method = 'CASH'), 0)::integer
+                 AS "cashAgorot",
+               coalesce(sum(amount_agorot) FILTER (WHERE method = 'TRANSFER'), 0)::integer
+                 AS "transferAgorot"
+        FROM payments
+        WHERE space_id = ${spaceId} AND voided_at IS NULL
+          AND received_at >= ${from} AND received_at < ${to}
+        GROUP BY recorded_by_id
+        ORDER BY "totalAgorot" DESC, recorded_by_id`;
     },
 
     /**

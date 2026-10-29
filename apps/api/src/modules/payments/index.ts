@@ -6,6 +6,9 @@ export type {
   BalanceTotals,
   NewPayment,
   UncollectedTotals,
+  CollectionsRow,
+  IncomeTotals,
+  IncomeWindow,
 } from './payments.repository.ts';
 export {
   createPaymentsService,

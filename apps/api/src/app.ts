@@ -65,6 +65,11 @@ import {
   createFavoritesService,
 } from './modules/favorites/index.ts';
 import {
+  createFinanceController,
+  createFinanceManageRouter,
+  createFinanceService,
+} from './modules/finance/index.ts';
+import {
   createAmenitiesController,
   createAmenitiesService,
   createAreasController,
@@ -426,6 +431,12 @@ export function createApi({
     subscriptions,
     now: clock,
   });
+  const finance = createFinanceService({
+    readSnapshot: createReadSnapshot(),
+    payments,
+    users,
+    now: clock,
+  });
   const desk = createDeskService({
     runInTransaction,
     readSnapshot: createReadSnapshot(),
@@ -591,6 +602,7 @@ export function createApi({
   manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
   const auditController = createAuditController(auditLog);
   manage.use('/audit-log', createAuditManageRouter(auditController));
+  manage.use('/finance', createFinanceManageRouter(createFinanceController(finance)));
   // The desk's state, polled by itself, renews no idle session: marked before the guard runs.
   api.get('/manage/spaces/:spaceId/occupancy', markPassive);
   api.use(

@@ -25,6 +25,9 @@ import {
   createPaymentsRepository,
   type BalancePageRow,
   type BalanceTotals,
+  type CollectionsRow,
+  type IncomeTotals,
+  type IncomeWindow,
   type ItemBalanceRow,
   type ItemPaymentRow,
   type NewPayment,
@@ -369,6 +372,32 @@ export function createPaymentsService({
     /** The space's uncollected visits counted: all, what the priced ones owe, the unpriced apart. */
     uncollectedTotals(spaceId: number, tx?: Tx): Promise<UncollectedTotals> {
       return repository.uncollectedTotals(spaceId, tx);
+    },
+
+    /**
+     * What the space received in each of these windows, the payments not voided, by the kind of
+     * item they paid, in the windows' order (Finance's income; data model › Income). One statement;
+     * in the caller's snapshot when given.
+     */
+    incomeIn(spaceId: number, windows: readonly IncomeWindow[], tx?: Tx): Promise<IncomeTotals[]> {
+      return repository.incomeIn(spaceId, windows, tx);
+    },
+
+    /** When the space received its first payment not voided, or `null`. */
+    firstReceivedAt(spaceId: number, tx?: Tx): Promise<Date | null> {
+      return repository.firstReceivedAt(spaceId, tx);
+    },
+
+    /**
+     * Each staff member's collections in the window, the payments not voided, by method; the largest
+     * first (data model › Collections).
+     */
+    collectionsIn(
+      spaceId: number,
+      window: { from: Date; to: Date },
+      tx?: Tx,
+    ): Promise<CollectionsRow[]> {
+      return repository.collectionsIn(spaceId, window, tx);
     },
 
     /**

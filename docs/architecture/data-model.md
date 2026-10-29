@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions and rules to build against; the schema owns every field · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** Entities, relations, data conventions, derived values and constraints. The Prisma schema, [`apps/api/prisma/schema.prisma`](../../apps/api/prisma/schema.prisma), is the source of truth for every model, field and index; this document gives the rules and the *why*, and never copies field lists.
 
 ## Conventions
@@ -117,8 +117,8 @@ The money rules are decided in [ADR 0010](decisions/0010-manual-payment-ledger.m
 - **Amount due:** a subscription's fixed price or, when it is usage-based, its attendance × its rate (days used × the day rate, or hours used × the hour rate: its minutes × the rate ÷ 60, rounded half up). A visit's due is its charge. A subscription's attendance and due are computed by one database function, `subscription_usage`, which every read uses (2026-10-21, #102).
 - **Balance:** amount due − the payments that are not voided. **Payment status:** *paid* when the balance is ≤ 0, *partly paid* when a payment exists and the balance is > 0, *unpaid* when there is none. A negative balance, possible only on a usage-based subscription, is **credit** («له رصيد»).
 - **Customer debt:** the sum of the positive balances of the customer's subscriptions and unpaid visits not written off (2026-10-20, #100). Credit on one subscription never offsets another. Debt and credit are computed in the database, by one aggregate query of `payments` over the space's items, never by reading every payment into the API (the owner's decision 6, 2026-10-21, #102).
-- **Income:** the payments that are not voided, counted by the day received: today, this month (against last month) and all time, split into visits and subscriptions.
-- **Collections:** the same payments grouped by who recorded them. Reception sees its own for today; the owner sees every staff member.
+- **Income:** the payments that are not voided, each counted on the Gaza day it was received — a window from a Gaza midnight to the next, its end left out: a month (against the month before), today and all time, split into visits and subscriptions; the last 12 months and the visits' last 30 days. A written-off visit's payments count as received; what it forgave does not, and a debt is never income (the owner's decision 2, 2026-10-29, #131).
+- **Collections:** the same payments grouped by who recorded them, by method. Reception sees its own for today; the owner sees each staff member's of a month, one whose link has ended included (2026-10-29, #131).
 - **Occupancy statistics:** peak hours and average stay, from visits and subscription check-ins.
 
 ### Subscription scenarios
