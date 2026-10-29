@@ -1,10 +1,10 @@
+import { toWesternDigits } from '@shared/lib';
 import type { MapPoint } from '../types/MapPoint';
 
 // A point as text, the way a map application copies it ("31.5205, 34.4535"): latitude, then
 // longitude, apart by a comma, spaces or both. An Arabic keyboard writes the same with Arabic-Indic
 // digits, the Arabic decimal separator (٫) and the Arabic comma (،), so those are read as their
 // Western forms first.
-const ARABIC_INDIC_ZERO = 0x0660;
 const ARABIC_DECIMAL_SEPARATOR = '٫';
 const ARABIC_COMMA = '،';
 
@@ -13,10 +13,7 @@ const POINT = new RegExp(String.raw`^\s*(${NUMBER})\s*(?:,\s*|\s+)(${NUMBER})\s*
 
 /** Arabic-Indic digits, the Arabic decimal separator and comma, in their Western forms. */
 function westernised(text: string): string {
-  return text
-    .replace(/[٠-٩]/g, (digit) =>
-      String((digit.codePointAt(0) ?? ARABIC_INDIC_ZERO) - ARABIC_INDIC_ZERO),
-    )
+  return toWesternDigits(text)
     .replaceAll(ARABIC_DECIMAL_SEPARATOR, '.')
     .replaceAll(ARABIC_COMMA, ',');
 }

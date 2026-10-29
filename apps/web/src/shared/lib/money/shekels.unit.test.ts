@@ -10,6 +10,7 @@ describe('agorotOf', () => {
     expect(agorotOf('١٢٫٥')).toBe(1250);
     expect(agorotOf('12,75')).toBe(1275);
     expect(agorotOf('٫٥')).toBe(50);
+    expect(agorotOf('۱۲٫۵')).toBe(1250);
     expect(agorotOf('0')).toBe(0);
   });
 

@@ -25,7 +25,8 @@ describe('a package’s values', () => {
         name: 'شهري',
         validityDays: '٣٠',
         limits: ['totalDays', 'hoursPerDay'],
-        totalDays: '٢٠',
+        // The Persian keyboard's digits read as well.
+        totalDays: '۲۰',
         hoursPerDay: '',
         // Typed once, then the limit turned off: it is not sent.
         daysPerWeek: '5',

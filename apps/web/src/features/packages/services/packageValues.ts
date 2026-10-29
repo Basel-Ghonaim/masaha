@@ -1,6 +1,6 @@
 import type { SpacePackage, SUBSCRIPTION_BILLINGS } from '@masaha/shared/packages';
 import type { PRICE_AUDIENCES } from '@masaha/shared/spaces';
-import { agorotOf, shekelsOf } from '@shared/lib';
+import { agorotOf, shekelsOf, toWesternDigits } from '@shared/lib';
 
 /** A package's optional limits, in the order the sheet offers them. */
 export const LIMIT_NAMES = ['totalDays', 'daysPerWeek', 'hoursPerDay', 'totalHours'] as const;
@@ -26,15 +26,9 @@ export type PackageValues = {
   shiftId: string;
 };
 
-const ARABIC_INDIC_ZERO = 0x0660;
-
 /** A count as typed: blank is none; digits, Western or Arabic-Indic, a number; else the text. */
 function countOf(text: string): number | string | undefined {
-  const typed = text
-    .trim()
-    .replace(/[٠-٩]/g, (digit) =>
-      String((digit.codePointAt(0) ?? ARABIC_INDIC_ZERO) - ARABIC_INDIC_ZERO),
-    );
+  const typed = toWesternDigits(text.trim());
   if (typed === '') return undefined;
   return /^\d+$/.test(typed) ? Number(typed) : text;
 }
