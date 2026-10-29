@@ -1,6 +1,6 @@
 # Project Overview
 
-> **Status:** Active · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** What Masaha is, what is built today, what v1 is committed to, and what is explicitly not in v1. It names scope; it does not specify behaviour.
 
 ## What Masaha is
@@ -32,6 +32,8 @@ This section lists a capability only once it is merged and working. Each line li
 - [Audit](../features/audit.md): on the API, the owner's audit log of the space, the admin shown as Masaha, and the admin's log of the platform's events only; paged, the last 30 days or all, searched by target and filtered by actor and action.
 - [Platform settings](../features/platform-settings.md): on the API, the admin's three cards — the new-space defaults, the staleness thresholds and the platform's contact — each read and saved on its own, and the contact as anyone reads it.
 - [Occupancy](../features/occupancy.md): on the API, a space's private capacity, set by its owner, and its state now for its staff: who is present, the count and the live status, with the manual override its staff set and clear.
+- [Finance](../features/finance.md): on the API, a space's income for a month and its windows, the staff's collections, who owes and who is in credit with the totals, who paid in a month, and the occupancy statistics — the owner's alone.
+- [Overview](../features/overview.md): on the API, the owner's overview, a work queue of counts with no amount, and the admin's, the platform's tiles and the spaces with incomplete data.
 
 ## Committed scope — v1
 
