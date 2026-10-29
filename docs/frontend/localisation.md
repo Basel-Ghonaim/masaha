@@ -18,6 +18,7 @@
 - Every user-facing string is in both catalogues from the first component. Nothing is hardcoded.
 - Keys: dot.separated camelCase by area: `spaces.filters.availableNow`, `attendance.checkIn.success`, `errors.MEMBER_ALREADY_CHECKED_IN`, `validation.too_short`.
 - Every server error code and field-error code has an entry in both catalogues.
+- **One second home, accepted:** the reset email's words live with the API, in `apps/api/src/modules/auth/email/resetEmail.copy.ts`, since the API has no copy catalogue: both languages there are held to one shape by its unit test, as the web's catalogues are (the owner's OD1, finding 22, 2026-10-29, #132).
 - The owner approves Arabic copy.
 
 ## Formatting

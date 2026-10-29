@@ -36,6 +36,17 @@ describe('resetEmail', () => {
     expect(email.html).toContain('<div dir="ltr" lang="en"');
   });
 
+  it('the reset email holds the link as text in both parts and languages', () => {
+    const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    for (const words of [ARABIC.copyLink, ENGLISH.copyLink]) {
+      // Under the button, the words, then the link as text a reader can copy, left to right.
+      expect(email.html).toMatch(
+        new RegExp(`${escaped(words)}</p>\\s*<p dir="ltr"[^>]*>${escaped(link)}</p>`),
+      );
+      expect(email.text).toContain(`${words}\n${link}`);
+    }
+  });
+
   it('escapes the link it is given', () => {
     const odd = resetEmail({ to: 'x@example.com', link: 'https://masaha.example/"><img src=x>' });
 

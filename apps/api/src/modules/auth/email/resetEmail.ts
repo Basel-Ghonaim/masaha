@@ -35,6 +35,9 @@ function escapeHtml(text: string): string {
  */
 export function resetEmail({ to, link }: { to: string; link: string }): EmailMessage {
   const href = escapeHtml(link);
+  // The link as text, left to right whatever the paragraph around it, breaking anywhere: a long
+  // link must not widen the card.
+  const linkAsText = `<p dir="ltr" style="margin:4px 0 0;text-align:left;font-family:${LATIN_FONT};font-size:13px;line-height:20px;color:${COLOR.brand};word-break:break-all;overflow-wrap:anywhere;">${href}</p>`;
 
   const html = `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -51,11 +54,15 @@ export function resetEmail({ to, link }: { to: string; link: string }): EmailMes
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr><td style="border-radius:8px;background:${COLOR.brand};">
 <a href="${href}" style="display:inline-block;padding:12px 24px;font-family:${ARABIC_FONT};font-size:16px;line-height:24px;font-weight:600;color:${COLOR.onBrand};text-decoration:none;border-radius:8px;">${ar.action}</a>
 </td></tr></table>
-<p style="clear:both;margin:0;padding-top:24px;font-size:14px;line-height:22px;color:${COLOR.muted};">${ar.validity}</p>
+<p style="clear:both;margin:0;padding-top:24px;font-size:14px;line-height:22px;color:${COLOR.muted};">${ar.copyLink}</p>
+${linkAsText}
+<p style="margin:0;padding-top:16px;font-size:14px;line-height:22px;color:${COLOR.muted};">${ar.validity}</p>
 <hr style="border:0;border-top:1px solid ${COLOR.border};margin:28px 0;">
 <div dir="ltr" lang="en" style="text-align:left;font-family:${LATIN_FONT};">
 <p style="margin:0 0 8px;font-size:15px;line-height:22px;color:${COLOR.text};">${en.greeting} ${en.request} <a href="${href}" style="color:${COLOR.brand};">${en.action}</a>.</p>
-<p style="margin:0;font-size:13px;line-height:20px;color:${COLOR.muted};">${en.validity}</p>
+<p style="margin:0;font-size:13px;line-height:20px;color:${COLOR.muted};">${en.copyLink}</p>
+${linkAsText}
+<p style="margin:0;padding-top:8px;font-size:13px;line-height:20px;color:${COLOR.muted};">${en.validity}</p>
 </div>
 </td></tr>
 <tr><td dir="rtl" align="right" style="padding:20px 4px 0;font-family:${ARABIC_FONT};font-size:12px;line-height:18px;color:${COLOR.muted};">${ar.footer}</td></tr>
@@ -68,11 +75,13 @@ export function resetEmail({ to, link }: { to: string; link: string }): EmailMes
   const text = [
     ar.greeting,
     `${ar.request} ${ar.instruction}`,
+    ar.copyLink,
     link,
     ar.validity,
     '',
     `${en.greeting} ${en.request}`,
-    `${en.action}: ${link}`,
+    en.copyLink,
+    link,
     en.validity,
     '',
     ar.footer,

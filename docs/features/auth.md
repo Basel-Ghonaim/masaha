@@ -39,7 +39,7 @@
 
 **The forgotten password.** A request for a link opens a recovery in the browser, held by the server and found by its cookie, and answers where it stands ([the contract](../api/api-contract.md#the-forgotten-password)). The page then offers another link without the email. Opening the link checks it: the reset page takes the token from the address's fragment, removes it, and sends it once; the answer names the account before the form is sent. Setting the password ends the recovery. An answer that sends no email waits about as long as a send would ([security › Passwords](../backend/security.md#passwords)). An account whose temporary password is pending gets no email, and its links are refused ([security › Passwords](../backend/security.md#passwords)).
 
-**The reset email** is bilingual, Arabic then English, as designed ([SCREENS.md](../design/SCREENS.md) row 7), except the greeting by name ([security › Passwords](../backend/security.md#passwords)). Its words live with the module, in both languages held to one shape, since the API has no copy catalogue.
+**The reset email** is bilingual, Arabic then English, as designed ([SCREENS.md](../design/SCREENS.md) row 7), except the greeting by name ([security › Passwords](../backend/security.md#passwords)). Its words live with the module, in both languages held to one shape, since the API has no copy catalogue ([localisation › Catalogues](../frontend/localisation.md#catalogues)). Under the button, «إن لم يعمل الزر، انسخ هذا الرابط:» / "If the button doesn't work, copy this link:" and the link as text, left to right and breaking anywhere, in the HTML and the text parts: a mail client may strip the button (AC-021, 2026-10-29, #132).
 
 ## Decisions
 
@@ -97,7 +97,7 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 - #78 — a session's 30 days; the access tokens end with the session, through `users`' `endSessions`, after a reset and a refused refresh; the forgotten password's wait when it sends nothing.
 - #90 — no reset email, no reset with an older link and no Google link while a temporary password is pending.
 - #118 — the access token names its session (`sid`); reception's session ends after 15 minutes idle (`SESSION_IDLE`).
-- #132 — a replay within the grace gets its token's one successor; the ended tokens and recoveries swept by a timed job; Google's answer says `created`; registration and a first Google sign-in free an expired pending account's address.
+- #132 — a replay within the grace gets its token's one successor; the ended tokens and recoveries swept by a timed job; Google's answer says `created`; registration and a first Google sign-in free an expired pending account's address; the reset email prints its link.
 
 ### Web history
 
