@@ -1,3 +1,4 @@
+import { useOpenReportsCount } from '@features/data-reports';
 import { SpaceSwitcher } from '@features/space-links';
 import { useCopy } from '@shared/copy';
 import { spaceHomePath } from '@shared/routing';
@@ -11,11 +12,14 @@ import { useSpaceShell } from './useSpaceShell';
  * at that space allows, and the space's public page. Entering a space the user holds a link to
  * remembers it for the landing. A space they hold none at gets no pages; its routes' guards show
  * the 404 or the 403 inside this shell. Each space has a shell of its own, so moving to another
- * space, from the switcher or the history, closes the phone's drawer.
+ * space, from the switcher or the history, closes the phone's drawer. The owner's pages are grouped by
+ * task, the data reports' item counting the new reports; reception's four pages are not grouped.
  */
 export function SpaceLayout() {
   const copy = useCopy();
   const { spaceId, slug, navigation } = useSpaceShell();
+  const isOwner = navigation?.role === 'OWNER';
+  const openReports = useOpenReportsCount(spaceId, isOwner);
 
   return (
     <DashboardLayout
@@ -28,7 +32,18 @@ export function SpaceLayout() {
       }
       footer={slug !== undefined && <PublicPageLink slug={slug} />}
     >
-      {navigation && <DashboardNavigation base={navigation.base} items={navigation.items} />}
+      {navigation && (
+        <DashboardNavigation
+          base={navigation.base}
+          items={navigation.items}
+          grouped={isOwner}
+          badges={
+            openReports === undefined
+              ? {}
+              : { dataReports: { count: openReports, label: copy.dashboard.badges.newReports } }
+          }
+        />
+      )}
     </DashboardLayout>
   );
 }

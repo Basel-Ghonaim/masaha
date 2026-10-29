@@ -40,4 +40,5 @@ export const NAVIGATION_ICONS: Record<DashboardPageName, ComponentType<IconProps
   users: UsersIcon,
   lookups: ListChecksIcon,
   audit: ScrollTextIcon,
+  platformSettings: SettingsIcon,
 };

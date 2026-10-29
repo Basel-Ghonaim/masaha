@@ -29,6 +29,21 @@ export const DASHBOARD = {
     users: 'Users',
     lookups: 'Lookups',
     audit: 'Audit log',
+    platformSettings: 'Platform settings',
+  },
+  /** The sidebar's groups of pages, by task (finding 165); reception's four pages have none. */
+  groups: {
+    today: 'Today',
+    money: 'Money',
+    space: 'The space',
+    team: 'Team & settings',
+    spaces: 'Spaces',
+    platform: 'The platform',
+  },
+  /** What a page's count in the sidebar says, for assistive technology. */
+  badges: {
+    newReports: 'new reports',
+    reportsForAdmin: 'reports waiting for the admin',
   },
   /** The admin's add-space page, reached from the spaces list: never a sidebar item. */
   addSpace: {
