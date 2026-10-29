@@ -47,6 +47,26 @@ function roundingPair(
 }
 
 /**
+ * What a new space's settings are copied from, as the admin saves them (docs/api/api-contract.md ›
+ * Platform settings): a subset of a space's settings, each required, the minutes set exactly for
+ * "up after N minutes", with the codes of a space's own edit.
+ */
+export const newSpaceDefaultsSchema = z
+  .object({
+    autoCheckoutAtClosing: z.boolean(),
+    visitRounding: z.enum(VISIT_ROUNDINGS),
+    visitRoundingMinutes: z
+      .number()
+      .int()
+      .min(ROUNDING_MINUTES.min)
+      .max(ROUNDING_MINUTES.max)
+      .nullable(),
+    visitCapAtDayPrice: z.boolean(),
+  })
+  .superRefine(roundingPair);
+export type NewSpaceDefaults = z.infer<typeof newSpaceDefaultsSchema>;
+
+/**
  * Edits a space's settings: any of them, what is absent kept. `null` clears the stay limit (closing
  * time only) or the reminder (the copy catalogue's text); a switch is never `null`.
  */

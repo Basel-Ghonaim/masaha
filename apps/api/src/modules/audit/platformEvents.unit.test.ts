@@ -54,4 +54,15 @@ describe("the admin's allowlist", () => {
       expect(isPlatformEvent({ action, spaceId: 3 })).toBe(false);
     }
   });
+
+  it("the platform's settings are the platform's", () => {
+    for (const action of [
+      'platformSettings.newSpaceDefaultsEdited',
+      'platformSettings.stalenessEdited',
+      'platformSettings.contactEdited',
+    ]) {
+      expect(AUDIT_ACTIONS).toContain(action);
+      expect(isPlatformEvent({ action, spaceId: null }), action).toBe(true);
+    }
+  });
 });

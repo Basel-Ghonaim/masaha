@@ -13,7 +13,8 @@ export interface AuditEntry {
   actorId: number | null;
   action: string;
   entityType: string;
-  entityId: number;
+  /** Null for an entity with no numeric id (the platform's settings). */
+  entityId: number | null;
   spaceId?: number;
   before?: AuditValues;
   after?: AuditValues;

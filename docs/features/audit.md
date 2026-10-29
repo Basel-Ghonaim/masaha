@@ -47,6 +47,7 @@
 - **`before` and `after` answered as stored; the action as stored.** *Why:* the writer never stores a secret; summarising them would put display rules in the API ([ADR 0006](../architecture/decisions/0006-localisation-approach.md)); an action written later is still shown, and `AUDIT_ACTIONS` is what the filter accepts. 2026-10-27, #128.
 - **The admin's log is a default-deny list of the platform's events** (S5, the owner's decision 9, §13 Q7). *Why:* ADR 0002 and 0009 keep a space's operations, money, capacity, settings and staff from the admin, while its public facts, existence, owners and moderation are the platform's; a list of what may be shown hides every action added later until it is listed. 2026-10-27, #128.
 - **An account's event is the platform's only when it names no space** (S5). *Why:* an owner's staff account's events name the space and are the space's: its creation, its temporary passwords and their handover, and the email it corrects at its forced change (the space of its reception link); the admin's own accounts' name none. 2026-10-27, #128; the creation and the email, 2026-10-28, #128.
+- **The platform's settings are the platform's events** (the owner's decision 11): each card's save, with the entity type `platformSettings` and no id, since a setting has none, so its target has no name. 2026-10-28, #130.
 - **Kept for ever** (the owner's decision 10). *Why:* v1 has no retention rule; [finding 152](../architecture/findings/152-audit-entries-kept-for-ever-meet-the-databases-05-gb.md) records the cost. 2026-10-27, #128.
 - **The period is the last 30 days or all time, no free range** (the owner's decision 9, §13 Q8). 2026-10-27, #128.
 - **`meta.actors`** (S7): the period's actors, so a screen offers the actor filter without reading every page. 2026-10-27, #128.
@@ -66,3 +67,4 @@
 ### API history
 
 - #128 — the owner's audit log of the space, the admin shown as Masaha, and the admin's log of the platform's events, by a default-deny list; paged, the last 30 days or all, searched by target, filtered by actor and action.
+- #130 — the platform's settings' saves on the admin's log, their target with no id.

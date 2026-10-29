@@ -109,7 +109,12 @@ import {
   createStaffManageRouter,
   createStaffService,
 } from './modules/space-links/index.ts';
-import { createPlatformSettingsService } from './modules/platform-settings/index.ts';
+import {
+  createPlatformSettingsAdminRouter,
+  createPlatformSettingsController,
+  createPlatformSettingsPublicRouter,
+  createPlatformSettingsService,
+} from './modules/platform-settings/index.ts';
 import {
   createSpaceSettingsController,
   createSpaceSettingsManageRouter,
@@ -328,7 +333,7 @@ export function createApi({
   const areas = createAreasService({ runInTransaction, audit: writeAudit });
   const amenities = createAmenitiesService({ runInTransaction, audit: writeAudit });
   const catalogue = createCatalogueService();
-  const platformSettings = createPlatformSettingsService();
+  const platformSettings = createPlatformSettingsService({ runInTransaction, audit: writeAudit });
   const spaces = createSpacesService();
   // The space's lock is `spaces`' (conventions §13), a level above the settings: passed in.
   const spaceSettings = createSpaceSettingsService({
@@ -539,6 +544,8 @@ export function createApi({
   api.use('/me', createUsersMeRouter(usersController, requireAuth));
   api.use('/me', createFavoritesMeRouter(createFavoritesController(favorites), requireAuth));
   api.use('/lookups', createLookupsPublicRouter(createCatalogueController(catalogue)));
+  const platformSettingsController = createPlatformSettingsController(platformSettings);
+  api.use('/settings', createPlatformSettingsPublicRouter(platformSettingsController));
   const directoryController = createDirectoryController(directory);
   api.use(createDirectoryPublicRouter(directoryController));
   api.use(createDirectoryMeRouter(directoryController, requireAuth));
@@ -619,6 +626,7 @@ export function createApi({
   admin.use(createUsersAdminRouter(usersController));
   admin.use('/data-reports', createDataReportsAdminRouter(dataReportsController));
   admin.use('/audit-log', createAuditAdminRouter(auditController));
+  admin.use('/settings', createPlatformSettingsAdminRouter(platformSettingsController));
   admin.use(
     createSpacesAdminRouter({
       space: createSpaceController(space),

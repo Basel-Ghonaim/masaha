@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { toFieldErrors } from '../core/index.ts';
-import { updateSpaceSettingsSchema } from './requests.ts';
+import { newSpaceDefaultsSchema, updateSpaceSettingsSchema } from './requests.ts';
 
 /** The field errors a settings patch fails with, or null when it passes. */
 function errorsOf(body: object) {
@@ -58,5 +58,41 @@ describe('updateSpaceSettingsSchema', () => {
     ]) {
       expect(errorsOf({ [field]: null })).toEqual({ [field]: ['invalid_format'] });
     }
+  });
+});
+
+describe('newSpaceDefaultsSchema', () => {
+  const DEFAULTS = {
+    autoCheckoutAtClosing: true,
+    visitRounding: 'UP_AFTER_MINUTES',
+    visitRoundingMinutes: 15,
+    visitCapAtDayPrice: true,
+  };
+  const defaultsErrors = (body: object) => {
+    const result = newSpaceDefaultsSchema.safeParse(body);
+    return result.success ? null : toFieldErrors(result.error.issues, body);
+  };
+
+  it('takes the four defaults whole, the minutes set exactly for "up after N minutes"', () => {
+    expect(defaultsErrors(DEFAULTS)).toBeNull();
+    expect(
+      defaultsErrors({ ...DEFAULTS, visitRounding: 'PER_MINUTE', visitRoundingMinutes: null }),
+    ).toBeNull();
+
+    expect(defaultsErrors({ ...DEFAULTS, visitRoundingMinutes: null })).toEqual({
+      visitRoundingMinutes: ['required'],
+    });
+    expect(defaultsErrors({ ...DEFAULTS, visitRounding: 'NEAREST_HALF_HOUR' })).toEqual({
+      visitRoundingMinutes: ['invalid_format'],
+    });
+    expect(defaultsErrors({ ...DEFAULTS, visitRoundingMinutes: 60 })).toEqual({
+      visitRoundingMinutes: ['out_of_range'],
+    });
+    const withoutCap = {
+      autoCheckoutAtClosing: true,
+      visitRounding: 'UP_AFTER_MINUTES',
+      visitRoundingMinutes: 15,
+    };
+    expect(defaultsErrors(withoutCap)).toEqual({ visitCapAtDayPrice: ['required'] });
   });
 });

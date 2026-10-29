@@ -1,6 +1,6 @@
 # Plan — Masaha v1
 
-> **Status:** Active · **Last Updated:** 2026-10-27 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
 > **Authority:** Strategy, sequence and risks for delivering v1. Scope is owned by [overview.md](../project/overview.md); work items and their contracts live in PRs (and Issues when the owner creates them).
 
 ## Timeline
@@ -145,6 +145,7 @@ Each step names its goal and points to what supports it:
 - **Built early:** the space's settings and its capacity, on the API (#92, [api-contract › Settings (managed)](../api/api-contract.md#settings-managed)), ahead of the front desk; screen 24 remains here.
 - **Settles:** charts and CSV exports.
 - **Built:** the audit reader, on the API: the owner's log of the space, the admin shown as Masaha, and the admin's log of the platform's events, by a default-deny list (2026-10-27, #128).
+- **Built:** the platform's settings, on the API: the admin's three cards — the new-space defaults, the staleness thresholds and the contact — and the public contact (2026-10-28, #130).
 
 ### 12. Overviews
 
@@ -163,7 +164,7 @@ Each step names its goal and points to what supports it:
 - The space page's announcements, its report button and the favourite action arrive with step 10.
 - Owners are linked (step 4) before they edit their space (5) or add staff (6). The admin's *Spaces* screen gains its owner linking in step 4.
 - Payments (step 9) follow the desk (7) and subscriptions (8), which record the first payments.
-- A space runs on the new-space defaults copied at its creation until its owner edits its settings (on the API since #92; screen 24 in step 11); the platform runs on its seeded settings until step 11.
+- A space runs on the new-space defaults copied at its creation until its owner edits its settings (on the API since #92; screen 24 in step 11); the platform runs on its seeded settings until the admin saves them (on the API since #130; screen 32 in step 11).
 - The overviews come last: they compose figures from every module.
 
 ## Documentation milestones
@@ -209,13 +210,13 @@ Built: `POST /me/password`, the password change and the forced change at first s
 | GET | `/me/reports` | 👤 with the resolution note (built, #120) |
 
 #### Public directory
-Built: `GET /lookups`, the active governorates with their active areas and the active amenities; `GET /spaces`, the directory's list, paged and filtered on the server, with its search and near me (the device's location in a header, only to sort); `GET /map/spaces`, the map's pins; and `GET /spaces/:slug`, a space's public page, with its running and upcoming announcements (2026-10-24, #112); the live status on the cards and the pins, the `availableNow` filter, and `GET /spaces/:slug/occupancy`, a space's live status alone ([api-contract §5](../api/api-contract.md#directory-public)); `POST /spaces/:slug/reports`, a signed-in user's report of a listed space, 10 an hour (#120, [api-contract › Data reports](../api/api-contract.md#data-reports)).
+Built: `GET /lookups`, the active governorates with their active areas and the active amenities; `GET /spaces`, the directory's list, paged and filtered on the server, with its search and near me (the device's location in a header, only to sort); `GET /map/spaces`, the map's pins; and `GET /spaces/:slug`, a space's public page, with its running and upcoming announcements (2026-10-24, #112); the live status on the cards and the pins, the `availableNow` filter, and `GET /spaces/:slug/occupancy`, a space's live status alone ([api-contract §5](../api/api-contract.md#directory-public)); `POST /spaces/:slug/reports`, a signed-in user's report of a listed space, 10 an hour (#120, [api-contract › Data reports](../api/api-contract.md#data-reports)); `GET /settings/public`, the platform's contact (#130, [api-contract › Platform settings](../api/api-contract.md#platform-settings)).
 
 | Method | Path | Access | Notes |
 |---|---|---|---|
 | GET | `/spaces/:slug` | 🌐 | its running and upcoming announcements, built (#112) |
 | POST | `/spaces/:slug/reports` | 👤 | report wrong information (built, #120) |
-| GET | `/settings/public` | 🌐 | contact email and WhatsApp |
+| GET | `/settings/public` | 🌐 | the platform's contact email and WhatsApp, `null` while unset, cached 5 minutes (built, #130) |
 
 #### Managed spaces (`/manage/spaces/:spaceId/...`)
 Built: `GET /manage/spaces`, and the API-only profile, facts, confirmations, photo, package and staff routes below, the settings and capacity routes, the staff's read of the space's state now with its override, a visitor's check-in and check-out (`POST …/visits`, `POST …/visits/:visitId/check-out`), and a visit's debt: its payment after the check-out (`POST …/payments`), «تسجيل دينًا» (`PUT …/visits/:visitId/customer`) and the owner's write-off (`POST` / `DELETE …/visits/:visitId/write-off`) (#100), and the customers: the list and the file (`GET …/customers`, `GET …/customers/:customerId`), the create and the edit (`POST …/customers`, `PATCH …/customers/:customerId`), the archive and the restore (`POST …/customers/:customerId/archive`, `…/restore`) (#102), and the subscriptions: subscribing and renewing (`POST …/customers/:customerId/subscriptions`), a subscription's payment (`POST …/payments`), its statement (`GET …/subscriptions/:id`), its corrections (`PATCH …/subscriptions/:id`, the owner's `PUT …/subscriptions/:id/price`) and its end (`POST …/subscriptions/:id/end`) (#106), and the subscribers' check-ins: the check-in and the check-out (`POST …/check-ins`, `POST …/check-ins/:checkInId/check-out`) and the lists (`GET …/check-ins`) (#109), and the announcements: the post, the edit, the end, the start and the delete, the list and its summary (#112), and the payments: the list (`GET …/payments`) and the owner's void (`POST …/payments/:paymentId/void`) (#114) ([Subscriptions (managed)](../api/api-contract.md#subscriptions-managed), [api-contract › Settings (managed)](../api/api-contract.md#settings-managed), [Capacity (managed)](../api/api-contract.md#capacity-managed), [Occupancy (managed)](../api/api-contract.md#occupancy-managed), [Front desk (managed)](../api/api-contract.md#front-desk-managed), [Customers (managed)](../api/api-contract.md#customers-managed)); and the space's data reports, the owner's list and decision (#120, [Data reports](../api/api-contract.md#data-reports)).
@@ -248,14 +249,14 @@ dashboard modules remain planned ([api-contract §5](../api/api-contract.md#5-en
 | GET | `/manage/spaces/:spaceId/audit-log` | 🏢 | every entry of the space, the admin as Masaha; paged, the last 30 days or all, searched and filtered (built, #128) |
 
 #### Admin (`/admin/...`, 🛡)
-Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile and facts edits, a group at a time, and the confirming of a group unchanged while it is unverified, and hiding and showing, soft delete and restore of any space; the users, `GET /admin/users`, the list with its search and its role and state filters, which the owners page reads filtered to the owners; the owners, `/admin/owners`, added with a new account or an upgraded one, and `/admin/spaces/:spaceId/owners`, linked and unlinked one space at a time; a temporary password's handover, `/admin/users/:userId/temporary-password/handover`; suspension, `/admin/users/:userId/suspended`; the role change, `/admin/users/:userId/role`; and the admin's temporary password, `/admin/users/:userId/temporary-password`; a space's photos, `/admin/spaces/:spaceId/photos`: the list, an upload, a removal and the order ([api-contract §5](../api/api-contract.md#5-endpoints)); the data reports, `/admin/data-reports`: every report with its reporter, and the decision of an unverified space's (#120).
+Built: the lookups, `/admin/governorates` (with their areas), `/admin/areas` and `/admin/amenities`: list, add, edit, hide and restore, and order; the spaces, `/admin/spaces`: the list with its filters, an unverified space's creation, one space's read, its profile and facts edits, a group at a time, and the confirming of a group unchanged while it is unverified, and hiding and showing, soft delete and restore of any space; the users, `GET /admin/users`, the list with its search and its role and state filters, which the owners page reads filtered to the owners; the owners, `/admin/owners`, added with a new account or an upgraded one, and `/admin/spaces/:spaceId/owners`, linked and unlinked one space at a time; a temporary password's handover, `/admin/users/:userId/temporary-password/handover`; suspension, `/admin/users/:userId/suspended`; the role change, `/admin/users/:userId/role`; and the admin's temporary password, `/admin/users/:userId/temporary-password`; a space's photos, `/admin/spaces/:spaceId/photos`: the list, an upload, a removal and the order ([api-contract §5](../api/api-contract.md#5-endpoints)); the data reports, `/admin/data-reports`: every report with its reporter, and the decision of an unverified space's (#120); the platform's settings, `/admin/settings/…`: the new-space defaults, the staleness thresholds and the contact, three cards (#130).
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/admin/stats` | aggregate numbers only |
 | GET / PATCH | `/admin/data-reports[/:id]` | read all; resolve (with an optional note) or dismiss (with a required one) those of unverified spaces (built, #120) |
 | GET | `/admin/audit-log` | the platform's events only, by a default-deny list (built, #128) |
-| GET / PATCH | `/admin/settings` | contact info, defaults |
+| GET / PUT | `/admin/settings/{new-space-defaults \| staleness \| contact}` | three cards, each read and saved on its own, audited (built, #130) |
 
 ## Data model
 
