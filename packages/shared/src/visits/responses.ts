@@ -45,6 +45,18 @@ export interface DeskVisit {
   writeOff: VisitWriteOff | null;
 }
 
+/**
+ * A written-off visit as the owner's list shows it: the visit (its `writeOff` says when and why),
+ * who wrote it off, by name; what was paid on it, voided payments left out, and the rest written
+ * off (its charge less that).
+ */
+export interface WrittenOffVisit {
+  visit: DeskVisit;
+  writtenOffBy: { id: number; name: string };
+  paidAgorot: number;
+  writtenOffAgorot: number;
+}
+
 /** What an open visit costs now, as the desk shows it before the check-out. */
 export interface VisitQuote {
   /** When it was quoted: the check-out's `checkedOutAt` that charges this. */

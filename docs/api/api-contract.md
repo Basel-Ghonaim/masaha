@@ -668,6 +668,22 @@ UncollectedVisit = {
 }
 ```
 
+#### `GET /manage/spaces/:spaceId/written-off-visits` · 🏢
+The space's written-off visits, for the desk's «لن تُحصَّل» view and its undo (2026-10-29, #132).
+- **Auth:** the owner's (`visits.writeOff`); reception is refused `forbidden` (403) before the query is read.
+- **Query:** `page`, `limit` (§4).
+- **200:** a page of `WrittenOffVisit` (`@masaha/shared/visits`): the space's visits written off and not undone, the latest written off first, then by id; `meta` the pagination.
+- **Errors:** `forbidden` (403) for reception; `validation` (422) on the query; `not_found` (404).
+
+```ts
+WrittenOffVisit = {
+  visit: DeskVisit,                         // its writeOff: when, by whom (id) and why
+  writtenOffBy: { id, name },               // the account's name, a link of any state
+  paidAgorot: number,                       // what was paid on it, voided payments left out
+  writtenOffAgorot: number                  // the rest written off: its charge less paidAgorot
+}
+```
+
 #### `PUT /manage/spaces/:spaceId/visits/:visitId/customer` · 🧾
 «تسجيل دينًا» (DK-012): a closed visit's unpaid rest left to a customer by phone, with no payment.
 - **Body** (`leaveToCustomerSchema`, `@masaha/shared/desk`): `{ phone, customerName? }`; `phone` required.

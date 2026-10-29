@@ -543,6 +543,29 @@ export function createPaymentsRepository() {
     },
 
     /**
+     * A page of the space's written-off visits, each with what was paid on it, voided payments left
+     * out: the latest written off first, then by id; and how many there are. One query each.
+     */
+    async writtenOffPage(
+      spaceId: number,
+      { skip, take }: { skip: number; take: number },
+    ): Promise<{ rows: { id: number; paidAgorot: number }[]; total: number }> {
+      const [rows, total] = await Promise.all([
+        prisma.$queryRaw<{ id: number; paid: number }[]>`
+          SELECT v.id, coalesce(p.paid, 0)::integer AS paid
+          FROM visits v
+          LEFT JOIN LATERAL (
+            SELECT sum(amount_agorot)::integer AS paid FROM payments
+            WHERE visit_id = v.id AND voided_at IS NULL
+          ) p ON true
+          WHERE v.space_id = ${spaceId} AND v.written_off_at IS NOT NULL
+          ORDER BY v.written_off_at DESC, v.id DESC LIMIT ${take} OFFSET ${skip}`,
+        prisma.visit.count({ where: { spaceId, writtenOffAt: { not: null } } }),
+      ]);
+      return { rows: rows.map(({ id, paid }) => ({ id, paidAgorot: paid })), total };
+    },
+
+    /**
      * The space's payment, its row locked (`FOR UPDATE`) in the caller's transaction, voided or not;
      * `null` when the space has none with this id.
      */

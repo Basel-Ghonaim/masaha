@@ -58,6 +58,8 @@
 
 **The unpriced visits.** The space's closed visits with no charge, the latest closed first, then by id, paged, read without a lock. **The pricing:** in one transaction, the space's lock; `can()` on the links read under it, the staff's, then `prices.typeByHand` by the space's switch; the visit's row (`FOR UPDATE`), the space's only; refused while open, or once it has a charge; its charge, who typed it and why, no rounding; audited `visit.priced`.
 
+**The written-off visits** (`GET …/written-off-visits`, the owner's): paged by `payments`, which reads each one's non-voided payments as it reads the uncollected ones; answered as the desk sees them, with who wrote each off by name and the rest written off, the latest written off first (2026-10-29, #132).
+
 **The unpriced count** (`unpricedCount`, for the owner's overview): the unpriced list's total, one `count` on the list's own condition (one `const` for both) (2026-10-29, #131).
 
 ## Decisions
@@ -95,4 +97,4 @@
 - #100 — a stay closed by its day's end, and one that cannot be closed logged without halting the job; a visit's write-off, its columns and `writeOff` on every visit answered; a closed visit left to a customer (`leaveTo`).
 - #102 — the auto check-out counts the visits it could not close (`failed`), and fails only when it cannot run; a stay's charge never past its due time, at the check-out, in the quote and in the charges so far (`stayEndAt`); visits by id as the desk sees them (`deskVisitsOf`), and the auto-closed readers gone (finding 113).
 - #131 — a space's visits by the Gaza day of their check-in (`GET …/visits`).
-- #132 — a visit's check-in may name its customer (`customerId`, finding 160's API half).
+- #132 — a visit's check-in may name its customer (`customerId`, finding 160's API half); the written-off visits listed, through `payments`' ledger (`GET …/written-off-visits`, finding 164's API half).

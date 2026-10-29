@@ -8,6 +8,7 @@ import type {
   UncollectedVisit,
   VisitPayment,
 } from '@masaha/shared/payments';
+import type { WrittenOffVisit } from '@masaha/shared/visits';
 
 import type { Tx } from '../../db/index.ts';
 import { can, type Actor, type LoadedSpace } from '../../shared/auth/index.ts';
@@ -383,6 +384,50 @@ export function createPaymentsService({
      */
     balanceTotals(spaceId: number, at: Date, tx?: Tx): Promise<BalanceTotals> {
       return repository.balanceTotals(spaceId, calendarOf(at), tx);
+    },
+
+    /**
+     * A page of the space's written-off visits, the owner's (the router's `can()`): this ledger pages
+     * them over the visits and their non-voided payments, the latest written off first; `visits`
+     * answers them as the desk sees them, and `users` names who wrote each off. The rest written off
+     * is the charge less what was paid.
+     */
+    async writtenOffIn(
+      spaceId: number,
+      query: PaginationQuery,
+    ): Promise<{ rows: WrittenOffVisit[]; total: number }> {
+      const { rows, total } = await repository.writtenOffPage(spaceId, {
+        skip: toSkip(query),
+        take: query.limit,
+      });
+      const deskVisits = await visits.deskVisitsOf(
+        spaceId,
+        rows.map(({ id }) => id),
+      );
+      const byIds = idsOf([...deskVisits.values()].map(({ writeOff }) => writeOff?.byId ?? null));
+      const names = new Map(
+        byIds.length === 0
+          ? []
+          : (await users.namesFor(byIds, undefined)).map(({ id, name }) => [id, name]),
+      );
+      return {
+        rows: rows.flatMap(({ id, paidAgorot }) => {
+          const visit = deskVisits.get(id);
+          const byId = visit?.writeOff?.byId;
+          if (!visit || byId === undefined) return [];
+          const name = names.get(byId);
+          if (name === undefined) throw new Error(`The user ${String(byId)} has no name.`);
+          return [
+            {
+              visit,
+              writtenOffBy: { id: byId, name },
+              paidAgorot,
+              writtenOffAgorot: (visit.charge?.amountAgorot ?? 0) - paidAgorot,
+            },
+          ];
+        }),
+        total,
+      };
     },
 
     /** The space's uncollected visits counted: all, what the priced ones owe, the unpriced apart. */
