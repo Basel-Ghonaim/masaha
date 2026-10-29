@@ -48,8 +48,13 @@ describe("the admin's allowlist", () => {
       expect(isPlatformEvent({ action, spaceId: null })).toBe(true);
       expect(isPlatformEvent({ action, spaceId: 3 })).toBe(false);
     }
-    // Default deny: a space's own, and an action on no list.
-    for (const action of [...SPACE_PRIVATE, 'payment.recorded', 'space.somethingNew']) {
+    // Default deny: a space's own, a person's own name or language, and an action on no list.
+    for (const action of [
+      ...SPACE_PRIVATE,
+      'payment.recorded',
+      'user.profileEdited',
+      'space.somethingNew',
+    ]) {
       expect(isPlatformEvent({ action, spaceId: null })).toBe(false);
       expect(isPlatformEvent({ action, spaceId: 3 })).toBe(false);
     }

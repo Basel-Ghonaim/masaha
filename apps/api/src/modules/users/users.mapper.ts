@@ -1,4 +1,4 @@
-import type { User } from '@masaha/shared/users';
+import type { MyAccount, User } from '@masaha/shared/users';
 
 import type { Account } from './users.repository.ts';
 
@@ -13,4 +13,9 @@ export function toUserView(account: Account, hasPassword: boolean): User {
     mustChangePassword: account.mustChangePassword,
     hasPassword,
   };
+}
+
+/** The account as its own settings read it. */
+export function toMyAccount({ id, name, email, language, role }: Account): MyAccount {
+  return { id, name, email, language, role };
 }

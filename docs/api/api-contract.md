@@ -161,6 +161,19 @@ RecoveryPosition =
 
 The signed-in user's own account. Each endpoint needs the access token.
 
+```ts
+MyAccount = { id: number, name: string, email: string, language: "ar" | "en", role: "USER" | "OWNER" | "ADMIN" }
+```
+
+#### `GET /me` · 👤
+- **200:** `MyAccount`, the caller's own, whatever the query names (2026-10-29, #131).
+- **Errors:** `unauthorized` (401) without a valid access token, for a suspended account, or for a token signed before the account's sessions last ended (§1); `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending.
+
+#### `PATCH /me` · 👤
+- **Body:** `{ name?, language? }`; what is absent is kept. The name as at registration (1–100 characters, NFC-normalised, no bidirectional or control characters); `language` `ar` or `en`, the interface's.
+- **200:** `MyAccount`, as edited. Only what changed is written, and audited `user.profileEdited` with `before` and `after` holding only the changed fields, naming no space, so never the admin's to read ([conventions §6](../backend/conventions.md#6-audit)); an edit that changes nothing, an empty body included, writes nothing (2026-10-29, #131).
+- **Errors:** `validation` (422); the guard's, as `GET /me`.
+
 #### `POST /me/password` · 👤, also while a temporary password is pending
 - **Body:** `{ currentPassword?, password, email? }`. The new password follows the policy. `currentPassword` is required unless a temporary password is pending (the forced change), as both the access token and the account say. `email` is taken only during the forced change: the address someone else typed, confirmed, or corrected, which is audited `user.emailChanged` ([security.md](../backend/security.md#passwords)), with the space of the account's reception link when it has one; the same address changes nothing.
 - **200:** `{ accessToken }`, and a new refresh cookie: this device's session goes on in a new one ([security.md](../backend/security.md#passwords)). The answer is the same with an `email`; the session's user reads the corrected address at its next refresh.

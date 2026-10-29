@@ -3,7 +3,9 @@ import type {
   HandoverRequest,
   IssuedTemporaryPassword,
   PasswordChanged,
+  MyAccount,
   SetSuspendedRequest,
+  UpdateMeRequest,
 } from '@masaha/shared/users';
 import type { Request, Response } from 'express';
 
@@ -15,6 +17,19 @@ import type { UsersService } from './users.service.ts';
 
 export function createUsersController(users: UsersService, cookies: SessionCookies) {
   return {
+    myAccount: async (req: Request, res: Response) => {
+      const { userId } = signedIn(req);
+      sendSuccess(res, (await users.myAccount(userId)) satisfies MyAccount);
+    },
+
+    editMyAccount: async (req: Request, res: Response) => {
+      const { userId } = signedIn(req);
+      sendSuccess(
+        res,
+        (await users.editMyAccount(userId, req.body as UpdateMeRequest)) satisfies MyAccount,
+      );
+    },
+
     changePassword: async (req: Request, res: Response) => {
       const { userId, tokenPendingChange } = signedIn(req);
       const { accessToken, refreshToken } = await users.changePassword(

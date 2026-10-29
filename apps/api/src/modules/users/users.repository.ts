@@ -294,6 +294,15 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       });
     },
 
+    /** Sets the account's own name and interface language, each when given. */
+    async setProfile(
+      id: number,
+      profile: { name?: string; language?: Language },
+      tx: Tx,
+    ): Promise<Account> {
+      return tx.user.update({ where: { id }, data: profile, select: ACCOUNT });
+    },
+
     /** Sets the global role. */
     async setRole(id: number, role: Role, tx: Tx): Promise<void> {
       await tx.user.update({ where: { id }, data: { role }, select: { id: true } });

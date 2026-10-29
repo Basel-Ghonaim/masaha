@@ -1,12 +1,13 @@
 # Users
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The `users` capability: the account, its credentials, who may sign in, the password change and the forced change, the accounts the admin reads and creates, a temporary password's handover, the account menu and sign-out. Its endpoints are owned by the API contract: [*Me*](../api/api-contract.md#me) and [*Users (the admin)*](../api/api-contract.md#users-the-admin); the `User` entity by the [data model](../architecture/data-model.md#users-and-sessions); every password and sign-in rule by [security.md](../backend/security.md#passwords).
 > **Scope:** the API module `users` (L1); `@masaha/shared/users`; the web feature `features/users`.
 
 ## What it does
 
 - Holds the accounts: creates one at registration, at a first Google sign-in, or as an account the admin creates, with a temporary password, links Google to an existing one, hashes and verifies passwords, and refuses a suspended account.
+- Answers the signed-in user's own account (`MyAccount`), and edits its name and interface language, audited.
 - Changes a password, and settles a temporary one in the forced change. A temporary password expires 7 days after it is issued: a password sign-in with an expired one is refused. While one is pending, the account has no recovery by email and no Google link; the forced change confirms or corrects the email.
 - Answers the account's view (`User`) for the session, and the names of a set of users for a list.
 - Answers a page of the accounts for the admin's users list, filtered by name or email, role and state, each with how it signs in.
@@ -17,7 +18,7 @@
 - Changes the global role when `space-links` finds that a person's owner links give another, or the admin's role change allows it, ending every session of theirs.
 - On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, the forced password change's form, and the one-time password dialog with its handover; the suspension and restore of an account, and the issue of a temporary password, from the admin's users page.
 
-The account's settings (`GET` and `PATCH /me`) are not built.
+The account's settings page on the web is not built; its API, `GET` and `PATCH /me`, is.
 
 ## Who uses it
 
@@ -82,6 +83,8 @@ The account's settings (`GET` and `PATCH /me`) are not built.
 - **An issue's writes (`replaceWithTemporaryPassword`) and a handover's (`recordHandoverLocked`) are one implementation each, under the lock their caller took,** shared by the admin and the owner's staff, the owner's carrying the space. *Why:* one place sets the expiry, ends the sessions and the reset links, and audits; the owner's routes take the space's lock first. 2026-10-18, #90.
 - **An account whose temporary password is pending gains no power (`assertNoPasswordPending`, S6),** asked by the admin's owner links and role change under the account's lock. *Why:* its creator knows the password ([security › Passwords](../backend/security.md#passwords)); the rule is the account's, so it lives here. 2026-10-18, #90.
 
+- **One's own name and language are edited at `PATCH /me`, under the session lock, writing and auditing only what changed (`user.profileEdited`, naming no space); the action is not on the admin's list.** *Why:* the lock makes the audit's `before` the value replaced; an edit that changes nothing writes nothing, as every edit does; a person's own name is no platform event, so the default deny keeps it from the admin ([audit](audit.md)). 2026-10-29, #131.
+
 ### Web decisions
 
 - **The account menu belongs to `users`,** prepared by one hook. *Why:* the account is this capability's. 2026-10-05, #35.
@@ -116,7 +119,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 ## Code map
 
 - **API:** `apps/api/src/modules/users/`, entry `index.ts`: the service, its `me` and `admin` routers, the password hashing and its limits, and the temporary password's pure rule.
-- **Shared:** `packages/shared/src/users/`: the account, the change's request and answer, the password policy, and the handover's request.
+- **Shared:** `packages/shared/src/users/`: the account, one's own account (`MyAccount`) and its edit (`updateMeSchema`), the change's request and answer, the password policy, and the handover's request.
 - **Web:** `apps/web/src/features/users/`, entry `index.ts`: `AccountMenu`, `AccountMenuSection`, `CompactAccountMenu`, `SignOutButton`, `ForcedPasswordChangeForm`, and `TemporaryPasswordDialog` in `components/temporary-password/`, with its hook in `hooks/temporary-password/`, the handover's write it takes (`types/RecordHandover.ts`) and the admin's (`repository/adminHandover.ts`, `recordAdminHandover`); the account actions, `useAccountActions`, `useAccountDialog` and `AccountActionDialog`, in `hooks/account-actions/` and `components/account-actions/`, the suspension's dialog in `components/suspend/` and `hooks/suspend/`, the issue's in `components/issue-password/` and `hooks/issue-password/`, the person's facts in `types/AccountPerson.ts`. Mounted by `pages/site/shell/`, `pages/site/auth/` and `pages/dashboard/shell/`; the dialog is handed to a page through a slot, and the account actions are composed by the users page's row menu.
 
 ## Open findings
@@ -135,6 +138,7 @@ Owned by security.md and linked: the change's limit and its double check of a pe
 - The users item — the account read by the guard on every signed-in request; suspension and restore; the role change's lock and its write, for `space-links`; the admin's temporary password.
 - #78 — the session version: every access token ends with its session; the service hashes through its own helpers, with no parameter for them ([finding 39](../architecture/findings/39-the-users-service-takes-a-parameter-only-its-unit-test-passes.md)).
 - #90 — the temporary password's expiry; no recovery by email or Google while one is pending; the email confirmed at the forced change; the owner's re-issue and handover.
+- #131 — `GET` and `PATCH /me`: one's own account, its name and language edited and audited.
 
 ### Web history
 

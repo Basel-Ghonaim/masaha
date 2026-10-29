@@ -1,4 +1,4 @@
-import { changePasswordSchema } from '@masaha/shared/users';
+import { changePasswordSchema, updateMeSchema } from '@masaha/shared/users';
 import { Router } from 'express';
 
 import type { RequireAuth } from '../../shared/auth/index.ts';
@@ -8,6 +8,8 @@ import type { UsersController } from './users.controller.ts';
 /** The signed-in user's own account, at /me (docs/api/api-contract.md §5). */
 export function createUsersMeRouter(controller: UsersController, requireAuth: RequireAuth): Router {
   const router = Router();
+  router.get('/', requireAuth(), controller.myAccount);
+  router.patch('/', requireAuth(), validate(updateMeSchema), controller.editMyAccount);
   // The forced change itself, so a pending temporary password is let through.
   router.post(
     '/password',
