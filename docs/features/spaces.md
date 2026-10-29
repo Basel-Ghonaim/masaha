@@ -120,6 +120,8 @@ Reception's web screens remain planned.
 
 **One space's freshness** (`listing.freshnessOf`, for the owner's overview). The space's row, read by the listing's own query, and the thresholds saved now: its groups never saved, and its stale ones, each with its Gaza days from its date to now (`staleness.ts`' `staleDays`, pure: whole days on Gaza's calendar, never 24-hour spans); a soft-deleted space is `not_found` (2026-10-29, #131).
 
+**The listing's count** (`listing.count`, for the admin's overview): how many spaces pass a list query, by the page's own `where` and its "stale only" rule, without the page. Each listed row also carries its stale groups' Gaza days (2026-10-29, #131).
+
 ## Decisions
 
 ### API decisions

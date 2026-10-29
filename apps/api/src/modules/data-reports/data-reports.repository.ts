@@ -147,6 +147,22 @@ export function createDataReportsRepository() {
     },
 
     /**
+     * The open reports of the live spaces, counted: in all, those the admin handles and those the
+     * owners handle (`handledByWhere`, by these verified spaces), three counts in parallel.
+     */
+    async openCounts(
+      verifiedIds: readonly number[],
+    ): Promise<{ open: number; awaitingAdmin: number; awaitingOwners: number }> {
+      const where = { space: { deletedAt: null }, ...statusWhere('OPEN') };
+      const [open, awaitingAdmin, awaitingOwners] = await Promise.all([
+        prisma.dataReport.count({ where }),
+        prisma.dataReport.count({ where: { ...where, ...handledByWhere(verifiedIds, 'ADMIN') } }),
+        prisma.dataReport.count({ where: { ...where, ...handledByWhere(verifiedIds, 'OWNER') } }),
+      ]);
+      return { open, awaitingAdmin, awaitingOwners };
+    },
+
+    /**
      * A page of every report, newest first, then id, filtered by status, field, space and who
      * handles it (by the verified spaces' ids, given with `handledBy`); and how many pass. A
      * soft-deleted space's reports are left out (ADR 0007).

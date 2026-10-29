@@ -1309,7 +1309,7 @@ Contact = {
 #### `GET /admin/spaces` · 🛡
 - **Query:** `?q=&status=&governorateId=&areaId=&stale=&page=&limit=` (§4), each optional:
   - `q`: part of either name, whatever the case (1–80 characters);
-  - `status`: `verified` or `unverified`, both leaving hidden spaces out; `hidden`, verified or not; or `deleted`, the soft-deleted spaces only, hidden or not, verified or not;
+  - `status`: `verified` or `unverified`, both leaving hidden spaces out; `editable`, the unverified spaces, hidden ones included — those whose facts the admin keeps — which with `stale=true` is the admin overview's «اكتمال البيانات» in full (`adminSpacesListQuerySchema`; the list screen does not offer it yet, [finding 158](../architecture/findings/158-the-admins-spaces-list-does-not-offer-the-editable-status.md); 2026-10-29, #131); `hidden`, verified or not; or `deleted`, the soft-deleted spaces only, hidden or not, verified or not;
   - `governorateId`, `areaId`: the spaces of the governorate's areas, hidden ones included, or of one area; both together narrow to that area when it is one of the governorate's, else to none;
   - `stale`: `true` keeps the spaces with at least one stale or missing fact group.
 - **200:** `AdminSpaceRow[]` (`@masaha/shared/space-links`), by English name, with `meta`. A soft-deleted space is listed under `status=deleted` only, with its owners, whose links count there though nowhere else ([space-links › Decisions](../features/space-links.md#decisions)). Every filter applies before the page is cut, so every page is full and the total right ([conventions §5](../backend/conventions.md#5-pagination)).

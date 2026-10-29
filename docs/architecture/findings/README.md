@@ -66,6 +66,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [137. Home's area counts fall short past a thousand spaces](137-homes-area-counts-fall-short-past-a-thousand-spaces.md)
 - [138. A failed refresh keeps a status that still reads live](138-a-failed-refresh-keeps-a-status-that-still-reads-live.md)
 - [152. Audit entries kept for ever meet the database's 0.5 GB](152-audit-entries-kept-for-ever-meet-the-databases-05-gb.md)
+- [158. The admin's spaces list does not offer the editable status](158-the-admins-spaces-list-does-not-offer-the-editable-status.md)
 - [160. A visit's check-in cannot name its customer](160-a-visits-check-in-cannot-name-its-customer.md)
 - [162. No route names a space's staff to reception](162-no-route-names-a-spaces-staff-to-reception.md)
 - [163. A subscription's corrections have no screen](163-a-subscriptions-corrections-have-no-screen.md)

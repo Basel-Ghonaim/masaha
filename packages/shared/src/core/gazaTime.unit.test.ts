@@ -6,6 +6,7 @@ import {
   daysFrom,
   gazaClockOf,
   gazaInstant,
+  lastDaysSince,
   monthOf,
   weekStartOf,
 } from './gazaTime.ts';
@@ -100,5 +101,22 @@ describe('monthOf and addMonths', () => {
     expect(addMonths('2026-10', -23)).toBe('2024-11');
     expect(addMonths('2026-10', -10)).toBe('2025-12');
     expect(addMonths('2026-10', 12)).toBe('2027-10');
+  });
+});
+
+describe('lastDaysSince', () => {
+  it('lastDaysSince: the Gaza midnight 29 days before today, across a daylight-saving change', () => {
+    // Today 2026-11-10, in winter; 2026-10-12 was in summer: its midnight is +03:00.
+    expect(lastDaysSince(new Date('2026-11-10T10:00:00+02:00'), 30).toISOString()).toBe(
+      '2026-10-11T21:00:00.000Z',
+    );
+    // Just after Gaza's midnight, today is already the 11th.
+    expect(lastDaysSince(new Date('2026-11-10T22:30:00Z'), 30).toISOString()).toBe(
+      '2026-10-12T21:00:00.000Z',
+    );
+    // The last day alone is today, from its midnight.
+    expect(lastDaysSince(new Date('2026-11-10T10:00:00+02:00'), 1).toISOString()).toBe(
+      '2026-11-09T22:00:00.000Z',
+    );
   });
 });

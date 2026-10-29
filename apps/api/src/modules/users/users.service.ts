@@ -483,6 +483,11 @@ export function createUsersService({
       };
     },
 
+    /** How many accounts were created at `since` or after, every role: the admin's new users. */
+    countCreatedSince(since: Date): Promise<number> {
+      return repository.countCreatedSince(since);
+    },
+
     /** The names of these users, in one query, for a list that names them (the spaces' owners). */
     namesFor(ids: readonly number[], tx?: Tx): Promise<UserName[]> {
       return repository.findNames(ids, tx);

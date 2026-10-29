@@ -17,7 +17,7 @@
 - **A signed-in user,** through the API: `POST /spaces/:slug/reports`, and their own, `GET /me/reports`. On the site, the user reads «بلاغاتي» (`/me/reports`) and the replies, linked from the account menu, and reports from a space's page; a guest's press asks them to sign in first (2026-10-28, #129).
 - **The space's owner,** under `/manage/spaces/:spaceId/data-reports`: the list and the decision. Reception is refused. On the dashboard, the owner reads «بلاغات البيانات» (`/dashboard/spaces/:spaceId/reports`) and decides each report in its sheet (2026-10-28, #129).
 - **The admin,** under `/admin/data-reports`: every report, and the decision of an unverified space's. On the dashboard, the admin reads «بلاغات البيانات» (`/dashboard/admin/reports`), filters it by one space with [space-links](space-links.md)' search, and decides an unverified space's report in the same sheet (2026-10-28, #129).
-- **The owner's overview** (`overview`), which counts the space's open reports (2026-10-29, #131).
+- **The overviews** (`overview`): the owner's counts the space's open reports, the admin's the platform's, by who handles them (2026-10-29, #131).
 
 ## Responsibility boundary
 
@@ -54,6 +54,8 @@
 **The report on the web** (`ReportAction`, set by `pages/site/public/space/SpacePage.tsx` in the directory's `report` slot, at the end of the page's main column). «الإبلاغ عن معلومة غير صحيحة» opens a dialog: who reads it, by the space's verification — «بلاغك عن {name} يصل إلى إدارة المساحة، وتجد ردّها في «بلاغاتي».» for a verified space, «…يراجعه فريقنا، وتجد الردّ في «بلاغاتي».» otherwise; «ما المعلومة غير الصحيحة؟», focused first, with the six field groups; «التفاصيل», said optional except for «أخرى», whose missing details say «اكتب ما الخطأ في «أخرى».»; «رجوع» and «إرسال». It is sent once, with no key. A refusal keeps it open with every value, the failure an alert above the footer: a space gone says «لم تعد هذه المساحة في الدليل.», a 429 counts down with the send blocked, and no answer says «لم يصل الرد. أعد المحاولة — لن يُرسَل البلاغ مرتين.» with a retry. Done, it closes, the user's reports are read again, and the toast says where the reply lands — «أرسلنا بلاغك إلى إدارة المساحة. ستجد ردّها في «بلاغاتي».» or «…إلى فريقنا. ستجد الردّ في «بلاغاتي».» — or, when the server answered with the open report (200), «أرسلت بلاغًا عن هذا من قبل، وما زال قيد المراجعة.», each with «عرض بلاغاتي». Closed, the focus returns to the button. A guest's press holds the report in memory and the page asks them to sign in, «سجّل الدخول للإبلاغ عن معلومة», with «إنشاء حساب» and «تسجيل الدخول», each carrying the page as the one to return to; back on the page signed in, the dialog is open. Closing it, or closing the sign-in, lets the held report go.
 
 **The open count** (`openCountOf`, for the owner's overview): how many of the space's reports are `OPEN`, on the owner's list's own status condition, in one `count`: its `status=OPEN` total (2026-10-29, #131).
+
+**The open counts** (`openCounts`, for the admin's overview): the open reports of the live spaces, in all, those the admin handles (an unverified space's) and those the owners handle (a verified one's), by the verified spaces' ids from [`space-links`](space-links.md) and one condition (`handledByWhere`): three counts in parallel (2026-10-29, #131).
 
 ## Decisions
 

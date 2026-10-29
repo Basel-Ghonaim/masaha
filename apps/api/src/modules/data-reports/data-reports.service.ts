@@ -178,6 +178,15 @@ export function createDataReportsService({
       return repository.openCountOf(spaceId);
     },
 
+    /**
+     * The open reports of the live spaces, for the admin's overview: in all, those awaiting the
+     * admin (an unverified space's) and those awaiting the owners (a verified one's), as the
+     * admin's list tells them apart.
+     */
+    async openCounts(): Promise<{ open: number; awaitingAdmin: number; awaitingOwners: number }> {
+      return repository.openCounts(await spaceLinks.verifiedSpaceIds());
+    },
+
     /** The space's owner decides one of its reports (`decideUnder`), on its links under the lock. */
     async decideAtSpace(
       actor: Actor,

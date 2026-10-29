@@ -33,6 +33,8 @@ export interface ListedSpace {
   /** When it was soft-deleted, or `null` for a live space. */
   deletedAt: Date | null;
   staleGroups: FactGroup[];
+  /** The stale groups, each with its Gaza days since its date. */
+  stale: Freshness['stale'];
   missingGroups: FactGroup[];
   lastUpdatedAt: Date;
 }
@@ -46,7 +48,7 @@ interface Dependencies {
   now: () => Date;
 }
 
-function toListedSpace(space: ListedSpaceRecord, cutoffs: GroupCutoffs): ListedSpace {
+function toListedSpace(space: ListedSpaceRecord, cutoffs: GroupCutoffs, at: Date): ListedSpace {
   const dates = groupDatesOf(space);
   return {
     id: space.id,
@@ -57,6 +59,7 @@ function toListedSpace(space: ListedSpaceRecord, cutoffs: GroupCutoffs): ListedS
     isHidden: space.isHidden,
     deletedAt: space.deletedAt,
     staleGroups: staleGroups(dates, cutoffs),
+    stale: freshness(dates, cutoffs, at).stale,
     missingGroups: missingGroups(dates),
     lastUpdatedAt: lastUpdate(dates),
   };
@@ -75,12 +78,24 @@ export function createListingService({ platformSettings, now }: Dependencies) {
       { staleOnly, ...filter }: ListingQuery,
       page: PaginationQuery,
     ): Promise<{ rows: ListedSpace[]; total: number }> {
-      const cutoffs = staleCutoffs(await platformSettings.stalenessThresholds(), now());
+      const at = now();
+      const cutoffs = staleCutoffs(await platformSettings.stalenessThresholds(), at);
       const { rows, total } = await repository.findPage(
         { ...filter, ...(staleOnly && { staleBefore: cutoffs }) },
         { skip: toSkip(page), take: page.limit },
       );
-      return { rows: rows.map((space) => toListedSpace(space, cutoffs)), total };
+      return { rows: rows.map((space) => toListedSpace(space, cutoffs, at)), total };
+    },
+
+    /**
+     * How many spaces pass the query: `page`'s total, by the same filter and the same "stale only"
+     * rule, without the page. The thresholds are read only when it asks for stale spaces.
+     */
+    async count({ staleOnly, ...filter }: ListingQuery): Promise<number> {
+      const staleBefore = staleOnly
+        ? staleCutoffs(await platformSettings.stalenessThresholds(), now())
+        : undefined;
+      return repository.count({ ...filter, ...(staleBefore && { staleBefore }) });
     },
 
     /**

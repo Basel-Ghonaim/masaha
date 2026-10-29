@@ -28,6 +28,7 @@ The account's settings page on the web is not built; its API, `GET` and `PATCH /
 - **[`auth`](auth.md),** which signs in, registers and links Google through it.
 - **[`space-links`](space-links.md),** which names the owners in the admin's spaces list, composes the admin's users list from its page of accounts, and changes a person's role as their owner links give it.
 - **[`payments`](payments.md),** which names who recorded and who voided a payment.
+- **The admin's overview** (`overview`), which counts the accounts created in the last 30 Gaza days (2026-10-29, #131).
 
 ## Responsibility boundary
 
@@ -60,6 +61,8 @@ The account's settings page on the web is not built; its API, `GET` and `PATCH /
 - **«استرجاع الحساب» acts at once:** restored, once the admin's views have arrived again, a toast «استُرجع حساب {name}»; refused, a toast that stays, «تعذّر استرجاع حساب {name}», with the refusal under it.
 
 **Issuing a temporary password on the web.** «إصدار كلمة مرور مؤقتة», in each person's menu on the users page before the separator, asks first: «إصدار كلمة مرور مؤقتة لـ {name}؟», «لاستعادة الحساب بعد التأكد من هويته. تُلغى كلمة مروره الحالية وتنتهي جلساته، ويُطلب منه تغييرها عند الدخول التالي.», opening on «رجوع», «إصدار» staying until the answer, so `OWN_ACCOUNT`, `ACCOUNT_SUSPENDED`, `GOOGLE_ONLY_ACCOUNT` and an account gone are worded inside; while the issue is pending, neither «رجوع» nor Escape closes it, since the server replaces the password whatever the screen does. The one-time dialog is held by the page, so neither a refresh of the list nor the switch between cards and table closes it before «تم»; once done, the focus returns to the person's menu button. Issued, the one-time password dialog takes its place, with «سلّمها له بعد التأكد من هويته؛ سيُطلب منه تغييرها عند الدخول التالي.» in place of a new account's line, and its handover. It is held, its reason under it, for a suspended account («الحساب موقوف — استرجعه أولًا») and for one that signs in with Google only («حساب Google — يستعيده من Google», AD-021).
+
+**The new accounts** (`countCreatedSince`, for the admin's overview): how many accounts, of every role, were created at the instant given or after it, one `count` (2026-10-29, #131).
 
 ## Decisions
 

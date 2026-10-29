@@ -73,3 +73,11 @@ export function addMonths(month: string, months: number): string {
   const movedYear = Math.floor(index / 12);
   return `${String(movedYear)}-${twoDigits(index - movedYear * 12 + 1)}`;
 }
+
+/**
+ * When the last `days` Gaza days start at `now`: the Gaza midnight `days − 1` days before today, so
+ * today is the last of them, and they are whole Gaza days across a daylight-saving change.
+ */
+export function lastDaysSince(now: Date, days: number): Date {
+  return gazaInstant(addDays(gazaClockOf(now).date, 1 - days), 0);
+}

@@ -1,6 +1,6 @@
 # Space Links
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-20 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The `space-links` capability: a user's links to spaces and their role at each ([ADR 0009](../architecture/decisions/0009-space-scoped-reception-role.md)), as the session, the caller's own list, the space switcher, the admin's spaces list and users list, the admin's owners (added, linked and unlinked), the owner's staff screen and the links loader use them. Its endpoints are owned by the API contract: [*Managed spaces*](../api/api-contract.md#managed-spaces), [*Owners (the admin)*](../api/api-contract.md#owners-the-admin) and [*Users (the admin)*](../api/api-contract.md#users-the-admin); the `SpaceManager` entity and "verified" by the [data model](../architecture/data-model.md#spaces).
 > **Scope:** the API module `space-links` (L2); `@masaha/shared/space-links`; the web features `features/space-links` and `features/staff` (the owner's reception accounts, a second audience over the same module), both dashboard-only.
 
@@ -28,6 +28,7 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - **The admin,** through the spaces list, on the dashboard's spaces page, the admin's routes on one space, the users list, on the dashboard's owners and users pages, and adding an owner.
 - **The admin's data reports,** which filter by one space (`AdminSpaceFilter`: the spaces' search, «كل المساحات» first; [data-reports](data-reports.md), 2026-10-28, #129).
 - **`auth`,** which puts the links in every `Session` it builds.
+- **The admin's overview** (`overview`), which counts the spaces by status and reads the first spaces whose facts the admin keeps with a group stale or missing (2026-10-29, #131).
 
 ## Responsibility boundary
 
@@ -111,6 +112,8 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - **«إعادة وصوله»** acts at once: the answer replaces the row, with no toast; a refusal is a toast that stays, «تعذّر إعادة وصول {name}», with its reason.
 - **«كلمة مرور مؤقتة جديدة»** asks first, «تحلّ محلّ كلمة المرور المؤقتة السابقة وتنتهي جلساته…», «إصدار» staying until the answer; issued, the new password shows once in the same one-time dialog, its handover recorded on the space's route, and the list is read again for its new expiry. A password no longer pending, or a person no longer on the staff (404), also reads the list again.
 - **Every refusal is in the owner's words** (`staff.refusals`): a suspended account, an account become an admin's or holding another space, a password already changed; a 404 that the person is no longer on the staff or the space no longer open to them; a 403 only that it is no longer open to the owner. Any 404 on the staff routes, the list's read included, fetches the owner's own spaces again, so the switcher stops offering a space whose link ended (`shared/api`'s `useLinkEnded`, as the packages' routes do).
+
+**The admin overview's spaces** (`adminSpaces.counts`, `staleEditable`). The verified spaces' ids read once, then the list's own query (`listingQueryOf`) counted through `spaces`' `listing.count`, four in parallel: `status=verified`, `unverified`, `hidden` and `stale=true`, so each tile is its list's total and a deleted space is never counted. `staleEditable` pages `status=editable&stale=true` — the unverified spaces, hidden ones included, with a group stale or missing — by English name, then id: the first five, each with its missing groups, its stale ones with their Gaza days, and whether it is hidden, and how many there are (2026-10-29, #131).
 
 ## Decisions
 
@@ -235,6 +238,7 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - [104](../architecture/findings/104-the-staff-menus-row-triggers-copy-the-admin-pages.md): the staff menu's row triggers copy the admin page's.
 - [105](../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md): a held menu item may be unreachable by the keyboard.
 - [106](../architecture/findings/106-two-approved-owner-lines-miss-a-case-or-the-label-in-name.md): a re-issue refused for an admin's account says it holds another space.
+- [158](../architecture/findings/158-the-admins-spaces-list-does-not-offer-the-editable-status.md): the admin's spaces list does not offer the `editable` status.
 
 ## History
 

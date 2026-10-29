@@ -127,6 +127,11 @@ export function createUsersRepository(db: PrismaClient = prisma) {
       return { rows, total };
     },
 
+    /** How many accounts were created at `since` or after: the admin overview's new users. */
+    countCreatedSince(since: Date): Promise<number> {
+      return db.user.count({ where: { createdAt: { gte: since } } });
+    },
+
     /** Which of these users have a password, without reading any hash. */
     async findWithPassword(ids: readonly number[]): Promise<number[]> {
       const rows = await db.user.findMany({
