@@ -177,8 +177,9 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
      * A new temporary password for the person, only while their first is still pending (a lost
      * answer, or one that expired), hashed before the transaction. Refused, in this order, without
      * an active reception link here (404), once the person has changed it (the account is theirs:
-     * its recovery is the email or the admin), for a suspended account, and for an account that is
-     * not a `USER` or holds any other active link (S5): no owner may take another space's account.
+     * its recovery is the email or the admin), for a suspended account, for an admin's account
+     * (its own code, finding 106), and for an account that is not a `USER` or holds any other active
+     * link (S5): no owner may take another space's account.
      */
     async issueTemporaryPassword(
       actor: Actor,
@@ -198,6 +199,7 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
         if (!users.maySignIn(account)) {
           throw AppError.conflict('ACCOUNT_SUSPENDED', 'Account suspended');
         }
+        if (account.role === 'ADMIN') throw AppError.conflict('ACCOUNT_IS_ADMIN', 'An admin');
         if (
           account.role !== 'USER' ||
           (await repository.countOtherActiveLinks(userId, space.id, tx)) > 0

@@ -419,6 +419,20 @@ describe('POST /manage/spaces/:spaceId/staff/:userId/temporary-password', () => 
     expect(limited.status).toBe(429);
     expect(limited.headers['retry-after']).toBeDefined();
   }, 30_000);
+  it('the re-issue refuses an admin’s account with ACCOUNT_IS_ADMIN', async () => {
+    const added = await addedReceptionist();
+    await prisma.user.update({ where: { id: added.userId }, data: { role: 'ADMIN' } });
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: added.userId } });
+
+    const response = await staff(owner, 'post', `/${String(added.userId)}/temporary-password`);
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('ACCOUNT_IS_ADMIN');
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: added.userId } })).passwordHash,
+    ).toBe(before.passwordHash);
+  });
+
   it('refuses a re-issue for an account that holds anything else', async () => {
     const added = await addedReceptionist();
     await prisma.spaceManager.create({
