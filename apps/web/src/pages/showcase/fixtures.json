@@ -806,6 +806,61 @@
           "label": "رفع صورة المساحة",
           "value": 45
         }
+      },
+      "barChart": {
+        "title": "المخطّط العمودي",
+        "stackedCaption": "سلسلتان مكدّستان، بمفتاح الألوان",
+        "singleCaption": "سلسلة واحدة بالحجم الصغير، بلا مفتاح",
+        "chart": "الدخل حسب الشهر",
+        "period": "الشهر",
+        "unit": "₪",
+        "series": ["الزيارات", "الاشتراكات"],
+        "months": [
+          {
+            "label": "يوليو 2026",
+            "tick": "يوليو 26",
+            "values": [1200, 3400]
+          },
+          {
+            "label": "أغسطس 2026",
+            "tick": "أغسطس 26",
+            "values": [980, 3900]
+          },
+          {
+            "label": "سبتمبر 2026",
+            "tick": "سبتمبر 26",
+            "values": [1430, 4100]
+          },
+          {
+            "label": "أكتوبر 2026",
+            "tick": "أكتوبر 26",
+            "values": [1610, 3800]
+          }
+        ]
+      },
+      "heatmap": {
+        "title": "الخريطة الحرارية",
+        "caption": "الأيام في الساعات، بخمس درجات من الأقل إلى الأكثر",
+        "chart": "أوقات الذروة",
+        "unit": "زيارات",
+        "day": "اليوم",
+        "fewer": "أقل",
+        "more": "أكثر",
+        "hours": ["8", "10", "12", "14", "16", "18"],
+        "days": [
+          {
+            "label": "السبت",
+            "values": [2, 9, 14, 12, 6, 1]
+          },
+          {
+            "label": "الأحد",
+            "values": [3, 11, 16, 15, 8, 2]
+          },
+          {
+            "label": "الإثنين",
+            "values": [1, 7, 10, 9, 4, 0]
+          }
+        ]
       }
     },
     "en": {
@@ -1600,6 +1655,61 @@
           "label": "Uploading the space's photo",
           "value": 45
         }
+      },
+      "barChart": {
+        "title": "Bar chart",
+        "stackedCaption": "Two stacked series, with a legend",
+        "singleCaption": "One series at the small size, without a legend",
+        "chart": "Income by month",
+        "period": "Month",
+        "unit": "shekel amounts",
+        "series": ["Visits", "Subscriptions"],
+        "months": [
+          {
+            "label": "July 2026",
+            "tick": "Jul 26",
+            "values": [1200, 3400]
+          },
+          {
+            "label": "August 2026",
+            "tick": "Aug 26",
+            "values": [980, 3900]
+          },
+          {
+            "label": "September 2026",
+            "tick": "Sep 26",
+            "values": [1430, 4100]
+          },
+          {
+            "label": "October 2026",
+            "tick": "Oct 26",
+            "values": [1610, 3800]
+          }
+        ]
+      },
+      "heatmap": {
+        "title": "Heatmap",
+        "caption": "Days by hours, in five steps from fewer to more",
+        "chart": "Busy hours",
+        "unit": "visits",
+        "day": "Day",
+        "fewer": "Fewer",
+        "more": "More",
+        "hours": ["8", "10", "12", "14", "16", "18"],
+        "days": [
+          {
+            "label": "Saturday",
+            "values": [2, 9, 14, 12, 6, 1]
+          },
+          {
+            "label": "Sunday",
+            "values": [3, 11, 16, 15, 8, 2]
+          },
+          {
+            "label": "Monday",
+            "values": [1, 7, 10, 9, 4, 0]
+          }
+        ]
       }
     }
   }

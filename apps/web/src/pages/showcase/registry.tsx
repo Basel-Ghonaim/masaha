@@ -3,6 +3,7 @@ import fixtures from './fixtures.json';
 import { ButtonSection } from './sections/actions/ButtonSection';
 import { DropdownMenuSection } from './sections/actions/DropdownMenuSection';
 import { TogglesSection } from './sections/actions/TogglesSection';
+import { BarChartSection, HeatmapSection } from './sections/data/ChartsSection';
 import { DataTableSection } from './sections/data/DataTableSection';
 import { TableSection } from './sections/data/TableSection';
 import { AvatarSection } from './sections/display/AvatarSection';
@@ -167,6 +168,8 @@ export const ENTRIES: readonly ShowcaseEntry[] = [
   )),
   entry('display', 'FilterTag', 'filterTag', (samples) => <FilterTagSection samples={samples} />),
   entry('display', 'Meter', 'meter', (samples) => <MeterSection samples={samples} />),
+  entry('data', 'BarChart', 'barChart', (samples) => <BarChartSection samples={samples} />),
+  entry('data', 'Heatmap', 'heatmap', (samples) => <HeatmapSection samples={samples} />),
 ];
 
 export type ShowcaseView =

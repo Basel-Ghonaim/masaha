@@ -22,6 +22,12 @@ export {
 export { Avatar, AvatarFallback, AvatarImage, type AvatarProps } from './components/display/Avatar';
 export { Badge, type BadgeProps } from './components/display/Badge';
 export {
+  BarChart,
+  type BarChartDatum,
+  type BarChartProps,
+  type BarChartSeries,
+} from './components/data/BarChart';
+export {
   Breadcrumb,
   BreadcrumbEllipsis,
   BreadcrumbItem,
@@ -87,6 +93,7 @@ export {
 export { EmptyState, type EmptyStateProps } from './components/feedback/EmptyState';
 export { Field, type FieldProps } from './components/fields/Field';
 export { FilterTag, type FilterTagProps } from './components/display/FilterTag';
+export { Heatmap, type HeatmapProps, type HeatmapRow } from './components/data/Heatmap';
 export {
   Input,
   InputAction,

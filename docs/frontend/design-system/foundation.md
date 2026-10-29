@@ -146,6 +146,8 @@ Brand is a petrol teal; neutrals are cool greys with a slight teal cast. Short n
 | `radius-control` | 6px (`radius-md`) | Button, Input, Select |
 | `radius-pill` | 999px | Badge, filter chips |
 | `overlay-scrim` | light `n-950` at 50% · dark `n-950` at 70% (mixed with transparent), no blur | The scrim behind Dialog, AlertDialog and Sheet, on the `overlay` layer. No role covers a translucent dimming layer |
+| `chart-height-md` · `chart-height-sm` | 200px · 120px | BarChart's two sizes: a chart of its own, and one beside others |
+| `heatmap-step-1` … `heatmap-step-5` | opacity 0.12 · 0.3 · 0.5 · 0.72 · 1 | Heatmap: `primary` over a `muted` cell, from the fewest to the most, and its legend |
 
 **Layout is not tokenised.** Pages use Tailwind's 4px scale; *Sea*'s rhythm maps to it: page gutter 32px (`8`; 16px on phones), grid gap 16px (`4`) / 24px (`6`), section spacing 56px (`14`), home hero padding 64px (`16`). These are guidance for page composition, not layer tokens.
 
@@ -398,6 +400,8 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Component | Source | Notes / variants |
 |---|---|---|
 | Table + DataTable | shadcn | Sorting, empty state, loading rows; **stacked-card mode on phones** · Table, as in the Owner › Members stress test: a `muted` header row with `caption` headings, `body-sm` rows with `table-row-padding-block` and a `border` divider, the outer cells in line with `card-padding`; a row takes `accent` when hovered and while its row menu is open · Table has no frame: DataTable frames it as a card · DataTable is TanStack Table v9; features build its columns with `createDataTableColumnHelper`, so they never import the library · a column sorts only when it asks to (`enableSorting`): its header becomes a button with an arrow, and `aria-sort` says the order; client-side, or `manualSorting` when the server sorts · from 768px, one card holds the toolbar, the table and a footer with the summary at the start and the pagination at the end; below it there is no frame, and each row is a card drawn from the feature's `renderCard` in a named list, with the pagination under it · `loading` stands placeholder rows or cards in and marks the table busy; `empty` stands in for the rows · `cardsBelow="lg"` keeps the cards until 1024px, for the lists the design draws as cards until 1024 (A7: the spaces, users and data-report lists) |
+| BarChart | hand-built | Stacked vertical bars on the `chart-1…5` roles (each series names its `tone`), hand-built without a chart library: `md` 200px or `sm` 120px high (`chart-height-*`), a tick under each bar, a legend only for two series or more · the bars are for the eye (`aria-hidden`); a visually hidden table, captioned with the `title`, holds every value of every series as the caller's `format` writes it, its first header the `periodLabel` |
+| Heatmap | hand-built | Rows by columns (days by hours), each cell `primary` at one of five steps over `muted` (`heatmap-step-*`), with a legend from `fewer` to `more` · the cells are for the eye; a visually hidden table holds every value, captioned with the `title` and the `unit`, its first header the `dayLabel` |
 
 ### `feedback`
 
