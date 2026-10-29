@@ -21,4 +21,5 @@ export const FORMS = {
     offlineDescription: 'تحقّق من اتصالك بالإنترنت ثم حاول مرة أخرى.',
     reference: ({ id }: { id: string }) => `رقم المرجع: ${id}`,
   },
+  listRange: ({ range, total }: { range: string; total: string }) => `عرض ${range} من ${total}`,
 } satisfies Catalogue['forms'];

@@ -135,6 +135,7 @@ export function useAnnouncementsList(spaceId: number, { owner }: { owner: boolea
       total: answer?.meta.totalPages ?? 0,
       words: words.list.pagination,
       searchOf: filters.searchOf,
+      onlyPastOne: true,
     }),
     failure: {
       title: words.list.loadFailed,

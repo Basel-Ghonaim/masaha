@@ -27,4 +27,6 @@ export const FORMS = {
     /** The server's id for the request, so a report can be matched to the log. */
     reference: ({ id }: { id: string }) => `Reference: ${id}`,
   },
+  /** Which records a page of a list shows, under the list: the range and the total come isolated. */
+  listRange: ({ range, total }: { range: string; total: string }) => `Showing ${range} of ${total}`,
 } as const;

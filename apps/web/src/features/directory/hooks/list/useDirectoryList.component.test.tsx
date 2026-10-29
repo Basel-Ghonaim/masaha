@@ -88,7 +88,8 @@ describe('useDirectoryList', () => {
       'space-1',
       'space-2',
     ]);
-    expect(result.current.list.pagination).toBeNull();
+    expect(result.current.list.pagination?.previous.search).toBeNull();
+    expect(result.current.list.pagination?.next.search).toBeNull();
   });
 
   it('a failure says so with its reference, and «إعادة المحاولة» asks again', async () => {

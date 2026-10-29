@@ -13,20 +13,23 @@ type PaginationWords = {
 
 /**
  * A paged list's pages, page `current` of `total`, each a link to the address `searchOf` gives it;
- * none for a list of one page or none.
+ * none for a list of no page. A list of one page keeps its steps, Previous and Next unavailable
+ * (P6), unless it shows them `onlyPastOne` page (the announcements, DI-26).
  */
 export function paginationView({
   current,
   total,
   words,
   searchOf,
+  onlyPastOne = false,
 }: {
   current: number;
   total: number;
   words: PaginationWords;
   searchOf: (page: number) => string;
+  onlyPastOne?: boolean;
 }): PaginationView | null {
-  if (total <= 1) return null;
+  if (total < 1 || (onlyPastOne && total === 1)) return null;
   return {
     label: words.label,
     more: words.more,

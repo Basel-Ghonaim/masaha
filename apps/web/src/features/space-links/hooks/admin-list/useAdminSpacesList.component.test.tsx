@@ -85,7 +85,8 @@ describe('useAdminSpacesList', () => {
       ['Focus Hub', 'Al-Rimal'],
     ]);
     expect(result.current.list.count).toBe('Spaces: 1');
-    expect(result.current.list.pagination).toBeNull();
+    expect(result.current.list.pagination?.previous.search).toBeNull();
+    expect(result.current.list.pagination?.next.search).toBeNull();
   });
 
   it('says there are no spaces yet when nothing is filtered', async () => {

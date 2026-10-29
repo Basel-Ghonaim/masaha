@@ -318,11 +318,20 @@ describe('AdminSpacesList, from 1024 px', () => {
     expect(await listRegion()).not.toHaveAttribute('aria-busy');
   });
 
-  it('shows no pages when there is only one', async () => {
+  it('keeps the steps of its one page, Previous and Next unavailable', async () => {
     renderList('/spaces');
 
     await screen.findByText('Focus Hub');
-    expect(screen.queryByRole('navigation', { name: 'Pages of the spaces list' })).toBeNull();
+    const pages = screen.getByRole('navigation', { name: 'Pages of the spaces list' });
+    expect(within(pages).getByRole('link', { name: 'Page 1' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    const steps = within(pages).getAllByRole('link', { name: /Previous|Next/ });
+    expect(steps).toHaveLength(2);
+    for (const step of steps) {
+      expect(step).toHaveAttribute('aria-disabled', 'true');
+    }
   });
 
   it('sets the search, the place, the state and the stale or missing chip above the table', async () => {
@@ -472,7 +481,12 @@ describe('AdminSpacesList, on a phone', () => {
     renderList('/spaces?status=deleted', () => page([OLIVE]));
     await screen.findByText('Olive Desk');
 
-    const card = screen.getByRole('listitem');
+    // The cards are the list's items; the pages under them are a list of their own.
+    const [card, ...others] = screen
+      .getAllByRole('listitem')
+      .filter((item) => item.getAttribute('data-slot') === 'data-table-card');
+    expect(others).toEqual([]);
+    if (card === undefined) throw new Error('no card');
     expect(card.textContent).toBe(
       'Olive DeskDeir al-Balah · Owner: ⁨Rima⁩ · 12 SeptDeleted · 1 OctRestore Olive Desk',
     );

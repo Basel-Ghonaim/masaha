@@ -64,7 +64,10 @@ describe('MyReportsList', () => {
     );
 
     const region = await screen.findByRole('region', { name: 'Reports' });
-    const cards = await within(region).findAllByRole('listitem');
+    // The cards, not the page steps under them, which a one-page list keeps (P6).
+    const cards = (await within(region).findAllByRole('listitem')).filter(
+      (item) => item.closest('nav') === null,
+    );
     expect(cards).toHaveLength(2);
     const [long, short] = cards as [HTMLElement, HTMLElement];
 
@@ -102,7 +105,11 @@ describe('MyReportsList', () => {
       reportsPage([myReport({}, { nameEn: 'Old Hub', nameAr: null, listed: false })]),
     );
 
-    const card = within(await screen.findByRole('listitem'));
+    const [first] = (await screen.findAllByRole('listitem')).filter(
+      (item) => item.closest('nav') === null,
+    );
+    if (first === undefined) throw new Error('no card');
+    const card = within(first);
     expect(card.getByRole('heading', { level: 2, name: 'Old Hub' })).toBeInTheDocument();
     expect(card.queryByRole('link')).not.toBeInTheDocument();
     expect(card.getByText('This space is no longer listed in the directory')).toBeInTheDocument();
