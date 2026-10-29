@@ -195,6 +195,7 @@ import {
   FIFTEEN_MINUTES,
   createLimiter,
   limitRequests,
+  sweepEndedWindows,
   type RateLimitPolicy,
 } from './shared/rate-limit/index.ts';
 import {
@@ -554,6 +555,12 @@ export function createApi({
     jobs: [
       { name: 'visits.autoCheckOut', run: (at) => visits.autoCheckOut(at) },
       { name: 'subscriptions.autoCheckOut', run: (at) => subscriptions.autoCheckOut(at) },
+      // The ended rows of identity and of the rate limits, swept (finding 17).
+      { name: 'sessions.sweepExpired', run: (at) => sessions.sweepExpired(at) },
+      {
+        name: 'rateLimits.sweepExpired',
+        run: async (at) => ({ counters: await sweepEndedWindows(at) }),
+      },
     ],
     now: clock,
     logger,

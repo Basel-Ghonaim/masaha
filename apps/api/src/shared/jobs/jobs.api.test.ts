@@ -57,6 +57,15 @@ beforeEach(async () => {
 
 const stored = () => prisma.visit.findUniqueOrThrow({ where: { id: visitId } });
 
+/** The sweeps' answers when nothing has ended: every row here is live. */
+const SWEPT_NOTHING = {
+  sessions: {
+    name: 'sessions.sweepExpired',
+    done: { refreshTokens: 0, resetTokens: 0, recoveries: 0 },
+  },
+  rateLimits: { name: 'rateLimits.sweepExpired', done: { counters: 0 } },
+};
+
 describe('the jobs endpoint', () => {
   it('refuses a missing or wrong secret with 401 and runs nothing', async () => {
     for (const authorization of [undefined, `Bearer ${SECRET}x`, SECRET]) {
@@ -77,6 +86,8 @@ describe('the jobs endpoint', () => {
       jobs: [
         { name: 'visits.autoCheckOut', done: { visits: 1, remaining: 0, failed: 0 } },
         { name: 'subscriptions.autoCheckOut', done: { checkIns: 0, remaining: 0, failed: 0 } },
+        SWEPT_NOTHING.sessions,
+        SWEPT_NOTHING.rateLimits,
       ],
     });
     expect(await stored()).toMatchObject({ checkoutMethod: 'AUTO' });
@@ -119,6 +130,8 @@ describe('the jobs endpoint', () => {
       jobs: [
         { name: 'visits.autoCheckOut', done: { visits: 0, remaining: 0, failed: 1 } },
         { name: 'subscriptions.autoCheckOut', done: { checkIns: 1, remaining: 0, failed: 0 } },
+        SWEPT_NOTHING.sessions,
+        SWEPT_NOTHING.rateLimits,
       ],
     });
     expect(lines.filter(({ msg }) => msg === 'stay not closed')).toMatchObject([
@@ -146,7 +159,12 @@ describe('the jobs endpoint', () => {
 
     expect(response.status).toBe(200);
     expect(dataOf(response)).toMatchObject({
-      jobs: [{ name: 'visits.autoCheckOut', done: { visits: 1, remaining: 0, failed: 1 } }, {}],
+      jobs: [
+        { name: 'visits.autoCheckOut', done: { visits: 1, remaining: 0, failed: 1 } },
+        {},
+        {},
+        {},
+      ],
     });
     expect(lines.filter(({ msg }) => msg === 'stay not closed')).toMatchObject([
       { level: 50, job: 'visits.autoCheckOut', stayId: failingId },
@@ -154,6 +172,8 @@ describe('the jobs endpoint', () => {
     expect(lines.filter(({ msg }) => msg === 'job ran')).toMatchObject([
       { level: 30, job: 'visits.autoCheckOut', visits: 1, failed: 1 },
       { level: 30, job: 'subscriptions.autoCheckOut', checkIns: 0, failed: 0 },
+      { level: 30, job: 'sessions.sweepExpired', refreshTokens: 0 },
+      { level: 30, job: 'rateLimits.sweepExpired', counters: 0 },
     ]);
     expect(await prisma.visit.findUniqueOrThrow({ where: { id: failingId } })).toMatchObject({
       checkedOutAt: null,

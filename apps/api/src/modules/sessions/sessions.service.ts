@@ -1,4 +1,5 @@
 import type { Tx } from '../../db/index.ts';
+import { SWEEP_BATCH } from '../../shared/jobs/index.ts';
 import {
   createSessionsRepository,
   type SessionsRepository,
@@ -223,6 +224,17 @@ export function createSessionsService({
     async end(token: string, tx?: Tx): Promise<void> {
       const stored = await repository.findRefreshToken(hashToken(token), tx);
       if (stored) await repository.deleteFamily(stored.familyId, tx);
+    },
+
+    /**
+     * The timed sweep (finding 17): deletes the refresh tokens, reset tokens and recoveries that
+     * ended by `at`, at most `SWEEP_BATCH` a table a run. A session that is never refreshed again
+     * would otherwise keep its rows. How many of each it deleted.
+     */
+    sweepExpired(
+      at: Date,
+    ): Promise<{ refreshTokens: number; resetTokens: number; recoveries: number }> {
+      return repository.sweepExpired(at, SWEEP_BATCH);
     },
 
     /** Ends every session of the user. */

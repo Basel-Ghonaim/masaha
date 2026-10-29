@@ -1,5 +1,5 @@
 export { clientAddress } from './clientAddress.ts';
-export { createCounter, type Count, type Counter } from './counter.ts';
+export { createCounter, sweepEndedWindows, type Count, type Counter } from './counter.ts';
 export {
   createLimiter,
   limitRequests,

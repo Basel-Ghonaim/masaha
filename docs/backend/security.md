@@ -123,6 +123,7 @@ The counters are stored in PostgreSQL, in the `rate_limits` table, so every inst
 - A key is the policy's name and a SHA-256 digest of what it counts by, so the table holds no address, email or token in clear. The digest is not anonymous: an IPv4 address, or a known email, is found again by hashing the candidates.
 - The address is `req.ip`, which depends on `TRUST_PROXY` (the proxies Express trusts). An IPv6 address counts by its /64 network.
 - A 429 carries the error envelope, `Retry-After` and the `RateLimit-Policy` and `RateLimit` header fields.
+- **Ended windows are swept:** a timed job, `rateLimits.sweepExpired`, deletes the rows whose window has ended (`reset_at` by the run's time), at most 5,000 a run, the earliest ended first; the window's end is checked again on each row deleted, so a key hit at that moment keeps its new window. A key hit again only starts a new window, so an ended row holds nothing a limit reads. Beside it, `sessions.sweepExpired` deletes the refresh tokens past their own expiry or their session's end, the reset tokens and the recoveries past theirs, 5,000 a table a run ([finding 17](../architecture/findings/17-expired-rate-limit-counters-and-abandoned-sessions-are-never-swept.md); [api-contract › Internal](../api/api-contract.md#internal)). 2026-10-29, #132.
 - `express-rate-limit`, approved in the foundation plan, is **not used**. It counts failures-only limits by adding every request and subtracting the successes after the response is sent: work after the response, which ADR 0014 forbids.
 
 ## Location

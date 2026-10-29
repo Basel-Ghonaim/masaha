@@ -2,6 +2,12 @@ import { performance } from 'node:perf_hooks';
 
 import type { Logger } from 'pino';
 
+/**
+ * How many rows a sweep deletes at most a table a run, so a run stays within the function's time
+ * (ADR 0014): what is left goes at the next run.
+ */
+export const SWEEP_BATCH = 5_000;
+
 /** A module's timed work: what it did, counted, at the run's time. */
 export interface Job {
   name: string;

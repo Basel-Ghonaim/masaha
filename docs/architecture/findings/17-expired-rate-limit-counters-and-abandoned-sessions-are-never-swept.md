@@ -1,6 +1,6 @@
 # 17. Expired rate-limit counters and abandoned sessions are never swept
 
-**Status:** Open · **Date:** 2026-10-01 · **Corrected:** 2026-10-02
+**Status:** Resolved · **Date:** 2026-10-01 · **Corrected:** 2026-10-02 · **Resolved:** 2026-10-29
 
 **Evidence:**
 - **Rate limits.** The `rate_limits` table ([security.md](../../backend/security.md#rate-limits-fixed-window)) keeps a row per key, and a key's window starts over on its next hit. A key never hit again keeps its expired row for good. The rows are small, but the table grows with every address and account that ever made a request, against Neon's 0.5 GB free tier ([ADR 0014](../decisions/0014-deployment.md)).
@@ -9,3 +9,5 @@
 - **Recovery sessions.** One is opened by every request for a reset link, whether or not the address has an account, and a new request in the same browser ends the last. A recovery whose browser never comes back stays after it expires, unless its link ends first and takes it along.
 
 **Resolves when:** a timed job (the scheduler port, [conventions §12](../../backend/conventions.md#12-environments)) deletes expired counters and expired tokens, or a measurement shows the growth does not matter within v1.
+
+**Resolution (#132):** Two timed jobs sweep the expired refresh tokens, reset tokens, recoveries and rate-limit counters, 5,000 rows a table a run (D1.2).
