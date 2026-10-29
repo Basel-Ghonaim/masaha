@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { addDays, daysFrom, gazaClockOf, gazaInstant, weekStartOf } from './gazaTime.ts';
+import {
+  addDays,
+  addMonths,
+  daysFrom,
+  gazaClockOf,
+  gazaInstant,
+  lastDaysSince,
+  monthOf,
+  weekStartOf,
+} from './gazaTime.ts';
 
 // Gaza is UTC+2 in winter and UTC+3 in summer. The daylight-saving changes pinned here are read
 // from Node's zone data (docs/backend/conventions.md §11): 2026-03-28 at 02:00 (+02:00 → +03:00)
@@ -76,5 +85,38 @@ describe('weekStartOf', () => {
     expect(weekStartOf('2026-10-18')).toBe('2026-10-17'); // Sunday
     expect(weekStartOf('2026-10-23')).toBe('2026-10-17'); // Friday
     expect(weekStartOf('2027-01-01')).toBe('2026-12-26'); // a Friday, across the year
+  });
+});
+
+describe('monthOf and addMonths', () => {
+  it('monthOf and addMonths across a year, back and ahead', () => {
+    expect(monthOf('2026-10-29')).toBe('2026-10');
+    expect(monthOf('2027-01-01')).toBe('2027-01');
+    expect(addMonths('2026-10', 0)).toBe('2026-10');
+    expect(addMonths('2026-10', 1)).toBe('2026-11');
+    expect(addMonths('2026-11', 1)).toBe('2026-12');
+    expect(addMonths('2026-12', 1)).toBe('2027-01');
+    expect(addMonths('2026-10', 3)).toBe('2027-01');
+    expect(addMonths('2027-01', -1)).toBe('2026-12');
+    expect(addMonths('2026-10', -23)).toBe('2024-11');
+    expect(addMonths('2026-10', -10)).toBe('2025-12');
+    expect(addMonths('2026-10', 12)).toBe('2027-10');
+  });
+});
+
+describe('lastDaysSince', () => {
+  it('lastDaysSince: the Gaza midnight 29 days before today, across a daylight-saving change', () => {
+    // Today 2026-11-10, in winter; 2026-10-12 was in summer: its midnight is +03:00.
+    expect(lastDaysSince(new Date('2026-11-10T10:00:00+02:00'), 30).toISOString()).toBe(
+      '2026-10-11T21:00:00.000Z',
+    );
+    // Just after Gaza's midnight, today is already the 11th.
+    expect(lastDaysSince(new Date('2026-11-10T22:30:00Z'), 30).toISOString()).toBe(
+      '2026-10-12T21:00:00.000Z',
+    );
+    // The last day alone is today, from its midnight.
+    expect(lastDaysSince(new Date('2026-11-10T10:00:00+02:00'), 1).toISOString()).toBe(
+      '2026-11-09T22:00:00.000Z',
+    );
   });
 });

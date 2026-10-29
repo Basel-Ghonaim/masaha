@@ -1,4 +1,5 @@
-import type { AdminSpaceRow, AdminSpacesQuery } from '@masaha/shared/space-links';
+import type { AdminSpaceRow, AdminSpacesListQuery } from '@masaha/shared/space-links';
+import type { FactGroup } from '@masaha/shared/spaces';
 
 import type { Tx } from '../../../db/index.ts';
 import type { LookupsService } from '../../lookups/index.ts';
@@ -7,6 +8,27 @@ import type { UsersService } from '../../users/index.ts';
 import { createSpaceLinksRepository } from '../space-links.repository.ts';
 import { toAdminSpaceRow } from './adminSpaces.mapper.ts';
 import { listingQueryOf } from './listingQuery.ts';
+
+/** The spaces counted by status for the admin's overview, each the list's total by that filter. */
+export interface SpaceCounts {
+  verified: number;
+  unverified: number;
+  hidden: number;
+  staleOrMissing: number;
+}
+
+/** The spaces whose facts the admin keeps, stale or missing: how many, and the first few. */
+export interface StaleEditable {
+  total: number;
+  first: {
+    id: number;
+    nameEn: string;
+    nameAr: string | null;
+    hidden: boolean;
+    missing: FactGroup[];
+    stale: { group: FactGroup; days: number }[];
+  }[];
+}
 
 interface Dependencies {
   listing: ListingService;
@@ -39,8 +61,9 @@ export function createAdminSpacesService({ listing, lookups, users }: Dependenci
       });
     },
 
-    async list(query: AdminSpacesQuery): Promise<{ rows: AdminSpaceRow[]; total: number }> {
-      const byLinks = query.status === 'verified' || query.status === 'unverified';
+    async list(query: AdminSpacesListQuery): Promise<{ rows: AdminSpaceRow[]; total: number }> {
+      const byLinks =
+        query.status === 'verified' || query.status === 'unverified' || query.status === 'editable';
       const [verifiedIds, governorateAreaIds] = await Promise.all([
         byLinks ? repository.findVerifiedSpaceIds() : undefined,
         query.governorateId === undefined ? undefined : lookups.areaIdsOf(query.governorateId),
@@ -72,6 +95,49 @@ export function createAdminSpacesService({ listing, lookups, users }: Dependenci
           return area ? [toAdminSpaceRow(space, area, owners)] : [];
         }),
         total,
+      };
+    },
+
+    /**
+     * The spaces by status, for the admin's overview: each the list's total by the same filter
+     * (`listingQueryOf`), so a tile equals the list it links to (S22) — verified, unverified and
+     * hidden as `status=` lists them, stale or missing as `stale=true` does; a deleted space never.
+     * The verified ids read once; the four counts in parallel.
+     */
+    async counts(): Promise<SpaceCounts> {
+      const verifiedIds = await repository.findVerifiedSpaceIds();
+      const count = (query: Parameters<typeof listingQueryOf>[0]) =>
+        listing.count(listingQueryOf(query, { verifiedIds }));
+      const [verified, unverified, hidden, staleOrMissing] = await Promise.all([
+        count({ status: 'verified' }),
+        count({ status: 'unverified' }),
+        count({ status: 'hidden' }),
+        count({ stale: true }),
+      ]);
+      return { verified, unverified, hidden, staleOrMissing };
+    },
+
+    /**
+     * The spaces whose facts the admin keeps — unverified, hidden ones included, never deleted —
+     * with a group stale or missing: the first `take` by English name, then id, each with its
+     * groups and their days, and how many there are. The list's `status=editable&stale=true`.
+     */
+    async staleEditable(take = 5): Promise<StaleEditable> {
+      const verifiedIds = await repository.findVerifiedSpaceIds();
+      const { rows, total } = await listing.page(
+        listingQueryOf({ status: 'editable', stale: true }, { verifiedIds }),
+        { page: 1, limit: take },
+      );
+      return {
+        total,
+        first: rows.map(({ id, nameEn, nameAr, isHidden, missingGroups, stale }) => ({
+          id,
+          nameEn,
+          nameAr,
+          hidden: isHidden,
+          missing: missingGroups,
+          stale,
+        })),
       };
     },
   };

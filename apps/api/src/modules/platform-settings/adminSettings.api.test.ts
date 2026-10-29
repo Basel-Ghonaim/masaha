@@ -156,6 +156,38 @@ describe("the admin's settings cards", () => {
     });
   });
 
+  it('saving a contact stored in another form stores its one form, audited from the stored to the saved', async () => {
+    await prisma.setting.createMany({
+      data: [
+        { key: 'contactEmail', value: 'Hello@Masaha.PS' },
+        { key: 'contactWhatsapp', value: '+972591234567' },
+      ],
+    });
+
+    const saved = await card('put', 'contact', {
+      email: 'Hello@Masaha.PS',
+      whatsapp: '+972591234567',
+    });
+
+    expect(saved.status).toBe(200);
+    expect(dataOf(saved)).toEqual({ email: 'hello@masaha.ps', whatsapp: '+970591234567' });
+    expect(await stored()).toMatchObject({
+      contactEmail: 'hello@masaha.ps',
+      contactWhatsapp: '+970591234567',
+    });
+    expect(await auditEntries()).toEqual([
+      {
+        actorId: admin.id,
+        action: 'platformSettings.contactEdited',
+        entityType: 'platformSettings',
+        entityId: null,
+        spaceId: null,
+        before: { email: 'Hello@Masaha.PS', whatsapp: '+972591234567' },
+        after: { email: 'hello@masaha.ps', whatsapp: '+970591234567' },
+      },
+    ]);
+  });
+
   it('a saved default is copied into the next space only; an existing space keeps its own', async () => {
     const { id: areaId } = await createArea();
     const create = (nameEn: string) =>

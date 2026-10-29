@@ -5,6 +5,7 @@ import {
   missingGroups,
   pricesHidden,
   staleCutoffs,
+  staleDays,
   staleGroups,
   type GroupDates,
 } from './staleness.ts';
@@ -106,5 +107,14 @@ describe('pricesHidden', () => {
 
   it('hides nothing of prices never saved', () => {
     expect(pricesHidden(false, dated(0, { prices: null }), cutoffs)).toBe(false);
+  });
+});
+
+describe('staleDays', () => {
+  it('counts the Gaza days from a group’s date to now, not the UTC days', () => {
+    // 23:30 on the 1st in Gaza is still the 1st there; 00:30 on the 3rd in Gaza is the 2nd in UTC.
+    expect(
+      staleDays(new Date('2026-10-01T23:30:00+03:00'), new Date('2026-10-03T00:30:00+03:00')),
+    ).toBe(2);
   });
 });

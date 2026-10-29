@@ -16,6 +16,15 @@ export interface User {
   hasPassword: boolean;
 }
 
+/** The signed-in user's own account, as its settings read and edit it. */
+export interface MyAccount {
+  id: number;
+  name: string;
+  email: string;
+  language: Language;
+  role: Role;
+}
+
 /** A temporary password the admin issued, answered once and never again (docs/backend/security.md). */
 export interface IssuedTemporaryPassword {
   temporaryPassword: string;

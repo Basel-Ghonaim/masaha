@@ -2,6 +2,7 @@ import type {
   DataReportDecision,
   DataReportField,
   DataReportStatus,
+  ReportHandler,
   ReportStatusFilter,
 } from '@masaha/shared/data-reports';
 
@@ -60,6 +61,16 @@ interface Page {
 function statusWhere(status: ReportStatusFilter | undefined): Prisma.DataReportWhereInput {
   if (status === 'OPEN') return { status: 'OPEN' };
   if (status === 'DECIDED') return { status: { not: 'OPEN' } };
+  return {};
+}
+
+/** Who handles a report, as a condition: the admin an unverified space's, its owners a verified one's. */
+function handledByWhere(
+  verifiedIds: readonly number[],
+  handledBy: 'ADMIN' | 'OWNER' | undefined,
+): Prisma.DataReportWhereInput {
+  if (handledBy === 'ADMIN') return { spaceId: { notIn: [...verifiedIds] } };
+  if (handledBy === 'OWNER') return { spaceId: { in: [...verifiedIds] } };
   return {};
 }
 
@@ -130,19 +141,45 @@ export function createDataReportsRepository() {
       return { rows, total };
     },
 
+    /** How many of the space's reports are open: the owner's list's `status=OPEN` total. */
+    openCountOf(spaceId: number): Promise<number> {
+      return prisma.dataReport.count({ where: { spaceId, ...statusWhere('OPEN') } });
+    },
+
     /**
-     * A page of every report, newest first, then id, filtered by status, field and space; and how
-     * many pass. A soft-deleted space's reports are left out (ADR 0007).
+     * The open reports of the live spaces, counted: in all, those the admin handles and those the
+     * owners handle (`handledByWhere`, by these verified spaces), three counts in parallel.
+     */
+    async openCounts(
+      verifiedIds: readonly number[],
+    ): Promise<{ open: number; awaitingAdmin: number; awaitingOwners: number }> {
+      const where = { space: { deletedAt: null }, ...statusWhere('OPEN') };
+      const [open, awaitingAdmin, awaitingOwners] = await Promise.all([
+        prisma.dataReport.count({ where }),
+        prisma.dataReport.count({ where: { ...where, ...handledByWhere(verifiedIds, 'ADMIN') } }),
+        prisma.dataReport.count({ where: { ...where, ...handledByWhere(verifiedIds, 'OWNER') } }),
+      ]);
+      return { open, awaitingAdmin, awaitingOwners };
+    },
+
+    /**
+     * A page of every report, newest first, then id, filtered by status, field, space and who
+     * handles it (by the verified spaces' ids, given with `handledBy`); and how many pass. A
+     * soft-deleted space's reports are left out (ADR 0007).
      */
     async pageAll(
       {
         status,
         field,
         spaceId,
+        handledBy,
+        verifiedIds = [],
       }: {
         status?: ReportStatusFilter | undefined;
         field?: DataReportField | undefined;
         spaceId?: number | undefined;
+        handledBy?: ReportHandler | undefined;
+        verifiedIds?: readonly number[];
       },
       { skip, take }: Page,
     ): Promise<{ rows: ReportWithPeople[]; total: number }> {
@@ -151,6 +188,8 @@ export function createDataReportsRepository() {
         ...statusWhere(status),
         ...(field ? { field } : {}),
         ...(spaceId === undefined ? {} : { spaceId }),
+        // Its own condition: both name the space, so a spread would replace the space filter.
+        AND: [handledByWhere(verifiedIds, handledBy)],
       };
       const [rows, total] = await Promise.all([
         prisma.dataReport.findMany({

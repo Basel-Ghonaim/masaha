@@ -96,14 +96,16 @@ export function createSessionsRepository(db: PrismaClient = prisma) {
       return count === 1;
     },
 
-    /** When the session was last used, by its newest token; nothing once it has no token. */
+    /**
+     * When the session was last used, the latest of its tokens: a renewal racing a rotation renews
+     * the presented token alone (finding 170). Nothing once it has no token.
+     */
     async familyActivity(familyId: number, tx: Tx = db): Promise<Date | undefined> {
-      const newest = await tx.refreshToken.findFirst({
+      const { _max } = await tx.refreshToken.aggregate({
         where: { familyId },
-        orderBy: { id: 'desc' },
-        select: { lastActivityAt: true },
+        _max: { lastActivityAt: true },
       });
-      return newest?.lastActivityAt;
+      return _max.lastActivityAt ?? undefined;
     },
 
     /**

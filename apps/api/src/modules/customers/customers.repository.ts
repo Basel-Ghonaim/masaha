@@ -12,6 +12,14 @@ export interface CustomerRow {
   archivedAt: Date | null;
 }
 
+/** A customer's contact, as finance's debts and the desk's check-ins name them. */
+export interface CustomerContact {
+  id: number;
+  name: string;
+  phone: string | null;
+  archived: boolean;
+}
+
 /** What a page of the list keeps: archived or not, a search, ids it must be in, ids it must not. */
 export interface CustomerFilter {
   archived: boolean;
@@ -47,18 +55,26 @@ export function createCustomersRepository() {
       return new Map(rows.map(({ id, name }) => [id, name]));
     },
 
-    /** These customers of the space, by id: their names and phones; another space's are not read. */
+    /**
+     * These customers of the space, by id: their names and phones, and whether each is archived;
+     * another space's are not read.
+     */
     async contactsOf(
       spaceId: number,
       ids: readonly number[],
       tx: Tx = prisma,
-    ): Promise<Map<number, { id: number; name: string; phone: string | null }>> {
+    ): Promise<Map<number, CustomerContact>> {
       if (ids.length === 0) return new Map();
       const rows = await tx.customer.findMany({
         where: { spaceId, id: { in: [...ids] } },
-        select: { id: true, name: true, phone: true },
+        select: { id: true, name: true, phone: true, archivedAt: true },
       });
-      return new Map(rows.map((row) => [row.id, row]));
+      return new Map(
+        rows.map(({ id, name, phone, archivedAt }) => [
+          id,
+          { id, name, phone, archived: archivedAt !== null },
+        ]),
+      );
     },
 
     /** The space's customer with this phone among those not archived, or `null`. */

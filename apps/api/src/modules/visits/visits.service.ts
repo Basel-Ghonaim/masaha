@@ -1,4 +1,4 @@
-import type { PaginationQuery } from '@masaha/shared/core';
+import { addDays, gazaClockOf, gazaInstant, type PaginationQuery } from '@masaha/shared/core';
 import type { SpaceSettings } from '@masaha/shared/space-settings';
 import type { OpeningRange } from '@masaha/shared/spaces';
 import type { Logger } from 'pino';
@@ -8,6 +8,7 @@ import type {
   PriceVisitRequest,
   QuotedVisit,
   Rates,
+  VisitsQuery,
   VisitTerms,
   VisitWriteOff,
 } from '@masaha/shared/visits';
@@ -73,6 +74,18 @@ function ruleOf(settings: SpaceSettings): ChargeRule {
     roundingMinutes: settings.visitRoundingMinutes,
     capAtDayPrice: settings.visitCapAtDayPrice,
   };
+}
+
+/**
+ * The instants of a range of Gaza days (the payments list's rule): from its first day's midnight
+ * to the midnight after its last, that end left out; without a range, today in Gaza at `now`.
+ */
+function daysWindow({ from, to }: { from?: string; to?: string }, now: Date) {
+  if (from === undefined || to === undefined) {
+    const today = gazaClockOf(now).date;
+    return { from: gazaInstant(today, 0), to: gazaInstant(addDays(today, 1), 0) };
+  }
+  return { from: gazaInstant(from, 0), to: gazaInstant(addDays(to, 1), 0) };
 }
 
 /** Whether two rates are the same, hour and day. */
@@ -229,6 +242,29 @@ export function createVisitsService({
           capApplied: charge?.capApplied ?? null,
         },
       };
+    },
+
+    /**
+     * A page of the space's visits checked in on a range of Gaza days (today without one), open and
+     * closed, the latest checked in first, then by id; and how many. The owner (`payments.read`,
+     * as the payments list) reads any range; the rest of the staff today's, and a range from them
+     * is `forbidden`. Read without a lock.
+     */
+    async page(
+      actor: Actor,
+      space: LoadedSpace,
+      query: VisitsQuery,
+    ): Promise<{ rows: DeskVisit[]; total: number }> {
+      const ranged = query.from !== undefined || query.to !== undefined;
+      if (ranged && !can(actor, 'payments.read', { links: space.links })) {
+        throw AppError.forbidden();
+      }
+      const { rows, total } = await repository.checkedInBetween(
+        space.id,
+        daysWindow(query, now()),
+        { skip: toSkip(query), take: query.limit },
+      );
+      return { rows: rows.map(toDeskVisit), total };
     },
 
     /**
@@ -494,6 +530,11 @@ export function createVisitsService({
         take: query.limit,
       });
       return { rows: rows.map(toDeskVisit), total };
+    },
+
+    /** How many of the space's closed visits have no charge: the unpriced list's total. */
+    unpricedCount(spaceId: number): Promise<number> {
+      return repository.unpricedCount(spaceId);
     },
 
     /**

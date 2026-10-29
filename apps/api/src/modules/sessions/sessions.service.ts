@@ -155,10 +155,10 @@ export function createSessionsService({
         return { outcome: 'invalid' };
       }
       if (stored.expiresAt <= at) return { outcome: 'invalid' };
-      if (
-        idleAfterMs !== undefined &&
-        at.getTime() - stored.lastActivityAt.getTime() > idleAfterMs
-      ) {
+      // The session's last use is its family's latest, which the new token carries on.
+      const lastActivityAt =
+        (await repository.familyActivity(stored.familyId, tx)) ?? stored.lastActivityAt;
+      if (idleAfterMs !== undefined && at.getTime() - lastActivityAt.getTime() > idleAfterMs) {
         await repository.deleteFamily(stored.familyId, tx);
         return { outcome: 'idle' };
       }
@@ -171,7 +171,7 @@ export function createSessionsService({
       // A session that keeps refreshing never signs in again, so its expired rows go here: a
       // live session keeps the tokens of its last 7 days, which reuse detection needs.
       await repository.deleteExpired(stored.userId, at, tx);
-      const next = await issueInFamily(stored.userId, stored, at, tx);
+      const next = await issueInFamily(stored.userId, { ...stored, lastActivityAt }, at, tx);
       // Within the grace window the token already has its successor, and the new token joins the
       // session beside it. Otherwise it is marked rotated now: the session lock means no concurrent
       // refresh can have done it first.

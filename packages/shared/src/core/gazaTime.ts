@@ -60,3 +60,24 @@ export function weekStartOf(date: string): string {
   const dayOfWeek = utcDay(date).getUTCDay();
   return addDays(date, -((dayOfWeek + 1) % 7));
 }
+
+/** The calendar month of a date, `YYYY-MM` of `YYYY-MM-DD`. */
+export function monthOf(date: string): string {
+  return date.slice(0, 7);
+}
+
+/** The calendar month `months` after `month` (before it when negative), both `YYYY-MM`. */
+export function addMonths(month: string, months: number): string {
+  const [year = 0, monthNumber = 1] = month.split('-').map(Number);
+  const index = year * 12 + monthNumber - 1 + months;
+  const movedYear = Math.floor(index / 12);
+  return `${String(movedYear)}-${twoDigits(index - movedYear * 12 + 1)}`;
+}
+
+/**
+ * When the last `days` Gaza days start at `now`: the Gaza midnight `days − 1` days before today, so
+ * today is the last of them, and they are whole Gaza days across a daylight-saving change.
+ */
+export function lastDaysSince(now: Date, days: number): Date {
+  return gazaInstant(addDays(gazaClockOf(now).date, 1 - days), 0);
+}

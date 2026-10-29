@@ -3,6 +3,8 @@ import {
   NAME_MAX_LENGTH,
   type ChangePasswordRequest,
   type HandoverChannel,
+  type MyAccount,
+  type UpdateMeRequest,
   type User,
 } from '@masaha/shared/users';
 
@@ -20,7 +22,7 @@ import {
   temporaryPasswordExpiry,
 } from './temporaryPassword.ts';
 import { PASSWORD_CHANGE } from './users.limits.ts';
-import { toUserView } from './users.mapper.ts';
+import { toMyAccount, toUserView } from './users.mapper.ts';
 import {
   createUsersRepository,
   type Account,
@@ -481,6 +483,11 @@ export function createUsersService({
       };
     },
 
+    /** How many accounts were created at `since` or after, every role: the admin's new users. */
+    countCreatedSince(since: Date): Promise<number> {
+      return repository.countCreatedSince(since);
+    },
+
     /** The names of these users, in one query, for a list that names them (the spaces' owners). */
     namesFor(ids: readonly number[], tx?: Tx): Promise<UserName[]> {
       return repository.findNames(ids, tx);
@@ -622,6 +629,47 @@ export function createUsersService({
 
     async view(account: Account, tx?: Tx): Promise<User> {
       return toUserView(account, await repository.hasPassword(account.id, tx));
+    },
+
+    /** The signed-in user's own account, for its settings. */
+    async myAccount(userId: number): Promise<MyAccount> {
+      return toMyAccount(await get(userId));
+    },
+
+    /**
+     * Edits the signed-in user's own name and language, under the session lock so the audit's
+     * `before` is what the edit replaced. Only what changed is written and audited
+     * `user.profileEdited`, naming no space; an edit that changes nothing writes nothing.
+     */
+    async editMyAccount(userId: number, edit: UpdateMeRequest): Promise<MyAccount> {
+      return runInTransaction(async (tx) => {
+        const account = await lockAccount(userId, tx);
+        if (!account) throw AppError.unauthorized(undefined, 'Account not found');
+        const before: UpdateMeRequest = {};
+        const after: UpdateMeRequest = {};
+        if (edit.name !== undefined && edit.name !== account.name) {
+          before.name = account.name;
+          after.name = edit.name;
+        }
+        if (edit.language !== undefined && edit.language !== account.language) {
+          before.language = account.language;
+          after.language = edit.language;
+        }
+        if (Object.keys(after).length === 0) return toMyAccount(account);
+        const edited = await repository.setProfile(userId, after, tx);
+        await audit(
+          {
+            actorId: userId,
+            action: 'user.profileEdited',
+            entityType: 'user',
+            entityId: userId,
+            before,
+            after,
+          },
+          tx,
+        );
+        return toMyAccount(edited);
+      });
     },
 
     /**

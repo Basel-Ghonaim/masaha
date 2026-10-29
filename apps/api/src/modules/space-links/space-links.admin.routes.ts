@@ -1,6 +1,6 @@
 import {
   addOwnerSchema,
-  adminSpacesQuerySchema,
+  adminSpacesListQuerySchema,
   adminUsersQuerySchema,
   changeRoleSchema,
   linkOwnerSchema,
@@ -33,7 +33,7 @@ export function createSpaceLinksAdminRouter({
   adminUsers,
 }: SpaceLinksAdminControllers): Router {
   const router = Router();
-  router.get('/spaces', validate(adminSpacesQuerySchema, 'query'), adminSpaces.list);
+  router.get('/spaces', validate(adminSpacesListQuerySchema, 'query'), adminSpaces.list);
   router.get('/users', validate(adminUsersQuerySchema, 'query'), adminUsers.list);
   router.put('/users/:userId/role', validate(changeRoleSchema), adminRoles.change);
   router.post('/owners', validate(addOwnerSchema), adminOwners.add);

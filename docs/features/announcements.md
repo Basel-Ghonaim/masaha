@@ -1,6 +1,6 @@
 # Announcements
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The `announcements` capability: what a space tells its users changes — a closure, an outage, an offer, an event or general news — posted and changed by its staff. Its endpoints are owned by the [API contract](../api/api-contract.md#announcements-managed); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the dashboard, the owner's and reception's «الإعلانات».
 > **Scope:** the API module `announcements` (L2); `@masaha/shared/announcements`; the web feature `features/announcements`, any page group: screen 18, and the public pieces a space's page sets: its running closure's notice and its other announcements.
 
@@ -20,6 +20,7 @@
 - **The live status** ([occupancy](occupancy.md)): a running `CLOSURE` makes a space `CLOSED`.
 - **[`subscriptions`](subscriptions.md),** whose managed list and summary read its pages, its counts and its started closures, and whose closure extension reads a closure (`closureIn`), locks it (`lockClosure`) and its days (`closureSpan`).
 - **[`directory`](directory.md),** whose space page reads its running and upcoming announcements. On the site, the space's page shows them: a running closure's notice at its top, the others after its status (2026-10-28, #129).
+- **The owner's overview** (`overview`), which reads the running announcements' types, beside the summary's running count (2026-10-29, #131).
 
 ## Responsibility boundary
 
@@ -57,6 +58,8 @@
 **A closure's extension on the web** ([`subscriptions`](subscriptions.md)' routes, S2). A closure's card says where its extension stands: «يمكن تمديد الاشتراكات بعد أن يبدأ الإغلاق.» for the owner on one not started; on one started and not extended, «يمدّد المالك الاشتراكات بعد بدء الإغلاق.» for reception and «تمديد الاشتراكات» for the owner; once extended, to both, «مُدّد {count} · {days} · {name} · {date}». «تمديد الاشتراكات» opens an alert dialog that reads the preview at each opening: how many subscriptions the extension moves now — those the closure covered and their renewals not started yet, as the server counts them —, the closure's Gaza days, and the days, prefilled with the proposal and typed (1–365, Arabic digits read). The typed days are sent with one `Idempotency-Key` per opening, kept across the transport's re-sends and «إعادة المحاولة»; a failure stays in the dialog with the days kept — `CLOSURE_ALREADY_EXTENDED` reads the list again, so the card shows the extension; `ANNOUNCEMENT_NOT_STARTED`, a 403 and no answer are worded. A closure that covered none says «لم يشمل هذا الإغلاق أي اشتراك، فلا شيء يُمدَّد.» and one extended meanwhile says so, each with «رجوع» only. Done, the whole space is read again and the toast says «مُدّدت الاشتراكات» with how many and by how many days.
 
 **An extended closure.** Once its subscriptions were extended ([`subscriptions`](subscriptions.md)), an edit giving it a new type or start, a later end or no end, and its delete, are refused `CLOSURE_EXTENDED`, writing nothing; its text and an earlier end, end now included, change. The database's trigger refuses them ([data model › Constraints](../architecture/data-model.md#constraints-worth-stating)); this module asks nothing of the extensions.
+
+**The running types** (`runningTypes`, for the owner's overview): the types of the space's announcements running at the instant asked, not deleted, each once — one query of the running ones on the list's own `RUNNING` condition, each type kept once (Prisma's `distinct`, applied in memory, not in SQL) — in `ANNOUNCEMENT_TYPES`' order (2026-10-29, #131).
 
 ## Decisions
 

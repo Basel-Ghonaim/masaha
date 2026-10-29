@@ -16,4 +16,8 @@ export type {
   SubscriptionToCreate,
 } from './subscriptions.repository.ts';
 export { proposedStart } from './renewal.ts';
-export { createSubscriptionsService, type SubscriptionsService } from './subscriptions.service.ts';
+export {
+  createSubscriptionsService,
+  type EndingSoon,
+  type SubscriptionsService,
+} from './subscriptions.service.ts';

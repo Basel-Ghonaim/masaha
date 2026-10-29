@@ -133,6 +133,37 @@ describe("the admin's reports", () => {
     expect(ownerRefused.status).toBe(403);
   });
 
+  it("handledBy=ADMIN keeps the unverified spaces' reports, OWNER the verified's", async () => {
+    const { id: otherUnverifiedId } = await createSpace('open-desk');
+    const prices = await report({ createdAt: minutesAgo(40) });
+    const hours = await report({ spaceId: otherUnverifiedId, field: 'HOURS' });
+    const owners = await report({ spaceId: verifiedId, createdAt: minutesAgo(20) });
+    const ownersDecided = await report({
+      spaceId: verifiedId,
+      createdAt: minutesAgo(30),
+      status: 'RESOLVED',
+      resolvedAt: minutesAgo(5),
+      resolvedById: owner.id,
+      resolvedAs: 'OWNER',
+    });
+
+    const path = (query: string) => adminRequest(app, admin, 'get', `/data-reports${query}`);
+    const byAdmin = await path('?handledBy=ADMIN');
+    expect(ids(byAdmin)).toEqual([hours.id, prices.id]);
+    expect((byAdmin.body as { meta: object }).meta).toMatchObject({ totalRecords: 2 });
+    const byOwner = await path('?handledBy=OWNER');
+    expect(ids(byOwner)).toEqual([owners.id, ownersDecided.id]);
+    expect((byOwner.body as { meta: object }).meta).toMatchObject({ totalRecords: 2 });
+
+    expect(ids(await path('?handledBy=OWNER&status=OPEN'))).toEqual([owners.id]);
+    expect(ids(await path('?handledBy=ADMIN&field=HOURS'))).toEqual([hours.id]);
+    expect(ids(await path(`?handledBy=ADMIN&spaceId=${String(verifiedId)}`))).toEqual([]);
+    expect(ids(await path('?handledBy=ADMIN&page=2&limit=1'))).toEqual([prices.id]);
+    const unknown = await path('?handledBy=SPACE');
+    expect(unknown.status).toBe(422);
+    expect(errorOf(unknown).errors).toEqual({ handledBy: ['invalid_choice'] });
+  });
+
   it("the admin decides an unverified space's report; a verified space's is 403", async () => {
     const mine = await report();
     const owners = await report({ spaceId: verifiedId });

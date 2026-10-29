@@ -60,8 +60,16 @@ export const spaceReportsQuerySchema = myReportsQuerySchema.extend({
 });
 export type SpaceReportsQuery = z.infer<typeof spaceReportsQuerySchema>;
 
-/** Every space's reports, as the admin lists them: by space too. */
+/**
+ * Who handles a report: the admin an unverified space's, its owners a verified one's (the admin's
+ * filter).
+ */
+export const REPORT_HANDLERS = ['ADMIN', 'OWNER'] as const;
+export type ReportHandler = (typeof REPORT_HANDLERS)[number];
+
+/** Every space's reports, as the admin lists them: by space, and by who handles them, too. */
 export const adminReportsQuerySchema = spaceReportsQuerySchema.extend({
   spaceId: id.optional(),
+  handledBy: z.enum(REPORT_HANDLERS).optional(),
 });
 export type AdminReportsQuery = z.infer<typeof adminReportsQuerySchema>;

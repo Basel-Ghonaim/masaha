@@ -173,6 +173,20 @@ export function createDataReportsService({
       return { rows: rows.map(toSpaceReport), total };
     },
 
+    /** How many of the space's reports are open, as its owner's list counts them. */
+    openCountOf(spaceId: number): Promise<number> {
+      return repository.openCountOf(spaceId);
+    },
+
+    /**
+     * The open reports of the live spaces, for the admin's overview: in all, those awaiting the
+     * admin (an unverified space's) and those awaiting the owners (a verified one's), as the
+     * admin's list tells them apart.
+     */
+    async openCounts(): Promise<{ open: number; awaitingAdmin: number; awaitingOwners: number }> {
+      return repository.openCounts(await spaceLinks.verifiedSpaceIds());
+    },
+
     /** The space's owner decides one of its reports (`decideUnder`), on its links under the lock. */
     async decideAtSpace(
       actor: Actor,
@@ -189,18 +203,21 @@ export function createDataReportsService({
     },
 
     /**
-     * A page of every report, newest first, by status, field and space, as the admin reads them:
-     * with who reported and who decided; a soft-deleted space's left out. Read without a lock.
+     * A page of every report, newest first, by status, field, space and who handles it (the
+     * verified spaces read only then), as the admin reads them: with who reported and who decided;
+     * a soft-deleted space's left out. Read without a lock.
      */
     async all({
       status,
       field,
       spaceId,
+      handledBy,
       page,
       limit,
     }: AdminReportsQuery): Promise<{ rows: AdminReport[]; total: number }> {
+      const verifiedIds = handledBy ? await spaceLinks.verifiedSpaceIds() : [];
       const { rows, total } = await repository.pageAll(
-        { status, field, spaceId },
+        { status, field, spaceId, handledBy, verifiedIds },
         { skip: toSkip({ page, limit }), take: limit },
       );
       return { rows: await asAdminReports(rows), total };

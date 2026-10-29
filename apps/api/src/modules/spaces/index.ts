@@ -40,3 +40,4 @@ export { createPhotosManageRouter } from './photos.manage.routes.ts';
 export { createSpacesManageRouter } from './spaces.manage.routes.ts';
 export type { SpaceName, SpaceRow } from './spaces.repository.ts';
 export { createSpacesService, type SpacesService } from './spaces.service.ts';
+export type { Freshness } from './staleness.ts';

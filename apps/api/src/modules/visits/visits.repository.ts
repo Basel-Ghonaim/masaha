@@ -69,6 +69,10 @@ function countsBySpace(groups: readonly { spaceId: number; _count: { _all: numbe
   return new Map(groups.map(({ spaceId, _count }) => [spaceId, _count._all]));
 }
 
+/** The space's closed visits with no charge: the unpriced list's rows, and its count. */
+const unpricedWhere = (spaceId: number) =>
+  ({ spaceId, checkedOutAt: { not: null }, chargeAgorot: null }) satisfies Prisma.VisitWhereInput;
+
 /** The `visits` table (docs/backend/conventions.md › the front desk): the desk's visits. */
 export function createVisitsRepository() {
   return {
@@ -109,6 +113,30 @@ export function createVisitsRepository() {
     /** The space's visit, or `null` when it is not the space's. */
     findIn(spaceId: number, visitId: number): Promise<DeskVisitRow | null> {
       return prisma.visit.findFirst({ where: { id: visitId, spaceId }, select: DESK_VISIT });
+    },
+
+    /**
+     * A page of the space's visits checked in from `from` up to `to`, that end left out, open and
+     * closed, the latest checked in first, then by id; and how many there are. On the index
+     * `(space_id, checked_in_at)`.
+     */
+    async checkedInBetween(
+      spaceId: number,
+      { from, to }: { from: Date; to: Date },
+      { skip, take }: { skip: number; take: number },
+    ): Promise<{ rows: DeskVisitRow[]; total: number }> {
+      const where = { spaceId, checkedInAt: { gte: from, lt: to } };
+      const [rows, total] = await Promise.all([
+        prisma.visit.findMany({
+          where,
+          select: DESK_VISIT,
+          orderBy: [{ checkedInAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take,
+        }),
+        prisma.visit.count({ where }),
+      ]);
+      return { rows, total };
     },
 
     /** These visits of the space, as the desk reads them; another space's are not read. */
@@ -207,7 +235,7 @@ export function createVisitsRepository() {
       spaceId: number,
       { skip, take }: { skip: number; take: number },
     ): Promise<{ rows: DeskVisitRow[]; total: number }> {
-      const where = { spaceId, checkedOutAt: { not: null }, chargeAgorot: null };
+      const where = unpricedWhere(spaceId);
       const [rows, total] = await Promise.all([
         prisma.visit.findMany({
           where,
@@ -219,6 +247,11 @@ export function createVisitsRepository() {
         prisma.visit.count({ where }),
       ]);
       return { rows, total };
+    },
+
+    /** How many of the space's closed visits have no charge: the unpriced list's total. */
+    unpricedCount(spaceId: number): Promise<number> {
+      return prisma.visit.count({ where: unpricedWhere(spaceId) });
     },
 
     /** Sets a closed visit's charge typed by hand, with who typed it and why. */

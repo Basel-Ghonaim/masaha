@@ -1,6 +1,6 @@
 # Subscriptions
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The `subscriptions` capability: a customer's subscriptions and their check-ins. Its entity and its derived values by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); its endpoints by the API contract ([Subscriptions (managed)](../api/api-contract.md#subscriptions-managed)). The API is built (the corrections and the end its own routes; the subscribe and the statement the desk's); on the web, [desk](desk.md) shows a customer's subscriptions.
 > **Scope:** the API module `subscriptions` (L3); `@masaha/shared/subscriptions`. No web feature of its own: [desk](desk.md)'s screens read it.
 
@@ -25,11 +25,12 @@
 - **The timed jobs** (`shared/jobs`), which run its auto check-out.
 - **The space's staff**, who read the managed announcements list and its summary through it, and a closure's extension's preview; **the owner**, who extends a closure's subscriptions. On the web, «الإعلانات» reads the managed list and its summary, and the owner extends a closure's subscriptions from it ([announcements](announcements.md), 2026-10-28, #129).
 - **[`payments`](payments.md),** which names the subscriptions of the payments it answers (`namesOf`).
+- **The owner's overview** (`overview`), which counts the customers whose subscription is ending soon and names the first five (2026-10-29, #131).
 
 ## Responsibility boundary
 
 - **Owns** the `subscriptions` and `check_ins` tables, the `closure_extensions` and `subscription_extensions` tables (a closure's extension and the subscriptions it moved), the database function `subscription_usage`, and the pure status and current-subscription rules.
-- **Reads** a stay's auto check-out time and the space's week from [`spaces`](spaces.md), the settings from [`space-settings`](space-settings.md), and the customers' names and phones for the check-ins' lists from [`customers`](customers.md).
+- **Reads** a stay's auto check-out time and the space's week from [`spaces`](spaces.md), the settings from [`space-settings`](space-settings.md), and the customers' names and phones for the check-ins' lists from [`customers`](customers.md) (a check-in's customer answered with those two alone).
 - **Leaves** the money paid on a subscription to [`payments`](payments.md), which reads a subscription's due through this module's function; the announcements, their writes and their states to [`announcements`](announcements.md), whose pages and counts the managed list composes.
 
 ## How it composes the platform
@@ -63,6 +64,8 @@
 **The current subscription** (`currentSubscription.ts`, pure): of a customer's subscriptions, the first by status (running, then upcoming, then expired), then the latest start (none last), then the highest id. `currentOf` answers it for a page's customers in one query; `customerIdsBy` reads the space's subscriptions once (a compact row each: the status is a pure rule) and answers the customers whose current one has the status, kind and package asked, or, for `NONE`, those with any subscription, to leave out.
 
 **A closure's extension** (`closures/`). *The covered subscriptions* are one SQL fragment both reads use: the space's, not ended early, with an end on or after the closure's first Gaza day and a start, or none, on or before its last (the days `closureSpan` answers, to today while it runs). *The preview*, read without a lock: the closure (a `CLOSURE` of the space, not deleted); one applied answers it with how many it moved; one not started yet is `ANNOUNCEMENT_NOT_STARTED`; else its days, the proposal (at most 365) and how many it moves. *The moved set* adds to the covered the chain of their renewals not started — a renewal of one, then of that renewal, whose start is after today's Gaza date and that was not ended early — read by one recursive query beside the fragment (`movedCount`, `lockMoved`). *The apply*, in one transaction: the space's lock and `can()` on the links under it; the extension this key applied, for a retry (another closure's, or another space's, → `conflict`); the closure, locked; one extended already → `CLOSURE_ALREADY_EXTENDED`; one not started → `ANNOUNCEMENT_NOT_STARTED`; the covered subscriptions and their renewals not started locked by id in one statement, the covered ones' ends moved by the days, the renewals' starts and ends; the extension and its links to both; the audit entry, the renewals named apart (`renewalIds`). The next read derives each one's status from its new end.
+
+**Ending soon** (`endingSoon`, for the owner's overview): the customers whose current subscription is `ENDING_SOON` at the instant asked — the customers list's `status=ENDING_SOON`: the space's subscriptions read once, as `customerIdsBy` reads them, then [`customers`](customers.md)' own page of those ids, archived ones left out, so the count is that list's total — and the first five by end date (one with none last), then by subscription id, each with its customer's name (2026-10-29, #131).
 
 ## Decisions
 
@@ -111,3 +114,4 @@
 - #118 — a subscription made from a published week or month price (through `desk`).
 - #123 — a closure's extension: the preview, and the owner's extension of the subscriptions it covered, once per closure under one key.
 - #128 — a closure's extension moves the covered subscriptions' renewals not started too (finding 151); a key that extended another space's closure is a conflict.
+- #131 — a check-in's customer answered with its name and phone alone, now that the contacts also say whether a customer is archived.

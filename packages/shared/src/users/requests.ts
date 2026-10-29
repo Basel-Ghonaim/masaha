@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { emailSchema } from '../core/index.ts';
+import { emailSchema, LANGUAGES, textSchema } from '../core/index.ts';
 import { PASSWORD_MAX_LENGTH, passwordSchema } from './passwordPolicy.ts';
 
 // The requests of the account's own endpoints (docs/api/api-contract.md §5).
@@ -34,3 +34,13 @@ export type HandoverRequest = z.infer<typeof handoverSchema>;
 export const setSuspendedSchema = z.object({ isSuspended: z.boolean() });
 
 export type SetSuspendedRequest = z.infer<typeof setSuspendedSchema>;
+
+/**
+ * The signed-in user's edit of their own account: the name, the interface language, or both; what
+ * is absent is kept.
+ */
+export const updateMeSchema = z
+  .object({ name: textSchema(1, NAME_MAX_LENGTH), language: z.enum(LANGUAGES) })
+  .partial();
+
+export type UpdateMeRequest = z.infer<typeof updateMeSchema>;

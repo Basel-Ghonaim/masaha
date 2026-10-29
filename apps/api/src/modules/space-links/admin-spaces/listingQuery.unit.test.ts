@@ -23,6 +23,12 @@ describe('listingQueryOf', () => {
     });
   });
 
+  it('keeps every space but the verified ones, hidden ones included, for editable', () => {
+    expect(listingQueryOf({ ...PAGE, status: 'editable' }, { verifiedIds: [3] })).toEqual({
+      ids: { notIn: [3] },
+    });
+  });
+
   it('keeps no space for verified when none is', () => {
     expect(listingQueryOf({ ...PAGE, status: 'verified' }, {})).toEqual({
       ids: { in: [] },

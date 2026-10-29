@@ -71,6 +71,7 @@ export const AUDIT_ACTIONS = [
   'subscription.priceCorrected',
   'user.created',
   'user.emailChanged',
+  'user.profileEdited',
   'user.roleChanged',
   'user.suspended',
   'user.temporaryPasswordHandedOver',

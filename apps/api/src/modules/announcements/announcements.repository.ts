@@ -153,6 +153,16 @@ export function createAnnouncementsRepository() {
       };
     },
 
+    /** The types of the space's announcements running at `now`, not deleted, each once. */
+    async runningTypes(spaceId: number, now: Date): Promise<AnnouncementType[]> {
+      const rows = await prisma.announcement.findMany({
+        where: { spaceId, deletedAt: null, ...STATE_WHERE.RUNNING(now) },
+        distinct: ['type'],
+        select: { type: true },
+      });
+      return rows.map(({ type }) => type);
+    },
+
     /** The ids of the space's closures, not deleted, started at or before `now` and since `since`. */
     async startedClosureIds(spaceId: number, now: Date, since: Date): Promise<number[]> {
       const rows = await prisma.announcement.findMany({

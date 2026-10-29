@@ -42,6 +42,13 @@ interface Dependencies {
   now: () => Date;
 }
 
+/** A space's state at a glance: its capacity, its live status, how many are present and how. */
+export interface Glance {
+  capacity: number | null;
+  status: LiveStatus | null;
+  present: { visits: number; members: number; total: number };
+}
+
 /** The kinds of stay in the order a tie on the check-in time lists them. */
 const KIND_ORDER = { VISIT: 0, CHECK_IN: 1 } as const;
 
@@ -205,6 +212,35 @@ export function createOccupancyService({
         present: people.length,
         override: override && { state: override.state, until: override.until.toISOString() },
         people,
+      };
+    },
+
+    /**
+     * The space's state at `at` at a glance, for the owner's overview: its capacity, its live status
+     * by the same rule as `now`, and how many are present, visits and members apart; no one's name.
+     * Each source counted, read in parallel with no lock.
+     */
+    async glance(space: LoadedSpace, at: Date): Promise<Glance> {
+      const [state, counts, closed, week] = await Promise.all([
+        occupancy.stateOf(space.id),
+        present.countsIn(space.id),
+        announcements.closedAt([space.id], at),
+        spaces.weekOf(space.id),
+      ]);
+      const total = counts.visits + counts.checkIns;
+      return {
+        capacity: state.capacity,
+        status: liveStatus({
+          verified: isVerified(space),
+          closureNow: closed.has(space.id),
+          week,
+          at: gazaClockOf(at),
+          now: at,
+          override: state.override,
+          capacity: state.capacity,
+          present: total,
+        }),
+        present: { visits: counts.visits, members: counts.checkIns, total },
       };
     },
 

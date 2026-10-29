@@ -12,6 +12,7 @@ const SPACE: ListedSpace = {
   isHidden: false,
   deletedAt: null,
   staleGroups: ['prices'],
+  stale: [{ group: 'prices', days: 40 }],
   missingGroups: ['contacts'],
   lastUpdatedAt: new Date('2026-10-01T09:00:00Z'),
 };

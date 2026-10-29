@@ -3,7 +3,12 @@ export { createAdminOwnersService } from './admin-owners/adminOwners.service.ts'
 export { createAdminRolesController } from './admin-roles/adminRoles.controller.ts';
 export { createAdminRolesService } from './admin-roles/adminRoles.service.ts';
 export { createAdminSpacesController } from './admin-spaces/adminSpaces.controller.ts';
-export { createAdminSpacesService } from './admin-spaces/adminSpaces.service.ts';
+export {
+  createAdminSpacesService,
+  type AdminSpacesService,
+  type SpaceCounts,
+  type StaleEditable,
+} from './admin-spaces/adminSpaces.service.ts';
 export { createAdminUsersController } from './admin-users/adminUsers.controller.ts';
 export { createAdminUsersService } from './admin-users/adminUsers.service.ts';
 export { createSpaceLinksAdminRouter } from './space-links.admin.routes.ts';

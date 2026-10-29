@@ -98,5 +98,10 @@ export function createListingRepository(db: PrismaClient = prisma) {
       ]);
       return { rows, total };
     },
+
+    /** How many spaces pass the filter: `findPage`'s total, by the same `where`. */
+    count(filter: ListingFilter): Promise<number> {
+      return db.space.count({ where: whereOf(filter) });
+    },
   };
 }

@@ -65,6 +65,11 @@ import {
   createFavoritesService,
 } from './modules/favorites/index.ts';
 import {
+  createFinanceController,
+  createFinanceManageRouter,
+  createFinanceService,
+} from './modules/finance/index.ts';
+import {
   createAmenitiesController,
   createAmenitiesService,
   createAreasController,
@@ -82,6 +87,12 @@ import {
   createOccupancyManageRouter,
   createOccupancyService,
 } from './modules/occupancy/index.ts';
+import {
+  createOverviewAdminRouter,
+  createOverviewController,
+  createOverviewManageRouter,
+  createOverviewService,
+} from './modules/overview/index.ts';
 import {
   createPackagesController,
   createPackagesManageRouter,
@@ -341,8 +352,9 @@ export function createApi({
     audit: writeAudit,
     lockSpace: (spaceId: number, tx: Tx) => spaces.lock(spaceId, tx),
   });
+  const listing = createListingService({ platformSettings, now: clock });
   const adminSpaces = createAdminSpacesService({
-    listing: createListingService({ platformSettings, now: clock }),
+    listing,
     lookups,
     users,
   });
@@ -426,6 +438,16 @@ export function createApi({
     subscriptions,
     now: clock,
   });
+  const finance = createFinanceService({
+    readSnapshot: createReadSnapshot(),
+    payments,
+    users,
+    customers,
+    subscriptions,
+    visits,
+    spaceSettings,
+    now: clock,
+  });
   const desk = createDeskService({
     runInTransaction,
     readSnapshot: createReadSnapshot(),
@@ -483,6 +505,19 @@ export function createApi({
     now: clock,
   });
   const auditLog = createAuditService({ now: clock });
+  const overview = createOverviewService({
+    listing,
+    dataReports,
+    visits,
+    payments,
+    subscriptions,
+    closures,
+    announcements,
+    occupancy,
+    adminSpaces,
+    users,
+    now: clock,
+  });
   const adminUsers = createAdminUsersService({ users, spaces });
   const adminRoles = createAdminRolesService({ runInTransaction, users });
   const staff = createStaffService({
@@ -591,6 +626,9 @@ export function createApi({
   manage.use('/staff', createStaffManageRouter({ staff: createStaffController(staff), limiter }));
   const auditController = createAuditController(auditLog);
   manage.use('/audit-log', createAuditManageRouter(auditController));
+  manage.use('/finance', createFinanceManageRouter(createFinanceController(finance)));
+  const overviewController = createOverviewController(overview);
+  manage.use('/overview', createOverviewManageRouter(overviewController));
   // The desk's state, polled by itself, renews no idle session: marked before the guard runs.
   api.get('/manage/spaces/:spaceId/occupancy', markPassive);
   api.use(
@@ -626,6 +664,7 @@ export function createApi({
   admin.use(createUsersAdminRouter(usersController));
   admin.use('/data-reports', createDataReportsAdminRouter(dataReportsController));
   admin.use('/audit-log', createAuditAdminRouter(auditController));
+  admin.use('/overview', createOverviewAdminRouter(overviewController));
   admin.use('/settings', createPlatformSettingsAdminRouter(platformSettingsController));
   admin.use(
     createSpacesAdminRouter({

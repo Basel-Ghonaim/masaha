@@ -9,7 +9,10 @@ import { createSpace } from '../../../test/factories.ts';
 import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
-import { prisma } from '../../db/index.ts';
+import { createRunInTransaction, prisma } from '../../db/index.ts';
+import { writeAudit } from '../../shared/audit/index.ts';
+import { createSpacesService } from '../spaces/index.ts';
+import { createAnnouncementsService } from './announcements.service.ts';
 
 const NOW = new Date('2026-10-24T10:00:00+03:00');
 const app = createTestApp({ clock: () => NOW });
@@ -324,5 +327,25 @@ describe("the announcements' routes", () => {
     }
     expect(await stored()).toHaveLength(1);
     expect(await auditEntries()).toEqual([]);
+  });
+});
+
+describe('the running announcements’ types', () => {
+  it('runningTypes: each running type once; an ended, upcoming or deleted one never', async () => {
+    await insert({ type: 'OFFER' });
+    await insert({ type: 'OFFER', endsAt: new Date(days(2)) });
+    await insert({ type: 'CLOSURE' });
+    await insert({ type: 'GENERAL', startsAt: new Date(days(-3)), endsAt: new Date(days(-2)) });
+    await insert({ type: 'OUTAGE', startsAt: new Date(days(1)) });
+    await insert({ type: 'EVENT', deletedAt: NOW });
+    await insert({ type: 'GENERAL', spaceId: otherSpaceId });
+
+    const announcements = createAnnouncementsService({
+      runInTransaction: createRunInTransaction(),
+      audit: writeAudit,
+      spaces: createSpacesService(),
+      now: () => NOW,
+    });
+    expect(await announcements.runningTypes(spaceId, NOW)).toEqual(['CLOSURE', 'OFFER']);
   });
 });

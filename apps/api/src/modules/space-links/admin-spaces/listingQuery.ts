@@ -1,10 +1,10 @@
-import type { AdminSpacesQuery } from '@masaha/shared/space-links';
+import type { AdminSpacesListQuery } from '@masaha/shared/space-links';
 
 import type { ListingQuery } from '../../spaces/index.ts';
 
 /** The filters other modules resolved to ids, before `spaces` pages the list. */
 export interface ResolvedFilters {
-  /** Every verified space, when the status asks for verified or unverified ones. */
+  /** Every verified space, when the status asks for verified, unverified or editable ones. */
   verifiedIds?: readonly number[];
   /** The governorate's areas, when the list is filtered by a governorate. */
   governorateAreaIds?: readonly number[];
@@ -13,12 +13,13 @@ export interface ResolvedFilters {
 /**
  * The admin's list query as `spaces` applies it (conventions §5, §9). Verified and unverified are a
  * space's ids from its links, and both leave hidden spaces out, since the list shows a hidden space
- * as hidden whatever its owners; deleted keeps the soft-deleted spaces only, hidden or not, verified
+ * as hidden whatever its owners; editable keeps the unverified spaces, hidden ones included: those
+ * whose facts the admin keeps; deleted keeps the soft-deleted spaces only, hidden or not, verified
  * or not; an area within a governorate narrows to that area, or to none when it is not one of the
  * governorate's.
  */
 export function listingQueryOf(
-  { status, areaId, q, stale }: AdminSpacesQuery,
+  { status, areaId, q, stale }: Partial<AdminSpacesListQuery>,
   { verifiedIds = [], governorateAreaIds }: ResolvedFilters,
 ): ListingQuery {
   const areaIds =
@@ -28,6 +29,7 @@ export function listingQueryOf(
   return {
     ...(status === 'verified' && { ids: { in: verifiedIds }, isHidden: false }),
     ...(status === 'unverified' && { ids: { notIn: verifiedIds }, isHidden: false }),
+    ...(status === 'editable' && { ids: { notIn: verifiedIds } }),
     ...(status === 'hidden' && { isHidden: true }),
     ...(status === 'deleted' && { deleted: true }),
     ...(areaIds && { areaIds }),

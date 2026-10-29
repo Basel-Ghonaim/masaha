@@ -1,10 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { adminRequest, dataOf, errorOf, signIn } from '../../../../test/admin.ts';
-import { createTestApp } from '../../../../test/app.ts';
+import { accessTokens, createTestApp } from '../../../../test/app.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { createArea, seedSettings, signInOwnerOf } from '../../../../test/spaces.ts';
-import { prisma } from '../../../db/index.ts';
+import { createRunInTransaction, prisma } from '../../../db/index.ts';
+import { writeAudit } from '../../../shared/audit/index.ts';
+import { createCounter, createLimiter } from '../../../shared/rate-limit/index.ts';
+import { createLookupsService } from '../../lookups/index.ts';
+import { createPlatformSettingsService } from '../../platform-settings/index.ts';
+import { createListingService } from '../../spaces/index.ts';
+import { createUsersService } from '../../users/index.ts';
+import { createAdminSpacesService } from './adminSpaces.service.ts';
 
 const NOW = new Date('2026-10-06T09:00:00.000Z');
 const app = createTestApp({ clock: () => NOW });
@@ -12,6 +19,26 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** A date `days` before now. */
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * DAY_MS);
+
+// The admin's spaces as the composition root builds them, for the admin overview's counts.
+const clock = () => NOW;
+const adminSpaces = createAdminSpacesService({
+  listing: createListingService({
+    platformSettings: createPlatformSettingsService({
+      runInTransaction: createRunInTransaction(),
+      audit: writeAudit,
+    }),
+    now: clock,
+  }),
+  lookups: createLookupsService(),
+  users: createUsersService({
+    accessTokens,
+    limiter: createLimiter(createCounter(), clock),
+    audit: writeAudit,
+    now: clock,
+    receptionSpaceOf: () => Promise.resolve(null),
+  }),
+});
 
 let admin: { id: number; authorization: string };
 let areaId: number;
@@ -381,5 +408,73 @@ describe('GET /admin/spaces', () => {
       status: ['invalid_choice'],
       limit: ['out_of_range'],
     });
+  });
+});
+
+describe("the admin's spaces, counted", () => {
+  /** A list's total, as the admin reads it. */
+  async function totalOf(query: string): Promise<number> {
+    const response = await list(query);
+    expect(response.status).toBe(200);
+    return (response.body as { meta: { totalRecords: number } }).meta.totalRecords;
+  }
+
+  it('counts equal the list’s totals for verified, unverified, hidden and stale; a deleted space never counted', async () => {
+    await link((await space('Atlas')).id, 'OwnerA');
+    await link((await space('Bloom', { isHidden: true })).id, 'OwnerB');
+    await space('Cedar');
+    await space('Dune', { isHidden: true, ages: { hours: 61 } });
+    await space('Ember', { ages: { contacts: null } });
+    await space('Fable', { deleted: true, ages: { hours: 90 } });
+    await link((await space('Grove', { ages: { prices: 31 } })).id, 'OwnerG');
+    await link((await space('Haven', { deleted: true })).id, 'OwnerH');
+
+    const counts = await adminSpaces.counts();
+    expect(counts).toEqual({ verified: 2, unverified: 2, hidden: 2, staleOrMissing: 3 });
+    expect(await totalOf('?status=verified')).toBe(counts.verified);
+    expect(await totalOf('?status=unverified')).toBe(counts.unverified);
+    expect(await totalOf('?status=hidden')).toBe(counts.hidden);
+    expect(await totalOf('?stale=true')).toBe(counts.staleOrMissing);
+  });
+
+  it('staleEditable: unverified spaces, hidden included, with a group stale or missing; the verified never; the first five by name, and the total', async () => {
+    const atlas = await space('Atlas', { ages: { hours: 70 } });
+    const bloom = await space('Bloom', { isHidden: true, ages: { prices: 40 } });
+    const cedar = await space('Cedar', { nameAr: 'سيدار', ages: { contacts: null } });
+    const dune = await space('Dune', { ages: { amenities: null, hours: 61 } });
+    const ember = await space('Ember', { ages: { prices: 31 } });
+    await space('Fable', { isHidden: true, ages: { contacts: null } });
+    await space('Grove', { ages: { hours: 90 } });
+    // Each left out: a verified space, a deleted one, a fresh one.
+    await link((await space('Aaron', { ages: { hours: 90 } })).id, 'OwnerA');
+    await space('Abbey', { deleted: true, ages: { hours: 90 } });
+    await space('Haven');
+
+    const row = (
+      { id, nameEn, nameAr }: { id: number; nameEn: string; nameAr: string | null },
+      hidden: boolean,
+      missing: string[],
+      stale: { group: string; days: number }[],
+    ) => ({ id, nameEn, nameAr, hidden, missing, stale });
+    expect(await adminSpaces.staleEditable(5)).toEqual({
+      total: 7,
+      first: [
+        row(atlas, false, [], [{ group: 'hours', days: 70 }]),
+        row(bloom, true, [], [{ group: 'prices', days: 40 }]),
+        row(cedar, false, ['contacts'], []),
+        row(dune, false, ['amenities'], [{ group: 'hours', days: 61 }]),
+        row(ember, false, [], [{ group: 'prices', days: 31 }]),
+      ],
+    });
+
+    // «عرض الكل»: the same spaces, listed.
+    expect(await totalOf('?status=editable&stale=true')).toBe(7);
+    expect(await namesListed('?status=editable&stale=true&limit=5')).toEqual([
+      'Atlas',
+      'Bloom',
+      'Cedar',
+      'Dune',
+      'Ember',
+    ]);
   });
 });

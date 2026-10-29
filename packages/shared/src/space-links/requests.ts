@@ -34,6 +34,20 @@ export const adminSpacesQuerySchema = paginationQuerySchema.extend({
 
 export type AdminSpacesQuery = z.infer<typeof adminSpacesQuerySchema>;
 
+/**
+ * The statuses the server reads besides the list's choices: `editable`, the spaces the admin keeps
+ * the facts of — unverified, hidden ones included — which with `stale=true` is the admin overview's
+ * «اكتمال البيانات» in full (its «عرض الكل»). The list screen does not offer it yet.
+ */
+export const ADMIN_SPACES_STATUSES = [...SPACE_STATUSES, 'editable'] as const;
+
+/** `adminSpacesQuerySchema` as `GET /admin/spaces` reads it: any of `ADMIN_SPACES_STATUSES`. */
+export const adminSpacesListQuerySchema = adminSpacesQuerySchema.extend({
+  status: z.enum(ADMIN_SPACES_STATUSES).optional(),
+});
+
+export type AdminSpacesListQuery = z.infer<typeof adminSpacesListQuerySchema>;
+
 // The admin's users list (docs/api/api-contract.md §5, Users (the admin)).
 
 /** A global role, as the users list filters by it: lowercase, like the spaces list's states. */

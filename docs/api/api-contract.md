@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -160,6 +160,19 @@ RecoveryPosition =
 ### Me
 
 The signed-in user's own account. Each endpoint needs the access token.
+
+```ts
+MyAccount = { id: number, name: string, email: string, language: "ar" | "en", role: "USER" | "OWNER" | "ADMIN" }
+```
+
+#### `GET /me` · 👤
+- **200:** `MyAccount`, the caller's own, whatever the query names (2026-10-29, #131).
+- **Errors:** `unauthorized` (401) without a valid access token, for a suspended account, or for a token signed before the account's sessions last ended (§1); `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending.
+
+#### `PATCH /me` · 👤
+- **Body:** `{ name?, language? }`; what is absent is kept. The name as at registration (1–100 characters, NFC-normalised, no bidirectional or control characters); `language` `ar` or `en`, the interface's.
+- **200:** `MyAccount`, as edited. Only what changed is written, and audited `user.profileEdited` with `before` and `after` holding only the changed fields, naming no space, so never the admin's to read ([conventions §6](../backend/conventions.md#6-audit)); an edit that changes nothing, an empty body included, writes nothing (2026-10-29, #131).
+- **Errors:** `validation` (422); the guard's, as `GET /me`.
 
 #### `POST /me/password` · 👤, also while a temporary password is pending
 - **Body:** `{ currentPassword?, password, email? }`. The new password follows the policy. `currentPassword` is required unless a temporary password is pending (the forced change), as both the access token and the account say. `email` is taken only during the forced change: the address someone else typed, confirmed, or corrected, which is audited `user.emailChanged` ([security.md](../backend/security.md#passwords)), with the space of the account's reception link when it has one; the same address changes nothing.
@@ -609,6 +622,13 @@ ReceivedPayment = {
 }
 ```
 
+#### `GET /manage/spaces/:spaceId/visits` · 🧾
+The space's visits by the Gaza day they were checked in, 2026-10-29, #131. Read without a lock.
+- **Query** (`visitsQuerySchema`, `@masaha/shared/visits`): `from` and `to`, Gaza dates, both included, by the payments list's rule: `to` not before `from` and at most 92 days with both counted (`out_of_range` on `to`); both or neither (half a range: `required` on the missing one), neither for today; `page`, `limit` (§4).
+- **Who reads what:** the owner (`payments.read`, as the payments list), any range; reception, today's only. The query is validated first (422); a valid range from reception is then `forbidden` (403), never ignored.
+- **200:** a page of `DeskVisit`: the visits checked in on the range's Gaza days, open and closed, written off included, the latest checked in first, then by id; `meta` the pagination.
+- **Errors:** `validation` (422) on the query; `forbidden` (403) as above; `not_found` (404).
+
 #### `GET /manage/spaces/:spaceId/visits/:visitId` · 🧾
 - **200:** `QuotedVisit`: the visit, with its quote while it is open, its charge now by the rates it copied and the rounding and cap in force — a stay past its due time charged up to it, as its check-out will be (2026-10-21, #102); the desk sends the quote's `at` back as the check-out's `checkedOutAt`. Read without a lock.
 - **Errors:** `not_found` (404), also for a visit that is not the space's.
@@ -696,6 +716,76 @@ PaymentTotals = {
 }
 PaymentsMeta = PaginationMeta & { totals: PaymentTotals }
 ```
+
+### Finance
+
+The owner's finance (`finance`, [finance.md](../features/finance.md)): read models over the space's ledger, every figure computed by the server on Gaza's calendar ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money)), every amount whole agorot. The web builds any CSV from these answers; there is no export route (the owner's decision 5). The routes sit under `/manage/spaces/:spaceId/finance` and answer as *Managed spaces* says: without an active `OWNER` or `RECEPTION` link at the live space, `not_found` (404), the admin included. Each is the owner's (`finance.read`): reception is `forbidden` (403) before the query is read. Nothing is written. Built 2026-10-29, #131.
+
+- **The month** (`financeMonthQuery`, `@masaha/shared/finance`): `month`, `YYYY-MM`, a Gaza calendar month (`invalid_format` otherwise), the current one when absent; the current Gaza month and the 23 before it (`FINANCE_MONTHS_BACK`), `out_of_range` on `month` otherwise, never a month ahead. There is no free range of dates (the owner's decision 3).
+- **Income is cash collected:** the payments not voided, each counted on the Gaza day it was received, a window running from a Gaza midnight to the next, its end left out. A written-off visit's payments count as received; what it forgave counts nowhere, and a debt is never income (the owner's decision 2).
+- **Who owes** is the ledger's one balance rule ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Customer debt*), as the customers list's: a written-off visit, a voided payment and an unpriced visit owe nothing; credit on one subscription never offsets another item's debt, so one customer may both owe and be in credit. **An archived customer's debt is kept,** marked `archived` (it is still owed). The uncollected visits are counted beside them (`uncollected`), the desk's list ([Front desk (managed)](#front-desk-managed)): a walk-in's uncollected visit is no customer's debt, but an auto-closed visit left to a customer stays on that list, so its rest is also in that customer's debt. The two figures may hold the same agorot and are never added ([finding 193](../architecture/findings/193-a-visit-left-to-a-customer-is-both-a-debt-and-uncollected.md)).
+- **Occupancy statistics** come from closed stays only — the visits and the subscription check-ins, those closed by the auto check-out included, open ones left out (the owner's decision 7) — each counted on the Gaza day of its check-in ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Occupancy statistics*).
+
+```ts
+IncomeSplit = { subscriptionsAgorot: number, visitsAgorot: number, totalAgorot: number }
+IncomeReport = {
+  month: string,                                        // YYYY-MM, as asked or the current
+  income: IncomeSplit, previousMonth: IncomeSplit, today: IncomeSplit,
+  allTime: IncomeSplit & { since: string | null },      // the Gaza day of the first payment not voided
+  months: { month: string, income: IncomeSplit }[],     // 12, oldest first, ending with the current month
+  visitsByDay: { date: string, agorot: number }[],      // the visits' 30 Gaza days, oldest first, ending today
+  collections: {                                        // the month's, the largest first, then by id
+    recordedBy: { id, name }, count: number, totalAgorot: number,
+    byMethod: { CASH: number, TRANSFER: number }
+  }[]
+}
+BalanceRow = {
+  customer: { id, name, phone: string | null, archived: boolean },
+  amountAgorot: number,                                 // OWES: the debt; CREDIT: the credit
+  oldestItem: {                                         // OWES only; null in credit
+    kind: 'VISIT' | 'SUBSCRIPTION', id,
+    name: string | null,                                // a visit's visitor, else its customer; a subscription's name
+    since: string                                       // the Gaza day it was made
+  } | null
+}
+DebtsMeta = §4's meta & {
+  totals: {
+    owed: { agorot: number, customers: number },        // every customer who owes, archived ones included
+    credit: { agorot: number, customers: number },
+    uncollected: { visits: number, owedAgorot: number, unpriced: number }   // the desk's list, counted
+  },
+  reminderTemplate: string | null                       // the space's; null: the catalogue's default
+}
+Payer = { customer: { id, name }, paidAgorot: number, lastPaidAt: string }  // in the month
+OccupancyReport = {
+  month: string,
+  averageStayMinutes: { all: number | null, members: number | null, visits: number | null },   // whole minutes; null: no stay
+  peakHour: number | null,                              // 0–23, the month's
+  averageDailyAttendance: number | null,                // one decimal
+  byDay: { date: string, visits: number, members: number }[],   // 14 Gaza days, oldest first, ending today
+  byHour: { weekday: number, hours: number[] }[]        // 7 (0 = Sunday … 6), each 24 averages, one decimal
+}
+```
+
+#### `GET /manage/spaces/:spaceId/finance/income` · 🏢
+- **Query:** `month`.
+- **200:** `IncomeReport`: the month's income by the kind of item paid, the month before it, today and all time; the 12 months ending with the current one and the visits' 30 days ending today, whatever the month asked; and each staff member's collections in the month — how many payments, their sum, and by method — named, one whose link ended included. The sums and the collections read one snapshot, so the month equals its bar.
+- **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on `month`; `not_found` (404).
+
+#### `GET /manage/spaces/:spaceId/finance/debts` · 🏢
+- **Query** (`debtsQuerySchema`): `state`, `OWES` (the default) or `CREDIT` (`invalid_choice` otherwise); `page`, `limit` (§4).
+- **200:** a page of `BalanceRow`: who owes, or who is in credit, the largest amount first, then by customer id, each with their phone (for the reminder, a WhatsApp link the web builds); who owes with the item still owing made first, a visit before a subscription made at the same instant; `meta: DebtsMeta`, the pagination, the space's totals over every customer, and its reminder template. The page, its totals and the template read one snapshot, so the rows of every page add up to the totals. A CSV of every debtor is the web's, from the pages.
+- **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on the query; `not_found` (404).
+
+#### `GET /manage/spaces/:spaceId/finance/payers` · 🏢
+- **Query** (`payersQuerySchema`): `month`; `page`, `limit` (§4).
+- **200:** a page of `Payer`: each customer whose items were paid in the month — the payments not voided, a visit's customer or a subscription's; a walk-in's payment names no one and is left out — with what they paid in it and when they last paid, the latest first, then by customer id; an archived customer included; `meta` the pagination. Read apart, as every list.
+- **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on the query; `not_found` (404).
+
+#### `GET /manage/spaces/:spaceId/finance/occupancy` · 🏢
+- **Query:** `month`.
+- **200:** `OccupancyReport`: the month's figures over its days up to today — the average stay (all, members, visits), the peak hour (the hour of the day with the most presence, ties the earliest) and the average daily attendance (visits and members, a member once a day, over the days with any); visits and members per day over the 14 days ending today; the average present per Gaza weekday and hour over the 28 days before today (the stays overlapping each hour, summed, ÷ 4), today left out. The 14 and the 28 days end with today whatever the month asked. Each figure stands alone: read in parallel, with no snapshot.
+- **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on `month`; `not_found` (404).
 
 ### Announcements (managed)
 
@@ -841,7 +931,7 @@ AdminReport = SpaceReport & {
 - **Errors**, each writing nothing: `forbidden` (403) for reception, before the body is read; `validation` (422) on the body; `not_found` (404) for a report that is not the space's; `forbidden` (403) for an owner whose link ended while the decision waited; `conflict` (409) `REPORT_ALREADY_DECIDED`. Built 2026-10-25, #120.
 
 #### `GET /admin/data-reports` · 🛡
-- **Query:** `status` (`OPEN` or `DECIDED`), `field`, `spaceId` (a positive id) and §4's `page` and `limit`, each optional; `invalid_choice` or `validation` otherwise.
+- **Query:** `status` (`OPEN` or `DECIDED`), `field`, `spaceId` (a positive id), `handledBy` (`ADMIN` or `OWNER`) and §4's `page` and `limit`, each optional; `invalid_choice` or `validation` otherwise. `handledBy` keeps the reports of the spaces each decides: `ADMIN` an unverified space's, `OWNER` a verified one's, verified now, as `space.verified` says (2026-10-29, #131).
 - **200:** `AdminReport[]`, every space's, newest first, then id, with §4's `meta`: who reported and who decided, by name, and whether the space is verified now. A soft-deleted space's reports are left out ([ADR 0007](../architecture/decisions/0007-soft-delete.md)). Built 2026-10-25, #120.
 
 #### `PATCH /admin/data-reports/:reportId` · 🛡
@@ -927,6 +1017,73 @@ AuditMeta = §4's meta & {
 - **Query:** `period`, `q`, `actions`, `actor` — a person's id (`invalid_format`, `out_of_range`) — and §4's `page` and `limit`. `q` also finds every entry of a space by the space's names.
 - **200:** `PlatformAuditEntry[]`, with `AuditMeta`: only the platform's events — the spaces' public facts and their confirmations, their photos, their creation, hiding, deletion and restoring, and their owners linked and unlinked, whoever acted; the lookups; the data reports' decisions; the platform's settings ([Platform settings](#platform-settings)); an account's creation, role, suspension, temporary passwords and email, only when the entry names no space. **Never** an entry about a space's customers, subscriptions, check-ins, visits, payments, packages, announcements or closure extensions, its capacity, its live-status override, its settings or its staff, an owner's reception account's included; an action on no list is never answered ([conventions §6](../backend/conventions.md#6-audit), [ADR 0002](../architecture/decisions/0002-authorization-model.md)).
 - **Errors:** `unauthorized` (401), `forbidden` (403), and `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`, by `/admin`'s guard; `validation` (422) on the query.
+
+### Overview
+
+The overviews (`overview`, [conventions › `overview`](../backend/conventions.md#overview)): one read per screen, composed from the modules that own each figure, read in parallel at one instant (`at`) with no lock and no snapshot, so each count equals the list it links to read alone, to within a write between two of its reads. They write nothing and nothing polls them: the web reads one again on returning to its page. **No amount anywhere** (the owner's O3): the debts and the uncollected visits are counts. Built 2026-10-29, #131.
+
+```ts
+GroupsFreshness = {
+  missing: FactGroup[],                       // never saved
+  stale: { group: FactGroup, days: number }[] // by the thresholds saved now (Platform settings); days: Gaza days since its date
+}
+
+OwnerOverview = {
+  attention: {                                // «يحتاج انتباهك»
+    groups: GroupsFreshness,
+    openReports: number,                      // = GET …/data-reports?status=OPEN's total
+    uncollectedVisits: number,                // = GET …/uncollected-visits' total
+    unpricedVisits: number,                   // = GET …/unpriced-visits' total
+    closuresAwaitingExtension: number,        // = GET …/announcements/summary's
+    capacitySet: boolean,
+    customersOwing: number                    // the customers who owe, archived ones kept: Finance's debtors, counted
+  },
+  presentNow: {                               // as GET …/occupancy reads it
+    visits: number, members: number, total: number,
+    capacity: number | null,
+    status: LiveStatus | null                 // as the public sees it
+  },
+  endingSoon: {
+    total: number,                            // = GET …/customers?status=ENDING_SOON's total
+    first: { customer: { id, name }, subscription: { id, name, endsOn: string | null } }[]   // ≤ 5: by end date, none last, then id
+  },
+  announcements: {
+    running: number,                          // = GET …/announcements?state=RUNNING's total
+    types: AnnouncementType[]                 // the running ones' types, each once, in ANNOUNCEMENT_TYPES' order
+  },
+  at: string                                  // the instant read
+}
+
+AdminOverview = {
+  spaces: {                                   // none deleted
+    verified: number,                         // = GET /admin/spaces?status=verified's total
+    unverified: number,                       // = ?status=unverified's
+    hidden: number,                           // = ?status=hidden's
+    unverifiedNoOwner: number,                // «بلا مالك»: an unverified space has no active owner, so = unverified
+    staleOrMissing: number                    // = ?stale=true's
+  },
+  reports: {                                  // the open reports of the live spaces: = GET /admin/data-reports?status=OPEN's total
+    open: number,
+    awaitingAdmin: number,                    // an unverified space's: the admin decides them
+    awaitingOwners: number                    // a verified space's
+  },
+  newUsers: number,                           // the accounts created since the Gaza midnight 29 days before today
+  completeness: {                             // «اكتمال البيانات»: = ?status=editable&stale=true
+    total: number,
+    first: { id: number, nameEn: string, nameAr: string | null, hidden: boolean,
+             missing: FactGroup[], stale: { group: FactGroup, days: number }[] }[]   // ≤ 5, by English name, then id
+  },
+  at: string
+}
+```
+
+#### `GET /manage/spaces/:spaceId/overview` · 🏢
+- **200:** `OwnerOverview`.
+- **Errors:** `forbidden` (403) for reception, which has no overview; `not_found` (404) for anyone who is not the space's staff, the admin included (the boundary).
+
+#### `GET /admin/overview` · 🛡
+- **200:** `AdminOverview`: the platform's figures only, never a space's customers, visits, subscriptions, payments, capacity or presence ([ADR 0002](../architecture/decisions/0002-authorization-model.md)). Replaces the planned `GET /admin/stats` (the owner's OD4).
+- **Errors:** `unauthorized` (401), `forbidden` (403), and `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`, by `/admin`'s guard.
 
 ### Internal
 
@@ -1178,7 +1335,7 @@ Contact = {
 #### `GET /admin/spaces` · 🛡
 - **Query:** `?q=&status=&governorateId=&areaId=&stale=&page=&limit=` (§4), each optional:
   - `q`: part of either name, whatever the case (1–80 characters);
-  - `status`: `verified` or `unverified`, both leaving hidden spaces out; `hidden`, verified or not; or `deleted`, the soft-deleted spaces only, hidden or not, verified or not;
+  - `status`: `verified` or `unverified`, both leaving hidden spaces out; `editable`, the unverified spaces, hidden ones included — those whose facts the admin keeps — which with `stale=true` is the admin overview's «اكتمال البيانات» in full (`adminSpacesListQuerySchema`; the list screen does not offer it yet, [finding 158](../architecture/findings/158-the-admins-spaces-list-does-not-offer-the-editable-status.md); 2026-10-29, #131); `hidden`, verified or not; or `deleted`, the soft-deleted spaces only, hidden or not, verified or not;
   - `governorateId`, `areaId`: the spaces of the governorate's areas, hidden ones included, or of one area; both together narrow to that area when it is one of the governorate's, else to none;
   - `stale`: `true` keeps the spaces with at least one stale or missing fact group.
 - **200:** `AdminSpaceRow[]` (`@masaha/shared/space-links`), by English name, with `meta`. A soft-deleted space is listed under `status=deleted` only, with its owners, whose links count there though nowhere else ([space-links › Decisions](../features/space-links.md#decisions)). Every filter applies before the page is cut, so every page is full and the total right ([conventions §5](../backend/conventions.md#5-pagination)).
@@ -1368,11 +1525,11 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 The platform's settings, as the admin edits them ([data-model › Operations](../architecture/data-model.md#operations), *Setting*; [conventions §9](../backend/conventions.md#settings-three-screens-three-owners)): three cards, each its own resource, read and saved whole and on its own, so one card's refusal never touches another's (AD-029). Anyone reads the contact (`GET /settings/public`, 🌐); every other route needs an `ADMIN`'s access token (🛡), refused as for the lookups: `unauthorized` (401) without one, `forbidden` (403) for any other role, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending. Built 2026-10-28, #130.
 
-- **A save** writes, in one transaction, only the card's fields set to a new value, the card's rows locked by key ([conventions §13](../backend/conventions.md#concurrency)): two saves of one card at once are one after the other, the second's `before` the first's `after`. A save that changes nothing writes nothing and answers the card as it is. A refusal writes nothing.
+- **A save** writes, in one transaction, only the card's fields set to a new value, the card's rows locked by key ([conventions §13](../backend/conventions.md#concurrency)): two saves of one card at once are one after the other, the second's `before` the first's `after`. A save that changes no value writes no value and no entry, and answers the card as it is (an unset contact's first save may still insert its rows, `null`, which read as unset). A refusal writes nothing.
 - **Audit**, in the save's own transaction ([conventions §6](../backend/conventions.md#6-audit)): `platformSettings.newSpaceDefaultsEdited`, `platformSettings.stalenessEdited` or `platformSettings.contactEdited`, the entity type `platformSettings` with no id and no space, `before` and `after` only the fields that changed. They are on the admin's log ([Audit log](#audit-log)).
 - **The new-space defaults** (`newSpaceDefaultsSchema`, `@masaha/shared/space-settings`): `autoCheckoutAtClosing` and `visitCapAtDayPrice`, switches; `visitRounding` and `visitRoundingMinutes`, with the rules and codes of [Settings (managed)](#settings-managed); all four required (`required`). A new space's settings are copied from them when it is created; a saved default never changes an existing space.
 - **The staleness thresholds** (`stalenessSchema`, `@masaha/shared/platform-settings`): `stalenessDays` (every fact group but the prices) and `priceStalenessDays`, whole days from 1 to 365 (`STALENESS_DAYS_MAX`; `out_of_range`, `invalid_format` when not whole), both required. A saved threshold applies at once, to every read of a space's stale groups.
-- **The contact** (`platformContactSchema`): `email`, stored lowercased (`invalid_format`), and `whatsapp`, a Palestinian or Israeli number stored in its E.164 form (`invalid_format` otherwise), both sent (`required`), `null` clearing one. Each is `null` while unset.
+- **The contact** (`platformContactSchema`): `email`, stored lowercased (`invalid_format`), and `whatsapp`, a Palestinian or Israeli number stored in its E.164 form (`invalid_format` otherwise), both sent (`required`), `null` clearing one. Each is `null` while unset. A value stored in another form (a seed's) is answered as stored, and the next save stores its one form, audited.
 
 ```ts
 NewSpaceDefaults = {

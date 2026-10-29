@@ -1,3 +1,4 @@
+import { daysFrom, gazaClockOf } from '@masaha/shared/core';
 import { FACT_GROUPS, type FactGroup } from '@masaha/shared/spaces';
 
 import type { StalenessThresholds } from '../platform-settings/index.ts';
@@ -60,6 +61,28 @@ export function staleGroups(dates: GroupDates, cutoffs: GroupCutoffs): FactGroup
 /** The groups never saved, in the order of `FACT_GROUPS`. */
 export function missingGroups(dates: GroupDates): FactGroup[] {
   return FACT_GROUPS.filter((group) => dates[group] === null);
+}
+
+/** The Gaza days from a group's date to `now`: what "stale for {n} days" counts. */
+export function staleDays(date: Date, now: Date): number {
+  return daysFrom(gazaClockOf(date).date, gazaClockOf(now).date);
+}
+
+/** A space's missing groups, and its stale ones each with its Gaza days, in `FACT_GROUPS`' order. */
+export interface Freshness {
+  missing: FactGroup[];
+  stale: { group: FactGroup; days: number }[];
+}
+
+/** The space's freshness at `now`: its missing groups, and its stale ones with their days. */
+export function freshness(dates: GroupDates, cutoffs: GroupCutoffs, now: Date): Freshness {
+  return {
+    missing: missingGroups(dates),
+    stale: staleGroups(dates, cutoffs).flatMap((group) => {
+      const date = dates[group];
+      return date ? [{ group, days: staleDays(date, now) }] : [];
+    }),
+  };
 }
 
 /**
