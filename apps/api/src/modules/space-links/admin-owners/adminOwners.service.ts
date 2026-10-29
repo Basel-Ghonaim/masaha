@@ -122,7 +122,10 @@ export function createAdminOwnersService({
       if (!account) throw AppError.conflict(undefined, 'Account not found');
       assertMayOwn(account);
       if (account.role === 'OWNER') {
-        throw AppError.conflict('ALREADY_OWNER', 'Already an owner: link instead');
+        // The owner's account rides with the refusal, so the add sheet links them at once (83).
+        throw AppError.conflict('ALREADY_OWNER', 'Already an owner: link instead', undefined, {
+          userId: account.id,
+        });
       }
       if (!upgradeExisting) {
         throw AppError.conflict('EMAIL_HAS_ACCOUNT', 'The email has an account: upgrade it');
