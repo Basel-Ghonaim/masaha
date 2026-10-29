@@ -1,6 +1,6 @@
 # Platform settings
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The `platform-settings` capability: the platform's own settings, which the admin edits and other modules read. Its endpoints are owned by the [API contract](../api/api-contract.md#platform-settings); its entity by the [data model](../architecture/data-model.md#operations). The API is built; no screen yet.
 > **Scope:** the API module `platform-settings` (L0); `@masaha/shared/platform-settings`, and the new-space defaults' schema in `@masaha/shared/space-settings`.
 
@@ -8,7 +8,7 @@
 
 - Keeps the platform's settings as key–value rows, each read through one typed catalogue: the new-space defaults, the two staleness thresholds and the platform's contact.
 - Answers the admin three cards, each its own resource, read and saved whole and on its own: the new-space defaults, the staleness thresholds, and the contact (an email and a WhatsApp number).
-- Writes and audits only what a save changes; a save that changes nothing writes nothing.
+- Writes and audits only what a save changes; a save that changes no value writes no value and no entry.
 - Answers anyone the platform's contact (`GET /settings/public`), cached 5 minutes.
 - Answers the modules that apply a value: the new-space defaults to a space's creation, the thresholds to every read of a space's stale groups.
 
@@ -26,7 +26,7 @@
 
 ## How it composes the platform
 
-- Its public router sits at `/settings`, with no guard: `GET /settings/public`, the contact. Its admin router sits at `/settings` inside `/admin`, behind its one guard (`requireRole('ADMIN')`); each save's body is checked by its shared schema, in the browser too.
+- Its public router sits at `/settings`, with no guard: `GET /settings/public`, the contact. Its admin router sits at `/settings` inside `/admin`, behind its one guard (`requireRole('ADMIN')`); each save's body is checked by its shared schema.
 - The composition root passes it `runInTransaction` and the audit writer; it imports no module.
 - Each save is audited in its own transaction ([conventions §6](../backend/conventions.md#6-audit)) with the names the [contract](../api/api-contract.md#platform-settings) gives, on the admin's log ([audit](audit.md)).
 
@@ -48,7 +48,7 @@
 - **The contact in the catalogue, optional** ([finding 40](../architecture/findings/40-the-platforms-contact-settings-are-outside-the-typed-catalogue.md), resolved). *Why:* the seed writes it only when its environment gives it; a missing row is "unset", not a fault. 2026-10-28, #130.
 - **The contact read in the form the seed stores, written normalised** (S10). *Why:* a stricter read could turn an existing row into a 500 on the public contact; the admin's save lowercases the email and puts the number in its E.164 form. 2026-10-28, #130.
 - **The thresholds are whole days from 1 to 365** (S11). *Why:* a typo of thousands would mark nothing stale for years; the stored 60 and 30 pass. 2026-10-28, #130.
-- **A save writes and audits only what changed; the same values write nothing.** *Why:* as a space's settings; an entry that changes nothing is noise on the admin's log. 2026-10-28, #130.
+- **A save writes and audits only what changed; the same values write no value and no entry.** *Why:* as a space's settings; an entry that changes nothing is noise on the admin's log. 2026-10-28, #130.
 - **The card's rows locked by key, after an insert of the missing optional ones.** *Why:* two admins saving one card at once are one after the other; a lock on a row that does not exist yet would lock nothing ([conventions › Concurrency](../backend/conventions.md#concurrency)). 2026-10-28, #130.
 - **The public contact cached 5 minutes** (D7). *Why:* it changes rarely, and the site reads it on About and the owner's line; a saved change reaches a reader within 5 minutes. 2026-10-28, #130.
 - **An audit entry with no entity id** (S8). *Why:* a setting has no numeric id; a fake `0` would lie. 2026-10-28, #130.

@@ -1,6 +1,6 @@
 # API Contract
 
-> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Contract — conventions to build against; endpoints are added as they are built · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The single source for endpoints, payloads, error shapes and pagination. Update it in the same PR as any endpoint change.
 
 ## 1. Conventions
@@ -1368,11 +1368,11 @@ The accounts, as the admin reads and changes them ([data-model › Users and ses
 
 The platform's settings, as the admin edits them ([data-model › Operations](../architecture/data-model.md#operations), *Setting*; [conventions §9](../backend/conventions.md#settings-three-screens-three-owners)): three cards, each its own resource, read and saved whole and on its own, so one card's refusal never touches another's (AD-029). Anyone reads the contact (`GET /settings/public`, 🌐); every other route needs an `ADMIN`'s access token (🛡), refused as for the lookups: `unauthorized` (401) without one, `forbidden` (403) for any other role, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED` while a temporary password is pending. Built 2026-10-28, #130.
 
-- **A save** writes, in one transaction, only the card's fields set to a new value, the card's rows locked by key ([conventions §13](../backend/conventions.md#concurrency)): two saves of one card at once are one after the other, the second's `before` the first's `after`. A save that changes nothing writes nothing and answers the card as it is. A refusal writes nothing.
+- **A save** writes, in one transaction, only the card's fields set to a new value, the card's rows locked by key ([conventions §13](../backend/conventions.md#concurrency)): two saves of one card at once are one after the other, the second's `before` the first's `after`. A save that changes no value writes no value and no entry, and answers the card as it is (an unset contact's first save may still insert its rows, `null`, which read as unset). A refusal writes nothing.
 - **Audit**, in the save's own transaction ([conventions §6](../backend/conventions.md#6-audit)): `platformSettings.newSpaceDefaultsEdited`, `platformSettings.stalenessEdited` or `platformSettings.contactEdited`, the entity type `platformSettings` with no id and no space, `before` and `after` only the fields that changed. They are on the admin's log ([Audit log](#audit-log)).
 - **The new-space defaults** (`newSpaceDefaultsSchema`, `@masaha/shared/space-settings`): `autoCheckoutAtClosing` and `visitCapAtDayPrice`, switches; `visitRounding` and `visitRoundingMinutes`, with the rules and codes of [Settings (managed)](#settings-managed); all four required (`required`). A new space's settings are copied from them when it is created; a saved default never changes an existing space.
 - **The staleness thresholds** (`stalenessSchema`, `@masaha/shared/platform-settings`): `stalenessDays` (every fact group but the prices) and `priceStalenessDays`, whole days from 1 to 365 (`STALENESS_DAYS_MAX`; `out_of_range`, `invalid_format` when not whole), both required. A saved threshold applies at once, to every read of a space's stale groups.
-- **The contact** (`platformContactSchema`): `email`, stored lowercased (`invalid_format`), and `whatsapp`, a Palestinian or Israeli number stored in its E.164 form (`invalid_format` otherwise), both sent (`required`), `null` clearing one. Each is `null` while unset.
+- **The contact** (`platformContactSchema`): `email`, stored lowercased (`invalid_format`), and `whatsapp`, a Palestinian or Israeli number stored in its E.164 form (`invalid_format` otherwise), both sent (`required`), `null` clearing one. Each is `null` while unset. A value stored in another form (a seed's) is answered as stored, and the next save stores its one form, audited.
 
 ```ts
 NewSpaceDefaults = {
