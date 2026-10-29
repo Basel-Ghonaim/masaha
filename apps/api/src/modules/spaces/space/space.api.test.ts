@@ -405,6 +405,10 @@ describe('GET /admin/spaces/:spaceId', () => {
     ]);
   });
 
+  /** The statement `users`' names reader sends: the owners' ids and names, by their ids. */
+  const NAMES_QUERY =
+    'SELECT "public"."users"."id", "public"."users"."name" FROM "public"."users" WHERE%';
+
   it(
     'reads the owners’ names on the read’s own connection, inside its transaction',
     async () => {
@@ -440,7 +444,15 @@ describe('GET /admin/spaces/:spaceId', () => {
         { timeout: 10_000 },
       );
       try {
-        [namesWaiter] = await waitingOnLock({ on: 'users' });
+        await waitingOnLock({ on: 'users' });
+        // The names' own query, found by its statement: a read of users the space's read made
+        // before them, on any connection, is not the one compared (finding 78).
+        [namesWaiter] = (
+          await prisma.$queryRaw<{ pid: number }[]>`
+            SELECT pid FROM pg_stat_activity
+            WHERE datname = current_database() AND wait_event_type = 'Lock'
+              AND query LIKE ${NAMES_QUERY}`
+        ).map(({ pid }) => pid);
       } finally {
         release();
         await usersHeld;
