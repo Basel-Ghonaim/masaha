@@ -25,6 +25,8 @@ type InputSamples = {
   search: { label: string; placeholder: string; value: string; clear: string };
   password: { label: string; value: string; show: string; hide: string };
   wrongEmail: { label: string; value: string; error: string };
+  sizeCaption: string;
+  large: { label: string; placeholder: string };
 };
 
 const FIELD_WIDTH = 'w-full max-w-80';
@@ -110,6 +112,11 @@ export function InputSection({ samples }: { samples: InputSamples }) {
             defaultValue={samples.wrongEmail.value}
             endIcon={<CircleAlertIcon className="text-destructive" />}
           />
+        </Field>
+      </ShowcaseGroup>
+      <ShowcaseGroup caption={samples.sizeCaption}>
+        <Field label={samples.large.label} className={FIELD_WIDTH}>
+          <Input size="lg" startIcon={<SearchIcon />} placeholder={samples.large.placeholder} />
         </Field>
       </ShowcaseGroup>
       <ShowcaseGroup caption={samples.directionCaption}>

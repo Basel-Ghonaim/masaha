@@ -25,6 +25,24 @@ describe('Input', () => {
     expect(screen.getByRole('textbox', { name: 'Email' })).toHaveAttribute('dir', 'ltr');
   });
 
+  it('is the large control at size lg, and the standard one by default', () => {
+    render(
+      <>
+        <Input aria-label="Search the customers" size="lg" />
+        <Input aria-label="Note" />
+      </>,
+    );
+    const boxOf = (name: string) =>
+      screen.getByRole('textbox', { name }).closest('[data-slot="input-group"]');
+
+    expect(boxOf('Search the customers')).toHaveClass('h-(--control-height-lg)');
+    expect(boxOf('Search the customers')).not.toHaveClass('h-(--control-height)');
+    expect(boxOf('Note')).toHaveClass('h-(--control-height)');
+    expect(screen.getByRole('textbox', { name: 'Search the customers' })).not.toHaveAttribute(
+      'size',
+    );
+  });
+
   it('accepts no typing while disabled', async () => {
     render(<Input aria-label="Name" disabled />);
     const input = screen.getByRole('textbox', { name: 'Name' });

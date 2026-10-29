@@ -8,6 +8,7 @@
 
   /* Component tokens: only for values no role covers, each bound by its component alone. */
   --control-height: 40px;
+  --control-height-lg: 48px;
   --control-text-size: 15px;
   --button-padding-inline: 16px;
   --card-padding: 20px;
@@ -27,6 +28,7 @@
 @media (pointer: coarse) {
   :root {
     --control-height: 44px;
+    --control-height-lg: 52px;
     --control-text-size: 16px;
   }
 }

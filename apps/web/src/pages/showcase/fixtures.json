@@ -102,6 +102,11 @@
           "label": "البريد الإلكتروني للحساب",
           "value": "ahmad@riyada",
           "error": "أدخل بريدًا إلكترونيًا صحيحًا، مثل showcase.sample@example.com"
+        },
+        "sizeCaption": "الحجم الكبير: الحقل الرئيسي في الصفحة",
+        "large": {
+          "label": "البحث في الزبائن",
+          "placeholder": "الاسم أو رقم الجوال"
         }
       },
       "textarea": {
@@ -941,6 +946,11 @@
           "label": "Email address for the account",
           "value": "ahmad@riyada",
           "error": "Enter a valid email, like showcase.sample@example.com"
+        },
+        "sizeCaption": "The large size: a page's main field",
+        "large": {
+          "label": "Search the customers",
+          "placeholder": "Name or mobile number"
         }
       },
       "textarea": {
