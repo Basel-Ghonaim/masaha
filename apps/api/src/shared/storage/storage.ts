@@ -18,11 +18,22 @@ export interface StoredFile {
   contentType: string;
 }
 
+/** A file a store holds: its key and when it was stored. */
+export interface ListedFile {
+  key: string;
+  createdAt: Date;
+}
+
 export interface Storage {
   /** Stores a new file under `key`; a key is never reused, so nothing is overwritten. */
   put(key: string, file: StoredFile): Promise<void>;
   /** Deletes the file under `key`; one already absent is no error. */
   remove(key: string): Promise<void>;
+  /**
+   * Every file whose key starts with `prefix` (a whole segment, ending in `/`), with when it was
+   * stored, in no set order: read page by page, so a caller may stop early (finding 63).
+   */
+  list(prefix: string): AsyncIterable<ListedFile>;
   /** Where a browser fetches the file: absolute online, root-relative locally. */
   url(key: string): string;
   /** The local adapter's handler for its own files, mounted only where the port has one. */

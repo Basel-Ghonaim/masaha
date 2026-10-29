@@ -563,6 +563,8 @@ export function createApi({
         name: 'rateLimits.sweepExpired',
         run: async (at) => ({ counters: await sweepEndedWindows(at) }),
       },
+      // The storage's files no photo holds, removed once a day (finding 63).
+      { name: 'photos.reclaimOrphans', run: (at) => photos.reclaimOrphans(at) },
     ],
     now: clock,
     logger,

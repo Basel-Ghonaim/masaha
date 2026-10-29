@@ -88,6 +88,7 @@ describe('the jobs endpoint', () => {
         { name: 'subscriptions.autoCheckOut', done: { checkIns: 0, remaining: 0, failed: 0 } },
         SWEPT_NOTHING.sessions,
         SWEPT_NOTHING.rateLimits,
+        { name: 'photos.reclaimOrphans', done: { skipped: true } },
       ],
     });
     expect(await stored()).toMatchObject({ checkoutMethod: 'AUTO' });
@@ -132,6 +133,7 @@ describe('the jobs endpoint', () => {
         { name: 'subscriptions.autoCheckOut', done: { checkIns: 1, remaining: 0, failed: 0 } },
         SWEPT_NOTHING.sessions,
         SWEPT_NOTHING.rateLimits,
+        { name: 'photos.reclaimOrphans', done: { skipped: true } },
       ],
     });
     expect(lines.filter(({ msg }) => msg === 'stay not closed')).toMatchObject([
@@ -164,6 +166,7 @@ describe('the jobs endpoint', () => {
         {},
         {},
         {},
+        {},
       ],
     });
     expect(lines.filter(({ msg }) => msg === 'stay not closed')).toMatchObject([
@@ -174,6 +177,7 @@ describe('the jobs endpoint', () => {
       { level: 30, job: 'subscriptions.autoCheckOut', checkIns: 0, failed: 0 },
       { level: 30, job: 'sessions.sweepExpired', refreshTokens: 0 },
       { level: 30, job: 'rateLimits.sweepExpired', counters: 0 },
+      { level: 30, job: 'photos.reclaimOrphans', skipped: true },
     ]);
     expect(await prisma.visit.findUniqueOrThrow({ where: { id: failingId } })).toMatchObject({
       checkedOutAt: null,
@@ -203,6 +207,7 @@ describe('the jobs endpoint', () => {
       { job: 'subscriptions.autoCheckOut', checkIns: 0, failed: 0 },
       { job: 'sessions.sweepExpired', refreshTokens: 0 },
       { job: 'rateLimits.sweepExpired', counters: 0 },
+      { job: 'photos.reclaimOrphans', skipped: true },
     ]);
     expect(await stored()).toMatchObject({ checkedOutAt: null });
   });

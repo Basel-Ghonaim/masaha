@@ -102,6 +102,43 @@ export function createCloudinaryStorage({
       await call('/image/destroy', { public_id: publicIdOf(key), invalidate: 'true' });
     },
 
+    /**
+     * The Admin API's listing of the folder's uploaded images under `prefix`, 500 a page, following
+     * `next_cursor`; authenticated by the key and the secret (basic authentication, over HTTPS).
+     * Each public id less the folder, with its format, is the key it was stored under.
+     */
+    async *list(prefix) {
+      const authorization = `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}`;
+      let cursor: string | undefined;
+      do {
+        const query = new URLSearchParams({ prefix: `${folder}/${prefix}`, max_results: '500' });
+        if (cursor) query.set('next_cursor', cursor);
+        let response: Response;
+        try {
+          response = await fetch(`${api}/resources/image/upload?${query.toString()}`, {
+            headers: { authorization },
+            signal: AbortSignal.timeout(TIMEOUT_MS),
+          });
+        } catch (error) {
+          throw new StorageError('Cloudinary /resources could not be reached', { cause: error });
+        }
+        if (!response.ok) {
+          throw new StorageError(`Cloudinary /resources answered ${String(response.status)}`);
+        }
+        const page = (await response.json()) as {
+          resources?: { public_id: string; format: string; created_at: string }[];
+          next_cursor?: string;
+        };
+        for (const resource of page.resources ?? []) {
+          yield {
+            key: `${resource.public_id.slice(folder.length + 1)}.${resource.format}`,
+            createdAt: new Date(resource.created_at),
+          };
+        }
+        cursor = page.next_cursor;
+      } while (cursor);
+    },
+
     url(key) {
       const extension = key.slice(key.lastIndexOf('.'));
       return `https://res.cloudinary.com/${cloudName}/image/upload/${publicIdOf(key)}${extension}`;

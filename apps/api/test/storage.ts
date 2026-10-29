@@ -10,6 +10,8 @@ import { createLocalStorage, StorageError, type Storage } from '../src/shared/st
 
 export interface TestStorage {
   storage: Storage;
+  /** The folder it stores in, for a test that dates a file (`utimes`). */
+  root: string;
   /** Every file stored, as its key, sorted. */
   files(): Promise<string[]>;
   /** Deletes the folder. */
@@ -21,6 +23,7 @@ export async function createTestStorage(): Promise<TestStorage> {
   const root = await mkdtemp(path.join(tmpdir(), 'masaha-photos-'));
   return {
     storage: createLocalStorage({ root, urlBase: LOCAL_FILES_URL }),
+    root,
     async files() {
       const entries = await readdir(root, { recursive: true, withFileTypes: true });
       return entries
