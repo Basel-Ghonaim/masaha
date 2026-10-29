@@ -78,6 +78,7 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [180. A site page's chunk reaches the table's and the calendar's libraries](180-a-site-pages-chunk-reaches-the-tables-and-the-calendars-libraries.md)
 - [184. A report's «تعديل الحقل» may not scroll to its section](184-a-reports-edit-the-field-link-may-not-scroll-to-its-section.md)
 - [187. A favourite just removed cannot be saved again for an undo](187-a-favourite-just-removed-cannot-be-saved-again-for-an-undo.md)
+- [193. A visit left to a customer is both a debt and uncollected](193-a-visit-left-to-a-customer-is-both-a-debt-and-uncollected.md)
 
 ## Accepted
 

@@ -1,4 +1,4 @@
-import { financeMonthQuery } from '@masaha/shared/finance';
+import { debtsQuerySchema, financeMonthQuery, payersQuerySchema } from '@masaha/shared/finance';
 import { Router } from 'express';
 
 import { requireCan } from '../../shared/auth/index.ts';
@@ -17,6 +17,18 @@ export function createFinanceManageRouter(controller: FinanceController): Router
     requireCan('finance.read'),
     validate(financeMonthQuery, 'query'),
     controller.income,
+  );
+  router.get(
+    '/debts',
+    requireCan('finance.read'),
+    validate(debtsQuerySchema, 'query'),
+    controller.debts,
+  );
+  router.get(
+    '/payers',
+    requireCan('finance.read'),
+    validate(payersQuerySchema, 'query'),
+    controller.payers,
   );
   return router;
 }

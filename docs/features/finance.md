@@ -7,6 +7,8 @@
 ## What it does
 
 - Answers a month's income, the payments not voided, by the kind of item paid: the month (the current Gaza month by default, at most 23 back), the month before it, today and all time with its first day; the last 12 months and the visits' last 30 days, by Gaza day; and each staff member's collections in the month, by method.
+- Answers who owes and who is in credit, by the ledger's one balance rule, the largest first, paged, with their phones, an archived customer kept and marked, and the item still owing made first; the space's totals, the uncollected visits apart, and its reminder template.
+- Answers who paid in a month, each customer with what they paid then, the latest first, paged.
 
 ## Who uses it
 
@@ -15,7 +17,7 @@
 ## Responsibility boundary
 
 - **Owns** no table and writes nothing (a read model, [conventions §8](../backend/conventions.md#8-module-rules), R7). It owns its windows: the instants of a month, a day and the hours of Gaza's calendar (`windows.ts`, pure), and which window each figure reads.
-- **Reads** the income and the collections from [payments](payments.md), whose aggregates hold the one "voided left out" rule; the names of who recorded a payment from [users](users.md).
+- **Reads** the income, the collections, the balances' page and totals and the uncollected visits' counts from [payments](payments.md), whose aggregates hold the one "voided left out" and balance rules; the names of who recorded a payment from [users](users.md); the debtors' contacts and the payers' names from [customers](customers.md); the oldest item's name from [subscriptions](subscriptions.md) and [visits](visits.md); the reminder template from `space-settings`. Who paid in a month it reads in its own query, over the payments and the items they paid (R7).
 - **Leaves** who may read to `can()` (`finance.read`, [security › Authorization](../backend/security.md#authorization)) and the boundary of `/manage/spaces/:spaceId`.
 
 ## How it composes the platform
@@ -29,6 +31,10 @@
 
 **Income.** One call of `payments.incomeIn` with every window at once — the month, the month before, today, all time (both ends open), the 12 months and the 30 days, 45 in all — `firstReceivedAt` and `collectionsIn` of the month, in one snapshot; then the names of who recorded them, after it (a name is no figure). Each window runs from a Gaza midnight to the next one's, from `gazaInstant`, so a payment at 23:30 on a month's last day counts in that month and that day, and no zone is read in the database.
 
+**Who owes.** In one snapshot: `payments.balancesPage` (the page, by `state`), `balanceTotals` and `uncollectedTotals`, and the space's settings; then, in the same snapshot, the page's customers' contacts (`archived` from `archivedAt`), its oldest subscriptions' names and its oldest visits as the desk sees them — a visit named by its visitor, else its customer. The item's day is the Gaza day it was made. Every amount comes from the ledger; `finance` adds none.
+
+**Who paid.** One statement over the month's payments not voided, each joined to its visit or subscription by primary key for the customer (`coalesce`), grouped by customer: the sum, the latest payment, and how many customers over the same rows (`count(*) OVER ()`; past the last page counted apart); then the page's names. Read apart, as every list; an archived customer is a payer like any other.
+
 ## Decisions
 
 ### API decisions
@@ -38,15 +44,18 @@
 - **Every window is a pair of instants computed from Gaza's calendar, passed as arrays** (S1). *Why:* one source of the zone ([finding 120](../architecture/findings/120-gaza-dates-are-read-by-two-zone-databases.md)), and each window is an index range of `payments (space_id, received_at)`. SQL `AT TIME ZONE` buckets were the alternative. 2026-10-29, #131.
 - **All time has two open ends** (`-infinity` to `infinity`), not "until now". *Why:* the month and today run to their next midnight, so all time always holds them both. 2026-10-29, #131.
 - **The income reads one snapshot** (S2). *Why:* the month must equal its bar in the 12 months, and its collections its total ([finding 124](../architecture/findings/124-a-statements-sums-and-its-payments-come-from-different-snapshots.md)). 2026-10-29, #131.
+- **The debts read one snapshot: the page, the totals, the uncollected counts, the names and the template** (S2). *Why:* the page's rows must add up to its totals across pages read in turn; the names ride in it, since `deskVisitsOf` takes the snapshot's transaction (EC6). 2026-10-29, #131.
+- **An archived customer's debt is kept and marked** (Q2). *Why:* it is still owed, and the desk collects it; the customers list's `payment=OWES` leaves archived customers out, so its total may be smaller than `totals.owed.customers`. 2026-10-29, #131.
+- **Who paid is `finance`'s own query; the voided rule is written there a second time, as a `WHERE`** (D12). *Why:* it groups the month's payments by their items' customers, which no ledger function answers; its sums are no balance. 2026-10-29, #131.
 - **The aggregates are `payments`', not `finance`'s** (S3). *Why:* the voided rule keeps one home, and the owner's overview, which may not import `finance`, reads the same functions. Every aggregate in `finance`'s repository was the alternative (A2). 2026-10-29, #131.
 
 ## Code map
 
-- `apps/api/src/modules/finance/` — the module: its service, its mapper, its windows (`windows.ts`), its controller and its manage router.
-- `packages/shared/src/finance/` — the month's query and its bound, the answers.
+- `apps/api/src/modules/finance/` — the module: its service, its repository (who paid), its mapper, its windows (`windows.ts`), its controller and its manage router.
+- `packages/shared/src/finance/` — the month's query and its bound, the debts' and the payers' queries, the answers.
 
 ## History
 
 ### API history
 
-- #131 — a month's income: the month, the month before, today and all time, the 12 months, the visits' 30 days and the staff's collections.
+- #131 — a month's income: the month, the month before, today and all time, the 12 months, the visits' 30 days and the staff's collections; who owes and who is in credit, with the totals and the reminder template; who paid in a month.

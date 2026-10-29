@@ -20,7 +20,7 @@
 
 - **The space's owner**, whose ledger reads every payment, and **reception**, whose «دفعاتي اليوم» reads its own of today, through its own route. On the dashboard, the owner reads «الدفعات» (`/dashboard/spaces/:spaceId/payments`) and reception «دفعاتي اليوم» (`…/my-payments`, 2026-10-27, #127).
 - **The front desk** ([desk](desk.md)), for the space's owner and reception, at a visit's check-out, and for the owner's void of a payment — on the web, from «الدفعات» and from a statement ([desk](desk.md), 2026-10-27, #127); and, through its own route, the uncollected visits, which the owner's «يحتاج انتباهك» will count. On the web, the desk's screen lists the uncollected visits and records a payment on one ([desk](desk.md), 2026-10-25, #117); «استلام دفعة» records a payment on one of a customer's items, a visit or a subscription (2026-10-25, #119).
-- **Finance** ([finance](finance.md)) reads the income and the collections, the balances' page and totals and the uncollected visits' counts for its debts; **the owner's overview** (the `overview` module) reads how many customers owe and how many visits are uncollected, never an amount ([conventions › Composed reads](../backend/conventions.md#composed-reads)).
+- **Finance** ([finance](finance.md)) reads the income and the collections, for its income; the balances' page and totals and the uncollected visits' counts for its debts; **the owner's overview** (the `overview` module) reads how many customers owe and how many visits are uncollected, never an amount ([conventions › Composed reads](../backend/conventions.md#composed-reads)).
 
 ## Responsibility boundary
 

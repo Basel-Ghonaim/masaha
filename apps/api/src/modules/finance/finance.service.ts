@@ -1,11 +1,25 @@
-import { addMonths, gazaClockOf } from '@masaha/shared/core';
-import type { FinanceMonthQuery, IncomeReport } from '@masaha/shared/finance';
+import { addMonths, gazaClockOf, type PaginationMeta } from '@masaha/shared/core';
+import type {
+  BalanceRow,
+  DebtsMeta,
+  DebtsQuery,
+  FinanceMonthQuery,
+  IncomeReport,
+  Payer,
+  PayersQuery,
+} from '@masaha/shared/finance';
 
 import type { ReadSnapshot } from '../../db/index.ts';
 import { AppError } from '../../shared/errors/index.ts';
+import { toSkip } from '../../shared/http/index.ts';
+import type { CustomersService } from '../customers/index.ts';
 import type { IncomeWindow, PaymentsService } from '../payments/index.ts';
+import type { SpaceSettingsService } from '../space-settings/index.ts';
+import type { SubscriptionsService } from '../subscriptions/index.ts';
 import type { UsersService } from '../users/index.ts';
-import { toCollections } from './finance.mapper.ts';
+import type { VisitsService } from '../visits/index.ts';
+import { toBalanceRow, toCollections } from './finance.mapper.ts';
+import { createFinanceRepository } from './finance.repository.ts';
 import {
   currentMonth,
   dayWindow,
@@ -18,10 +32,18 @@ import {
 interface Dependencies {
   /** One snapshot per answer whose figures must agree (conventions › Composed reads). */
   readSnapshot: ReadSnapshot;
-  /** The ledger's aggregates: income, collections. */
+  /** The ledger's aggregates: income, collections, the balances and the uncollected visits. */
   payments: PaymentsService;
   /** The names of who recorded the payments. */
   users: UsersService;
+  /** The debtors' names and phones, an archived one marked; the payers' names. */
+  customers: CustomersService;
+  /** The name of a debtor's oldest subscription still owing. */
+  subscriptions: SubscriptionsService;
+  /** The name of a debtor's oldest visit still owing. */
+  visits: VisitsService;
+  /** The space's reminder template. */
+  spaceSettings: SpaceSettingsService;
   /** The one clock (conventions §11): today and the current month. */
   now: () => Date;
 }
@@ -31,7 +53,18 @@ interface Dependencies {
  * every figure computed in the database by its owning module's aggregate, on Gaza's calendar. It
  * writes nothing.
  */
-export function createFinanceService({ readSnapshot, payments, users, now }: Dependencies) {
+export function createFinanceService({
+  readSnapshot,
+  payments,
+  users,
+  customers,
+  subscriptions,
+  visits,
+  spaceSettings,
+  now,
+}: Dependencies) {
+  const repository = createFinanceRepository();
+
   /** The month asked, the current Gaza month by default; one finance does not read → 422. */
   function monthAsked(month: string | undefined, at: Date): string {
     const asked = month ?? currentMonth(at);
@@ -94,6 +127,94 @@ export function createFinanceService({ readSnapshot, payments, users, now }: Dep
             throw new Error(`The user ${String(row.recordedById)} has no name.`);
           return toCollections(row, name);
         }),
+      };
+    },
+
+    /**
+     * Who owes, or who is in credit (`state`), by the ledger's one balance rule — an archived
+     * customer's kept and marked — the largest first, paged, each with their phone and, who owes,
+     * the item still owing made first; with the space's totals (owed, in credit, the uncollected
+     * visits apart) and its reminder template. All of it in one snapshot, so the page agrees with
+     * its totals.
+     */
+    debts(
+      spaceId: number,
+      query: DebtsQuery,
+    ): Promise<{
+      rows: BalanceRow[];
+      total: number;
+      meta: Omit<DebtsMeta, keyof PaginationMeta>;
+    }> {
+      const at = now();
+      return readSnapshot(async (tx) => {
+        const [page, balances, uncollected, settings] = await Promise.all([
+          payments.balancesPage(spaceId, query.state, at, query, tx),
+          payments.balanceTotals(spaceId, at, tx),
+          payments.uncollectedTotals(spaceId, tx),
+          spaceSettings.read(spaceId, tx),
+        ]);
+        const oldestOf = (kind: 'VISIT' | 'SUBSCRIPTION') =>
+          page.rows.flatMap(({ oldest }) => (oldest?.kind === kind ? [oldest.id] : []));
+        const [contacts, subscriptionNames, deskVisits] = await Promise.all([
+          customers.contactsOf(
+            spaceId,
+            page.rows.map(({ customerId }) => customerId),
+            tx,
+          ),
+          subscriptions.namesOf(spaceId, oldestOf('SUBSCRIPTION'), tx),
+          visits.deskVisitsOf(spaceId, oldestOf('VISIT'), tx),
+        ]);
+        /** The oldest item's name: a visit's visitor, else its customer; a subscription's. */
+        const nameOf = ({ kind, id }: { kind: 'VISIT' | 'SUBSCRIPTION'; id: number }) => {
+          if (kind === 'SUBSCRIPTION') {
+            const subscription = subscriptionNames.get(id);
+            if (!subscription) throw new Error(`The subscription ${String(id)} is missing.`);
+            return subscription.name;
+          }
+          const visit = deskVisits.get(id);
+          if (!visit) throw new Error(`The visit ${String(id)} is missing.`);
+          return visit.visitorName ?? visit.customer?.name ?? null;
+        };
+        return {
+          rows: page.rows.map((row) => {
+            const contact = contacts.get(row.customerId);
+            if (!contact) throw new Error(`The customer ${String(row.customerId)} is missing.`);
+            return toBalanceRow(row, contact, row.oldest && nameOf(row.oldest));
+          }),
+          total: page.total,
+          meta: {
+            totals: { ...balances, uncollected },
+            reminderTemplate: settings.reminderTemplate,
+          },
+        };
+      });
+    },
+
+    /**
+     * Who paid in the month (the current Gaza month by default): each customer with what they paid
+     * then, the latest paid first, paged; named after the page. Read apart, as every list.
+     */
+    async payers(spaceId: number, query: PayersQuery): Promise<{ rows: Payer[]; total: number }> {
+      const month = monthAsked(query.month, now());
+      const { rows, total } = await repository.payersIn(spaceId, monthWindow(month), {
+        skip: toSkip(query),
+        take: query.limit,
+      });
+      const names = await customers.namesOf(
+        spaceId,
+        rows.map(({ customerId }) => customerId),
+      );
+      return {
+        rows: rows.map(({ customerId, paidAgorot, lastPaidAt }) => {
+          const name = names.get(customerId);
+          if (name === undefined) throw new Error(`The customer ${String(customerId)} is missing.`);
+          return {
+            customer: { id: customerId, name },
+            paidAgorot,
+            lastPaidAt: lastPaidAt.toISOString(),
+          };
+        }),
+        total,
       };
     },
   };

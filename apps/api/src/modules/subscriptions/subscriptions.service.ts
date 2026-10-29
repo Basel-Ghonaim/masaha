@@ -180,7 +180,7 @@ export function createSubscriptionsService({
       }
       return {
         id: row.id,
-        customer,
+        customer: { id: customer.id, name: customer.name, phone: customer.phone },
         subscription,
         checkedInAt: row.checkedInAt.toISOString(),
         checkedOutAt: row.checkedOutAt?.toISOString() ?? null,

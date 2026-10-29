@@ -166,7 +166,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 | `occupancy` | L4 | `space_occupancy` | public, manage | The space's state now (§9) |
 | `desk` | L5 | — | manage | The front desk's orchestrations and the customers list and file (§9) |
 | `directory` | L5 | — | public, me (the favourites, at `/me/favorites`) | The public directory and profile, and the favourites' cards (§9) |
-| [`finance`](../features/finance.md) | L5 | — (reads) | manage | Read model: the owner's finance — a month's income and the staff's collections; the ledger's aggregates through `payments` (§9) |
+| [`finance`](../features/finance.md) | L5 | — (reads) | manage | Read model: the owner's finance — a month's income and the staff's collections, who owes and who is in credit, who paid in a month; the ledger's aggregates through `payments` (§9) |
 | `overview` | L5 | — | manage, admin | Read composition for the two overview screens (§9) |
 | [`audit`](../features/audit.md) | L5 | — (reads the audit table) | manage, admin | The audit reader (§6): the owner's log of the space, the admin's of the platform's events |
 

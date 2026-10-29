@@ -723,6 +723,7 @@ The owner's finance (`finance`, [finance.md](../features/finance.md)): read mode
 
 - **The month** (`financeMonthQuery`, `@masaha/shared/finance`): `month`, `YYYY-MM`, a Gaza calendar month (`invalid_format` otherwise), the current one when absent; the current Gaza month and the 23 before it (`FINANCE_MONTHS_BACK`), `out_of_range` on `month` otherwise, never a month ahead. There is no free range of dates (the owner's decision 3).
 - **Income is cash collected:** the payments not voided, each counted on the Gaza day it was received, a window running from a Gaza midnight to the next, its end left out. A written-off visit's payments count as received; what it forgave counts nowhere, and a debt is never income (the owner's decision 2).
+- **Who owes** is the ledger's one balance rule ([data-model › Front desk and money](../architecture/data-model.md#front-desk-and-money), *Customer debt*), as the customers list's: a written-off visit, a voided payment and an unpriced visit owe nothing; credit on one subscription never offsets another item's debt, so one customer may both owe and be in credit. **An archived customer's debt is kept,** marked `archived` (it is still owed). The uncollected visits are counted beside them (`uncollected`), the desk's list ([Front desk (managed)](#front-desk-managed)): a walk-in's uncollected visit is no customer's debt, but an auto-closed visit left to a customer stays on that list, so its rest is also in that customer's debt. The two figures may hold the same agorot and are never added ([finding 193](../architecture/findings/193-a-visit-left-to-a-customer-is-both-a-debt-and-uncollected.md)).
 
 ```ts
 IncomeSplit = { subscriptionsAgorot: number, visitsAgorot: number, totalAgorot: number }
@@ -737,12 +738,40 @@ IncomeReport = {
     byMethod: { CASH: number, TRANSFER: number }
   }[]
 }
+BalanceRow = {
+  customer: { id, name, phone: string | null, archived: boolean },
+  amountAgorot: number,                                 // OWES: the debt; CREDIT: the credit
+  oldestItem: {                                         // OWES only; null in credit
+    kind: 'VISIT' | 'SUBSCRIPTION', id,
+    name: string | null,                                // a visit's visitor, else its customer; a subscription's name
+    since: string                                       // the Gaza day it was made
+  } | null
+}
+DebtsMeta = §4's meta & {
+  totals: {
+    owed: { agorot: number, customers: number },        // every customer who owes, archived ones included
+    credit: { agorot: number, customers: number },
+    uncollected: { visits: number, owedAgorot: number, unpriced: number }   // the desk's list, counted
+  },
+  reminderTemplate: string | null                       // the space's; null: the catalogue's default
+}
+Payer = { customer: { id, name }, paidAgorot: number, lastPaidAt: string }  // in the month
 ```
 
 #### `GET /manage/spaces/:spaceId/finance/income` · 🏢
 - **Query:** `month`.
 - **200:** `IncomeReport`: the month's income by the kind of item paid, the month before it, today and all time; the 12 months ending with the current one and the visits' 30 days ending today, whatever the month asked; and each staff member's collections in the month — how many payments, their sum, and by method — named, one whose link ended included. The sums and the collections read one snapshot, so the month equals its bar.
 - **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on `month`; `not_found` (404).
+
+#### `GET /manage/spaces/:spaceId/finance/debts` · 🏢
+- **Query** (`debtsQuerySchema`): `state`, `OWES` (the default) or `CREDIT` (`invalid_choice` otherwise); `page`, `limit` (§4).
+- **200:** a page of `BalanceRow`: who owes, or who is in credit, the largest amount first, then by customer id, each with their phone (for the reminder, a WhatsApp link the web builds); who owes with the item still owing made first, a visit before a subscription made at the same instant; `meta: DebtsMeta`, the pagination, the space's totals over every customer, and its reminder template. The page, its totals and the template read one snapshot, so the rows of every page add up to the totals. A CSV of every debtor is the web's, from the pages.
+- **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on the query; `not_found` (404).
+
+#### `GET /manage/spaces/:spaceId/finance/payers` · 🏢
+- **Query** (`payersQuerySchema`): `month`; `page`, `limit` (§4).
+- **200:** a page of `Payer`: each customer whose items were paid in the month — the payments not voided, a visit's customer or a subscription's; a walk-in's payment names no one and is left out — with what they paid in it and when they last paid, the latest first, then by customer id; an archived customer included; `meta` the pagination. Read apart, as every list.
+- **Errors:** `forbidden` (403) for reception, before the query is read; `validation` (422) on the query; `not_found` (404).
 
 ### Announcements (managed)
 

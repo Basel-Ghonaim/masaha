@@ -1,3 +1,5 @@
+import type { PaginationMeta } from '../core/index.ts';
+
 // The owner's finance answers (docs/api/api-contract.md › Finance). Every amount is whole agorot.
 
 /** What was received in a window, the payments not voided, by the kind of item they paid. */
@@ -30,4 +32,42 @@ export interface IncomeReport {
   months: { month: string; income: IncomeSplit }[];
   visitsByDay: { date: string; agorot: number }[];
   collections: Collections[];
+}
+
+/**
+ * A customer who owes, or who is in credit, with the amount: who owes with the item still owing
+ * made first, and the Gaza day it was made; `null` in credit.
+ */
+export interface BalanceRow {
+  customer: { id: number; name: string; phone: string | null; archived: boolean };
+  amountAgorot: number;
+  oldestItem: {
+    kind: 'VISIT' | 'SUBSCRIPTION';
+    id: number;
+    /** A visit's visitor, else its customer; a subscription's name. */
+    name: string | null;
+    since: string;
+  } | null;
+}
+
+/**
+ * The debts list's `meta`: its pagination, the space's totals — what is owed and in credit, each
+ * with how many customers, and the uncollected visits, the desk's list — and its reminder template,
+ * `null` for the catalogue's default. An auto-closed visit left to a customer is in both `owed` and
+ * `uncollected`: the two are never added.
+ */
+export type DebtsMeta = PaginationMeta & {
+  totals: {
+    owed: { agorot: number; customers: number };
+    credit: { agorot: number; customers: number };
+    uncollected: { visits: number; owedAgorot: number; unpriced: number };
+  };
+  reminderTemplate: string | null;
+};
+
+/** A customer who paid in a month: what they paid then, and when they last paid. */
+export interface Payer {
+  customer: { id: number; name: string };
+  paidAgorot: number;
+  lastPaidAt: string;
 }

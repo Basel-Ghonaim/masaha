@@ -435,6 +435,10 @@ export function createApi({
     readSnapshot: createReadSnapshot(),
     payments,
     users,
+    customers,
+    subscriptions,
+    visits,
+    spaceSettings,
     now: clock,
   });
   const desk = createDeskService({

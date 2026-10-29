@@ -14,7 +14,7 @@ import { prisma } from '../../db/index.ts';
 const app = createTestApp({ clock: () => new Date('2026-10-29T10:00:00+02:00') });
 
 /** Each finance route, with a query its validation would refuse. */
-const ROUTES = ['income?month=2026-13'];
+const ROUTES = ['income?month=2026-13', 'debts?state=PAID', 'payers?month=2026-13'];
 
 let spaceId: number;
 let owner: { id: number; authorization: string };

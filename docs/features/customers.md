@@ -1,6 +1,6 @@
 # Customers
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-26 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The `customers` capability: everyone a space keeps on file. Its endpoints are owned by the API contract ([Customers (managed)](../api/api-contract.md#customers-managed)); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the web, [desk](desk.md) shows the customers.
 > **Scope:** the API module `customers` (L2); `@masaha/shared/customers`. No web feature of its own: [desk](desk.md)'s screens read and write it.
 
@@ -20,6 +20,7 @@
 - **[`occupancy`](occupancy.md),** which names the customers present.
 - **[`subscriptions`](subscriptions.md),** which reads its check-ins' customers' names and phones.
 - **[`payments`](payments.md),** which names a subscription's customer in the payments it answers.
+- **[`finance`](finance.md),** which reads its debtors' names, phones and whether each is archived, and its payers' names.
 
 ## Responsibility boundary
 
@@ -71,3 +72,4 @@
 - #102 — a customer created, idempotent, and edited by the staff; the customers' key; a customer archived (for the desk) and restored by the owner; the list's page and its search.
 - #106 — the search finds a whole phone in any form (a local, international or separated number).
 - #109 — a whole phone is also found stored under the other country code (by its national digits); the contacts of a set of customers, for the check-ins' lists.
+- #131 — the contacts answer whether each customer is archived, for finance's debts.

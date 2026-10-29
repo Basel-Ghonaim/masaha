@@ -14,7 +14,11 @@ import type { SpacesService } from '../spaces/index.ts';
 import { customerChange } from './customerChange.ts';
 import { searchTermsOf } from './customerSearch.ts';
 import { toCustomer } from './customers.mapper.ts';
-import { createCustomersRepository, type CustomerRow } from './customers.repository.ts';
+import {
+  createCustomersRepository,
+  type CustomerContact,
+  type CustomerRow,
+} from './customers.repository.ts';
 
 interface Dependencies {
   runInTransaction: RunInTransaction;
@@ -63,12 +67,12 @@ export function createCustomersService({ runInTransaction, audit, spaces, now }:
       return repository.namesOf(spaceId, ids, tx);
     },
 
-    /** These customers of the space, by id, with their names and phones, in one query. */
+    /** These customers of the space, by id, with their names, phones and archive, in one query. */
     contactsOf(
       spaceId: number,
       ids: readonly number[],
       tx?: Tx,
-    ): Promise<Map<number, { id: number; name: string; phone: string | null }>> {
+    ): Promise<Map<number, CustomerContact>> {
       return repository.contactsOf(spaceId, ids, tx);
     },
 

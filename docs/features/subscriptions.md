@@ -1,6 +1,6 @@
 # Subscriptions
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The `subscriptions` capability: a customer's subscriptions and their check-ins. Its entity and its derived values by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); its endpoints by the API contract ([Subscriptions (managed)](../api/api-contract.md#subscriptions-managed)). The API is built (the corrections and the end its own routes; the subscribe and the statement the desk's); on the web, [desk](desk.md) shows a customer's subscriptions.
 > **Scope:** the API module `subscriptions` (L3); `@masaha/shared/subscriptions`. No web feature of its own: [desk](desk.md)'s screens read it.
 
@@ -29,7 +29,7 @@
 ## Responsibility boundary
 
 - **Owns** the `subscriptions` and `check_ins` tables, the `closure_extensions` and `subscription_extensions` tables (a closure's extension and the subscriptions it moved), the database function `subscription_usage`, and the pure status and current-subscription rules.
-- **Reads** a stay's auto check-out time and the space's week from [`spaces`](spaces.md), the settings from [`space-settings`](space-settings.md), and the customers' names and phones for the check-ins' lists from [`customers`](customers.md).
+- **Reads** a stay's auto check-out time and the space's week from [`spaces`](spaces.md), the settings from [`space-settings`](space-settings.md), and the customers' names and phones for the check-ins' lists from [`customers`](customers.md) (a check-in's customer answered with those two alone).
 - **Leaves** the money paid on a subscription to [`payments`](payments.md), which reads a subscription's due through this module's function; the announcements, their writes and their states to [`announcements`](announcements.md), whose pages and counts the managed list composes.
 
 ## How it composes the platform
@@ -111,3 +111,4 @@
 - #118 — a subscription made from a published week or month price (through `desk`).
 - #123 — a closure's extension: the preview, and the owner's extension of the subscriptions it covered, once per closure under one key.
 - #128 — a closure's extension moves the covered subscriptions' renewals not started too (finding 151); a key that extended another space's closure is a conflict.
+- #131 — a check-in's customer answered with its name and phone alone, now that the contacts also say whether a customer is archived.
