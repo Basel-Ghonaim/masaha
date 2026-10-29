@@ -18,9 +18,10 @@ const ROLES: Record<NonNullable<AdminUsersQuery['role']>, Role> = {
 };
 
 /** The list's filters as `users` applies them: every one is the account's own. */
-function accountsFilterOf({ q, role, state }: AdminUsersQuery): AccountsFilter {
+function accountsFilterOf({ q, email, role, state }: AdminUsersQuery): AccountsFilter {
   return {
     ...(q !== undefined && { q }),
+    ...(email !== undefined && { email }),
     ...(role && { role: ROLES[role] }),
     ...(state && { suspended: state === 'suspended' }),
   };

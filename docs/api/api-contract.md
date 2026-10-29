@@ -1477,8 +1477,9 @@ A space's owners, as the admin links them ([ADR 0009](../architecture/decisions/
 The accounts, as the admin reads and changes them ([data-model › Users and sessions](../architecture/data-model.md#users-and-sessions)). Every endpoint needs an `ADMIN`'s access token (🛡), refused as for the lookups: without a valid one, `unauthorized` (401); for any other role, `forbidden` (403); while a temporary password is pending, `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`.
 
 #### `GET /admin/users` · 🛡
-- **Query:** `?q=&role=&state=&page=&limit=` (§4), each optional:
+- **Query:** `?q=&email=&role=&state=&page=&limit=` (§4), each optional:
   - `q`: part of the name or the email, whatever the case (1–100 characters);
+  - `email`: an email, trimmed and lowercased as at registration (`invalid_format` otherwise): keeps the one account whose email is exactly it, alone or with the other filters, so a right email always reads as found (2026-10-29, #132);
   - `role`: `user`, `owner` or `admin`, the global role; `role=owner` is the owners page;
   - `state`: `active` or `suspended`.
 - **200:** `AdminUserRow[]` (`@masaha/shared/space-links`), newest first, with `meta`. Every filter applies before the page is cut ([conventions §5](../backend/conventions.md#5-pagination)).

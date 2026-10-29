@@ -50,6 +50,8 @@ export interface StaffAccount {
 export interface AccountsFilter {
   /** Part of the name or the email, whatever the case. */
   q?: string;
+  /** The email exactly, as stored (lowercased). */
+  email?: string;
   role?: Role;
   suspended?: boolean;
 }
@@ -67,7 +69,7 @@ const LISTED = {
 
 export type ListedAccount = Prisma.UserGetPayload<{ select: typeof LISTED }>;
 
-function accountsWhere({ q, role, suspended }: AccountsFilter): Prisma.UserWhereInput {
+function accountsWhere({ q, email, role, suspended }: AccountsFilter): Prisma.UserWhereInput {
   return {
     ...(q !== undefined && {
       OR: [
@@ -75,6 +77,7 @@ function accountsWhere({ q, role, suspended }: AccountsFilter): Prisma.UserWhere
         { email: { contains: q, mode: 'insensitive' } },
       ],
     }),
+    ...(email !== undefined && { email }),
     ...(role && { role }),
     ...(suspended !== undefined && { suspendedAt: suspended ? { not: null } : null }),
   };

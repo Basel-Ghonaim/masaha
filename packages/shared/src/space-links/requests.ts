@@ -57,11 +57,13 @@ export const USER_ROLE_FILTERS = ['user', 'owner', 'admin'] as const;
 export const ACCOUNT_STATES = ['active', 'suspended'] as const;
 
 /**
- * `?q=&role=&state=&page=&limit=`. `q` searches the name and the email; `role=owner` is the owners
- * page.
+ * `?q=&email=&role=&state=&page=&limit=`. `q` searches the name and the email; `email` keeps the
+ * one account whose email is exactly it (trimmed and lowercased, as stored), so a right email always
+ * reads as found; `role=owner` is the owners page.
  */
 export const adminUsersQuerySchema = paginationQuerySchema.extend({
   q: textSchema(1, NAME_MAX_LENGTH).optional(),
+  email: emailSchema.optional(),
   role: z.enum(USER_ROLE_FILTERS).optional(),
   state: z.enum(ACCOUNT_STATES).optional(),
 });

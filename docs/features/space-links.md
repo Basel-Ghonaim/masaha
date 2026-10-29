@@ -256,7 +256,7 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - #83 — the active-link access boundary used by the owner/reception managed-space API.
 - #86 — `ownersFor` reads the names in its caller's transaction.
 - #90 — the owner's staff: created, listed, deactivated and re-activated; a pending temporary password re-issued, and its handover; the reception links in the admin's users list.
-- #132 — a replaced account's reception link ended by the system (`space.staffDeactivated`, no actor), under its space's lock; `ALREADY_OWNER` names the owner (`details.userId`).
+- #132 — a replaced account's reception link ended by the system (`space.staffDeactivated`, no actor), under its space's lock; `ALREADY_OWNER` names the owner (`details.userId`); the users list's `email`, an exact match.
 
 ### Web history
 
