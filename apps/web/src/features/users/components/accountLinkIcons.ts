@@ -1,4 +1,4 @@
-import { FlagIcon, HeartIcon, type IconProps } from '@shared/design-system';
+import { FlagIcon, HeartIcon, SettingsIcon, type IconProps } from '@shared/design-system';
 import type { ComponentType } from 'react';
 import type { AccountMenuLink } from '../hooks/useAccount';
 
@@ -6,4 +6,5 @@ import type { AccountMenuLink } from '../hooks/useAccount';
 export const ACCOUNT_LINK_ICONS: Record<AccountMenuLink['key'], ComponentType<IconProps>> = {
   favorites: HeartIcon,
   reports: FlagIcon,
+  settings: SettingsIcon,
 };

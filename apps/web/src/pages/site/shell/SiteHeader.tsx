@@ -11,8 +11,9 @@ import { SiteThemeToggle } from './SiteThemeToggle';
 
 /**
  * The site's header. On a desktop: the wordmark, the links, the language and theme toggles, and
- * sign-in, or the account once signed in, its menu linking the account's pages. On a phone: the menu, the wordmark and the theme toggle;
- * the menu holds the rest.
+ * sign-in, or the account once signed in, its menu linking the account's pages. On a phone (SH-005,
+ * P4): the menu, the wordmark, the language, and the account as its avatar once signed in; the menu
+ * holds the links, sign-in and the theme.
  */
 export function SiteHeader() {
   const copy = useCopy();
@@ -41,15 +42,10 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="ms-auto flex items-center gap-2">
-          <SiteLanguageToggle className="hidden md:inline-flex" />
-          <SiteThemeToggle />
+          <SiteLanguageToggle />
+          <SiteThemeToggle className="hidden md:inline-flex" />
           {user ? (
-            <AccountMenu
-              user={user}
-              dashboardPath={DASHBOARD_PATHS.home}
-              links={ACCOUNT_LINKS}
-              className="hidden md:inline-flex"
-            />
+            <AccountMenu user={user} dashboardPath={DASHBOARD_PATHS.home} links={ACCOUNT_LINKS} />
           ) : (
             <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
               <Link to={SITE_PATHS.signIn}>

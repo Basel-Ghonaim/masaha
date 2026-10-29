@@ -66,7 +66,7 @@ describe('AccountMenu', () => {
     expect(items[0]).toHaveAttribute('href', '/dashboard');
   });
 
-  it('links the account’s pages it is given, before the dashboard', async () => {
+  it('leads into the dashboard first, then links the account’s pages it is given', async () => {
     render(
       <MemoryRouter>
         <AccountMenu
@@ -75,6 +75,7 @@ describe('AccountMenu', () => {
           links={[
             { key: 'favorites', to: '/me/favorites' },
             { key: 'reports', to: '/me/reports' },
+            { key: 'settings', to: '/me' },
           ]}
         />
       </MemoryRouter>,
@@ -83,13 +84,15 @@ describe('AccountMenu', () => {
 
     const items = within(await screen.findByRole('menu')).getAllByRole('menuitem');
     expect(items.map((item) => item.textContent)).toEqual([
+      'Dashboard',
       'Favourites',
       'My reports',
-      'Dashboard',
+      'Account settings',
       'Sign out',
     ]);
-    expect(items[0]).toHaveAttribute('href', '/me/favorites');
-    expect(items[1]).toHaveAttribute('href', '/me/reports');
+    expect(items[1]).toHaveAttribute('href', '/me/favorites');
+    expect(items[2]).toHaveAttribute('href', '/me/reports');
+    expect(items[3]).toHaveAttribute('href', '/me');
   });
 
   it('disables sign-out, and keeps the menu open, while the server answers', async () => {

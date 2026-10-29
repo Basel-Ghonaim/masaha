@@ -13,10 +13,10 @@ const USER = aSession({ name: 'Sara Ahmad', email: 'sara@example.com' }).user;
 /** A name with the Unicode isolates around its inserted values removed, as a reader hears it. */
 const heard = (expected: string) => (name: string) => name.replace(/[⁦-⁩]/g, '') === expected;
 
-function renderMenu(user: SessionUser) {
+function renderMenu(user: SessionUser, role?: string) {
   render(
     <MemoryRouter>
-      <CompactAccountMenu user={user} dashboardPath="/dashboard" />
+      <CompactAccountMenu user={user} role={role} />
     </MemoryRouter>,
   );
   return screen.getByRole('button', { name: heard('Account menu: Sara Ahmad') });
@@ -45,33 +45,26 @@ describe('CompactAccountMenu', () => {
     expect(menu.getByRole('menuitem', { name: 'Sign out' })).toBeInTheDocument();
   });
 
-  it('leads a user with a space to the dashboard path it is given', async () => {
-    await userEvent.click(renderMenu({ ...USER, spaces: [{ spaceId: 7, role: 'OWNER' }] }));
-
-    const menu = within(await screen.findByRole('menu'));
-    expect(menu.getByRole('menuitem', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard');
-  });
-
-  it('links none of the site’s account pages: the dashboard and sign-out only', async () => {
+  it('offers the public site and the account’s settings, not the way into the dashboard', async () => {
     await userEvent.click(renderMenu({ ...USER, spaces: [{ spaceId: 7, role: 'OWNER' }] }));
 
     const items = within(await screen.findByRole('menu')).getAllByRole('menuitem');
-    expect(items.map((item) => item.textContent)).toEqual(['Dashboard', 'Sign out']);
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Public site',
+      'Account settings',
+      'Sign out',
+    ]);
+    expect(items[0]).toHaveAttribute('href', '/');
+    expect(items[1]).toHaveAttribute('href', '/me');
   });
 
-  it('leads the admin to the dashboard', async () => {
-    await userEvent.click(renderMenu({ ...USER, role: 'ADMIN' }));
+  it('names the role it is given beside the name', async () => {
+    await userEvent.click(
+      renderMenu({ ...USER, spaces: [{ spaceId: 7, role: 'OWNER' }] }, 'Owner'),
+    );
 
     expect(
-      within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Dashboard' }),
+      within(await screen.findByRole('menu')).getByText('Sara Ahmad · Owner'),
     ).toBeInTheDocument();
-  });
-
-  it('offers no dashboard to a user with no role and no space', async () => {
-    await userEvent.click(renderMenu(USER));
-
-    expect(
-      within(await screen.findByRole('menu')).queryByRole('menuitem', { name: 'Dashboard' }),
-    ).not.toBeInTheDocument();
   });
 });

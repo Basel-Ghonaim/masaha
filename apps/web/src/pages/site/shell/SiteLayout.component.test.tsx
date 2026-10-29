@@ -133,7 +133,18 @@ describe('the site shell', () => {
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
   });
 
-  it('opens the phone menu with the links, the language and sign-in, and closes it when a link is chosen', async () => {
+  it('keeps the language in the header at every width, and the theme there from 768 px only (SH-005)', async () => {
+    await renderSite('/');
+    const header = within(screen.getByRole('banner'));
+
+    expect(header.getByRole('button', { name: 'العربية' })).not.toHaveClass('hidden');
+    expect(header.getByRole('button', { name: 'Dark theme' })).toHaveClass(
+      'hidden',
+      'md:inline-flex',
+    );
+  });
+
+  it('opens the phone menu with the links, the theme and sign-in, and closes it when a link is chosen', async () => {
     const user = userEvent.setup();
     await renderSite('/');
 
@@ -144,7 +155,8 @@ describe('the site shell', () => {
     expect(menu.getByRole('link', { name: 'Spaces' })).toHaveAttribute('href', '/spaces');
     expect(menu.getByRole('link', { name: 'About Masaha' })).toHaveAttribute('href', '/about');
     expect(menu.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
-    expect(menu.getByRole('button', { name: 'العربية' })).toBeInTheDocument();
+    expect(menu.getByRole('button', { name: 'Dark theme' })).toBeInTheDocument();
+    expect(menu.queryByRole('button', { name: 'العربية' })).not.toBeInTheDocument();
 
     await user.click(menu.getByRole('link', { name: 'Spaces' }));
 

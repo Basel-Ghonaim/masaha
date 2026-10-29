@@ -11,15 +11,22 @@ export type AccountMenuLink = { key: keyof Catalogue['users']['account']['links'
  * The signed-in user's account, ready to render: the names the menu shows, the avatar's initial,
  * the links to the account's pages the shell passes (the site's; the dashboard passes none), whether
  * it leads to the dashboard, and the server-confirmed sign-out with its pending state and its failure
- * as text.
+ * as text. `role` is the word the dashboard's shells put beside the name (P4, DI27): the role at the
+ * space in the URL, or the admin's; the site passes none.
  */
-export function useAccount(user: SessionUser, links: readonly AccountMenuLink[] = []) {
+export function useAccount(
+  user: SessionUser,
+  links: readonly AccountMenuLink[] = [],
+  role?: string,
+) {
   const copy = useCopy();
   const signOut = useSignOutAction();
   const name = user.name.trim();
 
   return {
     name,
+    /** The menu's label: the name, with the role beside it when the shell passes one. */
+    label: role === undefined ? name : copy.users.nameWithRole({ name, role }),
     /** The name's first word, as the header shows it. */
     firstName: name.split(/\s+/u)[0] ?? name,
     /** The name's first character, the avatar's initial. */
@@ -33,6 +40,8 @@ export function useAccount(user: SessionUser, links: readonly AccountMenuLink[] 
     /** Whether the user has a dashboard to go to (the landing rule's `hasDashboard`). */
     showsDashboard: hasDashboard(user),
     dashboardLabel: copy.users.dashboard,
+    publicSiteLabel: copy.users.publicSite,
+    settingsLabel: copy.users.account.links.settings,
     ...signOut,
   };
 }

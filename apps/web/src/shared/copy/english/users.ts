@@ -11,8 +11,14 @@ export const USERS = {
   dashboard: 'Dashboard',
   /** The site's account menu: its links to the account's pages (P4). */
   account: {
-    links: { favorites: 'Favourites', reports: 'My reports' },
+    links: { favorites: 'Favourites', reports: 'My reports', settings: 'Account settings' },
   },
+  /** The role beside the name in the dashboard's account menu: the role at the space, or the admin. */
+  roles: { OWNER: 'Owner', RECEPTION: 'Reception', ADMIN: 'Admin' },
+  /** The dashboard's account menu: the way back to the public site. */
+  publicSite: 'Public site',
+  /** The account menu's label with a role: the name, then the role. */
+  nameWithRole: ({ name, role }: { name: string; role: string }) => `${name} · ${role}`,
   signOut: 'Sign out',
   signOutFailed: 'Couldn’t sign out',
   /** The change of a temporary password, before any other page. */

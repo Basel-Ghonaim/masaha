@@ -1,14 +1,17 @@
 import { useCopy } from '@shared/copy';
-import { ThemeToggle } from '@shared/design-system';
+import { ThemeToggle, type ThemeToggleProps } from '@shared/design-system';
 import { setTheme, usePreferences } from '@shared/preferences';
 
 /** The layer's theme toggle, wired to the preferences: it chooses the opposite of the theme shown. */
-export function SiteThemeToggle() {
+export function SiteThemeToggle(
+  props: Omit<ThemeToggleProps, 'theme' | 'onThemeChange' | 'label'>,
+) {
   const copy = useCopy();
   const theme = usePreferences((preferences) => preferences.theme);
 
   return (
     <ThemeToggle
+      {...props}
       theme={theme}
       onThemeChange={setTheme}
       label={copy.preferences.switchTheme[theme]}

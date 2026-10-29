@@ -1,6 +1,7 @@
 export { AccountActionDialog } from './components/account-actions/AccountActionDialog';
 export { AccountMenu } from './components/AccountMenu';
 export { AccountMenuSection } from './components/AccountMenuSection';
+export { DrawerAccountMenu } from './components/DrawerAccountMenu';
 export { CompactAccountMenu } from './components/CompactAccountMenu';
 export { ForcedPasswordChangeForm } from './components/ForcedPasswordChangeForm';
 export { SignOutButton } from './components/SignOutButton';

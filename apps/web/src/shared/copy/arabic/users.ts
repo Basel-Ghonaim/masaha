@@ -5,8 +5,11 @@ export const USERS = {
   section: 'الحساب',
   dashboard: 'لوحة التحكم',
   account: {
-    links: { favorites: 'المفضّلة', reports: 'بلاغاتي' },
+    links: { favorites: 'المفضّلة', reports: 'بلاغاتي', settings: 'إعدادات حسابي' },
   },
+  roles: { OWNER: 'صاحب المساحة', RECEPTION: 'موظف استقبال', ADMIN: 'أدمن' },
+  publicSite: 'الموقع العام',
+  nameWithRole: ({ name, role }: { name: string; role: string }) => `${name} · ${role}`,
   signOut: 'تسجيل الخروج',
   signOutFailed: 'تعذّر تسجيل الخروج',
   passwordChange: {

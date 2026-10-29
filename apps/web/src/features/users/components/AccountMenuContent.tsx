@@ -6,31 +6,37 @@ import {
   LayoutDashboardIcon,
   LoaderIcon,
   LogOutIcon,
+  SettingsIcon,
+  StoreIcon,
 } from '@shared/design-system';
+import { ACCOUNT_SETTINGS_PATH } from '@shared/routing';
 import { Link } from 'react-router';
 import { ACCOUNT_LINK_ICONS } from './accountLinkIcons';
 import type { useAccount } from '../hooks/useAccount';
 import { SignOutFailure } from './SignOutFailure';
 
+/** Where the menu is opened: the site's header, or the dashboard's bar and drawer. */
+export type AccountMenuPlace = { in: 'site'; dashboardPath: string } | { in: 'dashboard' };
+
 /**
- * The account menu's open panel, whatever its trigger: the name, the email, the links to the account's
- * pages the shell passes (the site's, P4), the way into the dashboard for those who have one, and
- * sign-out. The menu stays open while the server signs out,
- * so a failure shows in it.
+ * The account menu's open panel, whatever its trigger (P4): the name (with the role the dashboard's
+ * shell passes) and the email; then, on the site, the way into the dashboard for those who have one
+ * and the account's pages the shell passes; in the dashboard, the public site and the account's
+ * settings; then sign-out. The menu stays open while the server signs out, so a failure shows in it.
  */
 export function AccountMenuContent({
   account,
-  dashboardPath,
+  place,
 }: {
   account: ReturnType<typeof useAccount>;
-  dashboardPath: string;
+  place: AccountMenuPlace;
 }) {
   return (
     <DropdownMenuContent align="end">
       <DropdownMenuLabel>
         <span className="flex flex-col">
           <span>
-            <bdi>{account.name}</bdi>
+            <bdi>{account.label}</bdi>
           </span>
           <span className="text-caption text-muted-foreground">
             <bdi dir="ltr">{account.email}</bdi>
@@ -38,8 +44,16 @@ export function AccountMenuContent({
         </span>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
-      {account.links.length > 0 && (
+      {place.in === 'site' ? (
         <>
+          {account.showsDashboard && (
+            <DropdownMenuItem asChild>
+              <Link to={place.dashboardPath}>
+                <LayoutDashboardIcon aria-hidden />
+                {account.dashboardLabel}
+              </Link>
+            </DropdownMenuItem>
+          )}
           {account.links.map((link) => {
             const LinkIcon = ACCOUNT_LINK_ICONS[link.key];
             return (
@@ -51,20 +65,24 @@ export function AccountMenuContent({
               </DropdownMenuItem>
             );
           })}
-          <DropdownMenuSeparator />
         </>
-      )}
-      {account.showsDashboard && (
+      ) : (
         <>
           <DropdownMenuItem asChild>
-            <Link to={dashboardPath}>
-              <LayoutDashboardIcon aria-hidden />
-              {account.dashboardLabel}
+            <Link to="/">
+              <StoreIcon aria-hidden />
+              {account.publicSiteLabel}
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to={ACCOUNT_SETTINGS_PATH}>
+              <SettingsIcon aria-hidden />
+              {account.settingsLabel}
+            </Link>
+          </DropdownMenuItem>
         </>
       )}
+      <DropdownMenuSeparator />
       <DropdownMenuItem
         disabled={account.isPending}
         onSelect={(event) => {

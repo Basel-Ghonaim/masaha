@@ -17,6 +17,7 @@ export function AdminLayout() {
   return (
     <DashboardLayout
       label={copy.dashboard.adminNavigation}
+      role={copy.users.roles.ADMIN}
       header={
         <SidebarHeader
           mark={

@@ -516,6 +516,30 @@ describe('the dashboard on a phone', () => {
     });
   });
 
+  it('keeps the top bar to the trigger and the page; the drawer opens with the account, its foot holding the language and the theme', async () => {
+    const user = userEvent.setup();
+    stubScreenWidth(390);
+    asOwnerAndReception();
+    renderDashboard('/dashboard/spaces/7');
+
+    const bar = within(await screen.findByRole('banner'));
+    expect(bar.getByRole('button', { name: /Account menu/ }).parentElement).toHaveClass(
+      'hidden',
+      'md:flex',
+    );
+
+    await user.click(bar.getByRole('button', { name: 'Menu' }));
+    const drawer = within(await screen.findByRole('dialog', { name: 'Space dashboard' }));
+    const account = drawer.getByRole('button', { name: /Account menu/ });
+    const switcher = await drawer.findByRole('button', { name: heard('Switch space: Focus Hub') });
+    expect(
+      account.compareDocumentPosition(switcher) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(account).toHaveTextContent('· Owner');
+    expect(drawer.getByRole('button', { name: 'العربية' })).toBeInTheDocument();
+    expect(drawer.getByRole('button', { name: 'Dark theme' })).toBeInTheDocument();
+  });
+
   it('opens the drawer with the pages and the language, and closes it when a page is chosen', async () => {
     const user = userEvent.setup();
     stubScreenWidth(390);

@@ -84,6 +84,15 @@ describe("the header's account", () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows the account as its avatar at every width, the first name beside it from 768 px', async () => {
+    signIn();
+    renderSite('/');
+
+    const button = await accountButton();
+    expect(button).not.toHaveClass('hidden');
+    expect(within(button).getByText('Sara')).toHaveClass('hidden', 'md:inline');
+  });
+
   it('shows sign-in again in place of the account once the user signs out', async () => {
     signIn();
     fakeTransport(() => NO_CONTENT);

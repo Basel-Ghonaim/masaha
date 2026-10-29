@@ -19,7 +19,7 @@ function renderShell(path: string) {
     [
       {
         element: (
-          <DashboardLayout label="Space dashboard" header={null}>
+          <DashboardLayout label="Space dashboard" role="Owner" header={null}>
             {null}
           </DashboardLayout>
         ),

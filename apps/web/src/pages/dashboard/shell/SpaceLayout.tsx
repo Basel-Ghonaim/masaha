@@ -25,6 +25,7 @@ export function SpaceLayout() {
     <DashboardLayout
       key={spaceId}
       label={copy.dashboard.spaceNavigation}
+      role={navigation && copy.users.roles[navigation.role]}
       header={
         <div className="shrink-0 p-2">
           <SpaceSwitcher spaceId={spaceId} spaceLink={spaceHomePath} />

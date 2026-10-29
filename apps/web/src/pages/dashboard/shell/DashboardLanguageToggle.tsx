@@ -3,7 +3,7 @@ import { LanguageToggle } from '@shared/design-system';
 import { otherLanguage, setLanguage, usePreferences } from '@shared/preferences';
 
 /** The layer's language toggle, wired to the preferences: it offers the other language. */
-export function DashboardLanguageToggle({ className }: { className: string }) {
+export function DashboardLanguageToggle({ className }: { className?: string }) {
   const other = otherLanguage(usePreferences((preferences) => preferences.language));
 
   return (

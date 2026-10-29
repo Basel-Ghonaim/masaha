@@ -10,17 +10,12 @@ import { useAccount } from '../hooks/useAccount';
 import { AccountMenuContent } from './AccountMenuContent';
 
 /**
- * The signed-in user where room is short, as in the dashboard's top bar: the avatar alone, named for
- * the account, opening the same account menu (`AccountMenuContent`).
+ * The signed-in user in the dashboard's top bar, from 768 px: the avatar alone, named for the account,
+ * opening the dashboard's account menu (`AccountMenuContent`), its label naming the `role` the shell
+ * passes.
  */
-export function CompactAccountMenu({
-  user,
-  dashboardPath,
-}: {
-  user: SessionUser;
-  dashboardPath: string;
-}) {
-  const account = useAccount(user);
+export function CompactAccountMenu({ user, role }: { user: SessionUser; role?: string }) {
+  const account = useAccount(user, [], role);
 
   return (
     <DropdownMenu>
@@ -31,7 +26,7 @@ export function CompactAccountMenu({
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <AccountMenuContent account={account} dashboardPath={dashboardPath} />
+      <AccountMenuContent account={account} place={{ in: 'dashboard' }} />
     </DropdownMenu>
   );
 }

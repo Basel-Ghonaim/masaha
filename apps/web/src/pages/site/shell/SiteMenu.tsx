@@ -17,11 +17,11 @@ import { useSession } from '@shared/session';
 import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
 import { ACCOUNT_LINKS, SITE_LINKS, SITE_PATHS } from '../navigation';
-import { SiteLanguageToggle } from './SiteLanguageToggle';
+import { SiteThemeToggle } from './SiteThemeToggle';
 
 /**
  * The phone's menu, in a sheet from the start side: the header's links, sign-in or the account once
- * signed in (with the account's pages), and the language.
+ * signed in (with the account's pages), and the theme (the language is the header's, SH-005).
  */
 export function SiteMenu() {
   const copy = useCopy();
@@ -81,7 +81,7 @@ export function SiteMenu() {
           )}
         </SheetBody>
         <SheetFooter>
-          <SiteLanguageToggle className="self-start" />
+          <SiteThemeToggle className="self-start" />
         </SheetFooter>
       </SheetContent>
     </Sheet>
