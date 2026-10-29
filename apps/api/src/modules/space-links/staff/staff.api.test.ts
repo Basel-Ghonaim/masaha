@@ -360,6 +360,21 @@ describe('PATCH /manage/spaces/:spaceId/staff/:userId', () => {
     expect(errorOf(suspended).code).toBe('ACCOUNT_SUSPENDED');
   });
 
+  it('a re-activation refuses an admin: ACCOUNT_IS_ADMIN', async () => {
+    await staff(owner, 'patch', `/${String(reception.id)}`, { isActive: false });
+    await prisma.user.update({ where: { id: reception.id }, data: { role: 'ADMIN' } });
+
+    const response = await staff(owner, 'patch', `/${String(reception.id)}`, { isActive: true });
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('ACCOUNT_IS_ADMIN');
+    expect(
+      await prisma.spaceManager.findUniqueOrThrow({
+        where: { spaceId_userId: { spaceId, userId: reception.id } },
+      }),
+    ).toMatchObject({ deactivatedAt: expect.any(Date) as unknown });
+  });
+
   it('an owner cannot deactivate a co-owner, or anyone without a reception link here', async () => {
     const coOwner = await signInOwnerOf(spaceId);
     const elsewhere = await signIn('USER', 'elsewhere@example.com');
@@ -455,6 +470,43 @@ describe('POST /manage/spaces/:spaceId/staff/:userId/temporary-password', () => 
     expect(
       (await prisma.user.findUniqueOrThrow({ where: { id: added.userId } })).passwordHash,
     ).toBe(before.passwordHash);
+  });
+
+  it('the re-issue refuses an OWNER-role account with no link here: ACCOUNT_HAS_LINKS', async () => {
+    const added = await addedReceptionist();
+    // No other link: its role alone refuses it.
+    await prisma.user.update({ where: { id: added.userId }, data: { role: 'OWNER' } });
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: added.userId } });
+
+    const response = await staff(owner, 'post', `/${String(added.userId)}/temporary-password`);
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('ACCOUNT_HAS_LINKS');
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: added.userId } })).passwordHash,
+    ).toBe(before.passwordHash);
+  });
+
+  it('the re-issue and the handover answer 404 for a deactivated reception link', async () => {
+    const added = await addedReceptionist();
+    await staff(owner, 'patch', `/${String(added.userId)}`, { isActive: false });
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: added.userId } });
+    const entries = (await auditEntries()).length;
+
+    const reissue = await staff(owner, 'post', `/${String(added.userId)}/temporary-password`);
+    const handover = await staff(
+      owner,
+      'post',
+      `/${String(added.userId)}/temporary-password/handover`,
+      { channel: 'WHATSAPP' },
+    );
+
+    expect(reissue.status).toBe(404);
+    expect(handover.status).toBe(404);
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: added.userId } })).passwordHash,
+    ).toBe(before.passwordHash);
+    expect(await auditEntries()).toHaveLength(entries);
   });
 
   it('refuses a re-issue for an account that holds anything else', async () => {
