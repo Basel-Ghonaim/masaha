@@ -91,6 +91,7 @@ const SPACE_EXPECTATIONS: Record<SpaceAction, SpaceCells> = {
   'payments.read': OWNER_ONLY,
   'payments.void': OWNER_ONLY,
   'finance.read': OWNER_ONLY,
+  'space.overview.read': OWNER_ONLY,
   'subscriptions.extendAfterClosure': OWNER_ONLY,
   'packages.manage': OWNER_ONLY,
   'space.capacity.manage': OWNER_ONLY,

@@ -82,6 +82,8 @@ const PERMISSIONS = {
   'payments.read': 'owner',
   'payments.void': 'owner',
   'finance.read': 'owner',
+  /** The owner's overview of the space (OV3: reception has none). */
+  'space.overview.read': 'owner',
   'subscriptions.extendAfterClosure': 'owner',
   'packages.manage': 'owner',
   'space.capacity.manage': 'owner',

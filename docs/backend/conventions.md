@@ -167,7 +167,7 @@ The [API contract](../api/api-contract.md) owns the paths. The composition root 
 | `desk` | L5 | — | manage | The front desk's orchestrations and the customers list and file (§9) |
 | `directory` | L5 | — | public, me (the favourites, at `/me/favorites`) | The public directory and profile, and the favourites' cards (§9) |
 | [`finance`](../features/finance.md) | L5 | — (reads) | manage | Read model: the owner's finance — a month's income and the staff's collections, who owes and who is in credit, who paid in a month, and the occupancy statistics; the ledger's aggregates through `payments` (§9) |
-| `overview` | L5 | — | manage, admin | Read composition for the two overview screens (§9) |
+| [`overview`](../features/overview.md) | L5 | — (reads through its owners) | manage, admin | Read composition for the two overview screens (§9) |
 | [`audit`](../features/audit.md) | L5 | — (reads the audit table) | manage, admin | The audit reader (§6): the owner's log of the space, the admin's of the platform's events |
 
 ## 8. Module rules
@@ -261,9 +261,10 @@ The modules that apply them read them: visits and subscriptions (auto check-out;
 
 ### `overview`
 - One read-composition module, one file per screen (owner, admin), and one aggregate endpoint per screen because the users' connection is weak.
-- **No logic:** every figure comes from its owning module.
+- **No logic:** every figure comes from its owning module, through a set-based read added where it had none (2026-10-29, #131): the groups missing and stale from `spaces` (`listing.freshnessOf`, with their Gaza days), the open reports from `data-reports` (`openCountOf`), the unpriced visits from `visits` (`unpricedCount`), the closures awaiting their extension and the running count from `subscriptions`' `closures.summary`, the running types from `announcements` (`runningTypes`), the subscriptions ending soon from `subscriptions` (`endingSoon`, the customers list's rule), the uncollected visits and how many owe from `payments` (`uncollectedTotals`, `balanceTotals`), and present now, the capacity and the live status from `occupancy` (`glance`).
+- **No repository** (S20): an aggregate of its own would write a rule a second time, and its count would drift from the list it links to.
 - **It never imports `finance`:** the figures both show come from `payments`.
-- Figures are fetched in parallel.
+- Figures are fetched in parallel, one `Promise.all` at one instant, **with no snapshot** (S21): each is a count standing alone, and a snapshot would run them one after another on one connection.
 
 ### The front desk: `desk`
 `desk` orchestrates the operations that span the desk's modules, each in one transaction:
@@ -288,7 +289,7 @@ A screen that shows or filters by values from several modules is composed by a m
   - `customers` then applies the search and the pagination to those ids (§5), each list one array parameter read as a set, so no list meets PostgreSQL's bound on parameters. 2026-10-21, #102.
   - The file adds each subscription's progress, the payments, the balance and the attendance.
 - **A composed read whose sums and lists must agree** (a subscription's statement, a customer's file) **reads one snapshot**: one read-only `REPEATABLE READ` transaction (`readSnapshot`, `db/transaction.ts`), whose `tx` reaches every read. No lock: it waits on no write. 2026-10-25, #118 ([finding 124](../architecture/findings/124-a-statements-sums-and-its-payments-come-from-different-snapshots.md)).
-- **The managed announcements list and its summary** → `subscriptions` (`closures`), the lowest module above `announcements` that owns a closure's extension: `announcements` pages one state and counts them, and `subscriptions` adds each closure's extension, how many it moved and who applied it, and counts the started closures with none. The writes stay `announcements`'. The owner's overview will read `closures.summary`. 2026-10-24, #112.
+- **The managed announcements list and its summary** → `subscriptions` (`closures`), the lowest module above `announcements` that owns a closure's extension: `announcements` pages one state and counts them, and `subscriptions` adds each closure's extension, how many it moved and who applied it, and counts the started closures with none. The writes stay `announcements`'. The owner's overview reads `closures.summary` (2026-10-29, #131). 2026-10-24, #112.
 - **The admin's spaces list** (owners and verified status) and **the space owners list** → `space-links` ([how the list is composed](../features/space-links.md#how-it-composes-the-platform)).
 - **"Verified" on the write side** ([security › Authorization](security.md#authorization)).
   - `spaces` never imports `space-links` for it. The space middleware resolves the links on the space routes (§8), and `can()` decides.

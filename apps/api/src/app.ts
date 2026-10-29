@@ -88,6 +88,11 @@ import {
   createOccupancyService,
 } from './modules/occupancy/index.ts';
 import {
+  createOverviewController,
+  createOverviewManageRouter,
+  createOverviewService,
+} from './modules/overview/index.ts';
+import {
   createPackagesController,
   createPackagesManageRouter,
   createPackagesService,
@@ -346,8 +351,9 @@ export function createApi({
     audit: writeAudit,
     lockSpace: (spaceId: number, tx: Tx) => spaces.lock(spaceId, tx),
   });
+  const listing = createListingService({ platformSettings, now: clock });
   const adminSpaces = createAdminSpacesService({
-    listing: createListingService({ platformSettings, now: clock }),
+    listing,
     lookups,
     users,
   });
@@ -498,6 +504,17 @@ export function createApi({
     now: clock,
   });
   const auditLog = createAuditService({ now: clock });
+  const overview = createOverviewService({
+    listing,
+    dataReports,
+    visits,
+    payments,
+    subscriptions,
+    closures,
+    announcements,
+    occupancy,
+    now: clock,
+  });
   const adminUsers = createAdminUsersService({ users, spaces });
   const adminRoles = createAdminRolesService({ runInTransaction, users });
   const staff = createStaffService({
@@ -607,6 +624,8 @@ export function createApi({
   const auditController = createAuditController(auditLog);
   manage.use('/audit-log', createAuditManageRouter(auditController));
   manage.use('/finance', createFinanceManageRouter(createFinanceController(finance)));
+  const overviewController = createOverviewController(overview);
+  manage.use('/overview', createOverviewManageRouter(overviewController));
   // The desk's state, polled by itself, renews no idle session: marked before the guard runs.
   api.get('/manage/spaces/:spaceId/occupancy', markPassive);
   api.use(

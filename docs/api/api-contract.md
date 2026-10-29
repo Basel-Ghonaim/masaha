@@ -1018,6 +1018,47 @@ AuditMeta = §4's meta & {
 - **200:** `PlatformAuditEntry[]`, with `AuditMeta`: only the platform's events — the spaces' public facts and their confirmations, their photos, their creation, hiding, deletion and restoring, and their owners linked and unlinked, whoever acted; the lookups; the data reports' decisions; the platform's settings ([Platform settings](#platform-settings)); an account's creation, role, suspension, temporary passwords and email, only when the entry names no space. **Never** an entry about a space's customers, subscriptions, check-ins, visits, payments, packages, announcements or closure extensions, its capacity, its live-status override, its settings or its staff, an owner's reception account's included; an action on no list is never answered ([conventions §6](../backend/conventions.md#6-audit), [ADR 0002](../architecture/decisions/0002-authorization-model.md)).
 - **Errors:** `unauthorized` (401), `forbidden` (403), and `forbidden` (403) `PASSWORD_CHANGE_REQUIRED`, by `/admin`'s guard; `validation` (422) on the query.
 
+### Overview
+
+The overviews (`overview`, [conventions › `overview`](../backend/conventions.md#overview)): one read per screen, composed from the modules that own each figure, read in parallel at one instant (`at`) with no lock and no snapshot, so each count equals the list it links to read alone, to within a write between two of its reads. They write nothing and nothing polls them: the web reads one again on returning to its page. **No amount anywhere** (the owner's O3): the debts and the uncollected visits are counts. Built 2026-10-29, #131.
+
+```ts
+GroupsFreshness = {
+  missing: FactGroup[],                       // never saved
+  stale: { group: FactGroup, days: number }[] // by the thresholds saved now (Platform settings); days: Gaza days since its date
+}
+
+OwnerOverview = {
+  attention: {                                // «يحتاج انتباهك»
+    groups: GroupsFreshness,
+    openReports: number,                      // = GET …/data-reports?status=OPEN's total
+    uncollectedVisits: number,                // = GET …/uncollected-visits' total
+    unpricedVisits: number,                   // = GET …/unpriced-visits' total
+    closuresAwaitingExtension: number,        // = GET …/announcements/summary's
+    capacitySet: boolean,
+    customersOwing: number                    // the customers who owe, archived ones kept: Finance's debtors, counted
+  },
+  presentNow: {                               // as GET …/occupancy reads it
+    visits: number, members: number, total: number,
+    capacity: number | null,
+    status: LiveStatus | null                 // as the public sees it
+  },
+  endingSoon: {
+    total: number,                            // = GET …/customers?status=ENDING_SOON's total
+    first: { customer: { id, name }, subscription: { id, name, endsOn: string | null } }[]   // ≤ 5: by end date, none last, then id
+  },
+  announcements: {
+    running: number,                          // = GET …/announcements?state=RUNNING's total
+    types: AnnouncementType[]                 // the running ones' types, each once, in ANNOUNCEMENT_TYPES' order
+  },
+  at: string                                  // the instant read
+}
+```
+
+#### `GET /manage/spaces/:spaceId/overview` · 🏢
+- **200:** `OwnerOverview`.
+- **Errors:** `forbidden` (403) for reception, which has no overview; `not_found` (404) for anyone who is not the space's staff, the admin included (the boundary).
+
 ### Internal
 
 The timed jobs ([ADR 0014](../architecture/decisions/0014-deployment.md); [conventions §12](../backend/conventions.md#12-environments)): online, an external cron calls this endpoint every 5 minutes; locally, the server runs the same jobs from a timer. It carries no access token, so the general limit counts it by address ([security › Rate limits](../backend/security.md#rate-limits-fixed-window)). Built 2026-10-20, #97.

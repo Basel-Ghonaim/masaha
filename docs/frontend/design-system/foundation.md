@@ -4,7 +4,7 @@ _Also the brief given to Claude Design._
 
 > **Status:** Active — structure decided ([ADR 0005](../../architecture/decisions/0005-design-system-approach.md)); visual values **locked** from the Claude Design direction *1a Sea* (§14 Steps 1–2). The layer is **built** (§14 Step 3): the tokens, the layer base (`tokens/`, `lib/cn.ts`, `icons/`, `DirectionProvider`, the showcase; §3) and every §12 component, with the theme and language toggles. The whole showcase was checked in light and dark, RTL and LTR, at 360, 768 and 1280 (WI-9). The layer is **synced** into Claude Design (§14 Step 4).
 > **Owner:** Basel Ghoneim
-> **Last Updated:** 2026-10-28
+> **Last Updated:** 2026-10-29
 > **Audience:** Claude Design (to design every screen), Claude Code and the developer (to build the layer).
 
 This document defines **how** Masaha's Design System is structured, **what** it must cover, and the **values** of its tokens. The values were chosen in Claude Design (direction *1a Sea*, stress-tested on forms, dense tables and menus) and are written here as the single source the layer is built from. A value changes here first, then in code.
@@ -458,7 +458,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 
 **O** = owner only · **O+R** = owner and reception. Navigation follows the user's role at the selected space; who may do what is owned by [ADR 0009](../../architecture/decisions/0009-space-scoped-reception-role.md).
 
-12. **Overview** (O) — present now / capacity and the live status, income today and this month, total debt, subscriptions ending this week, active announcements, new reports
+12. **Overview** (O) — needs attention (missing or stale groups, new reports, uncollected visits, a closure awaiting its extension, capacity not set, customers who owe — counts, no amounts, O3), present now / capacity and the live status, subscriptions ending this week, active announcements
 13. **Front desk** (O+R) — present now / capacity («الحاضرون الآن 27 / 40»); check in a visitor by name or a customer, with a warning when the space is full; check out with the visit charge and its payment; uncollected visits; set or clear the manual state override
 14. **Customers** (O+R) — everyone on file; search; filters: subscription type (monthly, weekly, package, custom, none), status, payment (has debt, settled)
 15. **Customer details** (O+R) — subscriptions with their progress and statement, payments, balance or credit, attendance; receive a payment, renew (a warning when a balance is due), end a subscription early
