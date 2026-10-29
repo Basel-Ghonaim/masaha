@@ -192,6 +192,7 @@ export function createDeskService({
         audience: pack.audience,
         shiftId: pack.shiftId,
         packageId: pack.id,
+        publishedPeriod: null,
         endsOn: addDays(startsOn, pack.validityDays - 1),
         priceTyped: null,
       };
@@ -210,6 +211,7 @@ export function createDeskService({
         audience: price.audience,
         shiftId: price.shiftId,
         packageId: null,
+        publishedPeriod: published.period,
         endsOn: addDays(startsOn, PUBLISHED_PERIOD_DAYS[published.period] - 1),
         priceTyped: null,
       };
@@ -230,6 +232,7 @@ export function createDeskService({
       audience: custom.audience,
       shiftId: custom.shiftId ?? null,
       packageId: null,
+      publishedPeriod: null,
       endsOn: custom.endsOn ?? null,
       priceTyped: { byId: actor.id, reason: custom.reason },
     };

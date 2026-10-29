@@ -356,6 +356,8 @@ export const DESK = {
       options: {
         all: 'كل الأنواع',
         PACKAGE: 'باقة',
+        WEEK: 'أسبوعي',
+        MONTH: 'شهري',
         CUSTOM: 'مخصّص',
         NONE: 'بدون اشتراك',
       },

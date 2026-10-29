@@ -46,6 +46,7 @@ export function subscriptionState(change: Partial<SubscriptionState> = {}): Subs
     id: 1,
     customerId: 4,
     packageId: 4,
+    publishedPeriod: null,
     renewalOfId: null,
     name: 'Exams by the hour',
     startsOn: '2026-10-01',

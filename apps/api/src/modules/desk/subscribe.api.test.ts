@@ -106,6 +106,7 @@ describe('subscribing a customer', () => {
         id: stored?.id,
         customerId,
         packageId: pack.id,
+        publishedPeriod: null,
         renewalOfId: null,
         name: 'شهري',
         startsOn: '2026-10-21',

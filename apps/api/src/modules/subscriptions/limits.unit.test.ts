@@ -9,6 +9,7 @@ function state(more: Partial<SubscriptionState> = {}): SubscriptionState {
     id: 1,
     customerId: 1,
     packageId: null,
+    publishedPeriod: null,
     renewalOfId: null,
     name: 'شهري',
     startsOn: '2026-10-01',

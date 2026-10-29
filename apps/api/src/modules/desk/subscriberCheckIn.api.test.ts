@@ -106,6 +106,7 @@ describe('checking a subscriber in', () => {
         id: sara.subscription.id,
         customerId: sara.customer.id,
         packageId: null,
+        publishedPeriod: null,
         renewalOfId: null,
         name: 'شهري',
         startsOn: '2026-10-01',

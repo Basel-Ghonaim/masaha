@@ -20,6 +20,7 @@ export function toSubscriptionState(row: SubscriptionStateRow, today: string): S
     id: row.id,
     customerId: row.customer_id,
     packageId: row.package_id,
+    publishedPeriod: row.published_period,
     renewalOfId: row.renewal_of_id,
     name: row.name,
     startsOn,

@@ -113,7 +113,7 @@
 - #109 — a check-in's minutes in SQL; a subscriber's check-in and check-out, audited, and the limits' warnings (`limits.ts`); the check-ins' lists.
 - #112 — the managed announcements list, each closure with its extension, and its summary (`closures/`).
 - #118 — a subscription made from a published week or month price (through `desk`).
-- #132 — a published amount the desk showed is checked against the price under the lock (`PUBLISHED_PRICE_CHANGED`, finding 171's API half).
+- #132 — a published amount the desk showed is checked against the price under the lock (`PUBLISHED_PRICE_CHANGED`, finding 171's API half); a subscription keeps its published period (`publishedPeriod`), which the customers list filters by (`WEEK`, `MONTH`); the due in `bigint` (finding 122); the dated check-ins bounded by Gaza midnights (finding 127); a stalled auto check-out (finding 121).
 - #123 — a closure's extension: the preview, and the owner's extension of the subscriptions it covered, once per closure under one key.
 - #128 — a closure's extension moves the covered subscriptions' renewals not started too (finding 151); a key that extended another space's closure is a conflict.
 - #131 — a check-in's customer answered with its name and phone alone, now that the contacts also say whether a customer is archived.

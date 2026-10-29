@@ -235,6 +235,29 @@ describe('the customers list', () => {
     expect(names(await list(owner, '?kind=NONE&payment=SETTLED'))).toEqual(['Hadi']);
   });
 
+  it("a subscription sold from a month's price is filtered MONTH, a custom one CUSTOM, a package's PACKAGE", async () => {
+    await seed();
+    await prisma.spacePrice.create({
+      data: { spaceId, period: 'MONTH', audience: 'GENERAL', amountAgorot: 25_000 },
+    });
+    const nour = await createCustomer(spaceId, { name: 'Nour' });
+    const sold = await request(app)
+      .post(`/api/v1/manage/spaces/${String(spaceId)}/customers/${String(nour.id)}/subscriptions`)
+      .set('Authorization', reception.authorization)
+      .set('Idempotency-Key', randomUUID())
+      .send({ published: { period: 'MONTH', audience: 'GENERAL', name: 'شهري' } });
+    expect(sold.status).toBe(201);
+    expect((dataOf(sold) as { subscription: object }).subscription).toMatchObject({
+      publishedPeriod: 'MONTH',
+    });
+
+    expect(names(await list(owner, '?kind=MONTH'))).toEqual(['Nour']);
+    expect(names(await list(owner, '?kind=WEEK'))).toEqual([]);
+    // Omar's is custom: neither a package's nor a published price's.
+    expect(names(await list(owner, '?kind=CUSTOM'))).toEqual(['Omar']);
+    expect(names(await list(owner, '?kind=PACKAGE'))).toEqual(['Sara', 'Tala']);
+  });
+
   it('archived customers only under status ARCHIVED, the owner’s; reception 403; a stranger, another space’s owner and the admin not_found', async () => {
     await createCustomer(spaceId, { name: 'Kept' });
     await createCustomer(spaceId, { name: 'Gone', archivedAt: new Date() });

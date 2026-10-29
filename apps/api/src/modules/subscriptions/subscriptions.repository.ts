@@ -31,6 +31,7 @@ export interface SubscriptionStateRow {
   id: number;
   customer_id: number;
   package_id: number | null;
+  published_period: 'WEEK' | 'MONTH' | null;
   name: string;
   starts_on: Date | null;
   ends_on: Date | null;
@@ -61,6 +62,8 @@ export interface SubscriptionToCreate {
   customerId: number;
   key: string;
   packageId: number | null;
+  /** The period of the published price it is sold from; `null` for a package's or a custom one. */
+  publishedPeriod: 'WEEK' | 'MONTH' | null;
   renewalOfId: number | null;
   name: string;
   startsOn: string | null;
@@ -559,7 +562,8 @@ export function createSubscriptionsRepository() {
       tx: Tx = prisma,
     ): Promise<SubscriptionStateRow[]> {
       return tx.$queryRaw<SubscriptionStateRow[]>`
-        SELECT s.id, s.customer_id, s.package_id, s.name, s.starts_on, s.ends_on,
+        SELECT s.id, s.customer_id, s.package_id, s.published_period::text AS published_period,
+               s.name, s.starts_on, s.ends_on,
                s.total_days, s.days_per_week, s.hours_per_day, s.total_hours,
                s.billing::text AS billing, s.price_agorot, s.audience::text AS audience, s.shift_id,
                s.renewal_of_id, s.price_set_by_id, s.price_reason, s.ended_at, s.ended_by_id,

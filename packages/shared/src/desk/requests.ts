@@ -65,8 +65,11 @@ export type LeaveToCustomerRequest = z.infer<typeof leaveToCustomerSchema>;
 
 /** The customers list's status filter: their current subscription's status, or archived (the owner's). */
 export const CUSTOMER_STATUS_FILTERS = [...SUBSCRIPTION_STATUSES, 'ARCHIVED'] as const;
-/** The customers list's kind filter: their current subscription from a package, custom, or none. */
-export const CUSTOMER_KINDS = ['PACKAGE', 'CUSTOM', 'NONE'] as const;
+/**
+ * The customers list's kind filter: their current subscription from a package, from a published
+ * week's or month's price, custom (neither), or none.
+ */
+export const CUSTOMER_KINDS = ['PACKAGE', 'WEEK', 'MONTH', 'CUSTOM', 'NONE'] as const;
 /** The customers list's payment filter: they owe, they are in credit, or neither. */
 export const PAYMENT_FILTERS = ['OWES', 'CREDIT', 'SETTLED'] as const;
 

@@ -435,7 +435,7 @@ Customer = {
 - **Query:** `?q=&status=&kind=&packageId=&payment=&page=&limit=` (`customersQuerySchema`, `@masaha/shared/desk`):
   - `q`, 1–60 characters: a whole phone number in any form the phone field takes matches that phone, or a phone ending with its national digits without the trunk 0 (nine at least), so a number stored under the other country code is found either way (2026-10-22, #109; both ways 2026-10-29, #132); else digits only, at least two once a phone's separators (spaces, `+`, `-`, `.`, parentheses) are removed, match the end of a phone; anything else matches a name, Arabic folded as the directory's search folds it (data model › Search);
   - `status`: `UPCOMING`, `ACTIVE`, `ENDING_SOON` or `EXPIRED`, the customer's current subscription's (the one running, else the next, else the last); `ARCHIVED` lists the archived customers only, the owner's (reception `forbidden`, 403);
-  - `kind`: `PACKAGE`, `CUSTOM` (their current subscription from a package, or not) or `NONE` (no subscription); `packageId`: the current subscription's package, which implies `PACKAGE` (`invalid_choice` on `kind` with another);
+  - `kind`: `PACKAGE` (their current subscription from a package), `WEEK` or `MONTH` (from a published week's or month's price, its `publishedPeriod`), `CUSTOM` (neither) or `NONE` (no subscription) (`WEEK` and `MONTH` 2026-10-29, #132); `packageId`: the current subscription's package, which implies `PACKAGE` (`invalid_choice` on `kind` with another);
   - `payment`: `OWES` (a debt above zero), `CREDIT` (credit above zero) or `SETTLED` (neither).
 - **200:** `CustomerRow[]`, by name then id, with `meta` (§4). Every filter is applied **before** the page is cut, so every page is full and the total right; archived customers are left out unless `status=ARCHIVED`. Debt, credit and the payment filter are computed in the database ([data-model › Customer debt](../architecture/data-model.md#derived-values-computed-not-stored)). No export of customers or phones exists, for anyone. Read without a lock.
 - **Errors:** `validation` (422) on the query; `forbidden` (403) for reception's `status=ARCHIVED`; `not_found` (404).
@@ -449,6 +449,7 @@ Customer = {
 CustomerBalance = { debtAgorot: number, creditAgorot: number }   // debt: the positive balances; credit: a usage-based subscription's paid ahead
 SubscriptionState = {
   id, customerId, packageId: number | null, renewalOfId: number | null, name,
+  publishedPeriod: "WEEK" | "MONTH" | null,                       // the published price's period it was sold from (2026-10-29, #132)
   startsOn: string | null, endsOn: string | null,                 // Gaza dates, YYYY-MM-DD
   totalDays, daysPerWeek, hoursPerDay, totalHours: number | null,
   billing: "FIXED" | "PER_HOUR" | "PER_DAY", priceAgorot, audience, shiftId: number | null,

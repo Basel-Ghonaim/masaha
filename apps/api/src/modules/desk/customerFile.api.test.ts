@@ -118,6 +118,7 @@ describe("the customer's file", () => {
           id: monthly.id,
           customerId: sara.id,
           packageId: null,
+          publishedPeriod: null,
           renewalOfId: null,
           name: 'Monthly',
           startsOn: '2026-10-01',

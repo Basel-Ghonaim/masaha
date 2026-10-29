@@ -183,6 +183,13 @@ describe("the customers list's query", () => {
     expect(errorsOfQuery({ packageId: '7', kind: 'PACKAGE' })).toBeNull();
     expect(errorsOfQuery({ packageId: '7', kind: 'CUSTOM' })).toEqual({ kind: ['invalid_choice'] });
     expect(errorsOfQuery({ packageId: '7', kind: 'NONE' })).toEqual({ kind: ['invalid_choice'] });
+    expect(errorsOfQuery({ packageId: '7', kind: 'MONTH' })).toEqual({ kind: ['invalid_choice'] });
+  });
+
+  it('the customers query takes WEEK and MONTH, the published periods', () => {
+    expect(customersQuerySchema.parse({ kind: 'WEEK' })).toMatchObject({ kind: 'WEEK' });
+    expect(customersQuerySchema.parse({ kind: 'MONTH' })).toMatchObject({ kind: 'MONTH' });
+    expect(errorsOfQuery({ kind: 'DAY' })).toEqual({ kind: ['invalid_choice'] });
   });
 });
 

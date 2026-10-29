@@ -57,6 +57,15 @@ function currentByCustomer(states: readonly SubscriptionState[]): Map<number, Su
 }
 
 /**
+ * A subscription's kind, as the customers list filters it: a package's, a published week's or
+ * month's price's, else custom (typed, or sold before the period was kept).
+ */
+function kindOf(state: SubscriptionState): 'PACKAGE' | 'WEEK' | 'MONTH' | 'CUSTOM' {
+  if (state.packageId !== null) return 'PACKAGE';
+  return state.publishedPeriod ?? 'CUSTOM';
+}
+
+/**
  * A new subscription as its audit entry records it: its customer, the package it copies and the one it
  * renews, its terms and dates, and a typed price's reason (else `null`); not its space, the entry's
  * own, nor its key.
@@ -300,7 +309,7 @@ export function createSubscriptionsService({
         packageId,
       }: {
         status?: SubscriptionStatus | undefined;
-        kind?: 'PACKAGE' | 'CUSTOM' | 'NONE' | undefined;
+        kind?: 'PACKAGE' | 'WEEK' | 'MONTH' | 'CUSTOM' | 'NONE' | undefined;
         packageId?: number | undefined;
       },
       at: Date,
@@ -313,7 +322,7 @@ export function createSubscriptionsService({
       const include = [...current.values()].filter(
         (state) =>
           (status === undefined || state.status === status) &&
-          (kind === undefined || (kind === 'PACKAGE') === (state.packageId !== null)) &&
+          (kind === undefined || kindOf(state) === kind) &&
           (packageId === undefined || state.packageId === packageId),
       );
       return { include: include.map(({ customerId }) => customerId) };

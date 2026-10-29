@@ -96,6 +96,7 @@ describe("a subscription's statement", () => {
       id: exams.id,
       customerId: sara.id,
       packageId: null,
+      publishedPeriod: null,
       renewalOfId: null,
       name: 'امتحانات',
       startsOn: '2026-10-03',

@@ -282,6 +282,30 @@ describe('a subscription', () => {
       createSubscription(await createCustomer(branch.id), { idempotencyKey: key }),
     ).resolves.toMatchObject({ idempotencyKey: key });
   });
+
+  it('keeps the period of the published price it was sold from: a week or a month, never with a package', async () => {
+    const space = await createSpace();
+    const customer = await createCustomer(space.id);
+    const monthly = await prisma.package.create({
+      data: {
+        spaceId: space.id,
+        name: 'شهري',
+        validityDays: 30,
+        billing: 'FIXED',
+        priceAgorot: 30_000,
+      },
+    });
+
+    await expect(createSubscription(customer, { publishedPeriod: 'MONTH' })).resolves.toMatchObject(
+      { publishedPeriod: 'MONTH' },
+    );
+    await expect(createSubscription(customer, { publishedPeriod: 'DAY' })).rejects.toThrow(
+      /subscriptions_published_period_check/,
+    );
+    await expect(
+      createSubscription(customer, { packageId: monthly.id, publishedPeriod: 'WEEK' }),
+    ).rejects.toThrow(/subscriptions_published_period_check/);
+  });
 });
 
 describe('a package', () => {
