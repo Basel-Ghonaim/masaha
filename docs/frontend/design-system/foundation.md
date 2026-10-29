@@ -370,7 +370,7 @@ Grouped by category (§3). The theme and language toggles (`actions`) have no ro
 | Component | Source | Notes / variants |
 |---|---|---|
 | Button | shadcn | primary, secondary, outline, ghost, destructive, link · sizes sm/md/lg/icon · loading state · `aria-disabled` (waiting, kept in the focus order) looks disabled |
-| DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side |
+| DropdownMenu | shadcn | Row actions, account menu · a `destructive` item variant; checkbox and radio items; a submenu toward the end side · a `held` item, for an action that cannot be taken now: `aria-disabled` and drawn disabled, its reason inside the item's text, and selecting it does nothing; unlike `disabled`, which Radix skips in the arrow keys and typeahead, it stays reachable, so its reason is read (§10; [finding 105](../../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md)) |
 
 ### `fields`
 
