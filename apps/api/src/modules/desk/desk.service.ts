@@ -415,9 +415,11 @@ export function createDeskService({
   return {
     /**
      * Checks a visitor in, in one transaction: the space's lock and `can()`; the visit this key
-     * already made, for a retry; else the visit, with the rates of its audience and shift as they
-     * are now. Answers it with what the check-in warns of now (a retry counts the visit present),
-     * which never refuses it.
+     * already made, for a retry; else, for a customer named (`customerId`), that customer of the
+     * space (`invalid_choice` on `customerId` otherwise), not archived (`CUSTOMER_ARCHIVED`), not
+     * present by an open check-in or visit (`MEMBER_ALREADY_CHECKED_IN`); then the visit, the
+     * customer's when named, with the rates of its audience and shift as they are now. Answers it
+     * with what the check-in warns of now (a retry counts the visit present), which never refuses it.
      */
     checkInVisit(
       actor: Actor,
@@ -429,21 +431,31 @@ export function createDeskService({
         await lockAtDesk(actor, space, tx);
         const checkedInAt = now();
         const warnings = await occupancy.checkInWarnings(space.id, checkedInAt, tx);
-        const visit =
-          (await visits.findByKey(space.id, key, tx)) ??
-          (await visits.create(
-            actor.id,
-            {
-              spaceId: space.id,
-              key,
-              visitorName: request.visitorName,
-              audience: request.audience,
-              shiftId: request.shiftId ?? null,
-              rates: await visits.ratesAt(space.id, request, tx),
-              checkedInAt,
-            },
-            tx,
-          ));
+        const made = await visits.findByKey(space.id, key, tx);
+        if (made) return { visit: made, warnings };
+        const customerId = request.customerId ?? null;
+        if (customerId !== null) {
+          const customer = await customers.findIn(space.id, customerId, tx);
+          if (!customer) throw AppError.validation({ customerId: ['invalid_choice'] });
+          if (customer.archivedAt) throw AppError.conflict('CUSTOMER_ARCHIVED');
+          if (await occupancy.isPresent(space.id, customerId, tx)) {
+            throw AppError.conflict('MEMBER_ALREADY_CHECKED_IN');
+          }
+        }
+        const visit = await visits.create(
+          actor.id,
+          {
+            spaceId: space.id,
+            key,
+            visitorName: request.visitorName,
+            audience: request.audience,
+            shiftId: request.shiftId ?? null,
+            rates: await visits.ratesAt(space.id, request, tx),
+            checkedInAt,
+            customerId,
+          },
+          tx,
+        );
         return { visit, warnings };
       });
     },

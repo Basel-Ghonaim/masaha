@@ -573,9 +573,10 @@ VisitTerms = {
 ```
 
 #### `POST /manage/spaces/:spaceId/visits` · 🧾 · `Idempotency-Key`
-- **Body:** `{ visitorName, audience?, shiftId? }`.
-- **201:** `DeskVisit`, open, with `meta: { warnings }` when there are some; a retry with the same key answers the same visit, 201, and writes nothing.
-- **Errors:** `validation` (422): on `idempotencyKey` (§1); on the body, before anything is read; `invalid_choice` on `audience` for `STUDENT` where the space turns student prices off; `invalid_choice` on `shiftId` for a shift that is not the space's, writing nothing; `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+- **Body:** `{ visitorName, audience?, shiftId?, customerId? }`. `customerId`, a positive id, names the space's customer the visit is for («تسجيل كزيارة»); the desk sends the customer's name as `visitorName`, still required (2026-10-29, #132).
+- **201:** `DeskVisit`, open, with `meta: { warnings }` when there are some; with `customerId`, its `customer` is that customer, kept at its check-out; a retry with the same key answers the same visit, 201, and writes nothing.
+- **Errors:** `validation` (422): on `idempotencyKey` (§1); on the body, before anything is read; `invalid_choice` on `audience` for `STUDENT` where the space turns student prices off; `invalid_choice` on `shiftId` for a shift that is not the space's, writing nothing; `invalid_choice` on `customerId` for a customer that is not the space's; `conflict` (409) `CUSTOMER_ARCHIVED` for an archived customer, `MEMBER_ALREADY_CHECKED_IN` for a customer present, by an open check-in or an open visit, each writing nothing; `forbidden` (403) for an owner or reception whose link ended meanwhile; `not_found` (404), also for a space deleted meanwhile.
+- **Audit:** `visit.checkedIn` (`after`: `{ visitorName, audience, shiftId, hourRateAgorot, dayRateAgorot, customerId? }`, `customerId` only for a customer's visit).
 
 #### `POST /manage/spaces/:spaceId/check-ins` · 🧾 · `Idempotency-Key`
 A subscriber's check-in (the owner's decision 9), 2026-10-22, #109.

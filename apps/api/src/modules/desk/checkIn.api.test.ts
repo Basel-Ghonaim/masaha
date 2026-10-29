@@ -329,4 +329,68 @@ describe('checking a visitor in', () => {
     const [stored] = await storedVisits();
     expect(stored?.checkedInAt).toEqual(sunday('08:17'));
   });
+
+  it("a visit checked in with customerId is that customer's, audited with it", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara', phone: '+970599000205' });
+
+    const response = await checkIn(reception, { visitorName: 'Sara', customerId: sara.id });
+    expect(response.status).toBe(201);
+    const { id } = dataOf(response) as { id: number };
+    expect(dataOf(response)).toMatchObject({
+      visitorName: 'Sara',
+      customer: { id: sara.id, name: 'Sara', phone: '+970599000205' },
+    });
+    expect((await prisma.visit.findUniqueOrThrow({ where: { id } })).customerId).toBe(sara.id);
+    expect(await auditEntries()).toMatchObject([
+      {
+        action: 'visit.checkedIn',
+        entityId: id,
+        after: { visitorName: 'Sara', customerId: sara.id },
+      },
+    ]);
+  });
+
+  it("refuses another space's customer, or an unknown one, with 422 invalid_choice on customerId, writing nothing", async () => {
+    const theirs = await createCustomer(otherSpaceId, { name: 'Huda' });
+
+    for (const customerId of [theirs.id, 999_999]) {
+      const response = await checkIn(owner, { visitorName: 'Huda', customerId });
+      expect(response.status).toBe(422);
+      expect(errorOf(response).errors).toEqual({ customerId: ['invalid_choice'] });
+    }
+    expect(await storedVisits()).toEqual([]);
+  });
+
+  it("an archived customer's visit check-in is refused CUSTOMER_ARCHIVED, writing nothing", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara', archivedAt: new Date() });
+
+    const response = await checkIn(owner, { visitorName: 'Sara', customerId: sara.id });
+    expect(response.status).toBe(409);
+    expect(errorOf(response)).toMatchObject({ type: 'conflict', code: 'CUSTOMER_ARCHIVED' });
+    expect(await storedVisits()).toEqual([]);
+  });
+
+  it("a present customer's visit check-in is refused MEMBER_ALREADY_CHECKED_IN: an open visit or check-in", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara' });
+    await prisma.visit.create({
+      data: { spaceId, idempotencyKey: randomUUID(), visitorName: 'Sara', customerId: sara.id },
+    });
+    const omar = await createCustomer(spaceId, { name: 'Omar' });
+    const omars = await createSubscription(omar);
+    await prisma.checkIn.create({
+      data: {
+        spaceId,
+        customerId: omar.id,
+        subscriptionId: omars.id,
+        idempotencyKey: randomUUID(),
+      },
+    });
+
+    for (const { id, name } of [sara, omar]) {
+      const response = await checkIn(owner, { visitorName: name, customerId: id });
+      expect(response.status).toBe(409);
+      expect(errorOf(response)).toMatchObject({ code: 'MEMBER_ALREADY_CHECKED_IN' });
+    }
+    expect(await storedVisits()).toHaveLength(1);
+  });
 });

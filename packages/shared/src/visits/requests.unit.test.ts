@@ -34,6 +34,20 @@ describe('a check-in by name', () => {
       shiftId: ['invalid_format'],
     });
   });
+
+  it('takes the customer it is for, a positive id, or none', () => {
+    expect(checkInVisitSchema.parse({ visitorName: 'Sara', customerId: 7 })).toEqual({
+      visitorName: 'Sara',
+      audience: 'GENERAL',
+      customerId: 7,
+    });
+    expect(errorsOf({ visitorName: 'Sara', customerId: 0 })).toEqual({
+      customerId: ['out_of_range'],
+    });
+    expect(errorsOf({ visitorName: 'Sara', customerId: '7' })).toEqual({
+      customerId: ['invalid_format'],
+    });
+  });
 });
 
 describe("a visit's price typed by hand", () => {

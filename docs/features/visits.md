@@ -44,7 +44,7 @@
 
 **The rates.** From the space's standard prices (no custom label), for the hour and the day apart: in the visit's shift, the audience's price, else the general one; a shift with no price of that period falls back to the prices with no shift, the same way; a visit with no shift takes only the prices with no shift. A student visit is refused where the space turns student prices off. The rates are copied onto the visit; a later price change never touches it.
 
-**The check-in.** In the desk's transaction: the rates, then the visit, open, with the clock's time, then its audit entry. A shift the foreign key cannot find in the space, another space's included, is refused on `shiftId`, and the transaction writes nothing.
+**The check-in.** In the desk's transaction: the rates, then the visit, open, with the clock's time, then its audit entry. A shift the foreign key cannot find in the space, another space's included, is refused on `shiftId`, and the transaction writes nothing. A visit may name the space's customer it is for (`customerId`): the desk checks, under the space's lock, that the customer is the space's, not archived and not present, and the visit is created with its customer, whom its check-out keeps (2026-10-29, #132).
 
 **The charge.** For the stay from the check-in to the check-out's time: its whole minutes, at least one, rounded by the space's rule in force, times the hour rate copied at check-in, capped at the day rate when the cap is on; with no hour rate, the day rate; with neither, none ([data model](../architecture/data-model.md#front-desk-and-money)).
 
@@ -67,7 +67,8 @@
 - **A shift without a price of a period falls back to the space's price of that period with no shift, as a student price falls back to the general one.** *Why:* a space that prices only some periods by shift still charges the others (the owner's answer, §13 Q4 of the desk's plan). 2026-10-20, #95.
 - **Only the standard prices count for a visit, never one with a custom label.** *Why:* a label names something other than a stay (a hall, an event), which the desk does not check in. 2026-10-20, #95.
 - **The rates are read from the space's prices in the check-in's transaction, and copied.** *Why:* the charge at check-out uses the rates the visitor was told at the door ([data model](../architecture/data-model.md#front-desk-and-money)). 2026-10-20, #95.
-- **Audited `visit.checkedIn`, with the name, the audience, the shift and the rates copied.** 2026-10-20, #95.
+- **Audited `visit.checkedIn`, with the name, the audience, the shift and the rates copied.** 2026-10-20, #95. With the customer's id for a customer's visit. 2026-10-29, #132.
+- **A customer's visit is checked in by its customer's id, and refused like a subscriber's: archived, or present.** *Why:* the desk's «تسجيل كزيارة» knows the customer, and one person is present once (the owner's 160). 2026-10-29, #132.
 - **The rounding's details: whole minutes, at least one unit; "more than N minutes", not "N or more"; a quarter hour rounds up to the half; agorot half up.** *Why:* the prototype's rule, made exact so every stay has one charge (the owner's answer, §13 Q3 of the desk's plan). 2026-10-20, #95.
 - **The rates are the visit's, copied at check-in; the rounding and the cap are the space's at check-out.** *Why:* a change applies from then on ([data model](../architecture/data-model.md#front-desk-and-money)). 2026-10-20, #95.
 - **The quote is answered with the visit, and its `at` is the time the check-out charges.** *Why:* the desk shows a price and charges exactly that price (desk › the check-out's quote time). 2026-10-20, #95.
@@ -94,3 +95,4 @@
 - #100 — a stay closed by its day's end, and one that cannot be closed logged without halting the job; a visit's write-off, its columns and `writeOff` on every visit answered; a closed visit left to a customer (`leaveTo`).
 - #102 — the auto check-out counts the visits it could not close (`failed`), and fails only when it cannot run; a stay's charge never past its due time, at the check-out, in the quote and in the charges so far (`stayEndAt`); visits by id as the desk sees them (`deskVisitsOf`), and the auto-closed readers gone (finding 113).
 - #131 — a space's visits by the Gaza day of their check-in (`GET …/visits`).
+- #132 — a visit's check-in may name its customer (`customerId`, finding 160's API half).

@@ -174,6 +174,7 @@ export function createVisitsService({
             shiftId: visit.shiftId,
             hourRateAgorot: visit.rates.hourAgorot,
             dayRateAgorot: visit.rates.dayAgorot,
+            ...(visit.customerId !== null && { customerId: visit.customerId }),
           },
         },
         tx,
