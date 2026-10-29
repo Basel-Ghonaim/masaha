@@ -189,18 +189,21 @@ export function createDataReportsService({
     },
 
     /**
-     * A page of every report, newest first, by status, field and space, as the admin reads them:
-     * with who reported and who decided; a soft-deleted space's left out. Read without a lock.
+     * A page of every report, newest first, by status, field, space and who handles it (the
+     * verified spaces read only then), as the admin reads them: with who reported and who decided;
+     * a soft-deleted space's left out. Read without a lock.
      */
     async all({
       status,
       field,
       spaceId,
+      handledBy,
       page,
       limit,
     }: AdminReportsQuery): Promise<{ rows: AdminReport[]; total: number }> {
+      const verifiedIds = handledBy ? await spaceLinks.verifiedSpaceIds() : [];
       const { rows, total } = await repository.pageAll(
-        { status, field, spaceId },
+        { status, field, spaceId, handledBy, verifiedIds },
         { skip: toSkip({ page, limit }), take: limit },
       );
       return { rows: await asAdminReports(rows), total };

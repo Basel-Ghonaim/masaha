@@ -854,7 +854,7 @@ AdminReport = SpaceReport & {
 - **Errors**, each writing nothing: `forbidden` (403) for reception, before the body is read; `validation` (422) on the body; `not_found` (404) for a report that is not the space's; `forbidden` (403) for an owner whose link ended while the decision waited; `conflict` (409) `REPORT_ALREADY_DECIDED`. Built 2026-10-25, #120.
 
 #### `GET /admin/data-reports` · 🛡
-- **Query:** `status` (`OPEN` or `DECIDED`), `field`, `spaceId` (a positive id) and §4's `page` and `limit`, each optional; `invalid_choice` or `validation` otherwise.
+- **Query:** `status` (`OPEN` or `DECIDED`), `field`, `spaceId` (a positive id), `handledBy` (`ADMIN` or `OWNER`) and §4's `page` and `limit`, each optional; `invalid_choice` or `validation` otherwise. `handledBy` keeps the reports of the spaces each decides: `ADMIN` an unverified space's, `OWNER` a verified one's, verified now, as `space.verified` says (2026-10-29, #131).
 - **200:** `AdminReport[]`, every space's, newest first, then id, with §4's `meta`: who reported and who decided, by name, and whether the space is verified now. A soft-deleted space's reports are left out ([ADR 0007](../architecture/decisions/0007-soft-delete.md)). Built 2026-10-25, #120.
 
 #### `PATCH /admin/data-reports/:reportId` · 🛡

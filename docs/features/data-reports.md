@@ -1,6 +1,6 @@
 # Data reports
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The `data-reports` capability: a signed-in user tells Masaha that one field group of a listed space's page is wrong. Its endpoints are owned by the [API contract](../api/api-contract.md#data-reports); its entity by the [data model](../architecture/data-model.md#operations). The API is built; on the web, the owner's and the admin's «بلاغات البيانات», a signed-in user's «بلاغاتي» and the report from a space's page.
 > **Scope:** the API module `data-reports` (L3); `@masaha/shared/data-reports`; the web feature `features/data-reports`, any page group: the owner's list of a space's reports, the admin's list of every space's, and the decision sheet; the user's own reports, and the report's button and dialog a space's page sets.
 
@@ -40,7 +40,7 @@
 
 **The owner's list.** A page of the space's rows, newest first, by status and field, and its count. The repository's select names no reporter column, so no mapper can show one.
 
-**The admin's list.** A page of every report whose space is not deleted, newest first, by status, field and space, with who reported and who decided; then the spaces' names, the verified spaces' ids and the people's names, one query each.
+**The admin's list.** A page of every report whose space is not deleted, newest first, by status, field, space and who handles it (`handledBy`: the verified spaces' ids read first, only for that filter), with who reported and who decided; then the spaces' names, the verified spaces' ids and the people's names, one query each.
 
 **Decide.** The report's space, read without a lock, must be the path's (else `not_found`). Then, in one transaction: the space's lock; `can('dataReports.resolve')` on the links read under it, so a link ended meanwhile decides; the report's row, locked (`FOR UPDATE`); `decisionOf` (pure): an open report is decided; one decided with the same status, reply and decider is answered as it is, writing nothing; any other decision is `REPORT_ALREADY_DECIDED`. The decision writes its status, who, when, the reply and the side (`OWNER`) together, audited. The admin's decision is the same, with any space's report, the links read through `space-links` under the lock (so the admin decides an unverified space's only, and an owner linked meanwhile makes it `forbidden`), and the side `ADMIN`. The owner and the admin at once: both wait on the space's lock, and the links are read under it before the report is. An owner's decision while the admin's waits makes the admin's `forbidden` (403) while the owner is still linked, and `REPORT_ALREADY_DECIDED` once the space is unverified again; the admin's decision first makes the owner's `REPORT_ALREADY_DECIDED`. Lock order: the space's row, then the report's; a report's create takes the user's row only, so no two orders cross.
 
@@ -64,6 +64,7 @@
 - **A decided report is final: `REPORT_ALREADY_DECIDED`** (decision 11); **the same decision again answers it as it is** (S8). *Why:* a reporter must not see the reply change; updates are idempotent by design, so a retry after a lost answer is no refusal ([conventions §13](../backend/conventions.md#13-idempotency-and-concurrency)). 2026-10-25, #120.
 - **The owner never sees who reported; the admin does** (O12). *Why:* a reporter must not fear the space; the admin, who answers for the platform, sees them. The repository's select leaves the reporter out, so no mapper can leak them. 2026-10-25, #120.
 - **The admin decides an unverified space's reports only, read under the space's lock** (`can()` with "verified", [conventions § `data-reports`](../backend/conventions.md#data-reports)). *Why:* once an owner joins, the space answers for itself; an owner linked while the admin's decision waits must win. 2026-10-25, #120.
+- **Who handles a report is the admin's filter `handledBy`, by the spaces verified now** (`ADMIN` an unverified space's, `OWNER` a verified one's), one condition (`handledByWhere`) on the verified spaces' ids `space-links` answers. *Why:* «يعالجه» is the space's verification now, as `space.verified` says, so the filter and the column agree ([finding 167](../architecture/findings/167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md)). 2026-10-29, #131.
 - **"Publicly listed" is asked of `spaces` and `lookups` as the space's page asks it** (S12). *Why:* the rule already lives in two queries; a third copy would drift. 2026-10-25, #120.
 
 ### Web decisions
@@ -79,7 +80,7 @@
 - **A chip that matches nothing offers «عرض الكل»** (DI-42), apart from the list that has no report at all. 2026-10-28, #129.
 - **The admin's chips are the owner's; the space and the field are fields** (DI-32, P5): the same «الكل · جديدة · تمت المراجعة»; the space a search on the server, the field a select. 2026-10-28, #129.
 - **A verified space's report is read-only for the admin, not a dead end** (DI-38): its notice says the owner decides it, with «عرض المساحة» to the space's editor. *Why:* the server refuses the admin's decision there (`can()` with "verified"). 2026-10-28, #129.
-- **«يعالجه» per row, from the space's verification now** (DI-39): «الإدارة» or «المالك»; no filter of it, which the API cannot serve ([finding 167](../architecture/findings/167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md)). 2026-10-28, #129.
+- **«يعالجه» per row, from the space's verification now** (DI-39): «الإدارة» or «المالك»; no filter of it on the screen; the API serves one, `handledBy`, since 2026-10-29, #131 ([finding 167](../architecture/findings/167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md)). 2026-10-28, #129.
 - **The filters in force are shown as removable tags at every width** (DI-40): a `?space=` link and the phone's sheet would otherwise hide them; `FilterTag` from the layer (finding 8). 2026-10-28, #129.
 - **The admin's list stays cards until 1024 px** (DI-43, A7): eight columns need the width; `cardsBelow="lg"`. 2026-10-28, #129.
 - **The decision is sent once, with no key** (S4): the same decision again answers the report as it is, so a lost answer is retried from the sheet. 2026-10-28, #129.
@@ -102,7 +103,6 @@
 
 ## Open findings
 
-- [167. The admin's reports cannot be filtered by who handles them](../architecture/findings/167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md) — no `verified` parameter on `GET /admin/data-reports`; «يعالجه» per row only.
 - [168. A guest's intent does not survive a password recovery](../architecture/findings/168-a-guests-intent-does-not-survive-a-password-recovery.md) — the report held for a guest is lost by a reload or a recovery by email.
 - [180. A site page's chunk reaches the table's and the calendar's libraries](../architecture/findings/180-a-site-pages-chunk-reaches-the-tables-and-the-calendars-libraries.md) — the space page's and «بلاغاتي»'s chunks reach the table through this capability's entry
 - [184. A report's «تعديل الحقل» may not scroll to its section](../architecture/findings/184-a-reports-edit-the-field-link-may-not-scroll-to-its-section.md) — the editor does not scroll to the address's anchor once its cards have drawn.
@@ -112,6 +112,7 @@
 ### API history
 
 - 2026-10-25, #120 — a signed-in user's report of a listed space, 10 an hour, a repeat answering the open one; the user's own reports with the replies; the owner's and the admin's lists and decisions.
+- 2026-10-29, #131 — the admin's list filtered by who handles a report (`handledBy`).
 
 ### Web history
 

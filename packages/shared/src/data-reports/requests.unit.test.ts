@@ -72,4 +72,14 @@ describe('adminReportsQuerySchema', () => {
     expect(adminReportsQuerySchema.safeParse({ status: 'RESOLVED' }).success).toBe(false);
     expect(adminReportsQuerySchema.safeParse({ spaceId: '0' }).success).toBe(false);
   });
+
+  it('filters by who handles a report, the admin or the owner', () => {
+    expect(adminReportsQuerySchema.parse({ handledBy: 'OWNER' })).toEqual({
+      handledBy: 'OWNER',
+      page: 1,
+      limit: 20,
+    });
+    expect(adminReportsQuerySchema.safeParse({ handledBy: 'ADMIN' }).success).toBe(true);
+    expect(adminReportsQuerySchema.safeParse({ handledBy: 'owner' }).success).toBe(false);
+  });
 });
