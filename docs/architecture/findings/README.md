@@ -75,7 +75,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [166. The ledger's staff filter cannot name a space's other owners](166-the-ledgers-staff-filter-cannot-name-a-spaces-other-owners.md)
 - [167. The admin's reports cannot be filtered by who handles them](167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md)
 - [168. A guest's intent does not survive a password recovery](168-a-guests-intent-does-not-survive-a-password-recovery.md)
-- [170. A request's renewal racing a rotation can be lost on the newest row](170-a-requests-renewal-racing-a-rotation-can-be-lost-on-the-newest-row.md)
 - [171. A published price changed between the desk's read and the subscribe is charged silently](171-a-published-price-changed-between-the-desks-read-and-the-subscribe-is-charged-silently.md)
 - [172. The write-off's reason is not focused first](172-the-write-offs-reason-is-not-focused-first.md)
 - [180. A site page's chunk reaches the table's and the calendar's libraries](180-a-site-pages-chunk-reaches-the-tables-and-the-calendars-libraries.md)
@@ -153,4 +152,5 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [151. A renewal sold before a closure's extension stays where it is](151-a-renewal-sold-before-a-closures-extension-stays-where-it-is.md)
 - [153. The seed stores the contact's WhatsApp in a form the phone rule does not](153-the-seed-stores-the-contacts-whatsapp-in-a-form-the-phone-rule-does-not.md)
 - [169. The calendar rides in the site's first download](169-the-calendar-rides-in-the-sites-first-download.md)
+- [170. A request's renewal racing a rotation can be lost on the newest row](170-a-requests-renewal-racing-a-rotation-can-be-lost-on-the-newest-row.md)
 - [173. The layer's range calendar ends a range on its first click](173-the-layers-range-calendar-ends-a-range-on-its-first-click.md)

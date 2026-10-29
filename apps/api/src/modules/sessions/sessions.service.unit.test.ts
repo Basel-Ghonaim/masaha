@@ -19,6 +19,7 @@ function fakeRepository(stored: StoredRefreshToken | null, { rotates = true } = 
   const created: { expiresAt: Date; familyId?: number }[] = [];
   const repository = {
     findRefreshToken: () => Promise.resolve(stored),
+    familyActivity: () => Promise.resolve(stored?.lastActivityAt),
     createRefreshToken: (token: { expiresAt: Date; familyId?: number }) => {
       created.push(token);
       return Promise.resolve({ ...stored, id: 2, familyId: token.familyId ?? 2 });
