@@ -15,9 +15,12 @@ const RULES = adminSpacesQuerySchema.shape;
 
 /**
  * The statuses this list offers, the contract's own: the soft-deleted spaces, which `status=deleted`
- * lists alone, are a choice of it like any other.
+ * lists alone, are a choice of it like any other. `editable` is read from the address, as the
+ * server reads it, but not yet offered: its words come with the list's own change (D6.4).
  */
-export const LIST_STATUSES = SPACE_STATUSES;
+export const LIST_STATUSES = SPACE_STATUSES.filter(
+  (status): status is Exclude<SpaceStatus, 'editable'> => status !== 'editable',
+);
 
 export type ListStatus = SpaceStatus;
 
