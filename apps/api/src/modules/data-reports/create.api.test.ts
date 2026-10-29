@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createTestApp } from '../../../test/app.ts';
 import { dataOf, errorOf, signIn } from '../../../test/admin.ts';
-import { lockUsers, waitingOnLock } from '../../../test/locks.ts';
+import { lockUsers, waitingOnLock, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { createArea, createPublicSpace, seedSettings } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -97,27 +97,33 @@ describe('POST /spaces/:slug/reports', () => {
     expect(await storedReports()).toHaveLength(3);
   });
 
-  it('two identical reports at once make one', async () => {
-    let both: Promise<request.Response[]> | undefined;
-    await prisma.$transaction(
-      async (tx) => {
-        // The user's row held, as another of their reports would hold it: both wait on it.
-        await lockUsers(tx, user.id);
-        both = Promise.all([
-          report(user, { field: 'CONTACT' }),
-          report(user, { field: 'CONTACT' }),
-        ]);
-        await waitingOnLock({ count: 2 });
-      },
-      { timeout: 10_000 },
-    );
-    if (!both) throw new Error('The requests never started');
-    const answers = await both;
+  it(
+    'two identical reports at once make one',
+    async () => {
+      let both: Promise<request.Response[]> | undefined;
+      await prisma.$transaction(
+        async (tx) => {
+          // The user's row held, as another of their reports would hold it: both wait on it.
+          await lockUsers(tx, user.id);
+          both = Promise.all([
+            report(user, { field: 'CONTACT' }),
+            report(user, { field: 'CONTACT' }),
+          ]);
+          await waitingOnLock({ count: 2, on: 'users' });
+        },
+        { timeout: 10_000 },
+      );
+      if (!both) throw new Error('The requests never started');
+      const answers = await both;
 
-    expect(answers.map(({ status }) => status).sort()).toEqual([200, 201]);
-    expect(dataOf(answers[0] as request.Response)).toEqual(dataOf(answers[1] as request.Response));
-    expect(await storedReports()).toHaveLength(1);
-  });
+      expect(answers.map(({ status }) => status).sort()).toEqual([200, 201]);
+      expect(dataOf(answers[0] as request.Response)).toEqual(
+        dataOf(answers[1] as request.Response),
+      );
+      expect(await storedReports()).toHaveLength(1);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('the 11th report within the hour is 429 with Retry-After, repeats and invalid bodies counted; another user at the same address is not', async () => {
     expect((await report(user, { field: 'PRICES' })).status).toBe(201);

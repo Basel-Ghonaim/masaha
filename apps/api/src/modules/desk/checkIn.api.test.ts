@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createCustomer, createSpace, createSubscription } from '../../../test/factories.ts';
-import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
+import { waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { addPrice, setWeek, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -196,24 +196,28 @@ describe('checking a visitor in', () => {
     expect((await auditEntries()).map(({ action }) => action)).toEqual(['visit.checkedIn']);
   });
 
-  it('two requests with one key at once make one visit', async () => {
-    const key = randomUUID();
-    const pending: Promise<request.Response>[] = [];
-    // Both wait on the space's lock, so the second reads what the first committed.
-    await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
-      pending.push(
-        Promise.resolve(checkIn(owner, { visitorName: 'Omar' }, key)),
-        Promise.resolve(checkIn(reception, { visitorName: 'Omar' }, key)),
-      );
-      await waitingOnLock({ count: 2 });
-    });
+  it(
+    'two requests with one key at once make one visit',
+    async () => {
+      const key = randomUUID();
+      const pending: Promise<request.Response>[] = [];
+      // Both wait on the space's lock, so the second reads what the first committed.
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`;
+        pending.push(
+          Promise.resolve(checkIn(owner, { visitorName: 'Omar' }, key)),
+          Promise.resolve(checkIn(reception, { visitorName: 'Omar' }, key)),
+        );
+        await waitingOnLock({ count: 2, on: 'spaces' });
+      });
 
-    const [first, second] = await Promise.all(pending);
-    expect([first?.status, second?.status]).toEqual([201, 201]);
-    expect(dataOf(second as request.Response)).toEqual(dataOf(first as request.Response));
-    expect(await storedVisits()).toHaveLength(1);
-  });
+      const [first, second] = await Promise.all(pending);
+      expect([first?.status, second?.status]).toEqual([201, 201]);
+      expect(dataOf(second as request.Response)).toEqual(dataOf(first as request.Response));
+      expect(await storedVisits()).toHaveLength(1);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('a missing or malformed Idempotency-Key is refused with 422 before the body is read', async () => {
     const missing = await checkIn(owner, {}, null);
@@ -296,21 +300,26 @@ describe('checking a visitor in', () => {
     });
   });
 
-  it("a reception link deactivated while the check-in waits on the space's lock refuses it with 403", async () => {
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => checkIn(reception, { visitorName: 'Omar' }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: reception.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+  it(
+    "a reception link deactivated while the check-in waits on the space's lock refuses it with 403",
+    async () => {
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => checkIn(reception, { visitorName: 'Omar' }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: reception.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(errorOf(response).type).toBe('forbidden');
-    expect(await storedVisits()).toEqual([]);
-  });
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+      expect(await storedVisits()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it("checkedInAt is the clock's", async () => {
     const early = createTestApp({ clock: () => sunday('08:17') });

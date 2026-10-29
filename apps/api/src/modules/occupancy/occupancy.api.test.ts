@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { setWeek, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -215,33 +215,43 @@ describe("a space's capacity", () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it('decides a write on the links under the space’s lock: an owner unlinked meanwhile is refused', async () => {
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => capacity(owner, 'put', { capacity: 40 }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+  it(
+    'decides a write on the links under the space’s lock: an owner unlinked meanwhile is refused',
+    async () => {
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => capacity(owner, 'put', { capacity: 40 }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(errorOf(response).type).toBe('forbidden');
-    expect(await storedOccupancy()).toBeNull();
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+      expect(await storedOccupancy()).toBeNull();
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('refuses a write to a space deleted while it waited for its lock, writing nothing', async () => {
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => capacity(owner, 'put', { capacity: 40 }),
-      (tx) => tx.space.update({ where: { id: spaceId }, data: { deletedAt: new Date() } }),
-    );
+  it(
+    'refuses a write to a space deleted while it waited for its lock, writing nothing',
+    async () => {
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => capacity(owner, 'put', { capacity: 40 }),
+        (tx) => tx.space.update({ where: { id: spaceId }, data: { deletedAt: new Date() } }),
+      );
 
-    expect(response.status).toBe(404);
-    expect(errorOf(response).type).toBe('not_found');
-    expect(await storedOccupancy()).toBeNull();
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(404);
+      expect(errorOf(response).type).toBe('not_found');
+      expect(await storedOccupancy()).toBeNull();
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

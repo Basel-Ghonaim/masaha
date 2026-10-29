@@ -12,7 +12,7 @@ import {
   createVisit,
   stay,
 } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -228,57 +228,67 @@ describe('renewing a subscription', () => {
     expect(await prisma.subscription.count()).toBe(2);
   });
 
-  it("two desks paying one debt: the second, while waiting, sees the first's payment and pays only what is left", async () => {
-    const visit = await owedVisit();
-    const older = await existing({ priceAgorot: 5_000 });
+  it(
+    "two desks paying one debt: the second, while waiting, sees the first's payment and pays only what is left",
+    async () => {
+      const visit = await owedVisit();
+      const older = await existing({ priceAgorot: 5_000 });
 
-    const response = await whileHeld(
-      lockSpace,
-      () => subscribe(reception, { packageId, payment: cash(4_000) }),
-      (tx) =>
-        tx.payment.create({
-          data: {
-            spaceId,
-            visitId: visit.id,
-            idempotencyKey: randomUUID(),
-            recordedById: owner.id,
-            method: 'CASH',
-            amountAgorot: 1_500,
-          },
-        }),
-    );
-    expect(response.status).toBe(201);
-    expect(dataOf(response)).toMatchObject({
-      payments: [{ item: { subscriptionId: older.id }, payment: { amountAgorot: 4_000 } }],
-    });
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => subscribe(reception, { packageId, payment: cash(4_000) }),
+        (tx) =>
+          tx.payment.create({
+            data: {
+              spaceId,
+              visitId: visit.id,
+              idempotencyKey: randomUUID(),
+              recordedById: owner.id,
+              method: 'CASH',
+              amountAgorot: 1_500,
+            },
+          }),
+      );
+      expect(response.status).toBe(201);
+      expect(dataOf(response)).toMatchObject({
+        payments: [{ item: { subscriptionId: older.id }, payment: { amountAgorot: 4_000 } }],
+      });
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('a subscription is renewed once: a second renewal is SUBSCRIPTION_ALREADY_RENEWED, also one made while it waited', async () => {
-    const running = await existing();
-    expect((await subscribe(owner, { packageId, renewalOfId: running.id })).status).toBe(201);
-    const again = await subscribe(reception, { packageId, renewalOfId: running.id });
-    expect(again.status).toBe(409);
-    expect(errorOf(again).code).toBe('SUBSCRIPTION_ALREADY_RENEWED');
+  it(
+    'a subscription is renewed once: a second renewal is SUBSCRIPTION_ALREADY_RENEWED, also one made while it waited',
+    async () => {
+      const running = await existing();
+      expect((await subscribe(owner, { packageId, renewalOfId: running.id })).status).toBe(201);
+      const again = await subscribe(reception, { packageId, renewalOfId: running.id });
+      expect(again.status).toBe(409);
+      expect(errorOf(again).code).toBe('SUBSCRIPTION_ALREADY_RENEWED');
 
-    const other = await existing({ startsOn: new Date('2026-10-05') });
-    const raced = await whileHeld(
-      lockSpace,
-      () => subscribe(reception, { packageId, renewalOfId: other.id }),
-      (tx) =>
-        tx.subscription.create({
-          data: {
-            spaceId,
-            customerId,
-            idempotencyKey: randomUUID(),
-            renewalOfId: other.id,
-            name: 'شهري',
-            billing: 'FIXED',
-            priceAgorot: 30_000,
-          },
-        }),
-    );
-    expect(raced.status).toBe(409);
-    expect(errorOf(raced).code).toBe('SUBSCRIPTION_ALREADY_RENEWED');
-    expect(await prisma.subscription.count()).toBe(4);
-  });
+      const other = await existing({ startsOn: new Date('2026-10-05') });
+      const raced = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => subscribe(reception, { packageId, renewalOfId: other.id }),
+        (tx) =>
+          tx.subscription.create({
+            data: {
+              spaceId,
+              customerId,
+              idempotencyKey: randomUUID(),
+              renewalOfId: other.id,
+              name: 'شهري',
+              billing: 'FIXED',
+              priceAgorot: 30_000,
+            },
+          }),
+      );
+      expect(raced.status).toBe(409);
+      expect(errorOf(raced).code).toBe('SUBSCRIPTION_ALREADY_RENEWED');
+      expect(await prisma.subscription.count()).toBe(4);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

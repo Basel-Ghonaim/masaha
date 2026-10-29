@@ -11,7 +11,7 @@ import {
   createSpace,
   createSubscription,
 } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { setWeek, signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -187,30 +187,35 @@ describe('checking a subscriber out', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it("another space's or an unknown check-in is not_found, so is any to a stranger and the admin; a link ended while waiting is 403", async () => {
-    const theirs = await openCheckIn(otherSpaceId);
-    for (const id of [theirs.checkIn.id, 999_999]) {
-      const response = await checkOut(owner, id);
-      expect(response.status).toBe(404);
-      expect(errorOf(response).type).toBe('not_found');
-    }
-    const { checkIn } = await openCheckIn();
-    for (const caller of [stranger, admin]) {
-      expect((await checkOut(caller, checkIn.id)).status).toBe(404);
-    }
+  it(
+    "another space's or an unknown check-in is not_found, so is any to a stranger and the admin; a link ended while waiting is 403",
+    async () => {
+      const theirs = await openCheckIn(otherSpaceId);
+      for (const id of [theirs.checkIn.id, 999_999]) {
+        const response = await checkOut(owner, id);
+        expect(response.status).toBe(404);
+        expect(errorOf(response).type).toBe('not_found');
+      }
+      const { checkIn } = await openCheckIn();
+      for (const caller of [stranger, admin]) {
+        expect((await checkOut(caller, checkIn.id)).status).toBe(404);
+      }
 
-    const response = await whileHeld(
-      lockSpace,
-      () => checkOut(reception, checkIn.id),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: reception.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(response.status).toBe(403);
-    const stored = await prisma.checkIn.findUniqueOrThrow({ where: { id: checkIn.id } });
-    expect(stored.checkedOutAt).toBeNull();
-    expect(await auditEntries()).toEqual([]);
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => checkOut(reception, checkIn.id),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: reception.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(response.status).toBe(403);
+      const stored = await prisma.checkIn.findUniqueOrThrow({ where: { id: checkIn.id } });
+      expect(stored.checkedOutAt).toBeNull();
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

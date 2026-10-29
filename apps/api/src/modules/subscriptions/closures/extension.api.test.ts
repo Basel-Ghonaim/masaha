@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../../test/admin.ts';
 import { createCustomer, createSpace, createSubscription } from '../../../../test/factories.ts';
-import { waitingOnLock, whileHeld } from '../../../../test/locks.ts';
+import { waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../../test/locks.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../../test/spaces.ts';
 import { prisma } from '../../../db/index.ts';
@@ -330,106 +330,125 @@ describe('the extension', () => {
     expect(await auditEntries()).toHaveLength(1);
   });
 
-  it('two owners at once with two keys make one extension', async () => {
-    const { id } = await closure();
-    const { covered } = await subscriptionsAround();
-    let both: Promise<request.Response[]> | undefined;
-    await prisma.$transaction(
-      async (tx) => {
-        await lockSpace(tx);
-        both = Promise.all([extend(owner, id), extend(owner, id)]);
-        await waitingOnLock({ count: 2 });
-      },
-      { timeout: 10_000 },
-    );
-    if (!both) throw new Error('The requests never started');
-    const answers = await both;
+  it(
+    'two owners at once with two keys make one extension',
+    async () => {
+      const { id } = await closure();
+      const { covered } = await subscriptionsAround();
+      let both: Promise<request.Response[]> | undefined;
+      await prisma.$transaction(
+        async (tx) => {
+          await lockSpace(tx);
+          both = Promise.all([extend(owner, id), extend(owner, id)]);
+          await waitingOnLock({ count: 2, on: 'spaces' });
+        },
+        { timeout: 10_000 },
+      );
+      if (!both) throw new Error('The requests never started');
+      const answers = await both;
 
-    expect(answers.map(({ status }) => status).sort()).toEqual([201, 409]);
-    const refused = answers.find(({ status }) => status === 409);
-    expect(refused && errorOf(refused).code).toBe('CLOSURE_ALREADY_EXTENDED');
-    expect(await prisma.closureExtension.count()).toBe(1);
-    expect((await endsById()).get(covered.through.id)).toBe('2026-12-04');
-  });
+      expect(answers.map(({ status }) => status).sort()).toEqual([201, 409]);
+      const refused = answers.find(({ status }) => status === 409);
+      expect(refused && errorOf(refused).code).toBe('CLOSURE_ALREADY_EXTENDED');
+      expect(await prisma.closureExtension.count()).toBe(1);
+      expect((await endsById()).get(covered.through.id)).toBe('2026-12-04');
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('a subscription ended early, or added, while the extension waits is read as committed', async () => {
-    const { id } = await closure();
-    const { covered } = await subscriptionsAround();
-    let added = 0;
+  it(
+    'a subscription ended early, or added, while the extension waits is read as committed',
+    async () => {
+      const { id } = await closure();
+      const { covered } = await subscriptionsAround();
+      let added = 0;
 
-    const response = await whileHeld(
-      lockSpace,
-      () => extend(owner, id, { days: 4 }),
-      async (tx) => {
-        await tx.subscription.update({
-          where: { id: covered.through.id },
-          data: { endedAt: new Date('2026-11-10T09:00:00+02:00'), endedById: owner.id },
-        });
-        const customer = await tx.customer.findFirstOrThrow({ where: { spaceId } });
-        ({ id: added } = await tx.subscription.create({
-          data: {
-            spaceId,
-            customerId: customer.id,
-            idempotencyKey: randomUUID(),
-            name: 'أسبوعي',
-            billing: 'FIXED',
-            priceAgorot: 10_000,
-            startsOn: day('2026-11-10'),
-            endsOn: day('2026-11-16'),
-          },
-        }));
-      },
-    );
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => extend(owner, id, { days: 4 }),
+        async (tx) => {
+          await tx.subscription.update({
+            where: { id: covered.through.id },
+            data: { endedAt: new Date('2026-11-10T09:00:00+02:00'), endedById: owner.id },
+          });
+          const customer = await tx.customer.findFirstOrThrow({ where: { spaceId } });
+          ({ id: added } = await tx.subscription.create({
+            data: {
+              spaceId,
+              customerId: customer.id,
+              idempotencyKey: randomUUID(),
+              name: 'أسبوعي',
+              billing: 'FIXED',
+              priceAgorot: 10_000,
+              startsOn: day('2026-11-10'),
+              endsOn: day('2026-11-16'),
+            },
+          }));
+        },
+      );
 
-    expect(response.status).toBe(201);
-    expect(dataOf(response)).toMatchObject({ subscriptions: 5 });
-    const after = await endsById();
-    expect(after.get(covered.through.id)).toBe('2026-11-30');
-    expect(after.get(added)).toBe('2026-11-20');
-  });
+      expect(response.status).toBe(201);
+      expect(dataOf(response)).toMatchObject({ subscriptions: 5 });
+      const after = await endsById();
+      expect(after.get(covered.through.id)).toBe('2026-11-30');
+      expect(after.get(added)).toBe('2026-11-20');
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('a closure whose end moved earlier while the extension waits is extended on its new span', async () => {
-    const { id } = await closure();
-    const { covered } = await subscriptionsAround();
+  it(
+    'a closure whose end moved earlier while the extension waits is extended on its new span',
+    async () => {
+      const { id } = await closure();
+      const { covered } = await subscriptionsAround();
 
-    const response = await whileHeld(
-      lockSpace,
-      () => extend(owner, id, { days: 4 }),
-      // Ended at Monday's midnight: Sunday only.
-      (tx) =>
-        tx.announcement.update({
-          where: { id },
-          data: { endsAt: new Date('2026-11-09T00:00:00+02:00') },
-        }),
-    );
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => extend(owner, id, { days: 4 }),
+        // Ended at Monday's midnight: Sunday only.
+        (tx) =>
+          tx.announcement.update({
+            where: { id },
+            data: { endsAt: new Date('2026-11-09T00:00:00+02:00') },
+          }),
+      );
 
-    expect(response.status).toBe(201);
-    expect(dataOf(response)).toMatchObject({ subscriptions: 4 });
-    const after = await endsById();
-    expect(after.get(covered.startsOnLastDay.id)).toBe('2026-12-10');
-    expect(after.get(covered.endsOnFirstDay.id)).toBe('2026-11-12');
-  });
+      expect(response.status).toBe(201);
+      expect(dataOf(response)).toMatchObject({ subscriptions: 4 });
+      const after = await endsById();
+      expect(after.get(covered.startsOnLastDay.id)).toBe('2026-12-10');
+      expect(after.get(covered.endsOnFirstDay.id)).toBe('2026-11-12');
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('an owner whose link ended while waiting is refused 403', async () => {
-    const { id } = await closure();
-    await subscriptionsAround();
-    const before = await ends();
+  it(
+    'an owner whose link ended while waiting is refused 403',
+    async () => {
+      const { id } = await closure();
+      await subscriptionsAround();
+      const before = await ends();
 
-    const response = await whileHeld(
-      lockSpace,
-      () => extend(owner, id),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => extend(owner, id),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(await ends()).toEqual(before);
-    expect(await prisma.closureExtension.count()).toBe(0);
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(403);
+      expect(await ends()).toEqual(before);
+      expect(await prisma.closureExtension.count()).toBe(0);
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('the renewal chain (finding 151)', () => {
@@ -551,36 +570,41 @@ describe('the renewal chain (finding 151)', () => {
     expect(rows.find((row) => row.id === id)?.extension).toMatchObject({ subscriptions: 4 });
   });
 
-  it("a renewal sold while the extension waits on the space's lock moves too", async () => {
-    const { id } = await closure();
-    const customer = await createCustomer(spaceId);
-    const renewed = await subscribe(customer, '2026-11-01', '2026-11-30');
-    let renewal = 0;
+  it(
+    "a renewal sold while the extension waits on the space's lock moves too",
+    async () => {
+      const { id } = await closure();
+      const customer = await createCustomer(spaceId);
+      const renewed = await subscribe(customer, '2026-11-01', '2026-11-30');
+      let renewal = 0;
 
-    const response = await whileHeld(
-      lockSpace,
-      () => extend(owner, id, { days: 3 }),
-      async (tx) => {
-        ({ id: renewal } = await tx.subscription.create({
-          data: {
-            spaceId,
-            customerId: customer.id,
-            idempotencyKey: randomUUID(),
-            name: 'شهري',
-            billing: 'FIXED',
-            priceAgorot: 30_000,
-            renewalOfId: renewed.id,
-            startsOn: day('2026-12-01'),
-            endsOn: day('2026-12-30'),
-          },
-        }));
-      },
-    );
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => extend(owner, id, { days: 3 }),
+        async (tx) => {
+          ({ id: renewal } = await tx.subscription.create({
+            data: {
+              spaceId,
+              customerId: customer.id,
+              idempotencyKey: randomUUID(),
+              name: 'شهري',
+              billing: 'FIXED',
+              priceAgorot: 30_000,
+              renewalOfId: renewed.id,
+              startsOn: day('2026-12-01'),
+              endsOn: day('2026-12-30'),
+            },
+          }));
+        },
+      );
 
-    expect(response.status).toBe(201);
-    expect(dataOf(response)).toMatchObject({ subscriptions: 2 });
-    const after = await termsById();
-    expect(after.get(renewed.id)).toBe('2026-11-01 → 2026-12-03');
-    expect(after.get(renewal)).toBe('2026-12-04 → 2027-01-02');
-  });
+      expect(response.status).toBe(201);
+      expect(dataOf(response)).toMatchObject({ subscriptions: 2 });
+      const after = await termsById();
+      expect(after.get(renewed.id)).toBe('2026-11-01 → 2026-12-03');
+      expect(after.get(renewal)).toBe('2026-12-04 → 2027-01-02');
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

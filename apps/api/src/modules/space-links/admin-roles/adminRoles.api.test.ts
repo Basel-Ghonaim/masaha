@@ -9,7 +9,7 @@ import {
 } from '../../../../test/admin.ts';
 import { createAccount, createTestApp, inAWeek } from '../../../../test/app.ts';
 import { createSpace } from '../../../../test/factories.ts';
-import { lockUsers, whileHeld } from '../../../../test/locks.ts';
+import { lockUsers, whileHeld, RACE_TIMEOUT_MS } from '../../../../test/locks.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { prisma } from '../../../db/index.ts';
 import type { Role } from '../../../generated/prisma/enums.ts';
@@ -225,59 +225,74 @@ describe('PUT /admin/users/:userId/role', () => {
 });
 
 describe('PUT /admin/users/:userId/role: the races', () => {
-  it('keeps one of two admins demoting each other at once: the second is the last', async () => {
-    const other = await signIn('ADMIN', 'other-admin@example.com');
+  it(
+    'keeps one of two admins demoting each other at once: the second is the last',
+    async () => {
+      const other = await signIn('ADMIN', 'other-admin@example.com');
 
-    // The test demotes `other`, as `admin`'s request would, while `other` demotes `admin`.
-    const answer = await whileHeld(
-      (tx) => lockUsers(tx, admin.id, other.id),
-      () => changeRole(admin.id, 'USER', other),
-      (tx) => tx.user.update({ where: { id: other.id }, data: { role: 'USER' } }),
-    );
+      // The test demotes `other`, as `admin`'s request would, while `other` demotes `admin`.
+      const answer = await whileHeld(
+        'users',
+        (tx) => lockUsers(tx, admin.id, other.id),
+        () => changeRole(admin.id, 'USER', other),
+        (tx) => tx.user.update({ where: { id: other.id }, data: { role: 'USER' } }),
+      );
 
-    expect(answer.status).toBe(409);
-    expect(errorOf(answer).code).toBe('LAST_ADMIN');
-    expect(await roleOf(admin.id)).toBe('ADMIN');
-  }, 20_000);
+      expect(answer.status).toBe(409);
+      expect(errorOf(answer).code).toBe('LAST_ADMIN');
+      expect(await roleOf(admin.id)).toBe('ADMIN');
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('refuses a promotion that waited on a link to the person', async () => {
-    const person = await createAccount();
-    const space = await createSpace();
+  it(
+    'refuses a promotion that waited on a link to the person',
+    async () => {
+      const person = await createAccount();
+      const space = await createSpace();
 
-    // The test links the person as an owner, as a link change holding their lock would.
-    const answer = await whileHeld(
-      (tx) => lockUsers(tx, person.id),
-      () => changeRole(person.id, 'ADMIN'),
-      async (tx) => {
-        await tx.spaceManager.create({
-          data: { spaceId: space.id, userId: person.id, role: 'OWNER' },
-        });
-        await tx.user.update({ where: { id: person.id }, data: { role: 'OWNER' } });
-      },
-    );
+      // The test links the person as an owner, as a link change holding their lock would.
+      const answer = await whileHeld(
+        'users',
+        (tx) => lockUsers(tx, person.id),
+        () => changeRole(person.id, 'ADMIN'),
+        async (tx) => {
+          await tx.spaceManager.create({
+            data: { spaceId: space.id, userId: person.id, role: 'OWNER' },
+          });
+          await tx.user.update({ where: { id: person.id }, data: { role: 'OWNER' } });
+        },
+      );
 
-    expect(answer.status).toBe(409);
-    expect(errorOf(answer).code).toBe('ACCOUNT_HAS_LINKS');
-    expect(await roleOf(person.id)).toBe('OWNER');
-  }, 20_000);
+      expect(answer.status).toBe(409);
+      expect(errorOf(answer).code).toBe('ACCOUNT_HAS_LINKS');
+      expect(await roleOf(person.id)).toBe('OWNER');
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('refuses a link that waited on the person’s promotion', async () => {
-    const person = await createAccount();
-    const space = await createSpace();
+  it(
+    'refuses a link that waited on the person’s promotion',
+    async () => {
+      const person = await createAccount();
+      const space = await createSpace();
 
-    // The test makes the person an admin, as a role change holding their lock would.
-    const answer = await whileHeld(
-      (tx) => lockUsers(tx, person.id),
-      () =>
-        adminRequest(app, admin, 'post', `/spaces/${String(space.id)}/owners`, {
-          userId: person.id,
-        }),
-      (tx) => tx.user.update({ where: { id: person.id }, data: { role: 'ADMIN' } }),
-    );
+      // The test makes the person an admin, as a role change holding their lock would.
+      const answer = await whileHeld(
+        'users',
+        (tx) => lockUsers(tx, person.id),
+        () =>
+          adminRequest(app, admin, 'post', `/spaces/${String(space.id)}/owners`, {
+            userId: person.id,
+          }),
+        (tx) => tx.user.update({ where: { id: person.id }, data: { role: 'ADMIN' } }),
+      );
 
-    expect(answer.status).toBe(409);
-    expect(errorOf(answer).code).toBe('ACCOUNT_IS_ADMIN');
-    expect(await roleOf(person.id)).toBe('ADMIN');
-    expect(await prisma.spaceManager.count({ where: { userId: person.id } })).toBe(0);
-  }, 20_000);
+      expect(answer.status).toBe(409);
+      expect(errorOf(answer).code).toBe('ACCOUNT_IS_ADMIN');
+      expect(await roleOf(person.id)).toBe('ADMIN');
+      expect(await prisma.spaceManager.count({ where: { userId: person.id } })).toBe(0);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

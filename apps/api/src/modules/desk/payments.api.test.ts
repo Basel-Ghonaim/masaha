@@ -12,7 +12,7 @@ import {
   createVisit,
   stay,
 } from '../../../test/factories.ts';
-import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
+import { waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -262,71 +262,92 @@ describe("receiving a visit's payment after its check-out", () => {
     expect(await paymentCount()).toBe(1);
   });
 
-  it('two requests with one key at once record one payment, both answered 201 with it', async () => {
-    const { id } = await closed(2_500);
-    const key = randomUUID();
-    const pending: Promise<request.Response>[] = [];
-    await prisma.$transaction(async (tx) => {
-      await lockSpace(tx);
-      pending.push(
-        Promise.resolve(receive(owner, cash(id, 2_500), key)),
-        Promise.resolve(receive(reception, cash(id, 2_500), key)),
+  it(
+    'two requests with one key at once record one payment, both answered 201 with it',
+    async () => {
+      const { id } = await closed(2_500);
+      const key = randomUUID();
+      const pending: Promise<request.Response>[] = [];
+      await prisma.$transaction(async (tx) => {
+        await lockSpace(tx);
+        pending.push(
+          Promise.resolve(receive(owner, cash(id, 2_500), key)),
+          Promise.resolve(receive(reception, cash(id, 2_500), key)),
+        );
+        await waitingOnLock({ count: 2, on: 'spaces' });
+      });
+
+      const answers = await Promise.all(pending);
+      expect(answers.map(({ status }) => status)).toEqual([201, 201]);
+      expect(dataOf(answers[1] as request.Response)).toEqual(
+        dataOf(answers[0] as request.Response),
       );
-      await waitingOnLock({ count: 2 });
-    });
+      expect(await paymentCount()).toBe(1);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-    const answers = await Promise.all(pending);
-    expect(answers.map(({ status }) => status)).toEqual([201, 201]);
-    expect(dataOf(answers[1] as request.Response)).toEqual(dataOf(answers[0] as request.Response));
-    expect(await paymentCount()).toBe(1);
-  });
+  it(
+    "two desks at once: the second sees the first's payment, so its rest is settled and needs no phone",
+    async () => {
+      const { id } = await closed(2_000);
 
-  it("two desks at once: the second sees the first's payment, so its rest is settled and needs no phone", async () => {
-    const { id } = await closed(2_000);
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => receive(reception, cash(id, 1_000)),
+        (tx) => paid(id, 1_000, tx),
+      );
+      expect(response.status).toBe(201);
+      expect(dataOf(response)).toMatchObject({ paidAgorot: 2_000, balanceAgorot: 0 });
+      expect(await paymentCount()).toBe(2);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-    const response = await whileHeld(
-      lockSpace,
-      () => receive(reception, cash(id, 1_000)),
-      (tx) => paid(id, 1_000, tx),
-    );
-    expect(response.status).toBe(201);
-    expect(dataOf(response)).toMatchObject({ paidAgorot: 2_000, balanceAgorot: 0 });
-    expect(await paymentCount()).toBe(2);
-  });
+  it(
+    'a payment waiting while the owner writes the visit off is refused VISIT_WRITTEN_OFF',
+    async () => {
+      const { id } = await closed(2_500);
 
-  it('a payment waiting while the owner writes the visit off is refused VISIT_WRITTEN_OFF', async () => {
-    const { id } = await closed(2_500);
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => receive(reception, cash(id, 2_500)),
+        (tx) =>
+          tx.visit.update({
+            where: { id },
+            data: { writtenOffAt: new Date(), writtenOffById: owner.id, writeOffReason: 'Left' },
+          }),
+      );
+      expect(response.status).toBe(409);
+      expect(errorOf(response).code).toBe('VISIT_WRITTEN_OFF');
+      expect(await paymentCount()).toBe(0);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-    const response = await whileHeld(
-      lockSpace,
-      () => receive(reception, cash(id, 2_500)),
-      (tx) =>
-        tx.visit.update({
-          where: { id },
-          data: { writtenOffAt: new Date(), writtenOffById: owner.id, writeOffReason: 'Left' },
-        }),
-    );
-    expect(response.status).toBe(409);
-    expect(errorOf(response).code).toBe('VISIT_WRITTEN_OFF');
-    expect(await paymentCount()).toBe(0);
-  });
+  it(
+    'a reception link ended while the payment waits is refused 403, writing nothing',
+    async () => {
+      const { id } = await closed(2_500);
 
-  it('a reception link ended while the payment waits is refused 403, writing nothing', async () => {
-    const { id } = await closed(2_500);
-
-    const response = await whileHeld(
-      lockSpace,
-      () => receive(reception, cash(id, 2_500)),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: reception.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(response.status).toBe(403);
-    expect(errorOf(response).type).toBe('forbidden');
-    expect(await paymentCount()).toBe(0);
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => receive(reception, cash(id, 2_500)),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: reception.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+      expect(await paymentCount()).toBe(0);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it("answers the owner and reception; refuses a stranger, another space's owner and the admin with not_found; a visit of another space is not_found", async () => {
     const { id } = await closed(2_500);

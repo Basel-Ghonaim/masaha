@@ -12,7 +12,7 @@ import {
 } from '../../../test/admin.ts';
 import { cookieValue, createAccount, createTestApp, PASSWORD } from '../../../test/app.ts';
 import { createSpace } from '../../../test/factories.ts';
-import { lockUsers, whileHeld } from '../../../test/locks.ts';
+import { lockUsers, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { prisma } from '../../db/index.ts';
 
@@ -211,62 +211,77 @@ describe('PUT /admin/users/:userId/suspended', () => {
 });
 
 describe('PUT /admin/users/:userId/suspended: the races', () => {
-  it('keeps one of two admins suspending each other at once: the second is the last', async () => {
-    const other = await signIn('ADMIN', 'other-admin@example.com');
+  it(
+    'keeps one of two admins suspending each other at once: the second is the last',
+    async () => {
+      const other = await signIn('ADMIN', 'other-admin@example.com');
 
-    // The test suspends `other`, as `admin`'s request would, while `other` suspends `admin`.
-    const answer = await whileHeld(
-      (tx) => lockUsers(tx, admin.id, other.id),
-      () => suspend(admin.id, true, other),
-      (tx) => tx.user.update({ where: { id: other.id }, data: { suspendedAt: new Date() } }),
-    );
+      // The test suspends `other`, as `admin`'s request would, while `other` suspends `admin`.
+      const answer = await whileHeld(
+        'users',
+        (tx) => lockUsers(tx, admin.id, other.id),
+        () => suspend(admin.id, true, other),
+        (tx) => tx.user.update({ where: { id: other.id }, data: { suspendedAt: new Date() } }),
+      );
 
-    expect(answer.status).toBe(409);
-    expect(errorOf(answer).code).toBe('LAST_ADMIN');
-    expect(await suspendedAt(admin.id)).toBeNull();
-  }, 20_000);
+      expect(answer.status).toBe(409);
+      expect(errorOf(answer).code).toBe('LAST_ADMIN');
+      expect(await suspendedAt(admin.id)).toBeNull();
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('ends a session a sign-in opened while the suspension waited for the lock', async () => {
-    const user = await createAccount();
+  it(
+    'ends a session a sign-in opened while the suspension waited for the lock',
+    async () => {
+      const user = await createAccount();
 
-    const answer = await whileHeld(
-      (tx) => lockUsers(tx, user.id),
-      () => suspend(user.id),
-      (tx) =>
-        tx.refreshToken.create({
-          data: {
-            userId: user.id,
-            familyId: 0,
-            tokenHash: 'opened-meanwhile',
-            expiresAt: new Date(Date.now() + 60_000),
-            sessionEndsAt: new Date(Date.now() + 60_000),
-          },
-        }),
-    );
+      const answer = await whileHeld(
+        'users',
+        (tx) => lockUsers(tx, user.id),
+        () => suspend(user.id),
+        (tx) =>
+          tx.refreshToken.create({
+            data: {
+              userId: user.id,
+              familyId: 0,
+              tokenHash: 'opened-meanwhile',
+              expiresAt: new Date(Date.now() + 60_000),
+              sessionEndsAt: new Date(Date.now() + 60_000),
+            },
+          }),
+      );
 
-    expect(answer.status).toBe(204);
-    expect(await tokensOf(user.id)).toBe(0);
-  }, 20_000);
+      expect(answer.status).toBe(204);
+      expect(await tokensOf(user.id)).toBe(0);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('opens no session for a password change that waited on the suspension', async () => {
-    const user = await createAccount();
-    const { accessToken } = await sessionOf();
+  it(
+    'opens no session for a password change that waited on the suspension',
+    async () => {
+      const user = await createAccount();
+      const { accessToken } = await sessionOf();
 
-    const answer = await whileHeld(
-      (tx) => lockUsers(tx, user.id),
-      () =>
-        request(app)
-          .post('/api/v1/me/password')
-          .set('Authorization', `Bearer ${accessToken}`)
-          .send({ currentPassword: PASSWORD, password: 'mine2026x' }),
-      async (tx) => {
-        await tx.user.update({ where: { id: user.id }, data: { suspendedAt: new Date() } });
-        await tx.refreshToken.deleteMany({ where: { userId: user.id } });
-      },
-    );
+      const answer = await whileHeld(
+        'users',
+        (tx) => lockUsers(tx, user.id),
+        () =>
+          request(app)
+            .post('/api/v1/me/password')
+            .set('Authorization', `Bearer ${accessToken}`)
+            .send({ currentPassword: PASSWORD, password: 'mine2026x' }),
+        async (tx) => {
+          await tx.user.update({ where: { id: user.id }, data: { suspendedAt: new Date() } });
+          await tx.refreshToken.deleteMany({ where: { userId: user.id } });
+        },
+      );
 
-    expect(answer.status).toBe(403);
-    expect(errorOf(answer).code).toBe('ACCOUNT_SUSPENDED');
-    expect(await tokensOf(user.id)).toBe(0);
-  }, 20_000);
+      expect(answer.status).toBe(403);
+      expect(errorOf(answer).code).toBe('ACCOUNT_SUSPENDED');
+      expect(await tokensOf(user.id)).toBe(0);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

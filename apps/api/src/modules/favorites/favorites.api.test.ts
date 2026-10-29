@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createTestApp } from '../../../test/app.ts';
 import { errorOf, signIn } from '../../../test/admin.ts';
-import { lockUsers, waitingOnLock } from '../../../test/locks.ts';
+import { lockUsers, waitingOnLock, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { createArea, createPublicSpace, seedSettings } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -83,23 +83,27 @@ describe('POST /me/favorites/:spaceId', () => {
     expect(await storedFavorites()).toEqual([{ userId: user.id, spaceId, createdAt: NOW }]);
   });
 
-  it('two saves at once make one, both 204', async () => {
-    let both: Promise<request.Response[]> | undefined;
-    await prisma.$transaction(
-      async (tx) => {
-        // The user's row held, as another of their saves would hold it: both wait on it.
-        await lockUsers(tx, user.id);
-        both = Promise.all([save(user), save(user)]);
-        await waitingOnLock({ count: 2 });
-      },
-      { timeout: 10_000 },
-    );
-    if (!both) throw new Error('The requests never started');
-    const answers = await both;
+  it(
+    'two saves at once make one, both 204',
+    async () => {
+      let both: Promise<request.Response[]> | undefined;
+      await prisma.$transaction(
+        async (tx) => {
+          // The user's row held, as another of their saves would hold it: both wait on it.
+          await lockUsers(tx, user.id);
+          both = Promise.all([save(user), save(user)]);
+          await waitingOnLock({ count: 2, on: 'users' });
+        },
+        { timeout: 10_000 },
+      );
+      if (!both) throw new Error('The requests never started');
+      const answers = await both;
 
-    expect(answers.map(({ status }) => status)).toEqual([204, 204]);
-    expect(await storedFavorites()).toHaveLength(1);
-  });
+      expect(answers.map(({ status }) => status)).toEqual([204, 204]);
+      expect(await storedFavorites()).toHaveLength(1);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('a hidden, deleted, unknown space, or one in an inactive area, is not saved: not_found', async () => {
     const hidden = await createPublicSpace(areaId, 'Hidden', { isHidden: true });
@@ -128,27 +132,31 @@ describe('POST /me/favorites/:spaceId', () => {
     expect(await prisma.favorite.count({ where: { userId: user.id } })).toBe(200);
   });
 
-  it('two saves of different spaces at 199 at once: one 204, one FAVORITES_LIMIT_REACHED', async () => {
-    const ids = await savedSpaces(200, 199);
-    const last = ids[199] as number;
+  it(
+    'two saves of different spaces at 199 at once: one 204, one FAVORITES_LIMIT_REACHED',
+    async () => {
+      const ids = await savedSpaces(200, 199);
+      const last = ids[199] as number;
 
-    let both: Promise<request.Response[]> | undefined;
-    await prisma.$transaction(
-      async (tx) => {
-        await lockUsers(tx, user.id);
-        both = Promise.all([save(user), save(user, last)]);
-        await waitingOnLock({ count: 2 });
-      },
-      { timeout: 10_000 },
-    );
-    if (!both) throw new Error('The requests never started');
-    const answers = await both;
+      let both: Promise<request.Response[]> | undefined;
+      await prisma.$transaction(
+        async (tx) => {
+          await lockUsers(tx, user.id);
+          both = Promise.all([save(user), save(user, last)]);
+          await waitingOnLock({ count: 2, on: 'users' });
+        },
+        { timeout: 10_000 },
+      );
+      if (!both) throw new Error('The requests never started');
+      const answers = await both;
 
-    expect(answers.map(({ status }) => status).sort()).toEqual([204, 409]);
-    const refused = answers.find(({ status }) => status === 409) as request.Response;
-    expect(errorOf(refused).code).toBe('FAVORITES_LIMIT_REACHED');
-    expect(await prisma.favorite.count({ where: { userId: user.id } })).toBe(200);
-  });
+      expect(answers.map(({ status }) => status).sort()).toEqual([204, 409]);
+      const refused = answers.find(({ status }) => status === 409) as request.Response;
+      expect(errorOf(refused).code).toBe('FAVORITES_LIMIT_REACHED');
+      expect(await prisma.favorite.count({ where: { userId: user.id } })).toBe(200);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('DELETE /me/favorites/:spaceId', () => {

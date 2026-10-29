@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp, signAccess } from '../../../../test/app.ts';
 import { adminRequest, auditEntries, dataOf, errorOf, signIn } from '../../../../test/admin.ts';
 import { createSpace } from '../../../../test/factories.ts';
-import { waitingOnLock } from '../../../../test/locks.ts';
+import { waitingOnLock, RACE_TIMEOUT_MS } from '../../../../test/locks.ts';
 import { resetDatabase } from '../../../../test/reset-database.ts';
 import { seedSettings, signInOwnerOf } from '../../../../test/spaces.ts';
 import { prisma } from '../../../db/index.ts';
@@ -271,44 +271,48 @@ describe('GET /admin/spaces/:spaceId', () => {
     expect(errorOf(response).type).toBe('not_found');
   });
 
-  it('waits for a change in progress and answers it whole: its week, its shift and its owner (finding 43)', async () => {
-    const space = await createSpace();
-    const owner = await prisma.user.create({
-      data: { email: 'owner@example.com', name: 'Ahmad', passwordHash: 'x' },
-    });
-    let pending: ReturnType<typeof adminRequest> | undefined;
-    // A save in progress holds the space's lock, as every change of its facts or links does, and
-    // commits its rows only after the read has started.
-    await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${space.id} FOR NO KEY UPDATE`;
-      await tx.spaceHours.createMany({
-        data: [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
-          spaceId: space.id,
-          dayOfWeek,
-          isClosed: false,
-          opensMinute: 480,
-          closesMinute: 1080,
-        })),
+  it(
+    'waits for a change in progress and answers it whole: its week, its shift and its owner (finding 43)',
+    async () => {
+      const space = await createSpace();
+      const owner = await prisma.user.create({
+        data: { email: 'owner@example.com', name: 'Ahmad', passwordHash: 'x' },
       });
-      await tx.spaceShift.create({
-        data: { spaceId: space.id, nameAr: 'صباحية', startsMinute: 480, endsMinute: 780 },
+      let pending: ReturnType<typeof adminRequest> | undefined;
+      // A save in progress holds the space's lock, as every change of its facts or links does, and
+      // commits its rows only after the read has started.
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${space.id} FOR NO KEY UPDATE`;
+        await tx.spaceHours.createMany({
+          data: [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
+            spaceId: space.id,
+            dayOfWeek,
+            isClosed: false,
+            opensMinute: 480,
+            closesMinute: 1080,
+          })),
+        });
+        await tx.spaceShift.create({
+          data: { spaceId: space.id, nameAr: 'صباحية', startsMinute: 480, endsMinute: 780 },
+        });
+        await tx.spaceManager.create({ data: { spaceId: space.id, userId: owner.id } });
+        pending = adminRequest(app, admin, 'get', path(space.id));
+        await waitingOnLock({ on: 'spaces' });
       });
-      await tx.spaceManager.create({ data: { spaceId: space.id, userId: owner.id } });
-      pending = adminRequest(app, admin, 'get', path(space.id));
-      await waitingOnLock();
-    });
-    const response = await pending;
+      const response = await pending;
 
-    expect(response?.status).toBe(200);
-    expect(dataOf(response as request.Response)).toMatchObject({
-      isVerified: true,
-      owners: [{ id: owner.id, name: 'Ahmad' }],
-      hours: {
-        days: Array.from({ length: 7 }, () => ({ opensMinute: 480, closesMinute: 1080 })),
-        shifts: [{ nameAr: 'صباحية', nameEn: null, startsMinute: 480, endsMinute: 780 }],
-      },
-    });
-  });
+      expect(response?.status).toBe(200);
+      expect(dataOf(response as request.Response)).toMatchObject({
+        isVerified: true,
+        owners: [{ id: owner.id, name: 'Ahmad' }],
+        hours: {
+          days: Array.from({ length: 7 }, () => ({ opensMinute: 480, closesMinute: 1080 })),
+          shifts: [{ nameAr: 'صباحية', nameEn: null, startsMinute: 480, endsMinute: 780 }],
+        },
+      });
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('returns active owner names in link creation order (oldest first), excluding reception and deactivated links', async () => {
     const space = await createSpace();
@@ -401,52 +405,56 @@ describe('GET /admin/spaces/:spaceId', () => {
     ]);
   });
 
-  it('reads the owners’ names on the read’s own connection, inside its transaction', async () => {
-    const space = await createSpace();
-    const owner = await link(space.id, 'OWNER');
-    let pending: Promise<request.Response> | undefined;
-    let readWaiter: number | undefined;
-    let namesWaiter: number | undefined;
-    let release: () => void = () => undefined;
-    let usersHeld: Promise<unknown> | undefined;
-    // The read waits for the space's lock on its transaction's connection. Meanwhile a second
-    // transaction takes the users table, so the read's names query, once the space is free, waits
-    // for it on whichever connection runs it.
-    await prisma.$transaction(
-      async (tx) => {
-        await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${space.id} FOR NO KEY UPDATE`;
-        pending = adminRequest(app, admin, 'get', path(space.id));
-        [readWaiter] = await waitingOnLock();
-        await new Promise<void>((taken, failed) => {
-          usersHeld = prisma.$transaction(
-            async (holder) => {
-              await holder.$executeRaw`LOCK TABLE users IN ACCESS EXCLUSIVE MODE`;
-              await new Promise<void>((released) => {
-                release = released;
-                taken();
-              });
-            },
-            { timeout: 15_000 },
-          );
-          usersHeld.catch(failed);
-        });
-      },
-      { timeout: 10_000 },
-    );
-    try {
-      [namesWaiter] = await waitingOnLock({ on: 'users' });
-    } finally {
-      release();
-      await usersHeld;
-    }
-    const response = await pending;
+  it(
+    'reads the owners’ names on the read’s own connection, inside its transaction',
+    async () => {
+      const space = await createSpace();
+      const owner = await link(space.id, 'OWNER');
+      let pending: Promise<request.Response> | undefined;
+      let readWaiter: number | undefined;
+      let namesWaiter: number | undefined;
+      let release: () => void = () => undefined;
+      let usersHeld: Promise<unknown> | undefined;
+      // The read waits for the space's lock on its transaction's connection. Meanwhile a second
+      // transaction takes the users table, so the read's names query, once the space is free, waits
+      // for it on whichever connection runs it.
+      await prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${space.id} FOR NO KEY UPDATE`;
+          pending = adminRequest(app, admin, 'get', path(space.id));
+          [readWaiter] = await waitingOnLock({ on: 'spaces' });
+          await new Promise<void>((taken, failed) => {
+            usersHeld = prisma.$transaction(
+              async (holder) => {
+                await holder.$executeRaw`LOCK TABLE users IN ACCESS EXCLUSIVE MODE`;
+                await new Promise<void>((released) => {
+                  release = released;
+                  taken();
+                });
+              },
+              { timeout: 15_000 },
+            );
+            usersHeld.catch(failed);
+          });
+        },
+        { timeout: 10_000 },
+      );
+      try {
+        [namesWaiter] = await waitingOnLock({ on: 'users' });
+      } finally {
+        release();
+        await usersHeld;
+      }
+      const response = await pending;
 
-    expect(response?.status).toBe(200);
-    expect((dataOf(response as request.Response) as { owners: unknown }).owners).toEqual([
-      { id: owner.id, name: 'Sara' },
-    ]);
-    expect(namesWaiter).toBe(readWaiter);
-  }, 20_000);
+      expect(response?.status).toBe(200);
+      expect((dataOf(response as request.Response) as { owners: unknown }).owners).toEqual([
+        { id: owner.id, name: 'Sara' },
+      ]);
+      expect(namesWaiter).toBe(readWaiter);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('retains active owners on fact write and confirm responses', async () => {
     const space = await createSpace();

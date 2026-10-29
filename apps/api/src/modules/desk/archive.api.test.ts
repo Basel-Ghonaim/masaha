@@ -11,7 +11,7 @@ import {
   createVisit,
   stay,
 } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -138,20 +138,25 @@ describe('archiving a customer', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it("an owner whose link ended while the archive waited on the space's lock is refused 403", async () => {
-    const { id } = await createCustomer(spaceId);
+  it(
+    "an owner whose link ended while the archive waited on the space's lock is refused 403",
+    async () => {
+      const { id } = await createCustomer(spaceId);
 
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => archive(owner, id),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(response.status).toBe(403);
-    expect(await stored(id)).toMatchObject({ archivedAt: null });
-    expect(await auditEntries()).toEqual([]);
-  });
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => archive(owner, id),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(response.status).toBe(403);
+      expect(await stored(id)).toMatchObject({ archivedAt: null });
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

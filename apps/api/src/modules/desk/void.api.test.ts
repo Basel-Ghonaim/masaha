@@ -12,7 +12,7 @@ import {
   createVisit,
   stay,
 } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -223,23 +223,28 @@ describe('voiding a payment', () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it('an owner whose link ended while the void waits on the space’s lock is 403, writing nothing', async () => {
-    const visit = await closed(2_000);
-    const { id } = await pay({ visitId: visit.id }, 2_000);
+  it(
+    'an owner whose link ended while the void waits on the space’s lock is 403, writing nothing',
+    async () => {
+      const visit = await closed(2_000);
+      const { id } = await pay({ visitId: visit.id }, 2_000);
 
-    const response = await whileHeld(
-      lockSpace,
-      () => voidIt(owner, id),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(response.status).toBe(403);
-    expect(await storedVoid(id)).toEqual(NOT_VOIDED);
-    expect(await auditEntries()).toEqual([]);
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => voidIt(owner, id),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(response.status).toBe(403);
+      expect(await storedVoid(id)).toEqual(NOT_VOIDED);
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('a written-off visit', () => {
@@ -270,23 +275,28 @@ describe('a written-off visit', () => {
     ]);
   });
 
-  it('a void waiting while its visit is written off is VISIT_WRITTEN_OFF', async () => {
-    const visit = await closed(2_000);
-    const { id } = await pay({ visitId: visit.id }, 1_000);
+  it(
+    'a void waiting while its visit is written off is VISIT_WRITTEN_OFF',
+    async () => {
+      const visit = await closed(2_000);
+      const { id } = await pay({ visitId: visit.id }, 1_000);
 
-    const response = await whileHeld(
-      lockSpace,
-      () => voidIt(owner, id),
-      (tx) =>
-        tx.visit.update({
-          where: { id: visit.id },
-          data: { writtenOffAt: NOW, writtenOffById: owner.id, writeOffReason: 'Left' },
-        }),
-    );
-    expect(response.status).toBe(409);
-    expect(errorOf(response).code).toBe('VISIT_WRITTEN_OFF');
-    expect(await storedVoid(id)).toEqual(NOT_VOIDED);
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => voidIt(owner, id),
+        (tx) =>
+          tx.visit.update({
+            where: { id: visit.id },
+            data: { writtenOffAt: NOW, writtenOffById: owner.id, writeOffReason: 'Left' },
+          }),
+      );
+      expect(response.status).toBe(409);
+      expect(errorOf(response).code).toBe('VISIT_WRITTEN_OFF');
+      expect(await storedVoid(id)).toEqual(NOT_VOIDED);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('what a void changes', () => {
@@ -403,28 +413,33 @@ describe('what a void changes', () => {
 });
 
 describe('two voids at once', () => {
-  it('two voids at once void it once: the second answers the first’s reason', async () => {
-    const visit = await closed(2_000);
-    const { id } = await pay({ visitId: visit.id }, 2_000);
+  it(
+    'two voids at once void it once: the second answers the first’s reason',
+    async () => {
+      const visit = await closed(2_000);
+      const { id } = await pay({ visitId: visit.id }, 2_000);
 
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM payments WHERE id = ${id} FOR UPDATE`,
-      () => voidIt(owner, id, { reason: 'Wrong amount' }),
-      (tx) =>
-        tx.payment.update({
-          where: { id },
-          data: { voidedAt: RECEIVED, voidedById: owner.id, voidReason: REASON },
-        }),
-    );
-    expect(response.status).toBe(200);
-    expect(dataOf(response)).toMatchObject({
-      voided: { at: '2026-10-23T09:00:00.000Z', reason: REASON },
-    });
-    expect(await storedVoid(id)).toEqual({
-      voidedAt: RECEIVED,
-      voidedById: owner.id,
-      voidReason: REASON,
-    });
-    expect(await auditEntries()).toEqual([]);
-  });
+      const response = await whileHeld(
+        'payments',
+        (tx) => tx.$queryRaw`SELECT id FROM payments WHERE id = ${id} FOR UPDATE`,
+        () => voidIt(owner, id, { reason: 'Wrong amount' }),
+        (tx) =>
+          tx.payment.update({
+            where: { id },
+            data: { voidedAt: RECEIVED, voidedById: owner.id, voidReason: REASON },
+          }),
+      );
+      expect(response.status).toBe(200);
+      expect(dataOf(response)).toMatchObject({
+        voided: { at: '2026-10-23T09:00:00.000Z', reason: REASON },
+      });
+      expect(await storedVoid(id)).toEqual({
+        voidedAt: RECEIVED,
+        voidedById: owner.id,
+        voidReason: REASON,
+      });
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

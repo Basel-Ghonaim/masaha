@@ -42,6 +42,7 @@ function holdSpace(tx: Tx) {
 async function uploadWhile(meanwhile: (tx: Tx) => Promise<unknown>) {
   const bytes = await image('jpeg');
   return whileHeld(
+    'spaces',
     holdSpace,
     () =>
       request(app)

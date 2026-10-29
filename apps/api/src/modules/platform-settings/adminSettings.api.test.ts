@@ -10,7 +10,7 @@ import {
 } from '../../../test/admin.ts';
 import { createTestApp } from '../../../test/app.ts';
 import { createSpace } from '../../../test/factories.ts';
-import { waitingOnLock, whileHeld } from '../../../test/locks.ts';
+import { waitingOnLock, whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { createArea, seedSettings } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -247,57 +247,66 @@ describe("the admin's settings cards", () => {
     ]);
   });
 
-  it("two saves of one card at once: the second's before is the first's after", async () => {
-    const second = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT "key" FROM "settings" WHERE "key" = 'stalenessDays' FOR UPDATE`,
-      () => card('put', 'staleness', { stalenessDays: 45, priceStalenessDays: 30 }),
-      // The first save, committed while the second waits.
-      (tx) => tx.setting.update({ where: { key: 'stalenessDays' }, data: { value: 50 } }),
-    );
+  it(
+    "two saves of one card at once: the second's before is the first's after",
+    async () => {
+      const second = await whileHeld(
+        'settings',
+        (tx) => tx.$queryRaw`SELECT "key" FROM "settings" WHERE "key" = 'stalenessDays' FOR UPDATE`,
+        () => card('put', 'staleness', { stalenessDays: 45, priceStalenessDays: 30 }),
+        // The first save, committed while the second waits.
+        (tx) => tx.setting.update({ where: { key: 'stalenessDays' }, data: { value: 50 } }),
+      );
 
-    expect(second.status).toBe(200);
-    expect((await stored()).stalenessDays).toBe(45);
-    expect(await auditEntries()).toMatchObject([
-      {
-        action: 'platformSettings.stalenessEdited',
-        before: { stalenessDays: 50 },
-        after: { stalenessDays: 45 },
-      },
-    ]);
-  });
+      expect(second.status).toBe(200);
+      expect((await stored()).stalenessDays).toBe(45);
+      expect(await auditEntries()).toMatchObject([
+        {
+          action: 'platformSettings.stalenessEdited',
+          before: { stalenessDays: 50 },
+          after: { stalenessDays: 45 },
+        },
+      ]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
-  it('two first saves of the contact at once make one row per key, both 200', async () => {
-    let second: Promise<Awaited<ReturnType<typeof card>>> | undefined;
-    await prisma.$transaction(
-      async (tx) => {
-        // The first save's rows, inserted and not yet committed.
-        await tx.$executeRaw`INSERT INTO "settings" ("key", "value", "updated_at")
+  it(
+    'two first saves of the contact at once make one row per key, both 200',
+    async () => {
+      let second: Promise<Awaited<ReturnType<typeof card>>> | undefined;
+      await prisma.$transaction(
+        async (tx) => {
+          // The first save's rows, inserted and not yet committed.
+          await tx.$executeRaw`INSERT INTO "settings" ("key", "value", "updated_at")
           VALUES ('contactEmail', '"first@masaha.ps"'::jsonb, now()), ('contactWhatsapp', 'null'::jsonb, now())`;
-        second = Promise.resolve(
-          card('put', 'contact', { email: 'second@masaha.ps', whatsapp: null }),
-        );
-        await waitingOnLock({ count: 1 });
-      },
-      { timeout: 10_000 },
-    );
-    if (!second) throw new Error('The second save never started');
-    const answer = await second;
+          second = Promise.resolve(
+            card('put', 'contact', { email: 'second@masaha.ps', whatsapp: null }),
+          );
+          await waitingOnLock({ count: 1, on: 'settings' });
+        },
+        { timeout: 10_000 },
+      );
+      if (!second) throw new Error('The second save never started');
+      const answer = await second;
 
-    expect(answer.status).toBe(200);
-    expect(dataOf(answer)).toEqual({ email: 'second@masaha.ps', whatsapp: null });
-    const rows = await prisma.setting.findMany({
-      where: { key: { startsWith: 'contact' } },
-      select: { key: true, value: true },
-      orderBy: { key: 'asc' },
-    });
-    expect(rows).toEqual([
-      { key: 'contactEmail', value: 'second@masaha.ps' },
-      { key: 'contactWhatsapp', value: null },
-    ]);
-    expect(await auditEntries()).toMatchObject([
-      { before: { email: 'first@masaha.ps' }, after: { email: 'second@masaha.ps' } },
-    ]);
-  });
+      expect(answer.status).toBe(200);
+      expect(dataOf(answer)).toEqual({ email: 'second@masaha.ps', whatsapp: null });
+      const rows = await prisma.setting.findMany({
+        where: { key: { startsWith: 'contact' } },
+        select: { key: true, value: true },
+        orderBy: { key: 'asc' },
+      });
+      expect(rows).toEqual([
+        { key: 'contactEmail', value: 'second@masaha.ps' },
+        { key: 'contactWhatsapp', value: null },
+      ]);
+      expect(await auditEntries()).toMatchObject([
+        { before: { email: 'first@masaha.ps' }, after: { email: 'second@masaha.ps' } },
+      ]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it.each(REFUSED_CALLERS)(
     'a $caller is $status on the six routes',

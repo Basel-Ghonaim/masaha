@@ -4,7 +4,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createTestApp } from '../../../test/app.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import {
   addPhotos,
@@ -180,24 +180,29 @@ describe('GET /spaces/:slug', () => {
     expect(response.body).toMatchObject({ data: { photos: [] } });
   });
 
-  it('decides verified on the links as they are under the space’s lock, with the facts it shows', async () => {
-    const space = await createPublicSpace(areaId, 'Verified', { pricesUpdatedAt: daysAgo(31) });
-    await addPrice(space.id, 'DAY', 2000);
-    const owner = await signInOwnerOf(space.id);
+  it(
+    'decides verified on the links as they are under the space’s lock, with the facts it shows',
+    async () => {
+      const space = await createPublicSpace(areaId, 'Verified', { pricesUpdatedAt: daysAgo(31) });
+      await addPrice(space.id, 'DAY', 2000);
+      const owner = await signInOwnerOf(space.id);
 
-    // The owner is unlinked while the page waits for the space's lock, as a link change holds it.
-    const answer = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${space.id} FOR NO KEY UPDATE`,
-      () => page('verified'),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId: space.id, userId: owner.id } },
-          data: { deactivatedAt: NOW },
-        }),
-    );
+      // The owner is unlinked while the page waits for the space's lock, as a link change holds it.
+      const answer = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${space.id} FOR NO KEY UPDATE`,
+        () => page('verified'),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId: space.id, userId: owner.id } },
+            data: { deactivatedAt: NOW },
+          }),
+      );
 
-    expect(answer.body).toMatchObject({ data: { isVerified: false, prices: null } });
-  });
+      expect(answer.body).toMatchObject({ data: { isVerified: false, prices: null } });
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('the page carries the running and upcoming announcements by start then id, each with its start and end; never an ended or deleted one', async () => {
     const space = await createPublicSpace(areaId, 'Announcing');

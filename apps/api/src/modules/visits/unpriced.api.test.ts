@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace, createVisit, stay } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -216,27 +216,32 @@ describe('the unpriced visits', () => {
     expect(await stored(id)).toMatchObject({ chargeAgorot: null });
   });
 
-  it("a link deactivated while the pricing waits on the space's lock refuses it with 403", async () => {
-    await prisma.spaceSettings.update({
-      where: { spaceId },
-      data: { receptionMayTypePrices: true },
-    });
-    const { id } = await unpriced('2026-10-17', '09:00', '12:00');
+  it(
+    "a link deactivated while the pricing waits on the space's lock refuses it with 403",
+    async () => {
+      await prisma.spaceSettings.update({
+        where: { spaceId },
+        data: { receptionMayTypePrices: true },
+      });
+      const { id } = await unpriced('2026-10-17', '09:00', '12:00');
 
-    const response = await whileHeld(
-      (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
-      () => price(reception, id, { amountAgorot: 1_500, reason: REASON }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: reception.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
+      const response = await whileHeld(
+        'spaces',
+        (tx) => tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR NO KEY UPDATE`,
+        () => price(reception, id, { amountAgorot: 1_500, reason: REASON }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: reception.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(errorOf(response).type).toBe('forbidden');
-    expect(await stored(id)).toMatchObject({ chargeAgorot: null });
-  });
+      expect(response.status).toBe(403);
+      expect(errorOf(response).type).toBe('forbidden');
+      expect(await stored(id)).toMatchObject({ chargeAgorot: null });
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('the unpriced visits, counted', () => {

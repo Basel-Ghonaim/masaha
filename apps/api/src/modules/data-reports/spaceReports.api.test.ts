@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma, type Tx } from '../../db/index.ts';
@@ -254,24 +254,29 @@ describe("the owner's reports", () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it('an owner unlinked while the decision waits is refused 403', async () => {
-    const { id } = await report();
-    const response = await whileHeld(
-      lockSpace,
-      () => decide(owner, id, { status: 'RESOLVED' }),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: NOW },
-        }),
-    );
+  it(
+    'an owner unlinked while the decision waits is refused 403',
+    async () => {
+      const { id } = await report();
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => decide(owner, id, { status: 'RESOLVED' }),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: NOW },
+          }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(await prisma.dataReport.findUniqueOrThrow({ where: { id } })).toMatchObject({
-      status: 'OPEN',
-    });
-    expect(await auditEntries()).toEqual([]);
-  });
+      expect(response.status).toBe(403);
+      expect(await prisma.dataReport.findUniqueOrThrow({ where: { id } })).toMatchObject({
+        status: 'OPEN',
+      });
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe("the space's open reports, counted", () => {

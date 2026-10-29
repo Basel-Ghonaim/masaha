@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createCustomer, createSpace, createSubscription } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -129,28 +129,33 @@ describe('ending a subscription early', () => {
     });
   });
 
-  it("the staff end; another space's subscription, a stranger and the admin not_found; a link ended meanwhile 403", async () => {
-    const theirs = await monthly({}, otherSpaceId);
-    const foreign = await end(owner, theirs.id);
-    expect(foreign.status).toBe(404);
-    expect(errorOf(foreign).type).toBe('not_found');
-    const { id } = await monthly();
-    for (const caller of [stranger, admin]) {
-      expect((await end(caller, id)).status).toBe(404);
-    }
+  it(
+    "the staff end; another space's subscription, a stranger and the admin not_found; a link ended meanwhile 403",
+    async () => {
+      const theirs = await monthly({}, otherSpaceId);
+      const foreign = await end(owner, theirs.id);
+      expect(foreign.status).toBe(404);
+      expect(errorOf(foreign).type).toBe('not_found');
+      const { id } = await monthly();
+      for (const caller of [stranger, admin]) {
+        expect((await end(caller, id)).status).toBe(404);
+      }
 
-    const response = await whileHeld(
-      lockSpace,
-      () => end(reception, id),
-      (tx) =>
-        tx.spaceManager.updateMany({
-          where: { spaceId, userId: reception.id },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(response.status).toBe(403);
-    expect(await prisma.subscription.findUniqueOrThrow({ where: { id } })).toMatchObject({
-      endedAt: null,
-    });
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => end(reception, id),
+        (tx) =>
+          tx.spaceManager.updateMany({
+            where: { spaceId, userId: reception.id },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(response.status).toBe(403);
+      expect(await prisma.subscription.findUniqueOrThrow({ where: { id } })).toMatchObject({
+        endedAt: null,
+      });
+    },
+    RACE_TIMEOUT_MS,
+  );
 });

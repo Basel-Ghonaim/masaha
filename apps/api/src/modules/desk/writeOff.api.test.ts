@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../../../test/app.ts';
 import { auditEntries, dataOf, errorOf, signIn } from '../../../test/admin.ts';
 import { createSpace, createVisit, stay } from '../../../test/factories.ts';
-import { whileHeld } from '../../../test/locks.ts';
+import { whileHeld, RACE_TIMEOUT_MS } from '../../../test/locks.ts';
 import { resetDatabase } from '../../../test/reset-database.ts';
 import { signInOwnerOf } from '../../../test/spaces.ts';
 import { prisma } from '../../db/index.ts';
@@ -168,22 +168,27 @@ describe("writing a visit's debt off", () => {
     expect(await auditEntries()).toEqual([]);
   });
 
-  it("an owner whose link ended while the write-off waited on the space's lock is refused 403, writing nothing", async () => {
-    const { id } = await closed(2_500);
+  it(
+    "an owner whose link ended while the write-off waited on the space's lock is refused 403, writing nothing",
+    async () => {
+      const { id } = await closed(2_500);
 
-    const response = await whileHeld(
-      lockSpace,
-      () => writeOff(owner, id),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(response.status).toBe(403);
-    expect(await stored(id)).toMatchObject(NOT_WRITTEN_OFF);
-    expect(await auditEntries()).toEqual([]);
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => writeOff(owner, id),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(response.status).toBe(403);
+      expect(await stored(id)).toMatchObject(NOT_WRITTEN_OFF);
+      expect(await auditEntries()).toEqual([]);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('refuses an unpriced visit (409 VISIT_NOT_PRICED), an open one (409), a paid one (409 VISIT_ALREADY_PAID), writing nothing', async () => {
     const unpriced = await closed(null);
@@ -231,26 +236,32 @@ describe("writing a visit's debt off", () => {
     expect(await stored(id)).toMatchObject(NOT_WRITTEN_OFF);
   });
 
-  it('a payment committed while the write-off waits: only the rest is written off; a full one refuses it VISIT_ALREADY_PAID', async () => {
-    const part = await closed(2_500);
-    const partly = await whileHeld(
-      lockSpace,
-      () => writeOff(owner, part.id),
-      (tx) => pay(part.id, 1_000, tx),
-    );
-    expect(partly.status).toBe(200);
-    expect((await auditEntries())[0]?.after).toEqual({ reason: REASON, balanceAgorot: 1_500 });
+  it(
+    'a payment committed while the write-off waits: only the rest is written off; a full one refuses it VISIT_ALREADY_PAID',
+    async () => {
+      const part = await closed(2_500);
+      const partly = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => writeOff(owner, part.id),
+        (tx) => pay(part.id, 1_000, tx),
+      );
+      expect(partly.status).toBe(200);
+      expect((await auditEntries())[0]?.after).toEqual({ reason: REASON, balanceAgorot: 1_500 });
 
-    const whole = await closed(2_500);
-    const settled = await whileHeld(
-      lockSpace,
-      () => writeOff(owner, whole.id),
-      (tx) => pay(whole.id, 2_500, tx),
-    );
-    expect(settled.status).toBe(409);
-    expect(errorOf(settled).code).toBe('VISIT_ALREADY_PAID');
-    expect(await stored(whole.id)).toMatchObject(NOT_WRITTEN_OFF);
-  });
+      const whole = await closed(2_500);
+      const settled = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => writeOff(owner, whole.id),
+        (tx) => pay(whole.id, 2_500, tx),
+      );
+      expect(settled.status).toBe(409);
+      expect(errorOf(settled).code).toBe('VISIT_ALREADY_PAID');
+      expect(await stored(whole.id)).toMatchObject(NOT_WRITTEN_OFF);
+    },
+    RACE_TIMEOUT_MS,
+  );
 });
 
 describe('undoing a write-off', () => {
@@ -310,24 +321,29 @@ describe('undoing a write-off', () => {
     expect(await auditEntries()).toEqual(audited);
   });
 
-  it("an owner whose link ended while the undo waited on the space's lock is refused 403, writing nothing", async () => {
-    const { id } = await closed(2_500);
-    await writeOff(owner, id);
-    const audited = await auditEntries();
+  it(
+    "an owner whose link ended while the undo waited on the space's lock is refused 403, writing nothing",
+    async () => {
+      const { id } = await closed(2_500);
+      await writeOff(owner, id);
+      const audited = await auditEntries();
 
-    const response = await whileHeld(
-      lockSpace,
-      () => undo(owner, id),
-      (tx) =>
-        tx.spaceManager.update({
-          where: { spaceId_userId: { spaceId, userId: owner.id } },
-          data: { deactivatedAt: new Date() },
-        }),
-    );
-    expect(response.status).toBe(403);
-    expect(await stored(id)).toMatchObject({ writeOffReason: REASON });
-    expect(await auditEntries()).toEqual(audited);
-  });
+      const response = await whileHeld(
+        'spaces',
+        lockSpace,
+        () => undo(owner, id),
+        (tx) =>
+          tx.spaceManager.update({
+            where: { spaceId_userId: { spaceId, userId: owner.id } },
+            data: { deactivatedAt: new Date() },
+          }),
+      );
+      expect(response.status).toBe(403);
+      expect(await stored(id)).toMatchObject({ writeOffReason: REASON });
+      expect(await auditEntries()).toEqual(audited);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it("reception may not undo (403); the space's other routes still answer it", async () => {
     const { id } = await closed(2_500);
