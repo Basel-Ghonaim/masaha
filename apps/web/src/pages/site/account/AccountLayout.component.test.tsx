@@ -48,7 +48,15 @@ describe('AccountLayout', () => {
 
     const navigation = await screen.findByRole('navigation', { name: 'My account' });
     const links = within(navigation).getAllByRole('link');
-    expect(links.map((link) => link.textContent)).toEqual(['Favourites', 'My reports']);
+    expect(links.map((link) => link.textContent)).toEqual([
+      'Favourites',
+      'My reports',
+      'Account settings',
+    ]);
+    expect(within(navigation).getByRole('link', { name: 'Account settings' })).toHaveAttribute(
+      'href',
+      '/me',
+    );
     const current = within(navigation).getByRole('link', { name: 'My reports' });
     expect(current).toHaveAttribute('aria-current', 'page');
     expect(current).toHaveAttribute('href', '/me/reports');

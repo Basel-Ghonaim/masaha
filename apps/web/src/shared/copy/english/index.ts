@@ -1,4 +1,5 @@
 import { ANNOUNCEMENTS } from './announcements';
+import { AUDIT } from './audit';
 import { AUTH } from './auth';
 import { DASHBOARD } from './dashboard';
 import { DATA_REPORTS } from './dataReports';
@@ -6,10 +7,12 @@ import { DESK } from './desk';
 import { DIRECTORY } from './directory';
 import { ERRORS } from './errors';
 import { FAVORITES } from './favorites';
+import { FINANCE } from './finance';
 import { FORMS } from './forms';
 import { LOOKUPS } from './lookups';
 import { MAP } from './map';
 import { OCCUPANCY } from './occupancy';
+import { OVERVIEW } from './overview';
 import { PACKAGES } from './packages';
 import { PAYMENTS } from './payments';
 import { PLATFORM_SETTINGS } from './platformSettings';
@@ -34,6 +37,7 @@ import { VALIDATION } from './validation';
  */
 export const ENGLISH = {
   announcements: ANNOUNCEMENTS,
+  audit: AUDIT,
   auth: AUTH,
   dashboard: DASHBOARD,
   dataReports: DATA_REPORTS,
@@ -41,10 +45,12 @@ export const ENGLISH = {
   directory: DIRECTORY,
   errors: ERRORS,
   favorites: FAVORITES,
+  finance: FINANCE,
   forms: FORMS,
   lookups: LOOKUPS,
   map: MAP,
   occupancy: OCCUPANCY,
+  overview: OVERVIEW,
   packages: PACKAGES,
   payments: PAYMENTS,
   platformSettings: PLATFORM_SETTINGS,

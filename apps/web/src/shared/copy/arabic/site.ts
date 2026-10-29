@@ -22,6 +22,7 @@ export const SITE = {
     navigation: 'حسابي',
     favorites: 'المفضّلة',
     reports: 'بلاغاتي',
+    settings: 'إعدادات حسابي',
   },
   signInPrompt: {
     favorite: {

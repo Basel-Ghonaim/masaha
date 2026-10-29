@@ -15,6 +15,8 @@ export const USERS = {
   },
   /** The role beside the name in the dashboard's account menu: the role at the space, or the admin. */
   roles: { OWNER: 'Owner', RECEPTION: 'Reception', ADMIN: 'Admin' },
+  /** «إعدادات حسابي» (screen 9): its title, which its route and the page's heading show. */
+  settings: { title: 'Account settings' },
   /** The dashboard's account menu: the way back to the public site. */
   publicSite: 'Public site',
   /** The account menu's label with a role: the name, then the role. */

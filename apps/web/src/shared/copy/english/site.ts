@@ -27,6 +27,7 @@ export const SITE = {
     navigation: 'My account',
     favorites: 'Favourites',
     reports: 'My reports',
+    settings: 'Account settings',
   },
   /** A guest's press of what needs an account: why to sign in, by the action (DI-60). */
   signInPrompt: {

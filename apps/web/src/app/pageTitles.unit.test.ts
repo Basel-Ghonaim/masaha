@@ -23,6 +23,14 @@ describe('the pages’ titles', () => {
     expect(pages.length).toBeGreaterThan(20);
   });
 
+  it('cover the screens still to come: the account’s settings, and the dashboard’s new pages', () => {
+    const paths = pages.map(name);
+
+    expect(paths).toContain('/me');
+    expect(paths.filter((path) => path === 'audit')).toHaveLength(2);
+    expect(paths).toContain('finance');
+  });
+
   it.each(Object.keys(CATALOGUES) as Language[])(
     'give every page of the site and the dashboard a title in %s',
     (language) => {

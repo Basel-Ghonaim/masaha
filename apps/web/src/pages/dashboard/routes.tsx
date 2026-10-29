@@ -31,6 +31,18 @@ const NOT_FOUND = { title: (copy) => copy.status.notFound.title } satisfies Titl
 
 /** The admin's pages that have a screen, each loaded lazily; the others show their placeholder. */
 const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
+  overview: async () => {
+    const { OverviewPage } = await import('./admin/overview/OverviewPage');
+    return { element: <OverviewPage /> };
+  },
+  audit: async () => {
+    const { AuditPage } = await import('./admin/audit/AuditPage');
+    return { element: <AuditPage /> };
+  },
+  platformSettings: async () => {
+    const { SettingsPage } = await import('./admin/settings/SettingsPage');
+    return { element: <SettingsPage /> };
+  },
   spaces: async () => {
     const { SpacesPage } = await import('./admin/SpacesPage');
     return { element: <SpacesPage /> };
@@ -59,6 +71,10 @@ const SPACE_PAGES: Partial<Record<DashboardPageName, () => Promise<ReactElement>
     const { AnnouncementsPage } = await import('./space/announcements/AnnouncementsPage');
     return <AnnouncementsPage />;
   },
+  audit: async () => {
+    const { AuditPage } = await import('./space/audit/AuditPage');
+    return <AuditPage />;
+  },
   customers: async () => {
     const { CustomersPage } = await import('./space/customers/CustomersPage');
     return <CustomersPage />;
@@ -70,6 +86,14 @@ const SPACE_PAGES: Partial<Record<DashboardPageName, () => Promise<ReactElement>
   desk: async () => {
     const { DeskPage } = await import('./space/desk/DeskPage');
     return <DeskPage />;
+  },
+  finance: async () => {
+    const { FinancePage } = await import('./space/finance/FinancePage');
+    return <FinancePage />;
+  },
+  overview: async () => {
+    const { OverviewPage } = await import('./space/overview/OverviewPage');
+    return <OverviewPage />;
   },
   myPayments: async () => {
     const { MyPaymentsPage } = await import('./space/payments/MyPaymentsPage');

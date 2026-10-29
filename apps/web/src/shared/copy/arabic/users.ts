@@ -8,6 +8,7 @@ export const USERS = {
     links: { favorites: 'المفضّلة', reports: 'بلاغاتي', settings: 'إعدادات حسابي' },
   },
   roles: { OWNER: 'صاحب المساحة', RECEPTION: 'موظف استقبال', ADMIN: 'أدمن' },
+  settings: { title: 'إعدادات حسابي' },
   publicSite: 'الموقع العام',
   nameWithRole: ({ name, role }: { name: string; role: string }) => `${name} · ${role}`,
   signOut: 'تسجيل الخروج',
