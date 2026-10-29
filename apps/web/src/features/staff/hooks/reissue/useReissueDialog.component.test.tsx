@@ -15,6 +15,7 @@ const RAHAF: StaffMember = {
   name: 'Rahaf',
   email: 'rahaf@example.com',
   isActive: true,
+  addedAt: '2026-09-14T08:30:00.000Z',
   temporaryPassword: { expiresAt: '2999-01-01T00:00:00Z' },
 };
 

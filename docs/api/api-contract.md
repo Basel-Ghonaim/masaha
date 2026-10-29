@@ -279,6 +279,7 @@ A space's staff: the reception accounts its owner creates ([ADR 0009](../archite
 StaffMember = {
   userId: number, name: string, email: string,
   isActive: boolean,                                // false: the owner deactivated the link
+  addedAt: string,                                  // when the link was made (ISO 8601), 2026-10-29, #132
   temporaryPassword: { expiresAt: string } | null   // pending, and when it expires (ISO 8601); null once changed
 }
 AddedStaff = { userId: number, temporaryPassword: string }   // shown once

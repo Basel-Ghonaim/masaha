@@ -169,7 +169,7 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
           },
           tx,
         );
-        return memberOf({ userId, deactivatedAt: isActive ? null : at }, tx);
+        return memberOf({ ...link, deactivatedAt: isActive ? null : at }, tx);
       });
     },
 

@@ -200,6 +200,7 @@ describe('GET /manage/spaces/:spaceId/staff', () => {
           name: 'Sara',
           email: 'reception@example.com',
           isActive: true,
+          addedAt: expect.any(String) as unknown,
           temporaryPassword: { expiresAt: '2026-10-25T10:00:00.000Z' },
         },
         {
@@ -207,6 +208,7 @@ describe('GET /manage/spaces/:spaceId/staff', () => {
           name: 'Nour',
           email: 'nour@example.com',
           isActive: true,
+          addedAt: expect.any(String) as unknown,
           temporaryPassword: null,
         },
         {
@@ -214,10 +216,31 @@ describe('GET /manage/spaces/:spaceId/staff', () => {
           name: 'Omar',
           email: 'omar@example.com',
           isActive: false,
+          addedAt: expect.any(String) as unknown,
           temporaryPassword: null,
         },
       ],
     });
+  });
+});
+
+describe('the date of a reception link', () => {
+  it('a staff member is answered with the date their link was made', async () => {
+    await prisma.spaceManager.update({
+      where: { spaceId_userId: { spaceId, userId: reception.id } },
+      data: {
+        createdAt: new Date('2026-09-14T08:30:00.000Z'),
+        updatedAt: new Date('2026-10-20T12:00:00.000Z'),
+      },
+    });
+
+    const listed = await staff(owner, 'get');
+    const changed = await staff(owner, 'patch', `/${String(reception.id)}`, { isActive: false });
+
+    expect(dataOf(listed)).toEqual([
+      expect.objectContaining({ userId: reception.id, addedAt: '2026-09-14T08:30:00.000Z' }),
+    ]);
+    expect(dataOf(changed)).toMatchObject({ addedAt: '2026-09-14T08:30:00.000Z' });
   });
 });
 
@@ -275,6 +298,7 @@ describe('PATCH /manage/spaces/:spaceId/staff/:userId', () => {
       name: 'Sara',
       email: 'nour@example.com',
       isActive: false,
+      addedAt: expect.any(String) as unknown,
       temporaryPassword: null,
     });
     expect((await readSpace(nour)).status).toBe(401);
