@@ -295,7 +295,7 @@ AddedStaff = { userId: number, temporaryPassword: string }   // shown once
 
 #### `PATCH /manage/spaces/:spaceId/staff/:userId` · 🏢
 - **Body:** `{ isActive }`.
-- **200:** `StaffMember`, as it now is. `false` deactivates the person's reception link and ends every session they hold ([security.md](../backend/security.md#tokens-and-cookies)); `true` re-activates it, ending nothing. The same state as asked writes nothing. Audited `space.staffDeactivated` or `space.staffReactivated` (`before` and `after`: `{ userId, isActive }`).
+- **200:** `StaffMember`, as it now is. `false` deactivates the person's reception link, and ends every session they hold when no other active link of theirs remains ([security.md](../backend/security.md#tokens-and-cookies)); a person with another link keeps their sessions, and this space closes to them at once, since the boundary reads the links on every request (2026-10-29, #132); `true` re-activates it, ending nothing. The same state as asked writes nothing. Audited `space.staffDeactivated` or `space.staffReactivated` (`before` and `after`: `{ userId, isActive }`).
 - **Errors:** `not_found` (404) for a person without a reception link at the space, an owner's link included (a co-owner is never changed here); `conflict` (409) `ACCOUNT_SUSPENDED` or `ACCOUNT_IS_ADMIN` for a re-activation of a suspended account or an admin; `validation` (422); `forbidden` (403) for reception, before the body is read.
 
 #### `POST /manage/spaces/:spaceId/staff/:userId/temporary-password` · 🏢

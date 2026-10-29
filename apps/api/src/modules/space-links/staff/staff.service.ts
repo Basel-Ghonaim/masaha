@@ -121,9 +121,12 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
     },
 
     /**
-     * Deactivates the person's reception link, ending every session they hold (the desk's shared
-     * device must not stay signed in), or re-activates it, in one transaction: the space's lock and
-     * `can()`, then the person's session lock. Only a reception link of this space: an owner's
+     * Deactivates the person's reception link, ending every session they hold when it was their
+     * last active link (the desk's shared device must not stay signed in), or re-activates it, in
+     * one transaction: the space's lock and `can()`, then the person's session lock. A person with
+     * another active link keeps their sessions (finding 92): no owner ends another space's owner's
+     * sessions at will, and this space closes to them at once anyway, since the space boundary reads
+     * the links on every request. Only a reception link of this space: an owner's
      * link, a co-owner's, is never touched here. The same state writes nothing. A re-activation is
      * refused for a suspended account and an admin (P6).
      */
@@ -150,7 +153,9 @@ export function createStaffService({ runInTransaction, audit, spaces, users, now
           await repository.reactivateReceptionLink(space.id, userId, tx);
         } else {
           await repository.deactivateReceptionLink(space.id, userId, at, tx);
-          await users.endSessions(userId, tx);
+          if ((await repository.countOtherActiveLinks(userId, space.id, tx)) === 0) {
+            await users.endSessions(userId, tx);
+          }
         }
         await audit(
           {
