@@ -1,4 +1,4 @@
-import { MyReportsList } from '@features/data-reports';
+import { MyReportsList } from '@features/data-reports/public';
 import { useCopy } from '@shared/copy';
 import { publicSpacePath } from '@shared/routing';
 import { SITE_PATHS } from '../navigation';

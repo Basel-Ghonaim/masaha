@@ -1,4 +1,4 @@
-import { PlatformContact } from '@features/platform-settings';
+import { PlatformContact } from '@features/platform-settings/public';
 import { useCopy } from '@shared/copy';
 import {
   Button,
