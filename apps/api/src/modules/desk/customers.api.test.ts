@@ -187,6 +187,20 @@ describe('the customers list', () => {
     expect(names(await list(owner, '?q=02-05'))).toEqual(['أسامة علي']);
   });
 
+  it('+970… typed finds a phone stored as +972…', async () => {
+    await createCustomer(spaceId, { name: 'Dana', phone: '+972591234567' });
+
+    expect(names(await list(owner, '?q=0591234567'))).toEqual(['Dana']);
+    expect(names(await list(owner, `?q=${encodeURIComponent('+970591234567')}`))).toEqual(['Dana']);
+  });
+
+  it('+972… typed finds a phone stored as +970…', async () => {
+    await createCustomer(spaceId, { name: 'Huda', phone: '+970521234567' });
+
+    expect(names(await list(owner, `?q=${encodeURIComponent('+972521234567')}`))).toEqual(['Huda']);
+    expect(names(await list(owner, '?q=0521234567'))).toEqual(['Huda']);
+  });
+
   it('each filter applies before the page is cut: every page full, the total right', async () => {
     const { pack } = await seed();
     const pages = async (query: string) => {

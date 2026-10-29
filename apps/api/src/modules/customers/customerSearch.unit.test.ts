@@ -3,27 +3,27 @@ import { describe, expect, it } from 'vitest';
 import { searchTermsOf } from './customerSearch.ts';
 
 describe('searchTermsOf', () => {
-  it('a whole number in any form searches that phone, in its stored form, or its national digits at the end of one', () => {
+  it('a whole number in any form searches that phone, in its stored form, or its national digits without the trunk 0 at the end of one', () => {
     expect(searchTermsOf('0599000205')).toEqual({
       phone: '+970599000205',
-      phoneDigits: '0599000205',
+      phoneDigits: '599000205',
     });
-    // Also stored under the other country code: +970521234567 ends with 0521234567.
+    // Also stored under the other country code, either way: +970521234567 ends with 521234567.
     expect(searchTermsOf('0521234567')).toEqual({
       phone: '+972521234567',
-      phoneDigits: '0521234567',
+      phoneDigits: '521234567',
     });
     expect(searchTermsOf('00970599000205')).toEqual({
       phone: '+970599000205',
-      phoneDigits: '0599000205',
+      phoneDigits: '599000205',
     });
     expect(searchTermsOf('059-900-0205')).toEqual({
       phone: '+970599000205',
-      phoneDigits: '0599000205',
+      phoneDigits: '599000205',
     });
     expect(searchTermsOf('+972 52 123 4567')).toEqual({
       phone: '+972521234567',
-      phoneDigits: '0521234567',
+      phoneDigits: '521234567',
     });
   });
 
