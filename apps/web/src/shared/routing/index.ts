@@ -24,6 +24,8 @@ export { CHANGE_PASSWORD_PATH, RESET_PASSWORD_PATH, SIGN_IN_PATH } from './retur
 export { RecordTitleProvider } from './title/RecordTitleProvider';
 export { RouteErrorState } from './states/RouteErrorState';
 export { showActionBar, useActionBarShown } from './actionBar/actionBarShown';
+export { SkipLink } from './focus/SkipLink';
+export { useMainFocus } from './focus/useMainFocus';
 export type { PageTitle } from './title/PageTitle';
 export type { TitledHandle } from './title/titledHandle';
 export { usePageTitle } from './title/usePageTitle';

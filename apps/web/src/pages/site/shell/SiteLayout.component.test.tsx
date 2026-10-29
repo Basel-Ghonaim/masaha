@@ -1,9 +1,11 @@
+import { restoreSession } from '@shared/session';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, restoreTransport } from '../../../test/fakeTransport';
 import { queryWrapper } from '../../../test/queryWrapper';
+import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
 import { siteRoutes } from '../routes';
 
@@ -162,6 +164,21 @@ describe('the site shell', () => {
     await user.tab();
 
     const skip = screen.getByRole('link', { name: 'تخطَّ إلى المحتوى' });
+    expect(skip).toHaveFocus();
+    expect(skip).toHaveAttribute('href', '#main');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
+  });
+
+  it('offers «Skip to content» first in the focus shell too, leading to its main', async () => {
+    // A guest: sign-in shows once the session is known to be anonymous.
+    setSessionHint(false);
+    await restoreSession();
+    const user = userEvent.setup();
+    await renderSite('/login');
+
+    await user.tab();
+
+    const skip = screen.getByRole('link', { name: 'Skip to content' });
     expect(skip).toHaveFocus();
     expect(skip).toHaveAttribute('href', '#main');
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main');

@@ -1,8 +1,8 @@
 import { useCopy } from '@shared/copy';
 
 /**
- * The shell's first focusable element: a link past the header to the page's `main`, hidden until the
- * keyboard reaches it (SH-018).
+ * Every shell's first focusable element: a link past the header (or the sidebar) to the page's
+ * `main`, hidden until the keyboard reaches it (SH-018, finding 130).
  */
 export function SkipLink() {
   const copy = useCopy();

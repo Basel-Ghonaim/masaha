@@ -6,6 +6,7 @@ import {
   SidebarProvider,
 } from '@shared/design-system';
 import { cn } from '@shared/design-system';
+import { SkipLink, useMainFocus } from '@shared/routing';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Outlet } from 'react-router';
 import { PageActionSlot } from './PageActionSlot';
@@ -18,7 +19,8 @@ import { DashboardLanguageToggle } from './DashboardLanguageToggle';
  * (`children`) and its `footer`; beside it the top bar and the page. The sidebar's form follows the
  * width (foundation §9). On a phone the language moves from the top bar to the drawer's foot. Below
  * 768 px a page may put its one all-day action in a bar fixed at the foot (`PageActionBar`): the bar
- * is drawn only while a page fills it, and the content then makes room for it.
+ * is drawn only while a page fills it, and the content then makes room for it. The skip link comes
+ * before the sidebar, and the page's `main` takes the focus on a page change (`useMainFocus`).
  */
 export function DashboardLayout({
   label,
@@ -41,9 +43,11 @@ export function DashboardLayout({
     };
   }, []);
   const action = useMemo(() => ({ target: bar, fill }), [bar, fill]);
+  useMainFocus();
 
   return (
     <SidebarProvider className="bg-background text-foreground">
+      <SkipLink />
       <Sidebar label={label}>
         {header}
         <SidebarContent>{children}</SidebarContent>
@@ -55,8 +59,10 @@ export function DashboardLayout({
       <SidebarInset>
         <TopBar slot={setSlot} />
         <main
+          id="main"
+          tabIndex={-1}
           className={cn(
-            'flex flex-1 flex-col gap-6 px-4 py-6 md:px-8',
+            'flex flex-1 flex-col gap-6 px-4 py-6 outline-none md:px-8',
             filled > 0 && 'pb-24 md:pb-6',
           )}
         >
