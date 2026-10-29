@@ -23,9 +23,12 @@ import { toItemPayment, toPaymentRow, toVisitPayment } from './payments.mapper.t
 import { paymentsWindow } from './paymentsWindow.ts';
 import {
   createPaymentsRepository,
+  type BalancePageRow,
+  type BalanceTotals,
   type ItemBalanceRow,
   type ItemPaymentRow,
   type NewPayment,
+  type UncollectedTotals,
   type VisitPaymentRow,
 } from './payments.repository.ts';
 
@@ -332,6 +335,40 @@ export function createPaymentsService({
     /** The ids of the space's customers who owe, or are in credit, at `at`: the list's filter. */
     customerIdsByPayment(spaceId: number, state: 'OWES' | 'CREDIT', at: Date): Promise<number[]> {
       return repository.customerIdsByPayment(spaceId, state, calendarOf(at));
+    },
+
+    /**
+     * A page of the space's customers who owe, or who are in credit, at `at`, by the one balance
+     * rule (an archived customer's kept): the largest first, then by customer id; who owes with the
+     * item still owing made first. In the caller's snapshot when given.
+     */
+    balancesPage(
+      spaceId: number,
+      state: 'OWES' | 'CREDIT',
+      at: Date,
+      { page, limit }: PaginationQuery,
+      tx?: Tx,
+    ): Promise<{ rows: BalancePageRow[]; total: number }> {
+      return repository.balancesPage(
+        spaceId,
+        state,
+        calendarOf(at),
+        { skip: toSkip({ page, limit }), take: limit },
+        tx,
+      );
+    },
+
+    /**
+     * The space's balances totalled at `at`: what is owed and by how many customers, what is held
+     * in credit and by how many (Finance's totals; the owner's overview counts who owe).
+     */
+    balanceTotals(spaceId: number, at: Date, tx?: Tx): Promise<BalanceTotals> {
+      return repository.balanceTotals(spaceId, calendarOf(at), tx);
+    },
+
+    /** The space's uncollected visits counted: all, what the priced ones owe, the unpriced apart. */
+    uncollectedTotals(spaceId: number, tx?: Tx): Promise<UncollectedTotals> {
+      return repository.uncollectedTotals(spaceId, tx);
     },
 
     /**
