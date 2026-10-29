@@ -25,6 +25,8 @@
     code?: string,                      // domain code, UPPER_SNAKE_CASE, e.g. "MEMBER_ALREADY_CHECKED_IN"
     message: string,                    // English, for developers and logs only — never shown to users
     errors?: Record<string, string[]>,  // field → error codes, e.g. { "phone": ["invalid_format"] }
+    details?: { userId: number },       // the record a refusal names, to act on it (only ALREADY_OWNER
+                                        // today, §5 Owners (the admin); 2026-10-29, #132)
     requestId: string                   // the X-Request-Id of this response (§1)
   }
 }

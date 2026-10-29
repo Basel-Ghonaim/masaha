@@ -53,6 +53,9 @@ router.delete('/items/1', (_req, res) => {
 router.get('/errors/:type', (req) => {
   throw factories[req.params.type as ErrorType]();
 });
+router.get('/owned', () => {
+  throw AppError.conflict('ALREADY_OWNER', undefined, undefined, { userId: 7 });
+});
 router.get('/bug', () => {
   throw new Error('secret detail at /srv/app');
 });
@@ -127,6 +130,22 @@ describe('error envelope', () => {
       });
     },
   );
+
+  it('carries the details of a refusal that names a record', async () => {
+    const response = await request(app).get('/api/v1/owned');
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({
+      success: false,
+      error: {
+        type: 'conflict',
+        code: 'ALREADY_OWNER',
+        message: 'Conflict',
+        details: { userId: 7 },
+        requestId: response.headers['x-request-id'],
+      },
+    });
+  });
 
   it('answers an unknown route under /api/v1 with not_found', async () => {
     const response = await request(app).get('/api/v1/anything');

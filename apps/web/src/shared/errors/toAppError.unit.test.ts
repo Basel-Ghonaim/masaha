@@ -45,6 +45,21 @@ describe('toAppError, given the server’s envelope', () => {
     expect(error.requestId).toBe(REQUEST_ID);
   });
 
+  it('keeps the record a refusal names, in the contract’s shape only', () => {
+    const named = toAppError(
+      failed({
+        status: 409,
+        data: envelope({ type: 'conflict', code: 'ALREADY_OWNER', details: { userId: 7 } }),
+      }),
+    );
+    const malformed = toAppError(
+      failed({ status: 409, data: envelope({ type: 'conflict', details: { userId: '7' } }) }),
+    );
+
+    expect(named.details).toEqual({ userId: 7 });
+    expect(malformed.details).toBeUndefined();
+  });
+
   it('drops a domain code the client does not know', () => {
     const error = toAppError(
       failed({ status: 409, data: envelope({ type: 'conflict', code: 'NOT_A_KNOWN_CODE' }) }),
