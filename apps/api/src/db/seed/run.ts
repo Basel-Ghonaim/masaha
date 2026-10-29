@@ -1,40 +1,19 @@
 import { fileURLToPath } from 'node:url';
 
-import { passwordSchema } from '@masaha/shared/users';
-import { z } from 'zod';
-
 import { LOCAL_FILES_URL } from '../../app.ts';
 import { createLocalStorage } from '../../shared/storage/index.ts';
 import { createPrismaClient, prisma } from '../prisma.ts';
 import { seedDemo } from './demo.ts';
 import { seedDemoDirectory } from './demoDirectory.ts';
 import { seed } from './seed.ts';
+import { seedEnvSchema } from './seedEnv.ts';
 
 // `npm run db:seed`: seeds the database at DATABASE_URL from the environment (apps/api/.env). The
 // admin's credentials and the platform contact live only there, never in the repository. With
 // SEED_DEMO=true it adds the development demo data too, never in production: the demo space, and
 // the directory's set, whose photos go to the local storage the API serves in development.
 
-const optional = <T extends z.ZodType>(schema: T) =>
-  z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
-
-const envSchema = z
-  .object({
-    DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
-    SEED_ADMIN_EMAIL: z.email(),
-    SEED_ADMIN_PASSWORD: passwordSchema,
-    SEED_ADMIN_NAME: optional(z.string().trim().min(1)),
-    SEED_CONTACT_EMAIL: optional(z.email()),
-    SEED_CONTACT_WHATSAPP: optional(z.string().regex(/^\+[1-9][0-9]{7,14}$/)),
-    SEED_DEMO: optional(z.stringbool()),
-    SEED_DEMO_PASSWORD: optional(passwordSchema),
-  })
-  .refine((env) => !env.SEED_DEMO || env.SEED_DEMO_PASSWORD, {
-    path: ['SEED_DEMO_PASSWORD'],
-    message: 'required when SEED_DEMO is true',
-  });
-
-const parsed = envSchema.safeParse(process.env);
+const parsed = seedEnvSchema.safeParse(process.env);
 if (!parsed.success) {
   const problems = parsed.error.issues.map(
     (issue) => `  ${issue.path.join('.')}: ${issue.message}`,
