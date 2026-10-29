@@ -226,7 +226,6 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 
 ## Open findings
 
-- [69](../architecture/findings/69-the-owners-endpoint-refuses-a-deleted-space-with-a-code-the-contract-does-not-name.md): the owners endpoint refuses a deleted space with a code the contract does not name.
 - [83](../architecture/findings/83-already-owner-names-no-account.md): `ALREADY_OWNER` names no account, so the add form cannot open the link dialog for that owner.
 - [84](../architecture/findings/84-a-person-cannot-work-at-two-spaces-front-desks.md): a person cannot work at two spaces' front desks.
 - [87](../architecture/findings/87-the-owners-shell-cold-loads-the-space-links-index.md): the owners shell cold-loads the whole `space-links` index.

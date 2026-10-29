@@ -665,6 +665,21 @@ describe('POST /admin/owners', () => {
     expect(await entries()).toEqual([]);
   });
 
+  it('the add-owner names invalid_format for a string id and invalid_choice for a deleted space', async () => {
+    await prisma.space.update({ where: { id: spaceId }, data: { deletedAt: NOW } });
+
+    // The type check comes first, before the space is read: a deleted space's id written as a
+    // string is refused for how it is written (finding 69).
+    const written = await add({ ...NEW, spaceId: String(spaceId) as unknown as number });
+    const deleted = await add({ ...NEW, spaceId });
+
+    expect(written.status).toBe(422);
+    expect(errorOf(written).errors).toEqual({ spaceId: ['invalid_format'] });
+    expect(deleted.status).toBe(422);
+    expect(errorOf(deleted).errors).toEqual({ spaceId: ['invalid_choice'] });
+    expect(await account()).toBeNull();
+  });
+
   it('refuses a body without a name, a valid email or a space', async () => {
     const response = await adminRequest(app, admin, 'post', '/owners', { email: 'nour' });
 
