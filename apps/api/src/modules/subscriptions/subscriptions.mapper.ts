@@ -52,6 +52,7 @@ export function toSubscriptionState(row: SubscriptionStateRow, today: string): S
       today,
     ),
     progress,
-    dueAgorot: row.due_agorot,
+    // `bigint` in SQL; exact as a number within the price's bound (data model › Derived values).
+    dueAgorot: Number(row.due_agorot),
   };
 }

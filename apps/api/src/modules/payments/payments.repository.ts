@@ -139,10 +139,12 @@ function balancesOf(
 
 /**
  * Per customer: the debt, the sum of the positive balances (due − paid), an unpriced visit none; and
- * the credit, the sum of what was paid above the due, a usage-based subscription's only.
+ * the credit, the sum of what was paid above the due, a usage-based subscription's only. Both
+ * `bigint`, as a subscription's due is (data model › Derived values); each reader maps them through
+ * `Number()`, exact within the price's bound.
  */
-const DEBT = Prisma.sql`coalesce(sum(greatest(due - paid, 0)), 0)::integer`;
-const CREDIT = Prisma.sql`coalesce(sum(greatest(paid - due, 0)) FILTER (WHERE usage_based), 0)::integer`;
+const DEBT = Prisma.sql`coalesce(sum(greatest(due - paid, 0)), 0)::bigint`;
+const CREDIT = Prisma.sql`coalesce(sum(greatest(paid - due, 0)) FILTER (WHERE usage_based), 0)::bigint`;
 
 /**
  * The space's uncollected visits (data model › Uncollected visits), as a `FROM`: closed by the auto
@@ -273,12 +275,15 @@ export function createPaymentsRepository() {
       tx: Tx = prisma,
     ): Promise<Map<number, CustomerBalance>> {
       if (customerIds.length === 0) return new Map();
-      const rows = await tx.$queryRaw<{ customer_id: number; debt: number; credit: number }[]>`
+      const rows = await tx.$queryRaw<{ customer_id: number; debt: bigint; credit: bigint }[]>`
         WITH balances AS (${balancesOf(spaceId, customerIds, now)})
         SELECT customer_id, ${DEBT} AS debt, ${CREDIT} AS credit
         FROM balances GROUP BY customer_id`;
       const found = new Map(
-        rows.map(({ customer_id, debt, credit }) => [customer_id, { debt, credit }]),
+        rows.map(({ customer_id, debt, credit }) => [
+          customer_id,
+          { debt: Number(debt), credit: Number(credit) },
+        ]),
       );
       return new Map(
         customerIds.map((id) => {
@@ -320,7 +325,7 @@ export function createPaymentsRepository() {
       const rows = await tx.$queryRaw<
         {
           customer_id: number;
-          amount: number;
+          amount: bigint;
           total: number;
           kind: 'VISIT' | 'SUBSCRIPTION' | null;
           item_id: number | null;
@@ -346,7 +351,7 @@ export function createPaymentsRepository() {
       return {
         rows: rows.map(({ customer_id, amount: amountAgorot, kind, item_id, created_at }) => ({
           customerId: customer_id,
-          amountAgorot,
+          amountAgorot: Number(amountAgorot),
           oldest:
             kind && item_id !== null && created_at
               ? { kind, id: item_id, createdAt: created_at }
@@ -363,20 +368,20 @@ export function createPaymentsRepository() {
      */
     async balanceTotals(spaceId: number, now: Now, tx: Tx = prisma): Promise<BalanceTotals> {
       const [row] = await tx.$queryRaw<
-        { owed: number; owing: number; credit: number; crediting: number }[]
+        { owed: bigint; owing: number; credit: bigint; crediting: number }[]
       >`
         WITH balances AS (${balancesOf(spaceId, null, now)}),
         customers AS (
           SELECT ${DEBT} AS debt, ${CREDIT} AS credit FROM balances GROUP BY customer_id
         )
-        SELECT coalesce(sum(debt), 0)::integer AS owed,
+        SELECT coalesce(sum(debt), 0)::bigint AS owed,
                count(*) FILTER (WHERE debt > 0)::integer AS owing,
-               coalesce(sum(credit), 0)::integer AS credit,
+               coalesce(sum(credit), 0)::bigint AS credit,
                count(*) FILTER (WHERE credit > 0)::integer AS crediting
         FROM customers`;
       return {
-        owed: { agorot: row?.owed ?? 0, customers: row?.owing ?? 0 },
-        credit: { agorot: row?.credit ?? 0, customers: row?.crediting ?? 0 },
+        owed: { agorot: Number(row?.owed ?? 0), customers: row?.owing ?? 0 },
+        credit: { agorot: Number(row?.credit ?? 0), customers: row?.crediting ?? 0 },
       };
     },
 
@@ -470,7 +475,8 @@ export function createPaymentsRepository() {
         {
           kind: ItemBalanceRow['kind'];
           id: number;
-          due: number | null;
+          /** `bigint` for a subscription, as `subscription_usage` answers it. */
+          due: bigint | number | null;
           paid: number;
           created_at: Date;
         }[]
@@ -481,7 +487,7 @@ export function createPaymentsRepository() {
       return rows.map(({ kind, id, due, paid, created_at }) => ({
         kind,
         id,
-        dueAgorot: due,
+        dueAgorot: due === null ? null : Number(due),
         paidAgorot: paid,
         createdAt: created_at,
       }));

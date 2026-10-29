@@ -49,7 +49,8 @@ export interface SubscriptionStateRow {
   days_this_week: number;
   minutes_used: number;
   minutes_today: number;
-  due_agorot: number;
+  /** `bigint`, so no price within its bound overflows it (data model › Derived values). */
+  due_agorot: bigint;
 }
 
 /** A subscription to write: its customer, its terms and dates (Gaza dates), and its key. */
