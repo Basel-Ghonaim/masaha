@@ -132,4 +132,18 @@ describe('PackagesSection', () => {
       screen.getByText('Create a package like «10 days» or «20 hours» to pick at the desk.'),
     ).toBeInTheDocument();
   });
+  it('announces the terms and the price as they change, never the name typed', async () => {
+    const user = userEvent.setup();
+    renderSection([]);
+    await user.click(await screen.findByRole('button', { name: 'New package' }));
+    const sheet = await screen.findByRole('dialog', { name: 'New package' });
+
+    await user.type(within(sheet).getByRole('textbox', { name: 'Package name' }), 'Evenings');
+    await user.type(within(sheet).getByRole('textbox', { name: 'Total price (₪)' }), '150');
+
+    const live = sheet.querySelector('[aria-live="polite"]');
+    expect(live).toHaveTextContent('₪150');
+    expect(live).not.toHaveTextContent('Evenings');
+    expect(within(sheet).getAllByText('Evenings').length).toBeGreaterThan(0);
+  });
 });
