@@ -75,14 +75,14 @@ describe('useStaffActions', () => {
   it('holds «New temporary password» with its reason when none is pending, and on a deactivated row', () => {
     const settled = renderActions(RAHAF);
     expect(itemNamed(settled.result.current.items, 'New temporary password')).toMatchObject({
-      disabled: true,
+      held: true,
       reason:
         'They’ve changed the temporary password; if they forget their password, they recover it by email.',
     });
 
     const inactive = renderActions(INACTIVE);
     expect(itemNamed(inactive.result.current.items, 'New temporary password')).toMatchObject({
-      disabled: true,
+      held: true,
       reason: 'Give their access back first.',
     });
   });

@@ -2,6 +2,7 @@ import type { StaffMember } from '@masaha/shared/space-links';
 import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { fakeTransport, ok, restoreTransport } from '../../../test/fakeTransport';
@@ -64,5 +65,25 @@ describe('StaffList', () => {
 
     expect(await screen.findByText('No staff yet')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Add staff member' })).toHaveLength(1);
+  });
+  it('reaches the held «New temporary password» by the keyboard, its reason read with it', async () => {
+    const user = userEvent.setup();
+    renderList([{ ...RAHAF, temporaryPassword: null }]);
+
+    const trigger = await screen.findByRole('button', { name: heard('Actions: Rahaf') });
+    trigger.focus();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menu');
+    const visited = [document.activeElement];
+    await user.keyboard('{ArrowDown}');
+    visited.push(document.activeElement);
+    await user.keyboard('{ArrowUp}');
+    visited.push(document.activeElement);
+
+    // Radix skips a disabled item: the held one stays in the arrow keys' path (finding 105).
+    const held = visited.find((element) => element?.textContent.includes('New temporary password'));
+    expect(held).toHaveAttribute('role', 'menuitem');
+    expect(held).toHaveAttribute('aria-disabled', 'true');
+    expect(held).toHaveTextContent('They’ve changed the temporary password');
   });
 });

@@ -13,7 +13,8 @@ import { useStaffActions } from '../hooks/access/useStaffActions';
 import type { StaffDialog } from '../types/StaffDialog';
 
 /**
- * A staff member's row menu, «إجراءات: {name}»: a held item says why under it (foundation §10),
+ * A staff member's row menu, «إجراءات: {name}»: a held item says why under it (foundation §10)
+ * and stays in the arrow keys' path, so its reason is reached (D3.3, finding 105),
  * and a destructive one comes last, after a separator. While an action of the row waits, the
  * button is busy — still in the focus order, but the menu does not open. Its dialogs open where the
  * list holds them (`open`); the button is the list's to find again (`triggerRef`).
@@ -57,7 +58,7 @@ export function StaffActionsMenu({
           <Fragment key={item.label}>
             {item.destructive && <DropdownMenuSeparator />}
             <DropdownMenuItem
-              disabled={item.disabled}
+              held={item.held}
               variant={item.destructive ? 'destructive' : 'default'}
               onSelect={item.run}
             >

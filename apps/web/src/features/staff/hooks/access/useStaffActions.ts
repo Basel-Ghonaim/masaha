@@ -10,7 +10,8 @@ import { useSetStaffActive } from './useSetStaffActive';
 /** One item of a staff member's menu: its label, and why it is held when it is. */
 export type StaffActionItem = {
   label: string;
-  disabled: boolean;
+  /** Cannot be taken now: kept in the keyboard's path, its reason read with it (finding 105). */
+  held: boolean;
   /** Why the item is held, said under it (foundation §10). */
   reason?: string;
   destructive: boolean;
@@ -47,7 +48,7 @@ export function useStaffActions(
   const access: StaffActionItem = member.isActive
     ? {
         label: copy.deactivate.item,
-        disabled: false,
+        held: false,
         destructive: true,
         run: () => {
           open({ kind: 'deactivate', member });
@@ -55,7 +56,7 @@ export function useStaffActions(
       }
     : {
         label: copy.reactivate.item,
-        disabled: false,
+        held: false,
         destructive: false,
         run: () => {
           reactivate.mutate(
@@ -71,7 +72,7 @@ export function useStaffActions(
 
   const held = (reason: string): StaffActionItem => ({
     label: copy.reissue.item,
-    disabled: true,
+    held: true,
     reason,
     destructive: false,
     run: () => undefined,
@@ -82,7 +83,7 @@ export function useStaffActions(
       ? held(copy.reissue.heldSettled)
       : {
           label: copy.reissue.item,
-          disabled: false,
+          held: false,
           destructive: false,
           run: () => {
             open({ kind: 'reissue', member });
