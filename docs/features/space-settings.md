@@ -71,7 +71,8 @@ A change applies from then on ([data model › Front desk and money](../architec
 - **The attendance card is one card and one save over two capabilities, composed in the page: the capacity first, then the settings; a second part that fails, whatever its failure, says what was saved in the card's note, the capacity becomes the card's own and every value stays** (the owner's O2, S8; [finding 96](../architecture/findings/96-the-attendance-card-saves-two-capabilities-in-one-save.md)). *Why:* the design draws one card; a component of two capabilities lives in neither; and its form is checked by a schema that runs both contracts, so no zod internals are needed. 2026-10-20, #99.
 - **The settings are cards, each saved alone, sending only what changed** (the design's screen 24). *Why:* each card is one decision, and a save that changes nothing writes nothing on the server either. 2026-10-20, #99.
 - **The rounding rule and its minutes are sent together whenever either changed.** *Why:* the contract checks the pair alone, never against the stored row. 2026-10-20, #99.
-- **No «حسابي» card** (design issue 13). *Why:* it leads to `/me`, which is not built. 2026-10-20, #99.
+- **No «حسابي» card** (design issue 13). *Why:* it leads to `/me`, which is not built. 2026-10-20, #99. Superseded: the last card, «حسابي», leads to the personal settings, `/me` (D5.7, with the owner's approval in the plan). 2026-10-29, #132.
+- **The auto check-out's helper says where unpaid visits go, «غير محصّل», and the reminder's where it opens, the customer's file and Finance** (G24.2, G24.3). 2026-10-29, #132.
 - **Hand-typed prices are a card of their own, «الاستقبال»** (design issue 14). *Why:* the design has no place for the switch #92 added. 2026-10-20, #99.
 - **The catalogue's reminder is shown while the space keeps none, and saved as none while it is left as it is; «استعادة النص الافتراضي» brings it back** (design issue 17). *Why:* a space that never wrote one follows the catalogue's words, in whichever language; the design had no way back to them. 2026-10-20, #99.
 - **A refused placeholder is named in the line, isolated, and the amount's absence told apart from a character not allowed.** *Why:* the contract's two codes say which rule; the owner sees which token to fix. 2026-10-20, #99.
@@ -99,3 +100,4 @@ A change applies from then on ([data model › Front desk and money](../architec
 
 - #99 — the owner's «الإعدادات»: visit pricing and reception, each card saved alone; the attendance card, with `occupancy`'s capacity, in one save (finding 96); the debt reminder, its placeholders inserted at the caret, its preview, and the catalogue's text restored.
 - #132 — the reminder's preview fills it with the shared `fillReminder`, the one filler finance and the customer's file use too.
+- 2026-10-29, #132 — «حسابي», the settings' last card, to the personal settings; the auto check-out's and the reminder's lines say where things go.
