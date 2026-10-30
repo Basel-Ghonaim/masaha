@@ -1,8 +1,8 @@
 # Finance
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
-> **Authority:** The `finance` capability: the owner's read models of a space's money and occupancy. Its endpoints are owned by the [API contract](../api/api-contract.md#finance); what income, collections and the occupancy statistics count by the [data model](../architecture/data-model.md#front-desk-and-money); the ledger's aggregates by [payments](payments.md). The API is built; no screen yet.
-> **Scope:** the API module `finance` (L5); `@masaha/shared/finance`.
+> **Authority:** The `finance` capability: the owner's read models of a space's money and occupancy. Its endpoints are owned by the [API contract](../api/api-contract.md#finance); what income, collections and the occupancy statistics count by the [data model](../architecture/data-model.md#front-desk-and-money); the ledger's aggregates by [payments](payments.md). The API is built; on the web, the owner's Finance (screen 19).
+> **Scope:** the API module `finance` (L5); `@masaha/shared/finance`; the web feature `features/finance`, dashboard-only.
 
 ## What it does
 
@@ -13,7 +13,7 @@
 
 ## Who uses it
 
-- **The space's owner,** under `/manage/spaces/:spaceId/finance`. Reception is refused; it keeps its own payments of today («دفعاتي اليوم», [payments](payments.md)). The owner's Finance screen (19) is to come, on the web.
+- **The space's owner,** under `/manage/spaces/:spaceId/finance`. Reception is refused; it keeps its own payments of today («دفعاتي اليوم», [payments](payments.md)). On the web, «المالية والتقارير» at `/dashboard/spaces/:spaceId/finance`; reception gets the 403 there (2026-10-29, #132).
 
 ## Responsibility boundary
 
@@ -38,6 +38,10 @@
 
 **Occupancy.** A `WITH` of the space's closed visits and check-ins checked in within the range, bounded on their `space_id, checked_in_at` indexes (a stay never crosses its check-in's day). Per day, one statement: the visits, and the members each once (`count(DISTINCT customer_id)`). Per hour slot — every hour of each Gaza day by Gaza's weekday and hour (`hourSlots`; a daylight-saving day has 23 or 25) — one statement: the stays overlapping it. The grid sums the 28 days' slots per weekday and hour and divides by 4, one decimal, half up; takes the month's peak hour, ties the earliest; and averages the month's attendance over the days with any. The average stay is the database's, in whole minutes. Five statements in parallel, no snapshot.
 
+**The owner's screen** (`FinanceScreen`, screen 19). The tabs «الدخل», «الديون», «الإشغال» and, beside them from 1024 px, «الشهر»: the current Gaza month and the 23 before it, newest first, each «{month} {year}» with Western digits; the tab and the month are in the address (`?tab=`, `?month=`), the defaults never written and a month outside the 24 read as the current one. The month moves the month-bound blocks only; the charts keep their fixed windows, named. In the top bar, the export of the tab shown (in «⋯» on a phone), a CSV built in the browser and saved on the owner's device, then «نُزّل الملف» with its name.
+
+**Income.** What income counts, in a line; three tiles — today, up to the time read; the month asked, with «+{n}% عن {الشهر السابق}» when the month before had income; all time, since its first month or «لا دفعات بعد»; «الدخل حسب الشهر» over the last 12 months (subscriptions and visits stacked) and «دخل الزيارات يوميًا» over the last 30 days, a tick under every fifth day back from today; and «التحصيل حسب الموظف», the month's collections per person — how many, the total, cash and transfer — a table from 768 px, a card each below it. Its export, `masaha-income-{YYYY-MM}.csv`: a row per month of the 12, the amounts in shekels with a dot. `useMonthCollections` hands a page this month's collections per person. Its states: blocks while it loads; a failure, «تعذّر تحميل المالية» with «إعادة المحاولة»; offline, its own state.
+
 ## Decisions
 
 ### API decisions
@@ -51,13 +55,25 @@
 - **The aggregates are `payments`', not `finance`'s** (S3). *Why:* the voided and balance rules keep one home, and the owner's overview, which may not import `finance`, reads them too (A2 was the alternative). Who paid is the one exception, `finance`'s own query with its own "not voided" `WHERE`: it groups payments by their items' customers, which no ledger function answers, and sums no balance (D12). 2026-10-29, #131.
 - **Occupancy from closed stays; the 28 days leave today out and divide by 4** (the owner's decision 7, Q3). *Why:* an open stay has no length yet; without today each weekday counts exactly four times. No snapshot: no figure must equal another. 2026-10-29, #131.
 
+### Web decisions
+
+- **Finance's address is its tab and its month** (DI29), the defaults left out. 2026-10-29, #132.
+- **The export is the browser's, from the figures read** (the owner's decision 5): no export route; the file is saved by the owner's own download. 2026-10-29, #132.
+- **The month's change is a whole percentage, and none without a month before** (D5.3): no ratio of nothing. 2026-10-29, #132.
+- **Every link is the page's** (architecture §3): `FinanceLinks`. 2026-10-29, #132.
+
 ## Code map
 
 - `apps/api/src/modules/finance/` — the module: its service, its repository (who paid, the stays), its mapper, its windows (`windows.ts`), the occupancy grid (`occupancyGrid.ts`), its controller and its manage router.
 - `packages/shared/src/finance/` — the queries (the month and its bound, the debts', the payers') and the answers.
+- `apps/web/src/features/finance/`, entry `index.ts` (`FinanceScreen`, `FinanceExport`, `FinanceLinks`, `useMonthCollections`), read by `pages/dashboard/space/finance/FinancePage.tsx`, which passes the links and the space's name and sets the export in the top bar: the repository (four reads) in `repository/`; the keys, the address (`useFinanceTabs`), the screen's view, the export and each tab's query and view (`income/`) in `hooks/`; the months, their words, the month's change and each CSV in `services/`; the screen, the month, the tabs' cards and the failure in `components/`. Words: the catalogue's `finance` section.
 
 ## History
 
 ### API history
 
 - #131 — a month's income and the staff's collections; who owes and who is in credit, with the totals and the reminder template; who paid in a month; the occupancy statistics.
+
+### Web history
+
+- 2026-10-29, #132 — Finance (screen 19): its tabs and month, and the income with its export.
