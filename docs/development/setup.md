@@ -1,6 +1,6 @@
 # Setup
 
-> **Status:** Active · **Last Updated:** 2026-10-21 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** How to install, run, check and test the repository locally, and what CI runs. Which lane proves a behaviour is owned by [testing.md](testing.md); how work is executed by [workflow.md](workflow.md).
 
 ## Prerequisites
@@ -59,7 +59,7 @@ All commands run from the repository root.
 | `npm run check:classes` | Fails on physical direction classes (`ml-`, `left-`, `text-left` …) anywhere in `apps/web/src`; use the logical form ([foundation §8](../frontend/design-system/foundation.md#8-direction-rtl--ltr)). Also fails on arbitrary-value classes (`text-[13px]`, `bg-[#fff]`, `bg-(--token)` …) outside `shared/design-system/`; use a token utility ([foundation §2](../frontend/design-system/foundation.md#2-principles)) |
 | `npm run check:links` | Fails on a relative link, an image path or an anchor of any Markdown file that does not resolve, and on a `docs/….md` path cited in a source file that does not exist; paths are compared with the real files, case included. External links are not checked ([documentation rules §8](../architecture/documentation.md#8-link-integrity)) |
 | `npm run check:conflicts` | Fails when any git-tracked file holds a merge-conflict marker (`<<<<<<< `, `>>>>>>> `, or `=======` between them); skips binary files; prints each hit as `<file>:<line>` and a total |
-| `npm run check:build` | Run after `npm run build`: fails if `apps/web/dist` contains the development-only design-system showcase (its route path, or any of its fixture strings that the copy catalogues do not also write), or if the site's first download, read from the build's manifest, reaches the dashboard's code or a heavy library's chunk, or a library's chunk is missing ([architecture §3](../frontend/architecture.md#3-capabilities-features)) |
+| `npm run check:build` | Run after `npm run build`: fails if `apps/web/dist` contains the development-only design-system showcase (its route path, or any of its fixture strings that the copy catalogues do not also write), or if the site's first download, read from the build's manifest, reaches the dashboard's code or a heavy library's chunk, or a library's chunk is missing, or a site page's chunk reaches a heavy library's through its static imports, or a chunk the dashboard's reaches imports it back ([architecture §3](../frontend/architecture.md#3-capabilities-features)) |
 | `npm run format` | Prettier over the repository (Markdown is excluded) |
 | `npm run format:check` | The same files, checked without writing: fails naming each file `format` would change |
 

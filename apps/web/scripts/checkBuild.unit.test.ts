@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  dashboardCycleProblems,
   dashboardProblems,
   findForbidden,
   firstDownload,
@@ -121,6 +122,18 @@ describe('dashboardProblems', () => {
     ]);
   });
 
+  it('names the chunk of what only the dashboard imports when the first download imports it', () => {
+    const manifest = {
+      ...site,
+      '_shared.js': { name: 'dashboard-shared', imports: ['_react.js'] },
+      '_react.js': { imports: ['_shared.js'] },
+    };
+
+    expect(dashboardProblems(manifest)).toEqual([
+      "_shared.js is dashboard code in the site's first download.",
+    ]);
+  });
+
   it('names a chunk made from a dashboard module when the first download imports it', () => {
     const manifest = {
       ...site,
@@ -215,6 +228,53 @@ describe('sitePageProblems', () => {
     expect(sitePageProblems(manifest, ['data-table', 'calendar']).sort()).toEqual([
       "src/pages/site/public/space/SpacePage.tsx reaches calendar's chunk (_calendar.js).",
       "src/pages/site/public/space/SpacePage.tsx reaches data-table's chunk (_table.js).",
+    ]);
+  });
+});
+
+describe('dashboardCycleProblems', () => {
+  const build: Record<string, ManifestChunk> = {
+    'index.html': { isEntry: true, imports: ['_react.js'] },
+    '_react.js': {},
+    '_dashboard-shared.js': { name: 'dashboard-shared', imports: ['_react.js'] },
+    '_dashboard.js': {
+      name: 'dashboard',
+      imports: ['_react.js', '_dashboard-shared.js', 'index.html'],
+    },
+    'src/pages/dashboard/shell/SpaceLayout.tsx': {
+      src: 'src/pages/dashboard/shell/SpaceLayout.tsx',
+      isDynamicEntry: true,
+      imports: ['_react.js', '_dashboard.js'],
+    },
+  };
+
+  it('finds nothing when what the dashboard imports never imports it back', () => {
+    expect(dashboardCycleProblems(build)).toEqual([]);
+  });
+
+  it('refuses a chunk the dashboard imports that imports it back', () => {
+    const manifest = {
+      ...build,
+      '_dashboard.js': {
+        name: 'dashboard',
+        imports: ['_react.js', 'src/pages/dashboard/shell/SpaceLayout.tsx'],
+      },
+    };
+
+    expect(dashboardCycleProblems(manifest)).toEqual([
+      'src/pages/dashboard/shell/SpaceLayout.tsx imports the dashboard chunk (_dashboard.js), which imports it.',
+    ]);
+  });
+
+  it('refuses a cycle closed deeper down', () => {
+    const manifest = {
+      ...build,
+      '_dashboard-shared.js': { name: 'dashboard-shared', imports: ['_react.js'] },
+      '_react.js': { imports: ['_dashboard.js'] },
+    };
+
+    expect(dashboardCycleProblems(manifest)).toEqual([
+      '_react.js imports the dashboard chunk (_dashboard.js), which imports it.',
     ]);
   });
 });

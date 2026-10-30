@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
-import { DASHBOARD_CHUNK, isDashboardModule } from './dashboardOnly.ts';
+import { DASHBOARD_CHUNK, DASHBOARD_SHARED_CHUNK, isDashboardModule } from './dashboardOnly.ts';
 import { LIBRARY_CHUNKS } from './libraryChunks.ts';
 
 // The design-system showcase is development-only (docs/frontend/architecture.md §2). If any of it
@@ -94,10 +94,15 @@ export function firstDownloadCss(manifest: Record<string, ManifestChunk>): strin
   return [...new Set(firstDownload(manifest).flatMap((key) => manifest[key]?.css ?? []))];
 }
 
-/** Whether a chunk holds dashboard code: the dashboard's chunk, or a chunk made from its module. */
+/**
+ * Whether a chunk holds dashboard code: the dashboard's chunk, the chunk of what only the dashboard
+ * imports, or a chunk made from a dashboard module.
+ */
 function isDashboardChunk(chunk: ManifestChunk | undefined): boolean {
   return (
-    chunk?.name === DASHBOARD_CHUNK || (chunk?.src !== undefined && isDashboardModule(chunk.src))
+    chunk?.name === DASHBOARD_CHUNK ||
+    chunk?.name === DASHBOARD_SHARED_CHUNK ||
+    (chunk?.src !== undefined && isDashboardModule(chunk.src))
   );
 }
 
@@ -115,6 +120,22 @@ export function dashboardProblems(manifest: Record<string, ManifestChunk>): stri
   return firstDownload(manifest)
     .filter((key) => isDashboardChunk(manifest[key]))
     .map((key) => `${key} is dashboard code in the site's first download.`);
+}
+
+/**
+ * What is wrong with what the dashboard imports (finding 27): each chunk the dashboard's chunk
+ * reaches through its static imports, deeply, that imports the dashboard's chunk back. Such a cycle
+ * holds only while every use across it waits inside a function; a module-level use would fail when
+ * the chunk is the first one loaded.
+ */
+export function dashboardCycleProblems(manifest: Record<string, ManifestChunk>): string[] {
+  const dashboard = Object.keys(manifest).find((key) => manifest[key]?.name === DASHBOARD_CHUNK);
+  if (dashboard === undefined) {
+    return [];
+  }
+  return staticReach(manifest, manifest[dashboard]?.imports ?? [])
+    .filter((key) => key !== dashboard && (manifest[key]?.imports ?? []).includes(dashboard))
+    .map((key) => `${key} imports the dashboard chunk (${dashboard}), which imports it.`);
 }
 
 /**
@@ -200,7 +221,7 @@ function main() {
     ? (JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, ManifestChunk>)
     : undefined;
   const problems = manifest
-    ? dashboardProblems(manifest)
+    ? [...dashboardProblems(manifest), ...dashboardCycleProblems(manifest)]
     : [`${MANIFEST} does not exist: the build writes no manifest.`];
   for (const problem of problems) {
     console.error(problem);
@@ -234,11 +255,13 @@ function main() {
   if (problems.length > 0) {
     console.error(
       `
-The site's first download must not reach the dashboard (ADR 0011): look for a static import of dashboard code outside the dashboard.`,
+The site's first download must not reach the dashboard (ADR 0011): look for a static import of dashboard code outside the dashboard. No chunk the dashboard imports may import it back (finding 27): look for what only the dashboard imports that the dashboard-shared group no longer takes.`,
     );
     process.exitCode = 1;
   } else {
-    console.log("No dashboard code in the site's first download.");
+    console.log(
+      "No dashboard code in the site's first download, and no chunk the dashboard imports imports it back.",
+    );
   }
 
   if (libraryFaults.length > 0) {
