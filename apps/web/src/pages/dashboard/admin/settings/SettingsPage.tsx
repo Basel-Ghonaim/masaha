@@ -1,9 +1,15 @@
+import { PlatformSettingsCards } from '@features/platform-settings';
 import { PageHeader } from '../../shell/PageHeader';
 
 /**
- * The platform settings (screen 32): its route and title are the foundation's; its screen is U6 (D6.2)'s, which replaces this body.
- * Until then, the title in the top bar and nothing more.
+ * «إعدادات المنصة» (screen 32, AD-029): `platform-settings`' three cards, each read, saved and
+ * refused on its own. The guard has checked the admin's role.
  */
 export function SettingsPage() {
-  return <PageHeader />;
+  return (
+    <>
+      <PageHeader />
+      <PlatformSettingsCards />
+    </>
+  );
 }

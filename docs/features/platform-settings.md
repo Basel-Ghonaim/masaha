@@ -1,8 +1,8 @@
 # Platform settings
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
-> **Authority:** The `platform-settings` capability: the platform's own settings, which the admin edits and other modules read. Its endpoints are owned by the [API contract](../api/api-contract.md#platform-settings); its entity by the [data model](../architecture/data-model.md#operations). The API is built; no screen yet.
-> **Scope:** the API module `platform-settings` (L0); `@masaha/shared/platform-settings`, and the new-space defaults' schema in `@masaha/shared/space-settings`.
+> **Authority:** The `platform-settings` capability: the platform's own settings, which the admin edits and other modules read. Its endpoints are owned by the [API contract](../api/api-contract.md#platform-settings); its entity by the [data model](../architecture/data-model.md#operations). The API is built; so is the admin's screen, «إعدادات المنصة» (2026-10-29, #132).
+> **Scope:** the API module `platform-settings` (L0); `@masaha/shared/platform-settings`, and the new-space defaults' schema in `@masaha/shared/space-settings`; the web feature `platform-settings` (the admin's cards in its `index.ts`, the site's contact in its `public.ts`).
 
 ## What it does
 
@@ -14,7 +14,7 @@
 
 ## Who uses it
 
-- **The admin,** under `/admin/settings/{new-space-defaults|staleness|contact}`. The admin's settings screen (32) is not built.
+- **The admin,** under `/admin/settings/{new-space-defaults|staleness|contact}`. On the dashboard, the admin edits «إعدادات المنصة» (`/dashboard/admin/settings`, screen 32; 2026-10-29, #132).
 - **Anyone,** at `/settings/public`: the contact, for the site's About and the owner's line.
 - **`spaces`** reads the defaults when a space is created and the thresholds for its stale groups.
 - The site still reads its contact from `VITE_CONTACT_*`; moving it to the API is the web's.
@@ -40,6 +40,8 @@
 
 **The defaults** apply to the next space created, never to an existing one; **a threshold** applies at once, as every stale-group read reads it.
 
+**The admin's screen** (web, D6.2, AD-029). One column at a form's reading width, three cards in order: «التواصل مع المنصة» (the email and the WhatsApp number, left to right, each optional: left empty it is sent `null`, which hides it from the site), «حداثة البيانات» (the prices' days and the other data's, side by side from 768 px, whole days from 1 to 365, Arabic-Indic digits read) and «الإعدادات الافتراضية للمساحات الجديدة» (the automatic check-out, the visit's rounding — its minutes shown only for «تقريب لأعلى بعد عدد من الدقائق», bounded and worded as the owner's pricing card, EC18 — and the day price's cap). Each card is read by its own `GET` (`['admin', 'platform-settings', '<card>']`), with its own skeleton and its own failure with «إعادة المحاولة»; checked in the browser by its shared schema; «حفظ» always enabled (P10), sending the card whole; while it differs from the saved values, «تغييرات غير محفوظة» in its header and «تجاهل التغييرات» in its footer; a refusal inside the card only, the 429 counted down; a save's answer is the card's saved values, with the toast «حُفظت الإعدادات».
+
 ## Decisions
 
 ### API decisions
@@ -53,10 +55,16 @@
 - **The public contact cached 5 minutes** (D7). *Why:* it changes rarely, and the site reads it on About and the owner's line; a saved change reaches a reader within 5 minutes. 2026-10-28, #130.
 - **An audit entry with no entity id** (S8). *Why:* a setting has no numeric id; a fake `0` would lie. 2026-10-28, #130.
 
+### Web decisions
+
+- **Each card its own read, save and error** (AD-029): three queries and three forms, so one card's refusal or failed read never touches another's, as the API's three resources. 2026-10-29, #132.
+- **A card is sent whole, «حفظ» always enabled** (P10): the server writes and audits only what changed, so the web compares nothing. 2026-10-29, #132.
+
 ## Code map
 
 - `apps/api/src/modules/platform-settings/` — the module: the key catalogue (`settingKeys.ts`), its repository, its service with the three cards, the pure rule of what a save changes (`settingsChange.ts`), its controller, its admin and public routers.
 - `packages/shared/src/platform-settings/` — the thresholds' and the contact's schemas and answers; `packages/shared/src/space-settings/requests.ts` — the new-space defaults' schema.
+- `apps/web/src/features/platform-settings/` — the web: its repository, the admin's cards' hooks and components (`hooks/admin/`, `components/admin/`), and the site's contact (`public.ts`); the page `pages/dashboard/admin/settings/SettingsPage.tsx`.
 
 ## Open findings
 
@@ -67,3 +75,7 @@
 ### API history
 
 - #130 — the admin's three cards, the new-space defaults, the staleness thresholds and the contact, each read and saved on its own and audited; the contact in the typed catalogue (finding 40); the public contact, `GET /settings/public`.
+
+### Web history
+
+- #132 — the admin's «إعدادات المنصة» (screen 32): the contact, the data's freshness and the new spaces' defaults, each card read, saved and refused on its own.
