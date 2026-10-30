@@ -41,6 +41,12 @@ export function WriteOffDialog({
       }}
     >
       <AlertDialogContent
+        // An alert dialog focuses «رجوع» first, and a field's `autoFocus` loses to it in a browser:
+        // the dialog places the focus on the reason itself, as the void's does (finding 172).
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          if (event.target instanceof HTMLElement) event.target.querySelector('textarea')?.focus();
+        }}
         onEscapeKeyDown={(event) => {
           if (dialog.submit.busy) event.preventDefault();
         }}
@@ -55,7 +61,7 @@ export function WriteOffDialog({
         </AlertDialogHeader>
         <form noValidate onSubmit={dialog.submit.run} className="flex flex-col gap-4">
           <Field label={dialog.reason.label} error={dialog.reason.error}>
-            <Textarea autoFocus aria-required {...dialog.reason.field} />
+            <Textarea aria-required {...dialog.reason.field} />
           </Field>
           {dialog.failure !== null && <FormFailure view={dialog.failure} />}
           <AlertDialogFooter>
