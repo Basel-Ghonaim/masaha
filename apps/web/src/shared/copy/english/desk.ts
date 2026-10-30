@@ -591,4 +591,37 @@ export const DESK = {
       failed: 'We couldn’t save the subscription',
     },
   },
+  /** «السجل»: the day's log beside who is here (K8). */
+  log: {
+    tabs: { label: 'Who is here, and the day', now: 'Now', log: 'Log' },
+    title: 'Log',
+    day: 'Day',
+    today: 'Today',
+    calendar: { previous: 'Previous month', next: 'Next month' },
+    table: 'The day’s log',
+    columns: {
+      name: 'Name',
+      kind: 'Type',
+      in: 'In',
+      out: 'Out',
+      duration: 'Duration',
+      ended: 'Ended',
+    },
+    kinds: { visit: 'Visit', student: 'Visit · student' },
+    stillHere: '—',
+    duration: ({ hours, minutes }: { hours: string; minutes: string }) => `${hours}:${minutes}`,
+    methods: { AUTO: 'Automatic', MANUAL: 'Manual' },
+    writtenOff: 'Written off',
+    empty: 'No one came on this day',
+    loadFailed: 'Couldn’t load the log',
+    pagination: {
+      label: 'Pages of the log',
+      previous: 'Previous',
+      next: 'Next',
+      page: ({ page }: { page: number }) => `Page ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `Page ${String(page)} of ${String(total)}`,
+      more: 'More pages',
+    },
+  },
 } as const;

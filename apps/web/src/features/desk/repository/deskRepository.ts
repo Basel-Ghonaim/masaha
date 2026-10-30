@@ -47,7 +47,8 @@ export type Subscribed = WithMeta<NewSubscription, { warnings: 'CUSTOMER_HAS_DEB
  * on one, «تسجيل دين», and the owner's write-off and its undo; the owner's void of a payment; the
  * unpriced visits and their price; the customers' search; a subscriber's check-in and check-out, and
  * the open check-ins; a customer's file, their creation, edit, the owner's archive and restore; a
- * subscribe with its payment; a subscription's statement, and its end. The creates carry the
+ * subscribe with its payment; a subscription's statement, and its end; a day's visits and
+ * check-ins, the desk's log. The creates carry the
  * intent's key (ADR 0015), which lets the transport send them again; the other writes are idempotent
  * by design and carry none, so they are sent once (S3).
  */
@@ -125,7 +126,17 @@ export interface DeskRepository {
   statement(spaceId: number, subscriptionId: number): Promise<SubscriptionStatement>;
   /** Ends a subscription today (its start, if not started); one ended already is answered as it is. */
   endSubscription(spaceId: number, subscriptionId: number): Promise<SubscriptionState>;
+  /**
+   * A page of the visits checked in on one Gaza day, the latest first; `day` `null` asks for today
+   * with no range, as reception must (a range from reception is refused).
+   */
+  dayVisits(spaceId: number, day: string | null, page: number): Promise<Page<DeskVisit[]>>;
+  /** A page of the subscriber check-ins of one Gaza day, the latest first. */
+  dayCheckIns(spaceId: number, day: string, page: number): Promise<Page<DeskCheckIn[]>>;
 }
+
+/** A day's log is read whole, the contract's largest page at a time (§4). */
+const DAY_PAGE = 50;
 
 export function createDeskRepository(): DeskRepository {
   const space = (spaceId: number) => `/manage/spaces/${String(spaceId)}`;
@@ -195,5 +206,14 @@ export function createDeskRepository(): DeskRepository {
       api.get<SubscriptionStatement>(`${space(spaceId)}/subscriptions/${String(subscriptionId)}`),
     endSubscription: (spaceId, subscriptionId) =>
       api.post<SubscriptionState>(`${space(spaceId)}/subscriptions/${String(subscriptionId)}/end`),
+    dayVisits: (spaceId, day, page) =>
+      api.getPage<DeskVisit[]>(`${space(spaceId)}/visits`, {
+        params:
+          day === null ? { page, limit: DAY_PAGE } : { from: day, to: day, page, limit: DAY_PAGE },
+      }),
+    dayCheckIns: (spaceId, day, page) =>
+      api.getPage<DeskCheckIn[]>(`${space(spaceId)}/check-ins`, {
+        params: { from: day, to: day, page, limit: DAY_PAGE },
+      }),
   };
 }

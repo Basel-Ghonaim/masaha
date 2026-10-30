@@ -1,6 +1,7 @@
 export { CheckOutAction } from './components/check-out/CheckOutAction';
 export { CustomerFile } from './components/file/CustomerFile';
 export { CustomersList } from './components/customers/CustomersList';
+export { DeskLog } from './components/log/DeskLog';
 export { DeskSearch, type SearchAfter } from './components/search/DeskSearch';
 export { PayDialog } from './components/pay/PayDialog';
 export { SubscriptionSheet } from './components/sheet/SubscriptionSheet';

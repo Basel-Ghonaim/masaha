@@ -23,6 +23,8 @@ export const deskKeys = {
   /** A customer's file. */
   file: (spaceId: number, customerId: number) =>
     ['space', spaceId, 'desk', 'file', customerId] as const,
+  /** A day's log: its visits and check-ins, read whole; `null` is today as reception reads it. */
+  log: (spaceId: number, day: string | null) => ['space', spaceId, 'desk', 'log', day] as const,
   /** A subscription's statement. */
   statement: (spaceId: number, subscriptionId: number) =>
     ['space', spaceId, 'desk', 'statement', subscriptionId] as const,

@@ -1,6 +1,7 @@
 import type { PresentPerson } from '@masaha/shared/occupancy';
 import {
   CheckOutAction,
+  DeskLog,
   DeskSearch,
   PayDialog,
   type PayTarget,
@@ -30,12 +31,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   EllipsisIcon,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   useMediaQuery,
 } from '@shared/design-system';
 import { NotFoundState, parseSpaceId } from '@shared/routing';
 import { useSession } from '@shared/session';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { spaceCustomerPath } from '../../navigation';
 import { PageActionBar } from '../../shell/PageActionBar';
 import { PageHeader } from '../../shell/PageHeader';
@@ -53,9 +58,15 @@ import { SwitchStaffButton, SwitchStaffItem } from './SwitchStaffButton';
  * a phone), the search's «زبون جديد باسم «X»» and a card's «اشتراك جديد» open the one subscription
  * sheet, with `packages`' offered packages; and beside it from `xl` (under it
  * before) `desk`'s uncollected visits and, for whoever may type a price, its unpriced ones; the visit's check-in is offered the space's shifts as `spaces`
- * reads them. What the role at the space allows beyond that (S5) is read from the session's link;
+ * reads them. Beside who is present, «السجل»: the day's log, the owner's chosen day or reception's
+ * today (K8). What the role at the space allows beyond that (S5) is read from the session's link;
  * the server decides. The guard has checked the space's id and the role.
  */
+/** The address's view of the desk: «السجل» when it names it, else «الآن». */
+const VIEW_PARAM = 'view';
+const NOW = 'now';
+const LOG = 'log';
+
 export function DeskPage() {
   const spaceId = parseSpaceId(useParams().spaceId);
 
@@ -124,6 +135,24 @@ function Desk({ spaceId }: { spaceId: number }) {
         everyone.filter((person) => matchesPerson(person, term, phones)).length,
     };
   }, [people, phones]);
+  // «الآن» | «السجل» (K8): the view, the log's day and its page in the address.
+  const [search, setSearch] = useSearchParams();
+  const view = search.get(VIEW_PARAM) === LOG ? LOG : NOW;
+  const showView = (next: typeof NOW | typeof LOG) => {
+    setSearch(
+      (current) => {
+        const params = new URLSearchParams(current);
+        if (next === LOG) params.set(VIEW_PARAM, LOG);
+        else params.delete(VIEW_PARAM);
+        return params;
+      },
+      { replace: true },
+    );
+  };
+  const fileLink = useCallback(
+    (customerId: number) => spaceCustomerPath(spaceId, customerId),
+    [spaceId],
+  );
   // The rows' action, made once per terms: a new one would draw every row anew.
   const termsData = terms.data;
   const action = useCallback(
@@ -231,7 +260,24 @@ function Desk({ spaceId }: { spaceId: number }) {
       />
       <div className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start">
         <div className="xl:col-span-8">
-          <PresentList spaceId={spaceId} action={action} usage={usage} />
+          <Tabs
+            value={view}
+            onValueChange={(next) => {
+              showView(next === LOG ? LOG : NOW);
+            }}
+            className="flex flex-col gap-3"
+          >
+            <TabsList variant="line" aria-label={words.log.tabs.label}>
+              <TabsTrigger value={NOW}>{words.log.tabs.now}</TabsTrigger>
+              <TabsTrigger value={LOG}>{words.log.tabs.log}</TabsTrigger>
+            </TabsList>
+            <TabsContent value={NOW}>
+              <PresentList spaceId={spaceId} action={action} usage={usage} />
+            </TabsContent>
+            <TabsContent value={LOG}>
+              <DeskLog spaceId={spaceId} owner={owner} fileLink={fileLink} />
+            </TabsContent>
+          </Tabs>
         </div>
         <div className="flex flex-col gap-6 xl:col-span-4">
           <UncollectedCard spaceId={spaceId} abilities={{ writeOff: owner }} />
