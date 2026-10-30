@@ -151,6 +151,7 @@ Reception's web screens remain planned.
 - **A network link keeps its path only, but a Facebook profile keeps its numeric `id`** ([data model](../architecture/data-model.md#conventions)). *Why:* a query is mostly tracking, but a profile with no username has no other address (the owner's refinement). 2026-10-07, #48.
 - **The phone rule is the platform's, in `core`** (D6). *Why:* every phone number in the database has one form; the customers will use it. 2026-10-07, #48.
 - **Only an active amenity can be added; a retired one already linked stays until it is removed** (F7). *Why:* a retired amenity keeps its links (data-model). 2026-10-07, #48.
+- **The space's reads name the retired amenities it holds** (`retiredAmenities`, named by `lookups` in the read's transaction, in the platform's order). *Why:* the owner's checklist shows each, marked, until a save leaves it out (the owner's 99). 2026-10-29, #132.
 - **A space keeps amenities of its own beside the platform's, in the amenities group** (the owner's decision, D2): short texts, Arabic required and English optional, in their order, saved, dated, audited and confirmed with the group. *Why:* an owner must be able to say what the space offers beyond the platform's common list, which stays the admin's ([lookups](lookups.md)). 2026-10-12, #64.
 - **The own amenities are required in the body, never defaulted to none** (S1). *Why:* the group is saved whole, so a client that leaves them out would empty them unseen. 2026-10-12, #64.
 - **An own amenity's Arabic name is its own within the space,** refused `not_unique` by the shared rule and by the database's key (S2); an English name may repeat. *Why:* as the shifts' names; the English rule follows the lookups' ([finding 30](../architecture/findings/30-a-lookups-english-name-is-not-unique.md)). 2026-10-12, #64.
@@ -292,7 +293,7 @@ Reception's web screens remain planned.
 - #82 — the single-space read and the fact writes carry the space's active owners.
 - #83 — the owner/reception managed-space API, reusing the admin services and response shapes; reception reads, owners write, and managed photos share the admin upload path.
 - #86 — the read and the fact writes read one statement at a time, the owners' names in their transaction; a managed photo write refused before it is read; the managed read's payload and its races tested.
-- #132 — the daily reclamation of the photos' files no row holds (finding 63).
+- #132 — the daily reclamation of the photos' files no row holds (finding 63); the space's reads name the retired amenities it holds (finding 99's API half).
 
 ### Web history
 

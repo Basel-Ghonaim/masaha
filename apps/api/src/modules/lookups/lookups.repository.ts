@@ -84,6 +84,18 @@ export function createLookupsRepository(db: PrismaClient = prisma) {
       return rows.map((row) => ({ ...row, icon: row.icon as AmenityIconKey }));
     },
 
+    /** Of these amenities, the retired ones, named, in the platform's order. */
+    async findRetiredAmenitiesNamed(ids: readonly number[], tx: Tx = db): Promise<NamedAmenity[]> {
+      if (ids.length === 0) return [];
+      const rows = await tx.amenity.findMany({
+        where: { id: { in: [...ids] }, isActive: false },
+        select: { id: true, nameAr: true, nameEn: true, icon: true },
+        orderBy: IN_ORDER,
+      });
+      // Written only from AMENITY_ICON_KEYS: by the seed, typed by it, and by the validated requests.
+      return rows.map((row) => ({ ...row, icon: row.icon as AmenityIconKey }));
+    },
+
     /** Of these amenity ids, those of active amenities. */
     async findActiveAmenityIds(ids: readonly number[], tx: Tx = db): Promise<number[]> {
       const rows = await tx.amenity.findMany({

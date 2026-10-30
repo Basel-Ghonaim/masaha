@@ -12,11 +12,13 @@ export function toAdminSpace(
     owners,
     cutoffs,
     facts,
+    retiredAmenities,
   }: {
     isVerified: boolean;
     owners: AdminSpace['owners'];
     cutoffs: GroupCutoffs;
     facts: SpaceFacts;
+    retiredAmenities: AdminSpace['retiredAmenities'];
   },
 ): AdminSpace {
   const dates = groupDatesOf(space);
@@ -48,6 +50,7 @@ export function toAdminSpace(
     hours: facts.hours,
     prices: facts.prices,
     amenityIds: facts.amenityIds,
+    retiredAmenities,
     ownAmenities: facts.ownAmenities,
     contacts: facts.contacts,
   };

@@ -1343,6 +1343,7 @@ AdminSpace = {
   hours: SpaceHours | null,         // null until first saved
   prices: Price[],
   amenityIds: number[],             // by id; retired amenities included
+  retiredAmenities: { id, nameAr, nameEn, iconKey }[],   // those of amenityIds the platform retired, named, in its order (2026-10-29, #132)
   ownAmenities: OwnAmenity[],       // its own, beyond the platform's list, in order
   contacts: Contact[]
 }

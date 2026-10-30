@@ -732,6 +732,7 @@ const ADDED: AdminSpace = {
   hours: null,
   prices: [],
   amenityIds: [],
+  retiredAmenities: [],
   ownAmenities: [],
   contacts: [],
 };

@@ -53,7 +53,7 @@ export function createSpaceService({
   now,
 }: Dependencies) {
   const repository = createSpaceRepository();
-  const view = createSpaceView(now);
+  const view = createSpaceView(now, lookups);
   const readFacts = createFactsReader();
 
   /**
@@ -100,7 +100,7 @@ export function createSpaceService({
         // One statement at a time: a transaction's connection runs one at once (finding 11).
         const facts = await readFacts(space.id, tx);
         const owners = await ownersFor(space.id, tx);
-        return view(found, verified, thresholds, facts, owners);
+        return view(found, verified, thresholds, facts, owners, tx);
       });
     },
 
@@ -197,7 +197,7 @@ export function createSpaceService({
             );
             return creation.space;
           });
-          return view(space, false, thresholds, NO_FACTS, []);
+          return await view(space, false, thresholds, NO_FACTS, []);
         } catch (error) {
           if (!(error instanceof SlugTaken)) throw error;
           if (attempt === CREATE_ATTEMPTS) {

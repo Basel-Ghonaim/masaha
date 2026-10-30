@@ -375,6 +375,8 @@ export function createApi({
     runInTransaction,
     audit: writeAudit,
     platformSettings,
+    // The lookups name the retired amenities a space's read holds (finding 99).
+    lookups,
     ownersFor: (spaceId: number, tx: Tx) => adminSpaces.ownersFor(spaceId, tx),
     now: clock,
   };

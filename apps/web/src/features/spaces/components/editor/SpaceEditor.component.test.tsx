@@ -62,6 +62,7 @@ const SPACE: AdminSpace = {
   hours: null,
   prices: [],
   amenityIds: [],
+  retiredAmenities: [],
   ownAmenities: [],
   contacts: [],
 };

@@ -232,9 +232,35 @@ describe('GET /admin/spaces/:spaceId', () => {
       hours: null,
       prices: [],
       amenityIds: [],
+      retiredAmenities: [],
       ownAmenities: [],
       contacts: [],
     });
+  });
+
+  it("a space's read names its retired amenities, in the platform's order; a save answers them too", async () => {
+    const space = await createSpace();
+    const amenity = (key: string, sortOrder: number, isActive: boolean) =>
+      prisma.amenity.create({
+        data: { key, nameAr: key, nameEn: key.toUpperCase(), icon: 'wifi', sortOrder, isActive },
+      });
+    const active = await amenity('printer', 0, true);
+    const lateRetired = await amenity('fax', 5, false);
+    const earlyRetired = await amenity('pager', 2, false);
+    for (const { id } of [active, lateRetired, earlyRetired]) {
+      await prisma.spaceAmenity.create({ data: { spaceId: space.id, amenityId: id } });
+    }
+    // Retired, but not the space's: not named.
+    await amenity('telex', 1, false);
+
+    const retired = [
+      { id: earlyRetired.id, nameAr: 'pager', nameEn: 'PAGER', iconKey: 'wifi' },
+      { id: lateRetired.id, nameAr: 'fax', nameEn: 'FAX', iconKey: 'wifi' },
+    ];
+    const read = await adminRequest(app, admin, 'get', path(space.id));
+    expect(dataOf(read)).toMatchObject({ retiredAmenities: retired });
+    const saved = await adminRequest(app, admin, 'patch', path(space.id), { nameEn: 'Renamed' });
+    expect(dataOf(saved)).toMatchObject({ retiredAmenities: retired });
   });
 
   it.each([

@@ -56,6 +56,11 @@ export function createLookupsService({
       return repository.findActiveAmenitiesNamed(ids, tx);
     },
 
+    /** Of these amenities, the retired ones, named, with their icons, in the platform's order. */
+    retiredAmenitiesNamed(ids: readonly number[], tx?: Tx): Promise<NamedAmenity[]> {
+      return repository.findRetiredAmenitiesNamed(ids, tx);
+    },
+
     /** Of these amenity ids, those a space may gain: the active amenities' (a retired one may not). */
     activeAmenityIds(ids: readonly number[], tx?: Tx): Promise<number[]> {
       return repository.findActiveAmenityIds(ids, tx);
