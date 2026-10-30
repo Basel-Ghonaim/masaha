@@ -40,7 +40,9 @@
 
 **The owner's screen** (`FinanceScreen`, screen 19). The tabs «الدخل», «الديون», «الإشغال» and, beside them from 1024 px, «الشهر»: the current Gaza month and the 23 before it, newest first, each «{month} {year}» with Western digits; the tab and the month are in the address (`?tab=`, `?month=`), the defaults never written and a month outside the 24 read as the current one. The month moves the month-bound blocks only; the charts keep their fixed windows, named. In the top bar, the export of the tab shown (in «⋯» on a phone), a CSV built in the browser and saved on the owner's device, then «نُزّل الملف» with its name.
 
-**Income.** What income counts, in a line; three tiles — today, up to the time read; the month asked, with «+{n}% عن {الشهر السابق}» when the month before had income; all time, since its first month or «لا دفعات بعد»; «الدخل حسب الشهر» over the last 12 months (subscriptions and visits stacked) and «دخل الزيارات يوميًا» over the last 30 days, a tick under every fifth day back from today; and «التحصيل حسب الموظف», the month's collections per person — how many, the total, cash and transfer — a table from 768 px, a card each below it. Its export, `masaha-income-{YYYY-MM}.csv`: a row per month of the 12, the amounts in shekels with a dot. `useMonthCollections` hands a page this month's collections per person. Its states: blocks while it loads; a failure, «تعذّر تحميل المالية» with «إعادة المحاولة»; offline, its own state.
+**Income.** What income counts, in a line; three tiles — today, up to the time read; the month asked, with «+{n}% عن {الشهر السابق}» when the month before had income; all time, since its first month or «لا دفعات بعد»; «الدخل حسب الشهر» over the last 12 months (subscriptions and visits stacked) and «دخل الزيارات يوميًا» over the last 30 days, a tick under every fifth day back from today; and «التحصيل حسب الموظف», the month's collections per person — how many, the total, cash and transfer — a table from 768 px, a card each below it. Its export, `masaha-income-{YYYY-MM}.csv`: a row per month of the 12, the amounts in shekels with a dot. `useMonthCollections` hands a page this month's collections per person.
+
+**Debts.** Four tiles — what is owed and by how many customers, the customers' credit, how many paid in the month, and the uncollected visits with what they owe, «لا تُجمع مع الديون», and the unpriced ones, a link to the desk's card — the two figures never added ([finding 193](../architecture/findings/193-a-visit-left-to-a-customer-is-both-a-debt-and-uncollected.md)); «عليهم مبالغ», the largest first, paged by 20 (`?page=`): the name a link to the file, «مؤرشف» when archived, since when and the oldest item, the amount, «تذكير على واتساب» when there is a phone — the space's reminder, else the catalogue's, filled with the first name, the amount and the space — and «استلام دفعة» to the file; «لهم رصيد», paged by 20 (`?credit=`); and five of who paid in the month, «عرض الكل» to the ledger over that month's days up to today. Its export, `masaha-debts-{YYYY-MM-DD}.csv`: every page of who owes, 50 at a time, read in turn; a failed page saves nothing and offers «إعادة المحاولة». Its states: blocks while it loads; a failure, «تعذّر تحميل المالية» with «إعادة المحاولة»; offline, its own state.
 
 ## Decisions
 
@@ -61,12 +63,16 @@
 - **The export is the browser's, from the figures read** (the owner's decision 5): no export route; the file is saved by the owner's own download. 2026-10-29, #132.
 - **The month's change is a whole percentage, and none without a month before** (D5.3): no ratio of nothing. 2026-10-29, #132.
 - **Every link is the page's** (architecture §3): `FinanceLinks`. 2026-10-29, #132.
+- **The uncollected visits are a fourth debts tile, never added to the debts** (DI9, 193 accepted). 2026-10-29, #132.
+- **«استلام دفعة» opens the customer's file** (DI15), where «استلام {المبلغ}» is: finance stays a read. 2026-10-29, #132.
+- **The reminder names the customer by the first word of their name** (DI28), as the prototype's. 2026-10-29, #132.
+- **The debts' two lists keep their pages in the address,** `?page=` and `?credit=`, beside DI29's tab and month, since a list's pages are links (`shared/lists`); a list of one page shows no steps. 2026-10-29, #132.
 
 ## Code map
 
 - `apps/api/src/modules/finance/` — the module: its service, its repository (who paid, the stays), its mapper, its windows (`windows.ts`), the occupancy grid (`occupancyGrid.ts`), its controller and its manage router.
 - `packages/shared/src/finance/` — the queries (the month and its bound, the debts', the payers') and the answers.
-- `apps/web/src/features/finance/`, entry `index.ts` (`FinanceScreen`, `FinanceExport`, `FinanceLinks`, `useMonthCollections`), read by `pages/dashboard/space/finance/FinancePage.tsx`, which passes the links and the space's name and sets the export in the top bar: the repository (four reads) in `repository/`; the keys, the address (`useFinanceTabs`), the screen's view, the export and each tab's query and view (`income/`) in `hooks/`; the months, their words, the month's change and each CSV in `services/`; the screen, the month, the tabs' cards and the failure in `components/`. Words: the catalogue's `finance` section.
+- `apps/web/src/features/finance/`, entry `index.ts` (`FinanceScreen`, `FinanceExport`, `FinanceLinks`, `useMonthCollections`), read by `pages/dashboard/space/finance/FinancePage.tsx`, which passes the links and the space's name and sets the export in the top bar: the repository (four reads) in `repository/`; the keys, the address (`useFinanceTabs`), the screen's view, the export and each tab's queries and view (`income/`, `debts/`, with the debts' export) in `hooks/`; the months, their words, the month's change, a date's words, the reminder and each CSV in `services/`; the screen, the month, the tabs' cards and the failure in `components/`. Words: the catalogue's `finance` section.
 
 ## History
 
@@ -76,4 +82,4 @@
 
 ### Web history
 
-- 2026-10-29, #132 — Finance (screen 19): its tabs and month, and the income with its export.
+- 2026-10-29, #132 — Finance (screen 19): its tabs and month, and the income with its export; the debts, with the WhatsApp reminder and their export.

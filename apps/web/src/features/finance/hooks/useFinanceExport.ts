@@ -2,13 +2,14 @@ import { useCopy } from '@shared/copy';
 import { downloadFile } from '@shared/lib';
 import { toast } from '@shared/design-system';
 import { incomeCsv } from '../services/incomeCsv';
+import { useDebtsExport } from './debts/useDebtsExport';
 import { useIncomeQuery } from './income/useIncomeQuery';
 import { useFinanceTabs } from './useFinanceTabs';
 
 /**
  * The export of the tab shown (D5.3–D5.5), ready to render: its label, whether it can run (its
- * figures arrived), and the run — a CSV built in the browser from the figures read, saved on the
- * owner's device, then «نُزّل الملف» with the file's name.
+ * figures arrived), and the run — a CSV built in the browser from the figures read (the debts' from
+ * every page, read in turn), saved on the owner's device, then «نُزّل الملف» with the file's name.
  */
 export function useFinanceExport(spaceId: number) {
   const copy = useCopy();
@@ -22,6 +23,17 @@ export function useFinanceExport(spaceId: number) {
     toast.success(words.done, { description: file.name });
   };
 
+  const debts = useDebtsExport(spaceId, saved);
+
+  if (tabs.tab === 'debts') {
+    return {
+      more: words.more,
+      label: words.debts,
+      disabled: false,
+      loading: debts.running,
+      run: debts.run,
+    };
+  }
   return {
     more: words.more,
     label: words.income,

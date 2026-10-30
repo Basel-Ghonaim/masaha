@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared/design-system';
 import { useFinanceScreen } from '../hooks/useFinanceScreen';
 import type { FinanceLinks } from '../types/FinanceLinks';
+import { DebtsTab } from './DebtsTab';
 import { IncomeTab } from './IncomeTab';
 import { MonthField } from './MonthField';
 
@@ -11,6 +12,8 @@ import { MonthField } from './MonthField';
  */
 export function FinanceScreen({
   spaceId,
+  spaceName,
+  links,
 }: {
   spaceId: number;
   spaceName: string;
@@ -32,6 +35,9 @@ export function FinanceScreen({
       </div>
       <TabsContent value="income">
         <IncomeTab spaceId={spaceId} asked={screen.asked} />
+      </TabsContent>
+      <TabsContent value="debts">
+        <DebtsTab spaceId={spaceId} place={screen.place} links={links} spaceName={spaceName} />
       </TabsContent>
     </Tabs>
   );

@@ -1,3 +1,4 @@
+import { arabicPlural } from '../plural';
 import type { Catalogue } from '../shape';
 
 export const FINANCE = {
@@ -44,5 +45,68 @@ export const FINANCE = {
       none: 'لا تحصيل في هذا الشهر.',
     },
     csv: { month: 'الشهر', subscriptions: 'اشتراكات', visits: 'زيارات', total: 'المجموع' },
+  },
+  debts: {
+    tiles: {
+      owed: 'مجموع الديون',
+      credit: 'أرصدة للزبائن',
+      creditHelper: ({ customers }: { customers: string }) => `${customers} دفعوا مقدمًا`,
+      paid: ({ month }: { month: string }) => `دفعوا في ${month}`,
+      uncollected: 'زيارات غير محصّلة',
+      uncollectedHelper: ({ amount }: { amount: string }) => `${amount} · لا تُجمع مع الديون`,
+      unpriced: ({ count }: { count: number }) => ` · ${String(count)} بلا سعر`,
+    },
+    customers: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا زبائن',
+        one: 'زبون واحد',
+        two: 'زبونان',
+        few: `${String(count)} زبائن`,
+        many: `${String(count)} زبونًا`,
+        other: `${String(count)} زبون`,
+      }),
+    visits: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا زيارات',
+        one: 'زيارة واحدة',
+        two: 'زيارتان',
+        few: `${String(count)} زيارات`,
+        many: `${String(count)} زيارة`,
+        other: `${String(count)} زيارة`,
+      }),
+    owes: {
+      title: 'عليهم مبالغ',
+      description: 'الأكبر أولًا',
+      archived: 'مؤرشف',
+      since: ({ date, item }: { date: string; item: string }) => `منذ ${date} · أقدم بند: ${item}`,
+      items: { VISIT: 'زيارة', SUBSCRIPTION: 'اشتراك' },
+      amount: ({ amount }: { amount: string }) => `عليه ${amount}`,
+      whatsapp: 'تذكير على واتساب',
+      receive: 'استلام دفعة',
+      empty: 'لا توجد ديون',
+      pages: 'صفحات من عليهم مبالغ',
+    },
+    credit: {
+      title: 'لهم رصيد',
+      description: 'دفعوا مقدمًا أكثر مما استخدموا',
+      amount: ({ amount }: { amount: string }) => `له ${amount}`,
+      none: 'لا أرصدة للزبائن.',
+      pages: 'صفحات من لهم رصيد',
+    },
+    payers: {
+      line: ({ paid, date }: { paid: string; date: string }) => `${paid} · آخر دفعة ${date}`,
+      viewAll: 'عرض الكل',
+      none: 'لم يدفع أحد في هذا الشهر.',
+    },
+    csv: {
+      name: 'الاسم',
+      phone: 'الهاتف',
+      amount: 'المبلغ',
+      since: 'منذ',
+      oldest: 'أقدم بند',
+      archived: 'مؤرشف',
+      yes: 'نعم',
+    },
+    exportFailed: 'تعذّر تصدير الديون',
   },
 } satisfies Catalogue['finance'];
