@@ -28,7 +28,8 @@ export const DESK = {
     shift: 'الوردية',
     optional: 'اختياري',
     noShift: 'بدون وردية',
-    full: 'المساحة ممتلئة؛ يمكنك التسجيل على أي حال، وتبقى حالتها للزوار «ممتلئ».',
+    full: ({ ratio }: { ratio: string }) =>
+      `المساحة ممتلئة ${ratio}؛ يمكنك التسجيل على أي حال، وتبقى حالتها للزوار «ممتلئ».`,
     submit: 'تسجيل الزيارة',
     submitAnyway: 'تسجيل على أي حال',
     failed: 'تعذّر تسجيل الزيارة',
@@ -41,8 +42,21 @@ export const DESK = {
     visit: 'زيارة',
     studentVisit: 'زيارة · طالب',
     rows: { in: 'الدخول', out: 'الخروج', duration: 'المدة' },
-    billed: ({ time }: { time: string }) => `مدة محسوبة ${time}`,
-    cap: 'السقف: سعر اليوم',
+    billed: ({
+      hours,
+      rate,
+      amount,
+      rounding,
+    }: {
+      hours: string;
+      rate: string;
+      amount: string;
+      rounding: string;
+    }) => `${hours} س × ${rate} = ${amount} · ${rounding}`,
+    billedCapped: ({ hours, rate, rounding }: { hours: string; rate: string; rounding: string }) =>
+      `${hours} س × ${rate} · ${rounding}`,
+    cap: ({ day }: { day: string }) => `السقف: سعر اليوم ${day}`,
+    dayOnly: ({ day }: { day: string }) => `لا يوجد سعر بالساعة — سعر اليوم ${day}`,
     rounding: {
       UP_AFTER_MINUTES: ({ minutes }: { minutes: string }) => `تقريب لأعلى بعد ${minutes}`,
     },

@@ -1,12 +1,15 @@
 import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { uncollectedPage, uncollectedVisit, visitTerms } from '../../../../test/deskVisit';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
+import { stubScreenWidth } from '../../../../test/screenWidth';
 import { startPreferences } from '../../../../test/startPreferences';
+import { PageHeaderSlot } from '../../shell/PageHeaderSlot';
 import { DeskPage } from './DeskPage';
 
 /** The desk's state now, with no one present. */
@@ -32,11 +35,24 @@ function renderDesk({
     if (url.endsWith('/check-ins')) return ok([]);
     return ok({ id: 7, hours: null });
   });
+  // The top bar's place, where the page puts «تسجيل زيارة» from 768 px.
+  const slot = document.createElement('div');
+  document.body.append(slot);
+  slots.push(slot);
   return render(
     <QueryClientProvider client={createQueryClient()}>
       <RouterProvider
         router={createMemoryRouter(
-          [{ path: '/dashboard/spaces/:spaceId/desk', element: <DeskPage /> }],
+          [
+            {
+              path: '/dashboard/spaces/:spaceId/desk',
+              element: (
+                <PageHeaderSlot value={slot}>
+                  <DeskPage />
+                </PageHeaderSlot>
+              ),
+            },
+          ],
           { initialEntries: ['/dashboard/spaces/7/desk'] },
         )}
       />
@@ -44,12 +60,19 @@ function renderDesk({
   );
 }
 
+/** The top bars made, removed after each test. */
+const slots: HTMLElement[] = [];
+/** A line with the Unicode isolates around its values removed, as a reader hears it. */
+const plain = (content: string) => content.replace(/[⁦-⁩]/g, '');
+
 beforeEach(() => {
   startPreferences('en');
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
+  for (const slot of slots.splice(0)) slot.remove();
   restoreTransport();
 });
 
@@ -70,6 +93,27 @@ describe('DeskPage', () => {
     const empty = await screen.findByRole('region', { name: 'Not collected' });
     expect(await screen.findByText('Nothing left to collect.')).toBeInTheDocument();
     expect(empty).toHaveClass('hidden', 'xl:flex');
+  });
+
+  it('is full by the count, with its ratio, not by a manual «Full»', async () => {
+    stubScreenWidth(1440);
+    const user = userEvent.setup();
+    const { unmount } = renderDesk({
+      occupancy: () => ok({ ...NO_ONE_PRESENT, status: 'AVAILABLE', capacity: 2, present: 2 }),
+    });
+    await user.click(await screen.findByRole('button', { name: 'Check in a visit' }));
+    expect(
+      await screen.findByText((content) =>
+        plain(content).startsWith('The space is full 2/2; you can still check in'),
+      ),
+    ).toBeVisible();
+    unmount();
+    restoreTransport();
+
+    renderDesk({ occupancy: () => ok({ ...NO_ONE_PRESENT, status: 'FULL' }) });
+    await user.click(await screen.findByRole('button', { name: 'Check in a visit' }));
+    expect(await screen.findByRole('dialog', { name: 'Check in a visit' })).toBeVisible();
+    expect(screen.queryByText(/^The space is full/)).toBeNull();
   });
 
   it('shows the offline state when who is here and the uncollected get no answer', async () => {

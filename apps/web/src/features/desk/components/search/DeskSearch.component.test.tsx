@@ -53,7 +53,7 @@ function renderSearch(checkIn = vi.fn()) {
 
 /** The page's search and its visit dialog, as `DeskPage` composes them. */
 function SearchWithVisit() {
-  const visit = useVisitDialog({ spaceId: 7, shifts: [], full: false });
+  const visit = useVisitDialog({ spaceId: 7, shifts: [], full: null });
   return (
     <>
       <DeskSearch

@@ -24,7 +24,7 @@ const MORNING: Shift = {
 
 /** The page's «Check in a visit», with the dialog the hook prepares. */
 function Harness({ shifts }: { shifts: Shift[] }) {
-  const dialog = useVisitDialog({ spaceId: 7, shifts, full: false });
+  const dialog = useVisitDialog({ spaceId: 7, shifts, full: null });
   return (
     <>
       <button
@@ -77,6 +77,29 @@ afterEach(() => {
 });
 
 describe('useVisitDialog', () => {
+  it('offers the shifts as chips one may deselect, «Student» a switch, and sends no shift with none', async () => {
+    const user = userEvent.setup();
+    const requests = serve(() => ok(deskVisit(), 201));
+    renderDialog([MORNING]);
+
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(await screen.findByRole('switch', { name: 'Student' })).toBeInTheDocument();
+    const morning = await screen.findByRole('radio', { name: 'Morning' });
+    expect(morning).toBeChecked();
+    expect(screen.queryByRole('radio', { name: 'No shift' })).toBeNull();
+    await user.click(morning);
+    expect(morning).not.toBeChecked();
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Omar');
+    await user.click(screen.getByRole('button', { name: 'Check in' }));
+
+    await findToast(heard('Omar checked in'));
+    expect(bodyOf(requests.find(({ method }) => method === 'post'))).toEqual({
+      visitorName: 'Omar',
+      audience: 'GENERAL',
+      shiftId: null,
+    });
+  });
+
   it('sends the name, the audience where it is offered, and the current shift', async () => {
     const user = userEvent.setup();
     const requests = serve(() => ok(deskVisit(), 201));
@@ -84,7 +107,7 @@ describe('useVisitDialog', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open' }));
     await user.type(await screen.findByRole('textbox', { name: 'Name' }), 'Omar');
-    await user.click(await screen.findByRole('checkbox', { name: 'Student' }));
+    await user.click(await screen.findByRole('switch', { name: 'Student' }));
     await user.click(screen.getByRole('button', { name: 'Check in' }));
 
     await findToast(heard('Omar checked in'));
@@ -104,8 +127,8 @@ describe('useVisitDialog', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open' }));
     expect(await screen.findByText(heard('Charged ₪5 an hour.'))).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox', { name: 'Student' })).toBeNull();
-    expect(screen.queryByRole('combobox', { name: /Shift/ })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Student' })).toBeNull();
+    expect(screen.queryByRole('group', { name: /Shift/ })).toBeNull();
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Layla');
     await user.click(screen.getByRole('button', { name: 'Check in' }));
 

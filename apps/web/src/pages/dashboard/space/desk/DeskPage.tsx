@@ -88,7 +88,11 @@ function Desk({ spaceId }: { spaceId: number }) {
   const terms = useVisitTermsQuery(spaceId);
   const shifts = useSpaceShifts('owner', spaceId);
   const now = useStateNowQuery(spaceId).data;
-  const full = now?.status === 'FULL';
+  // Full by the count, not by the status a manual override may set (G13.9).
+  const full =
+    now !== undefined && now.capacity !== null && now.present >= now.capacity
+      ? { present: now.present, capacity: now.capacity }
+      : null;
   const visit = useVisitDialog({ spaceId, shifts, full });
   const owner = useSession(
     (session) => session.user?.spaces.find((link) => link.spaceId === spaceId)?.role === 'OWNER',

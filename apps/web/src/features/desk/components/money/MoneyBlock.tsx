@@ -52,41 +52,44 @@ export function MoneyBlock({
           {view.due.amount}
         </span>
       </p>
-      <Field label={view.received.label} error={view.received.error}>
-        <Input
-          dir="ltr"
-          inputMode="decimal"
-          autoComplete="off"
-          autoFocus={autoFocus}
-          value={view.received.text}
-          onChange={(event) => {
-            view.received.change(event.target.value);
-          }}
-          disabled={disabled}
-          aria-describedby={prefilledId}
-        />
-      </Field>
-      <span id={prefilledId} className="sr-only">
-        {view.received.description}
-      </span>
-      {view.method !== null && (
-        <Field label={view.method.label}>
-          <ToggleGroup
-            type="single"
-            value={view.method.value}
-            onValueChange={(value) => {
-              if (isMethod(value)) view.method?.choose(value);
+      {/* «المستلم الآن» and «الطريقة» side by side from 768 px (G13.18). */}
+      <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:items-start">
+        <Field label={view.received.label} error={view.received.error}>
+          <Input
+            dir="ltr"
+            inputMode="decimal"
+            autoComplete="off"
+            autoFocus={autoFocus}
+            value={view.received.text}
+            onChange={(event) => {
+              view.received.change(event.target.value);
             }}
             disabled={disabled}
-          >
-            {view.method.options.map((option) => (
-              <ToggleGroupItem key={option.value} value={option.value}>
-                {option.label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+            aria-describedby={prefilledId}
+          />
         </Field>
-      )}
+        <span id={prefilledId} className="sr-only">
+          {view.received.description}
+        </span>
+        {view.method !== null && (
+          <Field label={view.method.label}>
+            <ToggleGroup
+              type="single"
+              value={view.method.value}
+              onValueChange={(value) => {
+                if (isMethod(value)) view.method?.choose(value);
+              }}
+              disabled={disabled}
+            >
+              {view.method.options.map((option) => (
+                <ToggleGroupItem key={option.value} value={option.value}>
+                  {option.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </Field>
+        )}
+      </div>
       <p aria-live="polite" className="text-body-sm">
         {view.line}
       </p>

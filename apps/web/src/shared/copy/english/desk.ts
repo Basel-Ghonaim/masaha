@@ -28,7 +28,8 @@ export const DESK = {
     shift: 'Shift',
     optional: 'Optional',
     noShift: 'No shift',
-    full: 'The space is full; you can still check in, and visitors keep seeing “Full”.',
+    full: ({ ratio }: { ratio: string }) =>
+      `The space is full ${ratio}; you can still check in, and visitors keep seeing “Full”.`,
     submit: 'Check in',
     submitAnyway: 'Check in anyway',
     failed: 'We couldn’t check the visit in',
@@ -42,8 +43,22 @@ export const DESK = {
     visit: 'Visit',
     studentVisit: 'Visit · student',
     rows: { in: 'In', out: 'Out', duration: 'Duration' },
-    billed: ({ time }: { time: string }) => `Billed time ${time}`,
-    cap: 'Capped at the day price',
+    /** How the quote's charge came about: the hours billed by the rate, rounded by the rule. */
+    billed: ({
+      hours,
+      rate,
+      amount,
+      rounding,
+    }: {
+      hours: string;
+      rate: string;
+      amount: string;
+      rounding: string;
+    }) => `${hours} h × ${rate} = ${amount} · ${rounding}`,
+    billedCapped: ({ hours, rate, rounding }: { hours: string; rate: string; rounding: string }) =>
+      `${hours} h × ${rate} · ${rounding}`,
+    cap: ({ day }: { day: string }) => `Cap: the day price ${day}`,
+    dayOnly: ({ day }: { day: string }) => `No hourly price — the day price ${day}`,
     /** The rounding by its rule; the other rules are said in the settings' own words. */
     rounding: {
       UP_AFTER_MINUTES: ({ minutes }: { minutes: string }) => `Rounded up after ${minutes}`,

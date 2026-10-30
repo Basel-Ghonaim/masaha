@@ -7,6 +7,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -70,13 +71,15 @@ export function CheckOutDialog({
             returnFocus.current.focus();
           }
         }}
-        aria-describedby={undefined}
       >
         <DialogHeader>
           <DialogTitle>{dialog.title}</DialogTitle>
-          <Badge variant="neutral" className="self-start">
-            {dialog.kind}
-          </Badge>
+          {/* The description names the kind: «زيارة» or «زيارة · طالب» (G13.18). */}
+          <DialogDescription asChild>
+            <div>
+              <Badge variant="neutral">{dialog.kind}</Badge>
+            </div>
+          </DialogDescription>
         </DialogHeader>
         {dialog.state === 'loading' ? (
           <div className="flex flex-col gap-2">
