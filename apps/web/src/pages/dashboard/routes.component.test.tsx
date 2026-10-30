@@ -75,6 +75,23 @@ const VISIT_TERMS = {
   rates: [{ shiftId: null, general: { hourAgorot: 500, dayAgorot: 2500 }, student: null }],
 };
 
+/** The owner's overview of a quiet space: nothing waiting, no one present, nothing ending. */
+const QUIET_OVERVIEW = {
+  attention: {
+    groups: { missing: [], stale: [] },
+    openReports: 0,
+    uncollectedVisits: 0,
+    unpricedVisits: 0,
+    closuresAwaitingExtension: 0,
+    capacitySet: true,
+    customersOwing: 0,
+  },
+  presentNow: { visits: 0, members: 0, total: 0, capacity: 40, status: 'AVAILABLE' },
+  endingSoon: { total: 0, first: [] },
+  announcements: { running: 0, types: [] },
+  at: '2026-10-29T10:00:00.000Z',
+};
+
 /**
  * Signs in a user (id 1) with `fields`; their spaces are answered from their links, and the sidebar's
  * count of open reports by `openReports` (none by default).
@@ -91,6 +108,8 @@ function signIn(fields: Partial<SessionUser>, { openReports = 0 }: { openReports
     if (request.url?.endsWith('/occupancy') === true) return ok(NO_ONE_PRESENT);
     if (request.url?.endsWith('/visit-terms') === true) return ok(VISIT_TERMS);
     if (request.url?.endsWith('/check-ins') === true) return ok([]);
+    // The owner's overview, where the owner lands: nothing waiting, no one present.
+    if (request.url?.endsWith('/overview') === true) return ok(QUIET_OVERVIEW);
     return ok(
       user.spaces.map((link: SessionSpaceLink) => ({
         ...FOCUS,
