@@ -113,3 +113,4 @@ None.
 - #99 — the capacity's read and its save, for the owner's settings page.
 - #116 — the desk's state now: «الحاضرون الآن», polled while visible, and the live status's control with its override.
 - #132 — a visit present says its audience (`audience`), for «زيارة · طالب».
+- #132 — «الحاضرون الآن» with no answer at all draws the offline state (P7), not the load failure.

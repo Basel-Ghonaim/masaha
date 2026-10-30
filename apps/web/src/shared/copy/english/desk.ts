@@ -93,6 +93,8 @@ export const DESK = {
         one: '1 visit not collected',
         other: `${String(count)} visits not collected`,
       }),
+    /** The card's name when it holds none: its line says so (G13.3). */
+    heading: 'Not collected',
     none: 'Nothing left to collect.',
     loadFailed: 'We couldn’t load the uncollected visits',
     /** How a row closed, and when: the auto check-out, or by hand (a payment voided since). */

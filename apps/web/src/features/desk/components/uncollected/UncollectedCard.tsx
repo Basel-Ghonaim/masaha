@@ -8,7 +8,10 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CircleCheckIcon,
+  EmptyState,
   Skeleton,
+  WifiOffIcon,
 } from '@shared/design-system';
 import { ListPagination } from '@shared/lists';
 import { useEffect, useId, useRef } from 'react';
@@ -63,7 +66,13 @@ export function UncollectedCard({
   const { dialog } = card;
 
   return (
-    <Card id={card.id} role="region" aria-labelledby={headingId}>
+    // Empty, it is hidden below xl, where it would stand above who is here with nothing (G13.3).
+    <Card
+      id={card.id}
+      role="region"
+      aria-labelledby={headingId}
+      className={card.state === 'empty' ? 'hidden xl:flex' : undefined}
+    >
       <CardHeader>
         <CardTitle>
           <h2 ref={heading} id={headingId} tabIndex={-1}>
@@ -81,6 +90,19 @@ export function UncollectedCard({
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
+        </CardContent>
+      ) : card.state === 'offline' ? (
+        <CardContent>
+          <EmptyState
+            icon={<WifiOffIcon />}
+            title={card.offline.title}
+            titleAs="h3"
+            description={card.offline.text}
+          >
+            <Button variant="outline" onClick={card.failure.retry}>
+              {card.failure.retryLabel}
+            </Button>
+          </EmptyState>
         </CardContent>
       ) : card.state === 'failed' ? (
         <CardContent>
@@ -105,7 +127,10 @@ export function UncollectedCard({
         </CardContent>
       ) : card.state === 'empty' ? (
         <CardContent>
-          <p className="text-body-sm text-muted-foreground">{card.empty}</p>
+          <p className="flex items-center gap-2 text-body-sm text-muted-foreground">
+            <CircleCheckIcon aria-hidden className="size-4 text-success" />
+            {card.empty}
+          </p>
         </CardContent>
       ) : (
         <>

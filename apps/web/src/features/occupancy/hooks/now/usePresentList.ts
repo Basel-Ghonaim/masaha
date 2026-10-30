@@ -64,7 +64,9 @@ export function usePresentList(spaceId: number, { now }: { now: Date }) {
     state: query.isPending
       ? ('loading' as const)
       : data === undefined
-        ? ('failed' as const)
+        ? query.error.type === 'network' || query.error.type === 'timeout'
+          ? ('offline' as const)
+          : ('failed' as const)
         : people.length === 0
           ? ('empty' as const)
           : ('ready' as const),
@@ -74,6 +76,8 @@ export function usePresentList(spaceId: number, { now }: { now: Date }) {
       visits: words.visits({ count: visits }),
     }),
     empty: { title: words.empty.title, text: words.empty.text },
+    // No answer at all: the connection's state (P7), not a refusal.
+    offline: { title: copy.status.offline.title, text: copy.status.offline.description },
     failure: {
       title: words.loadFailed,
       message: view?.message,

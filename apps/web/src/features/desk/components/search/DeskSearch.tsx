@@ -8,6 +8,7 @@ import {
   Input,
   SearchIcon,
   Skeleton,
+  WifiOffIcon,
 } from '@shared/design-system';
 import { useId, useRef, type ReactNode, type RefObject } from 'react';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
@@ -122,6 +123,17 @@ export function DeskSearch({
             <Skeleton className="h-32" />
             <Skeleton className="h-32" />
           </div>
+        )}
+        {customers.state === 'offline' && (
+          <EmptyState
+            icon={<WifiOffIcon />}
+            title={customers.offline.title}
+            description={customers.offline.text}
+          >
+            <Button variant="outline" onClick={customers.failure.retry}>
+              {customers.failure.retryLabel}
+            </Button>
+          </EmptyState>
         )}
         {customers.state === 'failed' && (
           <Alert variant="destructive">

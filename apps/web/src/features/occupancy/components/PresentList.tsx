@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   EmptyState,
+  WifiOffIcon,
 } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
 import {
@@ -31,7 +32,7 @@ const TICK_MS = 60_000;
  * the people present in the server's order — a table from 768 px, a card each below it — with their
  * kind, since when and for how long, a visit's charge so far, and the row's action the page sets
  * (`action`), such as the desk's check-out, and a subscriber's usage the page knows (`usage`), such
- * as their subscription's progress. The list is read on arrival, every 30 s while visible
+ * as their subscription's progress. No answer at all draws the offline state (P7). The list is read on arrival, every 30 s while visible
  * and on returning to it; a failed refresh keeps the last list and says so. When the person whose
  * action had the focus leaves the list, the focus goes to the next row's action, else to the
  * heading (S10), never to the page's start.
@@ -157,7 +158,17 @@ export function PresentList({
       {list.refreshFailure !== null && (
         <p className="text-body-sm text-muted-foreground">{list.refreshFailure}</p>
       )}
-      {list.state === 'failed' ? (
+      {list.state === 'offline' ? (
+        <EmptyState
+          icon={<WifiOffIcon />}
+          title={list.offline.title}
+          description={list.offline.text}
+        >
+          <Button variant="outline" onClick={list.failure.retry}>
+            {list.failure.retryLabel}
+          </Button>
+        </EmptyState>
+      ) : list.state === 'failed' ? (
         <Alert variant="destructive">
           <AlertTitle>{list.failure.title}</AlertTitle>
           <AlertDescription>

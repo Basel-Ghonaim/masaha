@@ -149,6 +149,7 @@ describe('useUncollectedCard', () => {
     fail = false;
     await user.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('Nothing left to collect.')).toBeVisible();
-    expect(screen.getByRole('heading', { name: '0 visits not collected' })).toBeVisible();
+    // The card keeps its name and says it has none once (G13.3).
+    expect(screen.getByRole('heading', { name: 'Not collected' })).toBeVisible();
   });
 });

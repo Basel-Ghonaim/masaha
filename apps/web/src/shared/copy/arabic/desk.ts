@@ -102,6 +102,7 @@ export const DESK = {
         many: `${String(count)} زيارة غير محصّلة`,
         other: `${String(count)} زيارة غير محصّلة`,
       }),
+    heading: 'غير محصّل',
     none: 'لا توجد مبالغ غير محصّلة.',
     loadFailed: 'تعذّر تحميل الزيارات غير المحصّلة',
     how: ({ day, range }: { day: string; range: string }) =>

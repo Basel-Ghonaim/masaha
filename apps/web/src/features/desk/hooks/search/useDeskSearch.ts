@@ -64,7 +64,9 @@ export function useDeskSearch(
       : query.isPending
         ? ('loading' as const)
         : answer === undefined
-          ? ('failed' as const)
+          ? query.error?.type === 'network' || query.error?.type === 'timeout'
+            ? ('offline' as const)
+            : ('failed' as const)
           : ('ready' as const);
   const rows = (answer?.data ?? []).filter((row) => !present.customerIds.has(row.id));
   const presentMatched = term === undefined ? 0 : present.matches(term);
@@ -91,6 +93,8 @@ export function useDeskSearch(
       rows,
       /** The next search is loading, the customers before shown meanwhile. */
       busy: query.isPlaceholderData,
+      // No answer at all: the connection's state (P7), not a refusal.
+      offline: { title: copy.status.offline.title, text: copy.status.offline.description },
       failure: {
         title: words.failed,
         message: view?.message,
