@@ -1,7 +1,7 @@
 # Audit
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
-> **Authority:** The `audit` capability: reading the audit log, which every module writes through `shared/audit` ([conventions §6](../backend/conventions.md#6-audit)). Its endpoints are owned by the [API contract](../api/api-contract.md#audit-log); its entity by the [data model](../architecture/data-model.md#operations). The API is built; so is the owner's screen, «سجل التدقيق» (2026-10-29, #132).
+> **Authority:** The `audit` capability: reading the audit log, which every module writes through `shared/audit` ([conventions §6](../backend/conventions.md#6-audit)). Its endpoints are owned by the [API contract](../api/api-contract.md#audit-log); its entity by the [data model](../architecture/data-model.md#operations). The API is built; so are both screens, the owner's and the admin's «سجل التدقيق» (2026-10-29, #132).
 > **Scope:** the API module `audit` (L5); `@masaha/shared/audit`; the web feature `audit` (dashboard-only).
 
 ## What it does
@@ -14,7 +14,7 @@
 ## Who uses it
 
 - **The space's owner,** under `/manage/spaces/:spaceId/audit-log`. Reception is refused. On the dashboard, the owner reads «سجل التدقيق» (`/dashboard/spaces/:spaceId/audit`), in «الفريق والإعدادات» (O13, [finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md); 2026-10-29, #132).
-- **The admin,** under `/admin/audit-log`. The admin's screen (31) is not built.
+- **The admin,** under `/admin/audit-log`. On the dashboard, the admin reads «سجل التدقيق» (`/dashboard/admin/audit`, screen 31; 2026-10-29, #132).
 
 ## Responsibility boundary
 
@@ -39,6 +39,8 @@
 **The screen** (web, D6.1). One component, `AuditLog`, scoped by the page: `scope="space"` with the space's id and name (the switcher's read of `GET /manage/spaces`), or `scope="platform"`; the page passes `linkOf`, where a target leads. Its address is its state (S8): `?q=&period=all&actor=&type=<group>&page=` — no `period` the last 30 days; `actor` a person's id, or on the owner's log `masaha` or `system`; `type` one group of actions, sent as `actions=` its list (at most 30 by construction, `actionGroups.ts`); each value the server would refuse falls back to none, and a change replaces the address and returns to page 1, the search once typing pauses (`shared/lists`). Above the log an intro line; then the search of the target (1–80 characters), the period («آخر 30 يومًا» · «كل الفترة»), the actor — only while the period's `meta.actors` has more than one, or one is chosen — and the action type, in a row from 768 px and in a bottom sheet below it (P5: its count, «عرض N نتيجة», «مسح الفلاتر» unavailable with none); «الأحداث: {n}»; from 768 px a table of the time (the Gaza date with its year · the time, left to right), the actor, the action's badge, the target and, from 1024 px, the details (under the target until then); a card per entry below 768 px. The actor is a person by name (`<bdi>`), «فريق مساحة» for `MASAHA`, «النظام» for `SYSTEM`. The action is the catalogue's word, red (`destructive`) for the owner's void, access removed, the subscriptions extended and a photo deleted, and as stored, left to right, for an action the web does not know. The target is its current name in the interface's language (a space's or a lookup's Arabic name, else its English one, marked), the type's word when it has none («دفعة», «إعلان», «بلاغ», «إعدادات المنصة», «زيارة», «حضور مشترك»), «{name} (محذوفة)» when deleted, never a link; else a link where the page gives one. The details (`detailsOf.ts`) are a line only where the stored values say something: a payment's amount and method, a void's reason, a check-out's charge, a write-off's balance and reason, a pricing's charge and reason, a price correction's from → to, an early end's date, an extension's subscriptions and days, a role's from → to, a status set by hand and until when, a capacity's from → to, a refusal's note. Its states: loading (the table's skeleton), the failure with «إعادة المحاولة», «لا أحداث بعد», and «لا توجد أحداث تطابق الفلاتر».
 
 **The owner's screen** links a customer to the file, the space to its profile, a package to Packages & prices, an announcement to the announcements, a payment to the ledger and a report to the reports with it open (`?open=`).
+
+**The admin's screen** says first that it shows the platform's events only; under each target it names the space the entry names, unless the target is that space; the action is red for a space's deletion, an account's suspension and an owner's unlinking; the actor filter names persons only (the contract's `actor` is a person's id). It links a space to its editor, a person to the users list searched by their name, a governorate or an area to the lookups, an amenity to their amenities' tab, a report to the reports with it open, and the platform's settings to their page.
 
 ## Decisions
 
@@ -85,3 +87,4 @@
 ### Web history
 
 - #132 — the owner's «سجل التدقيق» (O13, finding 14): the space's log, searched, filtered by period, actor and action type, its actions worded and its details where the values say something.
+- #132 — the admin's «سجل التدقيق» (screen 31): the platform's events, each with the space it names.
