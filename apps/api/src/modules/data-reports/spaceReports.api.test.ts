@@ -279,6 +279,34 @@ describe("the owner's reports", () => {
   );
 });
 
+describe("one of the space's reports", () => {
+  it("the owner reads one report by its id, the reporter nowhere; another space's is 404", async () => {
+    const mine = await report({ field: 'HOURS', message: 'مغلق يوم الجمعة' });
+    const theirs = await report({ spaceId: otherSpaceId });
+
+    const one = await request(app)
+      .get(`${reportsPath()}/${String(mine.id)}`)
+      .set('Authorization', owner.authorization);
+    expect(one.status).toBe(200);
+    const listed = await list(owner);
+    expect(dataOf(one)).toEqual((dataOf(listed) as object[])[0]);
+    expect(JSON.stringify(one.body)).not.toContain('Rima');
+    expect(dataOf(one)).toMatchObject({ id: mine.id, field: 'HOURS' });
+
+    for (const id of [theirs.id, 999_999]) {
+      const response = await request(app)
+        .get(`${reportsPath()}/${String(id)}`)
+        .set('Authorization', owner.authorization);
+      expect(response.status).toBe(404);
+      expect(errorOf(response).type).toBe('not_found');
+    }
+    const asReception = await request(app)
+      .get(`${reportsPath()}/${String(mine.id)}`)
+      .set('Authorization', reception.authorization);
+    expect(asReception.status).toBe(403);
+  });
+});
+
 describe("the space's open reports, counted", () => {
   it('openCountOf counts the space’s OPEN reports only', async () => {
     await report({ field: 'HOURS' });

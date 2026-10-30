@@ -56,6 +56,28 @@ const decide = (reportId: number, body: object) =>
 const lockSpace = (spaceId: number) => (tx: Tx) =>
   tx.$queryRaw`SELECT id FROM spaces WHERE id = ${spaceId} FOR UPDATE`;
 
+describe("one report, the admin's", () => {
+  it('the admin reads one report by its id, as the list shows it; an unknown one, or a deleted space’s, 404', async () => {
+    const one = await report({ field: 'HOURS' });
+    const { id: goneId } = await createSpace('gone');
+    const gone = await report({ spaceId: goneId });
+    await prisma.space.update({ where: { id: goneId }, data: { deletedAt: NOW } });
+
+    const response = await adminRequest(app, admin, 'get', `/data-reports/${String(one.id)}`);
+    expect(response.status).toBe(200);
+    const listed = await adminRequest(app, admin, 'get', '/data-reports');
+    expect(dataOf(response)).toEqual((dataOf(listed) as object[])[0]);
+    expect(dataOf(response)).toMatchObject({ id: one.id, reporter: { name: 'Rima Haddad' } });
+
+    for (const id of [gone.id, 999_999]) {
+      const missing = await adminRequest(app, admin, 'get', `/data-reports/${String(id)}`);
+      expect(missing.status).toBe(404);
+    }
+    const asOwner = await adminRequest(app, owner, 'get', `/data-reports/${String(one.id)}`);
+    expect(asOwner.status).toBe(403);
+  });
+});
+
 describe("the admin's reports", () => {
   it('the admin lists every report with the reporter’s and decider’s names, the space and whether it is verified; filtered by status, field and space; a deleted space’s left out; a non-admin 403', async () => {
     const open = await report({ field: 'HOURS', createdAt: minutesAgo(30) });

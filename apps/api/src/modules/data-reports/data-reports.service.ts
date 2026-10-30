@@ -173,6 +173,24 @@ export function createDataReportsService({
       return { rows: rows.map(toSpaceReport), total };
     },
 
+    /**
+     * One of the space's reports by its id, as its owner's list shows it: never who reported it;
+     * another space's, or none, `not_found` (the report notice opens it from the address, S5).
+     */
+    async oneOfSpace(spaceId: number, reportId: number): Promise<SpaceReport> {
+      const row = await repository.findInSpace(spaceId, reportId);
+      if (!row) throw AppError.notFound(undefined, 'Report not found');
+      return toSpaceReport(row);
+    },
+
+    /** One report by its id, as the admin's list shows it; none, or a deleted space's, `not_found`. */
+    async one(reportId: number): Promise<AdminReport> {
+      const row = await repository.findLive(reportId);
+      const [report] = row ? await asAdminReports([row]) : [];
+      if (!report) throw AppError.notFound(undefined, 'Report not found');
+      return report;
+    },
+
     /** How many of the space's reports are open, as its owner's list counts them. */
     openCountOf(spaceId: number): Promise<number> {
       return repository.openCountOf(spaceId);

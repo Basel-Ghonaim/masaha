@@ -12,6 +12,7 @@ import type { DataReportsController } from './data-reports.controller.ts';
 export function createDataReportsAdminRouter(controller: DataReportsController): Router {
   const router = Router();
   router.get('/', validate(adminReportsQuerySchema, 'query'), controller.all);
+  router.get('/:reportId', controller.one);
   router.patch('/:reportId', validate(decideReportSchema), controller.decideAsAdmin);
   return router;
 }

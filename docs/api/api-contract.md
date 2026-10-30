@@ -954,6 +954,12 @@ AdminReport = SpaceReport & {
 - **Query:** `status` (`OPEN` or `DECIDED`; all when absent), `field` (one of the six) and §4's `page` and `limit`; `invalid_choice` otherwise.
 - **200:** `SpaceReport[]`, the space's own, newest first, then id, with §4's `meta`. **Never who reported:** no name, id or email anywhere in the answer. Built 2026-10-25, #120.
 
+
+#### `GET /manage/spaces/:spaceId/data-reports/:reportId` · 🏢
+One of the space's reports by its id, for the report notice opened from the address, never searched for in a page of the list (2026-10-29, #132).
+- **Auth:** as the list: reception is `forbidden` (403) before the report is read.
+- **200:** `SpaceReport`, as the list shows it: never who reported.
+- **Errors:** `forbidden` (403) for reception; `not_found` (404) for another space's report, or no such report.
 #### `PATCH /manage/spaces/:spaceId/data-reports/:reportId` · 🏢
 - **Body:** `{ status: 'RESOLVED' | 'DISMISSED', note? }`.
 - **200:** `SpaceReport`, decided now with `repliedBy: 'SPACE'`; the same decision again answers it as it is.
@@ -962,6 +968,11 @@ AdminReport = SpaceReport & {
 #### `GET /admin/data-reports` · 🛡
 - **Query:** `status` (`OPEN` or `DECIDED`), `field`, `spaceId` (a positive id), `handledBy` (`ADMIN` or `OWNER`) and §4's `page` and `limit`, each optional; `invalid_choice` or `validation` otherwise. `handledBy` keeps the reports of the spaces each decides: `ADMIN` an unverified space's, `OWNER` a verified one's, verified now, as `space.verified` says (2026-10-29, #131).
 - **200:** `AdminReport[]`, every space's, newest first, then id, with §4's `meta`: who reported and who decided, by name, and whether the space is verified now. A soft-deleted space's reports are left out ([ADR 0007](../architecture/decisions/0007-soft-delete.md)). Built 2026-10-25, #120.
+
+#### `GET /admin/data-reports/:reportId` · 🛡
+One report by its id, for the report notice opened from the address (2026-10-29, #132).
+- **200:** `AdminReport`, as the list shows it.
+- **Errors:** `not_found` (404) for no such report, or a soft-deleted space's (the list leaves those out).
 
 #### `PATCH /admin/data-reports/:reportId` · 🛡
 - **Body:** `{ status: 'RESOLVED' | 'DISMISSED', note? }`.

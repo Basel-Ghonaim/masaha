@@ -19,6 +19,7 @@ export function createDataReportsManageRouter(controller: DataReportsController)
     validate(spaceReportsQuerySchema, 'query'),
     controller.ofSpace,
   );
+  router.get('/:reportId', requireCan('space.dataReports.read'), controller.oneOfSpace);
   router.patch(
     '/:reportId',
     requireCan('dataReports.resolve'),

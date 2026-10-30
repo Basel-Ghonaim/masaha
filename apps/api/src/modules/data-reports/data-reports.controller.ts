@@ -43,6 +43,18 @@ export function createDataReportsController(service: DataReportsService) {
       sendSuccess(res, rows satisfies SpaceReport[], { meta: buildPaginationMeta(query, total) });
     },
 
+    /** 200 with one of the space's reports: never who reported it. */
+    oneOfSpace: async (req: Request, res: Response) => {
+      const report = await service.oneOfSpace(spaceOf(req).id, parseId(req.params.reportId));
+      sendSuccess(res, report satisfies SpaceReport);
+    },
+
+    /** 200 with one report, with who reported and who decided it. */
+    one: async (req: Request, res: Response) => {
+      const report = await service.one(parseId(req.params.reportId));
+      sendSuccess(res, report satisfies AdminReport);
+    },
+
     /** 200 with a page of every report and its `meta`, with who reported and who decided. */
     all: async (req: Request, res: Response) => {
       const query = req.query as unknown as AdminReportsQuery;

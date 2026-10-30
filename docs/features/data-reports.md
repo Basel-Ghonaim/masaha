@@ -118,6 +118,7 @@
 
 - 2026-10-25, #120 — a signed-in user's report of a listed space, 10 an hour, a repeat answering the open one; the user's own reports with the replies; the owner's and the admin's lists and decisions.
 - 2026-10-29, #131 — the admin's list filtered by who handles a report (`handledBy`).
+- 2026-10-29, #132 — one report read by its id, the owner's (`GET …/data-reports/:reportId`, never the reporter) and the admin's (`GET /admin/data-reports/:reportId`), for the report notice opened from the address (S5).
 
 ### Web history
 
