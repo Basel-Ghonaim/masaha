@@ -17,7 +17,7 @@
 - **The admin,** under `/admin/settings/{new-space-defaults|staleness|contact}`. On the dashboard, the admin edits «إعدادات المنصة» (`/dashboard/admin/settings`, screen 32; 2026-10-29, #132).
 - **Anyone,** at `/settings/public`: the contact, for the site's About and the owner's line.
 - **`spaces`** reads the defaults when a space is created and the thresholds for its stale groups.
-- The site still reads its contact from `VITE_CONTACT_*`; moving it to the API is the web's.
+- **The site** reads the contact from `GET /settings/public` on About and in an unverified space's dialog (`PlatformContact`, the capability's `public.ts`; 2026-10-29, #132).
 
 ## Responsibility boundary
 
@@ -59,6 +59,7 @@
 
 - **Each card its own read, save and error** (AD-029): three queries and three forms, so one card's refusal or failed read never touches another's, as the API's three resources. 2026-10-29, #132.
 - **A card is sent whole, «حفظ» always enabled** (P10): the server writes and audits only what changed, so the web compares nothing. 2026-10-29, #132.
+- **The site's contact from the API, nothing while it is read** (D6.3, DI31): `VITE_CONTACT_*` are gone, so a contact the admin saves reaches About and an unverified space's dialog; kept 5 minutes, as the server's cache; a failed read draws the caller's line, as none set. 2026-10-29, #132.
 
 ## Code map
 
@@ -79,3 +80,4 @@
 ### Web history
 
 - #132 — the admin's «إعدادات المنصة» (screen 32): the contact, the data's freshness and the new spaces' defaults, each card read, saved and refused on its own.
+- #132 — the site reads the platform's contact from `GET /settings/public`; the web's `VITE_CONTACT_*` are removed.

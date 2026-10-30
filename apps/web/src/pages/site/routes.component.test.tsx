@@ -86,14 +86,22 @@ const NO_SPACES = {
   },
 };
 
-/** The site's routes at `path`, the server answering the public reads with nothing listed. */
-function renderPublicSite(path: string) {
+/** No platform contact set, as `GET /settings/public` answers it. */
+const NO_CONTACT = { email: null, whatsapp: null };
+
+/**
+ * The site's routes at `path`, the server answering the public reads with nothing listed, and the
+ * platform's contact with `contact`.
+ */
+function renderPublicSite(path: string, contact: object = NO_CONTACT) {
   fakeTransport((request) =>
     request.url === '/lookups'
       ? ok({ governorates: [], amenities: [] })
       : request.url === '/map/spaces'
         ? ok({ pins: [], truncated: false })
-        : NO_SPACES,
+        : request.url === '/settings/public'
+          ? ok(contact)
+          : NO_SPACES,
   );
   const router = createMemoryRouter(
     [
@@ -280,7 +288,6 @@ describe("the site's routes", () => {
 
   it('wires the unverified contact dialog with its none line and configured email', async () => {
     stubScreenWidth(1440);
-    vi.stubEnv('VITE_CONTACT_EMAIL', '');
     fakeTransport((request) =>
       request.url === '/spaces'
         ? ok([], 200)
@@ -288,7 +295,9 @@ describe("the site's routes", () => {
           ? ok({ governorates: [], areas: [], amenities: [] })
           : request.url?.endsWith('/occupancy')
             ? ok({ status: null })
-            : ok(publicSpace({ isVerified: false, contacts: [] })),
+            : request.url === '/settings/public'
+              ? ok(NO_CONTACT)
+              : ok(publicSpace({ isVerified: false, contacts: [] })),
     );
     const router = createMemoryRouter(
       [
@@ -337,9 +346,10 @@ describe("the site's routes", () => {
   });
 
   it('About has «Contact us» before «For space owners», each with the configured contact, and no university line; the footer offers «Browse spaces» first; axe-clean', async () => {
-    vi.stubEnv('VITE_CONTACT_EMAIL', 'hello@example.com');
-    vi.stubEnv('VITE_CONTACT_WHATSAPP', '');
-    const { container } = renderPublicSite('/about');
+    const { container } = renderPublicSite('/about', {
+      email: 'hello@example.com',
+      whatsapp: null,
+    });
 
     expect(await pageTitle()).toHaveTextContent('About Masaha');
     const main = within(screen.getByRole('main'));
@@ -351,7 +361,7 @@ describe("the site's routes", () => {
     expect(contact.compareDocumentPosition(owners) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     for (const section of [contact, owners]) {
       expect(
-        within(section).getByRole('link', { name: 'Email hello@example.com' }),
+        await within(section).findByRole('link', { name: 'Email hello@example.com' }),
       ).toHaveAttribute('href', 'mailto:hello@example.com');
     }
     expect(within(owners).getAllByRole('listitem')).toHaveLength(3);
@@ -363,8 +373,6 @@ describe("the site's routes", () => {
   });
 
   it('with no contact configured, About’s sections keep their text without buttons', async () => {
-    vi.stubEnv('VITE_CONTACT_EMAIL', '');
-    vi.stubEnv('VITE_CONTACT_WHATSAPP', '');
     renderPublicSite('/about');
 
     expect(await pageTitle()).toHaveTextContent('About Masaha');

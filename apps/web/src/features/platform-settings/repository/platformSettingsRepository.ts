@@ -12,9 +12,11 @@ const ADMIN_SETTINGS_PATH = '/admin/settings';
 
 /**
  * The platform's settings on the server (docs/api/api-contract.md › Platform settings): the admin's
- * three cards, each read and saved whole and on its own.
+ * three cards, each read and saved whole and on its own, and anyone's read of the contact.
  */
 export interface PlatformSettingsRepository {
+  /** The platform's contact, for anyone (`GET /settings/public`, cached 5 minutes). */
+  publicContact(): Promise<PlatformContact>;
   contact(): Promise<PlatformContact>;
   /** Saves the contact whole, `null` clearing a channel; the answer is as saved (normalised). */
   saveContact(request: PlatformContactRequest): Promise<PlatformContact>;
@@ -26,6 +28,7 @@ export interface PlatformSettingsRepository {
 
 export function createPlatformSettingsRepository(): PlatformSettingsRepository {
   return {
+    publicContact: () => api.get<PlatformContact>('/settings/public'),
     contact: () => api.get<PlatformContact>(`${ADMIN_SETTINGS_PATH}/contact`),
     saveContact: (request) => api.put<PlatformContact>(`${ADMIN_SETTINGS_PATH}/contact`, request),
     staleness: () => api.get<StalenessThresholds>(`${ADMIN_SETTINGS_PATH}/staleness`),

@@ -5,6 +5,7 @@ import {
 } from '@masaha/shared/platform-settings';
 import { useCopy } from '@shared/copy';
 import { createPlatformSettingsRepository } from '../../repository/platformSettingsRepository';
+import { platformSettingsKeys } from '../queryKeys';
 import { useAdminSettingsForm } from './useAdminSettingsForm';
 
 const repository = createPlatformSettingsRepository();
@@ -44,6 +45,8 @@ export function useContactCard(saved: PlatformContact) {
     prepare: contactInput,
     fieldLines: words.errors,
     save: (request) => repository.saveContact(request),
+    // The site's contact is read again, so the admin's own next visit shows what was saved.
+    alsoStale: [platformSettingsKeys.publicContact],
   });
 
   return {
