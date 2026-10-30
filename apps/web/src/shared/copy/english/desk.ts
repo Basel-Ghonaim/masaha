@@ -149,6 +149,8 @@ export const DESK = {
     phone: 'Mobile number',
     phoneRequired: 'A mobile number is needed to record the debt, e.g. +970 59 000 0000',
     adds: ({ name }: { name: string }) => `Added to ${name}’s file`,
+    /** A typed phone no customer holds yet: the write makes their file. */
+    newCustomer: 'A new customer with this number',
     title: ({ name }: { name: string }) => `Record a debt · ${name}`,
     text: ({ amount }: { amount: string }) =>
       `${amount} stays owed by this number’s holder; a customer file is created if there is none.`,

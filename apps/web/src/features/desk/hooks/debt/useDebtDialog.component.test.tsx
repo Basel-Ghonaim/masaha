@@ -1,10 +1,11 @@
 import { createQueryClient } from '@shared/api';
 import { Toaster, toast } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { customerRow, customersPage } from '../../../../test/deskCustomer';
 import { deskVisit, uncollectedVisit } from '../../../../test/deskVisit';
 import { findToast } from '../../../../test/findToast';
 import {
@@ -48,6 +49,27 @@ afterEach(() => {
 });
 
 describe('useDebtDialog', () => {
+  it('says whose file a valid typed phone adds to, once typing pauses, or a new customer', async () => {
+    const user = userEvent.setup();
+    const { requests } = renderDialog(() => customersPage([customerRow({ name: 'Sara Khalid' })]));
+
+    const phone = screen.getByRole('textbox', { name: 'Mobile number' });
+    await user.type(phone, '059900');
+    // Not a phone yet: nothing is looked up, nothing said.
+    expect(screen.queryByText(/Added to|A new customer/)).toBeNull();
+    await user.type(phone, '0201');
+    expect(await screen.findByText(heard('Added to Sara Khalid’s file'))).toBeVisible();
+    const lookups = requests.filter((request) => request.method === 'get');
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]?.params).toEqual({ q: '+970599000201', limit: 2, page: 1 });
+    cleanup();
+    restoreTransport();
+
+    renderDialog(() => customersPage([]));
+    await user.type(screen.getByRole('textbox', { name: 'Mobile number' }), '0599000909');
+    expect(await screen.findByText('A new customer with this number')).toBeVisible();
+  });
+
   it('leaves the visit to the phone, with the name, focused first', async () => {
     const user = userEvent.setup();
     const { requests, onClose } = renderDialog(() =>
@@ -96,8 +118,10 @@ describe('useDebtDialog', () => {
       await vi.advanceTimersByTimeAsync(10_000);
     });
 
-    expect(requests).toHaveLength(1);
-    expect(requests[0]?.headers.get('Idempotency-Key')).toBeUndefined();
+    // The write alone: the typed phone's lookup is a read (G13.12).
+    const writes = requests.filter((request) => request.method === 'put');
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.headers.get('Idempotency-Key')).toBeUndefined();
   });
 
   it('words VISIT_HAS_CUSTOMER and VISIT_ALREADY_PAID', async () => {

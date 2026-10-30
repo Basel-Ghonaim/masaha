@@ -58,6 +58,9 @@ export function DebtDialog({
           <Field label={dialog.phone.label} error={dialog.phone.error}>
             <Input type="tel" dir="ltr" autoComplete="off" aria-required {...dialog.phone.field} />
           </Field>
+          <p aria-live="polite" className="text-body-sm text-muted-foreground empty:hidden">
+            {dialog.phone.owner}
+          </p>
           {dialog.failure !== null && <FormFailure view={dialog.failure} />}
           <DialogFooter>
             <Button type="submit" loading={dialog.submit.busy} disabled={dialog.submit.blocked}>

@@ -15,6 +15,7 @@ import { toastCheckedOut } from '../../components/toast/deskToasts';
 import { deskFailure } from '../../services/deskRefusal';
 import { quoteIsStale } from '../../services/quoteAge';
 import { useMoneyBlock } from '../money/useMoneyBlock';
+import { usePhoneOwner } from '../phone/usePhoneOwner';
 import { deskKeys } from '../queryKeys';
 import { useCheckOutVisit } from './useCheckOutVisit';
 import { useQuoteQuery } from './useQuoteQuery';
@@ -159,6 +160,8 @@ export function useCheckOutDialog({
     failureLines: words.refusals,
   });
 
+  const typedPhone = useWatch({ control: form.form.control, name: 'phone' });
+  const phoneOwner = usePhoneOwner(spaceId, typedPhone);
   const [typedAmount, debtName] = useWatch({
     control: form.form.control,
     name: ['charge.amountAgorot', 'customerName'],
@@ -308,6 +311,7 @@ export function useCheckOutDialog({
               name: { label: words.debt.name, field: form.field('customerName') },
               nameError: form.errors.customerName,
               phone: { label: words.debt.phone, field: form.field('phone') },
+              owner: phoneOwner,
               phoneError: hasVisitCustomerRefusal
                 ? words.refusals.VISIT_HAS_CUSTOMER
                 : form.errors.phone,

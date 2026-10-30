@@ -181,6 +181,10 @@ function DebtFields({
           {...debt.phone.field}
         />
       </Field>
+      {/* Whose file the phone adds to, said as it is found (G13.12). */}
+      <p aria-live="polite" className="text-body-sm text-muted-foreground empty:hidden">
+        {debt.owner}
+      </p>
     </div>
   );
 }

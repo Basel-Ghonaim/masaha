@@ -5,9 +5,11 @@ import { useServerForm } from '@shared/forms';
 import { priceText } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState, type BaseSyntheticEvent } from 'react';
+import { useWatch } from 'react-hook-form';
 import { toastDebtRecorded } from '../../components/toast/deskToasts';
 import { deskFailure } from '../../services/deskRefusal';
 import type { UncollectedItem } from '../../types/UncollectedItem';
+import { usePhoneOwner } from '../phone/usePhoneOwner';
 import { useDeskWrite } from '../useDeskWrite';
 import { useLeaveToCustomer } from './useLeaveToCustomer';
 
@@ -64,6 +66,8 @@ export function useDebtDialog({
     failureLines: words.refusals,
   });
 
+  const owner = usePhoneOwner(spaceId, useWatch({ control: form.form.control, name: 'phone' }));
+
   const send = (event?: BaseSyntheticEvent) => {
     setRefusal(null);
     form.submit(event);
@@ -86,7 +90,12 @@ export function useDebtDialog({
       field: form.field('customerName'),
       error: form.errors.customerName,
     },
-    phone: { label: words.debt.phone, field: form.field('phone'), error: form.errors.phone },
+    phone: {
+      label: words.debt.phone,
+      field: form.field('phone'),
+      error: form.errors.phone,
+      owner,
+    },
     submit: { label: words.debt.submit, run: send, busy: form.isPending, blocked: form.blocked },
     failure,
   };
