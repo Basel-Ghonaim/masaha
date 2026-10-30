@@ -5,7 +5,7 @@ import { isolate } from '@shared/localisation';
 import { useState } from 'react';
 import { namedLine } from '../../services/namedLine';
 import type { SpaceNameView } from '../../types/AdminSpaceRowView';
-import { useSpaceOwnersQuery } from './useSpaceOwnersQuery';
+import { useSpaceOwnersQuery } from '../useSpaceOwnersQuery';
 import { useUnlinkOwner } from './useUnlinkOwner';
 
 /** The space an unlink ends a link to, and the owner it ends. */

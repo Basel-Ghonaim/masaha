@@ -223,6 +223,7 @@ export const SPACE_LINKS = {
     titleFromPerson: ({ name }: { name: string }) => `ربط ${name} بمساحة`,
     close: 'إغلاق',
     noOwner: 'ليس لها مالك اليوم.',
+    hasOwner: 'يُضاف مالكًا آخر لهذه المساحة.',
     oneAtATime: 'مساحة واحدة في كل مرة.',
     person: 'الشخص',
     personHelper: 'المالكون والمستخدمون، بالاسم أو البريد. الحسابات الموقوفة لا تُربط.',
@@ -248,6 +249,7 @@ export const SPACE_LINKS = {
     },
     linked: ({ person, space }: { person: string; space: string }) => `رُبط ${person} بـ ${space}`,
     nowVerified: 'المساحة موثّقة الآن',
+    ownerAdded: 'أُضيف مالك للمساحة',
   },
   unlink: {
     title: ({ person, space }: { person: string; space: string }) =>

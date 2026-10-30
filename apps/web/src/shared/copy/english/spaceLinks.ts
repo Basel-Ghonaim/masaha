@@ -276,6 +276,8 @@ export const SPACE_LINKS = {
     close: 'Close',
     /** From a space, which is linked from its editor only while it has no owner. */
     noOwner: 'It has no owner today.',
+    /** From a space that has owners as the server reads it now (linked meanwhile). */
+    hasOwner: 'They become another owner of this space.',
     oneAtATime: 'One space at a time.',
     person: 'Person',
     personHelper: 'Owners and users, by name or email. Suspended accounts can’t be linked.',
@@ -307,6 +309,8 @@ export const SPACE_LINKS = {
     linked: ({ person, space }: { person: string; space: string }) =>
       `${person} linked to ${space}`,
     nowVerified: 'The space is now verified',
+    /** A link to a space that has owners already. */
+    ownerAdded: 'An owner was added to the space',
   },
   /** Unlinking an owner from a space, which asks first. */
   unlink: {
