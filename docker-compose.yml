@@ -13,8 +13,11 @@ services:
     volumes:
       # From 18 on, the image keeps its data under /var/lib/postgresql (not /data).
       - masaha-pgdata:/var/lib/postgresql
-      # Runs once, when the volume is first created: adds masaha_test next to masaha_dev.
-      - ./docker/postgres/create-test-database.sql:/docker-entrypoint-initdb.d/create-test-database.sql:ro
+    # Runs once, when the volume is first created: adds masaha_test next to masaha_dev. Inline, so
+    # the container depends on no folder, and every folder's configuration is the same (finding 48).
+    configs:
+      - source: create-test-database
+        target: /docker-entrypoint-initdb.d/create-test-database.sql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U masaha -d masaha_dev']
       interval: 2s
@@ -23,3 +26,9 @@ services:
 
 volumes:
   masaha-pgdata:
+
+configs:
+  create-test-database:
+    content: |
+      -- The API test lane's database; test:api migrates and truncates it, never masaha_dev.
+      CREATE DATABASE masaha_test;

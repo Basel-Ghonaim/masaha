@@ -78,7 +78,7 @@ PostgreSQL 18 runs in Docker Compose ([`docker-compose.yml`](../../docker-compos
   - `masaha_dev`, used by the running API;
   - `masaha_test`, used only by the API test lane.
 - The user and password are both `masaha`. This is a local development secret, never used anywhere else.
-- `masaha_test` is created by [`docker/postgres/create-test-database.sql`](../../docker/postgres/create-test-database.sql) when the volume is first created.
+- `masaha_test` is created when the volume is first created, by an init script the Compose file holds inline (its `configs`), so the container depends on no folder (2026-10-29, #132). This needs Docker Compose 2.23.1 or later.
 - The Compose project is named `masaha`, so every checkout of the repository (including a git worktree) shares the same container and data.
 
 | Command | What it does |
@@ -125,7 +125,7 @@ A second folder, such as a worktree, runs its web and its API beside the first o
 - `apps/api/.env`: its `PORT`, and `CORS_ORIGIN` naming its web, for example `3321` and `http://localhost:5321`;
 - `apps/web/.env`: `WEB_PORT=5321` and `API_PROXY_TARGET=http://localhost:3321`.
 
-The database container is shared by every folder: in a second folder, never run `npm run db:up` (it recreates the container bound to that folder, [finding 48](../architecture/findings/48-db-up-from-another-folder-recreates-the-shared-container.md)); run `docker start masaha-postgres-1`.
+The database container is shared by every folder. Every folder now gives Compose the same configuration, so a second folder's `npm run db:up` leaves the running container as it is ([finding 48](../architecture/findings/48-db-up-from-another-folder-recreates-the-shared-container.md)). **Once,** on a machine whose container was created before the init script moved inline (it binds a folder's `docker/postgres/create-test-database.sql`), the first `npm run db:up` recreates the container with the new configuration; the data stays in the volume (2026-10-29, #132).
 
 Google sign-in there also needs that origin listed on the OAuth client. When done, stop both servers and check that their ports are free: on Windows, a `tsx watch` API can survive Ctrl+C.
 
