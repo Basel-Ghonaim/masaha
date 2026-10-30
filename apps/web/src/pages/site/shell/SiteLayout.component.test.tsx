@@ -2,12 +2,27 @@ import { restoreSession } from '@shared/session';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeTransport, restoreTransport } from '../../../test/fakeTransport';
 import { queryWrapper } from '../../../test/queryWrapper';
 import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
+import { warm } from '../../../test/warmLazy';
 import { siteRoutes } from '../routes';
+
+// The lazy modules its tests open, loaded once before any test waits (src/test/warmLazy.ts).
+beforeAll(
+  () =>
+    warm(
+      () => import('./SiteLayout'),
+      () => import('./FocusLayout'),
+      () => import('../public/home/HomePage'),
+      () => import('../public/directory/DirectoryPage'),
+      () => import('../public/about/AboutPage'),
+      () => import('../auth/SignInPage'),
+    ),
+  60_000,
+);
 
 /**
  * The site's routes, as the app mounts them, at the last of `history`'s paths; resolves with the

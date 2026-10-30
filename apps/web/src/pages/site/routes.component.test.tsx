@@ -2,14 +2,30 @@ import { DocumentTitle, RecordTitleProvider } from '@shared/routing';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider, type RouteObject } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { fakeTransport, ok, restoreTransport } from '../../test/fakeTransport';
 import { publicSpace } from '../../test/publicSpace';
 import { queryWrapper } from '../../test/queryWrapper';
 import { stubScreenWidth } from '../../test/screenWidth';
 import { startPreferences } from '../../test/startPreferences';
+import { warm } from '../../test/warmLazy';
 import { siteRoutes } from './routes';
+
+// The lazy modules its tests open, loaded once before any test waits (src/test/warmLazy.ts).
+beforeAll(
+  () =>
+    warm(
+      () => import('./shell/SiteLayout'),
+      () => import('./shell/FocusLayout'),
+      () => import('./public/home/HomePage'),
+      () => import('./public/directory/DirectoryPage'),
+      () => import('./public/space/SpacePage'),
+      () => import('./public/about/AboutPage'),
+      () => import('./public/not-found/NotFoundPage'),
+    ),
+  60_000,
+);
 
 /** Pages that fail, added beside the site's own, under its error boundary. */
 const FAILING_PAGES: RouteObject[] = [

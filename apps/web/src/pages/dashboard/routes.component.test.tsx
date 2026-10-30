@@ -21,7 +21,44 @@ import { paymentRow, paymentsPage } from '../../test/paymentRow';
 import { stubScreenWidth } from '../../test/screenWidth';
 import { setSessionHint } from '../../test/sessionHint';
 import { startPreferences } from '../../test/startPreferences';
+import { warm } from '../../test/warmLazy';
 import { dashboardRoutes } from './routes';
+
+// The lazy modules its tests open, loaded once before any test waits (src/test/warmLazy.ts).
+beforeAll(
+  () =>
+    warm(
+      () => import('./shell/SpaceLayout'),
+      () => import('./shell/AdminLayout'),
+      () => import('./DashboardLanding'),
+      () => import('./PlaceholderPage'),
+      () => import('./space/overview/OverviewPage'),
+      () => import('./space/desk/DeskPage'),
+      () => import('./space/customers/CustomersPage'),
+      () => import('./space/customers/CustomerPage'),
+      () => import('./space/payments/PaymentsPage'),
+      () => import('./space/payments/MyPaymentsPage'),
+      () => import('./space/StaffPage'),
+      () => import('./space/SettingsPage'),
+      () => import('./space/ProfilePage'),
+      () => import('./space/PackagesPage'),
+      () => import('./space/announcements/AnnouncementsPage'),
+      () => import('./space/reports/DataReportsPage'),
+      () => import('./space/finance/FinancePage'),
+      () => import('./space/audit/AuditPage'),
+      () => import('./admin/overview/OverviewPage'),
+      () => import('./admin/SpacesPage'),
+      () => import('./admin/AddSpacePage'),
+      () => import('./admin/SpaceEditPage'),
+      () => import('./admin/UsersPage'),
+      () => import('./admin/OwnersPage'),
+      () => import('./admin/DataReportsPage'),
+      () => import('./admin/LookupsPage'),
+      () => import('./admin/audit/AuditPage'),
+      () => import('./admin/settings/SettingsPage'),
+    ),
+  60_000,
+);
 
 const FOCUS: ManagedSpace = {
   spaceId: 7,

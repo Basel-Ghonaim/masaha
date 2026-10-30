@@ -1,6 +1,6 @@
 # Testing
 
-> **Status:** Active · **Last Updated:** 2026-10-17 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** Where a behaviour is proven: the lanes, what each owns and is forbidden, and the rule that assigns a behaviour to one. It owns the placement of proof and what makes a test a proof, not its style.
 
 ## 1. The assignment rule
@@ -35,6 +35,7 @@ A test file's suffix names its lane, and each lane's script runs only its own fi
 5. **Seen failing.** A new test is seen failing, in its own lane, before the code that passes it. A test for code that already exists is proven by reverting that code once and seeing the test fail. A red test is never committed ([workflow §3](workflow.md#commits)).
 6. **Name the break.** Every test can name the production change that would make it fail. Its expectations are written by hand, never computed by the code under test, and its title states what it proves and nothing it does not.
 7. **Make the break.** For a security, transaction or ordering property, the author makes that change once, sees the test fail, and restores it. A race's test acts only once its request is seen waiting on the lock (`apps/api/test/locks.ts`), never after a fixed time.
+8. **A lazy route's first load is paid before the waits.** A web test file that renders lazily loaded routes loads the modules its tests open once, in a `beforeAll` with a 60 s timeout, before any test waits: `warm(...)` in `apps/web/src/test/warmLazy.ts`, with the modules' imports, or with `routeLoaders(routes, path)` where the file may not import the pages (`app/`). On a busy machine a module's first transform can outlast a 3 s wait for what it draws ([findings 55](../architecture/findings/55-a-files-first-wait-for-a-lazy-shell-outlasts-three-seconds-on-a-busy-machine.md) and [87](../architecture/findings/87-the-owners-shell-cold-loads-the-space-links-index.md)); no test's own wait or timeout is raised for it (2026-10-29, #132).
 
 ### A feature, layer by layer
 
