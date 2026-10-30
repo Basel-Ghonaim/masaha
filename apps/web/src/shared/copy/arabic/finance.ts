@@ -109,4 +109,35 @@ export const FINANCE = {
     },
     exportFailed: 'تعذّر تصدير الديون',
   },
+  occupancy: {
+    stay: {
+      label: 'متوسط مدة الجلوس',
+      value: ({ time }: { time: string }) => `${time} س`,
+      helper: ({ members, visits, month }: { members: string; visits: string; month: string }) =>
+        `المشتركون ${members} · الزيارات ${visits} · ${month}`,
+    },
+    peak: { label: 'ساعة الذروة' },
+    attendance: { label: 'متوسط الحضور اليومي' },
+    none: '—',
+    noStays: ({ month }: { month: string }) => `لا جلسات مغلقة في ${month}`,
+    heatmap: {
+      title: 'ساعات الذروة',
+      description: 'متوسط الحاضرين لكل ساعة · آخر 4 أسابيع',
+      chart: 'متوسط الحاضرين حسب اليوم والساعة',
+      unit: 'أشخاص',
+      fewer: 'أقل',
+      more: 'أكثر',
+      day: 'اليوم',
+      empty: 'لا جلسات مغلقة في آخر 4 أسابيع',
+    },
+    byDay: {
+      title: 'الزيارات والمشتركون يوميًا',
+      description: 'آخر 14 يومًا',
+      chart: 'الزيارات والمشتركون يوميًا، آخر 14 يومًا',
+      period: 'اليوم',
+      members: 'مشتركون',
+      visits: 'زيارات',
+    },
+    csv: { day: 'اليوم' },
+  },
 } satisfies Catalogue['finance'];

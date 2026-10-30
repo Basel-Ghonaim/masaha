@@ -4,6 +4,7 @@ import type { FinanceLinks } from '../types/FinanceLinks';
 import { DebtsTab } from './DebtsTab';
 import { IncomeTab } from './IncomeTab';
 import { MonthField } from './MonthField';
+import { OccupancyTab } from './OccupancyTab';
 
 /**
  * Finance (screen 19, D5.3–D5.5): the tabs «الدخل», «الديون», «الإشغال» and, beside them from 1024
@@ -38,6 +39,9 @@ export function FinanceScreen({
       </TabsContent>
       <TabsContent value="debts">
         <DebtsTab spaceId={spaceId} place={screen.place} links={links} spaceName={spaceName} />
+      </TabsContent>
+      <TabsContent value="occupancy">
+        <OccupancyTab spaceId={spaceId} asked={screen.asked} />
       </TabsContent>
     </Tabs>
   );

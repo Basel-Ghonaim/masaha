@@ -101,4 +101,36 @@ export const FINANCE = {
     },
     exportFailed: 'Couldn’t export the debts',
   },
+  /** The space's occupancy, from closed stays (D5.5). */
+  occupancy: {
+    stay: {
+      label: 'Average stay',
+      value: ({ time }: { time: string }) => `${time} h`,
+      helper: ({ members, visits, month }: { members: string; visits: string; month: string }) =>
+        `Members ${members} · visits ${visits} · ${month}`,
+    },
+    peak: { label: 'Peak hour' },
+    attendance: { label: 'Average daily attendance' },
+    none: '—',
+    noStays: ({ month }: { month: string }) => `No closed stays in ${month}`,
+    heatmap: {
+      title: 'Peak hours',
+      description: 'Average people present per hour · last 4 weeks',
+      chart: 'Average people present by day and hour',
+      unit: 'people',
+      fewer: 'Fewer',
+      more: 'More',
+      day: 'Day',
+      empty: 'No closed stays in the last 4 weeks',
+    },
+    byDay: {
+      title: 'Visits and members per day',
+      description: 'Last 14 days',
+      chart: 'Visits and members per day, last 14 days',
+      period: 'Day',
+      members: 'Members',
+      visits: 'Visits',
+    },
+    csv: { day: 'Day' },
+  },
 } as const;
