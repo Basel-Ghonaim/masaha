@@ -16,6 +16,11 @@ export function customerRow(change: Partial<CustomerRow> = {}): CustomerRow {
       packageId: 4,
       endsOn: '2026-10-21',
       status: 'ACTIVE',
+      totalDays: null,
+      daysPerWeek: null,
+      hoursPerDay: null,
+      totalHours: null,
+      progress: { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
     },
     ...change,
   };

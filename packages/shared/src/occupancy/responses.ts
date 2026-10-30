@@ -18,6 +18,8 @@ export type PresentPerson =
       id: number;
       /** The visitor's name, or their customer's. */
       name: string;
+      /** Whose prices the visit's rates are: «زيارة · طالب» for a student's. */
+      audience: 'GENERAL' | 'STUDENT';
       /** When they checked in. */
       since: string;
       /** What the stay costs so far, at the visit's rates; `null` with no rate. */

@@ -115,7 +115,18 @@ describe('useSubscriberCheckIn', () => {
     const user = userEvent.setup();
     const expired = renderCard(
       customerRow({
-        current: { id: 1, name: 'Exams', packageId: 4, endsOn: '2026-10-21', status: 'EXPIRED' },
+        current: {
+          id: 1,
+          name: 'Exams',
+          packageId: 4,
+          endsOn: '2026-10-21',
+          status: 'EXPIRED',
+          totalDays: null,
+          daysPerWeek: null,
+          hoursPerDay: null,
+          totalHours: null,
+          progress: { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
+        },
       }),
       () => ok(deskCheckIn(), 201),
     );
@@ -152,7 +163,18 @@ describe('useSubscriberCheckIn', () => {
     const user = userEvent.setup();
     renderCard(
       customerRow({
-        current: { id: 1, name: 'Exams', packageId: 4, endsOn: '2026-11-30', status: 'UPCOMING' },
+        current: {
+          id: 1,
+          name: 'Exams',
+          packageId: 4,
+          endsOn: '2026-11-30',
+          status: 'UPCOMING',
+          totalDays: null,
+          daysPerWeek: null,
+          hoursPerDay: null,
+          totalHours: null,
+          progress: { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
+        },
       }),
       (request) =>
         request.method === 'get'
@@ -185,7 +207,18 @@ describe('useSubscriberCheckIn', () => {
     let fails = true;
     renderCard(
       customerRow({
-        current: { id: 1, name: 'Exams', packageId: 4, endsOn: '2026-11-30', status: 'UPCOMING' },
+        current: {
+          id: 1,
+          name: 'Exams',
+          packageId: 4,
+          endsOn: '2026-11-30',
+          status: 'UPCOMING',
+          totalDays: null,
+          daysPerWeek: null,
+          hoursPerDay: null,
+          totalHours: null,
+          progress: { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
+        },
       }),
       () =>
         fails

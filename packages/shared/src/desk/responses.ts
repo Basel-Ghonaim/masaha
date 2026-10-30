@@ -1,7 +1,12 @@
 import type { DomainErrorCode } from '../core/index.ts';
 import type { Customer } from '../customers/index.ts';
 import type { CustomerBalance, ItemPayment, VisitPayment } from '../payments/index.ts';
-import type { DeskCheckIn, SubscriptionState, SubscriptionStatus } from '../subscriptions/index.ts';
+import type {
+  DeskCheckIn,
+  SubscriptionProgress,
+  SubscriptionState,
+  SubscriptionStatus,
+} from '../subscriptions/index.ts';
 import type { DeskVisit } from '../visits/index.ts';
 
 // The answers of the front desk's orchestrations (docs/api/api-contract.md §5, Front desk
@@ -59,6 +64,12 @@ export type CustomerRow = Customer &
       packageId: number | null;
       endsOn: string | null;
       status: SubscriptionStatus;
+      /** Its limits and its attendance, as `SubscriptionState`'s, for the row's «3 من 3». */
+      totalDays: number | null;
+      daysPerWeek: number | null;
+      hoursPerDay: number | null;
+      totalHours: number | null;
+      progress: SubscriptionProgress;
     } | null;
   };
 

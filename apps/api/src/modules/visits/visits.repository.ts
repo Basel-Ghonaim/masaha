@@ -9,6 +9,7 @@ export interface OpenVisit {
   id: number;
   visitorName: string | null;
   customerId: number | null;
+  audience: 'GENERAL' | 'STUDENT';
   checkedInAt: Date;
 }
 
@@ -313,7 +314,13 @@ export function createVisitsRepository() {
     openIn(spaceId: number, tx: Tx = prisma): Promise<OpenVisit[]> {
       return tx.visit.findMany({
         where: { spaceId, checkedOutAt: null },
-        select: { id: true, visitorName: true, customerId: true, checkedInAt: true },
+        select: {
+          id: true,
+          visitorName: true,
+          customerId: true,
+          audience: true,
+          checkedInAt: true,
+        },
         orderBy: [{ checkedInAt: 'asc' }, { id: 'asc' }],
       });
     },

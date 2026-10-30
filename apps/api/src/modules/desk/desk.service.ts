@@ -940,6 +940,11 @@ export function createDeskService({
                   packageId: state.packageId,
                   endsOn: state.endsOn,
                   status: state.status,
+                  totalDays: state.totalDays,
+                  daysPerWeek: state.daysPerWeek,
+                  hoursPerDay: state.hoursPerDay,
+                  totalHours: state.totalHours,
+                  progress: state.progress,
                 }
               : null,
             ...(balances.get(customer.id) ?? { debtAgorot: 0, creditAgorot: 0 }),

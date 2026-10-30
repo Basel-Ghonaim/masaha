@@ -151,7 +151,12 @@ describe('the customers list', () => {
       { ...row(lina), current: null, debtAgorot: 1_500, creditAgorot: 0 },
       {
         ...row(omar),
-        current: current(omars, null, '2026-10-25', 'ENDING_SOON'),
+        current: current(omars, null, '2026-10-25', 'ENDING_SOON', {
+          daysUsed: 1,
+          daysThisWeek: 1,
+          minutesUsed: 180,
+          minutesToday: 0,
+        }),
         debtAgorot: 0,
         creditAgorot: 2_500,
       },
@@ -176,6 +181,36 @@ describe('the customers list', () => {
       hasNextPage: false,
       hasPreviousPage: false,
     });
+  });
+
+  it("a customer row's current subscription carries its progress and its limits", async () => {
+    const sara = await createCustomer(spaceId, { name: 'Sara' });
+    const limited = await createSubscription(sara, {
+      name: 'Three days a week',
+      startsOn: day('2026-10-01'),
+      endsOn: day('2026-10-31'),
+      totalDays: 12,
+      daysPerWeek: 3,
+      hoursPerDay: 6,
+      totalHours: 60,
+    });
+    // This week (from Saturday the 17th): two days, one of them today, open.
+    await createCheckIn(limited, stay('2026-10-18', '09:00', '11:00'));
+    await createCheckIn(limited, { checkedInAt: new Date('2026-10-21T09:00:00+03:00') });
+
+    expect(dataOf(await list(reception))).toMatchObject([
+      {
+        name: 'Sara',
+        current: {
+          id: limited.id,
+          totalDays: 12,
+          daysPerWeek: 3,
+          hoursPerDay: 6,
+          totalHours: 60,
+          progress: { daysUsed: 2, daysThisWeek: 2, minutesUsed: 120, minutesToday: 0 },
+        },
+      },
+    ]);
   });
 
   it('q finds a name with its hamza or ta marbuta folded, and a phone by its last digits or whole in any form', async () => {
@@ -374,6 +409,18 @@ function current(
   packageId: number | null,
   endsOn: string,
   status: string,
+  progress = { daysUsed: 0, daysThisWeek: 0, minutesUsed: 0, minutesToday: 0 },
 ) {
-  return { id, name, packageId, endsOn, status };
+  return {
+    id,
+    name,
+    packageId,
+    endsOn,
+    status,
+    totalDays: null,
+    daysPerWeek: null,
+    hoursPerDay: null,
+    totalHours: null,
+    progress,
+  };
 }

@@ -372,7 +372,7 @@ A space's state now, as its staff see it: who is present (the open visits plus t
 ```ts
 LiveStatus = 'AVAILABLE' | 'FULL' | 'CLOSED'
 PresentPerson =
-  | { kind: 'VISIT', id, name, since, chargeNowAgorot: number | null }  // name: the visitor's, or their customer's; the charge so far (up to its due time), null with no rate
+  | { kind: 'VISIT', id, name, audience: 'GENERAL' | 'STUDENT', since, chargeNowAgorot: number | null }  // name: the visitor's, or their customer's; audience: whose rates (2026-10-29, #132); the charge so far (up to its due time), null with no rate
   | { kind: 'CHECK_IN', id, customerId, name, since }  // name: the customer's; since: the check-in time
 SpaceOccupancyNow = {
   status: LiveStatus | null,                    // null: unverified, no opening hours, or open with no capacity
@@ -464,7 +464,11 @@ ItemPayment = VisitPayment & {                                    // names: the 
   voided: { at, by: { id, name }, reason } | null
 }
 CustomerRow = Customer & CustomerBalance & {
-  current: { id, name, packageId: number | null, endsOn: string | null, status } | null
+  current: {
+    id, name, packageId: number | null, endsOn: string | null, status,
+    totalDays, daysPerWeek, hoursPerDay, totalHours: number | null,      // its limits, as SubscriptionState's (2026-10-29, #132)
+    progress: { daysUsed, daysThisWeek, minutesUsed, minutesToday }      // its attendance, as SubscriptionState's
+  } | null
 }
 CustomerFile = { customer: Customer } & CustomerBalance & {
   present: { kind: "CHECK_IN", id, subscriptionId, since } | { kind: "VISIT", id, since } | null,
