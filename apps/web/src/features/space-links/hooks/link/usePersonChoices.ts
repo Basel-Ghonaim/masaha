@@ -1,4 +1,5 @@
 import { useCopy } from '@shared/copy';
+import { spaceNameOf } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -11,7 +12,8 @@ import { usePausedText } from '../usePausedText';
 /**
  * The people to link a space to, searched by name or email on the server once typing pauses: up to
  * fifty active accounts, an admin's left out, since an admin is never linked. Each says what it is:
- * an owner with their spaces, an owner whose spaces are all deleted, or a user.
+ * an owner with their spaces, an owner whose spaces are all deleted, a user who works front desks,
+ * with those spaces (finding 94), or a user.
  */
 export function usePersonChoices({ enabled }: { enabled: boolean }) {
   const copy = useCopy();
@@ -34,6 +36,12 @@ export function usePersonChoices({ enabled }: { enabled: boolean }) {
     const spaces = userRowView(row, { words: rowWords, english, now: new Date() })
       .spaces.map((space) => isolate(space.text))
       .join(copy.spaceLinks.adminList.separator);
+    const desks =
+      row.receptionSpaces.length === 0
+        ? null
+        : row.receptionSpaces
+            .map((space) => isolate(spaceNameOf(space, english).text))
+            .join(copy.spaceLinks.adminList.separator);
     return [
       {
         value: String(row.id),
@@ -43,10 +51,13 @@ export function usePersonChoices({ enabled }: { enabled: boolean }) {
         role: row.role,
         kind:
           row.role === 'USER'
-            ? words.user
+            ? desks === null
+              ? words.user
+              : words.userAtDesk({ spaces: desks })
             : spaces === ''
               ? words.ownerOfNone
               : words.owner({ spaces }),
+        desks,
       },
     ];
   });

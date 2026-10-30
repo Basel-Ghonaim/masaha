@@ -214,6 +214,8 @@ export const SPACE_LINKS = {
     owner: ({ spaces }: { spaces: string }) => `Owner · ${spaces}`,
     ownerOfNone: 'Owner',
     user: 'User',
+    /** A user who works a front desk, with those spaces. */
+    userAtDesk: ({ spaces }: { spaces: string }) => `User · reception at ${spaces}`,
   },
   /** Adding an owner from the owners page. */
   addOwner: {
@@ -286,6 +288,9 @@ export const SPACE_LINKS = {
     anotherOwner: ({ space }: { space: string }) =>
       `They become another owner of ${space}; it stays verified.`,
     becomesOwner: 'Their account becomes an owner’s, and they’re asked to sign in again.',
+    /** A person who works a front desk: that link is kept. */
+    staysAtDesk: ({ spaces }: { spaces: string }) =>
+      `Works the front desk at ${spaces}; that link stays.`,
     addOwner: 'A new owner with no account? Add them on the space owners page.',
     submit: 'Link',
     failed: 'Not linked',

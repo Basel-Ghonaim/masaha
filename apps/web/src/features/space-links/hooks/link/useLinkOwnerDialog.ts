@@ -48,15 +48,26 @@ export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
     setRefusal(null);
   };
 
-  // The space and whether it is verified, and whether the person is a user, as the choice says.
+  // The space and whether it is verified, whether the person is a user, and the front desks they
+  // work, as the choice says.
   const facts =
     target.from === 'space'
       ? person === null
         ? null
-        : { space: target.space.name, verified: false, user: person.role === 'USER' }
+        : {
+            space: target.space.name,
+            verified: false,
+            user: person.role === 'USER',
+            desks: person.desks,
+          }
       : space === null
         ? null
-        : { space: space.name, verified: space.isVerified, user: target.person.role === 'USER' };
+        : {
+            space: space.name,
+            verified: space.isVerified,
+            user: target.person.role === 'USER',
+            desks: null,
+          };
 
   const consequence: (NamedLineView | string)[] =
     facts === null
@@ -66,6 +77,7 @@ export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
             ? namedLine(({ name }) => lines.anotherOwner({ space: name }), facts.space)
             : namedLine(({ name }) => lines.becomesVerified({ space: name }), facts.space),
           ...(facts.user ? [lines.becomesOwner] : []),
+          ...(facts.desks === null ? [] : [lines.staysAtDesk({ spaces: facts.desks })]),
         ];
 
   const placeholder = fromSpace ? lines.choosePerson : lines.chooseSpace;

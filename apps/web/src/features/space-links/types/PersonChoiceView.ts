@@ -5,6 +5,8 @@ export type PersonChoiceView = {
   name: string;
   email: string;
   role: 'USER' | 'OWNER';
-  /** «مالك · {spaces}», «مالك», or «مستخدم». */
+  /** «مالك · {spaces}», «مالك», «مستخدم · استقبال {spaces}» or «مستخدم». */
   kind: string;
+  /** The front desks they work, each name isolated and joined; none for a person who works none. */
+  desks: string | null;
 };

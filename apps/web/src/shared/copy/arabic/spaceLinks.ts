@@ -168,6 +168,7 @@ export const SPACE_LINKS = {
     owner: ({ spaces }: { spaces: string }) => `مالك · ${spaces}`,
     ownerOfNone: 'مالك',
     user: 'مستخدم',
+    userAtDesk: ({ spaces }: { spaces: string }) => `مستخدم · استقبال ${spaces}`,
   },
   /** Adding an owner from the owners page. */
   addOwner: {
@@ -232,6 +233,7 @@ export const SPACE_LINKS = {
       `تصبح ${space} موثّقة ويعدّلها مالكها، ولا يعدّلها فريق مساحة بعد الآن.`,
     anotherOwner: ({ space }: { space: string }) => `يصبح مالكًا آخر لـ ${space}؛ تبقى موثّقة.`,
     becomesOwner: 'ويصبح حسابه حساب مالك، ويُطلب منه الدخول من جديد.',
+    staysAtDesk: ({ spaces }: { spaces: string }) => `يعمل في استقبال ${spaces}، ويبقى رابطه هناك.`,
     addOwner: 'مالك جديد بلا حساب؟ أضفه من صفحة أصحاب المساحات.',
     submit: 'ربط',
     failed: 'لم يُربط',

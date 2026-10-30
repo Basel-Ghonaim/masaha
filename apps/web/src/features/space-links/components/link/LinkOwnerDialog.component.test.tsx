@@ -70,6 +70,14 @@ function renderDialog(target: LinkTarget) {
           spaces: [{ id: 9, nameEn: 'Palm Hub', nameAr: null }],
         }),
         person({ id: 1, name: 'Admin', role: 'ADMIN' }),
+        person({
+          id: 8,
+          name: 'Lina',
+          receptionSpaces: [
+            { id: 4, nameEn: 'Sea View', nameAr: 'إطلالة البحر' },
+            { id: 2, nameEn: 'Dawn Desk', nameAr: null },
+          ],
+        }),
       ]);
     }
     return page([
@@ -125,6 +133,36 @@ describe('LinkOwnerDialog', () => {
     expect(within(hadi).getByText(heard('Owner · Palm Hub'))).toBeInTheDocument();
     // An admin is never offered.
     expect(screen.queryByRole('option', { name: /Admin/ })).not.toBeInTheDocument();
+  });
+
+  it('a receptionist’s option reads «مستخدم · استقبال {spaces}», and the line before the act keeps that link', async () => {
+    renderDialog({
+      from: 'space',
+      space: { id: 7, name: { text: 'Focus Hub' } },
+      addOwnerLink: '/dashboard/admin/owners',
+    });
+
+    const dialog = screen.getByRole('dialog', { name: 'Link an owner to Focus Hub' });
+    await userEvent.click(within(dialog).getByRole('combobox', { name: /^Person/ }));
+    const lina = await screen.findByRole('option', { name: /Lina/ });
+    expect(
+      within(lina).getByText(heard('User · reception at Sea View, Dawn Desk')),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('option', { name: /Rima/ })).getByText('User'),
+    ).toBeInTheDocument();
+    await userEvent.click(lina);
+
+    expect(
+      within(dialog).getByText(
+        heard('Works the front desk at Sea View, Dawn Desk; that link stays.'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        'Their account becomes an owner’s, and they’re asked to sign in again.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('from a person: offers spaces, the ones already theirs unavailable', async () => {
