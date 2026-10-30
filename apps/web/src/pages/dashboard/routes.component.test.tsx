@@ -92,6 +92,15 @@ const QUIET_OVERVIEW = {
   at: '2026-10-29T10:00:00.000Z',
 };
 
+/** The admin's overview of a quiet platform: nothing to complete, nothing open. */
+const QUIET_ADMIN_OVERVIEW = {
+  spaces: { verified: 1, unverified: 0, hidden: 0, unverifiedNoOwner: 0, staleOrMissing: 0 },
+  reports: { open: 0, awaitingAdmin: 0, awaitingOwners: 0 },
+  newUsers: 0,
+  completeness: { total: 0, first: [] },
+  at: '2026-10-29T10:00:00.000Z',
+};
+
 /**
  * Signs in a user (id 1) with `fields`; their spaces are answered from their links, and the sidebar's
  * count of open reports by `openReports` (none by default).
@@ -109,6 +118,7 @@ function signIn(fields: Partial<SessionUser>, { openReports = 0 }: { openReports
     if (request.url?.endsWith('/visit-terms') === true) return ok(VISIT_TERMS);
     if (request.url?.endsWith('/check-ins') === true) return ok([]);
     // The owner's overview, where the owner lands: nothing waiting, no one present.
+    if (request.url?.endsWith('/admin/overview') === true) return ok(QUIET_ADMIN_OVERVIEW);
     if (request.url?.endsWith('/overview') === true) return ok(QUIET_OVERVIEW);
     return ok(
       user.spaces.map((link: SessionSpaceLink) => ({

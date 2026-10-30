@@ -116,4 +116,51 @@ export const OVERVIEW = {
       none: 'No subscription ends this week.',
     },
   },
+  /** The admin's overview of the platform (screen 25): nothing of a space's operations. */
+  admin: {
+    tiles: {
+      label: 'Platform summary',
+      spaces: {
+        label: 'Spaces',
+        helper: ({
+          verified,
+          unverified,
+          hidden,
+        }: {
+          verified: string;
+          unverified: string;
+          hidden: string;
+        }) => `${verified} verified · ${unverified} unverified · ${hidden} hidden`,
+      },
+      reports: {
+        label: 'Open data reports',
+        helper: ({ admin, owners }: { admin: string; owners: string }) =>
+          `${admin} waiting for the admin · ${owners} waiting for owners`,
+      },
+      stale: {
+        label: 'Stale or missing data',
+        helper: 'By the platform’s freshness limits, or not added yet',
+      },
+      unverified: {
+        label: 'Unverified spaces, no owner',
+        helper: 'The admin edits them until an owner is linked',
+      },
+      users: { label: 'New users', helper: 'Last 30 days' },
+    },
+    completeness: {
+      title: 'Data completeness',
+      description:
+        'The spaces the admin edits — the unverified ones, hidden ones included — that miss something or hold stale data. Verified spaces are their owners’ to update.',
+      missing: ({ group }: { group: string }) => `${group} · not added yet`,
+      stale: ({ group, days }: { group: string; days: number }) =>
+        englishPlural(days, {
+          one: `${group} · ${String(days)} day`,
+          other: `${group} · ${String(days)} days`,
+        }),
+      edit: 'Edit',
+      viewAll: 'View all',
+      viewAllCounted: ({ total }: { total: string }) => `View all (${total})`,
+      none: 'No space misses anything.',
+    },
+  },
 } as const;
