@@ -111,7 +111,7 @@ describe('usePackagesSection', () => {
       ['Morning', 'موقوفة', false],
     ]);
     expect(rows[0]?.summary).toBe('صالحة 30 يومًا · 10 أيام · صباحي');
-    expect(heard(rows[1]?.available.name ?? '')).toBe('Morning: متاحة');
+    expect(heard(rows[1]?.available.name ?? '')).toBe('Morning: متاحة في المكتب');
     expect(heard(rows[1]?.edit.name ?? '')).toBe('تعديل Morning');
   });
 

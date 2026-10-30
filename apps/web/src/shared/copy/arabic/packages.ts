@@ -2,17 +2,18 @@ import { arabicPlural } from '../plural';
 import type { Catalogue } from '../shape';
 
 export const PACKAGES = {
+  pageLine: 'أسعار الأسبوع والشهر تُختار أيضًا في المكتب عند إنشاء اشتراك.',
   title: 'الباقات الخاصة',
-  description: 'لا تظهر للزوار.',
+  description: 'لا تظهر للزوار · تُختار في المكتب عند إنشاء اشتراك',
   add: 'باقة جديدة',
   loadFailed: 'تعذّر تحميل الباقات',
   empty: {
     title: 'لا توجد باقات خاصة',
-    text: 'أنشئ باقة مثل «10 أيام» أو «20 ساعة».',
+    text: 'أنشئ باقة مثل «10 أيام» أو «20 ساعة» لتختارها في المكتب.',
   },
   paused: 'موقوفة',
-  available: 'متاحة',
-  availableNamed: ({ name }: { name: string }) => `${name}: متاحة`,
+  available: 'متاحة في المكتب',
+  availableNamed: ({ name }: { name: string }) => `${name}: متاحة في المكتب`,
   edit: 'تعديل',
   editNamed: ({ name }: { name: string }) => `تعديل ${name}`,
   toggleFailed: ({ name }: { name: string }) => `تعذّر تغيير إتاحة ${name}`,
@@ -77,7 +78,7 @@ export const PACKAGES = {
   sheet: {
     newTitle: 'باقة جديدة',
     editTitle: 'تعديل الباقة',
-    description: 'باقة خاصة — لا تظهر للزوار.',
+    description: 'باقة خاصة — لا تظهر للزوار، وتُختار في مكتب الاستقبال.',
     close: 'إغلاق',
     name: 'اسم الباقة',
     validity: 'الصلاحية (أيام)',

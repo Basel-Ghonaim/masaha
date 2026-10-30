@@ -7,18 +7,20 @@ type Audience = (typeof PRICE_AUDIENCES)[number];
 
 /** A space's private packages, on its owner's Packages & prices. */
 export const PACKAGES = {
+  /** The page's line, at its top: the published week and month prices are sold at the desk too. */
+  pageLine: 'Week and month prices are also chosen at the desk when creating a subscription.',
   title: 'Private packages',
-  description: 'Never shown to visitors.',
+  description: 'Never shown to visitors · chosen at the desk when creating a subscription',
   add: 'New package',
   loadFailed: 'We couldn’t load the packages',
   empty: {
     title: 'No private packages',
-    text: 'Create a package such as “10 days” or “20 hours”.',
+    text: 'Create a package like «10 days» or «20 hours» to pick at the desk.',
   },
   /** The badge of a package no longer offered. */
   paused: 'Paused',
-  available: 'Available',
-  availableNamed: ({ name }: { name: string }) => `${name}: available`,
+  available: 'Available at the desk',
+  availableNamed: ({ name }: { name: string }) => `${name}: available at the desk`,
   edit: 'Edit',
   editNamed: ({ name }: { name: string }) => `Edit ${name}`,
   toggleFailed: ({ name }: { name: string }) => `Couldn’t change whether ${name} is offered`,
@@ -53,7 +55,7 @@ export const PACKAGES = {
   sheet: {
     newTitle: 'New package',
     editTitle: 'Edit package',
-    description: 'Private — never shown to visitors.',
+    description: 'Private — never shown to visitors; chosen at the front desk.',
     close: 'Close',
     name: 'Package name',
     validity: 'Validity (days)',
