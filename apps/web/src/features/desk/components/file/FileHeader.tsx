@@ -1,3 +1,4 @@
+import { useCopy } from '@shared/copy';
 import { Badge, Card, CardContent } from '@shared/design-system';
 import type { ReactNode } from 'react';
 import type { CustomerFileView } from '../../hooks/file/useCustomerFile';
@@ -6,7 +7,8 @@ import { BalanceBadge } from '../card/BalanceBadge';
 /**
  * The file's header, under the page's title (the customer's name, the top bar's `h1`): their phone
  * left to right, or that they gave none; who is here now; the current subscription's status; the
- * balance from the one badge (DI-40); the archive; and the customer's actions at its end (DK-013).
+ * balance from the one badge (DI-40); the archive; and the customer's actions at its end (DK-013),
+ * a group of their own.
  */
 export function FileHeader({
   header,
@@ -15,6 +17,7 @@ export function FileHeader({
   header: NonNullable<CustomerFileView['header']>;
   actions: ReactNode;
 }) {
+  const label = useCopy().desk.customers.columns.actions;
   return (
     <Card>
       <CardContent className="flex-row flex-wrap items-center gap-x-4 gap-y-2">
@@ -30,7 +33,9 @@ export function FileHeader({
           <span className="text-muted-foreground">{header.balance.label}</span>
           <BalanceBadge balance={header.balance.view} />
         </span>
-        <span className="ms-auto">{actions}</span>
+        <div role="group" aria-label={label} className="ms-auto flex flex-wrap items-center gap-2">
+          {actions}
+        </div>
       </CardContent>
     </Card>
   );

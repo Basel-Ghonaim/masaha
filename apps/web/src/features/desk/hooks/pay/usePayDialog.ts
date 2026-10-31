@@ -25,8 +25,11 @@ import { useDeskWrite } from '../useDeskWrite';
 /** The debtors the picker lists at once. */
 const PICK_LIMIT = 20;
 
-/** Where a payment starts: a customer, an item of theirs, or neither (the picker). */
-export type PayTarget = { customerId?: number; itemKey?: string };
+/**
+ * Where a payment starts: a customer, an item of theirs, or neither (the picker). `oldest`: opened
+ * as a customer's «استلام {amount}», on their oldest owing item, which the dialog names (DI32).
+ */
+export type PayTarget = { customerId?: number; itemKey?: string; oldest?: boolean };
 
 type Values = {
   visitId?: number;
@@ -197,6 +200,11 @@ export function usePayDialog({
     step,
     title:
       customerId === null || name === '' ? words.title : words.titleFor({ name: isolate(name) }),
+    /** «أقدم بند: {item}», when it opened on the oldest item; else none. */
+    description:
+      target.oldest === true && chosen !== undefined
+        ? copy.desk.actions.oldest({ item: isolate(chosen.label) })
+        : null,
     pick: {
       input: {
         label: words.choose,

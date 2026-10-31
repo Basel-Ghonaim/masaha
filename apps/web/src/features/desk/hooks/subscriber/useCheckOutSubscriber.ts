@@ -20,10 +20,11 @@ export type UsageOut = (name: string, answer: CheckInCheckOut) => void;
  * says how long they stayed — for a usage-based subscription, `usageOut` opens the page's dialog
  * of what is due instead (D7.12) — and and what their subscription still owes, from the answer (S8), with
  * «استلام» opening the payment on it (`receive`), and `done` runs (the search's: cleared and focused, S10). Pressed again while it is sent, nothing happens.
+ * With no `person` (a customer's actions while they are not here) it does nothing.
  */
 export function useCheckOutSubscriber(
   spaceId: number,
-  person: Extract<PresentPerson, { kind: 'CHECK_IN' }>,
+  person: Extract<PresentPerson, { kind: 'CHECK_IN' }> | null,
   {
     done,
     receive,
@@ -33,26 +34,27 @@ export function useCheckOutSubscriber(
   const copy = useCopy();
   const { settle, linkEnded } = useDeskWrite();
   const mutation = useMutation<CheckInCheckOut, AppError>({
-    mutationFn: () => repository.checkOutSubscriber(spaceId, person.id),
+    mutationFn: () => repository.checkOutSubscriber(spaceId, person?.id ?? 0),
     onSuccess: () => {
       settle(spaceId);
     },
     onError: linkEnded,
   });
 
+  const name = person?.name ?? '';
   const run = () => {
-    if (mutation.isPending) return;
+    if (person === null || mutation.isPending) return;
     mutation.mutate(undefined, {
       onSuccess: (answer) => {
         // A usage-based subscription's due is said in a dialog, from the answer (D7.12, DI10);
         // a fixed one stays one tap with its toast.
         if (answer.subscription.billing !== 'FIXED' && usageOut !== undefined) {
-          usageOut(person.name, answer);
+          usageOut(name, answer);
           done?.();
           return;
         }
         toastSubscriberOut(
-          person.name,
+          name,
           answer,
           receive &&
             (() => {
@@ -75,7 +77,7 @@ export function useCheckOutSubscriber(
 
   return {
     label: copy.desk.checkOut.open,
-    name: copy.desk.checkOut.openName({ name: isolate(person.name) }),
+    name: copy.desk.checkOut.openName({ name: isolate(name) }),
     busy: mutation.isPending,
     run,
   };

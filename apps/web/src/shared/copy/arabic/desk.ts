@@ -6,6 +6,7 @@ export const DESK = {
     checkIn: 'تسجيل زيارة',
     switchStaff: 'تبديل الموظف',
     more: 'إجراءات أخرى',
+    oldest: ({ item }: { item: string }) => `أقدم بند: ${item}`,
   },
   switchStaff: {
     failed: 'تعذّر الخروج من الحساب؛ أعد المحاولة.',

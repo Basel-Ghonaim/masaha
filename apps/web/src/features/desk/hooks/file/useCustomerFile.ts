@@ -1,30 +1,17 @@
 import { gazaClockOf } from '@masaha/shared/core';
-import type { SubscriptionWithMoney } from '@masaha/shared/desk';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
 import { clockOf, dayText, dayWord, priceText } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
 import { balanceView } from '../../services/balanceView';
+import { currentOf } from '../../services/currentOf';
 import { payStatus } from '../../services/payStatus';
 import { progressLines } from '../../services/progressLines';
 import { statusView } from '../../services/statusView';
 import { termsLine } from '../../services/termsLine';
 import type { PayTarget } from '../pay/usePayDialog';
 import { useCustomerFileQuery } from './useCustomerFileQuery';
-
-/**
- * The subscription the header's status speaks of: the one running, else the next, else the latest
- * (the file lists them the latest started first), as the customers list's row reads its current one.
- */
-function currentOf(subscriptions: SubscriptionWithMoney[]) {
-  return (
-    subscriptions.find(({ status }) => status === 'ACTIVE' || status === 'ENDING_SOON') ??
-    subscriptions.find(({ status }) => status === 'UPCOMING') ??
-    subscriptions[0] ??
-    null
-  );
-}
 
 /**
  * A customer's file (screen 15), ready to render: the header — the phone, who is here now, the

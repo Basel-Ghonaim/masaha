@@ -6,6 +6,8 @@ export const DESK = {
     checkIn: 'Check in a visit',
     switchStaff: 'Switch staff',
     more: 'More actions',
+    /** «استلام {amount}»'s payment dialog: the customer's oldest owing item it opened on (DI32). */
+    oldest: ({ item }: { item: string }) => `Oldest item: ${item}`,
   },
   switchStaff: {
     failed: 'We couldn’t sign out; try again.',

@@ -20,30 +20,43 @@ export type CustomerMenuView = {
   edit: { label: string; run: () => void };
   /** «أرشفة…», the owner's (S5). */
   archive: { label: string; run: () => void } | null;
+  /** The customer's actions by their state, first (D8.1); none where they are buttons. */
+  state: { key: string; label: string; run: () => void }[];
 };
 
 /**
- * A customer's «⋯» (DI-39): a quiet icon trigger and its menu, both named by the customer; «ملف
- * الزبون» where it leads elsewhere, «اشتراك جديد», «تعديل البيانات», and the owner's «أرشفة…»,
- * destructive (DI-46).
+ * A customer's «⋯» (DI-39): a quiet icon trigger and its menu, both named by the customer; first
+ * their actions by their state (D8.1), then «ملف الزبون» where it leads elsewhere, «اشتراك جديد»,
+ * «تعديل البيانات», and the owner's «أرشفة…», destructive (DI-46).
  * Closed, the focus returns to the trigger, which `triggerRef` lets a dialog the menu opened return
- * to as well.
+ * to as well. `onOpen` hears it open.
  */
 export function CustomerMenu({
   menu,
   triggerRef,
+  onOpen,
 }: {
   menu: CustomerMenuView;
   triggerRef?: Ref<HTMLButtonElement>;
+  onOpen?: () => void;
 }) {
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      onOpenChange={(open) => {
+        if (open) onOpen?.();
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <Button ref={triggerRef} variant="ghost" size="icon" aria-label={menu.label}>
           <EllipsisVerticalIcon aria-hidden />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" aria-label={menu.label}>
+        {menu.state.map((action) => (
+          <DropdownMenuItem key={action.key} onSelect={action.run}>
+            {action.label}
+          </DropdownMenuItem>
+        ))}
         {menu.file !== null && (
           <DropdownMenuItem asChild>
             <Link to={menu.file.to}>{menu.file.label}</Link>

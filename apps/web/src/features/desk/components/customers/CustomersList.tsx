@@ -161,6 +161,7 @@ export function CustomersList({
               owner={owner}
               fileLink={fileLink(info.row.original.id)}
               subscribe={subscribe}
+              state="menu"
             />
           ),
           meta: { className: 'w-px' },
@@ -201,6 +202,7 @@ export function CustomersList({
               owner={owner}
               fileLink={fileLink(row.id)}
               subscribe={subscribe}
+              state="menu"
             />
           </div>
         )}

@@ -6,6 +6,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -64,10 +65,13 @@ export function PayDialog({
             target.focus();
           }
         }}
-        aria-describedby={undefined}
+        {...(dialog.description === null && { 'aria-describedby': undefined })}
       >
         <DialogHeader>
           <DialogTitle dir="auto">{dialog.title}</DialogTitle>
+          {dialog.description !== null && (
+            <DialogDescription>{dialog.description}</DialogDescription>
+          )}
         </DialogHeader>
         {dialog.step === 'pick' && (
           <div className="flex flex-col gap-3">

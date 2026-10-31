@@ -82,12 +82,15 @@ export function CustomerFile({
   }
 
   const { subscriptions, header } = file;
-  // The latest subscription, the file's first, is the one a renewal renews (DK-007).
+  // The latest subscription, the file's first, is the one a renewal renews (DK-007), and only
+  // while it ends soon or has expired (D8.1).
   const renew = (
     index: number,
     subscription: (typeof subscriptions.cards)[number]['subscription'],
   ) =>
-    index === 0 && header.customer.archivedAt === null
+    index === 0 &&
+    header.customer.archivedAt === null &&
+    (subscription.status === 'ENDING_SOON' || subscription.status === 'EXPIRED')
       ? {
           label: words.entry.renew,
           run: (from: HTMLElement) => {
@@ -114,6 +117,7 @@ export function CustomerFile({
             owner={owner}
             fileLink={null}
             subscribe={subscribe}
+            state="buttons"
           />
         }
       />
