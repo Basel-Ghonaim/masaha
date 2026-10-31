@@ -1,5 +1,6 @@
 import { useCopy } from '@shared/copy';
 import { useLanguage } from '@shared/localisation';
+import { useState } from 'react';
 import { cardViewOf } from '../../services/cardView';
 import type { DirectoryRequest } from '../../types/DirectoryRequest';
 import type { HomeSpacesView } from '../../types/HomeSpacesView';
@@ -20,7 +21,8 @@ const NEAREST: DirectoryRequest = { limit: HOME_LIMIT, sort: 'distance' };
  * issue 37). Near me is the Directory's: one store, one button, one state line; its «اختر منطقتك»
  * is the caller's `chooseArea`, and «حدّد موقعي على الخريطة» starts the pick and opens the
  * Directory's map (`openMap`). «عرض الكل» leads to the Directory listing the same: the spaces
- * available now, or every space, still nearest first.
+ * available now, or every space, still nearest first. While the other list is on its way, the
+ * previous answer stays with its own title (carried 4).
  */
 export function useHomeSpaces({
   chooseArea,
@@ -37,6 +39,9 @@ export function useHomeSpaces({
   const nearest = point !== null;
   const query = useDirectoryQuery(nearest ? NEAREST : AVAILABLE, point);
   const answer = query.data;
+  // Which list the shown answer is: the asked one once it has arrived, the previous one until then.
+  const [shownNearest, setShownNearest] = useState(nearest);
+  if (!query.isPlaceholderData && shownNearest !== nearest) setShownNearest(nearest);
   const failure = useFailureView(
     answer === undefined ? query.error : null,
     words.loadFailed,
@@ -58,11 +63,11 @@ export function useHomeSpaces({
 
   const now = new Date();
   const cards = (answer?.data ?? []).map((space) =>
-    cardViewOf(space, { english, now, copy, byDistance: nearest }),
+    cardViewOf(space, { english, now, copy, byDistance: shownNearest }),
   );
 
   return {
-    title: nearest ? words.home.nearest : words.home.available,
+    title: shownNearest ? words.home.nearest : words.home.available,
     near: {
       button: {
         label: words.near.button,

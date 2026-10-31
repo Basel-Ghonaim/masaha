@@ -65,7 +65,7 @@ export const SITE = {
     },
     owners: {
       title: 'Do you run a coworking space?',
-      text: 'Contact us to add your space, manage its hours and prices, and show its live status.',
+      text: 'Contact us to add your space and manage its hours and prices; its live status shows automatically from the check-ins.',
       action: 'Contact us',
     },
   },
@@ -77,7 +77,11 @@ export const SITE = {
       'For remote workers, students, and anyone who needs a place with power and internet to work or study.',
     source: {
       title: 'Where does the information come from?',
-      note: '“Updated” is the last time we confirmed the information or the space updated it. The longer ago, the more likely it has changed, so we show “May have changed” next to old information. If you find wrong information, contact us.',
+      note: '“Updated” is the last time we confirmed the information or the space updated it. The longer ago, the more likely it has changed, so we show “May have changed” next to old information.',
+      /** The note's last sentence, its link to the contact section in the middle (design issue 41). */
+      wrong: 'If you find wrong information,',
+      wrongLink: 'contact us',
+      wrongEnd: '.',
     },
     verified: {
       title: 'Verified space',
@@ -98,7 +102,7 @@ export const SITE = {
     },
     contact: {
       title: 'Contact us',
-      text: 'Message us with a question, or a problem with the website.',
+      text: 'Write to us with a question, about a report that got no reply, or about a mistake on the site.',
     },
     owners: {
       title: 'For space owners',

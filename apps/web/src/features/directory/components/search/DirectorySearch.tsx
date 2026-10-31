@@ -1,3 +1,4 @@
+import { SPACE_NAME_MAX_LENGTH } from '@masaha/shared/spaces';
 import { Field, Input, SearchIcon } from '@shared/design-system';
 import type { DirectoryListView } from '../../types/DirectoryListView';
 
@@ -11,7 +12,7 @@ export function DirectorySearch({ search }: { search: DirectoryListView['search'
     >
       <Input
         type="search"
-        maxLength={80}
+        maxLength={SPACE_NAME_MAX_LENGTH}
         placeholder={search.placeholder}
         startIcon={<SearchIcon />}
         value={search.text}

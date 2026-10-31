@@ -1,7 +1,7 @@
 # Directory
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-28 · **Owner:** Basel Ghoneim
-> **Authority:** The `directory` capability: what anyone reads without signing in, over the publicly listed spaces: the directory's list, the map's pins, a space's public page and its live status; and a signed-in user's favourites as its cards. Its endpoints are owned by the [API contract](../api/api-contract.md#directory-public) and [its favourites](../api/api-contract.md#favourites); "publicly listed", "verified" and the stale prices by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); the location's rules by [security](../backend/security.md#location). On the web, the directory's list, its filters and near me, its map, a space's page, and the account's favourites are built.
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
+> **Authority:** The `directory` capability: what anyone reads without signing in, over the publicly listed spaces: the directory's list, the map's pins, a space's public page and its live status; and a signed-in user's favourites as its cards. Its endpoints are owned by the [API contract](../api/api-contract.md#directory-public) and [its favourites](../api/api-contract.md#favourites); "publicly listed", "verified" and the stale prices by the [data model](../architecture/data-model.md#derived-values-computed-not-stored); the location's rules by [security](../backend/security.md#location). On the web, the directory's list, its filters and near me, its map, a space's page, Home's spaces and its areas' counts, About's legend of the statuses, and the account's favourites are built.
 > **Scope:** the API module `directory` (L5); `@masaha/shared/directory`; the web feature `features/directory`, for any page group.
 
 ## What it does
@@ -184,3 +184,4 @@ The page shows its announcements: a running closure's notice at its top, the oth
 - 2026-10-28, #129 — the cards' and the page's actions, told whether the user saved the space; the page's report slot.
 - 2026-10-28, #129 — «المفضّلة»: the user's favourites as cards, newest saved first or nearest first, and the spaces that left with «إزالة».
 - 2026-10-28, #129 — the page's announcements: the `notice` and `announcements` slots, in U8's order (finding 131).
+- 2026-10-29, #132 — Home's title waits for its answer; the search's bound is the shared `SPACE_NAME_MAX_LENGTH`.

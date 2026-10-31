@@ -1,3 +1,4 @@
+import { SPACE_NAME_MAX_LENGTH } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { Button, Field, Input, SearchIcon } from '@shared/design-system';
 import { useState } from 'react';
@@ -23,7 +24,7 @@ export function HomeSearch() {
       <Field label={<span className="sr-only">{words.label}</span>} className="flex-1">
         <Input
           type="search"
-          maxLength={80}
+          maxLength={SPACE_NAME_MAX_LENGTH}
           placeholder={words.placeholder}
           startIcon={<SearchIcon />}
           value={text}

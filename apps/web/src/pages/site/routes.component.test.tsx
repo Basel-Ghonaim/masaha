@@ -345,8 +345,9 @@ describe("the site's routes", () => {
     const main = within(screen.getByRole('main'));
     const contact = main.getByRole('region', { name: 'Contact us' });
     const owners = main.getByRole('region', { name: 'For space owners' });
-    expect(contact).toHaveAttribute('id', 'contact');
-    expect(owners).toHaveAttribute('id', 'owners');
+    // Each anchor is its section's heading, which a link to it focuses (carried 1).
+    expect(within(contact).getByRole('heading', { level: 2 })).toHaveAttribute('id', 'contact');
+    expect(within(owners).getByRole('heading', { level: 2 })).toHaveAttribute('id', 'owners');
     expect(contact.compareDocumentPosition(owners) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     for (const section of [contact, owners]) {
       expect(
@@ -370,7 +371,9 @@ describe("the site's routes", () => {
     const main = within(screen.getByRole('main'));
     const contact = main.getByRole('region', { name: 'Contact us' });
     const owners = main.getByRole('region', { name: 'For space owners' });
-    expect(contact).toHaveTextContent('Message us with a question, or a problem with the website.');
+    expect(contact).toHaveTextContent(
+      'Write to us with a question, about a report that got no reply, or about a mistake on the site.',
+    );
     expect(within(owners).getAllByRole('listitem')).toHaveLength(3);
     for (const section of [contact, owners]) {
       expect(within(section).queryAllByRole('link')).toEqual([]);
