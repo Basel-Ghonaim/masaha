@@ -55,7 +55,8 @@ export function useSpaceActionsMenu(space: SpaceRef) {
     deleted: false as const,
     trigger: { label: lines.menu.actions({ name: isolate(name.text) }), busy },
     waiting: busy || hold.blocked,
-    edit: lines.menu.edit,
+    // A verified space's owner edits it: the admin's editor shows it read-only (G26.1).
+    edit: space.isVerified ? lines.menu.view : lines.menu.edit,
     toggle: {
       label: hidden ? lines.menu.show : lines.menu.hide,
       run: () => {

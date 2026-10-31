@@ -16,6 +16,8 @@ export type AdminPlace = {
   kind: 'admin';
   ownerActions: OwnersSlot;
   amenitiesListLink: string;
+  /** The admin's reports of the space, where a fact its owner keeps is corrected (G26.8). */
+  reportsLink: (spaceId: number) => string;
   areaName: (areaId: number) => ReactNode;
   amenityNames: (ids: number[]) => ReactNode;
 };

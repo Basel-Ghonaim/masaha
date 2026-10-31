@@ -22,14 +22,39 @@ import { SpaceActionsMenu } from './SpaceActionsMenu';
 
 type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
 
-const FOCUS = { id: 7, nameEn: 'Focus Hub', nameAr: 'فوكس', isHidden: false, deletedAt: null };
-const PALM = { id: 9, nameEn: 'Palm Hub', nameAr: null, isHidden: true, deletedAt: null };
+const FOCUS = {
+  id: 7,
+  nameEn: 'Focus Hub',
+  nameAr: 'فوكس',
+  isHidden: false,
+  deletedAt: null,
+  isVerified: false,
+};
+const PALM = {
+  id: 9,
+  nameEn: 'Palm Hub',
+  nameAr: null,
+  isHidden: true,
+  deletedAt: null,
+  isVerified: false,
+};
+
+/** A verified space: its owner edits it. */
+const CEDAR = {
+  id: 14,
+  nameEn: 'Cedar Hub',
+  nameAr: null,
+  isHidden: false,
+  deletedAt: null,
+  isVerified: true,
+};
 const OLIVE = {
   id: 12,
   nameEn: 'Olive Desk',
   nameAr: null,
   isHidden: false,
   deletedAt: '2026-10-01T08:00:00Z',
+  isVerified: false,
 };
 
 /** A name with the Unicode isolates around its inserted values removed, as a reader hears it. */
@@ -50,6 +75,7 @@ function renderMenus(
           <SpaceActionsMenu space={FOCUS} editLink="/spaces/7" />
           <SpaceActionsMenu space={PALM} editLink="/spaces/9" />
           <SpaceActionsMenu space={OLIVE} editLink="/spaces/12" />
+          <SpaceActionsMenu space={CEDAR} editLink="/spaces/14" />
         </main>
       </MemoryRouter>
       <Toaster label="Notifications" />
@@ -153,7 +179,7 @@ describe('SpaceActionsMenu', () => {
     expect(await toastTitled('Palm Hub is visible again')).toBeVisible();
   });
 
-  it('asks before deleting, opening on Cancel, its title naming the space', async () => {
+  it('asks before deleting, opening on Back, its title naming the space', async () => {
     renderMenus();
 
     await userEvent.click(menuButton('Focus Hub'));
@@ -165,7 +191,7 @@ describe('SpaceActionsMenu', () => {
         'It leaves the site and the list; you’ll find it under «Deleted» to restore it.',
       ),
     ).toBeVisible();
-    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    expect(within(dialog).getByRole('button', { name: 'Back' })).toHaveFocus();
   });
 
   it('marks an English-only name as English in the Arabic dialog’s title', async () => {
@@ -182,7 +208,7 @@ describe('SpaceActionsMenu', () => {
 
   it.each([
     ['Escape', '{Escape}'],
-    ['Cancel', '{Enter}'],
+    ['Back', '{Enter}'],
   ])('deletes nothing on %s, and returns the focus to the menu’s button', async (_answer, keys) => {
     const { writes } = renderMenus();
     await userEvent.click(menuButton('Focus Hub'));
@@ -345,5 +371,15 @@ describe('SpaceActionsMenu, for a deleted space', () => {
     expect(
       await axe(document.body, { rules: { region: { enabled: false } } }),
     ).toHaveNoViolations();
+  });
+
+  it('a verified row’s menu reads «عرض (يعدّلها المالك)»; an unverified one’s «تعديل»', async () => {
+    renderMenus();
+
+    await userEvent.click(menuButton('Cedar Hub'));
+    expect(
+      await screen.findByRole('menuitem', { name: 'View (its owner edits it)' }),
+    ).toHaveAttribute('href', '/spaces/14');
+    expect(screen.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
   });
 });

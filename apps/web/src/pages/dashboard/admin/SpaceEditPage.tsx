@@ -16,7 +16,13 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@shared/design-system';
-import { NotFoundState, parseSpaceId, publicSpacePath, useRecordTitle } from '@shared/routing';
+import {
+  DASHBOARD_PATHS,
+  NotFoundState,
+  parseSpaceId,
+  publicSpacePath,
+  useRecordTitle,
+} from '@shared/routing';
 import { Link, useParams } from 'react-router';
 import { ADMIN_AMENITIES_PATH, ADMIN_OWNERS_PATH, ADMIN_SPACES_PATH } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
@@ -44,6 +50,7 @@ const place: AdminPlace = {
     <SpaceOwnersActions space={space} addOwnerLink={`${ADMIN_OWNERS_PATH}?sheet=add`} />
   ),
   amenitiesListLink: ADMIN_AMENITIES_PATH,
+  reportsLink: (spaceId) => `${DASHBOARD_PATHS.admin}/reports?space=${String(spaceId)}`,
   areaName,
   amenityNames,
 };

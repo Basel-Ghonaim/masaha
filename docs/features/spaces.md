@@ -184,6 +184,7 @@ Reception's web screens remain planned.
 
 ### Web decisions
 
+- **The spaces list and the editor finish their screens** (D6.10, G26.1–G26.3, G26.8, G20.2): a verified row's menu reads «عرض (يعدّلها المالك)» (its owner edits it; an unverified row's «تعديل»); hiding and showing toast «تراجع», which sends the opposite (P9: reversible, no one else affected; the undo's own toast offers none); the delete dialog's dismiss is «رجوع» (P9); a verified space's notice adds «لتصحيح معلومة:» and «بلاغات {space}», a link to the admin's reports of the space (`AdminPlace.reportsLink`); below 768 px a section's header action («نسخ إلى كل الأيام») leads its content instead of sitting beside the title. 2026-10-29, #132.
 - **The web's row actions are this capability's,** set by the page in the admin's list's slot ([space-links](space-links.md#decisions)) (L1). *Why:* hiding and deleting a space are its life on the platform; the list is `space-links`' read. 2026-10-07, #50.
 - **An admin's row action on a space fetches the whole admin scope again,** and stays pending until it has arrived; the editor's writes do not (S3, below). *Why:* the list it changes is another capability's, whose keys this one does not name; the front desk refreshes a space's scope the same way ([architecture §7](../frontend/architecture.md#7-server-state)). 2026-10-07, #50.
 - **Each action ends in a toast that names its space:** hidden, shown again, deleted with an Undo (L2), and restored once the Undo succeeds (the owner's alternative 2). *Why:* the design's feedback, a first for the admin's screens, the lookups keeping none; the restored toast confirms the Undo even once the page has changed. 2026-10-07, #50.
@@ -309,3 +310,4 @@ Reception's web screens remain planned.
 - #99 — #98's review: an amenity refused as retired leaves the choice at once; the owner's prices named «الأسعار المعلنة» in their toasts; the document's prices line and code map brought up to date.
 - #124 — the space's published prices for the desk's subscription sheet, read again each time it opens (`useSpacePrices`).
 - #132 — an uploading photo's tile drawn as the layer's progress bar (finding 73); the design's gallery line says the contract's limits (finding 74).
+- #132 — the spaces list and the editor: «عرض (يعدّلها المالك)», «تراجع» after hiding or showing, «رجوع» in the delete dialog, the verified notice's way to the space's reports, a section's action leading its content on a phone.

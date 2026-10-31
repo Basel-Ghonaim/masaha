@@ -1,3 +1,4 @@
+import { stubScreenWidth } from '../../../../test/screenWidth';
 import type { AdminSpace } from '@masaha/shared/spaces';
 import { createQueryClient } from '@shared/api';
 import {
@@ -159,6 +160,7 @@ function renderEditor({
                     kind: 'admin',
                     ownerActions,
                     amenitiesListLink: '/lookups?tab=amenities',
+                    reportsLink: (id: number) => `/reports?space=${String(id)}`,
                     areaName: (areaId) => `Area ${String(areaId)}`,
                     amenityNames: (ids) => ids.map((id) => `Amenity ${String(id)}`).join(', '),
                   }
@@ -508,6 +510,7 @@ describe('the contacts section', () => {
 
 describe('the opening hours section', () => {
   it('shows each day with its state and switch, its two times when open, and the copy in its header', async () => {
+    stubScreenWidth(768);
     renderEditor();
     const hours = await waitFor(() => section('Opening hours'));
 
@@ -523,6 +526,32 @@ describe('the opening hours section', () => {
     expect(within(friday.closest('li') as HTMLElement).queryByRole('textbox')).toBeNull();
     const header = hours.querySelector('[data-slot=card-header]') as HTMLElement;
     expect(within(header).getByRole('button', { name: 'Copy to all days' })).toBeEnabled();
+  });
+
+  it('a section’s header action leads its content below 768', async () => {
+    stubScreenWidth(390);
+    renderEditor();
+    const hours = await waitFor(() => section('Opening hours'));
+
+    const header = hours.querySelector('[data-slot=card-header]') as HTMLElement;
+    expect(within(header).queryByRole('button', { name: 'Copy to all days' })).toBeNull();
+    const content = hours.querySelector('[data-slot=card-content]') as HTMLElement;
+    const copy = within(content).getByRole('button', { name: 'Copy to all days' });
+    // First in the content, before the days.
+    const saturday = within(content).getByRole('switch', { name: 'Open on Saturday' });
+    expect(copy.compareDocumentPosition(saturday) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('a verified space’s notice leads to its reports, to correct a fact', async () => {
+    renderEditor({
+      read: () => ok({ ...SPACE, isVerified: true, owners: [{ id: 6, name: 'Sami' }] }),
+    });
+
+    const link = await screen.findByRole('link', { name: /reports$/ });
+    expect(link).toHaveAttribute('href', '/reports?space=7');
+    expect(link.parentElement?.textContent.replace(/[\u2066-\u2069]/g, '')).toBe(
+      'To correct a fact: Focus Hub’s reports',
+    );
   });
 
   it('shows why a shift cannot be removed beside its Remove', async () => {

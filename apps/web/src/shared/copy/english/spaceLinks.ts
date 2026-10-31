@@ -1,3 +1,4 @@
+import { englishPlural } from '../plural';
 import type { FactGroup } from '@masaha/shared/spaces';
 
 /**
@@ -42,6 +43,9 @@ export const SPACE_LINKS = {
     /** The phone's button's name while filters apply. */
     filtersApplied: ({ count }: { count: number }) => `Filters, ${String(count)} applied`,
     clearFilters: 'Clear filters',
+    /** The phone's sheet's way back to the list, with the count the filters keep. */
+    showResults: ({ count }: { count: number }) =>
+      englishPlural(count, { one: 'Show 1 result', other: `Show ${String(count)} results` }),
     close: 'Close',
     columns: {
       space: 'Space',

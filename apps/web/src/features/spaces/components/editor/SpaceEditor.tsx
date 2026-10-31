@@ -82,7 +82,14 @@ export function SpaceEditor({
       {place.kind === 'admin' && editor.notice && (
         <div ref={notice} tabIndex={-1} className="outline-none">
           {editor.readOnly ? (
-            <VerifiedNotice words={editor.notice.verified} publicHref={publicLink(space.slug)}>
+            <VerifiedNotice
+              words={editor.notice.verified}
+              publicHref={publicLink(space.slug)}
+              reports={{
+                label: editor.notice.verified.reports,
+                href: place.reportsLink(space.id),
+              }}
+            >
               <div className="flex flex-wrap gap-2">
                 {place.ownerActions({ ...editor.owned, focusFallback: notice })}
               </div>

@@ -118,6 +118,10 @@ export function useAdminSpacesList() {
         closeLabel: lines.close,
         clearLabel: lines.clearFilters,
         clear: filters.clearFilters,
+        /** «مسح الفلاتر» is unavailable while none applies. */
+        clearDisabled: filters.applied === 0,
+        /** «عرض {n} نتيجة», which closes the sheet on the list the filters leave. */
+        show: answer === undefined ? null : lines.showResults({ count: answer.meta.totalRecords }),
       },
     },
   };

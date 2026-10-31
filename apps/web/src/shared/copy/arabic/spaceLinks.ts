@@ -1,3 +1,4 @@
+import { arabicPlural } from '../plural';
 import type { Catalogue } from '../shape';
 
 export const SPACE_LINKS = {
@@ -25,6 +26,15 @@ export const SPACE_LINKS = {
     filters: 'الفلاتر',
     filtersApplied: ({ count }: { count: number }) => `الفلاتر، المطبّق منها: ${String(count)}`,
     clearFilters: 'مسح الفلاتر',
+    showResults: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `عرض ${String(count)} نتيجة`,
+        one: 'عرض نتيجة واحدة',
+        two: 'عرض نتيجتين',
+        few: `عرض ${String(count)} نتائج`,
+        many: `عرض ${String(count)} نتيجة`,
+        other: `عرض ${String(count)} نتيجة`,
+      }),
     close: 'إغلاق',
     columns: {
       space: 'المساحة',
@@ -39,7 +49,7 @@ export const SPACE_LINKS = {
     noOwner: 'بلا صاحب مساحة',
     upToDate: 'محدّثة',
     stale: ({ groups }: { groups: string }) => `قديمة: ${groups}`,
-    missing: ({ groups }: { groups: string }) => `غير مُدخلة: ${groups}`,
+    missing: ({ groups }: { groups: string }) => `ناقصة: ${groups}`,
     groups: {
       profile: 'البيانات الأساسية',
       hours: 'ساعات العمل',

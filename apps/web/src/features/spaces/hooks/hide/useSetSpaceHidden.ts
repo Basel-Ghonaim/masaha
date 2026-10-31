@@ -10,25 +10,48 @@ import { useRefreshAdmin } from '../useRefreshAdmin';
 
 const repository = createSpacesRepository();
 
+/** How long «تراجع» is offered: long enough to read the toast and change one's mind. */
+const UNDO_MS = 10_000;
+
 /**
  * Hides a space from the public, or shows it again, pending until the admin's list has arrived
- * again; then a toast says so by its name. A failure's toast names the space too, and a 429's wait
+ * again; then a toast says so by its name, with «تراجع», which sends the opposite (P9: reversible,
+ * no one else affected); an undo's own toast offers none. A failure's toast names the space too, and a 429's wait
  * holds every row's actions.
  */
 export function useSetSpaceHidden() {
   const refresh = useRefreshAdmin();
   const recordHold = useRecordHold();
 
-  return useMutation<undefined, AppError, SpaceAction & { isHidden: boolean }>({
+  const mutation = useMutation<
+    undefined,
+    AppError,
+    SpaceAction & { isHidden: boolean; undoing?: boolean }
+  >({
     mutationKey: spaceActionKey('hidden'),
     // Kept only while its row holds it: a 429's wait is recorded on its own (`useRecordHold`).
     gcTime: 0,
     mutationFn: ({ spaceId, isHidden }) => repository.setHidden(spaceId, isHidden),
-    onSuccess: async (_answer, { name, isHidden }) => {
+    onSuccess: async (_answer, action) => {
       await refresh();
       // Worded when it lands, in the language the interface speaks then.
       const { toasts } = currentCopy().spaces;
-      toastDone(isHidden ? toasts.hidden : toasts.shown, name);
+      const { name, isHidden, undoing = false } = action;
+      toastDone(
+        isHidden ? toasts.hidden : toasts.shown,
+        name,
+        undoing
+          ? undefined
+          : {
+              duration: UNDO_MS,
+              action: {
+                label: toasts.undo,
+                onClick: () => {
+                  mutation.mutate({ ...action, isHidden: !isHidden, undoing: true });
+                },
+              },
+            },
+      );
     },
     onError: (refusal, { name, isHidden }) => {
       recordHold(refusal);
@@ -36,4 +59,5 @@ export function useSetSpaceHidden() {
       toastFailed(isHidden ? failures.hide : failures.show, name, refusal);
     },
   });
+  return mutation;
 }

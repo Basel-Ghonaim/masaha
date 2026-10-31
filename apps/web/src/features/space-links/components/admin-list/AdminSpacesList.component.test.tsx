@@ -548,4 +548,18 @@ describe('AdminSpacesList, on a phone', () => {
       `/spaces/${String(FOCUS.id)}`,
     );
   });
+
+  it('the phone’s sheet closes on «عرض N نتيجة»; clear is disabled with none', async () => {
+    stubScreenWidth(390);
+    renderList('/spaces');
+    await screen.findAllByText('Focus Hub');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Filters' });
+    expect(within(sheet).getByRole('button', { name: 'Clear filters' })).toBeDisabled();
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Show 2 results' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument();
+    });
+  });
 });

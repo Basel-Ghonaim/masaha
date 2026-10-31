@@ -96,6 +96,10 @@ export function useSpaceEditor(place: EditorPlace, spaceId: number) {
               }),
               description: words.verified.description,
               viewOnSite: words.verified.viewOnSite,
+              correct: words.verified.correct,
+              reports: words.verified.reports({
+                space: isolate(spaceNameOf(space, english).text),
+              }),
             },
           }
         : null,
