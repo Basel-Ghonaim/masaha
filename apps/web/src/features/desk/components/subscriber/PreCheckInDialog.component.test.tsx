@@ -15,6 +15,7 @@ function dialogView(change: Partial<SubscriberCheckInView['dialog']> = {}) {
       label: 'Check in as a visit',
       run: vi.fn(),
     },
+    next: { label: 'Renew', run: vi.fn() },
     anyway: { label: 'Check in anyway', run: vi.fn() },
     back: { label: 'Back', run: vi.fn() },
     busy: false,

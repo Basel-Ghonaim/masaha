@@ -20,12 +20,13 @@ import { useCheckInSubscriber } from './useCheckInSubscriber';
  * the subscription, not offered with none. A subscriber's check-in keeps one key until it lands, across
  * the transport's re-sends and a retry after a lost answer (S4); the next check-in is a new one. The
  * server's warnings are said after, in the toast; `MEMBER_ALREADY_CHECKED_IN` says they are here.
- * Done, `done` runs (the search: cleared and focused, S10).
+ * Done, `done` runs (the search: cleared and focused, S10). The choice also offers the sheet
+ * (G13.8): «تجديد» for an expired subscription, «اشتراك جديد» for none (`sheet`, the card's).
  */
 export function useSubscriberCheckIn(
   spaceId: number,
   row: CustomerRow,
-  { done }: { done: () => void },
+  { done, sheet }: { done: () => void; sheet: { renew: () => void; subscribe: () => void } },
 ) {
   const copy = useCopy();
   const words = copy.desk.subscriber;
@@ -150,6 +151,25 @@ export function useSubscriberCheckIn(
         label: words.pre.asVisit,
         run: () => void checkInVisit(),
       },
+      /** The sheet instead: the expired one's renewal, or a first subscription. */
+      next:
+        current === null
+          ? {
+              label: copy.desk.sheet.entry.subscribe,
+              run: () => {
+                setOpen(false);
+                sheet.subscribe();
+              },
+            }
+          : current.status === 'EXPIRED'
+            ? {
+                label: copy.desk.sheet.entry.renew,
+                run: () => {
+                  setOpen(false);
+                  sheet.renew();
+                },
+              }
+            : null,
       anyway:
         current === null
           ? null

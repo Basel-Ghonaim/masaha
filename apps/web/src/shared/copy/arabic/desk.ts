@@ -308,6 +308,8 @@ export const DESK = {
     checkIn: 'حضور',
     checkInName: ({ name }: { name: string }) => `حضور ${name}`,
     receive: ({ amount }: { amount: string }) => `استلام ${amount}`,
+    notHere: 'غير حاضر',
+    renewFailed: 'تعذّرت قراءة الاشتراك لتجديده',
     /** A customer's «⋯» (DI-39), named by them. */
     menu: {
       label: ({ name }: { name: string }) => `إجراءات أخرى: ${name}`,

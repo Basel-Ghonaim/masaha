@@ -308,6 +308,9 @@ export const DESK = {
     checkIn: 'Check in',
     checkInName: ({ name }: { name: string }) => `Check in ${name}`,
     receive: ({ amount }: { amount: string }) => `Receive ${amount}`,
+    /** A search card's customer, who is not among those present (G13.7). */
+    notHere: 'Not here',
+    renewFailed: 'We couldn’t read the subscription to renew it',
     /** A customer's «⋯» (DI-39), named by them. */
     menu: {
       label: ({ name }: { name: string }) => `More actions: ${name}`,
