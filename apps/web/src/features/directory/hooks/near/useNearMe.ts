@@ -8,8 +8,9 @@ import { nearMeStore, useNearState } from './nearMeStore';
 const ASK = { enableHighAccuracy: true, timeout: 8000, maximumAge: 300_000 } as const;
 
 /**
- * How long near me waits for any answer. The device's own timeout counts only once the permission
- * is given, and a permission prompt dismissed without a choice (as Firefox allows) answers nothing.
+ * How long near me waits for any answer once the permission is known. The device's own timeout
+ * counts only once the permission is given, and a permission prompt dismissed without a choice (as
+ * Firefox allows) answers nothing.
  */
 const NO_ANSWER_MS = 15_000;
 
@@ -18,7 +19,9 @@ const NO_ANSWER_MS = 15_000;
  * rounded point, in memory. Pressed while sorting, it stops sorting and keeps the point; pressed
  * with a point, it sorts again without asking. A refusal, an unavailable location, or a position
  * too imprecise or outside the Strip keeps nothing; no answer within 15 s is a refusal, and an
- * answer after it is dropped. Clearing drops the point and every answer ordered by distance from it,
+ * answer after it is dropped. The 15 s start once the permission is known (finding 136): where the
+ * Permissions API answers, at once when granted, once the prompt is granted (its `change`) while the
+ * browser asks, and a denial ends the ask at once; without the API, from the press. Clearing drops the point and every answer ordered by distance from it,
  * the user's favourites among them.
  * A point may instead be placed by hand on the map (U7): rounded and kept as the device's is, and
  * «رجوع» restores whatever was there before the pick.
@@ -54,17 +57,34 @@ export function useNearMe(): {
         return;
       }
       const asked = nearMeStore.locating();
+      let watchdog: ReturnType<typeof setTimeout> | undefined;
       // The first of the answer and the wait settles the ask; whatever comes after is dropped.
       const settle = (write: () => void) => {
         if (!nearMeStore.awaits(asked)) return;
         clearTimeout(watchdog);
         write();
       };
-      const watchdog = setTimeout(() => {
+      const refuse = () => {
         settle(() => {
           nearMeStore.refused('denied');
         });
-      }, NO_ANSWER_MS);
+      };
+      const startWait = () => {
+        if (watchdog !== undefined || !nearMeStore.awaits(asked)) return;
+        watchdog = setTimeout(refuse, NO_ANSWER_MS);
+      };
+      // The browser's own seam too: absent where the platform offers no Permissions API.
+      const permissions = navigator.permissions as Permissions | undefined;
+      if (permissions === undefined) startWait();
+      else
+        permissions.query({ name: 'geolocation' }).then((permission) => {
+          const follow = () => {
+            if (permission.state === 'granted') startWait();
+            else if (permission.state === 'denied') refuse();
+          };
+          follow();
+          if (permission.state === 'prompt') permission.addEventListener('change', follow);
+        }, startWait);
       geolocation.getCurrentPosition(
         (position) => {
           settle(() => {
