@@ -241,7 +241,11 @@ export function useSubscriptionSheet({
       // What the customer owes, or the renewal, changed meanwhile: they are read again.
       if (failure.status === 409) settle(spaceId);
       // A published price changed or removed since it was read (finding 171): read them again.
-      if (failure.errors?.published !== undefined || failure.code === 'PAYMENT_EXCEEDS_DUE') {
+      if (
+        failure.errors?.published !== undefined ||
+        failure.code === 'PUBLISHED_PRICE_CHANGED' ||
+        failure.code === 'PAYMENT_EXCEEDS_DUE'
+      ) {
         choices.prices.refresh();
       }
       setRefusal(failure);
