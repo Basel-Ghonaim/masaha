@@ -68,6 +68,7 @@
 - **No Google client id: no button, no divider, no script.** 2026-10-06, #42.
 - **Google's failures show in their own area above the button;** closing its window shows nothing. *Why:* both failure areas read alike. 2026-10-06, #42.
 - **A "linked" toast and a welcome toast,** each fired by its hook after the session changes. 2026-10-06, #42.
+- **A first Google sign-in is welcomed as registration is** («أهلًا {name}، تم إنشاء حسابك», from the answer's `created`), **and the "linked" toast stays until closed** (C5). *Why:* the account was just made, as a registration makes one ([finding 32](../architecture/findings/32-the-google-sign-in-answer-does-not-say-whether-it-created-the-account.md)); the linked toast says more than a line and must be read. 2026-10-29, #132.
 - **Mutations that carry a credential keep nothing in the cache.** *Why:* passwords never stay in memory ([finding 34](../architecture/findings/34-passwords-stay-in-the-mutation-cache-after-a-sign-in-a-registration-or-a-password-change.md)). 2026-10-06, #45.
 - **A session the server ended for idleness says so on sign-in:** a refresh refused 401 `SESSION_IDLE` ends the session as ended for idleness (`endedBy`, [architecture §4](../frontend/architecture.md#4-session-and-preferences)), and the sign-in page shows the error's catalogue line above its form until the next sign-in. *Why:* a receptionist back at the shared desk learns why they must sign in again. 2026-10-25, #122.
 - **The sign-in and register cards offer a way back, not a way on:** with a safe `next`, «العودة إلى {space}» when it is a space's page whose read the tab already holds (`directory`'s `useCachedSpaceName`, never a request), else «العودة إلى الصفحة السابقة»; without one, «العودة إلى الرئيسية» (C4, DI33). *Why:* the guest came from somewhere; «تصفّح المساحات بدون حساب» ignored it. `next` travels to the forgotten password and back. 2026-10-29, #132.
@@ -85,7 +86,6 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 ## Open findings
 
 - [22](../architecture/findings/22-the-reset-emails-words-live-outside-the-webs-copy-catalogue.md): the email's words outside the copy catalogue.
-- [32](../architecture/findings/32-the-google-sign-in-answer-does-not-say-whether-it-created-the-account.md): no welcome after a first Google sign-in.
 - [33](../architecture/findings/33-the-deployments-headers-must-let-googles-sign-in-work.md): the deployment's headers and Google's sign-in.
 - [65](../architecture/findings/65-the-forgotten-passwords-wait-is-an-estimate-not-a-measurement.md): the forgotten password's wait is an estimate, not a measurement.
 
@@ -110,3 +110,4 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 - #45 — no credential kept in the cache.
 - #122 — the sign-in page says a session ended for idleness.
 - 2026-10-29, #132 — the auth cards' way back and `next` kept through the forgotten password; «أهلًا بعودتك»; another email at once; the reset card's way back.
+- 2026-10-29, #132 — a first Google sign-in welcomed by name; the linked toast kept until closed.
