@@ -71,7 +71,19 @@ export function DecideSheet({
         }}
       >
         <SheetHeader>
-          <SheetTitle>{view.title}</SheetTitle>
+          <SheetTitle>
+            {view.spaceTitle === null ? (
+              view.title
+            ) : (
+              <>
+                {view.spaceTitle.before}
+                <span lang={view.spaceTitle.name.lang} dir={view.spaceTitle.name.dir}>
+                  {view.spaceTitle.name.text}
+                </span>
+                {view.spaceTitle.after}
+              </>
+            )}
+          </SheetTitle>
           <div className="flex flex-wrap items-center gap-2">
             <SheetDescription>{view.description}</SheetDescription>
             <Badge variant={view.status.tone}>{view.status.label}</Badge>

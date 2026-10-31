@@ -176,4 +176,67 @@ describe('AdminReportsList', () => {
       expect(screen.getByText('1 report')).toHaveFocus();
     });
   });
+
+  it('«يعالجه» filters by ADMIN or OWNER; the title names the space', async () => {
+    stubScreenWidth(1024);
+    const user = userEvent.setup();
+    const requests = fakeTransport(() => reportsPage([adminReport()]));
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/reports',
+          element: (
+            <AdminReportsList
+              spaceFilter={spaceFilter}
+              editorLink={(spaceId) => `/spaces/${String(spaceId)}`}
+            />
+          ),
+        },
+      ],
+      { initialEntries: ['/reports'] },
+    );
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+
+    await screen.findByText('The space opens at 9, not 8.');
+    const chips = screen.getByRole('radiogroup', { name: 'Handled by' });
+    expect(within(chips).getByRole('radio', { name: 'All' })).toBeChecked();
+    await user.click(within(chips).getByRole('radio', { name: 'The admin' }));
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('?handledBy=admin');
+    });
+    await waitFor(() => {
+      expect(requests.at(-1)?.params).toMatchObject({ handledBy: 'ADMIN' });
+    });
+    expect(
+      screen.getByRole('button', { name: 'Remove the handled-by filter' }),
+    ).toBeInTheDocument();
+    await user.click(within(chips).getByRole('radio', { name: 'The owner' }));
+    await waitFor(() => {
+      expect(requests.at(-1)?.params).toMatchObject({ handledBy: 'OWNER' });
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Open' }));
+    expect(await screen.findByRole('dialog', { name: 'Focus Hub · Opening hours' })).toBeVisible();
+  });
+
+  it('names an English-only space in the sheet’s Arabic title, marked as English', async () => {
+    startPreferences('ar');
+    stubScreenWidth(1024);
+    const user = userEvent.setup();
+    renderList('', () =>
+      reportsPage([
+        adminReport({
+          space: { id: 7, slug: 'focus-hub', nameEn: 'Focus Hub', nameAr: null, verified: false },
+        }),
+      ]),
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'فتح' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Focus Hub · ساعات العمل' });
+    expect(within(dialog).getByText('Focus Hub')).toHaveAttribute('lang', 'en');
+  });
 });

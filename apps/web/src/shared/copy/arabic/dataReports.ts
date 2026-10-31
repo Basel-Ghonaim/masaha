@@ -58,6 +58,7 @@ export const DATA_REPORTS = {
   },
   sheet: {
     title: ({ field }: { field: string }) => `بلاغ عن ${field}`,
+    adminTitle: ({ space, field }: { space: string; field: string }) => `${space} · ${field}`,
     report: 'البلاغ',
     editField: 'تعديل الحقل',
     replySpace: 'ردّ إدارة المساحة',
@@ -96,6 +97,7 @@ export const DATA_REPORTS = {
       actions: 'إجراءات',
     },
     handledBy: { admin: 'الإدارة', owner: 'المالك' },
+    handledByFilter: { label: 'يعالجه', all: 'الكل', admin: 'الإدارة', owner: 'المالك' },
     space: 'المساحة',
     chosen: 'مساحة محددة',
     field: 'الحقل',
@@ -105,6 +107,8 @@ export const DATA_REPORTS = {
       field: ({ field }: { field: string }) => `الحقل: ${field}`,
       removeSpace: 'إزالة فلتر المساحة',
       removeField: 'إزالة فلتر الحقل',
+      handledBy: ({ who }: { who: string }) => `يعالجه: ${who}`,
+      removeHandledBy: 'إزالة فلتر «يعالجه»',
       clear: 'مسح الفلاتر',
     },
     filters: {

@@ -277,7 +277,7 @@ describe('useDecideSheet', () => {
       '/dashboard/admin/spaces/7#hours',
     );
 
-    const sheet = await screen.findByRole('dialog', { name: 'Report about Opening hours' });
+    const sheet = await screen.findByRole('dialog', { name: 'Focus Hub · Opening hours' });
     expect(
       within(sheet).getByText((text) => text.replace(/[⁦-⁩]/g, '') === 'Huda Saleh · 21 October'),
     ).toBeVisible();

@@ -6,7 +6,8 @@ import {
 import { useCopy } from '@shared/copy';
 import { toAppError, type AppError } from '@shared/errors';
 import { useServerForm, type FormFailureView } from '@shared/forms';
-import { isolate, useLanguage } from '@shared/localisation';
+import { spaceNameOf } from '@shared/lib';
+import { isolate, lineParts, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import { toastDecided } from '../../components/toast/toastDecided';
@@ -108,6 +109,19 @@ export function useDecideSheet({
 
   return {
     title: sheet.title({ field: fieldLabel(report.field, words.fields) }),
+    /**
+     * The admin's title in place of `title`: «{space} · {field}», the space's name marked with its
+     * language (D6.9); none for the owner's.
+     */
+    spaceTitle:
+      target.audience === 'admin'
+        ? {
+            ...lineParts(({ name }) =>
+              sheet.adminTitle({ space: name, field: fieldLabel(report.field, words.fields) }),
+            ),
+            name: spaceNameOf(target.report.space, language === 'en'),
+          }
+        : null,
     description: words.byline({
       who: target.audience === 'admin' ? isolate(target.report.reporter.name) : words.visitor,
       day,

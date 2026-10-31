@@ -56,6 +56,8 @@ export const DATA_REPORTS = {
   /** The decision sheet. */
   sheet: {
     title: ({ field }: { field: string }) => `Report about ${field}`,
+    /** The admin's sheet: the space, then the field. */
+    adminTitle: ({ space, field }: { space: string; field: string }) => `${space} · ${field}`,
     report: 'The report',
     editField: 'Edit the field',
     replySpace: 'Reply from the space',
@@ -96,6 +98,8 @@ export const DATA_REPORTS = {
       actions: 'Actions',
     },
     handledBy: { admin: 'Admin', owner: 'Owner' },
+    /** «يعالجه»'s chips (finding 167's filter). */
+    handledByFilter: { label: 'Handled by', all: 'All', admin: 'The admin', owner: 'The owner' },
     space: 'Space',
     chosen: 'A chosen space',
     field: 'Field',
@@ -105,6 +109,8 @@ export const DATA_REPORTS = {
       field: ({ field }: { field: string }) => `Field: ${field}`,
       removeSpace: 'Remove the space filter',
       removeField: 'Remove the field filter',
+      handledBy: ({ who }: { who: string }) => `Handled by: ${who}`,
+      removeHandledBy: 'Remove the handled-by filter',
       clear: 'Clear filters',
     },
     filters: {

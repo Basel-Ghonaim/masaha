@@ -40,9 +40,11 @@ export function useAdminReportsFilters() {
     filters,
     query,
     apply,
-    /** How many of the filters the sheet holds apply: the space and the field. */
-    applied: [filters.spaceId, filters.field].filter((value) => value !== undefined).length,
-    /** «مسح الفلاتر»: the space and the field taken off, the chip kept. */
+    /** How many of the filters the sheet holds apply: the space, the field and who handles them. */
+    applied: [filters.spaceId, filters.field, filters.handledBy].filter(
+      (value) => value !== undefined,
+    ).length,
+    /** «مسح الفلاتر»: the space, the field and who handles them taken off, the chip kept. */
     clear: () => {
       write({ chip: current().chip, page: 1 });
     },

@@ -86,6 +86,7 @@
 - **The admin's chips are the owner's; the space and the field are fields** (DI-32, P5): the same «الكل · جديدة · تمت المراجعة»; the space a search on the server, the field a select. 2026-10-28, #129.
 - **A verified space's report is read-only for the admin, not a dead end** (DI-38): its notice says the owner decides it, with «عرض المساحة» to the space's editor. *Why:* the server refuses the admin's decision there (`can()` with "verified"). 2026-10-28, #129.
 - **«يعالجه» per row, from the space's verification now** (DI-39): «الإدارة» or «المالك»; no filter of it on the screen; the API serves one, `handledBy`, since 2026-10-29, #131 ([finding 167](../architecture/findings/167-the-admins-reports-cannot-be-filtered-by-who-handles-them.md)). 2026-10-28, #129.
+- **«يعالجه» is a filter too** (D6.9, superseding DI-39's "no filter" by the owner's mission): chips «الكل · الإدارة · المالك» (`?handledBy=admin|owner`, sent as `ADMIN | OWNER`), under the space and the field from 768 px and in the sheet below it, counted and cleared with them, its tag removable; the sheet's title names the space, «{space} · {field}», the name marked with its language. 2026-10-29, #132.
 - **The filters in force are shown as removable tags at every width** (DI-40): a `?space=` link and the phone's sheet would otherwise hide them; `FilterTag` from the layer (finding 8). 2026-10-28, #129.
 - **The admin's list stays cards until 1024 px** (DI-43, A7): eight columns need the width; `cardsBelow="lg"`. 2026-10-28, #129.
 - **The decision is sent once, with no key** (S4): the same decision again answers the report as it is, so a lost answer is retried from the sheet. 2026-10-28, #129.
@@ -127,3 +128,4 @@
 - 2026-10-28, #129 — the report from a space's page: who reads it by the space's verification, the details required for «أخرى» only, the toast by the answer's status; a guest asked to sign in first, the report held in memory.
 - 2026-10-29, #132 — «بلاغاتي» says which reports a page shows, of how many.
 - 2026-10-29, #132 — a guest's held report survives a password recovery, kept in the browser's storage and run after a sign-in.
+- #132 — the admin's reports filtered by who handles them (finding 167's screen), the sheet titled by the space and the field.
