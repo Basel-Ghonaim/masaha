@@ -85,9 +85,9 @@ export const SPACE_SETTINGS = {
     text: 'نص الرسالة',
     insert: 'إدراج:',
     insertNamed: {
-      name: 'إدراج الاسم',
-      amount: 'إدراج المبلغ',
-      space: 'إدراج المساحة',
+      name: 'إدراج {الاسم}',
+      amount: 'إدراج {المبلغ}',
+      space: 'إدراج {المساحة}',
     },
     preview: 'معاينة',
     sampleName: 'رهف',

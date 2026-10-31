@@ -47,11 +47,20 @@ afterEach(() => {
 });
 
 describe('the reminder card', () => {
+  it('names each insert button with the token it shows (WCAG 2.5.3)', () => {
+    renderCard();
+
+    for (const token of ['{الاسم}', '{المبلغ}', '{المساحة}']) {
+      const button = screen.getByRole('button', { name: `Insert ${token}` });
+      expect(button).toHaveTextContent(token);
+    }
+  });
+
   it('inserts a placeholder at the caret, and previews it filled', async () => {
     const { field, user } = renderCard();
 
     field.setSelectionRange(3, 3);
-    await user.click(screen.getByRole('button', { name: 'Insert the name' }));
+    await user.click(screen.getByRole('button', { name: 'Insert {الاسم}' }));
 
     expect(field.value).toBe('Hi {الاسم}, you owe {المبلغ}.');
     expect(field).toHaveFocus();

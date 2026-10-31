@@ -97,6 +97,12 @@ describe('useReissueDialog', () => {
       false,
     ],
     [
+      // The re-issue's own line: the account became an admin's (D5.10, finding 106).
+      refused(409, { type: 'conflict', code: 'ACCOUNT_IS_ADMIN' }),
+      'This is an admin’s account; no temporary password is issued for it here.',
+      false,
+    ],
+    [
       refused(409, { type: 'conflict', code: 'ACCOUNT_SUSPENDED' }),
       'Their account is suspended by the Masaha team; their access comes back once it’s restored.',
       false,

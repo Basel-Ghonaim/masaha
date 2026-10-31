@@ -90,6 +90,8 @@ export const STAFF = {
     heldSettled:
       'They’ve changed the temporary password; if they forget their password, they recover it by email.',
     heldInactive: 'Give their access back first.',
+    /** The re-issue's own line for an account that became an admin's. */
+    refusedAdmin: 'This is an admin’s account; no temporary password is issued for it here.',
   },
   /** A staff member's refusals, in the owner's words: a 404 cannot tell its two causes apart. */
   refusals: {

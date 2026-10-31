@@ -74,10 +74,11 @@ export const SPACE_SETTINGS = {
       'A ready WhatsApp message reminding a customer of their debt; it opens from the customer’s file and from Finance, and you send it.',
     text: 'Message text',
     insert: 'Insert:',
+    /** Each insert button's name holds the token it shows (WCAG 2.5.3, finding 106). */
     insertNamed: {
-      name: 'Insert the name',
-      amount: 'Insert the amount',
-      space: 'Insert the space',
+      name: 'Insert {الاسم}',
+      amount: 'Insert {المبلغ}',
+      space: 'Insert {المساحة}',
     },
     preview: 'Preview',
     /** The customer's name the preview shows. */

@@ -87,7 +87,6 @@ A change applies from then on ([data model › Front desk and money](../architec
 ## Open findings
 
 - [103](../architecture/findings/103-arabic-indic-digits-are-read-by-five-helpers.md): Arabic-Indic digits are read by five helpers, `wholeNumberOf` among them.
-- [106](../architecture/findings/106-two-approved-owner-lines-miss-a-case-or-the-label-in-name.md): the reminder's insert buttons are named without the token they show.
 
 ## History
 
@@ -100,4 +99,5 @@ A change applies from then on ([data model › Front desk and money](../architec
 
 - #99 — the owner's «الإعدادات»: visit pricing and reception, each card saved alone; the attendance card, with `occupancy`'s capacity, in one save (finding 96); the debt reminder, its placeholders inserted at the caret, its preview, and the catalogue's text restored.
 - #132 — the reminder's preview fills it with the shared `fillReminder`, the one filler finance and the customer's file use too.
+- 2026-10-29, #132 — the reminder's insert buttons named with the token each shows, «إدراج {الاسم}» (WCAG 2.5.3, finding 106 resolved).
 - 2026-10-29, #132 — «حسابي», the settings' last card, to the personal settings; the auto check-out's and the reminder's lines say where things go.
