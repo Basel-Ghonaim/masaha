@@ -157,6 +157,30 @@ describe('UsersPage', () => {
     expect(within(link).getByText('An admin’s account — never linked to a space')).toBeVisible();
   });
 
+  it('the users page’s held items are reached by the keyboard, their reason read', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const trigger = await screen.findByRole('button', { name: heard('Actions: Hadi') });
+    trigger.focus();
+    await user.keyboard('{Enter}');
+    const [held] = await screen.findAllByRole('menuitem');
+    await waitFor(() => {
+      expect(held).toHaveFocus();
+    });
+    expect(held).toHaveAttribute('aria-disabled', 'true');
+    expect(
+      within(held as HTMLElement).getByText('Their role follows their links — unlink them first'),
+    ).toBeVisible();
+    // Selecting it does nothing: the menu stays, no dialog opens.
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', { name: 'Unlink them' })).toHaveFocus();
+    await user.keyboard('{ArrowUp}');
+    expect(held).toHaveFocus();
+  });
+
   it('puts the role change first, with its lead when held', async () => {
     renderPage();
 

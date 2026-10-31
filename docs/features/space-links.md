@@ -157,6 +157,7 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 
 ### Web decisions
 
+- **The users page's held items stay in the keyboard's reach** (D6.15, [finding 105](../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md), the admin's side): a held action is the layer's `held` item, `aria-disabled` and ignored when chosen, never `disabled`, which Radix skips, so the arrow keys and typeahead reach it and its reason; the page's row triggers are `shared/lists`' (`useRowTriggers`). 2026-10-29, #132.
 - **The owners and users lists finish their screens** (D6.11, G27.1–G27.4, G29.1): the «إجراءات» header read only by assistive technology; the owners' empty state offers «إضافة مالك»; the add sheet opens on `?sheet=add` (taken off the address once it closes), which the empty state and a space editor's «مالك جديد بلا حساب؟» use; `ACCOUNT_SUSPENDED` in the sheet reads «الحساب موقوف — استرجعه أولًا.», «استرجعه أولًا» a link to the users list searched by the email; «انضم» says its year always. 2026-10-29, #132.
 - **The spaces list offers `editable` as its fifth status, «تعدّلها الإدارة» / "Kept by the admin"** (D6.4, DI30, [finding 158](../architecture/findings/158-the-admins-spaces-list-does-not-offer-the-editable-status.md)): the contract's one schema of statuses, all offered, so the overview's «عرض الكل» lands on `?status=editable&stale=true` with its status shown and its chip on. *Why:* an address the filters did not show could not be cleared from them. 2026-10-29, #132.
 - **The web reads under `['me', 'spaces']`.** *Why:* the user's own data, in its key scope. 2026-10-04, #36.
@@ -232,7 +233,6 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - [87](../architecture/findings/87-the-owners-shell-cold-loads-the-space-links-index.md): the owners shell cold-loads the whole `space-links` index.
 - [93](../architecture/findings/93-three-staff-refusals-have-no-test-of-their-own.md): three staff refusals have no test of their own.
 - [104](../architecture/findings/104-the-staff-menus-row-triggers-copy-the-admin-pages.md): the staff menu's row triggers copy the admin page's.
-- [105](../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md): a held menu item may be unreachable by the keyboard.
 
 ## History
 
@@ -276,3 +276,4 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - #132 — the add sheet reads the email's account by its exact email; a failed read is worded apart, with a retry (finding 89).
 - #132 — `ALREADY_OWNER` in the add sheet links that owner: the link dialog opens for them and the chosen space (finding 83).
 - #132 — the owners and users lists: the actions' header read only, «إضافة مالك» on the empty owners list, the add sheet on `?sheet=add`, a suspended account led to the users list, the join date with its year.
+- #132 — the users page's held items reached by the keyboard with their reason (finding 105, the admin's side).
