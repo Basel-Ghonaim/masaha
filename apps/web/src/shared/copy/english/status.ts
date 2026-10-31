@@ -10,6 +10,8 @@ export const STATUS = {
   forbidden: {
     title: 'You don’t have access to this page',
     description: 'This page isn’t available to your account.',
+    /** The bare 403's line before its ways on («Home», «Contact us»), outside any shell. */
+    mistake: 'If you think this is a mistake, contact us.',
   },
   error: {
     title: 'Something went wrong',
@@ -22,6 +24,8 @@ export const STATUS = {
   retry: 'Try again',
   /** Said under the buttons when a retry finds the connection still gone. */
   stillOffline: 'Still no connection.',
+  /** Said under the buttons when the general error comes back after a retry. */
+  stillFailing: 'The error is still there. Try again in a little while.',
   loading: 'Loading',
   toasts: {
     /** Names the region the toasts are announced in. */

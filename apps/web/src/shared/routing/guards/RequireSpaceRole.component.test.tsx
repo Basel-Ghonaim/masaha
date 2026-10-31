@@ -90,6 +90,10 @@ describe('RequireSpaceRole, signed in', () => {
     expect(screen.getByRole('heading', { name: FORBIDDEN })).toBeInTheDocument();
     expect(screen.queryByText('The overview')).not.toBeInTheDocument();
     expect(where(router)).toBe('/dashboard/spaces/7');
+    // Inside the space's shell, its sidebar is the way on: no ways of the bare 403.
+    expect(
+      screen.queryByText('If you think this is a mistake, contact us.'),
+    ).not.toBeInTheDocument();
   });
 
   it('reads the role at the space in the URL, not at another space nor the global role', () => {

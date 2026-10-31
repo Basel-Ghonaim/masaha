@@ -8,6 +8,7 @@ export const STATUS = {
   forbidden: {
     title: 'لا تملك صلاحية الوصول إلى هذه الصفحة',
     description: 'هذه الصفحة غير متاحة لحسابك.',
+    mistake: 'إن كنت تظن أن هذا خطأ، تواصل معنا.',
   },
   error: {
     title: 'حدث خطأ غير متوقع',
@@ -19,6 +20,7 @@ export const STATUS = {
   },
   retry: 'إعادة المحاولة',
   stillOffline: 'ما زال الاتصال مفقودًا.',
+  stillFailing: 'ما زال الخطأ قائمًا. حاول بعد قليل.',
   loading: 'جارٍ التحميل',
   toasts: {
     label: 'الإشعارات',

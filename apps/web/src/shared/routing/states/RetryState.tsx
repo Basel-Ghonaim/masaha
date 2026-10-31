@@ -13,10 +13,13 @@ import { StatusPage } from './StatusPage';
 export function RetryState({
   kind,
   onRetry,
+  again = false,
   children,
 }: {
   kind: 'offline' | 'error';
   onRetry: () => void;
+  /** The general error came back after a retry: «ما زال الخطأ قائمًا. حاول بعد قليل.» */
+  again?: boolean;
   children?: ReactNode;
 }) {
   const copy = useCopy();
@@ -74,7 +77,7 @@ export function RetryState({
         {children}
       </EmptyState>
       <p role="status" className="text-center text-body-sm text-muted-foreground">
-        {stillOffline ? copy.status.stillOffline : null}
+        {stillOffline ? copy.status.stillOffline : again ? copy.status.stillFailing : null}
       </p>
     </StatusPage>
   );

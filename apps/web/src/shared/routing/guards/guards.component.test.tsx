@@ -176,6 +176,19 @@ describe('RequireRole', () => {
     expect(screen.queryByText('The guarded page')).not.toBeInTheDocument();
     expect(where(router)).toBe('/guarded');
   });
+
+  it('gives its bare 403 the ways on: «Home», and «Contact us» for a mistake', () => {
+    signIn({ role: 'OWNER' });
+
+    renderGuarded(requireAdmin);
+
+    expect(screen.getByText('If you think this is a mistake, contact us.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Contact us' })).toHaveAttribute(
+      'href',
+      '/about#contact',
+    );
+  });
 });
 
 describe('RequireGuest', () => {

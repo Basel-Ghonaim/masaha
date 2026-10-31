@@ -7,7 +7,8 @@ import { sessionWait, wholeSession } from './sessionWait';
 
 /**
  * A route for one of the global `roles`: a guest goes to sign-in, with the page to return to; a
- * signed-in user with another role sees the 403 state. The server still refuses what this hides.
+ * signed-in user with another role sees the 403 state, outside any shell, with its ways on. The
+ * server still refuses what this hides.
  */
 export function RequireRole({
   roles,
@@ -20,7 +21,7 @@ export function RequireRole({
   const location = useLocation();
 
   if (session.status === 'authenticated') {
-    return roles.includes(session.user.role) ? children : <ForbiddenState />;
+    return roles.includes(session.user.role) ? children : <ForbiddenState bare />;
   }
   return sessionWait(session) ?? <Navigate replace to={signInPath(location)} />;
 }
