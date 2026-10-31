@@ -15,9 +15,9 @@ import { useCheckInSubscriber } from './useCheckInSubscriber';
 /**
  * A customer's «حضور», ready to render. On a current subscription that runs (active, or ending
  * soon) one tap checks them in at once; on none, an expired one or one not started, the tap opens the
- * choice first, as the row already says it (DI-14, S6): «تسجيل كزيارة» — a visit by their name, its
- * own intent, which is not added to their file (finding 160) — and «تسجيل على أي حال» on the
- * subscription, not offered with none. A subscriber's check-in keeps one key until it lands, across
+ * choice first, as the row already says it (DI-14, S6): «تسجيل كزيارة» — their visit, by their id
+ * and name, its own intent, so its check-out asks no phone (finding 160) — and «تسجيل على أي حال» on
+ * the subscription, not offered with none. A subscriber's check-in keeps one key until it lands, across
  * the transport's re-sends and a retry after a lost answer (S4); the next check-in is a new one. The
  * server's warnings are said after, in the toast; `MEMBER_ALREADY_CHECKED_IN` says they are here.
  * Done, `done` runs (the search: cleared and focused, S10).
@@ -88,7 +88,7 @@ export function useSubscriberCheckIn(
     setRefusal(null);
     try {
       const answer = await visit.mutateAsync({
-        body: { visitorName: row.name, audience: 'GENERAL' },
+        body: { visitorName: row.name, audience: 'GENERAL', customerId: row.id },
         key: visitKey.key,
       });
       setOpen(false);
@@ -148,7 +148,6 @@ export function useSubscriberCheckIn(
         : null,
       asVisit: {
         label: words.pre.asVisit,
-        note: words.pre.asVisitNote,
         run: () => void checkInVisit(),
       },
       anyway:

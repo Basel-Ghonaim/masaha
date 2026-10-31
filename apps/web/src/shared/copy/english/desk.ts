@@ -329,7 +329,6 @@ export const DESK = {
         `The subscription “${name}” starts on ${date}.`,
       asVisit: 'Check in as a visit',
       startFailed: 'We couldn’t read when the subscription starts',
-      asVisitNote: 'A visit is recorded under their name; it isn’t added to their file.',
       anyway: 'Check in anyway',
       back: 'Back',
     },

@@ -13,7 +13,6 @@ function dialogView(change: Partial<SubscriberCheckInView['dialog']> = {}) {
     reasonFailure: null,
     asVisit: {
       label: 'Check in as a visit',
-      note: 'A visit is recorded under their name; it isn’t added to their file.',
       run: vi.fn(),
     },
     anyway: { label: 'Check in anyway', run: vi.fn() },

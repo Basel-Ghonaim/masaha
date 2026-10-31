@@ -141,7 +141,7 @@ describe('useSubscriberCheckIn', () => {
     expect(bodyOf(posts(expired.requests)[0])).toEqual({ subscriptionId: 1 });
   });
 
-  it('checks one with no subscription in as a visit by their name, its own intent', async () => {
+  it('checks one with no subscription in as their visit, by their id and name, its own intent', async () => {
     const user = userEvent.setup();
     const { requests, done } = renderCard(customerRow({ current: null }), () =>
       ok(deskVisit({ visitorName: 'Sara Khalid' }), 201),
@@ -150,12 +150,18 @@ describe('useSubscriberCheckIn', () => {
     await user.click(screen.getByRole('button', { name: heard('Check in Sara Khalid') }));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('No subscription.');
+    // The visit is the customer's now: no line says it stays out of the file (finding 160).
+    expect(dialog).not.toHaveTextContent('isn’t added to their file');
     expect(screen.queryByRole('button', { name: 'Check in anyway' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Check in as a visit' }));
 
     await findToast(heard('Sara Khalid checked in'));
     expect(posts(requests).map(({ url }) => url)).toEqual(['/manage/spaces/7/visits']);
-    expect(bodyOf(posts(requests)[0])).toEqual({ visitorName: 'Sara Khalid', audience: 'GENERAL' });
+    expect(bodyOf(posts(requests)[0])).toEqual({
+      visitorName: 'Sara Khalid',
+      audience: 'GENERAL',
+      customerId: 4,
+    });
     expect(done).toHaveBeenCalledTimes(1);
   });
 
