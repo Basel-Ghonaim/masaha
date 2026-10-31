@@ -240,10 +240,20 @@ describe('AdminSpacesList, from 1024 px', () => {
       'Unverified',
       'Hidden',
       'Deleted',
+      'Kept by the admin',
     ]);
 
     await userEvent.click(screen.getByRole('option', { name: 'Deleted' }));
     expect(router.state.location.search).toBe('?status=deleted');
+  });
+
+  it('?status=editable selects «تعدّلها الإدارة», with the stale chip on', async () => {
+    startPreferences('ar');
+    const { requests } = renderList('/spaces?status=editable&stale=true');
+    await screen.findByText('Focus Hub');
+
+    expect(screen.getByRole('combobox', { name: 'الحالة' })).toHaveTextContent('تعدّلها الإدارة');
+    expect(requests[0]?.params).toMatchObject({ status: 'editable', stale: true });
   });
 
   it('reads a space with no owner as having none, not as a dash', async () => {

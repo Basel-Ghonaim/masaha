@@ -250,7 +250,7 @@ describe('useAdminSpacesList', () => {
     expect(result.current.list.pagination?.next.search).toBe('?page=2');
   });
 
-  it('offers the contract’s four states and the count of filters applied for the phone’s button', async () => {
+  it('offers the contract’s five states and the count of filters applied for the phone’s button', async () => {
     const { result } = renderList('/s?status=hidden&stale=true', () => page([FOCUS]));
 
     await waitFor(() => {
@@ -265,6 +265,7 @@ describe('useAdminSpacesList', () => {
         { value: 'unverified', label: 'Unverified' },
         { value: 'hidden', label: 'Hidden' },
         { value: 'deleted', label: 'Deleted' },
+        { value: 'editable', label: 'Kept by the admin' },
       ],
     });
     expect(result.current.list.filters.stale).toEqual({

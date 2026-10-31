@@ -157,6 +157,7 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 
 ### Web decisions
 
+- **The spaces list offers `editable` as its fifth status, «تعدّلها الإدارة» / "Kept by the admin"** (D6.4, DI30, [finding 158](../architecture/findings/158-the-admins-spaces-list-does-not-offer-the-editable-status.md)): the contract's one schema of statuses, all offered, so the overview's «عرض الكل» lands on `?status=editable&stale=true` with its status shown and its chip on. *Why:* an address the filters did not show could not be cleared from them. 2026-10-29, #132.
 - **The web reads under `['me', 'spaces']`.** *Why:* the user's own data, in its key scope. 2026-10-04, #36.
 - **`space-links` is dashboard-only** on the web. 2026-10-05, #39.
 - **The switcher lives in this capability:** name and area, the other spaces, navigation on a choice, a skeleton, a retry. 2026-10-05, #39.
@@ -233,7 +234,6 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - [93](../architecture/findings/93-three-staff-refusals-have-no-test-of-their-own.md): three staff refusals have no test of their own.
 - [104](../architecture/findings/104-the-staff-menus-row-triggers-copy-the-admin-pages.md): the staff menu's row triggers copy the admin page's.
 - [105](../architecture/findings/105-a-held-menu-item-may-be-unreachable-by-the-keyboard.md): a held menu item may be unreachable by the keyboard.
-- [158](../architecture/findings/158-the-admins-spaces-list-does-not-offer-the-editable-status.md): the admin's spaces list does not offer the `editable` status.
 
 ## History
 
@@ -273,3 +273,4 @@ space and its photos, but cannot mutate profile, facts, confirmations or photos.
 - 2026-10-29, #132 — a re-issue refused `ACCOUNT_IS_ADMIN` says the account is an admin's, in the re-issue's own line (finding 106 resolved).
 - #132 — the person search names the front desks a person works at, and the link says that link stays (finding 94).
 - #132 — a link from a space's editor words the space from a fresh read of its owners (finding 95).
+- #132 — the spaces list's fifth status, «تعدّلها الإدارة» (`editable`; finding 158).

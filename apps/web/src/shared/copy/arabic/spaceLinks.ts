@@ -17,6 +17,7 @@ export const SPACE_LINKS = {
       unverified: 'غير موثّقة',
       hidden: 'مخفية',
       deleted: 'محذوفة',
+      editable: 'تعدّلها الإدارة',
     },
     deletedOn: ({ date }: { date: string }) => `محذوفة · ${date}`,
     staleOrMissing: 'قديمة أو ناقصة',

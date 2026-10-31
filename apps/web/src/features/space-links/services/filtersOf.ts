@@ -14,13 +14,12 @@ type Rule<T> = {
 const RULES = adminSpacesQuerySchema.shape;
 
 /**
- * The statuses this list offers, the contract's own: the soft-deleted spaces, which `status=deleted`
- * lists alone, are a choice of it like any other. `editable` is read from the address, as the
- * server reads it, but not yet offered: its words come with the list's own change (D6.4).
+ * The statuses this list offers, the contract's own five: the soft-deleted spaces, which
+ * `status=deleted` lists alone, are a choice of it like any other, and so are the spaces the admin
+ * keeps, `editable` (D6.4, DI30), where the overview's «عرض الكل» lands: an address the filters did
+ * not show could not be cleared from them.
  */
-export const LIST_STATUSES = SPACE_STATUSES.filter(
-  (status): status is Exclude<SpaceStatus, 'editable'> => status !== 'editable',
-);
+export const LIST_STATUSES = SPACE_STATUSES;
 
 export type ListStatus = SpaceStatus;
 

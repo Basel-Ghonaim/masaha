@@ -28,6 +28,8 @@ export const SPACE_LINKS = {
       unverified: 'Unverified',
       hidden: 'Hidden',
       deleted: 'Deleted',
+      /** The unverified spaces not hidden: those the admin keeps (DI30). */
+      editable: 'Kept by the admin',
     },
     /** A deleted row's line, by the list's own short date, in place of its badges. */
     deletedOn: ({ date }: { date: string }) => `Deleted · ${date}`,
