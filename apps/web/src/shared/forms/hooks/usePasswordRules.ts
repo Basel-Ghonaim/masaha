@@ -6,7 +6,8 @@ import type { PasswordRulesView } from '../types/PasswordRulesView';
  * The password policy as a checklist that ticks as the user types (docs/backend/security.md ›
  * Passwords). Which rules are met comes from the policy itself (`passwordRules`), so the list ticks
  * exactly what the server accepts. Once the form was sent with the password failing (`invalid`), a
- * rule not met shows as failed.
+ * rule not met shows as failed. The upper bound shows only while it is broken, as failed: «طويلة جدًا —
+ * اختصرها» (AC-020).
  */
 export function usePasswordRules(value: string, invalid: boolean): PasswordRulesView {
   const copy = useCopy();
@@ -15,11 +16,13 @@ export function usePasswordRules(value: string, invalid: boolean): PasswordRules
 
   return {
     label: lines.label,
-    rules: PASSWORD_RULES.map((rule) => ({
-      rule,
-      text: lines.rules[rule],
-      state: met[rule] ? 'met' : invalid ? 'failed' : 'pending',
-      status: met[rule] ? lines.met : lines.notMet,
-    })),
+    rules: PASSWORD_RULES.filter(({ id, onlyBroken }) => !onlyBroken || !met[id]).map(
+      ({ id, onlyBroken }) => ({
+        rule: id,
+        text: lines.rules[id],
+        state: met[id] ? 'met' : invalid || onlyBroken ? 'failed' : 'pending',
+        status: met[id] ? lines.met : lines.notMet,
+      }),
+    ),
   };
 }

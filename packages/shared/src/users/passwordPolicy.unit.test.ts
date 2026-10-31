@@ -29,33 +29,59 @@ describe('passwordSchema', () => {
 
 describe('passwordRules', () => {
   it('meets no rule for an empty value', () => {
-    expect(passwordRules('')).toEqual({ minLength: false, letter: false, digit: false });
+    expect(passwordRules('')).toEqual({
+      minLength: false,
+      letter: false,
+      digit: false,
+      bytes: true,
+    });
   });
 
   it.each([
-    ['a letter alone', 'g', { minLength: false, letter: true, digit: false }],
-    ['a digit alone', '7', { minLength: false, letter: false, digit: true }],
-    ['8 letters', 'gazagaza', { minLength: true, letter: true, digit: false }],
-    ['8 digits', '20262026', { minLength: true, letter: false, digit: true }],
+    ['a letter alone', 'g', { minLength: false, letter: true, digit: false, bytes: true }],
+    ['a digit alone', '7', { minLength: false, letter: false, digit: true, bytes: true }],
+    ['8 letters', 'gazagaza', { minLength: true, letter: true, digit: false, bytes: true }],
+    ['8 digits', '20262026', { minLength: true, letter: false, digit: true, bytes: true }],
     [
       'an Arabic letter and an Arabic-Indic digit',
       'ب٢',
-      { minLength: false, letter: true, digit: true },
+      { minLength: false, letter: true, digit: true, bytes: true },
     ],
   ])('reports which rules %s meets', (_case, password, rules) => {
     expect(passwordRules(password)).toEqual(rules);
   });
 
-  it.each(['gaza2026', 'غزة٢٠٢٦مساحة', 'gaza202', 'gazagaza', '20262026', 'g1', 'مساحة٢٠٢٦'])(
-    'meets every rule exactly when the policy accepts %s',
-    (password) => {
-      const everyRule = Object.values(passwordRules(password)).every(Boolean);
+  it('breaks its fourth rule past 72 bytes in UTF-8, not 72 characters', () => {
+    // 36 Arabic letters and a digit: 37 characters, 73 bytes.
+    const arabic = `${'ب'.repeat(36)}1`;
+    expect(passwordRules(arabic).bytes).toBe(false);
+    expect(passwordRules(`${'ب'.repeat(35)}1`).bytes).toBe(true);
+    expect(passwordRules(`${'a'.repeat(71)}1`).bytes).toBe(true);
+    expect(passwordRules(`${'a'.repeat(72)}1`).bytes).toBe(false);
+  });
 
-      expect(everyRule).toBe(passwordSchema.safeParse(password).success);
-    },
-  );
+  it.each([
+    'gaza2026',
+    'غزة٢٠٢٦مساحة',
+    'gaza202',
+    'gazagaza',
+    '20262026',
+    'g1',
+    'مساحة٢٠٢٦',
+    `${'ب'.repeat(36)}1`,
+  ])('meets every rule exactly when the policy accepts %s', (password) => {
+    const everyRule = Object.values(passwordRules(password)).every(Boolean);
+
+    expect(everyRule).toBe(passwordSchema.safeParse(password).success);
+  });
 
   it('lists the rules in the order of the checklist', () => {
-    expect(PASSWORD_RULES).toEqual(['minLength', 'letter', 'digit']);
+    expect(PASSWORD_RULES.map(({ id }) => id)).toEqual(['minLength', 'letter', 'digit', 'bytes']);
+  });
+
+  it('shows the upper bound only while it is broken', () => {
+    expect(PASSWORD_RULES.filter(({ onlyBroken }) => onlyBroken).map(({ id }) => id)).toEqual([
+      'bytes',
+    ]);
   });
 });
