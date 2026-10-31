@@ -36,7 +36,10 @@ export function SectionCard({
     <Card id={frame.id} className="scroll-mt-28 lg:scroll-mt-20">
       <CardHeader>
         <CardTitle>
-          <h2>{frame.title}</h2>
+          {/* A link's hash lands on it (184). */}
+          <h2 tabIndex={-1} className="outline-none">
+            {frame.title}
+          </h2>
         </CardTitle>
         <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>{frame.date}</span>

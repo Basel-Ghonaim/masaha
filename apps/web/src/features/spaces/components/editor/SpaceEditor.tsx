@@ -1,6 +1,8 @@
 import { Alert, AlertDescription, AlertTitle } from '@shared/design-system';
 import { ForbiddenState, NotFoundState } from '@shared/routing';
-import { useRef } from 'react';
+import type { FactGroup } from '@masaha/shared/spaces';
+import { useRef, type ReactNode } from 'react';
+import { useHashLanding } from '../../hooks/editor/useHashLanding';
 import { useSpaceEditor } from '../../hooks/editor/useSpaceEditor';
 import type { AmenitiesField } from '../../types/AmenitiesField';
 import type { AreaField } from '../../types/AreaField';
@@ -40,7 +42,9 @@ import { VerifiedNotice } from './VerifiedNotice';
  * (`lookups`), and the space's page on the public site (`publicLink`, by its slug). The admin's place
  * adds the area's and the amenities' names for a verified space, the way to the platform's amenities
  * list, and the owners' actions in its notice (`ownerActions`, from `space-links`): an unlink per
- * owner of a verified space, the link on an unverified one.
+ * owner of a verified space, the link on an unverified one. A page may set a notice above a section
+ * (`noticeFor`, by its fact group), such as an open report's (`data-reports`). Once the cards have
+ * drawn, the editor lands on the section the address's hash names (184).
  */
 export function SpaceEditor({
   spaceId,
@@ -48,14 +52,18 @@ export function SpaceEditor({
   areaField,
   amenitiesField,
   publicLink,
+  noticeFor,
 }: {
   spaceId: number;
   place: AdminPlace | OwnerPlace;
   areaField: AreaField;
   amenitiesField: AmenitiesField;
   publicLink: (slug: string) => string;
+  /** What the page sets above a section of the editable editor, if anything. */
+  noticeFor?: (group: FactGroup) => ReactNode;
 }) {
   const editor = useSpaceEditor(place.kind, spaceId);
+  useHashLanding(editor.state === 'ready');
   // The notice stays while its content is swapped, so it takes the focus a link or an unlink leaves.
   const notice = useRef<HTMLDivElement>(null);
 
@@ -126,17 +134,20 @@ export function SpaceEditor({
             </>
           ) : (
             <>
+              {noticeFor?.('profile')}
               <ProfileSection
                 place={sectionPlace}
                 space={space}
                 areaField={areaField}
                 onDirtyChange={editor.onDirtyChange}
               />
+              {noticeFor?.('hours')}
               <HoursSection
                 place={sectionPlace}
                 space={space}
                 onDirtyChange={editor.onDirtyChange}
               />
+              {noticeFor?.('prices')}
               {place.kind === 'owner' && editor.pricesLink ? (
                 <PricesLinkCard view={editor.pricesLink} href={place.pricesLink} />
               ) : (
@@ -148,6 +159,7 @@ export function SpaceEditor({
                   onDirtyChange={editor.onDirtyChange}
                 />
               )}
+              {noticeFor?.('amenities')}
               <AmenitiesSection
                 place={sectionPlace}
                 space={space}
@@ -155,6 +167,7 @@ export function SpaceEditor({
                 listLink={place.kind === 'admin' ? place.amenitiesListLink : null}
                 onDirtyChange={editor.onDirtyChange}
               />
+              {noticeFor?.('contacts')}
               <ContactsSection
                 place={sectionPlace}
                 space={space}

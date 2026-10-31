@@ -23,7 +23,9 @@ export function PricesLinkCard({ view, href }: { view: PricesLinkView; href: str
     <Card id="prices" className="scroll-mt-28 lg:scroll-mt-20">
       <CardHeader>
         <CardTitle>
-          <h2>{view.title}</h2>
+          <h2 tabIndex={-1} className="outline-none">
+            {view.title}
+          </h2>
         </CardTitle>
         <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>{view.description}</span>

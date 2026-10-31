@@ -3,8 +3,7 @@ import { SpaceReportsList } from '@features/data-reports';
 import { NotFoundState, parseSpaceId } from '@shared/routing';
 import { useCallback } from 'react';
 import { useParams } from 'react-router';
-import { FIELD_SECTIONS } from '../../fieldSections';
-import { spacePagePath } from '../../navigation';
+import { ownerFieldLink } from '../../fieldSections';
 import { PageHeader } from '../../shell/PageHeader';
 
 /**
@@ -31,12 +30,7 @@ export function DataReportsPage() {
 
 function Reports({ spaceId }: { spaceId: number }) {
   const fieldLink = useCallback(
-    (field: DataReportField) => {
-      if (field === 'PRICES') return spacePagePath(spaceId, 'packages');
-      const profile = spacePagePath(spaceId, 'profile');
-      const section = FIELD_SECTIONS[field];
-      return section === null ? profile : `${profile}#${section}`;
-    },
+    (field: DataReportField, reportId: number) => ownerFieldLink(spaceId, field, reportId),
     [spaceId],
   );
 

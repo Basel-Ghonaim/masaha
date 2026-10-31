@@ -13,8 +13,10 @@ import { paginationView, usePageInRange } from '@shared/lists';
 import { isolate, useLanguage } from '@shared/localisation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { createDataReportsRepository } from '../../repository/dataReportsRepository';
 import { adminReportsParamsOf, adminReportsQueryOf } from '../../services/adminReportsQueryOf';
+import { reportIdOf } from '../../services/reportIdOf';
 import { REPORT_CHIPS, type ReportChip } from '../../services/reportsQueryOf';
 import { fieldLabel, messageView, reportDay, statusView } from '../../services/reportView';
 import type { AdminReportRowView } from '../../types/AdminReportRowView';
@@ -40,8 +42,11 @@ const ALL = 'all';
 export function useAdminReports({
   editorLink,
 }: {
-  /** A space's editor, and the section where a field group is edited in it, as the page routes it. */
-  editorLink: (spaceId: number, field?: DataReportField) => string;
+  /**
+   * A space's editor; with a report's field and id, the section where its field is edited, carrying
+   * the report (`?report=`), as the page routes it.
+   */
+  editorLink: (spaceId: number, field?: DataReportField, reportId?: number) => string;
 }) {
   const copy = useCopy();
   const words = copy.dataReports;
@@ -65,10 +70,27 @@ export function useAdminReports({
     page: filters.filters.page,
     replacePage: filters.replacePage,
   });
-  const [opened, setOpened] = useState<AdminReport | null>(null);
+  const [clicked, setClicked] = useState<AdminReport | null>(null);
+  const [params, setParams] = useSearchParams();
+  const addressed = reportIdOf(params.get('open'));
   const now = new Date();
   const english = language === 'en';
   const reports = answer?.data ?? [];
+  // The report the address names, from the page when it shows it, else read by its id (S5).
+  const addressedOnPage = reports.find((report) => report.id === addressed);
+  const one = useQuery<AdminReport, AppError>({
+    queryKey: dataReportsKeys.adminOne(addressed ?? 0),
+    queryFn: () => repository.adminReport(addressed ?? 0),
+    enabled:
+      clicked === null &&
+      addressed !== undefined &&
+      answer !== undefined &&
+      addressedOnPage === undefined,
+    retry: false,
+  });
+  const opened =
+    clicked ?? (addressed === undefined ? null : (addressedOnPage ?? one.data ?? null));
+  const setOpened = setClicked;
   const rows = reports.map((report): AdminReportRowView => {
     const day = reportDay(report.createdAt, language, now);
     const { verified } = report.space;
@@ -281,9 +303,19 @@ export function useAdminReports({
     editLinkOf: (target: AdminReport) =>
       target.space.verified
         ? editorLink(target.space.id)
-        : editorLink(target.space.id, target.field),
+        : editorLink(target.space.id, target.field, target.id),
     close: () => {
       setOpened(null);
+      if (addressed !== undefined) {
+        setParams(
+          (current) => {
+            const next = new URLSearchParams(current);
+            next.delete('open');
+            return next;
+          },
+          { replace: true },
+        );
+      }
     },
     /** «عرض» in a decision's toast: the reports decided, the other filters kept (DI-41). */
     showDecided: () => {

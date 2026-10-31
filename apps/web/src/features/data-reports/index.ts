@@ -3,3 +3,8 @@ export { AdminReportsList } from './components/admin/AdminReportsList';
 export type { AdminSpaceFilterProps, AdminSpaceFilterSlot } from './types/AdminSpaceFilterSlot';
 export { useOpenReportsCount } from './hooks/count/useOpenReportsCount';
 export { useAdminReportsCount } from './hooks/count/useAdminReportsCount';
+export { ReportNotice } from './components/notice/ReportNotice';
+export { useReportNotice, type ReportNoticeScope } from './hooks/notice/useReportNotice';
+export { reportIdOf } from './services/reportIdOf';
+export type { NoticeGroup } from './services/noticeGroup';
+export type { ReportNoticeView } from './types/ReportNoticeView';

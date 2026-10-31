@@ -56,6 +56,18 @@ export const DATA_REPORTS = {
       `صفحة ${String(page)} من ${String(total)}`,
     more: 'صفحات أخرى',
   },
+  notice: {
+    title: ({ field }: { field: string }) => `بلاغ مفتوح على ${field}`,
+    quoted: ({ message }: { message: string }) => `“${message}”`,
+    said: ({ text, who, day }: { text: string; who: string; day: string }) =>
+      `${text} — ${who}، ${day}`,
+    visitor: 'زائر',
+    resolve: 'تم التصحيح',
+    open: 'فتح البلاغ للرد',
+    resolved: 'عُلّم «تم التصحيح»',
+    back: 'العودة إلى البلاغات',
+    failed: 'لم يُعلَّم البلاغ',
+  },
   sheet: {
     title: ({ field }: { field: string }) => `بلاغ عن ${field}`,
     adminTitle: ({ space, field }: { space: string; field: string }) => `${space} · ${field}`,

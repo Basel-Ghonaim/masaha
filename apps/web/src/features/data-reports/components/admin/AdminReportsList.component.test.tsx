@@ -7,7 +7,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import { adminReport, reportsPage } from '../../../../test/dataReport';
-import { fakeTransport, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { stubScreenWidth } from '../../../../test/screenWidth';
 import { startPreferences } from '../../../../test/startPreferences';
 import type { AdminSpaceFilterSlot } from '../../types/AdminSpaceFilterSlot';
@@ -25,7 +25,7 @@ function renderList(
   search = '',
   answer: Parameters<typeof fakeTransport>[0] = () => reportsPage([adminReport()]),
 ) {
-  fakeTransport(answer);
+  const requests = fakeTransport(answer);
   const router = createMemoryRouter(
     [
       {
@@ -33,18 +33,23 @@ function renderList(
         element: (
           <AdminReportsList
             spaceFilter={spaceFilter}
-            editorLink={(spaceId) => `/spaces/${String(spaceId)}`}
+            editorLink={(spaceId, field, reportId) =>
+              field === undefined
+                ? `/spaces/${String(spaceId)}`
+                : `/spaces/${String(spaceId)}?report=${String(reportId)}#${field}`
+            }
           />
         ),
       },
     ],
     { initialEntries: [`/reports${search}`] },
   );
-  return render(
+  const view = render(
     <QueryClientProvider client={createQueryClient()}>
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+  return { ...view, router, requests };
 }
 
 beforeEach(() => {
@@ -60,6 +65,27 @@ afterEach(() => {
 });
 
 describe('AdminReportsList', () => {
+  it('?open= opens that report’s sheet, read by its id, «Edit the field» carrying it', async () => {
+    const { router, requests } = renderList('?open=99', (request) =>
+      request.url === '/admin/data-reports/99'
+        ? ok(adminReport({ id: 99, field: 'CONTACT' }))
+        : reportsPage([adminReport()]),
+    );
+
+    const sheet = await screen.findByRole('dialog', { name: /Contact/ });
+    expect(requests.map(({ url }) => url)).toContain('/admin/data-reports/99');
+    expect(within(sheet).getByRole('link', { name: 'Edit the field' })).toHaveAttribute(
+      'href',
+      '/spaces/7?report=99#CONTACT',
+    );
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(router.state.location.search).toBe('');
+  });
+
   it('shows a table of eight columns from 1024 px, the filters in a row; axe-clean', async () => {
     stubScreenWidth(1024);
     const { container } = renderList('?field=HOURS');

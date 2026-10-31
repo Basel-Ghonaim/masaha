@@ -1,5 +1,5 @@
 import { stubScreenWidth } from '../../../../test/screenWidth';
-import type { AdminSpace } from '@masaha/shared/spaces';
+import type { AdminSpace, FactGroup } from '@masaha/shared/spaces';
 import { createQueryClient } from '@shared/api';
 import {
   Select,
@@ -13,10 +13,12 @@ import {
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { fakeIntersectionObserver } from '../../../../test/fakeIntersectionObserver';
+import { deferred } from '../../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
 import { findToast } from '../../../../test/findToast';
 import { startPreferences } from '../../../../test/startPreferences';
@@ -130,11 +132,15 @@ function renderEditor({
   photos = () => ok(PHOTOS),
   write = () => ok(savedNow(SPACE)),
   owner = false,
+  noticeFor,
+  entry = '/spaces/7',
 }: {
   read?: () => FakeAnswer | Promise<FakeAnswer>;
   photos?: () => FakeAnswer | Promise<FakeAnswer>;
   write?: (request: Request) => FakeAnswer | Promise<FakeAnswer>;
   owner?: boolean;
+  noticeFor?: (group: FactGroup) => ReactNode;
+  entry?: string;
 } = {}) {
   const requests = fakeTransport((request) => {
     if (request.method !== 'get') return write(request);
@@ -168,12 +174,13 @@ function renderEditor({
             areaField={areaField}
             amenitiesField={amenitiesField}
             publicLink={(slug) => `/spaces/${slug}`}
+            noticeFor={noticeFor}
           />
         ),
       },
       { path: '/elsewhere', element: <p>Elsewhere</p> },
     ],
-    { initialEntries: ['/spaces/7'] },
+    { initialEntries: [entry] },
   );
   render(
     <QueryClientProvider client={createQueryClient()}>
@@ -370,6 +377,44 @@ describe('the space editor', () => {
     );
     expect(router.state.location.hash).toBe('#amenities');
     expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+});
+
+describe('the editor’s landing and notices', () => {
+  it('a report in the address shows its notice above its section', async () => {
+    renderEditor({
+      noticeFor: (group) => (group === 'hours' ? <p>The report’s notice</p> : null),
+    });
+
+    const hours = (await screen.findByRole('heading', { level: 2, name: 'Opening hours' })).closest(
+      '[data-slot=card]',
+    );
+    const marker = screen.getByText('The report’s notice');
+    expect(screen.getAllByText('The report’s notice')).toHaveLength(1);
+    // Drawn just before the section, inside the sections' column.
+    expect(marker.nextElementSibling).toBe(hours);
+  });
+
+  it('the editor scrolls to and focuses the card its hash names once drawn', async () => {
+    const read = deferred<FakeAnswer>();
+    renderEditor({ read: () => read.promise, entry: '/spaces/7?report=5#hours' });
+
+    expect(await screen.findByRole('status')).toBeInTheDocument();
+    read.resolve(ok(SPACE));
+
+    const heading = await screen.findByRole('heading', { level: 2, name: 'Opening hours' });
+    await waitFor(() => {
+      expect(heading).toHaveFocus();
+    });
+  });
+
+  it('lands on a section’s inner part by its heading', async () => {
+    renderEditor({ entry: '/spaces/7#location' });
+
+    const location = await screen.findByRole('heading', { level: 3, name: 'Location' });
+    await waitFor(() => {
+      expect(location).toHaveFocus();
+    });
   });
 });
 

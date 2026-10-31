@@ -264,6 +264,9 @@ Reception's web screens remain planned.
 - **The owner edits and confirms the prices on Packages & prices, not in the profile** (O6): the same section, titled «الأسعار المعلنة», with its own date, confirmation and leave guard; the profile shows a row that leads there. *Why:* the owner's prices and packages are one page in the design, and a second form of the same group would let two drafts disagree. 2026-10-20, #98. Its toasts and its confirmation's failure name it «الأسعار المعلنة» too, one name for one card (#98's review). 2026-10-20, #99.
 - **The prices' page says once that they are shown, for display only, and paid at the space; its no-shift line leads to the profile's opening hours** (design issue 8). *Why:* the hours are not on that page, so the line must say where they are. 2026-10-20, #98.
 - **The prices table starts at 1024 px,** each price a card below it. *Why:* full tables are the desktop's, from 1024 px ([foundation §9](../frontend/design-system/foundation.md#9-responsive-layout)); between 768 and 1024 px, beside the sidebar, the shift's select was cut ([finding 67](../architecture/findings/67-the-prices-table-cuts-its-shift-at-768-px.md)). 2026-10-20, #96.
+- **The editor lands on the section its address's hash names, once its cards have drawn** (`useHashLanding`, finding 184): it scrolls there and focuses the section's heading, which carries `tabIndex={-1}`; once per opening, a later hash change being the shell's. *Why:* the cards draw only after the space's read, so the browser's own jump found nothing. 2026-10-29, #132.
+- **A page may set a notice above a section of the editable editor** (`noticeFor`, by fact group), such as `data-reports`' report notice. *Why:* the editor knows its sections, the page what stands above them; no feature imports another. 2026-10-29, #132.
+
 
 ## Code map
 
@@ -312,3 +315,4 @@ Reception's web screens remain planned.
 - #132 — an uploading photo's tile drawn as the layer's progress bar (finding 73); the design's gallery line says the contract's limits (finding 74).
 - #132 — the spaces list and the editor: «عرض (يعدّلها المالك)», «تراجع» after hiding or showing, «رجوع» in the delete dialog, the verified notice's way to the space's reports, a section's action leading its content on a phone.
 - #132 — the amenities' section hands `lookups`' checklist the space's retired amenities (`retired`), named, so an owner's lists them (finding 99).
+- #132 — the editor lands on the section its hash names once drawn (finding 184), and a page's notice above a section (`noticeFor`).

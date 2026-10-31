@@ -16,10 +16,15 @@ export const dataReportsKeys = {
   /** One page of the space's reports, by its whole query. */
   space: (spaceId: number, query: SpaceReportsQuery) =>
     ['space', spaceId, 'dataReports', query] as const,
+  /** One of the space's reports, by its id: under the space's reports, so a decision reads it again. */
+  spaceOne: (spaceId: number, reportId: number) =>
+    ['space', spaceId, 'dataReports', 'one', reportId] as const,
   /** Every read of the admin's reports: the admin's decision reads them again. */
   adminAll: () => ['admin', 'dataReports'] as const,
   /** The count of the reports waiting for the admin, the admin's sidebar badge. */
   adminWaitingCount: () => ['admin', 'dataReports', 'count', 'admin'] as const,
+  /** One report, by its id, under the admin's reports. */
+  adminOne: (reportId: number) => ['admin', 'dataReports', 'one', reportId] as const,
   /** One page of every space's reports, by its whole query. */
   admin: (query: AdminReportsQuery) => ['admin', 'dataReports', query] as const,
   /** Every read of the user's own reports, under the session's scope: a new report reads them again. */

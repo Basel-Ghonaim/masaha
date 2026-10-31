@@ -29,7 +29,10 @@ function renderList(answer: Parameters<typeof fakeTransport>[0], search = '') {
         path: '/reports',
         element: (
           <>
-            <SpaceReportsList spaceId={7} fieldLink={(field) => `/profile#${field}`} />
+            <SpaceReportsList
+              spaceId={7}
+              fieldLink={(field, reportId) => `/profile?report=${String(reportId)}#${field}`}
+            />
             <Toaster label="Notifications" />
           </>
         ),
@@ -61,6 +64,35 @@ afterEach(() => {
 });
 
 describe('SpaceReportsList', () => {
+  it('?open= opens that report’s sheet, read by its id when the page does not show it', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    const { router, requests } = renderList(
+      (request) =>
+        request.url === '/manage/spaces/7/data-reports/99'
+          ? ok(spaceReport({ id: 99, field: 'AMENITIES' }))
+          : reportsPage([spaceReport()]),
+      '?open=99',
+    );
+
+    const sheet = await screen.findByRole('dialog', { name: 'Report about Amenities' });
+    expect(requests.map(({ url }) => url)).toContain('/manage/spaces/7/data-reports/99');
+    await user.click(within(sheet).getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(router.state.location.search).toBe('');
+  });
+
+  it('?open= opens a report the page shows without reading it again', async () => {
+    const { requests } = renderList(() => reportsPage([spaceReport()]), '?open=41');
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Report about Opening hours' }),
+    ).toBeInTheDocument();
+    expect(requests.map(({ url }) => url)).not.toContain('/manage/spaces/7/data-reports/41');
+  });
+
   it('shows a table of five columns from 768 px; axe-clean', async () => {
     stubScreenWidth(768);
     const { container } = renderList(() => reportsPage([spaceReport()]));
@@ -121,7 +153,7 @@ describe('SpaceReportsList', () => {
     const sheet = await screen.findByRole('dialog', { name: 'Report about Opening hours' });
     expect(within(sheet).getByRole('link', { name: 'Edit the field' })).toHaveAttribute(
       'href',
-      '/profile#HOURS',
+      '/profile?report=41#HOURS',
     );
     await user.click(within(sheet).getByRole('button', { name: 'Corrected' }));
 

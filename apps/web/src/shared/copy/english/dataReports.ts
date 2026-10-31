@@ -54,6 +54,21 @@ export const DATA_REPORTS = {
     more: 'More pages',
   },
   /** The decision sheet. */
+  /** The notice of one open report, above the section its field is edited in (D6.8). */
+  notice: {
+    title: ({ field }: { field: string }) => `An open report on ${field}`,
+    /** The report's words, quoted. */
+    quoted: ({ message }: { message: string }) => `“${message}”`,
+    /** The words, who reported (never named to the owner) and the day. */
+    said: ({ text, who, day }: { text: string; who: string; day: string }) =>
+      `${text} — ${who}, ${day}`,
+    visitor: 'a visitor',
+    resolve: 'Corrected',
+    open: 'Open the report to reply',
+    resolved: 'Marked «Corrected»',
+    back: 'Back to the reports',
+    failed: 'The report wasn’t marked',
+  },
   sheet: {
     title: ({ field }: { field: string }) => `Report about ${field}`,
     /** The admin's sheet: the space, then the field. */

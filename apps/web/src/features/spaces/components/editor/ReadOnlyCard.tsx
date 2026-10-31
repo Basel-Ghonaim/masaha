@@ -15,7 +15,9 @@ export function ReadOnlyCard({
     <Card id={id} className="scroll-mt-28 lg:scroll-mt-20">
       <CardHeader>
         <CardTitle>
-          <h2>{title}</h2>
+          <h2 tabIndex={-1} className="outline-none">
+            {title}
+          </h2>
         </CardTitle>
       </CardHeader>
       <CardContent className="gap-4">{children}</CardContent>

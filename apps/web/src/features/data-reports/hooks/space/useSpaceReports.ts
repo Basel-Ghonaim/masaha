@@ -7,6 +7,7 @@ import { paginationView, usePageInRange } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { createDataReportsRepository } from '../../repository/dataReportsRepository';
 import {
   REPORT_CHIPS,
@@ -14,6 +15,7 @@ import {
   reportsQueryOf,
   type ReportChip,
 } from '../../services/reportsQueryOf';
+import { reportIdOf } from '../../services/reportIdOf';
 import { fieldLabel, messageView, reportDay, statusView } from '../../services/reportView';
 import type { DecideTarget } from '../../types/DecideTarget';
 import type { ReportRowView } from '../../types/ReportRowView';
@@ -34,7 +36,9 @@ const ALL_FIRST = reportsQueryOf(reportsParamsOf({ chip: 'all', page: 1 })).quer
  * that matches nothing (with «عرض الكل», DI-42); while another page or chip loads the rows shown
  * stay, the list marked busy. The report opened is the decision sheet's, read from the latest list
  * while it is on it, so a decision made elsewhere shows there too; gone from the page while the sheet
- * is open — decided elsewhere, met under «جديدة» — it is read from the first page of «الكل».
+ * is open — decided elsewhere, met under «جديدة» — it is read from the first page of «الكل». A report
+ * the address names (`?open=`, the notice's «فتح البلاغ للرد») opens in the sheet, read by its id when
+ * the page does not show it; closing the sheet takes `?open` off the address.
  */
 export function useSpaceReports(spaceId: number) {
   const copy = useCopy();
@@ -58,9 +62,26 @@ export function useSpaceReports(spaceId: number) {
     page: filters.filters.page,
     replacePage: filters.replacePage,
   });
-  const [opened, setOpened] = useState<SpaceReport | null>(null);
+  const [clicked, setClicked] = useState<SpaceReport | null>(null);
+  const [params, setParams] = useSearchParams();
+  const addressed = reportIdOf(params.get('open'));
   const now = new Date();
   const reports = answer?.data ?? [];
+  // The report the address names, from the page when it shows it, else read by its id (S5).
+  const addressedOnPage = reports.find((report) => report.id === addressed);
+  const one = useQuery<SpaceReport, AppError>({
+    queryKey: dataReportsKeys.spaceOne(spaceId, addressed ?? 0),
+    queryFn: () => repository.spaceReport(spaceId, addressed ?? 0),
+    enabled:
+      clicked === null &&
+      addressed !== undefined &&
+      answer !== undefined &&
+      addressedOnPage === undefined,
+    retry: false,
+  });
+  const opened =
+    clicked ?? (addressed === undefined ? null : (addressedOnPage ?? one.data ?? null));
+  const setOpened = setClicked;
   const rows = reports.map((report): ReportRowView => {
     const day = reportDay(report.createdAt, language, now);
     return {
@@ -161,6 +182,16 @@ export function useSpaceReports(spaceId: number) {
     sheet,
     close: () => {
       setOpened(null);
+      if (addressed !== undefined) {
+        setParams(
+          (current) => {
+            const next = new URLSearchParams(current);
+            next.delete('open');
+            return next;
+          },
+          { replace: true },
+        );
+      }
     },
     /** «عرض» in a decision's toast: the reports decided (DI-41). */
     showDecided: () => {

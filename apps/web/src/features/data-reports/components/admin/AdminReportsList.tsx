@@ -44,8 +44,11 @@ export function AdminReportsList({
   editorLink,
 }: {
   spaceFilter: AdminSpaceFilterSlot;
-  /** A space's editor, and the section where a field group is edited in it, as the page routes it. */
-  editorLink: (spaceId: number, field?: DataReportField) => string;
+  /**
+   * A space's editor; with a report's field and id, the section where its field is edited, carrying
+   * the report (`?report=`), as the page routes it.
+   */
+  editorLink: (spaceId: number, field?: DataReportField, reportId?: number) => string;
 }) {
   const list = useAdminReports({ editorLink });
   const openerRef = useRef<HTMLElement | null>(null);
