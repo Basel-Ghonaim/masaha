@@ -119,12 +119,8 @@ export const LOOKUPS = {
   /** A space's amenities to tick, from the platform's list. */
   amenityChecklist: {
     empty: 'The list has no amenities yet',
-    /** The retired amenities a space keeps, which the public catalogue no longer names. */
-    retiredKept: ({ count }: { count: number }) =>
-      englishPlural(count, {
-        one: 'One amenity no longer on the platform’s list stays linked to the space.',
-        other: `${String(count)} amenities no longer on the platform’s list stay linked to the space.`,
-      }),
+    /** The badge of a retired amenity a space still holds, on an owner's checklist. */
+    retired: 'No longer on the platform’s list',
   },
   /** The field that chooses one area for a space, its areas grouped under their governorates. */
   areaSelect: {

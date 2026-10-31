@@ -24,6 +24,7 @@ type Request = Parameters<Parameters<typeof fakeTransport>[0]>[0];
 const SPACE = {
   id: 7,
   amenityIds: [3, 1],
+  retiredAmenities: [],
   ownAmenities: [{ nameAr: 'غرفة صلاة', nameEn: 'Prayer room' }],
   isVerified: false,
   updatedAt: { amenities: '2026-10-10T08:00:00Z' },
@@ -97,6 +98,18 @@ afterEach(() => {
 });
 
 describe('useAmenitiesSection', () => {
+  it('hands the checklist the retired amenities the space holds, named by its read', () => {
+    const { result } = renderSection({
+      ...SPACE,
+      retiredAmenities: [{ id: 3, nameAr: 'طاقة شمسية', nameEn: 'Solar power', iconKey: 'sun' }],
+    });
+
+    expect(result.current.checklist.retired).toEqual([
+      { id: 3, nameAr: 'طاقة شمسية', nameEn: 'Solar power' },
+    ]);
+    expect(result.current.checklist.linked).toEqual([3, 1]);
+  });
+
   it('sends the amenities ticked, in order of id, and its own, an English name left blank as none', async () => {
     const { result, writes } = renderSection(MISSING);
 

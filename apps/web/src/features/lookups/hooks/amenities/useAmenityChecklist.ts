@@ -1,6 +1,7 @@
 import { useCopy } from '@shared/copy';
 import { useLanguage } from '@shared/localisation';
 import type { LookupsSource } from '../../types/LookupsSource';
+import type { RetiredAmenity } from '../../types/RetiredAmenity';
 import { useCatalogueQuery } from '../area/useCatalogueQuery';
 import { useAmenitiesQuery } from '../list/useAmenitiesQuery';
 
@@ -10,20 +11,24 @@ import { useAmenitiesQuery } from '../list/useAmenitiesQuery';
  * seen and can be left out; a retired one it does not have is never offered. Ticking one adds it to
  * the value, unticking it takes it out. While the list loads, or once it has failed, it says so.
  *
- * That is the admin's list (`source`). The public catalogue an owner reads names only the active
- * amenities: a retired one the space still has stays in the value, unseen, never toggled, and one
- * line counts them (`retiredKept`). On either list, one ticked but not linked that is retired
- * before the save is no longer offered, and the next toggle drops it from the value.
+ * From the admin's list (`source`) a retired one is named by that list and marked «غير نشط». The
+ * public catalogue an owner reads names only the active amenities: the retired ones the space holds
+ * come named with the space's read (`retired`, in the platform's order), listed after the others,
+ * marked «لم يعد في قائمة المنصة», ticked while the value holds them, and left out of the next
+ * save once unticked (finding 99). On either list, one ticked but not linked that is retired before
+ * the save is no longer offered, and the next toggle drops it from the value.
  */
 export function useAmenityChecklist({
   source,
   value,
   linked,
+  retired = [],
   onValueChange,
 }: {
   source: LookupsSource;
   value: number[];
   linked: number[];
+  retired?: readonly RetiredAmenity[];
   onValueChange: (ids: number[]) => void;
 }) {
   const copy = useCopy();
@@ -31,15 +36,27 @@ export function useAmenityChecklist({
   const adminList = useAmenitiesQuery({ enabled: source === 'admin' });
   const catalogue = useCatalogueQuery({ enabled: source === 'public' });
   const query = source === 'admin' ? adminList : catalogue;
+  const active = (catalogue.data?.amenities ?? []).map((amenity) => ({
+    ...amenity,
+    isActive: true,
+  }));
   const offered =
     source === 'admin'
       ? (adminList.data ?? []).filter((amenity) => amenity.isActive || linked.includes(amenity.id))
-      : (catalogue.data?.amenities ?? []).map((amenity) => ({ ...amenity, isActive: true }));
+      : catalogue.data === undefined
+        ? []
+        : [
+            ...active,
+            // The space's own retired amenities, which the catalogue no longer names.
+            ...retired
+              .filter(({ id }) => linked.includes(id) && !active.some((one) => one.id === id))
+              .map((amenity) => ({ ...amenity, isActive: false })),
+          ];
   const isOffered = (id: number) => offered.some((amenity) => amenity.id === id);
-  const unseen =
-    source === 'public' && catalogue.data !== undefined
-      ? value.filter((id) => linked.includes(id) && !isOffered(id)).length
-      : 0;
+  const retiredMark =
+    source === 'admin'
+      ? copy.lookups.amenities.row.inactive
+      : copy.lookups.amenityChecklist.retired;
   // An amenity ticked and retired before the save is neither offered nor linked: unseen, it cannot
   // be unticked, so the next tick or untick leaves it out.
   const kept = value.filter((id) => isOffered(id) || linked.includes(id));
@@ -54,12 +71,12 @@ export function useAmenityChecklist({
       id: amenity.id,
       name: english ? amenity.nameEn : amenity.nameAr,
       checked: value.includes(amenity.id),
-      inactive: !amenity.isActive,
+      /** The badge of a retired amenity, or none. */
+      mark: amenity.isActive ? null : retiredMark,
       toggle: (checked: boolean) => {
         onValueChange(checked ? [...kept, amenity.id] : kept.filter((id) => id !== amenity.id));
       },
     })),
-    retiredKept: unseen === 0 ? null : copy.lookups.amenityChecklist.retiredKept({ count: unseen }),
     retry: () => {
       void query.refetch();
     },
@@ -67,7 +84,6 @@ export function useAmenityChecklist({
       loading: copy.status.loading,
       failed: copy.lookups.amenities.loadFailed,
       retry: copy.status.retry,
-      inactive: copy.lookups.amenities.row.inactive,
       empty: copy.lookups.amenityChecklist.empty,
     },
   };

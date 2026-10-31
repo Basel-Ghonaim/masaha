@@ -1,19 +1,21 @@
 import { Badge, Button, Checkbox, Field } from '@shared/design-system';
 import { useAmenityChecklist } from '../../hooks/amenities/useAmenityChecklist';
 import type { LookupsSource } from '../../types/LookupsSource';
+import type { RetiredAmenity } from '../../types/RetiredAmenity';
 
 /**
  * A space's amenities to tick, from the platform's list, as a group named by `label`: the active
- * ones, and a retired one the space still has (`linked`), marked inactive. It hands back the
- * amenities chosen. While the list loads, or once it has failed, it says so, with a way to try again.
- * Read from the public catalogue (`source`), a retired one the space has stays chosen, unseen, and a
- * line under the list counts them.
+ * ones, and a retired one the space still has (`linked`), marked. It hands back the amenities
+ * chosen. While the list loads, or once it has failed, it says so, with a way to try again. Read
+ * from the public catalogue (`source`), a retired one the space holds is named from the space's read
+ * (`retired`), marked «لم يعد في قائمة المنصة», and left out once unticked.
  */
 export function AmenityChecklist({
   source,
   label,
   value,
   linked,
+  retired,
   onValueChange,
   disabled,
 }: {
@@ -21,10 +23,11 @@ export function AmenityChecklist({
   label: string;
   value: number[];
   linked: number[];
+  retired?: readonly RetiredAmenity[];
   onValueChange: (ids: number[]) => void;
   disabled: boolean;
 }) {
-  const checklist = useAmenityChecklist({ source, value, linked, onValueChange });
+  const checklist = useAmenityChecklist({ source, value, linked, retired, onValueChange });
   const { words } = checklist;
 
   return (
@@ -53,8 +56,8 @@ export function AmenityChecklist({
                   <span className="inline-flex flex-wrap items-center gap-2">
                     {item.name}
                     {/* A space, so the name and its mark are heard as two words. */}
-                    {item.inactive && ' '}
-                    {item.inactive && <Badge variant="neutral">{words.inactive}</Badge>}
+                    {item.mark !== null && ' '}
+                    {item.mark !== null && <Badge variant="neutral">{item.mark}</Badge>}
                   </span>
                 }
               >
@@ -69,9 +72,6 @@ export function AmenityChecklist({
             </li>
           ))}
         </ul>
-      )}
-      {checklist.retiredKept !== null && (
-        <p className="text-body-sm text-muted-foreground">{checklist.retiredKept}</p>
       )}
     </div>
   );

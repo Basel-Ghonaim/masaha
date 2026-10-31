@@ -8,6 +8,11 @@ export type AmenitiesFieldProps = {
   value: number[];
   /** The amenities the space has as saved, a retired one among them still offered. */
   linked: number[];
+  /**
+   * The space's retired amenities, named by its read, in the platform's order: the public catalogue
+   * no longer names them, so an owner's checklist lists them from here (finding 99).
+   */
+  retired: { id: number; nameAr: string; nameEn: string }[];
   onValueChange: (ids: number[]) => void;
   /** While the section is sent. */
   disabled: boolean;

@@ -1,5 +1,6 @@
 import type { AdminAmenity } from '@masaha/shared/lookups';
 import { render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -79,6 +80,58 @@ describe('AmenityChecklist', () => {
     expect(screen.getByText('Loading')).toBeInTheDocument();
     expect(await screen.findByText('We couldn’t load the amenities')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  it('the owner’s checklist names a retired amenity, marked, and drops it when unticked', async () => {
+    fakeTransport(() =>
+      ok({
+        governorates: [],
+        amenities: [{ id: 1, key: 'internet', nameAr: 'إنترنت', nameEn: 'Internet', icon: 'wifi' }],
+      }),
+    );
+    const onValueChange = vi.fn<(ids: number[]) => void>();
+    // The owner's form, holding the value the checklist hands back.
+    function OwnerForm() {
+      const [value, setValue] = useState([1, 2]);
+      return (
+        <AmenityChecklist
+          source="public"
+          label="The list's amenities"
+          value={value}
+          linked={[1, 2]}
+          retired={[{ id: 2, nameAr: 'مولّد', nameEn: 'Generator' }]}
+          onValueChange={(ids) => {
+            onValueChange(ids);
+            setValue(ids);
+          }}
+          disabled={false}
+        />
+      );
+    }
+    const Wrapper = queryWrapper();
+    const { container } = render(
+      <Wrapper>
+        <OwnerForm />
+      </Wrapper>,
+    );
+
+    const generator = await screen.findByRole('checkbox', {
+      name: 'Generator No longer on the platform’s list',
+    });
+    expect(generator).toBeChecked();
+    expect(screen.getAllByRole('checkbox')).toEqual([
+      screen.getByRole('checkbox', { name: 'Internet' }),
+      generator,
+    ]);
+    // Named and marked in the list, it needs no count under it.
+    expect(container).not.toHaveTextContent(/stays? linked to the space/);
+
+    await userEvent.click(generator);
+
+    expect(onValueChange).toHaveBeenLastCalledWith([1]);
+    expect(generator).not.toBeChecked();
+    expect(generator).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   it('has no accessibility violations', async () => {
