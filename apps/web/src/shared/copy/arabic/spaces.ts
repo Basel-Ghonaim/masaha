@@ -296,6 +296,8 @@ export const SPACES = {
         `رُفعت ${String(uploaded)} من ${String(selected)}؛ الحد 10 صور`,
       preparing: 'جارٍ التحضير…',
       uploading: ({ percent }: { percent: number }) => `جارٍ الرفع ${String(percent)}٪`,
+      uploadingPhoto: ({ n }: { n: number }) => `جارٍ رفع الصورة ${String(n)}`,
+      percent: ({ percent }: { percent: number }) => `${String(percent)}٪`,
       unsupported: 'صيغة غير مدعومة، اختر JPEG أو PNG أو WebP',
       tooLarge: 'أكبر من 4 ميغابايت؛ اختر صورة أصغر',
       uploadFailed: 'تعذّر رفع هذه الصورة',

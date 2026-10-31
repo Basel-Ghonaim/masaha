@@ -53,8 +53,14 @@ export function PhotosSection({
           {gallery.tiles.map((tile) => (
             <PhotoTile key={tile.key} tile={tile} />
           ))}
-          {gallery.uploads.tiles.map((tile) => (
-            <PhotoUploadTile key={tile.key} tile={tile} meanwhile={meanwhile} />
+          {gallery.uploads.tiles.map((tile, index) => (
+            <PhotoUploadTile
+              key={tile.key}
+              tile={tile}
+              // Its place in the gallery, after the photos already on it.
+              number={gallery.tiles.length + index + 1}
+              meanwhile={meanwhile}
+            />
           ))}
         </ul>
       )}

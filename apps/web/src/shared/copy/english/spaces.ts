@@ -356,6 +356,9 @@ export const SPACES = {
       /** The browser is reading the file and shrinking it. */
       preparing: 'Preparing…',
       uploading: ({ percent }: { percent: number }) => `Uploading ${String(percent)}%`,
+      /** An uploading tile's bar: the photo's place in the gallery, and its percentage. */
+      uploadingPhoto: ({ n }: { n: number }) => `Uploading photo ${String(n)}`,
+      percent: ({ percent }: { percent: number }) => `${String(percent)}%`,
       /** The browser has no codec for the file, so nothing was sent for it. */
       unsupported: 'Unsupported format; choose JPEG, PNG or WebP',
       /** Over the contract's 4 MiB, after the browser's own shrinking. */

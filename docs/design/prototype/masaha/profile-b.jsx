@@ -257,7 +257,7 @@ function ContactsSection({ space, meta = {} }) {
 // act is immediate: a chosen file uploads at once on its own tile, with its progress, and a failure
 // stays on that tile; removal asks first; reorder and cover apply at once and are announced.
 const PHOTO_LIMIT = 10;
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 4 * 1024 * 1024;
 function PhotosSection({ empty }) {
   const { Card, CardHeader, CardDescription, CardContent, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, toast } = window.MasahaDesignSystem;
   const [tiles, setTiles] = React.useState(empty ? [] : [1, 2, 3, 4, 5].map((n) => ({ id: 'p' + n, n, state: 'done' })));
@@ -287,7 +287,7 @@ function PhotosSection({ empty }) {
     let room = PHOTO_LIMIT - counted, out = 0;
     const added = [];
     Array.from(files).forEach((f) => {
-      const why = !/^image\/(jpeg|png)$/.test(f.type) ? tr('JPG أو PNG فقط', 'JPG or PNG only') : f.size > MAX_BYTES ? tr('أكبر من 5 ميغابايت', 'Larger than 5 MB') : null;
+      const why = !/^image\/(jpeg|png|webp)$/.test(f.type) ? tr('JPEG أو PNG أو WebP فقط', 'JPEG, PNG or WebP only') : f.size > MAX_BYTES ? tr('أكبر من 4 ميغابايت', 'Larger than 4 MB') : null;
       if (!why && room <= 0) { out++; return; }
       if (!why) room--;
       const n = next.current++;
@@ -309,7 +309,7 @@ function PhotosSection({ empty }) {
     <Card id="photos" className="section-anchor">
       <CardHeader>
         <SectionTitle>{tr('الصور', 'Photos')}</SectionTitle>
-        <CardDescription>{tr('حتى 10 صور · JPG أو PNG · حتى 5 ميغابايت لكل صورة. الأولى هي الغلاف. كل تغيير يُحفظ فورًا.', 'Up to 10 photos · JPG or PNG · up to 5 MB each. The first is the cover. Every change is saved at once.')}</CardDescription>
+        <CardDescription>{tr('حتى 10 صور · JPEG أو PNG أو WebP · حتى 4 ميغابايت للصورة. الأولى هي الغلاف. كل تغيير يُحفظ فورًا.', 'Up to 10 photos · JPEG, PNG or WebP · up to 4 MB each. The first is the cover. Every change is saved at once.')}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <p className="sr-only" aria-live="polite">{said}</p>
@@ -345,7 +345,7 @@ function PhotosSection({ empty }) {
             ))}
           </ul>
         )}
-        <input ref={input} type="file" accept="image/jpeg,image/png" multiple className="sr-only" tabIndex={-1} onChange={(e) => { choose(e.target.files || []); e.target.value = ''; }} />
+        <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" tabIndex={-1} onChange={(e) => { choose(e.target.files || []); e.target.value = ''; }} />
         {leftOut > 0 && <p className="text-caption text-destructive">{tr(`لم تُضف ${leftOut === 1 ? 'صورة واحدة' : leftOut === 2 ? 'صورتان' : leftOut + ' صور'}: الحد 10 صور.`, `${leftOut} left out: the limit is 10 photos.`)}</p>}
         <div className="flex flex-wrap items-center gap-3">
           <QButton type="button" variant="outline" disabled={full} onClick={() => input.current.click()}>{tr('رفع صور', 'Upload photos')}</QButton>

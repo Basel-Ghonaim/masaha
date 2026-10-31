@@ -168,7 +168,7 @@ describe('the editor’s photos section', () => {
     expect(screen.getByText('Up to 10 photos — remove one to add another')).toBeInTheDocument();
   });
 
-  it('shows a chosen file on its own tile while it travels, named by the layer’s spinner', async () => {
+  it('an uploading tile shows a progressbar with its percentage', async () => {
     const answering = deferred<FakeAnswer>();
     const browser = fakeCanvas({ width: 2000, height: 1500 });
     renderSection(PHOTOS, () => answering.promise);
@@ -181,8 +181,14 @@ describe('the editor’s photos section', () => {
     // The browser turned the photo by its EXIF and re-encoded it before anything was sent.
     expect(browser.decodeOptions()).toMatchObject({ imageOrientation: 'from-image' });
     expect(await screen.findByText('portrait.jpg')).toBeInTheDocument();
-    // The pending state is the layer's own spinner, named for a screen reader; no bar is drawn.
-    expect(screen.getByRole('status', { name: /Uploading \d+%/ })).toBeInTheDocument();
+    // The pending upload is the layer's bar, named by the photo's place in the gallery.
+    const bar = await screen.findByRole('progressbar', {
+      name: `Uploading photo ${String(PHOTOS.length + 1)}`,
+    });
+    expect(bar).toHaveAttribute('aria-valuemax', '100');
+    expect(bar.getAttribute('aria-valuetext')).toMatch(/^\d+%$/);
+    expect(screen.getByText(/^Uploading \d+%$/)).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: /Uploading \d+%/ })).not.toBeInTheDocument();
   });
 
   it('keeps the removal dialog open and says why when the server fails', async () => {

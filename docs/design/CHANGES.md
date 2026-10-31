@@ -223,3 +223,11 @@ table, the data model's write-off) are the web's, the API's and the docs'.
 | **DK-015, K4** | «دفعاتي اليوم» shows the payment the owner voided, **struck through with «ألغاها أحمد: سُجّلت بالخطأ»**, and leaves it out of the figures to hand over. On a phone the three figures are one card, «نقدًا للتسليم» first; under them, «خطأ في دفعة؟ يلغيها صاحب المساحة، وتظهر هنا مشطوبة.» | `My payments.html`, `masaha/desk-core.jsx`, `desk-data.js` |
 | **DK-016, DK-017, A7, DI-36** | Payments has **five columns from 768** — the time under the date, the item under the customer, the method under the amount — and **the void in each row's «⋯»**, its `AlertDialog` as the file's. «إظهار الملغاة» is a chip by the count. `?month=2026-08` opens a month, and Finance's «عرض الكل» carries its month there | `Payments.html`, `Finance.html`, `masaha/desk-data.js` |
 | **Board** | A new section, «Batch 6 — the front desk», with 37 frames of the states above — the board's first at 768 — listed in `INDEX.md` §56; the board's twelve desk frames whose state moved are relabelled | `Flows - states.html`, `INDEX.md`, `README.md`, `SCREENS.md` |
+
+## The build's corrections (2026-10-29)
+
+Corrections the build asked of the living design, each with the decision of the plan that made it.
+
+| Decision | What changed | Where |
+|---|---|---|
+| **D6.14** (finding 74) | The gallery's line says **the contract's limits**: «حتى 10 صور · JPEG أو PNG أو WebP · حتى 4 ميغابايت للصورة», the file chooser and its refusals the same; an uploading tile keeps its progress bar with its percentage, as the web's `Meter` draws it | `masaha/profile-b.jsx` (`Admin space edit.html`, `Owner space profile.html`) |
