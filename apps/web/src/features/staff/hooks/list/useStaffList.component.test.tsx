@@ -9,6 +9,12 @@ import { queryWrapper } from '../../../../test/queryWrapper';
 import { startPreferences } from '../../../../test/startPreferences';
 import { useStaffList } from './useStaffList';
 
+/** No month's collections read: the list's own rows are what these tests prove. */
+const COLLECTIONS = {
+  of: () => null,
+  link: (userId: number) => `/payments?staff=${String(userId)}`,
+};
+
 const RAHAF: StaffMember = {
   userId: 15,
   name: 'رهف',
@@ -30,7 +36,7 @@ const LINA: StaffMember = { ...RAHAF, userId: 17, name: 'لينا', isActive: fa
 
 function renderList(answer: Parameters<typeof fakeTransport>[0]) {
   fakeTransport(answer);
-  return renderHook(() => useStaffList(7), { wrapper: queryWrapper() });
+  return renderHook(() => useStaffList(7, COLLECTIONS), { wrapper: queryWrapper() });
 }
 
 beforeEach(() => {
@@ -75,7 +81,7 @@ describe('useStaffList', () => {
     fakeTransport(() => refused(404, { type: 'not_found' }));
     const client = createQueryClient();
     client.setQueryData(['me', 'spaces'], []);
-    const { result } = renderHook(() => useStaffList(7), {
+    const { result } = renderHook(() => useStaffList(7, COLLECTIONS), {
       wrapper: ({ children }: { children: ReactNode }) => (
         <QueryClientProvider client={client}>{children}</QueryClientProvider>
       ),

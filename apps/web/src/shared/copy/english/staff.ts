@@ -8,7 +8,19 @@ export const STAFF = {
   label: 'Staff',
   count: ({ count }: { count: number }) =>
     englishPlural(count, { one: '1 staff member', other: `${String(count)} staff members` }),
-  columns: { name: 'Name', status: 'Status', actions: 'Actions' },
+  columns: {
+    name: 'Name',
+    status: 'Status',
+    added: 'Added',
+    collected: 'Collected this month',
+    actions: 'Actions',
+  },
+  /** A card's lines below 768 px: when the person was added, and what they collected this month. */
+  addedOn: ({ date }: { date: string }) => `Added ${date}`,
+  thisMonth: ({ amount }: { amount: string }) => `This month ${amount}`,
+  /** The month's collections could not be read. */
+  noCollections: '—',
+  viewCollections: 'View collections',
   badges: {
     active: 'Active',
     inactive: 'No access',

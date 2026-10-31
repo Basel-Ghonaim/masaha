@@ -14,6 +14,8 @@ export type StaffActionItem = {
   held: boolean;
   /** Why the item is held, said under it (foundation §10). */
   reason?: string;
+  /** An item that leads elsewhere: the address it opens. */
+  href?: string;
   destructive: boolean;
   run: () => void;
 };
@@ -35,7 +37,7 @@ function personOf(variables: unknown): number | undefined {
 export function useStaffActions(
   spaceId: number,
   member: StaffMember,
-  { open }: { open: (dialog: StaffDialog) => void },
+  { open, collectionsLink }: { open: (dialog: StaffDialog) => void; collectionsLink: string },
 ) {
   const copy = useCopy().staff;
   const reactivate = useSetStaffActive(spaceId);
@@ -90,8 +92,17 @@ export function useStaffActions(
           },
         };
 
+  const collections: StaffActionItem = {
+    label: copy.viewCollections,
+    held: false,
+    destructive: false,
+    href: collectionsLink,
+    run: () => undefined,
+  };
+
   return {
     trigger: { label: copy.menu({ name }), busy: waiting.includes(member.userId) },
-    items: member.isActive ? [reissue, access] : [access, reissue],
+    // «عرض مقبوضاته» first: it leads to the ledger and changes nothing (D5.6).
+    items: [collections, ...(member.isActive ? [reissue, access] : [access, reissue])],
   };
 }

@@ -10,6 +10,10 @@ export type StaffRowView = {
   name: string;
   email: string;
   badges: BadgeView[];
+  /** When the person was added, a Gaza date with its year. */
+  added: string;
+  /** What they collected this month («—» unread), and the ledger of it. */
+  collected: { amount: string; href: string };
   /** The person as the server answered, for the row's actions. */
   member: StaffMember;
 };

@@ -14,7 +14,17 @@ export const STAFF = {
       many: `${String(count)} موظفًا`,
       other: `${String(count)} موظف`,
     }),
-  columns: { name: 'الاسم', status: 'الحالة', actions: 'إجراءات' },
+  columns: {
+    name: 'الاسم',
+    status: 'الحالة',
+    added: 'أُضيف في',
+    collected: 'مقبوضاته هذا الشهر',
+    actions: 'إجراءات',
+  },
+  addedOn: ({ date }: { date: string }) => `أُضيف في ${date}`,
+  thisMonth: ({ amount }: { amount: string }) => `هذا الشهر ${amount}`,
+  noCollections: '—',
+  viewCollections: 'عرض مقبوضاته',
   badges: {
     active: 'نشط',
     inactive: 'بلا وصول',

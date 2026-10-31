@@ -36,7 +36,10 @@ function renderActions(
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const rendered = renderHook(() => useStaffActions(7, member, { open }), { wrapper });
+  const rendered = renderHook(
+    () => useStaffActions(7, member, { open, collectionsLink: '/payments?staff=15' }),
+    { wrapper },
+  );
   return { ...rendered, requests, client, open };
 }
 
