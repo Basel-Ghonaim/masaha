@@ -72,6 +72,8 @@ type Server = {
   add?: (request: Request) => FakeAnswer;
   /** The users the users list finds for a search. */
   users?: AdminUserRow[];
+  /** The answer to the users list's read, in place of `users`'s page. */
+  usersAnswer?: (request: Request) => FakeAnswer;
 };
 
 /** The sheet as the owners page shows it, the server answering as `server` says. */
@@ -81,7 +83,14 @@ function renderSheet(server: Server = {}) {
   const returnTo: (HTMLElement | null)[] = [];
   const requests = fakeTransport((request) => {
     if (request.url === '/admin/spaces') return page([FOCUS_HUB]);
-    if (request.url === '/admin/users') return page(server.users ?? []);
+    if (request.url === '/admin/users') {
+      if (server.usersAnswer !== undefined) return server.usersAnswer(request);
+      // The users list keeps the one account whose email is exactly the one asked (`email`).
+      const email = (request.params as { email?: string } | undefined)?.email;
+      return page(
+        (server.users ?? []).filter((user) => email === undefined || user.email === email),
+      );
+    }
     return server.add?.(request) ?? ok({ userId: 12, temporaryPassword: 'Tmp-4821-xk' }, 201);
   });
   render(
@@ -242,7 +251,9 @@ describe('AddOwner', () => {
 
     const upgrade = await screen.findByRole('button', { name: 'Upgrade and link' });
     const users = requests.filter((request) => request.url === '/admin/users');
-    expect(users.map((request): unknown => request.params)).toEqual([{ q: 'rima@example.com' }]);
+    expect(users.map((request): unknown => request.params)).toEqual([
+      { email: 'rima@example.com' },
+    ]);
     const account = noticeTitled('This email has an account');
     expect(within(account).getByText('Rima Haddad')).toBeInTheDocument();
     expect(within(account).getByText(/^1 Sept/)).toBeInTheDocument();
@@ -301,12 +312,52 @@ describe('AddOwner', () => {
 
     expect(
       await screen.findByText(
-        'We couldn’t show whose account this is, so it can’t be upgraded here — check the email.',
+        'No account has exactly this email now, so nothing is upgraded — check it.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Upgrade and link' })).not.toBeInTheDocument();
     expect(screen.queryByText('Rima Haddad')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create account and link' })).toBeDisabled();
     expect(adds(requests)).toHaveLength(1);
+  });
+
+  it('an exact email is found even beyond the first page', async () => {
+    // A search would rank twenty longer emails first; the exact read finds the one asked.
+    const others = Array.from({ length: 20 }, (_, index) => ({
+      ...RIMA,
+      id: 100 + index,
+      email: `karima${String(index)}@example.com`,
+    }));
+    const { requests } = renderSheet({ add: hasAccount, users: [...others, RIMA] });
+
+    await fill();
+    await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
+
+    expect(await screen.findByRole('button', { name: 'Upgrade and link' })).toBeEnabled();
+    expect(
+      requests
+        .filter((request) => request.url === '/admin/users')
+        .map((request): unknown => request.params),
+    ).toEqual([{ email: 'rima@example.com' }]);
+  });
+
+  it('a failed read says so and retries', async () => {
+    let reads = 0;
+    renderSheet({
+      add: hasAccount,
+      usersAnswer: () => {
+        reads += 1;
+        return reads === 1 ? refused(403, { type: 'forbidden' }) : page([RIMA]);
+      },
+    });
+
+    await fill();
+    await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
+
+    expect(await screen.findByText('Couldn’t check this email right now.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create account and link' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('button', { name: 'Upgrade and link' })).toBeEnabled();
+    expect(reads).toBe(2);
   });
 });

@@ -16,17 +16,24 @@ import type { AddedOwnerView } from '../../types/TemporaryPasswordSlot';
 type Values = { name: string; email: string; spaceId: number | null };
 
 /** What the sheet says will happen: a new account, or the email's account checked, then upgraded. */
-function noticeOf(account: EmailAccountState, lines: Catalogue['spaceLinks']['addOwner']) {
+function noticeOf(
+  account: EmailAccountState,
+  lines: Catalogue['spaceLinks']['addOwner'],
+  retryLabel: string,
+) {
   switch (account.status) {
     case 'none':
       return { kind: 'create' as const, text: lines.willCreate };
     case 'reading':
       return { kind: 'checking' as const, text: lines.checkingAccount };
     case 'notFound':
+      return { kind: 'notFound' as const, title: lines.hasAccount, text: lines.accountNotFound };
+    case 'failed':
       return {
-        kind: 'unconfirmed' as const,
+        kind: 'failed' as const,
         title: lines.hasAccount,
-        text: lines.accountUnconfirmed,
+        text: lines.checkFailed,
+        retry: { label: retryLabel, run: account.retry },
       };
     case 'found':
       return {
@@ -133,7 +140,7 @@ export function useAddOwnerForm() {
 
   const spaceTriggerRef = spaceController.field.ref;
 
-  const notice = noticeOf(hasAccount ? account : { status: 'none' }, lines);
+  const notice = noticeOf(hasAccount ? account : { status: 'none' }, lines, copy.status.retry);
 
   return {
     open,

@@ -11,9 +11,13 @@ export type EmailAccountView = {
   receptionSpaces: SpaceNameView[];
 };
 
-/** Reading the account an email belongs to: only an exact email match is `found`. */
+/**
+ * Reading the account an email belongs to, by its exact email: `found`, `notFound`, or a read that
+ * `failed`, with its retry (finding 89).
+ */
 export type EmailAccountState =
   | { status: 'none' }
   | { status: 'reading' }
   | { status: 'found'; account: EmailAccountView }
-  | { status: 'notFound' };
+  | { status: 'notFound' }
+  | { status: 'failed'; retry: () => void };

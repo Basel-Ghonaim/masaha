@@ -243,8 +243,10 @@ export const SPACE_LINKS = {
       noReception: 'None',
     },
     confirmAccount: 'Make sure this is the person you mean: they’ll become an owner of this space',
-    accountUnconfirmed:
-      'We couldn’t show whose account this is, so it can’t be upgraded here — check the email.',
+    /** No account has exactly this email as read now (finding 89): nothing is upgraded. */
+    accountNotFound: 'No account has exactly this email now, so nothing is upgraded — check it.',
+    /** The email's account could not be read (finding 89), with a retry. */
+    checkFailed: 'Couldn’t check this email right now.',
     willUpgrade:
       'Their account will be upgraded to owner and linked to the space; it keeps its name and its way of signing in, and no password is shown.',
     create: 'Create account and link',
