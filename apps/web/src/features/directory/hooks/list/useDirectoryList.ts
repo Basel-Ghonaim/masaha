@@ -1,7 +1,8 @@
 import { useCopy } from '@shared/copy';
 import { paginationView, usePageInRange } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import type { DirectorySort } from '@masaha/shared/directory';
 import { cardViewOf } from '../../services/cardView';
 import { focusFilters } from '../../services/focusFilters';
@@ -14,6 +15,9 @@ import { useNearMe } from '../near/useNearMe';
 import { useDirectoryFilters } from './useDirectoryFilters';
 import { useDirectoryQuery } from './useDirectoryQuery';
 import { useFailureView } from './useFailureView';
+
+/** The address's ask to open the filters on arrival: `?filters=open`. */
+const OPEN_FILTERS_PARAMETER = 'filters';
 
 /**
  * The directory's list, ready to render: the search, the order, the count, the cards a page at a
@@ -94,6 +98,26 @@ export function useDirectoryList(): DirectoryListView {
   });
 
   const { replacePage } = filters;
+
+  // `?filters=open` (favourites' «اختر منطقتك», DI22): the filters open once — the sheet below
+  // 1024 px, the place filter focused in the sidebar from it — and the address lets it go.
+  const [params, setParams] = useSearchParams();
+  const openFilters = params.get(OPEN_FILTERS_PARAMETER) === 'open';
+  const { wide } = panel;
+  const { setOpen } = panel.sheet;
+  useEffect(() => {
+    if (!openFilters) return;
+    if (wide) focusFilters();
+    else setOpen(true);
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete(OPEN_FILTERS_PARAMETER);
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  }, [openFilters, wide, setOpen, setParams]);
   const status = useLocationStatus({
     view: 'list',
     state: near.state,

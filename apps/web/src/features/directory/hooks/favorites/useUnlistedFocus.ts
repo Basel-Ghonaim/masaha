@@ -8,13 +8,13 @@ const CARD_ACTION = '[data-card-action] button';
 /**
  * Keeps the focus when a space that left is removed while its row's action holds it (DI-52): the
  * next row's action takes it, else the first card's heart, else the count (`countRef`,
- * `tabIndex={-1}`). `viewRef` is the element the cards and the rows are drawn in; each row carries
+ * `tabIndex={-1}`), which the empty state's «تصفّح المساحات» takes the place of once none is saved. `viewRef` is the element the cards and the rows are drawn in; each row carries
  * `data-unlisted-key`, each card's action `data-card-action`. Checked after each drawing, so a row
  * that leaves with the list read again hands the focus on.
  */
 export function useUnlistedFocus(keys: readonly string[]) {
   const view = useRef<HTMLElement | null>(null);
-  const count = useRef<HTMLParagraphElement | null>(null);
+  const count = useRef<HTMLElement | null>(null);
   /** The row whose action holds the focus, and the rows as drawn when it took it. */
   const held = useRef<{ key: string; order: readonly string[] } | null>(null);
 

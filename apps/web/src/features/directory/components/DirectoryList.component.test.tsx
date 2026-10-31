@@ -1,6 +1,7 @@
 import type { DirectorySpace } from '@masaha/shared/directory';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -49,7 +50,11 @@ function answerFor(params: unknown) {
 }
 
 /** The list on the directory's page at `path`, its slots as the page sets them. */
-function renderDirectory(path = '/spaces', answer: (params: unknown) => unknown = answerFor) {
+function renderDirectory(
+  path = '/spaces',
+  answer: (params: unknown) => unknown = answerFor,
+  placeFilter: () => ReactNode = () => null,
+) {
   const requests = fakeTransport((request) => answer(request.params) as FakeAnswer);
   const router = createMemoryRouter(
     [
@@ -61,7 +66,7 @@ function renderDirectory(path = '/spaces', answer: (params: unknown) => unknown 
             <DirectoryList
               spaceLink={(slug) => `/spaces/${slug}`}
               areaName={() => 'الرمال · غزة'}
-              placeFilter={() => null}
+              placeFilter={placeFilter}
             />
           </main>
         ),
@@ -131,6 +136,30 @@ describe('DirectoryList', () => {
 
     await screen.findByRole('link', { name: 'مساحة 3' });
     expect(heading).toHaveFocus();
+  });
+
+  it('?filters=open opens the filters’ sheet below 1024 px, then leaves the address', async () => {
+    startPreferences('ar');
+    stubScreenWidth(390);
+    const { router } = renderDirectory('/spaces?filters=open');
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('');
+    });
+  });
+
+  it('?filters=open focuses the place filter in the sidebar from 1024 px, then leaves the address', async () => {
+    startPreferences('ar');
+    stubScreenWidth(1440);
+    const { router } = renderDirectory('/spaces?filters=open', answerFor, () => (
+      <button type="button">المنطقة</button>
+    ));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'المنطقة' })).toHaveFocus();
+    });
+    expect(router.state.location.search).toBe('');
   });
 
   it('scrolls to the results and focuses them only once the new page has arrived', async () => {
