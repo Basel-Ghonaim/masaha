@@ -84,6 +84,7 @@ function renderList(files: Record<number, CustomerFile>) {
             owner
             fileLink={(id) => `/file/${String(id)}`}
             subscribe={() => undefined}
+            add={() => undefined}
           />
         </main>
       </MemoryRouter>

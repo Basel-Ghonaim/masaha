@@ -1,6 +1,7 @@
 import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -199,5 +200,94 @@ describe('CustomerFile', () => {
     expect(decodeURIComponent(link.getAttribute('href') ?? '')).toContain(
       'Hello Sara, a reminder from S: you owe ₪65.',
     );
+  });
+
+  it('offers the owner «Write off…» on an unpaid visit, reception none; says they count in the balance', async () => {
+    const user = userEvent.setup();
+    fakeTransport(() => ok(FILE));
+    const owner = render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <CustomerFile
+            spaceId={7}
+            customerId={4}
+            owner
+            subscribe={() => undefined}
+            spaceName="S"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const unpaid = await screen.findByRole('region', { name: 'Unpaid visits' });
+    expect(within(unpaid).getByText('They count in their balance.')).toBeVisible();
+    await user.click(
+      within(unpaid).getByRole('button', { name: /^More actions for .Sara Khalid/ }),
+    );
+    await user.click(await screen.findByRole('menuitem', { name: 'Write off…' }));
+    expect(await screen.findByRole('alertdialog')).toBeVisible();
+    owner.unmount();
+
+    fakeTransport(() => ok(FILE));
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <CustomerFile
+            spaceId={7}
+            customerId={4}
+            owner={false}
+            subscribe={() => undefined}
+            spaceName="S"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const theirs = await screen.findByRole('region', { name: 'Unpaid visits' });
+    expect(within(theirs).queryByRole('button', { name: /^More actions for/ })).toBeNull();
+  });
+
+  it('says «Here since {time}», info, while present; «only visits» with its icon only with no unpaid visit', async () => {
+    fakeTransport(() =>
+      ok({
+        ...FILE,
+        present: { kind: 'VISIT', id: 9, since: '2026-10-25T07:00:00.000Z' },
+        subscriptions: [],
+      }),
+    );
+    const first = render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <CustomerFile
+            spaceId={7}
+            customerId={4}
+            owner
+            subscribe={() => undefined}
+            spaceName="S"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const here = await screen.findByText(/^Here since .09:00.$/);
+    expect(here).toHaveAttribute('data-variant', 'info');
+    // It has unpaid visits: it does not come for visits alone, as far as the file says.
+    expect(screen.queryByText('This customer only comes for visits.')).toBeNull();
+    first.unmount();
+
+    fakeTransport(() => ok(customerFile({ subscriptions: [] })));
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <CustomerFile
+            spaceId={7}
+            customerId={4}
+            owner
+            subscribe={() => undefined}
+            spaceName="S"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const only = await screen.findByText('This customer only comes for visits.');
+    expect(only.closest('[data-slot="empty-state"]')?.querySelector('svg')).not.toBeNull();
   });
 });

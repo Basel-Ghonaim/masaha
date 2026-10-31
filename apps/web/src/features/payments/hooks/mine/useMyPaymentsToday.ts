@@ -5,7 +5,7 @@ import { useCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import { useRefusalView } from '@shared/forms';
 import { dayText, priceText } from '@shared/lib';
-import { paginationView, usePageInRange } from '@shared/lists';
+import { paginationView, rangeSummary, usePageInRange } from '@shared/lists';
 import { isolate, useLanguage } from '@shared/localisation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
@@ -95,6 +95,11 @@ export function useMyPaymentsToday(spaceId: number) {
     /** Another page is loading, the rows shown meanwhile those already there. */
     busy: result.isPlaceholderData,
     empty: words.empty,
+    /** The footer's «عرض 1–20 من N» (D3.5); none while loading or empty. */
+    summary:
+      answer === undefined
+        ? undefined
+        : (rangeSummary(answer.meta, { range: copy.forms.listRange }) ?? undefined),
     pagination: paginationView({
       current: answer?.meta.currentPage ?? 1,
       total: answer?.meta.totalPages ?? 0,

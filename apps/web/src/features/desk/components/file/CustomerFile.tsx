@@ -6,6 +6,7 @@ import {
   Button,
   EmptyState,
   Skeleton,
+  UsersIcon,
 } from '@shared/design-system';
 import { useId, useRef } from 'react';
 import { useCustomerFile } from '../../hooks/file/useCustomerFile';
@@ -15,6 +16,7 @@ import { CustomerActions } from '../menu/CustomerActions';
 import { PayDialog } from '../pay/PayDialog';
 import { FileHeader } from './FileHeader';
 import { SubscriptionCard } from './SubscriptionCard';
+import { WriteOffDialog } from '../write-off/WriteOffDialog';
 import { UnpaidVisits } from './UnpaidVisits';
 
 /** No one is picked in a dialog opened on a named customer: the picker is not shown. */
@@ -47,7 +49,8 @@ export function CustomerFile({
   /** Opens the page's subscription sheet, from the header's «⋯». */
   subscribe: OpenSheet;
 }) {
-  const file = useCustomerFile(spaceId, customerId, { spaceName });
+  const file = useCustomerFile(spaceId, customerId, { spaceName, owner });
+  const subscriptionsHeading = useRef<HTMLHeadingElement | null>(null);
   const words = useCopy().desk.sheet;
   const headingId = useId();
   const trigger = useRef<HTMLElement | null>(null);
@@ -126,11 +129,15 @@ export function CustomerFile({
       />
       {file.unpaid !== null && <UnpaidVisits unpaid={file.unpaid} opened={opened} />}
       <section aria-labelledby={headingId} className="flex flex-col gap-4">
-        <h2 id={headingId} className="text-heading-3">
+        <h2 ref={subscriptionsHeading} id={headingId} tabIndex={-1} className="text-heading-3">
           {subscriptions.title}
         </h2>
         {subscriptions.none !== null ? (
-          <EmptyState title={subscriptions.none.title} description={subscriptions.none.text} />
+          <EmptyState
+            icon={subscriptions.none.text === null ? undefined : <UsersIcon />}
+            title={subscriptions.none.title}
+            description={subscriptions.none.text ?? undefined}
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {subscriptions.cards.map((card, index) => (
@@ -146,6 +153,18 @@ export function CustomerFile({
           </div>
         )}
       </section>
+      {file.writeOff !== null && (
+        <WriteOffDialog
+          spaceId={spaceId}
+          item={file.writeOff}
+          onClose={file.closeWriteOff}
+          // Its row leaves once written off: the focus goes to the subscriptions' heading.
+          returnFocus={() => {
+            if (trigger.current?.isConnected === true) trigger.current.focus();
+            else subscriptionsHeading.current?.focus();
+          }}
+        />
+      )}
       {file.pay !== null && (
         // Each opening is a new intent: a new dialog, a new key (S4).
         <PayDialog

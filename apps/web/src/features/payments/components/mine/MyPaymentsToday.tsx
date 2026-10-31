@@ -5,6 +5,7 @@ import {
   AlertTitle,
   Badge,
   Button,
+  CircleCheckIcon,
   EmptyState,
   Skeleton,
 } from '@shared/design-system';
@@ -44,7 +45,7 @@ function MineEmpty({ mine }: { mine: MyPaymentsTodayView }) {
       </Alert>
     );
   }
-  return <EmptyState title={mine.empty} />;
+  return <EmptyState icon={<CircleCheckIcon />} title={mine.empty} />;
 }
 
 /**
@@ -131,6 +132,7 @@ export function MyPaymentsToday({ spaceId }: { spaceId: number }) {
           )}
           loading={mine.state === 'loading'}
           empty={<MineEmpty mine={mine} />}
+          summary={mine.summary}
           pagination={mine.pagination !== null && <ListPagination pagination={mine.pagination} />}
         />
       </section>

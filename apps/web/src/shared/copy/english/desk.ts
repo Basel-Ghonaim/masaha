@@ -462,14 +462,18 @@ export const DESK = {
     },
     balance: 'Balance',
     archived: 'Archived',
-    here: 'Here now',
+    hereSince: ({ time }: { time: string }) => `Here since ${time}`,
     /** «تذكير على واتساب»: a link to WhatsApp with the space's reminder filled (D8.2). */
     reminder: {
       label: 'WhatsApp reminder',
       caption: 'Opens WhatsApp with a ready message; you send it.',
     },
     loadFailed: 'We couldn’t load the customer’s file',
-    unpaid: { title: 'Unpaid visits', unpriced: 'Not priced yet' },
+    unpaid: {
+      title: 'Unpaid visits',
+      counts: 'They count in their balance.',
+      unpriced: 'Not priced yet',
+    },
     subscriptions: {
       title: 'Subscriptions',
       none: 'No subscriptions',

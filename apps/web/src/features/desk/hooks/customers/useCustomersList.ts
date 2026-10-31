@@ -9,7 +9,7 @@ import type { Page } from '@shared/api';
 import { useCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import { useRefusalView } from '@shared/forms';
-import { paginationView, usePageInRange } from '@shared/lists';
+import { paginationView, rangeSummary, usePageInRange } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createDeskRepository } from '../../repository/deskRepository';
@@ -100,6 +100,13 @@ export function useCustomersList(spaceId: number, { owner }: { owner: boolean })
     /** Another page or filter is loading, the rows shown meanwhile those already there. */
     busy: query.isPlaceholderData,
     count: answer === undefined ? undefined : words.count({ count: total }),
+    /** «زبون جديد», beside the count and in the empty state. */
+    addLabel: copy.desk.sheet.entry.new,
+    /** The footer's «عرض 1–20 من N» (D3.5); none while loading or empty. */
+    summary:
+      answer === undefined
+        ? undefined
+        : (rangeSummary(answer.meta, { range: copy.forms.listRange }) ?? undefined),
     empty:
       status === 'ARCHIVED'
         ? { title: words.archivedEmpty, text: null }

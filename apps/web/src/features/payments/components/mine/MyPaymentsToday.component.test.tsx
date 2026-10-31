@@ -1,6 +1,6 @@
 import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -67,5 +67,26 @@ describe('MyPaymentsToday', () => {
     expect(within(figures).getByText('Received in the space’s account')).toBeVisible();
     expect(await within(table).findAllByText('Every other day')).toHaveLength(2);
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('shows its range in the footer, and its empty state’s icon', async () => {
+    stubScreenWidth(1440);
+    const mine = renderMine();
+    expect(await screen.findByText(/^Showing .1–2. of .2.$/)).toBeVisible();
+    mine.unmount();
+
+    fakeTransport(() => paymentsPage([], TOTALS));
+    const { container } = render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <MyPaymentsToday spaceId={7} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => {
+      expect(
+        container.querySelector('[data-slot="empty-state"] svg.lucide-circle-check'),
+      ).not.toBeNull();
+    });
   });
 });

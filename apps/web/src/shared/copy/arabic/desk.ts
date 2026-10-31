@@ -470,13 +470,13 @@ export const DESK = {
     notFound: { title: 'لم نجد هذا الزبون', text: 'ربما ليس من زبائن هذه المساحة.' },
     balance: 'الرصيد',
     archived: 'مؤرشف',
-    here: 'حاضر الآن',
+    hereSince: ({ time }: { time: string }) => `حاضر منذ ${time}`,
     reminder: {
       label: 'تذكير على واتساب',
       caption: 'يفتح واتساب برسالة جاهزة، وترسلها أنت.',
     },
     loadFailed: 'تعذّر تحميل ملف الزبون',
-    unpaid: { title: 'زيارات غير مدفوعة', unpriced: 'بدون سعر بعد' },
+    unpaid: { title: 'زيارات غير مدفوعة', counts: 'تُحسب في رصيده.', unpriced: 'بدون سعر بعد' },
     subscriptions: {
       title: 'الاشتراكات',
       none: 'لا توجد اشتراكات',

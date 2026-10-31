@@ -121,3 +121,4 @@
 ### Web history
 
 - #127 — «الدفعات», the owner's ledger: its filters in the address, the totals of the whole filter, the voided payments shown on demand, and [desk](desk.md)'s void in each row; «دفعاتي اليوم», reception's own payments of today and the handover's figures.
+- #132 — both lists say their range in the footer («عرض 1–20 من N»); the ledger's empty states drawn with their icons (none today, none matching), «دفعاتي اليوم»'s too.

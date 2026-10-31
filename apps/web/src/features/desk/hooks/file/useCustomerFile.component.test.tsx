@@ -19,7 +19,9 @@ function renderFile(file: CustomerFile | (() => ReturnType<typeof refused>)) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return renderHook(() => useCustomerFile(7, 4, { spaceName: 'Masaha One' }), { wrapper });
+  return renderHook(() => useCustomerFile(7, 4, { spaceName: 'Masaha One', owner: true }), {
+    wrapper,
+  });
 }
 
 beforeEach(() => {
@@ -46,7 +48,7 @@ describe('useCustomerFile', () => {
     const { header } = result.current;
     expect(heard(header?.balance.view.label)).toBe('Owes ₪50');
     expect(header?.balance.view.tone).toBe('warning');
-    expect(header?.here).toBe('Here now');
+    expect(heard(header?.here)).toBe('Here since 10:00');
     expect(header?.archived).toBe('Archived');
     expect(header?.phone).toEqual({ text: 'No mobile number', number: false });
   });

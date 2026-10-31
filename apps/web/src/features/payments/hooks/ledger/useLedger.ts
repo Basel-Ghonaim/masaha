@@ -11,7 +11,7 @@ import { useCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import { useRefusalView } from '@shared/forms';
 import { priceText } from '@shared/lib';
-import { paginationView, usePageInRange } from '@shared/lists';
+import { paginationView, rangeSummary, usePageInRange } from '@shared/lists';
 import { isolate, useLanguage } from '@shared/localisation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createPaymentsRepository } from '../../repository/paymentsRepository';
@@ -199,6 +199,11 @@ export function useLedger(spaceId: number, { people }: { people: readonly Ledger
     empty: filters.anyApplied
       ? { title: words.noMatch.title, text: words.noMatch.text, clear }
       : { title: words.emptyToday.title, text: words.emptyToday.text, clear: null },
+    /** The footer's «عرض 1–20 من N» (D3.5); none while loading or empty. */
+    summary:
+      answer === undefined
+        ? undefined
+        : (rangeSummary(answer.meta, { range: copy.forms.listRange }) ?? undefined),
     pagination: paginationView({
       current: answer?.meta.currentPage ?? 1,
       total: answer?.meta.totalPages ?? 0,

@@ -1,10 +1,10 @@
-import { Card, CardHeader, CardTitle } from '@shared/design-system';
+import { Card, CardDescription, CardHeader, CardTitle } from '@shared/design-system';
 import { useId } from 'react';
 import type { CustomerFileView } from '../../hooks/file/useCustomerFile';
 import { UncollectedRow } from '../uncollected/UncollectedRow';
 
 /**
- * «زيارات غير مدفوعة»: the customer's closed visits that still owe, the oldest first, each as
+ * «زيارات غير مدفوعة», «تُحسب في رصيده.»: the customer's closed visits that still owe, the oldest first, each as
  * «غير محصّل» draws a row (DI-24) — when and how it closed, what it still owes, and «تحصيل» while it
  * has a price. `opened` hears which control opened the payment, so the focus goes back to it.
  */
@@ -23,6 +23,7 @@ export function UnpaidVisits({
         <CardTitle>
           <h2 id={headingId}>{unpaid.title}</h2>
         </CardTitle>
+        <CardDescription>{unpaid.description}</CardDescription>
       </CardHeader>
       <ul className="flex flex-col divide-y">
         {unpaid.rows.map((row) => (

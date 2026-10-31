@@ -96,15 +96,19 @@ function FiltersSheet({ toolbar }: { toolbar: Toolbar }) {
 /**
  * The search and the filters above the customers: from 768 px the kind and the payment stand beside
  * the search; below it they move into a sheet (P5). Under them, on every width, the status chips —
- * one chosen at a time — and the count the filters keep, said politely as it changes.
+ * one chosen at a time — the count the filters keep, said politely as it changes, and «زبون جديد»
+ * at the row's end (P1 amended).
  */
 export function CustomersFilters({
   toolbar,
   count,
+  add,
 }: {
   toolbar: Toolbar;
   /** The count the filters keep, once the list has loaded. */
   count: string | undefined;
+  /** «زبون جديد»: the page's subscription sheet for a new customer. */
+  add: { label: string; run: (from: HTMLElement) => void };
 }) {
   const wide = useMediaQuery('(min-width: 768px)');
   const { search, status } = toolbar;
@@ -151,6 +155,15 @@ export function CustomersFilters({
             {count}
           </p>
         )}
+        <Button
+          size="sm"
+          className="ms-auto"
+          onClick={(event) => {
+            add.run(event.currentTarget);
+          }}
+        >
+          {add.label}
+        </Button>
       </div>
     </div>
   );

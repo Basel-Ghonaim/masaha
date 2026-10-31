@@ -6,6 +6,7 @@ import {
   Badge,
   Button,
   EmptyState,
+  UsersIcon,
 } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
 import { ListPagination } from '@shared/lists';
@@ -72,8 +73,17 @@ function SubscriptionLines({ row }: { row: CustomersListRow }) {
   );
 }
 
-/** What stands in for the rows when there are none: the failure with its retry, or the empty states. */
-function ListEmpty({ list }: { list: CustomersListView }) {
+/**
+ * What stands in for the rows when there are none: the failure with its retry, or the empty states;
+ * no customers yet offers «زبون جديد» (`add`), with its icon.
+ */
+function ListEmpty({
+  list,
+  add,
+}: {
+  list: CustomersListView;
+  add: { label: string; run: (from: HTMLElement) => void };
+}) {
   if (list.state === 'failed') {
     const { failure } = list;
     return (
@@ -91,6 +101,23 @@ function ListEmpty({ list }: { list: CustomersListView }) {
       </Alert>
     );
   }
+  if (list.state === 'empty') {
+    return (
+      <EmptyState
+        icon={<UsersIcon />}
+        title={list.empty.title}
+        description={list.empty.text ?? undefined}
+      >
+        <Button
+          onClick={(event) => {
+            add.run(event.currentTarget);
+          }}
+        >
+          {add.label}
+        </Button>
+      </EmptyState>
+    );
+  }
   return <EmptyState title={list.empty.title} description={list.empty.text ?? undefined} />;
 }
 
@@ -101,13 +128,15 @@ function ListEmpty({ list }: { list: CustomersListView }) {
  * (DI-40); the actions — or a card per customer below it; and the pages. It shows its own loading,
  * failure, empty, no-match and no-archived states; while another page or filter loads the rows stay,
  * marked busy, and a failed refresh says so over them. Each customer's actions are their «⋯», or the
- * owner's «استرجاع» for an archived one.
+ * owner's «استرجاع» for an archived one. «زبون جديد» (`add`) sits by the count, and in the empty
+ * state; the footer says which customers the page shows.
  */
 export function CustomersList({
   spaceId,
   owner,
   fileLink,
   subscribe,
+  add,
 }: {
   spaceId: number;
   /** The owner's list offers «مؤرشف»; the server decides (S5). */
@@ -116,8 +145,11 @@ export function CustomersList({
   fileLink: (customerId: number) => string;
   /** Opens the page's subscription sheet, from a customer's «⋯». */
   subscribe: OpenSheet;
+  /** «زبون جديد»: opens the page's sheet for a new customer, the focus coming back to `from`. */
+  add: (from: HTMLElement) => void;
 }) {
   const list = useCustomersList(spaceId, { owner });
+  const adding = { label: list.addLabel, run: add };
 
   // The table draws each cell as a component of its own, so new columns would draw every row anew:
   // they change only with their words and the link handed in.
@@ -207,8 +239,9 @@ export function CustomersList({
           </div>
         )}
         loading={list.state === 'loading'}
-        empty={<ListEmpty list={list} />}
-        toolbar={<CustomersFilters toolbar={list.toolbar} count={list.count} />}
+        empty={<ListEmpty list={list} add={adding} />}
+        toolbar={<CustomersFilters toolbar={list.toolbar} count={list.count} add={adding} />}
+        summary={list.summary}
         pagination={list.pagination !== null && <ListPagination pagination={list.pagination} />}
       />
     </section>

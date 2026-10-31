@@ -6,7 +6,7 @@ import { BalanceBadge } from '../card/BalanceBadge';
 
 /**
  * The file's header, under the page's title (the customer's name, the top bar's `h1`): their phone
- * left to right, or that they gave none; who is here now; the current subscription's status; the
+ * left to right, or that they gave none; who is here, «حاضر منذ {time}»; the current subscription's status; the
  * balance from the one badge (DI-40); the archive; while they owe and have a phone, «تذكير على
  * واتساب», a link opening WhatsApp, with its caption (D8.2); and the customer's actions at its end
  * (DK-013), a group of their own.
@@ -25,7 +25,7 @@ export function FileHeader({
         <span className="text-body-sm text-muted-foreground">
           {header.phone.number ? <span dir="ltr">{header.phone.text}</span> : header.phone.text}
         </span>
-        {header.here !== null && <Badge variant="success">{header.here}</Badge>}
+        {header.here !== null && <Badge variant="info">{header.here}</Badge>}
         {header.status !== null && (
           <Badge variant={header.status.tone}>{header.status.label}</Badge>
         )}

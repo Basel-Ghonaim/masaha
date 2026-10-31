@@ -158,4 +158,25 @@ describe('PaymentsLedger', () => {
     expect(address()).toHaveTextContent('?from=2026-10-05&to=2026-10-10');
     vi.useRealTimers();
   });
+
+  it('shows its range in the footer, and its empty states’ icons', async () => {
+    stubScreenWidth(1440);
+    const ledger = renderLedger(() => TWO);
+    expect(await screen.findByText(/^Showing .1–2. of .2.$/)).toBeVisible();
+    ledger.unmount();
+
+    // None today: the calm icon; none matching the filters: the search's.
+    const icon = (container: HTMLElement) =>
+      container.querySelector('[data-slot="empty-state"] svg')?.getAttribute('class') ?? '';
+    const none = renderLedger(() => []);
+    await waitFor(() => {
+      expect(icon(none.container)).toContain('lucide-circle-check');
+    });
+    none.unmount();
+
+    const filtered = renderLedger(() => [], '/p?method=CASH');
+    await waitFor(() => {
+      expect(icon(filtered.container)).toContain('lucide-search-x');
+    });
+  });
 });

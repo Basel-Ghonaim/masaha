@@ -17,8 +17,8 @@ const heard = (expected: string) => (content: string) => content.replace(/[⁦-�
 const SARA = customerRow({ id: 4, name: 'Sara Khalid', debtAgorot: 3160 });
 const OMAR = customerRow({ id: 5, name: 'Omar', phone: null, current: null });
 
-function renderList(path = '/c', owner = true) {
-  fakeTransport(() => customersPage([SARA, OMAR]));
+function renderList(path = '/c', owner = true, rows = [SARA, OMAR], add = vi.fn()) {
+  fakeTransport(() => customersPage(rows));
   return render(
     <QueryClientProvider client={createQueryClient()}>
       <MemoryRouter initialEntries={[path]}>
@@ -28,6 +28,7 @@ function renderList(path = '/c', owner = true) {
             owner={owner}
             fileLink={(id) => `/file/${String(id)}`}
             subscribe={() => undefined}
+            add={add}
           />
         </main>
       </MemoryRouter>
@@ -100,5 +101,29 @@ describe('CustomersList', () => {
     expect(within(sheet).getByRole('combobox', { name: 'Payment' })).toBeVisible();
     await user.click(within(sheet).getByRole('button', { name: 'Show 2 customers' }));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('says no customers yet with its icon and «New customer»; the add sits by the count', async () => {
+    stubScreenWidth(1440);
+    const user = userEvent.setup();
+    const add = vi.fn();
+    const empty = renderList('/c', true, [], add);
+
+    const state = (await screen.findByRole('heading', { name: 'No customers yet' })).closest(
+      '[data-slot="empty-state"]',
+    );
+    if (!(state instanceof HTMLElement)) throw new Error('No empty state');
+    expect(state.querySelector('svg')).not.toBeNull();
+    await user.click(within(state).getByRole('button', { name: 'New customer' }));
+    expect(add).toHaveBeenCalledTimes(1);
+    empty.unmount();
+
+    renderList();
+    const count = await screen.findByText('2 customers');
+    const row = count.parentElement;
+    if (row === null) throw new Error('No row');
+    expect(within(row).getByRole('button', { name: 'New customer' })).toBeVisible();
+    // The footer says which customers the page shows (D3.5).
+    expect(screen.getByText(heard('Showing 1–2 of 2'))).toBeVisible();
   });
 });
