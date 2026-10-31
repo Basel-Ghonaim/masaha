@@ -247,6 +247,9 @@ export const SPACE_LINKS = {
     accountNotFound: 'No account has exactly this email now, so nothing is upgraded — check it.',
     /** The email's account could not be read (finding 89), with a retry. */
     checkFailed: 'Couldn’t check this email right now.',
+    /** `ALREADY_OWNER`, under the email (finding 83), and the way on: the link dialog for them. */
+    alreadyOwner: 'This email is already an owner’s.',
+    linkThem: 'Link them to the space',
     willUpgrade:
       'Their account will be upgraded to owner and linked to the space; it keeps its name and its way of signing in, and no password is shown.',
     create: 'Create account and link',
@@ -267,8 +270,6 @@ export const SPACE_LINKS = {
       ACCOUNT_IS_ADMIN:
         'This email is an admin’s account, and an admin can’t be linked to a space.',
       ACCOUNT_SUSPENDED: 'This account is suspended; it can’t be linked until it’s restored.',
-      ALREADY_OWNER:
-        'This email is already an owner’s — link them to the space from their row in the list.',
     },
     upgraded: ({ name, space }: { name: string; space: string }) =>
       `${name} upgraded to owner and linked to ${space}`,

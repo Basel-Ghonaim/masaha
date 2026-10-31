@@ -360,4 +360,53 @@ describe('AddOwner', () => {
     expect(await screen.findByRole('button', { name: 'Upgrade and link' })).toBeEnabled();
     expect(reads).toBe(2);
   });
+
+  it('ALREADY_OWNER offers «اربطه بالمساحة» opening the link dialog for that owner', async () => {
+    const hadi: AdminUserRow = {
+      ...RIMA,
+      id: 3,
+      name: 'Hadi Saleh',
+      email: 'hadi@example.com',
+      role: 'OWNER',
+      spaces: [{ id: 9, nameEn: 'Palm Hub', nameAr: null }],
+    };
+    const { requests } = renderSheet({
+      users: [hadi],
+      add: () => ({
+        ...refused(409, { type: 'conflict', code: 'ALREADY_OWNER' }),
+        // The owner the refusal names (api-contract §2).
+        data: {
+          success: false,
+          error: {
+            type: 'conflict',
+            code: 'ALREADY_OWNER',
+            message: 'Fake refusal',
+            requestId: 'req-1',
+            details: { userId: 3 },
+          },
+        },
+      }),
+    });
+
+    await fill('hadi@example.com', 'Hadi');
+    await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
+
+    const email = screen.getByRole('textbox', { name: 'Email address' });
+    expect(await screen.findByText('This email is already an owner’s.')).toBeInTheDocument();
+    expect(email).toHaveAccessibleDescription('This email is already an owner’s.');
+    const link = screen.getByRole('button', { name: 'Link them to the space' });
+    await waitFor(() => {
+      expect(link).toBeEnabled();
+    });
+    await userEvent.click(link);
+
+    const dialog = await screen.findByRole('dialog', {
+      name: (name) => name.replace(/[⁦-⁩]/g, '') === 'Link Hadi Saleh to a space',
+    });
+    // The space chosen in the sheet stays chosen.
+    expect(within(dialog).getByRole('combobox', { name: /^Space/ })).toHaveTextContent('Focus Hub');
+    expect(
+      requests.filter((request) => request.url === '/admin/users').map((r): unknown => r.params),
+    ).toEqual([{ email: 'hadi@example.com' }]);
+  });
 });

@@ -196,6 +196,8 @@ export const SPACE_LINKS = {
     confirmAccount: 'تأكّد أنه الشخص المقصود: سيصبح مالكًا لهذه المساحة',
     accountNotFound: 'لا حساب بهذا البريد تمامًا الآن، فلا يُرقّى أحد — تحقّق منه.',
     checkFailed: 'تعذّر التحقق من هذا البريد الآن.',
+    alreadyOwner: 'هذا البريد لمالك مسبقًا.',
+    linkThem: 'اربطه بالمساحة',
     willUpgrade:
       'سيُرقّى حسابه إلى مالك ويُربط بالمساحة، ويحتفظ باسمه وطريقة دخوله، ولا تظهر كلمة مرور.',
     create: 'إنشاء حساب وربط',
@@ -215,7 +217,6 @@ export const SPACE_LINKS = {
     refusals: {
       ACCOUNT_IS_ADMIN: 'هذا البريد لحساب أدمن، ولا يُربط أدمن بمساحة.',
       ACCOUNT_SUSPENDED: 'هذا الحساب موقوف؛ لا يُربط حتى يُسترجع.',
-      ALREADY_OWNER: 'هذا البريد لمالك مسبقًا — اربطه بالمساحة من صفّه في القائمة.',
     },
     upgraded: ({ name, space }: { name: string; space: string }) =>
       `رُقّي ${name} إلى مالك ورُبط بـ ${space}`,

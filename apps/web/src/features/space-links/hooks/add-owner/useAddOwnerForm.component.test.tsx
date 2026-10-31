@@ -188,10 +188,8 @@ describe('useAddOwnerForm', () => {
       'This email is an admin’s account, and an admin can’t be linked to a space.',
     ],
     ['ACCOUNT_SUSPENDED', 'This account is suspended; it can’t be linked until it’s restored.'],
-    [
-      'ALREADY_OWNER',
-      'This email is already an owner’s — link them to the space from their row in the list.',
-    ],
+    // With no owner named (no `details`), the code's own line.
+    ['ALREADY_OWNER', 'This person is already an owner. Link them to the space instead.'],
   ])('words %s on the form', async (code, message) => {
     const { result } = renderForm(() => refused(409, { type: 'conflict', code }));
 

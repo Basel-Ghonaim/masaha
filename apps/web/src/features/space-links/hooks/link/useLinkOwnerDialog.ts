@@ -38,7 +38,9 @@ export function useLinkOwnerDialog(target: LinkTarget, close: () => void) {
     desks: target.from === 'person' ? target.person.deskIds : [],
   });
   const [person, setPerson] = useState<PersonChoiceView | null>(null);
-  const [chosenSpace, setSpace] = useState<SpaceChoiceView | null>(null);
+  const [chosenSpace, setSpace] = useState<SpaceChoiceView | null>(
+    target.from === 'person' ? (target.space ?? null) : null,
+  );
   const [missing, setMissing] = useState(false);
   const [refusal, setRefusal] = useState<AppError | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);

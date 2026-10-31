@@ -12,6 +12,7 @@ import type { AddOwnerRequest } from '@masaha/shared/space-links';
 import type { SpaceChoiceView } from '../../types/SpaceChoiceView';
 import type { EmailAccountState } from '../../types/EmailAccountView';
 import type { AddedOwnerView } from '../../types/TemporaryPasswordSlot';
+import type { LinkTarget } from '../../types/LinkTarget';
 
 type Values = { name: string; email: string; spaceId: number | null };
 
@@ -55,10 +56,16 @@ export function useAddOwnerForm() {
   const [rememberedEmail, setRememberedEmail] = useState<string | null>(null);
   const [chosenSpace, setChosenSpace] = useState<SpaceChoiceView | null>(null);
   const [added, setAdded] = useState<AddedOwnerView | null>(null);
+  // An email the server refused as an owner's already (`ALREADY_OWNER`, finding 83), and the link
+  // dialog opened for that owner and the chosen space.
+  const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
+  const [linkTarget, setLinkTarget] = useState<LinkTarget | null>(null);
 
   const spaceChoices = useSpaceChoices({ enabled: open });
   // The account the server said the remembered email has, as the users list shows it.
   const account = useEmailAccount(rememberedEmail);
+  // The owner the refused email is, read by its exact email, for the link dialog.
+  const owner = useEmailAccount(ownerEmail);
 
   // Read from the state of the render the admin sent the form from, so the upgrade is bound to the
   // email whose account was shown: an email edited after the confirm is sent with no upgrade.
@@ -91,6 +98,10 @@ export function useAddOwnerForm() {
       const refused = toAppError(error);
       if (refused.code === 'EMAIL_HAS_ACCOUNT' && !upgrade) {
         setRememberedEmail(request.email);
+        return;
+      }
+      if (refused.code === 'ALREADY_OWNER' && refused.details !== undefined) {
+        setOwnerEmail(request.email);
         return;
       }
       throw error;
@@ -141,6 +152,9 @@ export function useAddOwnerForm() {
   const spaceTriggerRef = spaceController.field.ref;
 
   const notice = noticeOf(hasAccount ? account : { status: 'none' }, lines, copy.status.retry);
+  // The email refused as an owner's, while it is still the one typed.
+  const isOwner = ownerEmail !== null && watchedEmail === ownerEmail;
+  const ownerRow = owner.status === 'found' ? owner.row : null;
 
   return {
     open,
@@ -149,7 +163,38 @@ export function useAddOwnerForm() {
       name: form.field('name'),
       email: form.field('email'),
     },
-    errors: form.errors,
+    errors: isOwner ? { ...form.errors, email: lines.alreadyOwner } : form.errors,
+    /**
+     * «اربطه بالمساحة», under the email an owner's already: the link dialog for that owner and the
+     * chosen space, once their account is read.
+     */
+    linkOwner: isOwner
+      ? {
+          label: lines.linkThem,
+          ready: ownerRow !== null,
+          run: () => {
+            if (ownerRow === null) return;
+            setOpen(false);
+            setLinkTarget({
+              from: 'person',
+              person: {
+                id: ownerRow.id,
+                name: ownerRow.name,
+                role: 'OWNER',
+                spaceIds: ownerRow.spaces.map((space) => space.id),
+                deskIds: ownerRow.receptionSpaces.map((desk) => desk.id),
+              },
+              ...(chosenSpace !== null && { space: chosenSpace }),
+            });
+          },
+        }
+      : null,
+    /** The link dialog opened from «اربطه بالمساحة», until it closes. */
+    linkTarget,
+    closeLink: () => {
+      setLinkTarget(null);
+      setOwnerEmail(null);
+    },
     spaceTriggerRef,
     spaceChoices,
     chosenSpace,

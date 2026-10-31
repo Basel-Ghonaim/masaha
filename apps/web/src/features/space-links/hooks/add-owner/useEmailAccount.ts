@@ -42,6 +42,7 @@ export function useEmailAccount(email: string | null): EmailAccountState {
   const view = userRowView(row, { words, english, now: new Date() });
   return {
     status: 'found',
+    row,
     account: {
       name: row.name,
       joined: view.joined,
