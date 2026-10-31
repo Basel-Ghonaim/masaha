@@ -14,13 +14,14 @@ import {
 import { useSessionEnd } from '@shared/session';
 import { Link, useLocation } from 'react-router';
 import { SITE_PATHS } from '../navigation';
+import { AuthWayBack } from './AuthWayBack';
 import { nextSearch } from './nextSearch';
 import { OrDivider } from './OrDivider';
 
 /**
  * Sign in: the card around Google sign-in and the sign-in form, the ways to a forgotten password
- * and to a new account, and the way on without one. Once signed in, `RequireGuest` sends the user on
- * to the page they came for. A session the server ended for idleness (a reception session left at the
+ * and to a new account (both carrying `next`), and the way back (`AuthWayBack`). Once signed in,
+ * `RequireGuest` sends the user on to the page they came for. A session the server ended for idleness (a reception session left at the
  * desk) says so above them, until the next sign-in.
  */
 export function SignInPage() {
@@ -46,7 +47,9 @@ export function SignInPage() {
         <SignInForm
           forgotPasswordLink={
             <Button asChild variant="link" size="sm" className="px-0">
-              <Link to={SITE_PATHS.forgotPassword}>{copy.auth.signIn.forgotPassword}</Link>
+              <Link to={`${SITE_PATHS.forgotPassword}${nextSearch(search)}`}>
+                {copy.auth.signIn.forgotPassword}
+              </Link>
             </Button>
           }
         />
@@ -60,9 +63,7 @@ export function SignInPage() {
             </Link>
           </Button>
         </p>
-        <Button asChild variant="ghost" size="sm">
-          <Link to={SITE_PATHS.spaces}>{copy.auth.signIn.browseWithoutAccount}</Link>
-        </Button>
+        <AuthWayBack />
       </CardFooter>
     </Card>
   );

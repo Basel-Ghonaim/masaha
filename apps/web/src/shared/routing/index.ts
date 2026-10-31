@@ -9,6 +9,7 @@ export { classifyRouteError, type RouteErrorKind } from './states/classifyRouteE
 export { DocumentTitle } from './title/DocumentTitle';
 export { ForbiddenState } from './states/ForbiddenState';
 export { noteSitePage, onGuestLeaving } from './guest/guestLeaving';
+export { RETURN_TOAST_ID } from './guest/returnToast';
 export { hasDashboard } from './landing/hasDashboard';
 export { landingPath } from './landing/landingPath';
 export { rememberSpace } from './landing/lastSpace';
@@ -25,6 +26,7 @@ export {
   CHANGE_PASSWORD_PATH,
   RESET_PASSWORD_PATH,
   SIGN_IN_PATH,
+  returnUrlOf,
 } from './returnUrl';
 export { RecordTitleProvider } from './title/RecordTitleProvider';
 export { RouteErrorState } from './states/RouteErrorState';

@@ -53,13 +53,20 @@ export const AUTH = {
   signIn: {
     title: 'Sign in',
     description:
-      'Sign in to follow your favourite spaces and the reports you’ve sent about wrong information.',
+      'Sign in to save your favourite spaces and follow your reports, or to run your space.',
     submit: 'Sign in',
     failed: 'Couldn’t sign in',
     forgotPassword: 'Forgot password?',
     noAccount: 'No account?',
     createAccount: 'Create account',
-    browseWithoutAccount: 'Browse spaces without an account',
+    /** The toast once signed in with a password; a held action's own toast takes its place. */
+    welcomeBack: 'Welcome back',
+  },
+  /** The sign-in and register cards' way back: to the space or page `next` names, else home. */
+  wayBack: {
+    toSpace: ({ space }: { space: string }) => `Back to ${space}`,
+    previous: 'Back to the previous page',
+    home: 'Back to home',
   },
   register: {
     title: 'Create account',
@@ -92,6 +99,8 @@ export const AUTH = {
     resendFailed: 'Couldn’t resend the link',
     /** Once no other link may be asked for, or to ask for a new one instead of an open link. */
     enterEmailAgain: 'Enter your email again',
+    /** Under the resend, on the link sent: the empty form again, for another address. */
+    useAnotherEmail: 'Use another email',
     /** A link was checked in this browser; the email is the account's, masked. */
     linkOpenTitle: 'You’ve opened a reset link',
     linkOpenDescription: ({ email }: { email: string }) =>

@@ -30,6 +30,7 @@ function renderCard(
         <ResetPasswordCard
           requestLinkLink={<a href="/forgot-password">Request a new link</a>}
           signInLink={<a href="/login">Sign in</a>}
+          backLink={<a href="/login">Back to sign in</a>}
         />
       </MemoryRouter>
     </QueryClientProvider>,

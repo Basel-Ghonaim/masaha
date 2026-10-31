@@ -72,7 +72,7 @@ describe('the reset password page', () => {
     );
   });
 
-  it('links to sign in once the password is set', async () => {
+  it('links to sign in once the password is set, the way back gone', async () => {
     renderSite('/reset-password', (config) =>
       config.method === 'get' ? ok(PASSWORD) : { status: 204 },
     );
@@ -82,5 +82,23 @@ describe('the reset password page', () => {
     await user.click(screen.getByRole('button', { name: 'Save password' }));
 
     expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
+    expect(screen.queryByRole('link', { name: 'Back to sign in' })).not.toBeInTheDocument();
+  });
+
+  it('offers the way back to sign in until the password is set', async () => {
+    renderSite('/reset-password#token=link-token', () => ok(PASSWORD));
+    const main = within(await screen.findByRole('main'));
+
+    await main.findByLabelText('New password');
+    expect(main.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute('href', '/login');
+  });
+
+  it('offers the way back to sign in beside a new link when this one can no longer be used', async () => {
+    renderSite('/reset-password#token=used', () =>
+      refused(400, { type: 'bad_request', code: 'RESET_TOKEN_INVALID' }),
+    );
+
+    await screen.findByRole('link', { name: 'Request a new link' });
+    expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute('href', '/login');
   });
 });

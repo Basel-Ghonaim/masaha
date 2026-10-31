@@ -1,5 +1,6 @@
 import { createQueryClient } from '@shared/api';
 import { Toaster, toast } from '@shared/design-system';
+import { RETURN_TOAST_ID } from '@shared/routing';
 import { establishSession, restoreSession } from '@shared/session';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
@@ -66,6 +67,21 @@ describe('useResumeFavorite', () => {
 
     expect(await findToast(/^.Masaha Hub. saved to your favourites$/)).toBeInTheDocument();
     expect(requests.map(lineOf)).toEqual(['post /me/favorites/7']);
+  });
+
+  it('says it in the place of the sign-in’s welcome back', async () => {
+    holdFavorite({ spaceId: 7, name: { text: 'Masaha Hub' } });
+    renderResume(() => ({ status: 204 }));
+
+    act(() => {
+      establishSession(aSession(), { source: 'signIn' });
+      toast.success('Welcome back', { id: RETURN_TOAST_ID });
+    });
+
+    expect(await findToast(/^.Masaha Hub. saved to your favourites$/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Welcome back')).not.toBeInTheDocument();
+    });
   });
 
   it('saves it once when the shell mounts again with the session, as after the sign-in page', async () => {

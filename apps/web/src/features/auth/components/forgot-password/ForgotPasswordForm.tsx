@@ -5,9 +5,10 @@ import { useForgotPasswordForm } from '../../hooks/forgot-password/useForgotPass
 
 /**
  * The request for a reset link: the email, the submit, and why the request failed, all from
- * `useForgotPasswordForm`. Once it is sent, the recovery is at `sent`, and the page shows it.
+ * `useForgotPasswordForm`. Once it is sent, the recovery is at `sent`, and the page shows it. Opened
+ * again for another email, the field takes the focus (`focusEmail`).
  */
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm({ focusEmail = false }: { focusEmail?: boolean }) {
   const copy = useCopy();
   const { field, submit, isPending, blocked, errors, failure } = useForgotPasswordForm();
 
@@ -20,6 +21,7 @@ export function ForgotPasswordForm() {
           dir="ltr"
           autoComplete="email"
           placeholder={copy.auth.fields.emailExample}
+          autoFocus={focusEmail}
           {...field('email')}
         />
       </Field>

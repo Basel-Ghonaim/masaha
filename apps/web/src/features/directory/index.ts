@@ -4,6 +4,7 @@ export { HomeSpaces } from './components/home/HomeSpaces';
 export { LiveStatusBadge } from './components/card/LiveStatusBadge';
 export { SpaceDetails } from './components/page/SpaceDetails';
 export { useAreaCounts } from './hooks/home/useAreaCounts';
+export { useCachedSpaceName } from './hooks/page/useCachedSpaceName';
 export { useDirectoryReturn } from './hooks/list/directoryReturn';
 export { useSpaceContactBar, useSpacePageTitle } from './hooks/page/useSpacePage';
 export { ViewSwitch } from './components/view/ViewSwitch';

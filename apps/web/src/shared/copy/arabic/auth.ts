@@ -43,14 +43,18 @@ export const AUTH = {
   },
   signIn: {
     title: 'تسجيل الدخول',
-    description:
-      'سجّل الدخول لمتابعة مساحاتك المفضّلة والبلاغات التي أرسلتها عن المعلومات الخاطئة.',
+    description: 'سجّل الدخول لحفظ مساحاتك المفضّلة ومتابعة بلاغاتك، أو لإدارة مساحتك.',
     submit: 'تسجيل الدخول',
     failed: 'تعذّر تسجيل الدخول',
     forgotPassword: 'نسيت كلمة المرور؟',
     noAccount: 'ليس لديك حساب؟',
     createAccount: 'إنشاء حساب',
-    browseWithoutAccount: 'تصفّح المساحات بدون حساب',
+    welcomeBack: 'أهلًا بعودتك',
+  },
+  wayBack: {
+    toSpace: ({ space }: { space: string }) => `العودة إلى ${space}`,
+    previous: 'العودة إلى الصفحة السابقة',
+    home: 'العودة إلى الرئيسية',
   },
   register: {
     title: 'إنشاء حساب',
@@ -76,6 +80,7 @@ export const AUTH = {
     resendIn: ({ wait }: { wait: string }) => `أعد الإرسال بعد ${wait}`,
     resendFailed: 'تعذّرت إعادة إرسال الرابط',
     enterEmailAgain: 'أدخل بريدك الإلكتروني من جديد',
+    useAnotherEmail: 'استخدم بريدًا آخر',
     linkOpenTitle: 'فتحت رابط الاستعادة',
     linkOpenDescription: ({ email }: { email: string }) =>
       `للحساب ${email}. عيّن كلمة المرور الجديدة، أو اطلب رابطًا جديدًا.`,

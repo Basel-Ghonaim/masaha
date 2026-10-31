@@ -1,11 +1,14 @@
+import { Toaster, toast } from '@shared/design-system';
 import { getSession, onSessionEstablished } from '@shared/session';
 import { useQueryClient } from '@tanstack/react-query';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
 import { aSession, deferred } from '../../../../test/fakeSession';
 import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { findToast } from '../../../../test/findToast';
 import { queryWrapper } from '../../../../test/queryWrapper';
+import { startPreferences } from '../../../../test/startPreferences';
 import { useSignIn } from './useSignIn';
 
 const REQUEST = { email: 'sara@example.com', password: 'gaza2026' };
@@ -19,9 +22,23 @@ function recordSessions() {
 
 afterEach(() => {
   restoreTransport();
+  act(() => {
+    toast.dismiss();
+  });
 });
 
 describe('useSignIn', () => {
+  it('welcomes the account back once the session is held', async () => {
+    startPreferences('en');
+    fakeTransport(() => ok(aSession({ name: 'Sara', language: 'en' })));
+    render(<Toaster label="Notifications" />);
+    const { result } = renderHook(() => useSignIn(), { wrapper: queryWrapper() });
+
+    await act(() => result.current.mutateAsync(REQUEST));
+
+    expect(await findToast('Welcome back')).toBeVisible();
+  });
+
   it('holds the session the server issued, as a sign-in', async () => {
     fakeTransport(() => ok(aSession({}, 'token-5')));
     const sources = recordSessions();

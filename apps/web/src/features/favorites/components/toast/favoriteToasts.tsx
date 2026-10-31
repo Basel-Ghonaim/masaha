@@ -3,6 +3,7 @@ import { toast } from '@shared/design-system';
 import type { AppError } from '@shared/errors';
 import type { SpaceNameView } from '@shared/lib';
 import { isolate } from '@shared/localisation';
+import { RETURN_TOAST_ID } from '@shared/routing';
 
 /** The space's name under a toast, marked when it is not in the interface's language. */
 function NameLine({ name }: { name: SpaceNameView }) {
@@ -33,9 +34,14 @@ export function toastRemovedLeft(name: SpaceNameView) {
   toast.success(currentCopy().favorites.removedLeft({ name: isolate(name.text) }));
 }
 
-/** Says a guest's favourite was saved once they came back signed in (DI-61). */
+/**
+ * Says a guest's favourite was saved once they came back signed in (DI-61), in the place of the
+ * sign-in's welcome (`RETURN_TOAST_ID`, C4).
+ */
 export function toastSavedOnReturn(name: SpaceNameView) {
-  toast.success(currentCopy().favorites.savedOnReturn({ name: isolate(name.text) }));
+  toast.success(currentCopy().favorites.savedOnReturn({ name: isolate(name.text) }), {
+    id: RETURN_TOAST_ID,
+  });
 }
 
 /**
