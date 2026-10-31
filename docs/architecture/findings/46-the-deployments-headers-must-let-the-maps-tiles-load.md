@@ -7,3 +7,5 @@
 **2026-10-21, #105:** the site's Directory now shows the same tiles on its map («خريطة»), so a blank map would reach every visitor, not only the admin.
 
 **Resolves when:** the deployment's headers are written ([ADR 0014](../decisions/0014-deployment.md)) with a CSP whose `img-src` allows `https://tile.openstreetmap.org`, beside finding 33's rules for Google.
+
+**To the deployment item** (the owner's F1, 2026-10-29).
