@@ -22,6 +22,18 @@ const repository = createDeskRepository();
 /** «الكل»: no filter, as a choice's value. */
 const ALL = 'all';
 
+/**
+ * The type filter's kinds in the design's order (foundation §13, screen 14): «شهري», «أسبوعي»,
+ * «باقة», «مخصّص», «بدون اشتراك» (D8.5).
+ */
+const KIND_ORDER = [
+  'MONTH',
+  'WEEK',
+  'PACKAGE',
+  'CUSTOM',
+  'NONE',
+] as const satisfies readonly (typeof CUSTOMER_KINDS)[number][];
+
 /** A page of the customers the filters find; the page before stays shown while the next loads. */
 function useCustomersPageQuery(spaceId: number, query: CustomersQuery) {
   // The repository rejects with the AppError the transport made (docs/frontend/architecture.md §7).
@@ -143,7 +155,7 @@ export function useCustomersList(spaceId: number, { owner }: { owner: boolean })
         value: kind ?? ALL,
         options: [
           { value: ALL, label: words.kind.options.all },
-          ...CUSTOMER_KINDS.map((value) => ({ value, label: words.kind.options[value] })),
+          ...KIND_ORDER.map((value) => ({ value, label: words.kind.options[value] })),
         ],
         choose: (value: string) => {
           filters.choose.kind(CUSTOMER_KINDS.find((each) => each === value));

@@ -135,4 +135,27 @@ describe('useCustomersList', () => {
     });
     expect(result.current.list.rows.map((row) => row.card.name)).toEqual(['Omar']);
   });
+
+  it('offers the type filter monthly and weekly first, in the design’s order, each its kind', async () => {
+    const { result, requests } = renderList('/c', () => customersAt([customerRow()]));
+    await waitFor(() => {
+      expect(result.current.list.state).toBe('ready');
+    });
+
+    const { kind } = result.current.list.toolbar;
+    expect(kind.options.map(({ label }) => label)).toEqual([
+      'All types',
+      'Monthly',
+      'Weekly',
+      'Package',
+      'Custom',
+      'No subscription',
+    ]);
+    act(() => {
+      kind.choose('MONTH');
+    });
+    await waitFor(() => {
+      expect(requests.at(-1)?.params).toMatchObject({ kind: 'MONTH' });
+    });
+  });
 });
