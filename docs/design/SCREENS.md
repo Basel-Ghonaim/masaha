@@ -51,12 +51,10 @@ The screen list is owned by `docs/frontend/design-system/foundation.md` §13. Th
 | 28 | Data reports (all spaces) | `Admin reports.html` | 45 |
 | 29 | Users (+ temporary password) | `Admin users.html` | 46, 50 |
 | 30 | Lookups (areas, amenities) | `Admin lookups.html` | 47, 49, 50 |
-| 31 | Audit log | `Admin audit.html` | 48 |
+| 31 | Audit log (the admin's; the owner's, O13) | `Admin audit.html`, `Owner audit.html` (O13) | 48, 55 |
 | 32 | Platform settings | `Admin settings.html` | 48 |
 
 ## Also in the archive
 
 - `Wordmark.html`: the three wordmark options; **option A (plain word, «م» favicon) was chosen**.
 - `prototype/BRIEF.md`: the product brief the designs were made against (roles, scope, product rules, sample data).
-- `Owner audit.html`: the owner's audit log (O13), the admin's audit page scoped to the space. It is not
-yet one of foundation §13's screens ([finding 14](../architecture/findings/14-the-owners-audit-screen-has-no-design.md)); board section 55.

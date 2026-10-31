@@ -16,9 +16,7 @@
 - Issues a temporary password for the admin, the recovery of a person who lost their email, again when the first was lost; and, through `space-links`, for an owner's reception account while its first is pending, with its handover.
 - Reads the account for the guard on every signed-in request, so a suspension, a role change and a pending password change hold from the account's next request, and an access token signed before every session of the account last ended is refused.
 - Changes the global role when `space-links` finds that a person's owner links give another, or the admin's role change allows it, ending every session of theirs.
-- On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, the forced password change's form, and the one-time password dialog with its handover; the suspension and restore of an account, and the issue of a temporary password, from the admin's users page.
-
-The account's settings page on the web is not built; its API, `GET` and `PATCH /me`, is.
+- On the web: the account menu in the site's header, its section in the phone menu, the compact menu in the dashboard's top bar, the sign-out button, the forced password change's form, and the one-time password dialog with its handover; the suspension and restore of an account, and the issue of a temporary password, from the admin's users page; and one's own settings, «إعدادات حسابي» (below).
 
 ## Who uses it
 

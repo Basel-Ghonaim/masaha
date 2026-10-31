@@ -458,7 +458,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 8. **404**
 
 ### My account (3)
-9. **Profile & settings** — name, password (a Google-only account can add one), language, theme
+9. **Profile & settings** — name, password (a Google-only account can add one), language, theme; the ways the account signs in, Google and the password (2026-10-29, #132)
 10. **Favourites**
 11. **My reports** — submitted reports, their status and the resolution note («ردّ إدارة المساحة» or «ردّ فريقنا»)
 
@@ -478,7 +478,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 21. **Prices & packages** (O) — the published prices (hour, day, week, month, student), which are the public packages, and private packages
 22. **Staff** (O) — reception accounts: add by name and email (a temporary password shown once, or an existing account linked), deactivate
 23. **Data reports** (O) — users' reports about the space's info; resolve with an optional note
-24. **Settings** (O) — auto check-out rule, visit rounding rule, account
+24. **Settings** (O) — auto check-out rule, visit rounding rule; the account card, «حسابي», leading to one's own settings (screen 9) (2026-10-29, #132)
 
 ### Admin dashboard (8)
 25. **Overview** — spaces verified / unverified, open reports, new users, data completeness
@@ -487,7 +487,7 @@ The final designs are archived in [docs/design/](../../design/README.md): [SCREE
 28. **Data reports** — all reports and their status; resolve those of unverified spaces with an optional note
 29. **Users** — search, suspend, change role; issue a temporary password to a user who lost access to their email
 30. **Lookups** — areas and amenities, in Arabic and English
-31. **Audit log**
+31. **Audit log** — the admin's; and the owner's, scoped to the space (O13: the admin's page for one space, in «الفريق والإعدادات»), one screen, not a 33rd (DI1; 2026-10-29, #132)
 32. **Settings** — contact email and WhatsApp, default auto check-out, data-staleness threshold
 
 ---
