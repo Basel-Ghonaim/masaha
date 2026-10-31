@@ -1,7 +1,7 @@
 import type { PresentPerson } from '@masaha/shared/occupancy';
 import type { VisitTerms } from '@masaha/shared/visits';
 import { useCopy } from '@shared/copy';
-import { Button } from '@shared/design-system';
+import { Button, LogOutIcon } from '@shared/design-system';
 import { isolate } from '@shared/localisation';
 import { useRef, useState, type RefObject } from 'react';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
@@ -64,6 +64,7 @@ function VisitCheckOutAction({
           setOpen(true);
         }}
       >
+        <LogOutIcon aria-hidden />
         {words.open}
       </Button>
       {open && terms !== undefined && (
@@ -107,6 +108,7 @@ function SubscriberCheckOutAction({
       aria-busy={checkOut.busy || undefined}
       onClick={checkOut.run}
     >
+      <LogOutIcon aria-hidden />
       {checkOut.label}
     </Button>
   );

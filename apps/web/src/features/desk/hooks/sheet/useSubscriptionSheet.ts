@@ -323,6 +323,7 @@ export function useSubscriptionSheet({
   const busy = form.isPending;
   const halfName = created === null || !refusedAfterCreate ? null : isolate(created.name);
   const failure = deskFailure(refusal, form.failure, {
+    limited: copy.desk.failure.limited,
     title: words.done.failed,
     lost: copy.desk.failure.lost,
     nothing: copy.desk.failure.nothing,

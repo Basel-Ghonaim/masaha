@@ -31,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   EllipsisIcon,
+  LogInIcon,
   Tabs,
   TabsContent,
   TabsList,
@@ -193,6 +194,7 @@ function Desk({ spaceId }: { spaceId: number }) {
                 {words.sheet.entry.new}
               </Button>
               <Button size="sm" onClick={openVisit}>
+                <LogInIcon aria-hidden />
                 {words.actions.checkIn}
               </Button>
             </>
@@ -226,6 +228,7 @@ function Desk({ spaceId }: { spaceId: number }) {
       </PageHeader>
       <PageActionBar>
         <Button size="lg" className="w-full" onClick={openVisit}>
+          <LogInIcon aria-hidden />
           {words.actions.checkIn}
         </Button>
       </PageActionBar>

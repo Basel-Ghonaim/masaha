@@ -9,6 +9,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  LogInIcon,
 } from '@shared/design-system';
 import { useRef, type RefObject } from 'react';
 import { useCustomerCard } from '../../hooks/card/useCustomerCard';
@@ -105,6 +106,7 @@ export function CustomerCard({
             checkIn.tap.run();
           }}
         >
+          <LogInIcon aria-hidden />
           {checkIn.tap.label}
         </Button>
         {card.receive !== null && (

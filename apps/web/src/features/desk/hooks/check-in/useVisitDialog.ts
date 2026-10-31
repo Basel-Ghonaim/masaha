@@ -173,6 +173,7 @@ export function useVisitDialog({
       blocked: form.blocked,
     },
     failure: deskFailure(refusal, form.failure, {
+      limited: copy.desk.failure.limited,
       title: words.failed,
       lost: copy.desk.failure.lost,
       nothing: copy.desk.failure.nothing,

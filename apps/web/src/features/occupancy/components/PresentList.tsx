@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   EmptyState,
+  UsersIcon,
   WifiOffIcon,
 } from '@shared/design-system';
 import { DataTable, createDataTableColumnHelper } from '@shared/design-system/data';
@@ -208,7 +209,13 @@ export function PresentList({
           )}
           loading={list.state === 'loading'}
           loadingRows={3}
-          empty={<EmptyState title={list.empty.title} description={list.empty.text} />}
+          empty={
+            <EmptyState
+              icon={<UsersIcon />}
+              title={list.empty.title}
+              description={list.empty.text}
+            />
+          }
           summary={list.state === 'ready' ? list.summary : undefined}
         />
       )}

@@ -6,7 +6,9 @@ import {
   Button,
   EmptyState,
   Input,
+  LogInIcon,
   SearchIcon,
+  SearchXIcon,
   Skeleton,
   WifiOffIcon,
 } from '@shared/design-system';
@@ -81,6 +83,7 @@ export function DeskSearch({
             if (search.checkIn !== null) checkIn(search.checkIn.name, after);
           }}
         >
+          <LogInIcon aria-hidden />
           {search.checkIn.label}
         </Button>
         {newCustomer !== null && (
@@ -101,6 +104,7 @@ export function DeskSearch({
       <Input
         ref={input}
         type="search"
+        size="lg"
         aria-label={search.input.label}
         aria-controls={resultsId}
         placeholder={search.input.placeholder}
@@ -180,7 +184,11 @@ export function DeskSearch({
           </section>
         )}
         {search.none !== null ? (
-          <EmptyState title={search.none.title} description={search.none.text}>
+          <EmptyState
+            icon={<SearchXIcon />}
+            title={search.none.title}
+            description={search.none.text}
+          >
             {visitButton}
           </EmptyState>
         ) : (

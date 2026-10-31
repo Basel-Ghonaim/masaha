@@ -17,6 +17,7 @@ import {
   Textarea,
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
+import { PhoneInput } from '../phone/PhoneInput';
 import type { RefObject } from 'react';
 import { useCheckOutDialog } from '../../hooks/check-out/useCheckOutDialog';
 import { MoneyBlock } from '../money/MoneyBlock';
@@ -172,14 +173,7 @@ function DebtFields({
         <Input dir="auto" autoComplete="off" {...debt.name.field} />
       </Field>
       <Field label={debt.phone.label} error={debt.phoneError}>
-        <Input
-          type="tel"
-          dir="ltr"
-          autoComplete="off"
-          autoFocus={autoFocus}
-          aria-required={debt.required}
-          {...debt.phone.field}
-        />
+        <PhoneInput autoFocus={autoFocus} aria-required={debt.required} {...debt.phone.field} />
       </Field>
       {/* Whose file the phone adds to, said as it is found (G13.12). */}
       <p aria-live="polite" className="text-body-sm text-muted-foreground empty:hidden">

@@ -3,6 +3,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  ChevronDownIcon,
   ToggleGroup,
   ToggleGroupItem,
   useMediaQuery,
@@ -49,6 +50,7 @@ export function LiveStatusControl({ spaceId }: { spaceId: number }) {
             disabled={trigger.disabled}
           >
             {wide ? trigger.label : trigger.word}
+            {wide && <ChevronDownIcon aria-hidden />}
           </Button>
         </PopoverTrigger>
         <PopoverContent aria-labelledby={titleId} className="flex w-72 flex-col gap-3">

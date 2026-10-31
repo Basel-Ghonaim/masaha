@@ -270,6 +270,7 @@ export function usePayDialog({
       blocked: form.blocked || money.recorded === 0,
     },
     failure: deskFailure(refusal, form.failure, {
+      limited: copy.desk.failure.limited,
       title: words.failed,
       lost: copy.desk.failure.lost,
       nothing: copy.desk.failure.nothing,

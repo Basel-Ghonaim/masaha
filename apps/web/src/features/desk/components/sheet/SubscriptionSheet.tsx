@@ -13,6 +13,7 @@ import {
   SheetTitle,
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
+import { PhoneInput } from '../phone/PhoneInput';
 import { useSubscriptionSheet } from '../../hooks/sheet/useSubscriptionSheet';
 import type { SheetChoices } from '../../types/SheetChoices';
 import type { SheetEntry } from '../../types/SheetEntry';
@@ -97,10 +98,7 @@ export function SubscriptionSheet({
                   }
                   error={customer.phone.error}
                 >
-                  <Input
-                    type="tel"
-                    dir="ltr"
-                    autoComplete="off"
+                  <PhoneInput
                     aria-required={customer.phone.required}
                     readOnly={customer.saved}
                     {...customer.phone.field}

@@ -10,6 +10,7 @@ import {
   Textarea,
 } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
+import { PhoneInput } from '../phone/PhoneInput';
 import { useCollectDialog } from '../../hooks/collect/useCollectDialog';
 import type { UncollectedItem } from '../../types/UncollectedItem';
 import { MoneyBlock } from '../money/MoneyBlock';
@@ -71,13 +72,7 @@ export function CollectDialog({
                   <Input dir="auto" autoComplete="off" {...debt.name.field} />
                 </Field>
                 <Field label={debt.phone.label} error={debt.phoneError}>
-                  <Input
-                    type="tel"
-                    dir="ltr"
-                    autoComplete="off"
-                    aria-required={debt.required}
-                    {...debt.phone.field}
-                  />
+                  <PhoneInput aria-required={debt.required} {...debt.phone.field} />
                 </Field>
               </div>
             )}

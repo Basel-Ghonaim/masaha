@@ -151,6 +151,8 @@ export const DESK = {
     adds: ({ name }: { name: string }) => `Added to ${name}’s file`,
     /** A typed phone no customer holds yet: the write makes their file. */
     newCustomer: 'A new customer with this number',
+    /** Every phone field's example (G13.14). */
+    phonePlaceholder: '+970 59 000 0000',
     title: ({ name }: { name: string }) => `Record a debt · ${name}`,
     text: ({ amount }: { amount: string }) =>
       `${amount} stays owed by this number’s holder; a customer file is created if there is none.`,
@@ -232,6 +234,8 @@ export const DESK = {
     lost: 'No answer came back. Try again — it won’t be recorded twice.',
     /** The server refused: it wrote nothing. */
     nothing: 'Nothing was recorded.',
+    /** Too many attempts, in a money dialog: nothing landed, and the key keeps a retry single. */
+    limited: 'Nothing was recorded. Trying again after that won’t record it twice.',
   },
   refusals: {
     VISIT_ALREADY_CLOSED:

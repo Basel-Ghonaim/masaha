@@ -251,6 +251,7 @@ export function useCheckOutDialog({
       : calcOf(quote.chargeAgorot, quote.billedMinutes, quote.capApplied);
   const hasVisitCustomerRefusal = refusal?.code === 'VISIT_HAS_CUSTOMER';
   const failure = deskFailure(hasVisitCustomerRefusal ? null : refusal, form.failure, {
+    limited: words.failure.limited,
     title: words.checkOut.failed,
     lost: words.failure.lost,
     nothing: words.failure.nothing,

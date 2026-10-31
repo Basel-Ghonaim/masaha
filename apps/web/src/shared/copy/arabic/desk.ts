@@ -155,6 +155,7 @@ export const DESK = {
     phoneRequired: 'رقم الجوال مطلوب ليُسجَّل المبلغ دينًا، مثل \u2066+970 59 000 0000\u2069',
     adds: ({ name }: { name: string }) => `يُضاف إلى ملف ${name}`,
     newCustomer: 'زبون جديد بهذا الرقم',
+    phonePlaceholder: '+970 59 000 0000',
     title: ({ name }: { name: string }) => `تسجيل دين · ${name}`,
     text: ({ amount }: { amount: string }) =>
       `يبقى ${amount} دينًا على صاحب هذا الرقم، ويُنشأ له ملف زبون إن لم يكن له ملف.`,
@@ -234,6 +235,7 @@ export const DESK = {
   failure: {
     lost: 'لم يصل الرد. أعد المحاولة — لن تُسجَّل مرتين.',
     nothing: 'لم يُسجَّل شيء.',
+    limited: 'لم يُسجَّل شيء. إعادة المحاولة بعد ذلك لن تسجّله مرتين.',
   },
   refusals: {
     VISIT_ALREADY_CLOSED:

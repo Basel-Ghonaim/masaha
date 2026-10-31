@@ -144,6 +144,18 @@ describe('useCollectDialog', () => {
     ).toBeInTheDocument();
   });
 
+  it('says a 429 recorded nothing, and that a retry after it won’t record twice', async () => {
+    const user = userEvent.setup();
+    renderDialog(() => refused(429, { type: 'rate_limit' }, { 'retry-after': '90' }));
+
+    await user.click(screen.getByRole('button', { name: heard('Record ₪25') }));
+    expect(
+      await screen.findByText(
+        /Nothing was recorded\. Trying again after that won’t record it twice\.$/,
+      ),
+    ).toBeVisible();
+  });
+
   it('words VISIT_WRITTEN_OFF and VISIT_NOT_PRICED', async () => {
     const user = userEvent.setup();
     let answer = refused(409, { type: 'conflict', code: 'VISIT_WRITTEN_OFF' });
