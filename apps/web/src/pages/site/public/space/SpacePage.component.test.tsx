@@ -15,7 +15,10 @@ import { startPreferences } from '../../../../test/startPreferences';
 import { siteRoutes } from '../../routes';
 
 /** «Noor Hub»'s page in the site's shell, the server answering its reads, `change` its space's. */
-async function renderSpacePage(change: Parameters<typeof publicSpace>[0] = {}) {
+async function renderSpacePage(
+  change: Parameters<typeof publicSpace>[0] = {},
+  path = '/spaces/noor-hub',
+) {
   const requests = fakeTransport((request) =>
     request.url === '/spaces'
       ? ok([], 200)
@@ -42,7 +45,7 @@ async function renderSpacePage(change: Parameters<typeof publicSpace>[0] = {}) {
         children: siteRoutes,
       },
     ],
-    { initialEntries: ['/spaces/noor-hub'] },
+    { initialEntries: [path] },
   );
   const Wrapper = queryWrapper();
   render(
@@ -50,7 +53,8 @@ async function renderSpacePage(change: Parameters<typeof publicSpace>[0] = {}) {
       <RouterProvider router={router} />
     </Wrapper>,
   );
-  await screen.findByRole('heading', { level: 1, name: 'Noor Hub' });
+  if (path === '/spaces/noor-hub')
+    await screen.findByRole('heading', { level: 1, name: 'Noor Hub' });
   return { router, requests };
 }
 
@@ -61,7 +65,11 @@ async function becomeGuest() {
 
 // The shell and the page load lazily; their first transform is the file's start-up, not a test's.
 beforeAll(async () => {
-  await Promise.all([import('../../shell/SiteLayout'), import('./SpacePage')]);
+  await Promise.all([
+    import('../../shell/SiteLayout'),
+    import('./SpacePage'),
+    import('../about/AboutPage'),
+  ]);
 });
 
 beforeEach(() => {
@@ -158,6 +166,59 @@ describe('a space’s page', () => {
     expect(
       await screen.findByRole('dialog', { name: 'Report wrong information' }),
     ).toBeInTheDocument();
+  });
+
+  it('opens a report held in another tab, before a recovery, once signed in here, back on its page', async () => {
+    stubScreenWidth(1440);
+    await becomeGuest();
+    const { router } = await renderSpacePage({}, '/about');
+    await screen.findByRole('heading', { level: 1, name: 'About Masaha' });
+    // The tab the guest pressed «Report» in, before the reset link opened this one, wrote it.
+    localStorage.setItem(
+      'masaha.heldIntent',
+      JSON.stringify({
+        kind: 'report',
+        slug: 'noor-hub',
+        path: '/spaces/noor-hub',
+        at: Date.now(),
+      }),
+    );
+
+    await act(async () => {
+      establishSession(aSession(), { source: 'signIn' });
+      await Promise.resolve();
+    });
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Report wrong information' })).toBeVisible();
+    expect(router.state.location.pathname).toBe('/spaces/noor-hub');
+    expect(localStorage.getItem('masaha.heldIntent')).toBeNull();
+    // Closed, it lets the report go.
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Back' }));
+  });
+
+  it('runs no report held in another tab when the session is only restored', async () => {
+    stubScreenWidth(1440);
+    await becomeGuest();
+    await renderSpacePage();
+    localStorage.setItem(
+      'masaha.heldIntent',
+      JSON.stringify({
+        kind: 'report',
+        slug: 'noor-hub',
+        path: '/spaces/noor-hub',
+        at: Date.now(),
+      }),
+    );
+
+    await act(async () => {
+      establishSession(aSession(), { source: 'restore' });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(localStorage.getItem('masaha.heldIntent')).not.toBeNull();
+    localStorage.removeItem('masaha.heldIntent');
   });
 
   it('lets the report go when the guest closes the sign-in', async () => {

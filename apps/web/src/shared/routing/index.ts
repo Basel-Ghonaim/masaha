@@ -8,7 +8,14 @@ export {
 export { classifyRouteError, type RouteErrorKind } from './states/classifyRouteError';
 export { DocumentTitle } from './title/DocumentTitle';
 export { ForbiddenState } from './states/ForbiddenState';
-export { noteSitePage, onGuestLeaving } from './guest/guestLeaving';
+export { noteSitePage, onGuestLeaving, sitePage } from './guest/guestLeaving';
+export {
+  dropHeldIntent,
+  holdIntent,
+  onIntentConfirmed,
+  takeIntentPath,
+  type HeldIntent,
+} from './guest/heldIntent';
 export { RETURN_TOAST_ID } from './guest/returnToast';
 export { hasDashboard } from './landing/hasDashboard';
 export { landingPath } from './landing/landingPath';

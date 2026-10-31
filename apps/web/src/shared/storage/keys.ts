@@ -8,6 +8,11 @@ export const STORAGE_KEYS = {
   theme: 'masaha.theme',
   /** One key per user, so two accounts on one device never land on each other's space. */
   lastSpace: (userId: number) => `masaha.lastSpace.${String(userId)}` as const,
+  /**
+   * A guest's held favourite or report, for 15 minutes, so a password recovery's new tab can run it
+   * after its sign-in (finding 168; shared/routing's guest/heldIntent.ts).
+   */
+  heldIntent: 'masaha.heldIntent',
 } as const;
 
 type Keys = typeof STORAGE_KEYS;

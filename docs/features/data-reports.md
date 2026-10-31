@@ -98,6 +98,7 @@
 - **The toast says where the reply lands, or that one is already open** (DI-47, DI-48), with «عرض بلاغاتي». *Why:* the repository reads the answer's status — 201 a new report, 200 the open one (S15) — so the user is never told a second report was filed. 2026-10-28, #129.
 - **A report is sent once, with no key** (S4): a repeat answers the open report, so a lost answer is retried from the dialog. 2026-10-28, #129.
 - **A guest's report waits in memory, never in the address** (S14, DI-60, DI-61): the press holds the space's slug and the page asks them to sign in with the reason; the held report opens the dialog once they are back signed in, and is let go if they close the sign-in, after 15 minutes, or once the guest lands on another page of the site (the shell reports each page it shows: `noteSitePage`), so a later visit signed in opens nothing by itself (#129's review). *Why:* a link carrying the intent would let a crafted link act for a signed-in user. *Cost:* a reload, or a recovery by email, loses it ([finding 168](../architecture/findings/168-a-guests-intent-does-not-survive-a-password-recovery.md)). 2026-10-28, #129.
+- **A guest's held report is also kept in the browser's storage for its 15 minutes** (`shared/routing`'s held intent), so a password recovery's new tab, once signed in there, goes back to the space's page with the dialog open; only a sign-in in this browser runs it, never a restore. *Why:* the owner's 168 ([finding 168](../architecture/findings/168-a-guests-intent-does-not-survive-a-password-recovery.md)). 2026-10-29, #132.
 - **The reply is labelled by who replied** (DI-56): `repliedBy` `SPACE` «ردّ إدارة المساحة», `MASAHA` «ردّ فريقنا» — "our team", never «فريق مساحة», which reads as the space's. A space that left is named as text with its line (C7). 2026-10-28, #129.
 
 ## Code map
@@ -108,7 +109,6 @@
 
 ## Open findings
 
-- [168. A guest's intent does not survive a password recovery](../architecture/findings/168-a-guests-intent-does-not-survive-a-password-recovery.md) — the report held for a guest is lost by a reload or a recovery by email.
 - [180. A site page's chunk reaches the table's and the calendar's libraries](../architecture/findings/180-a-site-pages-chunk-reaches-the-tables-and-the-calendars-libraries.md) — the space page's and «بلاغاتي»'s chunks reach the table through this capability's entry
 - [184. A report's «تعديل الحقل» may not scroll to its section](../architecture/findings/184-a-reports-edit-the-field-link-may-not-scroll-to-its-section.md) — the editor does not scroll to the address's anchor once its cards have drawn.
 
@@ -126,3 +126,4 @@
 - 2026-10-28, #129 — «بلاغاتي»: a signed-in user's own reports, the replies labelled by who replied, a space that left named as text; linked from the account menu.
 - 2026-10-28, #129 — the report from a space's page: who reads it by the space's verification, the details required for «أخرى» only, the toast by the answer's status; a guest asked to sign in first, the report held in memory.
 - 2026-10-29, #132 — «بلاغاتي» says which reports a page shows, of how many.
+- 2026-10-29, #132 — a guest's held report survives a password recovery, kept in the browser's storage and run after a sign-in.
