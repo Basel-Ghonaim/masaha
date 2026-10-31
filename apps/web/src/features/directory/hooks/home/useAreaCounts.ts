@@ -6,11 +6,14 @@ const EVERY_SPACE: PinsRequest = {};
 
 /**
  * How many publicly listed spaces each area holds, by the area's id, and their total: counted from
- * the map's pins with no filter, one pin a space. `retry` reads them again once they have failed.
+ * the map's pins with no filter, one pin a space. Past the pins' ceiling (`truncated`) the counts
+ * fall short, so they are no count to show (finding 137). `retry` reads them again once they have
+ * failed.
  */
 export function useAreaCounts(): {
   counts: ReadonlyMap<number, number>;
   total: number;
+  truncated: boolean;
   state: 'loading' | 'failed' | 'ready';
   retry: () => void;
 } {
@@ -22,6 +25,7 @@ export function useAreaCounts(): {
   return {
     counts,
     total: pins.length,
+    truncated: query.data?.truncated === true,
     state: query.data !== undefined ? 'ready' : query.isError ? 'failed' : 'loading',
     retry: () => {
       void query.refetch();

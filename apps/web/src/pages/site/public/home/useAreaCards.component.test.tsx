@@ -70,6 +70,23 @@ describe('useAreaCards', () => {
     ]);
   });
 
+  it('names the areas without counts while the pins are past their ceiling', async () => {
+    startPreferences('ar');
+    fakeTransport((request) =>
+      request.url === '/lookups' ? ok(CATALOGUE) : ok({ ...PINS, truncated: true }),
+    );
+    const { result } = renderHook(() => useAreaCards(), { wrapper: queryWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.state).toBe('ready');
+    });
+    expect(result.current.cards).toEqual([
+      { key: '11', title: 'الرمال', line: 'غزة', to: '/spaces?area=11' },
+      { key: '51', title: 'المواصي', line: 'خان يونس', to: '/spaces?area=51' },
+      { key: 'all', title: 'كل المناطق', line: 'قطاع غزة', to: '/spaces' },
+    ]);
+  });
+
   it('says when either read failed, and its one retry reads both again', async () => {
     startPreferences('en');
     let fail = true;
