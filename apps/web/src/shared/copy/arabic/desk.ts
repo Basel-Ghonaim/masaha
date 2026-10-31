@@ -551,7 +551,7 @@ export const DESK = {
     payments: 'الدفعات',
     noPayments: 'لا دفعات بعد.',
     voided: 'ملغاة',
-    voidedReason: ({ reason }: { reason: string }) => `أُلغيت: ${reason}`,
+    recordedBy: ({ name }: { name: string }) => `سجّلها ${name}`,
     renewal: ({ date }: { date: string }) => `التجديد يبدأ في ${date}`,
   },
   /** Ending a subscription early. */

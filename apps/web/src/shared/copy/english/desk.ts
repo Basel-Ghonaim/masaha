@@ -539,7 +539,8 @@ export const DESK = {
     payments: 'Payments',
     noPayments: 'No payments yet.',
     voided: 'Voided',
-    voidedReason: ({ reason }: { reason: string }) => `Voided: ${reason}`,
+    /** Who recorded a payment (finding 162); who voided one, and why, is the ledger's line. */
+    recordedBy: ({ name }: { name: string }) => `Recorded by ${name}`,
     renewal: ({ date }: { date: string }) => `A renewal would start on ${date}`,
   },
   /** Ending a subscription early. */

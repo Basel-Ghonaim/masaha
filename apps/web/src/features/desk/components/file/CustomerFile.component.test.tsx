@@ -40,7 +40,28 @@ const FILE = customerFile({
           reason: null,
         },
       }),
-      payments: [],
+      payments: [
+        {
+          id: 21,
+          amountAgorot: 1000,
+          method: 'CASH',
+          note: null,
+          receivedAt: '2026-10-24T15:00:00Z',
+          recordedById: 15,
+          recordedBy: { id: 15, name: 'Mona' },
+          voided: null,
+        },
+        {
+          id: 22,
+          amountAgorot: 500,
+          method: 'CASH',
+          note: null,
+          receivedAt: '2026-10-24T15:05:00Z',
+          recordedById: 15,
+          recordedBy: { id: 15, name: 'Mona' },
+          voided: { at: '2026-10-24T16:00:00Z', by: { id: 14, name: 'Ahmad' }, reason: 'Twice' },
+        },
+      ],
       paidAgorot: 1000,
       balanceAgorot: 1500,
     },
@@ -86,6 +107,10 @@ describe('CustomerFile', () => {
     expect(region).toContainElement(subscriptions);
     expect(within(region).getByText('Typed price')).toBeVisible();
     expect(within(region).getAllByRole('button', { name: 'Receive what’s left' })).toHaveLength(1);
+    // Each payment on an unpaid visit names who recorded it, and a void who voided it (finding 162).
+    const unpaid = screen.getByRole('region', { name: 'Unpaid visits' });
+    expect(within(unpaid).getAllByText(/Recorded by .Mona.$/)).toHaveLength(2);
+    expect(within(unpaid).getByText(/^Voided by .Ahmad.: Twice$/)).toBeVisible();
     expect(await axe(container)).toHaveNoViolations();
   });
 

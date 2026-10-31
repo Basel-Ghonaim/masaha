@@ -26,7 +26,7 @@ export function UnpaidVisits({
       </CardHeader>
       <ul className="flex flex-col divide-y">
         {unpaid.rows.map((row) => (
-          <UncollectedRow key={row.key} row={row} opened={opened} />
+          <UncollectedRow key={row.key} row={row} opened={opened} payments={row.payments} />
         ))}
       </ul>
     </Card>

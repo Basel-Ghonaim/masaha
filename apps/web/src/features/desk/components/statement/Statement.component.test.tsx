@@ -98,7 +98,11 @@ describe('Statement', () => {
       });
       expect(payments).toBeVisible();
       expect(within(statement as HTMLElement).getByText('Voided')).toBeVisible();
-      expect(within(statement as HTMLElement).getByText('Voided: Entered twice')).toBeVisible();
+      // Who recorded it, and who voided it and why (finding 162).
+      expect(within(statement as HTMLElement).getByText(/^Recorded by .Ahmad.$/)).toBeVisible();
+      expect(
+        within(statement as HTMLElement).getByText(/^Voided by .Ahmad.: Entered twice$/),
+      ).toBeVisible();
       expect(within(statement as HTMLElement).getByText('Auto check-out')).toBeVisible();
       expect(await axe(container)).toHaveNoViolations();
     },
@@ -180,7 +184,7 @@ describe('Statement › a payment’s void', () => {
   it('offers reception no «⋯»', async () => {
     stubScreenWidth(1440);
     await openStatement(false);
-    expect(await screen.findByText('Voided: Entered twice')).toBeVisible();
+    expect(await screen.findByText(/^Voided by .Ahmad.: Entered twice$/)).toBeVisible();
     expect(paymentActions()).toHaveLength(0);
   });
 

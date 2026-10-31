@@ -7,6 +7,7 @@ import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
 import { balanceView } from '../../services/balanceView';
 import { currentOf } from '../../services/currentOf';
+import { paymentLines } from '../../services/paymentLines';
 import { payStatus } from '../../services/payStatus';
 import { progressLines } from '../../services/progressLines';
 import { statusView } from '../../services/statusView';
@@ -107,7 +108,7 @@ export function useCustomerFile(
         ? null
         : {
             title: words.unpaid.title,
-            rows: file.unpaidVisits.map(({ visit, balanceAgorot }) => {
+            rows: file.unpaidVisits.map(({ visit, balanceAgorot, payments }) => {
               const closed = visit.checkedOutAt ?? visit.checkedInAt;
               const when = {
                 day: dayWord(closed, now, language, copy.desk.uncollected),
@@ -135,6 +136,16 @@ export function useCustomerFile(
                       },
                 debt: null,
                 more: null,
+                /** What was paid on it, each by whom, and a void by whom and why (finding 162). */
+                payments: payments.map((payment) => ({
+                  key: String(payment.id),
+                  amount: price(payment.amountAgorot),
+                  method: copy.desk.money.methods[payment.method],
+                  ...paymentLines(payment, {
+                    recordedBy: copy.desk.statement.recordedBy,
+                    voidedBy: copy.payments.ledger.voided.line,
+                  }),
+                })),
               };
             }),
           },

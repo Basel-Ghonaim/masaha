@@ -135,7 +135,8 @@ describe('useStatement', () => {
     const [paid, voided] = result.current.payments.rows;
     expect([heard(paid?.amount), paid?.method, paid?.voided]).toEqual(['₪100', 'Cash', null]);
     expect(voided?.method).toBe('Transfer');
-    expect(voided?.voided).toEqual({ label: 'Voided', reason: 'Voided: Entered twice' });
+    expect(voided?.voided?.label).toBe('Voided');
+    expect(heard(voided?.voided?.reason)).toBe('Voided by Ahmad: Entered twice');
   });
 
   it('offers the owner the void of a payment not voided; reception none, a voided payment none', async () => {

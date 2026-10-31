@@ -20,11 +20,20 @@ export function UncollectedRow({
   row,
   opened,
   fileLink,
+  payments = [],
 }: {
   row: UncollectedRowView;
   opened: (trigger: HTMLElement) => void;
   /** Where a customer's file is; none in the file itself, whose rows name no customer. */
   fileLink?: (customerId: number) => string;
+  /** What was paid on it, the file's: each amount, its method, who recorded it, a void's line. */
+  payments?: readonly {
+    key: string;
+    amount: string;
+    method: string;
+    recordedBy: string;
+    voided: string | null;
+  }[];
 }) {
   const menu = useRef<HTMLButtonElement | null>(null);
 
@@ -45,6 +54,18 @@ export function UncollectedRow({
           </Link>
         )}
         <span className="text-caption text-muted-foreground">{row.how}</span>
+        {payments.length > 0 && (
+          <ul className="flex flex-col gap-1 text-caption text-muted-foreground">
+            {payments.map((payment) => (
+              <li key={payment.key} className="flex flex-col">
+                <span className={payment.voided === null ? undefined : 'line-through'}>
+                  {payment.amount} · {payment.method} · {payment.recordedBy}
+                </span>
+                {payment.voided !== null && <span>{payment.voided}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-label">{row.amount}</span>
