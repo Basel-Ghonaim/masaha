@@ -1,13 +1,14 @@
 import { useCopy } from '@shared/copy';
 import { Button, EmptyState, TriangleAlertIcon, WifiOffIcon } from '@shared/design-system';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StatusPage } from './StatusPage';
 
 /**
  * Offline or the general error, with "Try again" and the caller's other ways on after it (the
  * site's «الرئيسية»; the dashboard gives none). Offline, the connection coming back retries too, and
- * a retry while the browser still reports no connection says so instead of retrying. The caller
- * decides what a retry is: reloading the page, or restoring the session.
+ * a retry while the browser still reports no connection says so instead of retrying, announced again
+ * on each press: the line is cleared, then said on the next frame (carried 5). The caller decides
+ * what a retry is: reloading the page, or restoring the session.
  */
 export function RetryState({
   kind,
@@ -21,6 +22,14 @@ export function RetryState({
   const copy = useCopy();
   const [trying, setTrying] = useState(false);
   const [stillOffline, setStillOffline] = useState(false);
+  const frame = useRef<number | undefined>(undefined);
+
+  useEffect(
+    () => () => {
+      if (frame.current !== undefined) cancelAnimationFrame(frame.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (kind !== 'offline') {
@@ -37,7 +46,13 @@ export function RetryState({
 
   const retry = () => {
     if (kind === 'offline' && !navigator.onLine) {
-      setStillOffline(true);
+      // The same words set again change nothing a screen reader hears: clear them first.
+      setStillOffline(false);
+      if (frame.current !== undefined) cancelAnimationFrame(frame.current);
+      frame.current = requestAnimationFrame(() => {
+        frame.current = undefined;
+        setStillOffline(true);
+      });
       return;
     }
     setStillOffline(false);

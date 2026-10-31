@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startPreferences } from '../../../test/startPreferences';
@@ -33,8 +33,29 @@ describe('RetryState', () => {
     await user.click(screen.getByRole('button', { name: 'إعادة المحاولة' }));
 
     expect(retry).not.toHaveBeenCalled();
-    expect(screen.getByRole('status')).toHaveTextContent('ما زال الاتصال مفقودًا.');
+    expect(await screen.findByText('ما زال الاتصال مفقودًا.')).toBe(screen.getByRole('status'));
     expect(screen.getByRole('button', { name: 'إعادة المحاولة' })).toBeEnabled();
+  });
+
+  it('announces a second retry while still offline: the line is cleared, then said again', async () => {
+    vi.spyOn(Navigator.prototype, 'onLine', 'get').mockReturnValue(false);
+    const user = userEvent.setup();
+    render(<RetryState kind="offline" onRetry={vi.fn()} />);
+    const status = screen.getByRole('status');
+    await user.click(screen.getByRole('button', { name: 'إعادة المحاولة' }));
+    await waitFor(() => {
+      expect(status).toHaveTextContent('ما زال الاتصال مفقودًا.');
+    });
+    const seen: string[] = [];
+    const observer = new MutationObserver(() => seen.push(status.textContent));
+    observer.observe(status, { childList: true, characterData: true, subtree: true });
+
+    await user.click(screen.getByRole('button', { name: 'إعادة المحاولة' }));
+
+    await waitFor(() => {
+      expect(seen).toEqual(['', 'ما زال الاتصال مفقودًا.']);
+    });
+    observer.disconnect();
   });
 
   it('retries once the connection is back, and shows that it is trying', async () => {
