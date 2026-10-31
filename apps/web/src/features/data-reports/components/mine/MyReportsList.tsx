@@ -91,6 +91,7 @@ export function MyReportsList({
       ) : (
         <MineEmpty list={list} browseLink={browseLink} />
       )}
+      {list.range !== null && <p className="text-body-sm text-muted-foreground">{list.range}</p>}
       {list.pagination !== null && <ListPagination pagination={list.pagination} />}
     </section>
   );

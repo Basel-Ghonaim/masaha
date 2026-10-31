@@ -418,6 +418,39 @@ describe("the site's routes", () => {
     },
   );
 
+  it('gives the footer its room back on leaving a space’s page with a bar', async () => {
+    stubScreenWidth(390);
+    fakeTransport((request) =>
+      request.url === '/lookups'
+        ? ok({ governorates: [], areas: [], amenities: [] })
+        : request.url?.endsWith('/occupancy')
+          ? ok({ status: null })
+          : request.url === '/spaces' || request.url === '/map/spaces'
+            ? ok([], 200)
+            : ok(publicSpace()),
+    );
+    const router = createMemoryRouter([{ HydrateFallback: () => null, children: siteRoutes }], {
+      initialEntries: ['/spaces/noor-hub'],
+    });
+    const Wrapper = queryWrapper();
+    render(
+      <Wrapper>
+        <RouterProvider router={router} />
+      </Wrapper>,
+    );
+    await screen.findByRole('heading', { level: 1, name: 'Noor Hub' });
+    const footer = screen.getByRole('contentinfo');
+    await waitFor(() => {
+      expect(footer).toHaveClass('pb-24');
+    });
+
+    await router.navigate('/');
+
+    await waitFor(() => {
+      expect(screen.getByRole('contentinfo')).not.toHaveClass('pb-24');
+    });
+  });
+
   it('show offline when a page throws while the browser reports no connection', async () => {
     vi.spyOn(Navigator.prototype, 'onLine', 'get').mockReturnValue(false);
     renderSiteAt('/broken');

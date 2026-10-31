@@ -139,6 +139,8 @@ export const DATA_REPORTS = {
     /** None under a chip. */
     none: 'No reports here',
     loadFailed: 'We couldn’t load your reports',
+    /** Which reports the page shows, of how many, beside the pages (GX.1); each value isolated. */
+    range: ({ range, total }: { range: string; total: string }) => `Showing ${range} of ${total}`,
   },
   /** A space's page: «الإبلاغ عن معلومة غير صحيحة» and its dialog. */
   report: {

@@ -139,6 +139,7 @@ export const DATA_REPORTS = {
     },
     none: 'لا توجد بلاغات هنا',
     loadFailed: 'تعذّر تحميل بلاغاتك',
+    range: ({ range, total }: { range: string; total: string }) => `عرض ${range} من ${total}`,
   },
   report: {
     trigger: 'الإبلاغ عن معلومة غير صحيحة',

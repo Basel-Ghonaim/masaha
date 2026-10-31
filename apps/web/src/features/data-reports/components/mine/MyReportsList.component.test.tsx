@@ -115,6 +115,13 @@ describe('MyReportsList', () => {
     expect(card.getByText('This space is no longer listed in the directory')).toBeInTheDocument();
   });
 
+  it('says which reports the page shows, of how many, beside the pages', async () => {
+    renderList(() => reportsPage([myReport()], { total: 45, currentPage: 1 }));
+
+    const range = await screen.findByText(/^Showing/);
+    expect(range.textContent.replace(/[\u2066-\u2069]/g, '')).toBe('Showing 1–20 of 45');
+  });
+
   it('offers «Browse spaces» when none is sent yet', async () => {
     renderList(() => reportsPage([]));
 

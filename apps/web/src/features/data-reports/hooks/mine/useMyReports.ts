@@ -4,7 +4,7 @@ import { useCopy } from '@shared/copy';
 import type { AppError } from '@shared/errors';
 import { useRefusalView } from '@shared/forms';
 import { spaceNameOf } from '@shared/lib';
-import { paginationView, usePageInRange } from '@shared/lists';
+import { paginationView, rangeSummary, usePageInRange } from '@shared/lists';
 import { useLanguage } from '@shared/localisation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useId, useState } from 'react';
@@ -140,6 +140,11 @@ export function useMyReports({ spaceLink }: { spaceLink: (slug: string) => strin
       chip === 'all'
         ? { title: mine.empty.title, text: mine.empty.text, browse: copy.site.browseSpaces }
         : { title: mine.none, text: null, browse: null },
+    /** «عرض 1–20 من N» from a real answer, beside the pages (GX.1); none while another loads. */
+    range:
+      answer === undefined || result.isPlaceholderData || cards.length === 0
+        ? null
+        : rangeSummary(answer.meta, mine),
     pagination: paginationView({
       current: answer?.meta.currentPage ?? 1,
       total: answer?.meta.totalPages ?? 0,
