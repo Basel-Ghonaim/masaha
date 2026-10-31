@@ -64,7 +64,13 @@ describe('CustomerFile', () => {
         <MemoryRouter>
           <main>
             <h1>Sara Khalid</h1>
-            <CustomerFile spaceId={7} customerId={4} owner subscribe={() => undefined} />
+            <CustomerFile
+              spaceId={7}
+              customerId={4}
+              owner
+              subscribe={() => undefined}
+              spaceName="S"
+            />
           </main>
         </MemoryRouter>
       </QueryClientProvider>,
@@ -81,5 +87,92 @@ describe('CustomerFile', () => {
     expect(within(region).getByText('Typed price')).toBeVisible();
     expect(within(region).getAllByRole('button', { name: 'Receive what’s left' })).toHaveLength(1);
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('the file’s reminder link holds the filled template, with its caption', async () => {
+    fakeTransport(() =>
+      ok({ ...FILE, reminderTemplate: 'Hi {الاسم}, you owe {المبلغ} at {المساحة}.' }),
+    );
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <main>
+            <CustomerFile
+              spaceId={7}
+              customerId={4}
+              owner
+              subscribe={() => undefined}
+              spaceName="Masaha One"
+            />
+          </main>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const link = await screen.findByRole('link', { name: 'WhatsApp reminder' });
+    expect(link).toHaveAttribute(
+      'href',
+      `https://wa.me/970599000201?text=${encodeURIComponent('Hi Sara, you owe ₪65 at Masaha One.')}`,
+    );
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener');
+    expect(screen.getByText('Opens WhatsApp with a ready message; you send it.')).toBeVisible();
+  });
+
+  it('offers no reminder with no phone or nothing owed; the default text with no template', async () => {
+    fakeTransport(() => ok({ ...FILE, customer: { ...FILE.customer, phone: null } }));
+    const first = render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <CustomerFile
+            spaceId={7}
+            customerId={4}
+            owner
+            subscribe={() => undefined}
+            spaceName="S"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findByRole('heading', { level: 2, name: 'Subscriptions' });
+    expect(screen.queryByRole('link', { name: 'WhatsApp reminder' })).toBeNull();
+    first.unmount();
+
+    fakeTransport(() => ok({ ...FILE, debtAgorot: 0 }));
+    const second = render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <CustomerFile
+            spaceId={7}
+            customerId={4}
+            owner
+            subscribe={() => undefined}
+            spaceName="S"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findByRole('heading', { level: 2, name: 'Subscriptions' });
+    expect(screen.queryByRole('link', { name: 'WhatsApp reminder' })).toBeNull();
+    second.unmount();
+
+    fakeTransport(() => ok(FILE));
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter>
+          <CustomerFile
+            spaceId={7}
+            customerId={4}
+            owner
+            subscribe={() => undefined}
+            spaceName="S"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const link = await screen.findByRole('link', { name: 'WhatsApp reminder' });
+    expect(decodeURIComponent(link.getAttribute('href') ?? '')).toContain(
+      'Hello Sara, a reminder from S: you owe ₪65.',
+    );
   });
 });

@@ -1,7 +1,8 @@
 import { gazaClockOf } from '@masaha/shared/core';
+import { fillReminder } from '@masaha/shared/space-settings';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
-import { clockOf, dayText, dayWord, priceText } from '@shared/lib';
+import { clockOf, dayText, dayWord, priceText, whatsappLink } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
 import { balanceView } from '../../services/balanceView';
@@ -20,9 +21,15 @@ import { useCustomerFileQuery } from './useCustomerFileQuery';
  * subscription's card (DI-42): its name and «سعر يدوي», its dates, its terms in one line, its status
  * and payment badges, its progress, its due, paid and left — the server's, never computed —, and
  * «استلام المتبقي» while it owes (DI-44). A customer the space does not hold is its own state. One
- * payment dialog at a time, opened on the item the control named.
+ * payment dialog at a time, opened on the item the control named. While they owe and have a phone,
+ * «تذكير على واتساب» — a link to WhatsApp with the space's reminder (`reminderTemplate`, else the
+ * catalogue's) filled with what they owe, their first name and `spaceName` (D8.2).
  */
-export function useCustomerFile(spaceId: number, customerId: number) {
+export function useCustomerFile(
+  spaceId: number,
+  customerId: number,
+  { spaceName }: { spaceName: string },
+) {
   const copy = useCopy();
   const words = copy.desk.file;
   const language = useLanguage() === 'en' ? 'en' : 'ar';
@@ -75,6 +82,25 @@ export function useCustomerFile(spaceId: number, customerId: number) {
               view: balanceView(file, copy.desk.customer, price),
             },
             archived: file.customer.archivedAt === null ? null : words.archived,
+            reminder:
+              file.debtAgorot > 0 && file.customer.phone !== null
+                ? {
+                    label: words.reminder.label,
+                    caption: words.reminder.caption,
+                    href: whatsappLink(
+                      file.customer.phone,
+                      fillReminder(
+                        file.reminderTemplate ?? copy.spaceSettings.reminder.defaultText,
+                        {
+                          // The customer is greeted by their first name.
+                          name: file.customer.name.trim().split(/\s+/u)[0] ?? file.customer.name,
+                          amount: priceText(file.debtAgorot, language),
+                          space: spaceName,
+                        },
+                      ),
+                    ),
+                  }
+                : null,
           },
     unpaid:
       file === undefined || file.unpaidVisits.length === 0

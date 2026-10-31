@@ -74,7 +74,13 @@ describe('Statement', () => {
         <QueryClientProvider client={createQueryClient()}>
           <main>
             <h1>Sara Khalid</h1>
-            <CustomerFile spaceId={7} customerId={4} owner subscribe={() => undefined} />
+            <CustomerFile
+              spaceId={7}
+              customerId={4}
+              owner
+              subscribe={() => undefined}
+              spaceName="S"
+            />
           </main>
         </QueryClientProvider>,
       );
@@ -136,7 +142,13 @@ async function openStatement(owner: boolean) {
     <QueryClientProvider client={createQueryClient()}>
       <main>
         <h1>Sara Khalid</h1>
-        <CustomerFile spaceId={7} customerId={4} owner={owner} subscribe={() => undefined} />
+        <CustomerFile
+          spaceId={7}
+          customerId={4}
+          owner={owner}
+          subscribe={() => undefined}
+          spaceName="S"
+        />
       </main>
     </QueryClientProvider>,
   );

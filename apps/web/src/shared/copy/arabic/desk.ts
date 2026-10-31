@@ -471,6 +471,10 @@ export const DESK = {
     balance: 'الرصيد',
     archived: 'مؤرشف',
     here: 'حاضر الآن',
+    reminder: {
+      label: 'تذكير على واتساب',
+      caption: 'يفتح واتساب برسالة جاهزة، وترسلها أنت.',
+    },
     loadFailed: 'تعذّر تحميل ملف الزبون',
     unpaid: { title: 'زيارات غير مدفوعة', unpriced: 'بدون سعر بعد' },
     subscriptions: {

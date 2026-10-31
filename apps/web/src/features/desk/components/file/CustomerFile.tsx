@@ -33,9 +33,12 @@ export function CustomerFile({
   customerId,
   owner,
   subscribe,
+  spaceName,
 }: {
   spaceId: number;
   customerId: number;
+  /** The space's name, as its reminder names it. */
+  spaceName: string;
   /**
    * The owner's header offers the archive and the restore, and a statement's payment its void (S10);
    * the server decides (S5).
@@ -44,7 +47,7 @@ export function CustomerFile({
   /** Opens the page's subscription sheet, from the header's «⋯». */
   subscribe: OpenSheet;
 }) {
-  const file = useCustomerFile(spaceId, customerId);
+  const file = useCustomerFile(spaceId, customerId, { spaceName });
   const words = useCopy().desk.sheet;
   const headingId = useId();
   const trigger = useRef<HTMLElement | null>(null);
