@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event';
 import type { SessionUser } from '@shared/session';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { aSession } from '../../../test/fakeSession';
-import { restoreTransport } from '../../../test/fakeTransport';
-import { startPreferences } from '../../../test/startPreferences';
+import { aSession } from '../../../../test/fakeSession';
+import { restoreTransport } from '../../../../test/fakeTransport';
+import { startPreferences } from '../../../../test/startPreferences';
 import { CompactAccountMenu } from './CompactAccountMenu';
 
 const USER = aSession({ name: 'Sara Ahmad', email: 'sara@example.com' }).user;

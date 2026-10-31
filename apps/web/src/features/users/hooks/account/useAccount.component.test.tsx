@@ -1,8 +1,8 @@
 import { establishSession } from '@shared/session';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { aSession } from '../../../test/fakeSession';
-import { startPreferences } from '../../../test/startPreferences';
+import { aSession } from '../../../../test/fakeSession';
+import { startPreferences } from '../../../../test/startPreferences';
 import { useAccount } from './useAccount';
 
 const USER = aSession({ name: '  Sara Ahmad ', email: 'sara@example.com' }).user;

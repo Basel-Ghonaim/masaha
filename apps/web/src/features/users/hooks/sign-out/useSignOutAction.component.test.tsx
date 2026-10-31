@@ -1,11 +1,11 @@
 import { establishSession, getSession } from '@shared/session';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FakeAnswer } from '../../../test/fakeAdapter';
-import { aSession, deferred } from '../../../test/fakeSession';
-import { fakeTransport, restoreTransport } from '../../../test/fakeTransport';
-import { startPreferences } from '../../../test/startPreferences';
-import { useSignOutAction } from './useSignOutAction';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../../test/fakeSession';
+import { fakeTransport, restoreTransport } from '../../../../test/fakeTransport';
+import { startPreferences } from '../../../../test/startPreferences';
+import { useSignOutAction } from '../sign-out/useSignOutAction';
 
 beforeEach(() => {
   startPreferences('en');

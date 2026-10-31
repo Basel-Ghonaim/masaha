@@ -2,10 +2,10 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FakeAnswer } from '../../../test/fakeAdapter';
-import { aSession, deferred } from '../../../test/fakeSession';
-import { fakeTransport, restoreTransport } from '../../../test/fakeTransport';
-import { startPreferences } from '../../../test/startPreferences';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../../test/fakeSession';
+import { fakeTransport, restoreTransport } from '../../../../test/fakeTransport';
+import { startPreferences } from '../../../../test/startPreferences';
 import { AccountMenuSection } from './AccountMenuSection';
 
 const USER = aSession({ name: 'Sara Ahmad' }).user;

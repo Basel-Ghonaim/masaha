@@ -4,7 +4,7 @@ import { toast } from '@shared/design-system';
 import type { AppError } from '@shared/errors';
 import { getSession, passwordChanged } from '@shared/session';
 import { useMutation } from '@tanstack/react-query';
-import { createUsersRepository } from '../repository/usersRepository';
+import { createUsersRepository } from '../../repository/usersRepository';
 
 const repository = createUsersRepository();
 

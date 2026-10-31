@@ -12,8 +12,8 @@ import {
 import { ACCOUNT_SETTINGS_PATH } from '@shared/routing';
 import { Link } from 'react-router';
 import { ACCOUNT_LINK_ICONS } from './accountLinkIcons';
-import type { useAccount } from '../hooks/useAccount';
-import { SignOutFailure } from './SignOutFailure';
+import type { useAccount } from '../../hooks/account/useAccount';
+import { SignOutFailure } from '../sign-out/SignOutFailure';
 
 /** Where the menu is opened: the site's header, or the dashboard's bar and drawer. */
 export type AccountMenuPlace = { in: 'site'; dashboardPath: string } | { in: 'dashboard' };

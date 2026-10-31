@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@shared/design-system';
 import type { SessionUser } from '@shared/session';
-import { useAccount, type AccountMenuLink } from '../hooks/useAccount';
+import { useAccount, type AccountMenuLink } from '../../hooks/account/useAccount';
 import { AccountMenuContent } from './AccountMenuContent';
 
 /**

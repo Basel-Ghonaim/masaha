@@ -2,7 +2,7 @@ import { changePasswordSchema, type ChangePasswordRequest } from '@masaha/shared
 import { useCopy } from '@shared/copy';
 import { usePasswordRules, useServerForm } from '@shared/forms';
 import { useWatch } from 'react-hook-form';
-import { useChangePassword } from './useChangePassword';
+import { useChangePassword } from '../password-change/useChangePassword';
 
 type ForcedPasswordChangeValues = { password: string };
 

@@ -2,7 +2,7 @@ import { useCopy } from '@shared/copy';
 import { Button, Field } from '@shared/design-system';
 import { FormFailure, PasswordInput, PasswordRules } from '@shared/forms';
 import { useId } from 'react';
-import { useForcedPasswordChangeForm } from '../hooks/useForcedPasswordChangeForm';
+import { useForcedPasswordChangeForm } from '../../hooks/forced-change/useForcedPasswordChangeForm';
 
 /**
  * The forced change of a temporary password: the new password, its rules ticking as the user types,

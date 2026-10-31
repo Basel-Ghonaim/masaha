@@ -1,9 +1,9 @@
 import { Button, LayoutDashboardIcon, LogOutIcon } from '@shared/design-system';
 import type { SessionUser } from '@shared/session';
 import { Link } from 'react-router';
-import { useAccount, type AccountMenuLink } from '../hooks/useAccount';
+import { useAccount, type AccountMenuLink } from '../../hooks/account/useAccount';
 import { ACCOUNT_LINK_ICONS } from './accountLinkIcons';
-import { SignOutFailure } from './SignOutFailure';
+import { SignOutFailure } from '../sign-out/SignOutFailure';
 
 /**
  * The signed-in user in a phone menu: the name, the links to the account's pages the shell passes,

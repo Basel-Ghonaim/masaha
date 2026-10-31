@@ -1,11 +1,11 @@
 import { establishSession, getSession } from '@shared/session';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { FakeAnswer } from '../../../test/fakeAdapter';
-import { aSession, deferred } from '../../../test/fakeSession';
-import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { startPreferences } from '../../../test/startPreferences';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../../test/fakeSession';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { queryWrapper } from '../../../../test/queryWrapper';
+import { startPreferences } from '../../../../test/startPreferences';
 import { useForcedPasswordChangeForm } from './useForcedPasswordChangeForm';
 
 type Form = ReturnType<typeof useForcedPasswordChangeForm>;

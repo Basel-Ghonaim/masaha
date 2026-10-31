@@ -1,5 +1,5 @@
 import { Button, LogOutIcon } from '@shared/design-system';
-import { useSignOutAction } from '../hooks/useSignOutAction';
+import { useSignOutAction } from '../../hooks/sign-out/useSignOutAction';
 import { SignOutFailure } from './SignOutFailure';
 
 /**

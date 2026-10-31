@@ -2,10 +2,10 @@ import { establishSession } from '@shared/session';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FakeAnswer } from '../../../test/fakeAdapter';
-import { aSession, deferred } from '../../../test/fakeSession';
-import { fakeTransport, restoreTransport } from '../../../test/fakeTransport';
-import { startPreferences } from '../../../test/startPreferences';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../../test/fakeSession';
+import { fakeTransport, restoreTransport } from '../../../../test/fakeTransport';
+import { startPreferences } from '../../../../test/startPreferences';
 import { SignOutButton } from './SignOutButton';
 
 beforeEach(() => {

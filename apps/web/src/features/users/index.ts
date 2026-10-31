@@ -1,10 +1,10 @@
 export { AccountActionDialog } from './components/account-actions/AccountActionDialog';
-export { AccountMenu } from './components/AccountMenu';
-export { AccountMenuSection } from './components/AccountMenuSection';
-export { DrawerAccountMenu } from './components/DrawerAccountMenu';
-export { CompactAccountMenu } from './components/CompactAccountMenu';
-export { ForcedPasswordChangeForm } from './components/ForcedPasswordChangeForm';
-export { SignOutButton } from './components/SignOutButton';
+export { AccountMenu } from './components/account-menu/AccountMenu';
+export { AccountMenuSection } from './components/account-menu/AccountMenuSection';
+export { DrawerAccountMenu } from './components/account-menu/DrawerAccountMenu';
+export { CompactAccountMenu } from './components/account-menu/CompactAccountMenu';
+export { ForcedPasswordChangeForm } from './components/forced-change/ForcedPasswordChangeForm';
+export { SignOutButton } from './components/sign-out/SignOutButton';
 export { TemporaryPasswordDialog } from './components/temporary-password/TemporaryPasswordDialog';
 export { recordAdminHandover } from './repository/adminHandover';
 export type { RecordHandover } from './types/RecordHandover';

@@ -2,7 +2,7 @@ import { useCopy, type Catalogue } from '@shared/copy';
 import { isolate } from '@shared/localisation';
 import { hasDashboard } from '@shared/routing';
 import type { SessionUser } from '@shared/session';
-import { useSignOutAction } from './useSignOutAction';
+import { useSignOutAction } from '../sign-out/useSignOutAction';
 
 /** A link of the account menu to one of the account's pages, as the site routes it (P4). */
 export type AccountMenuLink = { key: keyof Catalogue['users']['account']['links']; to: string };

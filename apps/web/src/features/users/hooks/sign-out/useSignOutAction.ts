@@ -1,6 +1,6 @@
 import { useCopy } from '@shared/copy';
 import { useSignOut } from '@shared/session';
-import type { SignOutFailureView } from '../types/SignOutFailureView';
+import type { SignOutFailureView } from '../../types/SignOutFailureView';
 
 /**
  * The server-confirmed sign-out, ready to render wherever the account offers it: its label, the

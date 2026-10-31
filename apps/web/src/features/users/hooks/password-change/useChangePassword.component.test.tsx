@@ -3,13 +3,13 @@ import { establishSession, getSession } from '@shared/session';
 import { useQueryClient } from '@tanstack/react-query';
 import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FakeAnswer } from '../../../test/fakeAdapter';
-import { aSession, deferred } from '../../../test/fakeSession';
-import { fakeTransport, ok, refused, restoreTransport } from '../../../test/fakeTransport';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { startPreferences } from '../../../test/startPreferences';
-import { findToast } from '../../../test/findToast';
-import { useChangePassword } from './useChangePassword';
+import type { FakeAnswer } from '../../../../test/fakeAdapter';
+import { aSession, deferred } from '../../../../test/fakeSession';
+import { fakeTransport, ok, refused, restoreTransport } from '../../../../test/fakeTransport';
+import { queryWrapper } from '../../../../test/queryWrapper';
+import { startPreferences } from '../../../../test/startPreferences';
+import { findToast } from '../../../../test/findToast';
+import { useChangePassword } from '../password-change/useChangePassword';
 
 const REQUEST = { password: 'mine2026x' };
 
