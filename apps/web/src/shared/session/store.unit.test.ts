@@ -1,6 +1,7 @@
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { aSession } from '../../test/fakeSession';
 import {
+  accountEdited,
   endSession,
   establishSession,
   getSession,
@@ -76,6 +77,38 @@ describe('passwordChanged', () => {
       status: 'authenticated',
       user: other.user,
       accessToken: 'token-other',
+    });
+  });
+});
+
+describe('accountEdited', () => {
+  it('changes the held user’s name and language, telling no listener', () => {
+    const session = aSession({ id: 1, name: 'Sara', language: 'ar' }, 'token-1');
+    establishSession(session, { source: 'signIn' });
+    const listener = vi.fn();
+    onTestFinished(onSessionEstablished(listener));
+
+    accountEdited(1, { name: 'Sara Ali' });
+    accountEdited(1, { language: 'en' });
+
+    expect(getSession()).toEqual({
+      status: 'authenticated',
+      user: { ...session.user, name: 'Sara Ali', language: 'en' },
+      accessToken: 'token-1',
+    });
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('leaves another user’s session untouched', () => {
+    const other = aSession({ id: 2, name: 'Omar' }, 'token-2');
+    establishSession(other, { source: 'signIn' });
+
+    accountEdited(1, { name: 'Sara Ali' });
+
+    expect(getSession()).toEqual({
+      status: 'authenticated',
+      user: other.user,
+      accessToken: 'token-2',
     });
   });
 });

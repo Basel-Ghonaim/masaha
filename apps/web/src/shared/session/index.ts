@@ -11,6 +11,7 @@ export type {
 export { refreshSession } from './services/refresh';
 export { restoreSession } from './services/restore';
 export {
+  accountEdited,
   establishSession,
   getSession,
   onSessionEnded,

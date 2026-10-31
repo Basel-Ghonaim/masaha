@@ -14,3 +14,4 @@ export {
   type AccountDialogState,
 } from './hooks/account-actions/useAccountDialog';
 export type { AccountPerson } from './types/AccountPerson';
+export { MyAccountSettings } from './components/settings/MyAccountSettings';

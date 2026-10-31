@@ -16,7 +16,54 @@ export const USERS = {
   /** The role beside the name in the dashboard's account menu: the role at the space, or the admin. */
   roles: { OWNER: 'Owner', RECEPTION: 'Reception', ADMIN: 'Admin' },
   /** «إعدادات حسابي» (screen 9): its title, which its route and the page's heading show. */
-  settings: { title: 'Account settings' },
+  settings: {
+    title: 'Account settings',
+    loadFailed: 'Couldn’t load your account',
+    profile: {
+      title: 'Profile',
+      name: 'Name',
+      email: 'Email',
+      emailNote: 'You sign in with this email',
+      save: 'Save',
+      failed: 'Couldn’t save the changes',
+      saved: 'Changes saved',
+    },
+    preferences: {
+      title: 'Preferences',
+      description: 'Applied right away.',
+      language: 'Language',
+      languageHelper: 'Saved to your account',
+      languageFailed: 'Couldn’t save the language',
+      theme: 'Theme',
+      themeHelper: 'On this device',
+      themes: { light: 'Light', dark: 'Dark', system: 'Device setting' },
+    },
+    signIn: {
+      title: 'Signing in',
+      description: 'The ways you sign in to your account.',
+      google: 'Google',
+      googleLine: ({ email }: { email: string }) => `You sign in with Google · ${email}`,
+      linked: 'Linked',
+      password: 'Password',
+      passwordLine: 'You sign in with your email and password',
+      change: 'Change',
+      notSet: 'Not set yet',
+      setLine: 'To also sign in with your email and a password, we send a link to your email',
+      sendLink: 'Send a link to set a password',
+      linkFailed: 'Couldn’t send the link',
+      linkSent:
+        'We sent a link to set your password to your email. The link is valid for one hour. Check your spam folder.',
+    },
+    passwordForm: {
+      current: 'Current password',
+      new: 'New password',
+      othersLine: 'Changing your password signs you out on all your other devices',
+      save: 'Save password',
+      back: 'Back',
+      failed: 'Couldn’t save the password',
+      saved: 'Password changed, and you were signed out on your other devices',
+    },
+  },
   /** The dashboard's account menu: the way back to the public site. */
   publicSite: 'Public site',
   /** The account menu's label with a role: the name, then the role. */
