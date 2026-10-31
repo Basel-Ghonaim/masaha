@@ -1,3 +1,4 @@
+import type { CheckInCheckOut } from '@masaha/shared/desk';
 import type { PresentPerson } from '@masaha/shared/occupancy';
 import {
   CheckOutAction,
@@ -8,6 +9,7 @@ import {
   type SearchAfter,
   UncollectedCard,
   UnpricedCard,
+  UsageOutDialog,
   useOpenCheckIns,
   useVisitDialog,
   useVisitTermsQuery,
@@ -118,6 +120,14 @@ function Desk({ spaceId }: { spaceId: number }) {
   // «استلام دفعة»: one payment dialog, opened from the page, a card or a check-out's toast.
   const [pay, setPay] = useState<PayTarget | null>(null);
   const [payOpening, setPayOpening] = useState(0);
+  // A usage-based subscriber's check-out: its due, said in a dialog from the answer (D7.12).
+  const [usageDue, setUsageDue] = useState<{ name: string; checkOut: CheckInCheckOut } | null>(
+    null,
+  );
+  const usageOut = useCallback((name: string, checkOut: CheckInCheckOut) => {
+    setUsageDue({ name, checkOut });
+  }, []);
+  const presentRegion = useRef<HTMLDivElement | null>(null);
   const receive = useCallback((target: PayTarget) => {
     setPay(target);
     setPayOpening((count) => count + 1);
@@ -162,9 +172,15 @@ function Desk({ spaceId }: { spaceId: number }) {
   const termsData = terms.data;
   const action = useCallback(
     (person: PresentPerson) => (
-      <CheckOutAction spaceId={spaceId} person={person} terms={termsData} receive={receive} />
+      <CheckOutAction
+        spaceId={spaceId}
+        person={person}
+        terms={termsData}
+        receive={receive}
+        usageOut={usageOut}
+      />
     ),
-    [spaceId, termsData, receive],
+    [spaceId, termsData, receive, usageOut],
   );
 
   return (
@@ -254,6 +270,7 @@ function Desk({ spaceId }: { spaceId: number }) {
                   terms={termsData}
                   after={after}
                   receive={receive}
+                  usageOut={usageOut}
                 />
               )}
             />
@@ -271,7 +288,7 @@ function Desk({ spaceId }: { spaceId: number }) {
           <UncollectedCard spaceId={spaceId} abilities={{ writeOff: owner }} />
           <UnpricedCard spaceId={spaceId} mayTypePrice={terms.data?.mayTypePrice ?? false} />
         </div>
-        <div className="xl:col-span-8">
+        <div ref={presentRegion} className="xl:col-span-8">
           <Tabs
             value={view}
             onValueChange={(next) => {
@@ -302,6 +319,20 @@ function Desk({ spaceId }: { spaceId: number }) {
           presentIds={present.customerIds}
           onClose={() => {
             setPay(null);
+          }}
+        />
+      )}
+      {usageDue !== null && (
+        <UsageOutDialog
+          spaceId={spaceId}
+          name={usageDue.name}
+          checkOut={usageDue.checkOut}
+          onClose={() => {
+            setUsageDue(null);
+          }}
+          // Their row has left: the focus goes to who is present's heading.
+          returnFocus={() => {
+            presentRegion.current?.querySelector<HTMLElement>('h2')?.focus();
           }}
         />
       )}

@@ -632,6 +632,15 @@ export const DESK = {
       failed: 'تعذّر حفظ الاشتراك',
     },
   },
+  usageOut: {
+    title: ({ name }: { name: string }) => `خرج ${name}`,
+    today: ({ time, paid }: { time: string; paid: string }) => `اليوم ${time} · المدفوع ${paid}`,
+    left: ({ subscription, balance }: { subscription: string; balance: string }) =>
+      `يبقى على اشتراك ${subscription}: ${balance}`,
+    receive: ({ amount }: { amount: string }) => `استلام ${amount}`,
+    later: 'لاحقًا',
+    failed: 'تعذّر تسجيل الدفعة',
+  },
   log: {
     tabs: { label: 'الحضور واليوم', now: 'الآن', log: 'السجل' },
     title: 'السجل',

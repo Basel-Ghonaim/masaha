@@ -614,6 +614,16 @@ export const DESK = {
       failed: 'We couldn’t save the subscription',
     },
   },
+  /** A usage-based subscriber's check-out: what is due, from the answer (D7.12). */
+  usageOut: {
+    title: ({ name }: { name: string }) => `${name} checked out`,
+    today: ({ time, paid }: { time: string; paid: string }) => `Today ${time} · paid ${paid}`,
+    left: ({ subscription, balance }: { subscription: string; balance: string }) =>
+      `Left on ${subscription}: ${balance}`,
+    receive: ({ amount }: { amount: string }) => `Receive ${amount}`,
+    later: 'Later',
+    failed: 'We couldn’t record the payment',
+  },
   /** «السجل»: the day's log beside who is here (K8). */
   log: {
     tabs: { label: 'Who is here, and the day', now: 'Now', log: 'Log' },
