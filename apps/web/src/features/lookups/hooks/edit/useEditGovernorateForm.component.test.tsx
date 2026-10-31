@@ -17,27 +17,21 @@ afterEach(() => {
 });
 
 describe('useEditGovernorateForm', () => {
-  it('starts from the governorate as it stands, its Active switch with its hint', () => {
+  it('starts from the governorate as it stands, with no switch', () => {
     fakeTransport(() => ok([]));
     const { result } = renderHook(
       () => useEditGovernorateForm({ governorate: RAFAH, onSaved: vi.fn() }),
       { wrapper: queryWrapper() },
     );
 
-    expect(result.current.active).toMatchObject({
-      label: 'Active',
-      hint: 'Hidden: not shown in filters and forms.',
-      checked: false,
-      disabled: false,
-    });
+    expect(result.current).not.toHaveProperty('active');
+    expect(result.current).not.toHaveProperty('position');
   });
 
-  it('saves its names with the switch as isActive, and closes the sheet', async () => {
+  it('saves its names, never its Active flag, and closes the sheet', async () => {
     const onSaved = vi.fn();
     const requests = fakeTransport((request) =>
-      request.method === 'get'
-        ? ok([])
-        : ok({ ...RAFAH, nameEn: 'Rafah Governorate', isActive: true }),
+      request.method === 'get' ? ok([]) : ok({ ...RAFAH, nameEn: 'Rafah Governorate' }),
     );
     const { result } = renderHook(() => useEditGovernorateForm({ governorate: RAFAH, onSaved }), {
       wrapper: queryWrapper(),
@@ -49,20 +43,15 @@ describe('useEditGovernorateForm', () => {
         .onChange({ target: { name: 'nameEn', value: 'Rafah Governorate' } });
     });
     act(() => {
-      result.current.active?.toggle(true);
-    });
-    expect(result.current.active?.checked).toBe(true);
-    act(() => {
       result.current.submit();
     });
 
     await waitFor(() => {
       expect(onSaved).toHaveBeenCalledOnce();
     });
-    expect(bodyOf(requests[0])).toEqual({
+    expect(bodyOf(requests.find(({ method }) => method === 'patch'))).toEqual({
       nameAr: 'محافظة رفح',
       nameEn: 'Rafah Governorate',
-      isActive: true,
     });
   });
 });

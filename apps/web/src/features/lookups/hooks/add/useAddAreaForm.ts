@@ -20,7 +20,6 @@ export function useAddAreaForm({
   return useLookupForm({
     schema: createAreaSchema,
     defaultValues: { governorateId, nameAr: '', nameEn: '' },
-    editing: false,
     save: (request) => add.mutateAsync(request),
     onSaved,
     taken: copy.lookups.sheet.fieldErrors.areaTaken,

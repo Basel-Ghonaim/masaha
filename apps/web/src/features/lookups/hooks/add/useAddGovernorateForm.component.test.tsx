@@ -54,7 +54,7 @@ describe('useAddGovernorateForm', () => {
     );
     const form = () => result.current;
 
-    expect(form().active).toBeUndefined();
+    expect(form()).not.toHaveProperty('active');
     await type(form, 'nameAr', 'محافظة جديدة');
     await type(form, 'nameEn', 'New');
     act(() => {

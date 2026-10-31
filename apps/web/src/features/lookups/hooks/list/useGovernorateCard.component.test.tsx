@@ -111,8 +111,8 @@ describe('useGovernorateCard and useAreaRow', () => {
     const { result } = await renderCards(() => ok({}));
 
     expect(result.current.areas[0]?.controls.shown.label).toBe('ظاهرة: ⁨الرمال⁩');
-    expect(result.current.areas[0]?.controls.up.label).toBe('تحريك لأعلى: ⁨الرمال⁩');
-    expect(result.current.gaza.controls.down.label).toBe('تحريك لأسفل: ⁨محافظة غزة⁩');
+    expect(result.current.areas[0]?.controls.up.label).toBe('تحريك لأعلى: ⁨الرمال⁩ — 1 من 3');
+    expect(result.current.gaza.controls.down.label).toBe('تحريك لأسفل: ⁨محافظة غزة⁩ — 1 من 2');
   });
 
   it('disables the first row’s up arrow and the last row’s down arrow, in each list', async () => {

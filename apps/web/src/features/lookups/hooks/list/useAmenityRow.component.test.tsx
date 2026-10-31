@@ -115,7 +115,7 @@ describe('useAmenityRow', () => {
       other: { text: 'Internet', lang: 'en' },
     });
     expect(internet?.controls.shown.label).toBe('نشط: ⁨إنترنت⁩');
-    expect(internet?.controls.up.label).toBe('تحريك لأعلى: ⁨إنترنت⁩');
+    expect(internet?.controls.up.label).toBe('تحريك لأعلى: ⁨إنترنت⁩ — 1 من 3');
   });
 
   it('carries its one switch’s words and its state, and the badge of a retired row', async () => {

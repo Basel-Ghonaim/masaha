@@ -1,6 +1,6 @@
 # Lookups
 
-> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-24 · **Owner:** Basel Ghoneim
+> **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
 > **Authority:** The `lookups` capability: the bilingual lists of governorates, areas and amenities, the admin's screen that keeps them, and the public catalogue. Its endpoints are owned by the [API contract](../api/api-contract.md#lookups-public); its entities by the [data model](../architecture/data-model.md#lookups).
 > **Scope:** the API module `lookups` (L0); `@masaha/shared/lookups`; the web feature `features/lookups`, for the admin, the owner's profile, and the site's Home and Directory.
 
@@ -33,16 +33,17 @@
 
 ## Behaviour and flows
 
-**The admin's screen.** The lookups page sets two tabs under its title, "Governorates and areas" first, then "Amenities", with the page's hint under them; the tab shown is kept in the address (`?tab=amenities`), a missing or unknown one opening the first. Each tab holds one section; the panel left is unmounted, so its failures go with it, while a write already sent completes. `GovernoratesSection` shows every governorate, hidden ones included, as a card with its areas in order:
-- a sheet adds or renames a governorate or an area;
-- each row can be hidden or restored, and moved up or down its list;
+**The admin's screen.** The lookups page sets two tabs under its title, "Governorates and areas" first, then "Amenities", with the tab's own hint under them (the governorates' says what hiding does, the amenities' what retiring does; both that the order here is the order shown); the tab shown is kept in the address (`?tab=amenities`), a missing or unknown one opening the first. Each tab holds one section; the panel left is unmounted, so its failures go with it, while a write already sent completes. `GovernoratesSection` shows every governorate, hidden ones included, as a card with its areas in order:
+- a sheet adds or renames a governorate or an area: its two names only, since its switch lives in its row;
+- each row can be hidden or restored, and moved up or down its list; each arrow is named with where the row stands ("Move up: Al-Rimal — 2 of 11"), the moved row keeps the focus, and a polite live region in the row says where it now stands ("Al-Rimal: 1 of 11") once the move has landed, the rows that made room saying nothing;
+- the sheet that edits a row of a list of more than ten rows (the governorates, or one governorate's areas) also offers its "Position", 1 to the list's count, Arabic-Indic digits read, refused outside the range in its helper's words ("From 1 to 11"); after the names, a new position is saved through the list's order route, the whole order with the row moved, so the last row reaches the top in one write;
 - the section shows its own loading, failure (with "Try again") and empty states.
 
 `AmenitiesSection` shows every amenity, retired ones included, in order, in one card:
 - the card holds its title and "Add amenity", with no line under the title;
 - each row shows the amenity's icon, its name in the interface's language with the other as its second line, and a badge when it is retired;
 - each row has its "Active" switch, named after its amenity with its word beside it, its arrows, and Edit;
-- a sheet adds or edits an amenity: its names, its icon, chosen from a grid of the eight, and, when editing, its "Active" switch; its key, which the server derives from its English name, is never shown;
+- a sheet adds or edits an amenity: its names and its icon, chosen from a grid of the eight, and, editing one of more than ten amenities, its "Position", as a governorate's; its "Active" switch is its row's alone; its key, which the server derives from its English name, is never shown;
 - the section shows its own loading, failure (with "Try again") and empty states.
 
 Nothing changes before the server answers. A write stays pending until the list has been fetched again, and the next action starts from the server's list. While a list's order is pending, every arrow of that list waits, so two orders never race; a card waits out a 429 with every control. A failure stands until the next action on its row or list, whatever fails elsewhere: a governorate's or an area's shows in its governorate's card; an amenity's shows in its own row, and an order of the amenities' in their card, above the list. The amenities' card waits out a 429 on any of its rows or its list until that count ends, whatever fails after it. A 409 on an order means the list changed meanwhile: the list is fetched again, and the card says so. The screen fires no toasts.
@@ -92,6 +93,9 @@ Nothing changes before the server answers. A write stays pending until the list 
 - **The amenities' hooks mirror the governorates', one per operation,** with no hook factory across the lists. *Why:* two lists are too few to generalise. 2026-10-07, #49.
 - **An amenity's switch sits in its row, pending on its own write; its arrows wait only on an order.** A governorate's or an area's arrows also wait on its switch; a new admin list copies the amenities'. *Why:* an order sends ids alone, so it cannot race a change of a flag. 2026-10-07, #49; one switch since #64.
 - **The amenities' card has no line under its title** (design issue 1). *Why:* its line explained only the filter switch, which went with the filter. 2026-10-12, #64.
+- **A row's switch lives only in its row; its sheet keeps its names, and an amenity's icon** (AD-025). *Why:* one control and one feedback per fact; a switch in both places could be set two ways at once. 2026-10-29, #132.
+- **A list of more than ten rows offers a row's position in its sheet, saved through the list's order route after the names** (AD-026). *Why:* with eleven areas, the arrows alone take ten writes to bring the last to the top; the order route takes the whole order, so the row moved is sent with every other id, and its 409 reads as any order's. The field is bounded by the list as the sheet opens, and its order waits out every arrow of the list, as an arrow's does. 2026-10-29, #132.
+- **An arrow is named with where its row stands, and a move is said once it lands** (AD-026). *Why:* a screen reader hears where the row is before it moves it, and where it went after, without leaving the row; the live region is the row's own, so only the row moved speaks. 2026-10-29, #132.
 - **The page's two sections sit under tabs, the tab kept in the address;** choosing one replaces the address, and the first tab takes no parameter. *Why:* a link or a reload opens the same tab, and Back leaves the page rather than stepping through tabs. The governorates' section needed no change to sit under a tab. 2026-10-07, #49.
 - **The place field is exported as UI** that another capability's filter sets, its value and its choice passed by the page. *Why:* the governorates and their areas are this capability's fact, shown the same way wherever a place is chosen; the list that filters on it stays its own capability's. 2026-10-07, #50.
 - **The place field offers the admin's lists, hidden rows included and marked.** *Why:* a hidden governorate's or area's spaces still exist, and the admin must be able to find them; it also shares the lookups page's cache. 2026-10-07, #50.
@@ -143,3 +147,4 @@ Nothing changes before the server answers. A write stays pending until the list 
 - #101 — the site's area filter (`AreaFilter`) and `AreaName` on the public catalogue (`source`).
 - #111 — the public areas for Home (`usePublicAreas`).
 - 2026-10-29, #132 — the site's area filter stops at `DIRECTORY_AREAS_MAX` (50), holding the others, and says so ([finding 133](../architecture/findings/133-the-place-filter-has-no-cap.md)).
+- #132 — the switches only in the rows; a row's position in its sheet past ten rows; the arrows named with the row's position, and a move said; each tab its own hint.

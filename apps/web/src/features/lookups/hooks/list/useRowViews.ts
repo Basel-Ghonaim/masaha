@@ -26,6 +26,8 @@ export function useRowViews() {
     toggle: (isActive: boolean) => void,
     move: (direction: Direction) => void,
   ): RowControlsView => ({
+    // Where the row stands, counted from 1: in each arrow's name, and said once it has moved.
+    moved: copy.lookups.row.moved({ name, position: index + 1, count }),
     shown: {
       checked: isActive,
       label: copy.lookups.row.shown({ name }),
@@ -33,7 +35,7 @@ export function useRowViews() {
       toggle,
     },
     up: {
-      label: copy.lookups.row.moveUp({ name }),
+      label: copy.lookups.row.moveUp({ name, position: index + 1, count }),
       disabled: index === 0,
       waiting: busy || listMoving,
       move: () => {
@@ -41,7 +43,7 @@ export function useRowViews() {
       },
     },
     down: {
-      label: copy.lookups.row.moveDown({ name }),
+      label: copy.lookups.row.moveDown({ name, position: index + 1, count }),
       disabled: index === count - 1,
       waiting: busy || listMoving,
       move: () => {

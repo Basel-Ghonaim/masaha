@@ -3,11 +3,11 @@ import { englishPlural } from '../plural';
 
 /** The admin's lookup lists: the governorates and their areas, and the amenities. */
 export const LOOKUPS = {
-  /** The page's hint, under its title. */
-  hint: 'Hidden: not shown in filters and forms. Spaces already using it stay as they are. The order here is the display order.',
   governorates: {
     /** The section's name. */
     title: 'Governorates and areas',
+    /** The tab's hint, under the tabs. */
+    hint: 'Hidden: not shown in filters and forms. Spaces already using it stay as they are. The order here is the display order.',
     add: 'Add governorate',
     /** A governorate's count of areas. */
     areaCount: ({ count }: { count: number }) =>
@@ -22,6 +22,8 @@ export const LOOKUPS = {
   amenities: {
     /** The section's name, on its tab and its card. */
     title: 'Amenities',
+    /** The tab's hint, under the tabs. */
+    hint: 'An inactive amenity is offered in no form; the spaces that have it keep it. The order here is the order shown.',
     add: 'Add amenity',
     empty: 'No amenities yet',
     emptyHint: 'Add the first amenity.',
@@ -39,8 +41,14 @@ export const LOOKUPS = {
     hidden: 'Hidden',
     /** A row's switch: on while it is shown. */
     shown: ({ name }: { name: string }) => `Shown: ${name}`,
-    moveUp: ({ name }: { name: string }) => `Move up: ${name}`,
-    moveDown: ({ name }: { name: string }) => `Move down: ${name}`,
+    /** A row's arrows, named after it and where it stands in its list. */
+    moveUp: ({ name, position, count }: { name: string; position: number; count: number }) =>
+      `Move up: ${name} — ${String(position)} of ${String(count)}`,
+    moveDown: ({ name, position, count }: { name: string; position: number; count: number }) =>
+      `Move down: ${name} — ${String(position)} of ${String(count)}`,
+    /** Said, politely, once a row has moved: where it now stands. */
+    moved: ({ name, position, count }: { name: string; position: number; count: number }) =>
+      `${name}: ${String(position)} of ${String(count)}`,
     edit: 'Edit',
     /** The Edit button's name: the row it opens. */
     editName: ({ name }: { name: string }) => `Edit: ${name}`,
@@ -61,14 +69,11 @@ export const LOOKUPS = {
     editAmenity: 'Edit amenity',
     /** An amenity's icon, chosen from a grid. */
     icon: 'Icon',
-    /** An amenity's switch, when editing: a new amenity is always active. */
-    amenityActive: 'Active',
-    amenityActiveHint: 'Inactive: not offered in forms; spaces that have it keep it.',
     nameAr: 'Name in Arabic',
     nameEn: 'Name in English',
-    /** The switch, when editing: a new governorate or area is always active. */
-    active: 'Active',
-    activeHint: 'Hidden: not shown in filters and forms.',
+    /** A row's place in a list of more than ten, typed when editing it. */
+    position: 'Position',
+    positionRange: ({ count }: { count: number }) => `From 1 to ${String(count)}`,
     save: 'Save',
     close: 'Close',
     saveFailed: 'We couldn’t save',

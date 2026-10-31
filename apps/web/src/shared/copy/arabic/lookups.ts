@@ -2,9 +2,9 @@ import { arabicPlural } from '../plural';
 import type { Catalogue } from '../shape';
 
 export const LOOKUPS = {
-  hint: 'مخفية: لا تظهر في الفلاتر والنماذج. المساحات المرتبطة بها تبقى كما هي. الترتيب هنا هو ترتيب الظهور.',
   governorates: {
     title: 'المحافظات والمناطق',
+    hint: 'مخفية: لا تظهر في الفلاتر والنماذج. المساحات المرتبطة بها تبقى كما هي. الترتيب هنا هو ترتيب الظهور.',
     add: 'إضافة محافظة',
     areaCount: ({ count }: { count: number }) =>
       arabicPlural(count, {
@@ -24,6 +24,7 @@ export const LOOKUPS = {
   },
   amenities: {
     title: 'المرافق',
+    hint: 'غير النشط لا يظهر في النماذج، وتحتفظ به المساحات التي لديها. الترتيب هنا هو ترتيب الظهور.',
     add: 'إضافة مرفق',
     empty: 'لا مرافق بعد',
     emptyHint: 'أضف أول مرفق.',
@@ -37,8 +38,12 @@ export const LOOKUPS = {
   row: {
     hidden: 'مخفية',
     shown: ({ name }: { name: string }) => `ظاهرة: ${name}`,
-    moveUp: ({ name }: { name: string }) => `تحريك لأعلى: ${name}`,
-    moveDown: ({ name }: { name: string }) => `تحريك لأسفل: ${name}`,
+    moveUp: ({ name, position, count }: { name: string; position: number; count: number }) =>
+      `تحريك لأعلى: ${name} — ${String(position)} من ${String(count)}`,
+    moveDown: ({ name, position, count }: { name: string; position: number; count: number }) =>
+      `تحريك لأسفل: ${name} — ${String(position)} من ${String(count)}`,
+    moved: ({ name, position, count }: { name: string; position: number; count: number }) =>
+      `${name}: ${String(position)} من ${String(count)}`,
     edit: 'تعديل',
     editName: ({ name }: { name: string }) => `تعديل: ${name}`,
   },
@@ -54,12 +59,10 @@ export const LOOKUPS = {
     addAmenity: 'إضافة مرفق',
     editAmenity: 'تعديل مرفق',
     icon: 'الأيقونة',
-    amenityActive: 'نشط',
-    amenityActiveHint: 'غير نشط: لا يظهر في النماذج، وتحتفظ به المساحات التي لديها.',
     nameAr: 'الاسم بالعربية',
     nameEn: 'الاسم بالإنجليزية',
-    active: 'نشطة',
-    activeHint: 'مخفية: لا تظهر في الفلاتر والنماذج.',
+    position: 'الترتيب',
+    positionRange: ({ count }: { count: number }) => `من 1 إلى ${String(count)}`,
     save: 'حفظ',
     close: 'إغلاق',
     saveFailed: 'تعذّر الحفظ',

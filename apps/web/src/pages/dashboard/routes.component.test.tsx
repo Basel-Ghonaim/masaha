@@ -691,15 +691,21 @@ describe("the admin's lookups page", () => {
     expect(router.state.location.search).toBe('');
   });
 
-  it('names its tabs after the page, with its hint under them', async () => {
+  it('names its tabs after the page, each tab with its own hint under them', async () => {
     openLookups('');
+    const governorates =
+      'Hidden: not shown in filters and forms. Spaces already using it stay as they are. The order here is the display order.';
+    const amenities =
+      'An inactive amenity is offered in no form; the spaces that have it keep it. The order here is the order shown.';
 
     expect(await screen.findByRole('tablist', { name: 'Lookups' })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Hidden: not shown in filters and forms. Spaces already using it stay as they are. The order here is the display order.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText(governorates)).toBeInTheDocument();
+    expect(screen.queryByText(amenities)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Amenities' }));
+
+    expect(await screen.findByText(amenities)).toBeInTheDocument();
+    expect(screen.queryByText(governorates)).not.toBeInTheDocument();
   });
 });
 

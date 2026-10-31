@@ -1,5 +1,5 @@
 import { ArrowDownIcon, ArrowUpIcon, Button } from '@shared/design-system';
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { RowControlsView } from '../../types/RowControlsView';
 import { RowSwitch } from './RowSwitch';
 
@@ -10,7 +10,8 @@ type Which = 'up' | 'down' | 'shown';
  * its edit sheet (`children`). A control that waits
  * on the server stays in the focus order and ignores presses, so the keyboard keeps its place; and
  * when a move carries the row elsewhere and the focus falls to the page, it comes back to the control
- * pressed, or to the row's next one that can take it.
+ * pressed, or to the row's next one that can take it. Once an arrow's move has landed, a polite live
+ * region says where the row now stands; a row that only made room says nothing.
  */
 export function RowControls({
   controls,
@@ -23,6 +24,17 @@ export function RowControls({
   const down = useRef<HTMLButtonElement>(null);
   const shown = useRef<HTMLButtonElement>(null);
   const pressed = useRef<Which | null>(null);
+  // The row's place as last seen, whether an arrow of it was pressed since, and what was said.
+  const [seen, setSeen] = useState(controls.moved);
+  const [moving, setMoving] = useState(false);
+  const [said, setSaid] = useState('');
+  if (controls.moved !== seen) {
+    setSeen(controls.moved);
+    if (moving) {
+      setSaid(controls.moved);
+      setMoving(false);
+    }
+  }
 
   useLayoutEffect(() => {
     if (pressed.current === null) return;
@@ -40,7 +52,9 @@ export function RowControls({
 
   const press = (which: Which, act: () => void) => {
     pressed.current = which;
-    if (!controls[which].waiting) act();
+    if (controls[which].waiting) return;
+    if (which !== 'shown') setMoving(true);
+    act();
   };
 
   return (
@@ -83,6 +97,9 @@ export function RowControls({
         }}
       />
       {children}
+      <span role="status" className="sr-only">
+        {said}
+      </span>
     </div>
   );
 }

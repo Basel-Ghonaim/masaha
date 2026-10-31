@@ -1,55 +1,64 @@
 import { useCopy } from '@shared/copy';
 import { useServerForm, type ServerFormOptions } from '@shared/forms';
-import { useWatch, type DefaultValues } from 'react-hook-form';
+import type { DefaultValues } from 'react-hook-form';
+import type { Positioned } from '../services/withPosition';
 import type { LookupFormView } from '../types/LookupFormView';
+import type { RowPlace } from '../types/RowPlace';
+import { useRowPosition } from './useRowPosition';
 
 /**
  * Every value a sheet's form may hold. Each form sets the ones its request takes, and its schema
- * keeps only those: the governorate an area is added to, and the switch only when editing.
+ * keeps only those: the governorate an area is added to; the position, typed, is the list's.
  */
-type LookupValues = { governorateId: number; nameAr: string; nameEn: string; isActive: boolean };
+type LookupValues = { governorateId: number; nameAr: string; nameEn: string; position: string };
 
 /**
  * What every form of the sheet shares, on the one form pattern (`useServerForm`): the two names, in
  * that order, each with its own line when it is empty, and the Arabic one with `taken` when the
- * server finds it taken; when `editing`, the Active switch, since a new row is always active. The
- * save sends the request (`save`), then closes the sheet (`onSaved`) once the list shows the change.
+ * server finds it taken; and, editing a row of a list of more than ten (`place`), its position. The
+ * row's switch stays in its row, the one control of whether it is shown. The save sends the request
+ * (`save`), then the new position, if any, then closes the sheet (`onSaved`) once the list shows the
+ * change.
  */
 export function useLookupForm<Request>({
   schema,
   defaultValues,
-  editing,
   save,
   onSaved,
   taken,
+  place,
 }: {
   schema: ServerFormOptions<LookupValues, Request>['schema'];
   defaultValues: DefaultValues<LookupValues>;
-  editing: boolean;
   save: (request: Request) => Promise<unknown>;
   onSaved: () => void;
   taken: string;
+  place?: RowPlace;
 }): LookupFormView {
   const copy = useCopy();
   const lines = copy.lookups.sheet;
-  const { field, submit, isPending, blocked, errors, failure, form } = useServerForm<
+  const position = useRowPosition(place);
+  const { field, submit, isPending, blocked, errors, failure } = useServerForm<
     LookupValues,
-    Request
+    Positioned<Request>
   >({
-    schema,
-    defaultValues,
-    fields: ['nameAr', 'nameEn'],
-    submit: async (request) => {
-      await save(request);
+    schema: position.schema(schema),
+    defaultValues: { ...defaultValues, position: position.defaultValue },
+    fields: ['nameAr', 'nameEn', 'position'],
+    prepare: (values) => ({ ...values, position: position.input(values.position) }),
+    submit: async ({ position: to, ...request }) => {
+      await save(request as Request);
+      await position.save(to);
       onSaved();
     },
     failureTitle: lines.saveFailed,
     fieldLines: {
       nameAr: { ...lines.fieldErrors.nameAr, not_unique: taken },
       nameEn: lines.fieldErrors.nameEn,
+      position: position.lines,
     },
   });
-  const isActive = useWatch({ control: form.control, name: 'isActive' });
+  const positionField = position.view(field('position'), errors.position);
 
   return {
     field,
@@ -59,16 +68,6 @@ export function useLookupForm<Request>({
     errors: { nameAr: errors.nameAr, nameEn: errors.nameEn },
     failure,
     labels: { nameAr: lines.nameAr, nameEn: lines.nameEn, save: lines.save },
-    ...(editing && {
-      active: {
-        label: lines.active,
-        hint: lines.activeHint,
-        checked: isActive,
-        disabled: isPending,
-        toggle: (checked: boolean) => {
-          form.setValue('isActive', checked, { shouldDirty: true });
-        },
-      },
-    }),
+    ...(positionField && { position: positionField }),
   };
 }

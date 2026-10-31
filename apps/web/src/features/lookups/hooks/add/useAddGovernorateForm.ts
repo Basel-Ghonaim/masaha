@@ -11,7 +11,6 @@ export function useAddGovernorateForm({ onSaved }: { onSaved: () => void }) {
   return useLookupForm({
     schema: createGovernorateSchema,
     defaultValues: { nameAr: '', nameEn: '' },
-    editing: false,
     save: (request) => add.mutateAsync(request),
     onSaved,
     taken: copy.lookups.sheet.fieldErrors.governorateTaken,

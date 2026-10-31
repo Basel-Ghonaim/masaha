@@ -16,8 +16,12 @@ export type SwitchControl = Omit<Control, 'disabled'> & {
   toggle: (checked: boolean) => void;
 };
 
-/** A row's controls, ready to render: its two arrows and its shown switch, each named. */
+/**
+ * A row's controls, ready to render: its two arrows, named with where the row stands, and its shown
+ * switch, each named; and the line said once the row has moved (`moved`), where it now stands.
+ */
 export type RowControlsView = {
+  moved: string;
   shown: SwitchControl;
   up: Control & { move: () => void };
   down: Control & { move: () => void };

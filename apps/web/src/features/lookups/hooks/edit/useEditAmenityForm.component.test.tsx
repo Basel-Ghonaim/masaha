@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 describe('useEditAmenityForm', () => {
-  it('starts from the amenity as it stands: its icon chosen, its Active switch alone', () => {
+  it('starts from the amenity as it stands: its icon chosen, and no switch', () => {
     fakeTransport(() => ok([]));
     const { result } = renderHook(
       () => useEditAmenityForm({ amenity: INTERNET, onSaved: vi.fn() }),
@@ -46,16 +46,16 @@ describe('useEditAmenityForm', () => {
       { value: 'graduation-cap', label: 'Graduation cap' },
     ]);
     expect(result.current).not.toHaveProperty('filter');
-    expect(result.current.active).toMatchObject({ label: 'Active', checked: true });
+    expect(result.current).not.toHaveProperty('active');
   });
 
-  it('saves its names, icon and Active flag, and closes the sheet once the list is fetched again', async () => {
+  it('saves its names and icon, never its Active flag, and closes the sheet once the list is fetched again', async () => {
     const onSaved = vi.fn();
     const listHeld = deferred<FakeAnswer>();
     let lists = 0;
     const requests = fakeTransport((request) => {
       if (request.method !== 'get') {
-        return ok({ ...INTERNET, icon: 'coffee', isActive: false });
+        return ok({ ...INTERNET, icon: 'coffee' });
       }
       lists += 1;
       return lists === 1 ? ok([INTERNET]) : listHeld.promise;
@@ -74,7 +74,6 @@ describe('useEditAmenityForm', () => {
 
     act(() => {
       result.current.form.icon.choose('coffee');
-      result.current.form.active?.toggle(false);
     });
     expect(result.current.form.icon.value).toBe('coffee');
     act(() => {
@@ -88,7 +87,6 @@ describe('useEditAmenityForm', () => {
       nameAr: 'إنترنت',
       nameEn: 'Internet',
       icon: 'coffee',
-      isActive: false,
     });
     expect(result.current.form.isPending).toBe(true);
     expect(onSaved).not.toHaveBeenCalled();
