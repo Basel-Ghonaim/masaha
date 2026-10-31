@@ -4,7 +4,7 @@ import { isDashboardModule, isDashboardShared, type ModuleGraph } from './dashbo
 describe('isDashboardModule', () => {
   it.each([
     String.raw`C:\repo\apps\web\src\pages\dashboard\shell\SpaceLayout.tsx`,
-    '/repo/apps/web/src/pages/dashboard/PlaceholderPage.tsx',
+    '/repo/apps/web/src/pages/dashboard/DashboardLanding.tsx',
     'src/pages/dashboard/shell/SpaceLayout.tsx',
     '/repo/apps/web/src/features/space-links/components/SpaceSwitcher.tsx',
     '/repo/apps/web/src/features/payments/index.ts',

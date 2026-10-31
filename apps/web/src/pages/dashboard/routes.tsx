@@ -29,7 +29,14 @@ const CUSTOMERS_ROLES = SPACE_NAV.find(({ name }) => name === 'customers')?.role
 /** The 404's title, for each branch's pages that are not there. */
 const NOT_FOUND = { title: (copy) => copy.status.notFound.title } satisfies TitledHandle;
 
-/** The admin's pages that have a screen, each loaded lazily; the others show their placeholder. */
+/** A navigation item's screen. Every item has one: an item without one fails the routes' build. */
+function screenOf<Page>(pages: Partial<Record<DashboardPageName, Page>>, name: DashboardPageName) {
+  const page = pages[name];
+  if (page === undefined) throw new Error(`The dashboard page "${name}" has no screen.`);
+  return page;
+}
+
+/** The admin's pages, each loaded lazily. */
 const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
   overview: async () => {
     const { OverviewPage } = await import('./admin/overview/OverviewPage');
@@ -65,7 +72,7 @@ const ADMIN_PAGES: Partial<Record<DashboardPageName, RouteObject['lazy']>> = {
   },
 };
 
-/** The space's pages that have a screen, each loaded lazily; the others show their placeholder. */
+/** The space's pages, each loaded lazily. */
 const SPACE_PAGES: Partial<Record<DashboardPageName, () => Promise<ReactElement>>> = {
   announcements: async () => {
     const { AnnouncementsPage } = await import('./space/announcements/AnnouncementsPage');
@@ -162,12 +169,7 @@ export const dashboardRoutes: RouteObject[] = [
           ...ADMIN_NAV.map(({ name, segment }): RouteObject => ({
             ...placeOf(segment),
             handle: titleOf(name),
-            lazy:
-              ADMIN_PAGES[name] ??
-              (async () => {
-                const { PlaceholderPage } = await import('./PlaceholderPage');
-                return { element: <PlaceholderPage /> };
-              }),
+            lazy: screenOf(ADMIN_PAGES, name),
           })),
           {
             path: ADMIN_ADD_SPACE_PATH,
@@ -208,19 +210,16 @@ export const dashboardRoutes: RouteObject[] = [
         // The space branch's error boundary, below its shell, as the admin's.
         ErrorBoundary: RouteErrorState,
         children: [
-          ...SPACE_NAV.map(({ name, segment, roles }): RouteObject => ({
-            ...placeOf(segment),
-            handle: titleOf(name),
-            lazy: async () => {
-              const page = SPACE_PAGES[name];
-              const element = page
-                ? await page()
-                : await import('./PlaceholderPage').then(({ PlaceholderPage }) => (
-                    <PlaceholderPage />
-                  ));
-              return { element: <RequireSpaceRole roles={roles}>{element}</RequireSpaceRole> };
-            },
-          })),
+          ...SPACE_NAV.map(({ name, segment, roles }): RouteObject => {
+            const page = screenOf(SPACE_PAGES, name);
+            return {
+              ...placeOf(segment),
+              handle: titleOf(name),
+              lazy: async () => ({
+                element: <RequireSpaceRole roles={roles}>{await page()}</RequireSpaceRole>,
+              }),
+            };
+          }),
           {
             // Titled until the customer's file loads; then by their name, which the page gives.
             path: SPACE_CUSTOMER_PATH,

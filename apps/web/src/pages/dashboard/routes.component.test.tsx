@@ -31,7 +31,6 @@ beforeAll(
       () => import('./shell/SpaceLayout'),
       () => import('./shell/AdminLayout'),
       () => import('./DashboardLanding'),
-      () => import('./PlaceholderPage'),
       () => import('./space/overview/OverviewPage'),
       () => import('./space/desk/DeskPage'),
       () => import('./space/customers/CustomersPage'),
