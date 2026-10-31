@@ -150,7 +150,6 @@ The page shows its announcements: a running closure's notice at its top, the oth
 
 ## Open findings
 
-- [134](../architecture/findings/134-each-render-of-the-map-rebuilds-every-marker.md): each render of the map rebuilds every marker.
 - [135](../architecture/findings/135-in-dark-the-maps-marks-disagree-with-its-legend.md): in dark, the map's marks disagree with its legend.
 - [136](../architecture/findings/136-near-mes-wait-counts-the-time-at-the-permission-prompt.md): near me's wait counts the time at the permission prompt.
 - [64](../architecture/findings/64-the-deployments-headers-must-let-cloudinarys-photos-load.md): the deployment's headers must let Cloudinary's photos load.
@@ -185,3 +184,4 @@ The page shows its announcements: a running closure's notice at its top, the oth
 - 2026-10-28, #129 — «المفضّلة»: the user's favourites as cards, newest saved first or nearest first, and the spaces that left with «إزالة».
 - 2026-10-28, #129 — the page's announcements: the `notice` and `announcements` slots, in U8's order (finding 131).
 - 2026-10-29, #132 — Home's title waits for its answer; the search's bound is the shared `SPACE_NAME_MAX_LENGTH`.
+- 2026-10-29, #132 — the map's count and its phone row; the chosen space's distance; the results scroll once the new page has arrived; the map's marks made once per answer and language, each mark's handlers kept ([finding 134](../architecture/findings/134-each-render-of-the-map-rebuilds-every-marker.md)).

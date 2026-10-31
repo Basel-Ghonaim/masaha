@@ -59,6 +59,21 @@ afterEach(() => {
 });
 
 describe('useDirectoryMap', () => {
+  it('keeps the same marks while a search is typed, before any new answer', async () => {
+    const { result } = renderMap('/spaces?view=map', () => pins([pin(1), pin(2)]));
+    await waitFor(() => {
+      expect(result.current.view.map.markers).toHaveLength(2);
+    });
+    const marks = result.current.view.map.markers;
+
+    act(() => {
+      result.current.view.search.change('ن');
+    });
+
+    expect(result.current.view.search.text).toBe('ن');
+    expect(result.current.view.map.markers).toBe(marks);
+  });
+
   it('asks for the pins with the list’s filters; a change of filter clears the selection', async () => {
     const { result, requests } = renderMap('/spaces?view=map&verified=1&q=Hub&sort=name', () =>
       pins([pin(1), pin(2)]),

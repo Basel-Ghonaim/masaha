@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Marker } from 'leaflet';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { startPreferences } from '../../../test/startPreferences';
 import type { MapPoint } from '../types/MapPoint';
@@ -66,6 +67,7 @@ function renderMap(props: Partial<MarkerMapProps> = {}) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('MarkerMap', () => {
@@ -97,6 +99,40 @@ describe('MarkerMap', () => {
     fireEvent.keyDown(sea, { key: 'Enter' });
     expect(onSelect).toHaveBeenLastCalledWith(2);
     expect(onSelect).toHaveBeenCalledTimes(2);
+  });
+
+  it('binds no mark’s handlers again when the map renders again with the same marks', async () => {
+    startPreferences('en');
+    const { rerender, onSelect } = renderMap();
+    await screen.findByRole('button', { name: 'Focus Hub — Available' });
+    const off = vi.spyOn(Marker.prototype, 'off');
+    const setIcon = vi.spyOn(Marker.prototype, 'setIcon');
+
+    // The caller renders again — a key typed in the search — with the same marks and handler.
+    rerender(
+      <MarkerMap
+        markers={MARKERS}
+        selectedId={null}
+        onSelect={onSelect}
+        bounds={BOX}
+        user={null}
+        focus={null}
+        pick={null}
+        onViewChange={null}
+        label={LABEL}
+        failed="The map didn’t load. Browse the spaces in the list."
+        overlay={() => null}
+        under={() => null}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Focus Hub — Available' })).toBeInTheDocument();
+    });
+    expect(off).not.toHaveBeenCalled();
+    expect(setIcon).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Sea Desk — No live status' }));
+    expect(onSelect).toHaveBeenLastCalledWith(2);
   });
 
   it('while picking, the marks leave the tab order and a tap places the point', async () => {

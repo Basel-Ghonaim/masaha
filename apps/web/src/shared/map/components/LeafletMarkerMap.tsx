@@ -8,7 +8,7 @@ import {
   type Map as LeafletMap,
   type Marker as LeafletMarker,
 } from 'leaflet';
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { MapContainer, Marker, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import { useTileStatus } from '../hooks/useTileStatus';
 import { boundsOf, cornersOf } from '../services/mapBox';
@@ -150,8 +150,10 @@ function MarksMap({
 /**
  * One place's mark: a button named by its label and pressed when selected, chosen by a click, Enter
  * or Space. While picking, it leaves the tab order and is not chosen, and a tap passes to the map.
+ * Drawn again only when its own props change, and its handlers kept (one callback each, read by its
+ * id), so a render of the map's caller — a key typed in its search — rebinds no mark (finding 134).
  */
-function PlaceMark({
+const PlaceMark = memo(function PlaceMark({
   marker,
   selected,
   picking,
@@ -175,6 +177,20 @@ function PlaceMark({
     [shape, tone, selected],
   );
 
+  const { id } = marker;
+  const click = useCallback(() => {
+    if (!picking) onSelect(id);
+  }, [picking, onSelect, id]);
+  const keydown = useCallback(
+    ({ originalEvent }: LeafletKeyboardEvent) => {
+      if (picking || (originalEvent.key !== 'Enter' && originalEvent.key !== ' ')) return;
+      originalEvent.preventDefault();
+      onSelect(id);
+    },
+    [picking, onSelect, id],
+  );
+  const handlers = useMemo(() => ({ click, keydown }), [click, keydown]);
+
   // Leaflet makes the mark's element anew with each icon: it is named and set again each time.
   useEffect(() => {
     const element = ref.current?.getElement();
@@ -194,16 +210,7 @@ function PlaceMark({
       icon={icon}
       keyboard
       zIndexOffset={selected ? 1000 : 0}
-      eventHandlers={{
-        click: () => {
-          if (!picking) onSelect(marker.id);
-        },
-        keydown: ({ originalEvent }: LeafletKeyboardEvent) => {
-          if (picking || (originalEvent.key !== 'Enter' && originalEvent.key !== ' ')) return;
-          originalEvent.preventDefault();
-          onSelect(marker.id);
-        },
-      }}
+      eventHandlers={handlers}
     >
       {/* A permanent tooltip cannot become a passing one: each state has its own. */}
       <Tooltip
@@ -219,7 +226,7 @@ function PlaceMark({
       </Tooltip>
     </Marker>
   );
-}
+});
 
 /** The visitor's point: a picture named by its label, never a button. */
 function UserMark({ point, label }: { point: MapPoint; label: string }) {

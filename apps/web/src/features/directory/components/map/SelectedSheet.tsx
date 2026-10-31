@@ -61,7 +61,7 @@ export function SelectedSheet({
           <SheetDescription>{areaName}</SheetDescription>
         </SheetHeader>
         <SheetBody>
-          <SpaceSummary card={card} />
+          <SpaceSummary card={card} distance={selected.distance} />
         </SheetBody>
         <SheetFooter>
           <Button asChild size="lg" className="w-full">

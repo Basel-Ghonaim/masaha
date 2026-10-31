@@ -127,5 +127,14 @@ export const LOOKUPS = {
     none: 'لا توجد منطقة بهذا الاسم',
     loading: 'جارٍ تحميل المناطق…',
     failed: 'تعذّر تحميل المناطق',
+    max: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: `يمكن اختيار ${String(count)} منطقة على الأكثر.`,
+        one: 'يمكن اختيار منطقة واحدة على الأكثر.',
+        two: 'يمكن اختيار منطقتين على الأكثر.',
+        few: `يمكن اختيار ${String(count)} مناطق على الأكثر.`,
+        many: `يمكن اختيار ${String(count)} منطقة على الأكثر.`,
+        other: `يمكن اختيار ${String(count)} منطقة على الأكثر.`,
+      }),
   },
 } satisfies Catalogue['lookups'];

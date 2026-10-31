@@ -145,5 +145,11 @@ export const LOOKUPS = {
     none: 'No area by that name',
     loading: 'Loading the areas…',
     failed: 'We couldn’t load the areas',
+    /** Under the field once the most areas the directory takes are chosen (finding 133). */
+    max: ({ count }: { count: number }) =>
+      englishPlural(count, {
+        one: `You can choose at most ${String(count)} area.`,
+        other: `You can choose at most ${String(count)} areas.`,
+      }),
   },
 } as const;

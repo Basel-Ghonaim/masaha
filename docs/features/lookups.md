@@ -142,3 +142,4 @@ Nothing changes before the server answers. A write stays pending until the list 
 - #98 — the checklist counts only the linked retired amenities, and drops one ticked and retired meanwhile at the next toggle.
 - #101 — the site's area filter (`AreaFilter`) and `AreaName` on the public catalogue (`source`).
 - #111 — the public areas for Home (`usePublicAreas`).
+- 2026-10-29, #132 — the site's area filter stops at `DIRECTORY_AREAS_MAX` (50), holding the others, and says so ([finding 133](../architecture/findings/133-the-place-filter-has-no-cap.md)).

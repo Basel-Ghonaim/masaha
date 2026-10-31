@@ -81,6 +81,7 @@ function renderDirectory(path = '/spaces', answer: (params: unknown) => unknown 
 afterEach(() => {
   restoreTransport();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('DirectoryList', () => {
@@ -129,6 +130,37 @@ describe('DirectoryList', () => {
     await user.click(screen.getByRole('link', { name: 'الصفحة 2' }));
 
     await screen.findByRole('link', { name: 'مساحة 3' });
+    expect(heading).toHaveFocus();
+  });
+
+  it('scrolls to the results and focuses them only once the new page has arrived', async () => {
+    startPreferences('ar');
+    const user = userEvent.setup();
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView');
+    let arrive: () => void = () => undefined;
+    renderDirectory('/spaces', (params) =>
+      (params as { page?: number }).page === 2
+        ? new Promise((resolve) => {
+            arrive = () => {
+              resolve(answerFor(params));
+            };
+          })
+        : answerFor(params),
+    );
+    const heading = await screen.findByRole('heading', { level: 2, name: 'النتائج' });
+    await screen.findByRole('link', { name: 'مساحة 1' });
+
+    await user.click(screen.getByRole('link', { name: 'الصفحة 2' }));
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: 'النتائج' })).toHaveAttribute('aria-busy', 'true');
+    });
+
+    expect(screen.getByRole('link', { name: 'مساحة 1' })).toBeInTheDocument();
+    expect(scrolled).not.toHaveBeenCalled();
+    expect(heading).not.toHaveFocus();
+    arrive();
+    await screen.findByRole('link', { name: 'مساحة 3' });
+    expect(scrolled).toHaveBeenCalledTimes(1);
     expect(heading).toHaveFocus();
   });
 

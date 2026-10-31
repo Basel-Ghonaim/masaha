@@ -4,10 +4,13 @@ import { useCopy } from '@shared/copy';
 import { useMediaQuery } from '@shared/design-system';
 import { useLanguage } from '@shared/localisation';
 import type { MapBounds } from '@shared/map';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { isolated } from '@shared/forms';
 import { cardViewOf } from '../../services/cardView';
+import { distanceText } from '../../services/distanceText';
 import { pinMark } from '../../services/pinMark';
 import { pinsRequestOf } from '../../services/requestOf';
+import { straightLine } from '../../services/straightLine';
 import type { DirectoryMapView } from '../../types/DirectoryMapView';
 import { useFiltersPanel } from '../filters/useFiltersPanel';
 import { useDirectoryFilters } from '../list/useDirectoryFilters';
@@ -33,7 +36,9 @@ const VIEW_PAUSE_MS = 400;
  * map has moved and paused it is asked again within the box in view, whose answer replaces the
  * marks; a change of filter asks for the whole set again and clears the choice. While a point is
  * picked by hand (U7), a crosshair stands at the centre, the marks cannot be chosen, and near me's
- * button, its line, «مركّز على موقعي» and the chosen space are hidden.
+ * button, its line, «مركّز على موقعي» and the chosen space are hidden. The count of the spaces shown
+ * is the list's line, beside «الأقرب إليّ», when the whole set fits (past the ceiling the total is
+ * not known); the chosen space says how far it is while a point is set (G2.1, G2.3).
  */
 export function useDirectoryMap(): DirectoryMapView {
   const copy = useCopy();
@@ -128,6 +133,36 @@ export function useDirectoryMap(): DirectoryMapView {
     ? null
     : (shownPins.find((pin) => pin.id === selection.selectedId) ?? null);
   const point = near.state.point;
+  // The marks are made once per answer and language, so a render that changes neither (a key typed
+  // in the search, before its answer) hands the map the same marks, which it does not draw again
+  // (finding 134). A mark's words need no time: only the status and the name.
+  const pinsAnswer = answer?.pins;
+  const markers = useMemo(
+    () =>
+      (pinsAnswer ?? []).map((pin) => {
+        const card = cardViewOf(pin, { english, now: new Date(), copy, byDistance: false });
+        return {
+          id: pin.id,
+          point: pin.location,
+          mark: pinMark(pin.liveStatus),
+          // An attribute, never drawn: the name needs no isolation from the status.
+          label: copy.directory.map.pin({
+            name: card.name.text,
+            status: card.status?.label ?? card.noStatus,
+          }),
+          name: { text: card.name.text, ...(card.name.lang && { lang: card.name.lang }) },
+        };
+      }),
+    [pinsAnswer, english, copy],
+  );
+  const pinsShown =
+    whole.data === undefined || whole.data.truncated ? null : whole.data.pins.length;
+  const count =
+    pinsShown === null || pinsShown === 0
+      ? ''
+      : filters.anyApplied
+        ? words.count.matching({ count: pinsShown })
+        : words.count.all({ count: pinsShown });
 
   return {
     search: {
@@ -137,6 +172,7 @@ export function useDirectoryMap(): DirectoryMapView {
       change: filters.search.change,
       error: filters.search.refused ? words.search.refused : null,
     },
+    count,
     filters: panel,
     near: {
       button: {
@@ -148,20 +184,7 @@ export function useDirectoryMap(): DirectoryMapView {
       status,
     },
     map: {
-      markers: shownPins.map((pin) => {
-        const card = cardOf(pin);
-        return {
-          id: pin.id,
-          point: pin.location,
-          mark: pinMark(pin.liveStatus),
-          // An attribute, never drawn: the name needs no isolation from the status.
-          label: words.map.pin({
-            name: card.name.text,
-            status: card.status?.label ?? card.noStatus,
-          }),
-          name: { text: card.name.text, ...(card.name.lang && { lang: card.name.lang }) },
-        };
-      }),
+      markers,
       selectedId: chosen?.id ?? null,
       onSelect: selection.select,
       bounds: GAZA_STRIP_BOUNDS,
@@ -231,6 +254,14 @@ export function useDirectoryMap(): DirectoryMapView {
         ? null
         : {
             card: cardOf(chosen),
+            distance:
+              point === null
+                ? null
+                : words.card.distance({
+                    km: isolated(
+                      distanceText(straightLine(point, chosen.location), english ? 'en' : 'ar'),
+                    ),
+                  }),
             close: selection.close,
             closeLabel: words.map.close,
             details: words.map.details,

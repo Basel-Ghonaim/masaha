@@ -25,8 +25,8 @@ export function DirectoryView(slots: DirectorySlots) {
 }
 
 /**
- * The map's view: the search and the filters' sheet (at every width, with no order), «الأقرب إليّ»
- * and its state line, then the map. While a point is picked, the button is hidden; once placed or
+ * The map's view: the search and the filters' sheet (at every width, one row on a phone too, with
+ * no order), the count with «الأقرب إليّ» and its state line, then the map. While a point is picked, the button is hidden; once placed or
  * given up, the focus returns to it.
  */
 function MapView({ slots }: { slots: DirectorySlots }) {
@@ -42,7 +42,7 @@ function MapView({ slots }: { slots: DirectorySlots }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start">
+      <div className="flex flex-row items-start gap-3">
         <DirectorySearch search={view.search} />
         <div className="flex items-end gap-3">
           <FiltersSheet sheet={filters.sheet}>
@@ -55,7 +55,10 @@ function MapView({ slots }: { slots: DirectorySlots }) {
       </div>
       <div className="flex flex-col">
         {!picking && (
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p aria-live="polite" className="text-body-sm text-muted-foreground">
+              {view.count}
+            </p>
             <NearMeButton ref={nearButton} button={view.near.button} />
           </div>
         )}
