@@ -5,6 +5,7 @@ import { spaceNameOf, updatedAgo } from '@shared/lib';
 import { useLanguage } from '@shared/localisation';
 import type { PageTitle } from '@shared/routing';
 import { useState } from 'react';
+import { statusViewOf } from '../../services/cardView';
 import { contactLinkOf } from '../../services/contactLinks';
 import { distanceText } from '../../services/distanceText';
 import { freshnessOf } from '../../services/freshness';
@@ -24,6 +25,18 @@ const DESKTOP_UP = '(min-width: 1024px)';
 /** From here up there is no bar at the page's foot. */
 const TABLET_UP = '(min-width: 768px)';
 
+/** How old the status last read may grow, once a refresh has failed, before the page says its age. */
+const STALE_STATUS_MS = 3 * 60_000;
+
+/** Whether a closure the space announced runs at `now`. */
+const closureRuns = (announcements: PublicSpace['announcements'], now: Date) =>
+  announcements.some(
+    (announcement) =>
+      announcement.type === 'CLOSURE' &&
+      Date.parse(announcement.startsAt) <= now.getTime() &&
+      (announcement.endsAt === null || Date.parse(announcement.endsAt) > now.getTime()),
+  );
+
 /** Directions to a point, in the visitor's maps. */
 const directionsTo = ({ lat, lng }: { lat: number; lng: number }) =>
   `https://www.google.com/maps/search/?api=1&query=${String(lat)},${String(lng)}`;
@@ -35,7 +48,10 @@ const directionsTo = ({ lat, lng }: { lat: number; lng: number }) =>
  * The prices go per audience (U9), hidden ones explained, and by shift when a price names one; the
  * hours Saturday first with today marked; the distance only while near me holds a point, by the
  * straight line rounded as the server rounds it. From 1024 px the status and the contacts are an
- * aside; below 768 px a bar at the foot offers WhatsApp and a call, when the space has either.
+ * aside; below 768 px a bar at the foot offers WhatsApp and a call, when the space has either. The
+ * status card is always drawn; today's line says «مغلقة مؤقتًا اليوم» while a closure runs; the live
+ * badge is the cards' (`statusViewOf`), and once a refresh fails and the status shown is older than
+ * 3 minutes, «الحالة مباشرة الآن» gives way to its age and the badge turns neutral (finding 138).
  */
 export function useSpacePage(slug: string): SpacePageView {
   const copy = useCopy();
@@ -91,31 +107,26 @@ export function useSpacePage(slug: string): SpacePageView {
     (shift) => localText(shift.nameAr, shift.nameEn, english)?.text ?? shift.nameAr,
   );
   // A failed refresh keeps the status last read: TanStack Query keeps its data beside the error.
+  // Past 3 minutes after a failure it says its age instead of «live», and its badge goes neutral:
+  // its age as of the last failed try, which the polling renews each minute.
+  const age = liveQuery.errorUpdatedAt - liveQuery.dataUpdatedAt;
+  const stale = liveQuery.isError && liveQuery.data !== undefined && age > STALE_STATUS_MS;
+  const status = statusViewOf(liveQuery.data?.status ?? null, copy);
   const live = liveQuery.isPending
     ? ({ kind: 'loading', label: words.liveStatus.live } as const)
     : liveQuery.data === undefined
       ? ({ kind: 'line', line: words.liveStatus.failed } as const)
       : space?.isVerified === false
         ? ({ kind: 'line', line: words.liveStatus.unverified } as const)
-        : liveQuery.data.status === null
+        : status === null
           ? ({ kind: 'line', line: words.liveStatus.unset } as const)
           : {
               kind: 'badge' as const,
-              live: words.liveStatus.live,
-              label:
-                copy.terms.liveStatuses[
-                  liveQuery.data.status === 'AVAILABLE'
-                    ? 'available'
-                    : liveQuery.data.status === 'FULL'
-                      ? 'full'
-                      : 'closedNow'
-                ],
-              variant:
-                liveQuery.data.status === 'AVAILABLE'
-                  ? ('success' as const)
-                  : liveQuery.data.status === 'FULL'
-                    ? ('warning' as const)
-                    : ('neutral' as const),
+              live: stale
+                ? words.liveStatus.updated({ minutes: Math.floor(age / 60_000) })
+                : words.liveStatus.live,
+              label: status.label,
+              variant: stale ? ('neutral' as const) : status.variant,
             };
 
   return {
@@ -166,7 +177,10 @@ export function useSpacePage(slug: string): SpacePageView {
           },
     panel: {
       title: wide && contacts.length > 0 ? words.statusContact.title : words.status.title,
-      today: todayHours(space?.hours?.days ?? null, now, copy.directory.card),
+      today:
+        space !== undefined && closureRuns(space.announcements, now)
+          ? words.closedToday
+          : todayHours(space?.hours?.days ?? null, now, copy.directory.card),
       distance: meters === null ? null : words.distance({ km: distanceText(meters, language) }),
       live,
     },
@@ -229,6 +243,13 @@ export function useSpacePage(slug: string): SpacePageView {
     location: {
       title: words.sections.location,
       point: space?.location ?? { lat: 0, lng: 0 },
+      user:
+        point === null
+          ? null
+          : {
+              point,
+              label: near.source === 'pin' ? copy.directory.map.yourPin : copy.directory.map.you,
+            },
       mapLabel: words.location.map({ name: name?.text ?? '' }),
       failed: words.location.failed,
       address: space ? localText(space.addressAr, space.addressEn, english) : null,

@@ -238,7 +238,15 @@ export const DIRECTORY = {
       unverified: 'Live status is shown for verified spaces only',
       unset: 'This space’s live status isn’t set up yet.',
       failed: 'We couldn’t read the status just now',
+      /** In place of «live», once a refresh failed and the status shown is past 3 minutes old. */
+      updated: ({ minutes }: { minutes: number }) =>
+        englishPlural(minutes, {
+          one: `Updated ${String(minutes)} minute ago`,
+          other: `Updated ${String(minutes)} minutes ago`,
+        }),
     },
+    /** Today's line while a closure announced by the space runs. */
+    closedToday: 'Temporarily closed today',
     /** The straight-line distance from the visitor's point, the number left to right. */
     distance: ({ km }: { km: string }) => `About ${km} km away`,
     sections: {

@@ -214,7 +214,17 @@ export const DIRECTORY = {
       unverified: 'الحالة المباشرة تظهر للمساحات الموثّقة فقط',
       unset: 'لم تكتمل معلومات الحالة المباشرة لهذه المساحة بعد.',
       failed: 'تعذّر قراءة الحالة الآن',
+      updated: ({ minutes }: { minutes: number }) =>
+        arabicPlural(minutes, {
+          zero: 'آخر تحديث الآن',
+          one: 'آخر تحديث قبل دقيقة واحدة',
+          two: 'آخر تحديث قبل دقيقتين',
+          few: `آخر تحديث قبل ${String(minutes)} دقائق`,
+          many: `آخر تحديث قبل ${String(minutes)} دقيقة`,
+          other: `آخر تحديث قبل ${String(minutes)} دقيقة`,
+        }),
     },
+    closedToday: 'مغلقة مؤقتًا اليوم',
     distance: ({ km }: { km: string }) => `نحو ${km} كم`,
     sections: {
       prices: 'الأسعار',

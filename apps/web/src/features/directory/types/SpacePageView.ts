@@ -83,6 +83,8 @@ export type SpacePageView = {
   location: {
     title: string;
     point: Location;
+    /** The visitor's point while near me holds one, drawn on the map beside the place. */
+    user: { point: Location; label: string } | null;
     mapLabel: string;
     failed: string;
     address: LocalText | null;

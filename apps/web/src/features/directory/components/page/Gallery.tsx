@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@shared/design-system';
 import { cn } from '@shared/design-system';
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 import type { useGallery } from '../../hooks/page/useGallery';
 
 type GalleryView = ReturnType<typeof useGallery>;
@@ -18,6 +18,7 @@ type GalleryView = ReturnType<typeof useGallery>;
 /** The public page's photo gallery, omitted when no photos were saved. */
 export function Gallery({ gallery }: { gallery: GalleryView }) {
   const tiles = useRef<(HTMLButtonElement | null)[]>([]);
+  const pillId = useId();
   if (gallery.tiles.length === 0) return null;
   return (
     <>
@@ -30,6 +31,8 @@ export function Gallery({ gallery }: { gallery: GalleryView }) {
             }}
             type="button"
             aria-label={tile.view.label}
+            // On a phone the first tile stands alone: it is described by the pill that counts them.
+            aria-describedby={index === 0 && gallery.more !== null ? pillId : undefined}
             className={cn(
               'relative overflow-hidden rounded-lg bg-muted text-start',
               tile.className,
@@ -43,7 +46,10 @@ export function Gallery({ gallery }: { gallery: GalleryView }) {
               className="aspect-video size-full object-cover"
             />
             {index === 0 && gallery.more !== null && (
-              <span className="absolute bottom-3 end-3 rounded-full bg-background/90 px-3 py-1 text-body-sm">
+              <span
+                id={pillId}
+                className="absolute bottom-3 end-3 rounded-full bg-background/90 px-3 py-1 text-body-sm"
+              >
                 {gallery.more.label}
               </span>
             )}

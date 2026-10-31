@@ -4,13 +4,29 @@ import type { SpacePageView } from '../../types/SpacePageView';
 import { Section } from './Section';
 
 /**
- * «الموقع»: the space on a map, its pin a picture (PU-026), the address and the landmark, and
- * «الاتجاهات» to the visitor's maps in a new tab.
+ * «الموقع»: the space on a map, its pin a picture (PU-026), with the visitor's point while near me
+ * holds one; the address and the landmark; and «الاتجاهات», the section's own action, to the
+ * visitor's maps in a new tab.
  */
 export function LocationSection({ location }: { location: SpacePageView['location'] }) {
   return (
-    <Section title={location.title} meta={null}>
-      <PlaceMap point={location.point} label={location.mapLabel} failed={location.failed} />
+    <Section
+      title={location.title}
+      meta={null}
+      action={
+        <Button asChild variant="outline" size="sm">
+          <a href={location.directions.href} target="_blank" rel="noopener">
+            {location.directions.label}
+          </a>
+        </Button>
+      }
+    >
+      <PlaceMap
+        point={location.point}
+        user={location.user}
+        label={location.mapLabel}
+        failed={location.failed}
+      />
       <div className="flex flex-col gap-1 text-body-sm">
         {location.address !== null && (
           <p lang={location.address.lang} dir={location.address.dir}>
@@ -27,11 +43,6 @@ export function LocationSection({ location }: { location: SpacePageView['locatio
           </p>
         )}
       </div>
-      <Button asChild variant="outline" size="sm" className="self-start">
-        <a href={location.directions.href} target="_blank" rel="noopener">
-          {location.directions.label}
-        </a>
-      </Button>
     </Section>
   );
 }

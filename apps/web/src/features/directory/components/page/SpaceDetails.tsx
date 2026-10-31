@@ -86,7 +86,7 @@ export function SpaceDetails({
     );
 
   const { panel, contacts, bar } = view;
-  const panelShown = panel.today !== null || panel.distance !== null;
+
   const withBar = view.phone && bar !== null;
 
   return (
@@ -118,7 +118,7 @@ export function SpaceDetails({
         {view.unverified !== null && (
           <UnverifiedNotice unverified={view.unverified} ownerContact={ownerContact} />
         )}
-        {!view.wide && panelShown && <StatusPanel panel={panel} />}
+        {!view.wide && <StatusPanel panel={panel} />}
         {announcements?.(view.announcements)}
         <PricesSection prices={view.prices} />
         <HoursSection hours={view.hours} />
@@ -134,7 +134,7 @@ export function SpaceDetails({
           <div className="border-t border-border pt-6">{report(view.space)}</div>
         )}
       </div>
-      {view.wide && (panelShown || contacts !== null) && (
+      {view.wide && (
         <aside aria-label={panel.title} className="flex flex-col gap-4 lg:col-span-4">
           <StatusPanel panel={panel}>
             {contacts !== null && (
