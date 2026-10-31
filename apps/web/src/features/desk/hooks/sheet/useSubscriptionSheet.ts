@@ -11,6 +11,7 @@ import { useEffect, useState, type BaseSyntheticEvent } from 'react';
 import { useWatch } from 'react-hook-form';
 import { toastSubscribed } from '../../components/toast/deskToasts';
 import { deskFailure } from '../../services/deskRefusal';
+import { endNote } from '../../services/endNote';
 import { endOf } from '../../services/endOf';
 import { openItems } from '../../services/openItems';
 import { packageLine } from '../../services/packageLine';
@@ -257,13 +258,34 @@ export function useSubscriptionSheet({
     shifts: choices.shifts,
     renewalOfId: renewing ? renews.id : undefined,
     published: requests,
+    prices: choices.prices.list,
     customDefaults: renews?.priceTyped != null ? customOf(renews) : null,
     submit: send,
   });
   const { control, setValue } = form.form;
-  const [choice, startsOn, typedName, typedPrice, billing, endsOn] = useWatch({
+  const [
+    choice,
+    startsOn,
+    typedName,
+    typedPrice,
+    billing,
+    endsOn,
+    customName,
+    totalDays,
+    totalHours,
+  ] = useWatch({
     control,
-    name: ['choice', 'startsOn', 'name', 'custom.priceAgorot', 'custom.billing', 'custom.endsOn'],
+    name: [
+      'choice',
+      'startsOn',
+      'name',
+      'custom.priceAgorot',
+      'custom.billing',
+      'custom.endsOn',
+      'custom.name',
+      'custom.totalDays',
+      'custom.totalHours',
+    ],
   });
   // The choices may arrive after the sheet opened, or change once read again: the first, or the
   // renewed one, is then chosen.
@@ -307,6 +329,25 @@ export function useSubscriptionSheet({
     owesTo: customerName === '' ? null : customerName,
   });
   const needsPhone = known === null && created === null && money.left > 0;
+  // Over earlier debts, the block lists each, then the new one, and its due is their total (G16.3).
+  const priorShown = known !== null && priorTotal > 0;
+  const chosenName =
+    chosenPackage?.name ?? chosenPrice?.line.title ?? (isCustom ? customName.trim() : '');
+  const calc = priorShown
+    ? [
+        ...prior.map((item) =>
+          words.calcItem({ item: isolate(item.label), balance: price(item.leftAgorot) }),
+        ),
+        ...(chosenName === ''
+          ? []
+          : [
+              (renewing ? words.calcRenewal : words.calcNew)({
+                name: isolate(chosenName),
+                price: price(newPrice),
+              }),
+            ]),
+      ]
+    : [];
 
   // The form's payment follows the money block.
   const amount = typeof money.amount === 'number' ? money.recorded : money.amount;
@@ -402,10 +443,19 @@ export function useSubscriptionSheet({
           : null,
       groups: [
         ...(published.length > 0
-          ? [{ heading: words.groups.published, options: published.map(({ line }) => line) }]
+          ? [
+              {
+                heading: words.groups.published,
+                options: published.map(({ line }) => line),
+                badge: null,
+              },
+            ]
           : []),
-        ...(packages.length > 0 ? [{ heading: words.groups.packages, options: packages }] : []),
-        ...(customChoice !== null ? [{ heading: null, options: [customChoice] }] : []),
+        // The desk's own packages, each marked private: visitors never see them (G16.5).
+        ...(packages.length > 0
+          ? [{ heading: words.groups.packages, options: packages, badge: words.private }]
+          : []),
+        ...(customChoice !== null ? [{ heading: null, options: [customChoice], badge: null }] : []),
       ],
       chosen: choice,
       choose: (value: string) => {
@@ -413,7 +463,15 @@ export function useSubscriptionSheet({
       },
     },
     dates: {
-      from: { label: words.from, field: form.field('startsOn'), error: form.errors.startsOn },
+      from: {
+        label: words.from,
+        value: startsOn,
+        text: startsOn === '' ? '' : dayText(startsOn, language),
+        choose: (date: string) => {
+          setValue('startsOn', date, { shouldDirty: true });
+        },
+        error: form.errors.startsOn,
+      },
       to:
         validity !== undefined
           ? {
@@ -426,14 +484,37 @@ export function useSubscriptionSheet({
             ? {
                 kind: 'custom' as const,
                 label: words.to,
-                field: form.field('custom.endsOn'),
+                value: endsOn,
+                text: endsOn === '' ? words.clearEnd : dayText(endsOn, language),
+                choose: (date: string) => {
+                  setValue('custom.endsOn', date, { shouldDirty: true });
+                },
+                clear: {
+                  label: words.clearEnd,
+                  run: () => {
+                    setValue('custom.endsOn', '', { shouldDirty: true });
+                  },
+                },
                 error: form.errors['custom.endsOn'],
-                help: endsOn === '' ? words.noEnd : undefined,
+                // What ends it, by the limits set (DK-008).
+                help:
+                  endNote(
+                    { endsOn, totalDays, totalHours },
+                    {
+                      noEnd: words.noEnd,
+                      noEndLimit: words.noEndLimit,
+                      endOrLimit: words.endOrLimit,
+                      days: words.limitDays,
+                      hours: words.limitHours,
+                    },
+                    (date) => dayText(date, language),
+                  ) ?? undefined,
               }
             : null,
     },
     custom: isCustom ? custom : null,
-    money,
+    money: priorShown ? { ...money, due: { ...money.due, label: words.total } } : money,
+    calc,
     moneyLabel: copy.desk.money.group,
     half: halfName === null ? null : { title: words.half.title({ name: halfName }) },
     submit: {

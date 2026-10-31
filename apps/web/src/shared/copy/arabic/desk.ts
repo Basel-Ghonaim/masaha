@@ -560,7 +560,8 @@ export const DESK = {
     phoneRequired: ({ amount }: { amount: string }) =>
       `رقم الجوال مطلوب: يبقى ${amount} دينًا، مثل \u2066+970 59 000 0000\u2069`,
     package: 'الباقة',
-    groups: { published: 'منشورة للزوار', packages: 'باقات المساحة — لا تظهر للزوار' },
+    groups: { published: 'منشورة للزوار', packages: 'خاصة بالمكتب — لا تظهر للزوار' },
+    private: 'خاصة',
     published: {
       WEEK: 'أسبوعي',
       MONTH: 'شهري',
@@ -584,6 +585,38 @@ export const DESK = {
     to: 'إلى',
     toFromPackage: 'تُحسب من الباقة',
     noEnd: 'بلا تاريخ نهاية · يبقى نشطًا حتى يُنهى',
+    noEndLimit: ({ limit }: { limit: string }) => `بلا تاريخ نهاية · ينتهي عند استهلاك ${limit}`,
+    endOrLimit: ({ date, limit }: { date: string; limit: string }) =>
+      `ينتهي في ${date} أو عند استهلاك ${limit}، أيهما أسبق`,
+    limitDays: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا أيام',
+        one: 'يوم واحد',
+        two: 'يومين',
+        few: `${String(count)} أيام`,
+        many: `${String(count)} يومًا`,
+        other: `${String(count)} يوم`,
+      }),
+    limitHours: ({ count }: { count: number }) =>
+      arabicPlural(count, {
+        zero: 'لا ساعات',
+        one: 'ساعة واحدة',
+        two: 'ساعتين',
+        few: `${String(count)} ساعات`,
+        many: `${String(count)} ساعة`,
+        other: `${String(count)} ساعة`,
+      }),
+    clearEnd: 'بلا تاريخ نهاية',
+    calendar: { previous: 'الشهر السابق', next: 'الشهر التالي' },
+    total: 'المجموع',
+    calcItem: ({ item, balance }: { item: string; balance: string }) => `${item}: ${balance}`,
+    calcNew: ({ name, price }: { name: string; price: string }) => `الاشتراك: ${name} ${price}`,
+    calcRenewal: ({ name, price }: { name: string; price: string }) => `التجديد: ${name} ${price}`,
+    fromPublished: 'من السعر المنشور',
+    byAttendance: {
+      PER_HOUR: ({ rate }: { rate: string }) => `يُحسب من الحضور: ${rate} للساعة`,
+      PER_DAY: ({ rate }: { rate: string }) => `يُحسب من الحضور: ${rate} لليوم`,
+    },
     custom: {
       title: 'مخصّص',
       terms: 'حدّد الشروط والسعر بنفسك',

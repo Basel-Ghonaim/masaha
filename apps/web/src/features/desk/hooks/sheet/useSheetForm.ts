@@ -1,8 +1,9 @@
 import { SUBSCRIPTION_BILLINGS } from '@masaha/shared/packages';
-import { PRICE_AUDIENCES, type Shift } from '@masaha/shared/spaces';
+import { PRICE_AUDIENCES, type Price, type Shift } from '@masaha/shared/spaces';
 import { useCopy } from '@shared/copy';
 import { useServerForm } from '@shared/forms';
-import { useLanguage } from '@shared/localisation';
+import { agorotOf, priceText, shekelsOf } from '@shared/lib';
+import { isolate, useLanguage } from '@shared/localisation';
 import { useEffect, useRef, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import {
@@ -45,6 +46,7 @@ export function useSheetForm({
   shifts,
   renewalOfId,
   published,
+  prices,
   customDefaults,
   submit,
 }: {
@@ -57,6 +59,8 @@ export function useSheetForm({
   renewalOfId: number | undefined;
   /** The published prices offered, by their choice's value. */
   published: ReadonlyMap<string, PublishedChoice>;
+  /** The space's published prices: a usage-based custom rate starts from the hour or day one. */
+  prices: readonly Price[];
   /** A renewal of custom terms repeats them. */
   customDefaults: Partial<SheetValues['custom']> | null;
   submit: (request: SheetRequest) => Promise<unknown>;
@@ -120,10 +124,27 @@ export function useSheetForm({
   });
 
   const { control, setValue } = form.form;
-  const [audience, billing, shiftId] = useWatch({
+  const [audience, billing, shiftId, typedRate] = useWatch({
     control,
-    name: ['custom.audience', 'custom.billing', 'custom.shiftId'],
+    name: ['custom.audience', 'custom.billing', 'custom.shiftId', 'custom.priceAgorot'],
   });
+  // The published hour or day price for whom and when (G16.4): the shift's, else the space's own.
+  const publishedRate = (chosen: string): number | null => {
+    const period = chosen === 'PER_HOUR' ? 'HOUR' : chosen === 'PER_DAY' ? 'DAY' : null;
+    if (period === null) return null;
+    const of = (shift: number | null) =>
+      prices.find(
+        (one) =>
+          one.period === period &&
+          one.audience === audience &&
+          one.shiftId === shift &&
+          one.labelAr === null,
+      );
+    return (of(shiftId === '' ? null : Number(shiftId)) ?? of(null))?.amountAgorot ?? null;
+  };
+  const rate = publishedRate(billing);
+  const fromPublished = rate !== null && agorotOf(typedRate) === rate;
+  const price = (agorot: number) => isolate(priceText(agorot, language));
   const chips = <T extends string>(
     label: string,
     value: T,
@@ -169,14 +190,32 @@ export function useSheetForm({
       words.custom.billings,
       SUBSCRIPTION_BILLINGS,
       (value) => {
-        if (isBilling(value)) setValue('custom.billing', value);
+        if (!isBilling(value)) return;
+        setValue('custom.billing', value);
+        // A rate from attendance starts at the published one, while none of the desk's is typed.
+        const published = publishedRate(value);
+        const typed = agorotOf(typedRate);
+        if (published !== null && (typed === undefined || typed === rate)) {
+          setValue('custom.priceAgorot', shekelsOf(published));
+        }
       },
     ),
     price: {
       label: billing === 'FIXED' ? words.custom.price : words.custom.rate,
       field: form.field('custom.priceAgorot'),
       error: form.errors['custom.priceAgorot'],
+      helper: billing !== 'FIXED' && fromPublished ? words.fromPublished : undefined,
     },
+    // What attendance is charged at, said under the terms (G16.4).
+    byAttendance:
+      billing === 'FIXED'
+        ? null
+        : (() => {
+            const typed = agorotOf(typedRate);
+            return typeof typed === 'number' && typed > 0
+              ? words.byAttendance[billing]({ rate: price(typed) })
+              : null;
+          })(),
     limits: {
       label: words.custom.limits,
       items: LIMIT_NAMES.map((limit) => ({

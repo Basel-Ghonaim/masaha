@@ -547,8 +547,10 @@ export const DESK = {
     package: 'Package',
     groups: {
       published: 'Published',
-      packages: 'The space’s packages — not shown to visitors',
+      packages: 'For the desk only — never shown to visitors',
     },
+    /** A desk package's badge: never shown to visitors (G16.5). */
+    private: 'Private',
     published: {
       WEEK: 'Weekly',
       MONTH: 'Monthly',
@@ -565,6 +567,27 @@ export const DESK = {
     to: 'To',
     toFromPackage: 'From the package',
     noEnd: 'No end date · it stays active until it is ended',
+    /** A custom end by the limits set (DK-008, G16.2). */
+    noEndLimit: ({ limit }: { limit: string }) => `No end date · ends once ${limit} are used`,
+    endOrLimit: ({ date, limit }: { date: string; limit: string }) =>
+      `Ends on ${date} or once ${limit} are used, whichever comes first`,
+    limitDays: ({ count }: { count: number }) =>
+      englishPlural(count, { one: `${String(count)} day`, other: `${String(count)} days` }),
+    limitHours: ({ count }: { count: number }) =>
+      englishPlural(count, { one: `${String(count)} hour`, other: `${String(count)} hours` }),
+    clearEnd: 'No end date',
+    calendar: { previous: 'Previous month', next: 'Next month' },
+    /** The money block's due over earlier debts: their sum and the new subscription (G16.3). */
+    total: 'Total',
+    calcItem: ({ item, balance }: { item: string; balance: string }) => `${item}: ${balance}`,
+    calcNew: ({ name, price }: { name: string; price: string }) => `Subscription: ${name} ${price}`,
+    calcRenewal: ({ name, price }: { name: string; price: string }) => `Renewal: ${name} ${price}`,
+    /** A usage-based custom rate prefilled from the published hour or day price (G16.4). */
+    fromPublished: 'From the published price',
+    byAttendance: {
+      PER_HOUR: ({ rate }: { rate: string }) => `Charged by attendance: ${rate} an hour`,
+      PER_DAY: ({ rate }: { rate: string }) => `Charged by attendance: ${rate} a day`,
+    },
     custom: {
       title: 'Custom',
       terms: 'Set the terms and the price yourself',

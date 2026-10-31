@@ -375,7 +375,8 @@ describe('useSubscriptionSheet', () => {
     expect(await within(sheet).findByText('10 days')).toBeVisible();
     expect(within(sheet).getByRole('button', { name: 'Change package' })).toBeVisible();
     await waitFor(() => {
-      expect(within(sheet).getByLabelText('From')).toHaveValue('2026-11-05');
+      // The start is the layer's date picker, named by its label and the day (G16.1).
+      expect(within(sheet).getByRole('button', { name: 'From 5 November' })).toBeVisible();
     });
     await user.click(within(sheet).getByRole('button', { name: /Renew and receive .?₪150.?$/ }));
 
@@ -612,7 +613,7 @@ describe('useSubscriptionSheet', () => {
 
     const weekly = await screen.findByRole('radio', { name: /Weekly/ });
     await waitFor(() => {
-      expect(screen.getByLabelText('From')).toHaveValue('2026-10-26');
+      expect(screen.getByRole('button', { name: 'From 26 October' })).toBeVisible();
     });
     expect(weekly).not.toBeChecked();
     expect(screen.getByRole('radio', { name: /10 days/ })).not.toBeChecked();

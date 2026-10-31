@@ -2,6 +2,7 @@ import {
   Alert,
   AlertAction,
   AlertDescription,
+  Badge,
   Button,
   Field,
   RadioGroup,
@@ -103,8 +104,11 @@ export function PackageOptions({
                       <RadioGroupItem id={id} value={option.value} className="mt-0.5" />
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="flex flex-wrap items-baseline justify-between gap-2">
-                          <span dir="auto" className="text-label">
-                            {option.title}
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span dir="auto" className="text-label">
+                              {option.title}
+                            </span>
+                            {group.badge !== null && <Badge variant="neutral">{group.badge}</Badge>}
                           </span>
                           {option.amount !== null && (
                             <span dir="ltr" className="text-label">
