@@ -139,9 +139,11 @@ export function useLedger(spaceId: number, { people }: { people: readonly Ledger
               value: String(person.id),
               label: person.self
                 ? words.staff.self({ name: person.name })
-                : person.active
-                  ? person.name
-                  : words.staff.inactive({ name: person.name }),
+                : person.owner === true
+                  ? words.staff.owner({ name: person.name })
+                  : person.active
+                    ? person.name
+                    : words.staff.inactive({ name: person.name }),
             })),
         ],
         choose: (value: string) => {
