@@ -12,6 +12,7 @@ import {
   LogInIcon,
 } from '@shared/design-system';
 import { useRef, type RefObject } from 'react';
+import { Link } from 'react-router';
 import { useCustomerCard } from '../../hooks/card/useCustomerCard';
 import type { PayTarget } from '../../hooks/pay/usePayDialog';
 import { useSubscriberCheckIn } from '../../hooks/subscriber/useSubscriberCheckIn';
@@ -64,8 +65,15 @@ export function CustomerCard({
       <CardHeader>
         <CardTitle>
           {/* The name keeps its own direction inline, so the heading stays at the start (PR 1b). */}
+          {/* The name leads to the customer's file (G13.5). */}
           <h3>
-            <span dir="auto">{card.name}</span>
+            <Link
+              to={menu.fileLink(row.id)}
+              dir="auto"
+              className="text-foreground underline-offset-4 hover:underline"
+            >
+              {card.name}
+            </Link>
           </h3>
         </CardTitle>
         <CardDescription>

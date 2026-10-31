@@ -16,6 +16,8 @@ export const OCCUPANCY = {
       actions: 'Actions',
     },
     kinds: { VISIT: 'Visit', CHECK_IN: 'Subscription' },
+    /** A student's visit, by its audience. */
+    studentVisit: 'Visit · student',
     soFar: ({ amount }: { amount: string }) => `${amount} so far`,
     atCheckOut: 'Set at check-out',
     since: ({ time }: { time: string }) => `Since ${time}`,

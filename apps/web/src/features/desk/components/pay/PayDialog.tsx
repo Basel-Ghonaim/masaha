@@ -177,7 +177,13 @@ export function PayDialog({
                 <p className="text-body-sm text-muted-foreground">{dialog.usageNote}</p>
               )}
             </MoneyBlock>
-            <Field label={dialog.note.label} error={dialog.note.error}>
+            <Field
+              label={dialog.note.label}
+              labelEnd={
+                <span className="text-caption text-muted-foreground">{dialog.note.optional}</span>
+              }
+              error={dialog.note.error}
+            >
               <Textarea {...dialog.note.field} />
             </Field>
             {dialog.failure !== null && <FormFailure view={dialog.failure} />}

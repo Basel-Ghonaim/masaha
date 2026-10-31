@@ -262,7 +262,12 @@ export function usePayDialog({
       received: { ...money.received, error: money.received.error ?? form.errors.amountAgorot },
     },
     groupLabel: copy.desk.money.group,
-    note: { label: copy.desk.collect.note, field: form.field('note'), error: form.errors.note },
+    note: {
+      label: copy.desk.collect.note,
+      optional: copy.desk.visit.optional,
+      field: form.field('note'),
+      error: form.errors.note,
+    },
     submit: {
       label: words.submit({ amount: price(money.recorded) }),
       run: send,

@@ -1,6 +1,6 @@
 import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -77,5 +77,32 @@ describe('UncollectedCard', () => {
     await waitFor(() => {
       expect(collect).toHaveFocus();
     });
+  });
+
+  it('leads a customer’s visit to their file, and marks the collection’s note optional', async () => {
+    const user = userEvent.setup();
+    fakeTransport(() =>
+      uncollectedPage([
+        uncollectedVisit({ id: 5, customer: { id: 40, name: 'Huda Saleh', phone: null } }),
+        uncollectedVisit({ id: 4, visitorName: 'Rami' }),
+      ]),
+    );
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={['/desk']}>
+          <UncollectedCard spaceId={7} abilities={{ writeOff: false }} fileLink={fileLink} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('link', { name: 'Huda Saleh' })).toHaveAttribute(
+      'href',
+      '/file/40',
+    );
+    expect(screen.queryByRole('link', { name: 'Rami' })).toBeNull();
+    const [collect] = screen.getAllByRole('button', { name: 'Collect' });
+    await user.click(collect as HTMLElement);
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Optional')).toBeVisible();
   });
 });

@@ -3,6 +3,7 @@ import { createQueryClient } from '@shared/api';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router';
 import { axe } from 'vitest-axe';
 import { fakeTransport, ok, restoreTransport } from '../../../test/fakeTransport';
 import { stubScreenWidth } from '../../../test/screenWidth';
@@ -35,6 +36,12 @@ const NOW: SpaceOccupancyNow = {
   ],
 };
 
+/** What the desk adds: a subscriber's plan, by their check-in, and the way to a customer's file. */
+const PEOPLE = {
+  plan: (person: PresentPerson) => (person.kind === 'CHECK_IN' ? '10 days' : null),
+  fileLink: (customerId: number) => `/file/${String(customerId)}`,
+};
+
 /** The row's action, as the desk sets it: named by the person. */
 const action = (person: PresentPerson) => (
   <button type="button" aria-label={`Check out ${person.name}`}>
@@ -46,9 +53,11 @@ function renderList(answer: SpaceOccupancyNow) {
   fakeTransport(() => ok(answer));
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <main>
-        <PresentList spaceId={7} action={action} />
-      </main>
+      <MemoryRouter>
+        <main>
+          <PresentList spaceId={7} action={action} people={PEOPLE} />
+        </main>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -91,6 +100,47 @@ describe('PresentList', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
+  it('links a subscriber’s name to their file, names their plan, and shows the time alone', async () => {
+    stubScreenWidth(1440);
+    renderList(NOW);
+
+    const table = await screen.findByRole('table', { name: 'People present' });
+    expect(await within(table).findByRole('link', { name: 'Sara' })).toHaveAttribute(
+      'href',
+      '/file/4',
+    );
+    // A visit has no customer the state now names: its name is not a link.
+    expect(within(table).queryByRole('link', { name: 'Omar' })).toBeNull();
+    const sara = within(table).getByRole('link', { name: 'Sara' }).closest('tr') as HTMLElement;
+    expect(within(sara).getByText('10 days')).toBeVisible();
+    expect(within(sara).queryByText('Subscription')).toBeNull();
+    const omar = within(table).getByText('Omar').closest('tr') as HTMLElement;
+    expect(within(omar).getByText('Visit')).toBeVisible();
+    expect(within(omar).getByRole('cell', { name: '10:00' })).toBeVisible();
+    // The actions' header is named for a reader alone.
+    expect(
+      within(table).getByRole('columnheader', { name: 'Actions' }).firstElementChild,
+    ).toHaveClass('sr-only');
+  });
+
+  it('says a student’s visit «Visit · student»', async () => {
+    stubScreenWidth(390);
+    renderList({
+      ...NOW,
+      people: NOW.people.map((person) =>
+        person.kind === 'VISIT' && person.name === 'Layla'
+          ? { ...person, audience: 'STUDENT' as const }
+          : person,
+      ),
+    });
+
+    const list = await screen.findByRole('list', { name: 'People present' });
+    const layla = (await within(list).findByText('Layla')).closest('li') as HTMLElement;
+    expect(within(layla).getByText('Visit · student')).toBeVisible();
+    const omar = within(list).getByText('Omar').closest('li') as HTMLElement;
+    expect(within(omar).getByText('Visit')).toBeVisible();
+  });
+
   it('counts the people present alone for a space with no capacity', async () => {
     stubScreenWidth(1440);
     renderList({ ...NOW, capacity: null, status: null });
@@ -107,9 +157,11 @@ describe('PresentList', () => {
     const client = createQueryClient();
     render(
       <QueryClientProvider client={client}>
-        <main>
-          <PresentList spaceId={7} action={action} />
-        </main>
+        <MemoryRouter>
+          <main>
+            <PresentList spaceId={7} action={action} people={PEOPLE} />
+          </main>
+        </MemoryRouter>
       </QueryClientProvider>,
     );
 

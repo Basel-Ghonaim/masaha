@@ -7,8 +7,12 @@ export type PresentRowView = {
   /** The person as the server sent them, for the row's action. */
   person: PresentPerson;
   name: string;
-  /** «زيارة» or «اشتراك». */
-  kind: string;
+  /** A subscriber's customer, whose file the name leads to; `null` for a visit. */
+  customerId: number | null;
+  /** A subscriber's plan's name (`primary`), else «اشتراك»; «زيارة» or «زيارة · طالب» (`neutral`). */
+  kind: { label: string; variant: 'primary' | 'neutral' };
+  /** «10:00», on Gaza's clock, for the «منذ» column. */
+  time: string;
   /** «منذ 10:00», on Gaza's clock. */
   since: string;
   /** How long they have stayed so far. */

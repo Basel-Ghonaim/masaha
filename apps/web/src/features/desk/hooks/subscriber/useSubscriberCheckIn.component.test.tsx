@@ -4,6 +4,7 @@ import { Toaster, toast } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { createRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
@@ -45,8 +46,10 @@ function renderCard(
   const focus = createRef<HTMLInputElement>();
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <input ref={focus} aria-label="Search" />
-      <CustomerCard spaceId={7} row={row} after={{ done, focus }} receive={vi.fn()} menu={MENU} />
+      <MemoryRouter>
+        <input ref={focus} aria-label="Search" />
+        <CustomerCard spaceId={7} row={row} after={{ done, focus }} receive={vi.fn()} menu={MENU} />
+      </MemoryRouter>
       <Toaster label="Notifications" />
     </QueryClientProvider>,
   );

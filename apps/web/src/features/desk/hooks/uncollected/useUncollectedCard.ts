@@ -89,6 +89,8 @@ export function useUncollectedCard(spaceId: number, abilities: DeskAbilities) {
     return {
       key: String(visit.id),
       name: item.name,
+      // A customer's visit leads to their file (G13.5).
+      customerId: visit.customer?.id ?? null,
       how: visit.checkoutMethod === 'AUTO' ? words.how(when) : words.howManual(when),
       amount: balanceAgorot === null ? words.unpriced : isolate(priceText(balanceAgorot, language)),
       collect: balanceAgorot === null ? null : { label: words.collect, run: open('collect') },

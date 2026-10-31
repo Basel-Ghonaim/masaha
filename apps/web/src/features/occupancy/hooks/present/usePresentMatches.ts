@@ -1,3 +1,4 @@
+import type { PresentPerson } from '@masaha/shared/occupancy';
 import { useCopy } from '@shared/copy';
 import { matchesPerson } from '../../services/matchesPerson';
 import type { PresentRowView } from '../../types/PresentRowView';
@@ -12,9 +13,10 @@ export function usePresentMatches(
   spaceId: number,
   term: string,
   phones: ReadonlyMap<number, string>,
+  plan?: (person: PresentPerson) => string | null,
 ): { heading: string; rows: PresentRowView[] } {
   const copy = useCopy();
-  const list = usePresentList(spaceId, { now: new Date() });
+  const list = usePresentList(spaceId, { now: new Date(), plan });
   return {
     heading: copy.occupancy.present.matches,
     rows: list.rows.filter((row) => matchesPerson(row.person, term, phones)),

@@ -104,6 +104,8 @@ export function useCustomerFile(spaceId: number, customerId: number) {
               return {
                 key,
                 name: copy.desk.pay.itemVisit({ day: when.day }),
+                // The file is theirs already: the row names the visit, not a way to the file.
+                customerId: null,
                 how:
                   visit.checkoutMethod === 'AUTO'
                     ? copy.desk.uncollected.how(when)

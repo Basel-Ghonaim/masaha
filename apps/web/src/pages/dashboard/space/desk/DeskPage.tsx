@@ -138,7 +138,7 @@ function Desk({ spaceId }: { spaceId: number }) {
     () => (people ?? []).flatMap((person) => (person.kind === 'CHECK_IN' ? [person.id] : [])),
     [people],
   );
-  const { phones, usage } = useOpenCheckIns(spaceId, checkInIds);
+  const { phones, usage, plan } = useOpenCheckIns(spaceId, checkInIds);
   // The search's first group: who is present now, whom a term matches.
   const present = useMemo(() => {
     const everyone = people ?? [];
@@ -168,6 +168,8 @@ function Desk({ spaceId }: { spaceId: number }) {
     (customerId: number) => spaceCustomerPath(spaceId, customerId),
     [spaceId],
   );
+  // A subscriber's plan names their badge; a customer's name leads to their file (G13.5, G13.6).
+  const presentPeople = useMemo(() => ({ plan, fileLink }), [plan, fileLink]);
   // The rows' action, made once per terms: a new one would draw every row anew.
   const termsData = terms.data;
   const action = useCallback(
@@ -263,6 +265,7 @@ function Desk({ spaceId }: { spaceId: number }) {
               spaceId={spaceId}
               term={term}
               phones={phones}
+              people={presentPeople}
               action={(person) => (
                 <CheckOutAction
                   spaceId={spaceId}
@@ -301,7 +304,7 @@ function Desk({ spaceId }: { spaceId: number }) {
               <TabsTrigger value={LOG}>{words.log.tabs.log}</TabsTrigger>
             </TabsList>
             <TabsContent value={NOW}>
-              <PresentList spaceId={spaceId} action={action} usage={usage} />
+              <PresentList spaceId={spaceId} action={action} usage={usage} people={presentPeople} />
             </TabsContent>
             <TabsContent value={LOG}>
               <DeskLog spaceId={spaceId} owner={owner} fileLink={fileLink} />

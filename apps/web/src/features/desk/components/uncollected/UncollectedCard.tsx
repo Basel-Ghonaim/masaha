@@ -173,7 +173,7 @@ export function UncollectedCard({
             <>
               <ul id={listId} aria-busy={card.busy || undefined} className="flex flex-col divide-y">
                 {card.rows.map((row) => (
-                  <UncollectedRow key={row.key} row={row} opened={opened} />
+                  <UncollectedRow key={row.key} row={row} opened={opened} fileLink={fileLink} />
                 ))}
               </ul>
               {(card.toggle !== null || card.pagination !== null) && (
