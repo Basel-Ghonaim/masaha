@@ -285,7 +285,7 @@ function Desk({ spaceId }: { spaceId: number }) {
       {/* On a phone the uncollected come before who is here (K1); the grid places them from xl. */}
       <div className="flex flex-col gap-6 xl:grid xl:grid-cols-12 xl:items-start">
         <div className="flex flex-col gap-6 xl:order-last xl:col-span-4">
-          <UncollectedCard spaceId={spaceId} abilities={{ writeOff: owner }} />
+          <UncollectedCard spaceId={spaceId} abilities={{ writeOff: owner }} fileLink={fileLink} />
           <UnpricedCard spaceId={spaceId} mayTypePrice={terms.data?.mayTypePrice ?? false} />
         </div>
         <div ref={presentRegion} className="xl:col-span-8">

@@ -191,6 +191,27 @@ export const DESK = {
     undoFailed: 'We couldn’t undo the write-off',
     failed: 'We couldn’t write it off',
   },
+  /** The owner's written-off visits: the uncollected card's second view, and their undo (164). */
+  writtenOff: {
+    views: 'Which visits',
+    uncollected: 'Uncollected',
+    writtenOff: 'Written off',
+    line: ({ amount, reason }: { amount: string; reason: string }) =>
+      `Written off ${amount} · ${reason}`,
+    by: ({ name, date }: { name: string; date: string }) => `Written off by ${name} on ${date}`,
+    undo: 'Undo',
+    none: 'No visit was written off.',
+    loadFailed: 'We couldn’t load the written-off visits',
+    pagination: {
+      label: 'Pages of written-off visits',
+      previous: 'Previous',
+      next: 'Next',
+      page: ({ page }: { page: number }) => `Page ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `Page ${String(page)} of ${String(total)}`,
+      more: 'More pages',
+    },
+  },
   /** The owner's void of a payment (DK-016), from the ledger's row or a statement's. */
   void: {
     menu: ({ amount, who }: { amount: string; who: string }) =>

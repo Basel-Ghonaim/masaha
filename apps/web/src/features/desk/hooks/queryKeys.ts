@@ -12,6 +12,9 @@ export const deskKeys = {
   /** A page of the visits closed with something left to collect. */
   uncollected: (spaceId: number, page: number) =>
     ['space', spaceId, 'desk', 'uncollected', page] as const,
+  /** A page of the owner's written-off visits. */
+  writtenOff: (spaceId: number, page: number) =>
+    ['space', spaceId, 'desk', 'writtenOff', page] as const,
   /** A page of the visits closed with no charge. */
   unpriced: (spaceId: number, page: number) =>
     ['space', spaceId, 'desk', 'unpriced', page] as const,

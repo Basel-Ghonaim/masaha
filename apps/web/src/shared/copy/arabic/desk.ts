@@ -196,6 +196,26 @@ export const DESK = {
     undoFailed: 'تعذّر التراجع عن الشطب',
     failed: 'تعذّر الشطب',
   },
+  writtenOff: {
+    views: 'أيّ الزيارات',
+    uncollected: 'غير محصّل',
+    writtenOff: 'لن تُحصَّل',
+    line: ({ amount, reason }: { amount: string; reason: string }) =>
+      `لن يُحصَّل ${amount} · ${reason}`,
+    by: ({ name, date }: { name: string; date: string }) => `كتبها ${name} في ${date}`,
+    undo: 'تراجع',
+    none: 'لا زيارات شُطبت.',
+    loadFailed: 'تعذّر تحميل الزيارات المشطوبة',
+    pagination: {
+      label: 'صفحات الزيارات المشطوبة',
+      previous: 'السابق',
+      next: 'التالي',
+      page: ({ page }: { page: number }) => `الصفحة ${String(page)}`,
+      summary: ({ page, total }: { page: number; total: number }) =>
+        `صفحة ${String(page)} من ${String(total)}`,
+      more: 'صفحات أخرى',
+    },
+  },
   void: {
     menu: ({ amount, who }: { amount: string; who: string }) =>
       `إجراءات الدفعة: ${amount} · ${who}`,

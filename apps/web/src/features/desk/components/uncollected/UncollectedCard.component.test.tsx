@@ -11,6 +11,8 @@ import { stubScreenWidth } from '../../../../test/screenWidth';
 import { startPreferences } from '../../../../test/startPreferences';
 import { UncollectedCard } from './UncollectedCard';
 
+const fileLink = (customerId: number) => `/file/${String(customerId)}`;
+
 /** A line with the Unicode isolates around its values removed, as a reader hears it. */
 const heard = (expected: string) => (content: string) => content.replace(/[⁦-⁩]/g, '') === expected;
 
@@ -21,7 +23,7 @@ function renderCard() {
   render(
     <QueryClientProvider client={createQueryClient()}>
       <MemoryRouter initialEntries={['/desk']}>
-        <UncollectedCard spaceId={7} abilities={{ writeOff: true }} />
+        <UncollectedCard spaceId={7} abilities={{ writeOff: true }} fileLink={fileLink} />
       </MemoryRouter>
     </QueryClientProvider>,
   );

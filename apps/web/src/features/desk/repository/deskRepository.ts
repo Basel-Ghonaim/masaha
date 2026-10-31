@@ -31,6 +31,7 @@ import type {
   QuotedVisit,
   VisitTerms,
   WriteOffVisitRequest,
+  WrittenOffVisit,
 } from '@masaha/shared/visits';
 import { api, withIdempotencyKey, type Page, type WithMeta } from '@shared/api';
 
@@ -44,8 +45,8 @@ export type Subscribed = WithMeta<NewSubscription, { warnings: 'CUSTOMER_HAS_DEB
 /**
  * The front desk's visits on the server (docs/api/api-contract.md §5, Front desk (managed)): the
  * terms, a visitor's check-in, a visit's quote and its check-out; the uncollected visits, a payment
- * on one, «تسجيل دين», and the owner's write-off and its undo; the owner's void of a payment; the
- * unpriced visits and their price; the customers' search; a subscriber's check-in and check-out, and
+ * on one, «تسجيل دين», and the owner's write-off, the written-off visits and an undo; the owner's
+ * void of a payment; the unpriced visits and their price; the customers' search; a subscriber's check-in and check-out, and
  * the open check-ins; a customer's file, their creation, edit, the owner's archive and restore; a
  * subscribe with its payment; a subscription's statement, and its end; a day's visits and
  * check-ins, the desk's log. The creates carry the
@@ -84,6 +85,8 @@ export interface DeskRepository {
   writeOff(spaceId: number, visitId: number, body: WriteOffVisitRequest): Promise<DeskVisit>;
   /** Undoes the write-off: the visit is uncollected again. */
   undoWriteOff(spaceId: number, visitId: number): Promise<DeskVisit>;
+  /** The owner's page of the written-off visits, the latest written off first. */
+  writtenOff(spaceId: number, page: number): Promise<Page<WrittenOffVisit[]>>;
   /** The owner's void of a payment, with its reason; a payment voided already is answered as it is. */
   voidPayment(spaceId: number, paymentId: number, body: VoidPaymentRequest): Promise<PaymentRow>;
   /** A page of the visits closed with no charge, the latest closed first. */
@@ -168,6 +171,10 @@ export function createDeskRepository(): DeskRepository {
       api.post<DeskVisit>(`${visit(spaceId, visitId)}/write-off`, body),
     undoWriteOff: (spaceId, visitId) =>
       api.delete<DeskVisit>(`${visit(spaceId, visitId)}/write-off`),
+    writtenOff: (spaceId, page) =>
+      api.getPage<WrittenOffVisit[]>(`${space(spaceId)}/written-off-visits`, {
+        params: { page },
+      }),
     voidPayment: (spaceId, paymentId, body) =>
       api.post<PaymentRow>(`${space(spaceId)}/payments/${String(paymentId)}/void`, body),
     unpriced: (spaceId, page) =>

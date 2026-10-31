@@ -134,6 +134,33 @@ describe('the desk repository', () => {
     ]);
   });
 
+  it('reads the owner’s page of the written-off visits', async () => {
+    const repository = createDeskRepository();
+    const row = {
+      visit: VISIT,
+      writtenOffBy: { id: 2, name: 'Huda' },
+      paidAgorot: 0,
+      writtenOffAgorot: 2500,
+    };
+    const requests = serve(() => ({
+      status: 200,
+      data: {
+        success: true,
+        data: [row],
+        meta: { currentPage: 2, pageSize: 20, totalRecords: 21, totalPages: 2 },
+      },
+    }));
+
+    await expect(repository.writtenOff(7, 2)).resolves.toEqual({
+      data: [row],
+      meta: { currentPage: 2, pageSize: 20, totalRecords: 21, totalPages: 2 },
+    });
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'get /manage/spaces/7/written-off-visits',
+    ]);
+    expect(requests[0]?.params).toEqual({ page: 2 });
+  });
+
   it('reads the unpriced visits’ page, and prices a visit with no key', async () => {
     const repository = createDeskRepository();
     const requests = serve((url) =>
