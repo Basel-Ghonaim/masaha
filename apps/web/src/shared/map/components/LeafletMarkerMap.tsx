@@ -170,7 +170,8 @@ const PlaceMark = memo(function PlaceMark({
     () =>
       divIcon({
         className: markClass({ shape, tone }, selected),
-        html: '<span></span>',
+        // Drawn on the light theme, as the tiles always are (finding 135).
+        html: '<span data-theme="light"></span>',
         iconSize: [MARK_SIZE, MARK_SIZE],
         iconAnchor: [MARK_SIZE / 2, MARK_SIZE / 2],
       }),

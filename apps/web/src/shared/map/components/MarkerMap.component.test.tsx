@@ -101,6 +101,14 @@ describe('MarkerMap', () => {
     expect(onSelect).toHaveBeenCalledTimes(2);
   });
 
+  it('draws each mark on the light theme, as the tiles always are', async () => {
+    startPreferences('en');
+    renderMap();
+
+    const focus = await screen.findByRole('button', { name: 'Focus Hub — Available' });
+    expect(focus.querySelector('span')).toHaveAttribute('data-theme', 'light');
+  });
+
   it('binds no mark’s handlers again when the map renders again with the same marks', async () => {
     startPreferences('en');
     const { rerender, onSelect } = renderMap();
