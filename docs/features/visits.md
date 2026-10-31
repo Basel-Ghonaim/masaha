@@ -1,7 +1,7 @@
 # Visits
 
 > **Status:** Active · **Class:** Description — what is built, as the code shows it · **Last Updated:** 2026-10-29 · **Owner:** Basel Ghoneim
-> **Authority:** The `visits` capability: a visitor's stay at a space, checked in by name, its rates and its charge. Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and its money rules by the [data model](../architecture/data-model.md#front-desk-and-money). The API is built; no web screen yet.
+> **Authority:** The `visits` capability: a visitor's stay at a space, checked in by name, its rates and its charge. Its endpoints are owned by the API contract ([Front desk (managed)](../api/api-contract.md#front-desk-managed)); its entity and its money rules by the [data model](../architecture/data-model.md#front-desk-and-money). The API is built; on the web, the desk's screen («مكتب الاستقبال», [desk](desk.md)) checks visits in and out, collects, writes off and prices them, and lists a day's in «السجل»: the web feature `features/desk` calls these routes, since `visits` has no web feature of its own.
 > **Scope:** the API module `visits` (L3); `@masaha/shared/visits`. No web feature yet.
 
 ## What it does
@@ -98,3 +98,7 @@
 - #102 — the auto check-out counts the visits it could not close (`failed`), and fails only when it cannot run; a stay's charge never past its due time, at the check-out, in the quote and in the charges so far (`stayEndAt`); visits by id as the desk sees them (`deskVisitsOf`), and the auto-closed readers gone (finding 113).
 - #131 — a space's visits by the Gaza day of their check-in (`GET …/visits`).
 - #132 — a visit's check-in may name its customer (`customerId`, finding 160's API half); the written-off visits listed, through `payments`' ledger (`GET …/written-off-visits`, finding 164's API half).
+
+### Web history
+
+- #132 — the *Authority* names the desk's screen, which `features/desk` builds on these routes (G13.24).
