@@ -18,9 +18,8 @@ const RIMA: AdminUserRow = {
   receptionSpaces: [],
 };
 
-const NOW = new Date('2026-10-19T09:00:00Z');
-const english = { words: CATALOGUES.en.spaceLinks.usersList.row, english: true, now: NOW };
-const arabic = { words: CATALOGUES.ar.spaceLinks.usersList.row, english: false, now: NOW };
+const english = { words: CATALOGUES.en.spaceLinks.usersList.row, english: true };
+const arabic = { words: CATALOGUES.ar.spaceLinks.usersList.row, english: false };
 
 describe('userRowView', () => {
   it('words the state: active as success, suspended as neutral', () => {
@@ -58,9 +57,14 @@ describe('userRowView', () => {
       expect(userRowView(row, english)).toMatchObject({
         role: roleEn,
         signIn: signInEn,
-        joined: '1 Sept',
+        // «انضم» with its year always, this year's too (G29.1).
+        joined: '1 Sept 2026',
       });
-      expect(userRowView(row, arabic)).toMatchObject({ role: roleAr, signIn: signInAr });
+      expect(userRowView(row, arabic)).toMatchObject({
+        role: roleAr,
+        signIn: signInAr,
+        joined: '1 سبتمبر 2026',
+      });
     },
   );
 

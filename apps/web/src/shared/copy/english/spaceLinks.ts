@@ -269,8 +269,10 @@ export const SPACE_LINKS = {
     refusals: {
       ACCOUNT_IS_ADMIN:
         'This email is an admin’s account, and an admin can’t be linked to a space.',
-      ACCOUNT_SUSPENDED: 'This account is suspended; it can’t be linked until it’s restored.',
     },
+    /** `ACCOUNT_SUSPENDED`: its way on, the users list searched by the email (`link`). */
+    suspended: ({ link }: { link: string }) => `The account is suspended — ${link}.`,
+    restoreFirst: 'restore it first',
     upgraded: ({ name, space }: { name: string; space: string }) =>
       `${name} upgraded to owner and linked to ${space}`,
   },

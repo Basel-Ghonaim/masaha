@@ -1,11 +1,13 @@
 import { Button, EmptyState, SearchXIcon } from '@shared/design-system';
+import type { ReactNode } from 'react';
 import type { ListStateView } from '../types/ListStateView';
 
 /**
  * What stands in for the rows when there are none to show: the failure to load, with its reference
- * and Try again; no rows yet; or none matching the filters, with a button that clears them.
+ * and Try again; no rows yet, with the list's way on (`emptyAction`) when it has one; or none
+ * matching the filters, with a button that clears them.
  */
-export function ListState({ list }: { list: ListStateView }) {
+export function ListState({ list, emptyAction }: { list: ListStateView; emptyAction?: ReactNode }) {
   if (list.status === 'error') {
     const { failure } = list;
     return (
@@ -33,5 +35,9 @@ export function ListState({ list }: { list: ListStateView }) {
       </EmptyState>
     );
   }
-  return <EmptyState title={list.empty.title} description={list.empty.description} />;
+  return (
+    <EmptyState title={list.empty.title} description={list.empty.description}>
+      {emptyAction}
+    </EmptyState>
+  );
 }

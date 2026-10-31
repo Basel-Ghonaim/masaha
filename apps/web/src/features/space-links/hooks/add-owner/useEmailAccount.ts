@@ -39,7 +39,7 @@ export function useEmailAccount(email: string | null): EmailAccountState {
   }
   const row = query.data.data.find((user) => user.email === email);
   if (row === undefined) return { status: 'notFound' };
-  const view = userRowView(row, { words, english, now: new Date() });
+  const view = userRowView(row, { words, english });
   return {
     status: 'found',
     row,

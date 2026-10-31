@@ -108,7 +108,7 @@ export function UsersList({
         }),
         column.display({
           id: 'actions',
-          header: headers.actions,
+          header: () => <span className="sr-only">{headers.actions}</span>,
           cell: (info) => actionsOf(info.row.original),
           meta: { className: 'w-px' },
         }),

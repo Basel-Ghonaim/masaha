@@ -31,11 +31,7 @@ const heard = (expected: string) => (name: string) => name.replace(/[⁦-⁩]/g,
 /** The row's menu, as the owners list shows it. */
 function renderMenu(row: AdminUserRow) {
   fakeTransport(() => ok({ id: 7, isVerified: true, owners: [{ id: 5, name: 'Rima' }] }));
-  const view = userRowView(row, {
-    words: CATALOGUES.en.spaceLinks.usersList.row,
-    english: true,
-    now: new Date(),
-  });
+  const view = userRowView(row, { words: CATALOGUES.en.spaceLinks.usersList.row, english: true });
   render(
     <QueryClientProvider client={createQueryClient()}>
       <OwnerActionsMenu row={view} />

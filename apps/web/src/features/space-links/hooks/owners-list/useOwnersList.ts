@@ -7,12 +7,15 @@ import { useAdminUsersList } from '../users-list/useAdminUsersList';
  * whose every space is deleted.
  */
 export function useOwnersList() {
-  const lines = useCopy().spaceLinks.ownersList;
+  const copy = useCopy();
+  const lines = copy.spaceLinks.ownersList;
 
   return {
     ...useAdminUsersList({ fixedRole: 'owner', words: lines }),
     intro: lines.intro,
     columns: lines.columns,
+    /** The empty list's way on: «إضافة مالك», the add sheet's own words (D6.11). */
+    addOwner: copy.spaceLinks.addOwner.open,
     /** The line of an owner whose every space is deleted, which leads to the deleted spaces. */
     allSpacesDeleted: lines.allSpacesDeleted,
   };

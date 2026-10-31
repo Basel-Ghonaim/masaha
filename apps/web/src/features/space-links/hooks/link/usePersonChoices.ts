@@ -33,7 +33,7 @@ export function usePersonChoices({ enabled }: { enabled: boolean }) {
 
   const options: PersonChoiceView[] = (query.data?.data ?? []).flatMap((row) => {
     if (row.role === 'ADMIN') return [];
-    const spaces = userRowView(row, { words: rowWords, english, now: new Date() })
+    const spaces = userRowView(row, { words: rowWords, english })
       .spaces.map((space) => isolate(space.text))
       .join(copy.spaceLinks.adminList.separator);
     const desks =

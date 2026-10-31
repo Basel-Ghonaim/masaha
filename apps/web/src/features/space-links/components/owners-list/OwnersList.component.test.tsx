@@ -157,6 +157,31 @@ describe('OwnersList, from 1024 px', () => {
     expect(router.state.location.search).toBe('?state=suspended');
   });
 
+  it('offers «Add owner» when there is no owner yet, the actions header read only', async () => {
+    const { router } = renderList('/owners', () => ({
+      status: 200,
+      data: {
+        success: true,
+        data: [],
+        meta: {
+          currentPage: 1,
+          limit: 20,
+          totalPages: 0,
+          totalRecords: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+    }));
+
+    expect(await screen.findByText('No space owners yet')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Actions' }).firstElementChild).toHaveClass(
+      'sr-only',
+    );
+    await userEvent.click(screen.getByRole('link', { name: 'Add owner' }));
+    expect(router.state.location.search).toBe('?sheet=add');
+  });
+
   it('has no accessibility violations', async () => {
     const { container } = renderList();
     await screen.findByText('Rima');

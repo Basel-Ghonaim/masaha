@@ -5,6 +5,8 @@ import { toAppError } from '@shared/errors';
 import { useServerForm } from '@shared/forms';
 import { useController, useWatch } from 'react-hook-form';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
+import { lineParts } from '@shared/localisation';
 import { useAddOwner } from './useAddOwner';
 import { useEmailAccount } from './useEmailAccount';
 import { useSpaceChoices } from '../useSpaceChoices';
@@ -48,11 +50,28 @@ function noticeOf(
   }
 }
 
-export function useAddOwnerForm() {
+export function useAddOwnerForm({
+  usersLink,
+}: {
+  /** The users list searched for `q`, as the page routes it: where a suspended account is restored. */
+  usersLink: (q: string) => string;
+}) {
   const copy = useCopy();
   const lines = copy.spaceLinks.addOwner;
   const addOwner = useAddOwner();
-  const [open, setOpen] = useState(false);
+  // Open by its button, or by the address's `?sheet=add` (a link from a space's editor, the empty
+  // list), which leaves the address once the sheet closes (D6.11).
+  const [params, setParams] = useSearchParams();
+  const [opened, setOpened] = useState(false);
+  const open = opened || params.get('sheet') === 'add';
+  const setOpen = (next: boolean) => {
+    setOpened(next);
+    if (!next && params.get('sheet') === 'add') {
+      const left = new URLSearchParams(params);
+      left.delete('sheet');
+      setParams(left, { replace: true });
+    }
+  };
   const [rememberedEmail, setRememberedEmail] = useState<string | null>(null);
   const [chosenSpace, setChosenSpace] = useState<SpaceChoiceView | null>(null);
   const [added, setAdded] = useState<AddedOwnerView | null>(null);
@@ -60,6 +79,8 @@ export function useAddOwnerForm() {
   // dialog opened for that owner and the chosen space.
   const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
   const [linkTarget, setLinkTarget] = useState<LinkTarget | null>(null);
+  // An email the server refused as a suspended account's (`ACCOUNT_SUSPENDED`).
+  const [suspendedEmail, setSuspendedEmail] = useState<string | null>(null);
 
   const spaceChoices = useSpaceChoices({ enabled: open });
   // The account the server said the remembered email has, as the users list shows it.
@@ -98,6 +119,10 @@ export function useAddOwnerForm() {
       const refused = toAppError(error);
       if (refused.code === 'EMAIL_HAS_ACCOUNT' && !upgrade) {
         setRememberedEmail(request.email);
+        return;
+      }
+      if (refused.code === 'ACCOUNT_SUSPENDED') {
+        setSuspendedEmail(request.email);
         return;
       }
       if (refused.code === 'ALREADY_OWNER' && refused.details !== undefined) {
@@ -189,6 +214,17 @@ export function useAddOwnerForm() {
           },
         }
       : null,
+    /**
+     * «الحساب موقوف — استرجعه أولًا.», while the email refused as a suspended account's is the one
+     * typed: «استرجعه أولًا» a link to the users list searched by that email.
+     */
+    suspended:
+      suspendedEmail !== null && watchedEmail === suspendedEmail
+        ? {
+            ...lineParts(({ name }) => lines.suspended({ link: name })),
+            link: { label: lines.restoreFirst, to: usersLink(suspendedEmail) },
+          }
+        : null,
     /** The link dialog opened from «اربطه بالمساحة», until it closes. */
     linkTarget,
     closeLink: () => {

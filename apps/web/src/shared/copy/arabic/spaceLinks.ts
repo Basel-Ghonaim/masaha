@@ -216,8 +216,9 @@ export const SPACE_LINKS = {
     },
     refusals: {
       ACCOUNT_IS_ADMIN: 'هذا البريد لحساب أدمن، ولا يُربط أدمن بمساحة.',
-      ACCOUNT_SUSPENDED: 'هذا الحساب موقوف؛ لا يُربط حتى يُسترجع.',
     },
+    suspended: ({ link }: { link: string }) => `الحساب موقوف — ${link}.`,
+    restoreFirst: 'استرجعه أولًا',
     upgraded: ({ name, space }: { name: string; space: string }) =>
       `رُقّي ${name} إلى مالك ورُبط بـ ${space}`,
   },

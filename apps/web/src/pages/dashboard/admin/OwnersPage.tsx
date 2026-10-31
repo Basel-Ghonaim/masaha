@@ -1,5 +1,6 @@
 import { AddOwner, OwnersList, type TemporaryPasswordSlot } from '@features/space-links';
 import { recordAdminHandover, TemporaryPasswordDialog } from '@features/users';
+import { DASHBOARD_PATHS } from '@shared/routing';
 import { ADMIN_DELETED_SPACES_PATH } from '../navigation';
 import { PageHeader } from '../shell/PageHeader';
 
@@ -19,12 +20,15 @@ const temporaryPassword: TemporaryPasswordSlot = (added, done, returnFocus) => (
   />
 );
 
+/** The users list searched for `q`: where a suspended account is restored. */
+const usersLink = (q: string) => `${DASHBOARD_PATHS.admin}/users?q=${encodeURIComponent(q)}`;
+
 export function OwnersPage() {
   return (
     <>
       <PageHeader />
       <div className="flex justify-end">
-        <AddOwner temporaryPassword={temporaryPassword} />
+        <AddOwner temporaryPassword={temporaryPassword} usersLink={usersLink} />
       </div>
       <OwnersList deletedSpacesLink={ADMIN_DELETED_SPACES_PATH} />
     </>

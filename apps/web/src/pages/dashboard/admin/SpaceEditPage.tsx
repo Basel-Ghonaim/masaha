@@ -39,7 +39,10 @@ const amenityNames = (ids: number[]) => <AmenityNames ids={ids} />;
  */
 const place: AdminPlace = {
   kind: 'admin',
-  ownerActions: (space) => <SpaceOwnersActions space={space} addOwnerLink={ADMIN_OWNERS_PATH} />,
+  // «مالك جديد بلا حساب؟» opens the owners page's add sheet (`?sheet=add`, D6.11).
+  ownerActions: (space) => (
+    <SpaceOwnersActions space={space} addOwnerLink={`${ADMIN_OWNERS_PATH}?sheet=add`} />
+  ),
   amenitiesListLink: ADMIN_AMENITIES_PATH,
   areaName,
   amenityNames,

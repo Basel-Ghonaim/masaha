@@ -66,9 +66,8 @@ export function useAdminUsersList(
     replacePage: filters.replacePage,
   });
 
-  const now = new Date();
   const rows = (answer?.data ?? []).map((row) =>
-    userRowView(row, { words: copy.spaceLinks.usersList.row, english, now }),
+    userRowView(row, { words: copy.spaceLinks.usersList.row, english }),
   );
 
   return {

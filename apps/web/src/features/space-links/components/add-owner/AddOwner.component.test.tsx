@@ -5,6 +5,7 @@ import { Toaster, toast } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
@@ -77,7 +78,7 @@ type Server = {
 };
 
 /** The sheet as the owners page shows it, the server answering as `server` says. */
-function renderSheet(server: Server = {}) {
+function renderSheet(server: Server = {}, path = '/owners') {
   const shown: AddedOwnerView[] = [];
   // Where the page's dialog returns the focus once done, as the slot was handed it.
   const returnTo: (HTMLElement | null)[] = [];
@@ -93,24 +94,37 @@ function renderSheet(server: Server = {}) {
     }
     return server.add?.(request) ?? ok({ userId: 12, temporaryPassword: 'Tmp-4821-xk' }, 201);
   });
+  const router = createMemoryRouter(
+    [
+      {
+        path: '/owners',
+        element: (
+          <AddOwner
+            usersLink={(q) => `/users?q=${encodeURIComponent(q)}`}
+            temporaryPassword={(added, done, returnFocus) => {
+              shown.push(added);
+              returnTo.push(returnFocus.current);
+              return (
+                <div role="dialog" aria-label="Password slot">
+                  <button type="button" onClick={done}>
+                    Slot done
+                  </button>
+                </div>
+              );
+            }}
+          />
+        ),
+      },
+      { path: '/users', element: <p>Users page</p> },
+    ],
+    { initialEntries: [path] },
+  );
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <AddOwner
-        temporaryPassword={(added, done, returnFocus) => {
-          shown.push(added);
-          returnTo.push(returnFocus.current);
-          return (
-            <div role="dialog" aria-label="Password slot">
-              <button type="button" onClick={done}>
-                Slot done
-              </button>
-            </div>
-          );
-        }}
-      />
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
-  return { requests, shown, returnTo };
+  return { requests, shown, returnTo, router };
 }
 
 /** Opens the sheet and fills it: `name`, `email`, and Focus Hub chosen. */
@@ -408,5 +422,33 @@ describe('AddOwner', () => {
     expect(
       requests.filter((request) => request.url === '/admin/users').map((r): unknown => r.params),
     ).toEqual([{ email: 'hadi@example.com' }]);
+  });
+
+  it('?sheet=add opens the add sheet, and closing it takes the address off', async () => {
+    const { router } = renderSheet({}, '/owners?sheet=add');
+
+    expect(await screen.findByRole('dialog', { name: 'Add owner' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => {
+      expect(router.state.location.search).toBe('');
+    });
+    expect(screen.queryByRole('dialog', { name: 'Add owner' })).not.toBeInTheDocument();
+  });
+
+  it('ACCOUNT_SUSPENDED links the users page searched by the email', async () => {
+    const { router } = renderSheet({
+      add: () => refused(409, { type: 'conflict', code: 'ACCOUNT_SUSPENDED' }),
+    });
+
+    await fill('sara@example.com', 'Sara');
+    await userEvent.click(screen.getByRole('button', { name: 'Create account and link' }));
+
+    const restore = await screen.findByRole('link', { name: 'restore it first' });
+    expect(restore.closest('[role="alert"], [data-slot="alert"]')?.textContent).toBe(
+      'The account is suspended — restore it first.',
+    );
+    expect(restore).toHaveAttribute('href', '/users?q=sara%40example.com');
+    await userEvent.click(restore);
+    expect(router.state.location.pathname).toBe('/users');
   });
 });
