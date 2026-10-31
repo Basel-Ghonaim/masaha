@@ -289,6 +289,27 @@ describe('the desk repository', () => {
     expect(requests[1]?.headers.get('Idempotency-Key')).toBeUndefined();
   });
 
+  it('corrects a subscription’s terms and its price, each with no key', async () => {
+    const requests = serve(() => ({ status: 200, data: { success: true, data: {} } }));
+    const repository = createDeskRepository();
+
+    await repository.correctSubscription(7, 3, { endsOn: null });
+    await repository.correctPrice(7, 3, { billing: 'FIXED', priceAgorot: 9000, reason: 'Deal' });
+
+    expect(requests.map(({ method, url }) => `${String(method)} ${String(url)}`)).toEqual([
+      'patch /manage/spaces/7/subscriptions/3',
+      'put /manage/spaces/7/subscriptions/3/price',
+    ]);
+    expect(requests.map((request) => bodyOf(request))).toEqual([
+      { endsOn: null },
+      { billing: 'FIXED', priceAgorot: 9000, reason: 'Deal' },
+    ]);
+    expect(requests.map(({ headers }) => headers.get('Idempotency-Key'))).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+
   it('creates a customer and subscribes them, each with its own key, the warnings handed back', async () => {
     const requests = serve((url) =>
       url?.endsWith('/subscriptions') === true

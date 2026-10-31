@@ -21,6 +21,8 @@ import type {
 import type { PaymentRow, UncollectedVisit, VoidPaymentRequest } from '@masaha/shared/payments';
 import type {
   CheckInSubscriberRequest,
+  CorrectPriceRequest,
+  CorrectSubscriptionRequest,
   DeskCheckIn,
   SubscriptionState,
 } from '@masaha/shared/subscriptions';
@@ -129,6 +131,18 @@ export interface DeskRepository {
   statement(spaceId: number, subscriptionId: number): Promise<SubscriptionStatement>;
   /** Ends a subscription today (its start, if not started); one ended already is answered as it is. */
   endSubscription(spaceId: number, subscriptionId: number): Promise<SubscriptionState>;
+  /** Corrects a subscription's name, dates and limits: only the fields sent change (163). */
+  correctSubscription(
+    spaceId: number,
+    subscriptionId: number,
+    body: CorrectSubscriptionRequest,
+  ): Promise<SubscriptionState>;
+  /** The owner's correction of a subscription's billing and price, with why (163). */
+  correctPrice(
+    spaceId: number,
+    subscriptionId: number,
+    body: CorrectPriceRequest,
+  ): Promise<SubscriptionState>;
   /**
    * A page of the visits checked in on one Gaza day, the latest first; `day` `null` asks for today
    * with no range, as reception must (a range from reception is refused).
@@ -213,6 +227,16 @@ export function createDeskRepository(): DeskRepository {
       api.get<SubscriptionStatement>(`${space(spaceId)}/subscriptions/${String(subscriptionId)}`),
     endSubscription: (spaceId, subscriptionId) =>
       api.post<SubscriptionState>(`${space(spaceId)}/subscriptions/${String(subscriptionId)}/end`),
+    correctSubscription: (spaceId, subscriptionId, body) =>
+      api.patch<SubscriptionState>(
+        `${space(spaceId)}/subscriptions/${String(subscriptionId)}`,
+        body,
+      ),
+    correctPrice: (spaceId, subscriptionId, body) =>
+      api.put<SubscriptionState>(
+        `${space(spaceId)}/subscriptions/${String(subscriptionId)}/price`,
+        body,
+      ),
     dayVisits: (spaceId, day, page) =>
       api.getPage<DeskVisit[]>(`${space(spaceId)}/visits`, {
         params:

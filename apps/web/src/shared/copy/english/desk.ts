@@ -711,4 +711,31 @@ export const DESK = {
       more: 'More pages',
     },
   },
+  /** «تصحيح الاشتراك»: a subscription's corrections, from its card's «⋯» (163, D8.4). */
+  correct: {
+    action: 'Correct the subscription',
+    /** Why the item is held on a subscription ended early. */
+    ended: 'Ended early',
+    title: ({ name }: { name: string }) => `Correct ${name}`,
+    terms: 'Name, dates and limits',
+    name: 'Name',
+    from: 'From',
+    to: 'To',
+    noLimit: 'No limit',
+    price: {
+      title: 'The price',
+      billing: 'Billing',
+      price: 'Price (₪)',
+      reason: 'Why it is corrected',
+    },
+    save: 'Save the correction',
+    back: 'Back',
+    done: 'The subscription was corrected',
+    failed: 'We couldn’t correct the subscription',
+    endBeforeStart: 'The end is before the start',
+    refusals: {
+      SUBSCRIPTION_ENDED: 'This subscription was ended early; it can’t be corrected.',
+      PRICE_BELOW_PAID: 'The price is below what was paid on it.',
+    },
+  },
 } as const;

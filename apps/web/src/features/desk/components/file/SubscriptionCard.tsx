@@ -2,6 +2,7 @@ import {
   Badge,
   Button,
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -12,6 +13,7 @@ import { useId } from 'react';
 import { useEndDialog } from '../../hooks/end/useEndDialog';
 import type { SubscriptionCardView } from '../../hooks/file/useCustomerFile';
 import { useStatement } from '../../hooks/statement/useStatement';
+import { CorrectAction } from '../correct/CorrectAction';
 import { EndDialog } from '../end/EndDialog';
 import { Statement } from '../statement/Statement';
 
@@ -21,8 +23,9 @@ import { Statement } from '../statement/Statement';
  * badges; its progress, a plain line each; its due, paid and left, the server's; and «استلام
  * المتبقي» while it owes (DI-44); «عرض الكشف» opens its statement inside it (DI-43), and «إنهاء
  * الاشتراك» ends it early, asking first; «تجديد» (`renew`, the latest's) opens the page's sheet for
- * its renewal; the owner (`voids`) may void a payment in its statement (S10). `opened` hears which
- * control opened the payment.
+ * its renewal; the owner (`voids`) may void a payment in its statement (S10); its «⋯» holds
+ * «تصحيح الاشتراك» (D8.4), whose price is the owner's too. `opened` hears which control opened the
+ * payment.
  */
 export function SubscriptionCard({
   spaceId,
@@ -57,6 +60,9 @@ export function SubscriptionCard({
           {card.dates !== null && <span>{card.dates}</span>}
           <span>{card.terms}</span>
         </CardDescription>
+        <CardAction>
+          <CorrectAction spaceId={spaceId} subscription={card.subscription} owner={voids} />
+        </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
