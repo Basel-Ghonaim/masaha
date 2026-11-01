@@ -10,15 +10,15 @@ import {
   CardTitle,
   Skeleton,
 } from '@shared/design-system';
-import { useId, useRef } from 'react';
-import { useUnpricedCard } from '../../hooks/unpriced/useUnpricedCard';
+import { useEffect, useId, useRef } from 'react';
+import { UNPRICED_ID, useUnpricedCard } from '../../hooks/unpriced/useUnpricedCard';
 import { PriceDialog } from './PriceDialog';
 
 /**
  * «بدون سعر», under «غير محصّل», only for whoever may type a price and only while a visit waits for
  * one: a card named by its heading, which counts them, each row with «تحديد السعر» at the layer's
  * default size (DI-16). A closed dialog gives the focus back to the row's button, or — the row
- * gone — to the heading.
+ * gone — to the heading. Its anchor is `#unpriced` (`UNPRICED_ID`), the overview's «… بلا سعر».
  */
 export function UnpricedCard({
   spaceId,
@@ -31,6 +31,14 @@ export function UnpricedCard({
   const headingId = useId();
   const heading = useRef<HTMLHeadingElement | null>(null);
   const trigger = useRef<HTMLElement | null>(null);
+  // Arrived at its anchor: lands on its heading once it draws, once per opening of the page.
+  const landed = useRef(false);
+  useEffect(() => {
+    if (!card.shown || !card.arrived || landed.current) return;
+    landed.current = true;
+    heading.current?.scrollIntoView({ block: 'start' });
+    heading.current?.focus({ preventScroll: true });
+  }, [card.shown, card.arrived]);
 
   if (!card.shown) return null;
   const returnFocus = () => {
@@ -41,7 +49,12 @@ export function UnpricedCard({
   const { dialog } = card;
 
   return (
-    <Card role="region" aria-labelledby={headingId}>
+    <Card
+      id={UNPRICED_ID}
+      role="region"
+      aria-labelledby={headingId}
+      className="scroll-mt-28 lg:scroll-mt-20"
+    >
       <CardHeader>
         <CardTitle>
           <h2 ref={heading} id={headingId} tabIndex={-1}>

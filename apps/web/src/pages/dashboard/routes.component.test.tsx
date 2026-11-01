@@ -13,6 +13,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { announcement, announcementsPage, announcementsSummary } from '../../test/announcement';
 import { adminReport, reportsPage, spaceReport } from '../../test/dataReport';
 import { customerFile, customerRow, customersPage } from '../../test/deskCustomer';
+import { deskVisit, uncollectedPage } from '../../test/deskVisit';
 import { fakeIntersectionObserver } from '../../test/fakeIntersectionObserver';
 import { aSession } from '../../test/fakeSession';
 import type { FakeAnswer } from '../../test/fakeAdapter';
@@ -923,9 +924,14 @@ describe("the space's front desk", () => {
     await import('./space/desk/DeskPage');
   });
 
-  /** The desk's reads: who is present, the visit terms and the space, each from the managed route. */
-  function serveDesk() {
+  /**
+   * The desk's reads: who is present, the visit terms and the space, each from the managed route;
+   * `more` answers first, when it does.
+   */
+  function serveDesk(more: (url: string | undefined) => FakeAnswer | undefined = () => undefined) {
     return fakeTransport((request) => {
+      const answer = more(request.url);
+      if (answer !== undefined) return answer;
       if (request.url === '/manage/spaces/7/occupancy') {
         return ok({
           status: 'AVAILABLE',
@@ -989,6 +995,34 @@ describe("the space's front desk", () => {
       within(screen.getByRole('banner')).getByRole('button', { name: 'More actions' }),
     );
     expect(await screen.findByRole('menuitem', { name: 'Switch staff' })).toBeInTheDocument();
+  });
+
+  it('lands the overview’s «with no price» link on the desk’s card of them, its heading focused', async () => {
+    asOwner();
+    serveDesk((url) => {
+      if (url === '/manage/spaces/7/overview') return ok(QUIET_OVERVIEW);
+      // The owner may type a price, so the desk shows the visits waiting for one.
+      if (url === '/manage/spaces/7/visit-terms') return ok({ ...VISIT_TERMS, mayTypePrice: true });
+      if (url === '/manage/spaces/7/unpriced-visits') {
+        return uncollectedPage([
+          deskVisit({ checkedOutAt: '2026-07-01T09:00:00.000Z', checkoutMethod: 'MANUAL' }),
+        ]);
+      }
+      return undefined;
+    });
+    const router = renderDashboard('/dashboard/spaces/7');
+    await topBarTitle('Overview');
+
+    await router.navigate('/dashboard/spaces/7/desk#unpriced');
+
+    const heading = await screen.findByRole('heading', {
+      level: 2,
+      name: '1 visit without a price',
+    });
+    await waitFor(() => {
+      expect(heading).toHaveFocus();
+    });
+    expect(heading.closest('[id="unpriced"]')).not.toBeNull();
   });
 });
 
