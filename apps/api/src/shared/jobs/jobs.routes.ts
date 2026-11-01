@@ -11,7 +11,7 @@ import { matchesSecret } from './secret.ts';
  * `unauthorized` and runs nothing; a run where a job itself threw answers `server`, so the cron
  * service shows it. Stays a job could not close are counted in its `failed`, and answered 200: one
  * bad stay never turns every run red, which a cron service may answer by switching the job off.
- * But a job that stalled — its failures filled its batch, nothing closed — answers `server` too: no
+ * But a job that stalled — its failures filled a full batch, nothing closed — answers `server` too: no
  * later run can get past those stays by itself (finding 121).
  */
 export function createJobsRouter(jobs: Jobs, secret: string): Router {

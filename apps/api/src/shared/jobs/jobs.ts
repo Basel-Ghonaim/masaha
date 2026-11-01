@@ -9,8 +9,8 @@ import type { Logger } from 'pino';
 export const SWEEP_BATCH = 5_000;
 
 /**
- * What a job did, counted; `stalled: true` when it closed nothing and its failures filled the batch
- * it took, so the next run would only fail the same rows again (finding 121).
+ * What a job did, counted; `stalled: true` when it closed nothing and its failures filled a full
+ * batch, so the next run would only fail the same rows again (finding 121).
  */
 export type JobDone = Record<string, number | boolean>;
 

@@ -6,4 +6,4 @@
 
 **Resolves when:** the stays that failed on the last run are left out of the next batch, or ordered after the others; or a run answers 500 when it closed nothing while its failures filled the batch.
 
-**Resolution (#132):** A run whose failures fill its batch answers 500: each auto check-out answers `stalled: true` when it closed nothing and its failures equal the batch it took, and the jobs' endpoint answers `server` for such a run, the other jobs still run, logging `job stalled` with the job's name and count ([api-contract › Internal](../../api/api-contract.md#internal)).
+**Resolution (#132):** A run whose failures fill its batch answers 500: each auto check-out answers `stalled: true` when it closed nothing and its failures filled its batch full (`AUTO_CHECKOUT_BATCH`), so one stay that always fails, alone in a smaller batch, still answers 200 (finding 114), and the jobs' endpoint answers `server` for such a run, the other jobs still run, logging `job stalled` with the job's name and count ([api-contract › Internal](../../api/api-contract.md#internal)).

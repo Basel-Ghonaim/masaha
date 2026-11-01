@@ -518,8 +518,12 @@ export function createVisitsService({
         });
         if (done) closed += 1;
       }
-      // Stalled: the batch was all failures, so the next run would take and fail the same stays.
-      const stalled = batch.length > 0 && closed === 0 && failed - failedBefore === batch.length;
+      // Stalled: a full batch, all failures, so the next run would take and fail the same stays. A
+      // smaller batch of failures is not: what falls due later still closes (finding 114).
+      const stalled =
+        batch.length === AUTO_CHECKOUT_BATCH &&
+        closed === 0 &&
+        failed - failedBefore === batch.length;
       return {
         visits: closed,
         remaining: Math.max(due.length - AUTO_CHECKOUT_BATCH, 0),
