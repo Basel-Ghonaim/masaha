@@ -16,14 +16,15 @@ const fileLink = (customerId: number) => `/file/${String(customerId)}`;
 /** A line with the Unicode isolates around its values removed, as a reader hears it. */
 const heard = (expected: string) => (content: string) => content.replace(/[⁦-⁩]/g, '') === expected;
 
-function renderCard() {
-  fakeTransport(() =>
-    uncollectedPage([uncollectedVisit(), uncollectedVisit({ id: 4, visitorName: 'Rami' })]),
-  );
+function renderCard({
+  rows = [uncollectedVisit(), uncollectedVisit({ id: 4, visitorName: 'Rami' })],
+  writeOff = true,
+} = {}) {
+  fakeTransport(() => uncollectedPage(rows));
   render(
     <QueryClientProvider client={createQueryClient()}>
       <MemoryRouter initialEntries={['/desk']}>
-        <UncollectedCard spaceId={7} abilities={{ writeOff: true }} fileLink={fileLink} />
+        <UncollectedCard spaceId={7} abilities={{ writeOff }} fileLink={fileLink} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -55,6 +56,27 @@ describe('UncollectedCard', () => {
       screen.getByRole('button', { name: heard('More actions for Rami’s visit') }),
     ).toBeVisible();
     expect(await axe(document.body)).toHaveNoViolations();
+  });
+
+  it('keeps its header and «Written off» on a phone for the owner when empty, hiding only the empty line', async () => {
+    stubScreenWidth(390);
+    renderCard({ rows: [] });
+
+    const card = await screen.findByRole('region', { name: 'Not collected' });
+    const line = await screen.findByText('Nothing left to collect.');
+    // The written-off visits and their undo stay reachable below xl (finding 212).
+    expect(card).not.toHaveClass('hidden');
+    expect(within(card).getByRole('radio', { name: 'Written off' })).toBeInTheDocument();
+    expect(line.closest('[data-slot="card-content"]')).toHaveClass('hidden', 'xl:flex');
+  });
+
+  it('is hidden whole below xl when empty for whoever cannot write off', async () => {
+    stubScreenWidth(390);
+    renderCard({ rows: [], writeOff: false });
+
+    const card = await screen.findByRole('region', { name: 'Not collected' });
+    await screen.findByText('Nothing left to collect.');
+    expect(card).toHaveClass('hidden', 'xl:flex');
   });
 
   it('gives the focus back to the row’s menu after its dialog, and to «Collect» after its own', async () => {

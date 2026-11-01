@@ -81,12 +81,15 @@ export function UncollectedCard({
   const { dialog } = card;
 
   return (
-    // Empty, it is hidden below xl, where it would stand above who is here with nothing (G13.3).
+    // Empty, it is hidden below xl, where it would stand above who is here with nothing (G13.3);
+    // for the owner only its empty line is, so «لن تُحصَّل» and its undo stay reachable (212).
     <Card
       id={card.id}
       role="region"
       aria-labelledby={headingId}
-      className={card.state === 'empty' && !writtenOff ? 'hidden xl:flex' : undefined}
+      className={
+        card.state === 'empty' && !writtenOff && !abilities.writeOff ? 'hidden xl:flex' : undefined
+      }
     >
       <CardHeader>
         <CardTitle>
@@ -163,7 +166,7 @@ export function UncollectedCard({
               </Alert>
             </CardContent>
           ) : card.state === 'empty' ? (
-            <CardContent>
+            <CardContent className="hidden xl:flex">
               <p className="flex items-center gap-2 text-body-sm text-muted-foreground">
                 <CircleCheckIcon aria-hidden className="size-4 text-success" />
                 {card.empty}

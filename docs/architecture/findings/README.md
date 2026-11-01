@@ -19,7 +19,6 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [64. The deployment's headers must let Cloudinary's photos load](64-the-deployments-headers-must-let-cloudinarys-photos-load.md)
 - [65. The forgotten password's wait is an estimate, not a measurement](65-the-forgotten-passwords-wait-is-an-estimate-not-a-measurement.md)
 - [152. Audit entries kept for ever meet the database's 0.5 GB](152-audit-entries-kept-for-ever-meet-the-databases-05-gb.md)
-- [212. An owner on a phone cannot reach the written-off visits](212-an-owner-on-a-phone-cannot-reach-the-written-off-visits.md)
 
 ## Accepted
 
@@ -158,3 +157,4 @@ Each entry: number, title, status (`Open` / `Resolved` / `Accepted`), date, evid
 - [180. A site page's chunk reaches the table's and the calendar's libraries](180-a-site-pages-chunk-reaches-the-tables-and-the-calendars-libraries.md)
 - [184. A report's «تعديل الحقل» may not scroll to its section](184-a-reports-edit-the-field-link-may-not-scroll-to-its-section.md)
 - [204. A CSV built in the browser keeps a value that reads as a formula](204-a-csv-built-in-the-browser-keeps-a-value-that-reads-as-a-formula.md)
+- [212. An owner on a phone cannot reach the written-off visits](212-an-owner-on-a-phone-cannot-reach-the-written-off-visits.md)
