@@ -17,7 +17,7 @@ export function ReminderCard({
 }: {
   spaceId: number;
   settings: SpaceSettings;
-  spaceName: string;
+  spaceName: { nameAr: string | null; nameEn: string };
 }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const card = useReminderCard({ spaceId, settings, spaceName, textareaRef });

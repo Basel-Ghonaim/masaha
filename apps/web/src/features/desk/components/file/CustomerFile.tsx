@@ -40,7 +40,7 @@ export function CustomerFile({
   spaceId: number;
   customerId: number;
   /** The space's name, as its reminder names it. */
-  spaceName: string;
+  spaceName: { nameAr: string | null; nameEn: string };
   /**
    * The owner's header offers the archive and the restore, and a statement's payment its void (S10);
    * the server decides (S5).

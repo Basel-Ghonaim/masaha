@@ -2,7 +2,7 @@ import { gazaClockOf } from '@masaha/shared/core';
 import { fillReminder } from '@masaha/shared/space-settings';
 import { useCopy } from '@shared/copy';
 import { useRefusalView } from '@shared/forms';
-import { clockOf, dayText, dayWord, priceText, whatsappLink } from '@shared/lib';
+import { clockOf, dayText, dayWord, priceText, spaceNameOf, whatsappLink } from '@shared/lib';
 import { isolate, useLanguage } from '@shared/localisation';
 import { useState } from 'react';
 import { balanceView } from '../../services/balanceView';
@@ -31,7 +31,7 @@ import { useCustomerFileQuery } from './useCustomerFileQuery';
 export function useCustomerFile(
   spaceId: number,
   customerId: number,
-  { spaceName, owner }: { spaceName: string; owner: boolean },
+  { spaceName, owner }: { spaceName: { nameAr: string | null; nameEn: string }; owner: boolean },
 ) {
   const copy = useCopy();
   const words = copy.desk.file;
@@ -103,7 +103,11 @@ export function useCustomerFile(
                           // The customer is greeted by their first name.
                           name: file.customer.name.trim().split(/\s+/u)[0] ?? file.customer.name,
                           amount: priceText(file.debtAgorot, language),
-                          space: spaceName,
+                          // One language a message: the English default names it in English.
+                          space: spaceNameOf(
+                            spaceName,
+                            file.reminderTemplate === null && language === 'en',
+                          ).text,
                         },
                       ),
                     ),

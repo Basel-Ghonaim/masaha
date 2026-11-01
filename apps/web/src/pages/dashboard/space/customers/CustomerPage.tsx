@@ -60,7 +60,7 @@ function Customer({ spaceId, customerId }: { spaceId: number; customerId: number
   );
   const sheet = useSheetOpener();
   const space = useMySpacesQuery().data?.find((one) => one.spaceId === spaceId);
-  const spaceName = space === undefined ? '' : (space.nameAr ?? space.nameEn);
+  const spaceName = space ?? { nameAr: null, nameEn: '' };
 
   return (
     <>

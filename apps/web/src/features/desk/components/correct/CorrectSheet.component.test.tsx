@@ -51,7 +51,7 @@ function renderFile({
             customerId={4}
             owner={owner}
             subscribe={() => undefined}
-            spaceName="S"
+            spaceName={{ nameAr: null, nameEn: 'S' }}
           />
         </main>
       </MemoryRouter>

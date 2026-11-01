@@ -80,7 +80,7 @@ describe('Statement', () => {
               customerId={4}
               owner
               subscribe={() => undefined}
-              spaceName="S"
+              spaceName={{ nameAr: null, nameEn: 'S' }}
             />
           </main>
         </QueryClientProvider>,
@@ -152,7 +152,7 @@ async function openStatement(owner: boolean) {
           customerId={4}
           owner={owner}
           subscribe={() => undefined}
-          spaceName="S"
+          spaceName={{ nameAr: null, nameEn: 'S' }}
         />
       </main>
     </QueryClientProvider>,

@@ -93,7 +93,7 @@ describe('CustomerFile', () => {
               customerId={4}
               owner
               subscribe={() => undefined}
-              spaceName="S"
+              spaceName={{ nameAr: null, nameEn: 'S' }}
             />
           </main>
         </MemoryRouter>
@@ -130,17 +130,18 @@ describe('CustomerFile', () => {
               customerId={4}
               owner
               subscribe={() => undefined}
-              spaceName="Masaha One"
+              spaceName={{ nameAr: 'مساحة واحد', nameEn: 'Masaha One' }}
             />
           </main>
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
+    // The space's own words name it as the space does, by its Arabic name first.
     const link = await screen.findByRole('link', { name: 'WhatsApp reminder' });
     expect(link).toHaveAttribute(
       'href',
-      `https://wa.me/970599000201?text=${encodeURIComponent('Hi Sara, you owe ₪65 at Masaha One.')}`,
+      `https://wa.me/970599000201?text=${encodeURIComponent('Hi Sara, you owe ₪65 at مساحة واحد.')}`,
     );
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener');
@@ -157,7 +158,7 @@ describe('CustomerFile', () => {
             customerId={4}
             owner
             subscribe={() => undefined}
-            spaceName="S"
+            spaceName={{ nameAr: null, nameEn: 'S' }}
           />
         </MemoryRouter>
       </QueryClientProvider>,
@@ -175,7 +176,7 @@ describe('CustomerFile', () => {
             customerId={4}
             owner
             subscribe={() => undefined}
-            spaceName="S"
+            spaceName={{ nameAr: null, nameEn: 'S' }}
           />
         </MemoryRouter>
       </QueryClientProvider>,
@@ -193,11 +194,12 @@ describe('CustomerFile', () => {
             customerId={4}
             owner
             subscribe={() => undefined}
-            spaceName="S"
+            spaceName={{ nameAr: 'مساحة واحد', nameEn: 'S' }}
           />
         </MemoryRouter>
       </QueryClientProvider>,
     );
+    // The catalogue's English text names the space in English: the message is one language.
     const link = await screen.findByRole('link', { name: 'WhatsApp reminder' });
     expect(decodeURIComponent(link.getAttribute('href') ?? '')).toContain(
       'Hello Sara, a reminder from S: you owe ₪65.',
@@ -215,7 +217,7 @@ describe('CustomerFile', () => {
             customerId={4}
             owner
             subscribe={() => undefined}
-            spaceName="S"
+            spaceName={{ nameAr: null, nameEn: 'S' }}
           />
         </MemoryRouter>
       </QueryClientProvider>,
@@ -239,7 +241,7 @@ describe('CustomerFile', () => {
             customerId={4}
             owner={false}
             subscribe={() => undefined}
-            spaceName="S"
+            spaceName={{ nameAr: null, nameEn: 'S' }}
           />
         </MemoryRouter>
       </QueryClientProvider>,
@@ -264,7 +266,7 @@ describe('CustomerFile', () => {
             customerId={4}
             owner
             subscribe={() => undefined}
-            spaceName="S"
+            spaceName={{ nameAr: null, nameEn: 'S' }}
           />
         </MemoryRouter>
       </QueryClientProvider>,
@@ -284,7 +286,7 @@ describe('CustomerFile', () => {
             customerId={4}
             owner
             subscribe={() => undefined}
-            spaceName="S"
+            spaceName={{ nameAr: null, nameEn: 'S' }}
           />
         </MemoryRouter>
       </QueryClientProvider>,

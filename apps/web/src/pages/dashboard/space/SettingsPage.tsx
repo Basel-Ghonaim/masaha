@@ -18,7 +18,7 @@ import { AttendanceCard } from './settings/AttendanceCard';
 export function SettingsPage() {
   const spaceId = parseSpaceId(useParams().spaceId);
   const space = useMySpacesQuery().data?.find((one) => one.spaceId === spaceId);
-  const spaceName = space === undefined ? '' : (space.nameAr ?? space.nameEn);
+  const spaceName = space ?? { nameAr: null, nameEn: '' };
 
   return (
     <>

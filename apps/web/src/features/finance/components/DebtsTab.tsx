@@ -61,7 +61,7 @@ export function DebtsTab({
   spaceId: number;
   place: Pick<FinanceTabsView, 'month' | 'asked' | 'owesPage' | 'creditPage' | 'searchOf'>;
   links: FinanceLinks;
-  spaceName: string;
+  spaceName: { nameAr: string | null; nameEn: string };
 }) {
   const debts = useDebtsTab(spaceId, place, { links, spaceName });
 

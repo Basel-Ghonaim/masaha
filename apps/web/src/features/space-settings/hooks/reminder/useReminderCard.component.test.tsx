@@ -21,12 +21,15 @@ const SETTINGS: SpaceSettings = {
 };
 
 /** The reminder card of space 7 with `reminderTemplate`, the server answering a save with it. */
-function renderCard(reminderTemplate: string | null = SETTINGS.reminderTemplate) {
+function renderCard(
+  reminderTemplate: string | null = SETTINGS.reminderTemplate,
+  spaceName = { nameAr: null as string | null, nameEn: 'Focus Hub' },
+) {
   const settings = { ...SETTINGS, reminderTemplate };
   const requests = fakeTransport((request) => ok({ ...settings, ...(bodyOf(request) as object) }));
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <ReminderCard spaceId={7} settings={settings} spaceName="Focus Hub" />
+      <ReminderCard spaceId={7} settings={settings} spaceName={spaceName} />
     </QueryClientProvider>,
   );
   const field = screen.getByRole<HTMLTextAreaElement>('textbox');
@@ -66,6 +69,19 @@ describe('the reminder card', () => {
     expect(field).toHaveFocus();
     expect(field.selectionStart).toBe(3 + '{الاسم}'.length);
     expect(screen.getByText('Hi Rahaf, you owe ₪150.')).toBeInTheDocument();
+  });
+
+  it('previews the English default naming the space in English, the space’s own text in Arabic first', async () => {
+    const { field, user } = renderCard(null, { nameAr: 'مساحة فوكس', nameEn: 'Focus Hub' });
+
+    expect(
+      screen.getByText(
+        'Hello Rahaf, a reminder from Focus Hub: you owe ₪150. You can pay at the space. Thank you.',
+      ),
+    ).toBeInTheDocument();
+    await user.clear(field);
+    await user.type(field, 'Hi {{الاسم}, you owe {{المبلغ} at {{المساحة}.');
+    expect(screen.getByText('Hi Rahaf, you owe ₪150 at مساحة فوكس.')).toBeInTheDocument();
   });
 
   it('names a placeholder off the list, and asks for {المبلغ} when it is missing', async () => {

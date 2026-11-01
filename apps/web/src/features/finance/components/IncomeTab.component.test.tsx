@@ -65,7 +65,11 @@ function renderFinance(answer: Parameters<typeof fakeTransport>[0], path = '/fin
           <main>
             <h1>Finance</h1>
             <FinanceExport spaceId={7} />
-            <FinanceScreen spaceId={7} spaceName="Focus Hub" links={LINKS} />
+            <FinanceScreen
+              spaceId={7}
+              spaceName={{ nameAr: null, nameEn: 'Focus Hub' }}
+              links={LINKS}
+            />
           </main>
         ),
       },

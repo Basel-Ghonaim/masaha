@@ -19,9 +19,12 @@ function renderFile(file: CustomerFile | (() => ReturnType<typeof refused>)) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return renderHook(() => useCustomerFile(7, 4, { spaceName: 'Masaha One', owner: true }), {
-    wrapper,
-  });
+  return renderHook(
+    () => useCustomerFile(7, 4, { spaceName: { nameAr: null, nameEn: 'Masaha One' }, owner: true }),
+    {
+      wrapper,
+    },
+  );
 }
 
 beforeEach(() => {

@@ -88,7 +88,11 @@ function renderDebts(answer: Parameters<typeof fakeTransport>[0], path = '/finan
           <main>
             <h1>Finance</h1>
             <FinanceExport spaceId={7} />
-            <FinanceScreen spaceId={7} spaceName="Focus Hub" links={LINKS} />
+            <FinanceScreen
+              spaceId={7}
+              spaceName={{ nameAr: 'مساحة فوكس', nameEn: 'Focus Hub' }}
+              links={LINKS}
+            />
           </main>
         ),
       },
@@ -180,13 +184,29 @@ describe('Finance › Debts', () => {
     );
     expect(within(archived).getByRole('link', { name: 'WhatsApp reminder' })).toHaveAttribute(
       'href',
-      `https://wa.me/970599000001?text=${encodeURIComponent('Hi Sara, you owe ₪45 at Focus Hub.')}`,
+      // The space's own words name it by its Arabic name first.
+      `https://wa.me/970599000001?text=${encodeURIComponent('Hi Sara, you owe ₪45 at مساحة فوكس.')}`,
     );
     expect(within(archived).getByRole('link', { name: 'Receive payment' })).toHaveAttribute(
       'href',
       '/customers/1',
     );
     expect(within(noPhone).queryByRole('link', { name: 'WhatsApp reminder' })).toBeNull();
+  });
+
+  it('names the space in English in the English default reminder: one language a message', async () => {
+    renderDebts((request) => {
+      const answer = server(request);
+      if (request.url?.endsWith('/payers') === true || !('data' in answer)) return answer;
+      const body = answer.data as { meta: DebtsMeta };
+      return { ...answer, data: { ...body, meta: { ...body.meta, reminderTemplate: null } } };
+    });
+
+    const card = await screen.findByRole('region', { name: 'Customers who owe' });
+    const [first] = within(card).getAllByRole('link', { name: 'WhatsApp reminder' });
+    expect(decodeURIComponent(first?.getAttribute('href') ?? '')).toContain(
+      'Hello Sara, a reminder from Focus Hub: you owe ₪45.',
+    );
   });
 
   it('lists five who paid in the month, «View all» to the ledger’s range of that month', async () => {

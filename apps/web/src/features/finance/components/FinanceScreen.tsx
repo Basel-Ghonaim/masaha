@@ -17,7 +17,7 @@ export function FinanceScreen({
   links,
 }: {
   spaceId: number;
-  spaceName: string;
+  spaceName: { nameAr: string | null; nameEn: string };
   links: FinanceLinks;
 }) {
   const screen = useFinanceScreen();

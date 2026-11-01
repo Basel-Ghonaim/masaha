@@ -24,7 +24,7 @@ function linksOf(spaceId: number): FinanceLinks {
 export function FinancePage() {
   const spaceId = parseSpaceId(useParams().spaceId);
   const space = useMySpacesQuery().data?.find((one) => one.spaceId === spaceId);
-  const spaceName = space === undefined ? '' : (space.nameAr ?? space.nameEn);
+  const spaceName = space ?? { nameAr: null, nameEn: '' };
 
   if (spaceId === undefined) {
     return (

@@ -51,7 +51,11 @@ function renderOccupancy(report: OccupancyReport) {
         element: (
           <main>
             <h1>Finance</h1>
-            <FinanceScreen spaceId={7} spaceName="Focus Hub" links={LINKS} />
+            <FinanceScreen
+              spaceId={7}
+              spaceName={{ nameAr: null, nameEn: 'Focus Hub' }}
+              links={LINKS}
+            />
           </main>
         ),
       },

@@ -115,7 +115,13 @@ function renderFile(file: CustomerFile, subscribe = vi.fn<OpenSheet>()) {
       <MemoryRouter>
         <main>
           <h1>Sara Khalid</h1>
-          <CustomerFileView spaceId={7} customerId={4} owner subscribe={subscribe} spaceName="S" />
+          <CustomerFileView
+            spaceId={7}
+            customerId={4}
+            owner
+            subscribe={subscribe}
+            spaceName={{ nameAr: null, nameEn: 'S' }}
+          />
         </main>
       </MemoryRouter>
     </QueryClientProvider>,

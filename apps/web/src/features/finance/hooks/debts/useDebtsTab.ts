@@ -1,7 +1,7 @@
 import { addDays, addMonths, DEFAULT_PAGE_SIZE, gazaClockOf } from '@masaha/shared/core';
 import type { BalanceRow } from '@masaha/shared/finance';
 import { useCopy } from '@shared/copy';
-import { whatsappLink } from '@shared/lib';
+import { spaceNameOf, whatsappLink } from '@shared/lib';
 import { paginationView, rangeSummary } from '@shared/lists';
 import { isolate } from '@shared/localisation';
 import { dateText } from '../../services/dateText';
@@ -28,7 +28,10 @@ const PAYERS_SHOWN = 5;
 export function useDebtsTab(
   spaceId: number,
   place: Pick<FinanceTabsView, 'month' | 'asked' | 'owesPage' | 'creditPage' | 'searchOf'>,
-  { links, spaceName }: { links: FinanceLinks; spaceName: string },
+  {
+    links,
+    spaceName,
+  }: { links: FinanceLinks; spaceName: { nameAr: string | null; nameEn: string } },
 ) {
   const copy = useCopy();
   const words = copy.finance.debts;
@@ -94,7 +97,8 @@ export function useDebtsTab(
               reminderText(template, {
                 name: row.customer.name,
                 amount: money(row.amountAgorot),
-                space: spaceName,
+                // One language a message: the English default names it in English.
+                space: spaceNameOf(spaceName, reminderTemplate === null && language === 'en').text,
               }),
             ),
           },
