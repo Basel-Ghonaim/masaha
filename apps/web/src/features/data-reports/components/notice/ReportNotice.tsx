@@ -1,17 +1,34 @@
 import { Alert, AlertDescription, AlertTitle, Button } from '@shared/design-system';
 import { FormFailure } from '@shared/forms';
-import { Link } from 'react-router';
+import { useEffect, useRef } from 'react';
+import { Link, useLocation } from 'react-router';
 import type { ReportNoticeView } from '../../types/ReportNoticeView';
+
+/** The notice's anchor, which «تعديل الحقل» lands on. */
+const NOTICE_ID = 'report';
 
 /**
  * An open report's notice, above the section its field is edited in: an info alert, `#report`,
- * which a link's hash can land on. Open: its title, the report's words with who and when, then
+ * which a link's hash lands on. It draws from its own read, often after the page's own landing
+ * looked for it, so arriving at `#report` it lands on itself once it draws: scrolled to and
+ * focused, once per opening. Open: its title, the report's words with who and when, then
  * «تم التصحيح» and the way to reply on the reports list; once marked, that it was, and the way back.
  */
 export function ReportNotice({ view }: { view: ReportNoticeView }) {
+  const arrived = useLocation().hash === `#${NOTICE_ID}`;
+  const self = useRef<HTMLDivElement>(null);
+  const landed = useRef(false);
+  useEffect(() => {
+    if (!arrived || landed.current) return;
+    landed.current = true;
+    self.current?.scrollIntoView({ block: 'start' });
+    self.current?.focus({ preventScroll: true });
+  }, [arrived]);
+
   return (
     <Alert
-      id="report"
+      ref={self}
+      id={NOTICE_ID}
       tabIndex={-1}
       variant="info"
       className="scroll-mt-28 outline-none lg:scroll-mt-20"

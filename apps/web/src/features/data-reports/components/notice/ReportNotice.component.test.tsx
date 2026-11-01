@@ -31,11 +31,12 @@ function renderNotice(
   scope: ReportNoticeScope,
   answer: Parameters<typeof fakeTransport>[0],
   reportId = 41,
+  entry = '/space',
 ) {
   const requests = fakeTransport(answer);
   const router = createMemoryRouter(
     [{ path: '/space', element: <Page scope={scope} reportId={reportId} /> }],
-    { initialEntries: ['/space'] },
+    { initialEntries: [entry] },
   );
   const view = render(
     <QueryClientProvider client={createQueryClient()}>
@@ -68,6 +69,27 @@ describe('ReportNotice', () => {
       '/reports?open=41',
     );
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('lands on itself once it draws when the address’s hash is #report, after the page drew', async () => {
+    // The page (the editor, cached) drew first; the notice draws only once its own read answers.
+    renderNotice(OWNER, () => ok(spaceReport({ field: 'OTHER' })), 41, '/space?report=41#report');
+
+    const notice = await waitFor(() => {
+      const found = document.getElementById('report');
+      expect(found).not.toBeNull();
+      return found as HTMLElement;
+    });
+    await waitFor(() => {
+      expect(notice).toHaveFocus();
+    });
+  });
+
+  it('takes no focus when the address’s hash names something else', async () => {
+    renderNotice(OWNER, () => ok(spaceReport()), 41, '/space?report=41#hours');
+
+    await screen.findByRole('region', { name: 'Above hours' });
+    expect(document.getElementById('report')).not.toHaveFocus();
   });
 
   it('the owner’s notice says «زائر», the admin’s the name', async () => {
