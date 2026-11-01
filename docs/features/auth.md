@@ -9,7 +9,7 @@
 - **Registers** an account with a name, an email and a password, and **signs in** with an email and a password, or with Google.
 - **Refreshes** a session and **signs it out**, for the session the web holds ([architecture §4](../frontend/architecture.md#4-session-and-preferences)).
 - **Recovers a forgotten password:** asks for a reset link by email, asks for another, checks a link, and sets the new password.
-- On the web: the sign-in and register forms, Google's button, and the forgotten password's and the reset's cards.
+- On the web: the sign-in and register forms, Google's button, the forgotten password's and the reset's cards, and the link a signed-in account sets a first password by (screen 9).
 
 ## Who uses it
 
@@ -81,7 +81,7 @@ Owned by security.md and linked: Google's linking rule ([Sign-in methods](../bac
 
 - **API:** `apps/api/src/modules/auth/`, entry `index.ts`: the orchestrating service, its router and its limits; the wait of an answer that sends no email (`noSendWait.ts`); the Google port; `email/`, the email port, its senders, the caps and the reset email.
 - **Shared:** `packages/shared/src/auth/`: the session's and the recovery's shapes, and the requests.
-- **Web:** `apps/web/src/features/auth/`, entry `index.ts`: `SignInForm`, `RegisterForm`, `ContinueWithGoogle` (which takes the page's divider), `ForgotPasswordCard`, `ResetPasswordCard`. Two repositories, the sign-in's and the recovery's. Mounted by `pages/site/auth/`.
+- **Web:** `apps/web/src/features/auth/`, entry `index.ts`: `SignInForm`, `RegisterForm`, `ContinueWithGoogle` (which takes the page's divider), `ForgotPasswordCard`, `ResetPasswordCard` (which tells the page the password was set, `onPasswordSet`), `SetPasswordByEmail` (a signed-in account's first password by email, the forgotten password's link sent and resend, set by `pages/site/account/settings/` in `users`' card). Two repositories, the sign-in's and the recovery's. Mounted by `pages/site/auth/`.
 
 ## Open findings
 

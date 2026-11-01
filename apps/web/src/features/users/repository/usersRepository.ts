@@ -1,4 +1,3 @@
-import type { RecoveryPosition } from '@masaha/shared/auth';
 import type {
   ChangePasswordRequest,
   HandoverRequest,
@@ -19,8 +18,6 @@ export interface UsersRepository {
   me: () => Promise<MyAccount>;
   /** Edits one's own name or language; answers the account as it now stands. */
   updateMe: (request: UpdateMeRequest) => Promise<MyAccount>;
-  /** Asks the reset email for one's own address, which a Google-only account sets a password by. */
-  requestPasswordLink: (email: string) => Promise<RecoveryPosition>;
   /** Sets a new password; the session goes on with the access token it answers. */
   changePassword: (request: ChangePasswordRequest) => Promise<PasswordChanged>;
   /** Records how the temporary password just shown reached its person, while it is still pending. */
@@ -36,7 +33,6 @@ export function createUsersRepository(): UsersRepository {
   return {
     me: () => api.get<MyAccount>('/me'),
     updateMe: (request) => api.patch<MyAccount>('/me', request),
-    requestPasswordLink: (email) => api.post<RecoveryPosition>('/auth/password/forgot', { email }),
     changePassword: (request) => api.post<PasswordChanged>('/me/password', request),
     handOver: (userId, request) =>
       api.post<undefined>(`/admin/users/${String(userId)}/temporary-password/handover`, request),

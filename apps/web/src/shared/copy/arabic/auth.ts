@@ -89,6 +89,11 @@ export const AUTH = {
     contactUs: 'تواصل معنا',
     backToSignIn: 'العودة إلى تسجيل الدخول',
   },
+  setPassword: {
+    send: 'أرسل رابط تعيين كلمة المرور',
+    failed: 'تعذّر إرسال الرابط',
+    sent: 'أرسلنا إلى بريدك رابطًا لتعيين كلمة المرور. الرابط صالح لمدة ساعة. تفقّد مجلد الرسائل غير المرغوب فيها.',
+  },
   resetPassword: {
     title: 'تعيين كلمة مرور جديدة',
     forAccount: ({ email }: { email: string }) => `للحساب ${email}`,

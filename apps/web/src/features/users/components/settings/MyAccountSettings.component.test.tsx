@@ -29,6 +29,9 @@ const ACCOUNT: MyAccount = {
 
 const lineOf = ({ method, url }: Request) => `${String(method)} ${String(url)}`;
 
+/** The page's link to set a first password, as `auth` draws it there: here, its address only. */
+const SET_PASSWORD = (email: string) => <p>The link to set a password for {email}</p>;
+
 /** The settings, `GET /me` answering `account`, every other request answered by `write`. */
 function renderSettings(
   account: MyAccount = ACCOUNT,
@@ -41,7 +44,7 @@ function renderSettings(
   const Wrapper = queryWrapper();
   const view = render(
     <Wrapper>
-      <MyAccountSettings />
+      <MyAccountSettings setPassword={SET_PASSWORD} />
       <Toaster label="Notifications" />
     </Wrapper>,
   );
@@ -79,7 +82,7 @@ describe('MyAccountSettings', () => {
     const Wrapper = queryWrapper();
     render(
       <Wrapper>
-        <MyAccountSettings />
+        <MyAccountSettings setPassword={SET_PASSWORD} />
       </Wrapper>,
     );
 
@@ -194,22 +197,11 @@ describe('MyAccountSettings', () => {
     expect(screen.getByRole('button', { name: 'Change' })).toHaveFocus();
   });
 
-  it('a Google-only account sends the set-password link and says it was sent', async () => {
-    const user = userEvent.setup();
-    const { requests } = renderSettings({ ...ACCOUNT, hasPassword: false, hasGoogle: true }, () =>
-      ok({ step: 'sent', email: 's***@example.com', canResend: true, resendInSeconds: 60 }),
-    );
+  it('a Google-only account shows the page’s link to set a password, for its own address', async () => {
+    renderSettings({ ...ACCOUNT, hasPassword: false, hasGoogle: true });
 
     expect(await screen.findByText('Not set yet')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Change' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Send a link to set a password' }));
-
-    expect(
-      await screen.findByText(
-        'We sent a link to set your password to your email. The link is valid for one hour. Check your spam folder.',
-      ),
-    ).toBeInTheDocument();
-    const sent = requests.find((request) => lineOf(request) === 'post /auth/password/forgot');
-    expect(JSON.parse(String(sent?.data))).toEqual({ email: 'sara@example.com' });
+    expect(screen.getByText('The link to set a password for sara@example.com')).toBeInTheDocument();
   });
 });

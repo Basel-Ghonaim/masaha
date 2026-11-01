@@ -11,4 +11,5 @@ export {
   ResetPasswordCard,
   type ResetPasswordCardProps,
 } from './components/reset-password/ResetPasswordCard';
+export { SetPasswordByEmail } from './components/set-password/SetPasswordByEmail';
 export { SignInForm, type SignInFormProps } from './components/sign-in/SignInForm';

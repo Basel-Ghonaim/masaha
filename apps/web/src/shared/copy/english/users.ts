@@ -49,10 +49,6 @@ export const USERS = {
       change: 'Change',
       notSet: 'Not set yet',
       setLine: 'To also sign in with your email and a password, we send a link to your email',
-      sendLink: 'Send a link to set a password',
-      linkFailed: 'Couldn’t send the link',
-      linkSent:
-        'We sent a link to set your password to your email. The link is valid for one hour. Check your spam folder.',
     },
     passwordForm: {
       current: 'Current password',

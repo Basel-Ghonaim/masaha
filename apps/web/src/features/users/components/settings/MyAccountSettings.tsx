@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useCopy } from '@shared/copy';
 import {
   Alert,
@@ -21,9 +22,14 @@ const CARDS = ['profile', 'preferences', 'signIn'] as const;
 /**
  * «إعدادات حسابي»'s three cards, one column (screen 9): the profile, the preferences and the ways of
  * signing in, from `GET /me`. While it loads, each card's skeleton; its failure, a destructive alert
- * with «إعادة المحاولة».
+ * with «إعادة المحاولة». A Google-only account's link to set a password is the page's (`setPassword`).
  */
-export function MyAccountSettings() {
+export function MyAccountSettings({
+  setPassword,
+}: {
+  /** The link to set a first password for the account's address, as the page draws it. */
+  setPassword: (email: string) => ReactNode;
+}) {
   const copy = useCopy();
   const query = useMyAccountQuery();
   const account = query.data;
@@ -76,7 +82,7 @@ export function MyAccountSettings() {
     <div className="flex flex-col gap-6">
       <ProfileCard account={account} />
       <PreferencesCard />
-      <SignInCard account={account} />
+      <SignInCard account={account} setPassword={setPassword} />
     </div>
   );
 }

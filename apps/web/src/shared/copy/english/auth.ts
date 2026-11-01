@@ -111,6 +111,12 @@ export const AUTH = {
     backToSignIn: 'Back to sign in',
   },
   /** The reset link: the new password, the link no longer valid, and the password set. */
+  /** A signed-in account's first password, by email (screen 9): the link to set one. */
+  setPassword: {
+    send: 'Send a link to set a password',
+    failed: 'Couldn’t send the link',
+    sent: 'We sent a link to set your password to your email. The link is valid for one hour. Check your spam folder.',
+  },
   resetPassword: {
     title: 'Set a new password',
     /** The account's masked email, under the title. */

@@ -11,21 +11,27 @@ import {
   Separator,
 } from '@shared/design-system';
 import { isolate } from '@shared/localisation';
-import { useId, useRef, useState } from 'react';
-import { useSetPasswordLink } from '../../hooks/settings/useSetPasswordLink';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { PasswordChangeForm } from './PasswordChangeForm';
 
 /**
  * «تسجيل الدخول»: the ways one signs in. With Google, its row and «مربوط»; then the password's row:
  * with a password, «تغيير» opens the change under it (the focus in its first field, back on «تغيير»
- * once it closes); without one (Google only, C1), «لم تُعيَّن بعد» and the link to set one by email.
+ * once it closes); without one (Google only, C1), «لم تُعيَّن بعد» and the link to set one by email,
+ * which the page sets (`setPassword`, `auth`'s link sent with its resend and its wait, D9.2).
  */
-export function SignInCard({ account }: { account: MyAccount }) {
+export function SignInCard({
+  account,
+  setPassword,
+}: {
+  account: MyAccount;
+  /** The link to set a first password for the account's address, as the page draws it. */
+  setPassword: (email: string) => ReactNode;
+}) {
   const words = useCopy().users.settings.signIn;
   const formId = useId();
   const changeButton = useRef<HTMLButtonElement>(null);
   const [changing, setChanging] = useState(false);
-  const link = useSetPasswordLink(account.email);
 
   return (
     <Card>
@@ -85,20 +91,7 @@ export function SignInCard({ account }: { account: MyAccount }) {
           {!account.hasPassword && (
             <div className="flex flex-col gap-2">
               <p className="text-body-sm">{words.setLine}</p>
-              {link.sent === null ? (
-                <Button
-                  variant="outline"
-                  className="self-start"
-                  loading={link.pending}
-                  onClick={link.send}
-                >
-                  {link.label}
-                </Button>
-              ) : (
-                <p role="status" className="text-body-sm">
-                  {link.sent}
-                </p>
-              )}
+              {setPassword(account.email)}
             </div>
           )}
         </div>
