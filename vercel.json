@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "installCommand": "npm ci",
-  "buildCommand": "NODE_ENV=production npm run build",
+  "buildCommand": "NODE_ENV=production npm run build && node apps/api/scripts/migrateOnDeploy.ts",
   "outputDirectory": "apps/web/dist",
   "regions": ["fra1"],
   "git": {
