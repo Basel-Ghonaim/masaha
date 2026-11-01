@@ -92,21 +92,25 @@ describe('the session lock', () => {
     expect(await prisma.refreshToken.count({ where: { userId: user.id } })).toBe(0);
   }, 20_000);
 
-  it('a temporary password that expires between the check and the lock is refused at confirm', async () => {
-    const { id } = await createAccount({ mustChangePassword: true });
+  it(
+    'a temporary password that expires between the check and the lock is refused at confirm',
+    async () => {
+      const { id } = await createAccount({ mustChangePassword: true });
 
-    // The password matched while it was live; it expires before the lock is granted.
-    const response = await whileLocked(id, login, (tx) =>
-      tx.user.update({
-        where: { id },
-        data: { temporaryPasswordExpiresAt: new Date(Date.now() - 1_000) },
-      }),
-    );
+      // The password matched while it was live; it expires before the lock is granted.
+      const response = await whileLocked(id, login, (tx) =>
+        tx.user.update({
+          where: { id },
+          data: { temporaryPasswordExpiresAt: new Date(Date.now() - 1_000) },
+        }),
+      );
 
-    expect(response.status).toBe(403);
-    expect(response.body).toMatchObject({ error: { code: 'TEMPORARY_PASSWORD_EXPIRED' } });
-    expect(await prisma.refreshToken.count({ where: { userId: id } })).toBe(0);
-  });
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({ error: { code: 'TEMPORARY_PASSWORD_EXPIRED' } });
+      expect(await prisma.refreshToken.count({ where: { userId: id } })).toBe(0);
+    },
+    RACE_TIMEOUT_MS,
+  );
 
   it('keeps a refresh waiting on a revocation from renewing the session', async () => {
     const user = await createAccount();
