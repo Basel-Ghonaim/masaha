@@ -550,8 +550,9 @@ export function createApi({
     emailSender: createCappedEmailSender(email, { limiter, logger }),
     webOrigin,
     wait,
-    // Whether a person ever acted is the audit reader's (L5), a level above auth: passed in.
-    hasActed: (userId: number, tx: Tx) => auditLog.hasActed(userId, tx),
+    // Whether a person was created by someone else and never acted is the audit reader's (L5), a
+    // level above auth: passed in.
+    mustKeep: (userId: number, tx: Tx) => auditLog.mustKeep(userId, tx),
   });
 
   // The timed jobs (ADR 0014; conventions §12): each module closes its own stays.

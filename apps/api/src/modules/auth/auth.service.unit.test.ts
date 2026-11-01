@@ -94,7 +94,7 @@ function setup({ sent = true, account = sara, recovery = askable } = {}) {
     emailSender: email,
     webOrigin: 'https://masaha.example',
     wait: record('wait'),
-    hasActed: () => Promise.reject(new Error('not asked here')),
+    mustKeep: () => Promise.reject(new Error('not asked here')),
   });
   return { auth, calls };
 }

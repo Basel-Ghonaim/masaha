@@ -61,11 +61,13 @@ export function createAuditService({ now }: Dependencies) {
     },
 
     /**
-     * Whether the person ever acted on the platform (finding 91, S1): an audit entry with them as
-     * its actor, a favourite, or a data report they wrote. In the caller's transaction.
+     * Whether the person must keep their address (finding 91, S1): no one else created their
+     * account (no `user.created` entry names it), or they ever acted on the platform — an audit
+     * entry with them as its actor, a favourite, or a data report they wrote. In the caller's
+     * transaction.
      */
-    hasActed(userId: number, tx: Tx): Promise<boolean> {
-      return repository.hasActed(userId, tx);
+    mustKeep(userId: number, tx: Tx): Promise<boolean> {
+      return repository.mustKeep(userId, tx);
     },
   };
 }

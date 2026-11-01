@@ -10,8 +10,8 @@ import { prisma } from '../../db/index.ts';
 import type { GoogleIdentity } from './google.ts';
 
 // An expired pending account's address is freed when its holder creates an account (finding 91,
-// S1): only for an account that never acted and owns no space (docs/backend/security.md ›
-// Passwords).
+// S1): only for an account someone else created, that never acted and owns no space
+// (docs/backend/security.md › Passwords).
 const EMAIL = 'hala@gmail.com';
 const google: GoogleIdentity = {
   verify: (idToken) =>
@@ -32,8 +32,11 @@ beforeEach(async () => {
 
 const anHourAgo = () => new Date(Date.now() - 60 * 60_000);
 
-/** An account an owner created for the desk, whose temporary password expired unused. */
-function expiredPending(data: { temporaryPasswordExpiresAt?: Date } = {}) {
+/**
+ * An account whose temporary password expired unused: created by its holder, with no
+ * `user.created` entry naming it (a registration, then a password the admin issued).
+ */
+function expiredSelfMade(data: { temporaryPasswordExpiresAt?: Date } = {}) {
   return createAccount({
     email: EMAIL,
     name: 'Hala',
@@ -41,6 +44,19 @@ function expiredPending(data: { temporaryPasswordExpiresAt?: Date } = {}) {
     temporaryPasswordExpiresAt: anHourAgo(),
     ...data,
   });
+}
+
+/**
+ * An account someone else created (`user.created` naming it, as the admin's owner add writes it),
+ * whose temporary password expired unused.
+ */
+async function expiredPending(data: { temporaryPasswordExpiresAt?: Date } = {}) {
+  const admin = await createAccount({ email: 'admin@example.com', name: 'Admin', role: 'ADMIN' });
+  const account = await expiredSelfMade(data);
+  await prisma.auditLog.create({
+    data: { actorId: admin.id, action: 'user.created', entityType: 'user', entityId: account.id },
+  });
+  return account;
 }
 
 function register() {
@@ -121,6 +137,21 @@ describe('an expired pending account replaced by its address holder', () => {
   ])('an account that %s is not replaced', async (_case, footprint) => {
     const old = await expiredPending();
     await footprint(old.id);
+
+    const response = await register();
+
+    expect(response.status).toBe(409);
+    expect(errorOf(response).code).toBe('EMAIL_TAKEN');
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: old.id } })).toMatchObject({
+      email: EMAIL,
+      suspendedAt: null,
+    });
+    expect(await prisma.user.count({ where: { role: 'USER' } })).toBe(1);
+  });
+
+  it('a self-registered account whose admin-issued temporary password expired is not replaced', async () => {
+    // Registered by its holder, then recovered through the platform: no one else created it.
+    const old = await expiredSelfMade();
 
     const response = await register();
 

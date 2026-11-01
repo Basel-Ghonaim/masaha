@@ -86,10 +86,11 @@ interface Dependencies {
   /** The timer (conventions §11): resolves once `ms` have passed. */
   wait: (ms: number) => Promise<void>;
   /**
-   * Whether the person ever acted on the platform (`audit`'s read model, a level above): an
-   * account that did is never replaced (S1). A port, wired in the composition root.
+   * Whether the account must keep its address (`audit`'s read model, a level above): one its
+   * holder created themselves, or one that ever acted on the platform, is never replaced (S1). A
+   * port, wired in the composition root.
    */
-  hasActed: (userId: number, tx: Tx) => Promise<boolean>;
+  mustKeep: (userId: number, tx: Tx) => Promise<boolean>;
 }
 
 /**
@@ -107,7 +108,7 @@ export function createAuthService({
   emailSender,
   webOrigin,
   wait,
-  hasActed,
+  mustKeep,
 }: Dependencies) {
   const invalidResetLink = () =>
     AppError.badRequest('RESET_TOKEN_INVALID', 'Reset token invalid, expired or used');
@@ -173,7 +174,8 @@ export function createAuthService({
 
   /**
    * Frees an address its holder may lose (finding 91, S1), in the caller's transaction: an expired
-   * pending account (`users`' rule) that holds no active OWNER link and never acted. The space of
+   * pending account (`users`' rule) that someone else created, holds no active OWNER link and never
+   * acted. The space of
    * its reception link is locked first, then the account, which is checked again under the lock;
    * its reception link ends by the system, and it is retired. The account as it was, or nothing.
    */
@@ -181,7 +183,7 @@ export function createAuthService({
     const spaceId = await spaceLinks.lockReceptionSpaceOf(holderId, tx);
     const account = await users.lockReplaceable(holderId, tx);
     if (!account) return undefined;
-    if ((await spaceLinks.ownsASpace(holderId, tx)) || (await hasActed(holderId, tx))) {
+    if ((await spaceLinks.ownsASpace(holderId, tx)) || (await mustKeep(holderId, tx))) {
       return undefined;
     }
     if (spaceId !== null) await spaceLinks.endReceptionBySystem(spaceId, holderId, tx);
