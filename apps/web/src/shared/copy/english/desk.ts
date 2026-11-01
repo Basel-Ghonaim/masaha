@@ -202,6 +202,9 @@ export const DESK = {
       `Written off ${amount} · ${reason}`,
     by: ({ name, date }: { name: string; date: string }) => `Written off by ${name} on ${date}`,
     undo: 'Undo',
+    /** Each «Undo»'s name, by its visit, so a list of them reads apart. */
+    undoName: ({ name, day }: { name: string; day: string }) =>
+      `Undo writing off ${name}’s visit · ${day}`,
     none: 'No visit was written off.',
     loadFailed: 'We couldn’t load the written-off visits',
     pagination: {

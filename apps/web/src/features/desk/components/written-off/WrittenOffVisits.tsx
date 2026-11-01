@@ -61,6 +61,7 @@ function WrittenOffRow({
       <Button
         variant="outline"
         size="sm"
+        aria-label={row.undoName}
         disabled={undo.isPending}
         onClick={() => {
           undo.mutate(undefined, {

@@ -205,6 +205,8 @@ export const DESK = {
       `لن يُحصَّل ${amount} · ${reason}`,
     by: ({ name, date }: { name: string; date: string }) => `كتبها ${name} في ${date}`,
     undo: 'تراجع',
+    undoName: ({ name, day }: { name: string; day: string }) =>
+      `تراجع عن شطب زيارة ${name} · ${day}`,
     none: 'لا زيارات شُطبت.',
     loadFailed: 'تعذّر تحميل الزيارات المشطوبة',
     pagination: {

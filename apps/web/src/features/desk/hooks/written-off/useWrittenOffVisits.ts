@@ -57,22 +57,28 @@ export function useWrittenOffVisits(spaceId: number) {
   );
 
   const dateOf = (instant: string) => dayText(gazaClockOf(new Date(instant)).date, language);
-  const rows = (answer?.data ?? []).map(({ visit, writtenOffBy, writtenOffAgorot }) => ({
-    key: String(visit.id),
-    visitId: visit.id,
-    name: visit.customer?.name ?? visit.visitorName ?? '',
-    customerId: visit.customer?.id ?? null,
-    day: dateOf(visit.checkedOutAt ?? visit.checkedInAt),
-    line: words.line({
-      amount: isolate(priceText(writtenOffAgorot, language)),
-      reason: isolate(visit.writeOff?.reason ?? ''),
-    }),
-    by: words.by({
-      name: isolate(writtenOffBy.name),
-      date: dateOf(visit.writeOff?.at ?? visit.checkedInAt),
-    }),
-    undo: words.undo,
-  }));
+  const rows = (answer?.data ?? []).map(({ visit, writtenOffBy, writtenOffAgorot }) => {
+    const name = visit.customer?.name ?? visit.visitorName ?? '';
+    const day = dateOf(visit.checkedOutAt ?? visit.checkedInAt);
+    return {
+      key: String(visit.id),
+      visitId: visit.id,
+      name,
+      customerId: visit.customer?.id ?? null,
+      day,
+      line: words.line({
+        amount: isolate(priceText(writtenOffAgorot, language)),
+        reason: isolate(visit.writeOff?.reason ?? ''),
+      }),
+      by: words.by({
+        name: isolate(writtenOffBy.name),
+        date: dateOf(visit.writeOff?.at ?? visit.checkedInAt),
+      }),
+      undo: words.undo,
+      // Named by its visit, as the desk names a row's control by its person.
+      undoName: words.undoName({ name: isolate(name), day }),
+    };
+  });
   const total = answer?.meta.totalRecords ?? 0;
   const searchOf = (target: number) => {
     const next = new URLSearchParams(search);

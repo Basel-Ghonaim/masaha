@@ -80,9 +80,27 @@ describe('the owner’s written-off visits', () => {
     const row = name.closest('li') as HTMLElement;
     expect(within(row).getByText(heard('Written off ₪25 · Left the country'))).toBeVisible();
     expect(within(row).getByText(heard('Written off by Huda on 7 October'))).toBeVisible();
-    expect(within(row).getByRole('button', { name: 'Undo' })).toBeVisible();
+    // Named by its visit, so a list of them reads apart; «Undo» is what it shows.
+    const undo = within(row).getByRole('button', {
+      name: heard('Undo writing off Khalid Nasser’s visit · 6 October'),
+    });
+    expect(undo).toHaveTextContent('Undo');
     expect(screen.queryByText('Rami')).toBeNull();
     expect(await axe(document.body)).toHaveNoViolations();
+  });
+
+  it('names each «تراجع» by its visit in Arabic', async () => {
+    startPreferences('ar');
+    const user = userEvent.setup();
+    renderCard(lists([writtenOff()]));
+
+    await user.click(await screen.findByRole('radio', { name: 'لن تُحصَّل' }));
+
+    expect(
+      await screen.findByRole('button', {
+        name: heard('تراجع عن شطب زيارة Khalid Nasser · 6 أكتوبر'),
+      }),
+    ).toHaveTextContent('تراجع');
   });
 
   it('says none was written off', async () => {
@@ -106,7 +124,7 @@ describe('the owner’s written-off visits', () => {
     });
 
     await user.click(await screen.findByRole('radio', { name: 'Written off' }));
-    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    await user.click(await screen.findByRole('button', { name: /^Undo writing off/ }));
 
     await findToast('The visit is back in “Not collected”');
     expect(await screen.findByText('No visit was written off.')).toBeVisible();
@@ -127,7 +145,7 @@ describe('the owner’s written-off visits', () => {
     );
 
     await user.click(await screen.findByRole('radio', { name: 'Written off' }));
-    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    await user.click(await screen.findByRole('button', { name: /^Undo writing off/ }));
 
     await findToast('We couldn’t undo the write-off');
     expect(requests.filter((request) => request.method === 'delete')).toHaveLength(1);
