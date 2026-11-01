@@ -107,7 +107,9 @@ export function useDirectoryList(): DirectoryListView {
   const { setOpen } = panel.sheet;
   useEffect(() => {
     if (!openFilters) return;
-    if (wide) focusFilters();
+    // After the frame: arriving from another page, the shell's focus rule (`useMainFocus`, a
+    // parent's effect) runs after this one in the same commit and would take the focus to `main`.
+    if (wide) requestAnimationFrame(focusFilters);
     else setOpen(true);
     setParams(
       (current) => {

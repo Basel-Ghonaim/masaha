@@ -1,24 +1,73 @@
 import { establishSession, restoreSession } from '@shared/session';
 import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 import { reportsPage } from '../../../test/dataReport';
+import { stubScreenWidth } from '../../../test/screenWidth';
 import { aSession } from '../../../test/fakeSession';
 import { fakeTransport, ok, restoreTransport } from '../../../test/fakeTransport';
 import { queryWrapper } from '../../../test/queryWrapper';
 import { setSessionHint } from '../../../test/sessionHint';
 import { startPreferences } from '../../../test/startPreferences';
+import { warm } from '../../../test/warmLazy';
 import { siteRoutes } from '../routes';
 
-/** The site's routes at `path`, the user's reports answered with none, any other read with nothing. */
-function renderSiteAt(path: string) {
+// The lazy pages the favourites' «Choose your area» crosses, loaded once before any test waits
+// (src/test/warmLazy.ts).
+beforeAll(
+  () =>
+    warm(
+      () => import('../shell/SiteLayout'),
+      () => import('./FavoritesPage'),
+      () => import('../public/directory/DirectoryPage'),
+    ),
+  60_000,
+);
+
+/** An empty page of the directory, as the server answers it. */
+const NO_SPACES = {
+  status: 200,
+  data: {
+    success: true,
+    data: [],
+    meta: {
+      currentPage: 1,
+      limit: 20,
+      totalPages: 0,
+      totalRecords: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  },
+};
+
+/**
+ * The site's routes at `path`, the user's reports and favourites answered with none, the directory
+ * with no space, any other read with nothing.
+ */
+function renderSiteAt(path: string, favorites: unknown[] = []) {
   fakeTransport((request) =>
     request.url === '/me/reports'
       ? reportsPage([])
       : request.url === '/me/favorites'
-        ? ok([])
-        : ok(null),
+        ? ok(favorites)
+        : request.url === '/lookups'
+          ? ok({
+              governorates: [
+                {
+                  id: 2,
+                  nameAr: 'غزة',
+                  nameEn: 'Gaza City',
+                  areas: [{ id: 11, nameAr: 'الرمال', nameEn: 'Al-Rimal' }],
+                },
+              ],
+              amenities: [],
+            })
+          : request.url === '/spaces'
+            ? NO_SPACES
+            : ok(null),
   );
   const router = createMemoryRouter([{ HydrateFallback: () => null, children: siteRoutes }], {
     initialEntries: [path],
@@ -96,5 +145,32 @@ describe('AccountLayout', () => {
     ).toBeInTheDocument();
     expect(await screen.findByText('You haven’t saved any spaces yet')).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('«Choose your area» from the favourites focuses the place filter from 1024 px, past the shell’s rule', async () => {
+    stubScreenWidth(1440);
+    const user = userEvent.setup();
+    establishSession(aSession(), { source: 'signIn' });
+    const { router } = renderSiteAt('/me/favorites', [
+      {
+        listed: false,
+        savedAt: '2026-10-27T09:00:00.000Z',
+        space: { id: 9, nameEn: 'Old Hub', nameAr: null },
+      },
+    ]);
+
+    // No location here (jsdom has none): near me says so, with «Choose your area».
+    await user.click(await screen.findByRole('button', { name: 'Nearest to me' }));
+    await user.click(await screen.findByRole('button', { name: 'Choose your area' }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/spaces');
+    });
+    // The place filter, the filters' first control, has the focus, not the shell's main.
+    await waitFor(() => {
+      expect(document.getElementById('directory-filters-form')).toContainElement(
+        document.activeElement as HTMLElement,
+      );
+    });
   });
 });
