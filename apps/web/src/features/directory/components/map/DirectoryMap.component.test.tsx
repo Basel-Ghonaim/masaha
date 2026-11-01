@@ -128,6 +128,19 @@ describe('the directory’s map', () => {
     expect(mark).toHaveFocus();
   });
 
+  it('keeps «الفلاتر» on the row at 390: the search may shrink, the trigger never does', async () => {
+    renderDirectory('/spaces?view=map', 390);
+
+    const search = await screen.findByRole('searchbox');
+    const trigger = screen.getByRole('button', { name: /الفلاتر/ });
+    const field = search.closest('[data-slot="field"]') as HTMLElement;
+    const row = field.parentElement as HTMLElement;
+    expect(row).toContainElement(trigger);
+    // A flex item keeps its content's width unless told otherwise: the field would push it out.
+    expect(field).toHaveClass('min-w-0', 'flex-1');
+    expect(row.lastElementChild).toHaveClass('shrink-0');
+  });
+
   it('says how many spaces it shows, in the list’s words, beside «الأقرب إليّ»', async () => {
     renderDirectory('/spaces?view=map', 1440);
 

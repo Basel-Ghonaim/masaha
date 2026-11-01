@@ -44,7 +44,7 @@ function MapView({ slots }: { slots: DirectorySlots }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-row items-start gap-3">
         <DirectorySearch search={view.search} />
-        <div className="flex items-end gap-3">
+        <div className="flex shrink-0 items-end gap-3">
           <FiltersSheet sheet={filters.sheet}>
             <FiltersForm
               filters={filters}
