@@ -10,7 +10,7 @@ import { nextSearch } from './nextSearch';
  * The forgotten password: the recovery's card, with the site's ways out: back to sign in (carrying
  * `next`), the contact for someone who cannot reach their email — the platform's WhatsApp when the
  * admin set one (foundation §13 #7), else the about page's contact — and on to the new password once
- * a link is open.
+ * a link is open (carrying `next` too).
  */
 export function ForgotPasswordPage() {
   const copy = useCopy();
@@ -42,7 +42,7 @@ export function ForgotPasswordPage() {
       }
       resetPasswordLink={
         <Button asChild className="w-full">
-          <Link to={SITE_PATHS.resetPassword}>{words.continue}</Link>
+          <Link to={`${SITE_PATHS.resetPassword}${nextSearch(search)}`}>{words.continue}</Link>
         </Button>
       }
     />

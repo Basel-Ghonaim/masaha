@@ -85,6 +85,37 @@ describe('the reset password page', () => {
     expect(screen.queryByRole('link', { name: 'Back to sign in' })).not.toBeInTheDocument();
   });
 
+  it('carries the return page to sign in, before and after the password is set', async () => {
+    renderSite('/reset-password?next=%2Fspaces%2Fnoor-hub#token=link-token', (config) =>
+      config.method === 'get' ? ok(PASSWORD) : { status: 204 },
+    );
+    const user = userEvent.setup();
+    const main = within(await screen.findByRole('main'));
+
+    await main.findByLabelText('New password');
+    expect(main.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
+      'href',
+      '/login?next=%2Fspaces%2Fnoor-hub',
+    );
+    await user.type(main.getByLabelText('New password'), 'gaza2026x');
+    await user.click(main.getByRole('button', { name: 'Save password' }));
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute(
+      'href',
+      '/login?next=%2Fspaces%2Fnoor-hub',
+    );
+  });
+
+  it('carries the return page to a new link when this one can no longer be used', async () => {
+    renderSite('/reset-password?next=%2Fabout#token=used', () =>
+      refused(400, { type: 'bad_request', code: 'RESET_TOKEN_INVALID' }),
+    );
+
+    expect(await screen.findByRole('link', { name: 'Request a new link' })).toHaveAttribute(
+      'href',
+      '/forgot-password?next=%2Fabout',
+    );
+  });
+
   it('offers the way back to sign in until the password is set', async () => {
     renderSite('/reset-password#token=link-token', () => ok(PASSWORD));
     const main = within(await screen.findByRole('main'));

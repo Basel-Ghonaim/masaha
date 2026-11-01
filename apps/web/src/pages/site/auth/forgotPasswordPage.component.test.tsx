@@ -102,6 +102,24 @@ describe('the forgot password page', () => {
     );
   });
 
+  it('carries the return page on to the new password', async () => {
+    renderSite('/forgot-password?next=%2Fspaces%2Fnoor-hub', {
+      step: 'password',
+      email: MASKED_EMAIL,
+    });
+    expect(await screen.findByRole('link', { name: 'Set a new password' })).toHaveAttribute(
+      'href',
+      '/reset-password?next=%2Fspaces%2Fnoor-hub',
+    );
+  });
+
+  it('drops a return page that leaves the site', async () => {
+    renderSite('/forgot-password?next=%2F%2Fevil.example');
+    expect(
+      await within(await screen.findByRole('main')).findByRole('link', { name: 'Back to sign in' }),
+    ).toHaveAttribute('href', '/login');
+  });
+
   it('links on to the new password once a link is open in this browser', async () => {
     renderSite('/forgot-password', { step: 'password', email: MASKED_EMAIL });
 
