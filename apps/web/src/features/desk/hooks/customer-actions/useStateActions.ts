@@ -72,6 +72,7 @@ export function useStateActions({
         : {
             kind: 'VISIT',
             id: present.id,
+            customerId,
             name,
             since: present.since,
             audience: 'GENERAL',

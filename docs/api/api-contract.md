@@ -372,7 +372,7 @@ A space's state now, as its staff see it: who is present (the open visits plus t
 ```ts
 LiveStatus = 'AVAILABLE' | 'FULL' | 'CLOSED'
 PresentPerson =
-  | { kind: 'VISIT', id, name, audience: 'GENERAL' | 'STUDENT', since, chargeNowAgorot: number | null }  // name: the visitor's, or their customer's; audience: whose rates (2026-10-29, #132); the charge so far (up to its due time), null with no rate
+  | { kind: 'VISIT', id, customerId: number | null, name, audience: 'GENERAL' | 'STUDENT', since, chargeNowAgorot: number | null }  // customerId: the customer whose visit it is, null for a visit by name (2026-11-01, #132); name: the visitor's, or their customer's; audience: whose rates (2026-10-29, #132); the charge so far (up to its due time), null with no rate
   | { kind: 'CHECK_IN', id, customerId, name, since }  // name: the customer's; since: the check-in time
 SpaceOccupancyNow = {
   status: LiveStatus | null,                    // null: unverified, no opening hours, or open with no capacity

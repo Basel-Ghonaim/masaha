@@ -55,7 +55,7 @@ export function usePresentList(
       key: `${person.kind}-${String(person.id)}`,
       person,
       name: person.name,
-      customerId: person.kind === 'CHECK_IN' ? person.customerId : null,
+      customerId: person.customerId,
       kind: kindOf(person),
       time,
       since: words.since({ time }),

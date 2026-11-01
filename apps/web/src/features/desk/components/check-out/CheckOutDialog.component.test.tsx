@@ -13,6 +13,7 @@ import { CheckOutDialog } from './CheckOutDialog';
 const OMAR: Extract<PresentPerson, { kind: 'VISIT' }> = {
   kind: 'VISIT',
   id: 12,
+  customerId: null,
   name: 'Omar',
   audience: 'GENERAL',
   since: '2026-07-01T07:00:00.000Z',

@@ -1,12 +1,17 @@
 import { createQueryClient } from '@shared/api';
 import { Toaster, toast } from '@shared/design-system';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FakeAnswer } from '../../../../test/fakeAdapter';
-import { checkedOut, subscriptionState } from '../../../../test/deskCustomer';
+import {
+  checkedOut,
+  customerRow,
+  customersPage,
+  subscriptionState,
+} from '../../../../test/deskCustomer';
 import { uncollectedPage, uncollectedVisit, visitTerms } from '../../../../test/deskVisit';
 import { findToast } from '../../../../test/findToast';
 import { fakeTransport, ok, restoreTransport } from '../../../../test/fakeTransport';
@@ -28,12 +33,14 @@ type Answers = {
   occupancy?: () => FakeAnswer;
   uncollected?: () => FakeAnswer;
   checkOut?: () => FakeAnswer;
+  customers?: () => FakeAnswer;
 };
 
 function renderDesk({
   occupancy = () => ok(NO_ONE_PRESENT),
   uncollected = () => uncollectedPage([uncollectedVisit()]),
   checkOut = () => ok(checkedOut(4000)),
+  customers = () => customersPage([]),
 }: Answers = {}) {
   const requests = fakeTransport((request) => {
     const url = request.url ?? '';
@@ -42,6 +49,7 @@ function renderDesk({
     if (url.endsWith('/uncollected-visits')) return uncollected();
     if (url.endsWith('/visit-terms')) return ok(visitTerms());
     if (url.endsWith('/check-ins')) return ok([]);
+    if (url.endsWith('/customers')) return customers();
     return ok({ id: 7, hours: null });
   });
   // The top bar's place, where the page puts «تسجيل زيارة» from 768 px.
@@ -106,6 +114,48 @@ afterEach(() => {
 });
 
 describe('DeskPage', () => {
+  it('holds a customer here on their visit present: in the first group, linked to their file, no card', async () => {
+    stubScreenWidth(1440);
+    const user = userEvent.setup();
+    renderDesk({
+      occupancy: () =>
+        ok({
+          ...NO_ONE_PRESENT,
+          present: 1,
+          people: [
+            {
+              kind: 'VISIT',
+              id: 9,
+              customerId: 4,
+              name: 'Sara Khalid',
+              audience: 'GENERAL',
+              since: '2026-10-25T07:00:00.000Z',
+              chargeNowAgorot: null,
+            },
+          ],
+        }),
+      customers: () => customersPage([customerRow({ id: 4, name: 'Sara Khalid' })]),
+    });
+
+    // «Present now» links her name to her file.
+    const list = await screen.findByRole('table', { name: 'People present' });
+    expect(await within(list).findByRole('link', { name: 'Sara Khalid' })).toHaveAttribute(
+      'href',
+      '/dashboard/spaces/7/customers/4',
+    );
+    await user.type(screen.getByRole('searchbox'), 'Sara');
+
+    // The search's «Here now» holds her, as a link; no card says she is not here.
+    const here = await screen.findByRole('region', { name: 'Here now' });
+    expect(within(here).getByRole('link', { name: 'Sara Khalid' })).toHaveAttribute(
+      'href',
+      '/dashboard/spaces/7/customers/4',
+    );
+    expect(await screen.findByText('1 result')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 3, name: 'Sara Khalid' })).toBeNull();
+    expect(screen.queryByText('Not here')).toBeNull();
+  });
+
   it('puts the uncollected card before who is here, and hides it below xl when empty', async () => {
     const { unmount } = renderDesk();
     const uncollected = await screen.findByRole('region', { name: '1 visit not collected' });

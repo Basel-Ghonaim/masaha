@@ -12,6 +12,7 @@ const SARA: PresentPerson = {
 const OMAR: PresentPerson = {
   kind: 'VISIT',
   id: 12,
+  customerId: null,
   name: 'Omar Haddad',
   audience: 'GENERAL',
   since: '2026-07-01T07:00:00.000Z',

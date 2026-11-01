@@ -93,6 +93,7 @@ export function createOccupancyService({
       ...openVisits.map(({ id, visitorName, customerId, audience, checkedInAt }) => ({
         kind: 'VISIT' as const,
         id,
+        customerId,
         name: visitorName ?? (customerId === null ? '' : (names.get(customerId) ?? '')),
         audience,
         since: checkedInAt.toISOString(),

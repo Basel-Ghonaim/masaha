@@ -19,6 +19,7 @@ const NOW: SpaceOccupancyNow = {
     {
       kind: 'VISIT',
       id: 12,
+      customerId: null,
       name: 'Omar',
       audience: 'GENERAL',
       since: '2026-07-01T07:00:00.000Z',
@@ -28,6 +29,7 @@ const NOW: SpaceOccupancyNow = {
     {
       kind: 'VISIT',
       id: 13,
+      customerId: null,
       name: 'Layla',
       audience: 'GENERAL',
       since: '2026-07-01T09:00:00.000Z',

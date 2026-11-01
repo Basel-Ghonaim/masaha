@@ -143,8 +143,9 @@ function Desk({ spaceId }: { spaceId: number }) {
   const present = useMemo(() => {
     const everyone = people ?? [];
     return {
+      // A subscriber checked in, or a customer here on their visit (finding 160).
       customerIds: new Set(
-        everyone.flatMap((person) => (person.kind === 'CHECK_IN' ? [person.customerId] : [])),
+        everyone.flatMap(({ customerId }) => (customerId === null ? [] : [customerId])),
       ),
       matches: (term: string) =>
         everyone.filter((person) => matchesPerson(person, term, phones)).length,
